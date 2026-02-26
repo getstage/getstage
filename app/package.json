@@ -6,12 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build:testing": "vite build --mode testing",
-    "build:production": "vite build --mode production",
+    "build:testing": "tsc -b && vite build --mode testing",
+    "build:production": "tsc -b && vite build --mode production",
     "preview": "vite preview",
-    "stage:deploy": "pnpm build:testing && wrangler deploy -e testing",
-    "production:deploy": "pnpm build:production && wrangler deploy -e production",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "stage:deploy": "pnpm run build:testing && npx wrangler deploy -e testing",
+    "stage:upload": "pnpm run build:testing && npx wrangler versions upload -e testing",
+    "production:deploy": "pnpm run build:production && npx wrangler deploy -e production",
+    "production:upload": "pnpm run build:production && npx wrangler versions upload -e production",
+    "cf:typegen": "npx wrangler types --env-interface CloudflareEnv worker-env.d.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.7",
