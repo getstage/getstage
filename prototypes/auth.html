@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stage — Welcome</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-bg: #FFFFFF;
+      --color-text-primary: #1A1A2E;
+      --color-text-secondary: #8C8C8C;
+      --color-text-tertiary: #BFBFBF;
+      --color-border: #E8E8E8;
+      --color-border-subtle: #F0F0F0;
+      --color-input-bg: #F5F5F5;
+      --color-accent-purple: #8782F5;
+      --color-accent-purple-hover: #7670E0;
+      --color-destructive: #E07070;
+      --color-success: #6BC9A0;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      width: 1440px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 300ms ease;
+    }
+    body.onboarding { background: #FAFAFA; }
+
+    .sf { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif; }
+
+    /* ===== SCREEN ===== */
+    .screen { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; }
+    .screen-inner { width: 100%; transition: opacity 200ms ease, transform 200ms ease; }
+    .screen-inner.fading { opacity: 0; transform: translateY(8px); }
+
+    /* ===== LOGO ===== */
+    .auth-logo { height: 24px; width: auto; display: block; margin: 0 auto 32px; }
+
+    /* ===== TYPOGRAPHY ===== */
+    .auth-tagline { font-size: 16px; color: var(--color-text-secondary); text-align: center; line-height: 1.5; margin-bottom: 40px; }
+    .auth-headline { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif; font-weight: 600; font-size: 24px; color: var(--color-text-primary); text-align: center; letter-spacing: -0.4px; margin-bottom: 8px; }
+    .auth-subtitle { font-size: 15px; color: var(--color-text-secondary); text-align: center; line-height: 1.5; margin-bottom: 32px; }
+    .auth-subtitle .email-hl { color: var(--color-text-primary); font-weight: 500; }
+
+    /* ===== INPUT ===== */
+    .auth-input { width: 100%; padding: 14px 16px; font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--color-text-primary); background: var(--color-input-bg); border: 1px solid transparent; border-radius: 10px; outline: none; transition: all 200ms; }
+    .auth-input:focus { border-color: var(--color-border); background: var(--color-bg); }
+    .auth-input::placeholder { color: var(--color-text-tertiary); }
+    .auth-input.error { border-color: var(--color-destructive); }
+
+    /* ===== BUTTON ===== */
+    .auth-btn { width: 100%; padding: 14px; font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 15px; color: #fff; background: var(--color-text-primary); border: none; border-radius: 10px; cursor: pointer; transition: opacity 150ms; }
+    .auth-btn:hover { opacity: 0.85; }
+    .auth-btn:disabled { opacity: 0.25; cursor: default; }
+    .auth-btn:disabled:hover { opacity: 0.25; }
+
+    /* ===== DIVIDER ===== */
+    .auth-divider { display: flex; align-items: center; gap: 12px; margin: 16px 0; }
+    .auth-divider-line { flex: 1; height: 1px; background: var(--color-border); }
+    .auth-divider-text { font-size: 12px; color: var(--color-text-secondary); }
+
+    /* ===== GOOGLE BUTTON ===== */
+    .google-btn { width: 100%; padding: 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--color-text-primary); background: #fff; border: 1px solid var(--color-border); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background 150ms; margin-bottom: 16px; }
+    .google-btn:hover { background: var(--color-input-bg); }
+    .google-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+    /* ===== ERROR ===== */
+    .auth-error { font-size: 13px; color: var(--color-destructive); text-align: center; margin-bottom: 12px; min-height: 18px; }
+
+    /* ===== CODE BOXES ===== */
+    .code-boxes { display: flex; gap: 10px; justify-content: center; margin-bottom: 16px; }
+    .code-box { width: 52px; height: 60px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif; font-weight: 500; font-size: 24px; color: var(--color-text-primary); text-align: center; background: var(--color-input-bg); border: 1px solid transparent; border-radius: 10px; outline: none; transition: all 200ms; caret-color: var(--color-accent-purple); }
+    .code-box:focus { border-color: var(--color-accent-purple); background: var(--color-bg); }
+    .code-box.filled { border-color: var(--color-border); background: var(--color-bg); }
+    .code-box.error { border-color: var(--color-destructive); }
+    @keyframes codeShake { 0%,100%{transform:translateX(0)} 15%{transform:translateX(-4px)} 30%{transform:translateX(4px)} 45%{transform:translateX(-3px)} 60%{transform:translateX(3px)} 75%{transform:translateX(-1px)} 90%{transform:translateX(1px)} }
+    .code-boxes.shake { animation: codeShake 400ms ease; }
+
+    /* ===== RESEND ===== */
+    .resend-row { text-align: center; font-size: 13px; color: var(--color-text-secondary); margin-top: 8px; }
+    .resend-link { color: var(--color-accent-purple); cursor: pointer; font-weight: 500; background: none; border: none; font-family: 'DM Sans', sans-serif; font-size: 13px; transition: color 150ms; }
+    .resend-link:hover { color: var(--color-accent-purple-hover); }
+    .resend-link:disabled { color: var(--color-text-tertiary); cursor: default; }
+    .resend-sent { color: var(--color-success); font-weight: 500; }
+
+    /* ===== ONBOARD LABEL ===== */
+    .ob-group { margin-bottom: 20px; width: 100%; }
+    .ob-label { display: block; font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 6px; }
+
+    /* ===== ROLE PILLS ===== */
+    .role-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+    .role-pill { padding: 10px 20px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; color: var(--color-text-primary); background: var(--color-input-bg); border: 1.5px solid transparent; border-radius: 999px; cursor: pointer; transition: all 150ms; }
+    .role-pill:hover { background: #EFEFEF; }
+    .role-pill.selected { border-color: var(--color-accent-purple); background: rgba(135,130,245,0.08); color: var(--color-accent-purple); }
+
+    /* ===== SERVICE PILLS ===== */
+    .service-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+    .service-pill { padding: 10px 20px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--color-text-primary); background: #fff; border: 1px solid var(--color-border); border-radius: 20px; cursor: pointer; transition: all 150ms; }
+    .service-pill:hover { background: var(--color-input-bg); }
+    .service-pill.selected { background: var(--color-accent-purple); color: #fff; border-color: var(--color-accent-purple); }
+
+    /* ===== AVATAR UPLOAD ===== */
+    .avatar-upload { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+    .avatar-circle { width: 48px; height: 48px; border-radius: 50%; background: var(--color-input-bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; position: relative; }
+    .avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+    .avatar-circle svg { color: var(--color-text-tertiary); }
+    .avatar-remove { position: absolute; top: -4px; right: -4px; width: 18px; height: 18px; border-radius: 50%; background: var(--color-text-secondary); color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #fff; line-height: 1; transition: background 150ms; }
+    .avatar-remove:hover { background: var(--color-text-primary); }
+    .avatar-actions { display: flex; flex-direction: column; gap: 4px; }
+    .avatar-link { font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--color-text-secondary); background: none; border: none; cursor: pointer; padding: 0; text-align: left; transition: color 150ms; }
+    .avatar-link:hover { color: var(--color-accent-purple); }
+    .avatar-url-row { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+    .avatar-url-input { flex: 1; padding: 6px 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--color-text-primary); background: var(--color-input-bg); border: 1px solid transparent; border-radius: 6px; outline: none; transition: all 200ms; }
+    .avatar-url-input:focus { border-color: var(--color-border); background: var(--color-bg); }
+    .avatar-url-input::placeholder { color: var(--color-text-tertiary); }
+    .avatar-fetch { padding: 6px 12px; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; color: var(--color-accent-purple); background: rgba(135,130,245,0.08); border: 1px solid rgba(135,130,245,0.2); border-radius: 6px; cursor: pointer; transition: all 150ms; white-space: nowrap; }
+    .avatar-fetch:hover { background: rgba(135,130,245,0.15); }
+
+    /* ===== TYPE PILLS ===== */
+    .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 28px; }
+    .type-pill { padding: 12px 16px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; color: var(--color-text-primary); background: var(--color-input-bg); border: 1.5px solid transparent; border-radius: 10px; cursor: pointer; transition: all 150ms; text-align: center; }
+    .type-pill:hover { background: #EFEFEF; }
+    .type-pill.selected { border-color: var(--color-accent-purple); background: rgba(135,130,245,0.08); color: var(--color-accent-purple); }
+
+    /* ===== OPTION CARDS ===== */
+    .option-cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .option-card { padding: 18px 20px; background: var(--color-input-bg); border: 1.5px solid transparent; border-radius: 12px; cursor: pointer; transition: all 200ms; }
+    .option-card:hover { background: #EFEFEF; }
+    .option-card.selected { border-color: var(--color-accent-purple); background: rgba(135,130,245,0.08); }
+    .option-card-title { font-weight: 500; font-size: 15px; color: var(--color-text-primary); margin-bottom: 4px; }
+    .option-card.selected .option-card-title { color: var(--color-accent-purple); }
+    .option-card-desc { font-size: 13px; color: var(--color-text-secondary); line-height: 1.4; }
+
+    /* ===== PHASE LIST ===== */
+    .phase-list { margin-bottom: 12px; position: relative; }
+    .phase-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px 0;
+      border-bottom: 1px solid var(--color-border-subtle);
+      position: relative; background: transparent;
+      transition: transform 200ms ease, box-shadow 200ms ease;
+      user-select: none;
+    }
+    .phase-item:last-child { border-bottom: none; }
+    .phase-item.dragging {
+      z-index: 10; background: #fff; border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-bottom-color: transparent;
+      transform: scale(1.02);
+    }
+    .phase-item.drag-above { transform: translateY(-100%); }
+    .phase-item.drag-below { transform: translateY(100%); }
+    .drag-handle { width: 16px; display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--color-text-tertiary); cursor: grab; flex-shrink: 0; padding: 4px 0; }
+    .drag-handle:active { cursor: grabbing; }
+    .drag-handle span { display: block; width: 12px; height: 1.5px; background: currentColor; border-radius: 1px; }
+    .phase-name { flex: 1; font-size: 14px; color: var(--color-text-primary); }
+    .phase-name.disabled { color: var(--color-text-tertiary); }
+    .phase-input {
+      flex: 1; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 400;
+      color: var(--color-text-primary); background: transparent; border: 1px solid var(--color-accent-purple);
+      border-radius: 6px; padding: 4px 8px; margin: -4px 0; outline: none;
+    }
+    .phase-input::placeholder { color: var(--color-text-tertiary); }
+    .toggle { width: 36px; height: 20px; border-radius: 10px; background: #D9D9D9; position: relative; cursor: pointer; transition: background 200ms; flex-shrink: 0; }
+    .toggle.active { background: var(--color-accent-purple); }
+    .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left 200ms; }
+    .toggle.active::after { left: 18px; }
+    .add-phase { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 500; color: var(--color-accent-purple); cursor: pointer; margin-bottom: 28px; transition: color 150ms; }
+    .add-phase:hover { color: var(--color-accent-purple-hover); }
+
+    /* ===== DATE ROW ===== */
+    .date-row { display: flex; gap: 12px; margin-bottom: 28px; }
+    .date-group { flex: 1; }
+    .date-input { width: 100%; padding: 12px 14px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--color-text-primary); background: var(--color-input-bg); border: 1px solid transparent; border-radius: 10px; outline: none; transition: all 200ms; }
+    .date-input:focus { border-color: var(--color-border); background: var(--color-bg); }
+
+    /* ===== ROADMAP ===== */
+    .roadmap { margin-bottom: 28px; }
+    .roadmap-row { display: flex; align-items: center; gap: 14px; }
+    .roadmap-left { display: flex; flex-direction: column; align-items: center; width: 18px; flex-shrink: 0; }
+    .roadmap-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--color-accent-purple); flex-shrink: 0; }
+    .roadmap-line { width: 1px; height: 24px; background: var(--color-border); flex-shrink: 0; }
+    .roadmap-right { display: flex; align-items: center; justify-content: space-between; flex: 1; padding: 6px 0; }
+    .roadmap-name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+    .roadmap-tasks { font-size: 13px; color: var(--color-text-secondary); }
+
+    /* ===== GENERATING ===== */
+    .generating { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 0; gap: 20px; }
+    .gen-dots { display: flex; gap: 6px; }
+    .gen-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-accent-purple); animation: genPulse 1.2s ease-in-out infinite; }
+    .gen-dot:nth-child(2) { animation-delay: 0.2s; }
+    .gen-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes genPulse { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1)} }
+    .gen-text { font-size: 15px; color: var(--color-text-secondary); }
+
+    /* ===== STEP DOTS ===== */
+    .step-dots { display: flex; gap: 6px; justify-content: center; margin-top: 24px; }
+    .step-dot { width: 6px; height: 6px; border-radius: 50%; background: #D9D9D9; transition: all 250ms; }
+    .step-dot.active { background: var(--color-accent-purple); width: 20px; border-radius: 3px; }
+    .step-dot.done { background: var(--color-accent-purple); }
+
+    /* ===== BACK ===== */
+    .auth-back { display: inline-flex; align-items: center; gap: 4px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--color-text-secondary); background: none; border: none; cursor: pointer; margin-top: 16px; transition: color 150ms; }
+    .auth-back:hover { color: var(--color-text-primary); }
+    .auth-back svg { width: 12px; height: 12px; }
+
+    /* ===== SUCCESS ===== */
+    .success-icon { width: 64px; height: 64px; border-radius: 50%; background: rgba(135,130,245,0.08); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; animation: successPop 400ms ease-out; }
+    .success-icon svg { width: 30px; height: 30px; color: var(--color-accent-purple); }
+    @keyframes successPop { 0%{transform:scale(0);opacity:0} 60%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
+    .success-text { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif; font-weight: 600; font-size: 22px; color: var(--color-text-primary); letter-spacing: -0.3px; text-align: center; margin-bottom: 4px; }
+    .success-sub { font-size: 14px; color: var(--color-text-secondary); text-align: center; margin-bottom: 28px; }
+
+    @media (max-width: 1440px) { body { width: 100%; min-width: 1280px; } }
+  </style>
+</head>
+<body>
+
+  <div class="screen">
+    <div class="screen-inner" id="screenInner"></div>
+  </div>
+
+  <script>
+    let currentStep = 'email';
+    const backArrow = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 3 5 8 10 13"/></svg>';
+    const userSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    const googleSvg = '<svg viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 2.58 9 2.58z" fill="#EA4335"/></svg>';
+
+    const now = new Date();
+    const in30 = new Date(now); in30.setDate(in30.getDate() + 30);
+
+    let D = {
+      email: '', code: '', fullName: '', role: null, services: [],
+      clientName: '', clientAvatar: null, projectType: null, method: null,
+      phases: [
+        { name: 'Discovery', on: true }, { name: 'Strategy', on: true },
+        { name: 'Design', on: true }, { name: 'Development', on: true }, { name: 'Launch', on: true },
+      ],
+      startDate: now.toISOString().split('T')[0],
+      endDate: in30.toISOString().split('T')[0],
+    };
+
+    const aiRoadmaps = {
+      'Branding':       [{n:'Research',t:4},{n:'Strategy',t:3},{n:'Identity',t:5},{n:'Guidelines',t:4},{n:'Delivery',t:3}],
+      'Web Design':     [{n:'Strategy',t:3},{n:'Research',t:4},{n:'Design',t:6},{n:'Development',t:5},{n:'Launch',t:3}],
+      'Product Design': [{n:'Discovery',t:4},{n:'Research',t:5},{n:'Design',t:6},{n:'Prototyping',t:4},{n:'Validation',t:3}],
+      'App Design':     [{n:'Research',t:3},{n:'Architecture',t:4},{n:'Design',t:6},{n:'Development',t:5},{n:'Testing',t:4}],
+      'Packaging':      [{n:'Brief',t:3},{n:'Research',t:4},{n:'Concept',t:5},{n:'Refinement',t:4},{n:'Production',t:3}],
+      'Motion Design':  [{n:'Brief',t:3},{n:'Storyboard',t:4},{n:'Design',t:5},{n:'Animation',t:6},{n:'Delivery',t:3}],
+      'Illustration':   [{n:'Brief',t:3},{n:'Sketching',t:4},{n:'Refinement',t:5},{n:'Final Art',t:4},{n:'Delivery',t:3}],
+      'Other':          [{n:'Planning',t:3},{n:'Research',t:4},{n:'Execution',t:5},{n:'Review',t:3},{n:'Delivery',t:3}],
+    };
+
+    const container = document.getElementById('screenInner');
+    const onboardStepIds = ['nameRole','services','client','projectType','method'];
+
+    function getSteps() {
+      const base = [...onboardStepIds];
+      if (D.method === 'manual') base.push('phases', 'timelineManual', 'review');
+      else base.push('timelineAI', 'review');
+      return base;
+    }
+
+    function dotsHtml() {
+      const steps = getSteps();
+      const idx = steps.indexOf(currentStep);
+      if (idx === -1) return '';
+      return '<div class="step-dots">' + steps.map((s, i) => {
+        let c = 'step-dot';
+        if (i < idx) c += ' done';
+        if (i === idx) c += ' active';
+        return '<div class="' + c + '"></div>';
+      }).join('') + '</div>';
+    }
+
+    function goTo(step) {
+      const ob = ['nameRole','services','client','projectType','method','timelineAI','phases','timelineManual','review','ready'];
+      if (ob.includes(step)) document.body.classList.add('onboarding');
+      else document.body.classList.remove('onboarding');
+      container.classList.add('fading');
+      setTimeout(() => { currentStep = step; render(); container.classList.remove('fading'); }, 200);
+    }
+
+    function render() {
+      switch (currentStep) {
+        case 'email': return rEmail();
+        case 'code': return rCode();
+        case 'nameRole': return rNameRole();
+        case 'services': return rServices();
+        case 'client': return rClient();
+        case 'projectType': return rType();
+        case 'method': return rMethod();
+        case 'timelineAI': return rTimelineAI();
+        case 'phases': return rPhases();
+        case 'timelineManual': return rTimelineManual();
+        case 'review': return rReview();
+        case 'ready': return rReady();
+      }
+    }
+
+    // ===== 1. EMAIL =====
+    function rEmail() {
+      container.innerHTML = `
+        <img src="FULaL LOGO - Light mode.png" alt="Stage" class="auth-logo">
+        <div class="auth-tagline">Track your creative projects with clarity</div>
+        <input class="auth-input" id="emailIn" type="email" placeholder="Your email address" value="${D.email}" autocomplete="email">
+        <div class="auth-error" id="emailErr"></div>
+        <div class="auth-divider"><span class="auth-divider-line"></span><span class="auth-divider-text">or</span><span class="auth-divider-line"></span></div>
+        <button class="google-btn" id="googleBtn">${googleSvg} Continue with Google</button>
+        <button class="auth-btn" id="emailBtn" disabled>Continue</button>
+      `;
+      const inp = document.getElementById('emailIn'), btn = document.getElementById('emailBtn'), err = document.getElementById('emailErr');
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      inp.addEventListener('input', () => { D.email = inp.value.trim(); btn.disabled = !re.test(D.email); err.textContent = ''; inp.classList.remove('error'); });
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !btn.disabled) submitEmail(); });
+      btn.addEventListener('click', submitEmail);
+      function submitEmail() {
+        if (!re.test(D.email)) { err.textContent = 'Please enter a valid email address.'; inp.classList.add('error'); return; }
+        btn.textContent = 'Sending code...'; btn.style.opacity = '0.6'; btn.style.pointerEvents = 'none';
+        setTimeout(() => goTo('code'), 1200);
+      }
+      document.getElementById('googleBtn').addEventListener('click', () => {
+        const gb = document.getElementById('googleBtn');
+        gb.innerHTML = googleSvg + ' Connecting...'; gb.style.opacity = '0.6'; gb.style.pointerEvents = 'none';
+        D.email = 'sam@stage.design';
+        setTimeout(() => goTo('nameRole'), 1200);
+      });
+      setTimeout(() => inp.focus(), 250);
+    }
+
+    // ===== 2. CODE =====
+    function rCode() {
+      container.innerHTML = `
+        <img src="FULaL LOGO - Light mode.png" alt="Stage" class="auth-logo">
+        <div class="auth-headline sf">Check your email</div>
+        <div class="auth-subtitle">We sent a code to <span class="email-hl">${D.email}</span></div>
+        <div class="code-boxes" id="codeBoxes">${[0,1,2,3,4,5].map(i => `<input class="code-box" type="text" maxlength="1" inputmode="numeric" data-idx="${i}">`).join('')}</div>
+        <div class="auth-error" id="codeErr"></div>
+        <div class="resend-row" id="resendRow">Didn't receive a code? <button class="resend-link" id="resendBtn">Resend</button></div>
+        <button class="auth-back" id="codeBack">${backArrow} Back</button>
+      `;
+      const boxes = [...document.querySelectorAll('.code-box')], codeWrap = document.getElementById('codeBoxes'), err = document.getElementById('codeErr');
+      setTimeout(() => boxes[0].focus(), 250);
+      boxes.forEach((b, i) => {
+        b.addEventListener('input', () => { const v = b.value.replace(/\D/g,''); b.value = v.slice(-1); if (v && i < 5) boxes[i+1].focus(); b.classList.toggle('filled', !!b.value); checkCode(); });
+        b.addEventListener('keydown', (e) => { if (e.key === 'Backspace' && !b.value && i > 0) { boxes[i-1].focus(); boxes[i-1].value = ''; boxes[i-1].classList.remove('filled'); } });
+        b.addEventListener('paste', (e) => { e.preventDefault(); const p = (e.clipboardData.getData('text')||'').replace(/\D/g,'').slice(0,6); p.split('').forEach((c,j)=>{if(boxes[j]){boxes[j].value=c;boxes[j].classList.add('filled');}}); if(p.length>0)boxes[Math.min(p.length,5)].focus(); checkCode(); });
+      });
+      function checkCode() { const c = boxes.map(b=>b.value).join(''); if(c.length===6){boxes.forEach(b=>b.disabled=true); setTimeout(()=>verify(c),400);} }
+      function verify(code) {
+        if (code === '000000') {
+          err.textContent = 'Incorrect code. Please try again.'; codeWrap.classList.add('shake');
+          boxes.forEach(b => { b.classList.add('error'); b.disabled = false; });
+          setTimeout(() => { codeWrap.classList.remove('shake'); boxes.forEach(b=>{b.value='';b.classList.remove('filled','error');}); boxes[0].focus(); err.textContent=''; }, 800);
+        } else { goTo('nameRole'); }
+      }
+      let cd = 0, timer = null;
+      const resendRow = document.getElementById('resendRow');
+      function bindResend() {
+        const btn = document.getElementById('resendBtn');
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+          resendRow.innerHTML = 'Didn\'t receive a code? <span class="resend-sent">Code sent!</span>';
+          cd = 30; setTimeout(() => runCooldown(), 2500);
+        });
+      }
+      function runCooldown() {
+        resendRow.innerHTML = 'Resend in <strong>' + cd + 's</strong>';
+        timer = setInterval(() => { cd--; if (cd <= 0) { clearInterval(timer); resendRow.innerHTML = 'Didn\'t receive a code? <button class="resend-link" id="resendBtn">Resend</button>'; bindResend(); } else { resendRow.innerHTML = 'Resend in <strong>' + cd + 's</strong>'; } }, 1000);
+      }
+      bindResend();
+      document.getElementById('codeBack').addEventListener('click', () => goTo('email'));
+    }
+
+    // ===== 3. NAME & ROLE =====
+    function rNameRole() {
+      const roles = ['Freelancer','Studio','In-house','Agency'];
+      container.innerHTML = `
+        <img src="FULaL LOGO - Light mode.png" alt="Stage" class="auth-logo">
+        <div class="auth-headline sf">Welcome to Stage</div>
+        <div class="auth-subtitle">Tell us a bit about yourself.</div>
+        <div class="ob-group">
+          <label class="ob-label">Full name</label>
+          <input class="auth-input" id="nameIn" type="text" placeholder="Sam Harper" value="${D.fullName}" style="margin-bottom:0;">
+        </div>
+        <div class="ob-group" style="margin-bottom:0;">
+          <label class="ob-label">What describes you best?</label>
+        </div>
+        <div class="role-pills">${roles.map(r => '<div class="role-pill' + (D.role===r?' selected':'') + '" data-r="'+r+'">'+r+'</div>').join('')}</div>
+        <button class="auth-btn" id="nrBtn" ${!(D.fullName && D.role) ? 'disabled' : ''}>Continue</button>
+        ${dotsHtml()}
+      `;
+      const inp = document.getElementById('nameIn'), btn = document.getElementById('nrBtn');
+      function validate() { btn.disabled = !(D.fullName && D.role); }
+      inp.addEventListener('input', () => { D.fullName = inp.value.trim(); validate(); });
+      document.querySelectorAll('.role-pill').forEach(p => {
+        p.addEventListener('click', () => { document.querySelectorAll('.role-pill').forEach(x=>x.classList.remove('selected')); p.classList.add('selected'); D.role = p.dataset.r; validate(); });
+      });
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !btn.disabled) goTo('services'); });
+      btn.addEventListener('click', () => goTo('services'));
+      setTimeout(() => { if (!D.fullName) inp.focus(); }, 250);
+    }
+
+    // ===== 4. SERVICES =====
+    function rServices() {
+      const svcs = ['Product Design','Website Design','Branding','App Design','Packaging','Motion Design','Illustration','UX Research','UI Design','Development','Consulting','Other'];
+      container.innerHTML = `
+        <img src="FULaL LOGO - Light mode.png" alt="Stage" class="auth-logo">
+        <div class="auth-headline sf">What services do you offer?</div>
+        <div class="auth-subtitle">Select all that apply.</div>
+        <div class="service-pills">${svcs.map(s => '<div class="service-pill' + (D.services.includes(s)?' selected':'') + '" data-s="'+s+'">'+s+'</div>').join('')}</div>
+        <button class="auth-btn" id="svcBtn" ${D.services.length===0?'disabled':''}>Continue</button>
+        <button class="auth-back" id="svcBack">${backArrow} Back</button>
+        ${dotsHtml()}
+      `;
+      const btn = document.getElementById('svcBtn');
+      document.querySelectorAll('.service-pill').forEach(p => {
+        p.addEventListener('click', () => {
+          const s = p.dataset.s;
+          if (D.services.includes(s)) { D.services = D.services.filter(x=>x!==s); p.classList.remove('selected'); }
+          else { D.services.push(s); p.classList.add('selected'); }
+          btn.disabled = D.services.length === 0;
+        });
+      });
+      btn.addEventListener('click', () => goTo('client'));
+      document.getElementById('svcBack').addEventListener('click', () => goTo('nameRole'));
+    }
+
+    // ===== 5. CLIENT =====
+    function rClient() {
+      const av = D.clientAvatar
+        ? '<img src="'+D.clientAvatar+'" alt="Client"><div class="avatar-remove" id="avRm">&times;</div>'
+        : userSvg;
+      container.innerHTML = `
+        <img src="FULaL LOGO - Light mode.png" alt="Stage" class="auth-logo">
+        <div class="auth-headline sf">Your first project</div>
+        <div class="auth-subtitle">Who's the client?</div>
+        <div class="ob-group" style="margin-bottom:20px;">
+          <label class="ob-label">Client</label>
+          <input class="auth-input" id="clientIn" type="text" placeholder="Acme Studio" value="${D.clientName}" style="margin-bottom:0;">
+        </div>
+        <div class="ob-group" style="margin-bottom:0;"><label class="ob-label">Client photo <span style="font-weight:400;color:var(--color-text-tertiary)">— optional</span></label></div>
+        <div class="avatar-upload">
+          <div class="avatar-circle" id="avCircle">${av}</div>
+          <div class="avatar-actions">
+            <button class="avatar-link" id="avUpBtn">Upload photo</button>
+            <button class="avatar-link" id="avUrlBtn">Import from URL</button>
+            <div id="avUrlRow" style="display:none;">
+              <div class="avatar-url-row">
+                <input class="avatar-url-input" id="avUrlIn" type="text" placeholder="Paste LinkedIn or website URL...">
+                <button class="avatar-fetch" id="avFetchBtn">Fetch</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="avFile" accept="image/*" style="display:none;">
+        <button class="auth-btn" id="clBtn" ${!D.clientName?'disabled':''}>Continue</button>
+        <button class="auth-back" id="clBack">${backArrow} Back</button>
+        ${dotsHtml()}
+      `;
+      const inp = document.getElementById('clientIn'), btn = document.getElementById('clBtn');
+      inp.addEventListener('input', () => { D.clientName = inp.value.trim(); btn.disabled = !D.clientName; });
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !btn.disabled) goTo('projectType'); });
+      btn.addEventListener('click', () => goTo('projectType'));
+      document.getElementById('clBack').addEventListener('click', () => goTo('services'));
+
+      const fileIn = document.getElementById('avFile');
+      document.getElementById('avUpBtn').addEventListener('click', () => fileIn.click());
+      fileIn.addEventListener('change', (e) => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = (ev) => { D.clientAvatar = ev.target.result; updateAv(); }; r.readAsDataURL(f); });
+      document.getElementById('avUrlBtn').addEventListener('click', () => { const r = document.getElementById('avUrlRow'); r.style.display = r.style.display==='none'?'block':'none'; if(r.style.display==='block') setTimeout(()=>document.getElementById('avUrlIn').focus(),50); });
+      document.getElementById('avFetchBtn').addEventListener('click', () => { const u = document.getElementById('avUrlIn').value.trim(); if(!u)return; const fb = document.getElementById('avFetchBtn'); fb.textContent='...'; setTimeout(()=>{D.clientAvatar='https://randomuser.me/api/portraits/men/32.jpg';updateAv();fb.textContent='Fetch';},800); });
+      function updateAv() {
+        const c = document.getElementById('avCircle');
+        c.innerHTML = D.clientAvatar ? '<img src="'+D.clientAvatar+'" alt="Client"><div class="avatar-remove" id="avRm">&times;</div>' : userSvg;
+        bindRm();
+      }
+      function bindRm() { const rm = document.getElementById('avRm'); if(rm) rm.addEventListener('click',()=>{D.clientAvatar=null;updateAv();}); }
+      bindRm();
+      setTimeout(() => inp.focus(), 250);
+    }
+
+    // ===== 6. PROJECT TYPE =====
+    function rType() {
+      const types = ['Branding','Web Design','Product Design','App Design','Packaging','Motion Design','Illustration','Other'];
+      container.innerHTML = `
+        <img src="FULaL LOGO - Light mode.png" alt="Stage" class="auth-logo">
+        <div class="auth-headline sf">What type of project?</div>
+        <div class="auth-subtitle">Pick the closest match. You can always change it later.</div>
+        <div class="type-grid">${types.map(t => '<div class="type-pill'+(D.projectType===t?' selected':'')+'" data-t="'+t+'">'+t+'</div>').join('')}</div>
+        <button class="auth-btn" id="tBtn" ${!D.projectType?'disabled':''}>Continue</button>
+        <button class="auth-back" id="tBack">${backArrow} Back</button>
+        ${dotsHtml()}
+      `;
+      const btn = document.getElementById('tBtn');
+      document.querySelectorAll('.type-pill').forEach(p => {
+        p.addEventListener('click', () => { document.querySelectorAll('.type-pill').forEach(x=>x.classList.remove('selected')); p.classList.add('selected'); D.projectType=p.dataset.t; btn.disabled=false; });
+      });
+      btn.addEventListener('click', () => goTo('method'));
+      document.getElementById('tBack').addEventListener('click', () => goTo('client'));
+    }
+
+    // ===== 7. METHOD =====
+    function rMethod() {
+      container.innerHTML = `
+        <img src="FULaL LOGO - Light mode.png" alt="Stage" class="auth-logo">
+        <div class="auth-headline sf">Build your roadmap</div>
+        <div class="auth-subtitle">How do you want to structure this project?</div>
+        <div class="option-cards">
+          <div class="option-card${D.method==='ai'?' selected':''}" data-m="ai"><div class="option-card-title">AI-Generated</div><div class="option-card-desc">Tailored phases and tasks based on your project type.</div></div>
+          <div class="option-card${D.method==='manual'?' selected':''}" data-m="manual"><div class="option-card-title">Manual Setup</div><div class="option-card-desc">Choose your own phases and add tasks as you go.</div></div>
+        </div>
+        <button class="auth-btn" id="mBtn" ${!D.method?'disabled':''}>Continue</button>
+        <button class="auth-back" id="mBack">${backArrow} Back</button>
+        ${dotsHtml()}
+      `;
+      const btn = document.getElementById('mBtn');
+      document.querySelectorAll('.option-card').forEach(c => {
+        c.addEventListener('click', () => { document.querySelectorAll('.option-card').forEach(x=>x.classList.remove('selected')); c.classList.add('selected'); D.method=c.dataset.m; btn.disabled=false; });
+      });
+      btn.addEventListener('click', () => goTo(D.method === 'ai' ? 'timelineAI' : 'phases'));
+      document.getElementById('mBack').addEventListener('click', () => goTo('projectType'));
+    }
+
+    // ===== 8A. TIMELINE (AI) =====
+    function rTimelineAI() {
+      container.innerHTML = `
+        <img src="FULaL LOGO - Light mode.png" alt="Stage" class="auth-logo">
+        <div class="auth-headline sf">Project timeline</div>
+        <div class="auth-subtitle">When does this project start and end?</div>
+        <div class="date-row">
+          <div class="date-group"><label class="ob-label">Start date</label><input class="date-input" id="dStart" type="date" value="${D.startDate}"></div>
+          <div class="date-group"><label class="ob-label">End date</label><input class="date-input" id="dEnd" type="date" value="${D.endDate}"></div>
+        </div>
+        <button class="auth-btn" id="genBtn">Generate Roadmap</button>
+        <button class="auth-back" id="tlBack">${backArrow} Back</button>
+        ${dotsHtml()}
+      `;
+      document.getElementById('dStart').addEventListener('change', (e) => D.startDate = e.target.value);
+      document.getElementById('dEnd').addEventListener('change', (e) => D.endDate = e.target.value);
+      document.getElementById('genBtn').addEventListener('click', () => {
+        container.classList.add('fading');
+        setTimeout(() => {
+          container.innerHTML = '<div class="generating"><div class="gen-dots"><div class="gen-dot"></div><div class="gen-dot"></div><div class="gen-dot"></div></div><div class="gen-text">Creating your roadmap...</div></div>';
+          container.classList.remove('fading');
+          setTimeout(() => goTo('review'), 1500);
+        }, 200);
+      });
+      document.getElementById('tlBack').addEventListener('click', () => goTo('method'));
+    }
+
+    // ===== 8M. PHASES (MANUAL) =====
+    function rPhases() {
+      let dragIdx = null, dragEl = null, startY = 0, offsetY = 0, itemH = 0;
+      const phaseItems = () => container.querySelectorAll('.phase-item');
+
+      function draw(focusNewIdx) {
+        const active = D.phases.filter(p => p.on).length;
+        container.innerHTML = `
+          <img src="FULaL LOGO - Light mode.png" alt="Stage" class="auth-logo">
+          <div class="auth-headline sf">Select phases</div>
+          <div class="auth-subtitle">Toggle the phases you want. Reorder by dragging.</div>
+          <div class="phase-list" id="phaseList">${D.phases.map((p,i) => `
+            <div class="phase-item" data-i="${i}">
+              <div class="drag-handle"><span></span><span></span><span></span></div>
+              ${p.editing
+                ? `<input class="phase-input" type="text" placeholder="Phase name" value="" data-i="${i}" autofocus>`
+                : `<div class="phase-name ${p.on?'':'disabled'}">${p.name}</div>`}
+              <div class="toggle ${p.on?'active':''}" data-i="${i}"></div>
+            </div>`).join('')}</div>
+          <div class="add-phase" id="addPhase">+ Add phase</div>
+          <button class="auth-btn" id="phBtn" ${active<2?'disabled':''}>Continue</button>
+          <button class="auth-back" id="phBack">${backArrow} Back</button>
+          ${dotsHtml()}
+        `;
+
+        // Toggle handlers
+        document.querySelectorAll('.toggle').forEach(t => {
+          t.addEventListener('click', () => { D.phases[parseInt(t.dataset.i)].on = !D.phases[parseInt(t.dataset.i)].on; draw(); });
+        });
+
+        // Focus new phase input
+        const newInput = container.querySelector('.phase-input');
+        if (newInput) {
+          requestAnimationFrame(() => newInput.focus());
+          function commitInput() {
+            const idx = parseInt(newInput.dataset.i);
+            const val = newInput.value.trim();
+            if (val) {
+              D.phases[idx].name = val;
+              D.phases[idx].editing = false;
+            } else {
+              D.phases.splice(idx, 1);
+            }
+            draw();
+          }
+          newInput.addEventListener('blur', commitInput);
+          newInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); newInput.blur(); }
+            if (e.key === 'Escape') { newInput.value = ''; newInput.blur(); }
+          });
+        }
+
+        // Add phase
+        document.getElementById('addPhase').addEventListener('click', () => {
+          D.phases.push({ name: '', on: true, editing: true });
+          draw();
+        });
+
+        // Drag-and-drop
+        const list = document.getElementById('phaseList');
+        const handles = list.querySelectorAll('.drag-handle');
+
+        handles.forEach(handle => {
+          handle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            const row = handle.closest('.phase-item');
+            dragIdx = parseInt(row.dataset.i);
+            dragEl = row;
+            const rect = row.getBoundingClientRect();
+            itemH = rect.height;
+            startY = e.clientY;
+            offsetY = 0;
+
+            row.classList.add('dragging');
+            row.style.position = 'relative';
+            row.style.zIndex = '10';
+            document.body.style.cursor = 'grabbing';
+
+            const items = [...phaseItems()];
+
+            function onMove(ev) {
+              offsetY = ev.clientY - startY;
+              dragEl.style.transform = `translateY(${offsetY}px) scale(1.02)`;
+
+              items.forEach((item, i) => {
+                if (i === dragIdx) return;
+                item.style.transition = 'transform 200ms ease';
+                const shift = Math.round(offsetY / itemH);
+                if (dragIdx + shift > dragIdx) {
+                  // dragging down
+                  if (i > dragIdx && i <= dragIdx + shift) {
+                    item.style.transform = `translateY(${-itemH}px)`;
+                  } else {
+                    item.style.transform = '';
+                  }
+                } else if (dragIdx + shift < dragIdx) {
+                  // dragging up
+                  if (i < dragIdx && i >= dragIdx + shift) {
+                    item.style.transform = `translateY(${itemH}px)`;
+                  } else {
+                    item.style.transform = '';
+                  }
+                } else {
+                  item.style.transform = '';
+                }
+              });
+            }
+
+            function onUp() {
+              document.removeEventListener('mousemove', onMove);
+              document.removeEventListener('mouseup', onUp);
+              document.body.style.cursor = '';
+
+              const shift = Math.round(offsetY / itemH);
+              let newIdx = Math.max(0, Math.min(D.phases.length - 1, dragIdx + shift));
+              if (newIdx !== dragIdx) {
+                const [moved] = D.phases.splice(dragIdx, 1);
+                D.phases.splice(newIdx, 0, moved);
+              }
+              dragIdx = null; dragEl = null;
+              draw();
+            }
+
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+          });
+        });
+
+        document.getElementById('phBtn').addEventListener('click', () => goTo('timelineManual'));
+        document.getElementById('phBack').addEventListener('click', () => goTo('method'));
+      }
+      draw();
+    }
+
+    // ===== 9M. TIMELINE (MANUAL) =====
+    function rTimelineManual() {
+      container.innerHTML = `
+        <img src="FULaL LOGO - Light mode.png" alt="Stage" class="auth-logo">
+        <div class="auth-headline sf">Project timeline</div>
+        <div class="auth-subtitle">When does this project start and end?</div>
+        <div class="date-row">
+          <div class="date-group"><label class="ob-label">Start date</label><input class="date-input" id="dStart" type="date" value="${D.startDate}"></div>
+          <div class="date-group"><label class="ob-label">End date</label><input class="date-input" id="dEnd" type="date" value="${D.endDate}"></div>
+        </div>
+        <button class="auth-btn" id="tmBtn">Continue</button>
+        <button class="auth-back" id="tmBack">${backArrow} Back</button>
+        ${dotsHtml()}
+      `;
+      document.getElementById('dStart').addEventListener('change', (e) => D.startDate = e.target.value);
+      document.getElementById('dEnd').addEventListener('change', (e) => D.endDate = e.target.value);
+      document.getElementById('tmBtn').addEventListener('click', () => goTo('review'));
+      document.getElementById('tmBack').addEventListener('click', () => goTo('phases'));
+    }
+
+    // ===== 10. REVIEW =====
+    function rReview() {
+      let roadmap;
+      if (D.method === 'ai') {
+        roadmap = (aiRoadmaps[D.projectType] || aiRoadmaps['Other']).map(p => ({ name: p.n, tasks: p.t }));
+      } else {
+        roadmap = D.phases.filter(p => p.on).map(p => ({ name: p.name, tasks: 0 }));
+      }
+      const rmHtml = roadmap.map((p, i) => {
+        const line = i < roadmap.length - 1 ? '<div class="roadmap-line"></div>' : '';
+        return '<div class="roadmap-row"><div class="roadmap-left"><div class="roadmap-dot"></div>' + line + '</div><div class="roadmap-right"><div class="roadmap-name">' + p.name + '</div><div class="roadmap-tasks">' + (p.tasks || '0') + ' tasks</div></div></div>';
+      }).join('');
+      container.innerHTML = `
+        <img src="FULaL LOGO - Light mode.png" alt="Stage" class="auth-logo">
+        <div class="auth-headline sf" style="margin-bottom:8px;">Your roadmap</div>
+        <div class="auth-subtitle">Looking good. You can adjust everything later.</div>
+        <div class="roadmap">${rmHtml}</div>
+        <button class="auth-btn" id="createBtn">Create Project</button>
+        <button class="auth-back" id="rvBack">${backArrow} Back</button>
+        ${dotsHtml()}
+      `;
+      document.getElementById('createBtn').addEventListener('click', () => {
+        const btn = document.getElementById('createBtn');
+        btn.textContent = 'Creating...'; btn.style.opacity = '0.7'; btn.style.pointerEvents = 'none';
+        setTimeout(() => goTo('ready'), 1000);
+      });
+      document.getElementById('rvBack').addEventListener('click', () => goTo(D.method === 'ai' ? 'timelineAI' : 'timelineManual'));
+    }
+
+    // ===== 11. READY =====
+    function rReady() {
+      const first = D.fullName.split(' ')[0] || D.fullName;
+      container.innerHTML = `
+        <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="success-text sf">You're all set, ${first}</div>
+        <div class="success-sub">Your first project is ready.</div>
+        <button class="auth-btn" id="readyBtn">Go to Dashboard</button>
+      `;
+      document.getElementById('readyBtn').addEventListener('click', () => {
+        document.body.style.transition = 'opacity 300ms ease';
+        document.body.style.opacity = '0';
+        setTimeout(() => { window.location.href = 'dashboard-prototype.html'; }, 300);
+      });
+    }
+
+    render();
+  </script>
+
+</body>
+</html>

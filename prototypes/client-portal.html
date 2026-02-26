@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Website Redesign — Client Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-bg: #FFFFFF;
+      --color-text-primary: #1A1A2E;
+      --color-text-secondary: #8C8C8C;
+      --color-text-tertiary: #BFBFBF;
+      --color-border: #E8E8E8;
+      --color-border-subtle: #F0F0F0;
+      --color-accent: #E8734A;
+      --color-accent-hover: #D4623B;
+      --color-accent-light: rgba(232, 115, 74, 0.08);
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      width: 1440px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sf { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif; }
+
+    /* ===== PORTAL NAV ===== */
+    .portal-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 56px;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+    .portal-logo-text {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+      font-weight: 600;
+      font-size: 18px;
+      color: var(--color-text-primary);
+      letter-spacing: -0.3px;
+    }
+    .portal-logo-img {
+      max-height: 100px;
+      max-width: 300px;
+      object-fit: contain;
+    }
+
+    /* ===== PROJECT HEADER ===== */
+    .portal-header {
+      text-align: center;
+      padding: 48px 56px 16px;
+    }
+    .portal-project-name {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+      font-weight: 600;
+      font-size: 26px;
+      color: var(--color-text-primary);
+      letter-spacing: -0.4px;
+      margin-bottom: 6px;
+    }
+    .portal-project-client {
+      font-size: 15px;
+      color: var(--color-text-secondary);
+    }
+
+    /* Progress bar */
+    .portal-progress-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 24px 56px 0;
+    }
+    .portal-progress-bar {
+      width: 200px;
+      height: 6px;
+      background: var(--color-border-subtle);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .portal-progress-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: var(--color-accent);
+      transition: width 400ms ease;
+    }
+    .portal-progress-text {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+    }
+
+    /* ===== PHASE ROADMAP ===== */
+    .portal-phases {
+      padding: 56px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .portal-phase-track {
+      display: flex;
+      align-items: center;
+      width: 80%;
+    }
+    .portal-phase-connector {
+      flex: 1;
+      height: 1px;
+      background: var(--color-border);
+    }
+    .portal-phase-connector.done {
+      background: var(--color-accent);
+    }
+    .portal-phase-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 150ms;
+      flex-shrink: 0;
+    }
+    .portal-phase-block:hover { background: var(--color-border-subtle); }
+
+    .portal-phase-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      transition: all 200ms;
+    }
+    .portal-phase-block.completed .portal-phase-dot { background: var(--color-text-tertiary); }
+    .portal-phase-block.completed .portal-phase-name { color: var(--color-text-secondary); font-weight: 400; }
+    .portal-phase-block.completed .portal-phase-count { color: var(--color-text-tertiary); }
+
+    .portal-phase-block.active .portal-phase-dot { background: var(--color-accent); animation: pulse 2s ease-in-out infinite; }
+    .portal-phase-block.active .portal-phase-name { color: var(--color-text-primary); font-weight: 500; }
+    .portal-phase-block.active .portal-phase-count { color: var(--color-text-secondary); }
+
+    .portal-phase-block.upcoming .portal-phase-dot { background: transparent; border: 1px solid #D9D9D9; }
+    .portal-phase-block.upcoming .portal-phase-name { color: var(--color-text-tertiary); font-weight: 400; }
+    .portal-phase-block.upcoming .portal-phase-count { color: #D9D9D9; }
+
+    .portal-phase-name { font-size: 13px; text-align: center; }
+    .portal-phase-count { font-size: 12px; }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(232, 115, 74, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(232, 115, 74, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(232, 115, 74, 0); }
+    }
+
+    /* ===== CHECKLIST ===== */
+    .portal-checklist {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+    .portal-checklist-header {
+      margin-bottom: 20px;
+    }
+    .portal-checklist-phase {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      font-weight: 500;
+      font-size: 16px;
+      color: var(--color-text-primary);
+      margin-bottom: 4px;
+    }
+    .portal-checklist-count {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+    }
+
+    .portal-check-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 8px;
+    }
+    .portal-check-item + .portal-check-item {
+      border-top: 1px solid var(--color-border-subtle);
+    }
+
+    .portal-check-box {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      border: 1px solid #D9D9D9;
+      background: var(--color-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .portal-check-box.checked {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+    .portal-check-box svg {
+      width: 11px;
+      height: 11px;
+      color: #fff;
+      opacity: 0;
+    }
+    .portal-check-box.checked svg { opacity: 1; }
+
+    .portal-check-text {
+      flex: 1;
+      font-size: 14px;
+      color: var(--color-text-primary);
+      margin-left: 12px;
+    }
+    .portal-check-item.done .portal-check-text {
+      color: var(--color-text-tertiary);
+      text-decoration: line-through;
+    }
+
+    /* ===== FOOTER ===== */
+    .portal-footer {
+      margin-top: auto;
+      text-align: center;
+      padding: 24px 56px;
+      border-top: 1px solid var(--color-border-subtle);
+    }
+    .portal-footer-text {
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+    }
+    .portal-footer-text a {
+      color: var(--color-text-tertiary);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 150ms;
+    }
+    .portal-footer-text a:hover { color: var(--color-text-secondary); }
+
+    /* ===== PREVIEW BANNER ===== */
+    .preview-banner {
+      display: none;
+      background: var(--color-text-primary);
+      color: #fff;
+      text-align: center;
+      padding: 10px 56px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .preview-banner span {
+      opacity: 0.6;
+      margin-left: 6px;
+      font-weight: 400;
+    }
+
+    @media (max-width: 1440px) { body { width: 100%; min-width: 1280px; } }
+  </style>
+</head>
+<body>
+
+  <!-- PREVIEW BANNER (shown when opened from settings) -->
+  <div class="preview-banner" id="previewBanner">
+    Preview mode <span>— This is what your client will see</span>
+  </div>
+
+  <!-- PORTAL NAV -->
+  <nav class="portal-nav" id="portalNav">
+    <img class="portal-logo-img" id="portalLogo" src="Logo client portal.png" alt="Harper Studio">
+  </nav>
+
+  <!-- PROJECT HEADER -->
+  <div class="portal-header">
+    <div class="portal-project-name sf">Website Redesign</div>
+    <div class="portal-project-client">Acme Studio</div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="portal-progress-wrap">
+    <div class="portal-progress-bar">
+      <div class="portal-progress-fill" id="portalProgress" style="width: 59%;"></div>
+    </div>
+    <span class="portal-progress-text" id="portalProgressText">59%</span>
+  </div>
+
+  <!-- PHASE ROADMAP -->
+  <section class="portal-phases">
+    <div class="portal-phase-track" id="portalPhaseTrack"></div>
+  </section>
+
+  <!-- CHECKLIST -->
+  <section class="portal-checklist">
+    <div class="portal-checklist-header">
+      <div class="portal-checklist-phase sf" id="portalPhaseName">Design</div>
+      <div class="portal-checklist-count" id="portalPhaseCount">4 of 6 complete</div>
+    </div>
+    <div id="portalChecklistItems"></div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="portal-footer">
+    <div class="portal-footer-text">Powered by <a href="landing-prototype.html">Stage</a></div>
+  </footer>
+
+  <script>
+    // ===== DATA =====
+    const phases = [
+      { name: 'Strategy', tasks: [
+        { text: 'Define project goals', done: true },
+        { text: 'Stakeholder interviews', done: true },
+        { text: 'Success metrics document', done: true },
+      ]},
+      { name: 'Research', tasks: [
+        { text: 'Competitive audit', done: true },
+        { text: 'User survey analysis', done: true },
+        { text: 'Analytics deep-dive', done: true },
+        { text: 'Research synthesis deck', done: true },
+      ]},
+      { name: 'Design', tasks: [
+        { text: 'Moodboard approved', done: true },
+        { text: 'Wireframes v2 delivered', done: true },
+        { text: 'Style guide draft', done: true },
+        { text: 'Homepage high-fidelity', done: true },
+        { text: 'Inner page layouts', done: false },
+        { text: 'Mobile responsive pass', done: false },
+      ]},
+      { name: 'Development', tasks: [
+        { text: 'Frontend scaffolding', done: false },
+        { text: 'CMS integration', done: false },
+        { text: 'Responsive QA', done: false },
+        { text: 'Performance optimization', done: false },
+        { text: 'Cross-browser testing', done: false },
+      ]},
+      { name: 'Launch', tasks: [
+        { text: 'Final client review', done: false },
+        { text: 'DNS and deploy', done: false },
+        { text: 'Post-launch monitoring', done: false },
+      ]},
+    ];
+
+    let selectedPhase = 2; // Design is active
+
+    // ===== BRAND CUSTOMIZATION =====
+    const brandLogo = localStorage.getItem('stage-portal-logo');
+    const isPreview = new URLSearchParams(window.location.search).get('preview') === '1';
+
+    // Apply custom logo from localStorage (overrides default)
+    const portalLogo = document.getElementById('portalLogo');
+    if (brandLogo) {
+      portalLogo.src = brandLogo;
+      portalLogo.alt = 'Logo';
+    }
+
+    // Show preview banner
+    if (isPreview) {
+      document.getElementById('previewBanner').style.display = 'block';
+    }
+
+    // ===== RENDER PHASES =====
+    function getActivePhaseIndex() {
+      for (let i = 0; i < phases.length; i++) {
+        if (phases[i].tasks.some(t => !t.done)) return i;
+      }
+      return phases.length - 1;
+    }
+
+    function renderPhaseTrack() {
+      const activeIdx = getActivePhaseIndex();
+      const track = document.getElementById('portalPhaseTrack');
+      let html = '';
+
+      phases.forEach((phase, i) => {
+        const done = phase.tasks.filter(t => t.done).length;
+        const total = phase.tasks.length;
+        const allDone = done === total;
+        let state = 'upcoming';
+        if (allDone && i <= activeIdx) state = 'completed';
+        else if (i === activeIdx) state = 'active';
+        else if (i < activeIdx) state = 'completed';
+
+        if (i > 0) {
+          const connDone = i <= activeIdx;
+          html += '<div class="portal-phase-connector' + (connDone ? ' done' : '') + '"></div>';
+        }
+
+        html += '<div class="portal-phase-block ' + state + '" data-phase="' + i + '">';
+        html += '<div class="portal-phase-dot"></div>';
+        html += '<span class="portal-phase-name">' + phase.name + '</span>';
+        html += '<span class="portal-phase-count">' + (allDone ? '\u2713' : done + ' / ' + total) + '</span>';
+        html += '</div>';
+      });
+
+      track.innerHTML = html;
+
+      // Phase click
+      track.querySelectorAll('.portal-phase-block').forEach((block, i) => {
+        block.addEventListener('click', () => {
+          selectedPhase = parseInt(block.dataset.phase);
+          renderChecklist();
+        });
+      });
+    }
+
+    function renderChecklist() {
+      const phase = phases[selectedPhase];
+      const done = phase.tasks.filter(t => t.done).length;
+      document.getElementById('portalPhaseName').textContent = phase.name;
+      document.getElementById('portalPhaseCount').textContent = done + ' of ' + phase.tasks.length + ' complete';
+
+      const container = document.getElementById('portalChecklistItems');
+      container.innerHTML = phase.tasks.map(task => `
+        <div class="portal-check-item${task.done ? ' done' : ''}">
+          <div class="portal-check-box${task.done ? ' checked' : ''}">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>
+          </div>
+          <span class="portal-check-text">${task.text}</span>
+        </div>
+      `).join('');
+    }
+
+    function updateProgress() {
+      const total = phases.reduce((s, p) => s + p.tasks.length, 0);
+      const done = phases.reduce((s, p) => s + p.tasks.filter(t => t.done).length, 0);
+      const pct = Math.round((done / total) * 100);
+      document.getElementById('portalProgress').style.width = pct + '%';
+      document.getElementById('portalProgressText').textContent = pct + '%';
+    }
+
+    renderPhaseTrack();
+    renderChecklist();
+    updateProgress();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "stage-app",
+  "main": "worker/index.ts",
+  "compatibility_date": "2025-02-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "dist",
+    "not_found_handling": "single-page-application"
+    // Later: "run_worker_first": ["/api/*", "/trpc/*"]
+  },
+  "env": {
+    "testing": {
+      "name": "stage-app-testing",
+      "routes": [
+        { "pattern": "testing.stage-app.com", "custom_domain": true }
+      ]
+    },
+    "production": {
+      "name": "stage-app-production",
+      "routes": [
+        { "pattern": "app.usestage.com", "custom_domain": true }
+      ]
+    }
+  }
+}
