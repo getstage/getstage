@@ -740,6 +740,25 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
     });
   };
 
+  const handleMarkerHover = (
+    marker: {
+      project: Project;
+      x: number;
+      y: number;
+    },
+  ) => {
+    const entry = layout.projects.find((projectEntry) => projectEntry.project.id === marker.project.id);
+    if (!entry) return;
+
+    const markerProgress = clamp((marker.x - entry.left) / Math.max(entry.width, 1), 0, 1);
+    setHoverState({
+      projectId: entry.project.id,
+      x: marker.x,
+      y: clamp(marker.y, 0, axisY),
+      blockProgress: markerProgress,
+    });
+  };
+
   return (
     <section
       className="relative h-[60vh] max-h-[760px]"
@@ -789,14 +808,30 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
               ))}
 
               {curveMarkers.map((marker) => (
-                <div
+                <Link
                   key={`curve-marker-${marker.key}`}
-                  className="pointer-events-none absolute z-[12] -translate-x-1/2 -translate-y-1/2"
+                  to="/project/$id"
+                  params={{ id: marker.project.id }}
+                  className="absolute z-[14] block -translate-x-1/2 -translate-y-1/2"
                   style={{ left: `${marker.x}px`, top: `${marker.y}px` }}
+                  onMouseEnter={() => handleMarkerHover(marker)}
+                  onMouseMove={() => handleMarkerHover(marker)}
+                  onMouseLeave={() => {
+                    setHoverState((current) =>
+                      current?.projectId === marker.project.id ? null : current,
+                    );
+                  }}
                 >
                   <div
                     data-curve-marker
                     className="rounded-full border border-white/70 bg-white/80 p-[2px] shadow-[0_3px_8px_rgba(26,26,46,0.08)]"
+                    style={{
+                      opacity: getRenderedBlockOpacity(
+                        marker.project,
+                        hoveredProjectId,
+                        hoveredProjectId === marker.project.id,
+                      ),
+                    }}
                   >
                     <Avatar
                       name={marker.project.clientName}
@@ -805,7 +840,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                       className="h-6 w-6 text-[10px]"
                     />
                   </div>
-                </div>
+                </Link>
               ))}
 
               {hoverState && (
