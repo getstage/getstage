@@ -388,7 +388,7 @@ function TimelineDateSelector({
         aria-label="Timeline horizon"
         value={value}
         onChange={(event) => onChange(event.target.value as TimelineHorizon)}
-        className="h-10 appearance-none rounded-[10px] border border-border-subtle bg-white pl-3.5 pr-8 text-[14px] font-medium text-text-primary shadow-[0_1px_0_rgba(26,26,46,0.02)] outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+        className="h-10 appearance-none rounded-[10px] border border-border-subtle bg-white pl-3.5 pr-8 text-[14px] font-medium text-text-primary shadow-[0_1px_0_rgba(26,26,46,0.02)] outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:!outline-none focus-visible:!ring-0"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
