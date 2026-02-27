@@ -11,17 +11,14 @@
 }
 
 .landing-nav {
-  position: sticky;
+  position: fixed;
+  width: 100%;
   top: 0;
   z-index: 100;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid transparent;
-  transition: border-color 300ms, box-shadow 300ms;
-}
-
-.landing-nav.scrolled {
   border-bottom-color: var(--color-border-subtle);
   box-shadow: 0 1px 8px rgba(26, 26, 46, 0.04);
 }
