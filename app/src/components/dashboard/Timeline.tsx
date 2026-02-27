@@ -837,7 +837,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                 >
                   <div
                     data-curve-marker
-                    className="rounded-full border border-accent/30 bg-white/90 p-[2px] shadow-[0_2px_8px_rgba(26,26,46,0.08)]"
+                    className="overflow-hidden rounded-full border-2 border-accent bg-white shadow-[0_2px_8px_rgba(26,26,46,0.08)]"
                     style={{
                       opacity: getRenderedBlockOpacity(
                         marker.project,
@@ -850,7 +850,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                       name={marker.project.clientName}
                       src={marker.project.clientAvatarUrl}
                       size="sm"
-                      className="h-6 w-6 text-[10px]"
+                      className="block h-6 w-6 text-[10px]"
                     />
                   </div>
                 </Link>

@@ -48,6 +48,9 @@ export function DashboardPage() {
   }));
   const receivedTotal = paymentRows.reduce((sum, row) => sum + row.amount, 0);
   const outstandingTotal = Math.round(receivedTotal * 0.5);
+  const outstandingDisplay = formatCurrencyDisplay(outstandingTotal);
+  const receivedDisplay = formatCurrencyDisplay(receivedTotal);
+  const pendingDisplay = formatCurrencyDisplay(outstandingTotal);
   const dockProjects = (projects ?? []).slice(0, 6);
 
   return (
@@ -165,25 +168,33 @@ export function DashboardPage() {
               </div>
 
               <InfoCard title="Payments">
-                <div className="grid gap-5 md:grid-cols-[220px_minmax(0,1fr)_170px] md:items-start">
-                  <div className="grid grid-cols-2 gap-5">
-                    <div>
+                <div className="grid gap-5 md:grid-cols-[minmax(240px,0.95fr)_minmax(0,1.35fr)_minmax(128px,auto)] md:items-start">
+                  <div className="grid min-w-0 grid-cols-2 gap-5 md:pr-3">
+                    <div className="min-w-0">
                       <p className="text-[12px] text-text-secondary">Outstanding</p>
-                      <p className="mt-1 font-heading text-[26px] leading-none font-semibold text-text-primary">
-                        {formatCurrency(outstandingTotal)}
+                      <p
+                        className="mt-1 font-heading text-[22px] leading-none font-semibold whitespace-nowrap tabular-nums text-text-primary"
+                        title={outstandingDisplay.isCompact ? outstandingDisplay.full : undefined}
+                        aria-label={outstandingDisplay.isCompact ? outstandingDisplay.full : undefined}
+                      >
+                        {outstandingDisplay.short}
                       </p>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-[12px] text-text-secondary">Received</p>
-                      <p className="mt-1 font-heading text-[26px] leading-none font-semibold text-accent">
-                        {formatCurrency(receivedTotal)}
+                      <p
+                        className="mt-1 font-heading text-[22px] leading-none font-semibold whitespace-nowrap tabular-nums text-accent"
+                        title={receivedDisplay.isCompact ? receivedDisplay.full : undefined}
+                        aria-label={receivedDisplay.isCompact ? receivedDisplay.full : undefined}
+                      >
+                        {receivedDisplay.short}
                       </p>
                     </div>
                   </div>
 
                   {paymentRows.length > 0 ? (
                     <>
-                      <div className="space-y-2 border-t border-border-subtle pt-3 md:border-t-0 md:border-l md:pl-5 md:pt-0">
+                      <div className="min-w-0 space-y-2 border-t border-border-subtle pt-3 md:border-t-0 md:border-l md:pl-5 md:pt-0">
                         {paymentRows.map((row) => (
                           <div key={row.name} className="flex items-center gap-2 text-[13px]">
                             <div className="h-5 w-5 overflow-hidden rounded-full bg-input-bg">
@@ -200,23 +211,39 @@ export function DashboardPage() {
                         ))}
                       </div>
 
-                      <div className="space-y-2 text-left md:text-right">
-                        {paymentRows.map((row) => (
-                          <div
-                            key={`${row.name}-${row.amount}`}
-                            className="flex items-center gap-1.5 text-[13px] md:justify-end"
+                      <div className="min-w-0 space-y-2 text-left md:text-right">
+                        {paymentRows.map((row) => {
+                          const rowAmountDisplay = formatCurrencyDisplay(row.amount);
+                          return (
+                            <div
+                              key={`${row.name}-${row.amount}`}
+                              className="flex items-center gap-1.5 text-[12px] md:justify-end"
+                            >
+                              <Check
+                                size={11}
+                                weight="bold"
+                                aria-hidden="true"
+                                className="text-accent"
+                              />
+                              <span
+                                className="font-medium whitespace-nowrap tabular-nums text-accent"
+                                title={rowAmountDisplay.isCompact ? rowAmountDisplay.full : undefined}
+                                aria-label={rowAmountDisplay.isCompact ? rowAmountDisplay.full : undefined}
+                              >
+                                {rowAmountDisplay.short}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        <p className="pt-0.5 text-[12px] text-text-secondary">
+                          <span className="mr-1">Pending</span>
+                          <span
+                            className="whitespace-nowrap tabular-nums"
+                            title={pendingDisplay.isCompact ? pendingDisplay.full : undefined}
+                            aria-label={pendingDisplay.isCompact ? pendingDisplay.full : undefined}
                           >
-                            <Check
-                              size={11}
-                              weight="bold"
-                              aria-hidden="true"
-                              className="text-accent"
-                            />
-                            <span className="font-medium text-accent">{formatCurrency(row.amount)}</span>
-                          </div>
-                        ))}
-                        <p className="pt-0.5 text-[13px] text-text-secondary">
-                          Pending {formatCurrency(outstandingTotal)}
+                            {pendingDisplay.short}
+                          </span>
                         </p>
                       </div>
                     </>
@@ -304,7 +331,49 @@ export function DashboardPage() {
 }
 
 function formatCurrency(value: number) {
-  return `$${value.toLocaleString("en-US")}`;
+  if (!Number.isFinite(value)) return "—";
+  const sign = value < 0 ? "-" : "";
+  return `${sign}$${Math.abs(value).toLocaleString("en-US")}`;
+}
+
+function formatCompactCurrency(value: number) {
+  if (!Number.isFinite(value)) return "—";
+
+  const absolute = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+  const units: Array<{ threshold: number; suffix: string }> = [
+    { threshold: 1_000_000_000_000, suffix: "T" },
+    { threshold: 1_000_000_000, suffix: "B" },
+    { threshold: 1_000_000, suffix: "M" },
+    { threshold: 1_000, suffix: "K" },
+  ];
+
+  for (const unit of units) {
+    if (absolute >= unit.threshold) {
+      const scaled = absolute / unit.threshold;
+      const rounded = scaled >= 100 ? Math.round(scaled) : Math.round(scaled * 10) / 10;
+      const compact = Number.isInteger(rounded)
+        ? `${rounded}`
+        : `${rounded}`.replace(/\.0$/, "");
+      return `${sign}$${compact}${unit.suffix}`;
+    }
+  }
+
+  return formatCurrency(value);
+}
+
+function formatCurrencyDisplay(value: number) {
+  if (!Number.isFinite(value)) {
+    return { short: "—", full: "—", isCompact: false };
+  }
+
+  const full = formatCurrency(value);
+  const isCompact = Math.abs(value) >= 1_000_000;
+  return {
+    short: isCompact ? formatCompactCurrency(value) : full,
+    full,
+    isCompact,
+  };
 }
 
 function getGreeting(name: string) {

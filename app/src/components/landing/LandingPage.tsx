@@ -72,6 +72,14 @@ const PRICING_FEATURES = [
   "Priority support",
 ];
 
+const FREE_PRICING_FEATURES = [
+  "Up to 3 active projects",
+  "Phase and task tracking",
+  "Timeline overview",
+  "Basic project analytics",
+  "Project data export",
+] as const;
+
 export function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number>(0);
@@ -140,7 +148,7 @@ export function LandingPage() {
               <Link to="/auth" className="landing-btn landing-btn-cta">
                 Get started
               </Link>
-              <a href="#features" className="landing-btn landing-btn-ghost">
+              <a href="#features" className="landing-btn landing-btn-ghost landing-btn-secondary">
                 See demo
               </a>
             </div>
@@ -382,7 +390,37 @@ export function LandingPage() {
               No confusing tiers. One plan for the complete experience, and a generous free tier to start.
             </p>
             <div className="landing-pricing-layout">
-              <div className="landing-pricing-card landing-pricing-card-single">
+              <div className="landing-pricing-card free">
+                <div className="landing-pricing-head">
+                  <div className="landing-pricing-plan-name">Free</div>
+                </div>
+                <div className="landing-pricing-price">
+                  <span className="landing-pricing-amount">$0</span>
+                  <span className="landing-pricing-period">/month</span>
+                </div>
+                <div className="landing-pricing-billing">
+                  Perfect to get started and run your first client projects in Stage.
+                </div>
+
+                <ul className="landing-pricing-features">
+                  {FREE_PRICING_FEATURES.map((feature) => (
+                    <li key={feature} className="landing-pricing-feature">
+                      <CheckIcon />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  to="/auth"
+                  className="landing-btn landing-btn-ghost landing-btn-secondary landing-pricing-cta landing-pricing-cta-secondary"
+                >
+                  Start free
+                </Link>
+                <div className="landing-pricing-free">Upgrade anytime as your workload grows.</div>
+              </div>
+
+              <div className="landing-pricing-card pro">
                 <div className="landing-pricing-head">
                   <div className="landing-pricing-plan-name">Pro</div>
                   <span className="landing-pricing-tag">Annual billing</span>
@@ -459,7 +497,7 @@ export function LandingPage() {
                 <Link to="/auth" className="landing-btn landing-btn-cta">
                   Get started
                 </Link>
-                <a href="#features" className="landing-btn landing-btn-ghost">
+                <a href="#features" className="landing-btn landing-btn-ghost landing-btn-secondary">
                   See demo
                 </a>
               </div>
