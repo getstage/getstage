@@ -336,7 +336,6 @@ export function LandingPage() {
                 />
                 <div className="landing-step-card-body">
                   <div className="landing-step-content">
-                    <div className="landing-step-number">01</div>
                     <div className="landing-step-title">Create a project</div>
                     <div className="landing-step-desc">
                       Name your client, pick a project type, and you're in.
@@ -353,7 +352,6 @@ export function LandingPage() {
                 />
                 <div className="landing-step-card-body">
                   <div className="landing-step-content">
-                    <div className="landing-step-number">02</div>
                     <div className="landing-step-title">Track progress</div>
                     <div className="landing-step-desc">
                       Add phases, check off tasks, connect Stripe for payments.
@@ -370,7 +368,6 @@ export function LandingPage() {
                 />
                 <div className="landing-step-card-body">
                   <div className="landing-step-content">
-                    <div className="landing-step-number">03</div>
                     <div className="landing-step-title">Stay informed</div>
                     <div className="landing-step-desc">
                       See your timeline, workload curve, and revenue at a glance.

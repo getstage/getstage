@@ -179,13 +179,14 @@ function addMonths(timestamp: number, months: number) {
 }
 
 function getProjectSpanBounds(projects: Project[]) {
+  const today = startOfDay(Date.now());
+
   if (projects.length === 0) {
-    const today = startOfDay(Date.now());
     return { start: today, end: today + DAY_MS };
   }
 
-  const earliestStart = Math.min(...projects.map((project) => project.startDate));
-  const latestEnd = Math.max(...projects.map((project) => project.endDate));
+  const earliestStart = Math.min(today, ...projects.map((project) => project.startDate));
+  const latestEnd = Math.max(today, ...projects.map((project) => project.endDate));
 
   const start = startOfDay(earliestStart - SIDE_PADDING_DAYS * DAY_MS);
   const end = startOfDay(latestEnd + SIDE_PADDING_DAYS * DAY_MS);
@@ -562,8 +563,8 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
     const projectSignature = projects
       .map((project) => `${project.id}:${project.startDate}:${project.endDate}:${project.status}`)
       .join("|");
-    return `${horizon}|${projectSignature}`;
-  }, [horizon, projects]);
+    return `${horizon}|${viewportWidth}|${projectSignature}`;
+  }, [horizon, projects, viewportWidth]);
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -601,12 +602,11 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
       ? nearestProject.left + nearestProject.width / 2
       : null;
     const focusX = layout.todayX ?? nearestProjectX ?? fallbackX;
-    const leadFactor = horizon === "all" ? 0.38 : 0.5;
-    const targetScroll = clamp(focusX - viewportClientWidth * leadFactor, 0, maxScroll);
+    const targetScroll = clamp(focusX - viewportClientWidth * 0.5, 0, maxScroll);
 
     viewport.scrollLeft = targetScroll;
     lastAutoPositionKeyRef.current = autoPositionKey;
-  }, [autoPositionKey, horizon, layout.projects, layout.timelineWidth, layout.todayX, viewportWidth]);
+  }, [autoPositionKey, layout.projects, layout.timelineWidth, layout.todayX, viewportWidth]);
 
   useLayoutEffect(() => {
     if (!contentRef.current) return;
@@ -875,7 +875,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                     className="pointer-events-none absolute top-0 z-20 w-px bg-cyan/55"
                     style={{ left: `${layout.todayX}px`, height: `${axisY}px` }}
                   >
-                    <div className="absolute left-1/2 top-full mt-1 -translate-x-1/2 text-[11px] font-medium text-cyan">
+                    <div className="absolute left-1/2 top-full mt-1 -translate-x-1/2 text-[12px] font-medium text-cyan">
                       Today
                     </div>
                   </div>
@@ -945,7 +945,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                               <p className="truncate text-[13px] font-medium text-text-primary">
                                 {entry.project.name}
                               </p>
-                              <p className="truncate text-[11px] text-text-secondary">
+                              <p className="truncate text-[12px] text-text-secondary">
                                 {entry.currentPhase}
                               </p>
                             </div>
@@ -974,7 +974,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
               {renderedTickLabels.map((tick) => (
                 <div
                   key={`tick-label-${tick.key}`}
-                  className="pointer-events-none absolute z-10 text-[11px] text-text-secondary"
+                  className="pointer-events-none absolute z-10 text-[12px] text-text-secondary"
                   style={{
                     left: `${tick.x}px`,
                     top: `${axisY + LABEL_TOP_GAP}px`,

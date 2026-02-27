@@ -68,7 +68,7 @@ export function DashboardPage() {
               transition={{ duration: 0.4 }}
               className="min-w-[320px]"
             >
-              <h1 className="font-heading text-[42px] leading-[1.08] font-semibold tracking-tight text-text-primary sm:text-[46px]">
+              <h1 className="font-heading text-[30px] leading-[1.14] font-semibold tracking-tight text-text-primary sm:text-[32px]">
                 {greeting}
               </h1>
 
@@ -488,7 +488,7 @@ function InfoCard({
     <div
       className={`rounded-[14px] border border-border-subtle bg-white px-5 py-4 sm:px-6 sm:py-5 ${className ?? ""}`}
     >
-      <h2 className="mb-2.5 text-[24px] font-medium text-text-primary">{title}</h2>
+      <h2 className="mb-2.5 font-heading text-[24px] font-medium text-text-primary">{title}</h2>
       {children}
     </div>
   );
