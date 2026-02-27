@@ -1,7 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import {
+  Check,
+  ClockCountdown,
+  Lightning,
+  Plus,
+  SealCheck,
+} from "@phosphor-icons/react";
 import { Helmet } from "react-helmet-async";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
+import createProjectImage from "@/assets/landing-images/create-project.webp";
+import demoImage from "@/assets/landing-images/demo.webp";
+import phaseManagementImage from "@/assets/landing-images/phase-management.webp";
+import timelineOverviewImage from "@/assets/landing-images/timeline-overview.webp";
 import "@/styles/landing.css";
 
 const FAQ_ITEMS = [
@@ -61,10 +72,17 @@ const PRICING_FEATURES = [
   "Priority support",
 ];
 
+const FREE_PRICING_FEATURES = [
+  "Up to 3 active projects",
+  "Phase and task tracking",
+  "Timeline overview",
+  "Basic project analytics",
+  "Project data export",
+] as const;
+
 export function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number>(0);
-  const [isYearly, setIsYearly] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -114,7 +132,13 @@ export function LandingPage() {
 
         <section className="landing-hero">
           <div className="landing-container">
-            <span className="landing-hero-badge">Built for creative professionals</span>
+            <Link to="/auth" className="landing-hero-badge" aria-label="Go to login">
+              <span className="landing-hero-badge-pill">NEW</span>
+              <span className="landing-hero-badge-text">Built for creative professionals</span>
+              <span className="landing-hero-badge-arrow" aria-hidden="true">
+                ›
+              </span>
+            </Link>
             <h1 className="landing-hero-title">Project clarity for designers and freelancers</h1>
             <p className="landing-hero-subtitle">
               Track projects, manage phases, monitor payments. Everything you need to run your
@@ -124,7 +148,7 @@ export function LandingPage() {
               <Link to="/auth" className="landing-btn landing-btn-cta">
                 Get started
               </Link>
-              <a href="#features" className="landing-btn landing-btn-ghost">
+              <a href="#features" className="landing-btn landing-btn-ghost landing-btn-secondary">
                 See demo
               </a>
             </div>
@@ -175,63 +199,12 @@ export function LandingPage() {
             </svg>
 
             <div className="landing-hero-mockup">
-              <div className="landing-mockup-nav">
-                <span className="landing-mockup-logo">Stage</span>
-                <div className="landing-mockup-avatar">
-                  <img src="https://randomuser.me/api/portraits/men/46.jpg" alt="" />
-                </div>
-              </div>
-              <div className="landing-mockup-body">
-                <div className="landing-mockup-greeting">Good morning, Sam</div>
-                <div className="landing-mockup-stats">
-                  <div>
-                    <div className="landing-mockup-stat-label">Active</div>
-                    <div className="landing-mockup-stat-value">9</div>
-                  </div>
-                  <div>
-                    <div className="landing-mockup-stat-label">Tasks Due</div>
-                    <div className="landing-mockup-stat-value">14</div>
-                  </div>
-                  <div>
-                    <div className="landing-mockup-stat-label">Completed</div>
-                    <div className="landing-mockup-stat-value">12</div>
-                  </div>
-                </div>
-
-                <div className="landing-mockup-timeline">
-                  <svg viewBox="0 0 892 140" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="curveGradLanding" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#8782F5" stopOpacity="0.25" />
-                        <stop offset="100%" stopColor="#8782F5" stopOpacity="0.02" />
-                      </linearGradient>
-                    </defs>
-                    <path
-                      d="M0,120 C80,120 120,120 180,100 C240,80 280,40 360,35 C440,30 500,50 560,55 C620,60 680,90 740,95 C800,100 840,110 892,115 L892,140 L0,140 Z"
-                      fill="url(#curveGradLanding)"
-                    />
-                    <path
-                      d="M0,120 C80,120 120,120 180,100 C240,80 280,40 360,35 C440,30 500,50 560,55 C620,60 680,90 740,95 C800,100 840,110 892,115"
-                      fill="none"
-                      stroke="#8782F5"
-                      strokeWidth="2"
-                      opacity="0.5"
-                    />
-                  </svg>
-                </div>
-
-                <div className="landing-mockup-grid">
-                  {[60, 45, 72, 35].map((fill, index) => (
-                    <div key={index} className="landing-mockup-card">
-                      <div className="landing-mockup-card-label">Metric</div>
-                      <div className="landing-mockup-card-value">{index === 2 ? "$8.2k" : 3 + index}</div>
-                      <div className="landing-mockup-card-bar">
-                        <div className="landing-mockup-card-bar-fill" style={{ width: `${fill}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <img
+                src={demoImage}
+                alt="Stage dashboard demo"
+                className="landing-hero-demo-image"
+                loading="eager"
+              />
             </div>
           </div>
         </section>
@@ -240,17 +213,23 @@ export function LandingPage() {
           <div className="landing-container">
             <div className="landing-trust-grid">
               <div>
-                <div className="landing-trust-icon">⚡</div>
+                <div className="landing-trust-icon" aria-hidden="true">
+                  <Lightning weight="duotone" />
+                </div>
                 <div className="landing-trust-title">Lightweight setup</div>
                 <div className="landing-trust-desc">Under 5kb, won't slow your workflow</div>
               </div>
               <div>
-                <div className="landing-trust-icon">◷</div>
+                <div className="landing-trust-icon" aria-hidden="true">
+                  <ClockCountdown weight="duotone" />
+                </div>
                 <div className="landing-trust-title">One-minute onboarding</div>
                 <div className="landing-trust-desc">Create your first project in 60 seconds</div>
               </div>
               <div>
-                <div className="landing-trust-icon">◉</div>
+                <div className="landing-trust-icon" aria-hidden="true">
+                  <SealCheck weight="duotone" />
+                </div>
                 <div className="landing-trust-title">No complexity</div>
                 <div className="landing-trust-desc">Built for creatives, not enterprise teams</div>
               </div>
@@ -278,7 +257,14 @@ export function LandingPage() {
                     "Hover to inspect any date",
                     "Filter by week, month, quarter, or year",
                   ]}
-                  mockup={<TimelineMockup />}
+                  mockup={
+                    <FeatureImage
+                      src={timelineOverviewImage}
+                      alt="Timeline overview in the Stage dashboard"
+                    />
+                  }
+                  mockupType="image"
+                  featured
                 />
                 <FeatureCard
                   title="Client Portal"
@@ -298,7 +284,13 @@ export function LandingPage() {
                     "AI-generated roadmaps",
                     "Progress tracking per phase",
                   ]}
-                  mockup={<PhaseMockup />}
+                  mockup={
+                    <FeatureImage
+                      src={phaseManagementImage}
+                      alt="Phase management view in Stage"
+                    />
+                  }
+                  mockupType="image"
                 />
                 <FeatureCard
                   title="Payment Tracking"
@@ -329,32 +321,60 @@ export function LandingPage() {
 
         <section className="landing-steps">
           <div className="landing-container">
+            <div className="landing-section-label">How it works</div>
             <h2 className="landing-section-title">Get started in minutes</h2>
             <p className="landing-section-subtitle">
               Setting up Stage is faster than making coffee. No credit card, no contracts, no onboarding calls.
             </p>
             <div className="landing-steps-grid">
-              <div className="landing-step-card">
-                <div className="landing-step-number">1</div>
-                <div className="landing-step-title">Create a project</div>
-                <div className="landing-step-desc">
-                  Name your client, pick a project type, and you're in.
+              <article className="landing-step-card">
+                <img
+                  src={createProjectImage}
+                  alt="Create project flow in Stage"
+                  className="landing-step-card-image"
+                  loading="lazy"
+                />
+                <div className="landing-step-card-body">
+                  <div className="landing-step-content">
+                    <div className="landing-step-title">Create a project</div>
+                    <div className="landing-step-desc">
+                      Name your client, pick a project type, and you're in.
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="landing-step-card">
-                <div className="landing-step-number">2</div>
-                <div className="landing-step-title">Track progress</div>
-                <div className="landing-step-desc">
-                  Add phases, check off tasks, connect Stripe for payments.
+              </article>
+              <article className="landing-step-card">
+                <img
+                  src={phaseManagementImage}
+                  alt="Phase progress tracking in Stage"
+                  className="landing-step-card-image"
+                  loading="lazy"
+                />
+                <div className="landing-step-card-body">
+                  <div className="landing-step-content">
+                    <div className="landing-step-title">Track progress</div>
+                    <div className="landing-step-desc">
+                      Add phases, check off tasks, connect Stripe for payments.
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="landing-step-card">
-                <div className="landing-step-number">3</div>
-                <div className="landing-step-title">Stay informed</div>
-                <div className="landing-step-desc">
-                  See your timeline, workload curve, and revenue at a glance.
+              </article>
+              <article className="landing-step-card">
+                <img
+                  src={timelineOverviewImage}
+                  alt="Timeline insights in Stage dashboard"
+                  className="landing-step-card-image"
+                  loading="lazy"
+                />
+                <div className="landing-step-card-body">
+                  <div className="landing-step-content">
+                    <div className="landing-step-title">Stay informed</div>
+                    <div className="landing-step-desc">
+                      See your timeline, workload curve, and revenue at a glance.
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </article>
             </div>
           </div>
         </section>
@@ -367,72 +387,61 @@ export function LandingPage() {
               No confusing tiers. One plan for the complete experience, and a generous free tier to start.
             </p>
             <div className="landing-pricing-layout">
-              <div className="landing-pricing-left">
-                <div className="landing-pricing-visual">
-                  <div className="landing-pv-inner">
-                    <div className="landing-pv-big-number">{"∞"}</div>
-                    <div className="landing-pv-label">Unlimited projects on Pro</div>
-                    <div className="landing-pv-projects">
-                      {[
-                        "https://randomuser.me/api/portraits/men/32.jpg",
-                        "https://randomuser.me/api/portraits/women/68.jpg",
-                        "https://randomuser.me/api/portraits/men/75.jpg",
-                        "https://randomuser.me/api/portraits/women/22.jpg",
-                      ].map((avatar, index) => (
-                        <div key={index} className="landing-pv-project">
-                          <div className="landing-pv-project-inner">
-                            <img src={avatar} alt="" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+              <div className="landing-pricing-card free">
+                <div className="landing-pricing-head">
+                  <div className="landing-pricing-plan-name">Free</div>
                 </div>
+                <div className="landing-pricing-price">
+                  <span className="landing-pricing-amount">$0</span>
+                  <span className="landing-pricing-period">/month</span>
+                </div>
+                <div className="landing-pricing-billing">
+                  Perfect to get started and run your first client projects in Stage.
+                </div>
+
+                <ul className="landing-pricing-features">
+                  {FREE_PRICING_FEATURES.map((feature) => (
+                    <li key={feature} className="landing-pricing-feature">
+                      <CheckIcon />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  to="/auth"
+                  className="landing-btn landing-btn-ghost landing-btn-secondary landing-pricing-cta landing-pricing-cta-secondary"
+                >
+                  Start free
+                </Link>
+                <div className="landing-pricing-free">Upgrade anytime as your workload grows.</div>
               </div>
-              <div className="landing-pricing-right">
-                <div className="landing-pricing-card">
-                  <div className="landing-pricing-toggle-wrap">
-                    <div className="landing-pricing-toggle">
-                      <button
-                        type="button"
-                        className={`landing-pricing-toggle-btn ${isYearly ? "" : "active"}`}
-                        onClick={() => setIsYearly(false)}
-                      >
-                        Monthly
-                      </button>
-                      <button
-                        type="button"
-                        className={`landing-pricing-toggle-btn ${isYearly ? "active" : ""}`}
-                        onClick={() => setIsYearly(true)}
-                      >
-                        Yearly
-                      </button>
-                    </div>
-                  </div>
+
+              <div className="landing-pricing-card pro">
+                <div className="landing-pricing-head">
                   <div className="landing-pricing-plan-name">Pro</div>
-                  <div className="landing-pricing-price">
-                    <span className="landing-pricing-amount">{isYearly ? "$9" : "$12"}</span>
-                    <span className="landing-pricing-period">/month</span>
-                  </div>
-                  <div className="landing-pricing-billing">
-                    {isYearly ? "Billed annually ($108/year)" : "Billed monthly"}
-                  </div>
+                  <span className="landing-pricing-tag">Annual billing</span>
+                </div>
+                <div className="landing-pricing-price">
+                  <span className="landing-pricing-amount">$9</span>
+                  <span className="landing-pricing-period">/month</span>
+                </div>
+                <div className="landing-pricing-billing">Billed annually ($108/year)</div>
 
-                  <ul className="landing-pricing-features">
-                    {PRICING_FEATURES.map((feature) => (
-                      <li key={feature} className="landing-pricing-feature">
-                        <CheckIcon />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
+                <ul className="landing-pricing-features">
+                  {PRICING_FEATURES.map((feature) => (
+                    <li key={feature} className="landing-pricing-feature">
+                      <CheckIcon />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
 
-                  <Link to="/auth" className="landing-btn landing-btn-cta landing-pricing-cta">
-                    Get started
-                  </Link>
-                  <div className="landing-pricing-free">
-                    Free tier available — no credit card required
-                  </div>
+                <Link to="/auth" className="landing-btn landing-btn-cta landing-pricing-cta">
+                  Get started
+                </Link>
+                <div className="landing-pricing-free">
+                  Free tier available — no credit card required
                 </div>
               </div>
             </div>
@@ -456,14 +465,15 @@ export function LandingPage() {
                       type="button"
                       className="landing-faq-question"
                       onClick={() => setOpenFaq(openFaq === index ? -1 : index)}
+                      aria-expanded={openFaq === index}
+                      aria-controls={`landing-faq-answer-${index}`}
                     >
                       <span className="landing-faq-question-text">{item.question}</span>
-                      <span className="landing-faq-icon">+</span>
+                      <span className="landing-faq-icon" aria-hidden="true">
+                        <Plus weight="bold" />
+                      </span>
                     </button>
-                    <div
-                      className="landing-faq-answer"
-                      style={{ maxHeight: openFaq === index ? "220px" : "0px" }}
-                    >
+                    <div className="landing-faq-answer" id={`landing-faq-answer-${index}`}>
                       <div className="landing-faq-answer-inner">{item.answer}</div>
                     </div>
                   </div>
@@ -475,66 +485,87 @@ export function LandingPage() {
 
         <section className="landing-final-cta">
           <div className="landing-container">
-            <h2 className="landing-section-title">Clarity for every creative project</h2>
-            <p className="landing-section-subtitle">
-              Start tracking your projects today. Free to begin, upgrade when you're ready.
-            </p>
-            <div className="landing-final-buttons">
-              <Link to="/auth" className="landing-btn landing-btn-cta">
-                Get started
-              </Link>
-              <a href="#features" className="landing-btn landing-btn-ghost">
-                See demo
-              </a>
+            <div className="landing-final-card">
+              <h2 className="landing-section-title">Clarity for every creative project</h2>
+              <p className="landing-section-subtitle">
+                Start tracking your projects today. Free to begin, upgrade when you're ready.
+              </p>
+              <div className="landing-final-buttons">
+                <Link to="/auth" className="landing-btn landing-btn-cta">
+                  Get started
+                </Link>
+                <a href="#features" className="landing-btn landing-btn-ghost landing-btn-secondary">
+                  See demo
+                </a>
+              </div>
             </div>
           </div>
         </section>
 
         <footer className="landing-footer">
           <div className="landing-container">
-            <div className="landing-footer-grid">
-              <div>
-                <div className="landing-footer-brand-name">Stage</div>
-                <div className="landing-footer-brand-desc">
-                  Project management built for creative professionals. Track work, manage clients,
-                  get paid.
+            <div className="landing-footer-shell">
+              <div className="landing-footer-grid">
+                <div className="landing-footer-brand">
+                  <a href="#" className="landing-footer-logo">
+                    <img src={stageLogo} alt="Stage" />
+                  </a>
+                  <div className="landing-footer-brand-desc">
+                    Project management built for creative professionals. Track work, manage clients,
+                    get paid.
+                  </div>
+                  <div className="landing-footer-brand-meta">Made for designers and freelancers.</div>
+                </div>
+                <div>
+                  <div className="landing-footer-col-title">Product</div>
+                  <a href="#features" className="landing-footer-link">
+                    Features
+                  </a>
+                  <a href="#pricing" className="landing-footer-link">
+                    Pricing
+                  </a>
+                  <a href="#" className="landing-footer-link">
+                    Changelog
+                  </a>
+                </div>
+                <div>
+                  <div className="landing-footer-col-title">Company</div>
+                  <a href="#" className="landing-footer-link">
+                    About
+                  </a>
+                  <a href="#" className="landing-footer-link">
+                    Blog
+                  </a>
+                  <a href="#" className="landing-footer-link">
+                    Contact
+                  </a>
+                </div>
+                <div>
+                  <div className="landing-footer-col-title">Legal</div>
+                  <a href="#" className="landing-footer-link">
+                    Terms
+                  </a>
+                  <a href="#" className="landing-footer-link">
+                    Privacy
+                  </a>
                 </div>
               </div>
-              <div>
-                <div className="landing-footer-col-title">Product</div>
-                <a href="#features" className="landing-footer-link">
-                  Features
-                </a>
-                <a href="#pricing" className="landing-footer-link">
-                  Pricing
-                </a>
-                <a href="#" className="landing-footer-link">
-                  Changelog
-                </a>
-              </div>
-              <div>
-                <div className="landing-footer-col-title">Company</div>
-                <a href="#" className="landing-footer-link">
-                  About
-                </a>
-                <a href="#" className="landing-footer-link">
-                  Blog
-                </a>
-                <a href="#" className="landing-footer-link">
-                  Contact
-                </a>
-              </div>
-              <div>
-                <div className="landing-footer-col-title">Legal</div>
-                <a href="#" className="landing-footer-link">
-                  Terms
-                </a>
-                <a href="#" className="landing-footer-link">
-                  Privacy
-                </a>
+
+              <div className="landing-footer-bottom">
+                <span>© 2026 Stage</span>
+                <div className="landing-footer-bottom-links">
+                  <a href="#features" className="landing-footer-bottom-link">
+                    Features
+                  </a>
+                  <a href="#faq" className="landing-footer-bottom-link">
+                    FAQ
+                  </a>
+                  <a href="#pricing" className="landing-footer-bottom-link">
+                    Pricing
+                  </a>
+                </div>
               </div>
             </div>
-            <div className="landing-footer-bottom">© 2026 Stage</div>
           </div>
         </footer>
       </div>
@@ -548,16 +579,22 @@ function FeatureCard({
   points,
   mockup,
   gray,
+  featured,
+  mockupType,
 }: {
   title: string;
   description: string;
   points: string[];
   mockup: React.ReactNode;
   gray?: boolean;
+  featured?: boolean;
+  mockupType?: "image" | "ui";
 }) {
   return (
-    <div className="landing-feature-card">
-      <div className={`landing-feature-mockup ${gray ? "gray" : ""}`}>{mockup}</div>
+    <div className={`landing-feature-card ${featured ? "featured" : ""}`}>
+      <div className={`landing-feature-mockup ${gray ? "gray" : ""} ${mockupType === "image" ? "image" : ""}`}>
+        {mockup}
+      </div>
       <div className="landing-feature-body">
         <div className="landing-feature-title">{title}</div>
         <div className="landing-feature-desc">{description}</div>
@@ -574,12 +611,18 @@ function FeatureCard({
   );
 }
 
-function SmallFeatureCard({ title, description }: { title: string; description: string }) {
+function SmallFeatureCard({
+  title,
+  description,
+  mockup,
+}: {
+  title: string;
+  description: string;
+  mockup?: React.ReactNode;
+}) {
   return (
-    <div className="landing-feature-card small">
-      <div className="landing-feature-mockup gray small-mock">
-        <div className="landing-small-mock-icon">◍</div>
-      </div>
+    <div className={`landing-feature-card small ${mockup ? "" : "no-mock"}`}>
+      {mockup ? <div className="landing-feature-mockup gray small-mock">{mockup}</div> : null}
       <div className="landing-feature-body">
         <div className="landing-feature-title">{title}</div>
         <div className="landing-feature-desc">{description}</div>
@@ -588,30 +631,8 @@ function SmallFeatureCard({ title, description }: { title: string; description: 
   );
 }
 
-function TimelineMockup() {
-  return (
-    <div className="landing-fm-timeline">
-      <svg viewBox="0 0 400 60" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="fmCurveLanding" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#8782F5" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#8782F5" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M0,55 C40,55 60,55 100,40 C140,25 170,8 220,6 C270,4 310,20 350,30 C370,35 390,45 400,48 L400,60 L0,60 Z"
-          fill="url(#fmCurveLanding)"
-        />
-        <path
-          d="M0,55 C40,55 60,55 100,40 C140,25 170,8 220,6 C270,4 310,20 350,30 C370,35 390,45 400,48"
-          fill="none"
-          stroke="#8782F5"
-          strokeWidth="1.5"
-          opacity="0.6"
-        />
-      </svg>
-    </div>
-  );
+function FeatureImage({ src, alt }: { src: string; alt: string }) {
+  return <img src={src} alt={alt} className="landing-feature-image" loading="lazy" />;
 }
 
 function PortalMockup() {
@@ -623,8 +644,8 @@ function PortalMockup() {
         <span className="dot green" />
         <span className="landing-fm-portal-url">stage.app/share/acme-studio</span>
       </div>
-      <div className="landing-fm-portal-body">
-        <div className="landing-fm-line title" />
+      <div className="landing-fm-portal-body simple">
+        <div className="landing-fm-line w60" />
         <div className="landing-fm-progress">
           <div className="landing-fm-progress-fill" />
         </div>
@@ -639,44 +660,36 @@ function PortalMockup() {
   );
 }
 
-function PhaseMockup() {
-  return (
-    <div className="landing-fm-phases">
-      {[true, true, false, false].map((done, index) => (
-        <div key={index} className="landing-fm-phase-item">
-          <span className={`landing-fm-phase-check ${done ? "done" : ""}`} />
-          <span className="landing-fm-phase-text" />
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function PaymentMockup() {
+  const payments = [
+    { client: "Northline", amount: "$3,200", status: "paid" },
+    { client: "Aster Labs", amount: "$1,800", status: "pending" },
+    { client: "Acme Studio", amount: "$4,500", status: "paid" },
+  ] as const;
+
   return (
     <div className="landing-fm-payments">
-      {["$3,200", "$1,800", "$4,500", "$2,400"].map((amount, index) => (
-        <div key={index} className="landing-fm-payment-row">
-          <div className="landing-fm-payment-left">
-            <span className="landing-fm-payment-avatar" />
-            <span className="landing-fm-payment-name" />
+      <div className="landing-fm-payment-list">
+        {payments.map((payment) => (
+          <div key={payment.client} className="landing-fm-payment-row">
+            <div className="landing-fm-payment-left">
+              <span className={`landing-fm-payment-dot ${payment.status}`} aria-hidden="true" />
+              <span className="landing-fm-payment-name">{payment.client}</span>
+            </div>
+            <div className="landing-fm-payment-right">
+              <span className="landing-fm-payment-amount">{payment.amount}</span>
+              <span className={`landing-fm-payment-badge ${payment.status}`}>
+                {payment.status === "paid" ? "Paid" : "Pending"}
+              </span>
+            </div>
           </div>
-          <div className="landing-fm-payment-right">
-            <span className="landing-fm-payment-amount">{amount}</span>
-            <span className={`landing-fm-payment-badge ${index % 2 === 0 ? "paid" : "pending"}`}>
-              {index % 2 === 0 ? "Paid" : "Pending"}
-            </span>
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
 
 function CheckIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
+  return <Check weight="bold" />;
 }
