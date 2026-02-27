@@ -124,7 +124,13 @@ export function LandingPage() {
 
         <section className="landing-hero">
           <div className="landing-container">
-            <span className="landing-hero-badge">Built for creative professionals</span>
+            <Link to="/auth" className="landing-hero-badge" aria-label="Go to login">
+              <span className="landing-hero-badge-pill">NEW</span>
+              <span className="landing-hero-badge-text">Built for creative professionals</span>
+              <span className="landing-hero-badge-arrow" aria-hidden="true">
+                ›
+              </span>
+            </Link>
             <h1 className="landing-hero-title">Project clarity for designers and freelancers</h1>
             <p className="landing-hero-subtitle">
               Track projects, manage phases, monitor payments. Everything you need to run your
