@@ -16,7 +16,7 @@ export function Navbar() {
   const isTaskDetail = matches.some((m) => m.routeId.includes("task.$taskId"));
 
   return (
-    <header className="top-0 z-40 border-b border-border-subtle bg-white">
+    <header className="top-0 z-40 bg-white">
       <div className="mx-auto flex h-[64px] w-full max-w-[1200px] items-center justify-between px-6 sm:px-10 lg:px-14">
         <div className="flex items-center gap-3">
           {isProjectDetail || isTaskDetail ? (
