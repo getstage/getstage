@@ -135,105 +135,89 @@ export function DashboardPage() {
 
         {projects && projects.length > 0 && (
           <div className="mx-auto max-w-[1200px] px-6 pb-32 sm:px-10 lg:px-14">
-            <div className="mt-10 grid gap-4 md:grid-cols-2">
-              <InfoCard title="Upcoming">
-                <div className="space-y-0">
-                  {upcomingTasks.map((entry, index) => (
-                    <div
-                      key={entry.task.id}
-                      className={`flex items-center gap-2.5 py-2 text-[13px] ${
-                        index > 0 ? "border-t border-border-subtle" : ""
-                      }`}
-                    >
-                      <div className="h-5 w-5 overflow-hidden rounded-full bg-input-bg">
-                        {entry.project.clientAvatarUrl ? (
-                          <img
-                            src={entry.project.clientAvatarUrl}
-                            alt={entry.project.clientName}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : null}
-                      </div>
-                      <span className="flex-1 text-text-primary">{entry.task.title}</span>
-                      <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-[11px] text-text-secondary">
-                        {entry.phase.name}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </InfoCard>
-
-              <InfoCard title="Recent Activity">
-                <div className="space-y-0">
-                  {recentActivity.map((entry, index) => (
-                    <div
-                      key={entry.task.id}
-                      className={`py-2 text-[13px] ${
-                        index > 0 ? "border-t border-border-subtle" : ""
-                      }`}
-                    >
-                      <span className="text-text-secondary">Completed: </span>
-                      <span className="text-text-primary">{entry.task.title}</span>
-                      <span className="text-text-tertiary"> — {entry.project.clientName}</span>
-                    </div>
-                  ))}
-                </div>
-              </InfoCard>
-            </div>
-
-            <InfoCard className="mt-4 px-7 py-6" title="Payments">
-              <div className="grid gap-5 lg:grid-cols-[auto_1px_minmax(220px,1fr)_auto] lg:items-start">
-                <div className="flex gap-10 sm:gap-14">
-                  <div>
-                    <div className="text-[12px] text-text-secondary">Outstanding</div>
-                    <div className="font-heading text-[46px] font-semibold tracking-tight text-text-primary">
-                      $6,200
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[12px] text-text-secondary">Received</div>
-                    <div className="font-heading text-[46px] font-semibold tracking-tight text-accent">
-                      $12,400
-                    </div>
-                  </div>
-                </div>
-
-                <div className="hidden h-[112px] w-px bg-border-subtle lg:block" />
-
-                <div className="space-y-2.5 pt-1">
-                  {paymentRows.map((row) => (
-                    <div key={row.name} className="flex items-center gap-2.5 text-[14px]">
-                      <div className="h-5 w-5 overflow-hidden rounded-full bg-input-bg">
-                        {row.avatarUrl ? (
-                          <img
-                            src={row.avatarUrl}
-                            alt={row.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : null}
-                      </div>
-                      <span className="text-text-primary">{row.name}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex h-full min-h-[112px] flex-col items-end justify-between pt-1">
-                  <div className="space-y-2.5 text-right">
-                    {paymentRows.map((row) => (
+            <div className="mt-12 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)]">
+              <InfoCard className="h-full" title="Next Up">
+                {upcomingTasks.length > 0 ? (
+                  <div className="space-y-0">
+                    {upcomingTasks.map((entry, index) => (
                       <div
-                        key={`${row.name}-amount`}
-                        className="inline-flex items-center gap-1.5 text-[14px] font-medium text-accent"
+                        key={entry.task.id}
+                        className={`flex items-center gap-2.5 py-2 text-[13px] ${
+                          index > 0 ? "border-t border-border-subtle" : ""
+                        }`}
                       >
-                        <Check size={12} weight="bold" aria-hidden="true" />
-                        {formatThousandsDot(row.amount)}
+                        <div className="h-5 w-5 overflow-hidden rounded-full bg-input-bg">
+                          {entry.project.clientAvatarUrl ? (
+                            <img
+                              src={entry.project.clientAvatarUrl}
+                              alt={entry.project.clientName}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : null}
+                        </div>
+                        <span className="truncate text-text-primary">{entry.task.title}</span>
+                        <span className="ml-auto text-[11px] text-text-secondary">
+                          {entry.phase.name}
+                        </span>
                       </div>
                     ))}
                   </div>
-                  <div className="text-[13px] text-text-secondary">Pending $6,200</div>
-                </div>
-              </div>
-            </InfoCard>
+                ) : (
+                  <p className="text-[13px] text-text-secondary">No upcoming tasks.</p>
+                )}
+              </InfoCard>
 
+              <InfoCard className="h-full" title="Recent">
+                {recentActivity.length > 0 ? (
+                  <div className="space-y-0">
+                    {recentActivity.map((entry, index) => (
+                      <div
+                        key={entry.task.id}
+                        className={`py-2 text-[13px] ${
+                          index > 0 ? "border-t border-border-subtle" : ""
+                        }`}
+                      >
+                        <span className="text-text-primary">{entry.task.title}</span>
+                        <span className="text-text-tertiary"> — {entry.project.clientName}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[13px] text-text-secondary">No recent completions.</p>
+                )}
+              </InfoCard>
+
+              <InfoCard className="h-full" title="Cash Snapshot">
+                <div className="rounded-[10px] border border-border-subtle bg-bg-subtle/50">
+                  <div className="grid grid-cols-3 divide-x divide-border-subtle">
+                    <SecondaryMetric label="Outstanding" value="$6,200" />
+                    <SecondaryMetric label="Received" value="$12,400" accent />
+                    <SecondaryMetric label="Pending" value="$6,200" />
+                  </div>
+                </div>
+
+                {paymentRows.length > 0 ? (
+                  <div className="mt-3 space-y-1.5 border-t border-border-subtle pt-2.5">
+                    {paymentRows.map((row) => (
+                      <div key={row.name} className="flex items-center gap-2 text-[13px]">
+                        <Check
+                          size={11}
+                          weight="bold"
+                          aria-hidden="true"
+                          className="text-accent"
+                        />
+                        <span className="truncate text-text-primary">{row.name}</span>
+                        <span className="ml-auto font-medium text-text-primary">
+                          {formatThousandsDot(row.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-[13px] text-text-secondary">No payment rows.</p>
+                )}
+              </InfoCard>
+            </div>
           </div>
         )}
 
@@ -417,10 +401,33 @@ function InfoCard({
 }) {
   return (
     <div
-      className={`rounded-[12px] border border-border-subtle bg-white p-4 ${className ?? ""}`}
+      className={`rounded-[12px] border border-border-subtle bg-white p-5 ${className ?? ""}`}
     >
-      <h2 className="mb-2 text-[19px] font-heading font-semibold text-text-primary">{title}</h2>
+      <h2 className="mb-2 text-[13px] font-medium text-text-secondary">{title}</h2>
       {children}
+    </div>
+  );
+}
+
+function SecondaryMetric({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="px-3 py-2.5">
+      <p className="text-[11px] text-text-secondary">{label}</p>
+      <p
+        className={`mt-1 font-heading text-[22px] font-semibold leading-none ${
+          accent ? "text-accent" : "text-text-primary"
+        }`}
+      >
+        {value}
+      </p>
     </div>
   );
 }

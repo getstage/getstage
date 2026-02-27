@@ -71,7 +71,6 @@ const PRICING_FEATURES = [
 export function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number>(0);
-  const [isYearly, setIsYearly] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -389,72 +388,60 @@ export function LandingPage() {
               No confusing tiers. One plan for the complete experience, and a generous free tier to start.
             </p>
             <div className="landing-pricing-layout">
-              <div className="landing-pricing-left">
-                <div className="landing-pricing-visual">
-                  <div className="landing-pv-inner">
-                    <div className="landing-pv-big-number">{"∞"}</div>
-                    <div className="landing-pv-label">Unlimited projects on Pro</div>
-                    <div className="landing-pv-projects">
-                      {[
-                        "https://randomuser.me/api/portraits/men/32.jpg",
-                        "https://randomuser.me/api/portraits/women/68.jpg",
-                        "https://randomuser.me/api/portraits/men/75.jpg",
-                        "https://randomuser.me/api/portraits/women/22.jpg",
-                      ].map((avatar, index) => (
-                        <div key={index} className="landing-pv-project">
-                          <div className="landing-pv-project-inner">
-                            <img src={avatar} alt="" />
-                          </div>
+              <div className="landing-pricing-visual">
+                <div className="landing-pricing-visual-card">
+                  <div className="landing-pv-big-number">{"∞"}</div>
+                  <div className="landing-pv-label">Unlimited projects on Pro</div>
+                  <div className="landing-pv-projects">
+                    {[
+                      "https://randomuser.me/api/portraits/men/32.jpg",
+                      "https://randomuser.me/api/portraits/women/68.jpg",
+                      "https://randomuser.me/api/portraits/men/75.jpg",
+                      "https://randomuser.me/api/portraits/women/22.jpg",
+                    ].map((avatar, index) => (
+                      <div key={index} className="landing-pv-project">
+                        <div className="landing-pv-project-inner">
+                          <img src={avatar} alt="" />
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="landing-pricing-visual-rows">
+                    {PRICING_FEATURES.slice(0, 3).map((feature) => (
+                      <div key={feature} className="landing-pricing-visual-row">
+                        <CheckIcon />
+                        <span>{feature}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
-              <div className="landing-pricing-right">
-                <div className="landing-pricing-card">
-                  <div className="landing-pricing-toggle-wrap">
-                    <div className="landing-pricing-toggle">
-                      <button
-                        type="button"
-                        className={`landing-pricing-toggle-btn ${isYearly ? "" : "active"}`}
-                        onClick={() => setIsYearly(false)}
-                      >
-                        Monthly
-                      </button>
-                      <button
-                        type="button"
-                        className={`landing-pricing-toggle-btn ${isYearly ? "active" : ""}`}
-                        onClick={() => setIsYearly(true)}
-                      >
-                        Yearly
-                      </button>
-                    </div>
-                  </div>
+
+              <div className="landing-pricing-card">
+                <div className="landing-pricing-head">
                   <div className="landing-pricing-plan-name">Pro</div>
-                  <div className="landing-pricing-price">
-                    <span className="landing-pricing-amount">{isYearly ? "$9" : "$12"}</span>
-                    <span className="landing-pricing-period">/month</span>
-                  </div>
-                  <div className="landing-pricing-billing">
-                    {isYearly ? "Billed annually ($108/year)" : "Billed monthly"}
-                  </div>
+                  <span className="landing-pricing-tag">Annual billing</span>
+                </div>
+                <div className="landing-pricing-price">
+                  <span className="landing-pricing-amount">$9</span>
+                  <span className="landing-pricing-period">/month</span>
+                </div>
+                <div className="landing-pricing-billing">Billed annually ($108/year)</div>
 
-                  <ul className="landing-pricing-features">
-                    {PRICING_FEATURES.map((feature) => (
-                      <li key={feature} className="landing-pricing-feature">
-                        <CheckIcon />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
+                <ul className="landing-pricing-features">
+                  {PRICING_FEATURES.map((feature) => (
+                    <li key={feature} className="landing-pricing-feature">
+                      <CheckIcon />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
 
-                  <Link to="/auth" className="landing-btn landing-btn-cta landing-pricing-cta">
-                    Get started
-                  </Link>
-                  <div className="landing-pricing-free">
-                    Free tier available — no credit card required
-                  </div>
+                <Link to="/auth" className="landing-btn landing-btn-cta landing-pricing-cta">
+                  Get started
+                </Link>
+                <div className="landing-pricing-free">
+                  Free tier available — no credit card required
                 </div>
               </div>
             </div>
@@ -517,49 +504,68 @@ export function LandingPage() {
 
         <footer className="landing-footer">
           <div className="landing-container">
-            <div className="landing-footer-grid">
-              <div>
-                <div className="landing-footer-brand-name">Stage</div>
-                <div className="landing-footer-brand-desc">
-                  Project management built for creative professionals. Track work, manage clients,
-                  get paid.
+            <div className="landing-footer-shell">
+              <div className="landing-footer-grid">
+                <div className="landing-footer-brand">
+                  <a href="#" className="landing-footer-logo">
+                    <img src={stageLogo} alt="Stage" />
+                  </a>
+                  <div className="landing-footer-brand-desc">
+                    Project management built for creative professionals. Track work, manage clients,
+                    get paid.
+                  </div>
+                  <div className="landing-footer-brand-meta">Made for designers and freelancers.</div>
+                </div>
+                <div>
+                  <div className="landing-footer-col-title">Product</div>
+                  <a href="#features" className="landing-footer-link">
+                    Features
+                  </a>
+                  <a href="#pricing" className="landing-footer-link">
+                    Pricing
+                  </a>
+                  <a href="#" className="landing-footer-link">
+                    Changelog
+                  </a>
+                </div>
+                <div>
+                  <div className="landing-footer-col-title">Company</div>
+                  <a href="#" className="landing-footer-link">
+                    About
+                  </a>
+                  <a href="#" className="landing-footer-link">
+                    Blog
+                  </a>
+                  <a href="#" className="landing-footer-link">
+                    Contact
+                  </a>
+                </div>
+                <div>
+                  <div className="landing-footer-col-title">Legal</div>
+                  <a href="#" className="landing-footer-link">
+                    Terms
+                  </a>
+                  <a href="#" className="landing-footer-link">
+                    Privacy
+                  </a>
                 </div>
               </div>
-              <div>
-                <div className="landing-footer-col-title">Product</div>
-                <a href="#features" className="landing-footer-link">
-                  Features
-                </a>
-                <a href="#pricing" className="landing-footer-link">
-                  Pricing
-                </a>
-                <a href="#" className="landing-footer-link">
-                  Changelog
-                </a>
-              </div>
-              <div>
-                <div className="landing-footer-col-title">Company</div>
-                <a href="#" className="landing-footer-link">
-                  About
-                </a>
-                <a href="#" className="landing-footer-link">
-                  Blog
-                </a>
-                <a href="#" className="landing-footer-link">
-                  Contact
-                </a>
-              </div>
-              <div>
-                <div className="landing-footer-col-title">Legal</div>
-                <a href="#" className="landing-footer-link">
-                  Terms
-                </a>
-                <a href="#" className="landing-footer-link">
-                  Privacy
-                </a>
+
+              <div className="landing-footer-bottom">
+                <span>© 2026 Stage</span>
+                <div className="landing-footer-bottom-links">
+                  <a href="#features" className="landing-footer-bottom-link">
+                    Features
+                  </a>
+                  <a href="#faq" className="landing-footer-bottom-link">
+                    FAQ
+                  </a>
+                  <a href="#pricing" className="landing-footer-bottom-link">
+                    Pricing
+                  </a>
+                </div>
               </div>
             </div>
-            <div className="landing-footer-bottom">© 2026 Stage</div>
           </div>
         </footer>
       </div>

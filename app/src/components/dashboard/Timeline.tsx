@@ -62,6 +62,8 @@ const SIDE_PADDING_DAYS = 2;
 const BLOCK_HEIGHT = 52;
 const ROW_GAP = 10;
 const MAX_VISIBLE_ROWS = 5;
+const ROW_VIEWPORT_TOP_PADDING = 6;
+const ROW_VIEWPORT_BOTTOM_PADDING = 10;
 const TRACK_SIDE_INSET = 24;
 const EDGE_FADE_WIDTH = 64;
 const EDGE_SAFE_PADDING = EDGE_FADE_WIDTH + 12;
@@ -491,9 +493,16 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
   const rowPitch = BLOCK_HEIGHT + ROW_GAP;
   const rowCount = Math.max(layout.rowCount, 1);
   const visibleRows = Math.min(rowCount, MAX_VISIBLE_ROWS);
-  const hasRowOverflow = rowCount > MAX_VISIBLE_ROWS;
-  const rowsViewportHeight = visibleRows * rowPitch - ROW_GAP;
-  const rowsContentHeight = rowCount * rowPitch - ROW_GAP;
+  const rowsViewportHeight =
+    visibleRows * rowPitch -
+    ROW_GAP +
+    ROW_VIEWPORT_TOP_PADDING +
+    ROW_VIEWPORT_BOTTOM_PADDING;
+  const rowsContentHeight =
+    rowCount * rowPitch -
+    ROW_GAP +
+    ROW_VIEWPORT_TOP_PADDING +
+    ROW_VIEWPORT_BOTTOM_PADDING;
   const rowsTop = CURVE_BAND_HEIGHT + CURVE_TO_ROWS_GAP;
   const axisY = rowsTop + rowsViewportHeight + AXIS_TOP_GAP;
   const contentHeight = axisY + LABEL_TOP_GAP + AXIS_LABEL_ZONE_HEIGHT;
@@ -532,6 +541,11 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
       return accumulator;
     }, []);
   }, [layout.ticks]);
+  const renderedTickLabels = useMemo(() => {
+    const todayX = layout.todayX;
+    if (todayX === null) return renderedTicks;
+    return renderedTicks.filter((tick) => Math.abs(tick.x - todayX) > 28);
+  }, [layout.todayX, renderedTicks]);
   const autoPositionKey = useMemo(() => {
     const projectSignature = projects
       .map((project) => `${project.id}:${project.startDate}:${project.endDate}:${project.status}`)
@@ -727,7 +741,10 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
   };
 
   return (
-    <section className="relative h-[60vh] min-h-[420px] max-h-[640px]">
+    <section
+      className="relative h-[60vh] max-h-[760px]"
+      style={{ minHeight: `${Math.max(440, contentHeight + 26)}px` }}
+    >
       <div className="h-full px-6 sm:px-10 lg:px-14">
         <div className="relative h-full">
           <div
@@ -848,7 +865,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                           style={{
                             left: `${entry.left}px`,
                             width: `${entry.width}px`,
-                            top: `${entry.row * rowPitch}px`,
+                            top: `${ROW_VIEWPORT_TOP_PADDING + entry.row * rowPitch}px`,
                             height: `${BLOCK_HEIGHT}px`,
                           }}
                           onMouseEnter={(event) => handleProjectHover(event, entry)}
@@ -897,27 +914,6 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                 </div>
               </div>
 
-              {hasRowOverflow && (
-                <>
-                  <div
-                    className="pointer-events-none absolute left-0 z-10 bg-gradient-to-b from-bg via-bg/95 to-transparent"
-                    style={{
-                      top: `${rowsTop}px`,
-                      width: "100%",
-                      height: "14px",
-                    }}
-                  />
-                  <div
-                    className="pointer-events-none absolute left-0 z-10 bg-gradient-to-t from-bg via-bg/95 to-transparent"
-                    style={{
-                      top: `${rowsTop + rowsViewportHeight - 14}px`,
-                      width: "100%",
-                      height: "14px",
-                    }}
-                  />
-                </>
-              )}
-
               <div
                 className="pointer-events-none absolute border-t border-border"
                 style={{
@@ -927,7 +923,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                 }}
               />
 
-              {renderedTicks.map((tick) => (
+              {renderedTickLabels.map((tick) => (
                 <div
                   key={`tick-label-${tick.key}`}
                   className="pointer-events-none absolute z-10 text-[11px] text-text-secondary"
