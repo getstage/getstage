@@ -5,9 +5,7 @@ import {
   ClockCountdown,
   Lightning,
   Plus,
-  PlugsConnected,
   SealCheck,
-  ShieldCheck,
 } from "@phosphor-icons/react";
 import { Helmet } from "react-helmet-async";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
@@ -286,6 +284,7 @@ export function LandingPage() {
             <div className="landing-features-grid">
               <div className="landing-features-row r1">
                 <FeatureCard
+                  kicker="Command Center"
                   title="Timeline Overview"
                   description="See all your projects mapped across time. The elevation curve shows workload density at a glance."
                   points={[
@@ -294,8 +293,10 @@ export function LandingPage() {
                     "Filter by week, month, quarter, or year",
                   ]}
                   mockup={<TimelineMockup />}
+                  featured
                 />
                 <FeatureCard
+                  kicker="Client Visibility"
                   title="Client Portal"
                   description="Share a live, read-only view with your clients. They see progress without the noise."
                   points={["Branded sharing links", "Real-time sync", "No client login required"]}
@@ -306,6 +307,7 @@ export function LandingPage() {
 
               <div className="landing-features-row r2">
                 <FeatureCard
+                  kicker="Workflow"
                   title="Phase Management"
                   description="Break projects into clear phases with tasks. Drag, reorder, check off."
                   points={[
@@ -316,6 +318,7 @@ export function LandingPage() {
                   mockup={<PhaseMockup />}
                 />
                 <FeatureCard
+                  kicker="Revenue"
                   title="Payment Tracking"
                   description="Connect Stripe and see who's paid and who hasn't, right on your dashboard."
                   points={[
@@ -330,14 +333,16 @@ export function LandingPage() {
 
               <div className="landing-features-row r3">
                 <SmallFeatureCard
+                  kicker="Security"
                   title="Privacy-first"
                   description="Your data stays yours. No selling, no tracking, no ads. GDPR-compliant by default."
-                  icon={<ShieldCheck weight="duotone" />}
+                  mockup={<SecurityMockup />}
                 />
                 <SmallFeatureCard
+                  kicker="Connections"
                   title="Integrations"
                   description="Connect with Stripe today. Figma, Notion, and Slack coming soon."
-                  icon={<PlugsConnected weight="duotone" />}
+                  mockup={<IntegrationsMockup />}
                 />
               </div>
             </div>
@@ -473,16 +478,15 @@ export function LandingPage() {
                       type="button"
                       className="landing-faq-question"
                       onClick={() => setOpenFaq(openFaq === index ? -1 : index)}
+                      aria-expanded={openFaq === index}
+                      aria-controls={`landing-faq-answer-${index}`}
                     >
                       <span className="landing-faq-question-text">{item.question}</span>
                       <span className="landing-faq-icon" aria-hidden="true">
                         <Plus weight="bold" />
                       </span>
                     </button>
-                    <div
-                      className="landing-faq-answer"
-                      style={{ maxHeight: openFaq === index ? "220px" : "0px" }}
-                    >
+                    <div className="landing-faq-answer" id={`landing-faq-answer-${index}`}>
                       <div className="landing-faq-answer-inner">{item.answer}</div>
                     </div>
                   </div>
@@ -494,17 +498,19 @@ export function LandingPage() {
 
         <section className="landing-final-cta">
           <div className="landing-container">
-            <h2 className="landing-section-title">Clarity for every creative project</h2>
-            <p className="landing-section-subtitle">
-              Start tracking your projects today. Free to begin, upgrade when you're ready.
-            </p>
-            <div className="landing-final-buttons">
-              <Link to="/auth" className="landing-btn landing-btn-cta">
-                Get started
-              </Link>
-              <a href="#features" className="landing-btn landing-btn-ghost">
-                See demo
-              </a>
+            <div className="landing-final-card">
+              <h2 className="landing-section-title">Clarity for every creative project</h2>
+              <p className="landing-section-subtitle">
+                Start tracking your projects today. Free to begin, upgrade when you're ready.
+              </p>
+              <div className="landing-final-buttons">
+                <Link to="/auth" className="landing-btn landing-btn-cta">
+                  Get started
+                </Link>
+                <a href="#features" className="landing-btn landing-btn-ghost">
+                  See demo
+                </a>
+              </div>
             </div>
           </div>
         </section>
@@ -562,22 +568,27 @@ export function LandingPage() {
 }
 
 function FeatureCard({
+  kicker,
   title,
   description,
   points,
   mockup,
   gray,
+  featured,
 }: {
+  kicker: string;
   title: string;
   description: string;
   points: string[];
   mockup: React.ReactNode;
   gray?: boolean;
+  featured?: boolean;
 }) {
   return (
-    <div className="landing-feature-card">
+    <div className={`landing-feature-card ${featured ? "featured" : ""}`}>
       <div className={`landing-feature-mockup ${gray ? "gray" : ""}`}>{mockup}</div>
       <div className="landing-feature-body">
+        <div className="landing-feature-meta">{kicker}</div>
         <div className="landing-feature-title">{title}</div>
         <div className="landing-feature-desc">{description}</div>
         <div className="landing-feature-checks">
@@ -594,22 +605,21 @@ function FeatureCard({
 }
 
 function SmallFeatureCard({
+  kicker,
   title,
   description,
-  icon,
+  mockup,
 }: {
+  kicker: string;
   title: string;
   description: string;
-  icon: React.ReactNode;
+  mockup: React.ReactNode;
 }) {
   return (
     <div className="landing-feature-card small">
-      <div className="landing-feature-mockup gray small-mock">
-        <div className="landing-small-mock-icon" aria-hidden="true">
-          {icon}
-        </div>
-      </div>
+      <div className="landing-feature-mockup gray small-mock">{mockup}</div>
       <div className="landing-feature-body">
+        <div className="landing-feature-meta">{kicker}</div>
         <div className="landing-feature-title">{title}</div>
         <div className="landing-feature-desc">{description}</div>
       </div>
@@ -618,27 +628,83 @@ function SmallFeatureCard({
 }
 
 function TimelineMockup() {
+  const metrics = [
+    { label: "People", value: "3,806", delta: "-19%", trend: "down" },
+    { label: "Views", value: "16,239", delta: "-26%", trend: "down" },
+    { label: "Bounced", value: "1,548", delta: "-18%", trend: "down" },
+    { label: "Duration", value: "3m 36s", delta: "+6%", trend: "up" },
+  ] as const;
+
   return (
     <div className="landing-fm-timeline">
-      <svg viewBox="0 0 400 60" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="fmCurveLanding" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#8782F5" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#8782F5" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M0,55 C40,55 60,55 100,40 C140,25 170,8 220,6 C270,4 310,20 350,30 C370,35 390,45 400,48 L400,60 L0,60 Z"
-          fill="url(#fmCurveLanding)"
-        />
-        <path
-          d="M0,55 C40,55 60,55 100,40 C140,25 170,8 220,6 C270,4 310,20 350,30 C370,35 390,45 400,48"
-          fill="none"
-          stroke="#8782F5"
-          strokeWidth="1.5"
-          opacity="0.6"
-        />
-      </svg>
+      <div className="landing-fm-timeline-brand">
+        <span className="landing-fm-timeline-greeting">Good morning, Sam</span>
+        <span className="landing-fm-chip subtle">All</span>
+      </div>
+
+      <div className="landing-fm-timeline-head">
+        <span className="landing-fm-chip">Today</span>
+        <span className="landing-fm-chip">Realtime</span>
+      </div>
+
+      <div className="landing-fm-metrics">
+        {metrics.map((metric) => (
+          <div key={metric.label} className="landing-fm-metric">
+            <div className="landing-fm-metric-label">{metric.label}</div>
+            <div className="landing-fm-metric-value">{metric.value}</div>
+            <div className={`landing-fm-metric-delta ${metric.trend}`}>{metric.delta}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="landing-fm-chart">
+        <svg viewBox="0 0 400 88" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="fmCurveLandingFill" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#8782F5" stopOpacity="0.24" />
+              <stop offset="100%" stopColor="#8782F5" stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M0,60 C25,42 45,66 72,56 C98,46 122,60 150,46 C182,30 206,52 232,34 C258,16 290,40 318,36 C344,32 372,60 400,50 L400,88 L0,88 Z"
+            fill="url(#fmCurveLandingFill)"
+          />
+          <path
+            d="M0,48 C24,34 50,55 76,46 C104,36 132,50 160,40 C188,30 214,44 242,38 C268,32 298,42 328,38 C354,34 378,48 400,42"
+            fill="none"
+            stroke="#CFD2DD"
+            strokeWidth="1.5"
+            opacity="0.85"
+          />
+          <path
+            d="M0,64 C22,50 45,68 74,62 C104,56 126,62 156,56 C184,50 208,58 236,54 C262,50 290,58 322,54 C352,50 378,66 400,60"
+            fill="none"
+            stroke="#8782F5"
+            strokeWidth="2"
+            opacity="0.78"
+          />
+        </svg>
+        <span className="landing-fm-chart-time left">00:00</span>
+        <span className="landing-fm-chart-time right">19:00</span>
+      </div>
+
+      <div className="landing-fm-summary">
+        <div className="landing-fm-summary-card">
+          <div className="landing-fm-summary-title">152 people in the last 30m</div>
+          <div className="landing-fm-bars">
+            {[32, 38, 35, 40, 44, 36, 41, 39, 46, 34, 42, 58].map((height, index) => (
+              <span key={index} style={{ height: `${height}%` }} />
+            ))}
+          </div>
+        </div>
+        <div className="landing-fm-summary-card score">
+          <div className="landing-fm-summary-title">Experience score</div>
+          <div className="landing-fm-score-row">
+            <span className="landing-fm-score-ring">97</span>
+            <span className="landing-fm-score-copy">Excellent</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -653,11 +719,16 @@ function PortalMockup() {
         <span className="landing-fm-portal-url">stage.app/share/acme-studio</span>
       </div>
       <div className="landing-fm-portal-body">
-        <div className="landing-fm-line title" />
+        <div className="landing-fm-portal-title">Acme Studio Website</div>
         <div className="landing-fm-progress">
           <div className="landing-fm-progress-fill" />
         </div>
         <div className="landing-fm-portal-copy">65% complete</div>
+        <div className="landing-fm-portal-tags">
+          <span className="landing-fm-portal-tag active">Design</span>
+          <span className="landing-fm-portal-tag">Content</span>
+          <span className="landing-fm-portal-tag">Handoff</span>
+        </div>
         <div className="landing-fm-lines">
           <div className="landing-fm-line w90" />
           <div className="landing-fm-line w70" />
@@ -669,12 +740,25 @@ function PortalMockup() {
 }
 
 function PhaseMockup() {
+  const phases = [
+    { name: "Discovery", progress: 100, done: true },
+    { name: "Design", progress: 88, done: true },
+    { name: "Build", progress: 56, done: false },
+    { name: "Launch", progress: 20, done: false },
+  ] as const;
+
   return (
     <div className="landing-fm-phases">
-      {[true, true, false, false].map((done, index) => (
-        <div key={index} className="landing-fm-phase-item">
-          <span className={`landing-fm-phase-check ${done ? "done" : ""}`} />
-          <span className="landing-fm-phase-text" />
+      {phases.map((phase) => (
+        <div key={phase.name} className="landing-fm-phase-row">
+          <div className="landing-fm-phase-item">
+            <span className={`landing-fm-phase-check ${phase.done ? "done" : ""}`} />
+            <span className="landing-fm-phase-name">{phase.name}</span>
+            <span className="landing-fm-phase-percent">{phase.progress}%</span>
+          </div>
+          <div className="landing-fm-phase-track">
+            <span style={{ width: `${phase.progress}%` }} />
+          </div>
         </div>
       ))}
     </div>
@@ -682,22 +766,68 @@ function PhaseMockup() {
 }
 
 function PaymentMockup() {
+  const payments = [
+    { client: "Northline", amount: "$3,200", status: "Paid" },
+    { client: "Aster Labs", amount: "$1,800", status: "Pending" },
+    { client: "Acme Studio", amount: "$4,500", status: "Paid" },
+    { client: "Brightside", amount: "$2,400", status: "Pending" },
+  ] as const;
+
   return (
     <div className="landing-fm-payments">
-      {["$3,200", "$1,800", "$4,500", "$2,400"].map((amount, index) => (
-        <div key={index} className="landing-fm-payment-row">
+      {payments.map((payment) => (
+        <div key={payment.client} className="landing-fm-payment-row">
           <div className="landing-fm-payment-left">
-            <span className="landing-fm-payment-avatar" />
-            <span className="landing-fm-payment-name" />
+            <span className="landing-fm-payment-avatar">{payment.client.slice(0, 1)}</span>
+            <span className="landing-fm-payment-name">{payment.client}</span>
           </div>
           <div className="landing-fm-payment-right">
-            <span className="landing-fm-payment-amount">{amount}</span>
-            <span className={`landing-fm-payment-badge ${index % 2 === 0 ? "paid" : "pending"}`}>
-              {index % 2 === 0 ? "Paid" : "Pending"}
+            <span className="landing-fm-payment-amount">{payment.amount}</span>
+            <span className={`landing-fm-payment-badge ${payment.status === "Paid" ? "paid" : "pending"}`}>
+              {payment.status}
             </span>
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function SecurityMockup() {
+  return (
+    <div className="landing-fm-mini">
+      <div className="landing-fm-mini-row">
+        <span className="landing-fm-mini-dot" />
+        <span className="landing-fm-mini-line w70" />
+        <span className="landing-fm-mini-pill">Encrypted</span>
+      </div>
+      <div className="landing-fm-mini-row">
+        <span className="landing-fm-mini-dot" />
+        <span className="landing-fm-mini-line w60" />
+        <span className="landing-fm-mini-pill">GDPR</span>
+      </div>
+      <div className="landing-fm-mini-row">
+        <span className="landing-fm-mini-dot" />
+        <span className="landing-fm-mini-line w80" />
+        <span className="landing-fm-mini-pill">No Ads</span>
+      </div>
+    </div>
+  );
+}
+
+function IntegrationsMockup() {
+  return (
+    <div className="landing-fm-mini integrations">
+      <div className="landing-fm-mini-chips">
+        <span>Stripe</span>
+        <span>Figma</span>
+        <span>Notion</span>
+      </div>
+      <div className="landing-fm-mini-track">
+        <span />
+      </div>
+      <div className="landing-fm-mini-line w90" />
+      <div className="landing-fm-mini-line w70" />
     </div>
   );
 }

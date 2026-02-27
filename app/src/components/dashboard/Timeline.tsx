@@ -1,9 +1,13 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Link } from "@tanstack/react-router";
+import { gsap } from "gsap";
+import { DrawSVGPlugin } from "gsap/DrawSVGPlugin";
 import { Avatar } from "@/components/ui/Avatar";
 import type { Project } from "@/types";
+
+gsap.registerPlugin(DrawSVGPlugin);
 
 interface TimelineProps {
   projects: Project[];
@@ -57,7 +61,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const SIDE_PADDING_DAYS = 2;
 const BLOCK_HEIGHT = 52;
 const ROW_GAP = 10;
-const MAX_VISIBLE_ROWS = 4;
+const MAX_VISIBLE_ROWS = 5;
 const TRACK_SIDE_INSET = 24;
 const EDGE_FADE_WIDTH = 64;
 const EDGE_SAFE_PADDING = EDGE_FADE_WIDTH + 12;
@@ -375,6 +379,9 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
   const gradientId = useId().replace(/:/g, "");
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const curveLineRef = useRef<SVGPathElement | null>(null);
+  const curveAreaRef = useRef<SVGPathElement | null>(null);
+  const lastAutoPositionKeyRef = useRef<string | null>(null);
   const [hoverState, setHoverState] = useState<HoverState | null>(null);
   const [viewportWidth, setViewportWidth] = useState(0);
 
@@ -484,6 +491,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
   const rowPitch = BLOCK_HEIGHT + ROW_GAP;
   const rowCount = Math.max(layout.rowCount, 1);
   const visibleRows = Math.min(rowCount, MAX_VISIBLE_ROWS);
+  const hasRowOverflow = rowCount > MAX_VISIBLE_ROWS;
   const rowsViewportHeight = visibleRows * rowPitch - ROW_GAP;
   const rowsContentHeight = rowCount * rowPitch - ROW_GAP;
   const rowsTop = CURVE_BAND_HEIGHT + CURVE_TO_ROWS_GAP;
@@ -514,6 +522,157 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
       })),
     [curve.bottomY, curve.topY, layout.markers],
   );
+  const renderedTicks = useMemo(() => {
+    const baseTicks = layout.ticks.filter((tick) => !tick.key.startsWith("boundary-"));
+    return baseTicks.reduce<TimelineTick[]>((accumulator, tick) => {
+      const previous = accumulator[accumulator.length - 1];
+      if (!previous || Math.abs(tick.x - previous.x) >= 16) {
+        accumulator.push(tick);
+      }
+      return accumulator;
+    }, []);
+  }, [layout.ticks]);
+  const autoPositionKey = useMemo(() => {
+    const projectSignature = projects
+      .map((project) => `${project.id}:${project.startDate}:${project.endDate}:${project.status}`)
+      .join("|");
+    return `${horizon}|${projectSignature}`;
+  }, [horizon, projects]);
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    if (viewportWidth <= 0) return;
+    if (lastAutoPositionKeyRef.current === autoPositionKey) return;
+
+    const viewportClientWidth = Math.round(viewport.getBoundingClientRect().width);
+    const maxScroll = Math.max(layout.timelineWidth - viewportClientWidth, 0);
+    if (maxScroll <= 0) {
+      lastAutoPositionKeyRef.current = autoPositionKey;
+      return;
+    }
+
+    const now = Date.now();
+    const pickNearestByTime = (entries: PositionedProject[]) =>
+      entries.reduce<PositionedProject | null>((closest, current) => {
+        if (!closest) return current;
+
+        const closestMidpoint =
+          closest.project.startDate + (closest.project.endDate - closest.project.startDate) / 2;
+        const currentMidpoint =
+          current.project.startDate + (current.project.endDate - current.project.startDate) / 2;
+        return Math.abs(currentMidpoint - now) < Math.abs(closestMidpoint - now)
+          ? current
+          : closest;
+      }, null);
+
+    const nearestActive = pickNearestByTime(
+      layout.projects.filter((entry) => entry.project.status === "active"),
+    );
+    const nearestProject = nearestActive ?? pickNearestByTime(layout.projects);
+    const fallbackX = EDGE_SAFE_PADDING + TRACK_SIDE_INSET;
+    const nearestProjectX = nearestProject
+      ? nearestProject.left + nearestProject.width / 2
+      : null;
+    const focusX = layout.todayX ?? nearestProjectX ?? fallbackX;
+    const leadFactor = horizon === "all" ? 0.38 : 0.5;
+    const targetScroll = clamp(focusX - viewportClientWidth * leadFactor, 0, maxScroll);
+
+    viewport.scrollLeft = targetScroll;
+    lastAutoPositionKeyRef.current = autoPositionKey;
+  }, [autoPositionKey, horizon, layout.projects, layout.timelineWidth, layout.todayX, viewportWidth]);
+
+  useLayoutEffect(() => {
+    if (!contentRef.current) return;
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    const context = gsap.context(() => {
+      const curveLine = curveLineRef.current;
+      const curveArea = curveAreaRef.current;
+      const tickLines = gsap.utils.toArray<HTMLElement>("[data-timeline-tick]");
+      const markerNodes = gsap.utils.toArray<HTMLElement>("[data-curve-marker]");
+      const blockNodes = gsap.utils.toArray<HTMLElement>("[data-timeline-block]");
+
+      if (curveArea) {
+        gsap.set(curveArea, { opacity: 0.45 });
+      }
+
+      if (curveLine) {
+        gsap.set(curveLine, { drawSVG: "0% 0%" });
+      }
+
+      if (markerNodes.length > 0) {
+        gsap.set(markerNodes, { transformOrigin: "50% 50%", willChange: "transform,opacity" });
+      }
+      if (blockNodes.length > 0) {
+        gsap.set(blockNodes, { willChange: "transform,opacity" });
+      }
+
+      const timeline = gsap.timeline({ defaults: { ease: "sine.out" } });
+
+      if (curveArea) {
+        timeline.to(curveArea, { opacity: 1, duration: 0.62 }, 0.16);
+      }
+
+      if (curveLine) {
+        timeline.to(curveLine, { drawSVG: "0% 100%", duration: 1.1, ease: "sine.out" }, 0);
+      }
+
+      if (tickLines.length > 0) {
+        timeline.fromTo(
+          tickLines,
+          { opacity: 0.45 },
+          { opacity: 1, duration: 0.5, stagger: 0.016 },
+          0.26,
+        );
+      }
+
+      if (markerNodes.length > 0) {
+        timeline.fromTo(
+          markerNodes,
+          { opacity: 0.88, scale: 0.985 },
+          {
+            opacity: 1,
+            scale: 1,
+            duration: 0.62,
+            ease: "sine.out",
+            stagger: { each: 0.06, from: "center" },
+          },
+          0.48,
+        );
+      }
+
+      if (blockNodes.length > 0) {
+        timeline.fromTo(
+          blockNodes,
+          { opacity: 0.9, scale: 0.992 },
+          {
+            opacity: 1,
+            scale: 1,
+            duration: 0.64,
+            ease: "sine.out",
+            stagger: { each: 0.045, from: "start" },
+          },
+          0.28,
+        );
+      }
+
+      timeline.add(() => {
+        if (markerNodes.length > 0) {
+          gsap.set(markerNodes, { clearProps: "willChange" });
+        }
+        if (blockNodes.length > 0) {
+          gsap.set(blockNodes, { clearProps: "willChange" });
+        }
+      });
+    }, contentRef);
+
+    return () => {
+      context.revert();
+    };
+  }, [curve.linePath, curveMarkers.length, horizon, layout.projects.length, layout.ticks.length, layout.timelineWidth]);
 
   const hoveredProjectId = hoverState?.projectId ?? null;
 
@@ -589,13 +748,20 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                     <stop offset="100%" stopColor="#B7B4EE" stopOpacity="0.02" />
                   </linearGradient>
                 </defs>
-                <path d={curve.areaPath} fill={`url(#${gradientId})`} />
-                <path d={curve.linePath} fill="none" stroke="#B7B4EE" strokeWidth="1.2" />
+                <path ref={curveAreaRef} d={curve.areaPath} fill={`url(#${gradientId})`} />
+                <path
+                  ref={curveLineRef}
+                  d={curve.linePath}
+                  fill="none"
+                  stroke="#B7B4EE"
+                  strokeWidth="1.2"
+                />
               </svg>
 
-              {layout.ticks.map((tick) => (
+              {renderedTicks.map((tick) => (
                 <div
                   key={`tick-line-${tick.key}`}
+                  data-timeline-tick
                   className="pointer-events-none absolute top-0 z-0 w-px bg-border-subtle"
                   style={{
                     left: `${tick.x}px`,
@@ -611,7 +777,10 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                   className="pointer-events-none absolute z-[12] -translate-x-1/2 -translate-y-1/2"
                   style={{ left: `${marker.x}px`, top: `${marker.y}px` }}
                 >
-                  <div className="rounded-full border border-white/70 bg-white/80 p-[2px] shadow-[0_3px_8px_rgba(26,26,46,0.08)]">
+                  <div
+                    data-curve-marker
+                    className="rounded-full border border-white/70 bg-white/80 p-[2px] shadow-[0_3px_8px_rgba(26,26,46,0.08)]"
+                  >
                     <Avatar
                       name={marker.project.clientName}
                       src={marker.project.clientAvatarUrl}
@@ -658,6 +827,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                   top: `${rowsTop}px`,
                   height: `${rowsViewportHeight}px`,
                 }}
+                onScroll={() => setHoverState(null)}
               >
                 <div className="relative" style={{ height: `${rowsContentHeight}px` }}>
                   {layout.projects.length === 0 ? (
@@ -690,7 +860,8 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                           }}
                         >
                           <article
-                            className="flex h-full items-center gap-2.5 overflow-hidden rounded-[10px] border border-border-subtle bg-white px-3 shadow-[0_2px_8px_rgba(26,26,46,0.04)] transition-[opacity,border-color] duration-200 hover:border-border"
+                            data-timeline-block
+                            className="flex h-full items-center gap-2.5 overflow-hidden rounded-[10px] border border-border-subtle bg-white px-3 shadow-[0_2px_7px_rgba(26,26,46,0.035)] transition-opacity duration-200"
                             style={{
                               opacity: getRenderedBlockOpacity(
                                 entry.project,
@@ -726,6 +897,27 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                 </div>
               </div>
 
+              {hasRowOverflow && (
+                <>
+                  <div
+                    className="pointer-events-none absolute left-0 z-10 bg-gradient-to-b from-bg via-bg/95 to-transparent"
+                    style={{
+                      top: `${rowsTop}px`,
+                      width: "100%",
+                      height: "14px",
+                    }}
+                  />
+                  <div
+                    className="pointer-events-none absolute left-0 z-10 bg-gradient-to-t from-bg via-bg/95 to-transparent"
+                    style={{
+                      top: `${rowsTop + rowsViewportHeight - 14}px`,
+                      width: "100%",
+                      height: "14px",
+                    }}
+                  />
+                </>
+              )}
+
               <div
                 className="pointer-events-none absolute border-t border-border"
                 style={{
@@ -735,7 +927,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                 }}
               />
 
-              {layout.ticks.map((tick) => (
+              {renderedTicks.map((tick) => (
                 <div
                   key={`tick-label-${tick.key}`}
                   className="pointer-events-none absolute z-10 text-[11px] text-text-secondary"

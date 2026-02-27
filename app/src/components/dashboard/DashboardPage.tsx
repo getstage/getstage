@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Plus } from "@phosphor-icons/react";
+import { Check, Plus } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import { getProjects } from "@/data-ops/queries";
 import { useAuth } from "@/lib/auth";
@@ -83,13 +83,10 @@ export function DashboardPage() {
               <h1 className="font-heading text-[32px] font-semibold tracking-tight text-text-primary">
                 {greeting}
               </h1>
-              <p className="mt-1 text-[14px] text-text-secondary">
-                {activeCount} active
-              </p>
             </motion.div>
             <Link to="/new-project">
-              <Button size="sm" className="h-9 rounded-[9px] px-3.5 text-[13px]">
-                <Plus size={13} weight="bold" />
+              <Button>
+                <Plus size={14} weight="bold" aria-hidden="true" />
                 New Project
               </Button>
             </Link>
@@ -223,8 +220,12 @@ export function DashboardPage() {
                 <div className="flex h-full min-h-[112px] flex-col items-end justify-between pt-1">
                   <div className="space-y-2.5 text-right">
                     {paymentRows.map((row) => (
-                      <div key={`${row.name}-amount`} className="text-[14px] font-medium text-accent">
-                        ✓ {formatThousandsDot(row.amount)}
+                      <div
+                        key={`${row.name}-amount`}
+                        className="inline-flex items-center gap-1.5 text-[14px] font-medium text-accent"
+                      >
+                        <Check size={12} weight="bold" aria-hidden="true" />
+                        {formatThousandsDot(row.amount)}
                       </div>
                     ))}
                   </div>
@@ -386,16 +387,16 @@ function TimelineHorizonSwitch({
   ];
 
   return (
-    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-white p-0.5">
+    <div className="inline-flex flex-wrap items-center gap-2">
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
           onClick={() => onChange(option.value)}
-          className={`rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
+          className={`h-10 rounded-full px-4 text-[14px] font-medium transition-colors ${
             value === option.value
               ? "bg-accent text-white"
-              : "text-text-secondary hover:text-text-primary"
+              : "bg-border-subtle text-text-primary hover:bg-border"
           }`}
         >
           {option.label}
