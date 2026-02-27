@@ -37,12 +37,6 @@ export function DashboardPage() {
   );
   const tasksDue = taskEntries.filter((entry) => !entry.task.isCompleted).length;
   const completed = taskEntries.filter((entry) => entry.task.isCompleted).length;
-  const avgProgress =
-    projects && projects.length > 0
-      ? Math.round(
-          projects.reduce((acc, project) => acc + project.progress, 0) / projects.length,
-        )
-      : 0;
   const avgDurationDays =
     projects && projects.length > 0
       ? Math.round(
@@ -101,31 +95,23 @@ export function DashboardPage() {
             </Link>
           </div>
 
-          <div className="mb-12 flex flex-wrap items-start justify-between gap-5">
-            <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
+          <div className="mb-11 flex flex-wrap items-end justify-between gap-x-5 gap-y-3">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
               <CompactStat
                 label="Active"
                 value={activeCount.toLocaleString()}
-                badge="live"
-                tone="neutral"
               />
               <CompactStat
                 label="Tasks Due"
                 value={tasksDue.toLocaleString()}
-                badge="open"
-                tone="negative"
               />
               <CompactStat
                 label="Completed"
                 value={completed.toLocaleString()}
-                badge="done"
-                tone="positive"
               />
               <CompactStat
                 label="Avg Duration"
                 value={`${avgDurationDays}d`}
-                badge={`${avgProgress}% progress`}
-                tone="positive"
               />
             </div>
 
@@ -371,29 +357,15 @@ function TimelineSkeleton() {
 function CompactStat({
   label,
   value,
-  badge,
-  tone,
 }: {
   label: string;
   value: string;
-  badge: string;
-  tone: "neutral" | "positive" | "negative";
 }) {
-  const toneClass =
-    tone === "positive"
-      ? "bg-[#E8F7EE] text-[#2D9B62]"
-      : tone === "negative"
-        ? "bg-[#FDEEEA] text-[#E07070]"
-        : "bg-bg-subtle text-text-secondary";
-
   return (
-    <div className="min-w-[96px]">
-      <div className="text-[12px] text-text-secondary">{label}</div>
-      <div className="mt-0.5 text-[34px] leading-none font-semibold tracking-tight text-text-primary">
+    <div className="min-w-[84px]">
+      <div className="text-[11px] text-text-secondary">{label}</div>
+      <div className="mt-0.5 font-heading text-[28px] leading-none font-semibold tracking-tight text-text-primary">
         {value}
-      </div>
-      <div className={`mt-1 inline-flex rounded-[7px] px-2 py-0.5 text-[11px] ${toneClass}`}>
-        {badge}
       </div>
     </div>
   );
@@ -414,13 +386,13 @@ function TimelineHorizonSwitch({
   ];
 
   return (
-    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-white p-1">
+    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-white p-0.5">
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
           onClick={() => onChange(option.value)}
-          className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
+          className={`rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
             value === option.value
               ? "bg-accent text-white"
               : "text-text-secondary hover:text-text-primary"

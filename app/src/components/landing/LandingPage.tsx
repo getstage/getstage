@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import {
+  Check,
+  ClockCountdown,
+  Lightning,
+  Plus,
+  PlugsConnected,
+  SealCheck,
+  ShieldCheck,
+} from "@phosphor-icons/react";
 import { Helmet } from "react-helmet-async";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import "@/styles/landing.css";
@@ -240,17 +249,23 @@ export function LandingPage() {
           <div className="landing-container">
             <div className="landing-trust-grid">
               <div>
-                <div className="landing-trust-icon">⚡</div>
+                <div className="landing-trust-icon" aria-hidden="true">
+                  <Lightning weight="duotone" />
+                </div>
                 <div className="landing-trust-title">Lightweight setup</div>
                 <div className="landing-trust-desc">Under 5kb, won't slow your workflow</div>
               </div>
               <div>
-                <div className="landing-trust-icon">◷</div>
+                <div className="landing-trust-icon" aria-hidden="true">
+                  <ClockCountdown weight="duotone" />
+                </div>
                 <div className="landing-trust-title">One-minute onboarding</div>
                 <div className="landing-trust-desc">Create your first project in 60 seconds</div>
               </div>
               <div>
-                <div className="landing-trust-icon">◉</div>
+                <div className="landing-trust-icon" aria-hidden="true">
+                  <SealCheck weight="duotone" />
+                </div>
                 <div className="landing-trust-title">No complexity</div>
                 <div className="landing-trust-desc">Built for creatives, not enterprise teams</div>
               </div>
@@ -317,10 +332,12 @@ export function LandingPage() {
                 <SmallFeatureCard
                   title="Privacy-first"
                   description="Your data stays yours. No selling, no tracking, no ads. GDPR-compliant by default."
+                  icon={<ShieldCheck weight="duotone" />}
                 />
                 <SmallFeatureCard
                   title="Integrations"
                   description="Connect with Stripe today. Figma, Notion, and Slack coming soon."
+                  icon={<PlugsConnected weight="duotone" />}
                 />
               </div>
             </div>
@@ -458,7 +475,9 @@ export function LandingPage() {
                       onClick={() => setOpenFaq(openFaq === index ? -1 : index)}
                     >
                       <span className="landing-faq-question-text">{item.question}</span>
-                      <span className="landing-faq-icon">+</span>
+                      <span className="landing-faq-icon" aria-hidden="true">
+                        <Plus weight="bold" />
+                      </span>
                     </button>
                     <div
                       className="landing-faq-answer"
@@ -574,11 +593,21 @@ function FeatureCard({
   );
 }
 
-function SmallFeatureCard({ title, description }: { title: string; description: string }) {
+function SmallFeatureCard({
+  title,
+  description,
+  icon,
+}: {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+}) {
   return (
     <div className="landing-feature-card small">
       <div className="landing-feature-mockup gray small-mock">
-        <div className="landing-small-mock-icon">◍</div>
+        <div className="landing-small-mock-icon" aria-hidden="true">
+          {icon}
+        </div>
       </div>
       <div className="landing-feature-body">
         <div className="landing-feature-title">{title}</div>
@@ -674,9 +703,5 @@ function PaymentMockup() {
 }
 
 function CheckIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
+  return <Check weight="bold" />;
 }

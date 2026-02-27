@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Link } from "@tanstack/react-router";
@@ -29,6 +29,13 @@ type PositionedProject = {
   currentPhase: string;
 };
 
+type CurveMarker = {
+  key: string;
+  project: Project;
+  x: number;
+  ratio: number;
+};
+
 type PackedRows = {
   projects: Array<{ project: Project; row: number }>;
   rowCount: number;
@@ -41,19 +48,44 @@ type HoverState = {
   blockProgress: number;
 };
 
+type CurvePoint = {
+  x: number;
+  y: number;
+};
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SIDE_PADDING_DAYS = 2;
 const BLOCK_HEIGHT = 52;
 const ROW_GAP = 10;
-const MAX_VISIBLE_ROWS = 5;
+const MAX_VISIBLE_ROWS = 4;
 const TRACK_SIDE_INSET = 24;
 const EDGE_FADE_WIDTH = 64;
 const EDGE_SAFE_PADDING = EDGE_FADE_WIDTH + 12;
+const CURVE_BAND_HEIGHT = 112;
+const CURVE_TO_ROWS_GAP = 16;
+const CURVE_TOP_INSET = 10;
+const CURVE_BOTTOM_INSET = 26;
 const AXIS_TOP_GAP = 20;
 const LABEL_TOP_GAP = 12;
+const AXIS_LABEL_ZONE_HEIGHT = 22;
 const TOOLTIP_WIDTH = 286;
 const RECENT_TASK_WINDOW_MS = 48 * 60 * 60 * 1000;
 const NON_HOVER_FADE_MULTIPLIER = 0.35;
+const MAX_CURVE_MARKERS = 5;
+
+const CURVE_PROFILE: Array<{ x: number; y: number }> = [
+  { x: 0, y: 0.95 },
+  { x: 8, y: 0.94 },
+  { x: 16, y: 0.88 },
+  { x: 24, y: 0.72 },
+  { x: 34, y: 0.38 },
+  { x: 46, y: 0.2 },
+  { x: 58, y: 0.32 },
+  { x: 70, y: 0.5 },
+  { x: 82, y: 0.7 },
+  { x: 92, y: 0.83 },
+  { x: 100, y: 0.9 },
+];
 
 const DAY_TICK_FORMATTER = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -72,6 +104,28 @@ const TOOLTIP_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+function buildSmoothPath(points: CurvePoint[]) {
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0]!.x},${points[0]!.y}`;
+
+  let path = `M ${points[0]!.x},${points[0]!.y}`;
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const p0 = points[index - 1] ?? points[index]!;
+    const p1 = points[index]!;
+    const p2 = points[index + 1]!;
+    const p3 = points[index + 2] ?? p2;
+
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+
+    path += ` C ${c1x.toFixed(2)},${c1y.toFixed(2)} ${c2x.toFixed(2)},${c2y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
+  }
+
+  return path;
 }
 
 function startOfDay(timestamp: number) {
@@ -285,7 +339,40 @@ function getRenderedBlockOpacity(
   return Math.max(0.18, base * NON_HOVER_FADE_MULTIPLIER);
 }
 
+function getProjectStatusPriority(status: Project["status"]) {
+  if (status === "active") return 0;
+  if (status === "paused") return 1;
+  return 2;
+}
+
+function getCurveYAtRatio(ratio: number, topY: number, bottomY: number) {
+  const normalizedX = clamp(ratio, 0, 1) * 100;
+  const verticalRange = Math.max(bottomY - topY, 1);
+
+  const firstPoint = CURVE_PROFILE[0];
+  if (firstPoint && normalizedX <= firstPoint.x) {
+    return topY + verticalRange * firstPoint.y;
+  }
+
+  for (let index = 1; index < CURVE_PROFILE.length; index += 1) {
+    const previous = CURVE_PROFILE[index - 1];
+    const current = CURVE_PROFILE[index];
+    if (!previous || !current) continue;
+
+    if (normalizedX <= current.x) {
+      const segmentLength = Math.max(current.x - previous.x, 1);
+      const progress = (normalizedX - previous.x) / segmentLength;
+      const y = previous.y + (current.y - previous.y) * progress;
+      return topY + verticalRange * y;
+    }
+  }
+
+  const lastPoint = CURVE_PROFILE[CURVE_PROFILE.length - 1];
+  return topY + verticalRange * (lastPoint?.y ?? 1);
+}
+
 export function Timeline({ projects, horizon = "all" }: TimelineProps) {
+  const gradientId = useId().replace(/:/g, "");
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [hoverState, setHoverState] = useState<HoverState | null>(null);
@@ -316,9 +403,11 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
     const rangeMs = Math.max(bounds.end - bounds.start, DAY_MS);
     const totalDays = Math.max(1, Math.ceil(rangeMs / DAY_MS));
     const granularity = getTickGranularity(totalDays);
-    const fallbackViewportWidth = Math.max(980, totalDays * getPixelsPerDay(totalDays));
-    const timelineWidth = Math.max(viewportWidth || fallbackViewportWidth, 320);
-    const plotWidth = Math.max(timelineWidth - EDGE_SAFE_PADDING * 2, 1);
+    const measuredViewportWidth = Math.max(viewportWidth, 0);
+    const viewportPlotWidth = Math.max(measuredViewportWidth - EDGE_SAFE_PADDING * 2, 0);
+    const targetPlotWidth = Math.max(860, totalDays * getPixelsPerDay(totalDays));
+    const plotWidth = Math.max(viewportPlotWidth, targetPlotWidth);
+    const timelineWidth = plotWidth + EDGE_SAFE_PADDING * 2;
     const drawableWidth = Math.max(plotWidth - TRACK_SIDE_INSET * 2, 1);
 
     const toX = (timestamp: number) => {
@@ -353,12 +442,41 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
 
     const now = Date.now();
     const todayX = now >= bounds.start && now <= bounds.end ? toX(now) : null;
+    const markers: CurveMarker[] = visibleProjects
+      .map((project) => {
+        const clampedStart = clamp(project.startDate, bounds.start, bounds.end);
+        const clampedEnd = clamp(project.endDate, bounds.start, bounds.end);
+        const midpoint = clampedStart + (clampedEnd - clampedStart) / 2;
+        return {
+          key: project.id,
+          project,
+          midpoint,
+        };
+      })
+      .sort((a, b) => {
+        const priorityDiff =
+          getProjectStatusPriority(a.project.status) - getProjectStatusPriority(b.project.status);
+        if (priorityDiff !== 0) return priorityDiff;
+
+        const distanceDiff = Math.abs(a.midpoint - now) - Math.abs(b.midpoint - now);
+        if (distanceDiff !== 0) return distanceDiff;
+
+        return a.project.startDate - b.project.startDate;
+      })
+      .slice(0, MAX_CURVE_MARKERS)
+      .map((marker) => ({
+        key: marker.key,
+        project: marker.project,
+        x: toX(marker.midpoint),
+        ratio: (marker.midpoint - bounds.start) / rangeMs,
+      }));
 
     return {
       rowCount: packed.rowCount,
       timelineWidth,
       ticks,
       projects: positionedProjects,
+      markers,
       todayX,
     };
   }, [horizon, projects, viewportWidth]);
@@ -368,8 +486,34 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
   const visibleRows = Math.min(rowCount, MAX_VISIBLE_ROWS);
   const rowsViewportHeight = visibleRows * rowPitch - ROW_GAP;
   const rowsContentHeight = rowCount * rowPitch - ROW_GAP;
-  const axisY = rowsViewportHeight + AXIS_TOP_GAP;
-  const contentHeight = axisY + LABEL_TOP_GAP + 26;
+  const rowsTop = CURVE_BAND_HEIGHT + CURVE_TO_ROWS_GAP;
+  const axisY = rowsTop + rowsViewportHeight + AXIS_TOP_GAP;
+  const contentHeight = axisY + LABEL_TOP_GAP + AXIS_LABEL_ZONE_HEIGHT;
+  const curve = useMemo(() => {
+    const startX = EDGE_SAFE_PADDING;
+    const endX = Math.max(layout.timelineWidth - EDGE_SAFE_PADDING, startX + 1);
+    const width = endX - startX;
+    const topY = CURVE_TOP_INSET;
+    const bottomY = CURVE_BAND_HEIGHT - CURVE_BOTTOM_INSET;
+
+    const points = CURVE_PROFILE.map((point) => ({
+      x: startX + width * (point.x / 100),
+      y: getCurveYAtRatio(point.x / 100, topY, bottomY),
+    }));
+
+    const linePath = buildSmoothPath(points);
+    const areaPath = `${linePath} L ${endX.toFixed(2)},${CURVE_BAND_HEIGHT.toFixed(2)} L ${startX.toFixed(2)},${CURVE_BAND_HEIGHT.toFixed(2)} Z`;
+
+    return { linePath, areaPath, topY, bottomY };
+  }, [layout.timelineWidth]);
+  const curveMarkers = useMemo(
+    () =>
+      layout.markers.map((marker) => ({
+        ...marker,
+        y: getCurveYAtRatio(marker.ratio, curve.topY, curve.bottomY),
+      })),
+    [curve.bottomY, curve.topY, layout.markers],
+  );
 
   const hoveredProjectId = hoverState?.projectId ?? null;
 
@@ -429,30 +573,63 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
         <div className="relative h-full">
           <div
             ref={viewportRef}
-            className="h-full overflow-x-hidden overflow-y-hidden"
+            className="timeline-scrollbar-hidden h-full overflow-x-auto overflow-y-hidden"
             onMouseLeave={() => setHoverState(null)}
+            onScroll={() => setHoverState(null)}
           >
             <div
               ref={contentRef}
-              className="relative w-full"
+              className="relative min-w-full"
               style={{ width: `${layout.timelineWidth}px`, height: `${contentHeight}px` }}
             >
+              <svg className="pointer-events-none absolute inset-0 z-0 h-full w-full" aria-hidden>
+                <defs>
+                  <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#B7B4EE" stopOpacity="0.18" />
+                    <stop offset="100%" stopColor="#B7B4EE" stopOpacity="0.02" />
+                  </linearGradient>
+                </defs>
+                <path d={curve.areaPath} fill={`url(#${gradientId})`} />
+                <path d={curve.linePath} fill="none" stroke="#B7B4EE" strokeWidth="1.2" />
+              </svg>
+
               {layout.ticks.map((tick) => (
                 <div
                   key={`tick-line-${tick.key}`}
                   className="pointer-events-none absolute top-0 z-0 w-px bg-border-subtle"
-                  style={{ left: `${tick.x}px`, height: `${axisY}px` }}
+                  style={{
+                    left: `${tick.x}px`,
+                    top: `${rowsTop}px`,
+                    height: `${Math.max(axisY - rowsTop, 1)}px`,
+                  }}
                 />
+              ))}
+
+              {curveMarkers.map((marker) => (
+                <div
+                  key={`curve-marker-${marker.key}`}
+                  className="pointer-events-none absolute z-[12] -translate-x-1/2 -translate-y-1/2"
+                  style={{ left: `${marker.x}px`, top: `${marker.y}px` }}
+                >
+                  <div className="rounded-full border border-white/70 bg-white/80 p-[2px] shadow-[0_3px_8px_rgba(26,26,46,0.08)]">
+                    <Avatar
+                      name={marker.project.clientName}
+                      src={marker.project.clientAvatarUrl}
+                      size="sm"
+                      className="h-6 w-6 text-[10px]"
+                    />
+                  </div>
+                </div>
               ))}
 
               {hoverState && (
                 <>
                   <div
-                    className="pointer-events-none absolute top-0 z-30 w-px bg-accent/35 transition-opacity duration-200"
+                    className="pointer-events-none absolute top-0 z-30 w-px bg-[#A6ABBF]/55 transition-opacity duration-200"
                     style={{ left: `${hoverState.x}px`, height: `${axisY}px` }}
                   />
                   <div
-                    className="pointer-events-none absolute z-30 h-2 w-2 -translate-x-1/2 rounded-full bg-accent"
+                    className="pointer-events-none absolute z-30 h-2 w-2 -translate-x-1/2 rounded-full bg-[#8E94AD]"
                     style={{ left: `${hoverState.x}px`, top: `${axisY - 3}px` }}
                   />
                 </>
@@ -461,23 +638,26 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
               {layout.todayX !== null && (
                 <>
                   <div
-                    className="pointer-events-none absolute top-0 z-20 w-px bg-cyan/65"
+                    className="pointer-events-none absolute top-0 z-20 w-px bg-[#B7BDCD]/85"
                     style={{ left: `${layout.todayX}px`, height: `${axisY}px` }}
                   >
-                    <div className="absolute left-1/2 top-full mt-1 -translate-x-1/2 text-[11px] font-medium text-cyan">
+                    <div className="absolute left-1/2 top-full mt-1 -translate-x-1/2 text-[11px] font-medium text-text-secondary">
                       Today
                     </div>
                   </div>
                   <div
-                    className="pointer-events-none absolute z-20 h-2 w-2 -translate-x-1/2 rounded-full bg-cyan"
+                    className="pointer-events-none absolute z-20 h-2 w-2 -translate-x-1/2 rounded-full bg-[#A7AEC2]"
                     style={{ left: `${layout.todayX}px`, top: `${axisY - 3}px` }}
                   />
                 </>
               )}
 
               <div
-                className="absolute left-0 top-0 w-full overflow-y-auto pr-1"
-                style={{ height: `${rowsViewportHeight}px` }}
+                className="absolute left-0 w-full overflow-y-auto pr-1"
+                style={{
+                  top: `${rowsTop}px`,
+                  height: `${rowsViewportHeight}px`,
+                }}
               >
                 <div className="relative" style={{ height: `${rowsContentHeight}px` }}>
                   {layout.projects.length === 0 ? (
@@ -609,7 +789,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                             >
                               <span className="mr-1">{task.isCompleted ? "☑" : "☐"}</span>
                               {task.title}
-                              {isRecentlyAdded && <span className="ml-1 text-cyan">●</span>}
+                              {isRecentlyAdded && <span className="ml-1 text-[#A2A9BE]">●</span>}
                             </p>
                           );
                         })

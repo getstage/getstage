@@ -101,6 +101,15 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--color-text-tertiary);
 }
 
+.timeline-scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.timeline-scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
 /* ============================================================
    SKELETON LOADING ANIMATION
    ============================================================ */
