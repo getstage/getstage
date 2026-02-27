@@ -2,21 +2,16 @@ import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Check, Plus } from "@phosphor-icons/react";
+import { CaretDown, Check, Plus } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import { getProjects } from "@/data-ops/queries";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
-import {
-  Timeline,
-  type TimelineHorizon,
-} from "@/components/dashboard/Timeline";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
+import { Timeline, type TimelineHorizon } from "@/components/dashboard/Timeline";
 
 export function DashboardPage() {
   const [hoveredDockId, setHoveredDockId] = useState<string | null>(null);
-  const [timelineHorizon, setTimelineHorizon] = useState<TimelineHorizon>("all");
+  const [timelineHorizon, setTimelineHorizon] = useState<TimelineHorizon>("30d");
   const { user } = useAuth();
   const { data: projects, isLoading } = useQuery({
     queryKey: ["projects"],
@@ -24,7 +19,7 @@ export function DashboardPage() {
   });
 
   const greeting = getGreeting(user?.name?.split(" ")[0] ?? "there");
-  const activeProjects = projects?.filter((p) => p.status === "active") ?? [];
+  const activeProjects = projects?.filter((project) => project.status === "active") ?? [];
   const activeCount = activeProjects.length;
   const taskEntries = (projects ?? []).flatMap((project) =>
     project.phases.flatMap((phase) =>
@@ -37,33 +32,22 @@ export function DashboardPage() {
   );
   const tasksDue = taskEntries.filter((entry) => !entry.task.isCompleted).length;
   const completed = taskEntries.filter((entry) => entry.task.isCompleted).length;
-  const avgDurationDays =
-    projects && projects.length > 0
-      ? Math.round(
-          projects.reduce((acc, project) => {
-            const durationDays = Math.max(
-              1,
-              Math.ceil((project.endDate - project.startDate) / DAY_MS),
-            );
-            return acc + durationDays;
-          }, 0) / projects.length,
-        )
-      : 0;
+  const avgProgress =
+    taskEntries.length > 0 ? Math.round((completed / taskEntries.length) * 100) : 0;
   const upcomingTasks = taskEntries
     .filter((entry) => !entry.task.isCompleted)
     .sort((a, b) => a.task.createdAt - b.task.createdAt)
     .slice(0, 3);
   const recentActivity = taskEntries
-    .filter((entry) => entry.task.isCompleted)
     .sort((a, b) => b.task.updatedAt - a.task.updatedAt)
     .slice(0, 3);
-  const paymentRows = activeProjects
-    .slice(0, 3)
-    .map((project, index) => ({
-      name: project.clientName,
-      avatarUrl: project.clientAvatarUrl,
-      amount: 4500 - index * 1300,
-    }));
+  const paymentRows = activeProjects.slice(0, 3).map((project, index) => ({
+    name: project.clientName,
+    avatarUrl: project.clientAvatarUrl,
+    amount: 4500 - index * 1300,
+  }));
+  const receivedTotal = paymentRows.reduce((sum, row) => sum + row.amount, 0);
+  const outstandingTotal = Math.round(receivedTotal * 0.5);
   const dockProjects = (projects ?? []).slice(0, 6);
 
   return (
@@ -74,48 +58,35 @@ export function DashboardPage() {
 
       <div className="min-h-[calc(100vh-64px)]">
         <div className="mx-auto max-w-[1200px] px-6 pt-8 sm:px-10 lg:px-14">
-          <div className="mb-6 flex items-end justify-between gap-4">
+          <div className="mb-11">
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
+              className="min-w-[320px]"
             >
-              <h1 className="font-heading text-[32px] font-semibold tracking-tight text-text-primary">
+              <h1 className="font-heading text-[42px] leading-[1.08] font-semibold tracking-tight text-text-primary sm:text-[46px]">
                 {greeting}
               </h1>
+
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                <TimelineDateSelector value={timelineHorizon} onChange={setTimelineHorizon} />
+
+                <Link to="/new-project" className="shrink-0">
+                  <Button className="h-10 rounded-[9px] px-5 text-[15px]">
+                    <Plus size={12} weight="bold" aria-hidden="true" />
+                    New Project
+                  </Button>
+                </Link>
+              </div>
+
+              <div className="mt-5 flex flex-wrap items-start gap-x-10 gap-y-3">
+                <CompactStat label="Active Projects" value={activeCount.toLocaleString()} />
+                <CompactStat label="Tasks Due" value={tasksDue.toLocaleString()} />
+                <CompactStat label="Completed" value={completed.toLocaleString()} />
+                <CompactStat label="Avg. Progress" value={`${avgProgress}%`} />
+              </div>
             </motion.div>
-            <Link to="/new-project">
-              <Button>
-                <Plus size={14} weight="bold" aria-hidden="true" />
-                New Project
-              </Button>
-            </Link>
-          </div>
-
-          <div className="mb-11 flex flex-wrap items-end justify-between gap-x-5 gap-y-3">
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
-              <CompactStat
-                label="Active"
-                value={activeCount.toLocaleString()}
-              />
-              <CompactStat
-                label="Tasks Due"
-                value={tasksDue.toLocaleString()}
-              />
-              <CompactStat
-                label="Completed"
-                value={completed.toLocaleString()}
-              />
-              <CompactStat
-                label="Avg Duration"
-                value={`${avgDurationDays}d`}
-              />
-            </div>
-
-            <TimelineHorizonSwitch
-              value={timelineHorizon}
-              onChange={setTimelineHorizon}
-            />
           </div>
         </div>
 
@@ -135,87 +106,124 @@ export function DashboardPage() {
 
         {projects && projects.length > 0 && (
           <div className="mx-auto max-w-[1200px] px-6 pb-32 sm:px-10 lg:px-14">
-            <div className="mt-12 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)]">
-              <InfoCard className="h-full" title="Next Up">
-                {upcomingTasks.length > 0 ? (
-                  <div className="space-y-0">
-                    {upcomingTasks.map((entry, index) => (
-                      <div
-                        key={entry.task.id}
-                        className={`flex items-center gap-2.5 py-2 text-[13px] ${
-                          index > 0 ? "border-t border-border-subtle" : ""
-                        }`}
-                      >
-                        <div className="h-5 w-5 overflow-hidden rounded-full bg-input-bg">
-                          {entry.project.clientAvatarUrl ? (
-                            <img
-                              src={entry.project.clientAvatarUrl}
-                              alt={entry.project.clientName}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : null}
+            <div className="mt-14 space-y-4">
+              <div className="grid gap-4 lg:grid-cols-2">
+                <InfoCard className="h-full" title="Upcoming">
+                  {upcomingTasks.length > 0 ? (
+                    <div className="space-y-0">
+                      {upcomingTasks.map((entry, index) => (
+                        <div
+                          key={entry.task.id}
+                          className={`flex items-center gap-2.5 py-2 text-[13px] ${
+                            index > 0 ? "border-t border-border-subtle" : ""
+                          }`}
+                        >
+                          <div className="h-5 w-5 overflow-hidden rounded-full bg-input-bg">
+                            {entry.project.clientAvatarUrl ? (
+                              <img
+                                src={entry.project.clientAvatarUrl}
+                                alt={entry.project.clientName}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : null}
+                          </div>
+                          <span className="truncate text-text-primary">{entry.task.title}</span>
+                          <span className="ml-auto rounded-full bg-bg-subtle px-2 py-0.5 text-[11px] text-text-secondary">
+                            {entry.phase.name}
+                          </span>
                         </div>
-                        <span className="truncate text-text-primary">{entry.task.title}</span>
-                        <span className="ml-auto text-[11px] text-text-secondary">
-                          {entry.phase.name}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[13px] text-text-secondary">No upcoming tasks.</p>
-                )}
-              </InfoCard>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[13px] text-text-secondary">No upcoming tasks.</p>
+                  )}
+                </InfoCard>
 
-              <InfoCard className="h-full" title="Recent">
-                {recentActivity.length > 0 ? (
-                  <div className="space-y-0">
-                    {recentActivity.map((entry, index) => (
-                      <div
-                        key={entry.task.id}
-                        className={`py-2 text-[13px] ${
-                          index > 0 ? "border-t border-border-subtle" : ""
-                        }`}
-                      >
-                        <span className="text-text-primary">{entry.task.title}</span>
-                        <span className="text-text-tertiary"> — {entry.project.clientName}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[13px] text-text-secondary">No recent completions.</p>
-                )}
-              </InfoCard>
+                <InfoCard className="h-full" title="Recent Activity">
+                  {recentActivity.length > 0 ? (
+                    <div className="space-y-0">
+                      {recentActivity.map((entry, index) => {
+                        const actionLabel = entry.task.isCompleted ? "Completed" : "Added";
+                        return (
+                          <div
+                            key={entry.task.id}
+                            className={`py-2 text-[13px] ${
+                              index > 0 ? "border-t border-border-subtle" : ""
+                            }`}
+                          >
+                            <span className="text-text-secondary">{actionLabel}: </span>
+                            <span className="font-medium text-text-primary">{entry.task.title}</span>
+                            <span className="text-text-tertiary"> — {entry.project.clientName}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-[13px] text-text-secondary">No recent activity.</p>
+                  )}
+                </InfoCard>
+              </div>
 
-              <InfoCard className="h-full" title="Cash Snapshot">
-                <div className="rounded-[10px] border border-border-subtle bg-bg-subtle/50">
-                  <div className="grid grid-cols-3 divide-x divide-border-subtle">
-                    <SecondaryMetric label="Outstanding" value="$6,200" />
-                    <SecondaryMetric label="Received" value="$12,400" accent />
-                    <SecondaryMetric label="Pending" value="$6,200" />
+              <InfoCard title="Payments">
+                <div className="grid gap-5 md:grid-cols-[220px_minmax(0,1fr)_170px] md:items-start">
+                  <div className="grid grid-cols-2 gap-5">
+                    <div>
+                      <p className="text-[12px] text-text-secondary">Outstanding</p>
+                      <p className="mt-1 font-heading text-[26px] leading-none font-semibold text-text-primary">
+                        {formatCurrency(outstandingTotal)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[12px] text-text-secondary">Received</p>
+                      <p className="mt-1 font-heading text-[26px] leading-none font-semibold text-accent">
+                        {formatCurrency(receivedTotal)}
+                      </p>
+                    </div>
                   </div>
+
+                  {paymentRows.length > 0 ? (
+                    <>
+                      <div className="space-y-2 border-t border-border-subtle pt-3 md:border-t-0 md:border-l md:pl-5 md:pt-0">
+                        {paymentRows.map((row) => (
+                          <div key={row.name} className="flex items-center gap-2 text-[13px]">
+                            <div className="h-5 w-5 overflow-hidden rounded-full bg-input-bg">
+                              {row.avatarUrl ? (
+                                <img
+                                  src={row.avatarUrl}
+                                  alt={row.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : null}
+                            </div>
+                            <span className="truncate text-text-primary">{row.name}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="space-y-2 text-left md:text-right">
+                        {paymentRows.map((row) => (
+                          <div
+                            key={`${row.name}-${row.amount}`}
+                            className="flex items-center gap-1.5 text-[13px] md:justify-end"
+                          >
+                            <Check
+                              size={11}
+                              weight="bold"
+                              aria-hidden="true"
+                              className="text-accent"
+                            />
+                            <span className="font-medium text-accent">{formatCurrency(row.amount)}</span>
+                          </div>
+                        ))}
+                        <p className="pt-0.5 text-[13px] text-text-secondary">
+                          Pending {formatCurrency(outstandingTotal)}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-[13px] text-text-secondary">No payment rows.</p>
+                  )}
                 </div>
-
-                {paymentRows.length > 0 ? (
-                  <div className="mt-3 space-y-1.5 border-t border-border-subtle pt-2.5">
-                    {paymentRows.map((row) => (
-                      <div key={row.name} className="flex items-center gap-2 text-[13px]">
-                        <Check
-                          size={11}
-                          weight="bold"
-                          aria-hidden="true"
-                          className="text-accent"
-                        />
-                        <span className="truncate text-text-primary">{row.name}</span>
-                        <span className="ml-auto font-medium text-text-primary">
-                          {formatThousandsDot(row.amount)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-3 text-[13px] text-text-secondary">No payment rows.</p>
-                )}
               </InfoCard>
             </div>
           </div>
@@ -232,7 +240,9 @@ export function DashboardPage() {
                   key={project.id}
                   className="relative"
                   onMouseEnter={() => setHoveredDockId(project.id)}
-                  onMouseLeave={() => setHoveredDockId((current) => (current === project.id ? null : current))}
+                  onMouseLeave={() =>
+                    setHoveredDockId((current) => (current === project.id ? null : current))
+                  }
                 >
                   <AnimatePresence>
                     {hoveredDockId === project.id && (
@@ -265,7 +275,9 @@ export function DashboardPage() {
                   <motion.button
                     type="button"
                     onFocus={() => setHoveredDockId(project.id)}
-                    onBlur={() => setHoveredDockId((current) => (current === project.id ? null : current))}
+                    onBlur={() =>
+                      setHoveredDockId((current) => (current === project.id ? null : current))
+                    }
                     className="h-9 w-9 cursor-pointer overflow-hidden rounded-full border border-white/20 bg-white/10 outline-none"
                     animate={{
                       scale: hoveredDockId === project.id ? 1.12 : 1,
@@ -291,8 +303,8 @@ export function DashboardPage() {
   );
 }
 
-function formatThousandsDot(value: number) {
-  return `$${value.toLocaleString("de-DE")}`;
+function formatCurrency(value: number) {
+  return `$${value.toLocaleString("en-US")}`;
 }
 
 function getGreeting(name: string) {
@@ -347,16 +359,16 @@ function CompactStat({
   value: string;
 }) {
   return (
-    <div className="min-w-[84px]">
-      <div className="text-[11px] text-text-secondary">{label}</div>
-      <div className="mt-0.5 font-heading text-[28px] leading-none font-semibold tracking-tight text-text-primary">
+    <div className="w-[116px]">
+      <div className="text-[13px] text-text-secondary">{label}</div>
+      <div className="mt-1 font-heading text-[30px] leading-none font-semibold tracking-tight tabular-nums text-text-primary">
         {value}
       </div>
     </div>
   );
 }
 
-function TimelineHorizonSwitch({
+function TimelineDateSelector({
   value,
   onChange,
 }: {
@@ -364,28 +376,32 @@ function TimelineHorizonSwitch({
   onChange: (value: TimelineHorizon) => void;
 }) {
   const options: Array<{ value: TimelineHorizon; label: string }> = [
-    { value: "30d", label: "30D" },
-    { value: "90d", label: "90D" },
-    { value: "6m", label: "6M" },
-    { value: "all", label: "All" },
+    { value: "30d", label: "This month" },
+    { value: "90d", label: "This quarter" },
+    { value: "6m", label: "Last 6 months" },
+    { value: "all", label: "All time" },
   ];
 
   return (
-    <div className="inline-flex flex-wrap items-center gap-2">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-          className={`h-10 rounded-full px-4 text-[14px] font-medium transition-colors ${
-            value === option.value
-              ? "bg-accent text-white"
-              : "bg-border-subtle text-text-primary hover:bg-border"
-          }`}
-        >
-          {option.label}
-        </button>
-      ))}
+    <div className="relative inline-flex w-fit">
+      <select
+        aria-label="Timeline horizon"
+        value={value}
+        onChange={(event) => onChange(event.target.value as TimelineHorizon)}
+        className="h-10 appearance-none rounded-[10px] border border-border-subtle bg-white pl-3.5 pr-8 text-[14px] font-medium text-text-primary shadow-[0_1px_0_rgba(26,26,46,0.02)] outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <CaretDown
+        size={12}
+        weight="bold"
+        aria-hidden="true"
+        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary"
+      />
     </div>
   );
 }
@@ -401,33 +417,10 @@ function InfoCard({
 }) {
   return (
     <div
-      className={`rounded-[12px] border border-border-subtle bg-white p-5 ${className ?? ""}`}
+      className={`rounded-[14px] border border-border-subtle bg-white px-5 py-4 sm:px-6 sm:py-5 ${className ?? ""}`}
     >
-      <h2 className="mb-2 text-[13px] font-medium text-text-secondary">{title}</h2>
+      <h2 className="mb-2.5 text-[24px] font-medium text-text-primary">{title}</h2>
       {children}
-    </div>
-  );
-}
-
-function SecondaryMetric({
-  label,
-  value,
-  accent = false,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="px-3 py-2.5">
-      <p className="text-[11px] text-text-secondary">{label}</p>
-      <p
-        className={`mt-1 font-heading text-[22px] font-semibold leading-none ${
-          accent ? "text-accent" : "text-text-primary"
-        }`}
-      >
-        {value}
-      </p>
     </div>
   );
 }
