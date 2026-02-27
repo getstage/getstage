@@ -792,8 +792,8 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
               <svg className="pointer-events-none absolute inset-0 z-0 h-full w-full" aria-hidden>
                 <defs>
                   <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#B7B4EE" stopOpacity="0.18" />
-                    <stop offset="100%" stopColor="#B7B4EE" stopOpacity="0.02" />
+                    <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.22" />
+                    <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0.03" />
                   </linearGradient>
                 </defs>
                 <path ref={curveAreaRef} d={curve.areaPath} fill={`url(#${gradientId})`} />
@@ -801,8 +801,9 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                   ref={curveLineRef}
                   d={curve.linePath}
                   fill="none"
-                  stroke="#B7B4EE"
-                  strokeWidth="1.2"
+                  stroke="var(--color-accent)"
+                  strokeOpacity="0.65"
+                  strokeWidth="1.25"
                 />
               </svg>
 
@@ -836,7 +837,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                 >
                   <div
                     data-curve-marker
-                    className="rounded-full border border-white/70 bg-white/80 p-[2px] shadow-[0_3px_8px_rgba(26,26,46,0.08)]"
+                    className="rounded-full border border-accent/30 bg-white/90 p-[2px] shadow-[0_2px_8px_rgba(26,26,46,0.08)]"
                     style={{
                       opacity: getRenderedBlockOpacity(
                         marker.project,
@@ -858,11 +859,11 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
               {hoverState && (
                 <>
                   <div
-                    className="pointer-events-none absolute top-0 z-30 w-px bg-[#A6ABBF]/55 transition-opacity duration-200"
+                    className="pointer-events-none absolute top-0 z-30 w-px bg-accent/30 transition-opacity duration-200"
                     style={{ left: `${hoverState.x}px`, height: `${axisY}px` }}
                   />
                   <div
-                    className="pointer-events-none absolute z-30 h-2 w-2 -translate-x-1/2 rounded-full bg-[#8E94AD]"
+                    className="pointer-events-none absolute z-30 h-2 w-2 -translate-x-1/2 rounded-full bg-accent/55"
                     style={{ left: `${hoverState.x}px`, top: `${axisY - 3}px` }}
                   />
                 </>
@@ -871,15 +872,15 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
               {layout.todayX !== null && (
                 <>
                   <div
-                    className="pointer-events-none absolute top-0 z-20 w-px bg-[#B7BDCD]/85"
+                    className="pointer-events-none absolute top-0 z-20 w-px bg-cyan/55"
                     style={{ left: `${layout.todayX}px`, height: `${axisY}px` }}
                   >
-                    <div className="absolute left-1/2 top-full mt-1 -translate-x-1/2 text-[11px] font-medium text-text-secondary">
+                    <div className="absolute left-1/2 top-full mt-1 -translate-x-1/2 text-[11px] font-medium text-cyan">
                       Today
                     </div>
                   </div>
                   <div
-                    className="pointer-events-none absolute z-20 h-2 w-2 -translate-x-1/2 rounded-full bg-[#A7AEC2]"
+                    className="pointer-events-none absolute z-20 h-2 w-2 -translate-x-1/2 rounded-full bg-cyan/70"
                     style={{ left: `${layout.todayX}px`, top: `${axisY - 3}px` }}
                   />
                 </>
@@ -908,7 +909,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                           key={entry.project.id}
                           to="/project/$id"
                           params={{ id: entry.project.id }}
-                          className="absolute block pr-1.5"
+                          className="absolute block pr-1.5 outline-none focus:outline-none focus-visible:outline-none"
                           style={{
                             left: `${entry.left}px`,
                             width: `${entry.width}px`,
@@ -925,7 +926,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                         >
                           <article
                             data-timeline-block
-                            className="flex h-full items-center gap-2.5 overflow-hidden rounded-[10px] border border-border-subtle bg-white px-3 shadow-[0_2px_7px_rgba(26,26,46,0.035)] transition-opacity duration-200"
+                            className="flex h-full items-center gap-2.5 overflow-hidden rounded-[10px] border border-border-subtle bg-white px-3 shadow-[0_1px_3px_rgba(26,26,46,0.04)] transition-opacity duration-200"
                             style={{
                               opacity: getRenderedBlockOpacity(
                                 entry.project,
