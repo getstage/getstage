@@ -101,7 +101,7 @@ export function DashboardPage() {
             </Link>
           </div>
 
-          <div className="mb-8 flex flex-wrap items-start justify-between gap-5">
+          <div className="mb-12 flex flex-wrap items-start justify-between gap-5">
             <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
               <CompactStat
                 label="Active"
@@ -137,11 +137,11 @@ export function DashboardPage() {
         </div>
 
         {isLoading ? (
-          <div className="relative left-1/2 mt-2 w-screen -translate-x-1/2">
+          <div className="relative left-1/2 mt-0 w-screen -translate-x-1/2">
             <TimelineSkeleton />
           </div>
         ) : projects && projects.length > 0 ? (
-          <div className="relative left-1/2 mt-2 w-screen -translate-x-1/2">
+          <div className="relative left-1/2 mt-0 w-screen -translate-x-1/2">
             <Timeline projects={projects} horizon={timelineHorizon} />
           </div>
         ) : (

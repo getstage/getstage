@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Link } from "@tanstack/react-router";
@@ -286,16 +286,39 @@ function getRenderedBlockOpacity(
 }
 
 export function Timeline({ projects, horizon = "all" }: TimelineProps) {
+  const viewportRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [hoverState, setHoverState] = useState<HoverState | null>(null);
+  const [viewportWidth, setViewportWidth] = useState(0);
+
+  useEffect(() => {
+    const element = viewportRef.current;
+    if (!element) return;
+
+    const setWidth = () => {
+      setViewportWidth(Math.round(element.getBoundingClientRect().width));
+    };
+
+    setWidth();
+
+    const observer = new ResizeObserver(() => {
+      setWidth();
+    });
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   const layout = useMemo(() => {
     const bounds = getTimelineBounds(projects, horizon);
     const rangeMs = Math.max(bounds.end - bounds.start, DAY_MS);
     const totalDays = Math.max(1, Math.ceil(rangeMs / DAY_MS));
     const granularity = getTickGranularity(totalDays);
-    const plotWidth = Math.max(1100, totalDays * getPixelsPerDay(totalDays));
-    const timelineWidth = plotWidth + EDGE_SAFE_PADDING * 2;
+    const fallbackViewportWidth = Math.max(980, totalDays * getPixelsPerDay(totalDays));
+    const timelineWidth = Math.max(viewportWidth || fallbackViewportWidth, 320);
+    const plotWidth = Math.max(timelineWidth - EDGE_SAFE_PADDING * 2, 1);
     const drawableWidth = Math.max(plotWidth - TRACK_SIDE_INSET * 2, 1);
 
     const toX = (timestamp: number) => {
@@ -338,7 +361,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
       projects: positionedProjects,
       todayX,
     };
-  }, [horizon, projects]);
+  }, [horizon, projects, viewportWidth]);
 
   const rowPitch = BLOCK_HEIGHT + ROW_GAP;
   const rowCount = Math.max(layout.rowCount, 1);
@@ -405,13 +428,13 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
       <div className="h-full px-6 sm:px-10 lg:px-14">
         <div className="relative h-full">
           <div
-            className="h-full overflow-x-auto overflow-y-hidden"
+            ref={viewportRef}
+            className="h-full overflow-x-hidden overflow-y-hidden"
             onMouseLeave={() => setHoverState(null)}
-            onScroll={() => setHoverState(null)}
           >
             <div
               ref={contentRef}
-              className="relative min-w-full"
+              className="relative w-full"
               style={{ width: `${layout.timelineWidth}px`, height: `${contentHeight}px` }}
             >
               {layout.ticks.map((tick) => (
