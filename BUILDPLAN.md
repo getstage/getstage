@@ -1,160 +1,160 @@
-# Stage — Build Plan
+# Stage - Build Plan
 
-Werkdocument. Alles wat nodig is om Stage te bouwen van specs naar productie.
+Working document. Everything needed to build Stage from specs to production.
 
 ---
 
-## 0. Product & Visie
+## 0. Product & Vision
 
-### Wat is Stage?
+### What is Stage?
 
-Stage is een SaaS projectmanagement tool gebouwd specifiek voor **creatieve professionals** — freelance designers, design studio's, in-house design teams, en agencies. Het is geen generiek PM-tool. Het is gebouwd voor mensen die klantprojecten runnen met duidelijke fases (Strategy → Research → Design → Development → Launch) en die hun klanten op een premium manier willen laten meekijken.
+Stage is a SaaS project management tool built specifically for **creative professionals** - freelance designers, design studios, in-house design teams, and agencies. It is not a generic PM tool. It is built for people running client projects with clear phases (Strategy -> Research -> Design -> Development -> Launch) and who want clients to follow along in a premium way.
 
-### Het kernprobleem
+### The core problem
 
-Designers en freelancers gebruiken tools die niet voor hen gebouwd zijn. Asana, Monday, Notion — die zijn te complex, te druk, te enterprise. Of ze gebruiken helemaal niks en sturen screenshots en spreadsheets naar klanten. Het gevolg:
+Designers and freelancers use tools that were not built for them. Asana, Monday, Notion - they are too complex, too busy, too enterprise. Or they use nothing at all and send screenshots and spreadsheets to clients. The result:
 
-- **Geen overzicht:** "Waar sta ik over al mijn projecten?" is een vraag die niemand snel kan beantwoorden
-- **Slechte klantcommunicatie:** Klanten vragen constant "hoe staat het ervoor?" omdat er geen gedeeld beeld is
-- **Geen structuur:** Fases, taken, en deadlines leven in het hoofd van de designer of verspreid over tools
+- **No overview:** "Where am I across all my projects?" is a question nobody can answer quickly
+- **Poor client communication:** Clients constantly ask "how is it going?" because there is no shared view
+- **No structure:** Phases, tasks, and deadlines live in the designer's head or are scattered across tools
 
-### De oplossing
+### The solution
 
-Stage geeft creatieve professionals **één rustpunt** voor al hun projectwerk:
+Stage gives creative professionals **one calm home** for all project work:
 
-1. **Dashboard met tijdlijn** — Eén blik op alle projecten over tijd. Geïnspireerd door Visitors.now: een horizontale curve met project-avatars, hover voor detail. Dit is het hart van Stage. Het beantwoordt direct: "waar sta ik?"
-2. **Project fases & checklist** — Elk project heeft fases (Strategy, Design, Development, etc.) met taken per fase. Afvinken → zien hoe het project vordert. De feedback loop (vink af → progress bar groeit → percentage stijgt) is bewust verslavend.
-3. **Client portal** — Met één klik deel je een read-only view van het project met je klant. De klant ziet fases, taken, en voortgang — zonder dat ze iets kunnen aanpassen. Premium uitstraling. "Powered by Stage" onderaan = virale groei.
-4. **AI-generated roadmaps** — Kies je project type, Stage genereert een roadmap met fases en taken. Instant waarde, lage drempel.
+1. **Dashboard with timeline** - One glance at all projects over time. Inspired by Visitors.now: a horizontal curve with project avatars, hover for details. This is the heart of Stage. It answers immediately: "where am I?"
+2. **Project phases & checklist** - Each project has phases (Strategy, Design, Development, etc.) with tasks per phase. Check things off -> see project progress. The feedback loop (check off -> progress bar grows -> percentage rises) is intentionally addictive.
+3. **Client portal** - With one click you share a read-only project view with your client. The client sees phases, tasks, and progress - without being able to edit anything. Premium look and feel. "Powered by Stage" in the footer = viral growth.
+4. **AI-generated roadmaps** - Choose your project type, Stage generates a roadmap with phases and tasks. Instant value, low friction.
 
-### Voor wie?
+### Who is it for?
 
-| Segment | Omschrijving | Pijn |
+| Segment | Description | Pain |
 |---------|-------------|------|
-| **Freelance designers** | Solo, 3-8 klantprojecten tegelijk | Geen overzicht, klanten vragen constant om updates |
-| **Design studio's** | Klein team (2-10), 10-20 projecten | Projecten lopen door elkaar, onboarding van nieuwe projecten is chaotisch |
-| **In-house designers** | Werken binnen een bedrijf, meerdere stakeholders | Moeten voortgang communiceren naar niet-designers |
-| **Agencies** | Grotere teams, veel klantprojecten | Client-facing communicatie is een bottleneck |
+| **Freelance designers** | Solo, 3-8 client projects at once | No overview, clients constantly ask for updates |
+| **Design studios** | Small team (2-10), 10-20 projects | Projects overlap, onboarding new projects is chaotic |
+| **In-house designers** | Working inside a company, multiple stakeholders | Need to communicate progress to non-designers |
+| **Agencies** | Larger teams, many client projects | Client-facing communication is a bottleneck |
 
-De primaire doelgroep voor lancering is **freelance designers en kleine studio's**. Dit zijn mensen die:
-- Op Mac werken (belangrijk voor SF Pro Display font)
-- Visueel zijn ingesteld (design moet premium aanvoelen)
-- Bereid zijn te betalen als het hun werk simpeler maakt
-- Actief op Instagram en TikTok (waar onze klant 300K volgers heeft)
+The primary launch audience is **freelance designers and small studios**. These are people who:
+- Work on Mac (important for SF Pro Display font)
+- Are visually driven (design must feel premium)
+- Are willing to pay if it makes their work simpler
+- Are active on Instagram and TikTok (where our client has 300K followers)
 
 ### Business model
 
-- **Free tier:** Beperkt aantal projecten (bijv. 2-3), geen client portal
-- **Pro plan (€XX/jaar):** Ongelimiteerde projecten, client portal, AI roadmaps
-- **Alleen jaarlijks eerst** — snelle validatie van betalingsbereidheid, lagere churn
-- **Paywall is niet blokkerend** — gebruikers ervaren eerst waarde, dan upgrade prompt op natuurlijke momenten (4e project aanmaken, "Share with client")
+- **Free tier:** Limited number of projects (e.g. 2-3), no client portal
+- **Pro plan (EUR XX/year):** Unlimited projects, client portal, AI roadmaps
+- **Annual only at first** - fast willingness-to-pay validation, lower churn
+- **Paywall is non-blocking** - users experience value first, then see upgrade prompts at natural moments (creating 4th project, "Share with client")
 
-### Design filosofie
+### Design philosophy
 
-Stage moet aanvoelen als:
-- **Visitors.now** qua helderheid — data-gedreven maar clean
-- **Apple** qua rust — veel witruimte, weinig kleur, ademruimte
-- **Linear** qua precisie — subtiel, doordacht, geen overbodige elementen
+Stage should feel like:
+- **Visitors.now** in clarity - data-driven but clean
+- **Apple** in calmness - lots of whitespace, minimal color, room to breathe
+- **Linear** in precision - subtle, thoughtful, no unnecessary elements
 
-Stage moet NIET aanvoelen als:
-- Een productiviteitstool met overal badges en notificaties
-- Een startup dashboard vol grafieken
-- Enterprise PM software met sidebars en filters
+Stage should NOT feel like:
+- A productivity tool with badges and notifications everywhere
+- A startup dashboard full of charts
+- Enterprise PM software with sidebars and filters
 
-**Light mode only.** Geen dark mode in v1. Eén kleuraccent: lavender purple (#8782F5). Spaarzaam gebruikt. Wit en off-white domineren elk scherm.
+**Light mode only.** No dark mode in v1. One accent color: lavender purple (`#8782F5`). Used sparingly. White and off-white should dominate every screen.
 
-### De drie niveaus
-
-```
-Level 1: Dashboard      → macro overzicht van alle projecten over tijd
-Level 2: Project Detail → mid-level: fases en checklist van één project
-Level 3: Task Detail    → micro-level: notities en bestanden van één taak
-```
-
-Elke level dieper = zoom-in transitie. Terug = zoom-out. De gebruiker weet altijd waar die is.
-
-### Navigatie flow
+### The three levels
 
 ```
-Landing Page (/) → Auth (/auth) → Onboarding → Dashboard (/dashboard)
+Level 1: Dashboard      -> macro overview of all projects over time
+Level 2: Project Detail -> mid-level: phases and checklist for one project
+Level 3: Task Detail    -> micro-level: notes and files for one task
+```
+
+Each level deeper = zoom-in transition. Going back = zoom-out. The user always knows where they are.
+
+### Navigation flow
+
+```
+Landing Page (/) -> Auth (/auth) -> Onboarding -> Dashboard (/dashboard)
                                                      ↓
                                               Project Detail (/project/:id)
                                                      ↓
                                               Task Detail (/project/:id/task/:id)
 
-Dashboard → New Project (/new-project)
-Dashboard → Settings (/settings)
-Project Detail → Share → Client Portal (/portal/:token) [apart, public]
+Dashboard -> New Project (/new-project)
+Dashboard -> Settings (/settings)
+Project Detail -> Share -> Client Portal (/portal/:token) [separate, public]
 ```
 
-### Conversie strategie
+### Conversion strategy
 
-Dit product wordt gelanceerd door een designer met **300K volgers** op Instagram en TikTok. De launch strategie:
+This product is launched by a designer with **300K followers** on Instagram and TikTok. The launch strategy:
 
-1. **Landing page** met "early access" framing → email capture
-2. **Jaarlijks plan only** → snelle revenue validatie
-3. **Onboarding creëert direct eerste project** → instant waarde
-4. **Client portal "Powered by Stage"** → designer deelt portal met klant → klant ziet Stage → wordt zelf gebruiker
-5. **Progress feedback loop** → vink taak af → zien hoe project vordert → dopamine → terugkomen
+1. **Landing page** with "early access" framing -> email capture
+2. **Annual plan only** -> fast revenue validation
+3. **Onboarding creates first project immediately** -> instant value
+4. **Client portal "Powered by Stage"** -> designer shares portal with client -> client sees Stage -> becomes a user
+5. **Progress feedback loop** -> check task -> see project move forward -> dopamine -> return behavior
 
-### Wat er al klaar is (specs & prototypes)
+### What is already ready (specs & prototypes)
 
-De klant (designer) heeft **alles voorbereid**:
+The client (designer) has **prepared everything**:
 
-| Bestand | Inhoud |
+| File | Content |
 |---------|--------|
-| `00-design-system.md` | Volledige design tokens: kleuren, typografie, spacing, componenten, animaties |
-| `01-auth-flow.md` | Email input + 6-digit verificatie code, routing logica |
-| `03-dashboard.md` | Timeline hero, project blocks, hover interactie, tooltips, empty states |
+| `00-design-system.md` | Full design tokens: colors, typography, spacing, components, animations |
+| `01-auth-flow.md` | Email input + 6-digit verification code, routing logic |
+| `03-dashboard.md` | Timeline hero, project blocks, hover interaction, tooltips, empty states |
 | `04-project-detail.md` | Phase roadmap, checklist, progress feedback, share modal |
 | `05-task-detail.md` | Freeform content, text editing, file uploads, auto-save |
-| `06-project-creation-modal.md` | Multi-step flow: naam, type, AI/manual, timeline, preview |
-| `08-settings.md` | Profiel, plan & billing, clients, account deletion |
-| 8 HTML prototypes | Pixel-perfect interactieve prototypes van elk scherm |
-| Design referentie afbeeldingen | Visitors.now dashboard, timeline curve, graph states |
+| `06-project-creation-modal.md` | Multi-step flow: name, type, AI/manual, timeline, preview |
+| `08-settings.md` | Profile, plan & billing, clients, account deletion |
+| 8 HTML prototypes | Pixel-perfect interactive prototypes of every screen |
+| Design reference images | Visitors.now dashboard, timeline curve, graph states |
 
-Dit is een uitzonderlijk compleet startpunt. Elke state, elke interactie, elke edge case is beschreven. De prototypes tonen exact hoe het eruit moet zien.
+This is an exceptionally complete starting point. Every state, every interaction, every edge case is documented. The prototypes show exactly how it should look.
 
 ---
 
-## 1. Stack Beslissingen
+## 1. Stack Decisions
 
-| Laag | Keuze | Waarom |
+| Layer | Choice | Why |
 |------|-------|--------|
 | **Runtime** | Cloudflare Workers | Edge deployment, SPA fallback, ~0ms cold start |
-| **Frontend** | React 19 | SPA — alles achter auth behalve landing + portal |
+| **Frontend** | React 19 | SPA - everything behind auth except landing + portal |
 | **Routing** | TanStack Router (file-based) | Type-safe params, `beforeLoad` auth guards, auto code-splitting |
-| **Server State** | TanStack Query v5 | Caching, invalidation, optimistic updates. Nu met mock data, later met backend |
-| **CSS** | Tailwind CSS v4 (Vite plugin) | CSS-native theming, `@theme` directive voor Stage design tokens |
-| **UI Primitives** | Radix UI (direct, geen shadcn) | Accessible dropdowns/modals/tooltips. Stage design is te custom voor shadcn defaults |
-| **Animaties** | Motion (Framer Motion v12) | Zoom transitions (Dashboard→Project→Task), modal animations, progress bars |
-| **Icons** | Phosphor Icons (light weight) | Spec zegt "thin line icons, 1.5-2px stroke". Phosphor light past perfect |
+| **Server State** | TanStack Query v5 | Caching, invalidation, optimistic updates. Mock data now, backend later |
+| **CSS** | Tailwind CSS v4 (Vite plugin) | CSS-native theming, `@theme` directive for Stage design tokens |
+| **UI Primitives** | Radix UI (direct, no shadcn) | Accessible dropdowns/modals/tooltips. Stage design is too custom for shadcn defaults |
+| **Animations** | Motion (Framer Motion v12) | Zoom transitions (Dashboard->Project->Task), modal animations, progress bars |
+| **Icons** | Phosphor Icons (light weight) | Spec says "thin line icons, 1.5-2px stroke". Phosphor light matches perfectly |
 | **Fonts** | SF Pro Display (system) + DM Sans (Google Fonts) | Headings: `-apple-system, 'SF Pro Display'`. Body: `'DM Sans'` |
-| **Build** | Vite 6 | Snelle HMR, native Cloudflare plugin support |
+| **Build** | Vite 6 | Fast HMR, native Cloudflare plugin support |
 | **Rich Text** | Tiptap | Task detail freeform editor. Lightweight, extensible, headless |
-| **Auth** | `{ Clerk of Auth0 — placeholder }` | Komt later. Passwordless email + code flow |
-| **Backend** | `{ Convex of tRPC+Hono — placeholder }` | Komt later. Mock data voor nu |
-| **Payments** | `{ Stripe — placeholder }` | Alleen jaarlijks pricing eerst (snelle validatie) |
+| **Auth** | `{ Clerk or Auth0 - placeholder }` | Added later. Passwordless email + code flow |
+| **Backend** | `{ Convex or tRPC+Hono - placeholder }` | Added later. Mock data for now |
+| **Payments** | `{ Stripe - placeholder }` | Annual pricing only at first (fast validation) |
 
-### Waarom Radix direct en niet shadcn/ui?
+### Why Radix directly and not shadcn/ui?
 
-Stage heeft een volledig eigen design system (lavender purple, specifieke radii, geen dark mode, SF Pro Display headings).
-shadcn/ui zou meer customization kosten dan waarde opleveren. Radix geeft ons de accessible primitives
-(Dialog, DropdownMenu, Tooltip, Toggle, Checkbox) zonder styling opinies. We stylen zelf met Tailwind.
+Stage has a fully custom design system (lavender purple, specific radii, no dark mode, SF Pro Display headings).
+shadcn/ui would cost more customization effort than value. Radix gives us accessible primitives
+(Dialog, DropdownMenu, Tooltip, Toggle, Checkbox) with no styling opinions. We style everything ourselves with Tailwind.
 
-### Waarom geen SSR/Next.js?
+### Why no SSR/Next.js?
 
-- Landing page is de enige SEO-route. Die is statische content — Google's JS renderer kan dit prima
-- Alle app-routes zijn achter auth — geen SEO nodig
-- De zoom-in/out transitions (het hart van de UX) vereisen volledige client-side controle
-- Convex/backend subscriptions zijn client-side — SSR bespaart niets voor data
+- Landing page is the only SEO route. It is static content - Google's JS renderer can handle this
+- All app routes are behind auth - no SEO needed
+- The zoom-in/out transitions (the core UX) require full client-side control
+- Convex/backend subscriptions are client-side - SSR adds no data benefit
 - Client portal: OG tags later via Cloudflare Worker header injection
 
 ---
 
-## 2. Design System → Tailwind Mapping
+## 2. Design System -> Tailwind Mapping
 
-### Kleuren (uit prototypes — deze zijn accurater dan de spec)
+### Colors (from prototypes - these are more accurate than the spec)
 
 ```css
 @theme {
@@ -170,7 +170,7 @@ shadcn/ui zou meer customization kosten dan waarde opleveren. Radix geeft ons de
   --color-input-bg: #F5F5F5;
 
   /* Accent */
-  --color-accent: #8782F5;           /* Prototypes gebruiken deze, niet spec's #9B8FD6 */
+  --color-accent: #8782F5;           /* Prototypes use this, not spec's #9B8FD6 */
   --color-accent-hover: #7670E0;
   --color-accent-light: #EEEDFE;
   --color-accent-cyan: #3BAFDA;
@@ -180,14 +180,14 @@ shadcn/ui zou meer customization kosten dan waarde opleveren. Radix geeft ons de
   --color-destructive: #E07070;
   --color-warning: #E5A84B;
 
-  /* Portal (apart accent voor client-facing) */
+  /* Portal (separate accent for client-facing) */
   --color-portal-accent: #E8734A;
   --color-portal-accent-hover: #D4623B;
   --color-portal-accent-light: rgba(232, 115, 74, 0.08);
 }
 ```
 
-### Typografie
+### Typography
 
 ```css
 @theme {
@@ -196,7 +196,7 @@ shadcn/ui zou meer customization kosten dan waarde opleveren. Radix geeft ons de
 }
 ```
 
-| Rol | Font | Weight | Size | Tailwind class |
+| Role | Font | Weight | Size | Tailwind class |
 |-----|------|--------|------|----------------|
 | Page title / Hero | SF Pro Display | 600 (Semibold) | 28-32px | `font-heading text-[28px] font-semibold` |
 | Section heading | SF Pro Display | 500-600 | 20-24px | `font-heading text-xl font-medium` |
@@ -208,194 +208,194 @@ shadcn/ui zou meer customization kosten dan waarde opleveren. Radix geeft ons de
 
 ### Spacing
 
-8px grid. Tailwind's default spacing schaal werkt: `p-2` = 8px, `p-4` = 16px, `p-6` = 24px, etc.
-Page margins: `px-14` (56px) op desktop.
+8px grid. Tailwind's default spacing scale works: `p-2` = 8px, `p-4` = 16px, `p-6` = 24px, etc.
+Page margins: `px-14` (56px) on desktop.
 
 ### Radii
 
 - Buttons: `rounded-[10px]`
 - Cards: `rounded-xl` (12px)
 - Modals: `rounded-2xl` (16px)
-- Inputs: `rounded-lg` (8px) of `rounded-[10px]`
+- Inputs: `rounded-lg` (8px) or `rounded-[10px]`
 - Pills: `rounded-full`
 - Checkboxes: `rounded` (4px)
 
 ### Shadows
 
-Minimaal. Prototypes gebruiken:
-- Cards: geen shadow, alleen border
+Minimal. Prototypes use:
+- Cards: no shadow, border only
 - Dropdowns: `shadow-[0_4px_16px_rgba(26,26,46,0.08)]`
-- Modals: geen shadow (overlay geeft contrast)
+- Modals: no shadow (overlay gives contrast)
 - Profile avatar: `shadow-[0_1px_3px_rgba(26,26,46,0.08)]`
 
 ---
 
-## 3. Route Structuur
+## 3. Route Structure
 
 ```
 src/routes/
-├── __root.tsx                                    → Helmet meta defaults, font loading
-├── index.tsx                                     → / Landing page (public, SEO)
-├── auth.tsx                                      → /auth Email + verificatie code
-├── _app.tsx                                      → Auth guard layout (nav + outlet)
+├── __root.tsx                                    -> Helmet meta defaults, font loading
+├── index.tsx                                     -> / Landing page (public, SEO)
+├── auth.tsx                                      -> /auth Email + verification code
+├── _app.tsx                                      -> Auth guard layout (nav + outlet)
 ├── _app/
-│   ├── dashboard.tsx                             → /dashboard Timeline hero
-│   ├── project.$projectId.tsx                    → /project/:id Phase roadmap + checklist
-│   ├── project.$projectId_.task.$taskId.tsx      → /project/:id/task/:id Freeform editor
-│   ├── settings.tsx                              → /settings Profiel, billing, clients
-│   └── new-project.tsx                           → /new-project Creation flow (full page, niet modal)
-└── portal.$shareToken.tsx                        → /portal/:token Client portal (public, apart layout)
+│   ├── dashboard.tsx                             -> /dashboard Timeline hero
+│   ├── project.$projectId.tsx                    -> /project/:id Phase roadmap + checklist
+│   ├── project.$projectId_.task.$taskId.tsx      -> /project/:id/task/:id Freeform editor
+│   ├── settings.tsx                              -> /settings Profile, billing, clients
+│   └── new-project.tsx                           -> /new-project Creation flow (full page, not modal)
+└── portal.$shareToken.tsx                        -> /portal/:token Client portal (public, separate layout)
 ```
 
 ### Route transitions
 
-| Van → Naar | Transitie | Implementatie |
+| From -> To | Transition | Implementation |
 |------------|-----------|---------------|
-| Dashboard → Project | Zoom-in | `motion.div` met `scale` + `opacity` via `AnimatePresence` |
-| Project → Task | Zoom-in | Zelfde pattern |
-| Terug (elke richting) | Zoom-out | Reverse animatie |
-| Modal open | Fade + scale | Purple overlay `opacity` + modal `scale(0.97→1)` |
+| Dashboard -> Project | Zoom-in | `motion.div` with `scale` + `opacity` via `AnimatePresence` |
+| Project -> Task | Zoom-in | Same pattern |
+| Back (any direction) | Zoom-out | Reverse animation |
+| Modal open | Fade + scale | Purple overlay `opacity` + modal `scale(0.97->1)` |
 | Modal close | Reverse fade | Smooth 200-300ms |
 
 ### Project Creation: Modal vs Full Page
 
-De spec zegt "modal over dashboard". Maar vanuit UX en routing perspectief:
-- Modal state gaat verloren bij page refresh
-- Deep linking naar stap 3 van creation is niet mogelijk met modal
-- De creation flow heeft 5 stappen — dat is veel voor een modal
+The spec says "modal over dashboard". But from a UX and routing perspective:
+- Modal state is lost on page refresh
+- Deep linking to step 3 of creation is not possible with a modal
+- The creation flow has 5 steps - that is a lot for a modal
 
-**Beslissing:** Full-page flow op `/new-project` met stappen.
-Voordelen: bookmarkable, refresh-safe, cleaner code.
-De "modal feel" behouden we visueel: centered content, max-width 420px,
-dezelfde styling als de prototypes.
+**Decision:** Full-page flow on `/new-project` with steps.
+Benefits: bookmarkable, refresh-safe, cleaner code.
+We keep the "modal feel" visually: centered content, max-width 420px,
+same styling as the prototypes.
 
 ---
 
-## 4. Component Architectuur
+## 4. Component Architecture
 
-### Shared Components (src/components/shared/)
+### Shared Components (`src/components/shared/`)
 
-| Component | Gebruikt op | Props |
+| Component | Used on | Props |
 |-----------|-------------|-------|
-| `Navbar` | Alle app routes | `backLink?: { label, to }` |
+| `Navbar` | All app routes | `backLink?: { label, to }` |
 | `ProfileDropdown` | Navbar | `user: User` |
 | `Modal` | Share, delete confirm, paywall | `open, onClose, children` |
 | `ConfirmDialog` | Delete project/account | `title, message, confirmText, destructive` |
-| `Toast` | Overal | Via context/hook |
-| `SkeletonLoader` | Alle loading states | `variant: 'text' \| 'card' \| 'timeline'` |
+| `Toast` | Everywhere | Via context/hook |
+| `SkeletonLoader` | All loading states | `variant: 'text' \| 'card' \| 'timeline'` |
 | `EmptyState` | Dashboard, checklist, clients | `title, subtitle, action?` |
 | `ProgressBar` | Project header, phase blocks | `value: number, size: 'sm' \| 'md'` |
 
-### UI Primitives (src/components/ui/)
+### UI Primitives (`src/components/ui/`)
 
-| Component | Radix basis | Stage styling |
+| Component | Radix base | Stage styling |
 |-----------|-------------|---------------|
-| `Button` | — | Primary (accent filled), Ghost (border), Destructive (red text) |
-| `Input` | — | Subtle border, accent focus, F5F5F5 bg variant |
+| `Button` | - | Primary (accent filled), Ghost (border), Destructive (red text) |
+| `Input` | - | Subtle border, accent focus, F5F5F5 bg variant |
 | `Checkbox` | `@radix-ui/react-checkbox` | Rounded-sm, accent fill, white check SVG |
-| `Toggle` | `@radix-ui/react-toggle` | Track: gray→accent, thumb: white circle |
+| `Toggle` | `@radix-ui/react-toggle` | Track: gray->accent, thumb: white circle |
 | `DropdownMenu` | `@radix-ui/react-dropdown-menu` | White bg, subtle shadow, 8px radius |
 | `Dialog` | `@radix-ui/react-dialog` | Purple-tinted overlay, centered, 16px radius |
-| `Tooltip` | `@radix-ui/react-tooltip` | Dark navy bg (#1A1A2E), white text |
-| `Tabs` | `@radix-ui/react-tabs` | Voor settings sidebar/tabs |
+| `Tooltip` | `@radix-ui/react-tooltip` | Dark navy bg (`#1A1A2E`), white text |
+| `Tabs` | `@radix-ui/react-tabs` | For settings sidebar/tabs |
 | `ToggleGroup` | `@radix-ui/react-toggle-group` | Pills: rounded-full, accent active |
 
-### Landing Page Components (src/components/landing/)
+### Landing Page Components (`src/components/landing/`)
 
-| Component | Beschrijving |
+| Component | Description |
 |-----------|-------------|
-| `LandingNav` | Sticky nav met blur bg, logo, links, CTA |
+| `LandingNav` | Sticky nav with blur bg, logo, links, CTA |
 | `HeroSection` | Title, subtitle, CTA buttons, dashboard mockup screenshot |
-| `TrustStrip` | 3-kolom grid met iconen + korte tekst |
-| `FeaturesGrid` | Bento-achtige grid met feature cards + mini mockups |
-| `TestimonialsSection` | Social proof (belangrijk met 300K volgers) |
-| `PricingSection` | Enkel jaarlijks plan (snelle validatie strategie) |
-| `CTASection` | Finale call-to-action voor conversie |
+| `TrustStrip` | 3-column grid with icons + short text |
+| `FeaturesGrid` | Bento-style grid with feature cards + mini mockups |
+| `TestimonialsSection` | Social proof (important with 300K followers) |
+| `PricingSection` | Annual plan only (fast validation strategy) |
+| `CTASection` | Final conversion call-to-action |
 | `LandingFooter` | Links, legal, social |
 
-### Auth Components (src/components/auth/)
+### Auth Components (`src/components/auth/`)
 
-| Component | Beschrijving |
+| Component | Description |
 |-----------|-------------|
 | `EmailInput` | Centered form, email field, continue button |
-| `VerificationCode` | 6 individuele digit boxes, auto-advance, auto-submit |
+| `VerificationCode` | 6 individual digit boxes, auto-advance, auto-submit |
 
-### Dashboard Components (src/components/dashboard/)
+### Dashboard Components (`src/components/dashboard/`)
 
-| Component | Beschrijving |
+| Component | Description |
 |-----------|-------------|
 | `ContextBar` | Greeting, stats, "+ New Project" button |
 | `TimelineHero` | SVG curve, project dots, hover tracking |
-| `ProjectDot` | Avatar op de curve, hover state, click navigeert |
-| `TrackingLine` | Verticale lijn die cursor volgt |
-| `TimelineTooltip` | Hover tooltip met datum, project naam, taken |
-| `BentoGrid` | 2-kolom grid met project cards |
-| `ProjectListCard` | Project in bento: avatar, naam, phase, progress |
-| `ActivityCard` | Recente activiteit feed |
+| `ProjectDot` | Avatar on the curve, hover state, click navigates |
+| `TrackingLine` | Vertical line following cursor |
+| `TimelineTooltip` | Hover tooltip with date, project name, tasks |
+| `BentoGrid` | 2-column grid with project cards |
+| `ProjectListCard` | Project in bento: avatar, name, phase, progress |
+| `ActivityCard` | Recent activity feed |
 | `StatsRow` | Active projects, completion rate, etc. |
 
-### Project Detail Components (src/components/project/)
+### Project Detail Components (`src/components/project/`)
 
-| Component | Beschrijving |
+| Component | Description |
 |-----------|-------------|
-| `ProjectHeader` | Naam, client, progress bar, share + more menu |
-| `PhaseRoadmap` | Horizontale fase blokken met connectoren |
-| `PhaseBlock` | Individuele fase: dot, naam, count. States: completed/active/upcoming |
-| `Checklist` | Fase header + items lijst |
-| `ChecklistItem` | Checkbox + titel + arrow. Toggle, inline edit, navigate |
+| `ProjectHeader` | Name, client, progress bar, share + more menu |
+| `PhaseRoadmap` | Horizontal phase blocks with connectors |
+| `PhaseBlock` | Individual phase: dot, name, count. States: completed/active/upcoming |
+| `Checklist` | Phase header + item list |
+| `ChecklistItem` | Checkbox + title + arrow. Toggle, inline edit, navigate |
 | `AddTaskInput` | "Add a task..." inline input |
 | `ShareModal` | Toggle, link copy, email invite |
 | `ProjectMoreMenu` | Edit, pause, delete dropdown |
 
-### Task Detail Components (src/components/task/)
+### Task Detail Components (`src/components/task/`)
 
-| Component | Beschrijving |
+| Component | Description |
 |-----------|-------------|
-| `TaskBreadcrumb` | "← Project Name · Phase Name" |
+| `TaskBreadcrumb` | "<- Project Name - Phase Name" |
 | `TaskHeader` | Checkbox + editable title |
 | `ContentEditor` | Tiptap editor: basic formatting, headings, lists, links |
 | `InlineImage` | Uploaded image in content flow |
 | `FileCard` | Non-image file: icon, name, size, download |
-| `AttachTrigger` | "+ Attach file" link onderaan |
+| `AttachTrigger` | "+ Attach file" link at bottom |
 
-### Project Creation Components (src/components/creation/)
+### Project Creation Components (`src/components/creation/`)
 
-| Component | Beschrijving |
+| Component | Description |
 |-----------|-------------|
-| `StepIndicator` | Dots of progress line bovenaan |
-| `NameClientStep` | Project naam + client naam inputs |
-| `ProjectTypeStep` | 2-kolom pill grid (Branding, Web Design, etc.) |
-| `AIManualStep` | Twee option cards (AI-Generated vs Manual) |
+| `StepIndicator` | Dots or progress line at top |
+| `NameClientStep` | Project name + client name inputs |
+| `ProjectTypeStep` | 2-column pill grid (Branding, Web Design, etc.) |
+| `AIManualStep` | Two option cards (AI-Generated vs Manual) |
 | `TimelineStep` | Start + end date pickers |
-| `PhaseSelectionStep` | Drag-and-drop fase lijst met toggles |
-| `RoadmapPreview` | Verticale roadmap met dots en lijnen |
-| `GeneratingAnimation` | Pulserende dots + "Creating your roadmap..." |
+| `PhaseSelectionStep` | Drag-and-drop phase list with toggles |
+| `RoadmapPreview` | Vertical roadmap with dots and lines |
+| `GeneratingAnimation` | Pulsing dots + "Creating your roadmap..." |
 
-### Settings Components (src/components/settings/)
+### Settings Components (`src/components/settings/`)
 
-| Component | Beschrijving |
+| Component | Description |
 |-----------|-------------|
-| `SettingsSidebar` | Navigatie links: Profile, Plan, Clients, Portal, Account |
-| `ProfileSection` | Avatar, naam, email, role pills |
+| `SettingsSidebar` | Navigation links: Profile, Plan, Clients, Portal, Account |
+| `ProfileSection` | Avatar, name, email, role pills |
 | `PlanBillingSection` | Plan info, billing cycle, payment method, cancel |
-| `ClientsSection` | Client lijst met edit/delete, empty state |
-| `PortalSection` | Portal branding: logo upload, accent kleur picker |
-| `AccountSection` | Delete account met "Type DELETE" confirmatie |
+| `ClientsSection` | Client list with edit/delete, empty state |
+| `PortalSection` | Portal branding: logo upload, accent color picker |
+| `AccountSection` | Delete account with "Type DELETE" confirmation |
 
-### Client Portal Components (src/components/portal/)
+### Client Portal Components (`src/components/portal/`)
 
-| Component | Beschrijving |
+| Component | Description |
 |-----------|-------------|
 | `PortalNav` | Client logo (custom branding) |
-| `PortalHeader` | Project naam, client naam |
-| `PortalProgress` | Progress bar met percentage |
-| `PortalPhaseRoadmap` | Zelfde als project maar read-only, oranje accent |
-| `PortalChecklist` | Read-only checklist, geen interactie |
-| `PortalFooter` | "Powered by Stage" link (gratis marketing) |
+| `PortalHeader` | Project name, client name |
+| `PortalProgress` | Progress bar with percentage |
+| `PortalPhaseRoadmap` | Same as project but read-only, orange accent |
+| `PortalChecklist` | Read-only checklist, no interaction |
+| `PortalFooter` | "Powered by Stage" link (free marketing) |
 
 ---
 
-## 5. Data Model (TypeScript types — backend-agnostisch)
+## 5. Data Model (TypeScript types - backend-agnostic)
 
 ```typescript
 // src/types/index.ts
@@ -423,7 +423,7 @@ type Project = {
   phases: Phase[]
   progress: number        // 0-100
   createdAt: number
-  shareToken?: string     // voor client portal
+  shareToken?: string     // for client portal
 }
 
 type ProjectType =
@@ -437,7 +437,7 @@ type Phase = {
   order: number
   status: 'completed' | 'active' | 'upcoming'
   tasks: Task[]
-  progress: number        // 0-100 (berekend uit tasks)
+  progress: number        // 0-100 (calculated from tasks)
 }
 
 type Task = {
@@ -445,7 +445,7 @@ type Task = {
   phaseId: string
   title: string
   isCompleted: boolean
-  content?: string        // HTML van rich text editor
+  content?: string        // HTML from rich text editor
   attachments: Attachment[]
   order: number
   createdAt: number
@@ -474,28 +474,28 @@ type PortalConfig = {
   shareToken: string
   shareUrl: string
   logoUrl?: string        // Custom client logo
-  accentColor: string     // Default: #E8734A (oranje)
+  accentColor: string     // Default: #E8734A (orange)
 }
 ```
 
 ---
 
-## 6. Mock Data Strategie
+## 6. Mock Data Strategy
 
-Één bestand `src/data/mock.ts` met realistische data die exact matcht met de prototypes:
+One file `src/data/mock.ts` with realistic data that exactly matches the prototypes:
 
-- 5 projecten (Website Redesign, Brand Identity, Mobile App, Packaging, Motion Reel)
-- Elke met 4-6 fases
-- Elke fase met 3-8 taken
-- Mix van completed/active/upcoming states
-- Realistische client namen en avatars
-- Task content met formatted text, images, file attachments
+- 5 projects (Website Redesign, Brand Identity, Mobile App, Packaging, Motion Reel)
+- Each with 4-6 phases
+- Each phase with 3-8 tasks
+- Mix of completed/active/upcoming states
+- Realistic client names and avatars
+- Task content with formatted text, images, file attachments
 
-Mock data wordt gebruikt via een `src/lib/api.ts` abstraction layer:
+Mock data is used through a `src/lib/api.ts` abstraction layer:
 
 ```typescript
 // src/lib/api.ts
-// Placeholder — wordt later vervangen door Convex queries of tRPC calls
+// Placeholder - will later be replaced by Convex queries or tRPC calls
 
 export async function getProjects(): Promise<Project[]> { /* mock */ }
 export async function getProject(id: string): Promise<Project> { /* mock */ }
@@ -504,7 +504,7 @@ export async function updateTask(id: string, data: Partial<Task>): Promise<Task>
 // etc.
 ```
 
-TanStack Query wraps deze functies:
+TanStack Query wraps these functions:
 
 ```typescript
 // src/hooks/useProjects.ts
@@ -513,20 +513,20 @@ export function useProjects() {
 }
 ```
 
-Wanneer backend klaar is: alleen `src/lib/api.ts` aanpassen.
-Geen wijzigingen nodig in components of hooks.
+When backend is ready: only update `src/lib/api.ts`.
+No changes needed in components or hooks.
 
 ---
 
-## 7. SEO Strategie
+## 7. SEO Strategy
 
-### Landing page (/)
+### Landing page (`/`)
 
 **In `index.html`:**
 ```html
-<title>Stage — Project clarity for creative professionals</title>
+<title>Stage - Project clarity for creative professionals</title>
 <meta name="description" content="Track your creative projects with clarity. Stage gives designers and freelancers a calm, focused way to manage projects, share progress with clients, and stay on top of every phase.">
-<meta property="og:title" content="Stage — Project clarity for creative professionals">
+<meta property="og:title" content="Stage - Project clarity for creative professionals">
 <meta property="og:description" content="...">
 <meta property="og:image" content="/og-image.png">
 <meta property="og:type" content="website">
@@ -544,168 +544,168 @@ Geen wijzigingen nodig in components of hooks.
 ```
 
 **Semantic HTML:**
-- `<header>` voor nav
-- `<main>` voor content
-- `<section>` per sectie met proper `<h1>`, `<h2>`, `<h3>` hiërarchie
-- `<footer>` voor footer
+- `<header>` for nav
+- `<main>` for content
+- `<section>` per section with proper `<h1>`, `<h2>`, `<h3>` hierarchy
+- `<footer>` for footer
 
-### App routes (/dashboard, /project/*, etc.)
+### App routes (`/dashboard`, `/project/*`, etc.)
 
-Geen SEO nodig — achter auth. `react-helmet-async` voor dynamische `<title>`:
-- Dashboard: "Stage — Dashboard"
-- Project: "Stage — Website Redesign"
-- Task: "Stage — Define project goals"
+No SEO needed - behind auth. `react-helmet-async` for dynamic `<title>`:
+- Dashboard: "Stage - Dashboard"
+- Project: "Stage - Website Redesign"
+- Task: "Stage - Define project goals"
 
-### Client Portal (/portal/:token)
+### Client Portal (`/portal/:token`)
 
-Belangrijk voor social sharing (designer deelt link met client).
-Later: Cloudflare Worker injecteert OG tags op basis van project data.
-Voor nu: default meta tags.
+Important for social sharing (designer shares link with client).
+Later: Cloudflare Worker injects OG tags based on project data.
+For now: default meta tags.
 
 ---
 
-## 8. Performance Optimalisaties
+## 8. Performance Optimizations
 
-| Techniek | Waar | Hoe |
+| Technique | Where | How |
 |----------|------|-----|
-| **Route code-splitting** | Alle routes | TanStack Router doet dit automatisch via file-based routing |
+| **Route code-splitting** | All routes | TanStack Router does this automatically via file-based routing |
 | **Lazy imports** | Tiptap editor, date pickers | `React.lazy()` + `Suspense` |
-| **Prefetch on hover** | Dashboard → Project links | `router.preloadRoute()` on mouseEnter |
-| **Skeleton loading** | Alle data-afhankelijke content | Custom skeleton componenten, shimmer animatie |
+| **Prefetch on hover** | Dashboard -> Project links | `router.preloadRoute()` on mouseEnter |
+| **Skeleton loading** | All data-dependent content | Custom skeleton components, shimmer animation |
 | **Optimistic updates** | Checkbox toggles, favoriting | TanStack Query `onMutate` + rollback |
 | **Image lazy loading** | Task detail inline images | `loading="lazy"` + `Intersection Observer` |
 | **Font loading** | DM Sans | `<link rel="preconnect">` + `font-display: swap` |
-| **Animation perf** | Alle transitions | `transform` + `opacity` only (GPU-accelerated) |
+| **Animation perf** | All transitions | `transform` + `opacity` only (GPU-accelerated) |
 | **Bundle analysis** | Build time | `rollup-plugin-visualizer` |
 
 ---
 
-## 9. Build Fases (prioriteit volgorde)
+## 9. Build Phases (priority order)
 
-### Fase 1: Foundation
+### Phase 1: Foundation
 - [ ] Project init (Vite, React, TypeScript)
-- [ ] Tailwind CSS v4 met Stage design tokens
+- [ ] Tailwind CSS v4 with Stage design tokens
 - [ ] TanStack Router setup (file-based)
 - [ ] TanStack Query setup
 - [ ] Cloudflare Worker + wrangler config
-- [ ] `index.html` met SEO meta tags
+- [ ] `index.html` with SEO meta tags
 - [ ] Font loading (DM Sans via Google Fonts, SF Pro Display system)
 - [ ] Base UI components (Button, Input, Checkbox, Toggle)
-- [ ] Utility functies (cn, formatDate, etc.)
+- [ ] Utility functions (`cn`, `formatDate`, etc.)
 - [ ] TypeScript types
 - [ ] Mock data
 
-### Fase 2: Layout & Navigation
+### Phase 2: Layout & Navigation
 - [ ] Root layout (`__root.tsx`)
-- [ ] App layout (`_app.tsx`) met auth guard placeholder
+- [ ] App layout (`_app.tsx`) with auth guard placeholder
 - [ ] Navbar component
 - [ ] Profile dropdown
 - [ ] Mobile responsive shell
 
-### Fase 3: Landing Page (SEO-kritiek, eerste indruk)
+### Phase 3: Landing Page (SEO-critical, first impression)
 - [ ] Landing nav (sticky, blur)
 - [ ] Hero section (headline, subtitle, CTAs, dashboard mockup)
-- [ ] Trust strip (3 kolommen)
-- [ ] Features grid (bento layout met mini mockups)
+- [ ] Trust strip (3 columns)
+- [ ] Features grid (bento layout with mini mockups)
 - [ ] Social proof section
-- [ ] Pricing section (alleen jaarlijks)
+- [ ] Pricing section (annual only)
 - [ ] Final CTA
 - [ ] Footer
 - [ ] SEO: meta tags, structured data, semantic HTML
-- [ ] Responsive (mobile-first voor landing)
+- [ ] Responsive (mobile-first for landing)
 
-### Fase 4: Auth Flow
+### Phase 4: Auth Flow
 - [ ] Auth page layout (centered, no nav)
 - [ ] Email input screen
 - [ ] Verification code screen (6 digit boxes)
 - [ ] Auto-advance, auto-submit, paste support
 - [ ] Error states, loading states
-- [ ] Routing logic placeholder (new user → onboarding, existing → dashboard)
+- [ ] Routing logic placeholder (new user -> onboarding, existing -> dashboard)
 
-### Fase 5: Dashboard (de hero experience)
+### Phase 5: Dashboard (the hero experience)
 - [ ] Context bar (greeting, stats, new project button)
-- [ ] Timeline hero met SVG curve
-- [ ] Project dots op de curve (positioned, animated)
-- [ ] Hover tracking (verticale lijn, cursor volgen)
-- [ ] Timeline tooltip (fase, taken, completion)
-- [ ] Background fade bij hover
+- [ ] Timeline hero with SVG curve
+- [ ] Project dots on curve (positioned, animated)
+- [ ] Hover tracking (vertical line, cursor follow)
+- [ ] Timeline tooltip (phase, tasks, completion)
+- [ ] Background fade on hover
 - [ ] Bento grid (project cards, activity, payments)
 - [ ] Empty state
 - [ ] Skeleton loading state
-- [ ] Click → navigeer naar project (zoom-in transition)
+- [ ] Click -> navigate to project (zoom-in transition)
 
-### Fase 6: Project Detail
+### Phase 6: Project Detail
 - [ ] Zoom-in entry transition
-- [ ] Project header (naam, client, progress, share, more menu)
-- [ ] Phase roadmap hero (horizontale blokken + connectoren)
-- [ ] Phase states (completed/active/upcoming met animatie)
-- [ ] Checklist sectie
+- [ ] Project header (name, client, progress, share, more menu)
+- [ ] Phase roadmap hero (horizontal blocks + connectors)
+- [ ] Phase states (completed/active/upcoming with animation)
+- [ ] Checklist section
 - [ ] Checklist items (checkbox, title, arrow)
 - [ ] Add task input
-- [ ] Checkbox toggle → progress update cascade
+- [ ] Checkbox toggle -> progress update cascade
 - [ ] Share modal
 - [ ] More menu dropdown (edit, pause, delete)
 - [ ] Delete confirmation dialog
-- [ ] Phase click → checklist update
+- [ ] Phase click -> checklist update
 - [ ] Empty phase state
 - [ ] Bottom dock (project switcher)
 
-### Fase 7: Task Detail
+### Phase 7: Task Detail
 - [ ] Zoom-in entry transition
 - [ ] Breadcrumb navigation
 - [ ] Task header (checkbox + editable title)
 - [ ] Tiptap rich text editor setup
 - [ ] Basic formatting (bold, italic, headings, lists, links)
-- [ ] Floating toolbar bij text selectie
+- [ ] Floating toolbar on text selection
 - [ ] File upload UI (drag & drop zone)
 - [ ] Inline image display
 - [ ] File card display
 - [ ] Auto-save indicator ("Saved")
 - [ ] Empty state placeholder
 
-### Fase 8: Project Creation Flow
+### Phase 8: Project Creation Flow
 - [ ] Full-page centered layout
 - [ ] Step indicator (dots)
-- [ ] Step 1: Project naam + client
+- [ ] Step 1: Project name + client
 - [ ] Step 2: Project type pills
 - [ ] Step 3: AI vs Manual choice
-- [ ] Step 4A: Timeline (dates) → generate animation
+- [ ] Step 4A: Timeline (dates) -> generate animation
 - [ ] Step 4M: Phase selection (drag & drop toggles)
 - [ ] Step 5: Roadmap preview
 - [ ] Step transitions (fade/slide)
 - [ ] Form validation
-- [ ] Back navigation met data preservation
+- [ ] Back navigation with data preservation
 
-### Fase 9: Settings
+### Phase 9: Settings
 - [ ] Settings layout (sidebar + content)
-- [ ] Profile section (avatar, naam, email, role)
+- [ ] Profile section (avatar, name, email, role)
 - [ ] Plan & Billing section
 - [ ] Clients management section
-- [ ] Portal branding section (logo upload, accent kleur)
-- [ ] Account section (delete met confirmatie)
+- [ ] Portal branding section (logo upload, accent color)
+- [ ] Account section (delete with confirmation)
 - [ ] Auto-save pattern
 - [ ] Tab navigation (URL-based)
 
-### Fase 10: Client Portal
-- [ ] Apart layout (geen app nav)
-- [ ] Custom branding (logo, accent kleur)
+### Phase 10: Client Portal
+- [ ] Separate layout (no app nav)
+- [ ] Custom branding (logo, accent color)
 - [ ] Project header + progress
-- [ ] Phase roadmap (read-only, oranje accent)
+- [ ] Phase roadmap (read-only, orange accent)
 - [ ] Checklist (read-only)
 - [ ] "Powered by Stage" footer
-- [ ] Preview banner (wanneer bekeken vanuit settings)
-- [ ] Mobile responsive (clients bekijken op telefoon)
+- [ ] Preview banner (when viewed from settings)
+- [ ] Mobile responsive (clients view on phone)
 
 ---
 
-## 10. Integratie Punten
+## 10. Integration Points
 
-Alle plekken waar auth/backend later ingeplugd wordt:
+All places where auth/backend will be plugged in later:
 
 ### Auth (`src/lib/auth.ts`)
 
 ```typescript
-// PLACEHOLDER — wordt Clerk of Auth0
+// PLACEHOLDER - will become Clerk or Auth0
 export async function getCurrentUser(): Promise<User | null> { /* mock user */ }
 export async function signIn(email: string): Promise<void> { /* no-op */ }
 export async function verifyCode(code: string): Promise<{ isNewUser: boolean }> { /* mock */ }
@@ -716,7 +716,7 @@ export function useAuth(): { user: User | null; isLoading: boolean } { /* mock *
 ### Data (`src/lib/api.ts`)
 
 ```typescript
-// PLACEHOLDER — wordt Convex queries/mutations of tRPC calls
+// PLACEHOLDER - will become Convex queries/mutations or tRPC calls
 export async function getProjects(): Promise<Project[]> { /* mock */ }
 export async function getProject(id: string): Promise<Project> { /* mock */ }
 export async function createProject(data: CreateProjectInput): Promise<Project> { /* mock */ }
@@ -733,7 +733,7 @@ export async function getPortalData(shareToken: string): Promise<PortalData> { /
 ### Payments (`src/lib/payments.ts`)
 
 ```typescript
-// PLACEHOLDER — wordt Stripe
+// PLACEHOLDER - will become Stripe
 export async function createCheckoutSession(plan: 'yearly'): Promise<string> { /* mock URL */ }
 export async function getSubscription(): Promise<Subscription | null> { /* mock */ }
 export async function cancelSubscription(): Promise<void> { /* no-op */ }
@@ -741,59 +741,59 @@ export async function cancelSubscription(): Promise<void> { /* no-op */ }
 
 ---
 
-## 11. Conversie & Psychologie Notities
+## 11. Conversion & Psychology Notes
 
 ### Landing page
 
-- **Headline moet pijn benoemen:** "Stop losing track of your creative projects" > "Project management tool"
-- **Social proof prominent:** "Join 500+ designers who..." (of het werkelijke getal zodra beschikbaar)
-- **Enkel jaarlijks plan** → lagere churn, snellere validatie van betalingsbereidheid
-- **"Limited early access" framing** → urgentie, exclusiviteit
-- **Dashboard screenshot als hero visual** → toon het product, geen abstracte illustraties
+- **Headline should name pain:** "Stop losing track of your creative projects" > "Project management tool"
+- **Social proof is prominent:** "Join 500+ designers who..." (or the real number once available)
+- **Annual plan only** -> lower churn, faster willingness-to-pay validation
+- **"Limited early access" framing** -> urgency, exclusivity
+- **Dashboard screenshot as hero visual** -> show product, no abstract illustrations
 
 ### Onboarding
 
-- **Progress indicator** (stap X van Y) → loss aversion, mensen willen afmaken
-- **AI-generated roadmap** als default → lage drempel, instant waarde
-- **Eerste project ontstaat IN de onboarding** → gebruiker heeft direct iets om naar te kijken
+- **Progress indicator** (step X of Y) -> loss aversion, people want to finish
+- **AI-generated roadmap** as default -> low friction, instant value
+- **First project created IN onboarding** -> user immediately has something to look at
 
 ### Retention
 
-- **Timeline als "home"** → elke keer als je de app opent zie je overzicht
-- **Progress feedback loop** → checkbox → progress bar update → percentage → dopamine
-- **Client portal delen** → sociale commitment, moeilijker om te stoppen als klant meekijkt
-- **"Powered by Stage"** in portal → viraal loop: klant ziet → wordt nieuwsgierig → wordt gebruiker
+- **Timeline as "home"** -> each app open starts with overview
+- **Progress feedback loop** -> checkbox -> progress bar update -> percentage -> dopamine
+- **Share client portal** -> social commitment, harder to churn when client is watching
+- **"Powered by Stage"** in portal -> viral loop: client sees -> gets curious -> becomes a user
 
 ### Paywall
 
-- **Niet blokkerend in v1** → laat mensen het product ervaren
-- **Project limiet op free plan** → trigger om te upgraden wanneer ze waarde zien
-- **Upgrade prompt op natuurlijke momenten** → "Share with client" (locked), 4e project aanmaken
+- **Non-blocking in v1** -> let people experience product
+- **Project limit on free plan** -> upgrade trigger once value is clear
+- **Upgrade prompt at natural moments** -> "Share with client" (locked), creating 4th project
 
 ---
 
-## 12. Verbetersuggesties t.o.v. de Specs
+## 12. Improvement Suggestions vs Specs
 
-| Verbetering | Waarom | Impact |
+| Improvement | Why | Impact |
 |-------------|--------|--------|
-| **"Powered by Stage" link in portal footer** | Gratis marketing bij elke client share | Hoog — virale loop |
-| **Onboarding progress indicator** | Loss aversion, hogere completion rate | Hoog — retention |
-| **Keyboard shortcuts** | Designers verwachten dit (Cmd+K search, etc.) | Medium — power users |
-| **"Invite to Stage" in client portal** | Client → designer pipeline | Medium — growth |
-| **Email digest** | Wekelijks overzicht van project progress | Medium — re-engagement |
-| **Subtle "Today" marker op timeline** | Spec noemt het maar prototypes missen het | Low — polish |
-| **Scroll-to-active-phase** | Bij laden project detail, scroll naar actieve fase | Low — UX |
-| **Drag handles pas zichtbaar op hover** | Cleaner default state voor checklist | Low — polish |
+| **"Powered by Stage" link in portal footer** | Free marketing on every client share | High - viral loop |
+| **Onboarding progress indicator** | Loss aversion, higher completion rate | High - retention |
+| **Keyboard shortcuts** | Designers expect this (`Cmd+K` search, etc.) | Medium - power users |
+| **"Invite to Stage" in client portal** | Client -> designer pipeline | Medium - growth |
+| **Email digest** | Weekly project progress summary | Medium - re-engagement |
+| **Subtle "Today" marker on timeline** | Spec mentions it but prototypes miss it | Low - polish |
+| **Scroll-to-active-phase** | On project detail load, scroll to active phase | Low - UX |
+| **Drag handles visible only on hover** | Cleaner checklist default state | Low - polish |
 
 ---
 
-## 13. Risico's & Mitigatie
+## 13. Risks & Mitigation
 
-| Risico | Impact | Mitigatie |
+| Risk | Impact | Mitigation |
 |--------|--------|-----------|
-| **SF Pro Display niet beschikbaar op Windows/Android** | Headings zien er anders uit | Fallback naar system font is acceptabel — doelgroep is designers op Mac |
-| **Timeline SVG performance bij veel projecten** | Lag bij 20+ projecten | Virtualisatie + canvas fallback als nodig |
-| **Tiptap bundle size** | +200kb voor editor | Lazy load alleen op task detail route |
-| **Auth integratie later** | Refactoring risico | Abstractie laag (`src/lib/auth.ts`) houdt impact minimaal |
-| **Backend keuze later** | Data model changes | TypeScript types + mock data als contract — backend moet deze types respecteren |
-| **Deadline 10 maart** | Strakke planning nodig | Alles wordt gebouwd — fases 1-10 worden sequentieel afgewerkt |
+| **SF Pro Display unavailable on Windows/Android** | Headings look different | Fallback to system font is acceptable - audience is designers on Mac |
+| **Timeline SVG performance with many projects** | Lag at 20+ projects | Virtualization + canvas fallback if needed |
+| **Tiptap bundle size** | +200kb for editor | Lazy load only on task detail route |
+| **Auth integration later** | Refactoring risk | Abstraction layer (`src/lib/auth.ts`) keeps impact minimal |
+| **Backend decision later** | Data model changes | TypeScript types + mock data as contract - backend must respect these types |
+| **March 10 deadline** | Tight planning needed | Build everything - phases 1-10 executed sequentially |
