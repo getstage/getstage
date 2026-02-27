@@ -7,10 +7,16 @@ import { AnimatePresence, motion } from "motion/react";
 import { getProjects } from "@/data-ops/queries";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
-import { Timeline } from "@/components/dashboard/Timeline";
+import {
+  Timeline,
+  type TimelineHorizon,
+} from "@/components/dashboard/Timeline";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function DashboardPage() {
   const [hoveredDockId, setHoveredDockId] = useState<string | null>(null);
+  const [timelineHorizon, setTimelineHorizon] = useState<TimelineHorizon>("all");
   const { user } = useAuth();
   const { data: projects, isLoading } = useQuery({
     queryKey: ["projects"],
@@ -35,6 +41,18 @@ export function DashboardPage() {
     projects && projects.length > 0
       ? Math.round(
           projects.reduce((acc, project) => acc + project.progress, 0) / projects.length,
+        )
+      : 0;
+  const avgDurationDays =
+    projects && projects.length > 0
+      ? Math.round(
+          projects.reduce((acc, project) => {
+            const durationDays = Math.max(
+              1,
+              Math.ceil((project.endDate - project.startDate) / DAY_MS),
+            );
+            return acc + durationDays;
+          }, 0) / projects.length,
         )
       : 0;
   const upcomingTasks = taskEntries
@@ -62,32 +80,59 @@ export function DashboardPage() {
 
       <div className="min-h-[calc(100vh-64px)]">
         <div className="mx-auto max-w-[1200px] px-6 pt-8 sm:px-10 lg:px-14">
-          <motion.h1
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="mb-4 font-heading text-[36px] font-semibold tracking-tight text-text-primary"
-          >
-            {greeting}
-          </motion.h1>
-
-          <div className="mb-5 flex items-center justify-between">
-            <button className="cursor-pointer rounded-[8px] border border-border px-3 py-1.5 text-[13px] text-text-secondary transition-colors hover:text-text-primary">
-              This month
-            </button>
+          <div className="mb-6 flex items-end justify-between gap-4">
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <h1 className="font-heading text-[32px] font-semibold tracking-tight text-text-primary">
+                {greeting}
+              </h1>
+              <p className="mt-1 text-[14px] text-text-secondary">
+                {activeCount} active
+              </p>
+            </motion.div>
             <Link to="/new-project">
-              <Button size="sm" className="h-8 rounded-[7px] px-3 text-[13px]">
+              <Button size="sm" className="h-9 rounded-[9px] px-3.5 text-[13px]">
                 <Plus size={13} weight="bold" />
                 New Project
               </Button>
             </Link>
           </div>
 
-          <div className="mb-10 grid max-w-[440px] grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-4">
-            <Stat label="Active Projects" value={activeCount} />
-            <Stat label="Tasks Due" value={tasksDue} />
-            <Stat label="Completed" value={completed} />
-            <Stat label="Avg. Progress" value={`${avgProgress}%`} />
+          <div className="mb-8 flex flex-wrap items-start justify-between gap-5">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
+              <CompactStat
+                label="Active"
+                value={activeCount.toLocaleString()}
+                badge="live"
+                tone="neutral"
+              />
+              <CompactStat
+                label="Tasks Due"
+                value={tasksDue.toLocaleString()}
+                badge="open"
+                tone="negative"
+              />
+              <CompactStat
+                label="Completed"
+                value={completed.toLocaleString()}
+                badge="done"
+                tone="positive"
+              />
+              <CompactStat
+                label="Avg Duration"
+                value={`${avgDurationDays}d`}
+                badge={`${avgProgress}% progress`}
+                tone="positive"
+              />
+            </div>
+
+            <TimelineHorizonSwitch
+              value={timelineHorizon}
+              onChange={setTimelineHorizon}
+            />
           </div>
         </div>
 
@@ -97,7 +142,7 @@ export function DashboardPage() {
           </div>
         ) : projects && projects.length > 0 ? (
           <div className="relative left-1/2 mt-2 w-screen -translate-x-1/2">
-            <Timeline projects={projects} />
+            <Timeline projects={projects} horizon={timelineHorizon} />
           </div>
         ) : (
           <div className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-14">
@@ -304,27 +349,86 @@ function EmptyState() {
 
 function TimelineSkeleton() {
   return (
-    <div className="relative h-[272px] overflow-hidden">
-      <div className="absolute inset-x-0 top-[68px] skeleton h-[3px] rounded-full" />
-      <div className="absolute inset-x-0 top-[132px] skeleton h-[2px] rounded-full" />
-      <div className="absolute inset-x-0 bottom-[34px] skeleton h-[120px] rounded-t-[999px]" />
-      <div className="absolute bottom-2 left-0 h-5 w-14 skeleton rounded-full" />
-      <div className="absolute bottom-2 right-0 h-5 w-14 skeleton rounded-full" />
-      <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 skeleton rounded-full" />
-      <div className="absolute left-[15%] top-[118px] h-8 w-8 skeleton rounded-full" />
-      <div className="absolute left-[42%] top-[115px] h-8 w-8 skeleton rounded-full" />
-      <div className="absolute left-[68%] top-[122px] h-8 w-8 skeleton rounded-full" />
+    <div className="relative h-[60vh] min-h-[420px] max-h-[640px] overflow-hidden px-6 sm:px-10 lg:px-14">
+      <div className="relative h-full">
+        <div className="absolute inset-x-0 top-[96px] skeleton h-px rounded-full" />
+        <div className="absolute inset-x-0 top-[168px] skeleton h-px rounded-full" />
+        <div className="absolute inset-x-0 bottom-[54px] skeleton h-px rounded-full" />
+        <div className="absolute bottom-9 left-[8%] h-5 w-12 skeleton rounded-full" />
+        <div className="absolute bottom-9 left-[22%] h-5 w-12 skeleton rounded-full" />
+        <div className="absolute bottom-9 left-[37%] h-5 w-12 skeleton rounded-full" />
+        <div className="absolute bottom-9 left-[52%] h-5 w-12 skeleton rounded-full" />
+        <div className="absolute left-[14%] top-[66px] h-[52px] w-[210px] skeleton rounded-[10px]" />
+        <div className="absolute left-[36%] top-[128px] h-[52px] w-[250px] skeleton rounded-[10px]" />
+        <div className="absolute left-[58%] top-[190px] h-[52px] w-[290px] skeleton rounded-[10px]" />
+        <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-bg to-transparent backdrop-blur-[2px]" />
+        <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-bg to-transparent backdrop-blur-[2px]" />
+      </div>
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: number | string }) {
+function CompactStat({
+  label,
+  value,
+  badge,
+  tone,
+}: {
+  label: string;
+  value: string;
+  badge: string;
+  tone: "neutral" | "positive" | "negative";
+}) {
+  const toneClass =
+    tone === "positive"
+      ? "bg-[#E8F7EE] text-[#2D9B62]"
+      : tone === "negative"
+        ? "bg-[#FDEEEA] text-[#E07070]"
+        : "bg-bg-subtle text-text-secondary";
+
   return (
-    <div>
-      <div className="text-[13px] text-text-secondary">{label}</div>
-      <div className="font-heading text-[38px] leading-none font-semibold tracking-tight text-text-primary">
+    <div className="min-w-[96px]">
+      <div className="text-[12px] text-text-secondary">{label}</div>
+      <div className="mt-0.5 text-[34px] leading-none font-semibold tracking-tight text-text-primary">
         {value}
       </div>
+      <div className={`mt-1 inline-flex rounded-[7px] px-2 py-0.5 text-[11px] ${toneClass}`}>
+        {badge}
+      </div>
+    </div>
+  );
+}
+
+function TimelineHorizonSwitch({
+  value,
+  onChange,
+}: {
+  value: TimelineHorizon;
+  onChange: (value: TimelineHorizon) => void;
+}) {
+  const options: Array<{ value: TimelineHorizon; label: string }> = [
+    { value: "30d", label: "30D" },
+    { value: "90d", label: "90D" },
+    { value: "6m", label: "6M" },
+    { value: "all", label: "All" },
+  ];
+
+  return (
+    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-white p-1">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
+            value === option.value
+              ? "bg-accent text-white"
+              : "text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
   );
 }

@@ -7,7 +7,10 @@ import type { Project } from "@/types";
 
 interface TimelineProps {
   projects: Project[];
+  horizon?: TimelineHorizon;
 }
+
+export type TimelineHorizon = "30d" | "90d" | "6m" | "all";
 
 type TickGranularity = "day" | "week" | "month";
 
@@ -44,6 +47,8 @@ const BLOCK_HEIGHT = 52;
 const ROW_GAP = 10;
 const MAX_VISIBLE_ROWS = 5;
 const TRACK_SIDE_INSET = 24;
+const EDGE_FADE_WIDTH = 64;
+const EDGE_SAFE_PADDING = EDGE_FADE_WIDTH + 12;
 const AXIS_TOP_GAP = 20;
 const LABEL_TOP_GAP = 12;
 const TOOLTIP_WIDTH = 286;
@@ -101,7 +106,7 @@ function addMonths(timestamp: number, months: number) {
   return date.getTime();
 }
 
-function getTimelineBounds(projects: Project[]) {
+function getProjectSpanBounds(projects: Project[]) {
   if (projects.length === 0) {
     const today = startOfDay(Date.now());
     return { start: today, end: today + DAY_MS };
@@ -112,6 +117,25 @@ function getTimelineBounds(projects: Project[]) {
 
   const start = startOfDay(earliestStart - SIDE_PADDING_DAYS * DAY_MS);
   const end = startOfDay(latestEnd + SIDE_PADDING_DAYS * DAY_MS);
+  return {
+    start,
+    end: Math.max(end, start + DAY_MS),
+  };
+}
+
+function getTimelineBounds(projects: Project[], horizon: TimelineHorizon) {
+  const spanBounds = getProjectSpanBounds(projects);
+
+  if (horizon === "all") {
+    return spanBounds;
+  }
+
+  const horizonDays = horizon === "30d" ? 30 : horizon === "90d" ? 90 : 180;
+  const today = startOfDay(Date.now());
+  const halfRange = Math.floor(horizonDays / 2);
+  const start = today - halfRange * DAY_MS;
+  const end = today + (horizonDays - halfRange) * DAY_MS;
+
   return {
     start,
     end: Math.max(end, start + DAY_MS),
@@ -261,21 +285,24 @@ function getRenderedBlockOpacity(
   return Math.max(0.18, base * NON_HOVER_FADE_MULTIPLIER);
 }
 
-export function Timeline({ projects }: TimelineProps) {
+export function Timeline({ projects, horizon = "all" }: TimelineProps) {
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [hoverState, setHoverState] = useState<HoverState | null>(null);
 
   const layout = useMemo(() => {
-    const bounds = getTimelineBounds(projects);
+    const bounds = getTimelineBounds(projects, horizon);
     const rangeMs = Math.max(bounds.end - bounds.start, DAY_MS);
     const totalDays = Math.max(1, Math.ceil(rangeMs / DAY_MS));
     const granularity = getTickGranularity(totalDays);
-    const timelineWidth = Math.max(1100, totalDays * getPixelsPerDay(totalDays));
-    const drawableWidth = Math.max(timelineWidth - TRACK_SIDE_INSET * 2, 1);
+    const plotWidth = Math.max(1100, totalDays * getPixelsPerDay(totalDays));
+    const timelineWidth = plotWidth + EDGE_SAFE_PADDING * 2;
+    const drawableWidth = Math.max(plotWidth - TRACK_SIDE_INSET * 2, 1);
 
     const toX = (timestamp: number) => {
       const ratio = (timestamp - bounds.start) / rangeMs;
-      return TRACK_SIDE_INSET + clamp(ratio * drawableWidth, 0, drawableWidth);
+      return (
+        EDGE_SAFE_PADDING + TRACK_SIDE_INSET + clamp(ratio * drawableWidth, 0, drawableWidth)
+      );
     };
 
     const ticks: TimelineTick[] = buildTicks(bounds.start, bounds.end, granularity).map((tick) => ({
@@ -283,10 +310,15 @@ export function Timeline({ projects }: TimelineProps) {
       x: toX(tick.timestamp),
     }));
 
-    const packed = packRows(projects);
+    const visibleProjects = projects.filter(
+      (project) => project.endDate >= bounds.start && project.startDate <= bounds.end,
+    );
+    const packed = packRows(visibleProjects);
     const positionedProjects: PositionedProject[] = packed.projects.map((entry) => {
-      const left = toX(entry.project.startDate);
-      const right = toX(entry.project.endDate + DAY_MS);
+      const clampedStart = clamp(entry.project.startDate, bounds.start, bounds.end);
+      const clampedEnd = clamp(entry.project.endDate, bounds.start, bounds.end);
+      const left = toX(clampedStart);
+      const right = toX(clampedEnd + DAY_MS);
       return {
         project: entry.project,
         row: entry.row,
@@ -306,7 +338,7 @@ export function Timeline({ projects }: TimelineProps) {
       projects: positionedProjects,
       todayX,
     };
-  }, [projects]);
+  }, [horizon, projects]);
 
   const rowPitch = BLOCK_HEIGHT + ROW_GAP;
   const rowCount = Math.max(layout.rowCount, 1);
@@ -371,7 +403,7 @@ export function Timeline({ projects }: TimelineProps) {
   return (
     <section className="relative h-[60vh] min-h-[420px] max-h-[640px]">
       <div className="h-full px-6 sm:px-10 lg:px-14">
-        <div className="h-full rounded-[14px] border border-border-subtle bg-bg-subtle/60 px-4 py-6 sm:px-6">
+        <div className="relative h-full">
           <div
             className="h-full overflow-x-auto overflow-y-hidden"
             onMouseLeave={() => setHoverState(null)}
@@ -425,69 +457,77 @@ export function Timeline({ projects }: TimelineProps) {
                 style={{ height: `${rowsViewportHeight}px` }}
               >
                 <div className="relative" style={{ height: `${rowsContentHeight}px` }}>
-                  {layout.projects.map((entry) => {
-                    const isHovered = hoveredProjectId === entry.project.id;
-                    return (
-                      <Link
-                        key={entry.project.id}
-                        to="/project/$id"
-                        params={{ id: entry.project.id }}
-                        className="absolute block pr-1.5"
-                        style={{
-                          left: `${entry.left}px`,
-                          width: `${entry.width}px`,
-                          top: `${entry.row * rowPitch}px`,
-                          height: `${BLOCK_HEIGHT}px`,
-                        }}
-                        onMouseEnter={(event) => handleProjectHover(event, entry)}
-                        onMouseMove={(event) => handleProjectHover(event, entry)}
-                        onMouseLeave={() => {
-                          setHoverState((current) =>
-                            current?.projectId === entry.project.id ? null : current,
-                          );
-                        }}
-                      >
-                        <article
-                          className="flex h-full items-center gap-2.5 overflow-hidden rounded-[10px] border border-border-subtle bg-white px-3 shadow-[0_2px_8px_rgba(26,26,46,0.04)] transition-[opacity,border-color] duration-200 hover:border-border"
+                  {layout.projects.length === 0 ? (
+                    <div className="flex h-full items-center justify-center">
+                      <div className="rounded-[10px] border border-border-subtle bg-white px-4 py-2 text-[13px] text-text-secondary">
+                        No projects in this horizon.
+                      </div>
+                    </div>
+                  ) : (
+                    layout.projects.map((entry) => {
+                      const isHovered = hoveredProjectId === entry.project.id;
+                      return (
+                        <Link
+                          key={entry.project.id}
+                          to="/project/$id"
+                          params={{ id: entry.project.id }}
+                          className="absolute block pr-1.5"
                           style={{
-                            opacity: getRenderedBlockOpacity(
-                              entry.project,
-                              hoveredProjectId,
-                              isHovered,
-                            ),
+                            left: `${entry.left}px`,
+                            width: `${entry.width}px`,
+                            top: `${entry.row * rowPitch}px`,
+                            height: `${BLOCK_HEIGHT}px`,
+                          }}
+                          onMouseEnter={(event) => handleProjectHover(event, entry)}
+                          onMouseMove={(event) => handleProjectHover(event, entry)}
+                          onMouseLeave={() => {
+                            setHoverState((current) =>
+                              current?.projectId === entry.project.id ? null : current,
+                            );
                           }}
                         >
-                          <Avatar
-                            name={entry.project.clientName}
-                            src={entry.project.clientAvatarUrl}
-                            size="sm"
-                            className="h-6 w-6 shrink-0 text-[10px]"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-[13px] font-medium text-text-primary">
-                              {entry.project.name}
-                            </p>
-                            <p className="truncate text-[11px] text-text-secondary">
-                              {entry.currentPhase}
-                            </p>
-                          </div>
-                          {entry.project.status === "completed" && (
-                            <span className="shrink-0 rounded-full bg-bg-subtle px-1.5 py-0.5 text-[10px] text-text-secondary">
-                              ✓
-                            </span>
-                          )}
-                        </article>
-                      </Link>
-                    );
-                  })}
+                          <article
+                            className="flex h-full items-center gap-2.5 overflow-hidden rounded-[10px] border border-border-subtle bg-white px-3 shadow-[0_2px_8px_rgba(26,26,46,0.04)] transition-[opacity,border-color] duration-200 hover:border-border"
+                            style={{
+                              opacity: getRenderedBlockOpacity(
+                                entry.project,
+                                hoveredProjectId,
+                                isHovered,
+                              ),
+                            }}
+                          >
+                            <Avatar
+                              name={entry.project.clientName}
+                              src={entry.project.clientAvatarUrl}
+                              size="sm"
+                              className="h-6 w-6 shrink-0 text-[10px]"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-[13px] font-medium text-text-primary">
+                                {entry.project.name}
+                              </p>
+                              <p className="truncate text-[11px] text-text-secondary">
+                                {entry.currentPhase}
+                              </p>
+                            </div>
+                            {entry.project.status === "completed" && (
+                              <span className="shrink-0 rounded-full bg-bg-subtle px-1.5 py-0.5 text-[10px] text-text-secondary">
+                                ✓
+                              </span>
+                            )}
+                          </article>
+                        </Link>
+                      );
+                    })
+                  )}
                 </div>
               </div>
 
               <div
                 className="pointer-events-none absolute border-t border-border"
                 style={{
-                  left: `${TRACK_SIDE_INSET}px`,
-                  right: `${TRACK_SIDE_INSET}px`,
+                  left: `${EDGE_SAFE_PADDING + TRACK_SIDE_INSET}px`,
+                  right: `${EDGE_SAFE_PADDING + TRACK_SIDE_INSET}px`,
                   top: `${axisY}px`,
                 }}
               />
@@ -565,6 +605,14 @@ export function Timeline({ projects }: TimelineProps) {
               </AnimatePresence>
             </div>
           </div>
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 z-50 bg-gradient-to-r from-bg via-bg/95 to-transparent backdrop-blur-[2px]"
+            style={{ width: `${EDGE_FADE_WIDTH}px` }}
+          />
+          <div
+            className="pointer-events-none absolute inset-y-0 right-0 z-50 bg-gradient-to-l from-bg via-bg/95 to-transparent backdrop-blur-[2px]"
+            style={{ width: `${EDGE_FADE_WIDTH}px` }}
+          />
         </div>
       </div>
     </section>
