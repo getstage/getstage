@@ -526,7 +526,6 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
 
     const todayPct = dateToPercent(Date.now(), view.start, view.end);
     const showToday = todayPct > 0 && todayPct < 100;
-    const todayFrac = todayPct / 100;
     const todayX = showToday ? (todayPct / 100) * width : null;
 
     return {
@@ -544,7 +543,6 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
       edgeInset,
       todayX,
       todayLabelX: todayX !== null ? clamp(todayX, labelPadding, labelMax) : null,
-      todayCurveTop: showToday ? CURVE_HEIGHT - curveYAt(todayFrac, curve) : null,
     };
   }, [horizon, projects, regionWidth]);
 
@@ -768,38 +766,27 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
         })}
 
         {layout.todayX !== null ? (
-          <div
-            className="pointer-events-none absolute top-0 z-[2] w-px -translate-x-1/2"
-            style={{
-              left: `${layout.todayX}px`,
-              height: `${TIMELINE_HEIGHT}px`,
-              backgroundColor: "rgba(59,175,218,0.34)",
-            }}
-          />
-        ) : null}
-
-        {layout.todayX !== null && layout.todayCurveTop !== null ? (
           <>
+            <div
+              className="pointer-events-none absolute z-[2] w-px -translate-x-1/2"
+              style={{
+                left: `${layout.todayX}px`,
+                top: `${CURVE_HEIGHT - 10}px`,
+                height: "20px",
+                backgroundColor: "rgba(140,140,140,0.58)",
+              }}
+            />
             {layout.todayLabelX !== null ? (
               <div
-                className="pointer-events-none absolute z-[3] -translate-x-1/2 text-[12px] font-medium"
+                className="pointer-events-none absolute z-[3] -translate-x-1/2 text-[12px] font-medium text-text-secondary"
                 style={{
                   left: `${layout.todayLabelX}px`,
                   top: `${CURVE_HEIGHT + 18}px`,
-                  color: "var(--color-cyan)",
                 }}
               >
                 Today
               </div>
             ) : null}
-            <div
-              className="pointer-events-none absolute z-[3] h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-              style={{
-                left: `${layout.todayX}px`,
-                top: `${layout.todayCurveTop}px`,
-                backgroundColor: "rgba(59,175,218,0.72)",
-              }}
-            />
           </>
         ) : null}
 
