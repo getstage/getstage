@@ -99,8 +99,8 @@ export function DashboardPage() {
       </Helmet>
 
       <div className="min-h-[calc(100vh-64px)]">
-        <div className="mx-auto max-w-[1200px] px-6 pt-8 sm:px-10 lg:px-14">
-          <div className="mb-11">
+        <div className="mx-auto max-w-[1200px] px-6 pt-3 sm:px-10 lg:px-14">
+          <div className="mb-0">
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -147,8 +147,8 @@ export function DashboardPage() {
         )}
 
         {projects && projects.length > 0 && (
-          <div className="mx-auto max-w-[1200px] px-6 pb-32 sm:px-10 lg:px-14">
-            <div className="mt-14 space-y-4">
+          <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
+            <div className="mt-8 space-y-4">
               <div className="grid gap-4 lg:grid-cols-2">
                 <InfoCard className="h-full" title="Upcoming">
                   {upcomingTasks.length > 0 ? (
