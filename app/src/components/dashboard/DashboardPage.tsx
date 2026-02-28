@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { getProjects } from "@/data-ops/queries";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
-import { Timeline, type TimelineHorizon } from "@/components/dashboard/Timeline";
+import { Timeline, TimelineSkeleton, type TimelineHorizon } from "@/components/dashboard/Timeline";
 
 export function DashboardPage() {
   const [timelineHorizon, setTimelineHorizon] = useState<TimelineHorizon>("this-month");
@@ -435,27 +435,6 @@ function EmptyState() {
       <Link to="/new-project">
         <Button>Create your first project</Button>
       </Link>
-    </div>
-  );
-}
-
-function TimelineSkeleton() {
-  return (
-    <div className="relative h-[60vh] min-h-[420px] max-h-[640px] overflow-hidden px-6 sm:px-10 lg:px-14">
-      <div className="relative h-full">
-        <div className="absolute inset-x-0 top-[96px] skeleton h-px rounded-full" />
-        <div className="absolute inset-x-0 top-[168px] skeleton h-px rounded-full" />
-        <div className="absolute inset-x-0 bottom-[54px] skeleton h-px rounded-full" />
-        <div className="absolute bottom-9 left-[8%] h-5 w-12 skeleton rounded-full" />
-        <div className="absolute bottom-9 left-[22%] h-5 w-12 skeleton rounded-full" />
-        <div className="absolute bottom-9 left-[37%] h-5 w-12 skeleton rounded-full" />
-        <div className="absolute bottom-9 left-[52%] h-5 w-12 skeleton rounded-full" />
-        <div className="absolute left-[14%] top-[66px] h-[52px] w-[210px] skeleton rounded-[10px]" />
-        <div className="absolute left-[36%] top-[128px] h-[52px] w-[250px] skeleton rounded-[10px]" />
-        <div className="absolute left-[58%] top-[190px] h-[52px] w-[290px] skeleton rounded-[10px]" />
-        <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-bg to-transparent backdrop-blur-[2px]" />
-        <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-bg to-transparent backdrop-blur-[2px]" />
-      </div>
     </div>
   );
 }

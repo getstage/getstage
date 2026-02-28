@@ -97,6 +97,12 @@ const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat("en-US", {
   month: "short",
 });
 
+const SKELETON_VIEWBOX_WIDTH = 1200;
+const SKELETON_CURVE_PATH =
+  "M 0 140 C 72 132, 112 118, 168 118 C 284 118, 332 131, 418 124 C 500 118, 548 96, 640 100 C 724 103, 760 128, 838 116 C 902 106, 944 128, 1020 126 C 1098 124, 1144 138, 1200 136";
+const SKELETON_FILL_PATH = `${SKELETON_CURVE_PATH} L 1200 160 L 0 160 Z`;
+const SKELETON_TICKS = [10, 27, 44, 61, 78, 92];
+
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
@@ -438,7 +444,6 @@ function groupProjects(
 
 function markerOpacity(project: Project, hoveredProjectId: string | null) {
   if (hoveredProjectId && project.id !== hoveredProjectId) return 0.2;
-  if (project.status === "completed") return 0.3;
   return 1;
 }
 
@@ -619,11 +624,26 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
 
   const handleMarkerEnter = (
     project: Project,
-    markerX: number,
-    markerTop: number,
     markerTimestamp: number,
+    markerElement: HTMLElement,
   ) => {
     setTracking(null);
+
+    const region = regionRef.current;
+    if (!region) return;
+
+    const regionBounds = region.getBoundingClientRect();
+    const markerBounds = markerElement.getBoundingClientRect();
+    const markerX = clamp(
+      markerBounds.left + markerBounds.width / 2 - regionBounds.left,
+      0,
+      layout.width,
+    );
+    const markerY = clamp(
+      markerBounds.top + markerBounds.height / 2 - regionBounds.top,
+      0,
+      CURVE_HEIGHT,
+    );
 
     const projectDuration = Math.max(project.endDate - project.startDate, 1);
     const progress = clamp(
@@ -635,7 +655,7 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
     setProfileHover({
       projectId: project.id,
       x: markerX,
-      y: markerTop + MARKER_RADIUS,
+      y: markerY,
       progress,
     });
   };
@@ -655,23 +675,22 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
     const visibleTasks = tasks.slice(0, 5);
     const overflowCount = Math.max(0, tasks.length - visibleTasks.length);
 
-    const projectDuration = Math.max(project.endDate - project.startDate, 0);
-    const hoveredTimestamp = project.startDate + projectDuration * profileHover.progress;
-    const tooltipDate = FULL_DATE_FORMATTER.format(new Date(hoveredTimestamp));
+    const tooltipDateRange = `${SHORT_DATE_FORMATTER.format(new Date(project.startDate))} – ${FULL_DATE_FORMATTER.format(new Date(project.endDate))}`;
 
     const tooltipWidth = Math.min(TOOLTIP_WIDTH, Math.max(120, layout.width - 16));
-    const tooltipHeight = 96 + visibleTasks.length * 18 + (overflowCount > 0 ? 18 : 0);
+    const tooltipHeight = 114 + visibleTasks.length * 18 + (overflowCount > 0 ? 18 : 0);
     const leftMax = Math.max(8, layout.width - tooltipWidth - 8);
     const left = clamp(profileHover.x + 18, 8, leftMax);
     const maxTop = Math.max(4, CURVE_HEIGHT - tooltipHeight - 4);
     const top = clamp(profileHover.y - tooltipHeight - 12, 4, maxTop);
 
     return {
+      tooltipDateRange,
       projectName: project.name,
+      clientName: project.clientName,
       phaseName: phaseAtCursor?.name ?? getCurrentPhaseName(project),
       tasks: visibleTasks,
       overflowCount,
-      tooltipDate,
       left,
       top,
       width: tooltipWidth,
@@ -810,10 +829,9 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
                   left: `${groupLeft}px`,
                   top: `${markerTop}px`,
                   opacity: markerOpacity(item.project, hoveredProjectId),
-                  filter: item.project.status === "completed" ? "grayscale(100%)" : "none",
                 }}
-                onMouseEnter={() =>
-                  handleMarkerEnter(item.project, groupLeft, markerTop, markerTimestamp)
+                onMouseEnter={(event) =>
+                  handleMarkerEnter(item.project, markerTimestamp, event.currentTarget)
                 }
                 onMouseLeave={() => clearMarkerHover(item.project.id)}
               >
@@ -846,10 +864,9 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
                     style={{
                       zIndex: visibleItems.length - index,
                       opacity: markerOpacity(item.project, hoveredProjectId),
-                      filter: item.project.status === "completed" ? "grayscale(100%)" : "none",
                     }}
-                    onMouseEnter={() =>
-                      handleMarkerEnter(item.project, groupLeft, markerTop, markerTimestamp)
+                    onMouseEnter={(event) =>
+                      handleMarkerEnter(item.project, markerTimestamp, event.currentTarget)
                     }
                     onMouseLeave={() => clearMarkerHover(item.project.id)}
                   >
@@ -946,9 +963,12 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
                 width: `${profileHoverDetails.width}px`,
               }}
             >
-              <p className="text-[12px] text-text-secondary">{profileHoverDetails.tooltipDate}</p>
+              <p className="text-[12px] text-text-secondary">{profileHoverDetails.tooltipDateRange}</p>
               <p className="mt-1 truncate text-[15px] font-medium text-text-primary">
                 {profileHoverDetails.projectName}
+              </p>
+              <p className="mt-1 truncate text-[13px] text-text-secondary">
+                {profileHoverDetails.clientName}
               </p>
               <p className="mt-1 truncate text-[13px] text-text-secondary">
                 {profileHoverDetails.phaseName}
@@ -986,6 +1006,50 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
             </motion.aside>
           ) : null}
         </AnimatePresence>
+      </div>
+    </section>
+  );
+}
+
+export function TimelineSkeleton() {
+  return (
+    <section
+      aria-hidden
+      className="relative flex min-h-[35vh] items-center justify-center px-4 pb-[84px] pt-[50px]"
+    >
+      <div className="relative w-full" style={{ height: `${TIMELINE_HEIGHT}px` }}>
+        <svg
+          className="pointer-events-none absolute inset-0 z-0 h-[160px] w-full"
+          viewBox={`0 0 ${SKELETON_VIEWBOX_WIDTH} ${CURVE_HEIGHT}`}
+          preserveAspectRatio="none"
+        >
+          <path d={SKELETON_FILL_PATH} fill="rgba(135,130,245,0.12)" />
+          <path
+            d={SKELETON_CURVE_PATH}
+            fill="none"
+            stroke="rgba(135,130,245,0.52)"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+        </svg>
+
+        <div
+          className="pointer-events-none absolute left-0 z-[1] h-px w-full bg-border-subtle"
+          style={{ top: `${CURVE_HEIGHT}px` }}
+        />
+
+        {SKELETON_TICKS.map((pct) => (
+          <div
+            key={`skeleton-tick-${pct}`}
+            className="pointer-events-none absolute z-[1] w-px bg-border-subtle/80"
+            style={{
+              left: `${pct}%`,
+              top: `${CURVE_HEIGHT - 8}px`,
+              height: "16px",
+            }}
+          />
+        ))}
+
       </div>
     </section>
   );
