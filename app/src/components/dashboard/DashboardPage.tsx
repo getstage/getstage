@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -10,8 +10,11 @@ import { Button } from "@/components/ui/Button";
 import { Timeline, type TimelineHorizon } from "@/components/dashboard/Timeline";
 
 export function DashboardPage() {
-  const [hoveredDockId, setHoveredDockId] = useState<string | null>(null);
-  const [timelineHorizon, setTimelineHorizon] = useState<TimelineHorizon>("30d");
+  const [timelineHorizon, setTimelineHorizon] = useState<TimelineHorizon>("this-month");
+  const dockItemRefs = useRef<Array<HTMLAnchorElement | null>>([]);
+  const [dockIsHovering, setDockIsHovering] = useState(false);
+  const [dockSizes, setDockSizes] = useState<number[]>([]);
+  const [activeDockIndex, setActiveDockIndex] = useState<number | null>(null);
   const { user } = useAuth();
   const { data: projects, isLoading } = useQuery({
     queryKey: ["projects"],
@@ -52,6 +55,42 @@ export function DashboardPage() {
   const receivedDisplay = formatCurrencyDisplay(receivedTotal);
   const pendingDisplay = formatCurrencyDisplay(outstandingTotal);
   const dockProjects = (projects ?? []).slice(0, 6);
+  const DOCK_BASE_SIZE = 44;
+  const DOCK_MAX_SIZE = 72;
+  const DOCK_SIGMA = 55;
+
+  useEffect(() => {
+    dockItemRefs.current = dockItemRefs.current.slice(0, dockProjects.length);
+    setDockSizes(Array.from({ length: dockProjects.length }, () => DOCK_BASE_SIZE));
+    setActiveDockIndex(null);
+  }, [dockProjects.length]);
+
+  const handleDockMouseMove = (clientX: number) => {
+    if (dockProjects.length === 0) return;
+
+    let closestIndex = 0;
+    let minDistance = Number.POSITIVE_INFINITY;
+
+    const nextSizes = dockProjects.map((_, index) => {
+      const item = dockItemRefs.current[index];
+      if (!item) return DOCK_BASE_SIZE;
+
+      const rect = item.getBoundingClientRect();
+      const center = rect.left + rect.width / 2;
+      const distance = Math.abs(clientX - center);
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIndex = index;
+      }
+
+      const scale = Math.exp(-(distance * distance) / (2 * DOCK_SIGMA * DOCK_SIGMA));
+      return Math.round(DOCK_BASE_SIZE + (DOCK_MAX_SIZE - DOCK_BASE_SIZE) * scale);
+    });
+
+    setDockSizes(nextSizes);
+    setActiveDockIndex(closestIndex);
+  };
 
   return (
     <>
@@ -68,7 +107,7 @@ export function DashboardPage() {
               transition={{ duration: 0.4 }}
               className="min-w-[320px]"
             >
-              <h1 className="font-heading text-[30px] leading-[1.14] font-semibold tracking-tight text-text-primary sm:text-[32px]">
+              <h1 className="font-heading text-[20px] leading-[1.2] font-medium tracking-[-0.2px] text-text-primary">
                 {greeting}
               </h1>
 
@@ -76,14 +115,14 @@ export function DashboardPage() {
                 <TimelineDateSelector value={timelineHorizon} onChange={setTimelineHorizon} />
 
                 <Link to="/new-project" className="shrink-0">
-                  <Button className="h-10 rounded-[9px] px-5 text-[15px]">
-                    <Plus size={12} weight="bold" aria-hidden="true" />
+                  <Button className="h-[34px] rounded-[7px] px-3 text-[13px]">
+                    <Plus size={11} weight="bold" aria-hidden="true" />
                     New Project
                   </Button>
                 </Link>
               </div>
 
-              <div className="mt-5 flex flex-wrap items-start gap-x-10 gap-y-3">
+              <div className="mt-5 flex flex-wrap items-start gap-x-12 gap-y-3">
                 <CompactStat label="Active Projects" value={activeCount.toLocaleString()} />
                 <CompactStat label="Tasks Due" value={tasksDue.toLocaleString()} />
                 <CompactStat label="Completed" value={completed.toLocaleString()} />
@@ -117,7 +156,7 @@ export function DashboardPage() {
                       {upcomingTasks.map((entry, index) => (
                         <div
                           key={entry.task.id}
-                          className={`flex items-center gap-2.5 py-2 text-[13px] ${
+                          className={`flex items-center gap-2.5 py-1.5 text-[13px] ${
                             index > 0 ? "border-t border-border-subtle" : ""
                           }`}
                         >
@@ -131,7 +170,7 @@ export function DashboardPage() {
                             ) : null}
                           </div>
                           <span className="truncate text-text-primary">{entry.task.title}</span>
-                          <span className="ml-auto rounded-full bg-bg-subtle px-2 py-0.5 text-[11px] text-text-secondary">
+                          <span className="ml-auto rounded-full bg-border-subtle px-2 py-0.5 text-[11px] text-text-secondary">
                             {entry.phase.name}
                           </span>
                         </div>
@@ -150,13 +189,13 @@ export function DashboardPage() {
                         return (
                           <div
                             key={entry.task.id}
-                            className={`py-2 text-[13px] ${
+                            className={`py-1.5 text-[13px] leading-[1.45] ${
                               index > 0 ? "border-t border-border-subtle" : ""
                             }`}
                           >
                             <span className="text-text-secondary">{actionLabel}: </span>
                             <span className="font-medium text-text-primary">{entry.task.title}</span>
-                            <span className="text-text-tertiary"> — {entry.project.clientName}</span>
+                            <span className="text-text-secondary"> — {entry.project.clientName}</span>
                           </div>
                         );
                       })}
@@ -173,7 +212,7 @@ export function DashboardPage() {
                     <div className="min-w-0">
                       <p className="text-[12px] text-text-secondary">Outstanding</p>
                       <p
-                        className="mt-1 font-heading text-[22px] leading-none font-semibold whitespace-nowrap tabular-nums text-text-primary"
+                        className="mt-1 font-heading text-[18px] leading-none font-semibold whitespace-nowrap tabular-nums text-text-primary"
                         title={outstandingDisplay.isCompact ? outstandingDisplay.full : undefined}
                         aria-label={outstandingDisplay.isCompact ? outstandingDisplay.full : undefined}
                       >
@@ -183,7 +222,7 @@ export function DashboardPage() {
                     <div className="min-w-0">
                       <p className="text-[12px] text-text-secondary">Received</p>
                       <p
-                        className="mt-1 font-heading text-[22px] leading-none font-semibold whitespace-nowrap tabular-nums text-accent"
+                        className="mt-1 font-heading text-[18px] leading-none font-semibold whitespace-nowrap tabular-nums text-accent"
                         title={receivedDisplay.isCompact ? receivedDisplay.full : undefined}
                         aria-label={receivedDisplay.isCompact ? receivedDisplay.full : undefined}
                       >
@@ -217,7 +256,7 @@ export function DashboardPage() {
                           return (
                             <div
                               key={`${row.name}-${row.amount}`}
-                              className="flex items-center gap-1.5 text-[12px] md:justify-end"
+                              className="flex items-center gap-1.5 text-[13px] md:justify-end"
                             >
                               <Check
                                 size={11}
@@ -235,7 +274,7 @@ export function DashboardPage() {
                             </div>
                           );
                         })}
-                        <p className="pt-0.5 text-[12px] text-text-secondary">
+                        <p className="pt-0.5 text-[13px] text-text-secondary">
                           <span className="mr-1">Pending</span>
                           <span
                             className="whitespace-nowrap tabular-nums"
@@ -258,70 +297,71 @@ export function DashboardPage() {
 
         {dockProjects.length > 0 && (
           <div
-            className="pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4"
-            style={{ bottom: "max(12px, env(safe-area-inset-bottom))" }}
+            className="pointer-events-none fixed left-1/2 z-40 -translate-x-1/2"
+            style={{ bottom: "max(20px, calc(env(safe-area-inset-bottom) + 8px))" }}
           >
-            <div className="pointer-events-auto inline-flex items-center gap-2.5 rounded-[14px] bg-[#0E1022] px-4 py-2.5 shadow-[0_12px_26px_rgba(16,18,38,0.35)]">
-              {dockProjects.map((project) => (
-                <div
-                  key={project.id}
-                  className="relative"
-                  onMouseEnter={() => setHoveredDockId(project.id)}
-                  onMouseLeave={() =>
-                    setHoveredDockId((current) => (current === project.id ? null : current))
-                  }
-                >
-                  <AnimatePresence>
-                    {hoveredDockId === project.id && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                        transition={{ duration: 0.16 }}
-                        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-3 -translate-x-1/2"
-                      >
-                        <div className="rounded-[11px] border border-white/15 bg-[#161A30] px-3 py-2 shadow-[0_14px_24px_rgba(8,10,24,0.55)]">
-                          <div className="mx-auto h-14 w-14 overflow-hidden rounded-full border-2 border-[#8F8BF8] bg-[#0F1124]">
-                            {project.clientAvatarUrl ? (
-                              <img
-                                src={project.clientAvatarUrl}
-                                alt={project.clientName}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : null}
-                          </div>
-                          <div className="mt-2 max-w-[120px] truncate text-center text-[11px] font-medium text-white/90">
-                            {project.clientName}
-                          </div>
-                        </div>
-                        <div className="mx-auto -mt-1 h-2.5 w-2.5 rotate-45 border-r border-b border-white/15 bg-[#161A30]" />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+            <div
+              className="pointer-events-auto flex items-end gap-2 rounded-[18px] border border-white/10 bg-[#151520] px-4 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.24)]"
+              onMouseEnter={() => setDockIsHovering(true)}
+              onMouseMove={(event) => handleDockMouseMove(event.clientX)}
+              onMouseLeave={() => {
+                setDockIsHovering(false);
+                setDockSizes(Array.from({ length: dockProjects.length }, () => DOCK_BASE_SIZE));
+                setActiveDockIndex(null);
+              }}
+            >
+              {dockProjects.map((project, index) => {
+                const size = dockSizes[index] ?? DOCK_BASE_SIZE;
+                const isActive = activeDockIndex === index;
 
-                  <motion.button
-                    type="button"
-                    onFocus={() => setHoveredDockId(project.id)}
-                    onBlur={() =>
-                      setHoveredDockId((current) => (current === project.id ? null : current))
-                    }
-                    className="h-9 w-9 cursor-pointer overflow-hidden rounded-full border border-white/20 bg-white/10 outline-none"
-                    animate={{
-                      scale: hoveredDockId === project.id ? 1.12 : 1,
-                      y: hoveredDockId === project.id ? -6 : 0,
+                return (
+                  <Link
+                    key={project.id}
+                    to="/project/$id"
+                    params={{ id: project.id }}
+                    ref={(element) => {
+                      dockItemRefs.current[index] = element;
                     }}
-                    transition={{ duration: 0.16 }}
+                    className="relative block shrink-0 cursor-pointer outline-none focus:outline-none focus-visible:outline-none"
+                    style={{
+                      width: `${size}px`,
+                      height: `${size}px`,
+                      transition: dockIsHovering ? "none" : "width 200ms ease, height 200ms ease",
+                    }}
                   >
+                    <div
+                      className={`pointer-events-none absolute bottom-full left-1/2 mb-2.5 -translate-x-1/2 whitespace-nowrap rounded-[8px] border border-white/10 bg-[#333546] px-3 py-2 opacity-0 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-opacity duration-150 ${
+                        isActive ? "opacity-100" : ""
+                      }`}
+                    >
+                      <div className="text-[13px] font-medium leading-[1.3] text-white">
+                        {project.name}
+                      </div>
+                      <div className="text-[12px] leading-[1.3] text-white/50">
+                        {project.clientName}
+                      </div>
+                    </div>
+
                     {project.clientAvatarUrl ? (
                       <img
                         src={project.clientAvatarUrl}
-                        alt={project.clientName}
-                        className="h-full w-full object-cover"
+                        alt={project.name}
+                        className={`h-full w-full rounded-full object-cover shadow-[0_2px_8px_rgba(0,0,0,0.2)] ${
+                          isActive ? "shadow-[0_4px_14px_rgba(135,130,245,0.34)]" : ""
+                        }`}
                       />
-                    ) : null}
-                  </motion.button>
-                </div>
-              ))}
+                    ) : (
+                      <div
+                        className={`flex h-full w-full items-center justify-center rounded-full bg-[#2A2D44] text-[13px] font-medium text-white ${
+                          isActive ? "shadow-[0_4px_14px_rgba(135,130,245,0.34)]" : ""
+                        }`}
+                      >
+                        {project.clientName.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}
@@ -428,14 +468,33 @@ function CompactStat({
   value: string;
 }) {
   return (
-    <div className="w-[116px]">
+    <div className="min-w-[86px]">
       <div className="text-[13px] text-text-secondary">{label}</div>
-      <div className="mt-1 font-heading text-[30px] leading-none font-semibold tracking-tight tabular-nums text-text-primary">
+      <div className="mt-0.5 font-heading text-[26px] leading-[1.15] font-semibold tracking-[-0.5px] tabular-nums text-text-primary">
         {value}
       </div>
     </div>
   );
 }
+
+const PERIOD_OPTIONS: Array<{ value: TimelineHorizon; label: string }> = [
+  { value: "today", label: "Today" },
+  { value: "yesterday", label: "Yesterday" },
+  { value: "this-week", label: "This week" },
+  { value: "this-month", label: "This month" },
+  { value: "this-year", label: "This year" },
+];
+
+const RANGE_OPTIONS: Array<{ value: TimelineHorizon; label: string }> = [
+  { value: "30-days", label: "30 days" },
+  { value: "6-months", label: "6 months" },
+  { value: "12-months", label: "12 months" },
+];
+
+const ALL_TIME_OPTION: { value: TimelineHorizon; label: string } = {
+  value: "all-time",
+  label: "All time",
+};
 
 function TimelineDateSelector({
   value,
@@ -444,33 +503,118 @@ function TimelineDateSelector({
   value: TimelineHorizon;
   onChange: (value: TimelineHorizon) => void;
 }) {
-  const options: Array<{ value: TimelineHorizon; label: string }> = [
-    { value: "30d", label: "This month" },
-    { value: "90d", label: "This quarter" },
-    { value: "6m", label: "Last 6 months" },
-    { value: "all", label: "All time" },
-  ];
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedLabel = useMemo(() => {
+    for (const option of [...PERIOD_OPTIONS, ...RANGE_OPTIONS, ALL_TIME_OPTION]) {
+      if (option.value === value) return option.label;
+    }
+    return "This month";
+  }, [value]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!rootRef.current) return;
+      if (!rootRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleSelect = (nextValue: TimelineHorizon) => {
+    onChange(nextValue);
+    setIsOpen(false);
+  };
 
   return (
-    <div className="relative inline-flex w-fit">
-      <select
-        aria-label="Timeline horizon"
-        value={value}
-        onChange={(event) => onChange(event.target.value as TimelineHorizon)}
-        className="h-10 appearance-none rounded-[10px] border border-border-subtle bg-white pl-3.5 pr-8 text-[14px] font-medium text-text-primary shadow-[0_1px_0_rgba(26,26,46,0.02)] outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:!outline-none focus-visible:!ring-0"
+    <div ref={rootRef} className="relative inline-flex w-fit">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((current) => !current)}
+        className={`inline-flex h-[34px] items-center gap-1.5 rounded-[7px] border bg-white px-3 text-[13px] font-medium text-text-primary transition-colors outline-none focus:outline-none focus-visible:outline-none ${
+          isOpen ? "border-text-secondary" : "border-border"
+        }`}
       >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <CaretDown
-        size={12}
-        weight="bold"
-        aria-hidden="true"
-        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary"
-      />
+        <span>{selectedLabel}</span>
+        <CaretDown
+          size={11}
+          weight="bold"
+          aria-hidden="true"
+          className={`text-text-secondary transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0, transition: { duration: 0.14 } }}
+            exit={{ opacity: 0, y: 4, transition: { duration: 0.12 } }}
+            className="absolute left-0 top-full z-50 mt-1.5 min-w-[160px] rounded-[8px] border border-border bg-white p-1 shadow-[0_4px_16px_rgba(26,26,46,0.08)]"
+          >
+            <div className="px-2.5 pb-1 pt-1 text-[12px] font-medium text-text-secondary">
+              Period
+            </div>
+
+            {PERIOD_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => handleSelect(option.value)}
+                role="option"
+                aria-selected={value === option.value}
+                className="flex w-full items-center justify-between rounded-[5px] px-2.5 py-1.5 text-left text-[14px] font-normal text-text-primary transition-colors hover:bg-border-subtle"
+              >
+                <span>{option.label}</span>
+                {value === option.value ? (
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+                ) : null}
+              </button>
+            ))}
+
+            <div className="my-1 h-px bg-border-subtle" />
+
+            {RANGE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => handleSelect(option.value)}
+                role="option"
+                aria-selected={value === option.value}
+                className="flex w-full items-center justify-between rounded-[5px] px-2.5 py-1.5 text-left text-[14px] font-normal text-text-primary transition-colors hover:bg-border-subtle"
+              >
+                <span>{option.label}</span>
+                {value === option.value ? (
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+                ) : null}
+              </button>
+            ))}
+
+            <div className="my-1 h-px bg-border-subtle" />
+
+            <button
+              type="button"
+              onClick={() => handleSelect(ALL_TIME_OPTION.value)}
+              role="option"
+              aria-selected={value === ALL_TIME_OPTION.value}
+              className="flex w-full items-center justify-between rounded-[5px] px-2.5 py-1.5 text-left text-[14px] font-normal text-text-primary transition-colors hover:bg-border-subtle"
+            >
+              <span>{ALL_TIME_OPTION.label}</span>
+              {value === ALL_TIME_OPTION.value ? (
+                <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+              ) : null}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
@@ -486,9 +630,9 @@ function InfoCard({
 }) {
   return (
     <div
-      className={`rounded-[14px] border border-border-subtle bg-white px-5 py-4 sm:px-6 sm:py-5 ${className ?? ""}`}
+      className={`rounded-[12px] border border-border bg-white px-[22px] py-5 ${className ?? ""}`}
     >
-      <h2 className="mb-2.5 font-heading text-[24px] font-medium text-text-primary">{title}</h2>
+      <h2 className="mb-3 font-heading text-[15px] font-medium text-text-primary">{title}</h2>
       {children}
     </div>
   );
