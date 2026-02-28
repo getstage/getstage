@@ -79,7 +79,9 @@ const SAMPLES = 120;
 const KERNEL = 0.025;
 const TOOLTIP_WIDTH = 286;
 const TRACKING_TOOLTIP_WIDTH = 220;
+const TOOLTIP_ARROW_INSET = 16;
 const MIN_TICK_LABEL_GAP = 92;
+const AXIS_LABEL_TOP = CURVE_HEIGHT + 18;
 const RECENT_TASK_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
@@ -676,11 +678,12 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
     const tooltipDateRange = `${SHORT_DATE_FORMATTER.format(new Date(project.startDate))} – ${FULL_DATE_FORMATTER.format(new Date(project.endDate))}`;
 
     const tooltipWidth = Math.min(TOOLTIP_WIDTH, Math.max(120, layout.width - 16));
-    const tooltipHeight = 114 + visibleTasks.length * 18 + (overflowCount > 0 ? 18 : 0);
+    const halfWidth = tooltipWidth / 2;
+    const leftMin = 8;
     const leftMax = Math.max(8, layout.width - tooltipWidth - 8);
-    const left = clamp(profileHover.x + 18, 8, leftMax);
-    const maxTop = Math.max(4, CURVE_HEIGHT - tooltipHeight - 4);
-    const top = clamp(profileHover.y - tooltipHeight - 12, 4, maxTop);
+    const left = clamp(profileHover.x - halfWidth, leftMin, leftMax);
+    const top = profileHover.y - MARKER_RADIUS - 12;
+    const arrowLeft = clamp(profileHover.x - left, TOOLTIP_ARROW_INSET, tooltipWidth - TOOLTIP_ARROW_INSET);
 
     return {
       tooltipDateRange,
@@ -692,6 +695,7 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
       left,
       top,
       width: tooltipWidth,
+      arrowLeft,
     };
   }, [layout.visibleProjects, layout.width, profileHover]);
 
@@ -745,25 +749,39 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
           )
         ))}
 
-        {layout.ticks.map((tick) => {
-          if (layout.todayX !== null && Math.abs(tick.x - layout.todayX) < 28) {
-            return null;
-          }
+        <div
+          className="pointer-events-none absolute left-0 right-0 z-[2]"
+          style={{ top: `${AXIS_LABEL_TOP}px`, height: "14px" }}
+        >
+          {layout.ticks.map((tick) => {
+            if (layout.todayX !== null && Math.abs(tick.x - layout.todayX) < 28) {
+              return null;
+            }
 
-          const labelPadding = Math.min(28, layout.width / 2);
-          const labelMax = Math.max(labelPadding, layout.width - labelPadding);
-          const labelX = clamp(tick.x, labelPadding, labelMax);
+            const labelPadding = Math.min(28, layout.width / 2);
+            const labelMax = Math.max(labelPadding, layout.width - labelPadding);
+            const labelX = clamp(tick.x, labelPadding, labelMax);
 
-          return (
+            return (
+              <div
+                key={`tick-label-${tick.key}`}
+                className="absolute -translate-x-1/2 whitespace-nowrap text-[12px] leading-none text-text-secondary"
+                style={{ left: `${labelX}px`, top: 0 }}
+              >
+                {tick.label}
+              </div>
+            );
+          })}
+
+          {layout.todayX !== null && layout.todayLabelX !== null ? (
             <div
-              key={`tick-label-${tick.key}`}
-              className="pointer-events-none absolute z-[2] -translate-x-1/2 text-[12px] text-text-secondary"
-              style={{ left: `${labelX}px`, top: `${CURVE_HEIGHT + 18}px` }}
+              className="absolute -translate-x-1/2 whitespace-nowrap text-[12px] leading-none font-medium text-text-secondary"
+              style={{ left: `${layout.todayLabelX}px`, top: 0 }}
             >
-              {tick.label}
+              Today
             </div>
-          );
-        })}
+          ) : null}
+        </div>
 
         {layout.todayX !== null ? (
           <>
@@ -776,17 +794,6 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
                 backgroundColor: "rgba(140,140,140,0.58)",
               }}
             />
-            {layout.todayLabelX !== null ? (
-              <div
-                className="pointer-events-none absolute z-[3] -translate-x-1/2 text-[12px] font-medium text-text-secondary"
-                style={{
-                  left: `${layout.todayLabelX}px`,
-                  top: `${CURVE_HEIGHT + 18}px`,
-                }}
-              >
-                Today
-              </div>
-            ) : null}
           </>
         ) : null}
 
@@ -943,13 +950,18 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
                 transition: { duration: 0.15, delay: 0.15 },
               }}
               exit={{ opacity: 0, y: 2, transition: { duration: 0.15 } }}
-              className="pointer-events-none absolute z-30 rounded-[12px] border border-border bg-white px-4 py-3 text-text-primary shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+              className="pointer-events-none absolute z-30 -translate-y-full rounded-[12px] border border-border bg-white px-4 py-3 text-text-primary shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
               style={{
                 left: `${profileHoverDetails.left}px`,
                 top: `${profileHoverDetails.top}px`,
                 width: `${profileHoverDetails.width}px`,
               }}
             >
+              <span
+                aria-hidden
+                className="absolute -bottom-[7px] h-3.5 w-3.5 -translate-x-1/2 rotate-45 border-b border-r border-border bg-white"
+                style={{ left: `${profileHoverDetails.arrowLeft}px` }}
+              />
               <p className="text-[12px] text-text-secondary">{profileHoverDetails.tooltipDateRange}</p>
               <p className="mt-1 truncate text-[15px] font-medium text-text-primary">
                 {profileHoverDetails.projectName}

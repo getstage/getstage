@@ -78,6 +78,11 @@ h1, h2, h3, h4, h5, h6 {
   outline-offset: 2px;
 }
 
+.project-creation-page :focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+
 button:focus,
 button:focus-visible,
 [role="button"]:focus,
