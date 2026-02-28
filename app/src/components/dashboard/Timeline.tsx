@@ -29,6 +29,15 @@ type CurveSample = {
   h: number;
 };
 
+type TickGranularity = "day" | "week" | "month";
+
+type TimelineTick = {
+  key: string;
+  ts: number;
+  x: number;
+  label: string;
+};
+
 type PositionedProject = {
   project: Project;
   pct: number;
@@ -44,11 +53,11 @@ type MarkerGroup = {
 type TrackingState = {
   x: number;
   curveTop: number;
-  dateLabel: string;
   dateFull: string;
   activeProjects: Project[];
   tipLeft: number;
   tipTop: number;
+  tipWidth: number;
 };
 
 type ProfileHoverState = {
@@ -60,12 +69,17 @@ type ProfileHoverState = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CURVE_HEIGHT = 160;
+const AXIS_ZONE_HEIGHT = 56;
+const TIMELINE_HEIGHT = CURVE_HEIGHT + AXIS_ZONE_HEIGHT;
 const MARKER_SIZE = 36;
 const MARKER_RADIUS = MARKER_SIZE / 2;
+const MARKER_EDGE_INSET = MARKER_RADIUS + 4;
 const MAX_ELEVATION = 75;
 const SAMPLES = 120;
 const KERNEL = 0.025;
 const TOOLTIP_WIDTH = 286;
+const TRACKING_TOOLTIP_WIDTH = 220;
+const MIN_TICK_LABEL_GAP = 92;
 const RECENT_TASK_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
@@ -77,6 +91,10 @@ const FULL_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",
   year: "numeric",
+});
+
+const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  month: "short",
 });
 
 function clamp(value: number, min: number, max: number) {
@@ -104,6 +122,12 @@ function addDays(timestamp: number, days: number) {
 function addMonths(timestamp: number, months: number) {
   const date = new Date(timestamp);
   date.setMonth(date.getMonth() + months);
+  return date.getTime();
+}
+
+function startOfMonth(timestamp: number) {
+  const date = new Date(startOfDay(timestamp));
+  date.setDate(1);
   return date.getTime();
 }
 
@@ -216,6 +240,85 @@ function pointsToPath(points: CurveSample[], width: number) {
   return path;
 }
 
+function getTickGranularity(startTimestamp: number, endTimestamp: number): TickGranularity {
+  const totalDays = Math.max((endTimestamp - startTimestamp) / DAY_MS, 1);
+  if (totalDays < 30) return "day";
+  if (totalDays <= 90) return "week";
+  return "month";
+}
+
+function getTickLabel(timestamp: number, granularity: TickGranularity) {
+  if (granularity === "month") {
+    return MONTH_LABEL_FORMATTER.format(new Date(timestamp));
+  }
+
+  return SHORT_DATE_FORMATTER.format(new Date(timestamp));
+}
+
+function buildTicks(
+  startTimestamp: number,
+  endTimestamp: number,
+  width: number,
+  granularity: TickGranularity,
+): TimelineTick[] {
+  if (width <= 0) return [];
+
+  const rawTicks: number[] = [];
+  let cursor = startTimestamp;
+
+  if (granularity === "day") {
+    cursor = startOfDay(startTimestamp);
+    if (cursor < startTimestamp) {
+      cursor = addDays(cursor, 1);
+    }
+    while (cursor <= endTimestamp) {
+      rawTicks.push(cursor);
+      cursor = addDays(cursor, 1);
+    }
+  } else if (granularity === "week") {
+    cursor = startOfWeekMonday(startTimestamp);
+    if (cursor < startTimestamp) {
+      cursor = addDays(cursor, 7);
+    }
+    while (cursor <= endTimestamp) {
+      rawTicks.push(cursor);
+      cursor = addDays(cursor, 7);
+    }
+  } else {
+    cursor = startOfMonth(startTimestamp);
+    if (cursor < startTimestamp) {
+      cursor = startOfMonth(addMonths(cursor, 1));
+    }
+    while (cursor <= endTimestamp) {
+      rawTicks.push(cursor);
+      cursor = startOfMonth(addMonths(cursor, 1));
+    }
+  }
+
+  if (rawTicks.length === 0) return [];
+
+  const maxTickCount = Math.max(3, Math.floor(width / MIN_TICK_LABEL_GAP));
+  const samplingStep = Math.max(1, Math.ceil(rawTicks.length / maxTickCount));
+  const sampledTicks: number[] = [];
+
+  for (let index = 0; index < rawTicks.length; index += 1) {
+    if (index === 0 || index === rawTicks.length - 1 || index % samplingStep === 0) {
+      const ts = rawTicks[index];
+      if (ts !== undefined) {
+        sampledTicks.push(ts);
+      }
+    }
+  }
+
+  const uniqueTicks = Array.from(new Set(sampledTicks));
+  return uniqueTicks.map((ts) => ({
+    key: `${granularity}-${ts}`,
+    ts,
+    x: (dateToPercent(ts, startTimestamp, endTimestamp) / 100) * width,
+    label: getTickLabel(ts, granularity),
+  }));
+}
+
 function getViewRange(projects: Project[], horizon: TimelineHorizon) {
   const now = Date.now();
   const today = startOfDay(now);
@@ -280,14 +383,15 @@ function getViewRange(projects: Project[], horizon: TimelineHorizon) {
   }
 }
 
-function getGroupingThreshold(horizon: TimelineHorizon) {
+function getGroupingThreshold(horizon: TimelineHorizon, width: number) {
+  const minPctDistance = ((MARKER_SIZE + 6) / Math.max(width, 1)) * 100;
   if (horizon === "this-year" || horizon === "12-months" || horizon === "all-time") {
-    return 1.5;
+    return Math.max(1.5, minPctDistance);
   }
   if (horizon === "this-week" || horizon === "today" || horizon === "yesterday") {
-    return 8;
+    return Math.max(8, minPctDistance);
   }
-  return 2;
+  return Math.max(2, minPctDistance);
 }
 
 function groupProjects(
@@ -393,6 +497,8 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
     const width = Math.max(regionWidth, 1);
     const view = getViewRange(projects, horizon);
     const rangeMs = Math.max(view.end - view.start, DAY_MS);
+    const tickGranularity = getTickGranularity(view.start, view.end);
+    const ticks = buildTicks(view.start, view.end, width, tickGranularity);
     const curve = generateCurve(view.start, view.end, projects);
     const curvePath = pointsToPath(curve, width);
     const fillPath = `${curvePath} L ${width.toFixed(1)} ${CURVE_HEIGHT} L 0 ${CURVE_HEIGHT} Z`;
@@ -407,23 +513,33 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
       return { project, pct };
     });
 
-    const threshold = getGroupingThreshold(horizon);
+    const threshold = getGroupingThreshold(horizon, width);
     const groups = groupProjects(positioned, threshold, curve);
+    const edgeInset = Math.min(MARKER_EDGE_INSET, Math.max(0, width / 2 - 1));
+    const labelPadding = Math.min(28, width / 2);
+    const labelMax = Math.max(labelPadding, width - labelPadding);
 
     const todayPct = dateToPercent(Date.now(), view.start, view.end);
     const showToday = todayPct > 0 && todayPct < 100;
+    const todayFrac = todayPct / 100;
+    const todayX = showToday ? (todayPct / 100) * width : null;
 
     return {
       width,
       start: view.start,
       end: view.end,
       rangeMs,
+      tickGranularity,
+      ticks,
       curve,
       curvePath,
       fillPath,
       visibleProjects,
       groups,
-      todayX: showToday ? (todayPct / 100) * width : null,
+      edgeInset,
+      todayX,
+      todayLabelX: todayX !== null ? clamp(todayX, labelPadding, labelMax) : null,
+      todayCurveTop: showToday ? CURVE_HEIGHT - curveYAt(todayFrac, curve) : null,
     };
   }, [horizon, projects, regionWidth]);
 
@@ -485,16 +601,19 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
       (project) => project.startDate <= dateTimestamp && project.endDate >= dateTimestamp,
     );
 
-    const tipInset = Math.min(100, layout.width / 2);
+    const tipWidth = Math.min(TRACKING_TOOLTIP_WIDTH, Math.max(120, layout.width - 16));
+    const tipHalf = tipWidth / 2;
+    const tipMin = Math.min(tipHalf + 8, Math.max(8, layout.width / 2));
+    const tipMax = Math.max(tipMin, layout.width - tipHalf - 8);
 
     setTracking({
       x,
       curveTop,
-      dateLabel: SHORT_DATE_FORMATTER.format(new Date(dateTimestamp)),
       dateFull: FULL_DATE_FORMATTER.format(new Date(dateTimestamp)),
       activeProjects,
-      tipLeft: clamp(x, tipInset, layout.width - tipInset),
+      tipLeft: clamp(x, tipMin, tipMax),
       tipTop: Math.max(0, curveTop - 16),
+      tipWidth,
     });
   };
 
@@ -540,8 +659,10 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
     const hoveredTimestamp = project.startDate + projectDuration * profileHover.progress;
     const tooltipDate = FULL_DATE_FORMATTER.format(new Date(hoveredTimestamp));
 
+    const tooltipWidth = Math.min(TOOLTIP_WIDTH, Math.max(120, layout.width - 16));
     const tooltipHeight = 96 + visibleTasks.length * 18 + (overflowCount > 0 ? 18 : 0);
-    const left = clamp(profileHover.x + 18, 8, layout.width - TOOLTIP_WIDTH - 8);
+    const leftMax = Math.max(8, layout.width - tooltipWidth - 8);
+    const left = clamp(profileHover.x + 18, 8, leftMax);
     const maxTop = Math.max(4, CURVE_HEIGHT - tooltipHeight - 4);
     const top = clamp(profileHover.y - tooltipHeight - 12, 4, maxTop);
 
@@ -553,15 +674,16 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
       tooltipDate,
       left,
       top,
+      width: tooltipWidth,
     };
   }, [layout.visibleProjects, layout.width, profileHover]);
 
   return (
-    <section className="relative flex min-h-[35vh] items-center justify-center px-4 py-[50px]">
+    <section className="relative flex min-h-[35vh] items-center justify-center px-4 pb-[84px] pt-[50px]">
       <div
         ref={regionRef}
         className="relative w-full"
-        style={{ height: `${CURVE_HEIGHT}px` }}
+        style={{ height: `${TIMELINE_HEIGHT}px` }}
         onMouseMove={(event) => handleMouseMove(event.clientX)}
         onMouseLeave={() => {
           setTracking(null);
@@ -587,15 +709,87 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
           />
         </svg>
 
+        <div
+          className="pointer-events-none absolute left-0 z-[1] h-px w-full bg-border-subtle"
+          style={{ top: `${CURVE_HEIGHT}px` }}
+        />
+
+        {layout.ticks.map((tick) => (
+          layout.todayX !== null && Math.abs(tick.x - layout.todayX) < 1.5 ? null : (
+            <div
+              key={`tick-line-${tick.key}`}
+              className="pointer-events-none absolute z-[1] w-px bg-border-subtle/80"
+              style={{
+                left: `${tick.x}px`,
+                top: `${CURVE_HEIGHT - 10}px`,
+                height: "20px",
+              }}
+            />
+          )
+        ))}
+
+        {layout.ticks.map((tick) => {
+          if (layout.todayX !== null && Math.abs(tick.x - layout.todayX) < 28) {
+            return null;
+          }
+
+          const labelPadding = Math.min(28, layout.width / 2);
+          const labelMax = Math.max(labelPadding, layout.width - labelPadding);
+          const labelX = clamp(tick.x, labelPadding, labelMax);
+
+          return (
+            <div
+              key={`tick-label-${tick.key}`}
+              className="pointer-events-none absolute z-[2] -translate-x-1/2 text-[12px] text-text-secondary"
+              style={{ left: `${labelX}px`, top: `${CURVE_HEIGHT + 18}px` }}
+            >
+              {tick.label}
+            </div>
+          );
+        })}
+
         {layout.todayX !== null ? (
           <div
-            className="pointer-events-none absolute top-0 z-[2] w-px bg-[rgba(135,130,245,0.3)]"
-            style={{ left: `${layout.todayX}px`, height: `${CURVE_HEIGHT}px` }}
+            className="pointer-events-none absolute top-0 z-[2] w-px -translate-x-1/2"
+            style={{
+              left: `${layout.todayX}px`,
+              height: `${TIMELINE_HEIGHT}px`,
+              backgroundColor: "rgba(59,175,218,0.34)",
+            }}
           />
         ) : null}
 
+        {layout.todayX !== null && layout.todayCurveTop !== null ? (
+          <>
+            {layout.todayLabelX !== null ? (
+              <div
+                className="pointer-events-none absolute z-[3] -translate-x-1/2 text-[12px] font-medium"
+                style={{
+                  left: `${layout.todayLabelX}px`,
+                  top: `${CURVE_HEIGHT + 18}px`,
+                  color: "var(--color-cyan)",
+                }}
+              >
+                Today
+              </div>
+            ) : null}
+            <div
+              className="pointer-events-none absolute z-[3] h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+              style={{
+                left: `${layout.todayX}px`,
+                top: `${layout.todayCurveTop}px`,
+                backgroundColor: "rgba(59,175,218,0.72)",
+              }}
+            />
+          </>
+        ) : null}
+
         {layout.groups.map((group) => {
-          const groupLeft = (group.pct / 100) * layout.width;
+          const groupLeft = clamp(
+            (group.pct / 100) * layout.width,
+            layout.edgeInset,
+            layout.width - layout.edgeInset,
+          );
           const markerTop = group.curveTop - MARKER_RADIUS;
           const markerTimestamp = layout.start + layout.rangeMs * (group.pct / 100);
           const visibleItems = group.items.slice(0, 3);
@@ -681,8 +875,8 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
         {profileHover ? (
           <>
             <div
-              className="pointer-events-none absolute top-0 z-[3] w-px bg-accent/22 transition-opacity duration-200"
-              style={{ left: `${profileHover.x}px`, height: `${CURVE_HEIGHT}px` }}
+              className="pointer-events-none absolute top-0 z-[3] w-px -translate-x-1/2 bg-accent/26 transition-opacity duration-200"
+              style={{ left: `${profileHover.x}px`, height: `${TIMELINE_HEIGHT}px` }}
             />
             <div
               className="pointer-events-none absolute z-[3] h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/65"
@@ -694,24 +888,21 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
         {tracking && !hoveredProjectId ? (
           <>
             <div
-              className="pointer-events-none absolute top-0 z-[3] bg-text-primary"
-              style={{ left: `${tracking.x}px`, width: "1.5px", height: `${CURVE_HEIGHT}px` }}
+              className="pointer-events-none absolute top-0 z-[3] w-px -translate-x-1/2 bg-accent/26"
+              style={{ left: `${tracking.x}px`, height: `${TIMELINE_HEIGHT}px` }}
             />
             <div
-              className="pointer-events-none absolute z-[3] h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent"
+              className="pointer-events-none absolute z-[3] h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/72"
               style={{ left: `${tracking.x}px`, top: `${tracking.curveTop}px` }}
             />
-            <div
-              className="pointer-events-none absolute z-20 -translate-x-1/2 whitespace-nowrap rounded-[6px] bg-text-primary px-[14px] py-2 text-[13px] font-medium text-white"
-              style={{ left: `${tracking.x}px`, top: `${CURVE_HEIGHT + 8}px` }}
-            >
-              {tracking.dateLabel}
-            </div>
-
             {tracking.activeProjects.length > 0 ? (
               <div
-                className="pointer-events-none absolute z-[15] min-w-[180px] -translate-x-1/2 -translate-y-full rounded-[12px] border border-border bg-white px-4 py-3 shadow-[0_4px_20px_rgba(0,0,0,0.08)]"
-                style={{ left: `${tracking.tipLeft}px`, top: `${tracking.tipTop}px` }}
+                className="pointer-events-none absolute z-[15] -translate-x-1/2 -translate-y-full rounded-[12px] border border-border bg-white px-4 py-3 shadow-[0_4px_20px_rgba(0,0,0,0.08)]"
+                style={{
+                  left: `${tracking.tipLeft}px`,
+                  top: `${tracking.tipTop}px`,
+                  width: `${tracking.tipWidth}px`,
+                }}
               >
                 <p className="mb-1.5 text-[12px] text-text-secondary">{tracking.dateFull}</p>
                 <p className="mb-2 text-[14px] font-medium text-text-primary">
@@ -752,7 +943,7 @@ export function Timeline({ projects, horizon = "this-month" }: TimelineProps) {
               style={{
                 left: `${profileHoverDetails.left}px`,
                 top: `${profileHoverDetails.top}px`,
-                width: `${TOOLTIP_WIDTH}px`,
+                width: `${profileHoverDetails.width}px`,
               }}
             >
               <p className="text-[12px] text-text-secondary">{profileHoverDetails.tooltipDate}</p>
