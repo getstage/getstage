@@ -1,42 +1,202 @@
-import { useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+  type MouseEvent,
+} from "react";
+import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
 import { Helmet } from "react-helmet-async";
-import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { PencilSimple, Trash } from "@phosphor-icons/react";
+import { ArrowSquareOut } from "@phosphor-icons/react";
 import { useAuth } from "@/lib/auth";
-import { getClients, getSubscription } from "@/data-ops/queries";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Avatar } from "@/components/ui/Avatar";
-import { Badge } from "@/components/ui/Badge";
-import { TogglePill } from "@/components/ui/TogglePill";
-import { formatDate } from "@/lib/utils";
-import type { UserRole } from "@/types";
+import { api } from "@/lib/convex";
+import "@/styles/settings.css";
 
-const ROLES: { value: UserRole; label: string }[] = [
-  { value: "freelancer", label: "Freelancer" },
-  { value: "studio", label: "Studio" },
-  { value: "in-house", label: "In-house" },
-  { value: "agency", label: "Agency" },
-];
+type SettingsTab = "general" | "billing" | "portal";
+
+const DEFAULT_PORTAL_COLOR = "#E8734A";
+const PREVIEW_PORTAL_URL = "/portal/share_acme_2026?preview=1";
 
 export function SettingsPage() {
   const { user } = useAuth();
-  const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: getClients });
-  const { data: subscription } = useQuery({ queryKey: ["subscription"], queryFn: getSubscription });
-
+  const userEmail = user?.email ?? "werner@stage.com";
+  const settingsData = useConvexQuery(api.settings.getOverview, { email: userEmail });
+  const updateProfile = useConvexMutation(api.settings.updateProfile);
+  const updatePortalBranding = useConvexMutation(api.settings.updatePortalBranding);
   const [name, setName] = useState(user?.name ?? "");
-  const [email, setEmail] = useState(user?.email ?? "");
-  const [role, setRole] = useState<UserRole>(user?.role ?? "freelancer");
-  const [saved, setSaved] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState("");
-  const [showDelete, setShowDelete] = useState(false);
+  const [activeTab, setActiveTab] = useState<SettingsTab>("general");
+  const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(user?.avatarUrl ?? null);
+  const [portalLogoDataUrl, setPortalLogoDataUrl] = useState<string | null>(null);
+  const [portalColor, setPortalColor] = useState(DEFAULT_PORTAL_COLOR);
+  const [hexInput, setHexInput] = useState(DEFAULT_PORTAL_COLOR);
+  const [logoDragActive, setLogoDragActive] = useState(false);
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [isSavingAvatar, setIsSavingAvatar] = useState(false);
+  const [isSavingPortalLogo, setIsSavingPortalLogo] = useState(false);
+  const [isSavingPortalColor, setIsSavingPortalColor] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
-  function handleSave() {
-    // { Replace: API call }
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  useEffect(() => {
+    const applyTabFromUrl = () => {
+      const tabParam = new URLSearchParams(window.location.search).get("tab");
+      if (tabParam === "billing" || tabParam === "portal") {
+        setActiveTab(tabParam);
+      } else {
+        setActiveTab("general");
+      }
+    };
+
+    applyTabFromUrl();
+    window.addEventListener("popstate", applyTabFromUrl);
+    return () => window.removeEventListener("popstate", applyTabFromUrl);
+  }, []);
+
+  useEffect(() => {
+    if (!settingsData) return;
+    setName(settingsData.profile.name);
+    setAvatarDataUrl(settingsData.profile.avatarUrl);
+    setPortalLogoDataUrl(settingsData.portalBranding.logoUrl);
+    setPortalColor(settingsData.portalBranding.accentColor);
+    setHexInput(settingsData.portalBranding.accentColor);
+  }, [settingsData]);
+
+  const avatarInitial = name.trim().charAt(0).toUpperCase() || "S";
+
+  function handleAvatarInputChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    readFileAsDataUrl(file, setAvatarDataUrl);
   }
+
+  function handleLogoInputChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    readFileAsDataUrl(file, setPortalLogoDataUrl);
+  }
+
+  function handleLogoDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setLogoDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    readFileAsDataUrl(file, setPortalLogoDataUrl);
+  }
+
+  function handlePortalColorInput(value: string) {
+    const normalized = normalizeHex(value);
+    if (!normalized) return;
+    setPortalColor(normalized);
+    setHexInput(normalized);
+  }
+
+  function handleHexInputChange(e: ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value;
+    setHexInput(value.toUpperCase());
+    const normalized = normalizeHex(value);
+    if (normalized) {
+      setPortalColor(normalized);
+    }
+  }
+
+  function handleHexInputBlur() {
+    const normalized = normalizeHex(hexInput);
+    if (!normalized) {
+      setHexInput(portalColor);
+      return;
+    }
+    setPortalColor(normalized);
+    setHexInput(normalized);
+  }
+
+  async function persistName() {
+    setIsSavingName(true);
+    try {
+      await updateProfile({
+        email: userEmail,
+        name,
+      });
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not save name.");
+    } finally {
+      setIsSavingName(false);
+    }
+  }
+
+  async function persistAvatar() {
+    if (!avatarDataUrl) {
+      return;
+    }
+
+    setIsSavingAvatar(true);
+    try {
+      await updateProfile({
+        email: userEmail,
+        avatarUrl: avatarDataUrl,
+      });
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not save avatar.");
+    } finally {
+      setIsSavingAvatar(false);
+    }
+  }
+
+  async function persistPortalLogo() {
+    setIsSavingPortalLogo(true);
+    try {
+      await updatePortalBranding({
+        email: userEmail,
+        logoUrl: portalLogoDataUrl,
+      });
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not save portal logo.");
+    } finally {
+      setIsSavingPortalLogo(false);
+    }
+  }
+
+  async function persistPortalColor() {
+    setIsSavingPortalColor(true);
+    try {
+      await updatePortalBranding({
+        email: userEmail,
+        accentColor: portalColor,
+      });
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not save portal color.");
+    } finally {
+      setIsSavingPortalColor(false);
+    }
+  }
+
+  function handlePreviewPortalClick(e: MouseEvent<HTMLAnchorElement>) {
+    e.preventDefault();
+    const previewUrl = settingsData?.previewPortalUrl ?? PREVIEW_PORTAL_URL;
+    window.open(previewUrl, "_blank", "noopener,noreferrer");
+  }
+
+  const subscription = settingsData?.subscription ?? null;
+  const paymentConnection = settingsData?.paymentConnection ?? null;
+  const previewPortalUrl = settingsData?.previewPortalUrl ?? PREVIEW_PORTAL_URL;
+  const planName = subscription ? `Stage ${capitalize(subscription.plan)}` : "Stage Pro";
+  const planStatus = subscription ? capitalize(subscription.status) : "Pending";
+  const planCycle = subscription
+    ? `${capitalize(subscription.billingCycle)} · ${formatPlanPrice(subscription.plan)}`
+    : "Provider not configured yet";
+  const paymentText =
+    subscription?.paymentMethodBrand && subscription.paymentMethodLast4
+      ? `${capitalize(subscription.paymentMethodBrand)} ending in ${subscription.paymentMethodLast4}`
+      : "No payment method on file";
+  const paymentProviderText = subscription?.provider
+    ? `Powered by ${capitalize(subscription.provider)}`
+    : "Billing provider not configured";
+  const connectionLabel = paymentConnection?.provider
+    ? `Connected to ${capitalize(paymentConnection.provider)}`
+    : "No payment provider connected";
+  const connectionActionLabel =
+    paymentConnection?.status === "active" ? "Disconnect" : "Connect";
 
   return (
     <>
@@ -45,201 +205,482 @@ export function SettingsPage() {
       </Helmet>
 
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="mx-auto max-w-[560px] px-12 pb-20 pt-10"
+        className="settings-page"
       >
-        <h1 className="mb-10 font-heading text-[28px] font-semibold text-text-primary">
-          Settings
-        </h1>
+        <div className="settings-page-header">
+          <h1 className="page-title sf">Settings</h1>
+          <p className="page-subtitle">Manage your account</p>
+        </div>
 
-        {/* Profile Section */}
-        <Section title="Profile">
-          <div className="mb-6 flex items-center gap-4">
-            <Avatar name={user?.name ?? ""} src={user?.avatarUrl} size="lg" />
-            <button className="cursor-pointer text-[13px] font-medium text-accent transition-colors hover:text-accent-hover">
-              Change photo
+        <div className="settings-layout">
+          <aside className="settings-sidebar" aria-label="Settings sections">
+            <button
+              type="button"
+              className={`sidebar-item ${activeTab === "general" ? "active" : ""}`}
+              onClick={() => setActiveTab("general")}
+            >
+              <GeneralIcon />
+              General
             </button>
-          </div>
-
-          <div className="space-y-4">
-            <Input
-              label="Full name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onBlur={handleSave}
-            />
-            <Input
-              label="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onBlur={handleSave}
-            />
-          </div>
-
-          <div className="mt-6">
-            <label className="mb-2 block text-[13px] font-medium text-text-secondary">
-              Role
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {ROLES.map((r) => (
-                <TogglePill
-                  key={r.value}
-                  label={r.label}
-                  selected={role === r.value}
-                  onSelect={() => {
-                    setRole(r.value);
-                    handleSave();
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          {saved && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="mt-3 text-[12px] text-text-tertiary"
+            <button
+              type="button"
+              className={`sidebar-item ${activeTab === "billing" ? "active" : ""}`}
+              onClick={() => setActiveTab("billing")}
             >
-              Saved
-            </motion.p>
-          )}
-        </Section>
+              <BillingIcon />
+              Billing
+            </button>
+            <button
+              type="button"
+              className={`sidebar-item ${activeTab === "portal" ? "active" : ""}`}
+              onClick={() => setActiveTab("portal")}
+            >
+              <PortalIcon />
+              Client Portal
+            </button>
+          </aside>
 
-        {/* Plan & Billing */}
-        <Section title="Plan & Billing">
-          {subscription ? (
-            <div>
-              <div className="mb-4 flex items-center gap-3">
-                <span className="font-heading text-[18px] font-semibold text-text-primary capitalize">
-                  {subscription.plan} Plan
-                </span>
-                <Badge variant="accent">Active</Badge>
-              </div>
-              <div className="mb-4 space-y-1.5">
-                <div className="text-[14px] text-text-secondary">
-                  Billed annually — renews{" "}
-                  {formatDate(subscription.currentPeriodEnd)}
+          <div className="settings-content">
+            <div className={`tab-content ${activeTab === "general" ? "active" : ""}`}>
+              <div className="settings-card">
+                <div className="card-body">
+                  <div className="card-heading sf">Full name</div>
+                  <div className="card-desc">
+                    This is your name as it will be displayed on the platform.
+                  </div>
+                  <label className="settings-label">Name</label>
+                  <input
+                    className="settings-input"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
                 </div>
-                {subscription.paymentMethod && (
-                  <div className="text-[14px] text-text-secondary">
-                    {subscription.paymentMethod.brand} ending in{" "}
-                    {subscription.paymentMethod.last4}
-                  </div>
-                )}
+                <div className="card-footer">
+                  <span className="card-footer-text success">Name updated successfully</span>
+                  <button
+                    type="button"
+                    className="btn-save"
+                    onClick={() => void persistName()}
+                    disabled={isSavingName}
+                  >
+                    Save
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="secondary" size="sm">
-                  Manage billing
-                </Button>
-                <Button variant="destructive" size="sm">
-                  Cancel plan
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <p className="mb-4 text-[14px] text-text-secondary">
-                You're on the free plan. Upgrade to get unlimited projects and
-                client portal access.
-              </p>
-              <Button size="sm">Upgrade to Pro</Button>
-            </div>
-          )}
-        </Section>
 
-        {/* Clients */}
-        <Section title="Clients">
-          {clients && clients.length > 0 ? (
-            <div className="space-y-0">
-              {clients.map((client) => (
-                <div
-                  key={client.id}
-                  className="group flex items-center gap-3 border-b border-border-subtle py-3 last:border-b-0"
-                >
-                  <Avatar name={client.name} src={client.avatarUrl} size="sm" />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[14px] font-medium text-text-primary">
-                      {client.name}
+              <div className="settings-card">
+                <div className="card-body">
+                  <div className="card-heading sf">Avatar</div>
+                  <div className="card-desc">This is what you will look like on the platform.</div>
+                  <div className="avatar-row">
+                    <div className="avatar-circle">
+                      {avatarDataUrl ? <img src={avatarDataUrl} alt="Avatar preview" /> : avatarInitial}
                     </div>
-                    <div className="text-[12px] text-text-secondary">
-                      {client.projectCount} project{client.projectCount !== 1 ? "s" : ""}
-                    </div>
-                  </div>
-                  <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <PencilSimple size={14} className="text-text-secondary" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Trash size={14} className="text-text-secondary" />
-                    </Button>
+                    <button
+                      type="button"
+                      className="avatar-browse"
+                      onClick={() => avatarInputRef.current?.click()}
+                    >
+                      Browse
+                    </button>
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarInputChange}
+                      className="hidden-file-input"
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[14px] text-text-secondary">No clients yet.</p>
-          )}
-        </Section>
+                <div className="card-footer">
+                  <span className="card-footer-text">Square image recommended</span>
+                  <button
+                    type="button"
+                    className="btn-save"
+                    onClick={() => void persistAvatar()}
+                    disabled={isSavingAvatar || !avatarDataUrl}
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
 
-        {/* Account */}
-        <Section title="Account">
-          {!showDelete ? (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setShowDelete(true)}
-            >
-              Delete account
-            </Button>
-          ) : (
-            <div>
-              <p className="mb-3 text-[14px] text-text-secondary">
-                Type{" "}
-                <span className="font-medium text-destructive">DELETE</span> to
-                confirm. This action is irreversible.
-              </p>
-              <Input
-                value={deleteConfirm}
-                onChange={(e) => setDeleteConfirm(e.target.value)}
-                placeholder="Type DELETE"
-              />
-              <div className="mt-3 flex gap-2">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  disabled={deleteConfirm !== "DELETE"}
-                >
-                  Permanently delete
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setShowDelete(false);
-                    setDeleteConfirm("");
-                  }}
-                >
-                  Cancel
-                </Button>
+              <div className="settings-card">
+                <div className="card-body">
+                  <div className="card-heading sf">Delete account</div>
+                  <div className="card-desc">
+                    Permanently delete your account and all associated projects. This action is
+                    immediate and cannot be undone.
+                  </div>
+                </div>
+                <div className="card-footer">
+                  <span className="card-footer-text">Proceed with caution</span>
+                  <button
+                    type="button"
+                    className="btn-delete"
+                    onClick={() => window.alert("Account deletion is not wired yet.")}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
-          )}
-        </Section>
+
+            <div className={`tab-content ${activeTab === "billing" ? "active" : ""}`}>
+              <div className="settings-card">
+                <div className="card-body">
+                  <div className="card-heading sf">Current plan</div>
+                  <div className="card-desc">Your active subscription and billing details.</div>
+                  <div className="plan-row">
+                    <span className="plan-name sf">{planName}</span>
+                    <span className="plan-badge">{planStatus}</span>
+                  </div>
+                  <div className="plan-cycle">{planCycle}</div>
+                </div>
+                <div className="card-footer">
+                  <span className="card-footer-text">
+                    <a
+                      href="#"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        window.alert("Billing provider is not configured yet.");
+                      }}
+                    >
+                      Manage billing
+                    </a>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    onClick={() => window.alert("Plan changes are not wired yet.")}
+                  >
+                    Change plan
+                  </button>
+                </div>
+              </div>
+
+              <div className="settings-card">
+                <div className="card-body">
+                  <div className="card-heading sf">Payment method</div>
+                  <div className="card-desc">Your card on file for subscription payments.</div>
+                  <div className="payment-row">
+                    <div className="visa-icon">VISA</div>
+                    <span className="payment-text">{paymentText}</span>
+                  </div>
+                </div>
+                <div className="card-footer">
+                  <span className="card-footer-text">{paymentProviderText}</span>
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    onClick={() => window.alert("Payment method updates are not wired yet.")}
+                  >
+                    Update
+                  </button>
+                </div>
+              </div>
+
+              <div className="settings-card">
+                <div className="card-body">
+                  <div className="card-heading sf">Stripe integration</div>
+                  <div className="card-desc">
+                    Connect your Stripe account to track client payments directly in Stage.
+                  </div>
+                  <div className="stripe-connected">
+                    <span className="stripe-dot" />
+                    {connectionLabel}
+                    <button
+                      type="button"
+                      className="stripe-disconnect"
+                      onClick={() => window.alert("Payment account linking is not wired yet.")}
+                    >
+                      {connectionActionLabel}
+                    </button>
+                  </div>
+                </div>
+                <div className="card-footer">
+                  <span className="card-footer-text">Payments will appear on your dashboard</span>
+                  <span />
+                </div>
+              </div>
+            </div>
+
+            <div className={`tab-content ${activeTab === "portal" ? "active" : ""}`}>
+              <div className="portal-header">
+                <div />
+                <a
+                  className="portal-preview-link"
+                  href={previewPortalUrl}
+                  onClick={handlePreviewPortalClick}
+                >
+                  Preview portal
+                  <ArrowSquareOut size={14} />
+                </a>
+              </div>
+
+              <div className="settings-card">
+                <div className="card-body">
+                  <div className="card-heading sf">Logo</div>
+                  <div className="card-desc">
+                    Upload your logo to display on the client portal. PNG or SVG recommended.
+                  </div>
+                  <div
+                    className={`logo-upload-area ${portalLogoDataUrl ? "has-logo" : ""} ${
+                      logoDragActive ? "drag-active" : ""
+                    }`}
+                    onClick={() => {
+                      if (!portalLogoDataUrl) {
+                        logoInputRef.current?.click();
+                      }
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setLogoDragActive(true);
+                    }}
+                    onDragLeave={() => setLogoDragActive(false)}
+                    onDrop={handleLogoDrop}
+                  >
+                    {portalLogoDataUrl ? (
+                      <div className="logo-preview">
+                        <img src={portalLogoDataUrl} alt="Portal logo preview" />
+                        <button
+                          type="button"
+                          className="logo-remove"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPortalLogoDataUrl(null);
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <svg
+                          className="logo-upload-icon"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="17 8 12 3 7 8" />
+                          <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        <div className="logo-upload-text">
+                          Drag &amp; drop or <span>browse</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoInputChange}
+                    className="hidden-file-input"
+                  />
+                </div>
+                <div className="card-footer">
+                  <span className="card-footer-text">Max 2 MB · PNG, SVG, or JPG</span>
+                  <button
+                    type="button"
+                    className="btn-save"
+                    onClick={() => void persistPortalLogo()}
+                    disabled={isSavingPortalLogo}
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+
+              <div className="settings-card">
+                <div className="card-body">
+                  <div className="card-heading sf">Brand color</div>
+                  <div className="card-desc">
+                    Choose a primary color for buttons, links, and accents on your client portal.
+                  </div>
+                  <div className="color-picker-row">
+                    <div className="color-swatch" style={{ background: portalColor }}>
+                      <input
+                        type="color"
+                        value={portalColor}
+                        onChange={(e) => handlePortalColorInput(e.target.value)}
+                      />
+                    </div>
+                    <input
+                      className="hex-input"
+                      type="text"
+                      value={hexInput}
+                      maxLength={7}
+                      onChange={handleHexInputChange}
+                      onBlur={handleHexInputBlur}
+                    />
+                  </div>
+                  <div className="brand-preview-label">Preview</div>
+                  <div className="brand-preview-strip">
+                    <div className="brand-preview-progress">
+                      <div
+                        className="brand-preview-progress-fill"
+                        style={{ background: portalColor }}
+                      />
+                    </div>
+                    <div className="brand-preview-check-row">
+                      <div className="brand-preview-check" style={{ background: portalColor }}>
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </div>
+                      <span className="brand-preview-check-label">Project milestone completed</span>
+                    </div>
+                    <a className="brand-preview-link" style={{ color: portalColor }}>
+                      View deliverables →
+                    </a>
+                  </div>
+                </div>
+                <div className="card-footer">
+                  <span className="card-footer-text">
+                    Applied to buttons, links, and progress indicators
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-save"
+                    onClick={() => void persistPortalColor()}
+                    disabled={isSavingPortalColor}
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+
+              <div className="settings-card locked">
+                <div className="card-body">
+                  <div className="card-heading-row">
+                    <div className="card-heading sf domain-heading">Custom domain</div>
+                    <span className="pro-badge">PRO</span>
+                    <span className="coming-soon-badge">Coming soon</span>
+                  </div>
+                  <div className="card-desc">
+                    Use your own domain for the client portal (e.g. portal.yourstudio.com).
+                  </div>
+                  <label className="settings-label">Domain</label>
+                  <input
+                    className="settings-input disabled"
+                    type="text"
+                    value="portal.yourstudio.com"
+                    disabled
+                  />
+                </div>
+                <div className="card-footer">
+                  <span className="card-footer-text">Requires DNS configuration</span>
+                  <button
+                    type="button"
+                    className="btn-save"
+                    onClick={() => window.alert("Custom domains are not wired yet.")}
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </motion.div>
     </>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function GeneralIcon() {
   return (
-    <section className="mb-12">
-      <h2 className="mb-5 font-heading text-[18px] font-semibold text-text-primary">
-        {title}
-      </h2>
-      {children}
-    </section>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
   );
+}
+
+function BillingIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+      <line x1="1" y1="10" x2="23" y2="10" />
+    </svg>
+  );
+}
+
+function PortalIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 2L2 7l10 5 10-5-10-5z" />
+      <path d="M2 17l10 5 10-5" />
+      <path d="M2 12l10 5 10-5" />
+    </svg>
+  );
+}
+
+function readFileAsDataUrl(file: File, onDone: (dataUrl: string) => void) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (typeof reader.result === "string") {
+      onDone(reader.result);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function normalizeHex(value: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  const withHash = trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
+  if (!/^#[0-9A-Fa-f]{6}$/.test(withHash)) {
+    return null;
+  }
+  return withHash.toUpperCase();
+}
+
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function formatPlanPrice(plan: "free" | "pro") {
+  return plan === "pro" ? "Yearly plan" : "Free plan";
 }

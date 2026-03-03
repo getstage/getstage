@@ -18,6 +18,8 @@ export const userRoleSchema = z.enum([
 ]);
 
 export const planSchema = z.enum(["free", "pro"]);
+export const billingProviderSchema = z.enum(["stripe", "polar", "creem", "unknown"]);
+export const paymentProviderSchema = z.enum(["stripe", "unknown"]);
 
 export const projectTypeSchema = z.enum([
   "branding",
@@ -41,6 +43,15 @@ export const subscriptionStatusSchema = z.enum([
   "cancelling",
   "expired",
 ]);
+export const connectedAccountStatusSchema = z.enum([
+  "not_connected",
+  "pending",
+  "connected",
+  "error",
+]);
+export const invoiceStatusSchema = z.enum(["draft", "open", "paid", "overdue", "void"]);
+export const paymentStatusSchema = z.enum(["pending", "succeeded", "failed"]);
+export const payoutStatusSchema = z.enum(["pending", "paid", "failed"]);
 
 // --- Core Schemas ---
 
@@ -99,6 +110,8 @@ export const projectSchema = z.object({
   progress: z.number().min(0).max(100),
   createdAt: z.number(),
   shareToken: z.string().optional(),
+  shareUrl: z.string().url().optional(),
+  portalEnabled: z.boolean().optional(),
 });
 
 export const clientSchema = z.object({
@@ -125,10 +138,71 @@ export const paymentMethodSchema = z.object({
 
 export const subscriptionSchema = z.object({
   plan: planSchema,
+  provider: billingProviderSchema,
   status: subscriptionStatusSchema,
   billingCycle: z.literal("yearly"),
   currentPeriodEnd: z.number(),
   paymentMethod: paymentMethodSchema.optional(),
+});
+
+export const connectedAccountSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  provider: paymentProviderSchema,
+  status: connectedAccountStatusSchema,
+  externalAccountId: z.string().optional(),
+  connectedAt: z.number().optional(),
+  lastSyncedAt: z.number().optional(),
+});
+
+export const invoiceSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  provider: paymentProviderSchema,
+  status: invoiceStatusSchema,
+  number: z.string(),
+  clientName: z.string().min(1),
+  currency: z.string().length(3),
+  totalAmount: z.number().min(0),
+  amountDue: z.number().min(0),
+  issuedAt: z.number(),
+  dueAt: z.number().optional(),
+  paidAt: z.number().optional(),
+  externalInvoiceId: z.string().optional(),
+});
+
+export const paymentSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  provider: paymentProviderSchema,
+  invoiceId: z.string().optional(),
+  currency: z.string().length(3),
+  amount: z.number().min(0),
+  status: paymentStatusSchema,
+  receivedAt: z.number(),
+  externalPaymentId: z.string().optional(),
+});
+
+export const payoutSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  provider: paymentProviderSchema,
+  currency: z.string().length(3),
+  amount: z.number().min(0),
+  status: payoutStatusSchema,
+  arrivalAt: z.number(),
+  externalPayoutId: z.string().optional(),
+});
+
+export const revenueSummarySchema = z.object({
+  userId: z.string(),
+  provider: paymentProviderSchema,
+  currency: z.string().length(3),
+  grossVolume: z.number().min(0),
+  paidInvoicesCount: z.number().int().min(0),
+  openInvoicesCount: z.number().int().min(0),
+  overdueInvoicesCount: z.number().int().min(0),
+  lastUpdatedAt: z.number(),
 });
 
 // --- Input Schemas (validation for mutations) ---
@@ -136,6 +210,7 @@ export const subscriptionSchema = z.object({
 export const createProjectInputSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   clientName: z.string().min(1, "Client name is required"),
+  clientAvatarUrl: z.string().optional(),
   type: projectTypeSchema,
   method: z.enum(["ai", "manual"]),
   startDate: z.number(),

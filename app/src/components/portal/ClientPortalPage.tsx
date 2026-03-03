@@ -1,17 +1,15 @@
 import { useMemo, useState } from "react";
+import { useQuery as useConvexQuery } from "convex/react";
 import { Helmet } from "react-helmet-async";
 import { useParams } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { getPortalData } from "@/data-ops/queries";
+import { api } from "@/lib/convex";
 import portalLogo from "@/assets/logos/client-portal-logo.png";
 import type { Phase } from "@/types";
 
 export function ClientPortalPage() {
   const { token } = useParams({ from: "/portal/$token" });
-  const { data, isLoading } = useQuery({
-    queryKey: ["portal", token],
-    queryFn: () => getPortalData(token),
-  });
+  const data = useConvexQuery(api.portal.getByShareToken, { shareToken: token });
+  const isLoading = data === undefined;
   const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
 
   if (isLoading) {
@@ -64,7 +62,11 @@ export function ClientPortalPage() {
         )}
 
         <header className="flex justify-center border-b border-border-subtle py-7">
-          <img src={portalLogo} alt={project.clientName} className="h-14 w-auto object-contain" />
+          <img
+            src={config.logoUrl ?? portalLogo}
+            alt={project.clientName}
+            className="h-14 w-auto object-contain"
+          />
         </header>
 
         <main className="mx-auto max-w-[1200px] px-6 pb-14 pt-12 sm:px-10 lg:px-14">

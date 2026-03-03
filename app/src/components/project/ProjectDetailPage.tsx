@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
+import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
 import { Helmet } from "react-helmet-async";
-import { useParams, Link } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useParams, Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
@@ -13,33 +13,30 @@ import {
 } from "@phosphor-icons/react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { getProject } from "@/data-ops/queries";
-import { toggleTaskComplete } from "@/data-ops/mutations";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { api } from "@/lib/convex";
 import type { Phase, Task } from "@/types";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 export function ProjectDetailPage() {
   const { id } = useParams({ from: "/_app/project/$id" });
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [activePhaseId, setActivePhaseId] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [clientAccess, setClientAccess] = useState(true);
 
-  const { data: project, isLoading } = useQuery({
-    queryKey: ["project", id],
-    queryFn: () => getProject(id),
-  });
+  const projectId = id as Id<"projects">;
+  const project = useConvexQuery(api.projects.getById, { projectId });
+  const isLoading = project === undefined;
 
-  const toggleMutation = useMutation({
-    mutationFn: toggleTaskComplete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["project", id] });
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
-    },
-  });
+  const createTask = useConvexMutation(api.tasks.create);
+  const toggleTaskComplete = useConvexMutation(api.tasks.toggleComplete);
+  const updateProject = useConvexMutation(api.projects.update);
+  const syncPhases = useConvexMutation(api.projects.syncPhases);
+  const deleteProject = useConvexMutation(api.projects.deleteById);
+  const setPortalEnabled = useConvexMutation(api.portal.setEnabled);
 
   const selectedPhase = useMemo(() => {
     if (!project) return null;
@@ -80,14 +77,164 @@ export function ProjectDetailPage() {
     );
   }
 
-  const completedCount = selectedPhase.tasks.filter((task) => task.isCompleted).length;
+  const projectData = project;
+  const currentPhase = selectedPhase;
+  const completedCount = currentPhase.tasks.filter((task) => task.isCompleted).length;
 
-  const shareUrl = `https://app.usestage.com/portal/${project.shareToken ?? "demo"}`;
+  const shareUrl =
+    projectData.shareUrl ?? `https://app.usestage.com/portal/${projectData.shareToken ?? "demo"}`;
+  const clientAccess = projectData.portalEnabled ?? true;
+
+  async function handleAddTask() {
+    const title = window.prompt("Task title");
+    const normalizedTitle = title?.trim();
+
+    if (!normalizedTitle) {
+      return;
+    }
+
+    try {
+      await createTask({
+        phaseId: currentPhase.id as Id<"phases">,
+        title: normalizedTitle,
+      });
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not create task.");
+    }
+  }
+
+  async function handleEditProjectName() {
+    const name = window.prompt("Project name", projectData.name)?.trim();
+    if (!name || name === projectData.name) {
+      return;
+    }
+
+    try {
+      await updateProject({ projectId, name });
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not update project name.");
+    }
+  }
+
+  async function handleEditClient() {
+    const clientName = window.prompt("Client name", projectData.clientName)?.trim();
+    if (!clientName || clientName === projectData.clientName) {
+      return;
+    }
+
+    try {
+      await updateProject({ projectId, clientName });
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not update client.");
+    }
+  }
+
+  async function handleAdjustTimeline() {
+    const startDateInput = window.prompt(
+      "Start date (YYYY-MM-DD)",
+      formatDateInput(projectData.startDate),
+    );
+    if (!startDateInput) {
+      return;
+    }
+
+    const endDateInput = window.prompt(
+      "End date (YYYY-MM-DD)",
+      formatDateInput(projectData.endDate),
+    );
+    if (!endDateInput) {
+      return;
+    }
+
+    try {
+      await updateProject({
+        projectId,
+        startDate: parseDateInput(startDateInput),
+        endDate: parseDateInput(endDateInput),
+      });
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not update timeline.");
+    }
+  }
+
+  async function handleSyncPhases() {
+    const currentValue = projectData.phases.map((phase) => phase.name).join(", ");
+    const nextValue = window.prompt("Phase names, comma separated", currentValue);
+    if (nextValue === null) {
+      return;
+    }
+
+    const nextNames = nextValue
+      .split(",")
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0);
+
+    if (nextNames.length === 0) {
+      window.alert("At least one phase is required.");
+      return;
+    }
+
+    const usedExistingIds = new Set<string>();
+    const phases = nextNames.map((name, index) => {
+      const exactMatch = projectData.phases.find(
+        (phase) => phase.name === name && !usedExistingIds.has(phase.id),
+      );
+
+      if (exactMatch) {
+        usedExistingIds.add(exactMatch.id);
+        return { id: exactMatch.id as Id<"phases">, name };
+      }
+
+      const sameIndexPhase = projectData.phases[index];
+      if (sameIndexPhase && !usedExistingIds.has(sameIndexPhase.id)) {
+        usedExistingIds.add(sameIndexPhase.id);
+        return { id: sameIndexPhase.id as Id<"phases">, name };
+      }
+
+      return { name };
+    });
+
+    try {
+      await syncPhases({
+        projectId,
+        phases,
+      });
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not update phases.");
+    }
+  }
+
+  async function handlePauseProject() {
+    try {
+      await updateProject({
+        projectId,
+        status: projectData.status === "paused" ? "active" : "paused",
+      });
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not update project status.");
+    }
+  }
+
+  async function handleDeleteProject() {
+    const confirmed = window.confirm(
+      `Delete "${projectData.name}"? This removes the project and its tasks permanently.`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await deleteProject({ projectId });
+      navigate({ to: "/dashboard" });
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not delete project.");
+    }
+  }
 
   return (
     <>
       <Helmet>
-        <title>{project.name} — Stage</title>
+        <title>{projectData.name} — Stage</title>
       </Helmet>
 
       <motion.div
@@ -107,23 +254,23 @@ export function ProjectDetailPage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 overflow-hidden rounded-full bg-input-bg">
-              {project.clientAvatarUrl ? (
+              {projectData.clientAvatarUrl ? (
                 <img
-                  src={project.clientAvatarUrl}
-                  alt={project.clientName}
+                  src={projectData.clientAvatarUrl}
+                  alt={projectData.clientName}
                   className="h-full w-full object-cover"
                 />
               ) : null}
             </div>
             <h1 className="font-heading text-[33px] font-semibold tracking-tight text-text-primary">
-              {project.name}
+              {projectData.name}
             </h1>
-            <span className="text-[16px] text-text-secondary">· {project.clientName}</span>
+            <span className="text-[16px] text-text-secondary">· {projectData.clientName}</span>
           </div>
 
           <div className="flex items-center gap-2.5">
             <div className="w-[140px]">
-              <ProgressBar value={project.progress} showLabel />
+              <ProgressBar value={projectData.progress} showLabel />
             </div>
 
             <Button
@@ -148,24 +295,42 @@ export function ProjectDetailPage() {
                   sideOffset={6}
                   className="min-w-[200px] rounded-xl border border-border bg-white p-1.5 shadow-[0_6px_18px_rgba(26,26,46,0.08)]"
                 >
-                  <DropdownMenu.Item className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-text-primary outline-none hover:bg-bg-subtle">
+                  <DropdownMenu.Item
+                    onSelect={() => void handleEditProjectName()}
+                    className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-text-primary outline-none hover:bg-bg-subtle"
+                  >
                     Edit project name
                   </DropdownMenu.Item>
-                  <DropdownMenu.Item className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-text-primary outline-none hover:bg-bg-subtle">
+                  <DropdownMenu.Item
+                    onSelect={() => void handleEditClient()}
+                    className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-text-primary outline-none hover:bg-bg-subtle"
+                  >
                     Edit client
                   </DropdownMenu.Item>
-                  <DropdownMenu.Item className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-text-primary outline-none hover:bg-bg-subtle">
+                  <DropdownMenu.Item
+                    onSelect={() => void handleAdjustTimeline()}
+                    className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-text-primary outline-none hover:bg-bg-subtle"
+                  >
                     Adjust timeline
                   </DropdownMenu.Item>
-                  <DropdownMenu.Item className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-text-primary outline-none hover:bg-bg-subtle">
+                  <DropdownMenu.Item
+                    onSelect={() => void handleSyncPhases()}
+                    className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-text-primary outline-none hover:bg-bg-subtle"
+                  >
                     Add or remove phases
                   </DropdownMenu.Item>
                   <DropdownMenu.Separator className="my-1 h-px bg-border-subtle" />
-                  <DropdownMenu.Item className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-text-primary outline-none hover:bg-bg-subtle">
+                  <DropdownMenu.Item
+                    onSelect={() => void handlePauseProject()}
+                    className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-text-primary outline-none hover:bg-bg-subtle"
+                  >
                     Pause project
                   </DropdownMenu.Item>
                   <DropdownMenu.Separator className="my-1 h-px bg-border-subtle" />
-                  <DropdownMenu.Item className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-destructive outline-none hover:bg-destructive/5">
+                  <DropdownMenu.Item
+                    onSelect={() => void handleDeleteProject()}
+                    className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-destructive outline-none hover:bg-destructive/5"
+                  >
                     Delete project
                   </DropdownMenu.Item>
                 </DropdownMenu.Content>
@@ -176,14 +341,14 @@ export function ProjectDetailPage() {
 
         <section className="py-16">
           <div className="mx-auto flex max-w-[920px] items-center">
-            {project.phases.map((phase, index) => (
+            {projectData.phases.map((phase, index) => (
               <div key={phase.id} className="flex flex-1 items-center">
                 <PhaseNode
                   phase={phase}
-                  selected={selectedPhase.id === phase.id}
+                  selected={currentPhase.id === phase.id}
                   onClick={() => setActivePhaseId(phase.id)}
                 />
-                {index < project.phases.length - 1 && (
+                {index < projectData.phases.length - 1 && (
                   <div
                     className={`h-px flex-1 ${
                       phase.status === "completed" ? "bg-accent/45" : "bg-border"
@@ -198,25 +363,31 @@ export function ProjectDetailPage() {
         <section className="mx-auto max-w-[560px]">
           <header className="mb-5">
             <h2 className="font-heading text-[20px] font-semibold text-text-primary">
-              {selectedPhase.name}
+              {currentPhase.name}
             </h2>
             <p className="text-[13px] text-text-secondary">
-              {completedCount} of {selectedPhase.tasks.length} complete
+              {completedCount} of {currentPhase.tasks.length} complete
             </p>
           </header>
 
           <div>
-            {selectedPhase.tasks.map((task) => (
+            {currentPhase.tasks.map((task) => (
               <TaskRow
                 key={task.id}
                 task={task}
-                projectId={project.id}
-                onToggle={() => toggleMutation.mutate(task.id)}
+                projectId={projectData.id}
+                onToggle={() =>
+                  void toggleTaskComplete({ taskId: task.id as Id<"tasks"> })
+                }
               />
             ))}
           </div>
 
-          <button className="mt-4 inline-flex cursor-pointer items-center gap-2 text-[13px] text-text-tertiary transition-colors hover:text-accent">
+          <button
+            type="button"
+            onClick={() => void handleAddTask()}
+            className="mt-4 inline-flex cursor-pointer items-center gap-2 text-[13px] text-text-tertiary transition-colors hover:text-accent"
+          >
             <span>+</span>
             Add a task...
           </button>
@@ -237,7 +408,12 @@ export function ProjectDetailPage() {
             <div className="mt-6 flex items-center justify-between rounded-xl border border-border-subtle px-4 py-3">
               <span className="text-[14px] text-text-primary">Client access</span>
               <button
-                onClick={() => setClientAccess((prev) => !prev)}
+                onClick={() =>
+                  void setPortalEnabled({
+                    projectId,
+                    isEnabled: !clientAccess,
+                  })
+                }
                 className={`relative h-5 w-9 cursor-pointer rounded-full transition-colors ${
                   clientAccess ? "bg-accent" : "bg-border"
                 }`}
@@ -289,6 +465,18 @@ export function ProjectDetailPage() {
       </Dialog.Root>
     </>
   );
+}
+
+function formatDateInput(timestamp: number) {
+  return new Date(timestamp).toISOString().slice(0, 10);
+}
+
+function parseDateInput(value: string) {
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) {
+    throw new Error("Please use a valid date in YYYY-MM-DD format.");
+  }
+  return parsed;
 }
 
 function PhaseNode({

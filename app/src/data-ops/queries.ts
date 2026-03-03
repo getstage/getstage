@@ -7,13 +7,23 @@
  * Components only import from this file.
  */
 
-import { mockProjects, mockClients } from "@/data-ops/mock";
+import {
+  mockClients,
+  mockConnectedAccount,
+  mockInvoices,
+  mockProjects,
+  mockRevenueSummary,
+  mockSubscription,
+} from "@/data-ops/mock";
 import type {
+  ConnectedAccount,
+  Invoice,
   Project,
-  Task,
   Client,
   PortalConfig,
+  RevenueSummary,
   Subscription,
+  Task,
 } from "@/types";
 
 // Simulate network delay
@@ -85,11 +95,25 @@ export async function getPortalData(
 export async function getSubscription(): Promise<Subscription | null> {
   // { Convex: useQuery(api.subscriptions.current) }
   await delay();
-  return {
-    plan: "pro",
-    status: "active",
-    billingCycle: "yearly",
-    currentPeriodEnd: Date.now() + 300 * 24 * 60 * 60 * 1000,
-    paymentMethod: { brand: "Visa", last4: "4242" },
-  };
+  return mockSubscription;
+}
+
+// --- Connected account payments ---
+
+export async function getConnectedAccount(): Promise<ConnectedAccount | null> {
+  // { Convex: useQuery(api.payments.connectedAccount) }
+  await delay();
+  return mockConnectedAccount;
+}
+
+export async function getRevenueSummary(): Promise<RevenueSummary | null> {
+  // { Convex: useQuery(api.payments.revenueSummary) }
+  await delay();
+  return mockRevenueSummary;
+}
+
+export async function getInvoices(): Promise<Invoice[]> {
+  // { Convex: useQuery(api.payments.invoices) }
+  await delay();
+  return mockInvoices;
 }

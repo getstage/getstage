@@ -5,7 +5,14 @@
  * by real Convex data via queries/mutations.
  */
 
-import type { Project, Client } from "@/types";
+import type {
+  Client,
+  ConnectedAccount,
+  Invoice,
+  Project,
+  RevenueSummary,
+  Subscription,
+} from "@/types";
 
 const now = Date.now();
 const DAY = 24 * 60 * 60 * 1000;
@@ -267,4 +274,80 @@ export const mockClients: Client[] = [
   { id: "client_003", userId: "user_001", name: "Flowstate", avatarUrl: "https://randomuser.me/api/portraits/women/68.jpg", projectCount: 1 },
   { id: "client_004", userId: "user_001", name: "Noma Skincare", avatarUrl: "https://randomuser.me/api/portraits/women/22.jpg", projectCount: 1 },
   { id: "client_005", userId: "user_001", name: "Volta Creative", avatarUrl: "https://randomuser.me/api/portraits/men/75.jpg", projectCount: 1 },
+];
+
+export const mockSubscription: Subscription = {
+  plan: "pro",
+  provider: "unknown",
+  status: "active",
+  billingCycle: "yearly",
+  currentPeriodEnd: now + 300 * DAY,
+  paymentMethod: { brand: "Visa", last4: "4242" },
+};
+
+export const mockConnectedAccount: ConnectedAccount = {
+  id: "conn_001",
+  userId: "user_001",
+  provider: "stripe",
+  status: "connected",
+  externalAccountId: "acct_stage_connected_demo",
+  connectedAt: now - 45 * DAY,
+  lastSyncedAt: now - 2 * 60 * 60 * 1000,
+};
+
+export const mockRevenueSummary: RevenueSummary = {
+  userId: "user_001",
+  provider: "stripe",
+  currency: "USD",
+  grossVolume: 18750,
+  paidInvoicesCount: 12,
+  openInvoicesCount: 2,
+  overdueInvoicesCount: 1,
+  lastUpdatedAt: now - 2 * 60 * 60 * 1000,
+};
+
+export const mockInvoices: Invoice[] = [
+  {
+    id: "inv_001",
+    userId: "user_001",
+    provider: "stripe",
+    status: "paid",
+    number: "INV-2026-014",
+    clientName: "Acme Studio",
+    currency: "USD",
+    totalAmount: 4800,
+    amountDue: 0,
+    issuedAt: now - 14 * DAY,
+    dueAt: now - 7 * DAY,
+    paidAt: now - 6 * DAY,
+    externalInvoiceId: "in_demo_001",
+  },
+  {
+    id: "inv_002",
+    userId: "user_001",
+    provider: "stripe",
+    status: "open",
+    number: "INV-2026-015",
+    clientName: "Meridian Labs",
+    currency: "USD",
+    totalAmount: 3250,
+    amountDue: 3250,
+    issuedAt: now - 10 * DAY,
+    dueAt: now + 4 * DAY,
+    externalInvoiceId: "in_demo_002",
+  },
+  {
+    id: "inv_003",
+    userId: "user_001",
+    provider: "stripe",
+    status: "overdue",
+    number: "INV-2026-016",
+    clientName: "Flowstate",
+    currency: "USD",
+    totalAmount: 2100,
+    amountDue: 2100,
+    issuedAt: now - 20 * DAY,
+    dueAt: now - 5 * DAY,
+    externalInvoiceId: "in_demo_003",
+  },
 ];

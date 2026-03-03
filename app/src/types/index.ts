@@ -9,6 +9,8 @@ import {
   userSchema,
   userRoleSchema,
   planSchema,
+  billingProviderSchema,
+  paymentProviderSchema,
   projectSchema,
   projectTypeSchema,
   projectStatusSchema,
@@ -20,6 +22,15 @@ import {
   clientSchema,
   portalConfigSchema,
   subscriptionSchema,
+  connectedAccountStatusSchema,
+  connectedAccountSchema,
+  invoiceStatusSchema,
+  invoiceSchema,
+  paymentStatusSchema,
+  paymentSchema,
+  payoutStatusSchema,
+  payoutSchema,
+  revenueSummarySchema,
   createProjectInputSchema,
   updateProjectInputSchema,
   updateTaskInputSchema,
@@ -30,6 +41,8 @@ import {
 export type User = z.infer<typeof userSchema>;
 export type UserRole = z.infer<typeof userRoleSchema>;
 export type Plan = z.infer<typeof planSchema>;
+export type BillingProvider = z.infer<typeof billingProviderSchema>;
+export type PaymentProvider = z.infer<typeof paymentProviderSchema>;
 
 export type Project = z.infer<typeof projectSchema>;
 export type ProjectType = z.infer<typeof projectTypeSchema>;
@@ -48,6 +61,15 @@ export type Client = z.infer<typeof clientSchema>;
 export type PortalConfig = z.infer<typeof portalConfigSchema>;
 
 export type Subscription = z.infer<typeof subscriptionSchema>;
+export type ConnectedAccountStatus = z.infer<typeof connectedAccountStatusSchema>;
+export type ConnectedAccount = z.infer<typeof connectedAccountSchema>;
+export type InvoiceStatus = z.infer<typeof invoiceStatusSchema>;
+export type Invoice = z.infer<typeof invoiceSchema>;
+export type PaymentStatus = z.infer<typeof paymentStatusSchema>;
+export type Payment = z.infer<typeof paymentSchema>;
+export type PayoutStatus = z.infer<typeof payoutStatusSchema>;
+export type Payout = z.infer<typeof payoutSchema>;
+export type RevenueSummary = z.infer<typeof revenueSummarySchema>;
 
 export type CreateProjectInput = z.infer<typeof createProjectInputSchema>;
 export type UpdateProjectInput = z.infer<typeof updateProjectInputSchema>;

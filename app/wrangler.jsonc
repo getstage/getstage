@@ -24,9 +24,9 @@
     "production": {
       "name": "stage-app-production",
       // Production blijft via het echte domein deployen.
-      "routes": [
-        { "pattern": "app.usestage.com", "custom_domain": true }
-      ]
+      // "routes": [
+      //  { "pattern": "app.usestage.com", "custom_domain": true }
+      //]
     }
   }
 }

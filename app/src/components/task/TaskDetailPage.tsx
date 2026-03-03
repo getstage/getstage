@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
 import { Helmet } from "react-helmet-async";
 import { useParams, Link } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   DownloadSimple,
@@ -10,32 +10,34 @@ import {
   Plus,
 } from "@phosphor-icons/react";
 import { motion } from "motion/react";
-import { getProject, getTask } from "@/data-ops/queries";
-import { toggleTaskComplete, updateTask, uploadFile } from "@/data-ops/mutations";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { api } from "@/lib/convex";
 import { debounce, formatFileSize } from "@/lib/utils";
 import type { Attachment } from "@/types";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 export function TaskDetailPage() {
   const { id: projectId, taskId } = useParams({
     from: "/_app/project/$id/task/$taskId",
   });
-  const queryClient = useQueryClient();
-
-  const { data: project } = useQuery({
-    queryKey: ["project", projectId],
-    queryFn: () => getProject(projectId),
+  const project = useConvexQuery(api.projects.getById, {
+    projectId: projectId as Id<"projects">,
   });
-  const { data: task, isLoading } = useQuery({
-    queryKey: ["task", projectId, taskId],
-    queryFn: () => getTask(projectId, taskId),
-  });
+  const isLoading = project === undefined;
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  const task = useMemo(
+    () =>
+      project?.phases
+        .flatMap((phase) => phase.tasks)
+        .find((phaseTask) => phaseTask.id === taskId) ?? null,
+    [project, taskId],
+  );
 
   useEffect(() => {
     if (!task) return;
@@ -44,31 +46,25 @@ export function TaskDetailPage() {
     setAttachments(task.attachments);
   }, [task]);
 
-  const updateMutation = useMutation({
-    mutationFn: (payload: { title?: string; content?: string }) =>
-      updateTask(taskId, payload),
-    onSuccess: () => {
-      setSaved(true);
-      queryClient.invalidateQueries({ queryKey: ["task", projectId, taskId] });
-      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
-      setTimeout(() => setSaved(false), 1500);
-    },
-  });
+  const updateTask = useConvexMutation(api.tasks.update);
+  const toggleTaskComplete = useConvexMutation(api.tasks.toggleComplete);
+  const generateUploadUrl = useConvexMutation(api.tasks.generateUploadUrl);
+  const saveAttachment = useConvexMutation(api.tasks.saveAttachment);
 
-  const toggleMutation = useMutation({
-    mutationFn: () => toggleTaskComplete(taskId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["task", projectId, taskId] });
-      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
-    },
-  });
+  async function persistTaskUpdate(payload: { title?: string; content?: string }) {
+    await updateTask({
+      taskId: taskId as Id<"tasks">,
+      ...payload,
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  }
 
   // keep auto-save quiet while typing
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedContentSave = useCallback(
     debounce((nextContent: string) => {
-      updateMutation.mutate({ content: nextContent });
+      void persistTaskUpdate({ content: nextContent });
     }, 900),
     [],
   );
@@ -118,8 +114,24 @@ export function TaskDetailPage() {
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
-        const uploaded = await uploadFile(file);
-        setAttachments((prev) => [...prev, uploaded]);
+        const uploadUrl = await generateUploadUrl({});
+        const uploadResult = await fetch(uploadUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": file.type || "application/octet-stream",
+          },
+          body: file,
+        });
+
+        const { storageId } = (await uploadResult.json()) as { storageId: Id<"_storage"> };
+
+        await saveAttachment({
+          taskId: taskId as Id<"tasks">,
+          storageId,
+          fileName: file.name,
+          fileSize: file.size,
+          mimeType: file.type || "application/octet-stream",
+        });
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 1500);
@@ -163,7 +175,9 @@ export function TaskDetailPage() {
             <div className="pt-2">
               <Checkbox
                 checked={task.isCompleted}
-                onCheckedChange={() => toggleMutation.mutate()}
+                onCheckedChange={() =>
+                  void toggleTaskComplete({ taskId: task.id as Id<"tasks"> })
+                }
               />
             </div>
             <input
@@ -171,7 +185,7 @@ export function TaskDetailPage() {
               onChange={(event) => setTitle(event.target.value)}
               onBlur={() => {
                 if (title.trim() && title !== task.title) {
-                  updateMutation.mutate({ title: title.trim() });
+                  void persistTaskUpdate({ title: title.trim() });
                 }
               }}
               className={`w-full bg-transparent font-heading text-[41px] font-semibold leading-[1.15] tracking-tight outline-none ${
@@ -208,9 +222,9 @@ export function TaskDetailPage() {
                   className="flex items-center gap-3 rounded-[10px] bg-bg-subtle px-4 py-3"
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-[8px] border border-border bg-white">
-                    {attachment.type === "image" ? (
-                      <ImageIcon size={17} className="text-text-secondary" />
-                    ) : (
+                          {attachment.type === "image" ? (
+                            <ImageIcon size={17} className="text-text-secondary" />
+                          ) : (
                       <FileIcon size={17} className="text-text-secondary" />
                     )}
                   </div>

@@ -89,12 +89,23 @@ export async function uploadFile(file: File): Promise<Attachment> {
 export async function createCheckoutSession(
   _plan: "yearly",
 ): Promise<string> {
-  // { Convex: useMutation(api.stripe.createCheckout) }
+  // { Convex: useMutation(api.subscriptions.createCheckout) }
   await delay();
-  return "https://checkout.stripe.com/mock";
+  return "https://checkout.example.com/mock";
 }
 
 export async function cancelSubscription(): Promise<void> {
-  // { Convex: useMutation(api.stripe.cancel) }
+  // { Convex: useMutation(api.subscriptions.cancel) }
+  await delay();
+}
+
+export async function beginConnectedAccountLink(): Promise<string> {
+  // { Convex: useMutation(api.payments.beginAccountLink) }
+  await delay();
+  return "https://connect.stripe.com/setup/mock";
+}
+
+export async function disconnectConnectedAccount(): Promise<void> {
+  // { Convex: useMutation(api.payments.disconnectAccount) }
   await delay();
 }
