@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -15,6 +16,9 @@ import { api } from "@/lib/convex";
 import "@/styles/settings.css";
 
 type SettingsTab = "general" | "billing" | "portal";
+type SaveFeedback = { kind: "idle" } | { kind: "saved" } | { kind: "error"; message: string };
+const IDLE_FEEDBACK: SaveFeedback = { kind: "idle" };
+const SAVED_FEEDBACK: SaveFeedback = { kind: "saved" };
 
 const DEFAULT_PORTAL_COLOR = "#E8734A";
 const PREVIEW_PORTAL_URL = "/portal/share_acme_2026?preview=1";
@@ -36,8 +40,36 @@ export function SettingsPage() {
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
   const [isSavingPortalLogo, setIsSavingPortalLogo] = useState(false);
   const [isSavingPortalColor, setIsSavingPortalColor] = useState(false);
+  const [nameFeedback, setNameFeedback] = useState<SaveFeedback>(IDLE_FEEDBACK);
+  const [avatarFeedback, setAvatarFeedback] = useState<SaveFeedback>(IDLE_FEEDBACK);
+  const [portalLogoFeedback, setPortalLogoFeedback] = useState<SaveFeedback>(IDLE_FEEDBACK);
+  const [portalColorFeedback, setPortalColorFeedback] = useState<SaveFeedback>(IDLE_FEEDBACK);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const feedbackTimerRef = useRef<number | undefined>(undefined);
+
+  const showFeedback = useCallback(
+    (setter: (fb: SaveFeedback) => void, feedback: SaveFeedback) => {
+      setter(feedback);
+      if (feedback.kind !== "idle") {
+        if (feedbackTimerRef.current !== undefined) {
+          window.clearTimeout(feedbackTimerRef.current);
+        }
+        feedbackTimerRef.current = window.setTimeout(() => {
+          setter(IDLE_FEEDBACK);
+        }, 2500);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current !== undefined) {
+        window.clearTimeout(feedbackTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const applyTabFromUrl = () => {
@@ -118,8 +150,12 @@ export function SettingsPage() {
         email: userEmail,
         name,
       });
+      showFeedback(setNameFeedback, SAVED_FEEDBACK);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not save name.");
+      showFeedback(setNameFeedback, {
+        kind: "error",
+        message: error instanceof Error ? error.message : "Could not save name.",
+      });
     } finally {
       setIsSavingName(false);
     }
@@ -136,8 +172,12 @@ export function SettingsPage() {
         email: userEmail,
         avatarUrl: avatarDataUrl,
       });
+      showFeedback(setAvatarFeedback, SAVED_FEEDBACK);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not save avatar.");
+      showFeedback(setAvatarFeedback, {
+        kind: "error",
+        message: error instanceof Error ? error.message : "Could not save avatar.",
+      });
     } finally {
       setIsSavingAvatar(false);
     }
@@ -150,8 +190,12 @@ export function SettingsPage() {
         email: userEmail,
         logoUrl: portalLogoDataUrl,
       });
+      showFeedback(setPortalLogoFeedback, SAVED_FEEDBACK);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not save portal logo.");
+      showFeedback(setPortalLogoFeedback, {
+        kind: "error",
+        message: error instanceof Error ? error.message : "Could not save portal logo.",
+      });
     } finally {
       setIsSavingPortalLogo(false);
     }
@@ -164,8 +208,12 @@ export function SettingsPage() {
         email: userEmail,
         accentColor: portalColor,
       });
+      showFeedback(setPortalColorFeedback, SAVED_FEEDBACK);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not save portal color.");
+      showFeedback(setPortalColorFeedback, {
+        kind: "error",
+        message: error instanceof Error ? error.message : "Could not save portal color.",
+      });
     } finally {
       setIsSavingPortalColor(false);
     }
@@ -260,7 +308,7 @@ export function SettingsPage() {
                   />
                 </div>
                 <div className="card-footer">
-                  <span className="card-footer-text success">Name updated successfully</span>
+                  <FeedbackText feedback={nameFeedback} />
                   <button
                     type="button"
                     className="btn-save"
@@ -297,7 +345,7 @@ export function SettingsPage() {
                   </div>
                 </div>
                 <div className="card-footer">
-                  <span className="card-footer-text">Square image recommended</span>
+                  <FeedbackText feedback={avatarFeedback} fallback="Square image recommended" />
                   <button
                     type="button"
                     className="btn-save"
@@ -318,11 +366,12 @@ export function SettingsPage() {
                   </div>
                 </div>
                 <div className="card-footer">
-                  <span className="card-footer-text">Proceed with caution</span>
+                  <span className="card-footer-text">Coming soon</span>
                   <button
                     type="button"
                     className="btn-delete"
-                    onClick={() => window.alert("Account deletion is not wired yet.")}
+                    disabled
+                    title="Account deletion is not available yet"
                   >
                     Delete
                   </button>
@@ -342,21 +391,12 @@ export function SettingsPage() {
                   <div className="plan-cycle">{planCycle}</div>
                 </div>
                 <div className="card-footer">
-                  <span className="card-footer-text">
-                    <a
-                      href="#"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        window.alert("Billing provider is not configured yet.");
-                      }}
-                    >
-                      Manage billing
-                    </a>
-                  </span>
+                  <span className="card-footer-text">Coming soon</span>
                   <button
                     type="button"
                     className="btn-outline"
-                    onClick={() => window.alert("Plan changes are not wired yet.")}
+                    disabled
+                    title="Plan changes are not available yet"
                   >
                     Change plan
                   </button>
@@ -377,7 +417,8 @@ export function SettingsPage() {
                   <button
                     type="button"
                     className="btn-outline"
-                    onClick={() => window.alert("Payment method updates are not wired yet.")}
+                    disabled
+                    title="Payment method updates are not available yet"
                   >
                     Update
                   </button>
@@ -396,7 +437,8 @@ export function SettingsPage() {
                     <button
                       type="button"
                       className="stripe-disconnect"
-                      onClick={() => window.alert("Payment account linking is not wired yet.")}
+                      disabled
+                      title="Payment account linking is not available yet"
                     >
                       {connectionActionLabel}
                     </button>
@@ -429,9 +471,8 @@ export function SettingsPage() {
                     Upload your logo to display on the client portal. PNG or SVG recommended.
                   </div>
                   <div
-                    className={`logo-upload-area ${portalLogoDataUrl ? "has-logo" : ""} ${
-                      logoDragActive ? "drag-active" : ""
-                    }`}
+                    className={`logo-upload-area ${portalLogoDataUrl ? "has-logo" : ""} ${logoDragActive ? "drag-active" : ""
+                      }`}
                     onClick={() => {
                       if (!portalLogoDataUrl) {
                         logoInputRef.current?.click();
@@ -489,7 +530,7 @@ export function SettingsPage() {
                   />
                 </div>
                 <div className="card-footer">
-                  <span className="card-footer-text">Max 2 MB · PNG, SVG, or JPG</span>
+                  <FeedbackText feedback={portalLogoFeedback} fallback="Max 2 MB · PNG, SVG, or JPG" />
                   <button
                     type="button"
                     className="btn-save"
@@ -554,9 +595,7 @@ export function SettingsPage() {
                   </div>
                 </div>
                 <div className="card-footer">
-                  <span className="card-footer-text">
-                    Applied to buttons, links, and progress indicators
-                  </span>
+                  <FeedbackText feedback={portalColorFeedback} fallback="Applied to buttons, links, and progress indicators" />
                   <button
                     type="button"
                     className="btn-save"
@@ -587,11 +626,12 @@ export function SettingsPage() {
                   />
                 </div>
                 <div className="card-footer">
-                  <span className="card-footer-text">Requires DNS configuration</span>
+                  <span className="card-footer-text">Coming soon · requires DNS configuration</span>
                   <button
                     type="button"
                     className="btn-save"
-                    onClick={() => window.alert("Custom domains are not wired yet.")}
+                    disabled
+                    title="Custom domains are not available yet"
                   >
                     Save
                   </button>
@@ -655,6 +695,25 @@ function PortalIcon() {
       <path d="M2 12l10 5 10-5" />
     </svg>
   );
+}
+
+function FeedbackText({
+  feedback,
+  fallback,
+}: {
+  feedback: SaveFeedback;
+  fallback?: string;
+}) {
+  if (feedback.kind === "saved") {
+    return <span className="card-footer-text success">Saved successfully</span>;
+  }
+  if (feedback.kind === "error") {
+    return <span className="card-footer-text" style={{ color: "var(--color-destructive, #E07070)" }}>{feedback.message}</span>;
+  }
+  if (fallback) {
+    return <span className="card-footer-text">{fallback}</span>;
+  }
+  return <span className="card-footer-text" />;
 }
 
 function readFileAsDataUrl(file: File, onDone: (dataUrl: string) => void) {

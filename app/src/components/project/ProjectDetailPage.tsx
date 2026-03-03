@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useParams, Link } from "@tanstack/react-router";
@@ -26,6 +26,21 @@ export function ProjectDetailPage() {
   const [activePhaseId, setActivePhaseId] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [addTaskValue, setAddTaskValue] = useState("");
+  const [showEditNameModal, setShowEditNameModal] = useState(false);
+  const [editNameValue, setEditNameValue] = useState("");
+  const [showEditClientModal, setShowEditClientModal] = useState(false);
+  const [editClientValue, setEditClientValue] = useState("");
+  const [showTimelineModal, setShowTimelineModal] = useState(false);
+  const [editStartDate, setEditStartDate] = useState("");
+  const [editEndDate, setEditEndDate] = useState("");
+  const [showPhasesModal, setShowPhasesModal] = useState(false);
+  const [editPhasesValue, setEditPhasesValue] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const addTaskInputRef = useRef<HTMLInputElement>(null);
+  const errorTimerRef = useRef<number | undefined>(undefined);
 
   const projectId = id as Id<"projects">;
   const project = useConvexQuery(api.projects.getById, { projectId });
@@ -85,10 +100,24 @@ export function ProjectDetailPage() {
     projectData.shareUrl ?? `https://app.usestage.com/portal/${projectData.shareToken ?? "demo"}`;
   const clientAccess = projectData.portalEnabled ?? true;
 
-  async function handleAddTask() {
-    const title = window.prompt("Task title");
-    const normalizedTitle = title?.trim();
+  function showError(message: string) {
+    setActionError(message);
+    if (errorTimerRef.current !== undefined) {
+      window.clearTimeout(errorTimerRef.current);
+    }
+    errorTimerRef.current = window.setTimeout(() => setActionError(null), 3000);
+  }
 
+  useEffect(() => {
+    return () => {
+      if (errorTimerRef.current !== undefined) {
+        window.clearTimeout(errorTimerRef.current);
+      }
+    };
+  }, []);
+
+  async function handleAddTaskSubmit() {
+    const normalizedTitle = addTaskValue.trim();
     if (!normalizedTitle) {
       return;
     }
@@ -98,79 +127,64 @@ export function ProjectDetailPage() {
         phaseId: currentPhase.id as Id<"phases">,
         title: normalizedTitle,
       });
+      setAddTaskValue("");
+      setShowAddTask(false);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not create task.");
+      showError(error instanceof Error ? error.message : "Could not create task.");
     }
   }
 
-  async function handleEditProjectName() {
-    const name = window.prompt("Project name", projectData.name)?.trim();
+  async function handleSaveProjectName() {
+    const name = editNameValue.trim();
     if (!name || name === projectData.name) {
+      setShowEditNameModal(false);
       return;
     }
 
     try {
       await updateProject({ projectId, name });
+      setShowEditNameModal(false);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not update project name.");
+      showError(error instanceof Error ? error.message : "Could not update project name.");
     }
   }
 
-  async function handleEditClient() {
-    const clientName = window.prompt("Client name", projectData.clientName)?.trim();
+  async function handleSaveClient() {
+    const clientName = editClientValue.trim();
     if (!clientName || clientName === projectData.clientName) {
+      setShowEditClientModal(false);
       return;
     }
 
     try {
       await updateProject({ projectId, clientName });
+      setShowEditClientModal(false);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not update client.");
+      showError(error instanceof Error ? error.message : "Could not update client.");
     }
   }
 
-  async function handleAdjustTimeline() {
-    const startDateInput = window.prompt(
-      "Start date (YYYY-MM-DD)",
-      formatDateInput(projectData.startDate),
-    );
-    if (!startDateInput) {
-      return;
-    }
-
-    const endDateInput = window.prompt(
-      "End date (YYYY-MM-DD)",
-      formatDateInput(projectData.endDate),
-    );
-    if (!endDateInput) {
-      return;
-    }
-
+  async function handleSaveTimeline() {
     try {
       await updateProject({
         projectId,
-        startDate: parseDateInput(startDateInput),
-        endDate: parseDateInput(endDateInput),
+        startDate: parseDateInput(editStartDate),
+        endDate: parseDateInput(editEndDate),
       });
+      setShowTimelineModal(false);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not update timeline.");
+      showError(error instanceof Error ? error.message : "Could not update timeline.");
     }
   }
 
-  async function handleSyncPhases() {
-    const currentValue = projectData.phases.map((phase) => phase.name).join(", ");
-    const nextValue = window.prompt("Phase names, comma separated", currentValue);
-    if (nextValue === null) {
-      return;
-    }
-
-    const nextNames = nextValue
+  async function handleSavePhases() {
+    const nextNames = editPhasesValue
       .split(",")
       .map((name) => name.trim())
       .filter((name) => name.length > 0);
 
     if (nextNames.length === 0) {
-      window.alert("At least one phase is required.");
+      showError("At least one phase is required.");
       return;
     }
 
@@ -199,8 +213,9 @@ export function ProjectDetailPage() {
         projectId,
         phases,
       });
+      setShowPhasesModal(false);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not update phases.");
+      showError(error instanceof Error ? error.message : "Could not update phases.");
     }
   }
 
@@ -211,23 +226,16 @@ export function ProjectDetailPage() {
         status: projectData.status === "paused" ? "active" : "paused",
       });
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not update project status.");
+      showError(error instanceof Error ? error.message : "Could not update project status.");
     }
   }
 
-  async function handleDeleteProject() {
-    const confirmed = window.confirm(
-      `Delete "${projectData.name}"? This removes the project and its tasks permanently.`,
-    );
-    if (!confirmed) {
-      return;
-    }
-
+  async function handleConfirmDeleteProject() {
     try {
       await deleteProject({ projectId });
       navigate({ to: "/dashboard" });
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not delete project.");
+      showError(error instanceof Error ? error.message : "Could not delete project.");
     }
   }
 
@@ -296,25 +304,38 @@ export function ProjectDetailPage() {
                   className="min-w-[200px] rounded-xl border border-border bg-white p-1.5 shadow-[0_6px_18px_rgba(26,26,46,0.08)]"
                 >
                   <DropdownMenu.Item
-                    onSelect={() => void handleEditProjectName()}
+                    onSelect={() => {
+                      setEditNameValue(projectData.name);
+                      setShowEditNameModal(true);
+                    }}
                     className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-text-primary outline-none hover:bg-bg-subtle"
                   >
                     Edit project name
                   </DropdownMenu.Item>
                   <DropdownMenu.Item
-                    onSelect={() => void handleEditClient()}
+                    onSelect={() => {
+                      setEditClientValue(projectData.clientName);
+                      setShowEditClientModal(true);
+                    }}
                     className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-text-primary outline-none hover:bg-bg-subtle"
                   >
                     Edit client
                   </DropdownMenu.Item>
                   <DropdownMenu.Item
-                    onSelect={() => void handleAdjustTimeline()}
+                    onSelect={() => {
+                      setEditStartDate(formatDateInput(projectData.startDate));
+                      setEditEndDate(formatDateInput(projectData.endDate));
+                      setShowTimelineModal(true);
+                    }}
                     className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-text-primary outline-none hover:bg-bg-subtle"
                   >
                     Adjust timeline
                   </DropdownMenu.Item>
                   <DropdownMenu.Item
-                    onSelect={() => void handleSyncPhases()}
+                    onSelect={() => {
+                      setEditPhasesValue(projectData.phases.map((p) => p.name).join(", "));
+                      setShowPhasesModal(true);
+                    }}
                     className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-text-primary outline-none hover:bg-bg-subtle"
                   >
                     Add or remove phases
@@ -328,7 +349,7 @@ export function ProjectDetailPage() {
                   </DropdownMenu.Item>
                   <DropdownMenu.Separator className="my-1 h-px bg-border-subtle" />
                   <DropdownMenu.Item
-                    onSelect={() => void handleDeleteProject()}
+                    onSelect={() => setShowDeleteConfirm(true)}
                     className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-destructive outline-none hover:bg-destructive/5"
                   >
                     Delete project
@@ -350,9 +371,8 @@ export function ProjectDetailPage() {
                 />
                 {index < projectData.phases.length - 1 && (
                   <div
-                    className={`h-px flex-1 ${
-                      phase.status === "completed" ? "bg-accent/45" : "bg-border"
-                    }`}
+                    className={`h-px flex-1 ${phase.status === "completed" ? "bg-accent/45" : "bg-border"
+                      }`}
                   />
                 )}
               </div>
@@ -370,6 +390,12 @@ export function ProjectDetailPage() {
             </p>
           </header>
 
+          {actionError && (
+            <div className="mb-3 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-[13px] text-destructive">
+              {actionError}
+            </div>
+          )}
+
           <div>
             {currentPhase.tasks.map((task) => (
               <TaskRow
@@ -383,14 +409,55 @@ export function ProjectDetailPage() {
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={() => void handleAddTask()}
-            className="mt-4 inline-flex cursor-pointer items-center gap-2 text-[13px] text-text-tertiary transition-colors hover:text-accent"
-          >
-            <span>+</span>
-            Add a task...
-          </button>
+          {showAddTask ? (
+            <div className="mt-4 flex items-center gap-2">
+              <input
+                ref={addTaskInputRef}
+                type="text"
+                value={addTaskValue}
+                onChange={(e) => setAddTaskValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleAddTaskSubmit();
+                  if (e.key === "Escape") {
+                    setShowAddTask(false);
+                    setAddTaskValue("");
+                  }
+                }}
+                placeholder="Task title"
+                autoFocus
+                className="flex-1 rounded-lg border border-border bg-white px-3 py-2 text-[14px] text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-accent"
+              />
+              <Button
+                size="sm"
+                onClick={() => void handleAddTaskSubmit()}
+                disabled={addTaskValue.trim().length === 0}
+              >
+                Add
+              </Button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddTask(false);
+                  setAddTaskValue("");
+                }}
+                className="cursor-pointer text-[13px] text-text-secondary transition-colors hover:text-text-primary"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddTask(true);
+                setTimeout(() => addTaskInputRef.current?.focus(), 0);
+              }}
+              className="mt-4 inline-flex cursor-pointer items-center gap-2 text-[13px] text-text-tertiary transition-colors hover:text-accent"
+            >
+              <span>+</span>
+              Add a task...
+            </button>
+          )}
         </section>
       </motion.div>
 
@@ -414,14 +481,12 @@ export function ProjectDetailPage() {
                     isEnabled: !clientAccess,
                   })
                 }
-                className={`relative h-5 w-9 cursor-pointer rounded-full transition-colors ${
-                  clientAccess ? "bg-accent" : "bg-border"
-                }`}
+                className={`relative h-5 w-9 cursor-pointer rounded-full transition-colors ${clientAccess ? "bg-accent" : "bg-border"
+                  }`}
               >
                 <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${
-                    clientAccess ? "left-4.5" : "left-0.5"
-                  }`}
+                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${clientAccess ? "left-4.5" : "left-0.5"
+                    }`}
                 />
               </button>
             </div>
@@ -460,6 +525,159 @@ export function ProjectDetailPage() {
                 Done
               </Button>
             </Dialog.Close>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      {/* Edit Project Name Modal */}
+      <Dialog.Root open={showEditNameModal} onOpenChange={setShowEditNameModal}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-7">
+            <Dialog.Title className="font-heading text-[20px] font-semibold text-text-primary">
+              Edit project name
+            </Dialog.Title>
+            <div className="mt-4">
+              <input
+                type="text"
+                value={editNameValue}
+                onChange={(e) => setEditNameValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") void handleSaveProjectName(); }}
+                autoFocus
+                className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-[15px] text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-accent"
+              />
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <Dialog.Close asChild>
+                <Button variant="ghost" size="sm">Cancel</Button>
+              </Dialog.Close>
+              <Button size="sm" onClick={() => void handleSaveProjectName()} disabled={editNameValue.trim().length === 0}>Save</Button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      {/* Edit Client Modal */}
+      <Dialog.Root open={showEditClientModal} onOpenChange={setShowEditClientModal}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-7">
+            <Dialog.Title className="font-heading text-[20px] font-semibold text-text-primary">
+              Edit client
+            </Dialog.Title>
+            <div className="mt-4">
+              <input
+                type="text"
+                value={editClientValue}
+                onChange={(e) => setEditClientValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") void handleSaveClient(); }}
+                autoFocus
+                className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-[15px] text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-accent"
+              />
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <Dialog.Close asChild>
+                <Button variant="ghost" size="sm">Cancel</Button>
+              </Dialog.Close>
+              <Button size="sm" onClick={() => void handleSaveClient()} disabled={editClientValue.trim().length === 0}>Save</Button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      {/* Adjust Timeline Modal */}
+      <Dialog.Root open={showTimelineModal} onOpenChange={setShowTimelineModal}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-7">
+            <Dialog.Title className="font-heading text-[20px] font-semibold text-text-primary">
+              Adjust timeline
+            </Dialog.Title>
+            <div className="mt-4 flex gap-3">
+              <div className="flex-1">
+                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">Start date</label>
+                <input
+                  type="date"
+                  value={editStartDate}
+                  onChange={(e) => setEditStartDate(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-[14px] text-text-primary outline-none transition-colors focus:border-accent"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">End date</label>
+                <input
+                  type="date"
+                  value={editEndDate}
+                  onChange={(e) => setEditEndDate(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-[14px] text-text-primary outline-none transition-colors focus:border-accent"
+                />
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <Dialog.Close asChild>
+                <Button variant="ghost" size="sm">Cancel</Button>
+              </Dialog.Close>
+              <Button size="sm" onClick={() => void handleSaveTimeline()} disabled={!editStartDate || !editEndDate}>Save</Button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      {/* Add or Remove Phases Modal */}
+      <Dialog.Root open={showPhasesModal} onOpenChange={setShowPhasesModal}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-7">
+            <Dialog.Title className="font-heading text-[20px] font-semibold text-text-primary">
+              Add or remove phases
+            </Dialog.Title>
+            <p className="mt-1 text-[13px] text-text-secondary">
+              Enter phase names separated by commas.
+            </p>
+            <div className="mt-4">
+              <input
+                type="text"
+                value={editPhasesValue}
+                onChange={(e) => setEditPhasesValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") void handleSavePhases(); }}
+                autoFocus
+                placeholder="Strategy, Design, Development, Launch"
+                className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-[15px] text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-accent"
+              />
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <Dialog.Close asChild>
+                <Button variant="ghost" size="sm">Cancel</Button>
+              </Dialog.Close>
+              <Button size="sm" onClick={() => void handleSavePhases()} disabled={editPhasesValue.trim().length === 0}>Save</Button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      {/* Delete Project Confirmation */}
+      <Dialog.Root open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-7">
+            <Dialog.Title className="font-heading text-[20px] font-semibold text-text-primary">
+              Delete project
+            </Dialog.Title>
+            <p className="mt-2 text-[14px] text-text-secondary">
+              Delete &ldquo;{projectData.name}&rdquo;? This removes the project and its tasks permanently.
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <Dialog.Close asChild>
+                <Button variant="ghost" size="sm">Cancel</Button>
+              </Dialog.Close>
+              <Button
+                size="sm"
+                className="bg-destructive text-white hover:bg-destructive/90"
+                onClick={() => void handleConfirmDeleteProject()}
+              >
+                Delete
+              </Button>
+            </div>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
@@ -508,26 +726,22 @@ function PhaseNode({
   return (
     <button
       onClick={onClick}
-      className={`relative flex min-w-[112px] cursor-pointer flex-col items-center gap-2 rounded-[8px] px-3 py-2 transition-colors ${
-        selected && phase.status === "active" ? "bg-accent text-white" : "hover:bg-bg-subtle"
-      }`}
+      className={`relative flex min-w-[112px] cursor-pointer flex-col items-center gap-2 rounded-[8px] px-3 py-2 transition-colors ${selected && phase.status === "active" ? "bg-accent text-white" : "hover:bg-bg-subtle"
+        }`}
     >
       <span
-        className={`h-2.5 w-2.5 rounded-full ${
-          selected && phase.status === "active" ? "bg-white" : dotClass
-        }`}
+        className={`h-2.5 w-2.5 rounded-full ${selected && phase.status === "active" ? "bg-white" : dotClass
+          }`}
       />
       <span
-        className={`text-[12px] ${
-          selected && phase.status === "active" ? "text-white" : textClass
-        }`}
+        className={`text-[12px] ${selected && phase.status === "active" ? "text-white" : textClass
+          }`}
       >
         {phase.name}
       </span>
       <span
-        className={`text-[11px] ${
-          selected && phase.status === "active" ? "text-white/80" : "text-text-tertiary"
-        }`}
+        className={`text-[11px] ${selected && phase.status === "active" ? "text-white/80" : "text-text-tertiary"
+          }`}
       >
         {done} of {total}
       </span>
@@ -550,11 +764,10 @@ function TaskRow({
       <Link
         to="/project/$id/task/$taskId"
         params={{ id: projectId, taskId: task.id }}
-        className={`flex-1 text-[14px] transition-colors ${
-          task.isCompleted
+        className={`flex-1 text-[14px] transition-colors ${task.isCompleted
             ? "text-text-tertiary line-through"
             : "text-text-primary hover:text-accent"
-        }`}
+          }`}
       >
         {task.title}
       </Link>

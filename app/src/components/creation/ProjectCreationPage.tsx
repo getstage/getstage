@@ -6,7 +6,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/convex";
-import { cn, getInitials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { Avatar } from "@/components/ui/Avatar";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import type { CreateProjectInput, ProjectType } from "@/types";
 
@@ -335,9 +336,9 @@ export function ProjectCreationPage() {
       current.map((phase) =>
         phase.id === phaseId
           ? {
-              ...phase,
-              name: trimmed || "New Phase",
-            }
+            ...phase,
+            name: trimmed || "New Phase",
+          }
           : phase,
       ),
     );
@@ -402,9 +403,7 @@ export function ProjectCreationPage() {
             </button>
           </div>
 
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-border-subtle text-[13px] font-medium text-text-secondary">
-            {getInitials(user?.name ?? "SN")}
-          </div>
+          <Avatar name={user?.name ?? "User"} src={user?.avatarUrl} size="sm" />
         </nav>
 
         <div className="flex flex-1 items-center justify-center px-10">
