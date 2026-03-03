@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Check,
@@ -7,9 +7,11 @@ import {
   Plus,
   SealCheck,
 } from "@phosphor-icons/react";
+import { gsap } from "gsap";
 import { Helmet } from "react-helmet-async";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import createProjectImage from "@/assets/landing-images/create-project.webp";
+import heroBgImage from "@/assets/landing-images/hero-bg.webp";
 import demoImage from "@/assets/landing-images/demo.webp";
 import phaseManagementImage from "@/assets/landing-images/phase-management.webp";
 import timelineOverviewImage from "@/assets/landing-images/timeline-overview.webp";
@@ -134,7 +136,7 @@ export function LandingPage() {
           <div className="landing-container">
             <Link to="/auth" className="landing-hero-badge" aria-label="Go to login">
               <span className="landing-hero-badge-pill">NEW</span>
-              <span className="landing-hero-badge-text">Built for creative professionals</span>
+              <span className="landing-hero-badge-text">Just launched v1</span>
               <span className="landing-hero-badge-arrow" aria-hidden="true">
                 ›
               </span>
@@ -153,51 +155,15 @@ export function LandingPage() {
               </a>
             </div>
           </div>
+        </section>
 
-          <div className="landing-hero-visual">
-            <svg
-              className="landing-hero-gradient"
-              viewBox="0 0 1440 420"
-              preserveAspectRatio="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <defs>
-                <linearGradient id="lg1" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#E8E0FF" />
-                  <stop offset="100%" stopColor="#D8E8FF" />
-                </linearGradient>
-                <linearGradient id="lg2" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#C8BFFD" />
-                  <stop offset="100%" stopColor="#A8CBF0" />
-                </linearGradient>
-                <linearGradient id="lg3" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#9B8AF7" />
-                  <stop offset="50%" stopColor="#8B83F5" />
-                  <stop offset="100%" stopColor="#6DB4E8" />
-                </linearGradient>
-                <linearGradient id="lg4" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#7B72E8" />
-                  <stop offset="100%" stopColor="#4A9EDE" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M0,140 C120,60 280,200 480,100 C680,0 800,180 1000,100 C1160,40 1340,160 1440,120 L1440,420 L0,420 Z"
-                fill="url(#lg1)"
-              />
-              <path
-                d="M0,220 C140,160 320,300 520,200 C720,100 880,260 1080,180 C1240,120 1380,240 1440,200 L1440,420 L0,420 Z"
-                fill="url(#lg2)"
-              />
-              <path
-                d="M0,290 C160,230 340,360 540,270 C740,180 900,320 1100,250 C1260,200 1380,300 1440,270 L1440,420 L0,420 Z"
-                fill="url(#lg3)"
-              />
-              <path
-                d="M0,350 C140,310 320,400 520,340 C720,280 900,380 1100,320 C1280,270 1400,360 1440,340 L1440,420 L0,420 Z"
-                fill="url(#lg4)"
-              />
-            </svg>
-
+        <section className="landing-hero-demo-section" aria-label="Stage demo">
+          <div
+            className="landing-hero-demo-bg"
+            style={{ backgroundImage: `url(${heroBgImage})` }}
+            aria-hidden="true"
+          />
+          <div className="landing-container landing-hero-demo-wrap">
             <div className="landing-hero-mockup">
               <img
                 src={demoImage}
@@ -309,10 +275,12 @@ export function LandingPage() {
                 <SmallFeatureCard
                   title="Privacy-first"
                   description="Your data stays yours. No selling, no tracking, no ads. GDPR-compliant by default."
+                  mockup={<PrivacyMockup />}
                 />
                 <SmallFeatureCard
                   title="Integrations"
                   description="Connect with Stripe today. Figma, Notion, and Slack coming soon."
+                  mockup={<IntegrationsMockup />}
                 />
               </div>
             </div>
@@ -683,6 +651,232 @@ function PaymentMockup() {
                 {payment.status === "paid" ? "Paid" : "Pending"}
               </span>
             </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const INTEGRATION_ICONS = [
+  { src: new URL("../../assets/icons/stripe.svg", import.meta.url).href, name: "Stripe" },
+  { src: new URL("../../assets/icons/figma.svg", import.meta.url).href, name: "Figma" },
+  { src: new URL("../../assets/icons/notion.svg", import.meta.url).href, name: "Notion" },
+  { src: new URL("../../assets/icons/slack.svg", import.meta.url).href, name: "Slack" },
+] as const;
+
+function PrivacyMockup() {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const pulseRef = useRef<HTMLSpanElement | null>(null);
+  const rowRefs = useRef<Array<HTMLDivElement | null>>([]);
+
+  useEffect(() => {
+    const rows = rowRefs.current.filter((row): row is HTMLDivElement => row !== null);
+    if (rows.length === 0) {
+      return;
+    }
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      return () => {
+        rows.forEach((row) => gsap.killTweensOf(row));
+        if (pulseRef.current) {
+          gsap.killTweensOf(pulseRef.current);
+        }
+      };
+    }
+
+    const pulseTween = pulseRef.current
+      ? gsap.to(pulseRef.current, {
+          scale: 1.18,
+          opacity: 0.28,
+          duration: 1.05,
+          repeat: -1,
+          yoyo: true,
+          ease: "sine.inOut",
+        })
+      : null;
+
+    const rowTimeline = gsap.timeline({
+      repeat: -1,
+      repeatDelay: 0.18,
+    });
+
+    rows.forEach((row, index) => {
+      const at = index * 0.48;
+      rowTimeline
+        .to(
+          row,
+          {
+            backgroundColor: "rgba(238, 237, 254, 0.82)",
+            borderColor: "rgba(135, 130, 245, 0.28)",
+            duration: 0.32,
+            ease: "power2.out",
+          },
+          at,
+        )
+        .to(
+          row,
+          {
+            backgroundColor: "rgba(255, 255, 255, 0.9)",
+            borderColor: "rgba(232, 232, 232, 1)",
+            duration: 0.3,
+            ease: "power2.inOut",
+          },
+          at + 0.33,
+        );
+    });
+
+    return () => {
+      rowTimeline.kill();
+      pulseTween?.kill();
+      rows.forEach((row) => gsap.killTweensOf(row));
+      if (pulseRef.current) {
+        gsap.killTweensOf(pulseRef.current);
+      }
+    };
+  }, []);
+
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    const root = rootRef.current;
+    if (!root) {
+      return;
+    }
+
+    const bounds = root.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+
+    gsap.to(root, {
+      rotateY: x * 6,
+      rotateX: -y * 6,
+      duration: 0.22,
+      ease: "power2.out",
+      transformPerspective: 700,
+      transformOrigin: "center",
+      overwrite: true,
+    });
+  };
+
+  const handleMouseLeave = () => {
+    if (!rootRef.current) {
+      return;
+    }
+
+    gsap.to(rootRef.current, {
+      rotateX: 0,
+      rotateY: 0,
+      duration: 0.3,
+      ease: "power3.out",
+      overwrite: true,
+    });
+  };
+
+  return (
+    <div
+      className="landing-privacy-mockup"
+      ref={rootRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      aria-hidden="true"
+    >
+      <div className="landing-privacy-head">
+        <div className="landing-privacy-core">
+          <span ref={pulseRef} className="landing-privacy-core-pulse" />
+          <span className="landing-privacy-core-dot" />
+        </div>
+        <div className="landing-privacy-head-copy">
+          <span className="landing-privacy-head-title">Private mode</span>
+          <span className="landing-privacy-head-status">Always on</span>
+        </div>
+      </div>
+      <div className="landing-privacy-rows">
+        {[
+          "Encrypted project data",
+          "No ad tracking scripts",
+          "GDPR-compliant sharing",
+        ].map((label, index) => (
+          <div
+            key={label}
+            className="landing-privacy-row"
+            ref={(element) => {
+              rowRefs.current[index] = element;
+            }}
+          >
+            <span className="landing-privacy-row-dot" />
+            <span className="landing-privacy-row-label">{label}</span>
+            <span className="landing-privacy-row-track">
+              <span />
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function IntegrationsMockup() {
+  const iconRefs = useRef<Array<HTMLDivElement | null>>([]);
+
+  useEffect(() => {
+    const icons = iconRefs.current.filter((icon): icon is HTMLDivElement => icon !== null);
+    if (icons.length === 0) {
+      return;
+    }
+
+    const highlightByIndex = (activeIndex: number, duration: number) => {
+      icons.forEach((icon, iconIndex) => {
+        const isActive = iconIndex === activeIndex;
+        gsap.to(icon, {
+          y: isActive ? -7 : 0,
+          scale: isActive ? 1.1 : 1,
+          borderColor: isActive ? "rgba(135, 130, 245, 0.36)" : "rgba(232, 232, 232, 1)",
+          boxShadow: isActive
+            ? "0 12px 26px rgba(135, 130, 245, 0.2)"
+            : "0 6px 14px rgba(26, 26, 46, 0.08)",
+          duration,
+          ease: "power2.out",
+          overwrite: true,
+        });
+      });
+    };
+
+    highlightByIndex(0, 0);
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return () => {
+        icons.forEach((icon) => gsap.killTweensOf(icon));
+      };
+    }
+
+    let loopTween: gsap.core.Tween | null = null;
+    let activeIndex = 0;
+    const runCycle = () => {
+      activeIndex = (activeIndex + 1) % icons.length;
+      highlightByIndex(activeIndex, 0.45);
+      loopTween = gsap.delayedCall(1.9, runCycle);
+    };
+
+    loopTween = gsap.delayedCall(1.2, runCycle);
+
+    return () => {
+      loopTween?.kill();
+      icons.forEach((icon) => gsap.killTweensOf(icon));
+    };
+  }, []);
+
+  return (
+    <div className="landing-integrations-orbit" aria-hidden="true">
+      <div className="landing-integrations-track">
+        {INTEGRATION_ICONS.map((icon, index) => (
+          <div
+            key={icon.name}
+            className="landing-integration-chip"
+            ref={(element) => {
+              iconRefs.current[index] = element;
+            }}
+          >
+            <img src={icon.src} alt="" />
           </div>
         ))}
       </div>
