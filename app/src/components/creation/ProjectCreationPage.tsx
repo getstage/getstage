@@ -97,6 +97,9 @@ const AI_ROADMAPS: Record<ProjectType, RoadmapItem[]> = {
 };
 
 const transition = { duration: 0.2, ease: "easeInOut" } as const;
+const CREATION_PREVIEW_PROJECT_NAME = "Website redesign";
+const CREATION_PREVIEW_CLIENT_NAME = "Acme Studio";
+const CREATION_PREVIEW_TYPES = PROJECT_TYPES.slice(0, 3);
 
 export function ProjectCreationPage() {
   const navigate = useNavigate();
@@ -889,6 +892,111 @@ export function ProjectCreationPage() {
         </footer>
       </div>
     </>
+  );
+}
+
+export function ProjectCreationAnimatedPreview({ className }: { className?: string }) {
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setTick((value) => (value + 1) % 42);
+    }, 140);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  const projectLength = Math.min(
+    CREATION_PREVIEW_PROJECT_NAME.length,
+    Math.max(0, (tick - 2) * 2),
+  );
+  const clientLength = Math.min(
+    CREATION_PREVIEW_CLIENT_NAME.length,
+    Math.max(0, (tick - 11) * 2),
+  );
+  const selectedTypeIndex =
+    tick < 20 ? -1 : tick < 24 ? 0 : tick < 28 ? 1 : tick < 32 ? 2 : 2;
+  const isSubmitting = tick >= 32 && tick < 37;
+  const isSubmitted = tick >= 37;
+
+  return (
+    <div className={cn("pointer-events-none w-full", className)} aria-hidden>
+      <StepCard>
+        <div className="mx-auto w-full max-w-[312px]">
+          <h2 className="mb-2 text-center font-heading text-[24px] font-semibold tracking-[-0.4px] text-text-primary">
+            New project
+          </h2>
+          <p className="mb-6 text-center text-[15px] leading-[1.5] text-text-secondary">
+            Let&apos;s set it up. This only takes a minute.
+          </p>
+
+          <div className="mb-3">
+            <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+              Project name
+            </label>
+            <div className="relative">
+              <input
+                value={
+                  projectLength > 0
+                    ? CREATION_PREVIEW_PROJECT_NAME.slice(0, projectLength)
+                    : ""
+                }
+                readOnly
+                placeholder={CREATION_PREVIEW_PROJECT_NAME}
+                className="w-full rounded-[10px] border border-transparent bg-input-bg px-4 py-3 text-[15px] text-text-primary outline-none placeholder:text-text-tertiary"
+              />
+              {tick >= 2 && tick < 11 ? (
+                <span className="landing-step-project-caret absolute left-[22px] top-1/2 -translate-y-1/2" />
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+              Client
+            </label>
+            <div className="relative">
+              <input
+                value={
+                  clientLength > 0
+                    ? CREATION_PREVIEW_CLIENT_NAME.slice(0, clientLength)
+                    : ""
+                }
+                readOnly
+                placeholder={CREATION_PREVIEW_CLIENT_NAME}
+                className="w-full rounded-[10px] border border-transparent bg-input-bg px-4 py-3 text-[15px] text-text-primary outline-none placeholder:text-text-tertiary"
+              />
+              {tick >= 11 && tick < 20 ? (
+                <span className="landing-step-project-caret absolute left-[22px] top-1/2 -translate-y-1/2" />
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mb-6 grid grid-cols-3 gap-2">
+            {CREATION_PREVIEW_TYPES.map((typeOption, index) => (
+              <button
+                key={typeOption.value}
+                type="button"
+                tabIndex={-1}
+                className={cn(
+                  "rounded-[10px] border-[1.5px] px-2 py-2 text-center text-[12px] font-medium transition-all duration-150",
+                  selectedTypeIndex === index
+                    ? "border-accent bg-[rgba(135,130,245,0.08)] text-accent"
+                    : "border-transparent bg-input-bg text-text-primary",
+                )}
+              >
+                {typeOption.label}
+              </button>
+            ))}
+          </div>
+
+          <PrimaryButton
+            label={isSubmitted ? "Project created" : isSubmitting ? "Creating..." : "Continue"}
+            disabled={false}
+            onClick={() => undefined}
+          />
+        </div>
+      </StepCard>
+    </div>
   );
 }
 

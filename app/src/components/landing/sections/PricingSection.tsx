@@ -1,36 +1,6 @@
-import type { Icon } from "@phosphor-icons/react";
-import {
-  ArrowRight,
-  ChartLineUp,
-  ChartPieSlice,
-  CurrencyCircleDollar,
-  DownloadSimple,
-  Folders,
-  Lifebuoy,
-  ListChecks,
-  PlugsConnected,
-  ShareNetwork,
-  ShieldCheck,
-  Sparkle,
-} from "@phosphor-icons/react";
+import { ArrowRight, Check } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { INTEGRATION_ICONS, PRICING_FEATURES } from "./data";
-
-type PricingFeatureKey = (typeof PRICING_FEATURES)[number]["key"];
-
-const PRICING_FEATURE_ICON_MAP: Record<PricingFeatureKey, Icon> = {
-  "unlimited-projects": Folders,
-  "ai-roadmaps": Sparkle,
-  "timeline-overview": ChartLineUp,
-  "phase-management": ListChecks,
-  "client-portal": ShareNetwork,
-  "stripe-tracking": CurrencyCircleDollar,
-  "revenue-insights": ChartPieSlice,
-  "privacy-first": ShieldCheck,
-  "data-exports": DownloadSimple,
-  "priority-support": Lifebuoy,
-  integrations: PlugsConnected,
-};
 
 export function PricingSection() {
   return (
@@ -57,57 +27,35 @@ export function PricingSection() {
         <div className="landing-pricing-lattice-row landing-pricing-lattice-row-content">
           <div className="landing-pricing-lattice-cell" aria-hidden="true" />
 
-          <article className="landing-pricing-grid-card is-overview">
-            <div className="landing-pricing-grid-card-head">
+          <article className="landing-pricing-grid-cell">
+            <div className="landing-pricing-plan-head">
               <div className="landing-pricing-plan-row">
-                <h3 className="landing-feature-cell-title landing-pricing-plan-title">Pro</h3>
-                <span className="landing-pricing-plan-tag">Yearly billing</span>
+                <h3 className="landing-feature-cell-title landing-pricing-plan-title">Professional</h3>
+                <span className="landing-pricing-plan-tag">Most Popular</span>
               </div>
               <p className="landing-feature-cell-desc landing-pricing-plan-description">
-                Built for freelancers and studios who want clarity across every project.
+                Full Stage workflow for freelancers and studios, with all features and integrations.
               </p>
             </div>
 
             <div className="landing-pricing-price-block">
               <div className="landing-pricing-price-line">
-                <span className="landing-pricing-price-amount">$108</span>
-                <span className="landing-pricing-price-period">/year</span>
+                <span className="landing-pricing-price-amount">$9</span>
               </div>
-              <p className="landing-pricing-price-note">$9/month equivalent, billed once yearly.</p>
-            </div>
-
-            <Link to="/auth" className="landing-btn landing-btn-cta landing-pricing-grid-cta">
-              Start with Pro
-              <ArrowRight size={16} weight="bold" />
-            </Link>
-
-            <p className="landing-pricing-renewal-note">
-              Cancel or switch to free before renewal. No long-term lock-in.
-            </p>
-          </article>
-
-          <article className="landing-pricing-grid-card is-features">
-            <div className="landing-pricing-grid-card-head">
-              <h3 className="landing-feature-cell-title landing-pricing-features-title">
-                Everything included
-              </h3>
-              <p className="landing-feature-cell-desc landing-pricing-features-description">
-                Every feature in one plan, with integrations ready from day one.
+              <p className="landing-pricing-price-period">Per month</p>
+              <p className="landing-pricing-price-note">
+                Yearly billing. Charged once as $108/year.
               </p>
             </div>
 
             <ul className="landing-pricing-feature-list">
               {PRICING_FEATURES.map((feature) => {
-                const FeatureIcon = PRICING_FEATURE_ICON_MAP[feature.key];
                 const isIntegrations = feature.key === "integrations";
 
                 return (
-                  <li
-                    key={feature.key}
-                    className={`landing-pricing-feature-item ${isIntegrations ? "is-integrations" : ""}`}
-                  >
+                  <li key={feature.key} className="landing-pricing-feature-item">
                     <span className="landing-pricing-feature-icon" aria-hidden="true">
-                      <FeatureIcon size={17} weight="duotone" />
+                      <Check size={15} weight="bold" />
                     </span>
                     <span className="landing-pricing-feature-text">{feature.label}</span>
                     {isIntegrations ? (
@@ -127,6 +75,11 @@ export function PricingSection() {
                 );
               })}
             </ul>
+
+            <Link to="/auth" className="landing-btn landing-btn-cta landing-pricing-grid-cta">
+              Start 7-day free trial
+              <ArrowRight size={16} weight="bold" />
+            </Link>
           </article>
 
           <div className="landing-pricing-lattice-cell" aria-hidden="true" />

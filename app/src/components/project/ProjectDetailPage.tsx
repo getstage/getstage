@@ -291,6 +291,104 @@ export function ProjectDetailPage() {
   );
 }
 
+type ProjectDetailPhaseRailPreviewProps = {
+  phaseAdded: boolean;
+};
+
+export function ProjectDetailPhaseRailPreview({ phaseAdded }: ProjectDetailPhaseRailPreviewProps) {
+  const phases = useMemo<Phase[]>(() => {
+    const baseTasks = (phaseId: string, taskDefs: Array<{ id: string; done: boolean }>): Task[] =>
+      taskDefs.map((task, index) => ({
+        id: `${phaseId}-${task.id}`,
+        phaseId,
+        title: task.id,
+        isCompleted: task.done,
+        attachments: [],
+        order: index,
+        createdAt: Date.now() - 10_000,
+        updatedAt: Date.now() - 5_000,
+      }));
+
+    const preview: Phase[] = [
+      {
+        id: "landing-discovery",
+        projectId: "landing-project",
+        name: "Discovery",
+        order: 0,
+        status: "completed",
+        progress: 100,
+        tasks: baseTasks("landing-discovery", [
+          { id: "kickoff", done: true },
+          { id: "scope", done: true },
+        ]),
+      },
+      {
+        id: "landing-design",
+        projectId: "landing-project",
+        name: "Design",
+        order: 1,
+        status: phaseAdded ? "completed" : "active",
+        progress: phaseAdded ? 100 : 50,
+        tasks: baseTasks("landing-design", [
+          { id: "wireframes", done: true },
+          { id: "layouts", done: !phaseAdded },
+        ]),
+      },
+    ];
+
+    if (phaseAdded) {
+      preview.push({
+        id: "landing-qa",
+        projectId: "landing-project",
+        name: "QA",
+        order: 2,
+        status: "active",
+        progress: 35,
+        tasks: baseTasks("landing-qa", [
+          { id: "review", done: false },
+          { id: "handoff", done: false },
+        ]),
+      });
+    }
+
+    return preview;
+  }, [phaseAdded]);
+
+  const selectedId = phaseAdded ? "landing-qa" : "landing-design";
+
+  return (
+    <div className="w-full" aria-hidden>
+      <div className="mx-auto flex max-w-[360px] items-center">
+        {phases.map((phase, index) => (
+          <div key={phase.id} className="flex flex-1 items-center">
+            <PhaseNode phase={phase} selected={selectedId === phase.id} onClick={() => {}} />
+            {index < phases.length - 1 && (
+              <div
+                className={`h-px flex-1 ${
+                  phase.status === "completed" ? "bg-accent/45" : "bg-border"
+                }`}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-2 flex items-center justify-center">
+        <button
+          type="button"
+          tabIndex={-1}
+          className={`inline-flex items-center gap-2 text-[13px] transition-colors ${
+            phaseAdded ? "text-accent" : "text-text-tertiary"
+          }`}
+        >
+          <span>+</span>
+          {phaseAdded ? "QA phase added" : "Add phase"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function PhaseNode({
   phase,
   selected,

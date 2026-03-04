@@ -1,8 +1,9 @@
-import { Plus } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ProjectCreationAnimatedPreview } from "@/components/creation/ProjectCreationPage";
+import { DashboardPaymentsPreview } from "@/components/dashboard/DashboardPage";
 import { Timeline, type TimelineHorizon } from "@/components/dashboard/Timeline";
-import { Checkbox } from "@/components/ui/Checkbox";
-import { cn } from "@/lib/utils";
+import { ProjectDetailPhaseRailPreview } from "@/components/project/ProjectDetailPage";
+import { TaskDetailChecklistPreview } from "@/components/task/TaskDetailPage";
 import type { Phase, Project, Task } from "@/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -13,10 +14,7 @@ const PREVIEW_AVATARS = {
   arc: "https://randomuser.me/api/portraits/men/52.jpg",
   pine: "https://randomuser.me/api/portraits/women/24.jpg",
 } as const;
-const TIMELINE_PREVIEW_PROJECTS = createTimelinePreviewProjects();
-const TIMELINE_INTERACTIVE_PREVIEW_PROJECTS = TIMELINE_PREVIEW_PROJECTS.filter((project) =>
-  ["landing-project-website", "landing-project-pine", "landing-project-arc"].includes(project.id),
-);
+const TIMELINE_INTERACTIVE_PREVIEW_PROJECTS = createTimelineInteractivePreviewProjects();
 
 const STEPS: Array<{
   number: string;
@@ -28,13 +26,13 @@ const STEPS: Array<{
     number: "1",
     title: "Create a project",
     description: "Name your client, pick a project type, and you're in.",
-    showcase: <ProjectCreationPreview />,
+    showcase: <ProjectCreationAnimatedPreview className="landing-step-project-preview" />,
   },
   {
     number: "2",
     title: "Track progress",
     description: "Add phases, check off tasks, connect Stripe for payments.",
-    showcase: <TimelineTooltipPreview />,
+    showcase: <ProjectWorkflowPreview />,
   },
   {
     number: "3",
@@ -109,113 +107,20 @@ function StepCard({
   );
 }
 
-function ProjectCreationPreview() {
-  const cycle = useLoopTick(42, 170);
-  const projectName = "Website redesign";
-  const clientName = "Acme Studio";
-  const projectLength = Math.min(projectName.length, Math.max(0, (cycle - 2) * 2));
-  const clientLength = Math.min(clientName.length, Math.max(0, (cycle - 12) * 2));
-  const selectedTypeIndex =
-    cycle < 20 ? -1 : cycle < 24 ? 0 : cycle < 28 ? 1 : 2;
-  const isSubmitting = cycle >= 30 && cycle < 36;
-  const isSubmitted = cycle >= 36;
-
-  return (
-    <div className="landing-step-project-preview" aria-hidden="true">
-      <div className="landing-step-project-card">
-        <h4 className="landing-step-project-title">New project</h4>
-        <p className="landing-step-project-subtitle">Let&apos;s set it up. This only takes a minute.</p>
-
-        <div className="landing-step-project-field">
-          <span className="landing-step-project-label">Project name</span>
-          <div className="landing-step-project-input">
-            <span className={cn(!projectLength && "text-text-tertiary")}>
-              {projectLength ? projectName.slice(0, projectLength) : "Website redesign"}
-            </span>
-            {cycle >= 2 && cycle < 12 ? <span className="landing-step-project-caret" /> : null}
-          </div>
-        </div>
-
-        <div className="landing-step-project-field">
-          <span className="landing-step-project-label">Client</span>
-          <div className="landing-step-project-input">
-            <span className={cn(!clientLength && "text-text-tertiary")}>
-              {clientLength ? clientName.slice(0, clientLength) : "Acme Studio"}
-            </span>
-            {cycle >= 12 && cycle < 20 ? <span className="landing-step-project-caret" /> : null}
-          </div>
-        </div>
-
-        <div className="landing-step-project-types">
-          {["Branding", "Web Design", "App Design"].map((typeName, index) => (
-            <span
-              key={typeName}
-              className={cn(
-                "landing-step-project-type",
-                selectedTypeIndex === index ? "is-selected" : "",
-              )}
-            >
-              {typeName}
-            </span>
-          ))}
-        </div>
-
-        <button
-          type="button"
-          className={cn(
-            "landing-step-project-button",
-            (isSubmitting || isSubmitted) && "is-submitting",
-            isSubmitted && "is-submitted",
-          )}
-          disabled
-        >
-          {isSubmitted ? "Project created" : isSubmitting ? "Creating..." : "Continue"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function TimelineTooltipPreview() {
-  const cycle = useLoopTick(28, 220);
+function ProjectWorkflowPreview() {
+  const cycle = useLoopTick(30, 210);
   const phaseAdded = cycle >= 8;
-  const firstTaskChecked = cycle >= 14;
-  const secondTaskChecked = cycle >= 20;
-  const phases = phaseAdded
-    ? [
-        { name: "Discovery", status: "completed" as const, done: "3 of 3" },
-        { name: "Design", status: "completed" as const, done: "2 of 2" },
-        { name: "QA", status: "active" as const, done: "1 of 2" },
-      ]
-    : [
-        { name: "Discovery", status: "completed" as const, done: "3 of 3" },
-        { name: "Design", status: "active" as const, done: "1 of 2" },
-      ];
+  const firstTaskChecked = cycle >= 15;
+  const secondTaskChecked = cycle >= 22;
 
   return (
     <div className="landing-step-progress-preview" aria-hidden="true">
-      <div className="landing-step-progress-phases">
-        {phases.map((phase, index) => (
-          <div key={phase.name} className="landing-step-progress-phase-wrap">
-            <MiniPhaseNode
-              name={phase.name}
-              status={phase.status}
-              done={phase.done}
-              selected={phase.status === "active"}
-            />
-            {index < phases.length - 1 ? <span className="landing-step-progress-phase-link" /> : null}
-          </div>
-        ))}
-      </div>
-
-      <div className={cn("landing-step-progress-add", phaseAdded && "is-added")}>
-        <Plus size={11} weight="bold" />
-        {phaseAdded ? "QA phase added" : "Add phase"}
-      </div>
-
-      <div className="landing-step-progress-tasks">
-        <MiniTaskRow label="Homepage wireframes" checked={firstTaskChecked} />
-        <MiniTaskRow label="Payment flow revision" checked={secondTaskChecked} />
+      <ProjectDetailPhaseRailPreview phaseAdded={phaseAdded} />
+      <div className="landing-step-progress-task-preview">
+        <TaskDetailChecklistPreview
+          firstChecked={firstTaskChecked}
+          secondChecked={secondTaskChecked}
+        />
       </div>
     </div>
   );
@@ -248,6 +153,7 @@ function AutoHoverTimelinePreview({
 }) {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const revenueRef = useRef<HTMLDivElement | null>(null);
+  const [timelineRenderKey, setTimelineRenderKey] = useState(0);
   const [revenueZoomed, setRevenueZoomed] = useState(false);
   const [cursor, setCursor] = useState({
     x: 0,
@@ -307,7 +213,7 @@ function AutoHoverTimelinePreview({
 
       schedule(() => {
         // Cursor tip sits around (3,2) in a 24x24 icon.
-        setCursor({ x: targetX - 3, y: targetY - 2, visible: true, active: true });
+        setCursor({ x: targetX - 3, y: targetY + 2, visible: true, active: true });
         marker.dispatchEvent(new MouseEvent("mouseover", { bubbles: true, clientX, clientY }));
         marker.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX, clientY }));
       }, 220);
@@ -325,17 +231,19 @@ function AutoHoverTimelinePreview({
           const revenueBounds = revenue.getBoundingClientRect();
           const revenueX = revenueBounds.left + revenueBounds.width / 2 - stageBounds.left;
           const revenueY = revenueBounds.top + revenueBounds.height / 2 - stageBounds.top;
-          setCursor({ x: revenueX - 3, y: revenueY - 2, visible: true, active: true });
+          setCursor({ x: revenueX - 3, y: revenueY + 2, visible: true, active: true });
           setRevenueZoomed(true);
         }, cycleMs - 760);
 
         schedule(() => {
           setRevenueZoomed(false);
           setCursor((current) => ({ ...current, active: false }));
+          setTimelineRenderKey((value) => value + 1);
         }, cycleMs - 300);
       } else {
         schedule(() => {
           setCursor((current) => ({ ...current, active: false }));
+          setTimelineRenderKey((value) => value + 1);
         }, cycleMs - 380);
       }
 
@@ -353,16 +261,15 @@ function AutoHoverTimelinePreview({
   return (
     <div className={["landing-step-timeline-preview", className ?? ""].filter(Boolean).join(" ")}>
       <div ref={stageRef} className="landing-step-timeline-demo-stage">
-        <Timeline projects={projects} horizon={horizon} />
+        <Timeline key={timelineRenderKey} projects={projects} horizon={horizon} />
       </div>
       {showRevenue ? (
         <div
           ref={revenueRef}
-          className={cn("landing-step-revenue-zoom", revenueZoomed && "is-zoomed")}
+          className="landing-step-revenue-zoom"
           aria-hidden="true"
         >
-          <span className="landing-step-revenue-label">Revenue</span>
-          <span className="landing-step-revenue-value">$18.4k</span>
+          <DashboardPaymentsPreview zoomed={revenueZoomed} />
         </div>
       ) : null}
       <div
@@ -380,51 +287,6 @@ function AutoHoverTimelinePreview({
           <path d="M3 2 L3 20 L8.4 14.5 L12.1 21 L15.4 19.1 L11.7 12.8 L19.5 12.8 Z" />
         </svg>
       </div>
-    </div>
-  );
-}
-
-function MiniPhaseNode({
-  name,
-  status,
-  done,
-  selected,
-}: {
-  name: string;
-  status: "completed" | "active";
-  done: string;
-  selected: boolean;
-}) {
-  const dotClass = status === "completed" ? "bg-text-tertiary" : "bg-accent";
-
-  return (
-    <div
-      className={cn(
-        "relative flex min-w-[82px] flex-col items-center gap-1.5 rounded-[8px] px-2 py-1.5",
-        selected ? "bg-accent text-white" : "",
-      )}
-    >
-      <span className={cn("h-2 w-2 rounded-full", selected ? "bg-white" : dotClass)} />
-      <span className={cn("text-[11px]", selected ? "text-white" : "text-text-primary")}>{name}</span>
-      <span className={cn("text-[10px]", selected ? "text-white/80" : "text-text-tertiary")}>
-        {done}
-      </span>
-    </div>
-  );
-}
-
-function MiniTaskRow({ label, checked }: { label: string; checked: boolean }) {
-  return (
-    <div className="flex items-center gap-2 border-t border-border-subtle px-1 py-2 first:border-t-0">
-      <Checkbox checked={checked} onCheckedChange={() => {}} disabled />
-      <span
-        className={cn(
-          "text-[13px] transition-colors",
-          checked ? "text-text-tertiary line-through" : "text-text-primary",
-        )}
-      >
-        {label}
-      </span>
     </div>
   );
 }
@@ -707,6 +569,38 @@ function createTimelinePreviewProjects(): Project[] {
       ]),
       progress: 65,
       createdAt: baseCreatedAt + 4 * DAY_MS,
+    },
+  ];
+}
+
+function createTimelineInteractivePreviewProjects(): Project[] {
+  const source = createTimelinePreviewProjects();
+  const byId = new Map(source.map((project) => [project.id, project]));
+  const now = Date.now();
+
+  const website = byId.get("landing-project-website");
+  const pine = byId.get("landing-project-pine");
+  const arc = byId.get("landing-project-arc");
+
+  if (!website || !pine || !arc) {
+    return source.slice(0, 3);
+  }
+
+  return [
+    {
+      ...website,
+      startDate: now - 210 * DAY_MS,
+      endDate: now - 140 * DAY_MS,
+    },
+    {
+      ...pine,
+      startDate: now - 70 * DAY_MS,
+      endDate: now + 6 * DAY_MS,
+    },
+    {
+      ...arc,
+      startDate: now + 40 * DAY_MS,
+      endDate: now + 145 * DAY_MS,
     },
   ];
 }

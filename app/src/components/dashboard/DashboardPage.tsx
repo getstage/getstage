@@ -9,6 +9,24 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 import { Timeline, TimelineSkeleton, type TimelineHorizon } from "@/components/dashboard/Timeline";
 
+const DASHBOARD_PREVIEW_PAYMENT_ROWS = [
+  {
+    name: "Acme Studio",
+    avatarUrl: "https://randomuser.me/api/portraits/women/44.jpg",
+    amount: 4500,
+  },
+  {
+    name: "Arc Health",
+    avatarUrl: "https://randomuser.me/api/portraits/men/52.jpg",
+    amount: 3200,
+  },
+  {
+    name: "Pine Media",
+    avatarUrl: "https://randomuser.me/api/portraits/women/24.jpg",
+    amount: 1900,
+  },
+] as const;
+
 export function DashboardPage() {
   const [timelineHorizon, setTimelineHorizon] = useState<TimelineHorizon>("this-month");
   const dockItemRefs = useRef<Array<HTMLAnchorElement | null>>([]);
@@ -367,6 +385,106 @@ export function DashboardPage() {
         )}
       </div>
     </>
+  );
+}
+
+export function DashboardPaymentsPreview({
+  className,
+  zoomed = false,
+}: {
+  className?: string;
+  zoomed?: boolean;
+}) {
+  const receivedTotal = DASHBOARD_PREVIEW_PAYMENT_ROWS.reduce((sum, row) => sum + row.amount, 0);
+  const outstandingTotal = Math.round(receivedTotal * 0.5);
+  const outstandingDisplay = formatCurrencyDisplay(outstandingTotal);
+  const receivedDisplay = formatCurrencyDisplay(receivedTotal);
+  const pendingDisplay = formatCurrencyDisplay(outstandingTotal);
+
+  return (
+    <div
+      className={[
+        "landing-step-dashboard-payments-preview",
+        zoomed ? "is-zoomed" : "",
+        className ?? "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      aria-hidden
+    >
+      <InfoCard title="Payments">
+        <div className="grid gap-5 md:grid-cols-[minmax(240px,0.95fr)_minmax(0,1.35fr)_minmax(128px,auto)] md:items-start">
+          <div className="grid min-w-0 grid-cols-2 gap-5 md:pr-3">
+            <div className="min-w-0">
+              <p className="text-[12px] text-text-secondary">Outstanding</p>
+              <p
+                className="mt-1 font-heading text-[18px] leading-none font-semibold whitespace-nowrap tabular-nums text-text-primary"
+                title={outstandingDisplay.isCompact ? outstandingDisplay.full : undefined}
+                aria-label={outstandingDisplay.isCompact ? outstandingDisplay.full : undefined}
+              >
+                {outstandingDisplay.short}
+              </p>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[12px] text-text-secondary">Received</p>
+              <p
+                className="mt-1 font-heading text-[18px] leading-none font-semibold whitespace-nowrap tabular-nums text-accent"
+                title={receivedDisplay.isCompact ? receivedDisplay.full : undefined}
+                aria-label={receivedDisplay.isCompact ? receivedDisplay.full : undefined}
+              >
+                {receivedDisplay.short}
+              </p>
+            </div>
+          </div>
+
+          <div className="min-w-0 space-y-2 border-t border-border-subtle pt-3 md:border-t-0 md:border-l md:pl-5 md:pt-0">
+            {DASHBOARD_PREVIEW_PAYMENT_ROWS.map((row) => (
+              <div key={row.name} className="flex items-center gap-2 text-[13px]">
+                <div className="h-5 w-5 overflow-hidden rounded-full bg-input-bg">
+                  <img
+                    src={row.avatarUrl}
+                    alt={row.name}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <span className="truncate text-text-primary">{row.name}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="min-w-0 space-y-2 text-left md:text-right">
+            {DASHBOARD_PREVIEW_PAYMENT_ROWS.map((row) => {
+              const rowAmountDisplay = formatCurrencyDisplay(row.amount);
+              return (
+                <div
+                  key={`${row.name}-${row.amount}`}
+                  className="flex items-center gap-1.5 text-[13px] md:justify-end"
+                >
+                  <Check size={11} weight="bold" aria-hidden="true" className="text-accent" />
+                  <span
+                    className="font-medium whitespace-nowrap tabular-nums text-accent"
+                    title={rowAmountDisplay.isCompact ? rowAmountDisplay.full : undefined}
+                    aria-label={rowAmountDisplay.isCompact ? rowAmountDisplay.full : undefined}
+                  >
+                    {rowAmountDisplay.short}
+                  </span>
+                </div>
+              );
+            })}
+            <p className="pt-0.5 text-[13px] text-text-secondary">
+              <span className="mr-1">Pending</span>
+              <span
+                className="whitespace-nowrap tabular-nums"
+                title={pendingDisplay.isCompact ? pendingDisplay.full : undefined}
+                aria-label={pendingDisplay.isCompact ? pendingDisplay.full : undefined}
+              >
+                {pendingDisplay.short}
+              </span>
+            </p>
+          </div>
+        </div>
+      </InfoCard>
+    </div>
   );
 }
 
