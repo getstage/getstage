@@ -1,4 +1,4 @@
-import { ClockCountdown, Lightning, SealCheck } from "@phosphor-icons/react";
+import { ClockCountdown, SealCheck, UsersThree } from "@phosphor-icons/react";
 
 export function TrustSection() {
   return (
@@ -7,17 +7,17 @@ export function TrustSection() {
         <div className="landing-trust-grid">
           <div>
             <div className="landing-trust-icon" aria-hidden="true">
-              <Lightning weight="duotone" />
-            </div>
-            <div className="landing-trust-title">Lightweight setup</div>
-            <div className="landing-trust-desc">Under 5kb, won't slow your workflow</div>
-          </div>
-          <div>
-            <div className="landing-trust-icon" aria-hidden="true">
               <ClockCountdown weight="duotone" />
             </div>
             <div className="landing-trust-title">One-minute onboarding</div>
             <div className="landing-trust-desc">Create your first project in 60 seconds</div>
+          </div>
+          <div>
+            <div className="landing-trust-icon" aria-hidden="true">
+              <UsersThree weight="duotone" />
+            </div>
+            <div className="landing-trust-title">300+ people on the waitlist</div>
+            <div className="landing-trust-desc">Join early users shaping the next version of Stage</div>
           </div>
           <div>
             <div className="landing-trust-icon" aria-hidden="true">

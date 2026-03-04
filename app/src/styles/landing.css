@@ -212,14 +212,16 @@
 
 .landing-hero-buttons .landing-btn-cta,
 .landing-hero-buttons .landing-btn-ghost {
-  padding: 12px 30px;
+  min-width: 168px;
+  height: 48px;
+  padding: 0 26px;
   font-size: 15px;
 }
 
 .landing-hero-demo-section {
   position: relative;
   width: 100%;
-  padding: 160px 0 120px;
+  padding: 124px 0 84px;
   overflow: hidden;
   isolation: isolate;
   background: #fff;
@@ -306,7 +308,8 @@
 .landing-hero-demo-wrap {
   position: relative;
   z-index: 3;
-  padding-top: 40px;
+  padding-top: 22px;
+  perspective: 1800px;
 }
 
 .landing-hero-mockup {
@@ -314,12 +317,77 @@
   z-index: 1;
   width: min(980px, calc(100vw - 96px));
   margin: 0 auto;
-  background: #fff;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.66);
-  box-shadow: 0 26px 80px rgba(26, 26, 46, 0.2), 0 8px 24px rgba(26, 26, 46, 0.08);
-  overflow: hidden;
+  transform-style: preserve-3d;
+  will-change: transform;
+  filter: drop-shadow(0 26px 72px rgba(16, 19, 34, 0.28));
   text-align: left;
+}
+
+.landing-hero-macbook-screen-shell {
+  background: linear-gradient(180deg, #2a2d35 0%, #191b22 100%);
+  border-radius: 20px;
+  border: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.landing-hero-macbook-toolbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: clamp(30px, 3vw, 36px);
+  padding: 0 14px;
+  background: linear-gradient(180deg, #2f323a 0%, #252830 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+}
+
+.landing-hero-macbook-lights {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.landing-hero-macbook-lights span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.landing-hero-macbook-lights .red {
+  background: #ff5f57;
+}
+
+.landing-hero-macbook-lights .yellow {
+  background: #febc2e;
+}
+
+.landing-hero-macbook-lights .green {
+  background: #28c840;
+}
+
+.landing-hero-macbook-url {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: clamp(110px, 14vw, 150px);
+  height: clamp(18px, 2vw, 22px);
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(238, 241, 248, 0.84);
+  letter-spacing: 0.01em;
+  background: rgba(17, 19, 26, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.landing-hero-macbook-screen {
+  background: #fff;
 }
 
 .landing-hero-demo-image {
@@ -438,6 +506,7 @@
 
 .landing-trust {
   padding: 80px 0;
+  background: var(--color-bg-subtle);
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
@@ -1712,7 +1781,11 @@
 .landing-faq-grid-intro,
 .landing-faq-grid-list {
   min-width: 0;
-  background: #fff;
+  background: transparent;
+}
+
+.landing-faq-grid-list {
+  background: var(--color-bg-subtle);
 }
 
 .landing-faq-grid-intro {
@@ -1757,10 +1830,6 @@
 
 .landing-faq-item:first-child {
   border-top: 1px solid var(--color-border-subtle);
-}
-
-.landing-faq-item.open {
-  border-color: rgba(135, 130, 245, 0.36);
 }
 
 .landing-faq-question {
@@ -1929,24 +1998,18 @@
   margin-top: 0;
 }
 
-.landing-final-primary-cta {
-  min-height: 44px;
-  padding: 0 24px;
+.landing-final-buttons .landing-btn-cta,
+.landing-final-buttons .landing-btn-ghost {
+  padding: 12px 30px;
   font-size: 15px;
-  font-weight: 500;
+}
+
+.landing-final-primary-cta {
   box-shadow: none;
 }
 
-.landing-final-secondary-cta {
-  min-height: 44px;
-  padding: 0 24px;
-  font-size: 15px;
-  white-space: nowrap;
-  background: rgba(255, 255, 255, 0.74);
-}
-
 .landing-footer {
-  background: #fff;
+  background: var(--color-bg-subtle);
   padding: 88px 0 40px;
 }
 
@@ -1987,30 +2050,31 @@
 }
 
 .landing-footer-brand-desc {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--color-text-secondary);
-  line-height: 1.6;
-  margin-bottom: 10px;
+  line-height: 1.65;
+  margin-bottom: 12px;
 }
 
 .landing-footer-brand-meta {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
 }
 
 .landing-footer-col-title {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--color-text-primary);
   margin-bottom: 12px;
 }
 
 .landing-footer-link {
   display: block;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--color-text-secondary);
   text-decoration: none;
-  padding: 5px 0;
+  padding: 6px 0;
   transition: color 150ms;
 }
 
@@ -2025,8 +2089,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  font-size: 12px;
-  color: var(--color-text-tertiary);
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }
 
 .landing-footer-bottom-links {
@@ -2037,8 +2101,8 @@
 
 .landing-footer-bottom-link {
   text-decoration: none;
-  font-size: 12px;
-  color: var(--color-text-tertiary);
+  font-size: 13px;
+  color: var(--color-text-secondary);
   transition: color 150ms;
 }
 
@@ -2141,6 +2205,11 @@
   text-align: center;
   min-height: 320px;
   padding: 92px 24px 88px;
+  background: transparent;
+}
+
+.landing-features-lattice-row-heading > .landing-features-lattice-cell {
+  background: var(--color-bg-subtle);
 }
 
 .landing-features-heading .landing-section-title {
@@ -2199,6 +2268,11 @@
   text-align: center;
   min-height: 320px;
   padding: 92px 24px 88px;
+  background: transparent;
+}
+
+.landing-steps-lattice-row-heading > .landing-steps-lattice-cell {
+  background: var(--color-bg-subtle);
 }
 
 .landing-steps-heading .landing-section-title {
@@ -2261,6 +2335,11 @@
   text-align: center;
   min-height: 320px;
   padding: 92px 24px 88px;
+  background: transparent;
+}
+
+.landing-pricing-lattice-row-heading > .landing-pricing-lattice-cell {
+  background: var(--color-bg-subtle);
 }
 
 .landing-pricing-heading .landing-section-title {
@@ -2313,6 +2392,7 @@
   align-items: center;
   justify-content: center;
   padding: 0 14px;
+  transform: translateY(-1px);
 }
 
 .landing-pricing-plan-tag-text {
@@ -2439,13 +2519,14 @@
   min-width: 0;
   min-height: 520px;
   padding: 16px;
+  background: var(--color-bg-subtle);
 }
 
 .landing-step-grid-number {
   display: inline-flex;
   width: 42px;
   height: 42px;
-  border-radius: 999px;
+  border-radius: 0;
   align-items: center;
   justify-content: center;
   font-family: var(--font-heading);
@@ -2471,6 +2552,7 @@
   min-height: 286px;
   display: flex;
   align-items: flex-end;
+  overflow: hidden;
 }
 
 .landing-step-project-preview {
@@ -2481,6 +2563,10 @@
   justify-content: center;
   align-items: flex-end;
   pointer-events: none;
+}
+
+.landing-step-project-preview > * {
+  width: min(100%, 312px);
 }
 
 .landing-step-progress-preview {
@@ -2500,6 +2586,10 @@
   width: 100%;
 }
 
+.landing-step-progress-preview > * {
+  max-width: 100%;
+}
+
 .landing-step-timeline-preview {
   position: relative;
   width: 100%;
@@ -2512,15 +2602,32 @@
 }
 
 .landing-step-timeline-demo-stage {
+  position: absolute;
+  inset: 0;
   width: 100%;
   pointer-events: none;
   user-select: none;
+  z-index: 10;
+  will-change: opacity, transform;
+  transition:
+    opacity 420ms ease,
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-step-timeline-demo-stage.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.landing-step-timeline-demo-stage.is-hidden {
+  opacity: 0;
+  transform: translateY(12px) scale(0.972);
 }
 
 .landing-step-timeline-demo-stage > section {
   width: 100%;
   min-height: 100%;
-  padding: 0 8px 0;
+  padding: 0 8px 18px;
   align-items: flex-end;
   justify-content: flex-end;
 }
@@ -2529,18 +2636,38 @@
   height: 188px !important;
 }
 
-.landing-step-revenue-zoom {
+.landing-step-payments-stage {
   position: absolute;
-  right: 8px;
-  top: 8px;
-  width: min(250px, calc(100% - 10px));
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 8px 10px 22px;
   z-index: 16;
   pointer-events: none;
+  will-change: opacity, transform;
+  transition:
+    opacity 420ms ease,
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-step-payments-stage.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.landing-step-payments-stage.is-hidden {
+  opacity: 0;
+  transform: translateY(12px) scale(0.972);
+}
+
+.landing-step-payments-stage .landing-step-dashboard-payments-preview {
+  width: min(206px, 100%);
 }
 
 .landing-step-dashboard-payments-preview {
   width: 100%;
-  transform-origin: right top;
+  transform-origin: center bottom;
   transition: transform 260ms cubic-bezier(0.2, 0, 0.2, 1);
 }
 
@@ -2557,6 +2684,16 @@
 .landing-step-dashboard-payments-preview > div h2 {
   margin-bottom: 7px;
   font-size: 13px;
+}
+
+.landing-step-dashboard-payments-preview.is-mobile > div {
+  border-radius: 10px;
+  padding: 9px 10px 9px;
+}
+
+.landing-step-dashboard-payments-preview.is-mobile > div h2 {
+  margin-bottom: 6px;
+  font-size: 12px;
 }
 
 .landing-step-timeline-cursor {
@@ -2600,7 +2737,7 @@
   flex-direction: column;
   min-width: 0;
   overflow: hidden;
-  background: transparent;
+  background: var(--color-bg-subtle);
   padding: 16px;
 }
 
@@ -2657,6 +2794,14 @@
   width: 100%;
   height: auto;
   display: block;
+  will-change: transform;
+}
+
+.landing-feature-grid-image-viewport {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 10px;
+  transform: translateZ(0);
 }
 
 .landing-feature-grid-card.is-compact {
@@ -2676,10 +2821,11 @@
 }
 
 .landing-feature-compact-icon {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
+  width: 22px;
+  height: 22px;
+  color: var(--color-accent);
   display: block;
+  flex-shrink: 0;
 }
 
 .landing-feature-grid-card.is-integrations .landing-integrations-track {
@@ -3007,6 +3153,16 @@
   border-color: rgba(71, 105, 217, 0.2);
 }
 
+@media (min-width: 1280px) {
+  .landing-hero-demo-section {
+    padding: 106px 0 72px;
+  }
+
+  .landing-hero-demo-wrap {
+    padding-top: 14px;
+  }
+}
+
 @media (max-width: 1200px) {
 
   .landing-container,
@@ -3281,8 +3437,16 @@
     flex-wrap: wrap;
   }
 
+  .landing-hero-buttons .landing-btn-cta,
+  .landing-hero-buttons .landing-btn-ghost {
+    min-width: 144px;
+    height: 44px;
+    padding: 0 18px;
+  }
+
   .landing-hero-demo-section {
-    padding: 72px 0 62px;
+    padding: 54px 0 42px;
+    background: #fff;
   }
 
   .landing-hero-demo-bg {
@@ -3293,6 +3457,7 @@
   .landing-hero-integration-strip {
     gap: 9px;
     padding: 8px 16px 10px;
+    background: #fff;
   }
 
   .landing-hero-integration-label {
@@ -3310,7 +3475,37 @@
 
   .landing-hero-mockup {
     width: calc(100vw - 24px);
+    filter: drop-shadow(0 16px 44px rgba(16, 19, 34, 0.25));
+  }
+
+  .landing-hero-demo-wrap {
+    padding-top: 16px;
+  }
+
+  .landing-hero-macbook-screen-shell {
     border-radius: 14px;
+  }
+
+  .landing-hero-macbook-toolbar {
+    height: 26px;
+    padding: 0 10px;
+  }
+
+  .landing-hero-macbook-lights {
+    left: 9px;
+    gap: 4px;
+  }
+
+  .landing-hero-macbook-lights span {
+    width: 6px;
+    height: 6px;
+  }
+
+  .landing-hero-macbook-url {
+    min-width: 92px;
+    height: 16px;
+    padding: 0 10px;
+    font-size: 9px;
   }
 
   .landing-features {
@@ -3384,13 +3579,15 @@
 
   .landing-final-buttons {
     gap: 8px;
+    width: 100%;
   }
 
-  .landing-final-primary-cta,
-  .landing-final-secondary-cta {
+  .landing-final-buttons .landing-btn-cta,
+  .landing-final-buttons .landing-btn-ghost {
     min-height: 42px;
     padding: 0 20px;
     font-size: 14px;
+    flex: 1 1 0;
   }
 
   .landing-footer {
@@ -3672,12 +3869,26 @@
     min-height: 244px;
   }
 
+  .landing-step-timeline-preview.is-interactive-demo {
+    min-height: 266px;
+  }
+
   .landing-step-timeline-demo-stage > section {
-    padding: 0 6px 0;
+    padding: 20px 4px 12px;
+    align-items: flex-end;
+    justify-content: center;
   }
 
   .landing-step-timeline-preview.is-interactive-demo .landing-step-timeline-demo-stage > section > div {
-    height: 156px !important;
+    height: 172px !important;
+  }
+
+  .landing-step-payments-stage {
+    padding: 6px 8px 14px;
+  }
+
+  .landing-step-payments-stage .landing-step-dashboard-payments-preview {
+    width: min(190px, 100%);
   }
 
   .landing-feature-cell-mockup {

@@ -12,7 +12,7 @@ export function HeroSection() {
           </span>
         </Link>
         <h1 className="landing-hero-title">
-          Project <span className="landing-text-accent">clarity</span> for designers and freelancers
+          Project clarity for designers and freelancers
         </h1>
         <p className="landing-hero-subtitle">
           Track projects, manage phases, monitor payments.{" "}
