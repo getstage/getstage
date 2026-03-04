@@ -355,12 +355,22 @@ export function ProjectDetailPhaseRailPreview({ phaseAdded }: ProjectDetailPhase
   }, [phaseAdded]);
 
   const selectedId = phaseAdded ? "landing-qa" : "landing-design";
+  const isTwoPhaseLayout = phases.length === 2;
 
   return (
     <div className="w-full" aria-hidden>
-      <div className="mx-auto flex w-full max-w-[280px] items-center">
+      <div
+        className={
+          isTwoPhaseLayout
+            ? "mx-auto flex w-fit items-center justify-center"
+            : "mx-auto flex w-full max-w-[280px] items-center"
+        }
+      >
         {phases.map((phase, index) => (
-          <div key={phase.id} className="flex flex-1 items-center">
+          <div
+            key={phase.id}
+            className={isTwoPhaseLayout ? "flex items-center" : "flex flex-1 items-center"}
+          >
             <PhaseNode
               phase={phase}
               selected={selectedId === phase.id}
@@ -369,7 +379,7 @@ export function ProjectDetailPhaseRailPreview({ phaseAdded }: ProjectDetailPhase
             />
             {index < phases.length - 1 && (
               <div
-                className={`h-px flex-1 ${
+                className={`${isTwoPhaseLayout ? "mx-2 h-px w-10" : "h-px flex-1"} ${
                   phase.status === "completed" ? "bg-accent/45" : "bg-border"
                 }`}
               />

@@ -150,9 +150,9 @@ function FeatureImage({
 
     const scanPresets = [
       {
-        first: { xPercent: 2, yPercent: -1 },
-        second: { xPercent: -4, yPercent: 3 },
-        third: { xPercent: 4, yPercent: -2 },
+        first: { xPercent: 0, yPercent: 0 },
+        second: { xPercent: -6, yPercent: -4 },
+        third: { xPercent: 6, yPercent: 4 },
       },
       {
         first: { xPercent: 0, yPercent: 0 },
@@ -171,16 +171,16 @@ function FeatureImage({
       },
     ] as const;
     const zoomPresets = [
-      { first: 1.28, second: 1.46 },
+      { first: 1.42, second: 1.74 },
       { first: 1.36, second: 1.62 },
       { first: 1.14, second: 1.23 },
       { first: 1.14, second: 1.24 },
     ] as const;
     const timingPresets = [
       {
-        firstDuration: 0.95,
-        secondDuration: 1.45,
-        thirdDuration: 1.3,
+        firstDuration: 0.78,
+        secondDuration: 1.75,
+        thirdDuration: 1.65,
         resetDuration: 0.8,
         repeatDelay: 0.18,
         startDelay: 0.12,
@@ -213,6 +213,7 @@ function FeatureImage({
     const preset = scanPresets[motionSeed % scanPresets.length] ?? scanPresets[0];
     const zoomPreset = zoomPresets[motionSeed % zoomPresets.length] ?? zoomPresets[0];
     const timingPreset = timingPresets[motionSeed % timingPresets.length] ?? timingPresets[0];
+    const isTimelineTour = motionSeed % scanPresets.length === 0;
 
     gsap.set(image, {
       transformOrigin: "center center",
@@ -257,14 +258,40 @@ function FeatureImage({
         yPercent: preset.third.yPercent,
         duration: timingPreset.thirdDuration,
         ease: tourEase,
-      })
-      .to(image, {
-        scale: 1,
-        xPercent: 0,
-        yPercent: 0,
-        duration: timingPreset.resetDuration,
-        ease: tourEase,
       });
+
+    if (isTimelineTour) {
+      timeline
+        .to(image, {
+          scale: zoomPreset.second + 0.04,
+          xPercent: -8,
+          yPercent: 5,
+          duration: 1.35,
+          ease: tourEase,
+        })
+        .to(image, {
+          scale: zoomPreset.second + 0.08,
+          xPercent: 9,
+          yPercent: -4,
+          duration: 1.28,
+          ease: tourEase,
+        })
+        .to(image, {
+          scale: zoomPreset.second + 0.03,
+          xPercent: -3,
+          yPercent: 6,
+          duration: 1.18,
+          ease: tourEase,
+        });
+    }
+
+    timeline.to(image, {
+      scale: 1,
+      xPercent: 0,
+      yPercent: 0,
+      duration: timingPreset.resetDuration,
+      ease: tourEase,
+    });
 
     return () => {
       timeline.kill();

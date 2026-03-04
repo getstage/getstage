@@ -917,8 +917,8 @@ export function ProjectCreationAnimatedPreview({ className }: { className?: stri
     tick < 22 ? -1 : Math.min(PROJECT_TYPES.length - 1, tick - 22);
   const isCreating = tick >= 48;
   const previewRoadmap = AI_ROADMAPS["web-design"].slice(0, 4);
-  const previewSteps: WorkflowStep[] = [1, 2, 3, "4a", 5];
-  const previewCurrentIndex = previewStep === 1 ? 0 : previewStep === 2 ? 1 : 4;
+  const previewSteps: WorkflowStep[] = [1, 2, 5];
+  const previewCurrentIndex = previewStep === 1 ? 0 : previewStep === 2 ? 1 : 2;
 
   return (
     <div className={cn("pointer-events-none w-full", className)} aria-hidden>

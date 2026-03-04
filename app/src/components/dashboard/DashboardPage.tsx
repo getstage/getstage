@@ -391,15 +391,98 @@ export function DashboardPage() {
 export function DashboardPaymentsPreview({
   className,
   zoomed = false,
+  variant = "desktop",
 }: {
   className?: string;
   zoomed?: boolean;
+  variant?: "desktop" | "mobile";
 }) {
   const receivedTotal = DASHBOARD_PREVIEW_PAYMENT_ROWS.reduce((sum, row) => sum + row.amount, 0);
   const outstandingTotal = Math.round(receivedTotal * 0.5);
   const outstandingDisplay = formatCurrencyDisplay(outstandingTotal);
   const receivedDisplay = formatCurrencyDisplay(receivedTotal);
   const pendingDisplay = formatCurrencyDisplay(outstandingTotal);
+
+  if (variant === "mobile") {
+    return (
+      <div
+        className={[
+          "landing-step-dashboard-payments-preview",
+          "is-mobile",
+          zoomed ? "is-zoomed" : "",
+          className ?? "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        aria-hidden
+      >
+        <InfoCard title="Payments">
+          <div className="space-y-2.5">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-[8px] bg-bg-subtle px-2.5 py-2">
+                <p className="text-[10px] text-text-secondary">Outstanding</p>
+                <p
+                  className="mt-1 font-heading text-[14px] leading-none font-semibold whitespace-nowrap tabular-nums text-text-primary"
+                  title={outstandingDisplay.isCompact ? outstandingDisplay.full : undefined}
+                  aria-label={outstandingDisplay.isCompact ? outstandingDisplay.full : undefined}
+                >
+                  {outstandingDisplay.short}
+                </p>
+              </div>
+              <div className="rounded-[8px] bg-bg-subtle px-2.5 py-2">
+                <p className="text-[10px] text-text-secondary">Received</p>
+                <p
+                  className="mt-1 font-heading text-[14px] leading-none font-semibold whitespace-nowrap tabular-nums text-accent"
+                  title={receivedDisplay.isCompact ? receivedDisplay.full : undefined}
+                  aria-label={receivedDisplay.isCompact ? receivedDisplay.full : undefined}
+                >
+                  {receivedDisplay.short}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 border-t border-border-subtle pt-2.5">
+              {DASHBOARD_PREVIEW_PAYMENT_ROWS.map((row) => {
+                const rowAmountDisplay = formatCurrencyDisplay(row.amount);
+                return (
+                  <div key={row.name} className="flex items-center justify-between gap-2 text-[12px]">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <div className="h-[18px] w-[18px] overflow-hidden rounded-full bg-input-bg">
+                        <img
+                          src={row.avatarUrl}
+                          alt={row.name}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <span className="truncate text-text-primary">{row.name}</span>
+                    </div>
+                    <span
+                      className="font-medium whitespace-nowrap tabular-nums text-accent"
+                      title={rowAmountDisplay.isCompact ? rowAmountDisplay.full : undefined}
+                      aria-label={rowAmountDisplay.isCompact ? rowAmountDisplay.full : undefined}
+                    >
+                      {rowAmountDisplay.short}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="text-[12px] text-text-secondary">
+              <span className="mr-1">Pending</span>
+              <span
+                className="whitespace-nowrap tabular-nums"
+                title={pendingDisplay.isCompact ? pendingDisplay.full : undefined}
+                aria-label={pendingDisplay.isCompact ? pendingDisplay.full : undefined}
+              >
+                {pendingDisplay.short}
+              </span>
+            </p>
+          </div>
+        </InfoCard>
+      </div>
+    );
+  }
 
   return (
     <div

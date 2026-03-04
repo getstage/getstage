@@ -51,12 +51,15 @@ export function HeroDemoSection() {
       });
 
       mm.add("(max-width: 820px)", () => {
+        const isSmallPhone = window.matchMedia("(max-width: 480px)").matches;
+
         gsap.set(mockupRef.current, {
-          transformPerspective: 1200,
-          transformOrigin: "50% 100%",
-          rotateX: 13,
-          y: 24,
-          scale: 0.975,
+          transformPerspective: isSmallPhone ? 1400 : 1300,
+          transformOrigin: "50% 106%",
+          rotateX: isSmallPhone ? 17 : 14,
+          y: isSmallPhone ? 30 : 24,
+          scale: isSmallPhone ? 0.945 : 0.965,
+          force3D: true,
         });
 
         gsap.to(mockupRef.current, {
@@ -64,11 +67,13 @@ export function HeroDemoSection() {
           y: 0,
           scale: 1,
           ease: "none",
+          force3D: true,
           scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top 85%",
-            end: "top 48%",
-            scrub: 0.85,
+            trigger: mockupRef.current,
+            start: "top 94%",
+            end: isSmallPhone ? "top 38%" : "top 44%",
+            scrub: 1.05,
+            invalidateOnRefresh: true,
           },
         });
       });

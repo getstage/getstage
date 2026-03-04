@@ -130,7 +130,7 @@ function TimelineInteractivePreview() {
       projects={TIMELINE_INTERACTIVE_PREVIEW_PROJECTS}
       horizon="12-months"
       className="is-interactive-demo"
-      cycleMs={2800}
+      cycleMs={4600}
       showRevenue
     />
   );
@@ -154,6 +154,7 @@ function AutoHoverTimelinePreview({
   const revenueRef = useRef<HTMLDivElement | null>(null);
   const [timelineRenderKey, setTimelineRenderKey] = useState(0);
   const [revenueZoomed, setRevenueZoomed] = useState(false);
+  const [viewMode, setViewMode] = useState<"timeline" | "payments">("timeline");
   const [cursor, setCursor] = useState({
     x: 0,
     y: 0,
@@ -208,21 +209,31 @@ function AutoHoverTimelinePreview({
       const targetY = markerBounds.top + markerBounds.height / 2 - previewBounds.top;
       const clientX = markerBounds.left + markerBounds.width / 2;
       const clientY = markerBounds.top + markerBounds.height / 2;
+      const switchToPaymentsDelay = Math.max(1600, cycleMs - 1900);
+      const markerOutDelay = Math.max(900, switchToPaymentsDelay - 220);
+      const paymentsFocusDelay = switchToPaymentsDelay + 280;
 
-      setCursor({ x: targetX - 34, y: targetY + 30, visible: true, active: false });
+      setViewMode("timeline");
+      setRevenueZoomed(false);
+      setCursor({ x: targetX - 34, y: targetY + 28, visible: true, active: false });
 
       schedule(() => {
         // Cursor tip sits around (3,2) in a 24x24 icon.
-        setCursor({ x: targetX - 3, y: targetY + 10, visible: true, active: true });
+        setCursor({ x: targetX - 3, y: targetY - 2, visible: true, active: true });
         marker.dispatchEvent(new MouseEvent("mouseover", { bubbles: true, clientX, clientY }));
         marker.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX, clientY }));
       }, 220);
 
       schedule(() => {
         marker.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
-      }, cycleMs - 950);
+      }, markerOutDelay);
 
       if (showRevenue) {
+        schedule(() => {
+          setCursor((current) => ({ ...current, visible: false, active: false }));
+          setViewMode("payments");
+        }, switchToPaymentsDelay);
+
         schedule(() => {
           const revenue = revenueRef.current;
           if (!revenue) {
@@ -233,16 +244,23 @@ function AutoHoverTimelinePreview({
           const revenueY = revenueBounds.top + revenueBounds.height / 2 - previewBounds.top;
           setCursor({ x: revenueX - 3, y: revenueY + 10, visible: true, active: true });
           setRevenueZoomed(true);
-        }, cycleMs - 760);
+        }, paymentsFocusDelay);
 
         schedule(() => {
           setRevenueZoomed(false);
           setCursor((current) => ({ ...current, active: false }));
+        }, cycleMs - 980);
+
+        schedule(() => {
+          setCursor((current) => ({ ...current, visible: false, active: false }));
+        }, cycleMs - 760);
+
+        schedule(() => {
           setTimelineRenderKey((value) => value + 1);
-        }, cycleMs - 300);
+        }, cycleMs - 380);
       } else {
         schedule(() => {
-          setCursor((current) => ({ ...current, active: false }));
+          setCursor((current) => ({ ...current, visible: false, active: false }));
           setTimelineRenderKey((value) => value + 1);
         }, cycleMs - 380);
       }
@@ -263,16 +281,29 @@ function AutoHoverTimelinePreview({
       ref={previewRef}
       className={["landing-step-timeline-preview", className ?? ""].filter(Boolean).join(" ")}
     >
-      <div ref={stageRef} className="landing-step-timeline-demo-stage">
+      <div
+        ref={stageRef}
+        className={[
+          "landing-step-timeline-demo-stage",
+          viewMode === "timeline" ? "is-visible" : "is-hidden",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
         <Timeline key={timelineRenderKey} projects={projects} horizon={horizon} />
       </div>
       {showRevenue ? (
         <div
           ref={revenueRef}
-          className="landing-step-revenue-zoom"
+          className={[
+            "landing-step-payments-stage",
+            viewMode === "payments" ? "is-visible" : "is-hidden",
+          ]
+            .filter(Boolean)
+            .join(" ")}
           aria-hidden="true"
         >
-          <DashboardPaymentsPreview zoomed={revenueZoomed} />
+          <DashboardPaymentsPreview zoomed={revenueZoomed} variant="mobile" />
         </div>
       ) : null}
       <div

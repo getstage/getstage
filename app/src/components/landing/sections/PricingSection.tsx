@@ -1,4 +1,4 @@
-import { ArrowRight, Check } from "@phosphor-icons/react";
+import { Check } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { PRICING_FEATURES } from "./data";
 
@@ -37,10 +37,12 @@ export function PricingSection() {
 
             <div className="landing-pricing-price-block">
               <div className="landing-pricing-price-line">
-                <span className="landing-pricing-price-amount">$9</span>
+                <span className="landing-pricing-price-amount">$90</span>
               </div>
-              <p className="landing-pricing-price-period">/month</p>
-              <p className="landing-pricing-price-note">Billed annually ($108/year)</p>
+              <p className="landing-pricing-price-period">/year</p>
+              <p className="landing-pricing-price-note">
+                Normally $9/month, save 20% with yearly billing.
+              </p>
             </div>
 
             <ul className="landing-pricing-feature-list">
@@ -56,7 +58,6 @@ export function PricingSection() {
 
             <Link to="/auth" className="landing-btn landing-btn-cta landing-pricing-grid-cta">
               Get started
-              <ArrowRight size={16} weight="bold" />
             </Link>
             <div className="landing-pricing-free">Free tier available — no credit card required</div>
           </article>
