@@ -37,11 +37,11 @@ export function PricingSection() {
 
             <div className="landing-pricing-price-block">
               <div className="landing-pricing-price-line">
-                <span className="landing-pricing-price-amount">$90</span>
+                <span className="landing-pricing-price-amount">$99</span>
               </div>
               <p className="landing-pricing-price-period">/year</p>
               <p className="landing-pricing-price-note">
-                Normally $9/month, save 20% with yearly billing.
+                Normally $9/month. Get one month free with yearly billing.
               </p>
             </div>
 
