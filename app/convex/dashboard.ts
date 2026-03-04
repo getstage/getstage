@@ -1,6 +1,5 @@
-import { v } from "convex/values";
 import { query } from "./_generated/server";
-import { getUserByEmail, listProjectsForUser } from "./_helpers";
+import { listProjectsForUser, requireAuthUser } from "./_helpers";
 
 function buildClientAvatarMap(
   projects: Array<{ clientName: string; clientAvatarUrl?: string }>,
@@ -13,24 +12,9 @@ function buildClientAvatarMap(
 }
 
 export const getOverview = query({
-  args: {
-    email: v.string(),
-  },
-  handler: async (ctx, { email }) => {
-    if (!email) {
-      return {
-        projects: [],
-        paymentSummary: null,
-      };
-    }
-
-    const user = await getUserByEmail(ctx, email);
-    if (!user) {
-      return {
-        projects: [],
-        paymentSummary: null,
-      };
-    }
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireAuthUser(ctx);
 
     const projects = await listProjectsForUser(ctx, user._id);
     const clientAvatarMap = buildClientAvatarMap(projects);

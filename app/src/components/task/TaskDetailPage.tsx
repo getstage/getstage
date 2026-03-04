@@ -18,7 +18,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 
 export function TaskDetailPage() {
   const { id: projectId, taskId } = useParams({
-    from: "/_app/project/$id/task/$taskId",
+    from: "/_authed/project/$id/task/$taskId",
   });
   const project = useConvexQuery(api.projects.getById, {
     projectId: projectId as Id<"projects">,
@@ -172,12 +172,13 @@ export function TaskDetailPage() {
           className="mx-auto max-w-[680px] pt-10"
         >
           <div className="mb-10 flex items-start gap-3">
-            <div className="pt-2">
+            <div className="pt-1">
               <Checkbox
                 checked={task.isCompleted}
                 onCheckedChange={() =>
                   void toggleTaskComplete({ taskId: task.id as Id<"tasks"> })
                 }
+                className="h-[22px] w-[22px] rounded-[4px] border-[1.5px]"
               />
             </div>
             <input
@@ -188,7 +189,7 @@ export function TaskDetailPage() {
                   void persistTaskUpdate({ title: title.trim() });
                 }
               }}
-              className={`w-full bg-transparent font-heading text-[41px] font-semibold leading-[1.15] tracking-tight outline-none ${
+              className={`w-full bg-transparent font-heading text-[28px] font-semibold leading-[1.3] tracking-[-0.5px] outline-none ${
                 task.isCompleted
                   ? "text-text-secondary line-through"
                   : "text-text-primary"

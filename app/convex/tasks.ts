@@ -1,7 +1,12 @@
 import { v } from "convex/values";
 import { mutation, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { recomputeProjectState } from "./_helpers";
+import {
+  recomputeProjectState,
+  requireAuthUser,
+  requirePhaseOwner,
+  requireTaskOwner,
+} from "./_helpers";
 
 function now() {
   return Date.now();
@@ -11,17 +16,8 @@ async function getProjectIdForTask(
   ctx: MutationCtx,
   taskId: Id<"tasks">,
 ) {
-  const task = await ctx.db.get(taskId);
-  if (!task) {
-    throw new Error("Task not found.");
-  }
-
-  const phase = await ctx.db.get(task.phaseId);
-  if (!phase) {
-    throw new Error("Phase not found.");
-  }
-
-  return { task, phase, projectId: phase.projectId };
+  const { task, project } = await requireTaskOwner(ctx, taskId);
+  return { task, projectId: project._id };
 }
 
 export const create = mutation({
@@ -30,10 +26,7 @@ export const create = mutation({
     title: v.string(),
   },
   handler: async (ctx, { phaseId, title }) => {
-    const phase = await ctx.db.get(phaseId);
-    if (!phase) {
-      throw new Error("Phase not found.");
-    }
+    const { project } = await requirePhaseOwner(ctx, phaseId);
 
     const existingTasks = await ctx.db
       .query("tasks")
@@ -51,7 +44,7 @@ export const create = mutation({
       updatedAt: timestamp,
     });
 
-    await recomputeProjectState(ctx, phase.projectId);
+    await recomputeProjectState(ctx, project._id);
     return taskId;
   },
 });
@@ -63,10 +56,7 @@ export const update = mutation({
     content: v.optional(v.string()),
   },
   handler: async (ctx, { taskId, title, content }) => {
-    const task = await ctx.db.get(taskId);
-    if (!task) {
-      throw new Error("Task not found.");
-    }
+    await requireTaskOwner(ctx, taskId);
 
     const patch: Record<string, string | number> = {
       updatedAt: now(),
@@ -103,6 +93,7 @@ export const toggleComplete = mutation({
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
+    await requireAuthUser(ctx);
     return ctx.storage.generateUploadUrl();
   },
 });
@@ -116,10 +107,7 @@ export const saveAttachment = mutation({
     mimeType: v.string(),
   },
   handler: async (ctx, args) => {
-    const task = await ctx.db.get(args.taskId);
-    if (!task) {
-      throw new Error("Task not found.");
-    }
+    await requireTaskOwner(ctx, args.taskId);
 
     const storageUrl = await ctx.storage.getUrl(args.storageId);
     const timestamp = now();

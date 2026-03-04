@@ -3,8 +3,9 @@ import { mutation, query } from "./_generated/server";
 import {
   buildProject,
   ensurePortalConfig,
-  ensureUserByEmail,
   recomputeProjectState,
+  requireAuthUser,
+  requireProjectOwner,
   upsertClient,
 } from "./_helpers";
 
@@ -28,16 +29,13 @@ export const getById = query({
     projectId: v.id("projects"),
   },
   handler: async (ctx, { projectId }) => {
-    const project = await ctx.db.get(projectId);
-    if (!project) return null;
+    const { project } = await requireProjectOwner(ctx, projectId);
     return buildProject(ctx, project);
   },
 });
 
 export const create = mutation({
   args: {
-    userEmail: v.string(),
-    userName: v.optional(v.string()),
     name: v.string(),
     clientName: v.string(),
     clientAvatarUrl: v.optional(v.string()),
@@ -57,10 +55,7 @@ export const create = mutation({
     phases: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const user = await ensureUserByEmail(ctx, {
-      email: args.userEmail,
-      name: args.userName,
-    });
+    const user = await requireAuthUser(ctx);
 
     await upsertClient(ctx, {
       userId: user._id,
@@ -124,10 +119,7 @@ export const update = mutation({
     status: v.optional(projectStatusValidator),
   },
   handler: async (ctx, args) => {
-    const project = await ctx.db.get(args.projectId);
-    if (!project) {
-      throw new Error("Project not found.");
-    }
+    const { project } = await requireProjectOwner(ctx, args.projectId);
 
     const nextName = args.name?.trim();
     const nextClientName = args.clientName?.trim();
@@ -208,10 +200,7 @@ export const syncPhases = mutation({
     phases: v.array(phaseInputValidator),
   },
   handler: async (ctx, { projectId, phases }) => {
-    const project = await ctx.db.get(projectId);
-    if (!project) {
-      throw new Error("Project not found.");
-    }
+    await requireProjectOwner(ctx, projectId);
 
     const normalizedPhases = phases.map((phase, index) => ({
       id: phase.id,
@@ -305,8 +294,7 @@ export const deleteById = mutation({
     projectId: v.id("projects"),
   },
   handler: async (ctx, { projectId }) => {
-    const project = await ctx.db.get(projectId);
-    if (!project) return;
+    const { project } = await requireProjectOwner(ctx, projectId);
 
     const phases = await ctx.db
       .query("phases")
@@ -347,6 +335,6 @@ export const deleteById = mutation({
       await ctx.db.delete(portalConfig._id);
     }
 
-    await ctx.db.delete(projectId);
+    await ctx.db.delete(project._id);
   },
 });

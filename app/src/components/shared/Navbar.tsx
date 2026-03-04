@@ -14,22 +14,24 @@ export function Navbar() {
   // Determine breadcrumb context from current route
   const isProjectDetail = matches.some((m) => m.routeId.includes("project.$id"));
   const isTaskDetail = matches.some((m) => m.routeId.includes("task.$taskId"));
+  const isNewProject = matches.some((m) => m.routeId.includes("new-project"));
+  const isSettings = matches.some((m) => m.routeId.includes("settings"));
+  const showBackLink = isProjectDetail || isTaskDetail || isNewProject || isSettings;
 
   return (
     <header className="top-0 z-40 bg-white">
       <div className="mx-auto flex h-[64px] w-full max-w-[1200px] items-center justify-between px-6 sm:px-10 lg:px-14">
-        <div className="flex items-center gap-3">
-          {isProjectDetail || isTaskDetail ? (
+        <div className="flex items-center gap-6">
+          <Link to="/dashboard" className="inline-flex items-center">
+            <img src={stageLogo} alt="Stage" className="h-[22px] w-auto" />
+          </Link>
+          {showBackLink && (
             <Link
               to="/dashboard"
-              className="flex items-center gap-1.5 text-[14px] text-text-secondary transition-colors hover:text-text-primary"
+              className="flex items-center gap-[5px] text-[13px] text-text-secondary transition-colors hover:text-text-primary"
             >
-              <ArrowLeft size={16} weight="regular" />
+              <ArrowLeft size={14} weight="regular" />
               Dashboard
-            </Link>
-          ) : (
-            <Link to="/dashboard" className="inline-flex items-center">
-              <img src={stageLogo} alt="Stage" className="h-[22px] w-auto" />
             </Link>
           )}
         </div>
@@ -58,9 +60,9 @@ export function Navbar() {
               />
             </button>
 
-            {dropdownOpen && (
+            {dropdownOpen && user && (
               <ProfileDropdown
-                user={user!}
+                user={user}
                 onClose={() => setDropdownOpen(false)}
               />
             )}

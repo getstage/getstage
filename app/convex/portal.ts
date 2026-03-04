@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { buildProject, ensurePortalConfig } from "./_helpers";
+import { buildProject, ensurePortalConfig, requireProjectOwner } from "./_helpers";
 
 export const getByShareToken = query({
   args: {
@@ -41,6 +41,7 @@ export const setEnabled = mutation({
     isEnabled: v.boolean(),
   },
   handler: async (ctx, { projectId, isEnabled }) => {
+    await requireProjectOwner(ctx, projectId);
     const config = await ensurePortalConfig(ctx, projectId);
 
     if (config.isEnabled !== isEnabled) {

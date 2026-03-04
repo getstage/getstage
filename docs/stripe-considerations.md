@@ -58,6 +58,48 @@ Stage stores it securely server-side and uses it to read invoice and payment dat
 The freelancer connects their Stripe account through Stripe's own onboarding/authorization flow.
 Stage receives an account connection and can later read or act on behalf of that account.
 
+### Important Connect note
+
+For a new Stripe Connect platform, Stripe does **not** recommend classic OAuth as the default path.
+
+Recommended direction:
+
+- use `Stripe Connect Onboarding` for `Standard accounts`
+- store the resulting connected account ID
+- run all Stripe server calls in the connected account context
+
+Stripe's OAuth flow still exists, but Stripe explicitly says it is **not recommended for new Connect platforms**. If Stage goes with Connect, the preferred path is Connect Onboarding rather than building a new OAuth-first integration.
+
+### What Connect unlocks
+
+If Stage eventually needs more than read-only reporting, Connect is the path that supports:
+
+- onboarding a freelancer's own Stripe account
+- invoice creation on behalf of the connected account
+- accepting payments in a multi-tenant setup
+- charging application fees
+- long-term lifecycle events like reconnect, disconnect, and onboarding recovery
+
+In practice, that means:
+
+- `read-only dashboard visibility` can still be done faster with a restricted key
+- `create invoices / accept payments / deeper automation` should push Stage toward Connect
+
+### Minimal Connect requirements
+
+If Stage chooses Connect, the minimum architecture should include:
+
+1. A connected account onboarding flow
+2. Storage of the Stripe connected account ID in `paymentConnections`
+3. Server-side Stripe calls only, never from the browser
+4. Stripe webhooks for sync and UI correctness
+
+Typical webhook groups for this product direction:
+
+- `invoice.*`
+- `payment_intent.*`
+- optionally payout / account status events later
+
 ### Good
 
 - Cleaner trust model than key paste
@@ -94,6 +136,13 @@ Stage receives an account connection and can later read or act on behalf of that
 
 This gives the fastest launch now without blocking the better architecture later.
 
+### Practical decision rule
+
+Use this shortcut:
+
+- if v1 only needs `dashboard visibility` for invoices, payment status, and revenue metrics, keep `restricted read-only key`
+- if v1 must also `create invoices` or `accept payments`, skip the restricted-key-only approach and plan for `Stripe Connect`
+
 ---
 
 ## Product/UX note
@@ -117,3 +166,20 @@ Current backend structure already separates:
 - `payments`
 
 That means we can start with `accessMode = restricted_key` and later add `accessMode = connect` without changing the table structure.
+
+---
+
+## Stripe doc notes
+
+Relevant Stripe guidance verified from the official docs:
+
+- Stripe says OAuth is not recommended for new Connect platforms and recommends Connect Onboarding for Standard accounts instead.
+- Restricted keys are available and can be permission-limited.
+- Stripe Invoicing supports invoice creation through the API.
+
+Sources:
+
+- https://docs.stripe.com/connect/oauth-standard-accounts
+- https://docs.stripe.com/connect/standard-accounts
+- https://docs.stripe.com/keys
+- https://docs.stripe.com/api/invoices/create

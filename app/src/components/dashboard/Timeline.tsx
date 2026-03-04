@@ -12,9 +12,19 @@ gsap.registerPlugin(DrawSVGPlugin);
 interface TimelineProps {
   projects: Project[];
   horizon?: TimelineHorizon;
+  nowTimestamp?: number;
 }
 
-export type TimelineHorizon = "30d" | "90d" | "6m" | "all";
+export type TimelineHorizon =
+  | "today"
+  | "yesterday"
+  | "thisWeek"
+  | "thisMonth"
+  | "thisYear"
+  | "30d"
+  | "6m"
+  | "12m"
+  | "all";
 
 type TickGranularity = "day" | "week" | "month";
 
@@ -166,6 +176,12 @@ function startOfMonth(timestamp: number) {
   return date.getTime();
 }
 
+function startOfYear(timestamp: number) {
+  const date = new Date(startOfDay(timestamp));
+  date.setMonth(0, 1);
+  return date.getTime();
+}
+
 function addDays(timestamp: number, days: number) {
   const date = new Date(timestamp);
   date.setDate(date.getDate() + days);
@@ -178,8 +194,8 @@ function addMonths(timestamp: number, months: number) {
   return date.getTime();
 }
 
-function getProjectSpanBounds(projects: Project[]) {
-  const today = startOfDay(Date.now());
+function getProjectSpanBounds(projects: Project[], nowTimestamp: number) {
+  const today = startOfDay(nowTimestamp);
 
   if (projects.length === 0) {
     return { start: today, end: today + DAY_MS };
@@ -196,18 +212,45 @@ function getProjectSpanBounds(projects: Project[]) {
   };
 }
 
-function getTimelineBounds(projects: Project[], horizon: TimelineHorizon) {
-  const spanBounds = getProjectSpanBounds(projects);
+function getTimelineBounds(
+  projects: Project[],
+  horizon: TimelineHorizon,
+  nowTimestamp: number,
+) {
+  const spanBounds = getProjectSpanBounds(projects, nowTimestamp);
 
   if (horizon === "all") {
     return spanBounds;
   }
 
-  const horizonDays = horizon === "30d" ? 30 : horizon === "90d" ? 90 : 180;
-  const today = startOfDay(Date.now());
-  const halfRange = Math.floor(horizonDays / 2);
-  const start = today - halfRange * DAY_MS;
-  const end = today + (horizonDays - halfRange) * DAY_MS;
+  const today = startOfDay(nowTimestamp);
+
+  if (horizon === "today") {
+    return { start: today, end: today + DAY_MS };
+  }
+
+  if (horizon === "yesterday") {
+    return { start: today - DAY_MS, end: today };
+  }
+
+  if (horizon === "thisWeek") {
+    const start = startOfWeekMonday(today);
+    return { start, end: start + 7 * DAY_MS };
+  }
+
+  if (horizon === "thisMonth") {
+    const start = startOfMonth(today);
+    return { start, end: addMonths(start, 1) };
+  }
+
+  if (horizon === "thisYear") {
+    const start = startOfYear(today);
+    return { start, end: addMonths(start, 12) };
+  }
+
+  const horizonDays = horizon === "30d" ? 30 : horizon === "6m" ? 180 : 365;
+  const start = today - horizonDays * DAY_MS;
+  const end = today + DAY_MS;
 
   return {
     start,
@@ -390,7 +433,11 @@ function getCurveYAtRatio(ratio: number, topY: number, bottomY: number) {
   return topY + verticalRange * (lastPoint?.y ?? 1);
 }
 
-export function Timeline({ projects, horizon = "all" }: TimelineProps) {
+export function Timeline({
+  projects,
+  horizon = "all",
+  nowTimestamp = Date.now(),
+}: TimelineProps) {
   const gradientId = useId().replace(/:/g, "");
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
@@ -421,7 +468,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
   }, []);
 
   const layout = useMemo(() => {
-    const bounds = getTimelineBounds(projects, horizon);
+    const bounds = getTimelineBounds(projects, horizon, nowTimestamp);
     const rangeMs = Math.max(bounds.end - bounds.start, DAY_MS);
     const totalDays = Math.max(1, Math.ceil(rangeMs / DAY_MS));
     const granularity = getTickGranularity(totalDays);
@@ -462,7 +509,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
       };
     });
 
-    const now = Date.now();
+    const now = nowTimestamp;
     const todayX = now >= bounds.start && now <= bounds.end ? toX(now) : null;
     const markers: CurveMarker[] = visibleProjects
       .map((project) => {
@@ -501,7 +548,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
       markers,
       todayX,
     };
-  }, [horizon, projects, viewportWidth]);
+  }, [horizon, nowTimestamp, projects, viewportWidth]);
 
   const rowPitch = BLOCK_HEIGHT + ROW_GAP;
   const rowCount = Math.max(layout.rowCount, 1);
@@ -579,7 +626,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
       return;
     }
 
-    const now = Date.now();
+    const now = nowTimestamp;
     const pickNearestByTime = (entries: PositionedProject[]) =>
       entries.reduce<PositionedProject | null>((closest, current) => {
         if (!closest) return current;
@@ -606,7 +653,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
 
     viewport.scrollLeft = targetScroll;
     lastAutoPositionKeyRef.current = autoPositionKey;
-  }, [autoPositionKey, layout.projects, layout.timelineWidth, layout.todayX, viewportWidth]);
+  }, [autoPositionKey, layout.projects, layout.timelineWidth, layout.todayX, nowTimestamp, viewportWidth]);
 
   useLayoutEffect(() => {
     if (!contentRef.current) return;
@@ -916,8 +963,12 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                             top: `${ROW_VIEWPORT_TOP_PADDING + entry.row * rowPitch}px`,
                             height: `${BLOCK_HEIGHT}px`,
                           }}
-                          onMouseEnter={(event) => handleProjectHover(event, entry)}
-                          onMouseMove={(event) => handleProjectHover(event, entry)}
+                          onMouseEnter={(event: ReactMouseEvent<HTMLAnchorElement>) =>
+                            handleProjectHover(event, entry)
+                          }
+                          onMouseMove={(event: ReactMouseEvent<HTMLAnchorElement>) =>
+                            handleProjectHover(event, entry)
+                          }
                           onMouseLeave={() => {
                             setHoverState((current) =>
                               current?.projectId === entry.project.id ? null : current,
@@ -1015,7 +1066,7 @@ export function Timeline({ projects, horizon = "all" }: TimelineProps) {
                         hoverDetails.tasks.map((task) => {
                           const isRecentlyAdded =
                             !task.isCompleted &&
-                            Date.now() - task.createdAt <= RECENT_TASK_WINDOW_MS;
+                            nowTimestamp - task.createdAt <= RECENT_TASK_WINDOW_MS;
                           return (
                             <p
                               key={task.id}

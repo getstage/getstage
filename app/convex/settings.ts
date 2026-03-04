@@ -1,25 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
-import { ensurePortalConfig, ensureUserByEmail, getUserByEmail } from "./_helpers";
+import { ensurePortalConfig, requireAuthUser } from "./_helpers";
 
 const DEFAULT_PORTAL_COLOR = "#E8734A";
 
 function now() {
   return Date.now();
-}
-
-function fallbackNameFromEmail(email: string) {
-  const [localPart] = email.split("@");
-  if (!localPart) {
-    return "Stage User";
-  }
-
-  return localPart
-    .split(/[._-]/g)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
 }
 
 function normalizeHexColor(value: string) {
@@ -33,107 +19,10 @@ function normalizeHexColor(value: string) {
   return withHash;
 }
 
-function buildUserReplacement(
-  user: {
-    email: string;
-    name: string;
-    avatarUrl?: string;
-    defaultPortalLogoUrl?: string;
-    defaultPortalAccentColor?: string;
-    role: "freelancer" | "studio" | "in-house" | "agency";
-    plan: "free" | "pro";
-    createdAt: number;
-  },
-  updates: {
-    name?: string;
-    avatarUrl?: string;
-    defaultPortalLogoUrl?: string | null;
-    defaultPortalAccentColor?: string;
-  },
-) {
-  return {
-    email: user.email,
-    name: updates.name ?? user.name,
-    ...(updates.avatarUrl !== undefined
-      ? { avatarUrl: updates.avatarUrl }
-      : user.avatarUrl
-        ? { avatarUrl: user.avatarUrl }
-        : {}),
-    ...(updates.defaultPortalLogoUrl !== undefined
-      ? updates.defaultPortalLogoUrl
-        ? { defaultPortalLogoUrl: updates.defaultPortalLogoUrl }
-        : {}
-      : user.defaultPortalLogoUrl
-        ? { defaultPortalLogoUrl: user.defaultPortalLogoUrl }
-        : {}),
-    ...(updates.defaultPortalAccentColor !== undefined
-      ? { defaultPortalAccentColor: updates.defaultPortalAccentColor }
-      : user.defaultPortalAccentColor
-        ? { defaultPortalAccentColor: user.defaultPortalAccentColor }
-        : {}),
-    role: user.role,
-    plan: user.plan,
-    createdAt: user.createdAt,
-    updatedAt: now(),
-  };
-}
-
-function buildPortalConfigReplacement(
-  config: {
-    projectId: Id<"projects">;
-    isEnabled: boolean;
-    shareToken: string;
-    shareUrl: string;
-    logoUrl?: string;
-    accentColor: string;
-    createdAt: number;
-  },
-  updates: {
-    logoUrl?: string | null;
-    accentColor?: string;
-  },
-) {
-  return {
-    projectId: config.projectId,
-    isEnabled: config.isEnabled,
-    shareToken: config.shareToken,
-    shareUrl: config.shareUrl,
-    ...(updates.logoUrl !== undefined
-      ? updates.logoUrl
-        ? { logoUrl: updates.logoUrl }
-        : {}
-      : config.logoUrl
-        ? { logoUrl: config.logoUrl }
-        : {}),
-    accentColor: updates.accentColor ?? config.accentColor,
-    createdAt: config.createdAt,
-    updatedAt: now(),
-  };
-}
-
 export const getOverview = query({
-  args: {
-    email: v.string(),
-  },
-  handler: async (ctx, { email }) => {
-    const user = await getUserByEmail(ctx, email);
-
-    if (!user) {
-      return {
-        profile: {
-          email,
-          name: fallbackNameFromEmail(email),
-          avatarUrl: null,
-        },
-        subscription: null,
-        paymentConnection: null,
-        portalBranding: {
-          logoUrl: null,
-          accentColor: DEFAULT_PORTAL_COLOR,
-        },
-        previewPortalUrl: null,
-      };
-    }
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireAuthUser(ctx);
 
     const subscriptions = await ctx.db
       .query("subscriptions")
@@ -164,9 +53,12 @@ export const getOverview = query({
 
     return {
       profile: {
-        email: user.email,
-        name: user.name,
-        avatarUrl: user.avatarUrl ?? null,
+        id: String(user._id),
+        email: user.email ?? "",
+        name: user.name ?? "",
+        avatarUrl: user.avatarUrl ?? user.image ?? null,
+        role: user.role ?? "freelancer",
+        plan: user.plan ?? "free",
       },
       subscription: subscription
         ? {
@@ -197,50 +89,50 @@ export const getOverview = query({
 
 export const updateProfile = mutation({
   args: {
-    email: v.string(),
     name: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
   },
-  handler: async (ctx, { email, name, avatarUrl }) => {
-    const user = await ensureUserByEmail(ctx, { email });
+  handler: async (ctx, { name, avatarUrl }) => {
+    const user = await requireAuthUser(ctx);
 
     const nextName = name?.trim();
     if (nextName !== undefined && nextName.length === 0) {
       throw new Error("Name is required.");
     }
 
-    const replacement = buildUserReplacement(user, {
-      name: nextName,
-      avatarUrl,
-    });
+    const patch: Record<string, string | number> = { updatedAt: now() };
+    if (nextName !== undefined) patch.name = nextName;
+    if (avatarUrl !== undefined) patch.avatarUrl = avatarUrl;
 
-    await ctx.db.replace(user._id, replacement);
+    await ctx.db.patch(user._id, patch);
 
     return {
-      email: replacement.email,
-      name: replacement.name,
-      avatarUrl: replacement.avatarUrl ?? null,
+      email: user.email ?? "",
+      name: nextName ?? user.name ?? "",
+      avatarUrl: avatarUrl ?? user.avatarUrl ?? null,
     };
   },
 });
 
 export const updatePortalBranding = mutation({
   args: {
-    email: v.string(),
     logoUrl: v.optional(v.union(v.string(), v.null())),
     accentColor: v.optional(v.string()),
   },
-  handler: async (ctx, { email, logoUrl, accentColor }) => {
-    const user = await ensureUserByEmail(ctx, { email });
+  handler: async (ctx, { logoUrl, accentColor }) => {
+    const user = await requireAuthUser(ctx);
     const normalizedColor =
       accentColor !== undefined ? normalizeHexColor(accentColor) : undefined;
 
-    const userReplacement = buildUserReplacement(user, {
-      defaultPortalLogoUrl: logoUrl,
-      defaultPortalAccentColor: normalizedColor,
-    });
+    const userPatch: Record<string, string | number | undefined> = { updatedAt: now() };
+    if (logoUrl !== undefined) {
+      userPatch.defaultPortalLogoUrl = logoUrl ?? undefined;
+    }
+    if (normalizedColor !== undefined) {
+      userPatch.defaultPortalAccentColor = normalizedColor;
+    }
 
-    await ctx.db.replace(user._id, userReplacement);
+    await ctx.db.patch(user._id, userPatch);
 
     const projects = await ctx.db
       .query("projects")
@@ -249,20 +141,20 @@ export const updatePortalBranding = mutation({
 
     for (const project of projects) {
       const config = await ensurePortalConfig(ctx, project._id);
-      const replacement = buildPortalConfigReplacement(config, {
-        logoUrl,
-        accentColor: normalizedColor,
-      });
-      await ctx.db.replace(config._id, replacement);
+      const configPatch: Record<string, string | number | undefined> = { updatedAt: now() };
+      if (logoUrl !== undefined) {
+        configPatch.logoUrl = logoUrl ?? undefined;
+      }
+      if (normalizedColor !== undefined) {
+        configPatch.accentColor = normalizedColor;
+      }
+      await ctx.db.patch(config._id, configPatch);
     }
 
     return {
-      logoUrl:
-        logoUrl !== undefined
-          ? logoUrl
-          : userReplacement.defaultPortalLogoUrl ?? null,
+      logoUrl: logoUrl !== undefined ? logoUrl : user.defaultPortalLogoUrl ?? null,
       accentColor:
-        normalizedColor ?? userReplacement.defaultPortalAccentColor ?? DEFAULT_PORTAL_COLOR,
+        normalizedColor ?? user.defaultPortalAccentColor ?? DEFAULT_PORTAL_COLOR,
     };
   },
 });

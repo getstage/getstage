@@ -2,7 +2,7 @@
 
 Short implementation plan for moving Stage from placeholder auth to **Convex Auth** with:
 
-- `Email OTP` (6-digit code)
+- `Email OTP` (6-digit code via Loops)
 - `Google OAuth`
 - `React + Vite SPA`
 - `Convex` as the backend
@@ -141,7 +141,7 @@ Possible extra helper file if needed:
   - add public client auth env values if required
 
 - Convex deployment env vars
-  - add secrets for Google and email provider
+  - add secrets for Google and Loops
 
 ---
 
@@ -162,7 +162,15 @@ At minimum we should expect variables in two groups.
 - email provider credentials
 - site URL values used for callbacks and auth redirects
 
-Exact names depend on the final official Convex Auth setup guide used during implementation.
+Recommended names for this repo:
+
+- `AUTH_LOOPS_API_KEY`
+- `AUTH_LOOPS_TRANSACTIONAL_ID`
+- `AUTH_GOOGLE_ID`
+- `AUTH_GOOGLE_SECRET`
+- `CONVEX_SITE_URL`
+- `JWT_PRIVATE_KEY`
+- `JWKS`
 
 ---
 
@@ -189,6 +197,7 @@ Important detail for React/Vite SPA auth:
 
 Stage will use:
 
+- Loops for email delivery
 - email entry
 - 6-digit code verification
 
@@ -216,8 +225,9 @@ The work is mostly replacing simulated state with real auth actions.
    - callback URLs
    - secrets
 
-3. **Configure email OTP provider**
-   - provider credentials
+3. **Configure Loops email OTP provider**
+   - Loops API key
+   - transactional email ID
    - OTP send/verify flow
 
 4. **Replace frontend auth adapter**

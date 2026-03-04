@@ -104,19 +104,19 @@ Verify the user's email with a 6-digit code sent to their inbox.
    - Paste support: pasting a 6-digit code fills all boxes
    - Margin below: 16px
 
-5. **Resend link**
-   - Text: "Didn't receive a code? Resend"
-   - Style: Small text, secondary color. "Resend" is a clickable text link in accent color.
+5. **Send again link**
+   - Text: "Didn't receive a code? Send again"
+   - Style: Small text, secondary color. "Send again" is a clickable text link in accent color.
    - Centered
    - After clicking: text changes to "Code sent!" for 3 seconds, then reverts
-   - Cooldown: Resend is disabled for 30 seconds after sending
+   - Cooldown: the link is disabled for 30 seconds after sending
 
 ### User Actions
 | Action | Leads to |
 |--------|----------|
 | Enter complete 6-digit code (new user) | Screen 2.1 (Onboarding — Name & Role) |
 | Enter complete 6-digit code (existing user) | Dashboard |
-| Click "Resend" | Resends verification code to email |
+| Click "Send again" | Sends a new verification code to email |
 
 ### States
 - **Default:** Empty boxes, first box focused
@@ -125,8 +125,8 @@ Verify the user's email with a 6-digit code sent to their inbox.
 - **Success (new user):** Smooth transition to onboarding
 - **Success (returning user):** Smooth transition to dashboard
 - **Error (wrong code):** Boxes shake subtly (micro-animation). Inline text below: "Incorrect code. Please try again." Boxes clear for re-entry.
-- **Error (expired code):** Inline text: "This code has expired. We've sent a new one." Auto-resend.
-- **Resend cooldown:** "Resend" link is muted/disabled. Optional: subtle countdown text "Resend in 28s"
+- **Error (expired code):** Inline text: "This code has expired. We've sent a new one." Auto-send again.
+- **Cooldown:** "Send again" link is muted/disabled. Optional: subtle countdown text "Send again in 28s"
 
 ### Visual Notes
 - The 6-box code input is the hero element. Big, centered, satisfying to fill.

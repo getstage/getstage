@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
 
 // Versioning approach:
 // - Keep table names stable.
@@ -88,17 +89,31 @@ const paymentStatus = v.union(
 );
 
 export default defineSchema({
+  ...authTables,
+
+  // Override the auth users table with our custom fields merged in.
+  // Auth fields (name, image, email, emailVerificationTime, phone, phoneVerificationTime, isAnonymous)
+  // are included via authTables spread, but we redefine users to add our custom fields.
   users: defineTable({
-    email: v.string(),
-    name: v.string(),
+    // Convex Auth standard fields
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
+    email: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+    // Stage custom fields
     avatarUrl: v.optional(v.string()),
     defaultPortalLogoUrl: v.optional(v.string()),
     defaultPortalAccentColor: v.optional(v.string()),
-    role: userRole,
-    plan,
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  }).index("by_email", ["email"]),
+    role: v.optional(userRole),
+    plan: v.optional(plan),
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("email", ["email"])
+    .index("phone", ["phone"]),
 
   clients: defineTable({
     userId: v.id("users"),

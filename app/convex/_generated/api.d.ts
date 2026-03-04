@@ -8,8 +8,11 @@
  * @module
  */
 
+import type * as LoopsOTP from "../LoopsOTP.js";
 import type * as _helpers from "../_helpers.js";
+import type * as auth from "../auth.js";
 import type * as dashboard from "../dashboard.js";
+import type * as http from "../http.js";
 import type * as portal from "../portal.js";
 import type * as projects from "../projects.js";
 import type * as settings from "../settings.js";
@@ -22,8 +25,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  LoopsOTP: typeof LoopsOTP;
   _helpers: typeof _helpers;
+  auth: typeof auth;
   dashboard: typeof dashboard;
+  http: typeof http;
   portal: typeof portal;
   projects: typeof projects;
   settings: typeof settings;
