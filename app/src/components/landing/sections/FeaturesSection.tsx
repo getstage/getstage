@@ -20,7 +20,7 @@ export function FeaturesSection() {
           <div className="landing-features-lattice-cell" aria-hidden="true" />
           <div className="landing-features-heading">
             <h2 className="landing-section-title">
-              Everything you need to manage your creative projects
+              Everything you need to manage your <span className="landing-text-accent">creative projects</span>
             </h2>
             <p className="landing-section-subtitle">
               From timeline overview to revenue tracking, get the full picture without the clutter.

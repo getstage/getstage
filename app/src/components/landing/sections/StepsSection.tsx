@@ -594,18 +594,18 @@ function createTimelineInteractivePreviewProjects(): Project[] {
   return [
     {
       ...website,
-      startDate: now - 320 * DAY_MS,
-      endDate: now - 250 * DAY_MS,
+      startDate: now - 340 * DAY_MS,
+      endDate: now - 270 * DAY_MS,
     },
     {
       ...pine,
-      startDate: now - 240 * DAY_MS,
-      endDate: now - 135 * DAY_MS,
+      startDate: now - 245 * DAY_MS,
+      endDate: now - 170 * DAY_MS,
     },
     {
       ...arc,
-      startDate: now - 210 * DAY_MS,
-      endDate: now - 88 * DAY_MS,
+      startDate: now - 165 * DAY_MS,
+      endDate: now - 95 * DAY_MS,
     },
   ];
 }

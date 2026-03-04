@@ -455,8 +455,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-secondary);
+  color: var(--color-accent);
   font-size: 22px;
+}
+
+.landing-text-accent {
+  color: var(--color-accent);
+}
+
+.landing-text-soft {
+  color: var(--color-text-tertiary);
 }
 
 .landing-trust-title {
@@ -2280,7 +2288,7 @@
 }
 
 .landing-pricing-plan-row {
-  --pricing-plan-row-height: 34px;
+  --pricing-plan-row-height: 32px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -2298,32 +2306,17 @@
 }
 
 .landing-pricing-plan-tag {
+  margin-bottom: 0;
+  min-height: var(--pricing-plan-row-height);
+  height: var(--pricing-plan-row-height);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  white-space: nowrap;
-  border-radius: 999px;
-  border: 1px solid var(--color-accent);
-  background: linear-gradient(135deg, #ffffff 0%, var(--color-accent-light) 100%);
-  color: var(--color-accent);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: 0.01em;
-  height: var(--pricing-plan-row-height);
-  padding: 0 12px 0 14px;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  padding: 0 14px;
 }
 
 .landing-pricing-plan-tag-text {
   line-height: 1;
-}
-
-.landing-pricing-plan-tag-arrow {
-  font-size: 14px;
-  line-height: 1;
-  margin-top: -1px;
 }
 
 .landing-pricing-plan-description {

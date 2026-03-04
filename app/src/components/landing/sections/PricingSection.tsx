@@ -13,7 +13,7 @@ export function PricingSection() {
         <div className="landing-pricing-lattice-row landing-pricing-lattice-row-heading">
           <div className="landing-pricing-lattice-cell" aria-hidden="true" />
           <div className="landing-pricing-heading">
-            <h2 className="landing-section-title">One yearly plan. Full Stage.</h2>
+            <h2 className="landing-section-title">One yearly plan. <span className="landing-text-accent">Full Stage.</span></h2>
             <p className="landing-section-subtitle">
               No confusing tiers or hidden add-ons. Every Pro account includes the complete Stage
               workflow.
@@ -29,11 +29,8 @@ export function PricingSection() {
             <div className="landing-pricing-plan-head">
               <div className="landing-pricing-plan-row">
                 <h3 className="landing-feature-cell-title landing-pricing-plan-title">Professional</h3>
-                <span className="landing-pricing-plan-tag">
+                <span className="landing-hero-badge landing-pricing-plan-tag">
                   <span className="landing-pricing-plan-tag-text">Unlock Everything</span>
-                  <span className="landing-pricing-plan-tag-arrow" aria-hidden="true">
-                    ›
-                  </span>
                 </span>
               </div>
               <p className="landing-feature-cell-desc landing-pricing-plan-description">

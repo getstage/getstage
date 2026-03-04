@@ -11,10 +11,13 @@ export function HeroSection() {
             ›
           </span>
         </Link>
-        <h1 className="landing-hero-title">Project clarity for designers and freelancers</h1>
+        <h1 className="landing-hero-title">
+          Project <span className="landing-text-accent">clarity</span> for designers and freelancers
+        </h1>
         <p className="landing-hero-subtitle">
-          Track projects, manage phases, monitor payments. Everything you need to run your creative
-          work — without the chaos.
+          Track projects, manage phases, monitor payments.{" "}
+          <span className="landing-text-soft">Everything you need to run your creative work</span> —
+          without the chaos.
         </p>
         <div className="landing-hero-buttons">
           <Link to="/auth" className="landing-btn landing-btn-cta">
