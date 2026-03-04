@@ -55,9 +55,7 @@ export function StepsSection() {
         <div className="landing-steps-lattice-row landing-steps-lattice-row-heading">
           <div className="landing-steps-lattice-cell" aria-hidden="true" />
           <div className="landing-steps-heading">
-            <h2 className="landing-section-title">
-              Get started <span>in minutes</span>
-            </h2>
+            <h2 className="landing-section-title">Get started in minutes</h2>
             <p className="landing-section-subtitle">
               From setup to daily workflow, Stage gives you a clear process without the clutter.
             </p>

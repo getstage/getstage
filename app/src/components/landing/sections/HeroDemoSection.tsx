@@ -1,10 +1,86 @@
+import { useLayoutEffect, useRef } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import demoImage from "@/assets/landing-images/demo.webp";
 import heroBgImage from "@/assets/landing-images/hero-bg.webp";
 import { INTEGRATION_ICONS } from "./data";
 
+gsap.registerPlugin(ScrollTrigger);
+
 export function HeroDemoSection() {
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const mockupRef = useRef<HTMLDivElement | null>(null);
+
+  useLayoutEffect(() => {
+    if (!sectionRef.current || !mockupRef.current) {
+      return;
+    }
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const context = gsap.context(() => {
+      if (prefersReducedMotion) {
+        gsap.set(mockupRef.current, {
+          clearProps: "transform",
+        });
+        return;
+      }
+
+      const mm = gsap.matchMedia();
+
+      mm.add("(min-width: 821px)", () => {
+        gsap.set(mockupRef.current, {
+          transformPerspective: 1600,
+          transformOrigin: "50% 100%",
+          rotateX: 17,
+          y: 36,
+          scale: 0.965,
+        });
+
+        gsap.to(mockupRef.current, {
+          rotateX: 0,
+          y: 0,
+          scale: 1,
+          ease: "none",
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top 76%",
+            end: "top 32%",
+            scrub: 0.9,
+          },
+        });
+      });
+
+      mm.add("(max-width: 820px)", () => {
+        gsap.set(mockupRef.current, {
+          transformPerspective: 1200,
+          transformOrigin: "50% 100%",
+          rotateX: 13,
+          y: 24,
+          scale: 0.975,
+        });
+
+        gsap.to(mockupRef.current, {
+          rotateX: 0,
+          y: 0,
+          scale: 1,
+          ease: "none",
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top 85%",
+            end: "top 48%",
+            scrub: 0.85,
+          },
+        });
+      });
+
+      return () => mm.revert();
+    }, sectionRef);
+
+    return () => context.revert();
+  }, []);
+
   return (
-    <section className="landing-hero-demo-section" aria-label="Stage demo">
+    <section ref={sectionRef} className="landing-hero-demo-section" aria-label="Stage demo">
       <div
         className="landing-hero-demo-bg"
         style={{ backgroundImage: `url(${heroBgImage})` }}
@@ -19,7 +95,10 @@ export function HeroDemoSection() {
       >
         <defs>
           <clipPath id="landing-hero-demo-strip-clip" clipPathUnits="objectBoundingBox">
-            <path d="M0 0H1L0.950085 0.861851C0.945349 0.943624 0.930201 1 0.912961 1H0.087039C0.0698 1 0.05465 0.943624 0.049914 0.861851L0 0Z" />
+            <path
+              fill="#FFFFFF"
+              d="M0 0H1L0.950085 0.861851C0.945349 0.943624 0.930201 1 0.912961 1H0.087039C0.0698 1 0.05465 0.943624 0.049914 0.861851L0 0Z"
+            />
           </clipPath>
         </defs>
       </svg>
@@ -34,13 +113,25 @@ export function HeroDemoSection() {
         </div>
       </div>
       <div className="landing-container landing-hero-demo-wrap">
-        <div className="landing-hero-mockup">
-          <img
-            src={demoImage}
-            alt="Stage dashboard demo"
-            className="landing-hero-demo-image"
-            loading="eager"
-          />
+        <div ref={mockupRef} className="landing-hero-mockup">
+          <div className="landing-hero-macbook-screen-shell">
+            <div className="landing-hero-macbook-toolbar" aria-hidden="true">
+              <div className="landing-hero-macbook-lights">
+                <span className="red" />
+                <span className="yellow" />
+                <span className="green" />
+              </div>
+              <span className="landing-hero-macbook-url">getstage.com</span>
+            </div>
+            <div className="landing-hero-macbook-screen">
+              <img
+                src={demoImage}
+                alt="Stage dashboard demo"
+                className="landing-hero-demo-image"
+                loading="eager"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </section>

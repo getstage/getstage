@@ -30,7 +30,7 @@ export function FinalCtaSection() {
 
               <a
                 href="#features"
-                className="landing-btn landing-btn-ghost landing-btn-secondary landing-final-secondary-cta"
+                className="landing-btn landing-btn-ghost landing-btn-secondary"
               >
                 See demo
               </a>
