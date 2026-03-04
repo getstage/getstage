@@ -1,0 +1,10 @@
+export { Nav } from "./Nav";
+export { HeroSection } from "./HeroSection";
+export { HeroDemoSection } from "./HeroDemoSection";
+export { TrustSection } from "./TrustSection";
+export { FeaturesSection } from "./FeaturesSection";
+export { StepsSection } from "./StepsSection";
+export { PricingSection } from "./PricingSection";
+export { FaqSection } from "./FaqSection";
+export { FinalCtaSection } from "./FinalCtaSection";
+export { FooterSection } from "./FooterSection";
