@@ -47,12 +47,17 @@ export const FAQ_ITEMS = [
 ] as const;
 
 export const PRICING_FEATURES = [
-  "Unlimited projects",
-  "AI-generated roadmaps",
-  "Client portal & sharing",
-  "Stripe payment tracking",
-  "All project types",
-  "Priority support",
+  { key: "unlimited-projects", label: "Unlimited projects" },
+  { key: "ai-roadmaps", label: "AI-generated roadmaps" },
+  { key: "timeline-overview", label: "Timeline overview & workload curve" },
+  { key: "phase-management", label: "Phase management & task checklists" },
+  { key: "client-portal", label: "Client portal sharing" },
+  { key: "stripe-tracking", label: "Stripe payment tracking" },
+  { key: "revenue-insights", label: "Revenue insights" },
+  { key: "privacy-first", label: "Privacy-first by default" },
+  { key: "data-exports", label: "Data export anytime" },
+  { key: "priority-support", label: "Priority support" },
+  { key: "integrations", label: "Integrations" },
 ] as const;
 
 export const INTEGRATION_ICONS = [

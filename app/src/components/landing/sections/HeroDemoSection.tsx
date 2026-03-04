@@ -10,6 +10,19 @@ export function HeroDemoSection() {
         style={{ backgroundImage: `url(${heroBgImage})` }}
         aria-hidden="true"
       />
+      <svg
+        className="landing-hero-clip-defs"
+        width="0"
+        height="0"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <defs>
+          <clipPath id="landing-hero-demo-strip-clip" clipPathUnits="objectBoundingBox">
+            <path d="M0 0H1L0.950085 0.861851C0.945349 0.943624 0.930201 1 0.912961 1H0.087039C0.0698 1 0.05465 0.943624 0.049914 0.861851L0 0Z" />
+          </clipPath>
+        </defs>
+      </svg>
       <div className="landing-hero-integration-strip">
         <span className="landing-hero-integration-label">Integrate with</span>
         <div className="landing-hero-integration-icons">

@@ -1,5 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Plus } from "@phosphor-icons/react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Timeline, type TimelineHorizon } from "@/components/dashboard/Timeline";
+import { Checkbox } from "@/components/ui/Checkbox";
+import { cn } from "@/lib/utils";
 import type { Phase, Project, Task } from "@/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -11,7 +14,6 @@ const PREVIEW_AVATARS = {
   pine: "https://randomuser.me/api/portraits/women/24.jpg",
 } as const;
 const TIMELINE_PREVIEW_PROJECTS = createTimelinePreviewProjects();
-const TIMELINE_TOOLTIP_PREVIEW_PROJECTS = TIMELINE_PREVIEW_PROJECTS.slice(0, 1);
 const TIMELINE_INTERACTIVE_PREVIEW_PROJECTS = TIMELINE_PREVIEW_PROJECTS.filter((project) =>
   ["landing-project-website", "landing-project-pine", "landing-project-arc"].includes(project.id),
 );
@@ -108,6 +110,16 @@ function StepCard({
 }
 
 function ProjectCreationPreview() {
+  const cycle = useLoopTick(42, 170);
+  const projectName = "Website redesign";
+  const clientName = "Acme Studio";
+  const projectLength = Math.min(projectName.length, Math.max(0, (cycle - 2) * 2));
+  const clientLength = Math.min(clientName.length, Math.max(0, (cycle - 12) * 2));
+  const selectedTypeIndex =
+    cycle < 20 ? -1 : cycle < 24 ? 0 : cycle < 28 ? 1 : 2;
+  const isSubmitting = cycle >= 30 && cycle < 36;
+  const isSubmitted = cycle >= 36;
+
   return (
     <div className="landing-step-project-preview" aria-hidden="true">
       <div className="landing-step-project-card">
@@ -116,19 +128,48 @@ function ProjectCreationPreview() {
 
         <div className="landing-step-project-field">
           <span className="landing-step-project-label">Project name</span>
-          <div className="landing-step-project-input is-typing">
-            <span className="landing-step-project-typing">Website redesign</span>
-            <span className="landing-step-project-caret" />
+          <div className="landing-step-project-input">
+            <span className={cn(!projectLength && "text-text-tertiary")}>
+              {projectLength ? projectName.slice(0, projectLength) : "Website redesign"}
+            </span>
+            {cycle >= 2 && cycle < 12 ? <span className="landing-step-project-caret" /> : null}
           </div>
         </div>
 
         <div className="landing-step-project-field">
           <span className="landing-step-project-label">Client</span>
-          <div className="landing-step-project-input">Acme Studio</div>
+          <div className="landing-step-project-input">
+            <span className={cn(!clientLength && "text-text-tertiary")}>
+              {clientLength ? clientName.slice(0, clientLength) : "Acme Studio"}
+            </span>
+            {cycle >= 12 && cycle < 20 ? <span className="landing-step-project-caret" /> : null}
+          </div>
         </div>
 
-        <button type="button" className="landing-step-project-button" disabled>
-          Continue
+        <div className="landing-step-project-types">
+          {["Branding", "Web Design", "App Design"].map((typeName, index) => (
+            <span
+              key={typeName}
+              className={cn(
+                "landing-step-project-type",
+                selectedTypeIndex === index ? "is-selected" : "",
+              )}
+            >
+              {typeName}
+            </span>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className={cn(
+            "landing-step-project-button",
+            (isSubmitting || isSubmitted) && "is-submitting",
+            isSubmitted && "is-submitted",
+          )}
+          disabled
+        >
+          {isSubmitted ? "Project created" : isSubmitting ? "Creating..." : "Continue"}
         </button>
       </div>
     </div>
@@ -136,49 +177,47 @@ function ProjectCreationPreview() {
 }
 
 function TimelineTooltipPreview() {
-  const [taskChecked, setTaskChecked] = useState(false);
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      setTaskChecked((value) => !value);
-    }, 2600);
-    return () => window.clearInterval(intervalId);
-  }, []);
-
-  const projects = useMemo<Project[]>(() => {
-    const source = TIMELINE_TOOLTIP_PREVIEW_PROJECTS[0];
-    if (!source) {
-      return [];
-    }
-
-    return [
-      {
-        ...source,
-        phases: source.phases.map((phase) => {
-          if (phase.name !== "Design") {
-            return phase;
-          }
-
-          return {
-            ...phase,
-            tasks: phase.tasks.map((task, taskIndex) =>
-              taskIndex === 1
-                ? { ...task, isCompleted: taskChecked, updatedAt: Date.now() }
-                : task,
-            ),
-          };
-        }),
-      },
-    ];
-  }, [taskChecked]);
+  const cycle = useLoopTick(28, 220);
+  const phaseAdded = cycle >= 8;
+  const firstTaskChecked = cycle >= 14;
+  const secondTaskChecked = cycle >= 20;
+  const phases = phaseAdded
+    ? [
+        { name: "Discovery", status: "completed" as const, done: "3 of 3" },
+        { name: "Design", status: "completed" as const, done: "2 of 2" },
+        { name: "QA", status: "active" as const, done: "1 of 2" },
+      ]
+    : [
+        { name: "Discovery", status: "completed" as const, done: "3 of 3" },
+        { name: "Design", status: "active" as const, done: "1 of 2" },
+      ];
 
   return (
-    <AutoHoverTimelinePreview
-      projects={projects}
-      horizon="all-time"
-      className="is-tooltip-demo"
-      cycleMs={2900}
-    />
+    <div className="landing-step-progress-preview" aria-hidden="true">
+      <div className="landing-step-progress-phases">
+        {phases.map((phase, index) => (
+          <div key={phase.name} className="landing-step-progress-phase-wrap">
+            <MiniPhaseNode
+              name={phase.name}
+              status={phase.status}
+              done={phase.done}
+              selected={phase.status === "active"}
+            />
+            {index < phases.length - 1 ? <span className="landing-step-progress-phase-link" /> : null}
+          </div>
+        ))}
+      </div>
+
+      <div className={cn("landing-step-progress-add", phaseAdded && "is-added")}>
+        <Plus size={11} weight="bold" />
+        {phaseAdded ? "QA phase added" : "Add phase"}
+      </div>
+
+      <div className="landing-step-progress-tasks">
+        <MiniTaskRow label="Homepage wireframes" checked={firstTaskChecked} />
+        <MiniTaskRow label="Payment flow revision" checked={secondTaskChecked} />
+      </div>
+    </div>
   );
 }
 
@@ -188,7 +227,8 @@ function TimelineInteractivePreview() {
       projects={TIMELINE_INTERACTIVE_PREVIEW_PROJECTS}
       horizon="all-time"
       className="is-interactive-demo"
-      cycleMs={2400}
+      cycleMs={2800}
+      showRevenue
     />
   );
 }
@@ -198,13 +238,17 @@ function AutoHoverTimelinePreview({
   horizon,
   className,
   cycleMs,
+  showRevenue = false,
 }: {
   projects: Project[];
   horizon: TimelineHorizon;
   className?: string;
   cycleMs: number;
+  showRevenue?: boolean;
 }) {
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const revenueRef = useRef<HTMLDivElement | null>(null);
+  const [revenueZoomed, setRevenueZoomed] = useState(false);
   const [cursor, setCursor] = useState({
     x: 0,
     y: 0,
@@ -262,21 +306,38 @@ function AutoHoverTimelinePreview({
       setCursor({ x: targetX - 34, y: targetY + 30, visible: true, active: false });
 
       schedule(() => {
-        // Cursor tip sits around (3,2) in a 24x24 icon, so offset to land tip on marker center.
-        setCursor({ x: targetX + 9, y: targetY + 10, visible: true, active: true });
+        // Cursor tip sits around (3,2) in a 24x24 icon.
+        setCursor({ x: targetX - 3, y: targetY - 2, visible: true, active: true });
         marker.dispatchEvent(new MouseEvent("mouseover", { bubbles: true, clientX, clientY }));
         marker.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX, clientY }));
       }, 220);
 
       schedule(() => {
         marker.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
-        setCursor((current) => ({
-          ...current,
-          x: targetX + 28,
-          y: targetY - 8,
-          active: false,
-        }));
-      }, cycleMs - 500);
+      }, cycleMs - 950);
+
+      if (showRevenue) {
+        schedule(() => {
+          const revenue = revenueRef.current;
+          if (!revenue) {
+            return;
+          }
+          const revenueBounds = revenue.getBoundingClientRect();
+          const revenueX = revenueBounds.left + revenueBounds.width / 2 - stageBounds.left;
+          const revenueY = revenueBounds.top + revenueBounds.height / 2 - stageBounds.top;
+          setCursor({ x: revenueX - 3, y: revenueY - 2, visible: true, active: true });
+          setRevenueZoomed(true);
+        }, cycleMs - 760);
+
+        schedule(() => {
+          setRevenueZoomed(false);
+          setCursor((current) => ({ ...current, active: false }));
+        }, cycleMs - 300);
+      } else {
+        schedule(() => {
+          setCursor((current) => ({ ...current, active: false }));
+        }, cycleMs - 380);
+      }
 
       schedule(runCycle, cycleMs);
     };
@@ -294,6 +355,16 @@ function AutoHoverTimelinePreview({
       <div ref={stageRef} className="landing-step-timeline-demo-stage">
         <Timeline projects={projects} horizon={horizon} />
       </div>
+      {showRevenue ? (
+        <div
+          ref={revenueRef}
+          className={cn("landing-step-revenue-zoom", revenueZoomed && "is-zoomed")}
+          aria-hidden="true"
+        >
+          <span className="landing-step-revenue-label">Revenue</span>
+          <span className="landing-step-revenue-value">$18.4k</span>
+        </div>
+      ) : null}
       <div
         aria-hidden="true"
         className={[
@@ -311,6 +382,64 @@ function AutoHoverTimelinePreview({
       </div>
     </div>
   );
+}
+
+function MiniPhaseNode({
+  name,
+  status,
+  done,
+  selected,
+}: {
+  name: string;
+  status: "completed" | "active";
+  done: string;
+  selected: boolean;
+}) {
+  const dotClass = status === "completed" ? "bg-text-tertiary" : "bg-accent";
+
+  return (
+    <div
+      className={cn(
+        "relative flex min-w-[82px] flex-col items-center gap-1.5 rounded-[8px] px-2 py-1.5",
+        selected ? "bg-accent text-white" : "",
+      )}
+    >
+      <span className={cn("h-2 w-2 rounded-full", selected ? "bg-white" : dotClass)} />
+      <span className={cn("text-[11px]", selected ? "text-white" : "text-text-primary")}>{name}</span>
+      <span className={cn("text-[10px]", selected ? "text-white/80" : "text-text-tertiary")}>
+        {done}
+      </span>
+    </div>
+  );
+}
+
+function MiniTaskRow({ label, checked }: { label: string; checked: boolean }) {
+  return (
+    <div className="flex items-center gap-2 border-t border-border-subtle px-1 py-2 first:border-t-0">
+      <Checkbox checked={checked} onCheckedChange={() => {}} disabled />
+      <span
+        className={cn(
+          "text-[13px] transition-colors",
+          checked ? "text-text-tertiary line-through" : "text-text-primary",
+        )}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function useLoopTick(length: number, intervalMs: number) {
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setTick((value) => (value + 1) % length);
+    }, intervalMs);
+    return () => window.clearInterval(intervalId);
+  }, [intervalMs, length]);
+
+  return tick;
 }
 
 function createTimelinePreviewProjects(): Project[] {

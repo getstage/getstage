@@ -1,53 +1,135 @@
+import type { Icon } from "@phosphor-icons/react";
+import {
+  ArrowRight,
+  ChartLineUp,
+  ChartPieSlice,
+  CurrencyCircleDollar,
+  DownloadSimple,
+  Folders,
+  Lifebuoy,
+  ListChecks,
+  PlugsConnected,
+  ShareNetwork,
+  ShieldCheck,
+  Sparkle,
+} from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
-import { PRICING_FEATURES } from "./data";
-import { CheckIcon } from "./shared";
+import { INTEGRATION_ICONS, PRICING_FEATURES } from "./data";
+
+type PricingFeatureKey = (typeof PRICING_FEATURES)[number]["key"];
+
+const PRICING_FEATURE_ICON_MAP: Record<PricingFeatureKey, Icon> = {
+  "unlimited-projects": Folders,
+  "ai-roadmaps": Sparkle,
+  "timeline-overview": ChartLineUp,
+  "phase-management": ListChecks,
+  "client-portal": ShareNetwork,
+  "stripe-tracking": CurrencyCircleDollar,
+  "revenue-insights": ChartPieSlice,
+  "privacy-first": ShieldCheck,
+  "data-exports": DownloadSimple,
+  "priority-support": Lifebuoy,
+  integrations: PlugsConnected,
+};
 
 export function PricingSection() {
   return (
-    <section className="landing-structural-section" id="pricing">
-      <div className="landing-section-grid border-t-0">
-        <div className="landing-grid-cell col-span-12 md:col-span-5 flex flex-col justify-center">
-          <div className="landing-section-label">Pricing</div>
-          <h2 className="landing-section-title">One clear yearly plan</h2>
-          <p className="landing-section-subtitle mb-0">
-            No confusing tiers. Pro includes every core capability you need to run Stage at full
-            power.
-          </p>
+    <section className="landing-pricing-grid-section" id="pricing">
+      <div className="landing-pricing-lattice">
+        <div className="landing-pricing-lattice-row landing-pricing-lattice-row-top" aria-hidden="true">
+          {Array.from({ length: 9 }).map((_, index) => (
+            <div key={index} className="landing-pricing-lattice-cell" />
+          ))}
         </div>
 
-        <div className="landing-grid-cell col-span-12 md:col-span-7 no-padding">
-          <div className="landing-pricing-cell pro h-full p-10 md:p-14">
-            <div className="landing-pricing-cell-layout">
-              <div className="landing-pricing-overview">
-                <div className="landing-pricing-head">
-                  <div className="landing-pricing-plan-name">Pro</div>
-                  <span className="landing-pricing-tag">Annual billing</span>
-                </div>
-                <div className="landing-pricing-price">
-                  <span className="landing-pricing-amount">$9</span>
-                  <span className="landing-pricing-period">/month</span>
-                </div>
-                <div className="landing-pricing-billing">
-                  Billed annually ($108/year). Cancel before renewal any time.
-                </div>
-                <Link to="/auth" className="landing-btn landing-btn-cta landing-pricing-cta">
-                  Get started
-                </Link>
-              </div>
-
-              <div className="landing-pricing-details">
-                <div className="landing-pricing-details-title">Everything included</div>
-                <ul className="landing-pricing-features">
-                  {PRICING_FEATURES.map((feature) => (
-                    <li key={feature} className="landing-pricing-feature">
-                      <CheckIcon />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
+        <div className="landing-pricing-lattice-row landing-pricing-lattice-row-heading">
+          <div className="landing-pricing-lattice-cell" aria-hidden="true" />
+          <div className="landing-pricing-heading">
+            <h2 className="landing-section-title">One yearly plan. Full Stage.</h2>
+            <p className="landing-section-subtitle">
+              No confusing tiers or hidden add-ons. Every Pro account includes the complete Stage
+              workflow.
+            </p>
           </div>
+          <div className="landing-pricing-lattice-cell" aria-hidden="true" />
+        </div>
+
+        <div className="landing-pricing-lattice-row landing-pricing-lattice-row-content">
+          <div className="landing-pricing-lattice-cell" aria-hidden="true" />
+
+          <article className="landing-pricing-grid-card is-overview">
+            <div className="landing-pricing-grid-card-head">
+              <div className="landing-pricing-plan-row">
+                <h3 className="landing-feature-cell-title landing-pricing-plan-title">Pro</h3>
+                <span className="landing-pricing-plan-tag">Yearly billing</span>
+              </div>
+              <p className="landing-feature-cell-desc landing-pricing-plan-description">
+                Built for freelancers and studios who want clarity across every project.
+              </p>
+            </div>
+
+            <div className="landing-pricing-price-block">
+              <div className="landing-pricing-price-line">
+                <span className="landing-pricing-price-amount">$108</span>
+                <span className="landing-pricing-price-period">/year</span>
+              </div>
+              <p className="landing-pricing-price-note">$9/month equivalent, billed once yearly.</p>
+            </div>
+
+            <Link to="/auth" className="landing-btn landing-btn-cta landing-pricing-grid-cta">
+              Start with Pro
+              <ArrowRight size={16} weight="bold" />
+            </Link>
+
+            <p className="landing-pricing-renewal-note">
+              Cancel or switch to free before renewal. No long-term lock-in.
+            </p>
+          </article>
+
+          <article className="landing-pricing-grid-card is-features">
+            <div className="landing-pricing-grid-card-head">
+              <h3 className="landing-feature-cell-title landing-pricing-features-title">
+                Everything included
+              </h3>
+              <p className="landing-feature-cell-desc landing-pricing-features-description">
+                Every feature in one plan, with integrations ready from day one.
+              </p>
+            </div>
+
+            <ul className="landing-pricing-feature-list">
+              {PRICING_FEATURES.map((feature) => {
+                const FeatureIcon = PRICING_FEATURE_ICON_MAP[feature.key];
+                const isIntegrations = feature.key === "integrations";
+
+                return (
+                  <li
+                    key={feature.key}
+                    className={`landing-pricing-feature-item ${isIntegrations ? "is-integrations" : ""}`}
+                  >
+                    <span className="landing-pricing-feature-icon" aria-hidden="true">
+                      <FeatureIcon size={17} weight="duotone" />
+                    </span>
+                    <span className="landing-pricing-feature-text">{feature.label}</span>
+                    {isIntegrations ? (
+                      <span className="landing-pricing-inline-integrations">
+                        {INTEGRATION_ICONS.map((icon) => (
+                          <span
+                            key={`pricing-integration-${icon.name}`}
+                            className="landing-pricing-inline-integration-logo"
+                            title={icon.name}
+                          >
+                            <img src={icon.src} alt={icon.name} loading="lazy" />
+                          </span>
+                        ))}
+                      </span>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </article>
+
+          <div className="landing-pricing-lattice-cell" aria-hidden="true" />
         </div>
       </div>
     </section>
