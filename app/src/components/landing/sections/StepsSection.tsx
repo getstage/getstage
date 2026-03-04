@@ -130,7 +130,7 @@ function TimelineInteractivePreview() {
   return (
     <AutoHoverTimelinePreview
       projects={TIMELINE_INTERACTIVE_PREVIEW_PROJECTS}
-      horizon="all-time"
+      horizon="12-months"
       className="is-interactive-demo"
       cycleMs={2800}
       showRevenue
@@ -151,6 +151,7 @@ function AutoHoverTimelinePreview({
   cycleMs: number;
   showRevenue?: boolean;
 }) {
+  const previewRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const revenueRef = useRef<HTMLDivElement | null>(null);
   const [timelineRenderKey, setTimelineRenderKey] = useState(0);
@@ -177,8 +178,9 @@ function AutoHoverTimelinePreview({
     };
 
     const runCycle = () => {
+      const preview = previewRef.current;
       const stage = stageRef.current;
-      if (!stage) {
+      if (!preview || !stage) {
         schedule(runCycle, 500);
         return;
       }
@@ -202,10 +204,10 @@ function AutoHoverTimelinePreview({
         return;
       }
 
-      const stageBounds = stage.getBoundingClientRect();
+      const previewBounds = preview.getBoundingClientRect();
       const markerBounds = marker.getBoundingClientRect();
-      const targetX = markerBounds.left + markerBounds.width / 2 - stageBounds.left;
-      const targetY = markerBounds.top + markerBounds.height / 2 - stageBounds.top;
+      const targetX = markerBounds.left + markerBounds.width / 2 - previewBounds.left;
+      const targetY = markerBounds.top + markerBounds.height / 2 - previewBounds.top;
       const clientX = markerBounds.left + markerBounds.width / 2;
       const clientY = markerBounds.top + markerBounds.height / 2;
 
@@ -213,7 +215,7 @@ function AutoHoverTimelinePreview({
 
       schedule(() => {
         // Cursor tip sits around (3,2) in a 24x24 icon.
-        setCursor({ x: targetX - 3, y: targetY + 2, visible: true, active: true });
+        setCursor({ x: targetX - 3, y: targetY + 10, visible: true, active: true });
         marker.dispatchEvent(new MouseEvent("mouseover", { bubbles: true, clientX, clientY }));
         marker.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX, clientY }));
       }, 220);
@@ -229,9 +231,9 @@ function AutoHoverTimelinePreview({
             return;
           }
           const revenueBounds = revenue.getBoundingClientRect();
-          const revenueX = revenueBounds.left + revenueBounds.width / 2 - stageBounds.left;
-          const revenueY = revenueBounds.top + revenueBounds.height / 2 - stageBounds.top;
-          setCursor({ x: revenueX - 3, y: revenueY + 2, visible: true, active: true });
+          const revenueX = revenueBounds.left + revenueBounds.width / 2 - previewBounds.left;
+          const revenueY = revenueBounds.top + revenueBounds.height / 2 - previewBounds.top;
+          setCursor({ x: revenueX - 3, y: revenueY + 10, visible: true, active: true });
           setRevenueZoomed(true);
         }, cycleMs - 760);
 
@@ -259,7 +261,10 @@ function AutoHoverTimelinePreview({
   }, [cycleMs, horizon, projects]);
 
   return (
-    <div className={["landing-step-timeline-preview", className ?? ""].filter(Boolean).join(" ")}>
+    <div
+      ref={previewRef}
+      className={["landing-step-timeline-preview", className ?? ""].filter(Boolean).join(" ")}
+    >
       <div ref={stageRef} className="landing-step-timeline-demo-stage">
         <Timeline key={timelineRenderKey} projects={projects} horizon={horizon} />
       </div>
@@ -589,18 +594,18 @@ function createTimelineInteractivePreviewProjects(): Project[] {
   return [
     {
       ...website,
-      startDate: now - 210 * DAY_MS,
-      endDate: now - 140 * DAY_MS,
+      startDate: now - 320 * DAY_MS,
+      endDate: now - 250 * DAY_MS,
     },
     {
       ...pine,
-      startDate: now - 70 * DAY_MS,
-      endDate: now + 6 * DAY_MS,
+      startDate: now - 240 * DAY_MS,
+      endDate: now - 135 * DAY_MS,
     },
     {
       ...arc,
-      startDate: now + 40 * DAY_MS,
-      endDate: now + 145 * DAY_MS,
+      startDate: now - 210 * DAY_MS,
+      endDate: now - 88 * DAY_MS,
     },
   ];
 }

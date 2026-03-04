@@ -358,10 +358,15 @@ export function ProjectDetailPhaseRailPreview({ phaseAdded }: ProjectDetailPhase
 
   return (
     <div className="w-full" aria-hidden>
-      <div className="mx-auto flex max-w-[360px] items-center">
+      <div className="mx-auto flex w-full max-w-[280px] items-center">
         {phases.map((phase, index) => (
           <div key={phase.id} className="flex flex-1 items-center">
-            <PhaseNode phase={phase} selected={selectedId === phase.id} onClick={() => {}} />
+            <PhaseNode
+              phase={phase}
+              selected={selectedId === phase.id}
+              onClick={() => undefined}
+              compact
+            />
             {index < phases.length - 1 && (
               <div
                 className={`h-px flex-1 ${
@@ -393,10 +398,12 @@ function PhaseNode({
   phase,
   selected,
   onClick,
+  compact = false,
 }: {
   phase: Phase;
   selected: boolean;
   onClick: () => void;
+  compact?: boolean;
 }) {
   const done = phase.tasks.filter((task) => task.isCompleted).length;
   const total = phase.tasks.length;
@@ -418,24 +425,26 @@ function PhaseNode({
   return (
     <button
       onClick={onClick}
-      className={`relative flex min-w-[112px] cursor-pointer flex-col items-center gap-2 rounded-[8px] px-3 py-2 transition-colors ${
+      className={`relative flex cursor-pointer flex-col items-center rounded-[8px] transition-colors ${
+        compact ? "min-w-[74px] gap-1.5 px-1.5 py-1.5" : "min-w-[112px] gap-2 px-3 py-2"
+      } ${
         selected && phase.status === "active" ? "bg-accent text-white" : "hover:bg-bg-subtle"
       }`}
     >
       <span
-        className={`h-2.5 w-2.5 rounded-full ${
+        className={`${compact ? "h-2 w-2" : "h-2.5 w-2.5"} rounded-full ${
           selected && phase.status === "active" ? "bg-white" : dotClass
         }`}
       />
       <span
-        className={`text-[12px] ${
+        className={`${compact ? "text-[11px]" : "text-[12px]"} ${
           selected && phase.status === "active" ? "text-white" : textClass
         }`}
       >
         {phase.name}
       </span>
       <span
-        className={`text-[11px] ${
+        className={`${compact ? "text-[10px]" : "text-[11px]"} ${
           selected && phase.status === "active" ? "text-white/80" : "text-text-tertiary"
         }`}
       >

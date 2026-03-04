@@ -7,9 +7,7 @@ export function PricingSection() {
     <section className="landing-pricing-grid-section" id="pricing">
       <div className="landing-pricing-lattice">
         <div className="landing-pricing-lattice-row landing-pricing-lattice-row-top" aria-hidden="true">
-          {Array.from({ length: 9 }).map((_, index) => (
-            <div key={index} className="landing-pricing-lattice-cell" />
-          ))}
+          <div className="landing-pricing-lattice-cell" />
         </div>
 
         <div className="landing-pricing-lattice-row landing-pricing-lattice-row-heading">
@@ -31,7 +29,12 @@ export function PricingSection() {
             <div className="landing-pricing-plan-head">
               <div className="landing-pricing-plan-row">
                 <h3 className="landing-feature-cell-title landing-pricing-plan-title">Professional</h3>
-                <span className="landing-pricing-plan-tag">Most Popular</span>
+                <span className="landing-pricing-plan-tag">
+                  <span className="landing-pricing-plan-tag-text">Unlock Everything</span>
+                  <span className="landing-pricing-plan-tag-arrow" aria-hidden="true">
+                    ›
+                  </span>
+                </span>
               </div>
               <p className="landing-feature-cell-desc landing-pricing-plan-description">
                 Full Stage workflow for freelancers and studios, with all features and integrations.

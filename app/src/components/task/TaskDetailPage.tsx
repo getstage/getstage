@@ -260,12 +260,15 @@ export function TaskDetailChecklistPreview({
   secondChecked,
 }: TaskDetailChecklistPreviewProps) {
   return (
-    <div className="w-full rounded-[10px] border border-border-subtle bg-white px-3 py-2.5" aria-hidden>
+    <div
+      className="mx-auto w-full max-w-[280px] rounded-[10px] border border-border-subtle bg-white px-3 py-2.5"
+      aria-hidden
+    >
       <div className="space-y-1.5">
         <div className="group flex items-center gap-2.5 py-1.5 text-[13px]">
           <Checkbox checked={firstChecked} onCheckedChange={() => undefined} disabled />
           <span
-            className={`transition-colors ${
+            className={`block truncate transition-colors ${
               firstChecked ? "text-text-tertiary line-through" : "text-text-primary"
             }`}
           >
@@ -276,7 +279,7 @@ export function TaskDetailChecklistPreview({
         <div className="group flex items-center gap-2.5 border-t border-border-subtle py-1.5 text-[13px]">
           <Checkbox checked={secondChecked} onCheckedChange={() => undefined} disabled />
           <span
-            className={`transition-colors ${
+            className={`block truncate transition-colors ${
               secondChecked ? "text-text-tertiary line-through" : "text-text-primary"
             }`}
           >
