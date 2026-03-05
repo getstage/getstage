@@ -10,60 +10,37 @@ import { DashboardTimelineSelector } from "@/components/dashboard/DashboardTimel
 import { PaymentsCard } from "@/components/dashboard/PaymentsCard";
 import { ProjectDock } from "@/components/dashboard/ProjectDock";
 import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
-import { dashboardPreviewData } from "@/components/dashboard/dashboardPreviewData";
 import { Timeline, type TimelineHorizon } from "@/components/dashboard/Timeline";
 import { UpcomingTasksCard } from "@/components/dashboard/UpcomingTasksCard";
 import type { DashboardTaskEntry } from "@/components/dashboard/dashboardTypes";
 import { Button } from "@/components/ui/Button";
-import { AUTH_DEV_BYPASS_ENABLED, useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/convex";
 import { getGreeting } from "@/lib/utils";
 import type { Project } from "@/types";
 
 export function DashboardPage() {
-  const [timelineHorizon, setTimelineHorizon] = useState<TimelineHorizon>(
-    AUTH_DEV_BYPASS_ENABLED ? dashboardPreviewData.defaultHorizon : "thisMonth",
-  );
+  const [timelineHorizon, setTimelineHorizon] = useState<TimelineHorizon>("thisMonth");
   const { user } = useAuth();
-  const dashboardData = useConvexQuery(
-    api.dashboard.getOverview,
-    AUTH_DEV_BYPASS_ENABLED ? "skip" : {},
-  );
-  const isLoading = AUTH_DEV_BYPASS_ENABLED ? false : dashboardData === undefined;
-  const projects = AUTH_DEV_BYPASS_ENABLED
-    ? dashboardPreviewData.projects
-    : dashboardData?.projects ?? [];
-  const greetingName = AUTH_DEV_BYPASS_ENABLED
-    ? dashboardPreviewData.greetingName
-    : user?.name?.split(" ")[0] ?? "there";
-  const greeting = getGreeting(greetingName, {
-    nowTimestamp: AUTH_DEV_BYPASS_ENABLED ? dashboardPreviewData.nowTimestamp : undefined,
-  });
+  const dashboardData = useConvexQuery(api.dashboard.getOverview, {});
+  const isLoading = dashboardData === undefined;
+  const projects = dashboardData?.projects ?? [];
+  const greetingName = user?.name?.split(" ")[0] ?? "there";
+  const greeting = getGreeting(greetingName);
 
   const taskEntries = buildTaskEntries(projects);
-  const activeProjects = AUTH_DEV_BYPASS_ENABLED
-    ? dashboardPreviewData.stats.activeProjects
-    : projects.filter((project) => project.status === "active").length;
-  const tasksDue = AUTH_DEV_BYPASS_ENABLED
-    ? dashboardPreviewData.stats.tasksDue
-    : taskEntries.filter((entry) => !entry.task.isCompleted).length;
-  const completed = AUTH_DEV_BYPASS_ENABLED
-    ? dashboardPreviewData.stats.completed
-    : taskEntries.filter((entry) => entry.task.isCompleted).length;
-  const avgProgress = AUTH_DEV_BYPASS_ENABLED
-    ? dashboardPreviewData.stats.avgProgress
-    : taskEntries.length > 0
-      ? Math.round((completed / taskEntries.length) * 100)
-      : 0;
-  const upcomingTasks = AUTH_DEV_BYPASS_ENABLED
-    ? dashboardPreviewData.upcomingTasks
-    : taskEntries
-        .filter((entry) => !entry.task.isCompleted)
-        .sort((a, b) => a.task.createdAt - b.task.createdAt)
-        .slice(0, 3);
-  const recentActivity = AUTH_DEV_BYPASS_ENABLED
-    ? dashboardPreviewData.recentActivity
-    : [...taskEntries].sort((a, b) => b.task.updatedAt - a.task.updatedAt).slice(0, 3);
+  const activeProjects = projects.filter((project) => project.status === "active").length;
+  const tasksDue = taskEntries.filter((entry) => !entry.task.isCompleted).length;
+  const completed = taskEntries.filter((entry) => entry.task.isCompleted).length;
+  const avgProgress =
+    taskEntries.length > 0 ? Math.round((completed / taskEntries.length) * 100) : 0;
+  const upcomingTasks = taskEntries
+    .filter((entry) => !entry.task.isCompleted)
+    .sort((a, b) => a.task.createdAt - b.task.createdAt)
+    .slice(0, 3);
+  const recentActivity = [...taskEntries]
+    .sort((a, b) => b.task.updatedAt - a.task.updatedAt)
+    .slice(0, 3);
   const dockProjects = projects.slice(0, 6);
 
   return (
@@ -113,13 +90,7 @@ export function DashboardPage() {
           </div>
         ) : projects.length > 0 ? (
           <div className="relative left-1/2 mt-0 w-screen -translate-x-1/2">
-            <Timeline
-              projects={projects}
-              horizon={timelineHorizon}
-              nowTimestamp={
-                AUTH_DEV_BYPASS_ENABLED ? dashboardPreviewData.nowTimestamp : undefined
-              }
-            />
+            <Timeline projects={projects} horizon={timelineHorizon} />
           </div>
         ) : (
           <div className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-14">
@@ -136,11 +107,7 @@ export function DashboardPage() {
               </div>
 
               <PaymentsCard
-                paymentSummary={
-                  AUTH_DEV_BYPASS_ENABLED
-                    ? dashboardPreviewData.paymentSummary
-                    : dashboardData?.paymentSummary ?? null
-                }
+                paymentSummary={dashboardData?.paymentSummary ?? null}
               />
             </div>
           </div>

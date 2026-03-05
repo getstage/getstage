@@ -1,21 +1,12 @@
 import { Navigate, createFileRoute, Outlet } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
 import { AppLayout } from "@/components/shared/AppLayout";
-import { AUTH_DEV_BYPASS_ENABLED } from "@/lib/auth";
 
 export const Route = createFileRoute("/_authed")({
   component: AuthedLayout,
 });
 
 function AuthedLayout() {
-  if (AUTH_DEV_BYPASS_ENABLED) {
-    return (
-      <AppLayout>
-        <Outlet />
-      </AppLayout>
-    );
-  }
-
   const { isLoading, isAuthenticated } = useConvexAuth();
 
   if (isLoading) {

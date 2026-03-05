@@ -9,9 +9,6 @@ import { useConvexAuth, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@/lib/convex";
 
-export const AUTH_DEV_BYPASS_ENABLED =
-  import.meta.env.VITE_AUTH_DEV_BYPASS === "true";
-
 export type AuthUser = {
   id: string;
   email: string;
@@ -26,21 +23,6 @@ export function useAuth(): {
   isLoading: boolean;
   isAuthenticated: boolean;
 } {
-  if (AUTH_DEV_BYPASS_ENABLED) {
-    return {
-      user: {
-        id: "dev-user",
-        email: "preview@usestage.com",
-        name: "Stage Preview",
-        avatarUrl: undefined,
-        role: "freelancer",
-        plan: "free",
-      },
-      isLoading: false,
-      isAuthenticated: true,
-    };
-  }
-
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
 
   // Only fetch settings when authenticated

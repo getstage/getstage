@@ -14,7 +14,7 @@ import { GeneralTab } from "@/components/settings/GeneralTab";
 import { BillingIcon, GeneralIcon, PortalIcon } from "@/components/settings/SettingsIcons";
 import { PortalTab } from "@/components/settings/PortalTab";
 import type { SettingsTab } from "@/components/settings/settingsTypes";
-import { AUTH_DEV_BYPASS_ENABLED, useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/convex";
 import { DEFAULT_PORTAL_COLOR } from "@/lib/constants";
 import { capitalize, formatPlanPrice, normalizeHex } from "@/lib/format";
@@ -28,7 +28,7 @@ export function SettingsPage() {
   const { user } = useAuth();
   const settingsData = useConvexQuery(
     api.settings.getOverview,
-    AUTH_DEV_BYPASS_ENABLED || !user ? "skip" : {},
+    !user ? "skip" : {},
   );
   const updateProfile = useConvexMutation(api.settings.updateProfile);
   const updatePortalBranding = useConvexMutation(api.settings.updatePortalBranding);
