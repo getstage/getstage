@@ -210,14 +210,6 @@
   justify-content: center;
 }
 
-.landing-hero-buttons .landing-btn-cta,
-.landing-hero-buttons .landing-btn-ghost {
-  min-width: 168px;
-  height: 48px;
-  padding: 0 26px;
-  font-size: 15px;
-}
-
 .landing-hero-demo-section {
   position: relative;
   width: 100%;
@@ -1998,12 +1990,6 @@
   margin-top: 0;
 }
 
-.landing-final-buttons .landing-btn-cta,
-.landing-final-buttons .landing-btn-ghost {
-  padding: 12px 30px;
-  font-size: 15px;
-}
-
 .landing-final-primary-cta {
   box-shadow: none;
 }
@@ -3437,13 +3423,6 @@
     flex-wrap: wrap;
   }
 
-  .landing-hero-buttons .landing-btn-cta,
-  .landing-hero-buttons .landing-btn-ghost {
-    min-width: 144px;
-    height: 44px;
-    padding: 0 18px;
-  }
-
   .landing-hero-demo-section {
     padding: 54px 0 42px;
     background: #fff;
@@ -3580,14 +3559,6 @@
   .landing-final-buttons {
     gap: 8px;
     width: 100%;
-  }
-
-  .landing-final-buttons .landing-btn-cta,
-  .landing-final-buttons .landing-btn-ghost {
-    min-height: 42px;
-    padding: 0 20px;
-    font-size: 14px;
-    flex: 1 1 0;
   }
 
   .landing-footer {
