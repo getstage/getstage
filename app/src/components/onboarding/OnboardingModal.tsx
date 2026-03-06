@@ -649,10 +649,6 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
 
                   {csvConnected ? (
                     <>
-                      <div className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-accent">
-                        <CheckCircle size={12} weight="fill" />
-                        Linked
-                      </div>
 
                       <div className="mt-3 flex flex-col gap-2 md:flex-row">
                         <input
