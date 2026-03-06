@@ -428,6 +428,7 @@ export function DashboardPage() {
 
       <OnboardingModal
         open={showOnboarding}
+        userName={user?.name?.split(" ")[0]}
         onComplete={handleOnboardingComplete}
       />
     </>

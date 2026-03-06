@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "motion/react";
-import { Eye, LinkSimple, UserCircle } from "@phosphor-icons/react";
+import { useGSAP } from "@gsap/react";
+import { Eye, UserCircle } from "@phosphor-icons/react";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
+import onboardingImage from "@/assets/onboarding/onboarding.webp";
 import { cn } from "@/lib/utils";
 import type { ProjectType } from "@/types";
 
-gsap.registerPlugin(SplitText);
+gsap.registerPlugin(SplitText, useGSAP);
 
 type Method = "ai" | "manual" | null;
 
 type Step =
+  | "welcome"
   | "personalise"
   | "details"
   | "method"
@@ -49,6 +52,9 @@ const PROJECT_TYPE_OPTIONS: Option[] = [
 ];
 
 const DEFAULT_PHASES = ["Discovery", "Strategy", "Design", "Development", "Launch"];
+const GOOGLE_SHEETS_ICON_SRC = new URL("../../assets/icons/google-sheets.svg", import.meta.url)
+  .href;
+const STRIPE_ICON_SRC = new URL("../../assets/icons/stripe.svg", import.meta.url).href;
 
 const AI_ROADMAPS: Record<ProjectType, RoadmapItem[]> = {
   branding: [
@@ -123,11 +129,12 @@ export type OnboardingSubmission = {
 
 type OnboardingModalProps = {
   open: boolean;
+  userName?: string;
   onComplete: (submission: OnboardingSubmission) => void;
 };
 
-export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
-  const [step, setStep] = useState<Step>("personalise");
+export function OnboardingModal({ open, userName, onComplete }: OnboardingModalProps) {
+  const [step, setStep] = useState<Step>("welcome");
   const [fieldOfWork, setFieldOfWork] = useState<ProjectType | null>(null);
   const [setProjectLater, setSetProjectLater] = useState(false);
   const [projectName, setProjectName] = useState("");
@@ -148,7 +155,6 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
   const [csvConnected, setCsvConnected] = useState(false);
   const [csvImported, setCsvImported] = useState(false);
   const [csvImporting, setCsvImporting] = useState(false);
-  const [stripeConnected, setStripeConnected] = useState(false);
 
   const creationTimeoutRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -166,10 +172,11 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
 
   const flowSteps = useMemo<Step[]>(() => {
     if (setProjectLater) {
-      return ["personalise", "details", "integrations"];
+      return ["welcome", "personalise", "details", "integrations"];
     }
     if (method === "manual") {
       return [
+        "welcome",
         "personalise",
         "details",
         "method",
@@ -179,7 +186,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
         "integrations",
       ];
     }
-    return ["personalise", "details", "method", "timeline", "preview", "integrations"];
+    return ["welcome", "personalise", "details", "method", "timeline", "preview", "integrations"];
   }, [method, setProjectLater]);
 
   const currentIndex = flowSteps.indexOf(step);
@@ -189,7 +196,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
       return;
     }
 
-    setStep("personalise");
+    setStep("welcome");
     setFieldOfWork(null);
     setSetProjectLater(false);
     setProjectName("");
@@ -207,7 +214,6 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
     setCsvConnected(false);
     setCsvImported(false);
     setCsvImporting(false);
-    setStripeConnected(false);
   }, [open]);
 
   useEffect(() => {
@@ -224,7 +230,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
   }
 
   function goBack() {
-    if (step === "personalise" || step === "creating") {
+    if (step === "welcome" || step === "creating") {
       return;
     }
 
@@ -241,6 +247,9 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
     }
 
     switch (step) {
+      case "welcome":
+        setStep("personalise");
+        return;
       case "personalise":
         setStep("details");
         return;
@@ -278,7 +287,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
             projectType: projectType!,
             csvConnected,
             csvImported,
-            stripeConnected,
+            stripeConnected: false,
           });
         }, 1800);
         return;
@@ -375,12 +384,12 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[rgba(25,24,42,0.54)] backdrop-blur-[3px]" />
         <Dialog.Content
-          className="project-creation-page fixed left-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-[760px] -translate-x-1/2 -translate-y-1/2 rounded-[22px] bg-white p-6 sm:p-7"
+          className="project-creation-page onboarding-modal fixed left-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-[760px] -translate-x-1/2 -translate-y-1/2 rounded-[22px] border-0 bg-white p-6 shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 sm:p-7"
           onEscapeKeyDown={(event) => event.preventDefault()}
           onInteractOutside={(event) => event.preventDefault()}
           onPointerDownOutside={(event) => event.preventDefault()}
         >
-          {step !== "creating" && (
+          {step !== "creating" && step !== "welcome" && (
             <div className="mb-8 flex items-center justify-between">
               <Dialog.Title className="font-heading text-[20px] leading-[1.2] font-medium tracking-[-0.2px] text-text-primary">
                 Get started
@@ -390,6 +399,18 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
           )}
 
           <AnimatePresence mode="wait">
+            {step === "welcome" && (
+              <motion.div
+                key="s-welcome"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+              >
+                <WelcomeSlide userName={userName} />
+              </motion.div>
+            )}
+
             {step === "personalise" && (
               <motion.div key="s-personalise" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
                 <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">Personalise your workspace</h3>
@@ -622,15 +643,18 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
 
             {step === "integrations" && (
               <motion.div key="s-integrations" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-                <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">Connect your data</h3>
-                <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">Connect now or skip for later. You can adjust integrations anytime in Settings.</p>
+                <div className="flex items-center gap-2.5">
+                  <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
+                    Connect your data
+                  </h3>
+                  <img src={GOOGLE_SHEETS_ICON_SRC} alt="Google Sheets" className="h-4 w-4" />
+                  <img src={STRIPE_ICON_SRC} alt="Stripe" className="h-4 w-4" />
+                </div>
+                <p className="mt-2 text-[15px] leading-[1.45] text-text-secondary">Import Google Sheets now. Stripe comes next.</p>
 
-                <div className="mt-7 rounded-[16px] border border-border-subtle bg-bg-subtle px-4 py-4 sm:px-6 sm:py-5">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[17px] font-medium text-text-primary">Google Sheets (CSV)</p>
-                      <p className="text-[13px] text-text-secondary">Standard connection + import flow</p>
-                    </div>
+                <div className="mt-6 border-t border-border-subtle pt-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-[15px] font-medium text-text-primary">Google Sheets import</p>
                     <button
                       type="button"
                       onClick={() => {
@@ -641,7 +665,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
                           setSheetUrl("");
                         }
                       }}
-                      className="cursor-pointer text-[15px] font-medium text-accent transition-colors hover:text-accent-hover focus:outline-none"
+                      className="cursor-pointer text-[14px] font-medium text-accent transition-colors hover:text-accent-hover focus:outline-none"
                     >
                       {csvConnected ? "Unlink" : "Link Google Sheets"}
                     </button>
@@ -649,61 +673,42 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
 
                   {csvConnected ? (
                     <>
-
                       <div className="mt-3 flex flex-col gap-2 md:flex-row">
                         <input
                           value={sheetUrl}
                           onChange={(event) => setSheetUrl(event.target.value)}
                           placeholder="Paste your Google Sheets link"
-                          className="h-[46px] flex-1 rounded-[12px] border border-transparent bg-white px-4 text-[15px] text-text-primary transition-all duration-200 outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 placeholder:text-text-tertiary focus:border-border"
+                          className="h-[44px] flex-1 rounded-[10px] border border-transparent bg-input-bg px-3.5 text-[14px] text-text-primary transition-all duration-200 outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 placeholder:text-text-tertiary focus:border-border focus:bg-white"
                         />
                         <button
                           type="button"
                           onClick={handleImportCsv}
                           disabled={!sheetUrl.trim() || csvImporting}
-                          className="h-[46px] min-w-[240px] cursor-pointer rounded-[12px] bg-text-primary px-5 text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-45 focus:outline-none"
+                          className="h-[44px] min-w-[220px] cursor-pointer rounded-[10px] bg-text-primary px-4 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-45 focus:outline-none"
                         >
                           {csvImporting ? "Importing..." : "Import Google Sheets"}
                         </button>
                       </div>
-
-                      {csvImported && <div className="mt-2 text-[12px] text-accent">Import completed successfully.</div>}
+                      {csvImported && (
+                        <div className="mt-2 text-[12px] text-accent">
+                          Imported. We&apos;ll use this data in your dashboard.
+                        </div>
+                      )}
                     </>
                   ) : (
-                    <p className="mt-4 text-[14px] text-text-secondary">Link your sheet and import whenever you are ready.</p>
+                    <p className="mt-3 text-[13px] text-text-secondary">Optional for now.</p>
                   )}
-
-                  <a
-                    // TODO: Add Stepps link
-                    href="" target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-[15px] text-accent transition-colors hover:text-accent-hover">
-                    <Eye size={16} />
-                    View our guide
-                  </a>
-
-                  <div className="my-5 h-px bg-border-subtle" />
-
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[17px] font-medium text-text-primary">Stripe</p>
-                      <p className="text-[13px] text-text-secondary">Optional now, can be connected later</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setStripeConnected((value) => !value)}
-                      className={cn(
-                        "cursor-pointer text-[15px] font-medium transition-colors focus:outline-none",
-                        stripeConnected ? "text-text-secondary hover:text-text-primary" : "text-accent hover:text-accent-hover",
-                      )}
-                    >
-                      {stripeConnected ? "Disconnect" : "Connect Stripe"}
-                    </button>
-                  </div>
-
-                  <div className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-text-secondary">
-                    <LinkSimple size={14} />
-                    {stripeConnected ? "Stripe connected." : "No Stripe connection yet."}
-                  </div>
                 </div>
+
+                <a
+                  href="https://help.portfoliodividendtracker.com/article/126-article"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex items-center gap-1.5 text-[14px] text-accent transition-colors hover:text-accent-hover"
+                >
+                  <Eye size={16} />
+                  View import guide
+                </a>
               </motion.div>
             )}
 
@@ -722,10 +727,10 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
                 disabled={!canContinue(step, fieldOfWork, setProjectLater, method, projectName, clientName, activePhases.length)}
                 onClick={handleContinue}
               >
-                {step === "integrations" ? "Create Dashboard" : "Continue"}
+                {step === "welcome" ? "Start setup" : step === "integrations" ? "Create Dashboard" : "Continue"}
               </button>
 
-              {step !== "personalise" && (
+              {step !== "welcome" && (
                 <div className="mt-4 flex items-center justify-between">
                   <button type="button" onClick={goBack} className="inline-flex cursor-pointer items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary focus:outline-none focus-visible:outline-none">
                     Back
@@ -750,6 +755,185 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
   );
 }
 
+function WelcomeSlide({ userName }: { userName?: string }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+  const subtitleRef = useRef<HTMLParagraphElement | null>(null);
+
+  useGSAP(
+    () => {
+      if (!containerRef.current || !titleRef.current || !subtitleRef.current) {
+        return;
+      }
+
+      const titleSplit = new SplitText(titleRef.current, { type: "lines,words" });
+      const subtitleSplit = new SplitText(subtitleRef.current, { type: "lines" });
+      gsap.set(titleSplit.lines, { y: 10, opacity: 0 });
+      gsap.set(titleSplit.words, { y: 16, opacity: 0, color: "var(--color-text-secondary)" });
+      gsap.set(subtitleSplit.lines, { y: 10, opacity: 0 });
+      gsap.set("[data-welcome-preview]", { y: 20, opacity: 0 });
+
+      const timeline = gsap.timeline({ defaults: { ease: "power3.out" } });
+      timeline.to(titleSplit.lines, {
+        y: 0,
+        opacity: 1,
+        duration: 0.45,
+      });
+      timeline.to(
+        titleSplit.words,
+        {
+          y: 0,
+          opacity: 1,
+          color: "var(--color-text-primary)",
+          stagger: 0.028,
+          duration: 0.5,
+        },
+        "-=0.3",
+      );
+      timeline.to(
+        subtitleSplit.lines,
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.42,
+          stagger: 0.09,
+          ease: "power2.out",
+        },
+        "-=0.16",
+      );
+      timeline.to(
+        "[data-welcome-preview]",
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.5,
+          ease: "power2.out",
+        },
+        "-=0.16",
+      );
+      timeline.to(
+        titleSplit.words,
+        {
+          color: "var(--color-text-primary)",
+          duration: 0.2,
+        },
+        "-=0.1",
+      );
+
+      return () => {
+        timeline.kill();
+        titleSplit.revert();
+        subtitleSplit.revert();
+      };
+    },
+    { scope: containerRef },
+  );
+
+  return (
+    <div ref={containerRef} className="pb-1">
+      <h3
+        ref={titleRef}
+        className="mt-2 font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary"
+      >
+        Welcome to Stage{userName ? `, ${userName}` : ""}. Thanks for signing up.
+      </h3>
+      <p ref={subtitleRef} className="mt-2 max-w-[620px] text-[15px] leading-[1.5] text-text-secondary">
+        Let&apos;s tailor your workspace and get your dashboard ready in under a minute.
+      </p>
+
+      <div data-welcome-preview className="mt-6">
+        <WelcomeOnboardingImageTour />
+      </div>
+    </div>
+  );
+}
+
+function WelcomeOnboardingImageTour() {
+  const scopeRef = useRef<HTMLDivElement | null>(null);
+
+  useGSAP(
+    () => {
+      const image = scopeRef.current?.querySelector<HTMLElement>("[data-tour-image]");
+      if (!image) return;
+
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      gsap.set(image, {
+        transformOrigin: "center center",
+        scale: 1,
+        xPercent: 0,
+        yPercent: 0,
+      });
+
+      if (reducedMotion) {
+        return;
+      }
+
+      // Mirrors landing feature-tour pacing, tailored to onboarding.webp hotspots:
+      // 1) top-left, 2) middle-right, 3) bottom-left.
+      const stops = {
+        first: { scale: 1.74, xPercent: 34, yPercent: 33 },
+        second: { scale: 1.8, xPercent: -35, yPercent: 0 },
+        third: { scale: 1.73, xPercent: 33, yPercent: -32 },
+      } as const;
+
+      const tl = gsap.timeline({
+        repeat: -1,
+        repeatDelay: 0.2,
+        delay: 1.2,
+      });
+      const zoomInEase = "power3.inOut";
+      const tourEase = "power2.inOut";
+
+      tl.to(image, {
+        scale: stops.first.scale,
+        xPercent: stops.first.xPercent,
+        yPercent: stops.first.yPercent,
+        duration: 1.0,
+        ease: zoomInEase,
+      })
+        .to(image, {
+          scale: stops.second.scale,
+          xPercent: stops.second.xPercent,
+          yPercent: stops.second.yPercent,
+          duration: 1.85,
+          ease: tourEase,
+        })
+        .to(image, {
+          scale: stops.third.scale,
+          xPercent: stops.third.xPercent,
+          yPercent: stops.third.yPercent,
+          duration: 1.82,
+          ease: tourEase,
+        })
+        .to(image, {
+          scale: 1,
+          xPercent: 0,
+          yPercent: 0,
+          duration: 0.82,
+          ease: tourEase,
+        });
+
+      return () => {
+        tl.kill();
+        gsap.killTweensOf(image);
+      };
+    },
+    { scope: scopeRef },
+  );
+
+  return (
+    <div ref={scopeRef} className="relative overflow-hidden rounded-[12px]">
+      <img
+        data-tour-image
+        src={onboardingImage}
+        alt="Onboarding walkthrough"
+        className="block h-auto w-full"
+        loading="lazy"
+      />
+    </div>
+  );
+}
+
 function canContinue(
   step: Step,
   fieldOfWork: ProjectType | null,
@@ -760,6 +944,8 @@ function canContinue(
   activePhasesLength: number,
 ) {
   switch (step) {
+    case "welcome":
+      return true;
     case "personalise":
       return fieldOfWork !== null;
     case "details":
@@ -800,7 +986,7 @@ function StepDots({ total, current }: { total: number; current: number }) {
 function CreatingDashboardText() {
   const textRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
+  useGSAP(() => {
     if (!textRef.current) {
       return;
     }
@@ -813,7 +999,7 @@ function CreatingDashboardText() {
     timeline.to(chars, {
       color: "var(--color-accent)",
       duration: 0.45,
-      stagger: 0.03,
+      stagger: 0.022,
       ease: "power2.out",
     });
     timeline.to(chars, {
@@ -825,7 +1011,7 @@ function CreatingDashboardText() {
       timeline.kill();
       split.revert();
     };
-  }, []);
+  });
 
   return (
     <div className="flex min-h-[120px] items-center justify-center">
@@ -833,7 +1019,7 @@ function CreatingDashboardText() {
         ref={textRef}
         className="font-heading text-[24px] font-semibold tracking-[-0.35px] text-text-secondary"
       >
-        Creating your dashboard...
+        Your account is set up now, preparing your dashboard...
       </div>
     </div>
   );

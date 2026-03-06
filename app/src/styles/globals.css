@@ -83,6 +83,19 @@ h1, h2, h3, h4, h5, h6 {
   outline-offset: 0 !important;
 }
 
+.onboarding-modal:focus,
+.onboarding-modal:focus-visible,
+.onboarding-modal input:focus,
+.onboarding-modal input:focus-visible,
+.onboarding-modal textarea:focus,
+.onboarding-modal textarea:focus-visible,
+.onboarding-modal select:focus,
+.onboarding-modal select:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
 button:focus,
 button:focus-visible,
 [role="button"]:focus,

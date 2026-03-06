@@ -17,6 +17,7 @@
     "cf:typegen": "npx wrangler types --env-interface CloudflareEnv worker-env.d.ts"
   },
   "dependencies": {
+    "@gsap/react": "^2.1.2",
     "@phosphor-icons/react": "^2.1.7",
     "@radix-ui/react-checkbox": "^1.1.4",
     "@radix-ui/react-dialog": "^1.1.6",
