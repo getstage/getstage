@@ -653,9 +653,6 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
                         <CheckCircle size={12} weight="fill" />
                         Linked
                       </div>
-                      <a href="https://docs.google.com/spreadsheets/d/1Qcalm-hhzR8WMxOBSoMjGkf8Ye8-7VGC9WMjHSRB0QE" target="_blank" rel="noreferrer" className="mt-2 block text-[15px] text-accent transition-colors hover:text-accent-hover">
-                        Template Sheet - Portfolio Dividend Tracker
-                      </a>
 
                       <div className="mt-3 flex flex-col gap-2 md:flex-row">
                         <input
