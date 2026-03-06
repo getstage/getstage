@@ -1,13 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CaretDown, Check, Plus } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import { getProjects } from "@/data-ops/queries";
 import { useAuth } from "@/lib/auth";
+import {
+  buildOnboardingProject,
+  mergeOnboardingProject,
+} from "@/lib/onboarding";
 import { Button } from "@/components/ui/Button";
+import {
+  OnboardingModal,
+  type OnboardingSubmission,
+} from "@/components/onboarding/OnboardingModal";
 import { Timeline, TimelineSkeleton, type TimelineHorizon } from "@/components/dashboard/Timeline";
+import type { Project } from "@/types";
 
 const DASHBOARD_PREVIEW_PAYMENT_ROWS = [
   {
@@ -33,16 +42,24 @@ export function DashboardPage() {
   const [dockIsHovering, setDockIsHovering] = useState(false);
   const [dockSizes, setDockSizes] = useState<number[]>([]);
   const [activeDockIndex, setActiveDockIndex] = useState<number | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(true);
+  const [onboardingProject, setOnboardingProject] = useState<Project | null>(null);
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const { data: projects, isLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: getProjects,
   });
 
+  const dashboardProjects = useMemo(
+    () => mergeOnboardingProject(projects ?? [], onboardingProject),
+    [onboardingProject, projects],
+  );
+
   const greeting = getGreeting(user?.name?.split(" ")[0] ?? "there");
-  const activeProjects = projects?.filter((project) => project.status === "active") ?? [];
+  const activeProjects = dashboardProjects.filter((project) => project.status === "active");
   const activeCount = activeProjects.length;
-  const taskEntries = (projects ?? []).flatMap((project) =>
+  const taskEntries = dashboardProjects.flatMap((project) =>
     project.phases.flatMap((phase) =>
       phase.tasks.map((task) => ({
         task,
@@ -72,7 +89,7 @@ export function DashboardPage() {
   const outstandingDisplay = formatCurrencyDisplay(outstandingTotal);
   const receivedDisplay = formatCurrencyDisplay(receivedTotal);
   const pendingDisplay = formatCurrencyDisplay(outstandingTotal);
-  const dockProjects = (projects ?? []).slice(0, 6);
+  const dockProjects = dashboardProjects.slice(0, 6);
   const DOCK_BASE_SIZE = 44;
   const DOCK_MAX_SIZE = 72;
   const DOCK_SIGMA = 55;
@@ -109,6 +126,30 @@ export function DashboardPage() {
     setDockSizes(nextSizes);
     setActiveDockIndex(closestIndex);
   };
+
+  const hasProjects = dashboardProjects.length > 0;
+  const showTimelineSkeleton = isLoading && !hasProjects;
+
+  function handleOnboardingComplete(submission: OnboardingSubmission) {
+    setShowOnboarding(false);
+
+    if (!submission.createProject) {
+      setOnboardingProject(null);
+      return;
+    }
+
+    const createdProject = buildOnboardingProject({
+      projectName: submission.projectName,
+      clientName: submission.clientName,
+      clientAvatarUrl: submission.clientAvatarUrl,
+      projectType: submission.projectType,
+    });
+
+    setOnboardingProject(createdProject);
+    queryClient.setQueryData<Project[]>(["projects"], (current) =>
+      mergeOnboardingProject(current ?? [], createdProject),
+    );
+  }
 
   return (
     <>
@@ -150,13 +191,13 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {isLoading ? (
+        {showTimelineSkeleton ? (
           <div className="relative left-1/2 mt-0 w-screen -translate-x-1/2">
             <TimelineSkeleton />
           </div>
-        ) : projects && projects.length > 0 ? (
+        ) : hasProjects ? (
           <div className="relative left-1/2 mt-0 w-screen -translate-x-1/2">
-            <Timeline projects={projects} horizon={timelineHorizon} />
+            <Timeline projects={dashboardProjects} horizon={timelineHorizon} />
           </div>
         ) : (
           <div className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-14">
@@ -164,7 +205,7 @@ export function DashboardPage() {
           </div>
         )}
 
-        {projects && projects.length > 0 && (
+        {hasProjects && (
           <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
             <div className="mt-8 space-y-4">
               <div className="grid gap-4 lg:grid-cols-2">
@@ -384,6 +425,11 @@ export function DashboardPage() {
           </div>
         )}
       </div>
+
+      <OnboardingModal
+        open={showOnboarding}
+        onComplete={handleOnboardingComplete}
+      />
     </>
   );
 }
