@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "motion/react";
-import { CheckCircle, Eye, LinkSimple, UserCircle } from "@phosphor-icons/react";
+import { Eye, LinkSimple, UserCircle } from "@phosphor-icons/react";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
 import { cn } from "@/lib/utils";
@@ -382,7 +382,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
         >
           {step !== "creating" && (
             <div className="mb-8 flex items-center justify-between">
-              <Dialog.Title className="font-heading text-[24px] font-semibold tracking-[-0.45px] text-text-primary">
+              <Dialog.Title className="font-heading text-[20px] leading-[1.2] font-medium tracking-[-0.2px] text-text-primary">
                 Get started
               </Dialog.Title>
               <StepDots total={flowSteps.length} current={currentIndex} />
