@@ -93,7 +93,7 @@ export function DashboardPage() {
             <Timeline projects={projects} horizon={timelineHorizon} />
           </div>
         ) : (
-          <div className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-14">
+          <div className="mx-auto mt-6 max-w-[1200px] px-6 sm:mt-8 sm:px-10 lg:px-14">
             <DashboardEmptyState />
           </div>
         )}
