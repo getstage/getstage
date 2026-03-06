@@ -421,7 +421,7 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
           onPointerDownOutside={(event) => event.preventDefault()}
         >
           <motion.div
-            className="project-creation-page onboarding-modal fixed left-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-[760px] -translate-x-1/2 -translate-y-1/2 rounded-[22px] border-0 bg-white p-6 shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 sm:p-7"
+            className="project-creation-page onboarding-modal fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-20px)] w-[calc(100%-16px)] max-w-[760px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto overscroll-contain rounded-[22px] border-0 bg-white p-4 shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 sm:w-[calc(100%-32px)] sm:p-6 md:p-7"
             initial={{ opacity: 0, y: 18, scale: 0.985, filter: "blur(10px)" }}
             animate={
               isClosing
@@ -451,7 +451,7 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
                 <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">Personalise your workspace</h3>
                 <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">Choose your field of work so Stage can tailor your first setup.</p>
 
-                <div className="mt-7 grid grid-cols-2 gap-2">
+                <div className="mt-7 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {PROJECT_TYPE_OPTIONS.map((option) => (
                     <button
                       key={option.value}
@@ -631,7 +631,7 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
                 <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">Project timeline</h3>
                 <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">When does this project start and end?</p>
 
-                <div className="mt-7 flex gap-3">
+                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                   <div className="flex-1">
                     <label className="mb-1.5 block text-[13px] font-medium text-text-primary">Start date</label>
                     <input
@@ -719,7 +719,7 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
                           type="button"
                           onClick={handleImportCsv}
                           disabled={!sheetUrl.trim() || csvImporting}
-                          className="h-[44px] min-w-[220px] cursor-pointer rounded-[10px] bg-text-primary px-4 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-45 focus:outline-none"
+                          className="h-[44px] w-full cursor-pointer rounded-[10px] bg-text-primary px-4 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-45 focus:outline-none md:min-w-[220px] md:w-auto"
                         >
                           {csvImporting ? "Importing..." : "Import Google Sheets"}
                         </button>
@@ -750,7 +750,7 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
             {step === "creating" && (
               <OnboardingStepMotion
                 motionKey="s-creating"
-                className="flex min-h-[300px] flex-col items-center justify-center text-center"
+                className="flex min-h-[220px] flex-col items-center justify-center text-center sm:min-h-[300px]"
               >
                 <CreatingDashboardText userName={userName} onDone={handleCreatingDone} />
               </OnboardingStepMotion>
@@ -1070,9 +1070,9 @@ function CreatingDashboardText({
         return;
       }
 
-      const split = new SplitText(textRef.current, { type: "chars" });
-      const chars = split.chars;
-      gsap.set(chars, { color: "var(--color-text-secondary)", y: 0, opacity: 0.8 });
+      const split = new SplitText(textRef.current, { type: "words" });
+      const words = split.words;
+      gsap.set(words, { color: "var(--color-text-secondary)", y: 0, opacity: 0.8 });
 
       const timeline = gsap.timeline({
         onComplete: () => {
@@ -1083,17 +1083,17 @@ function CreatingDashboardText({
       });
 
       timeline.fromTo(
-        chars,
+        words,
         { opacity: 0, y: 2 },
-        { opacity: 1, y: 0, duration: 0.24, stagger: 0.012, ease: "power2.out" },
+        { opacity: 1, y: 0, duration: 0.24, stagger: 0.045, ease: "power2.out" },
         0,
       );
       timeline.to(
-        chars,
+        words,
         {
           color: "var(--color-accent)",
           duration: 0.56,
-          stagger: 0.02,
+          stagger: 0.045,
           ease: "power2.out",
         },
         0,
@@ -1172,7 +1172,7 @@ function CreatingDashboardText({
       <div
         ref={textRef}
         className={cn(
-          "font-heading text-[30px] leading-[1.1] font-semibold tracking-[-0.45px]",
+          "font-heading text-[clamp(1.625rem,5vw,1.875rem)] leading-[1.12] font-semibold tracking-[-0.45px] [overflow-wrap:normal] [word-break:normal] [text-wrap:balance]",
           phase === "loading" ? "text-text-secondary" : "text-text-primary",
         )}
       >
