@@ -1,8 +1,17 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+  type ReactNode,
+} from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "motion/react";
 import { useGSAP } from "@gsap/react";
 import { Eye, UserCircle } from "@phosphor-icons/react";
+import confetti from "canvas-confetti";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
 import onboardingImage from "@/assets/onboarding/onboarding.webp";
@@ -135,6 +144,8 @@ type OnboardingModalProps = {
 
 export function OnboardingModal({ open, userName, onComplete }: OnboardingModalProps) {
   const [step, setStep] = useState<Step>("welcome");
+  const [isClosing, setIsClosing] = useState(false);
+  const [pendingSubmission, setPendingSubmission] = useState<OnboardingSubmission | null>(null);
   const [fieldOfWork, setFieldOfWork] = useState<ProjectType | null>(null);
   const [setProjectLater, setSetProjectLater] = useState(false);
   const [projectName, setProjectName] = useState("");
@@ -156,7 +167,7 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
   const [csvImported, setCsvImported] = useState(false);
   const [csvImporting, setCsvImporting] = useState(false);
 
-  const creationTimeoutRef = useRef<number | null>(null);
+  const completionTimeoutRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const activePhases = useMemo(() => phases.filter((phase) => phase.on), [phases]);
@@ -197,6 +208,8 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
     }
 
     setStep("welcome");
+    setIsClosing(false);
+    setPendingSubmission(null);
     setFieldOfWork(null);
     setSetProjectLater(false);
     setProjectName("");
@@ -218,8 +231,8 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
 
   useEffect(() => {
     return () => {
-      if (creationTimeoutRef.current !== null) {
-        window.clearTimeout(creationTimeoutRef.current);
+      if (completionTimeoutRef.current !== null) {
+        window.clearTimeout(completionTimeoutRef.current);
       }
     };
   }, []);
@@ -273,12 +286,11 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
         setStep("integrations");
         return;
       case "integrations":
-        setStep("creating");
-        creationTimeoutRef.current = window.setTimeout(() => {
+        {
           const hasProjectSetup = projectName.trim().length > 0 && clientName.trim().length > 0;
           const createProject = !setProjectLater && hasProjectSetup;
 
-          onComplete({
+          setPendingSubmission({
             fieldOfWork: fieldOfWork!,
             createProject,
             projectName: projectName.trim(),
@@ -289,11 +301,23 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
             csvImported,
             stripeConnected: false,
           });
-        }, 1800);
+        }
+        setStep("creating");
         return;
       default:
         return;
     }
+  }
+
+  function handleCreatingDone() {
+    if (isClosing || !pendingSubmission) {
+      return;
+    }
+
+    setIsClosing(true);
+    completionTimeoutRef.current = window.setTimeout(() => {
+      onComplete(pendingSubmission);
+    }, 720);
   }
 
   function handleDoLater() {
@@ -382,13 +406,30 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
   return (
     <Dialog.Root open={open} onOpenChange={() => undefined}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-[rgba(25,24,42,0.54)] backdrop-blur-[3px]" />
+        <Dialog.Overlay asChild>
+          <motion.div
+            className="fixed inset-0 z-50 bg-[rgba(25,24,42,0.54)] backdrop-blur-[3px]"
+            initial={{ opacity: 0 }}
+            animate={isClosing ? { opacity: 0 } : { opacity: 1 }}
+            transition={{ duration: isClosing ? 0.52 : 0.26, ease: [0.22, 1, 0.36, 1] }}
+          />
+        </Dialog.Overlay>
         <Dialog.Content
-          className="project-creation-page onboarding-modal fixed left-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-[760px] -translate-x-1/2 -translate-y-1/2 rounded-[22px] border-0 bg-white p-6 shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 sm:p-7"
+          asChild
           onEscapeKeyDown={(event) => event.preventDefault()}
           onInteractOutside={(event) => event.preventDefault()}
           onPointerDownOutside={(event) => event.preventDefault()}
         >
+          <motion.div
+            className="project-creation-page onboarding-modal fixed left-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-[760px] -translate-x-1/2 -translate-y-1/2 rounded-[22px] border-0 bg-white p-6 shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 sm:p-7"
+            initial={{ opacity: 0, y: 18, scale: 0.985, filter: "blur(10px)" }}
+            animate={
+              isClosing
+                ? { opacity: 0, y: 28, scale: 0.94, filter: "blur(12px)" }
+                : { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }
+            }
+            transition={{ duration: isClosing ? 0.58 : 0.44, ease: [0.16, 1, 0.3, 1] }}
+          >
           {step !== "creating" && step !== "welcome" && (
             <div className="mb-8 flex items-center justify-between">
               <Dialog.Title className="font-heading text-[20px] leading-[1.2] font-medium tracking-[-0.2px] text-text-primary">
@@ -398,21 +439,15 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
             </div>
           )}
 
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" initial={false}>
             {step === "welcome" && (
-              <motion.div
-                key="s-welcome"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-              >
+              <OnboardingStepMotion motionKey="s-welcome">
                 <WelcomeSlide userName={userName} />
-              </motion.div>
+              </OnboardingStepMotion>
             )}
 
             {step === "personalise" && (
-              <motion.div key="s-personalise" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <OnboardingStepMotion motionKey="s-personalise">
                 <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">Personalise your workspace</h3>
                 <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">Choose your field of work so Stage can tailor your first setup.</p>
 
@@ -433,11 +468,11 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
                     </button>
                   ))}
                 </div>
-              </motion.div>
+              </OnboardingStepMotion>
             )}
 
             {step === "details" && (
-              <motion.div key="s-details" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <OnboardingStepMotion motionKey="s-details">
                 <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">Set up your first project <span className="text-text-tertiary">(optional)</span></h3>
                 <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">You can complete this now or continue and set it up later.</p>
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -516,11 +551,11 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
 
                       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarFileChange} />
                     </div>
-              </motion.div>
+              </OnboardingStepMotion>
             )}
 
             {step === "method" && (
-              <motion.div key="s-method" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <OnboardingStepMotion motionKey="s-method">
                 <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">Build your roadmap</h3>
                 <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">How do you want to structure this project?</p>
 
@@ -549,11 +584,11 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
                     <div className="text-[13px] leading-[1.4] text-text-secondary">Choose your own phases and add tasks as you go.</div>
                   </button>
                 </div>
-              </motion.div>
+              </OnboardingStepMotion>
             )}
 
             {step === "phase-select" && (
-              <motion.div key="s-phase-select" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <OnboardingStepMotion motionKey="s-phase-select">
                 <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">Select phases</h3>
                 <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">Toggle the phases you want. Reorder by dragging.</p>
 
@@ -588,11 +623,11 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
                     </div>
                   ))}
                 </div>
-              </motion.div>
+              </OnboardingStepMotion>
             )}
 
             {step === "timeline" && (
-              <motion.div key="s-timeline" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <OnboardingStepMotion motionKey="s-timeline">
                 <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">Project timeline</h3>
                 <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">When does this project start and end?</p>
 
@@ -616,11 +651,11 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
                     />
                   </div>
                 </div>
-              </motion.div>
+              </OnboardingStepMotion>
             )}
 
             {step === "preview" && (
-              <motion.div key="s-preview" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <OnboardingStepMotion motionKey="s-preview">
                 <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">Your roadmap</h3>
                 <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">Looking good. You can adjust everything later.</p>
 
@@ -638,11 +673,11 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
                     </div>
                   ))}
                 </div>
-              </motion.div>
+              </OnboardingStepMotion>
             )}
 
             {step === "integrations" && (
-              <motion.div key="s-integrations" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <OnboardingStepMotion motionKey="s-integrations">
                 <div className="flex items-center gap-2.5">
                   <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
                     Connect your data
@@ -709,13 +744,16 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
                   <Eye size={16} />
                   View import guide
                 </a>
-              </motion.div>
+              </OnboardingStepMotion>
             )}
 
             {step === "creating" && (
-              <motion.div key="s-creating" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="flex min-h-[300px] flex-col items-center justify-center text-center">
-                <CreatingDashboardText />
-              </motion.div>
+              <OnboardingStepMotion
+                motionKey="s-creating"
+                className="flex min-h-[300px] flex-col items-center justify-center text-center"
+              >
+                <CreatingDashboardText userName={userName} onDone={handleCreatingDone} />
+              </OnboardingStepMotion>
             )}
           </AnimatePresence>
 
@@ -749,6 +787,7 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
               )}
             </div>
           )}
+          </motion.div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
@@ -768,56 +807,54 @@ function WelcomeSlide({ userName }: { userName?: string }) {
 
       const titleSplit = new SplitText(titleRef.current, { type: "lines,words" });
       const subtitleSplit = new SplitText(subtitleRef.current, { type: "lines" });
-      gsap.set(titleSplit.lines, { y: 10, opacity: 0 });
-      gsap.set(titleSplit.words, { y: 16, opacity: 0, color: "var(--color-text-secondary)" });
-      gsap.set(subtitleSplit.lines, { y: 10, opacity: 0 });
-      gsap.set("[data-welcome-preview]", { y: 20, opacity: 0 });
-
-      const timeline = gsap.timeline({ defaults: { ease: "power3.out" } });
-      timeline.to(titleSplit.lines, {
-        y: 0,
-        opacity: 1,
-        duration: 0.45,
+      gsap.set(titleSplit.lines, { y: 12, opacity: 0 });
+      gsap.set(titleSplit.words, {
+        y: 18,
+        opacity: 0,
+        color: "var(--color-text-secondary)",
+        filter: "blur(5px)",
       });
+      gsap.set(subtitleSplit.lines, { y: 12, opacity: 0 });
+      gsap.set("[data-welcome-preview]", { y: 18, opacity: 0, scale: 0.992 });
+
+      const timeline = gsap.timeline({
+        defaults: { ease: "power3.out" },
+        delay: 0.05,
+      });
+      timeline.to(titleSplit.lines, { y: 0, opacity: 1, duration: 0.46 });
       timeline.to(
         titleSplit.words,
         {
           y: 0,
           opacity: 1,
           color: "var(--color-text-primary)",
-          stagger: 0.028,
-          duration: 0.5,
+          filter: "blur(0px)",
+          stagger: 0.032,
+          duration: 0.56,
         },
-        "-=0.3",
+        "-=0.32",
       );
       timeline.to(
         subtitleSplit.lines,
         {
           y: 0,
           opacity: 1,
-          duration: 0.42,
+          duration: 0.46,
           stagger: 0.09,
           ease: "power2.out",
         },
-        "-=0.16",
+        "-=0.28",
       );
       timeline.to(
         "[data-welcome-preview]",
         {
           y: 0,
           opacity: 1,
-          duration: 0.5,
+          scale: 1,
+          duration: 0.6,
           ease: "power2.out",
         },
-        "-=0.16",
-      );
-      timeline.to(
-        titleSplit.words,
-        {
-          color: "var(--color-text-primary)",
-          duration: 0.2,
-        },
-        "-=0.1",
+        "-=0.24",
       );
 
       return () => {
@@ -835,10 +872,10 @@ function WelcomeSlide({ userName }: { userName?: string }) {
         ref={titleRef}
         className="mt-2 font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary"
       >
-        Welcome to Stage{userName ? `, ${userName}` : ""}. Thanks for signing up.
+        Welcome to Stage{userName ? `, ${userName}` : ""}. You&apos;re in.
       </h3>
       <p ref={subtitleRef} className="mt-2 max-w-[620px] text-[15px] leading-[1.5] text-text-secondary">
-        Let&apos;s tailor your workspace and get your dashboard ready in under a minute.
+        We&apos;ll personalize your setup and launch a dashboard that feels useful from day one.
       </p>
 
       <div data-welcome-preview className="mt-6">
@@ -983,46 +1020,199 @@ function StepDots({ total, current }: { total: number; current: number }) {
   );
 }
 
-function CreatingDashboardText() {
-  const textRef = useRef<HTMLDivElement | null>(null);
+function OnboardingStepMotion({
+  motionKey,
+  children,
+  className,
+}: {
+  motionKey: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <motion.div
+      key={motionKey}
+      initial={{ opacity: 0, y: 14, scale: 0.995, filter: "blur(3px)" }}
+      animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+      exit={{ opacity: 0, y: -12, scale: 0.996, filter: "blur(2px)" }}
+      transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
-  useGSAP(() => {
-    if (!textRef.current) {
+function CreatingDashboardText({
+  userName,
+  onDone,
+}: {
+  userName?: string;
+  onDone: () => void;
+}) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const textRef = useRef<HTMLDivElement | null>(null);
+  const hasCompletedRef = useRef(false);
+  const hasCelebratedRef = useRef(false);
+  const [phase, setPhase] = useState<"loading" | "ready">("loading");
+  const [text, setText] = useState("Setting up your dashboard...");
+
+  useEffect(() => {
+    hasCompletedRef.current = false;
+    hasCelebratedRef.current = false;
+    setPhase("loading");
+    setText("Setting up your dashboard...");
+  }, []);
+
+  useGSAP(
+    () => {
+      if (!textRef.current || phase !== "loading") {
+        return;
+      }
+
+      const split = new SplitText(textRef.current, { type: "chars" });
+      const chars = split.chars;
+      gsap.set(chars, { color: "var(--color-text-secondary)", y: 0, opacity: 0.8 });
+
+      const timeline = gsap.timeline({
+        onComplete: () => {
+          split.revert();
+          setText(`You're all set${userName ? `, ${userName}` : ""}.`);
+          setPhase("ready");
+        },
+      });
+
+      timeline.fromTo(
+        chars,
+        { opacity: 0, y: 2 },
+        { opacity: 1, y: 0, duration: 0.24, stagger: 0.012, ease: "power2.out" },
+        0,
+      );
+      timeline.to(
+        chars,
+        {
+          color: "var(--color-accent)",
+          duration: 0.56,
+          stagger: 0.02,
+          ease: "power2.out",
+        },
+        0,
+      );
+
+      return () => {
+        timeline.kill();
+        split.revert();
+      };
+    },
+    { scope: rootRef, dependencies: [phase, userName] },
+  );
+
+  useEffect(() => {
+    if (phase !== "ready" || hasCelebratedRef.current) {
       return;
     }
+    hasCelebratedRef.current = true;
 
-    const split = new SplitText(textRef.current, { type: "chars" });
-    const chars = split.chars;
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      try {
+        fireOnboardingConfetti();
+      } catch {
+        // Keep progression resilient even if canvas confetti fails in some browsers/extensions.
+      }
+    }
+  }, [phase]);
 
-    gsap.set(chars, { color: "var(--color-text-secondary)" });
-    const timeline = gsap.timeline();
-    timeline.to(chars, {
-      color: "var(--color-accent)",
-      duration: 0.45,
-      stagger: 0.022,
-      ease: "power2.out",
-    });
-    timeline.to(chars, {
-      color: "var(--color-accent)",
-      duration: 0.01,
-    });
+  useGSAP(
+    () => {
+      if (!textRef.current || phase !== "ready") {
+        return;
+      }
 
-    return () => {
-      timeline.kill();
-      split.revert();
-    };
-  });
+      const split = new SplitText(textRef.current, { type: "words" });
+      const words = split.words;
+      gsap.set(words, {
+        color: "var(--color-text-primary)",
+        y: 16,
+        opacity: 0,
+        scale: 0.96,
+        filter: "blur(5px)",
+        transformOrigin: "50% 100%",
+      });
+
+      const timeline = gsap.timeline();
+      timeline.to(words, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        filter: "blur(0px)",
+        duration: 0.52,
+        stagger: 0.055,
+        ease: "back.out(1.35)",
+      });
+
+      const doneCall = gsap.delayedCall(1.1, () => {
+        if (hasCompletedRef.current) {
+          return;
+        }
+        hasCompletedRef.current = true;
+        onDone();
+      });
+
+      return () => {
+        timeline.kill();
+        doneCall.kill();
+        split.revert();
+      };
+    },
+    { scope: rootRef, dependencies: [phase, onDone, text] },
+  );
 
   return (
-    <div className="flex min-h-[120px] items-center justify-center">
+    <div ref={rootRef} className="flex min-h-[150px] items-center justify-center text-center">
       <div
         ref={textRef}
-        className="font-heading text-[24px] font-semibold tracking-[-0.35px] text-text-secondary"
+        className={cn(
+          "font-heading text-[30px] leading-[1.1] font-semibold tracking-[-0.45px]",
+          phase === "loading" ? "text-text-secondary" : "text-text-primary",
+        )}
       >
-        Your account is set up now, preparing your dashboard...
+        {text}
       </div>
     </div>
   );
+}
+
+function fireOnboardingConfetti() {
+  const colors = ["#8782F5", "#7670E0", "#EEEDFE", "#1A1A2E"];
+
+  confetti({
+    particleCount: 110,
+    spread: 72,
+    startVelocity: 42,
+    origin: { y: 0.68 },
+    scalar: 0.9,
+    colors,
+  });
+
+  confetti({
+    particleCount: 70,
+    angle: 60,
+    spread: 58,
+    startVelocity: 36,
+    origin: { x: 0.2, y: 0.72 },
+    scalar: 0.88,
+    colors,
+  });
+
+  confetti({
+    particleCount: 70,
+    angle: 120,
+    spread: 58,
+    startVelocity: 36,
+    origin: { x: 0.8, y: 0.72 },
+    scalar: 0.88,
+    colors,
+  });
 }
 
 function formatInputDate(date: Date): string {
