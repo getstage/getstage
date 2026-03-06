@@ -736,7 +736,8 @@ export function OnboardingModal({ open, userName, onComplete }: OnboardingModalP
                 </div>
 
                 <a
-                  href="https://help.portfoliodividendtracker.com/article/126-article"
+                // TODO: Add Stepps link
+                  href=""
                   target="_blank"
                   rel="noreferrer"
                   className="mt-4 inline-flex items-center gap-1.5 text-[14px] text-accent transition-colors hover:text-accent-hover"
