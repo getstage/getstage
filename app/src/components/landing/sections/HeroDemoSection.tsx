@@ -126,7 +126,7 @@ export function HeroDemoSection() {
                 <span className="yellow" />
                 <span className="green" />
               </div>
-              <span className="landing-hero-macbook-url">getstage.com</span>
+              <span className="landing-hero-macbook-url">getstage.co</span>
             </div>
             <div className="landing-hero-macbook-screen">
               <img

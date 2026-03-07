@@ -1,5 +1,4 @@
-import { Navigate, createFileRoute } from "@tanstack/react-router";
-import { useConvexAuth } from "convex/react";
+import { createFileRoute } from "@tanstack/react-router";
 import { LandingPage } from "@/components/landing/LandingPage";
 
 export const Route = createFileRoute("/")({
@@ -7,11 +6,5 @@ export const Route = createFileRoute("/")({
 });
 
 function IndexRoute() {
-  const { isAuthenticated } = useConvexAuth();
-
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   return <LandingPage />;
 }
