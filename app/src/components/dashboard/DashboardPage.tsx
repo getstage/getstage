@@ -144,6 +144,7 @@ export function DashboardPage() {
 
           <OnboardingModal
             open={previewStage === "onboarding"}
+            userName={greetingName}
             onComplete={(submission) => {
               void handleOnboardingComplete(submission);
             }}
