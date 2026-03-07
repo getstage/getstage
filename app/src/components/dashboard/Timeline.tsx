@@ -1,4 +1,12 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Link } from "@tanstack/react-router";
 import { gsap } from "gsap";
@@ -12,6 +20,7 @@ interface TimelineProps {
   projects: Project[];
   horizon?: TimelineHorizon;
   nowTimestamp?: number;
+  interactive?: boolean;
 }
 
 export type TimelineHorizon =
@@ -369,7 +378,12 @@ function getCurrentPhaseName(project: Project) {
   return project.phases[project.phases.length - 1]?.name ?? "Phase";
 }
 
-export function Timeline({ projects, horizon = "thisMonth", nowTimestamp = Date.now() }: TimelineProps) {
+export function Timeline({
+  projects,
+  horizon = "thisMonth",
+  nowTimestamp = Date.now(),
+  interactive = true,
+}: TimelineProps) {
   const gradientId = useId().replace(/:/g, "");
   const regionRef = useRef<HTMLDivElement | null>(null);
   const curveLineRef = useRef<SVGPathElement | null>(null);
@@ -630,22 +644,26 @@ export function Timeline({ projects, horizon = "thisMonth", nowTimestamp = Date.
             const item = group.items[0];
             if (!item) return null;
 
-            return (
+            const markerProps = {
+              "data-curve-marker": true,
+              className:
+                "absolute z-[6] block h-9 w-9 -translate-x-1/2 overflow-hidden rounded-full border-2 border-white shadow-[0_0_0_2.5px_#8782F5] transition-[transform,box-shadow,opacity] duration-200 hover:scale-110 hover:shadow-[0_0_0_2.5px_#8782F5,0_3px_12px_rgba(26,26,46,0.12)]",
+              style: {
+                left: `${groupLeft}px`,
+                top: `${markerTop}px`,
+                opacity: markerOpacity(item.project, hoveredProjectId),
+              },
+              onMouseEnter: (event: ReactMouseEvent<HTMLElement>) =>
+                handleMarkerEnter(item.project, markerTimestamp, event.currentTarget),
+              onMouseLeave: () => clearMarkerHover(item.project.id),
+            };
+
+            return interactive ? (
               <Link
                 key={group.key}
                 to="/project/$id"
                 params={{ id: item.project.id }}
-                data-curve-marker
-                className="absolute z-[6] block h-9 w-9 -translate-x-1/2 overflow-hidden rounded-full border-2 border-white shadow-[0_0_0_2.5px_#8782F5] transition-[transform,box-shadow,opacity] duration-200 hover:scale-110 hover:shadow-[0_0_0_2.5px_#8782F5,0_3px_12px_rgba(26,26,46,0.12)]"
-                style={{
-                  left: `${groupLeft}px`,
-                  top: `${markerTop}px`,
-                  opacity: markerOpacity(item.project, hoveredProjectId),
-                }}
-                onMouseEnter={(event) =>
-                  handleMarkerEnter(item.project, markerTimestamp, event.currentTarget)
-                }
-                onMouseLeave={() => clearMarkerHover(item.project.id)}
+                {...markerProps}
               >
                 <Avatar
                   name={item.project.clientName}
@@ -654,6 +672,20 @@ export function Timeline({ projects, horizon = "thisMonth", nowTimestamp = Date.
                   className="h-full w-full text-[11px]"
                 />
               </Link>
+            ) : (
+              <button
+                key={group.key}
+                type="button"
+                aria-label={item.project.name}
+                {...markerProps}
+              >
+                <Avatar
+                  name={item.project.clientName}
+                  src={item.project.clientAvatarUrl}
+                  size="md"
+                  className="h-full w-full text-[11px]"
+                />
+              </button>
             );
           }
 
@@ -664,32 +696,59 @@ export function Timeline({ projects, horizon = "thisMonth", nowTimestamp = Date.
               style={{ left: `${groupLeft}px`, top: `${markerTop}px` }}
             >
               <div className="flex flex-col items-center">
-                {visibleItems.map((item, index) => (
-                  <Link
-                    key={item.project.id}
-                    to="/project/$id"
-                    params={{ id: item.project.id }}
-                    data-curve-marker
-                    className={`relative block h-9 w-9 overflow-hidden rounded-full border-2 border-white shadow-[0_0_0_2.5px_#8782F5] transition-[margin,transform,box-shadow,opacity] duration-200 hover:scale-110 hover:shadow-[0_0_0_2.5px_#8782F5,0_3px_12px_rgba(26,26,46,0.12)] ${
-                      index > 0 ? "-mt-8 group-hover:mt-2" : ""
-                    }`}
-                    style={{
-                      zIndex: visibleItems.length - index,
-                      opacity: markerOpacity(item.project, hoveredProjectId),
-                    }}
-                    onMouseEnter={(event) =>
-                      handleMarkerEnter(item.project, markerTimestamp, event.currentTarget)
-                    }
-                    onMouseLeave={() => clearMarkerHover(item.project.id)}
-                  >
-                    <Avatar
-                      name={item.project.clientName}
-                      src={item.project.clientAvatarUrl}
-                      size="md"
-                      className="h-full w-full text-[11px]"
-                    />
-                  </Link>
-                ))}
+                {visibleItems.map((item, index) =>
+                  interactive ? (
+                    <Link
+                      key={item.project.id}
+                      to="/project/$id"
+                      params={{ id: item.project.id }}
+                      data-curve-marker
+                      className={`relative block h-9 w-9 overflow-hidden rounded-full border-2 border-white shadow-[0_0_0_2.5px_#8782F5] transition-[margin,transform,box-shadow,opacity] duration-200 hover:scale-110 hover:shadow-[0_0_0_2.5px_#8782F5,0_3px_12px_rgba(26,26,46,0.12)] ${
+                        index > 0 ? "-mt-8 group-hover:mt-2" : ""
+                      }`}
+                      style={{
+                        zIndex: visibleItems.length - index,
+                        opacity: markerOpacity(item.project, hoveredProjectId),
+                      }}
+                      onMouseEnter={(event) =>
+                        handleMarkerEnter(item.project, markerTimestamp, event.currentTarget)
+                      }
+                      onMouseLeave={() => clearMarkerHover(item.project.id)}
+                    >
+                      <Avatar
+                        name={item.project.clientName}
+                        src={item.project.clientAvatarUrl}
+                        size="md"
+                        className="h-full w-full text-[11px]"
+                      />
+                    </Link>
+                  ) : (
+                    <button
+                      key={item.project.id}
+                      type="button"
+                      aria-label={item.project.name}
+                      data-curve-marker
+                      className={`relative block h-9 w-9 overflow-hidden rounded-full border-2 border-white shadow-[0_0_0_2.5px_#8782F5] transition-[margin,transform,box-shadow,opacity] duration-200 hover:scale-110 hover:shadow-[0_0_0_2.5px_#8782F5,0_3px_12px_rgba(26,26,46,0.12)] ${
+                        index > 0 ? "-mt-8 group-hover:mt-2" : ""
+                      }`}
+                      style={{
+                        zIndex: visibleItems.length - index,
+                        opacity: markerOpacity(item.project, hoveredProjectId),
+                      }}
+                      onMouseEnter={(event) =>
+                        handleMarkerEnter(item.project, markerTimestamp, event.currentTarget)
+                      }
+                      onMouseLeave={() => clearMarkerHover(item.project.id)}
+                    >
+                      <Avatar
+                        name={item.project.clientName}
+                        src={item.project.clientAvatarUrl}
+                        size="md"
+                        className="h-full w-full text-[11px]"
+                      />
+                    </button>
+                  ),
+                )}
 
                 {overflow > 0 ? (
                   <div className="relative -mt-8 flex h-9 w-9 items-center justify-center rounded-full border-[2.5px] border-white bg-border text-[11px] font-medium text-text-secondary transition-[margin,opacity] duration-200 group-hover:mt-2">

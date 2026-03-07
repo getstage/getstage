@@ -111,7 +111,7 @@ export async function ensureUserByEmail(
     email: args.email,
     name: args.name?.trim() || sanitizeNameFromEmail(args.email),
     role: "freelancer",
-    plan: "pro",
+    plan: "free",
     createdAt: timestamp,
     updatedAt: timestamp,
   });

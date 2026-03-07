@@ -6,7 +6,11 @@ import {
   type DragEvent,
   type MouseEvent,
 } from "react";
-import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
+import {
+  useAction as useConvexAction,
+  useMutation as useConvexMutation,
+  useQuery as useConvexQuery,
+} from "convex/react";
 import { Helmet } from "react-helmet-async";
 import { motion } from "motion/react";
 import { BillingTab } from "@/components/settings/BillingTab";
@@ -14,15 +18,18 @@ import { GeneralTab } from "@/components/settings/GeneralTab";
 import { BillingIcon, GeneralIcon, PortalIcon } from "@/components/settings/SettingsIcons";
 import { PortalTab } from "@/components/settings/PortalTab";
 import type { SettingsTab } from "@/components/settings/settingsTypes";
-import { useAuth } from "@/lib/auth";
+import { useAuth, useSignOut } from "@/lib/auth";
 import { api } from "@/lib/convex";
 import { DEFAULT_PORTAL_COLOR } from "@/lib/constants";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 import { capitalize, formatPlanPrice, normalizeHex } from "@/lib/format";
+import { googleSheetsUrlSchema, profileNameSchema } from "@/lib/validation";
 import { SAVED_FEEDBACK, useFeedback } from "@/hooks/useFeedback";
 import { readFileAsDataUrl } from "@/lib/utils";
 import "@/styles/settings.css";
 
 const PREVIEW_PORTAL_URL = "/portal/share_acme_2026?preview=1";
+const GOOGLE_SHEETS_GUIDE_HREF = "https://help.portfoliodividendtracker.com/article/126-article";
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -30,25 +37,65 @@ export function SettingsPage() {
     api.settings.getOverview,
     !user ? "skip" : {},
   );
+  const stripeConnection = useConvexQuery(
+    api.stripeConnect.getStripeConnectionStatus,
+    !user ? "skip" : {},
+  );
+  const sheetConnections = useConvexQuery(
+    api.googleSheets.getSheetConnectionStatus,
+    !user ? "skip" : {},
+  );
   const updateProfile = useConvexMutation(api.settings.updateProfile);
   const updatePortalBranding = useConvexMutation(api.settings.updatePortalBranding);
+  const deleteAccount = useConvexAction(api.settings.deleteAccount);
+  const connectSheet = useConvexMutation(api.googleSheets.connectSheet);
+  const generateUploadUrl = useConvexMutation(api.googleSheets.generateUploadUrl);
+  const uploadCsv = useConvexMutation(api.googleSheets.uploadCsv);
+  const disconnectSheet = useConvexMutation(api.googleSheets.disconnectSheet);
+  const disconnectStripe = useConvexMutation(api.stripeConnect.disconnectStripe);
+  const createCheckoutSession = useConvexAction(api.billing.createCheckoutSession);
+  const createCustomerPortalSession = useConvexAction(api.billing.createCustomerPortalSession);
+  const startStripeConnect = useConvexAction(api.stripeConnect.startConnect);
+  const syncStripeData = useConvexAction(api.stripeConnect.syncStripeData);
+  const runSheetImport = useConvexAction(api.googleSheets.runSheetImport);
+  const signOut = useSignOut();
   const [name, setName] = useState(user?.name ?? "");
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(user?.avatarUrl ?? null);
   const [portalLogoDataUrl, setPortalLogoDataUrl] = useState<string | null>(null);
   const [portalColor, setPortalColor] = useState(DEFAULT_PORTAL_COLOR);
   const [hexInput, setHexInput] = useState(DEFAULT_PORTAL_COLOR);
+  const [googleSheetUrl, setGoogleSheetUrl] = useState("");
   const [logoDragActive, setLogoDragActive] = useState(false);
   const [isSavingName, setIsSavingName] = useState(false);
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
   const [isSavingPortalLogo, setIsSavingPortalLogo] = useState(false);
   const [isSavingPortalColor, setIsSavingPortalColor] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [isPortalLoading, setIsPortalLoading] = useState(false);
+  const [isStripeConnecting, setIsStripeConnecting] = useState(false);
+  const [isStripeSyncing, setIsStripeSyncing] = useState(false);
+  const [isStripeDisconnecting, setIsStripeDisconnecting] = useState(false);
+  const [isGoogleSheetConnecting, setIsGoogleSheetConnecting] = useState(false);
+  const [isGoogleSheetImporting, setIsGoogleSheetImporting] = useState(false);
+  const [isGoogleSheetDisconnecting, setIsGoogleSheetDisconnecting] = useState(false);
+  const [isCsvUploading, setIsCsvUploading] = useState(false);
+  const [isCsvImporting, setIsCsvImporting] = useState(false);
+  const [isCsvDisconnecting, setIsCsvDisconnecting] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const csvFileInputRef = useRef<HTMLInputElement>(null);
   const { feedback: nameFeedback, showFeedback: showNameFeedback } = useFeedback();
   const { feedback: avatarFeedback, showFeedback: showAvatarFeedback } = useFeedback();
   const { feedback: portalLogoFeedback, showFeedback: showPortalLogoFeedback } = useFeedback();
   const { feedback: portalColorFeedback, showFeedback: showPortalColorFeedback } = useFeedback();
+  const { feedback: billingFeedback, showFeedback: showBillingFeedback } = useFeedback();
+  const { feedback: stripeFeedback, showFeedback: showStripeFeedback } = useFeedback();
+  const { feedback: googleSheetFeedback, showFeedback: showGoogleSheetFeedback } = useFeedback();
+  const { feedback: csvFeedback, showFeedback: showCsvFeedback } = useFeedback();
+  const { feedback: deleteAccountFeedback, showFeedback: showDeleteAccountFeedback } =
+    useFeedback();
 
   useEffect(() => {
     const applyTabFromUrl = () => {
@@ -73,6 +120,21 @@ export function SettingsPage() {
     setPortalColor(settingsData.portalBranding.accentColor);
     setHexInput(settingsData.portalBranding.accentColor);
   }, [settingsData]);
+
+  useEffect(() => {
+    setGoogleSheetUrl(sheetConnections?.googleSheet?.sheetUrl ?? "");
+  }, [sheetConnections?.googleSheet?.sheetUrl]);
+
+  function showFriendlyFeedback(
+    showFeedback: (feedback: { kind: "error"; message: string }) => void,
+    error: unknown,
+    fallback: string,
+  ) {
+    showFeedback({
+      kind: "error",
+      message: toUserFacingErrorMessage(error, fallback),
+    });
+  }
 
   const avatarInitial = name.trim().charAt(0).toUpperCase() || "S";
 
@@ -123,17 +185,24 @@ export function SettingsPage() {
   }
 
   async function persistName() {
+    const parsed = profileNameSchema.safeParse(name);
+    if (!parsed.success) {
+      showNameFeedback({
+        kind: "error",
+        message: parsed.error.issues[0]?.message ?? "Please enter your name.",
+      });
+      return;
+    }
+
     setIsSavingName(true);
     try {
       await updateProfile({
-        name,
+        name: parsed.data,
       });
+      setName(parsed.data);
       showNameFeedback(SAVED_FEEDBACK);
     } catch (error) {
-      showNameFeedback({
-        kind: "error",
-        message: error instanceof Error ? error.message : "Could not save name.",
-      });
+      showFriendlyFeedback(showNameFeedback, error, "Could not save your name.");
     } finally {
       setIsSavingName(false);
     }
@@ -151,10 +220,7 @@ export function SettingsPage() {
       });
       showAvatarFeedback(SAVED_FEEDBACK);
     } catch (error) {
-      showAvatarFeedback({
-        kind: "error",
-        message: error instanceof Error ? error.message : "Could not save avatar.",
-      });
+      showFriendlyFeedback(showAvatarFeedback, error, "Could not save your avatar.");
     } finally {
       setIsSavingAvatar(false);
     }
@@ -168,10 +234,7 @@ export function SettingsPage() {
       });
       showPortalLogoFeedback(SAVED_FEEDBACK);
     } catch (error) {
-      showPortalLogoFeedback({
-        kind: "error",
-        message: error instanceof Error ? error.message : "Could not save portal logo.",
-      });
+      showFriendlyFeedback(showPortalLogoFeedback, error, "Could not save the portal logo.");
     } finally {
       setIsSavingPortalLogo(false);
     }
@@ -185,10 +248,7 @@ export function SettingsPage() {
       });
       showPortalColorFeedback(SAVED_FEEDBACK);
     } catch (error) {
-      showPortalColorFeedback({
-        kind: "error",
-        message: error instanceof Error ? error.message : "Could not save portal color.",
-      });
+      showFriendlyFeedback(showPortalColorFeedback, error, "Could not save the portal color.");
     } finally {
       setIsSavingPortalColor(false);
     }
@@ -200,8 +260,252 @@ export function SettingsPage() {
     window.open(previewUrl, "_blank", "noopener,noreferrer");
   }
 
+  async function handleStartCheckout() {
+    setIsCheckoutLoading(true);
+    try {
+      const result = await createCheckoutSession({});
+      if (!result.url) {
+        throw new Error("Stripe checkout URL is missing.");
+      }
+      window.location.assign(result.url);
+    } catch (error) {
+      showFriendlyFeedback(
+        showBillingFeedback,
+        error,
+        "Could not start checkout right now. Please try again.",
+      );
+    } finally {
+      setIsCheckoutLoading(false);
+    }
+  }
+
+  async function handleOpenPortal() {
+    setIsPortalLoading(true);
+    try {
+      const result = await createCustomerPortalSession({});
+      if (!result.url) {
+        throw new Error("Stripe portal URL is missing.");
+      }
+      window.location.assign(result.url);
+    } catch (error) {
+      showFriendlyFeedback(
+        showBillingFeedback,
+        error,
+        "Could not open the billing portal right now.",
+      );
+    } finally {
+      setIsPortalLoading(false);
+    }
+  }
+
+  async function handleStripeConnect() {
+    setIsStripeConnecting(true);
+    try {
+      const result = await startStripeConnect({});
+      if (!result.url) {
+        throw new Error("Stripe Connect URL is missing.");
+      }
+      window.location.assign(result.url);
+    } catch (error) {
+      showFriendlyFeedback(
+        showStripeFeedback,
+        error,
+        "Could not start Stripe Connect right now.",
+      );
+      setIsStripeConnecting(false);
+    }
+  }
+
+  async function handleStripeSync() {
+    setIsStripeSyncing(true);
+    try {
+      await syncStripeData({});
+      showStripeFeedback(SAVED_FEEDBACK);
+    } catch (error) {
+      showFriendlyFeedback(showStripeFeedback, error, "Could not sync Stripe data.");
+    } finally {
+      setIsStripeSyncing(false);
+    }
+  }
+
+  async function handleStripeDisconnect() {
+    setIsStripeDisconnecting(true);
+    try {
+      await disconnectStripe({});
+      showStripeFeedback(SAVED_FEEDBACK);
+    } catch (error) {
+      showFriendlyFeedback(showStripeFeedback, error, "Could not disconnect Stripe.");
+    } finally {
+      setIsStripeDisconnecting(false);
+    }
+  }
+
+  async function handleGoogleSheetConnect() {
+    const parsed = googleSheetsUrlSchema.safeParse(googleSheetUrl);
+    if (!parsed.success) {
+      showGoogleSheetFeedback({
+        kind: "error",
+        message:
+          parsed.error.issues[0]?.message ?? "Please paste a valid Google Sheets document URL.",
+      });
+      return;
+    }
+
+    const normalizedUrl = parsed.data;
+
+    setIsGoogleSheetConnecting(true);
+    try {
+      await connectSheet({
+        sheetUrl: normalizedUrl,
+        templateVersion: "v1",
+      });
+      setGoogleSheetUrl(normalizedUrl);
+      showGoogleSheetFeedback(SAVED_FEEDBACK);
+    } catch (error) {
+      showFriendlyFeedback(
+        showGoogleSheetFeedback,
+        error,
+        "Could not connect that Google Sheet.",
+      );
+    } finally {
+      setIsGoogleSheetConnecting(false);
+    }
+  }
+
+  async function handleGoogleSheetImport() {
+    setIsGoogleSheetImporting(true);
+    try {
+      await runSheetImport({
+        sourceType: "google_sheet",
+      });
+      showGoogleSheetFeedback(SAVED_FEEDBACK);
+    } catch (error) {
+      showFriendlyFeedback(
+        showGoogleSheetFeedback,
+        error,
+        "Could not import Google Sheets right now.",
+      );
+    } finally {
+      setIsGoogleSheetImporting(false);
+    }
+  }
+
+  async function handleGoogleSheetDisconnect() {
+    setIsGoogleSheetDisconnecting(true);
+    try {
+      await disconnectSheet({
+        sourceType: "google_sheet",
+      });
+      showGoogleSheetFeedback(SAVED_FEEDBACK);
+      setGoogleSheetUrl("");
+    } catch (error) {
+      showFriendlyFeedback(
+        showGoogleSheetFeedback,
+        error,
+        "Could not disconnect Google Sheets.",
+      );
+    } finally {
+      setIsGoogleSheetDisconnecting(false);
+    }
+  }
+
+  async function handleCsvFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) {
+      return;
+    }
+
+    setIsCsvUploading(true);
+    try {
+      const uploadUrl = await generateUploadUrl({});
+      const response = await fetch(uploadUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": file.type || "text/csv",
+        },
+        body: file,
+      });
+
+      if (!response.ok) {
+        throw new Error("CSV upload failed.");
+      }
+
+      const body = (await response.json()) as { storageId?: string };
+      if (!body.storageId) {
+        throw new Error("Upload did not return a storage id.");
+      }
+
+      await uploadCsv({
+        storageId: body.storageId as never,
+        fileName: file.name,
+      });
+
+      showCsvFeedback(SAVED_FEEDBACK);
+    } catch (error) {
+      showFriendlyFeedback(showCsvFeedback, error, "Could not upload that CSV file.");
+    } finally {
+      setIsCsvUploading(false);
+    }
+  }
+
+  async function handleCsvImport() {
+    setIsCsvImporting(true);
+    try {
+      await runSheetImport({
+        sourceType: "csv_upload",
+      });
+      showCsvFeedback(SAVED_FEEDBACK);
+    } catch (error) {
+      showFriendlyFeedback(showCsvFeedback, error, "Could not import that CSV file.");
+    } finally {
+      setIsCsvImporting(false);
+    }
+  }
+
+  async function handleCsvDisconnect() {
+    setIsCsvDisconnecting(true);
+    try {
+      await disconnectSheet({
+        sourceType: "csv_upload",
+      });
+      showCsvFeedback(SAVED_FEEDBACK);
+    } catch (error) {
+      showFriendlyFeedback(showCsvFeedback, error, "Could not disconnect the CSV source.");
+    } finally {
+      setIsCsvDisconnecting(false);
+    }
+  }
+
+  async function handleDeleteAccount(confirmation: string) {
+    setIsDeletingAccount(true);
+    try {
+      await deleteAccount({
+        confirmation,
+      });
+      showDeleteAccountFeedback(SAVED_FEEDBACK);
+
+      try {
+        await signOut();
+      } catch {
+        // The account deletion removes active auth sessions first, so sign-out can fail safely.
+      }
+
+      window.location.assign("/auth");
+      return true;
+    } catch (error) {
+      showFriendlyFeedback(
+        showDeleteAccountFeedback,
+        error,
+        "Could not delete your account right now.",
+      );
+      return false;
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  }
+
   const subscription = settingsData?.subscription ?? null;
-  const paymentConnection = settingsData?.paymentConnection ?? null;
   const previewPortalUrl = settingsData?.previewPortalUrl ?? PREVIEW_PORTAL_URL;
   const planName = subscription ? `Stage ${capitalize(subscription.plan)}` : "Stage Pro";
   const planStatus = subscription ? capitalize(subscription.status) : "Pending";
@@ -215,11 +519,7 @@ export function SettingsPage() {
   const paymentProviderText = subscription?.provider
     ? `Powered by ${capitalize(subscription.provider)}`
     : "Billing provider not configured";
-  const connectionLabel = paymentConnection?.provider
-    ? `Connected to ${capitalize(paymentConnection.provider)}`
-    : "No payment provider connected";
-  const connectionActionLabel =
-    paymentConnection?.status === "active" ? "Disconnect" : "Connect";
+  const hasActiveSubscription = Boolean(subscription);
 
   return (
     <>
@@ -275,12 +575,15 @@ export function SettingsPage() {
               avatarInputRef={avatarInputRef}
               isSavingName={isSavingName}
               isSavingAvatar={isSavingAvatar}
+              isDeletingAccount={isDeletingAccount}
               nameFeedback={nameFeedback}
               avatarFeedback={avatarFeedback}
+              deleteAccountFeedback={deleteAccountFeedback}
               onNameChange={setName}
               onAvatarInputChange={handleAvatarInputChange}
               onSaveName={() => void persistName()}
               onSaveAvatar={() => void persistAvatar()}
+              onDeleteAccount={handleDeleteAccount}
             />
 
             <BillingTab
@@ -290,8 +593,41 @@ export function SettingsPage() {
               planCycle={planCycle}
               paymentText={paymentText}
               paymentProviderText={paymentProviderText}
-              connectionLabel={connectionLabel}
-              connectionActionLabel={connectionActionLabel}
+              billingFeedback={billingFeedback}
+              isCheckoutLoading={isCheckoutLoading}
+              isPortalLoading={isPortalLoading}
+              hasActiveSubscription={hasActiveSubscription}
+              onStartCheckout={() => void handleStartCheckout()}
+              onOpenPortal={() => void handleOpenPortal()}
+              stripeConnection={stripeConnection ?? null}
+              stripeFeedback={stripeFeedback}
+              isStripeConnecting={isStripeConnecting}
+              isStripeSyncing={isStripeSyncing}
+              isStripeDisconnecting={isStripeDisconnecting}
+              onStripeConnect={() => void handleStripeConnect()}
+              onStripeSync={() => void handleStripeSync()}
+              onStripeDisconnect={() => void handleStripeDisconnect()}
+              stripeGuideHref={null}
+              googleSheetsGuideHref={GOOGLE_SHEETS_GUIDE_HREF}
+              googleSheetUrl={googleSheetUrl}
+              googleSheetConnection={sheetConnections?.googleSheet ?? null}
+              googleSheetFeedback={googleSheetFeedback}
+              isGoogleSheetConnecting={isGoogleSheetConnecting}
+              isGoogleSheetImporting={isGoogleSheetImporting}
+              isGoogleSheetDisconnecting={isGoogleSheetDisconnecting}
+              onGoogleSheetUrlChange={setGoogleSheetUrl}
+              onGoogleSheetConnect={() => void handleGoogleSheetConnect()}
+              onGoogleSheetImport={() => void handleGoogleSheetImport()}
+              onGoogleSheetDisconnect={() => void handleGoogleSheetDisconnect()}
+              csvUploadConnection={sheetConnections?.csvUpload ?? null}
+              csvFeedback={csvFeedback}
+              csvFileInputRef={csvFileInputRef}
+              isCsvUploading={isCsvUploading}
+              isCsvImporting={isCsvImporting}
+              isCsvDisconnecting={isCsvDisconnecting}
+              onCsvFileChange={(event) => void handleCsvFileChange(event)}
+              onCsvImport={() => void handleCsvImport()}
+              onCsvDisconnect={() => void handleCsvDisconnect()}
             />
 
             <PortalTab

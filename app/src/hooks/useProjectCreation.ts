@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent, type ChangeEvent } from "react";
 import { useMutation as useConvexMutation } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
+import { createProjectInputSchema } from "@/data-ops/schema";
 import { AI_ROADMAPS, DEFAULT_PHASES, type RoadmapTemplateItem } from "@/lib/constants";
 import { addDays, formatInputDate, parseInputDate } from "@/lib/format";
 import { api } from "@/lib/convex";
+import { toUserFacingErrorMessage } from "@/lib/errors";
+import { dateRangeInputSchema, manualPhaseSelectionSchema, projectBasicsSchema } from "@/lib/validation";
 import { readFileAsDataUrl } from "@/lib/utils";
 import type { CreateProjectInput, ProjectType } from "@/types";
 
@@ -149,6 +152,16 @@ export function useProjectCreation() {
 
     switch (step) {
       case 1:
+        {
+          const parsed = projectBasicsSchema.safeParse({
+            projectName,
+            clientName,
+          });
+          if (!parsed.success) {
+            setErrorMessage(parsed.error.issues[0]?.message ?? "Please complete the project details.");
+            return;
+          }
+        }
         setStep(2);
         return;
       case 2:
@@ -158,12 +171,33 @@ export function useProjectCreation() {
         setStep(method === "manual" ? "4m" : "4a");
         return;
       case "4m":
+        {
+          const parsed = manualPhaseSelectionSchema.safeParse(activePhases.length);
+          if (!parsed.success) {
+            setErrorMessage(parsed.error.issues[0]?.message ?? "Select at least two phases.");
+            return;
+          }
+        }
         setStep("4mb");
         return;
       case "4mb":
+        {
+          const parsed = dateRangeInputSchema.safeParse({ startDate, endDate });
+          if (!parsed.success) {
+            setErrorMessage(parsed.error.issues[0]?.message ?? "Select a valid timeline.");
+            return;
+          }
+        }
         setStep(5);
         return;
       case "4a":
+        {
+          const parsed = dateRangeInputSchema.safeParse({ startDate, endDate });
+          if (!parsed.success) {
+            setErrorMessage(parsed.error.issues[0]?.message ?? "Select a valid timeline.");
+            return;
+          }
+        }
         setIsGenerating(true);
         generationTimeoutRef.current = window.setTimeout(() => {
           setIsGenerating(false);
@@ -203,11 +237,17 @@ export function useProjectCreation() {
         phases: phaseNames,
       };
 
-      const project = await createProject(input);
+      const parsedInput = createProjectInputSchema.safeParse(input);
+      if (!parsedInput.success) {
+        setErrorMessage(parsedInput.error.issues[0]?.message ?? "Please complete the project details.");
+        return;
+      }
+
+      const project = await createProject(parsedInput.data);
       setCreatedProjectId(project.id);
       setStep("success");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Could not create project.");
+      setErrorMessage(toUserFacingErrorMessage(error, "Could not create the project."));
     } finally {
       setIsCreating(false);
     }

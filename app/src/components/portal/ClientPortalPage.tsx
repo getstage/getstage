@@ -6,6 +6,8 @@ import { api } from "@/lib/convex";
 import portalLogo from "@/assets/logos/client-portal-logo.png";
 import type { Phase } from "@/types";
 
+type PortalTask = Phase["tasks"][number];
+
 export function ClientPortalPage() {
   const { token } = useParams({ from: "/portal/$token" });
   const data = useConvexQuery(api.portal.getByShareToken, { shareToken: token });
@@ -36,15 +38,15 @@ export function ClientPortalPage() {
   const { project, config } = data;
   const selectedPhase = useMemo(
     () =>
-      project.phases.find((phase) => phase.id === selectedPhaseId) ??
-      project.phases.find((phase) => phase.status === "active") ??
+      project.phases.find((phase: Phase) => phase.id === selectedPhaseId) ??
+      project.phases.find((phase: Phase) => phase.status === "active") ??
       project.phases[0],
     [project.phases, selectedPhaseId],
   );
 
   if (!selectedPhase) return null;
 
-  const completed = selectedPhase.tasks.filter((task) => task.isCompleted).length;
+  const completed = selectedPhase.tasks.filter((task: PortalTask) => task.isCompleted).length;
   const isPreview = new URLSearchParams(window.location.search).get("preview") === "1";
 
   return (
@@ -89,7 +91,7 @@ export function ClientPortalPage() {
 
           <section className="py-16">
             <div className="mx-auto flex max-w-[960px] items-center">
-              {project.phases.map((phase, index) => (
+              {project.phases.map((phase: Phase, index: number) => (
                 <div key={phase.id} className="flex flex-1 items-center">
                   <PhaseNode
                     phase={phase}
@@ -122,7 +124,7 @@ export function ClientPortalPage() {
             </header>
 
             <div>
-              {selectedPhase.tasks.map((task) => (
+              {selectedPhase.tasks.map((task: PortalTask) => (
                 <div
                   key={task.id}
                   className="flex items-center gap-3 border-t border-border-subtle px-1 py-2.5 first:border-t-0"
@@ -176,7 +178,7 @@ function PhaseNode({
   accentColor: string;
   onClick: () => void;
 }) {
-  const complete = phase.tasks.filter((task) => task.isCompleted).length;
+  const complete = phase.tasks.filter((task: PortalTask) => task.isCompleted).length;
 
   return (
     <button

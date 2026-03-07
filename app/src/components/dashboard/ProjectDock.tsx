@@ -8,10 +8,11 @@ const DOCK_SIGMA = 55;
 
 type ProjectDockProps = {
   projects: Project[];
+  interactive?: boolean;
 };
 
-export function ProjectDock({ projects }: ProjectDockProps) {
-  const dockItemRefs = useRef<Array<HTMLAnchorElement | null>>([]);
+export function ProjectDock({ projects, interactive = true }: ProjectDockProps) {
+  const dockItemRefs = useRef<Array<HTMLElement | null>>([]);
   const [dockIsHovering, setDockIsHovering] = useState(false);
   const [dockSizes, setDockSizes] = useState<number[]>([]);
   const [activeDockIndex, setActiveDockIndex] = useState<number | null>(null);
@@ -72,21 +73,8 @@ export function ProjectDock({ projects }: ProjectDockProps) {
           const size = dockSizes[index] ?? DOCK_BASE_SIZE;
           const isActive = activeDockIndex === index;
 
-          return (
-            <Link
-              key={project.id}
-              to="/project/$id"
-              params={{ id: project.id }}
-              ref={(element: HTMLAnchorElement | null) => {
-                dockItemRefs.current[index] = element;
-              }}
-              className="relative block shrink-0 cursor-pointer outline-none focus:outline-none focus-visible:outline-none"
-              style={{
-                width: `${size}px`,
-                height: `${size}px`,
-                transition: dockIsHovering ? "none" : "width 200ms ease, height 200ms ease",
-              }}
-            >
+          const content = (
+            <>
               <div
                 className={`pointer-events-none absolute bottom-full left-1/2 mb-2.5 -translate-x-1/2 whitespace-nowrap rounded-[8px] border border-white/10 bg-[#333546] px-3 py-2 opacity-0 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-opacity duration-150 ${
                   isActive ? "opacity-100" : ""
@@ -117,7 +105,40 @@ export function ProjectDock({ projects }: ProjectDockProps) {
                   {project.clientName.slice(0, 2).toUpperCase()}
                 </div>
               )}
+            </>
+          );
+
+          const sharedProps = {
+            ref: (element: HTMLElement | null) => {
+              dockItemRefs.current[index] = element;
+            },
+            className:
+              "relative block shrink-0 cursor-pointer outline-none focus:outline-none focus-visible:outline-none",
+            style: {
+              width: `${size}px`,
+              height: `${size}px`,
+              transition: dockIsHovering ? "none" : "width 200ms ease, height 200ms ease",
+            },
+          };
+
+          return interactive ? (
+            <Link
+              key={project.id}
+              to="/project/$id"
+              params={{ id: project.id }}
+              {...sharedProps}
+            >
+              {content}
             </Link>
+          ) : (
+            <button
+              key={project.id}
+              type="button"
+              aria-label={project.name}
+              {...sharedProps}
+            >
+              {content}
+            </button>
           );
         })}
       </div>

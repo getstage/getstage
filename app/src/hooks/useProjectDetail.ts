@@ -3,7 +3,9 @@ import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "co
 import { useNavigate } from "@tanstack/react-router";
 import { useActionError } from "@/hooks/useActionError";
 import { api } from "@/lib/convex";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 import { formatDateInput, parseDateInput } from "@/lib/format";
+import type { Phase } from "@/types";
 import type { Id } from "../../convex/_generated/dataModel";
 
 type ProjectDialogState = {
@@ -57,8 +59,8 @@ export function useProjectDetail(projectId: Id<"projects">) {
     }
 
     return (
-      project.phases.find((phase) => phase.id === activePhaseId) ??
-      project.phases.find((phase) => phase.status === "active") ??
+      project.phases.find((phase: Phase) => phase.id === activePhaseId) ??
+      project.phases.find((phase: Phase) => phase.status === "active") ??
       project.phases[0] ??
       null
     );
@@ -124,7 +126,7 @@ export function useProjectDetail(projectId: Id<"projects">) {
       return;
     }
 
-    setEditPhasesValue(project.phases.map((phase) => phase.name).join(", "));
+    setEditPhasesValue(project.phases.map((phase: Phase) => phase.name).join(", "));
     setDialogOpen("editPhases", true);
   }
 
@@ -141,7 +143,7 @@ export function useProjectDetail(projectId: Id<"projects">) {
       setAddTaskValue("");
       setShowAddTask(false);
     } catch (error) {
-      showError(error instanceof Error ? error.message : "Could not create task.");
+      showError(toUserFacingErrorMessage(error, "Could not create the task."));
     }
   }
 
@@ -160,7 +162,7 @@ export function useProjectDetail(projectId: Id<"projects">) {
       await updateProject({ projectId, name });
       setDialogOpen("editName", false);
     } catch (error) {
-      showError(error instanceof Error ? error.message : "Could not update project name.");
+      showError(toUserFacingErrorMessage(error, "Could not update the project name."));
     }
   }
 
@@ -179,7 +181,7 @@ export function useProjectDetail(projectId: Id<"projects">) {
       await updateProject({ projectId, clientName });
       setDialogOpen("editClient", false);
     } catch (error) {
-      showError(error instanceof Error ? error.message : "Could not update client.");
+      showError(toUserFacingErrorMessage(error, "Could not update the client."));
     }
   }
 
@@ -192,7 +194,7 @@ export function useProjectDetail(projectId: Id<"projects">) {
       });
       setDialogOpen("editTimeline", false);
     } catch (error) {
-      showError(error instanceof Error ? error.message : "Could not update timeline.");
+      showError(toUserFacingErrorMessage(error, "Could not update the timeline."));
     }
   }
 
@@ -214,7 +216,7 @@ export function useProjectDetail(projectId: Id<"projects">) {
     const usedExistingIds = new Set<string>();
     const phases = nextNames.map((name, index) => {
       const exactMatch = project.phases.find(
-        (phase) => phase.name === name && !usedExistingIds.has(phase.id),
+        (phase: Phase) => phase.name === name && !usedExistingIds.has(phase.id),
       );
 
       if (exactMatch) {
@@ -235,7 +237,7 @@ export function useProjectDetail(projectId: Id<"projects">) {
       await syncPhases({ projectId, phases });
       setDialogOpen("editPhases", false);
     } catch (error) {
-      showError(error instanceof Error ? error.message : "Could not update phases.");
+      showError(toUserFacingErrorMessage(error, "Could not update the phases."));
     }
   }
 
@@ -250,7 +252,7 @@ export function useProjectDetail(projectId: Id<"projects">) {
         status: project.status === "paused" ? "active" : "paused",
       });
     } catch (error) {
-      showError(error instanceof Error ? error.message : "Could not update project status.");
+      showError(toUserFacingErrorMessage(error, "Could not update the project status."));
     }
   }
 
@@ -259,7 +261,7 @@ export function useProjectDetail(projectId: Id<"projects">) {
       await deleteProject({ projectId });
       navigate({ to: "/dashboard" });
     } catch (error) {
-      showError(error instanceof Error ? error.message : "Could not delete project.");
+      showError(toUserFacingErrorMessage(error, "Could not delete the project."));
     }
   }
 
@@ -267,7 +269,7 @@ export function useProjectDetail(projectId: Id<"projects">) {
     try {
       await toggleTaskComplete({ taskId });
     } catch (error) {
-      showError(error instanceof Error ? error.message : "Could not update task.");
+      showError(toUserFacingErrorMessage(error, "Could not update the task."));
     }
   }
 
@@ -278,7 +280,7 @@ export function useProjectDetail(projectId: Id<"projects">) {
         isEnabled: !clientAccess,
       });
     } catch (error) {
-      showError(error instanceof Error ? error.message : "Could not update client access.");
+      showError(toUserFacingErrorMessage(error, "Could not update client access."));
     }
   }
 
@@ -295,7 +297,7 @@ export function useProjectDetail(projectId: Id<"projects">) {
         setCopied(false);
       }, 2000);
     } catch (error) {
-      showError(error instanceof Error ? error.message : "Could not copy share link.");
+      showError(toUserFacingErrorMessage(error, "Could not copy the share link."));
     }
   }
 

@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useSignIn } from "@/lib/auth";
+import { toUserFacingErrorMessage } from "@/lib/errors";
+import { signInEmailSchema, verificationCodeSchema } from "@/lib/validation";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 
 type Step = "email" | "code";
@@ -32,19 +34,29 @@ export function AuthPage() {
 
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.includes("@")) {
-      setError("Please enter a valid email address");
+    const parsed = signInEmailSchema.safeParse({ email });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? "Please enter a valid email address.");
       return;
     }
+
+    const normalizedEmail = parsed.data.email;
+
     setError("");
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.set("email", email);
+      formData.set("email", normalizedEmail);
       await signIn("loops-otp", formData);
+      setEmail(normalizedEmail);
       setStep("code");
-    } catch {
-      setError("Failed to send code. Please try again.");
+    } catch (error) {
+      setError(
+        toUserFacingErrorMessage(
+          error,
+          "We could not send your sign-in code. Please try again.",
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -78,16 +90,29 @@ export function AuthPage() {
   }
 
   async function handleCodeSubmit(fullCode: string) {
+    const parsed = verificationCodeSchema.safeParse({ code: fullCode });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? "Code must be 6 digits.");
+      setCode(["", "", "", "", "", ""]);
+      document.getElementById("code-0")?.focus();
+      return;
+    }
+
     setError("");
     setLoading(true);
     try {
       const formData = new FormData();
       formData.set("email", email);
-      formData.set("code", fullCode);
+      formData.set("code", parsed.data.code);
       await signIn("loops-otp", formData);
       navigate({ to: "/dashboard", replace: true });
-    } catch {
-      setError("Invalid code. Please try again.");
+    } catch (error) {
+      setError(
+        toUserFacingErrorMessage(
+          error,
+          "That code is invalid or has expired. Please request a new one.",
+        ),
+      );
       setCode(["", "", "", "", "", ""]);
       document.getElementById("code-0")?.focus();
     } finally {
@@ -100,8 +125,13 @@ export function AuthPage() {
     setLoading(true);
     try {
       await signIn("google", { redirectTo: "/dashboard" });
-    } catch {
-      setError("Google sign-in failed. Please try again.");
+    } catch (error) {
+      setError(
+        toUserFacingErrorMessage(
+          error,
+          "Google sign-in is temporarily unavailable. Please try again.",
+        ),
+      );
     } finally {
       setLoading(false);
     }

@@ -13,7 +13,7 @@ import { motion } from "motion/react";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { api } from "@/lib/convex";
 import { debounce, formatFileSize } from "@/lib/utils";
-import type { Attachment } from "@/types";
+import type { Attachment, Phase, Task } from "@/types";
 import type { Id } from "../../../convex/_generated/dataModel";
 
 export function TaskDetailPage() {
@@ -34,8 +34,8 @@ export function TaskDetailPage() {
   const task = useMemo(
     () =>
       project?.phases
-        .flatMap((phase) => phase.tasks)
-        .find((phaseTask) => phaseTask.id === taskId) ?? null,
+        .flatMap((phase: Phase) => phase.tasks)
+        .find((phaseTask: Task) => phaseTask.id === taskId) ?? null,
     [project, taskId],
   );
 
@@ -72,8 +72,8 @@ export function TaskDetailPage() {
   const phaseName = useMemo(() => {
     if (!project) return "";
     return (
-      project.phases.find((phase) =>
-        phase.tasks.some((phaseTask) => phaseTask.id === taskId),
+      project.phases.find((phase: Phase) =>
+        phase.tasks.some((phaseTask: Task) => phaseTask.id === taskId),
       )?.name ?? ""
     );
   }, [project, taskId]);
