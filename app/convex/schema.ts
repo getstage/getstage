@@ -156,6 +156,7 @@ export default defineSchema({
     onboardingCompletedAt: v.optional(v.number()),
     onboardingProjectCreatedAt: v.optional(v.number()),
     onboardingPaywallSeenAt: v.optional(v.number()),
+    firstPaymentEmailSentAt: v.optional(v.number()),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
   })

@@ -14,6 +14,7 @@ import { Eye, LinkSimple, UserCircle } from "@phosphor-icons/react";
 import confetti from "canvas-confetti";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
+import { useMutation as useConvexMutation } from "convex/react";
 import onboardingImage from "@/assets/onboarding/onboarding.webp";
 import {
   dateRangeInputSchema,
@@ -22,6 +23,7 @@ import {
   projectBasicsSchema,
   projectTypeSchema as projectTypeValidationSchema,
 } from "@/lib/validation";
+import { api } from "@/lib/convex";
 import { cn } from "@/lib/utils";
 import type { ProjectType } from "@/types";
 
@@ -176,6 +178,7 @@ export function OnboardingModal({
   const [stepError, setStepError] = useState<string | null>(null);
   const completionTimeoutRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const connectSheet = useConvexMutation(api.googleSheets.connectSheet);
 
   const activePhases = useMemo(() => phases.filter((phase) => phase.on), [phases]);
   const previewRoadmap = useMemo(() => {
@@ -375,7 +378,7 @@ export function OnboardingModal({
     setStep("integrations");
   }
 
-  function handleImportCsv() {
+  function handleLinkSheetUrl() {
     if (!csvConnected || csvImporting) {
       return;
     }
@@ -388,12 +391,24 @@ export function OnboardingModal({
       return;
     }
 
-    setSheetUrl(parsed.data);
+    const normalizedUrl = parsed.data;
     setCsvImporting(true);
-    window.setTimeout(() => {
-      setCsvImporting(false);
-      setCsvImported(true);
-    }, 900);
+    setStepError(null);
+    void connectSheet({
+      sheetUrl: normalizedUrl,
+      templateVersion: "v1",
+    })
+      .then(() => {
+        setSheetUrl(normalizedUrl);
+        setCsvImported(true);
+        setCsvConnected(true);
+      })
+      .catch(() => {
+        setStepError("Could not connect that Google Sheets URL.");
+      })
+      .finally(() => {
+        setCsvImporting(false);
+      });
   }
 
   function handleAvatarFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -840,7 +855,7 @@ export function OnboardingModal({
                       </button>
                     </div>
 
-                    {csvConnected ? (
+                      {csvConnected ? (
                       <>
                         <div className="mt-3 flex flex-col gap-2 md:flex-row">
                           <input
@@ -851,17 +866,30 @@ export function OnboardingModal({
                           />
                           <button
                             type="button"
-                            onClick={handleImportCsv}
+                            onClick={handleLinkSheetUrl}
                             disabled={!sheetUrl.trim() || csvImporting}
                             className="h-[46px] min-w-[220px] cursor-pointer rounded-[12px] bg-text-primary px-5 text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-45 focus:outline-none"
                           >
-                            {csvImporting ? "Importing..." : "Import Google Sheets"}
+                            {csvImporting ? "Linking..." : "Link Google Sheets"}
                           </button>
                         </div>
                         {csvImported ? (
                           <div className="mt-2 text-[12px] text-accent">
-                            Import completed successfully.
+                            Sheet link saved.
                           </div>
+                        ) : null}
+                        {sheetUrl ? (
+                          <p className="mt-2 text-[12px] text-text-secondary">
+                            Linked sheet:{" "}
+                            <a
+                              href={sheetUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-medium text-accent underline decoration-[rgba(232,112,112,0.5)] underline-offset-2 transition-opacity hover:opacity-85"
+                            >
+                              Open sheet
+                            </a>
+                          </p>
                         ) : null}
                       </>
                     ) : (

@@ -45,6 +45,7 @@ export function DashboardPage() {
   const onboardingState = useConvexQuery(api.onboarding.getState, !user ? "skip" : {});
   const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
   const createCheckoutSession = useConvexAction(api.billing.createCheckoutSession);
+  const handleSuccessfulPaymentEvent = useConvexAction(api.billing.handleSuccessfulPaymentEvent);
   const isLoading = authLoading || dashboardData === undefined || onboardingState === undefined;
   const projects = dashboardData?.projects ?? [];
   const greetingName = user?.name?.split(" ")[0] ?? "there";
@@ -89,6 +90,26 @@ export function DashboardPage() {
 
     window.localStorage.setItem(previewStorageKey, previewStage);
   }, [previewEligible, previewStage, previewStorageKey]);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("billing") !== "success") {
+      return;
+    }
+
+    void handleSuccessfulPaymentEvent()
+      .catch((error) => {
+        console.error("Could not send first payment event", error);
+      })
+      .finally(() => {
+        url.searchParams.delete("billing");
+        window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+      });
+  }, [handleSuccessfulPaymentEvent, user]);
 
   const handlePreviewPrimaryAction = () => {
     setPreviewStage("paywall");

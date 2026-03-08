@@ -2,7 +2,7 @@ import { StripeSubscriptions, type StripeComponent } from "@convex-dev/stripe";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { ActionCtx, QueryCtx } from "./_generated/server";
-import { action, query } from "./_generated/server";
+import { action, internalMutation, internalQuery, query } from "./_generated/server";
 import { components, internal } from "./_generated/api";
 import { requireAuthUser } from "./_helpers";
 
@@ -69,6 +69,11 @@ type CustomerPortalSessionResponse = {
   url: string;
 };
 
+type FirstPaymentEventState = {
+  email: string;
+  firstPaymentEmailSentAt: number | null;
+};
+
 function toMilliseconds(timestampSeconds: number) {
   return timestampSeconds * 1000;
 }
@@ -80,6 +85,10 @@ function getBillingUrls() {
     cancelUrl: `${siteUrl}/dashboard?billing=cancel`,
     returnUrl: `${siteUrl}/settings?tab=billing`,
   };
+}
+
+function getLoopsEventApiKey() {
+  return getEnv("AUTH_LOOPS_API_KEY") ?? requireEnv("LOOPS_API_KEY");
 }
 
 async function loadSubscriptionByUserId(
@@ -116,6 +125,35 @@ async function loadSubscriptionByUserId(
 export async function getCurrentSubscriptionSnapshot(ctx: QueryCtx, userId: string) {
   return loadSubscriptionByUserId(ctx, userId);
 }
+
+export const getFirstPaymentEventState = internalQuery({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args): Promise<FirstPaymentEventState> => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found.");
+    }
+
+    return {
+      email: user.email ?? "",
+      firstPaymentEmailSentAt: user.firstPaymentEmailSentAt ?? null,
+    };
+  },
+});
+
+export const markFirstPaymentEmailSent = internalMutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, {
+      firstPaymentEmailSentAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+  },
+});
 
 export const getCurrentSubscription = query({
   args: {},
@@ -187,5 +225,60 @@ export const createCustomerPortalSession = action({
     });
 
     return session;
+  },
+});
+
+export const handleSuccessfulPaymentEvent = action({
+  args: {},
+  handler: async (ctx) => {
+    const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
+    const eventState = (await ctx.runQuery(internal.billing.getFirstPaymentEventState, {
+      userId: viewer.userId,
+    })) as FirstPaymentEventState;
+
+    if (!eventState.email) {
+      return { sent: false, reason: "missing_email" as const };
+    }
+
+    if (eventState.firstPaymentEmailSentAt) {
+      return { sent: false, reason: "already_sent" as const };
+    }
+
+    const subscriptions = (await ctx.runQuery(stripeComponent.public.listSubscriptionsByUserId, {
+      userId: viewer.userIdString,
+    })) as StripeSubscriptionSummary[];
+    const activeSubscription =
+      [...subscriptions]
+        .sort((a, b) => b.currentPeriodEnd - a.currentPeriodEnd)
+        .find((subscription) => ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) ?? null;
+
+    if (!activeSubscription?.stripeSubscriptionId) {
+      return { sent: false, reason: "no_active_subscription" as const };
+    }
+
+    const response = await fetch("https://app.loops.so/api/v1/events/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${getLoopsEventApiKey()}`,
+        "Content-Type": "application/json",
+        "Idempotency-Key":
+          `stage-first-payment:${viewer.userIdString}:${activeSubscription.stripeSubscriptionId}`,
+      },
+      body: JSON.stringify({
+        email: eventState.email,
+        eventName: "welcome_email",
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to send first payment event: ${response.status} ${errorText}`);
+    }
+
+    await ctx.runMutation(internal.billing.markFirstPaymentEmailSent, {
+      userId: viewer.userId,
+    });
+
+    return { sent: true, reason: "sent" as const };
   },
 });
