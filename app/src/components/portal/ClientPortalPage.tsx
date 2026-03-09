@@ -5,7 +5,7 @@ import { Helmet } from "react-helmet-async";
 import { useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { api } from "@/lib/convex";
-import portalLogo from "@/assets/logos/client-portal-logo.png";
+import stageLogo from "@/assets/logos/stage-logo-light.png";
 import type { Phase } from "@/types";
 
 type PortalTask = Phase["tasks"][number];
@@ -73,9 +73,9 @@ export function ClientPortalPage() {
         <header className="border-b border-border-subtle">
           <div className="mx-auto flex max-w-[1440px] justify-center px-6 py-7 sm:px-10 lg:px-14">
             <img
-              src={config.logoUrl ?? portalLogo}
+              src={config.logoUrl ?? stageLogo}
               alt={`${project.clientName} portal logo`}
-              className="max-h-[64px] w-auto max-w-[260px] object-contain sm:max-h-[84px] sm:max-w-[320px]"
+              className="max-h-[42px] w-auto max-w-[180px] object-contain sm:max-h-[56px] sm:max-w-[220px]"
             />
           </div>
         </header>
