@@ -186,3 +186,29 @@ export const saveAttachment = mutation({
     return attachmentId;
   },
 });
+
+export const deleteAttachment = mutation({
+  args: {
+    attachmentId: v.id("attachments"),
+  },
+  handler: async (ctx, { attachmentId }) => {
+    const attachment = await ctx.db.get(attachmentId);
+    if (!attachment) {
+      throw new Error("Attachment not found.");
+    }
+
+    const { task } = await requireTaskOwner(ctx, attachment.taskId);
+
+    if (attachment.storageId) {
+      await ctx.storage.delete(attachment.storageId);
+    }
+    if (attachment.r2ObjectKey) {
+      await deleteOldR2Asset(ctx, attachment.r2ObjectKey);
+    }
+
+    await ctx.db.delete(attachmentId);
+    await ctx.db.patch(task._id, {
+      updatedAt: now(),
+    });
+  },
+});

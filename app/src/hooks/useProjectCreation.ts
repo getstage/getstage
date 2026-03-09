@@ -7,7 +7,7 @@ import { addDays, formatInputDate, parseInputDate } from "@/lib/format";
 import { api } from "@/lib/convex";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { dateRangeInputSchema, manualPhaseSelectionSchema, projectBasicsSchema } from "@/lib/validation";
-import { readFileAsDataUrl } from "@/lib/utils";
+import { prepareAvatarUpload, uploadFileToR2 } from "@/lib/r2Uploads";
 import type { CreateProjectInput, ProjectType } from "@/types";
 
 export type WorkflowStep = 1 | 2 | 3 | "4a" | "4m" | "4mb" | 5;
@@ -23,11 +23,14 @@ export type PhaseItem = {
 export function useProjectCreation() {
   const navigate = useNavigate();
   const createProject = useConvexMutation(api.projects.create);
+  const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
+  const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
 
   const [step, setStep] = useState<Step>(1);
   const [projectName, setProjectName] = useState("");
   const [clientName, setClientName] = useState("");
   const [clientAvatar, setClientAvatar] = useState<string | null>(null);
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
   const [projectType, setProjectType] = useState<ProjectType | null>(null);
   const [method, setMethod] = useState<Method>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -221,6 +224,15 @@ export function useProjectCreation() {
     setErrorMessage(null);
 
     try {
+      const clientAvatarUrl = pendingAvatarFile
+        ? await uploadFileToR2({
+            generateUploadUrl: r2GenerateUploadUrl,
+            syncMetadata: r2SyncMetadata,
+            purpose: "profile-avatar",
+            file: pendingAvatarFile,
+          })
+        : clientAvatar?.trim() || undefined;
+
       const phases =
         method === "manual"
           ? activePhases
@@ -235,7 +247,7 @@ export function useProjectCreation() {
       const input: CreateProjectInput = {
         name: projectName.trim(),
         clientName: clientName.trim(),
-        clientAvatarUrl: clientAvatar ?? undefined,
+        clientAvatarUrl,
         type: projectType,
         method,
         startDate: parseInputDate(startDate),
@@ -273,7 +285,14 @@ export function useProjectCreation() {
       return;
     }
 
-    setClientAvatar(await readFileAsDataUrl(file));
+    try {
+      const prepared = await prepareAvatarUpload(file);
+      setPendingAvatarFile(prepared.file);
+      setClientAvatar(prepared.previewUrl);
+      clearError();
+    } catch (error) {
+      setErrorMessage(toUserFacingErrorMessage(error, "Could not prepare this image."));
+    }
   }
 
   function fetchAvatarFromUrl() {
@@ -284,9 +303,17 @@ export function useProjectCreation() {
 
     setAvatarFetching(true);
     avatarTimeoutRef.current = window.setTimeout(() => {
+      setPendingAvatarFile(null);
       setClientAvatar(url);
       setAvatarFetching(false);
     }, 800);
+  }
+
+  function handleClientAvatarChange(value: string | null) {
+    if (value === null || !value.startsWith("data:")) {
+      setPendingAvatarFile(null);
+    }
+    setClientAvatar(value);
   }
 
   function togglePhase(phaseId: string) {
@@ -376,7 +403,7 @@ export function useProjectCreation() {
     fileInputRef,
     setProjectName,
     setClientName,
-    setClientAvatar,
+    setClientAvatar: handleClientAvatarChange,
     setProjectType,
     setMethod,
     setAvatarUrlOpen,
@@ -389,6 +416,7 @@ export function useProjectCreation() {
     handleContinue,
     handleViewProject,
     handleAvatarFileChange,
+    handleClientAvatarChange,
     fetchAvatarFromUrl,
     togglePhase,
     addPhase,

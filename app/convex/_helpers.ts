@@ -1,7 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { r2 } from "./r2";
+import { deleteOldR2Asset, r2, resolveAssetUrl } from "./r2";
 
 function getEnv(name: string) {
   return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[
@@ -170,6 +170,98 @@ function normalizeClientKey(value: string) {
   return value.trim().toLowerCase();
 }
 
+export async function getClientByUserAndName(
+  ctx: ReaderCtx,
+  args: {
+    userId: Id<"users">;
+    name: string;
+  },
+) {
+  return ctx.db
+    .query("clients")
+    .withIndex("by_user_name", (q) => q.eq("userId", args.userId).eq("name", args.name))
+    .unique();
+}
+
+export async function syncClientAvatarAcrossProjects(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    clientName: string;
+    avatarUrl: string;
+  },
+) {
+  const targetKey = normalizeClientKey(args.clientName);
+  const projects = await ctx.db
+    .query("projects")
+    .withIndex("by_user", (q) => q.eq("userId", args.userId))
+    .collect();
+
+  const matchingProjects = projects.filter(
+    (project) =>
+      normalizeClientKey(project.clientName) === targetKey &&
+      project.clientAvatarUrl !== args.avatarUrl,
+  );
+
+  if (matchingProjects.length === 0) {
+    return [] as string[];
+  }
+
+  const previousAvatarUrls = Array.from(
+    new Set(
+      matchingProjects
+        .map((project) => project.clientAvatarUrl)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+  const timestamp = now();
+
+  await Promise.all(
+    matchingProjects.map((project) =>
+      ctx.db.patch(project._id, {
+        clientAvatarUrl: args.avatarUrl,
+        updatedAt: timestamp,
+      }),
+    ),
+  );
+
+  return previousAvatarUrls;
+}
+
+export async function deleteClientAvatarIfUnused(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    avatarUrl: string | null | undefined;
+  },
+) {
+  if (!args.avatarUrl) {
+    return;
+  }
+
+  const projects = await ctx.db
+    .query("projects")
+    .withIndex("by_user", (q) => q.eq("userId", args.userId))
+    .collect();
+  const stillReferencedByProject = projects.some(
+    (project) => project.clientAvatarUrl === args.avatarUrl,
+  );
+  if (stillReferencedByProject) {
+    return;
+  }
+
+  const clients = await ctx.db
+    .query("clients")
+    .withIndex("by_user", (q) => q.eq("userId", args.userId))
+    .collect();
+  const stillReferencedByClient = clients.some((client) => client.avatarUrl === args.avatarUrl);
+  if (stillReferencedByClient) {
+    return;
+  }
+
+  await deleteOldR2Asset(ctx, args.avatarUrl);
+}
+
 export async function deleteClientIfUnused(
   ctx: MutationCtx,
   args: {
@@ -198,9 +290,25 @@ export async function deleteClientIfUnused(
     .collect();
 
   const matchingClients = clients.filter((client) => normalizeClientKey(client.name) === targetKey);
+  const deletedAvatarUrls = Array.from(
+    new Set(
+      matchingClients
+        .map((client) => client.avatarUrl)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
   for (const client of matchingClients) {
     await ctx.db.delete(client._id);
   }
+
+  await Promise.all(
+    deletedAvatarUrls.map((avatarUrl) =>
+      deleteClientAvatarIfUnused(ctx, {
+        userId: args.userId,
+        avatarUrl,
+      }),
+    ),
+  );
 
   return matchingClients.length;
 }
@@ -220,10 +328,26 @@ export async function pruneOrphanClientsForUser(
 
   const usedClientKeys = new Set(projects.map((project) => normalizeClientKey(project.clientName)));
   const orphanClients = clients.filter((client) => !usedClientKeys.has(normalizeClientKey(client.name)));
+  const deletedAvatarUrls = Array.from(
+    new Set(
+      orphanClients
+        .map((client) => client.avatarUrl)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
 
   for (const client of orphanClients) {
     await ctx.db.delete(client._id);
   }
+
+  await Promise.all(
+    deletedAvatarUrls.map((avatarUrl) =>
+      deleteClientAvatarIfUnused(ctx, {
+        userId,
+        avatarUrl,
+      }),
+    ),
+  );
 
   return {
     deletedCount: orphanClients.length,
@@ -349,7 +473,7 @@ export async function buildProject(ctx: ReaderCtx, project: Doc<"projects">) {
     userId: String(project.userId),
     name: project.name,
     clientName: project.clientName,
-    clientAvatarUrl: project.clientAvatarUrl,
+    clientAvatarUrl: await resolveAssetUrl(project.clientAvatarUrl ?? null) ?? undefined,
     type: project.type,
     status: project.status,
     startDate: project.startDate,

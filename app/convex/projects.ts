@@ -3,13 +3,17 @@ import { mutation, query } from "./_generated/server";
 import { getCurrentSubscriptionSnapshot } from "./billing";
 import {
   buildProject,
+  deleteClientAvatarIfUnused,
   deleteClientIfUnused,
   ensurePortalConfig,
+  getClientByUserAndName,
   recomputeProjectState,
   requireAuthUser,
   requireProjectOwner,
+  syncClientAvatarAcrossProjects,
   upsertClient,
 } from "./_helpers";
+import { deleteOldR2Asset } from "./r2";
 
 function now() {
   return Date.now();
@@ -67,6 +71,8 @@ export const create = mutation({
     const user = await requireAuthUser(ctx);
     const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
     const plan = subscription?.plan ?? user.plan ?? "free";
+    const clientName = args.clientName.trim();
+    const requestedClientAvatarUrl = args.clientAvatarUrl?.trim() || undefined;
 
     if (plan === "free") {
       const existingProjects = await ctx.db
@@ -79,18 +85,46 @@ export const create = mutation({
       }
     }
 
+    const existingClient = await getClientByUserAndName(ctx, {
+      userId: user._id,
+      name: clientName,
+    });
+    const nextClientAvatarUrl = requestedClientAvatarUrl ?? existingClient?.avatarUrl;
+
     await upsertClient(ctx, {
       userId: user._id,
-      name: args.clientName.trim(),
-      avatarUrl: args.clientAvatarUrl,
+      name: clientName,
+      avatarUrl: nextClientAvatarUrl,
     });
+
+    if (requestedClientAvatarUrl) {
+      const previousProjectAvatarUrls = await syncClientAvatarAcrossProjects(ctx, {
+        userId: user._id,
+        clientName,
+        avatarUrl: requestedClientAvatarUrl,
+      });
+
+      const staleAvatarUrls = new Set(previousProjectAvatarUrls);
+      if (existingClient?.avatarUrl && existingClient.avatarUrl !== requestedClientAvatarUrl) {
+        staleAvatarUrls.add(existingClient.avatarUrl);
+      }
+
+      await Promise.all(
+        Array.from(staleAvatarUrls).map((avatarUrl) =>
+          deleteClientAvatarIfUnused(ctx, {
+            userId: user._id,
+            avatarUrl,
+          }),
+        ),
+      );
+    }
 
     const timestamp = now();
     const projectId = await ctx.db.insert("projects", {
       userId: user._id,
       name: args.name.trim(),
-      clientName: args.clientName.trim(),
-      clientAvatarUrl: args.clientAvatarUrl,
+      clientName,
+      clientAvatarUrl: nextClientAvatarUrl,
       type: args.type,
       status: "active",
       startDate: args.startDate,
@@ -367,6 +401,9 @@ export const deleteById = mutation({
           if (attachment.storageId) {
             await ctx.storage.delete(attachment.storageId);
           }
+          if (attachment.r2ObjectKey) {
+            await deleteOldR2Asset(ctx, attachment.r2ObjectKey);
+          }
           await ctx.db.delete(attachment._id);
         }
 
@@ -404,6 +441,11 @@ export const deleteById = mutation({
     await deleteClientIfUnused(ctx, {
       userId: project.userId,
       name: project.clientName,
+    });
+
+    await deleteClientAvatarIfUnused(ctx, {
+      userId: project.userId,
+      avatarUrl: project.clientAvatarUrl,
     });
   },
 });

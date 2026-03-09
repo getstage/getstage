@@ -60,6 +60,9 @@ async function deleteAttachmentTreeForProject(
         if (attachment.storageId) {
           await ctx.storage.delete(attachment.storageId);
         }
+        if (attachment.r2ObjectKey) {
+          await deleteOldR2Asset(ctx, attachment.r2ObjectKey);
+        }
         await ctx.db.delete(attachment._id);
       }
 
@@ -259,6 +262,9 @@ export const deleteAccountData = internalMutation({
       return { deleted: false };
     }
 
+    const projectAvatarKeys = new Set<string>();
+    const clientAvatarKeys = new Set<string>();
+
     const financeEntries = await ctx.db
       .query("financeEntries")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
@@ -299,6 +305,9 @@ export const deleteAccountData = internalMutation({
       if (sheetConnection.storageId) {
         await ctx.storage.delete(sheetConnection.storageId);
       }
+      if (sheetConnection.r2ObjectKey) {
+        await deleteOldR2Asset(ctx, sheetConnection.r2ObjectKey);
+      }
       await ctx.db.delete(sheetConnection._id);
     }
 
@@ -323,6 +332,9 @@ export const deleteAccountData = internalMutation({
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .collect();
     for (const project of projects) {
+      if (project.clientAvatarUrl) {
+        projectAvatarKeys.add(project.clientAvatarUrl);
+      }
       await deleteAttachmentTreeForProject(ctx, project._id);
       await ctx.db.delete(project._id);
     }
@@ -332,8 +344,20 @@ export const deleteAccountData = internalMutation({
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .collect();
     for (const client of clients) {
+      if (client.avatarUrl) {
+        clientAvatarKeys.add(client.avatarUrl);
+      }
       await ctx.db.delete(client._id);
     }
+
+    for (const avatarKey of projectAvatarKeys) {
+      await deleteOldR2Asset(ctx, avatarKey);
+    }
+    for (const avatarKey of clientAvatarKeys) {
+      await deleteOldR2Asset(ctx, avatarKey);
+    }
+    await deleteOldR2Asset(ctx, user.avatarUrl);
+    await deleteOldR2Asset(ctx, user.defaultPortalLogoUrl);
 
     const authSessions = await ctx.db
       .query("authSessions")

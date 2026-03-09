@@ -37,8 +37,10 @@ export function TaskDetailPage() {
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [confirmingAttachmentId, setConfirmingAttachmentId] = useState<string | null>(null);
 
   const task = useMemo(
     () =>
@@ -61,6 +63,7 @@ export function TaskDetailPage() {
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
   const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
   const saveAttachment = useConvexMutation(api.tasks.saveAttachment);
+  const deleteAttachment = useConvexMutation(api.tasks.deleteAttachment);
 
   async function persistTaskUpdate(payload: { title?: string; content?: string }) {
     await updateTask({
@@ -101,6 +104,25 @@ export function TaskDetailPage() {
       setErrorMessage(toUserFacingErrorMessage(error, "Could not delete the task."));
     } finally {
       setIsDeleting(false);
+    }
+  }
+
+  async function handleDeleteAttachment(attachment: Attachment) {
+    setDeletingAttachmentId(attachment.id);
+    setConfirmingAttachmentId(null);
+    setErrorMessage(null);
+
+    try {
+      await deleteAttachment({
+        attachmentId: attachment.id as Id<"attachments">,
+      });
+      setAttachments((current) => current.filter((item) => item.id !== attachment.id));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    } catch (error) {
+      setErrorMessage(toUserFacingErrorMessage(error, "Could not delete that attachment."));
+    } finally {
+      setDeletingAttachmentId(null);
     }
   }
 
@@ -270,12 +292,12 @@ export function TaskDetailPage() {
               {attachments.map((attachment) => (
                 <div
                   key={attachment.id}
-                  className="flex items-center gap-3 rounded-[10px] bg-bg-subtle px-4 py-3"
+                  className="relative flex items-center gap-3 rounded-[10px] bg-bg-subtle px-4 py-3"
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-[8px] border border-border bg-white">
-                          {attachment.type === "image" ? (
-                            <ImageIcon size={17} className="text-text-secondary" />
-                          ) : (
+                    {attachment.type === "image" ? (
+                      <ImageIcon size={17} className="text-text-secondary" />
+                    ) : (
                       <FileIcon size={17} className="text-text-secondary" />
                     )}
                   </div>
@@ -287,9 +309,36 @@ export function TaskDetailPage() {
                       {formatFileSize(attachment.fileSize)}
                     </p>
                   </div>
-                  <button className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-text-tertiary transition-colors hover:text-text-secondary">
-                    <DownloadSimple size={16} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <a
+                      href={attachment.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      download={attachment.fileName}
+                      className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-text-tertiary transition-colors hover:text-text-secondary"
+                      aria-label={`Download ${attachment.fileName}`}
+                    >
+                      <DownloadSimple size={16} />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingAttachmentId(attachment.id)}
+                      disabled={deletingAttachmentId === attachment.id}
+                      className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-text-tertiary transition-colors hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60"
+                      aria-label={`Delete ${attachment.fileName}`}
+                    >
+                      <Trash size={16} />
+                    </button>
+                  </div>
+                  <ConfirmPopover
+                    open={confirmingAttachmentId === attachment.id}
+                    message={`Delete "${attachment.fileName}"?`}
+                    onCancel={() => setConfirmingAttachmentId(null)}
+                    onConfirm={() => {
+                      void handleDeleteAttachment(attachment);
+                    }}
+                    className="right-4 top-full mt-2"
+                  />
                 </div>
               ))}
             </div>

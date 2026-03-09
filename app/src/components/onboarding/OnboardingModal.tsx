@@ -17,6 +17,7 @@ import { SplitText } from "gsap/SplitText";
 import { useAction as useConvexAction, useMutation as useConvexMutation } from "convex/react";
 import integrationsImage from "@/assets/onboarding/integrations.webp";
 import onboardingImage from "@/assets/onboarding/onboarding.webp";
+import { createProjectInputSchema } from "@/data-ops/schema";
 import {
   dateRangeInputSchema,
   googleSheetsUrlSchema,
@@ -25,6 +26,10 @@ import {
   projectTypeSchema as projectTypeValidationSchema,
 } from "@/lib/validation";
 import { api } from "@/lib/convex";
+import { AI_ROADMAPS, DEFAULT_PHASES, PROJECT_TYPES } from "@/lib/constants";
+import { toUserFacingErrorMessage } from "@/lib/errors";
+import { parseInputDate } from "@/lib/format";
+import { prepareAvatarUpload, uploadFileToR2 } from "@/lib/r2Uploads";
 import { cn } from "@/lib/utils";
 import type { ProjectType } from "@/types";
 import { OnboardingPaywall } from "@/components/onboarding/OnboardingPaywall";
@@ -40,6 +45,7 @@ type Step =
   | "method"
   | "phase-select"
   | "timeline"
+  | "generating-roadmap"
   | "preview"
   | "integrations"
   | "creating"
@@ -51,85 +57,9 @@ type PhaseItem = {
   on: boolean;
 };
 
-type RoadmapItem = {
-  name: string;
-  tasks: number;
-};
-
-const PROJECT_TYPE_OPTIONS: Array<{ value: ProjectType; label: string }> = [
-  { value: "branding", label: "Branding" },
-  { value: "web-design", label: "Web Design" },
-  { value: "product-design", label: "Product Design" },
-  { value: "app-design", label: "App Design" },
-  { value: "packaging", label: "Packaging" },
-  { value: "motion-design", label: "Motion Design" },
-  { value: "illustration", label: "Illustration" },
-  { value: "other", label: "Other" },
-];
-
-const DEFAULT_PHASES = ["Discovery", "Strategy", "Design", "Development", "Launch"];
 const GOOGLE_SHEETS_ICON_SRC = new URL("../../assets/icons/google-sheets.svg", import.meta.url)
   .href;
 const STRIPE_ICON_SRC = new URL("../../assets/icons/stripe.svg", import.meta.url).href;
-
-const AI_ROADMAPS: Record<ProjectType, RoadmapItem[]> = {
-  branding: [
-    { name: "Research", tasks: 4 },
-    { name: "Strategy", tasks: 3 },
-    { name: "Identity", tasks: 5 },
-    { name: "Guidelines", tasks: 4 },
-    { name: "Delivery", tasks: 3 },
-  ],
-  "web-design": [
-    { name: "Strategy", tasks: 3 },
-    { name: "Research", tasks: 4 },
-    { name: "Design", tasks: 6 },
-    { name: "Development", tasks: 5 },
-    { name: "Launch", tasks: 3 },
-  ],
-  "product-design": [
-    { name: "Discovery", tasks: 4 },
-    { name: "Research", tasks: 5 },
-    { name: "Design", tasks: 6 },
-    { name: "Prototyping", tasks: 4 },
-    { name: "Validation", tasks: 3 },
-  ],
-  "app-design": [
-    { name: "Research", tasks: 3 },
-    { name: "Architecture", tasks: 4 },
-    { name: "Design", tasks: 6 },
-    { name: "Development", tasks: 5 },
-    { name: "Testing", tasks: 4 },
-  ],
-  packaging: [
-    { name: "Brief", tasks: 3 },
-    { name: "Research", tasks: 4 },
-    { name: "Concept", tasks: 5 },
-    { name: "Refinement", tasks: 4 },
-    { name: "Production", tasks: 3 },
-  ],
-  "motion-design": [
-    { name: "Brief", tasks: 3 },
-    { name: "Storyboard", tasks: 4 },
-    { name: "Design", tasks: 5 },
-    { name: "Animation", tasks: 6 },
-    { name: "Delivery", tasks: 3 },
-  ],
-  illustration: [
-    { name: "Brief", tasks: 3 },
-    { name: "Sketching", tasks: 4 },
-    { name: "Refinement", tasks: 5 },
-    { name: "Final Art", tasks: 4 },
-    { name: "Delivery", tasks: 3 },
-  ],
-  other: [
-    { name: "Planning", tasks: 3 },
-    { name: "Research", tasks: 4 },
-    { name: "Execution", tasks: 5 },
-    { name: "Review", tasks: 3 },
-    { name: "Delivery", tasks: 3 },
-  ],
-};
 
 export type OnboardingSubmission = {
   fieldOfWork: ProjectType;
@@ -164,6 +94,7 @@ export function OnboardingModal({
   const [projectName, setProjectName] = useState("");
   const [clientName, setClientName] = useState("");
   const [clientAvatar, setClientAvatar] = useState<string | null>(null);
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
   const [avatarUrlOpen, setAvatarUrlOpen] = useState(false);
   const [avatarUrlInput, setAvatarUrlInput] = useState("");
   const [projectType, setProjectType] = useState<ProjectType | null>(null);
@@ -183,10 +114,15 @@ export function OnboardingModal({
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const completionTimeoutRef = useRef<number | null>(null);
+  const roadmapTimeoutRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
+  const markProjectCreated = useConvexMutation(api.onboarding.markProjectCreated);
+  const createProject = useConvexMutation(api.projects.create);
   const createCheckoutSession = useConvexAction(api.billing.createCheckoutSession);
   const connectSheet = useConvexMutation(api.googleSheets.connectSheet);
+  const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
+  const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
 
   const activePhases = useMemo(() => phases.filter((phase) => phase.on), [phases]);
   const previewRoadmap = useMemo(() => {
@@ -195,7 +131,7 @@ export function OnboardingModal({
     }
 
     if (method === "manual") {
-      return activePhases.map((phase) => ({ name: phase.name, tasks: 0 }));
+      return activePhases.map((phase) => ({ name: phase.name, tasks: [] as string[] }));
     }
 
     return AI_ROADMAPS[projectType];
@@ -230,7 +166,13 @@ export function OnboardingModal({
     ];
   }, [method, setProjectLater]);
 
-  const currentIndex = flowSteps.indexOf(step);
+  const currentStepForProgress =
+    step === "generating-roadmap"
+      ? "preview"
+      : step === "creating" || step === "paywall"
+        ? "integrations"
+        : step;
+  const currentIndex = flowSteps.indexOf(currentStepForProgress);
 
   useEffect(() => {
     if (!open) {
@@ -245,6 +187,7 @@ export function OnboardingModal({
     setProjectName("");
     setClientName("");
     setClientAvatar(null);
+    setPendingAvatarFile(null);
     setAvatarUrlOpen(false);
     setAvatarUrlInput("");
     setProjectType(null);
@@ -268,13 +211,31 @@ export function OnboardingModal({
       if (completionTimeoutRef.current !== null) {
         window.clearTimeout(completionTimeoutRef.current);
       }
+      if (roadmapTimeoutRef.current !== null) {
+        window.clearTimeout(roadmapTimeoutRef.current);
+      }
     };
   }, []);
 
   useEffect(() => {
+    if (step !== "generating-roadmap") {
+      return;
+    }
+
+    roadmapTimeoutRef.current = window.setTimeout(() => {
+      setStep("preview");
+    }, 1400);
+
+    return () => {
+      if (roadmapTimeoutRef.current !== null) {
+        window.clearTimeout(roadmapTimeoutRef.current);
+      }
+    };
+  }, [step]);
+
+  useEffect(() => {
     setStepError(null);
   }, [
-    step,
     fieldOfWork,
     setProjectLater,
     method,
@@ -310,6 +271,8 @@ export function OnboardingModal({
       return;
     }
 
+    setStepError(null);
+
     switch (step) {
       case "welcome":
         setStep("personalise");
@@ -327,7 +290,7 @@ export function OnboardingModal({
         setStep("timeline");
         return;
       case "timeline":
-        setStep("preview");
+        setStep(method === "ai" ? "generating-roadmap" : "preview");
         return;
       case "preview":
         setStep("integrations");
@@ -355,13 +318,104 @@ export function OnboardingModal({
     }
   }
 
-  function handleCreatingDone() {
-    if (isClosing || !pendingSubmission) {
+  useEffect(() => {
+    if (step !== "creating" || !pendingSubmission) {
       return;
     }
 
-    setStep("paywall");
-  }
+    const submission = pendingSubmission;
+    let cancelled = false;
+
+    async function runCreation() {
+      try {
+        if (submission.createProject) {
+          const clientAvatarUrl = pendingAvatarFile
+            ? await uploadFileToR2({
+                generateUploadUrl: r2GenerateUploadUrl,
+                syncMetadata: r2SyncMetadata,
+                purpose: "profile-avatar",
+                file: pendingAvatarFile,
+              })
+            : submission.clientAvatarUrl?.trim() || undefined;
+
+          const phases =
+            method === "manual"
+              ? activePhases
+                  .map((phase) => phase.name.trim())
+                  .filter((name) => name.length > 0)
+                  .map((name) => ({ name }))
+              : AI_ROADMAPS[submission.projectType].map((phase) => ({
+                  name: phase.name,
+                  tasks: phase.tasks,
+                }));
+
+          const parsedInput = createProjectInputSchema.safeParse({
+            name: submission.projectName,
+            clientName: submission.clientName,
+            clientAvatarUrl,
+            type: submission.projectType,
+            method: method ?? "ai",
+            startDate: parseInputDate(startDate),
+            endDate: parseInputDate(endDate),
+            phases,
+          });
+
+          if (!parsedInput.success) {
+            throw new Error(
+              parsedInput.error.issues[0]?.message ?? "Could not create the project.",
+            );
+          }
+
+          await createProject(parsedInput.data);
+          await markProjectCreated({});
+        } else {
+          await new Promise((resolve) => window.setTimeout(resolve, 500));
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        if (submission.createProject && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          try {
+            fireOnboardingConfetti();
+          } catch {
+            // Keep onboarding resilient if confetti is blocked by the browser or an extension.
+          }
+        }
+
+        setPendingAvatarFile(null);
+        setStep("paywall");
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setStepError(
+          toUserFacingErrorMessage(error, "Could not create the project."),
+        );
+        setStep("integrations");
+      }
+    }
+
+    void runCreation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activePhases,
+    createProject,
+    markProjectCreated,
+    method,
+    pendingAvatarFile,
+    pendingSubmission,
+    r2GenerateUploadUrl,
+    r2SyncMetadata,
+    startDate,
+    endDate,
+    step,
+  ]);
 
   function handleContinueFree() {
     if (isClosing || !pendingSubmission) {
@@ -461,14 +515,14 @@ export function OnboardingModal({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (loadEvent) => {
-      const result = loadEvent.target?.result;
-      if (typeof result === "string") {
-        setClientAvatar(result);
-      }
-    };
-    reader.readAsDataURL(file);
+    void prepareAvatarUpload(file)
+      .then((prepared) => {
+        setPendingAvatarFile(prepared.file);
+        setClientAvatar(prepared.previewUrl);
+      })
+      .catch((error) => {
+        setStepError(toUserFacingErrorMessage(error, "Could not prepare this image."));
+      });
   }
 
   function handleFetchAvatarFromUrl() {
@@ -476,6 +530,7 @@ export function OnboardingModal({
       return;
     }
 
+    setPendingAvatarFile(null);
     setClientAvatar(avatarUrlInput.trim());
   }
 
@@ -584,7 +639,7 @@ export function OnboardingModal({
                   </p>
 
                   <div className="mt-7 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {PROJECT_TYPE_OPTIONS.map((option) => (
+                    {PROJECT_TYPES.map((option) => (
                       <button
                         key={option.value}
                         type="button"
@@ -854,12 +909,24 @@ export function OnboardingModal({
                             {phase.name}
                           </span>
                           <span className="text-[13px] text-text-secondary">
-                            {phase.tasks > 0 ? `${phase.tasks} tasks` : "0 tasks"}
+                            {phase.tasks.length > 0 ? `${phase.tasks.length} tasks` : "0 tasks"}
                           </span>
                         </div>
                       </div>
                     ))}
                   </div>
+                </OnboardingStepMotion>
+              ) : null}
+
+              {step === "generating-roadmap" ? (
+                <OnboardingStepMotion
+                  motionKey="generating-roadmap"
+                  className="flex min-h-[220px] flex-col items-center justify-center text-center sm:min-h-[300px]"
+                >
+                  <LoadingStage
+                    title="AI is generating your roadmap..."
+                    subtitle="We are shaping the phases and tasks for your project."
+                  />
                 </OnboardingStepMotion>
               ) : null}
 
@@ -940,7 +1007,18 @@ export function OnboardingModal({
                   motionKey="creating"
                   className="flex min-h-[220px] flex-col items-center justify-center text-center sm:min-h-[300px]"
                 >
-                  <CreatingDashboardText userName={userName} onDone={handleCreatingDone} />
+                  <LoadingStage
+                    title={
+                      pendingSubmission?.createProject
+                        ? "Creating your project..."
+                        : `Setting up your workspace${userName ? `, ${userName}` : ""}...`
+                    }
+                    subtitle={
+                      pendingSubmission?.createProject
+                        ? "Saving the roadmap, phases, and tasks to your workspace."
+                        : "Finalizing your onboarding flow."
+                    }
+                  />
                 </OnboardingStepMotion>
               ) : null}
 
@@ -956,7 +1034,7 @@ export function OnboardingModal({
               ) : null}
             </AnimatePresence>
 
-            {step !== "creating" && step !== "paywall" ? (
+            {step !== "creating" && step !== "generating-roadmap" && step !== "paywall" ? (
               <div className="mt-8">
                 {stepError ? (
                   <p className="mb-3 text-[13px] leading-normal text-destructive">{stepError}</p>
@@ -1319,143 +1397,24 @@ function StaticOnboardingImage({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-function CreatingDashboardText({
-  userName,
-  onDone,
+function LoadingStage({
+  title,
+  subtitle,
 }: {
-  userName?: string;
-  onDone: () => void;
+  title: string;
+  subtitle: string;
 }) {
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const textRef = useRef<HTMLDivElement | null>(null);
-  const hasCompletedRef = useRef(false);
-  const hasCelebratedRef = useRef(false);
-  const [phase, setPhase] = useState<"loading" | "ready">("loading");
-  const [text, setText] = useState("Setting up your dashboard...");
-
-  useEffect(() => {
-    hasCompletedRef.current = false;
-    hasCelebratedRef.current = false;
-    setPhase("loading");
-    setText("Setting up your dashboard...");
-  }, []);
-
-  useGSAP(
-    () => {
-      if (!textRef.current || phase !== "loading") {
-        return;
-      }
-
-      const split = new SplitText(textRef.current, { type: "words" });
-      const words = split.words;
-      gsap.set(words, { color: "var(--color-text-secondary)", y: 0, opacity: 0.8 });
-
-      const timeline = gsap.timeline({
-        onComplete: () => {
-          split.revert();
-          setText(`You're all set${userName ? `, ${userName}` : ""}.`);
-          setPhase("ready");
-        },
-      });
-
-      timeline.fromTo(
-        words,
-        { opacity: 0, y: 2 },
-        { opacity: 1, y: 0, duration: 0.24, stagger: 0.045, ease: "power2.out" },
-        0,
-      );
-      timeline.to(
-        words,
-        {
-          color: "var(--color-accent)",
-          duration: 0.56,
-          stagger: 0.045,
-          ease: "power2.out",
-        },
-        0,
-      );
-
-      return () => {
-        timeline.kill();
-        split.revert();
-      };
-    },
-    { scope: rootRef, dependencies: [phase, userName] },
-  );
-
-  useEffect(() => {
-    if (phase !== "ready" || hasCelebratedRef.current) {
-      return;
-    }
-
-    hasCelebratedRef.current = true;
-
-    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      try {
-        fireOnboardingConfetti();
-      } catch {
-        // Keep progression resilient if confetti fails in some browsers/extensions.
-      }
-    }
-  }, [phase]);
-
-  useGSAP(
-    () => {
-      if (!textRef.current || phase !== "ready") {
-        return;
-      }
-
-      const split = new SplitText(textRef.current, { type: "words" });
-      const words = split.words;
-      gsap.set(words, {
-        color: "var(--color-text-primary)",
-        y: 16,
-        opacity: 0,
-        scale: 0.96,
-        filter: "blur(5px)",
-        transformOrigin: "50% 100%",
-      });
-
-      const timeline = gsap.timeline();
-      timeline.to(words, {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        filter: "blur(0px)",
-        duration: 0.52,
-        stagger: 0.055,
-        ease: "back.out(1.35)",
-      });
-
-      const doneCall = gsap.delayedCall(1.1, () => {
-        if (hasCompletedRef.current) {
-          return;
-        }
-
-        hasCompletedRef.current = true;
-        onDone();
-      });
-
-      return () => {
-        timeline.kill();
-        doneCall.kill();
-        split.revert();
-      };
-    },
-    { scope: rootRef, dependencies: [phase, onDone, text] },
-  );
-
   return (
-    <div ref={rootRef} className="flex min-h-[150px] items-center justify-center text-center">
-      <div
-        ref={textRef}
-        className={cn(
-          "font-heading text-[clamp(1.625rem,5vw,1.875rem)] leading-[1.12] font-semibold tracking-[-0.45px] wrap-normal text-balance",
-          phase === "loading" ? "text-text-secondary" : "text-text-primary",
-        )}
-      >
-        {text}
+    <div className="flex max-w-[420px] flex-col items-center gap-4 text-center">
+      <div className="flex gap-1.5">
+        <span className="h-2 w-2 animate-[pulse_1.2s_ease-in-out_infinite] rounded-full bg-accent" />
+        <span className="h-2 w-2 animate-[pulse_1.2s_ease-in-out_0.2s_infinite] rounded-full bg-accent" />
+        <span className="h-2 w-2 animate-[pulse_1.2s_ease-in-out_0.4s_infinite] rounded-full bg-accent" />
       </div>
+      <div className="font-heading text-[clamp(1.625rem,5vw,1.875rem)] leading-[1.12] font-semibold tracking-[-0.45px] text-text-primary">
+        {title}
+      </div>
+      <div className="text-[15px] leading-[1.5] text-text-secondary">{subtitle}</div>
     </div>
   );
 }
@@ -1517,6 +1476,7 @@ function canContinue(
     case "preview":
     case "integrations":
       return true;
+    case "generating-roadmap":
     case "creating":
       return false;
     default:
@@ -1574,6 +1534,7 @@ function getStepValidationError(
     }
     case "preview":
     case "integrations":
+    case "generating-roadmap":
     case "creating":
     default:
       return null;
