@@ -90,6 +90,18 @@ function buildSheetCsvUrl(sheetId: string, gid: string) {
   return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
 }
 
+function buildSheetFetchErrorMessage(status: number) {
+  switch (status) {
+    case 401:
+    case 403:
+      return "Google blocked CSV export for this sheet. It may be viewable but not exportable. Enable viewer download/copy or publish it to the web, then retry.";
+    case 404:
+      return "Google could not find that sheet tab for export. Check the sheet URL and tab, then retry.";
+    default:
+      return `Google Sheets CSV export failed with HTTP ${status}. If the sheet is already public, publish it to the web or use CSV upload instead.`;
+  }
+}
+
 function parseAmountToCents(rawValue: string) {
   const stripped = rawValue.replace(/[^\d,.-]/g, "");
   if (!stripped) {
@@ -625,9 +637,7 @@ export const runSheetImport = action({
         const response = await fetch(buildSheetCsvUrl(connection.sheetId, gid));
 
         if (!response.ok) {
-          throw new Error(
-            "Could not fetch the Google Sheet. Make sure the sheet is shared or published for import.",
-          );
+          throw new Error(buildSheetFetchErrorMessage(response.status));
         }
 
         csvText = await response.text();
