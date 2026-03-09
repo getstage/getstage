@@ -33,11 +33,11 @@ export function ProjectDetailPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="mx-auto flex w-full max-w-[1440px] flex-col px-5 pb-[120px] pt-8 sm:px-10 sm:pt-10 lg:px-14"
+          className="mx-auto flex w-full max-w-[1200px] flex-col px-6 pb-[120px] pt-6 sm:px-10 lg:px-14"
         >
           <Link
             to="/dashboard"
-            className="mb-6 inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary sm:mb-8"
+            className="mb-2 inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary"
           >
             <ArrowLeft size={14} />
             Dashboard
@@ -117,7 +117,7 @@ export function ProjectDetailPage() {
 
 function ProjectDetailLoadingState() {
   return (
-    <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-10 lg:px-14">
+    <div className="mx-auto max-w-[1200px] px-6 py-10 sm:px-10 lg:px-14">
       <div className="skeleton mb-3 h-4 w-28" />
       <div className="skeleton mb-2 h-8 w-60" />
       <div className="skeleton mb-12 h-4 w-40" />
