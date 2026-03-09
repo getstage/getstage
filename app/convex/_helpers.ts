@@ -1,8 +1,15 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { r2 } from "./r2";
 
-const PORTAL_BASE_URL = "https://app.usestage.com";
+function getEnv(name: string) {
+  return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[
+    name
+  ];
+}
+
+const PORTAL_BASE_URL = getEnv("SITE_URL") ?? "https://getstage.co";
 
 type ReaderCtx = QueryCtx | MutationCtx;
 
@@ -282,7 +289,9 @@ export async function getAttachmentsForTask(ctx: ReaderCtx, taskId: Id<"tasks">)
       id: String(attachment._id),
       type: attachment.type,
       url:
-        attachment.storageId !== undefined
+        attachment.r2ObjectKey
+          ? await r2.getUrl(attachment.r2ObjectKey)
+          : attachment.storageId !== undefined
           ? ((await ctx.storage.getUrl(attachment.storageId)) ?? attachment.url)
           : attachment.url,
       fileName: attachment.fileName,

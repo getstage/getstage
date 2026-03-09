@@ -216,6 +216,7 @@ export default defineSchema({
   attachments: defineTable({
     taskId: v.id("tasks"),
     storageId: v.optional(v.id("_storage")),
+    r2ObjectKey: v.optional(v.string()),
     type: attachmentType,
     url: v.string(),
     fileName: v.string(),
@@ -325,6 +326,7 @@ export default defineSchema({
     sheetUrl: v.optional(v.string()),
     sheetTitle: v.optional(v.string()),
     storageId: v.optional(v.id("_storage")),
+    r2ObjectKey: v.optional(v.string()),
     fileName: v.optional(v.string()),
     templateVersion: v.optional(v.string()),
     lastImportedAt: v.optional(v.number()),
@@ -333,9 +335,9 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_user", ["userId"])
-    .index("by_user_source_type", ["userId", "sourceType"])
-    .index("by_sheet_id", ["sheetId"]),
+  .index("by_user", ["userId"])
+  .index("by_user_source_type", ["userId", "sourceType"])
+  .index("by_sheet_id", ["sheetId"]),
 
   sheetImportRuns: defineTable({
     userId: v.id("users"),

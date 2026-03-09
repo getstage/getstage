@@ -19,6 +19,7 @@
   "dependencies": {
     "@auth/core": "0.37.0",
     "@convex-dev/auth": "^0.0.91",
+    "@convex-dev/r2": "^0.9.1",
     "@convex-dev/stripe": "^0.1.3",
     "@gsap/react": "^2.1.2",
     "@oslojs/crypto": "^1.0.1",

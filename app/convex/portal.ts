@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { buildProject, ensurePortalConfig, requireProjectOwner } from "./_helpers";
+import { resolveAssetUrl } from "./r2";
 
 export const getByShareToken = query({
   args: {
@@ -28,7 +29,7 @@ export const getByShareToken = query({
         isEnabled: config.isEnabled,
         shareToken: config.shareToken,
         shareUrl: config.shareUrl,
-        logoUrl: config.logoUrl,
+        logoUrl: await resolveAssetUrl(config.logoUrl),
         accentColor: config.accentColor,
       },
     };

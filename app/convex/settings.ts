@@ -5,6 +5,7 @@ import type { Id } from "./_generated/dataModel";
 import { components, internal } from "./_generated/api";
 import { ensurePortalConfig, pruneOrphanClientsForUser, requireAuthUser } from "./_helpers";
 import { getCurrentSubscriptionSnapshot } from "./billing";
+import { resolveAssetUrl } from "./r2";
 
 const DEFAULT_PORTAL_COLOR = "#E8734A";
 const DELETE_ACCOUNT_CONFIRMATION = "DELETE";
@@ -110,7 +111,7 @@ export const getOverview = query({
         id: String(user._id),
         email: user.email ?? "",
         name: user.name ?? "",
-        avatarUrl: user.avatarUrl ?? user.image ?? null,
+        avatarUrl: await resolveAssetUrl(user.avatarUrl ?? user.image ?? null),
         role: user.role ?? "freelancer",
         plan: subscription?.plan ?? user.plan ?? "free",
       },
@@ -136,7 +137,7 @@ export const getOverview = query({
           }
         : null,
       portalBranding: {
-        logoUrl: user.defaultPortalLogoUrl ?? previewConfig?.logoUrl ?? null,
+        logoUrl: await resolveAssetUrl(user.defaultPortalLogoUrl ?? previewConfig?.logoUrl ?? null),
         accentColor:
           user.defaultPortalAccentColor ?? previewConfig?.accentColor ?? DEFAULT_PORTAL_COLOR,
       },
@@ -149,8 +150,9 @@ export const updateProfile = mutation({
   args: {
     name: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
+    avatarKey: v.optional(v.string()),
   },
-  handler: async (ctx, { name, avatarUrl }) => {
+  handler: async (ctx, { name, avatarUrl, avatarKey }) => {
     const user = await requireAuthUser(ctx);
 
     const nextName = name?.trim();
@@ -158,16 +160,18 @@ export const updateProfile = mutation({
       throw new Error("Name is required.");
     }
 
+    const nextAvatarUrl = avatarKey ?? avatarUrl;
+
     const patch: Record<string, string | number> = { updatedAt: now() };
     if (nextName !== undefined) patch.name = nextName;
-    if (avatarUrl !== undefined) patch.avatarUrl = avatarUrl;
+    if (nextAvatarUrl !== undefined) patch.avatarUrl = nextAvatarUrl;
 
     await ctx.db.patch(user._id, patch);
 
     return {
       email: user.email ?? "",
       name: nextName ?? user.name ?? "",
-      avatarUrl: avatarUrl ?? user.avatarUrl ?? null,
+      avatarUrl: await resolveAssetUrl(nextAvatarUrl ?? user.avatarUrl ?? null),
     };
   },
 });
@@ -175,16 +179,18 @@ export const updateProfile = mutation({
 export const updatePortalBranding = mutation({
   args: {
     logoUrl: v.optional(v.union(v.string(), v.null())),
+    logoKey: v.optional(v.string()),
     accentColor: v.optional(v.string()),
   },
-  handler: async (ctx, { logoUrl, accentColor }) => {
+  handler: async (ctx, { logoUrl, logoKey, accentColor }) => {
     const user = await requireAuthUser(ctx);
     const normalizedColor =
       accentColor !== undefined ? normalizeHexColor(accentColor) : undefined;
+    const nextLogoUrl = logoKey ?? logoUrl;
 
     const userPatch: Record<string, string | number | undefined> = { updatedAt: now() };
-    if (logoUrl !== undefined) {
-      userPatch.defaultPortalLogoUrl = logoUrl ?? undefined;
+    if (nextLogoUrl !== undefined) {
+      userPatch.defaultPortalLogoUrl = nextLogoUrl ?? undefined;
     }
     if (normalizedColor !== undefined) {
       userPatch.defaultPortalAccentColor = normalizedColor;
@@ -200,8 +206,8 @@ export const updatePortalBranding = mutation({
     for (const project of projects) {
       const config = await ensurePortalConfig(ctx, project._id);
       const configPatch: Record<string, string | number | undefined> = { updatedAt: now() };
-      if (logoUrl !== undefined) {
-        configPatch.logoUrl = logoUrl ?? undefined;
+      if (nextLogoUrl !== undefined) {
+        configPatch.logoUrl = nextLogoUrl ?? undefined;
       }
       if (normalizedColor !== undefined) {
         configPatch.accentColor = normalizedColor;
@@ -210,7 +216,9 @@ export const updatePortalBranding = mutation({
     }
 
     return {
-      logoUrl: logoUrl !== undefined ? logoUrl : user.defaultPortalLogoUrl ?? null,
+      logoUrl: await resolveAssetUrl(
+        nextLogoUrl !== undefined ? nextLogoUrl : user.defaultPortalLogoUrl ?? null,
+      ),
       accentColor:
         normalizedColor ?? user.defaultPortalAccentColor ?? DEFAULT_PORTAL_COLOR,
     };

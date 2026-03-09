@@ -145,7 +145,6 @@ type OnboardingModalProps = {
   userName?: string;
   onComplete: (submission: OnboardingSubmission) => void;
   googleSheetsGuideHref?: string | null;
-  stripeGuideHref?: string | null;
 };
 
 export function OnboardingModal({

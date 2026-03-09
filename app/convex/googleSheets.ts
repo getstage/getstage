@@ -3,6 +3,7 @@ import { action, internalMutation, internalQuery, mutation, query } from "./_gen
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { requireAuthUser } from "./_helpers";
+import { r2 } from "./r2";
 
 function now() {
   return Date.now();
@@ -252,6 +253,7 @@ type SheetConnectionRecord = {
   sheetId?: string;
   sheetUrl?: string;
   storageId?: Id<"_storage">;
+  r2ObjectKey?: string;
 };
 
 type ImportProject = {
@@ -393,6 +395,7 @@ export const upsertSheetConnection = internalMutation({
     sheetId: v.optional(v.string()),
     sheetUrl: v.optional(v.string()),
     storageId: v.optional(v.id("_storage")),
+    r2ObjectKey: v.optional(v.string()),
     fileName: v.optional(v.string()),
     templateVersion: v.optional(v.string()),
     lastImportError: v.optional(v.string()),
@@ -412,6 +415,7 @@ export const upsertSheetConnection = internalMutation({
         sheetId: args.sheetId,
         sheetUrl: args.sheetUrl,
         storageId: args.storageId,
+        r2ObjectKey: args.r2ObjectKey,
         fileName: args.fileName,
         templateVersion: args.templateVersion,
         lastImportError: args.lastImportError,
@@ -427,6 +431,7 @@ export const upsertSheetConnection = internalMutation({
       sheetId: args.sheetId,
       sheetUrl: args.sheetUrl,
       storageId: args.storageId,
+      r2ObjectKey: args.r2ObjectKey,
       fileName: args.fileName,
       templateVersion: args.templateVersion,
       createdAt: timestamp,
@@ -589,15 +594,14 @@ export const connectSheet = mutation({
 
 export const generateUploadUrl = mutation({
   args: {},
-  handler: async (ctx) => {
-    await requireAuthUser(ctx);
-    return ctx.storage.generateUploadUrl();
+  handler: async () => {
+    throw new Error("Use api.r2.generateUploadUrl instead.");
   },
 });
 
 export const uploadCsv = mutation({
   args: {
-    storageId: v.id("_storage"),
+    r2ObjectKey: v.string(),
     fileName: v.string(),
   },
   handler: async (ctx, args) => {
@@ -613,11 +617,15 @@ export const uploadCsv = mutation({
     if (existing) {
       await ctx.db.patch(existing._id, {
         status: "active",
-        storageId: args.storageId,
+        storageId: undefined,
+        r2ObjectKey: args.r2ObjectKey,
         fileName: args.fileName,
         lastImportError: undefined,
         updatedAt: timestamp,
       });
+      if (existing.storageId) {
+        await ctx.storage.delete(existing.storageId);
+      }
       return existing._id;
     }
 
@@ -625,7 +633,7 @@ export const uploadCsv = mutation({
       userId: user._id,
       sourceType: "csv_upload",
       status: "active",
-      storageId: args.storageId,
+      r2ObjectKey: args.r2ObjectKey,
       fileName: args.fileName,
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -651,8 +659,14 @@ export const disconnectSheet = mutation({
       return null;
     }
 
+    if (sourceType === "csv_upload" && connection.storageId) {
+      await ctx.storage.delete(connection.storageId);
+    }
+
     await ctx.db.patch(connection._id, {
       status: "disconnected",
+      storageId: sourceType === "csv_upload" ? undefined : connection.storageId,
+      r2ObjectKey: sourceType === "csv_upload" ? undefined : connection.r2ObjectKey,
       updatedAt: now(),
     });
 
@@ -698,16 +712,24 @@ export const runSheetImport = action({
 
         csvText = await response.text();
       } else {
-        if (!connection.storageId) {
+        if (connection.r2ObjectKey) {
+          const response = await fetch(await r2.getUrl(connection.r2ObjectKey));
+
+          if (!response.ok) {
+            throw new Error("Uploaded CSV file could not be fetched.");
+          }
+
+          csvText = await response.text();
+        } else if (!connection.storageId) {
           throw new Error("CSV upload is missing.");
-        }
+        } else {
+          const blob = await ctx.storage.get(connection.storageId);
+          if (!blob) {
+            throw new Error("Uploaded CSV file could not be found.");
+          }
 
-        const blob = await ctx.storage.get(connection.storageId);
-        if (!blob) {
-          throw new Error("Uploaded CSV file could not be found.");
+          csvText = await blob.text();
         }
-
-        csvText = await blob.text();
       }
 
       if (looksLikeHtmlDocument(csvText)) {

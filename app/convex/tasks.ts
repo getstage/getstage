@@ -3,10 +3,10 @@ import { mutation, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import {
   recomputeProjectState,
-  requireAuthUser,
   requirePhaseOwner,
   requireTaskOwner,
 } from "./_helpers";
+import { r2 } from "./r2";
 
 function now() {
   return Date.now();
@@ -92,16 +92,15 @@ export const toggleComplete = mutation({
 
 export const generateUploadUrl = mutation({
   args: {},
-  handler: async (ctx) => {
-    await requireAuthUser(ctx);
-    return ctx.storage.generateUploadUrl();
+  handler: async () => {
+    throw new Error("Use api.r2.generateUploadUrl instead.");
   },
 });
 
 export const saveAttachment = mutation({
   args: {
     taskId: v.id("tasks"),
-    storageId: v.id("_storage"),
+    r2ObjectKey: v.string(),
     fileName: v.string(),
     fileSize: v.number(),
     mimeType: v.string(),
@@ -109,7 +108,6 @@ export const saveAttachment = mutation({
   handler: async (ctx, args) => {
     await requireTaskOwner(ctx, args.taskId);
 
-    const storageUrl = await ctx.storage.getUrl(args.storageId);
     const timestamp = now();
 
     const type =
@@ -125,9 +123,9 @@ export const saveAttachment = mutation({
 
     const attachmentId = await ctx.db.insert("attachments", {
       taskId: args.taskId,
-      storageId: args.storageId,
+      r2ObjectKey: args.r2ObjectKey,
       type,
-      url: storageUrl ?? "",
+      url: await r2.getUrl(args.r2ObjectKey),
       fileName: args.fileName,
       fileSize: args.fileSize,
       mimeType: args.mimeType,
