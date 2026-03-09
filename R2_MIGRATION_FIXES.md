@@ -1,134 +1,98 @@
-# R2 Migration — 4 Remaining Fixes
+# R2 Migration Fixes — Updated 9 March 2026
 
 ## Waarom R2?
 
-Convex heeft ingebouwde file storage (`ctx.storage`), maar jullie migreren naar Cloudflare R2 voor meer controle, goedkopere opslag, en eigen domein/CDN.
-
-De backend (Convex) is **al klaar** voor R2:
-- `convex/r2.ts` — R2 client, `generateUploadUrl`, `syncMetadata`
-- `convex/tasks.ts` — `saveAttachment` verwacht nu `r2ObjectKey` (niet meer `storageId`)
-- `convex/googleSheets.ts` — `uploadCsv` verwacht nu `r2ObjectKey` (niet meer `storageId`)
-- De oude `generateUploadUrl` functies in tasks.ts en googleSheets.ts gooien expres een error: `"Use api.r2.generateUploadUrl instead."`
-
-De frontend helper is **ook al klaar**:
-- `src/lib/r2Uploads.ts` — `uploadFileToR2()` doet het hele upload-verhaal (validatie → signed URL ophalen → PUT naar R2 → metadata syncen)
-
-**Maar:** de twee pagina's die uploaden (SettingsPage + TaskDetailPage) roepen nog steeds de **oude** Convex storage flow aan. Dat is waarom typecheck faalt.
+Convex heeft ingebouwde file storage (`ctx.storage`), maar we migreren naar Cloudflare R2 voor meer controle, goedkopere opslag, en eigen domein/CDN.
 
 ---
 
-## Fix 1: `convex/_helpers.ts` lijn 6 — Hardcoded domein
+## KRITIEKE REGEL: Altijd DELETE → UPLOAD → DB UPDATE
 
-**Was:** `const PORTAL_BASE_URL = "https://app.usestage.com";`
+**Bij elk R2 bestand dat vervangen wordt (avatar, logo, attachment) geldt:**
 
-**Probleem:** Oud domein. Portal share-URLs worden hiermee gebouwd en in de DB opgeslagen.
+1. **DELETE** het oude R2 object (via `deleteOldR2Asset`)
+2. **UPLOAD** het nieuwe bestand naar R2
+3. **UPDATE** de DB met de nieuwe key
 
-**Fix:** Gebruik `SITE_URL` environment variable (zelfde pattern als `billing.ts` en `stripeConnect.ts` al doen):
+**Waarom?** Anders krijg je ghost data — oude bestanden die in R2 blijven staan maar nergens meer naar verwezen wordt. Kost geld, maakt bucket vies.
+
+**Implementatie:**
+- `convex/r2.ts` exporteert `deleteOldR2Asset(ctx, oldValue)` — checkt of de waarde een R2 key is (geen URL, geen data URI), en verwijdert het object. Best-effort (catch errors).
+- `convex/settings.ts` → `updateProfile` deletet de oude `user.avatarUrl` R2 key voordat de nieuwe wordt opgeslagen.
+- `convex/settings.ts` → `updatePortalBranding` deletet de oude `user.defaultPortalLogoUrl` R2 key voordat de nieuwe wordt opgeslagen.
+
 ```ts
-const PORTAL_BASE_URL = getEnv("SITE_URL") ?? "https://getstage.co";
-```
-
-**Status:** ✅ Al gefixed
-
----
-
-## Fix 2: `src/components/settings/SettingsPage.tsx` — CSV upload
-
-**Was (lijn 427-448):**
-```ts
-const uploadUrl = await generateUploadUrl({});          // ← oude Convex storage
-const response = await fetch(uploadUrl, { method: "POST", ... });
-const body = await response.json() as { storageId?: string };
-await uploadCsv({ storageId: body.storageId as never, fileName: file.name });
-```
-
-**Probleem:**
-- `generateUploadUrl` (van `api.googleSheets.generateUploadUrl`) gooit nu een error
-- `uploadCsv` verwacht `r2ObjectKey`, niet `storageId`
-
-**Fix:** Gebruik `uploadFileToR2` uit `r2Uploads.ts`:
-```ts
-import { uploadFileToR2 } from "@/lib/r2Uploads";
-
-// mutations:
-const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
-const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
-
-// in handleCsvFileChange:
-const key = await uploadFileToR2({
-  generateUploadUrl: r2GenerateUploadUrl,
-  syncMetadata: r2SyncMetadata,
-  purpose: "csv-upload",
-  file,
-});
-await uploadCsv({ r2ObjectKey: key, fileName: file.name });
-```
-
-**Status:** ❌ Nog niet gefixed
-
----
-
-## Fix 3: `src/components/task/TaskDetailPage.tsx` — Bestandsbijlagen
-
-**Was (lijn 117-134):**
-```ts
-const uploadUrl = await generateUploadUrl({});          // ← oude Convex storage
-const uploadResult = await fetch(uploadUrl, { method: "POST", ... });
-const { storageId } = await uploadResult.json();
-await saveAttachment({ taskId, storageId, fileName, fileSize, mimeType });
-```
-
-**Probleem:**
-- `generateUploadUrl` (van `api.tasks.generateUploadUrl`) gooit nu een error
-- `saveAttachment` verwacht `r2ObjectKey`, niet `storageId`
-
-**Fix:** Zelfde pattern:
-```ts
-import { uploadFileToR2, getNormalizedMimeType } from "@/lib/r2Uploads";
-
-// mutations:
-const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
-const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
-
-// in handleFiles:
-for (const file of Array.from(files)) {
-  const key = await uploadFileToR2({
-    generateUploadUrl: r2GenerateUploadUrl,
-    syncMetadata: r2SyncMetadata,
-    purpose: "task-attachment",
-    file,
-  });
-  await saveAttachment({
-    taskId: taskId as Id<"tasks">,
-    r2ObjectKey: key,
-    fileName: file.name,
-    fileSize: file.size,
-    mimeType: getNormalizedMimeType(file),
-  });
+// convex/r2.ts
+export async function deleteOldR2Asset(ctx: MutationCtx, oldValue: string | null | undefined) {
+  if (!oldValue || !isR2Key(oldValue)) return;
+  try {
+    await r2.deleteObject(ctx, oldValue);
+  } catch {
+    // Best-effort: object may already be gone.
+  }
 }
 ```
 
-**Status:** ❌ Nog niet gefixed
+```ts
+// convex/settings.ts — updateProfile handler
+if (nextAvatarUrl !== undefined && user.avatarUrl) {
+  await deleteOldR2Asset(ctx, user.avatarUrl);
+}
+
+// convex/settings.ts — updatePortalBranding handler
+if (nextLogoUrl !== undefined && user.defaultPortalLogoUrl) {
+  await deleteOldR2Asset(ctx, user.defaultPortalLogoUrl);
+}
+```
 
 ---
 
-## Fix 4: `src/components/onboarding/OnboardingModal.tsx` lijn 156 — Unused prop
-
-**Was:** `stripeGuideHref` staat in de type + destructuring maar wordt nergens in de component gebruikt.
-
-**Fix:** Verwijder uit type en destructuring.
-
-**Status:** ✅ Al gefixed
-
----
-
-## Samenvatting
+## Alle fixes — Status
 
 | # | Bestand | Wat | Status |
 |---|---------|-----|--------|
 | 1 | `convex/_helpers.ts` | Domein → `SITE_URL` env var | ✅ Done |
-| 2 | `SettingsPage.tsx` | CSV upload → R2 | ❌ Todo |
-| 3 | `TaskDetailPage.tsx` | Attachments → R2 | ❌ Todo |
+| 2 | `SettingsPage.tsx` | CSV upload → R2 | ✅ Done (9 maart) |
+| 3 | `TaskDetailPage.tsx` | Attachments → R2 | ✅ Done (9 maart) |
 | 4 | `OnboardingModal.tsx` | Unused prop weg | ✅ Done |
+| 5 | `SettingsPage.tsx` | Avatar save → R2 via `prepareAvatarUpload` + `uploadFileToR2` + `avatarKey` | ✅ Done (9 maart) |
+| 6 | `SettingsPage.tsx` | Portal logo save → R2 via `preparePortalLogoUpload` + `uploadFileToR2` + `logoKey` | ✅ Done (9 maart) |
+| 7 | `convex/r2.ts` | `deleteOldR2Asset` helper — delete oud object voor nieuw wordt opgeslagen | ✅ Done (9 maart) |
+| 8 | `convex/settings.ts` | `updateProfile` + `updatePortalBranding` → delete oude R2 key eerst | ✅ Done (9 maart) |
+| 9 | `IntegrationsTab.tsx` | CSV upload sectie verwijderd uit Settings | ✅ Done (9 maart) |
+| 10 | `convex/billing.ts` | 409 idempotency fix voor Loops welcome email | ✅ Done (9 maart) |
 
-Na deze 4 fixes zou `pnpm typecheck` moeten slagen.
+---
+
+## R2 upload flow — Referentie
+
+### Frontend (`src/lib/r2Uploads.ts`)
+
+```
+Gebruiker selecteert bestand
+  → prepareAvatarUpload / preparePortalLogoUpload (convert naar webp, preview URL)
+  → uploadFileToR2({ generateUploadUrl, syncMetadata, purpose, file })
+      1. Validatie (size, type)
+      2. generateUploadUrl mutation → signed URL + key
+      3. PUT naar R2 signed URL
+      4. syncMetadata mutation → metadata in Convex
+      5. return key
+```
+
+### Backend (`convex/r2.ts` + `convex/settings.ts`)
+
+```
+updateProfile / updatePortalBranding mutation:
+  1. deleteOldR2Asset(ctx, user.avatarUrl)    ← DELETE oud
+  2. patch DB met nieuwe key                   ← UPDATE DB
+  3. resolveAssetUrl voor response             ← RETURN URL
+```
+
+### Purposes
+
+| Purpose | Frontend prepare | R2 path |
+|---------|-----------------|---------|
+| `profile-avatar` | `prepareAvatarUpload` → webp | `users/{id}/profile/avatar-{uuid}.webp` |
+| `portal-logo` | `preparePortalLogoUpload` → webp/svg | `users/{id}/portal/logo-{uuid}.{ext}` |
+| `task-attachment` | direct | `users/{id}/task-attachments/{uuid}.{ext}` |
+| `csv-upload` | direct | `users/{id}/imports/{uuid}.csv` |
