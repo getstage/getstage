@@ -10,7 +10,7 @@ import {
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "motion/react";
 import { useGSAP } from "@gsap/react";
-import { Eye, UserCircle } from "@phosphor-icons/react";
+import { ArrowUpRight, Eye, UserCircle } from "@phosphor-icons/react";
 import confetti from "canvas-confetti";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
@@ -912,12 +912,25 @@ export function OnboardingModal({
                   <StaticOnboardingImage src={integrationsImage} alt="Integrations preview" />
 
                   <div className="mt-6 border-t border-border-subtle pt-5">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <img src={GOOGLE_SHEETS_ICON_SRC} alt="Google Sheets" className="h-4 w-4" />
-                        <p className="text-[15px] font-medium text-text-primary">
-                          Google Sheets import
-                        </p>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2.5">
+                          <img
+                            src={GOOGLE_SHEETS_ICON_SRC}
+                            alt="Google Sheets"
+                            className="h-4 w-4"
+                          />
+                          <p className="text-[15px] font-medium text-text-primary">
+                            Google Sheets import
+                          </p>
+                        </div>
+                        <GuideLink
+                          href={googleSheetsGuideHref}
+                          openInNewTab
+                          className="mt-1 text-[13px] font-medium text-accent underline decoration-[rgba(135,130,245,0.35)] underline-offset-4 hover:text-accent-hover hover:decoration-[rgba(118,112,224,0.55)]"
+                        >
+                          View import guide
+                        </GuideLink>
                       </div>
 
                       <button
@@ -1050,14 +1063,6 @@ export function OnboardingModal({
                       </button>
                     ) : null}
 
-                    {step === "integrations" ? (
-                      <GuideLink
-                        href={googleSheetsGuideHref}
-                        className="mt-0 text-[13px] text-text-secondary hover:text-text-primary"
-                      >
-                        View import guide
-                      </GuideLink>
-                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -1106,10 +1111,12 @@ function GuideLink({
   href,
   children,
   className,
+  openInNewTab = false,
 }: {
   href?: string | null;
   children: ReactNode;
   className?: string;
+  openInNewTab?: boolean;
 }) {
   if (!href) {
     return (
@@ -1123,15 +1130,15 @@ function GuideLink({
   return (
     <a
       href={href}
-      target={href.startsWith("http") ? "_blank" : undefined}
-      rel={href.startsWith("http") ? "noreferrer" : undefined}
+      target={openInNewTab || href.startsWith("http") ? "_blank" : undefined}
+      rel={openInNewTab || href.startsWith("http") ? "noreferrer noopener" : undefined}
       className={cn(
-        "mt-4 inline-flex items-center gap-1.5 text-[15px] text-accent transition-colors hover:text-accent-hover",
+        "mt-4 inline-flex items-center gap-1 text-[15px] text-accent transition-colors hover:text-accent-hover",
         className,
       )}
     >
-      <Eye size={16} />
       {children}
+      {openInNewTab ? <ArrowUpRight size={13} weight="bold" /> : <Eye size={16} />}
     </a>
   );
 }
