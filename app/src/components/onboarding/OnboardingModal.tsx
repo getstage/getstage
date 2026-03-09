@@ -37,6 +37,7 @@ type Step =
   | "welcome"
   | "personalise"
   | "details"
+  | "project-type"
   | "method"
   | "phase-select"
   | "timeline"
@@ -133,6 +134,7 @@ const AI_ROADMAPS: Record<ProjectType, RoadmapItem[]> = {
 
 export type OnboardingSubmission = {
   fieldOfWork: ProjectType;
+  fieldOfWorkSelections: ProjectType[];
   createProject: boolean;
   projectName: string;
   clientName: string;
@@ -159,7 +161,7 @@ export function OnboardingModal({
   const [step, setStep] = useState<Step>("welcome");
   const [isClosing, setIsClosing] = useState(false);
   const [pendingSubmission, setPendingSubmission] = useState<OnboardingSubmission | null>(null);
-  const [fieldOfWork, setFieldOfWork] = useState<ProjectType | null>(null);
+  const [fieldOfWork, setFieldOfWork] = useState<ProjectType[]>([]);
   const [setProjectLater, setSetProjectLater] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [clientName, setClientName] = useState("");
@@ -211,6 +213,7 @@ export function OnboardingModal({
         "welcome",
         "personalise",
         "details",
+        "project-type",
         "method",
         "phase-select",
         "timeline",
@@ -223,6 +226,7 @@ export function OnboardingModal({
       "welcome",
       "personalise",
       "details",
+      "project-type",
       "method",
       "timeline",
       "preview",
@@ -240,7 +244,7 @@ export function OnboardingModal({
     setStep("welcome");
     setIsClosing(false);
     setPendingSubmission(null);
-    setFieldOfWork(null);
+    setFieldOfWork([]);
     setSetProjectLater(false);
     setProjectName("");
     setClientName("");
@@ -288,8 +292,14 @@ export function OnboardingModal({
   ]);
 
   function handleSelectField(value: ProjectType) {
-    setFieldOfWork(value);
-    setProjectType(value);
+    setFieldOfWork((current) => {
+      const next = current.includes(value)
+        ? current.filter((item) => item !== value)
+        : [...current, value];
+
+      setProjectType((currentProjectType) => currentProjectType ?? next[0] ?? null);
+      return next;
+    });
   }
 
   function handleContinue() {
@@ -300,6 +310,7 @@ export function OnboardingModal({
       method,
       projectName,
       clientName,
+      projectType,
       activePhases.length,
       startDate,
       endDate,
@@ -318,7 +329,10 @@ export function OnboardingModal({
         setStep("details");
         return;
       case "details":
-        setStep(setProjectLater ? "integrations" : "method");
+        setStep(setProjectLater ? "integrations" : "project-type");
+        return;
+      case "project-type":
+        setStep("method");
         return;
       case "method":
         setStep(method === "manual" ? "phase-select" : "timeline");
@@ -335,12 +349,13 @@ export function OnboardingModal({
       case "integrations": {
         const hasProjectSetup = projectName.trim().length > 0 && clientName.trim().length > 0;
         const submission: OnboardingSubmission = {
-          fieldOfWork: fieldOfWork!,
+          fieldOfWork: fieldOfWork[0]!,
+          fieldOfWorkSelections: fieldOfWork,
           createProject: !setProjectLater && hasProjectSetup,
           projectName: projectName.trim(),
           clientName: clientName.trim(),
           clientAvatarUrl: clientAvatar,
-          projectType: projectType ?? fieldOfWork!,
+          projectType: projectType ?? fieldOfWork[0]!,
           csvConnected,
           csvImported,
           stripeConnected,
@@ -580,7 +595,7 @@ export function OnboardingModal({
                     Personalise your workspace
                   </h3>
                   <p className="mt-2 text-[15px] leading-normal text-text-secondary">
-                    Choose your field of work so Stage can tailor your first setup.
+                    Choose one or more fields so Stage can tailor your workspace.
                   </p>
 
                   <div className="mt-7 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -591,7 +606,7 @@ export function OnboardingModal({
                         onClick={() => handleSelectField(option.value)}
                         className={cn(
                           "cursor-pointer rounded-[10px] border-[1.5px] px-4 py-3 text-[14px] font-medium transition-colors focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0",
-                          fieldOfWork === option.value
+                          fieldOfWork.includes(option.value)
                             ? "border-accent bg-[rgba(135,130,245,0.09)] text-accent"
                             : "border-transparent bg-input-bg text-text-primary hover:bg-[#EFEFF2]",
                         )}
@@ -707,6 +722,35 @@ export function OnboardingModal({
                       className="hidden"
                       onChange={handleAvatarFileChange}
                     />
+                  </div>
+                </OnboardingStepMotion>
+              ) : null}
+
+              {step === "project-type" ? (
+                <OnboardingStepMotion motionKey="project-type">
+                  <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
+                    What type of project?
+                  </h3>
+                  <p className="mt-2 text-[15px] leading-normal text-text-secondary">
+                    Pick the closest match. You can always change it later.
+                  </p>
+
+                  <div className="mt-7 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {PROJECT_TYPE_OPTIONS.map((typeOption) => (
+                      <button
+                        key={typeOption.value}
+                        type="button"
+                        onClick={() => setProjectType(typeOption.value)}
+                        className={cn(
+                          "cursor-pointer rounded-[10px] border-[1.5px] px-4 py-3 text-center text-[14px] font-medium transition-all duration-150 focus:outline-none",
+                          projectType === typeOption.value
+                            ? "border-accent bg-[rgba(135,130,245,0.08)] text-accent"
+                            : "border-transparent bg-input-bg text-text-primary hover:bg-[#EFEFEF]",
+                        )}
+                      >
+                        {typeOption.label}
+                      </button>
+                    ))}
                   </div>
                 </OnboardingStepMotion>
               ) : null}
@@ -973,6 +1017,7 @@ export function OnboardingModal({
                       method,
                       projectName,
                       clientName,
+                      projectType,
                       activePhases.length,
                     )
                   }
@@ -1495,20 +1540,23 @@ function fireOnboardingConfetti() {
 
 function canContinue(
   step: Step,
-  fieldOfWork: ProjectType | null,
+  fieldOfWork: ProjectType[],
   setProjectLater: boolean,
   method: Method,
   projectName: string,
   clientName: string,
+  projectType: ProjectType | null,
   activePhasesLength: number,
 ) {
   switch (step) {
     case "welcome":
       return true;
     case "personalise":
-      return fieldOfWork !== null;
+      return fieldOfWork.length > 0;
     case "details":
       return setProjectLater || (projectName.trim().length > 0 && clientName.trim().length > 0);
+    case "project-type":
+      return projectType !== null;
     case "method":
       return method !== null;
     case "phase-select":
@@ -1526,11 +1574,12 @@ function canContinue(
 
 function getStepValidationError(
   step: Step,
-  fieldOfWork: ProjectType | null,
+  fieldOfWork: ProjectType[],
   setProjectLater: boolean,
   method: Method,
   projectName: string,
   clientName: string,
+  projectType: ProjectType | null,
   activePhasesLength: number,
   startDate: string,
   endDate: string,
@@ -1539,24 +1588,34 @@ function getStepValidationError(
     case "welcome":
       return null;
     case "personalise": {
-      if (!fieldOfWork) {
-        return "Choose your field of work to continue.";
+      if (fieldOfWork.length === 0) {
+        return "Choose at least one field of work to continue.";
       }
 
-      const parsed = projectTypeValidationSchema.safeParse(fieldOfWork);
-      return parsed.success
-        ? null
-        : (parsed.error.issues[0]?.message ?? "Choose your field of work.");
+      const hasInvalidSelection = fieldOfWork.some(
+        (selectedField) => !projectTypeValidationSchema.safeParse(selectedField).success,
+      );
+      return hasInvalidSelection ? "Choose a valid field of work." : null;
     }
     case "details": {
       if (setProjectLater) {
         return null;
       }
 
-      const parsed = projectBasicsSchema.safeParse({ projectName, clientName });
-      return parsed.success
+      const basicsParsed = projectBasicsSchema.safeParse({ projectName, clientName });
+      return basicsParsed.success
         ? null
-        : (parsed.error.issues[0]?.message ?? "Please complete the project details.");
+        : (basicsParsed.error.issues[0]?.message ?? "Please complete the project details.");
+    }
+    case "project-type": {
+      if (!projectType) {
+        return "Choose the project type to continue.";
+      }
+
+      const projectTypeParsed = projectTypeValidationSchema.safeParse(projectType);
+      return projectTypeParsed.success
+        ? null
+        : (projectTypeParsed.error.issues[0]?.message ?? "Choose the project type.");
     }
     case "method":
       return method ? null : "Choose how you want to build your roadmap.";
