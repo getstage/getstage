@@ -463,6 +463,13 @@
   flex-shrink: 0;
 }
 
+.integration-provider-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .stripe-disconnect {
   font-size: 13px;
   color: var(--color-text-secondary);

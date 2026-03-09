@@ -1,4 +1,6 @@
 import type { ChangeEvent, RefObject } from "react";
+import googleSheetsIcon from "@/assets/icons/google-sheets.svg";
+import stripeIcon from "@/assets/icons/stripe.svg";
 import { FeedbackText } from "@/components/settings/FeedbackText";
 import type { SaveFeedback } from "@/hooks/useFeedback";
 import type {
@@ -88,7 +90,10 @@ export function IntegrationsTab({
         <div className="card-body">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="card-heading sf">Stripe Connect</div>
+              <div className="card-heading-row">
+                <img className="integration-provider-icon" src={stripeIcon} alt="" />
+                <div className="card-heading sf">Stripe Connect</div>
+              </div>
               <div className="card-desc">
                 Connect a client-facing Stripe account so Stage can sync invoices and payments.
               </div>
@@ -175,7 +180,10 @@ export function IntegrationsTab({
         <div className="card-body">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="card-heading sf">Google Sheets (CSV)</div>
+              <div className="card-heading-row">
+                <img className="integration-provider-icon" src={googleSheetsIcon} alt="" />
+                <div className="card-heading sf">Google Sheets (CSV)</div>
+              </div>
               <div className="card-desc">
                 Paste a Google Sheets link that follows your template. Import manually whenever
                 the sheet changes.
