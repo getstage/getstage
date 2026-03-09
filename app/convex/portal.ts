@@ -22,6 +22,8 @@ export const getByShareToken = query({
       return null;
     }
 
+    const owner = await ctx.db.get(project.userId);
+
     return {
       project: await buildProject(ctx, project),
       config: {
@@ -29,7 +31,7 @@ export const getByShareToken = query({
         isEnabled: config.isEnabled,
         shareToken: config.shareToken,
         shareUrl: config.shareUrl,
-        logoUrl: await resolveAssetUrl(config.logoUrl),
+        logoUrl: await resolveAssetUrl(config.logoUrl ?? owner?.defaultPortalLogoUrl ?? null),
         accentColor: config.accentColor,
       },
     };

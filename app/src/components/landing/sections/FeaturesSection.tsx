@@ -83,7 +83,7 @@ export function FeaturesSection() {
           />
           <FeatureCard
             title="Integrations"
-            description="Connect with Stripe today. Figma, Notion, and Slack coming soon."
+            description="Connect with Stripe and Google Sheets today. Figma, Notion, and Slack coming soon."
             image={<IntegrationsMockup />}
             compact
             cardClassName="is-integrations"

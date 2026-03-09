@@ -28,6 +28,7 @@ import { api } from "@/lib/convex";
 import { DEFAULT_PORTAL_COLOR } from "@/lib/constants";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { capitalize, formatPlanPrice, normalizeHex } from "@/lib/format";
+import { rebaseUrlToCurrentOrigin } from "@/lib/portal";
 import type { SettingsTab } from "@/types/settings";
 import { googleSheetsUrlSchema, profileNameSchema } from "@/lib/validation";
 import { SAVED_FEEDBACK, useFeedback } from "@/hooks/useFeedback";
@@ -362,7 +363,9 @@ export function SettingsPage() {
 
   function handlePreviewPortalClick(e: MouseEvent<HTMLAnchorElement>) {
     e.preventDefault();
-    const previewUrl = settingsData?.previewPortalUrl ?? PREVIEW_PORTAL_URL;
+    const previewUrl = rebaseUrlToCurrentOrigin(
+      settingsData?.previewPortalUrl ?? PREVIEW_PORTAL_URL,
+    );
     window.open(previewUrl, "_blank", "noopener,noreferrer");
   }
 

@@ -57,6 +57,10 @@ export const PRICING_FEATURES = [
 
 export const INTEGRATION_ICONS = [
   { src: new URL("../../../assets/icons/stripe.svg", import.meta.url).href, name: "Stripe" },
+  {
+    src: new URL("../../../assets/icons/google-sheets.svg", import.meta.url).href,
+    name: "Google Sheets",
+  },
   { src: new URL("../../../assets/icons/figma.svg", import.meta.url).href, name: "Figma" },
   { src: new URL("../../../assets/icons/notion.svg", import.meta.url).href, name: "Notion" },
   { src: new URL("../../../assets/icons/slack.svg", import.meta.url).href, name: "Slack" },

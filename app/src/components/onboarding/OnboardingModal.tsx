@@ -15,6 +15,7 @@ import confetti from "canvas-confetti";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
 import { useAction as useConvexAction, useMutation as useConvexMutation } from "convex/react";
+import integrationsImage from "@/assets/onboarding/integrations.webp";
 import onboardingImage from "@/assets/onboarding/onboarding.webp";
 import {
   dateRangeInputSchema,
@@ -864,24 +865,15 @@ export function OnboardingModal({
 
               {step === "integrations" ? (
                 <OnboardingStepMotion motionKey="integrations">
-                  <div className="flex items-center gap-2.5">
-                    <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
-                      Connect your data
-                    </h3>
-                    <img src={GOOGLE_SHEETS_ICON_SRC} alt="Google Sheets" className="h-4 w-4" />
-                    <img src={STRIPE_ICON_SRC} alt="Stripe" className="h-4 w-4" />
-                  </div>
-                  <p className="mt-2 text-[15px] leading-normal text-text-secondary">
-                    Import Google Sheets now. Stripe comes next.
-                  </p>
+                  <StaticOnboardingImage src={integrationsImage} alt="Integrations preview" />
 
-                  <div className="mt-7 rounded-[16px] border border-border-subtle bg-bg-subtle px-4 py-4 sm:px-6 sm:py-5">
+                  <div className="mt-6 border-t border-border-subtle pt-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="text-[17px] font-medium text-text-primary">
+                      <div className="flex items-center gap-2.5">
+                        <img src={GOOGLE_SHEETS_ICON_SRC} alt="Google Sheets" className="h-4 w-4" />
+                        <p className="text-[15px] font-medium text-text-primary">
                           Google Sheets import
                         </p>
-                        <p className="mt-2 text-[14px] text-text-secondary">Optional for now.</p>
                       </div>
 
                       <button
@@ -894,7 +886,7 @@ export function OnboardingModal({
                             setSheetUrl("");
                           }
                         }}
-                        className="cursor-pointer text-[15px] font-medium text-accent transition-colors hover:text-accent-hover focus:outline-none"
+                        className="cursor-pointer text-[14px] font-medium text-accent transition-colors hover:text-accent-hover focus:outline-none"
                       >
                         {csvConnected ? "Unlink" : "Link Google Sheets"}
                       </button>
@@ -907,13 +899,13 @@ export function OnboardingModal({
                             value={sheetUrl}
                             onChange={(event) => setSheetUrl(event.target.value)}
                             placeholder="Paste your Google Sheets link"
-                            className="h-[46px] flex-1 rounded-[12px] border border-transparent bg-white px-4 text-[15px] text-text-primary transition-all duration-200 outline-none placeholder:text-text-tertiary focus:border-border"
+                            className="h-[44px] flex-1 rounded-[10px] border border-transparent bg-input-bg px-3.5 text-[14px] text-text-primary transition-all duration-200 outline-none placeholder:text-text-tertiary focus:border-border focus:bg-white"
                           />
                           <button
                             type="button"
                             onClick={handleLinkSheetUrl}
                             disabled={!sheetUrl.trim() || csvImporting}
-                            className="h-[46px] min-w-[220px] cursor-pointer rounded-[12px] bg-text-primary px-5 text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-45 focus:outline-none"
+                            className="h-[44px] w-full cursor-pointer rounded-[10px] bg-text-primary px-4 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-45 focus:outline-none md:min-w-[220px] md:w-auto"
                           >
                             {csvImporting ? "Linking..." : "Link Google Sheets"}
                           </button>
@@ -924,9 +916,21 @@ export function OnboardingModal({
                           </div>
                         ) : null}
                       </>
-                    ) : null}
+                    ) : (
+                      <p className="mt-3 text-[13px] text-text-secondary">Optional for now.</p>
+                    )}
+                  </div>
 
-                    <GuideLink href={googleSheetsGuideHref}>View import guide</GuideLink>
+                  <div className="mt-4 border-t border-border-subtle pt-5">
+                    <div className="flex items-start gap-2.5">
+                      <img src={STRIPE_ICON_SRC} alt="Stripe" className="mt-0.5 h-4 w-4 shrink-0" />
+                      <div>
+                        <p className="text-[15px] font-medium text-text-primary">Stripe</p>
+                        <p className="mt-1 text-[13px] leading-[1.45] text-text-secondary">
+                          Stripe will be ready right after onboarding, so you can connect payouts and payment tracking next.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </OnboardingStepMotion>
               ) : null}
@@ -1000,6 +1004,15 @@ export function OnboardingModal({
                         I&apos;ll do this later
                       </button>
                     ) : null}
+
+                    {step === "integrations" ? (
+                      <GuideLink
+                        href={googleSheetsGuideHref}
+                        className="mt-0 text-[13px] text-text-secondary hover:text-text-primary"
+                      >
+                        View import guide
+                      </GuideLink>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -1044,10 +1057,18 @@ function OptionCard({
   );
 }
 
-function GuideLink({ href, children }: { href?: string | null; children: ReactNode }) {
+function GuideLink({
+  href,
+  children,
+  className,
+}: {
+  href?: string | null;
+  children: ReactNode;
+  className?: string;
+}) {
   if (!href) {
     return (
-      <span className="mt-4 inline-flex items-center gap-1.5 text-[15px] text-accent/60">
+      <span className={cn("mt-4 inline-flex items-center gap-1.5 text-[15px] text-accent/60", className)}>
         <Eye size={16} />
         {children}
       </span>
@@ -1059,7 +1080,10 @@ function GuideLink({ href, children }: { href?: string | null; children: ReactNo
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="mt-4 inline-flex items-center gap-1.5 text-[15px] text-accent transition-colors hover:text-accent-hover"
+      className={cn(
+        "mt-4 inline-flex items-center gap-1.5 text-[15px] text-accent transition-colors hover:text-accent-hover",
+        className,
+      )}
     >
       <Eye size={16} />
       {children}
@@ -1283,6 +1307,14 @@ function WelcomeOnboardingImageTour() {
         className="block h-auto w-full"
         loading="lazy"
       />
+    </div>
+  );
+}
+
+function StaticOnboardingImage({ src, alt }: { src: string; alt: string }) {
+  return (
+    <div className="relative overflow-hidden rounded-[12px]">
+      <img src={src} alt={alt} className="block h-auto w-full" loading="lazy" />
     </div>
   );
 }
