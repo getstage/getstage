@@ -33,15 +33,19 @@ Stripe test webhook configured:
 Env vars copied:
 - AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET
 - AUTH_LOOPS_API_KEY, AUTH_LOOPS_TRANSACTIONAL_ID
-- JWKS
 - R2_ACCESS_KEY_ID, R2_BUCKET, R2_ENDPOINT, R2_SECRET_ACCESS_KEY, R2_TOKEN
+
+**NOT copied (must be unique per deployment):**
+- JWKS, JWT_PRIVATE_KEY → generate with `npx convex auth --env-file .env.prod`
 
 ## Still TODO
 
-### 1. Set JWT_PRIVATE_KEY on production (manual)
-The CLI chokes on `-----BEGIN PRIVATE KEY-----` dashes. Set it manually:
-- Go to Convex Dashboard → Production (`quirky-snail-763`) → Settings → Environment Variables
-- Add `JWT_PRIVATE_KEY` with the same value as the dev deployment
+### 1. Generate auth keys for production
+Each deployment needs its own JWKS + JWT_PRIVATE_KEY (do NOT copy from dev — that's a security risk).
+```bash
+npx convex auth --env-file .env.prod
+```
+This generates and sets a fresh key pair on the production deployment.
 
 ### 2. Set production-only env vars
 ```bash
