@@ -536,7 +536,7 @@ export function OnboardingModal({
                   <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
                     Personalise your workspace
                   </h3>
-                  <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">
+                  <p className="mt-2 text-[15px] leading-normal text-text-secondary">
                     Choose your field of work so Stage can tailor your first setup.
                   </p>
 
@@ -565,7 +565,7 @@ export function OnboardingModal({
                   <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
                     Set up your first project <span className="text-text-tertiary">(optional)</span>
                   </h3>
-                  <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">
+                  <p className="mt-2 text-[15px] leading-normal text-text-secondary">
                     You can complete this now or continue and set it up later.
                   </p>
 
@@ -673,7 +673,7 @@ export function OnboardingModal({
                   <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
                     Build your roadmap
                   </h3>
-                  <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">
+                  <p className="mt-2 text-[15px] leading-normal text-text-secondary">
                     How do you want to structure this project?
                   </p>
 
@@ -699,7 +699,7 @@ export function OnboardingModal({
                   <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
                     Select phases
                   </h3>
-                  <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">
+                  <p className="mt-2 text-[15px] leading-normal text-text-secondary">
                     Toggle the phases you want. Reorder by dragging.
                   </p>
 
@@ -756,7 +756,7 @@ export function OnboardingModal({
                   <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
                     Project timeline
                   </h3>
-                  <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">
+                  <p className="mt-2 text-[15px] leading-normal text-text-secondary">
                     When does this project start and end?
                   </p>
 
@@ -793,7 +793,7 @@ export function OnboardingModal({
                   <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
                     Your roadmap
                   </h3>
-                  <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">
+                  <p className="mt-2 text-[15px] leading-normal text-text-secondary">
                     Looking good. You can adjust everything later.
                   </p>
 
@@ -829,7 +829,7 @@ export function OnboardingModal({
                     <img src={GOOGLE_SHEETS_ICON_SRC} alt="Google Sheets" className="h-4 w-4" />
                     <img src={STRIPE_ICON_SRC} alt="Stripe" className="h-4 w-4" />
                   </div>
-                  <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">
+                  <p className="mt-2 text-[15px] leading-normal text-text-secondary">
                     Import Google Sheets now. Stripe comes next.
                   </p>
 
@@ -902,7 +902,7 @@ export function OnboardingModal({
             {step !== "creating" ? (
               <div className="mt-8">
                 {stepError ? (
-                  <p className="mb-3 text-[13px] leading-[1.5] text-[#E07070]">{stepError}</p>
+                  <p className="mb-3 text-[13px] leading-normal text-destructive">{stepError}</p>
                 ) : null}
 
                 <button
@@ -1004,8 +1004,8 @@ function GuideLink({ href, children }: { href?: string | null; children: ReactNo
   return (
     <a
       href={href}
-      target="_blank"
-      rel="noreferrer"
+      target={href.startsWith("http") ? "_blank" : undefined}
+      rel={href.startsWith("http") ? "noreferrer" : undefined}
       className="mt-4 inline-flex items-center gap-1.5 text-[15px] text-accent transition-colors hover:text-accent-hover"
     >
       <Eye size={16} />
@@ -1139,7 +1139,7 @@ function WelcomeSlide({ userName }: { userName?: string }) {
       >
         Welcome to Stage{userName ? `, ${userName}` : ""}. You&apos;re in.
       </h3>
-      <p ref={subtitleRef} className="mt-2 max-w-[620px] text-[15px] leading-[1.5] text-text-secondary">
+      <p ref={subtitleRef} className="mt-2 max-w-[620px] text-[15px] leading-normal text-text-secondary">
         We&apos;ll personalize your setup and launch a dashboard that feels useful from day one.
       </p>
 
@@ -1365,7 +1365,7 @@ function CreatingDashboardText({
       <div
         ref={textRef}
         className={cn(
-          "font-heading text-[clamp(1.625rem,5vw,1.875rem)] leading-[1.12] font-semibold tracking-[-0.45px] [overflow-wrap:normal] [word-break:normal] [text-wrap:balance]",
+          "font-heading text-[clamp(1.625rem,5vw,1.875rem)] leading-[1.12] font-semibold tracking-[-0.45px] wrap-normal text-balance",
           phase === "loading" ? "text-text-secondary" : "text-text-primary",
         )}
       >

@@ -33,7 +33,7 @@ import type { Project } from "@/types";
 type PreviewStage = "onboarding" | "paywall" | "preview";
 
 const ONBOARDING_STORAGE_KEY = "stage:onboarding-preview";
-const GOOGLE_SHEETS_GUIDE_HREF = "https://help.portfoliodividendtracker.com/article/126-article";
+const GOOGLE_SHEETS_GUIDE_HREF = "/help/import-transactions-via-google-sheets";
 
 export function DashboardPage() {
   const [timelineHorizon, setTimelineHorizon] = useState<TimelineHorizon>("thisMonth");

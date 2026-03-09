@@ -15,6 +15,7 @@ import { api } from "@/lib/convex";
 import { debounce, formatFileSize } from "@/lib/utils";
 import type { Attachment, Phase, Task } from "@/types";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { uploadFileToR2, getNormalizedMimeType } from "@/lib/r2Uploads";
 
 export function TaskDetailPage() {
   const { id: projectId, taskId } = useParams({
@@ -48,7 +49,8 @@ export function TaskDetailPage() {
 
   const updateTask = useConvexMutation(api.tasks.update);
   const toggleTaskComplete = useConvexMutation(api.tasks.toggleComplete);
-  const generateUploadUrl = useConvexMutation(api.tasks.generateUploadUrl);
+  const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
+  const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
   const saveAttachment = useConvexMutation(api.tasks.saveAttachment);
 
   async function persistTaskUpdate(payload: { title?: string; content?: string }) {
@@ -114,23 +116,19 @@ export function TaskDetailPage() {
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
-        const uploadUrl = await generateUploadUrl({});
-        const uploadResult = await fetch(uploadUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": file.type || "application/octet-stream",
-          },
-          body: file,
+        const key = await uploadFileToR2({
+          generateUploadUrl: r2GenerateUploadUrl,
+          syncMetadata: r2SyncMetadata,
+          purpose: "task-attachment",
+          file,
         });
-
-        const { storageId } = (await uploadResult.json()) as { storageId: Id<"_storage"> };
 
         await saveAttachment({
           taskId: taskId as Id<"tasks">,
-          storageId,
+          r2ObjectKey: key,
           fileName: file.name,
           fileSize: file.size,
-          mimeType: file.type || "application/octet-stream",
+          mimeType: getNormalizedMimeType(file),
         });
       }
       setSaved(true);

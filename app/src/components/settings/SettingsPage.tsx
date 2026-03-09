@@ -32,10 +32,11 @@ import type { SettingsTab } from "@/types/settings";
 import { googleSheetsUrlSchema, profileNameSchema } from "@/lib/validation";
 import { SAVED_FEEDBACK, useFeedback } from "@/hooks/useFeedback";
 import { readFileAsDataUrl } from "@/lib/utils";
+import { uploadFileToR2 } from "@/lib/r2Uploads";
 import "@/styles/settings.css";
 
 const PREVIEW_PORTAL_URL = "/portal/share_acme_2026?preview=1";
-const GOOGLE_SHEETS_GUIDE_HREF = "https://help.portfoliodividendtracker.com/article/126-article";
+const GOOGLE_SHEETS_GUIDE_HREF = "/help/import-transactions-via-google-sheets";
 const GOOGLE_SHEETS_TRANSACTIONS_DIALOG_TITLE = "Use the Transactions tab link";
 const GOOGLE_SHEETS_TRANSACTIONS_DIALOG_MESSAGE =
   "Please check the Google Sheets guide, open the Transactions tab in Google Sheets, and copy the full browser URL from the address bar. Do not use Share -> Copy link, because that link often leaves out the tab id that Stage needs.";
@@ -92,7 +93,8 @@ export function SettingsPage() {
   const updatePortalBranding = useConvexMutation(api.settings.updatePortalBranding);
   const deleteAccount = useConvexAction(api.settings.deleteAccount);
   const connectSheet = useConvexMutation(api.googleSheets.connectSheet);
-  const generateUploadUrl = useConvexMutation(api.googleSheets.generateUploadUrl);
+  const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
+  const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
   const uploadCsv = useConvexMutation(api.googleSheets.uploadCsv);
   const disconnectSheet = useConvexMutation(api.googleSheets.disconnectSheet);
   const disconnectStripe = useConvexMutation(api.stripeConnect.disconnectStripe);
@@ -489,26 +491,15 @@ export function SettingsPage() {
 
     setIsCsvUploading(true);
     try {
-      const uploadUrl = await generateUploadUrl({});
-      const response = await fetch(uploadUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": file.type || "text/csv",
-        },
-        body: file,
+      const key = await uploadFileToR2({
+        generateUploadUrl: r2GenerateUploadUrl,
+        syncMetadata: r2SyncMetadata,
+        purpose: "csv-upload",
+        file,
       });
 
-      if (!response.ok) {
-        throw new Error("CSV upload failed.");
-      }
-
-      const body = (await response.json()) as { storageId?: string };
-      if (!body.storageId) {
-        throw new Error("Upload did not return a storage id.");
-      }
-
       await uploadCsv({
-        storageId: body.storageId as never,
+        r2ObjectKey: key,
         fileName: file.name,
       });
 
