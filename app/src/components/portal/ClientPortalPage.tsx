@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { Check } from "@phosphor-icons/react";
 import { useQuery as useConvexQuery } from "convex/react";
 import { Helmet } from "react-helmet-async";
 import { useParams } from "@tanstack/react-router";
+import { motion } from "motion/react";
 import { api } from "@/lib/convex";
 import portalLogo from "@/assets/logos/client-portal-logo.png";
 import type { Phase } from "@/types";
@@ -24,195 +26,291 @@ export function ClientPortalPage() {
 
   if (!data) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-white">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6 text-center">
         <h1 className="font-heading text-[26px] font-semibold text-text-primary">
           Portal not found
         </h1>
-        <p className="mt-2 text-[15px] text-text-secondary">
-          This link may have expired or is no longer active.
+        <p className="mt-2 max-w-[360px] text-[15px] text-text-secondary">
+          This link may have expired or client access has been turned off.
         </p>
       </div>
     );
   }
 
   const { project, config } = data;
-  const selectedPhase = useMemo(
-    () =>
-      project.phases.find((phase: Phase) => phase.id === selectedPhaseId) ??
-      project.phases.find((phase: Phase) => phase.status === "active") ??
-      project.phases[0],
-    [project.phases, selectedPhaseId],
-  );
+  const phases = project.phases as Phase[];
+  const selectedPhase =
+    phases.find((phase) => phase.id === selectedPhaseId) ??
+    phases.find((phase) => phase.status === "active") ??
+    phases[0] ??
+    null;
+  const isPreview =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("preview") === "1";
 
-  if (!selectedPhase) return null;
+  if (!selectedPhase) {
+    return null;
+  }
 
-  const completed = selectedPhase.tasks.filter((task: PortalTask) => task.isCompleted).length;
-  const isPreview = new URLSearchParams(window.location.search).get("preview") === "1";
+  const progress = clampProgress(project.progress);
+  const completedCount = selectedPhase.tasks.filter((task) => task.isCompleted).length;
 
   return (
     <>
       <Helmet>
-        <title>{project.name} — Client Portal</title>
+        <title>{project.name} - Client Portal</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
-      <div className="min-h-screen bg-white">
-        {isPreview && (
-          <div className="bg-[#141531] py-2 text-center text-[12px] text-white">
-            Preview mode <span className="text-white/55">— This is what your client will see</span>
+      <div className="flex min-h-screen flex-col bg-white text-text-primary">
+        {isPreview ? (
+          <div className="bg-[#141531] px-6 py-2 text-center text-[12px] text-white sm:text-[13px]">
+            Preview mode
+            <span className="ml-2 text-white/60">This is what your client will see</span>
           </div>
-        )}
+        ) : null}
 
-        <header className="flex justify-center border-b border-border-subtle py-7">
-          <img
-            src={config.logoUrl ?? portalLogo}
-            alt={project.clientName}
-            className="h-14 w-auto object-contain"
-          />
+        <header className="border-b border-border-subtle">
+          <div className="mx-auto flex max-w-[1440px] justify-center px-6 py-7 sm:px-10 lg:px-14">
+            <img
+              src={config.logoUrl ?? portalLogo}
+              alt={`${project.clientName} portal logo`}
+              className="max-h-[64px] w-auto max-w-[260px] object-contain sm:max-h-[84px] sm:max-w-[320px]"
+            />
+          </div>
         </header>
 
-        <main className="mx-auto max-w-[1200px] px-6 pb-14 pt-12 sm:px-10 lg:px-14">
-          <div className="text-center">
-            <h1 className="font-heading text-[42px] font-semibold tracking-tight text-text-primary">
+        <motion.main
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col px-5 pb-16 pt-12 sm:px-10 sm:pt-14 lg:px-14"
+        >
+          <section className="text-center">
+            <h1 className="font-heading text-[30px] font-semibold tracking-[-0.5px] text-text-primary sm:text-[42px]">
               {project.name}
             </h1>
-            <p className="mt-1 text-[16px] text-text-secondary">{project.clientName}</p>
-          </div>
+            <p className="mt-1 text-[15px] text-text-secondary sm:text-[16px]">
+              {project.clientName}
+            </p>
 
-          <div className="mt-7 flex items-center justify-center gap-3">
-            <div className="h-[6px] w-[220px] overflow-hidden rounded-full bg-border-subtle">
-              <div
-                className="h-full rounded-full"
-                style={{ width: `${project.progress}%`, backgroundColor: config.accentColor }}
-              />
+            <div className="mt-7 flex items-center justify-center gap-3">
+              <div className="h-[6px] w-[180px] overflow-hidden rounded-full bg-border-subtle sm:w-[220px]">
+                <motion.div
+                  className="h-full rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.45, ease: "easeOut" }}
+                  style={{ backgroundColor: config.accentColor }}
+                />
+              </div>
+              <span className="text-[14px] font-medium text-text-secondary tabular-nums">
+                {progress}%
+              </span>
             </div>
-            <span className="text-[14px] font-medium text-text-secondary">{project.progress}%</span>
-          </div>
+          </section>
 
-          <section className="py-16">
-            <div className="mx-auto flex max-w-[960px] items-center">
-              {project.phases.map((phase: Phase, index: number) => (
-                <div key={phase.id} className="flex flex-1 items-center">
-                  <PhaseNode
+          <section className="timeline-scrollbar-hidden mt-14 overflow-x-auto pb-4 sm:mt-16">
+            <div className="mx-auto flex min-w-[760px] max-w-[1080px] items-center px-4 sm:px-0">
+              {phases.map((phase, index) => (
+                <div key={phase.id} className="flex min-w-0 flex-1 items-center">
+                  <PortalPhaseNode
                     phase={phase}
-                    active={selectedPhase.id === phase.id}
+                    selected={selectedPhase.id === phase.id}
                     accentColor={config.accentColor}
-                    onClick={() => setSelectedPhaseId(phase.id)}
+                    onSelect={() => setSelectedPhaseId(phase.id)}
                   />
-                  {index < project.phases.length - 1 && (
+                  {index < phases.length - 1 ? (
                     <div
-                      className="h-px flex-1"
+                      className="h-px min-w-[28px] flex-1"
                       style={{
                         backgroundColor:
-                          phase.status === "completed" ? `${config.accentColor}80` : "#E8E8E8",
+                          phase.status === "completed"
+                            ? hexToRgba(config.accentColor, 0.45)
+                            : "#E8E8E8",
                       }}
                     />
-                  )}
+                  ) : null}
                 </div>
               ))}
             </div>
           </section>
 
-          <section className="mx-auto max-w-[560px]">
+          <section className="mx-auto mt-6 w-full max-w-[560px] flex-1">
             <header className="mb-5">
               <h2 className="font-heading text-[20px] font-semibold text-text-primary">
                 {selectedPhase.name}
               </h2>
               <p className="text-[13px] text-text-secondary">
-                {completed} of {selectedPhase.tasks.length} complete
+                {completedCount} of {selectedPhase.tasks.length} complete
               </p>
             </header>
 
             <div>
-              {selectedPhase.tasks.map((task: PortalTask) => (
-                <div
+              {selectedPhase.tasks.map((task) => (
+                <PortalTaskRow
                   key={task.id}
-                  className="flex items-center gap-3 border-t border-border-subtle px-1 py-2.5 first:border-t-0"
-                >
-                  <span
-                    className="inline-flex h-[18px] w-[18px] items-center justify-center rounded-[4px] border text-[11px]"
-                    style={{
-                      borderColor: task.isCompleted ? config.accentColor : "#D9D9D9",
-                      backgroundColor: task.isCompleted ? config.accentColor : "transparent",
-                      color: "#fff",
-                    }}
-                  >
-                    {task.isCompleted ? "✓" : ""}
-                  </span>
-                  <span
-                    className={`text-[14px] ${
-                      task.isCompleted
-                        ? "text-text-tertiary line-through"
-                        : "text-text-primary"
-                    }`}
-                  >
-                    {task.title}
-                  </span>
-                </div>
+                  task={task}
+                  accentColor={config.accentColor}
+                />
               ))}
             </div>
           </section>
-        </main>
+        </motion.main>
 
-        <footer className="border-t border-border-subtle py-6 text-center">
-          <a
-            href="/"
-            className="text-[12px] text-text-tertiary transition-colors hover:text-text-secondary"
-          >
-            Powered by <span className="font-medium">Stage</span>
-          </a>
+        <footer className="border-t border-border-subtle">
+          <div className="mx-auto max-w-[1440px] px-6 py-6 text-center text-[12px] text-text-tertiary">
+            Powered by{" "}
+            <a
+              href="/"
+              className="font-medium text-text-tertiary transition-colors hover:text-text-secondary"
+            >
+              Stage
+            </a>
+          </div>
         </footer>
       </div>
     </>
   );
 }
 
-function PhaseNode({
+function PortalPhaseNode({
   phase,
-  active,
+  selected,
   accentColor,
-  onClick,
+  onSelect,
 }: {
   phase: Phase;
-  active: boolean;
+  selected: boolean;
   accentColor: string;
-  onClick: () => void;
+  onSelect: () => void;
 }) {
-  const complete = phase.tasks.filter((task: PortalTask) => task.isCompleted).length;
+  const completedCount = phase.tasks.filter((task) => task.isCompleted).length;
+  const isCompleted = phase.status === "completed";
+  const isActive = phase.status === "active";
+  const isUpcoming = phase.status === "upcoming";
+  const isSelectedActive = selected && isActive;
+  const isSelectedOther = selected && !isActive;
 
   return (
     <button
-      onClick={onClick}
-      className={`flex min-w-[110px] cursor-pointer flex-col items-center gap-2 rounded-[8px] px-3 py-2 transition-colors ${
-        active ? "bg-black/[0.02]" : "hover:bg-bg-subtle"
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={`flex min-w-[106px] shrink-0 flex-col items-center gap-2 rounded-[18px] px-3 py-4 text-center transition-all duration-200 sm:min-w-[120px] ${
+        isSelectedActive ? "" : isSelectedOther ? "" : "hover:bg-bg-subtle"
       }`}
+      style={
+        isSelectedActive
+          ? {
+              backgroundColor: accentColor,
+              boxShadow: `0 18px 36px ${hexToRgba(accentColor, 0.18)}`,
+            }
+          : isSelectedOther
+            ? {
+                backgroundColor: hexToRgba(accentColor, 0.08),
+                boxShadow: `inset 0 0 0 1px ${hexToRgba(accentColor, 0.14)}`,
+              }
+            : undefined
+      }
     >
       <span
-        className="h-2.5 w-2.5 rounded-full"
+        className="h-3 w-3 rounded-full"
         style={{
-          backgroundColor:
-            phase.status === "completed"
-              ? "#BFBFBF"
-              : phase.status === "active"
-                ? accentColor
-                : "transparent",
-          border: phase.status === "upcoming" ? "1px solid #D9D9D9" : "none",
+          backgroundColor: isSelectedActive
+            ? "#101117"
+            : isCompleted || isActive
+              ? accentColor
+              : "transparent",
+          border: isUpcoming ? "1px solid #D9D9D9" : "none",
         }}
       />
+
       <span
-        className={`text-[12px] ${
-          phase.status === "upcoming"
-            ? "text-text-tertiary"
-            : phase.status === "completed"
-              ? "text-text-secondary"
-              : "text-text-primary"
+        className={`text-[13px] ${
+          isSelectedActive
+            ? "font-medium text-white"
+            : isUpcoming
+              ? "text-text-tertiary"
+              : isCompleted
+                ? "text-text-secondary"
+                : "font-medium text-text-primary"
         }`}
       >
         {phase.name}
       </span>
-      <span className="text-[11px] text-text-tertiary">
-        {complete} of {phase.tasks.length}
-      </span>
+
+      {isCompleted && !selected ? (
+        <Check size={12} weight="bold" style={{ color: accentColor }} />
+      ) : (
+        <span
+          className={`text-[11px] ${
+            isSelectedActive
+              ? "text-white/80"
+              : isUpcoming
+                ? "text-[#D0D0D0]"
+                : isSelectedOther
+                  ? "text-text-secondary"
+                  : "text-text-tertiary"
+          }`}
+        >
+          {completedCount} of {phase.tasks.length}
+        </span>
+      )}
     </button>
   );
+}
+
+function PortalTaskRow({
+  task,
+  accentColor,
+}: {
+  task: PortalTask;
+  accentColor: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 border-t border-border-subtle px-1 py-2.5 first:border-t-0">
+      <span
+        className="inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border"
+        style={{
+          borderColor: task.isCompleted ? accentColor : "#D9D9D9",
+          backgroundColor: task.isCompleted ? accentColor : "transparent",
+        }}
+      >
+        {task.isCompleted ? <Check size={12} weight="bold" className="text-white" /> : null}
+      </span>
+      <span
+        className={`text-[14px] ${
+          task.isCompleted ? "text-text-tertiary line-through" : "text-text-primary"
+        }`}
+      >
+        {task.title}
+      </span>
+    </div>
+  );
+}
+
+function clampProgress(value: number) {
+  return Math.min(100, Math.max(0, Math.round(value)));
+}
+
+function hexToRgba(hex: string, alpha: number) {
+  const normalized = hex.replace("#", "");
+  const expandedHex =
+    normalized.length === 3
+      ? normalized
+          .split("")
+          .map((char) => `${char}${char}`)
+          .join("")
+      : normalized;
+
+  if (!/^[0-9a-fA-F]{6}$/.test(expandedHex)) {
+    return `rgba(232, 115, 74, ${alpha})`;
+  }
+
+  const red = parseInt(expandedHex.slice(0, 2), 16);
+  const green = parseInt(expandedHex.slice(2, 4), 16);
+  const blue = parseInt(expandedHex.slice(4, 6), 16);
+
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }

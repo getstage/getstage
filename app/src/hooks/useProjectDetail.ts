@@ -5,6 +5,7 @@ import { useActionError } from "@/hooks/useActionError";
 import { api } from "@/lib/convex";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { formatDateInput, parseDateInput } from "@/lib/format";
+import { resolvePortalShareUrl } from "@/lib/portal";
 import type { Phase } from "@/types";
 import type { Id } from "../../convex/_generated/dataModel";
 
@@ -66,7 +67,10 @@ export function useProjectDetail(projectId: Id<"projects">) {
     );
   }, [activePhaseId, project]);
 
-  const shareUrl = project?.shareUrl ?? `https://app.usestage.com/portal/${project?.shareToken ?? "demo"}`;
+  const shareUrl = resolvePortalShareUrl({
+    shareToken: project?.shareToken,
+    shareUrl: project?.shareUrl,
+  });
   const clientAccess = project?.portalEnabled ?? true;
 
   useEffect(() => {

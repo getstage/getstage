@@ -33,7 +33,7 @@ const STEPS: Array<{
   {
     number: "2",
     title: "Track progress",
-    description: "Add phases, check off tasks, connect Stripe for payments.",
+    description: "Add phases, check off tasks, and keep work flowing in one place.",
     showcase: <ProjectWorkflowPreview />,
   },
   {
