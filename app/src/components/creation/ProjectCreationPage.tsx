@@ -1,5 +1,7 @@
 import { Helmet } from "react-helmet-async";
+import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
+import { ArrowLeft } from "@phosphor-icons/react";
 import { StepCard } from "@/components/creation/CreationChrome";
 import { GeneratingState, SuccessState } from "@/components/creation/CreationStates";
 import { MethodStep } from "@/components/creation/steps/MethodStep";
@@ -26,6 +28,14 @@ export function ProjectCreationPage() {
           transition={{ duration: 0.2 }}
           className="w-full max-w-[420px]"
         >
+            <Link
+              to="/dashboard"
+              className="mb-6 inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary"
+            >
+              <ArrowLeft size={14} />
+              Dashboard
+            </Link>
+
             {creation.errorMessage ? (
               <div className="mb-6 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-[13px] text-destructive">
                 {creation.errorMessage}
