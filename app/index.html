@@ -3,41 +3,73 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="application-name" content="Stage" />
+  <meta name="theme-color" content="#FFFFFF" />
+  <meta name="robots" content="index, follow" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Stage" />
+  <meta name="msapplication-TileColor" content="#FFFFFF" />
+  <meta name="msapplication-config" content="/browserconfig.xml" />
 
   <!-- SEO -->
-  <title>Stage — Project clarity for creative professionals</title>
-  <meta name="description" content="Track your creative projects with clarity. Stage gives designers and freelancers a calm, focused way to manage projects, share progress with clients, and stay on top of every phase." />
+  <title>Stage — Project clarity for designers and freelancers</title>
+  <meta name="description" content="Track projects, manage phases, and monitor payments. Stage gives designers and freelancers a calm, focused way to run creative work without the chaos." />
   <meta name="keywords" content="project management, designers, freelancers, creative professionals, client portal, project tracking" />
   <link rel="canonical" href="https://usestage.com" />
 
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
+  <meta property="og:locale" content="en_US" />
   <meta property="og:url" content="https://usestage.com" />
-  <meta property="og:title" content="Stage — Project clarity for creative professionals" />
-  <meta property="og:description" content="Track your creative projects with clarity. A calm, focused project management tool built for designers." />
+  <meta property="og:title" content="Stage — Project clarity for designers and freelancers" />
+  <meta property="og:description" content="Track projects, manage phases, and monitor payments. A calm, focused project management tool for creative work." />
   <meta property="og:image" content="https://usestage.com/og-image.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Stage logo with the message Project clarity for designers and freelancers." />
   <meta property="og:site_name" content="Stage" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Stage — Project clarity for creative professionals" />
-  <meta name="twitter:description" content="Track your creative projects with clarity." />
+  <meta name="twitter:title" content="Stage — Project clarity for designers and freelancers" />
+  <meta name="twitter:description" content="Track projects, manage phases, and monitor payments without the chaos." />
   <meta name="twitter:image" content="https://usestage.com/og-image.png" />
+  <meta name="twitter:image:alt" content="Stage logo with the message Project clarity for designers and freelancers." />
 
   <!-- Structured Data -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "Stage",
-    "applicationCategory": "ProjectManagement",
-    "operatingSystem": "Web",
-    "description": "Project clarity for creative professionals. Track projects, share progress with clients, and stay on top of every phase.",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD"
-    }
+    "@graph": [
+      {
+        "@type": "Organization",
+        "name": "Stage",
+        "url": "https://usestage.com",
+        "logo": "https://usestage.com/android-chrome-512x512.png"
+      },
+      {
+        "@type": "WebSite",
+        "name": "Stage",
+        "url": "https://usestage.com"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Stage",
+        "url": "https://usestage.com",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "Project clarity for designers and freelancers. Track projects, manage phases, and monitor payments without the chaos.",
+        "image": "https://usestage.com/og-image.png",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    ]
   }
   </script>
 
@@ -46,8 +78,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet" />
 
-  <!-- Favicon -->
+  <!-- Icons -->
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#14121C" />
 </head>
 <body>
   <div id="root"></div>
