@@ -1,3 +1,6 @@
+import googleSheetsIcon from "@/assets/icons/google-sheets.svg";
+import stripeIcon from "@/assets/icons/stripe.svg";
+
 export function GeneralIcon() {
   return (
     <svg
@@ -47,5 +50,18 @@ export function PortalIcon() {
       <path d="M2 17l10 5 10-5" />
       <path d="M2 12l10 5 10-5" />
     </svg>
+  );
+}
+
+export function IntegrationsIcon() {
+  return (
+    <span className="settings-integration-icon" aria-hidden="true">
+      <span className="settings-integration-badge settings-integration-badge-stripe">
+        <img src={stripeIcon} alt="" />
+      </span>
+      <span className="settings-integration-badge settings-integration-badge-sheets">
+        <img src={googleSheetsIcon} alt="" />
+      </span>
+    </span>
   );
 }

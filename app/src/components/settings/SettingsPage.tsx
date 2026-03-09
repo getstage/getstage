@@ -15,14 +15,20 @@ import { Helmet } from "react-helmet-async";
 import { motion } from "motion/react";
 import { BillingTab } from "@/components/settings/BillingTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
-import { BillingIcon, GeneralIcon, PortalIcon } from "@/components/settings/SettingsIcons";
+import { IntegrationsTab } from "@/components/settings/IntegrationsTab";
+import {
+  BillingIcon,
+  GeneralIcon,
+  IntegrationsIcon,
+  PortalIcon,
+} from "@/components/settings/SettingsIcons";
 import { PortalTab } from "@/components/settings/PortalTab";
-import type { SettingsTab } from "@/components/settings/settingsTypes";
 import { useAuth, useSignOut } from "@/lib/auth";
 import { api } from "@/lib/convex";
 import { DEFAULT_PORTAL_COLOR } from "@/lib/constants";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { capitalize, formatPlanPrice, normalizeHex } from "@/lib/format";
+import type { SettingsTab } from "@/types/settings";
 import { googleSheetsUrlSchema, profileNameSchema } from "@/lib/validation";
 import { SAVED_FEEDBACK, useFeedback } from "@/hooks/useFeedback";
 import { readFileAsDataUrl } from "@/lib/utils";
@@ -100,7 +106,7 @@ export function SettingsPage() {
   useEffect(() => {
     const applyTabFromUrl = () => {
       const tabParam = new URLSearchParams(window.location.search).get("tab");
-      if (tabParam === "billing" || tabParam === "portal") {
+      if (tabParam === "billing" || tabParam === "integrations" || tabParam === "portal") {
         setActiveTab(tabParam);
       } else {
         setActiveTab("general");
@@ -558,6 +564,14 @@ export function SettingsPage() {
             </button>
             <button
               type="button"
+              className={`sidebar-item ${activeTab === "integrations" ? "active" : ""}`}
+              onClick={() => setActiveTab("integrations")}
+            >
+              <IntegrationsIcon />
+              Integrations
+            </button>
+            <button
+              type="button"
               className={`sidebar-item ${activeTab === "portal" ? "active" : ""}`}
               onClick={() => setActiveTab("portal")}
             >
@@ -599,6 +613,10 @@ export function SettingsPage() {
               hasActiveSubscription={hasActiveSubscription}
               onStartCheckout={() => void handleStartCheckout()}
               onOpenPortal={() => void handleOpenPortal()}
+            />
+
+            <IntegrationsTab
+              active={activeTab === "integrations"}
               stripeConnection={stripeConnection ?? null}
               stripeFeedback={stripeFeedback}
               isStripeConnecting={isStripeConnecting}

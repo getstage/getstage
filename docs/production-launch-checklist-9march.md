@@ -124,6 +124,7 @@
 - Profile save works
 - Avatar/logo update works
 - Billing tab loads correctly
+- Integrations tab loads correctly
 - Stripe Connect status shows correctly
 - Google Sheets status shows correctly
 - CSV status shows correctly
@@ -188,7 +189,7 @@
 - Screenshot of the `Transactions` tab
 - Screenshot of sheet sharing settings
 - Screenshot of onboarding Google Sheets step
-- Screenshot of Settings billing/import area
+- Screenshot of Settings integrations area
 - Screenshot of successful linked/imported state
 
 ## 13. Final Go-Live Check
