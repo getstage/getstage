@@ -197,19 +197,18 @@ function PortalPhaseNode({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      className={`flex min-w-[106px] shrink-0 flex-col items-center gap-2 rounded-[18px] px-3 py-4 text-center transition-all duration-200 sm:min-w-[120px] ${
+      className={`flex min-w-[106px] shrink-0 flex-col items-center gap-2 rounded-[18px] border border-transparent px-3 py-4 text-center transition-all duration-200 sm:min-w-[120px] ${
         isSelectedActive ? "" : isSelectedOther ? "" : "hover:bg-bg-subtle"
       }`}
       style={
         isSelectedActive
           ? {
               backgroundColor: accentColor,
-              boxShadow: `0 18px 36px ${hexToRgba(accentColor, 0.18)}`,
             }
           : isSelectedOther
             ? {
                 backgroundColor: hexToRgba(accentColor, 0.08),
-                boxShadow: `inset 0 0 0 1px ${hexToRgba(accentColor, 0.14)}`,
+                borderColor: hexToRgba(accentColor, 0.14),
               }
             : undefined
       }
