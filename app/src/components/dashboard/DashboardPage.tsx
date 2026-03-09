@@ -127,7 +127,7 @@ export function DashboardPage() {
     } catch (error) {
       console.error("Could not persist onboarding state", error);
     } finally {
-      setPreviewStage("paywall");
+      setPreviewStage("preview");
     }
   };
 

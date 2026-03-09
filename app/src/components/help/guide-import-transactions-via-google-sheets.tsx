@@ -2,47 +2,47 @@ import * as React from "react";
 
 type Overlay =
   | {
-      readonly id: string;
-      readonly type: "arrow";
-      readonly points: readonly [number, number, number, number];
-      readonly color: string;
-      readonly strokeWidth: number;
+      id: string;
+      type: "arrow";
+      points: [number, number, number, number];
+      color: string;
+      strokeWidth: number;
     }
   | {
-      readonly id: string;
-      readonly type: "circle";
-      readonly x: number;
-      readonly y: number;
-      readonly radius: number;
-      readonly color: string;
-      readonly strokeWidth: number;
+      id: string;
+      type: "circle";
+      x: number;
+      y: number;
+      radius: number;
+      color: string;
+      strokeWidth: number;
     }
   | {
-      readonly id: string;
-      readonly type: "hide";
-      readonly x: number;
-      readonly y: number;
-      readonly width: number;
-      readonly height: number;
-      readonly color: string;
+      id: string;
+      type: "hide";
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      color: string;
     }
   | {
-      readonly id: string;
-      readonly type: "text";
-      readonly x: number;
-      readonly y: number;
-      readonly text: string;
-      readonly fontSize: number;
-      readonly fontFamily?: string;
-      readonly fill: string;
-      readonly width?: number;
-      readonly rotation?: number;
+      id: string;
+      type: "text";
+      x: number;
+      y: number;
+      text: string;
+      fontSize: number;
+      fontFamily?: string;
+      fill: string;
+      width?: number;
+      rotation?: number;
     };
 
 type SourceStep = {
-  id: string;
-  imageKey?: string | null;
-  overlays?: readonly Overlay[];
+  readonly id: string;
+  readonly imageKey?: string | null;
+  readonly overlays?: readonly Overlay[];
 };
 
 type DocsStep = {
@@ -90,7 +90,11 @@ type DocsContent = {
   };
 };
 
-const GUIDE = {
+const GUIDE: {
+  readonly title: string;
+  readonly brandImageKey: string;
+  readonly steps: readonly SourceStep[];
+} = {
   "title": "Import transactions via Google Sheets",
   "brandImageKey": "https://assets.stepps.ai/brand-logos/93fb9ba1-c1ed-4034-bfce-7884ac07ae47/1773067497926.png",
   "steps": [
@@ -365,20 +369,66 @@ const CONTENT = {
     ]
   }
 } as DocsContent;
-const STEP_LOOKUP = GUIDE.steps.reduce((acc, step) => {
-  acc[step.id] = {
-    id: step.id,
-    imageKey: step.imageKey,
-    overlays: step.overlays ? (step.overlays as readonly Overlay[]) : [],
-  };
-  return acc;
-}, {} as Record<string, SourceStep>);
+const STEP_LOOKUP = GUIDE.steps.reduce<Record<string, SourceStep>>(
+  (acc, step) => {
+    acc[step.id] = step;
+    return acc;
+  },
+  {}
+);
+const THEME = "light" as const;
+
+const themePalette = THEME === "light"
+  ? {
+      pageBg: "#ffffff",
+      pageText: "#0f172a",
+      mutedText: "#334155",
+      mutedSubtle: "#64748b",
+      panelText: "#1f2937",
+      borderStrong: "rgba(15,23,42,0.2)",
+      borderSubtle: "rgba(15,23,42,0.12)",
+      panelBg: "rgba(15,23,42,0.03)",
+      panelBgSubtle: "rgba(15,23,42,0.05)",
+      cardBg: "#f8fafc",
+      heroViewportBg: "#e5e7eb",
+      screenshotShadow: "0 24px 80px rgba(15, 23, 42, 0.18)",
+      eyebrow: "#ea580c",
+      calloutBorder: "rgba(16, 185, 129, 0.35)",
+      calloutBg: "rgba(16, 185, 129, 0.1)",
+      calloutText: "#166534",
+      overlayFallbackText: "#0f172a",
+      sectionText: "#334155",
+      headerBg: "rgba(255,255,255,0.95)",
+      headerText: "#0f172a",
+    }
+  : {
+      pageBg: "#0a0f1a",
+      pageText: "#ffffff",
+      mutedText: "#cbd5e1",
+      mutedSubtle: "#94a3b8",
+      panelText: "#e2e8f0",
+      borderStrong: "rgba(255,255,255,0.08)",
+      borderSubtle: "rgba(255,255,255,0.1)",
+      panelBg: "rgba(255,255,255,0.04)",
+      panelBgSubtle: "rgba(255,255,255,0.04)",
+      cardBg: "#111827",
+      heroViewportBg: "#0f172a",
+      screenshotShadow: "0 24px 80px rgba(0, 0, 0, 0.35)",
+      eyebrow: "#fdba74",
+      calloutBorder: "rgba(16, 185, 129, 0.24)",
+      calloutBg: "rgba(16, 185, 129, 0.08)",
+      calloutText: "#d1fae5",
+      overlayFallbackText: "#ffffff",
+      sectionText: "#cbd5e1",
+      headerBg: "rgba(10,15,26,0.9)",
+      headerText: "#ffffff",
+    };
 
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#0a0f1a",
-    color: "#ffffff",
+    background: themePalette.pageBg,
+    color: themePalette.pageText,
     fontFamily:
       "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   },
@@ -387,8 +437,8 @@ const styles = {
     top: 0,
     zIndex: 20,
     backdropFilter: "blur(14px)",
-    background: "rgba(10, 15, 26, 0.9)",
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
+    background: themePalette.headerBg,
+    borderBottom: "1px solid " + themePalette.borderStrong,
   },
   headerInner: {
     maxWidth: 1280,
@@ -409,25 +459,25 @@ const styles = {
     height: 40,
     borderRadius: 12,
     objectFit: "cover" as const,
-    border: "1px solid rgba(255,255,255,0.1)",
+    border: "1px solid " + themePalette.borderSubtle,
   },
   brandEyebrow: {
     fontSize: 12,
     letterSpacing: "0.18em",
     textTransform: "uppercase" as const,
-    color: "#94a3b8",
+    color: themePalette.mutedSubtle,
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: 600,
-    color: "#ffffff",
+    color: themePalette.headerText,
   },
   headerBadge: {
-    border: "1px solid rgba(255,255,255,0.1)",
+    border: "1px solid " + themePalette.borderSubtle,
     borderRadius: 999,
     padding: "8px 14px",
     fontSize: 13,
-    color: "#cbd5e1",
+    color: themePalette.mutedText,
     textDecoration: "none",
   },
   layout: {
@@ -443,8 +493,8 @@ const styles = {
     top: 100,
     alignSelf: "start" as const,
     borderRadius: 28,
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(255,255,255,0.04)",
+    border: "1px solid " + themePalette.borderSubtle,
+    background: themePalette.panelBgSubtle,
     padding: 16,
   },
   tocList: {
@@ -456,7 +506,7 @@ const styles = {
     gap: 8,
   },
   tocLink: {
-    color: "#cbd5e1",
+    color: themePalette.mutedText,
     textDecoration: "none",
     fontSize: 15,
     lineHeight: 1.45,
@@ -467,7 +517,7 @@ const styles = {
   tocLinkNested: {
     paddingLeft: 22,
     fontSize: 14,
-    color: "#94a3b8",
+    color: themePalette.mutedSubtle,
   },
   main: {
     minWidth: 0,
@@ -488,14 +538,14 @@ const styles = {
     fontWeight: 700,
     letterSpacing: "0.24em",
     textTransform: "uppercase" as const,
-    color: "#fdba74",
+    color: themePalette.eyebrow,
     marginBottom: 16,
   },
   subtitle: {
     maxWidth: 780,
     fontSize: 18,
     lineHeight: 1.7,
-    color: "#cbd5e1",
+    color: themePalette.mutedText,
   },
   heroMeta: {
     display: "flex",
@@ -503,7 +553,7 @@ const styles = {
     gap: 16,
     marginTop: 18,
     fontSize: 14,
-    color: "#94a3b8",
+    color: themePalette.mutedSubtle,
   },
   sectionTitle: {
     fontSize: 30,
@@ -519,14 +569,14 @@ const styles = {
   paragraph: {
     margin: 0,
     whiteSpace: "pre-wrap" as const,
-    color: "#cbd5e1",
+    color: themePalette.sectionText,
     lineHeight: 1.75,
     fontSize: 16,
   },
   panel: {
     borderRadius: 28,
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(255,255,255,0.04)",
+    border: "1px solid " + themePalette.borderStrong,
+    background: themePalette.panelBg,
     padding: 24,
   },
   list: {
@@ -534,7 +584,7 @@ const styles = {
     paddingLeft: 20,
     display: "grid",
     gap: 12,
-    color: "#e2e8f0",
+    color: themePalette.sectionText,
   },
   listItem: {
     lineHeight: 1.7,
@@ -554,13 +604,13 @@ const styles = {
     height: 36,
     minWidth: 36,
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.1)",
-    background: "rgba(255,255,255,0.04)",
+    border: "1px solid " + themePalette.borderSubtle,
+    background: themePalette.panelBgSubtle,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     fontWeight: 700,
-    color: "#ffffff",
+    color: themePalette.pageText,
   },
   stepTitle: {
     fontSize: 28,
@@ -572,17 +622,17 @@ const styles = {
   screenshotCard: {
     position: "relative" as const,
     borderRadius: 28,
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "#111827",
+    border: "1px solid " + themePalette.borderStrong,
+    background: themePalette.cardBg,
     padding: 16,
     marginTop: 18,
-    boxShadow: "0 24px 80px rgba(0, 0, 0, 0.35)",
+    boxShadow: themePalette.screenshotShadow,
   },
   screenshotViewport: {
     position: "relative" as const,
     overflow: "hidden" as const,
     borderRadius: 18,
-    background: "#0f172a",
+    background: themePalette.heroViewportBg,
   },
   screenshotImage: {
     display: "block",
@@ -600,14 +650,17 @@ const styles = {
   callout: {
     marginTop: 18,
     borderRadius: 20,
-    border: "1px solid rgba(16, 185, 129, 0.24)",
-    background: "rgba(16, 185, 129, 0.08)",
+    border: "1px solid " + themePalette.calloutBorder,
+    background: themePalette.calloutBg,
     padding: 18,
+  },
+  calloutText: {
+    color: themePalette.calloutText,
   },
   issueCard: {
     borderRadius: 24,
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(255,255,255,0.04)",
+    border: "1px solid " + themePalette.borderStrong,
+    background: themePalette.panelBgSubtle,
     padding: 24,
     marginTop: 16,
   },
@@ -615,6 +668,9 @@ const styles = {
     margin: "0 0 12px",
     fontSize: 20,
     fontWeight: 600,
+  },
+  issueText: {
+    color: themePalette.sectionText,
   },
 } as const;
 
@@ -631,6 +687,52 @@ function renderParagraphs(value?: string, style?: React.CSSProperties) {
     ));
 }
 
+// Convert percentage-based overlay to pixel coords (same logic as viewer-canvas overlayToPixels)
+function overlayToPixels(overlay: Overlay, width: number, height: number) {
+  const minDim = Math.min(width, height);
+
+  if (overlay.type === "arrow") {
+    return {
+      ...overlay,
+      points: [
+        (overlay.points[0] / 100) * width,
+        (overlay.points[1] / 100) * height,
+        (overlay.points[2] / 100) * width,
+        (overlay.points[3] / 100) * height,
+      ] as [number, number, number, number],
+    };
+  }
+
+  if (overlay.type === "circle") {
+    return {
+      ...overlay,
+      x: (overlay.x / 100) * width,
+      y: (overlay.y / 100) * height,
+      radius: (overlay.radius || 2.5) * (minDim / 100),
+    };
+  }
+
+  if (overlay.type === "hide") {
+    return {
+      ...overlay,
+      x: (overlay.x / 100) * width,
+      y: (overlay.y / 100) * height,
+      width: (overlay.width / 100) * width,
+      height: (overlay.height / 100) * height,
+    };
+  }
+
+  if (overlay.type === "text") {
+    return {
+      ...overlay,
+      x: (overlay.x / 100) * width,
+      y: (overlay.y / 100) * height,
+    };
+  }
+
+  return overlay;
+}
+
 function renderOverlay(overlay: Overlay, index: number) {
   if (overlay.type === "arrow") {
     const markerId = `arrowhead-${overlay.id || index}`;
@@ -644,7 +746,7 @@ function renderOverlay(overlay: Overlay, index: number) {
             refX="8"
             refY="4"
             orient="auto"
-            markerUnits="strokeWidth"
+            markerUnits="userSpaceOnUse"
           >
             <path d="M0,0 L0,8 L8,4 z" fill={overlay.color || "#4f46e5"} />
           </marker>
@@ -698,7 +800,7 @@ function renderOverlay(overlay: Overlay, index: number) {
         key={overlay.id || `text-${index}`}
         x={overlay.x}
         y={overlay.y}
-        fill={overlay.fill || "#ffffff"}
+        fill={overlay.fill || themePalette.overlayFallbackText}
         fontSize={overlay.fontSize || 20}
         fontFamily={overlay.fontFamily || "Arial"}
         transform={overlay.rotation ? `rotate(${overlay.rotation} ${overlay.x} ${overlay.y})` : undefined}
@@ -712,15 +814,34 @@ function renderOverlay(overlay: Overlay, index: number) {
 }
 
 function DocsScreenshot({ step, alt }: { step?: SourceStep; alt: string }) {
+  const [dims, setDims] = React.useState<{ w: number; h: number } | null>(null);
+
   if (!step?.imageKey) return null;
+
+  const pixelOverlays =
+    dims && Array.isArray(step.overlays) && step.overlays.length > 0
+      ? step.overlays.map((o) => overlayToPixels(o, dims.w, dims.h))
+      : [];
 
   return (
     <div style={styles.screenshotCard}>
       <div style={styles.screenshotViewport}>
-        <img src={step.imageKey} alt={alt} style={styles.screenshotImage} />
-        {Array.isArray(step.overlays) && step.overlays.length > 0 ? (
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={styles.screenshotSvg}>
-            {step.overlays.map((overlay, index) => renderOverlay(overlay, index))}
+        <img
+          src={step.imageKey}
+          alt={alt}
+          style={styles.screenshotImage}
+          onLoad={(e: React.SyntheticEvent<HTMLImageElement>) => {
+            const img = e.currentTarget;
+            setDims({ w: img.naturalWidth, h: img.naturalHeight });
+          }}
+        />
+        {dims && pixelOverlays.length > 0 ? (
+          <svg
+            viewBox={`0 0 ${dims.w} ${dims.h}`}
+            preserveAspectRatio="xMidYMid meet"
+            style={styles.screenshotSvg}
+          >
+            {pixelOverlays.map((overlay, index) => renderOverlay(overlay, index))}
           </svg>
         ) : null}
       </div>
@@ -737,7 +858,7 @@ function DocsHero() {
     <section style={styles.section}>
       {CONTENT.hero.eyebrow ? <div style={styles.eyebrow}>{CONTENT.hero.eyebrow}</div> : null}
       <h1 style={styles.heroTitle}>{CONTENT.hero.title}</h1>
-      <div style={styles.subtitle}>{renderParagraphs(CONTENT.hero.subtitle, { color: "#cbd5e1", fontSize: 18 })}</div>
+      <div style={styles.subtitle}>{renderParagraphs(CONTENT.hero.subtitle, { fontSize: 18 })}</div>
       <div style={styles.heroMeta}>
         {CONTENT.hero.estimatedMinutes ? <span>{CONTENT.hero.estimatedMinutes} min read</span> : null}
         <span>{CONTENT.steps.length} detailed steps</span>
@@ -813,7 +934,9 @@ function DocsSteps() {
               {step.imageMode === "full" ? <DocsScreenshot step={sourceStep} alt={step.title} /> : null}
               {step.calloutMd ? (
                 <div style={styles.callout}>
-                  <div style={styles.paragraphWrap}>{renderParagraphs(step.calloutMd, { color: "#d1fae5" })}</div>
+                  <div style={styles.paragraphWrap}>
+                    {renderParagraphs(step.calloutMd, { color: themePalette.calloutText })}
+                  </div>
                 </div>
               ) : null}
             </section>

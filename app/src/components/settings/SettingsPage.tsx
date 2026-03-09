@@ -31,8 +31,11 @@ import { capitalize, formatPlanPrice, normalizeHex } from "@/lib/format";
 import type { SettingsTab } from "@/types/settings";
 import { googleSheetsUrlSchema, profileNameSchema } from "@/lib/validation";
 import { SAVED_FEEDBACK, useFeedback } from "@/hooks/useFeedback";
-import { readFileAsDataUrl } from "@/lib/utils";
-import { uploadFileToR2 } from "@/lib/r2Uploads";
+import {
+  uploadFileToR2,
+  prepareAvatarUpload,
+  preparePortalLogoUpload,
+} from "@/lib/r2Uploads";
 import "@/styles/settings.css";
 
 const PREVIEW_PORTAL_URL = "/portal/share_acme_2026?preview=1";
@@ -95,7 +98,6 @@ export function SettingsPage() {
   const connectSheet = useConvexMutation(api.googleSheets.connectSheet);
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
   const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
-  const uploadCsv = useConvexMutation(api.googleSheets.uploadCsv);
   const disconnectSheet = useConvexMutation(api.googleSheets.disconnectSheet);
   const disconnectStripe = useConvexMutation(api.stripeConnect.disconnectStripe);
   const createCheckoutSession = useConvexAction(api.billing.createCheckoutSession);
@@ -132,12 +134,10 @@ export function SettingsPage() {
   const [isGoogleSheetConnecting, setIsGoogleSheetConnecting] = useState(false);
   const [isGoogleSheetImporting, setIsGoogleSheetImporting] = useState(false);
   const [isGoogleSheetDisconnecting, setIsGoogleSheetDisconnecting] = useState(false);
-  const [isCsvUploading, setIsCsvUploading] = useState(false);
-  const [isCsvImporting, setIsCsvImporting] = useState(false);
-  const [isCsvDisconnecting, setIsCsvDisconnecting] = useState(false);
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
+  const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const csvFileInputRef = useRef<HTMLInputElement>(null);
   const { feedback: nameFeedback, showFeedback: showNameFeedback } = useFeedback();
   const { feedback: avatarFeedback, showFeedback: showAvatarFeedback } = useFeedback();
   const { feedback: portalLogoFeedback, showFeedback: showPortalLogoFeedback } = useFeedback();
@@ -145,7 +145,6 @@ export function SettingsPage() {
   const { feedback: billingFeedback, showFeedback: showBillingFeedback } = useFeedback();
   const { feedback: stripeFeedback, showFeedback: showStripeFeedback } = useFeedback();
   const { feedback: googleSheetFeedback, showFeedback: showGoogleSheetFeedback } = useFeedback();
-  const { feedback: csvFeedback, showFeedback: showCsvFeedback } = useFeedback();
   const { feedback: deleteAccountFeedback, showFeedback: showDeleteAccountFeedback } =
     useFeedback();
 
@@ -199,13 +198,27 @@ export function SettingsPage() {
   function handleAvatarInputChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    void readFileAsDataUrl(file).then(setAvatarDataUrl);
+    void prepareAvatarUpload(file)
+      .then((prepared) => {
+        setPendingAvatarFile(prepared.file);
+        setAvatarDataUrl(prepared.previewUrl);
+      })
+      .catch((error) => {
+        showFriendlyFeedback(showAvatarFeedback, error, "Could not prepare this image.");
+      });
   }
 
   function handleLogoInputChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    void readFileAsDataUrl(file).then(setPortalLogoDataUrl);
+    void preparePortalLogoUpload(file)
+      .then((prepared) => {
+        setPendingLogoFile(prepared.file);
+        setPortalLogoDataUrl(prepared.previewUrl);
+      })
+      .catch((error) => {
+        showFriendlyFeedback(showPortalLogoFeedback, error, "Could not prepare this image.");
+      });
   }
 
   function handleLogoDrop(e: DragEvent<HTMLDivElement>) {
@@ -213,7 +226,14 @@ export function SettingsPage() {
     setLogoDragActive(false);
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-    void readFileAsDataUrl(file).then(setPortalLogoDataUrl);
+    void preparePortalLogoUpload(file)
+      .then((prepared) => {
+        setPendingLogoFile(prepared.file);
+        setPortalLogoDataUrl(prepared.previewUrl);
+      })
+      .catch((error) => {
+        showFriendlyFeedback(showPortalLogoFeedback, error, "Could not prepare this image.");
+      });
   }
 
   function handlePortalColorInput(value: string) {
@@ -267,15 +287,20 @@ export function SettingsPage() {
   }
 
   async function persistAvatar() {
-    if (!avatarDataUrl) {
+    if (!pendingAvatarFile) {
       return;
     }
 
     setIsSavingAvatar(true);
     try {
-      await updateProfile({
-        avatarUrl: avatarDataUrl,
+      const key = await uploadFileToR2({
+        generateUploadUrl: r2GenerateUploadUrl,
+        syncMetadata: r2SyncMetadata,
+        purpose: "profile-avatar",
+        file: pendingAvatarFile,
       });
+      await updateProfile({ avatarKey: key });
+      setPendingAvatarFile(null);
       showAvatarFeedback(SAVED_FEEDBACK);
     } catch (error) {
       showFriendlyFeedback(showAvatarFeedback, error, "Could not save your avatar.");
@@ -285,11 +310,34 @@ export function SettingsPage() {
   }
 
   async function persistPortalLogo() {
+    if (portalLogoDataUrl === null) {
+      setIsSavingPortalLogo(true);
+      try {
+        await updatePortalBranding({ logoUrl: null });
+        setPendingLogoFile(null);
+        showPortalLogoFeedback(SAVED_FEEDBACK);
+      } catch (error) {
+        showFriendlyFeedback(showPortalLogoFeedback, error, "Could not save the portal logo.");
+      } finally {
+        setIsSavingPortalLogo(false);
+      }
+      return;
+    }
+
+    if (!pendingLogoFile) {
+      return;
+    }
+
     setIsSavingPortalLogo(true);
     try {
-      await updatePortalBranding({
-        logoUrl: portalLogoDataUrl,
+      const key = await uploadFileToR2({
+        generateUploadUrl: r2GenerateUploadUrl,
+        syncMetadata: r2SyncMetadata,
+        purpose: "portal-logo",
+        file: pendingLogoFile,
       });
+      await updatePortalBranding({ logoKey: key });
+      setPendingLogoFile(null);
       showPortalLogoFeedback(SAVED_FEEDBACK);
     } catch (error) {
       showFriendlyFeedback(showPortalLogoFeedback, error, "Could not save the portal logo.");
@@ -482,63 +530,6 @@ export function SettingsPage() {
     }
   }
 
-  async function handleCsvFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) {
-      return;
-    }
-
-    setIsCsvUploading(true);
-    try {
-      const key = await uploadFileToR2({
-        generateUploadUrl: r2GenerateUploadUrl,
-        syncMetadata: r2SyncMetadata,
-        purpose: "csv-upload",
-        file,
-      });
-
-      await uploadCsv({
-        r2ObjectKey: key,
-        fileName: file.name,
-      });
-
-      showCsvFeedback(SAVED_FEEDBACK);
-    } catch (error) {
-      showFriendlyFeedback(showCsvFeedback, error, "Could not upload that CSV file.");
-    } finally {
-      setIsCsvUploading(false);
-    }
-  }
-
-  async function handleCsvImport() {
-    setIsCsvImporting(true);
-    try {
-      await runSheetImport({
-        sourceType: "csv_upload",
-      });
-      showCsvFeedback(SAVED_FEEDBACK);
-    } catch (error) {
-      showFriendlyFeedback(showCsvFeedback, error, "Could not import that CSV file.");
-    } finally {
-      setIsCsvImporting(false);
-    }
-  }
-
-  async function handleCsvDisconnect() {
-    setIsCsvDisconnecting(true);
-    try {
-      await disconnectSheet({
-        sourceType: "csv_upload",
-      });
-      showCsvFeedback(SAVED_FEEDBACK);
-    } catch (error) {
-      showFriendlyFeedback(showCsvFeedback, error, "Could not disconnect the CSV source.");
-    } finally {
-      setIsCsvDisconnecting(false);
-    }
-  }
-
   async function handleDeleteAccount(confirmation: string) {
     setIsDeletingAccount(true);
     try {
@@ -697,15 +688,6 @@ export function SettingsPage() {
               googleSheetHelpDialogTitle={googleSheetHelpDialogTitle}
               googleSheetHelpDialogMessage={googleSheetHelpDialogMessage}
               onGoogleSheetHelpDialogOpenChange={setGoogleSheetHelpDialogOpen}
-              csvUploadConnection={sheetConnections?.csvUpload ?? null}
-              csvFeedback={csvFeedback}
-              csvFileInputRef={csvFileInputRef}
-              isCsvUploading={isCsvUploading}
-              isCsvImporting={isCsvImporting}
-              isCsvDisconnecting={isCsvDisconnecting}
-              onCsvFileChange={(event) => void handleCsvFileChange(event)}
-              onCsvImport={() => void handleCsvImport()}
-              onCsvDisconnect={() => void handleCsvDisconnect()}
             />
 
             <PortalTab

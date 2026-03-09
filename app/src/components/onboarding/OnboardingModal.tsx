@@ -14,7 +14,7 @@ import { Eye, UserCircle } from "@phosphor-icons/react";
 import confetti from "canvas-confetti";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
-import { useMutation as useConvexMutation } from "convex/react";
+import { useAction as useConvexAction, useMutation as useConvexMutation } from "convex/react";
 import onboardingImage from "@/assets/onboarding/onboarding.webp";
 import {
   dateRangeInputSchema,
@@ -26,6 +26,7 @@ import {
 import { api } from "@/lib/convex";
 import { cn } from "@/lib/utils";
 import type { ProjectType } from "@/types";
+import { OnboardingPaywall } from "@/components/onboarding/OnboardingPaywall";
 
 gsap.registerPlugin(SplitText, useGSAP);
 
@@ -40,7 +41,8 @@ type Step =
   | "timeline"
   | "preview"
   | "integrations"
-  | "creating";
+  | "creating"
+  | "paywall";
 
 type PhaseItem = {
   id: string;
@@ -177,8 +179,12 @@ export function OnboardingModal({
   const [csvImporting, setCsvImporting] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
   const [stepError, setStepError] = useState<string | null>(null);
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const completionTimeoutRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
+  const createCheckoutSession = useConvexAction(api.billing.createCheckoutSession);
   const connectSheet = useConvexMutation(api.googleSheets.connectSheet);
 
   const activePhases = useMemo(() => phases.filter((phase) => phase.on), [phases]);
@@ -252,6 +258,8 @@ export function OnboardingModal({
     setCsvImporting(false);
     setStripeConnected(false);
     setStepError(null);
+    setIsCheckoutLoading(false);
+    setCheckoutError(null);
   }, [open]);
 
   useEffect(() => {
@@ -351,10 +359,44 @@ export function OnboardingModal({
       return;
     }
 
+    setStep("paywall");
+  }
+
+  function handleContinueFree() {
+    if (isClosing || !pendingSubmission) {
+      return;
+    }
+
     setIsClosing(true);
     completionTimeoutRef.current = window.setTimeout(() => {
       onComplete(pendingSubmission);
     }, 720);
+  }
+
+  async function handlePaywallUpgrade() {
+    if (!pendingSubmission) {
+      return;
+    }
+
+    setIsCheckoutLoading(true);
+    setCheckoutError(null);
+
+    try {
+      await completeOnboarding({ workCategory: pendingSubmission.fieldOfWork });
+    } catch {
+      // Best-effort persist — checkout redirect takes priority.
+    }
+
+    try {
+      const result = await createCheckoutSession({});
+      if (!result.url) {
+        throw new Error("Checkout URL missing.");
+      }
+      window.location.assign(result.url);
+    } catch {
+      setCheckoutError("Could not start checkout. Please try again.");
+      setIsCheckoutLoading(false);
+    }
   }
 
   function goBack() {
@@ -897,9 +939,20 @@ export function OnboardingModal({
                   <CreatingDashboardText userName={userName} onDone={handleCreatingDone} />
                 </OnboardingStepMotion>
               ) : null}
+
+              {step === "paywall" ? (
+                <OnboardingStepMotion motionKey="paywall">
+                  <OnboardingPaywall
+                    onContinueFree={handleContinueFree}
+                    onUpgrade={() => void handlePaywallUpgrade()}
+                    isUpgradeLoading={isCheckoutLoading}
+                    upgradeError={checkoutError}
+                  />
+                </OnboardingStepMotion>
+              ) : null}
             </AnimatePresence>
 
-            {step !== "creating" ? (
+            {step !== "creating" && step !== "paywall" ? (
               <div className="mt-8">
                 {stepError ? (
                   <p className="mb-3 text-[13px] leading-normal text-destructive">{stepError}</p>

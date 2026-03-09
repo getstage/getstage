@@ -5,7 +5,7 @@ import type { Id } from "./_generated/dataModel";
 import { components, internal } from "./_generated/api";
 import { ensurePortalConfig, pruneOrphanClientsForUser, requireAuthUser } from "./_helpers";
 import { getCurrentSubscriptionSnapshot } from "./billing";
-import { resolveAssetUrl } from "./r2";
+import { deleteOldR2Asset, resolveAssetUrl } from "./r2";
 
 const DEFAULT_PORTAL_COLOR = "#E8734A";
 const DELETE_ACCOUNT_CONFIRMATION = "DELETE";
@@ -162,6 +162,11 @@ export const updateProfile = mutation({
 
     const nextAvatarUrl = avatarKey ?? avatarUrl;
 
+    // Delete old R2 avatar before saving new one to prevent ghost data.
+    if (nextAvatarUrl !== undefined && user.avatarUrl) {
+      await deleteOldR2Asset(ctx, user.avatarUrl);
+    }
+
     const patch: Record<string, string | number> = { updatedAt: now() };
     if (nextName !== undefined) patch.name = nextName;
     if (nextAvatarUrl !== undefined) patch.avatarUrl = nextAvatarUrl;
@@ -187,6 +192,11 @@ export const updatePortalBranding = mutation({
     const normalizedColor =
       accentColor !== undefined ? normalizeHexColor(accentColor) : undefined;
     const nextLogoUrl = logoKey ?? logoUrl;
+
+    // Delete old R2 logo before saving new one to prevent ghost data.
+    if (nextLogoUrl !== undefined && user.defaultPortalLogoUrl) {
+      await deleteOldR2Asset(ctx, user.defaultPortalLogoUrl);
+    }
 
     const userPatch: Record<string, string | number | undefined> = { updatedAt: now() };
     if (nextLogoUrl !== undefined) {

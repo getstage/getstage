@@ -2,7 +2,7 @@ import { R2 } from "@convex-dev/r2";
 import { v } from "convex/values";
 import type { DataModel } from "./_generated/dataModel";
 import { components } from "./_generated/api";
-import { mutation } from "./_generated/server";
+import { mutation, type MutationCtx } from "./_generated/server";
 import { requireAuthUser } from "./_helpers";
 import { getUploadValidationError, type UploadPurpose } from "../shared/uploadRules";
 
@@ -61,6 +61,21 @@ function buildObjectKey(userId: string, purpose: UploadPurpose, fileName: string
 
 function isR2Key(value: string) {
   return !/^https?:\/\//i.test(value) && !value.startsWith("data:");
+}
+
+/**
+ * Delete an old R2 object if the value is an R2 key (not a URL or data URI).
+ * Always call this BEFORE saving the new key to the DB to prevent ghost data.
+ */
+export async function deleteOldR2Asset(ctx: MutationCtx, oldValue: string | null | undefined) {
+  if (!oldValue || !isR2Key(oldValue)) {
+    return;
+  }
+  try {
+    await r2.deleteObject(ctx, oldValue);
+  } catch {
+    // Best-effort: the old object may already be gone.
+  }
 }
 
 export async function resolveAssetUrl(value: string | null | undefined) {

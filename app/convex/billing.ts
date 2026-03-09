@@ -270,6 +270,14 @@ export const handleSuccessfulPaymentEvent = action({
       }),
     });
 
+    if (response.status === 409) {
+      // Idempotency key already processed — email was already sent.
+      await ctx.runMutation(internal.billing.markFirstPaymentEmailSent, {
+        userId: viewer.userId,
+      });
+      return { sent: false, reason: "already_sent" as const };
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Failed to send first payment event: ${response.status} ${errorText}`);

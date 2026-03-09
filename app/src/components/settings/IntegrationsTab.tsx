@@ -1,11 +1,9 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import type { ChangeEvent, RefObject } from "react";
 import googleSheetsIcon from "@/assets/icons/google-sheets.svg";
 import stripeIcon from "@/assets/icons/stripe.svg";
 import { FeedbackText } from "@/components/settings/FeedbackText";
 import type { SaveFeedback } from "@/hooks/useFeedback";
 import type {
-  CsvUploadSummary,
   GoogleSheetSummary,
   StripeConnectionSummary,
 } from "@/types/settings";
@@ -36,15 +34,6 @@ type IntegrationsTabProps = {
   googleSheetHelpDialogTitle: string;
   googleSheetHelpDialogMessage: string;
   onGoogleSheetHelpDialogOpenChange: (open: boolean) => void;
-  csvUploadConnection: CsvUploadSummary;
-  csvFeedback: SaveFeedback;
-  csvFileInputRef: RefObject<HTMLInputElement | null>;
-  isCsvUploading: boolean;
-  isCsvImporting: boolean;
-  isCsvDisconnecting: boolean;
-  onCsvFileChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  onCsvImport: () => void;
-  onCsvDisconnect: () => void;
 };
 
 export function IntegrationsTab({
@@ -73,25 +62,13 @@ export function IntegrationsTab({
   googleSheetHelpDialogTitle,
   googleSheetHelpDialogMessage,
   onGoogleSheetHelpDialogOpenChange,
-  csvUploadConnection,
-  csvFeedback,
-  csvFileInputRef,
-  isCsvUploading,
-  isCsvImporting,
-  isCsvDisconnecting,
-  onCsvFileChange,
-  onCsvImport,
-  onCsvDisconnect,
 }: IntegrationsTabProps) {
   const stripeStatusLabel = formatConnectionStatus(stripeConnection?.status ?? null);
   const googleSheetStatusLabel = formatConnectionStatus(googleSheetConnection?.status ?? null);
-  const csvStatusLabel = formatConnectionStatus(csvUploadConnection?.status ?? null);
   const stripeConnected =
     stripeConnection?.status === "active" || stripeConnection?.status === "pending";
   const googleSheetConnected =
     googleSheetConnection?.status === "active" || googleSheetConnection?.status === "pending";
-  const csvConnected =
-    csvUploadConnection?.status === "active" || csvUploadConnection?.status === "pending";
 
   return (
     <div className={`tab-content ${active ? "active" : ""}`}>
@@ -305,71 +282,6 @@ export function IntegrationsTab({
         </div>
       </div>
 
-      <div className="settings-card">
-        <div className="card-body">
-          <div className="card-heading sf">CSV upload</div>
-          <div className="card-desc">
-            Use CSV as the fallback path. The same template columns are supported.
-          </div>
-
-          <div className="rounded-[10px] border border-dashed border-border px-4 py-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <div className="text-[14px] font-medium text-text-primary">
-                  {csvUploadConnection?.fileName || "No CSV uploaded yet"}
-                </div>
-                <div className="mt-1 text-[13px] text-text-secondary">
-                  {csvConnected
-                    ? `Status: ${csvStatusLabel}`
-                    : "Upload a CSV that matches your Google Sheets template."}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className="btn-outline shrink-0"
-                disabled={isCsvUploading}
-                onClick={() => csvFileInputRef.current?.click()}
-              >
-                {isCsvUploading ? "Uploading..." : csvConnected ? "Replace CSV" : "Choose CSV"}
-              </button>
-            </div>
-          </div>
-
-          <input
-            ref={csvFileInputRef}
-            type="file"
-            accept=".csv,text/csv"
-            className="hidden-file-input"
-            onChange={onCsvFileChange}
-          />
-
-          {csvUploadConnection?.lastImportError ? (
-            <div className="mt-4 text-[13px] text-[#E07070]">{csvUploadConnection.lastImportError}</div>
-          ) : null}
-        </div>
-        <div className="card-footer">
-          <FeedbackText feedback={csvFeedback} fallback="Upload first, then import on demand." />
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="btn-outline"
-              disabled={!csvConnected || isCsvImporting}
-              onClick={onCsvImport}
-            >
-              {isCsvImporting ? "Importing..." : "Import CSV"}
-            </button>
-            <button
-              type="button"
-              className="btn-outline"
-              disabled={!csvConnected || isCsvDisconnecting}
-              onClick={onCsvDisconnect}
-            >
-              {isCsvDisconnecting ? "Disconnecting..." : "Disconnect"}
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
