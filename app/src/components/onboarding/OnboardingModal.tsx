@@ -464,7 +464,7 @@ export function OnboardingModal({
     }, 720);
   }
 
-  async function handlePaywallUpgrade() {
+  async function handlePaywallUpgrade(_billingCycle: "monthly" | "yearly") {
     if (!pendingSubmission) {
       return;
     }
@@ -1116,7 +1116,7 @@ export function OnboardingModal({
                 <OnboardingStepMotion motionKey="paywall">
                   <OnboardingPaywall
                     onContinueFree={handleContinueFree}
-                    onUpgrade={() => void handlePaywallUpgrade()}
+                    onUpgrade={(billingCycle) => void handlePaywallUpgrade(billingCycle)}
                     isUpgradeLoading={isCheckoutLoading}
                     upgradeError={checkoutError}
                   />

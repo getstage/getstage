@@ -2345,10 +2345,66 @@
   padding: 34px clamp(20px, 3.2vw, 42px) 30px;
   display: flex;
   flex-direction: column;
+  gap: 26px;
   min-width: 0;
 }
 
+.landing-pricing-billing-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.landing-pricing-billing-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: #f3f2ef;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+}
+
+.landing-pricing-billing-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.landing-pricing-billing-button.is-active {
+  background: #fff;
+  color: var(--color-text-primary);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.08);
+}
+
+.landing-pricing-billing-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(135, 130, 245, 0.12);
+  color: var(--color-accent);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
 .landing-pricing-plan-head {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 128px;
   margin-bottom: 22px;
 }
 
@@ -2387,7 +2443,8 @@
 
 .landing-pricing-plan-description {
   margin: 0;
-  max-width: 56ch;
+  max-width: 28ch;
+  line-height: 1.45;
 }
 
 .landing-pricing-price-block {
@@ -2397,7 +2454,8 @@
 .landing-pricing-price-line {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .landing-pricing-price-amount {
@@ -2479,24 +2537,69 @@
   gap: 7px;
 }
 
-.landing-pricing-inline-integrations {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+.landing-pricing-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  padding-top: 2px;
 }
 
-.landing-pricing-inline-integration-logo {
-  width: 15px;
-  height: 15px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.landing-pricing-split-pane {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 30px 0 0;
+  border-top: 1px solid var(--color-border-subtle);
 }
 
-.landing-pricing-inline-integration-logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.landing-pricing-split-pane + .landing-pricing-split-pane {
+  padding: 28px 0 0 30px;
+  border-left: 1px solid var(--color-border-subtle);
+}
+
+.landing-pricing-split-pane-free .landing-pricing-plan-description,
+.landing-pricing-split-pane-free .landing-pricing-price-note,
+.landing-pricing-split-pane-free .landing-pricing-feature-item {
+  color: var(--color-text-secondary);
+}
+
+.landing-pricing-price-original {
+  color: var(--color-text-tertiary);
+  font-size: 16px;
+  text-decoration: line-through;
+}
+
+.landing-pricing-price-subnote {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.landing-pricing-feature-list.is-single-column {
+  grid-template-columns: 1fr;
+  column-gap: 0;
+}
+
+.landing-pricing-feature-item.is-free {
+  color: var(--color-text-secondary);
+}
+
+.landing-pricing-feature-icon.is-free {
+  color: var(--color-text-tertiary);
+}
+
+.landing-pricing-split-pane .landing-pricing-grid-cta {
+  margin-top: auto;
+}
+
+.landing-pricing-split-pane .landing-pricing-plan-head {
+  margin-bottom: 20px;
+}
+
+.landing-pricing-split-pane-pro .landing-pricing-price-note {
+  color: var(--color-accent);
+  font-weight: 500;
 }
 
 .landing-step-grid-card {
@@ -3321,10 +3424,27 @@
     padding: 24px 20px 22px;
   }
 
-  .landing-pricing-feature-list {
+  .landing-pricing-billing-wrap {
+    justify-content: center;
+  }
+
+  .landing-pricing-split {
     grid-template-columns: 1fr;
-    column-gap: 0;
-    row-gap: 2px;
+  }
+
+  .landing-pricing-split-pane {
+    padding: 24px 0 0;
+  }
+
+  .landing-pricing-split-pane + .landing-pricing-split-pane {
+    padding: 24px 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--color-border-subtle);
+    margin-top: 24px;
+  }
+
+  .landing-pricing-plan-head {
+    min-height: 0;
   }
 
   .landing-final-card {
@@ -3893,28 +4013,39 @@
     padding: 20px 16px;
   }
 
-  .landing-pricing-plan-row {
-    flex-wrap: nowrap;
-    align-items: center;
-    gap: 8px;
+  .landing-pricing-billing-wrap {
+    width: 100%;
+  }
+
+  .landing-pricing-billing-control {
+    width: 100%;
+    justify-content: stretch;
+    gap: 3px;
+    padding: 3px;
+  }
+
+  .landing-pricing-billing-button {
+    flex: 1;
+    min-width: 0;
+    gap: 6px;
+    min-height: 38px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
+  .landing-pricing-billing-save {
+    display: inline-flex;
+    padding: 2px 6px;
+    font-size: 10px;
   }
 
   .landing-pricing-price-amount {
     font-size: clamp(36px, 10vw, 48px);
   }
 
-  .landing-pricing-grid-cta {
-    width: 100%;
-  }
-
-  .landing-pricing-inline-integration-logo {
-    width: 14px;
-    height: 14px;
-  }
-
-  .landing-pricing-inline-integration-logo img {
-    width: 100%;
-    height: 100%;
+  .landing-pricing-plan-row {
+    flex-wrap: wrap;
+    row-gap: 6px;
   }
 
   .landing-pricing-overview,
