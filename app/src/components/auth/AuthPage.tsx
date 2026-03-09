@@ -141,6 +141,7 @@ export function AuthPage() {
     <>
       <Helmet>
         <title>Sign in — Stage</title>
+        <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
       <div className="flex min-h-screen items-center justify-center bg-bg px-4">

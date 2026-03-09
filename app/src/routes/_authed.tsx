@@ -1,5 +1,6 @@
 import { Navigate, createFileRoute, Outlet } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
+import { Helmet } from "react-helmet-async";
 import { AppLayout } from "@/components/shared/AppLayout";
 
 export const Route = createFileRoute("/_authed")({
@@ -23,6 +24,9 @@ function AuthedLayout() {
 
   return (
     <AppLayout>
+      <Helmet>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <Outlet />
     </AppLayout>
   );
