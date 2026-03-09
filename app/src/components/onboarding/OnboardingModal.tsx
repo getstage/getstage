@@ -10,7 +10,7 @@ import {
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "motion/react";
 import { useGSAP } from "@gsap/react";
-import { Eye, LinkSimple, UserCircle } from "@phosphor-icons/react";
+import { Eye, UserCircle } from "@phosphor-icons/react";
 import confetti from "canvas-confetti";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
@@ -65,6 +65,9 @@ const PROJECT_TYPE_OPTIONS: Array<{ value: ProjectType; label: string }> = [
 ];
 
 const DEFAULT_PHASES = ["Discovery", "Strategy", "Design", "Development", "Launch"];
+const GOOGLE_SHEETS_ICON_SRC = new URL("../../assets/icons/google-sheets.svg", import.meta.url)
+  .href;
+const STRIPE_ICON_SRC = new URL("../../assets/icons/stripe.svg", import.meta.url).href;
 
 const AI_ROADMAPS: Record<ProjectType, RoadmapItem[]> = {
   branding: [
@@ -821,22 +824,24 @@ export function OnboardingModal({
 
               {step === "integrations" ? (
                 <OnboardingStepMotion motionKey="integrations">
-                  <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
-                    Connect your data
-                  </h3>
+                  <div className="flex items-center gap-2.5">
+                    <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
+                      Connect your data
+                    </h3>
+                    <img src={GOOGLE_SHEETS_ICON_SRC} alt="Google Sheets" className="h-4 w-4" />
+                    <img src={STRIPE_ICON_SRC} alt="Stripe" className="h-4 w-4" />
+                  </div>
                   <p className="mt-2 text-[15px] leading-[1.5] text-text-secondary">
-                    Connect now or skip for later. You can adjust integrations anytime in Settings.
+                    Import Google Sheets now. Stripe comes next.
                   </p>
 
                   <div className="mt-7 rounded-[16px] border border-border-subtle bg-bg-subtle px-4 py-4 sm:px-6 sm:py-5">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <p className="text-[17px] font-medium text-text-primary">
-                          Google Sheets (CSV)
+                          Google Sheets import
                         </p>
-                        <p className="text-[13px] text-text-secondary">
-                          Standard connection + import flow
-                        </p>
+                        <p className="mt-2 text-[14px] text-text-secondary">Optional for now.</p>
                       </div>
 
                       <button
@@ -855,7 +860,7 @@ export function OnboardingModal({
                       </button>
                     </div>
 
-                      {csvConnected ? (
+                    {csvConnected ? (
                       <>
                         <div className="mt-3 flex flex-col gap-2 md:flex-row">
                           <input
@@ -875,61 +880,13 @@ export function OnboardingModal({
                         </div>
                         {csvImported ? (
                           <div className="mt-2 text-[12px] text-accent">
-                            Sheet link saved.
+                            Imported. We&apos;ll use this data in your dashboard.
                           </div>
                         ) : null}
-                        {sheetUrl ? (
-                          <p className="mt-2 text-[12px] text-text-secondary">
-                            Linked sheet:{" "}
-                            <a
-                              href={sheetUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="font-medium text-accent underline decoration-[rgba(232,112,112,0.5)] underline-offset-2 transition-opacity hover:opacity-85"
-                            >
-                              Open sheet
-                            </a>
-                          </p>
-                        ) : null}
                       </>
-                    ) : (
-                      <p className="mt-4 text-[14px] text-text-secondary">
-                        Link your sheet and import whenever you are ready.
-                      </p>
-                    )}
+                    ) : null}
 
-                    <GuideLink href={googleSheetsGuideHref}>View our guide</GuideLink>
-
-                    <div className="my-5 h-px bg-border-subtle" />
-
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-[17px] font-medium text-text-primary">Stripe</p>
-                        <p className="text-[13px] text-text-secondary">
-                          Optional now, can be connected later
-                        </p>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setStripeConnected((value) => !value)}
-                        className={cn(
-                          "cursor-pointer text-[15px] font-medium transition-colors focus:outline-none",
-                          stripeConnected
-                            ? "text-text-secondary hover:text-text-primary"
-                            : "text-accent hover:text-accent-hover",
-                        )}
-                      >
-                        {stripeConnected ? "Disconnect" : "Connect Stripe"}
-                      </button>
-                    </div>
-
-                    <div className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-text-secondary">
-                      <LinkSimple size={14} />
-                      {stripeConnected ? "Stripe connected." : "No Stripe connection yet."}
-                    </div>
-
-                    <GuideLink href={stripeGuideHref}>View our guide</GuideLink>
+                    <GuideLink href={googleSheetsGuideHref}>View import guide</GuideLink>
                   </div>
                 </OnboardingStepMotion>
               ) : null}
