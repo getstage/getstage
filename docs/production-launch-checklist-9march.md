@@ -200,3 +200,58 @@
 - One clean Google Sheets import
 - One clean logout/login repeat
 - One manual pass on mobile
+
+## 14. Google Sheets Troubleshooting (Fast)
+
+If importing from Google Sheets fails, use this quick checklist:
+
+## What to check first
+
+1. **“Could not find required column” message**
+   - Make sure your first row has these columns exactly:
+     - `Date`
+     - `Type`
+     - `Direction`
+     - `Counterparty` (or `Client`)
+     - `Amount`
+     - `Currency`
+     - `Status`
+   - Keep `Transactions` as your active tab when copying the URL.
+   - Use the full Google Sheets URL from the `Transactions` tab, for example:
+     `https://docs.google.com/spreadsheets/d/16D29umAEevwnw693su9sc9OKlv2HVy6If6CbhYJDVX8/edit?gid=2001528163#gid=2001528163`
+   - The URL format should be:
+     `https://docs.google.com/spreadsheets/d/<SHEET_ID>/edit?gid=<TAB_GID>#gid=<TAB_GID>`
+
+2. **“Unable to fetch / export failed” message**
+   - Open your sheet → **Share**.
+   - Set access to **Anyone with the link → Viewer**.
+   - Keep that option on while importing.
+   - If it still fails, try **File → Publish to the web** and retry.
+
+3. **“Client not found” message**
+   - Create the client in Stage first.
+   - Use the same client name in Stage and in the sheet.
+
+4. **“Project not found” message**
+   - Create the project first (or leave that column blank).
+   - Use the exact project name that exists in Stage.
+
+5. **“Unsupported type / direction / status” message**
+   - Use one of these values:
+     - **Type**: `invoice`, `expense`, `salary`, `tax`, `loan`, `other`, `payment`, `refund`, `adjustment`
+     - **Direction**: `in`, `incoming`, `out`, `outgoing`
+     - **Status**: `draft`, `open`, `pending`, `paid`, `succeeded`, `complete`, `overdue`, `past_due`, `cancelled`, `failed`
+
+6. **“Amount is invalid” or “Invalid date”**
+   - Amount should be a valid number.
+   - Date format: `YYYY-MM-DD` (for example `2026-03-09`).
+
+7. **“Need at least one header row and one data row”**
+   - Make sure your sheet includes the header row and at least one transaction row.
+   - Remove extra blank rows above the header.
+
+## One-line recovery flow
+
+1. Keep only one valid transaction row and try import again.
+2. If that works, add rows back in small batches (5–10 rows) until the bad row is found.
+3. You can always remove and reconnect the sheet URL and try again.

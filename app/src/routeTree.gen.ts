@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalTokenRouteImport } from './routes/portal.$token'
+import { Route as HelpImportTransactionsViaGoogleSheetsRouteImport } from './routes/help/import-transactions-via-google-sheets'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedNewProjectRouteImport } from './routes/_authed/new-project'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
@@ -38,6 +39,12 @@ const PortalTokenRoute = PortalTokenRouteImport.update({
   path: '/portal/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpImportTransactionsViaGoogleSheetsRoute =
+  HelpImportTransactionsViaGoogleSheetsRouteImport.update({
+    id: '/help/import-transactions-via-google-sheets',
+    path: '/help/import-transactions-via-google-sheets',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -71,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
   '/settings': typeof AuthedSettingsRoute
+  '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/portal/$token': typeof PortalTokenRoute
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
   '/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
@@ -81,6 +89,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
   '/settings': typeof AuthedSettingsRoute
+  '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/portal/$token': typeof PortalTokenRoute
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
   '/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
@@ -93,6 +102,7 @@ export interface FileRoutesById {
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/new-project': typeof AuthedNewProjectRoute
   '/_authed/settings': typeof AuthedSettingsRoute
+  '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/portal/$token': typeof PortalTokenRoute
   '/_authed/project/$id': typeof AuthedProjectIdRouteWithChildren
   '/_authed/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/new-project'
     | '/settings'
+    | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
     | '/project/$id'
     | '/project/$id/task/$taskId'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/new-project'
     | '/settings'
+    | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
     | '/project/$id'
     | '/project/$id/task/$taskId'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
     | '/_authed/dashboard'
     | '/_authed/new-project'
     | '/_authed/settings'
+    | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
     | '/_authed/project/$id'
     | '/_authed/project/$id/task/$taskId'
@@ -135,6 +148,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
   AuthRoute: typeof AuthRoute
+  HelpImportTransactionsViaGoogleSheetsRoute: typeof HelpImportTransactionsViaGoogleSheetsRoute
   PortalTokenRoute: typeof PortalTokenRoute
 }
 
@@ -166,6 +180,13 @@ declare module '@tanstack/react-router' {
       path: '/portal/$token'
       fullPath: '/portal/$token'
       preLoaderRoute: typeof PortalTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help/import-transactions-via-google-sheets': {
+      id: '/help/import-transactions-via-google-sheets'
+      path: '/help/import-transactions-via-google-sheets'
+      fullPath: '/help/import-transactions-via-google-sheets'
+      preLoaderRoute: typeof HelpImportTransactionsViaGoogleSheetsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authed/settings': {
@@ -239,6 +260,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
   AuthRoute: AuthRoute,
+  HelpImportTransactionsViaGoogleSheetsRoute:
+    HelpImportTransactionsViaGoogleSheetsRoute,
   PortalTokenRoute: PortalTokenRoute,
 }
 export const routeTree = rootRouteImport
