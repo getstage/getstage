@@ -111,8 +111,8 @@ export function IntegrationsTab({
             {stripeGuideHref ? (
               <a
                 href={stripeGuideHref}
-                target={stripeGuideHref.startsWith("http") ? "_blank" : undefined}
-                rel={stripeGuideHref.startsWith("http") ? "noreferrer" : undefined}
+                target="_blank"
+                rel="noreferrer"
                 className="text-[13px] font-medium text-accent transition-colors hover:text-accent-hover"
               >
                 View guide
@@ -202,8 +202,8 @@ export function IntegrationsTab({
             {googleSheetsGuideHref ? (
               <a
                 href={googleSheetsGuideHref}
-                target={googleSheetsGuideHref.startsWith("http") ? "_blank" : undefined}
-                rel={googleSheetsGuideHref.startsWith("http") ? "noreferrer" : undefined}
+                target="_blank"
+                rel="noreferrer"
                 className="text-[13px] font-medium text-accent transition-colors hover:text-accent-hover"
               >
                 View guide

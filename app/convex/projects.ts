@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { getCurrentSubscriptionSnapshot } from "./billing";
 import {
   buildProject,
   deleteClientIfUnused,
@@ -14,6 +15,8 @@ function now() {
   return Date.now();
 }
 
+const FREE_PLAN_PROJECT_LIMIT = 3;
+
 const projectStatusValidator = v.union(
   v.literal("active"),
   v.literal("paused"),
@@ -23,6 +26,11 @@ const projectStatusValidator = v.union(
 const phaseInputValidator = v.object({
   id: v.optional(v.id("phases")),
   name: v.string(),
+});
+
+const phaseCreationInputValidator = v.object({
+  name: v.string(),
+  tasks: v.optional(v.array(v.string())),
 });
 
 export const getById = query({
@@ -53,10 +61,23 @@ export const create = mutation({
     method: v.union(v.literal("ai"), v.literal("manual")),
     startDate: v.number(),
     endDate: v.number(),
-    phases: v.optional(v.array(v.string())),
+    phases: v.optional(v.array(phaseCreationInputValidator)),
   },
   handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
+    const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
+    const plan = subscription?.plan ?? user.plan ?? "free";
+
+    if (plan === "free") {
+      const existingProjects = await ctx.db
+        .query("projects")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect();
+
+      if (existingProjects.length >= FREE_PLAN_PROJECT_LIMIT) {
+        throw new Error("Free plan includes up to 3 projects. Upgrade to Pro to create another.");
+      }
+    }
 
     await upsertClient(ctx, {
       userId: user._id,
@@ -79,24 +100,45 @@ export const create = mutation({
       updatedAt: timestamp,
     });
 
-    const phaseNames =
-      args.phases?.map((phase) => phase.trim()).filter((phase) => phase.length > 0) ?? [];
+    const phases =
+      args.phases
+        ?.map((phase) => ({
+          name: phase.name.trim(),
+          tasks:
+            phase.tasks?.map((task) => task.trim()).filter((task) => task.length > 0) ?? [],
+        }))
+        .filter((phase) => phase.name.length > 0) ?? [];
 
-    const normalizedPhaseNames = phaseNames.length > 0 ? phaseNames : ["Planning"];
+    const normalizedPhases =
+      phases.length > 0 ? phases : [{ name: "Planning", tasks: [] as string[] }];
 
-    await Promise.all(
-      normalizedPhaseNames.map((phaseName, index) =>
-        ctx.db.insert("phases", {
-          projectId,
-          name: phaseName,
-          order: index,
-          status: index === 0 ? "active" : "upcoming",
-          progress: 0,
-          createdAt: timestamp,
-          updatedAt: timestamp,
-        }),
-      ),
-    );
+    for (const [index, phase] of normalizedPhases.entries()) {
+      const phaseId = await ctx.db.insert("phases", {
+        projectId,
+        name: phase.name,
+        order: index,
+        status: index === 0 ? "active" : "upcoming",
+        progress: 0,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+
+      if (phase.tasks.length > 0) {
+        await Promise.all(
+          phase.tasks.map((title, taskIndex) =>
+            ctx.db.insert("tasks", {
+              phaseId,
+              title,
+              isCompleted: false,
+              content: "",
+              order: taskIndex,
+              createdAt: timestamp,
+              updatedAt: timestamp,
+            }),
+          ),
+        );
+      }
+    }
 
     await ensurePortalConfig(ctx, projectId);
     await recomputeProjectState(ctx, projectId);

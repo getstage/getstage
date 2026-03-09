@@ -6,7 +6,7 @@ import {
   requirePhaseOwner,
   requireTaskOwner,
 } from "./_helpers";
-import { r2 } from "./r2";
+import { deleteOldR2Asset, r2 } from "./r2";
 
 function now() {
   return Date.now();
@@ -87,6 +87,53 @@ export const toggleComplete = mutation({
     });
 
     await recomputeProjectState(ctx, projectId);
+  },
+});
+
+export const deleteById = mutation({
+  args: {
+    taskId: v.id("tasks"),
+  },
+  handler: async (ctx, { taskId }) => {
+    const { task, project } = await requireTaskOwner(ctx, taskId);
+
+    const attachments = await ctx.db
+      .query("attachments")
+      .withIndex("by_task", (q) => q.eq("taskId", taskId))
+      .collect();
+
+    for (const attachment of attachments) {
+      if (attachment.storageId) {
+        await ctx.storage.delete(attachment.storageId);
+      }
+      if (attachment.r2ObjectKey) {
+        await deleteOldR2Asset(ctx, attachment.r2ObjectKey);
+      }
+      await ctx.db.delete(attachment._id);
+    }
+
+    await ctx.db.delete(taskId);
+
+    const remainingTasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_phase_order", (q) => q.eq("phaseId", task.phaseId))
+      .collect();
+
+    const timestamp = now();
+    await Promise.all(
+      remainingTasks.map((remainingTask, index) => {
+        if (remainingTask.order === index) {
+          return Promise.resolve();
+        }
+
+        return ctx.db.patch(remainingTask._id, {
+          order: index,
+          updatedAt: timestamp,
+        });
+      }),
+    );
+
+    await recomputeProjectState(ctx, project._id);
   },
 });
 

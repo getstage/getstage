@@ -4,7 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useActionError } from "@/hooks/useActionError";
 import { api } from "@/lib/convex";
 import { toUserFacingErrorMessage } from "@/lib/errors";
-import { formatDateInput, parseDateInput } from "@/lib/format";
+import { formatInputDate, parseInputDate } from "@/lib/format";
 import type { Phase } from "@/types";
 import type { Id } from "../../convex/_generated/dataModel";
 
@@ -47,6 +47,7 @@ export function useProjectDetail(projectId: Id<"projects">) {
   const isLoading = project === undefined;
 
   const createTask = useConvexMutation(api.tasks.create);
+  const deleteTask = useConvexMutation(api.tasks.deleteById);
   const toggleTaskComplete = useConvexMutation(api.tasks.toggleComplete);
   const updateProject = useConvexMutation(api.projects.update);
   const syncPhases = useConvexMutation(api.projects.syncPhases);
@@ -116,8 +117,8 @@ export function useProjectDetail(projectId: Id<"projects">) {
       return;
     }
 
-    setEditStartDate(formatDateInput(project.startDate));
-    setEditEndDate(formatDateInput(project.endDate));
+    setEditStartDate(formatInputDate(new Date(project.startDate)));
+    setEditEndDate(formatInputDate(new Date(project.endDate)));
     setDialogOpen("editTimeline", true);
   }
 
@@ -189,8 +190,8 @@ export function useProjectDetail(projectId: Id<"projects">) {
     try {
       await updateProject({
         projectId,
-        startDate: parseDateInput(editStartDate),
-        endDate: parseDateInput(editEndDate),
+        startDate: parseInputDate(editStartDate),
+        endDate: parseInputDate(editEndDate),
       });
       setDialogOpen("editTimeline", false);
     } catch (error) {
@@ -273,6 +274,14 @@ export function useProjectDetail(projectId: Id<"projects">) {
     }
   }
 
+  async function handleDeleteTask(taskId: Id<"tasks">) {
+    try {
+      await deleteTask({ taskId });
+    } catch (error) {
+      showError(toUserFacingErrorMessage(error, "Could not delete the task."));
+    }
+  }
+
   async function handleTogglePortalEnabled() {
     try {
       await setPortalEnabled({
@@ -340,6 +349,7 @@ export function useProjectDetail(projectId: Id<"projects">) {
     handleToggleProjectPaused,
     handleConfirmDeleteProject,
     handleToggleTask,
+    handleDeleteTask,
     handleTogglePortalEnabled,
     handleCopyShareUrl,
   };

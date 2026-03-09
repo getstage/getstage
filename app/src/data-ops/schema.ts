@@ -215,7 +215,14 @@ export const createProjectInputSchema = z.object({
   method: z.enum(["ai", "manual"]),
   startDate: z.number(),
   endDate: z.number(),
-  phases: z.array(z.string()).optional(),
+  phases: z
+    .array(
+      z.object({
+        name: z.string().min(1, "Phase name is required"),
+        tasks: z.array(z.string().min(1, "Task name is required")).optional(),
+      }),
+    )
+    .optional(),
 });
 
 export const updateProjectInputSchema = projectSchema.partial().omit({

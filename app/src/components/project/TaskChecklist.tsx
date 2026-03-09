@@ -1,8 +1,9 @@
-import type { RefObject } from "react";
-import { CaretRight } from "@phosphor-icons/react";
+import { useState, type RefObject } from "react";
+import { CaretRight, Trash } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { ConfirmPopover } from "@/components/ui/ConfirmPopover";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { Phase, Task } from "@/types";
 
@@ -17,6 +18,7 @@ type TaskChecklistProps = {
   onShowAddTaskChange: (value: boolean) => void;
   onSubmitAddTask: () => void;
   onToggleTask: (taskId: Id<"tasks">) => void;
+  onDeleteTask: (taskId: Id<"tasks">) => void;
 };
 
 export function TaskChecklist({
@@ -30,8 +32,10 @@ export function TaskChecklist({
   onShowAddTaskChange,
   onSubmitAddTask,
   onToggleTask,
+  onDeleteTask,
 }: TaskChecklistProps) {
   const completedCount = phase.tasks.filter((task) => task.isCompleted).length;
+  const [confirmingTaskId, setConfirmingTaskId] = useState<string | null>(null);
 
   return (
     <section className="mx-auto max-w-[560px]">
@@ -57,6 +61,10 @@ export function TaskChecklist({
             task={task}
             projectId={projectId}
             onToggle={() => onToggleTask(task.id as Id<"tasks">)}
+            isConfirming={confirmingTaskId === task.id}
+            onRequestDelete={() => setConfirmingTaskId(task.id)}
+            onCancelDelete={() => setConfirmingTaskId(null)}
+            onDelete={() => onDeleteTask(task.id as Id<"tasks">)}
           />
         ))}
       </div>
@@ -117,11 +125,23 @@ type TaskRowProps = {
   task: Task;
   projectId: string;
   onToggle: () => void;
+  isConfirming: boolean;
+  onRequestDelete: () => void;
+  onCancelDelete: () => void;
+  onDelete: () => void;
 };
 
-function TaskRow({ task, projectId, onToggle }: TaskRowProps) {
+function TaskRow({
+  task,
+  projectId,
+  onToggle,
+  isConfirming,
+  onRequestDelete,
+  onCancelDelete,
+  onDelete,
+}: TaskRowProps) {
   return (
-    <div className="group flex items-center gap-3 rounded-lg border-t border-border-subtle px-3 py-2.5 first:border-t-0 hover:bg-border-subtle">
+    <div className="group relative flex items-center gap-3 rounded-lg border-t border-border-subtle px-3 py-2.5 first:border-t-0 hover:bg-border-subtle">
       <Checkbox checked={task.isCompleted} onCheckedChange={onToggle} />
       <Link
         to="/project/$id/task/$taskId"
@@ -137,6 +157,25 @@ function TaskRow({ task, projectId, onToggle }: TaskRowProps) {
       <CaretRight
         size={14}
         className="text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100"
+      />
+      <button
+        type="button"
+        onClick={onRequestDelete}
+        className="inline-flex h-7 w-7 items-center justify-center rounded-[6px] text-text-tertiary opacity-0 transition-all hover:bg-destructive/5 hover:text-destructive group-hover:opacity-100"
+        aria-label={`Delete ${task.title}`}
+        title="Delete task"
+      >
+        <Trash size={14} />
+      </button>
+      <ConfirmPopover
+        open={isConfirming}
+        message={`Delete "${task.title}"?`}
+        onCancel={onCancelDelete}
+        onConfirm={() => {
+          onCancelDelete();
+          onDelete();
+        }}
+        className="right-0 top-full mt-2"
       />
     </div>
   );

@@ -70,6 +70,7 @@ export function ProjectDetailPage() {
           onShowAddTaskChange={detail.setShowAddTask}
           onSubmitAddTask={() => void detail.handleAddTaskSubmit()}
           onToggleTask={(taskId) => void detail.handleToggleTask(taskId)}
+          onDeleteTask={(taskId) => void detail.handleDeleteTask(taskId)}
         />
       </motion.div>
 

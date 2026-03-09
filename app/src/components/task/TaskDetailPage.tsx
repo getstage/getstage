@@ -1,23 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
 import { Helmet } from "react-helmet-async";
-import { useParams, Link } from "@tanstack/react-router";
+import { useNavigate, useParams, Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
   DownloadSimple,
   File as FileIcon,
   Image as ImageIcon,
   Plus,
+  Trash,
 } from "@phosphor-icons/react";
 import { motion } from "motion/react";
+import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { ConfirmPopover } from "@/components/ui/ConfirmPopover";
 import { api } from "@/lib/convex";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 import { debounce, formatFileSize } from "@/lib/utils";
 import type { Attachment, Phase, Task } from "@/types";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { uploadFileToR2, getNormalizedMimeType } from "@/lib/r2Uploads";
 
 export function TaskDetailPage() {
+  const navigate = useNavigate();
   const { id: projectId, taskId } = useParams({
     from: "/_authed/project/$id/task/$taskId",
   });
@@ -31,6 +36,9 @@ export function TaskDetailPage() {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const task = useMemo(
     () =>
@@ -48,6 +56,7 @@ export function TaskDetailPage() {
   }, [task]);
 
   const updateTask = useConvexMutation(api.tasks.update);
+  const deleteTask = useConvexMutation(api.tasks.deleteById);
   const toggleTaskComplete = useConvexMutation(api.tasks.toggleComplete);
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
   const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
@@ -58,6 +67,7 @@ export function TaskDetailPage() {
       taskId: taskId as Id<"tasks">,
       ...payload,
     });
+    setErrorMessage(null);
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   }
@@ -79,6 +89,20 @@ export function TaskDetailPage() {
       )?.name ?? ""
     );
   }, [project, taskId]);
+
+  async function handleDeleteTask() {
+    setIsDeleting(true);
+    setErrorMessage(null);
+
+    try {
+      await deleteTask({ taskId: taskId as Id<"tasks"> });
+      await navigate({ to: "/project/$id", params: { id: projectId } });
+    } catch (error) {
+      setErrorMessage(toUserFacingErrorMessage(error, "Could not delete the task."));
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -169,6 +193,34 @@ export function TaskDetailPage() {
           transition={{ duration: 0.25 }}
           className="mx-auto max-w-[680px] pt-10"
         >
+          <div className="relative mb-6 flex justify-end">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowDeleteConfirm(true)}
+              isLoading={isDeleting}
+            >
+              <Trash size={14} />
+              Delete task
+            </Button>
+            <ConfirmPopover
+              open={showDeleteConfirm}
+              message={`Delete "${task.title}"?`}
+              onCancel={() => setShowDeleteConfirm(false)}
+              onConfirm={() => {
+                setShowDeleteConfirm(false);
+                void handleDeleteTask();
+              }}
+              className="right-0 top-full mt-2"
+            />
+          </div>
+
+          {errorMessage ? (
+            <div className="mb-4 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-[13px] text-destructive">
+              {errorMessage}
+            </div>
+          ) : null}
+
           <div className="mb-10 flex items-start gap-3">
             <div className="pt-1">
               <Checkbox

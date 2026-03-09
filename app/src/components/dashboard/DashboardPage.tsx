@@ -5,7 +5,7 @@ import {
   useQuery as useConvexQuery,
 } from "convex/react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { Plus } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { DashboardEmptyState } from "@/components/dashboard/DashboardEmptyState";
@@ -25,6 +25,7 @@ import {
 import { UpgradePaywallModal } from "@/components/onboarding/UpgradePaywallModal";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/auth";
+import { FREE_PLAN_PROJECT_LIMIT } from "@/lib/constants";
 import { api } from "@/lib/convex";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { getGreeting } from "@/lib/utils";
@@ -36,8 +37,10 @@ const ONBOARDING_STORAGE_KEY = "stage:onboarding-preview";
 const GOOGLE_SHEETS_GUIDE_HREF = "/help/import-transactions-via-google-sheets";
 
 export function DashboardPage() {
+  const navigate = useNavigate();
   const [timelineHorizon, setTimelineHorizon] = useState<TimelineHorizon>("thisMonth");
   const [previewStage, setPreviewStage] = useState<PreviewStage>("onboarding");
+  const [projectLimitPaywallOpen, setProjectLimitPaywallOpen] = useState(false);
   const [isUpgradeLoading, setIsUpgradeLoading] = useState(false);
   const [paywallError, setPaywallError] = useState<string | null>(null);
   const { user, isLoading: authLoading } = useAuth();
@@ -55,6 +58,8 @@ export function DashboardPage() {
     projects.length === 0 &&
     user?.plan !== "pro" &&
     onboardingState?.isCompleted !== true;
+  const hasReachedFreeProjectLimit =
+    user?.plan !== "pro" && projects.length >= FREE_PLAN_PROJECT_LIMIT;
 
   const taskEntries = buildTaskEntries(projects);
   const activeProjects = projects.filter((project: Project) => project.status === "active").length;
@@ -116,6 +121,7 @@ export function DashboardPage() {
   }, [handleSuccessfulPaymentEvent, user]);
 
   const handlePreviewPrimaryAction = () => {
+    setPaywallError(null);
     setPreviewStage("paywall");
   };
 
@@ -132,7 +138,13 @@ export function DashboardPage() {
   };
 
   const handlePaywallClose = () => {
+    setPaywallError(null);
     setPreviewStage("preview");
+  };
+
+  const handleProjectLimitPaywallClose = () => {
+    setProjectLimitPaywallOpen(false);
+    setPaywallError(null);
   };
 
   const handleUpgrade = async () => {
@@ -152,6 +164,16 @@ export function DashboardPage() {
     } finally {
       setIsUpgradeLoading(false);
     }
+  };
+
+  const handleNewProjectClick = () => {
+    if (hasReachedFreeProjectLimit) {
+      setPaywallError(null);
+      setProjectLimitPaywallOpen(true);
+      return;
+    }
+
+    void navigate({ to: "/new-project" });
   };
 
   return (
@@ -205,12 +227,13 @@ export function DashboardPage() {
                   onChange={setTimelineHorizon}
                 />
 
-                <Link to="/new-project" className="shrink-0">
-                  <Button className="h-[34px] rounded-[7px] px-3 text-[13px]">
-                    <Plus size={11} weight="bold" aria-hidden="true" />
-                    New Project
-                  </Button>
-                </Link>
+                <Button
+                  className="h-[34px] shrink-0 rounded-[7px] px-3 text-[13px]"
+                  onClick={handleNewProjectClick}
+                >
+                  <Plus size={11} weight="bold" aria-hidden="true" />
+                  New Project
+                </Button>
               </div>
 
               <DashboardStats
@@ -254,6 +277,16 @@ export function DashboardPage() {
           <ProjectDock projects={dockProjects} />
         </div>
       )}
+
+      <UpgradePaywallModal
+        open={projectLimitPaywallOpen}
+        onClose={handleProjectLimitPaywallClose}
+        onUpgrade={() => {
+          void handleUpgrade();
+        }}
+        isLoading={isUpgradeLoading}
+        errorMessage={paywallError}
+      />
     </>
   );
 }

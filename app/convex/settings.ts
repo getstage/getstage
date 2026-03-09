@@ -189,9 +189,15 @@ export const updatePortalBranding = mutation({
   },
   handler: async (ctx, { logoUrl, logoKey, accentColor }) => {
     const user = await requireAuthUser(ctx);
+    const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
+    const plan = subscription?.plan ?? user.plan ?? "free";
     const normalizedColor =
       accentColor !== undefined ? normalizeHexColor(accentColor) : undefined;
     const nextLogoUrl = logoKey ?? logoUrl;
+
+    if (plan === "free" && nextLogoUrl !== undefined && nextLogoUrl !== null) {
+      throw new Error("Custom portal logos require Stage Pro.");
+    }
 
     // Delete old R2 logo before saving new one to prevent ghost data.
     if (nextLogoUrl !== undefined && user.defaultPortalLogoUrl) {

@@ -573,6 +573,7 @@ export function SettingsPage() {
     ? `Powered by ${capitalize(subscription.provider)}`
     : "Billing provider not configured";
   const hasActiveSubscription = Boolean(subscription);
+  const isPro = settingsData?.profile.plan === "pro";
 
   return (
     <>
@@ -692,6 +693,7 @@ export function SettingsPage() {
 
             <PortalTab
               active={activeTab === "portal"}
+              isPro={isPro}
               previewPortalUrl={previewPortalUrl}
               portalLogoDataUrl={portalLogoDataUrl}
               portalColor={portalColor}

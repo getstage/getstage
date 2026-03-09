@@ -45,18 +45,6 @@ export function formatCurrencyDisplay(value: number) {
   };
 }
 
-export function formatDateInput(timestamp: number) {
-  return new Date(timestamp).toISOString().slice(0, 10);
-}
-
-export function parseDateInput(value: string) {
-  const parsed = Date.parse(value);
-  if (Number.isNaN(parsed)) {
-    throw new Error("Please use a valid date in YYYY-MM-DD format.");
-  }
-  return parsed;
-}
-
 export function formatInputDate(date: Date): string {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, "0");

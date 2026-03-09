@@ -1,6 +1,7 @@
 import { Email } from "@convex-dev/auth/providers/Email";
 import type { RandomReader } from "@oslojs/crypto/random";
 import { generateRandomString } from "@oslojs/crypto/random";
+import { enforceOtpRequestRateLimit } from "./rateLimits";
 
 function getEnv(name: string) {
   return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[
@@ -20,12 +21,23 @@ export const LoopsOTP = Email({
     };
     return generateRandomString(random, "0123456789", 6);
   },
-  async sendVerificationRequest({ identifier: email, provider, token }) {
+  async sendVerificationRequest(params: {
+    identifier: string;
+    provider: { apiKey?: string };
+    token: string;
+  }) {
+    const { identifier: email, provider, token } = params;
+    const ctx = arguments[1] as Parameters<typeof enforceOtpRequestRateLimit>[0] | undefined;
     const transactionalId =
       getEnv("AUTH_LOOPS_TRANSACTIONAL_ID") ?? getEnv("LOOPS_TRANSACTIONAL_ID");
     if (!transactionalId) {
       throw new Error("AUTH_LOOPS_TRANSACTIONAL_ID is not set");
     }
+    if (!ctx) {
+      throw new Error("OTP rate limiter context is unavailable.");
+    }
+
+    await enforceOtpRequestRateLimit(ctx, email);
 
     const response = await fetch("https://app.loops.so/api/v1/transactional", {
       method: "POST",

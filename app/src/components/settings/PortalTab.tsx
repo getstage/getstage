@@ -4,6 +4,7 @@ import { FeedbackText } from "@/components/settings/FeedbackText";
 
 type PortalTabProps = {
   active: boolean;
+  isPro: boolean;
   previewPortalUrl: string;
   portalLogoDataUrl: string | null;
   portalColor: string;
@@ -29,6 +30,7 @@ type PortalTabProps = {
 
 export function PortalTab({
   active,
+  isPro,
   previewPortalUrl,
   portalLogoDataUrl,
   portalColor,
@@ -69,16 +71,21 @@ export function PortalTab({
         </a>
       </div>
 
-      <div className="settings-card">
+      <div className={`settings-card ${isPro ? "" : "locked"}`}>
         <div className="card-body">
-          <div className="card-heading sf">Logo</div>
+          <div className="card-heading-row">
+            <div className="card-heading sf">Logo</div>
+            {isPro ? null : <span className="pro-badge">PRO</span>}
+          </div>
           <div className="card-desc">
-            Upload your logo to display on the client portal. PNG or SVG recommended.
+            {isPro
+              ? "Upload your logo to display on the client portal. PNG or SVG recommended."
+              : "Upgrade to Stage Pro to upload a custom logo for your client portal."}
           </div>
           <div
             className={`logo-upload-area ${portalLogoDataUrl ? "has-logo" : ""} ${logoDragActive ? "drag-active" : ""}`}
             onClick={() => {
-              if (!portalLogoDataUrl) {
+              if (isPro && !portalLogoDataUrl) {
                 logoInputRef.current?.click();
               }
             }}
@@ -127,16 +134,21 @@ export function PortalTab({
             type="file"
             accept="image/*"
             onChange={onLogoInputChange}
+            disabled={!isPro}
             className="hidden-file-input"
           />
         </div>
         <div className="card-footer">
-          <FeedbackText feedback={portalLogoFeedback} fallback="Max 2 MB · PNG, SVG, or JPG" />
+          {isPro ? (
+            <FeedbackText feedback={portalLogoFeedback} fallback="Max 2 MB · PNG, SVG, or JPG" />
+          ) : (
+            <span className="card-footer-text">Upgrade to Pro to unlock custom portal logos</span>
+          )}
           <button
             type="button"
             className="btn-save"
             onClick={onSavePortalLogo}
-            disabled={isSavingPortalLogo}
+            disabled={!isPro || isSavingPortalLogo}
           >
             Save
           </button>

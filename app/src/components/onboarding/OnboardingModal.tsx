@@ -1057,8 +1057,8 @@ function GuideLink({ href, children }: { href?: string | null; children: ReactNo
   return (
     <a
       href={href}
-      target={href.startsWith("http") ? "_blank" : undefined}
-      rel={href.startsWith("http") ? "noreferrer" : undefined}
+      target="_blank"
+      rel="noreferrer"
       className="mt-4 inline-flex items-center gap-1.5 text-[15px] text-accent transition-colors hover:text-accent-hover"
     >
       <Eye size={16} />

@@ -92,7 +92,7 @@ function getLoopsEventApiKey() {
 }
 
 async function loadSubscriptionByUserId(
-  ctx: QueryCtx,
+  ctx: Pick<QueryCtx, "runQuery">,
   userId: string,
 ): Promise<SubscriptionSnapshot> {
   const subscriptions = (await ctx.runQuery(stripeComponent.public.listSubscriptionsByUserId, {
@@ -122,7 +122,10 @@ async function loadSubscriptionByUserId(
   };
 }
 
-export async function getCurrentSubscriptionSnapshot(ctx: QueryCtx, userId: string) {
+export async function getCurrentSubscriptionSnapshot(
+  ctx: Pick<QueryCtx, "runQuery">,
+  userId: string,
+) {
   return loadSubscriptionByUserId(ctx, userId);
 }
 

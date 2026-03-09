@@ -68,7 +68,7 @@ export function useProjectCreation() {
 
   const roadmap = useMemo<RoadmapTemplateItem[]>(() => {
     if (method === "manual") {
-      return activePhases.map((phase) => ({ name: phase.name, tasks: 0 }));
+      return activePhases.map((phase) => ({ name: phase.name, tasks: [] }));
     }
     if (!projectType) {
       return [];
@@ -221,10 +221,16 @@ export function useProjectCreation() {
     setErrorMessage(null);
 
     try {
-      const phaseNames =
+      const phases =
         method === "manual"
-          ? activePhases.map((phase) => phase.name.trim()).filter((name) => name.length > 0)
-          : AI_ROADMAPS[projectType].map((phase) => phase.name);
+          ? activePhases
+              .map((phase) => phase.name.trim())
+              .filter((name) => name.length > 0)
+              .map((name) => ({ name }))
+          : AI_ROADMAPS[projectType].map((phase) => ({
+              name: phase.name,
+              tasks: phase.tasks,
+            }));
 
       const input: CreateProjectInput = {
         name: projectName.trim(),
@@ -234,7 +240,7 @@ export function useProjectCreation() {
         method,
         startDate: parseInputDate(startDate),
         endDate: parseInputDate(endDate),
-        phases: phaseNames,
+        phases,
       };
 
       const parsedInput = createProjectInputSchema.safeParse(input);

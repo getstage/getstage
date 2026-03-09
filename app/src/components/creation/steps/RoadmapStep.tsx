@@ -40,7 +40,7 @@ export function RoadmapStep({
             <div className="flex flex-1 items-center justify-between py-2">
               <span className="text-[14px] font-medium text-text-primary">{phase.name}</span>
               <span className="text-[13px] text-text-secondary">
-                {phase.tasks > 0 ? `${phase.tasks} tasks` : "0 tasks"}
+                {phase.tasks.length} {phase.tasks.length === 1 ? "task" : "tasks"}
               </span>
             </div>
           </div>
