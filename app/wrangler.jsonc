@@ -16,17 +16,16 @@
       // Gebruik voorlopig alleen de automatische `*.workers.dev` URL.
       // Zodra het testing-domein in Cloudflare bestaat en proxied is,
       // kun je hieronder de `routes` sectie weer terugzetten.
-      "workers_dev": true
-      // "routes": [
-      //   { "pattern": "testing.stage-app.com", "custom_domain": true }
-      // ]
+      "workers_dev": true,
+      "routes": [
+         { "pattern": "testing.getstage.co", "custom_domain": true }
+       ]
     },
     "production": {
       "name": "stage-app-production",
-      // Production blijft via het echte domein deployen.
       // "routes": [
-      //  { "pattern": "app.usestage.com", "custom_domain": true }
-      //]
+      //    { "pattern": "getstage.co", "custom_domain": true }
+     //   ]
     }
   }
 }

@@ -153,7 +153,6 @@ export function OnboardingModal({
   userName,
   onComplete,
   googleSheetsGuideHref,
-  stripeGuideHref,
 }: OnboardingModalProps) {
   const [step, setStep] = useState<Step>("welcome");
   const [isClosing, setIsClosing] = useState(false);

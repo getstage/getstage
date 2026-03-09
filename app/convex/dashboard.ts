@@ -48,14 +48,12 @@ export const getOverview = query({
     const successfulPayments = paymentDocs.filter((payment) => payment.status === "succeeded");
 
     const incomingFinanceEntries = financeEntries.filter(
-      (entry) => entry.direction === "incoming",
+      (entry) => entry.direction === "incoming" && entry.status !== "failed",
     );
-    const financeInvoiceEntries = incomingFinanceEntries.filter((entry) => entry.entryType === "invoice");
-    const financePaymentEntries = incomingFinanceEntries.filter((entry) => entry.entryType === "payment");
-    const financeOutstandingEntries = financeInvoiceEntries.filter(
+    const financeOutstandingEntries = incomingFinanceEntries.filter(
       (entry) => entry.status === "pending" || entry.status === "overdue" || entry.status === "draft",
     );
-    const financeReceivedEntries = financePaymentEntries.filter((entry) => entry.status === "paid");
+    const financeReceivedEntries = incomingFinanceEntries.filter((entry) => entry.status === "paid");
 
     const financeRows = Array.from(
       incomingFinanceEntries.reduce((groups, entry) => {

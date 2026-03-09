@@ -1,3 +1,4 @@
+import * as Dialog from "@radix-ui/react-dialog";
 import type { ChangeEvent, RefObject } from "react";
 import googleSheetsIcon from "@/assets/icons/google-sheets.svg";
 import stripeIcon from "@/assets/icons/stripe.svg";
@@ -31,6 +32,10 @@ type IntegrationsTabProps = {
   onGoogleSheetConnect: () => void;
   onGoogleSheetImport: () => void;
   onGoogleSheetDisconnect: () => void;
+  googleSheetHelpDialogOpen: boolean;
+  googleSheetHelpDialogTitle: string;
+  googleSheetHelpDialogMessage: string;
+  onGoogleSheetHelpDialogOpenChange: (open: boolean) => void;
   csvUploadConnection: CsvUploadSummary;
   csvFeedback: SaveFeedback;
   csvFileInputRef: RefObject<HTMLInputElement | null>;
@@ -64,6 +69,10 @@ export function IntegrationsTab({
   onGoogleSheetConnect,
   onGoogleSheetImport,
   onGoogleSheetDisconnect,
+  googleSheetHelpDialogOpen,
+  googleSheetHelpDialogTitle,
+  googleSheetHelpDialogMessage,
+  onGoogleSheetHelpDialogOpenChange,
   csvUploadConnection,
   csvFeedback,
   csvFileInputRef,
@@ -86,6 +95,30 @@ export function IntegrationsTab({
 
   return (
     <div className={`tab-content ${active ? "active" : ""}`}>
+      <Dialog.Root
+        open={googleSheetHelpDialogOpen}
+        onOpenChange={onGoogleSheetHelpDialogOpenChange}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-[460px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-7 shadow-xl">
+            <Dialog.Title className="font-heading text-[20px] font-semibold text-text-primary">
+              {googleSheetHelpDialogTitle}
+            </Dialog.Title>
+            <p className="mt-3 text-[14px] leading-[1.6] text-text-secondary">
+              {googleSheetHelpDialogMessage}
+            </p>
+            <div className="mt-6 flex justify-end">
+              <Dialog.Close asChild>
+                <button type="button" className="btn-outline">
+                  OK
+                </button>
+              </Dialog.Close>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
       <div className="settings-card">
         <div className="card-body">
           <div className="flex items-start justify-between gap-4">
@@ -249,7 +282,7 @@ export function IntegrationsTab({
         <div className="card-footer">
           <FeedbackText
             feedback={googleSheetFeedback}
-            fallback="Required columns: date, type, direction, counterparty, amount, currency, status"
+            fallback="Required columns: date, type, direction, client, amount, currency, status"
           />
           <div className="flex flex-wrap items-center gap-2">
             <button

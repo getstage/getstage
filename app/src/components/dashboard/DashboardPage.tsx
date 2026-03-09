@@ -50,7 +50,11 @@ export function DashboardPage() {
   const projects = dashboardData?.projects ?? [];
   const greetingName = user?.name?.split(" ")[0] ?? "there";
   const greeting = getGreeting(greetingName);
-  const previewEligible = !isLoading && projects.length === 0 && user?.plan !== "pro";
+  const previewEligible =
+    !isLoading &&
+    projects.length === 0 &&
+    user?.plan !== "pro" &&
+    onboardingState?.isCompleted !== true;
 
   const taskEntries = buildTaskEntries(projects);
   const activeProjects = projects.filter((project: Project) => project.status === "active").length;

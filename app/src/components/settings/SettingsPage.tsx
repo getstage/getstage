@@ -36,6 +36,43 @@ import "@/styles/settings.css";
 
 const PREVIEW_PORTAL_URL = "/portal/share_acme_2026?preview=1";
 const GOOGLE_SHEETS_GUIDE_HREF = "https://help.portfoliodividendtracker.com/article/126-article";
+const GOOGLE_SHEETS_TRANSACTIONS_DIALOG_TITLE = "Use the Transactions tab link";
+const GOOGLE_SHEETS_TRANSACTIONS_DIALOG_MESSAGE =
+  "Please check the Google Sheets guide, open the Transactions tab in Google Sheets, and copy the full browser URL from the address bar. Do not use Share -> Copy link, because that link often leaves out the tab id that Stage needs.";
+
+function extractErrorMessage(error: unknown) {
+  if (typeof error === "string") {
+    return error.trim();
+  }
+
+  if (error instanceof Error) {
+    return error.message.trim();
+  }
+
+  return "";
+}
+
+function hasGoogleSheetGid(sheetUrl: string) {
+  try {
+    const url = new URL(sheetUrl);
+    const gidFromSearch = url.searchParams.get("gid");
+    const gidFromHash = new URLSearchParams(url.hash.replace(/^#/, "")).get("gid");
+    return Boolean(gidFromSearch || gidFromHash);
+  } catch {
+    return false;
+  }
+}
+
+function shouldShowTransactionsTabDialog(error: unknown) {
+  const message = extractErrorMessage(error).toLowerCase();
+  return (
+    message.includes("http 400") ||
+    message.includes("missing required column") ||
+    message.includes("wrong tab") ||
+    message.includes("transactions tab") ||
+    message.includes("web page instead of sheet data")
+  );
+}
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -72,6 +109,13 @@ export function SettingsPage() {
   const [portalColor, setPortalColor] = useState(DEFAULT_PORTAL_COLOR);
   const [hexInput, setHexInput] = useState(DEFAULT_PORTAL_COLOR);
   const [googleSheetUrl, setGoogleSheetUrl] = useState("");
+  const [googleSheetHelpDialogOpen, setGoogleSheetHelpDialogOpen] = useState(false);
+  const [googleSheetHelpDialogTitle, setGoogleSheetHelpDialogTitle] = useState(
+    GOOGLE_SHEETS_TRANSACTIONS_DIALOG_TITLE,
+  );
+  const [googleSheetHelpDialogMessage, setGoogleSheetHelpDialogMessage] = useState(
+    GOOGLE_SHEETS_TRANSACTIONS_DIALOG_MESSAGE,
+  );
   const [logoDragActive, setLogoDragActive] = useState(false);
   const [isSavingName, setIsSavingName] = useState(false);
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
@@ -140,6 +184,12 @@ export function SettingsPage() {
       kind: "error",
       message: toUserFacingErrorMessage(error, fallback),
     });
+  }
+
+  function openGoogleSheetHelpDialog(title: string, message: string) {
+    setGoogleSheetHelpDialogTitle(title);
+    setGoogleSheetHelpDialogMessage(message);
+    setGoogleSheetHelpDialogOpen(true);
   }
 
   const avatarInitial = name.trim().charAt(0).toUpperCase() || "S";
@@ -358,6 +408,15 @@ export function SettingsPage() {
     }
 
     const normalizedUrl = parsed.data;
+    if (!hasGoogleSheetGid(normalizedUrl)) {
+      const message = GOOGLE_SHEETS_TRANSACTIONS_DIALOG_MESSAGE;
+      showGoogleSheetFeedback({
+        kind: "error",
+        message: "Please paste the full URL from the Transactions tab, not Share -> Copy link.",
+      });
+      openGoogleSheetHelpDialog(GOOGLE_SHEETS_TRANSACTIONS_DIALOG_TITLE, message);
+      return;
+    }
 
     setIsGoogleSheetConnecting(true);
     try {
@@ -386,6 +445,12 @@ export function SettingsPage() {
       });
       showGoogleSheetFeedback(SAVED_FEEDBACK);
     } catch (error) {
+      if (shouldShowTransactionsTabDialog(error)) {
+        openGoogleSheetHelpDialog(
+          GOOGLE_SHEETS_TRANSACTIONS_DIALOG_TITLE,
+          GOOGLE_SHEETS_TRANSACTIONS_DIALOG_MESSAGE,
+        );
+      }
       showFriendlyFeedback(
         showGoogleSheetFeedback,
         error,
@@ -637,6 +702,10 @@ export function SettingsPage() {
               onGoogleSheetConnect={() => void handleGoogleSheetConnect()}
               onGoogleSheetImport={() => void handleGoogleSheetImport()}
               onGoogleSheetDisconnect={() => void handleGoogleSheetDisconnect()}
+              googleSheetHelpDialogOpen={googleSheetHelpDialogOpen}
+              googleSheetHelpDialogTitle={googleSheetHelpDialogTitle}
+              googleSheetHelpDialogMessage={googleSheetHelpDialogMessage}
+              onGoogleSheetHelpDialogOpenChange={setGoogleSheetHelpDialogOpen}
               csvUploadConnection={sheetConnections?.csvUpload ?? null}
               csvFeedback={csvFeedback}
               csvFileInputRef={csvFileInputRef}

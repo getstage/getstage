@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { action, internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { components, internal } from "./_generated/api";
-import { ensurePortalConfig, requireAuthUser } from "./_helpers";
+import { ensurePortalConfig, pruneOrphanClientsForUser, requireAuthUser } from "./_helpers";
 import { getCurrentSubscriptionSnapshot } from "./billing";
 
 const DEFAULT_PORTAL_COLOR = "#E8734A";
@@ -214,6 +214,14 @@ export const updatePortalBranding = mutation({
       accentColor:
         normalizedColor ?? user.defaultPortalAccentColor ?? DEFAULT_PORTAL_COLOR,
     };
+  },
+});
+
+export const cleanupOrphanClients = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireAuthUser(ctx);
+    return pruneOrphanClientsForUser(ctx, user._id);
   },
 });
 

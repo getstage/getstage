@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import {
   buildProject,
+  deleteClientIfUnused,
   ensurePortalConfig,
   recomputeProjectState,
   requireAuthUser,
@@ -185,6 +186,13 @@ export const update = mutation({
       await ctx.db.patch(args.projectId, patch);
     }
 
+    if (nextClientName !== undefined && nextClientName !== project.clientName) {
+      await deleteClientIfUnused(ctx, {
+        userId: project.userId,
+        name: project.clientName,
+      });
+    }
+
     const updatedProject = await ctx.db.get(args.projectId);
     if (!updatedProject) {
       throw new Error("Project not found.");
@@ -335,6 +343,25 @@ export const deleteById = mutation({
       await ctx.db.delete(portalConfig._id);
     }
 
+    const financeEntries = await ctx.db
+      .query("financeEntries")
+      .withIndex("by_user", (q) => q.eq("userId", project.userId))
+      .collect();
+
+    for (const financeEntry of financeEntries) {
+      if (financeEntry.projectId === projectId) {
+        await ctx.db.patch(financeEntry._id, {
+          projectId: undefined,
+          updatedAt: now(),
+        });
+      }
+    }
+
     await ctx.db.delete(project._id);
+
+    await deleteClientIfUnused(ctx, {
+      userId: project.userId,
+      name: project.clientName,
+    });
   },
 });

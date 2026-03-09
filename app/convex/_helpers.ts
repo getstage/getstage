@@ -159,6 +159,71 @@ export async function upsertClient(
   });
 }
 
+function normalizeClientKey(value: string) {
+  return value.trim().toLowerCase();
+}
+
+export async function deleteClientIfUnused(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    name: string;
+  },
+) {
+  const targetKey = normalizeClientKey(args.name);
+  if (!targetKey) {
+    return 0;
+  }
+
+  const projects = await ctx.db
+    .query("projects")
+    .withIndex("by_user", (q) => q.eq("userId", args.userId))
+    .collect();
+
+  const isStillUsed = projects.some((project) => normalizeClientKey(project.clientName) === targetKey);
+  if (isStillUsed) {
+    return 0;
+  }
+
+  const clients = await ctx.db
+    .query("clients")
+    .withIndex("by_user", (q) => q.eq("userId", args.userId))
+    .collect();
+
+  const matchingClients = clients.filter((client) => normalizeClientKey(client.name) === targetKey);
+  for (const client of matchingClients) {
+    await ctx.db.delete(client._id);
+  }
+
+  return matchingClients.length;
+}
+
+export async function pruneOrphanClientsForUser(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+) {
+  const projects = await ctx.db
+    .query("projects")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  const clients = await ctx.db
+    .query("clients")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+
+  const usedClientKeys = new Set(projects.map((project) => normalizeClientKey(project.clientName)));
+  const orphanClients = clients.filter((client) => !usedClientKeys.has(normalizeClientKey(client.name)));
+
+  for (const client of orphanClients) {
+    await ctx.db.delete(client._id);
+  }
+
+  return {
+    deletedCount: orphanClients.length,
+    deletedNames: orphanClients.map((client) => client.name),
+  };
+}
+
 export async function getPortalConfigByProjectId(
   ctx: ReaderCtx,
   projectId: Id<"projects">,

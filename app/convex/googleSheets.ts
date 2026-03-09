@@ -12,8 +12,21 @@ function buildSourceRecordId(parts: Array<string | number>) {
   return parts.map((part) => String(part).trim()).join("|");
 }
 
+const GOOGLE_SHEETS_GUIDE_HINT = "Please check the Google Sheets guide and use the Transactions tab template.";
+
 function normalizeHeader(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, "_");
+}
+
+function normalizeImportHeader(value: string) {
+  const normalized = normalizeHeader(value);
+
+  switch (normalized) {
+    case "counterparty":
+      return "client";
+    default:
+      return normalized;
+  }
 }
 
 function parseCsv(text: string) {
@@ -62,6 +75,11 @@ function parseCsv(text: string) {
   }
 
   return rows.filter((candidate) => candidate.some((cell) => cell.trim().length > 0));
+}
+
+function looksLikeHtmlDocument(text: string) {
+  const trimmed = text.trim().toLowerCase();
+  return trimmed.startsWith("<!doctype html") || trimmed.startsWith("<html");
 }
 
 function parseSheetUrl(sheetUrl: string) {
@@ -133,25 +151,41 @@ function parseAmountToCents(rawValue: string) {
 function parseDateToTimestamp(rawValue: string) {
   const parsed = Date.parse(rawValue);
   if (Number.isNaN(parsed)) {
-    throw new Error(`Invalid date: ${rawValue}`);
+    throw new Error(`Invalid date: ${rawValue}. ${GOOGLE_SHEETS_GUIDE_HINT}`);
   }
   return parsed;
 }
 
 function normalizeEntryType(value: string) {
   const normalized = value.trim().toLowerCase();
-  if (["invoice", "payment", "expense", "refund", "adjustment"].includes(normalized)) {
-    return normalized as "invoice" | "payment" | "expense" | "refund" | "adjustment";
+  switch (normalized) {
+    case "invoice":
+      return "invoice" as const;
+    case "expense":
+    case "salary":
+    case "tax":
+      return "expense" as const;
+    case "loan":
+    case "other":
+      return "adjustment" as const;
+    case "payment":
+    case "refund":
+    case "adjustment":
+      return normalized as "payment" | "refund" | "adjustment";
+    default:
+      throw new Error(`Unsupported type: ${value}. ${GOOGLE_SHEETS_GUIDE_HINT}`);
   }
-  throw new Error(`Unsupported type: ${value}`);
 }
 
 function normalizeDirection(value: string) {
   const normalized = value.trim().toLowerCase();
-  if (normalized === "incoming" || normalized === "outgoing") {
-    return normalized;
+  if (normalized === "in" || normalized === "incoming") {
+    return "incoming";
   }
-  throw new Error(`Unsupported direction: ${value}`);
+  if (normalized === "out" || normalized === "outgoing") {
+    return "outgoing";
+  }
+  throw new Error(`Unsupported direction: ${value}. ${GOOGLE_SHEETS_GUIDE_HINT}`);
 }
 
 function normalizeStatus(value: string) {
@@ -169,10 +203,12 @@ function normalizeStatus(value: string) {
     case "overdue":
     case "past_due":
       return "overdue" as const;
+    case "cancelled":
+    case "canceled":
     case "failed":
       return "failed" as const;
     default:
-      throw new Error(`Unsupported status: ${value}`);
+      throw new Error(`Unsupported status: ${value}. ${GOOGLE_SHEETS_GUIDE_HINT}`);
   }
 }
 
@@ -220,6 +256,10 @@ type SheetConnectionRecord = {
 
 type ImportProject = {
   id: Id<"projects">;
+  name: string;
+};
+
+type ImportClient = {
   name: string;
 };
 
@@ -320,6 +360,22 @@ export const getProjectsForImport = internalQuery({
     return projects.map((project) => ({
       id: project._id,
       name: project.name,
+    }));
+  },
+});
+
+export const getClientsForImport = internalQuery({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const clients = await ctx.db
+      .query("clients")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    return clients.map((client) => ({
+      name: client.name,
     }));
   },
 });
@@ -654,6 +710,12 @@ export const runSheetImport = action({
         csvText = await blob.text();
       }
 
+      if (looksLikeHtmlDocument(csvText)) {
+        throw new Error(
+          "Google returned a web page instead of sheet data. Open the Transactions tab, copy that exact URL, and retry. If it still fails, publish the sheet to the web or use CSV upload.",
+        );
+      }
+
       const rows = parseCsv(csvText);
       if (rows.length < 2) {
         throw new Error("The file must contain a header row and at least one data row.");
@@ -664,12 +726,12 @@ export const runSheetImport = action({
         throw new Error("The file must contain a header row.");
       }
 
-      const headers = headerRow.map(normalizeHeader);
+      const headers = headerRow.map(normalizeImportHeader);
       const requiredHeaders = [
         "date",
         "type",
         "direction",
-        "counterparty",
+        "client",
         "amount",
         "currency",
         "status",
@@ -677,10 +739,17 @@ export const runSheetImport = action({
 
       for (const requiredHeader of requiredHeaders) {
         if (!headers.includes(requiredHeader)) {
-          throw new Error(`Missing required column: ${requiredHeader}`);
+          const foundHeaders = headers.filter(Boolean).join(", ") || "none";
+          throw new Error(
+            `Stage could not find the required column '${requiredHeader}'. Open the Transactions tab template and check the guide. Found columns: ${foundHeaders}.`,
+          );
         }
       }
 
+      const clients = (await ctx.runQuery(internal.googleSheets.getClientsForImport, {
+        userId: viewer.userId,
+      })) as ImportClient[];
+      const clientSet = new Set(clients.map((client: ImportClient) => client.name.trim().toLowerCase()));
       const projects = (await ctx.runQuery(internal.googleSheets.getProjectsForImport, {
         userId: viewer.userId,
       })) as ImportProject[];
@@ -697,10 +766,11 @@ export const runSheetImport = action({
         const dateValue = record.date ?? "";
         const typeValue = record.type ?? "";
         const directionValue = record.direction ?? "";
-        const counterpartyValue = record.counterparty ?? "";
+        const clientValue = record.client ?? "";
         const statusValue = record.status ?? "";
         const currencyValue = record.currency ?? "";
         const externalReferenceValue = record.external_reference ?? "";
+        const categoryValue = record.category ?? "";
         const notesValue = record.notes ?? "";
         const projectNameValue = record.project_name ?? "";
         const dueAtValue = record.due_at ?? "";
@@ -711,7 +781,24 @@ export const runSheetImport = action({
         const entryType = normalizeEntryType(typeValue);
         const direction = normalizeDirection(directionValue);
         const status = normalizeStatus(statusValue);
+        const clientKey = clientValue.trim().toLowerCase();
         const projectKey = projectNameValue.trim().toLowerCase();
+
+        if (!clientKey) {
+          throw new Error(`Client is required. ${GOOGLE_SHEETS_GUIDE_HINT}`);
+        }
+
+        if (!clientSet.has(clientKey)) {
+          throw new Error(
+            `Client '${clientValue}' was not found in Stage yet. Create the client first, then retry. ${GOOGLE_SHEETS_GUIDE_HINT}`,
+          );
+        }
+
+        if (projectKey && !projectMap.has(projectKey)) {
+          throw new Error(
+            `Project '${projectNameValue}' was not found in Stage yet. Create the project first, then retry. ${GOOGLE_SHEETS_GUIDE_HINT}`,
+          );
+        }
 
         return {
           sourceRecordId: externalReferenceValue ||
@@ -719,21 +806,21 @@ export const runSheetImport = action({
               dateValue,
               typeValue,
               directionValue,
-              counterpartyValue,
+              clientValue,
               amountCents,
               index,
             ]),
           entryType,
           direction,
           status,
-          counterpartyName: counterpartyValue || "Unknown counterparty",
+          counterpartyName: clientValue,
           amountCents,
           currency: (currencyValue || "USD").toUpperCase(),
           occurredAt,
           dueAt: dueAtValue ? parseDateToTimestamp(dueAtValue) : undefined,
           paidAt: paidAtValue ? parseDateToTimestamp(paidAtValue) : undefined,
           projectId: projectKey ? projectMap.get(projectKey) : undefined,
-          notes: notesValue || undefined,
+          notes: [categoryValue, notesValue].filter(Boolean).join(" - ") || undefined,
           rawLabel: typeValue || undefined,
         };
       });
