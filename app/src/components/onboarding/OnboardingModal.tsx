@@ -29,7 +29,7 @@ import { api } from "@/lib/convex";
 import { AI_ROADMAPS, DEFAULT_PHASES, PROJECT_TYPES } from "@/lib/constants";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { parseInputDate } from "@/lib/format";
-import { prepareAvatarUpload, uploadFileToR2 } from "@/lib/r2Uploads";
+import { prepareClientAvatarUpload, uploadFileToR2 } from "@/lib/r2Uploads";
 import { cn } from "@/lib/utils";
 import type { ProjectType } from "@/types";
 import { OnboardingPaywall } from "@/components/onboarding/OnboardingPaywall";
@@ -50,6 +50,7 @@ type Step =
   | "preview"
   | "integrations"
   | "creating"
+  | "celebrating"
   | "paywall";
 
 type PhaseItem = {
@@ -117,6 +118,7 @@ export function OnboardingModal({
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const completionTimeoutRef = useRef<number | null>(null);
   const roadmapTimeoutRef = useRef<number | null>(null);
+  const celebrationTimeoutRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
   const markProjectCreated = useConvexMutation(api.onboarding.markProjectCreated);
@@ -173,7 +175,7 @@ export function OnboardingModal({
   const currentStepForProgress =
     step === "generating-roadmap"
       ? "preview"
-      : step === "creating" || step === "paywall"
+      : step === "creating" || step === "celebrating" || step === "paywall"
         ? "integrations"
         : step;
   const currentIndex = flowSteps.indexOf(currentStepForProgress);
@@ -218,6 +220,9 @@ export function OnboardingModal({
       if (roadmapTimeoutRef.current !== null) {
         window.clearTimeout(roadmapTimeoutRef.current);
       }
+      if (celebrationTimeoutRef.current !== null) {
+        window.clearTimeout(celebrationTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -233,6 +238,22 @@ export function OnboardingModal({
     return () => {
       if (roadmapTimeoutRef.current !== null) {
         window.clearTimeout(roadmapTimeoutRef.current);
+      }
+    };
+  }, [step]);
+
+  useEffect(() => {
+    if (step !== "celebrating") {
+      return;
+    }
+
+    celebrationTimeoutRef.current = window.setTimeout(() => {
+      setStep("paywall");
+    }, 900);
+
+    return () => {
+      if (celebrationTimeoutRef.current !== null) {
+        window.clearTimeout(celebrationTimeoutRef.current);
       }
     };
   }, [step]);
@@ -345,10 +366,10 @@ export function OnboardingModal({
       try {
         if (submission.createProject) {
           const clientAvatarUrl = pendingAvatarFile
-            ? await uploadFileToR2({
+              ? await uploadFileToR2({
                 generateUploadUrl: r2GenerateUploadUrl,
                 syncMetadata: r2SyncMetadata,
-                purpose: "profile-avatar",
+                purpose: "client-avatar",
                 file: pendingAvatarFile,
               })
             : submission.clientAvatarUrl?.trim() || undefined;
@@ -400,7 +421,7 @@ export function OnboardingModal({
         }
 
         setPendingAvatarFile(null);
-        setStep("paywall");
+        setStep(submission.createProject ? "celebrating" : "paywall");
       } catch (error) {
         if (cancelled) {
           return;
@@ -530,7 +551,7 @@ export function OnboardingModal({
       return;
     }
 
-    void prepareAvatarUpload(file)
+    void prepareClientAvatarUpload(file)
       .then((prepared) => {
         setPendingAvatarFile(prepared.file);
         setClientAvatar(prepared.previewUrl);
@@ -784,10 +805,10 @@ export function OnboardingModal({
               {step === "project-type" ? (
                 <OnboardingStepMotion motionKey="project-type">
                   <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
-                    What type of project?
+                    What is the primary project type?
                   </h3>
                   <p className="mt-2 text-[15px] leading-normal text-text-secondary">
-                    Pick the closest match. You can always change it later.
+                    Pick the closest match for the roadmap. You can still work across multiple disciplines.
                   </p>
 
                   <div className="mt-7 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -1079,6 +1100,18 @@ export function OnboardingModal({
                 </OnboardingStepMotion>
               ) : null}
 
+              {step === "celebrating" ? (
+                <OnboardingStepMotion
+                  motionKey="celebrating"
+                  className="flex min-h-[220px] flex-col items-center justify-center text-center sm:min-h-[300px]"
+                >
+                  <LoadingStage
+                    title="Your project is ready."
+                    subtitle="Opening the next step..."
+                  />
+                </OnboardingStepMotion>
+              ) : null}
+
               {step === "paywall" ? (
                 <OnboardingStepMotion motionKey="paywall">
                   <OnboardingPaywall
@@ -1091,7 +1124,10 @@ export function OnboardingModal({
               ) : null}
             </AnimatePresence>
 
-            {step !== "creating" && step !== "generating-roadmap" && step !== "paywall" ? (
+            {step !== "creating" &&
+            step !== "generating-roadmap" &&
+            step !== "celebrating" &&
+            step !== "paywall" ? (
               <div className="mt-8">
                 {stepError ? (
                   <p className="mb-3 text-[13px] leading-normal text-destructive">{stepError}</p>
@@ -1533,6 +1569,7 @@ function canContinue(
       return true;
     case "generating-roadmap":
     case "creating":
+    case "celebrating":
       return false;
     default:
       return false;
@@ -1602,6 +1639,7 @@ function getStepValidationError(
     case "integrations":
     case "generating-roadmap":
     case "creating":
+    case "celebrating":
     default:
       return null;
   }

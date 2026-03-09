@@ -139,6 +139,19 @@ export async function prepareAvatarUpload(file: File): Promise<PreparedUpload> {
   };
 }
 
+export async function prepareClientAvatarUpload(file: File): Promise<PreparedUpload> {
+  const converted = await convertRasterImageToWebP(file);
+  const validationError = validateUploadFile("client-avatar", converted);
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  return {
+    file: converted,
+    previewUrl: await readFileAsDataUrl(converted),
+  };
+}
+
 export async function preparePortalLogoUpload(file: File): Promise<PreparedUpload> {
   const normalizedMimeType = getNormalizedMimeType(file);
   const preparedFile =

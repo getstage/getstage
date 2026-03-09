@@ -7,7 +7,7 @@ import { addDays, formatInputDate, parseInputDate } from "@/lib/format";
 import { api } from "@/lib/convex";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { dateRangeInputSchema, manualPhaseSelectionSchema, projectBasicsSchema } from "@/lib/validation";
-import { prepareAvatarUpload, uploadFileToR2 } from "@/lib/r2Uploads";
+import { prepareClientAvatarUpload, uploadFileToR2 } from "@/lib/r2Uploads";
 import type { CreateProjectInput, ProjectType } from "@/types";
 
 export type WorkflowStep = 1 | 2 | 3 | "4a" | "4m" | "4mb" | 5;
@@ -228,7 +228,7 @@ export function useProjectCreation() {
         ? await uploadFileToR2({
             generateUploadUrl: r2GenerateUploadUrl,
             syncMetadata: r2SyncMetadata,
-            purpose: "profile-avatar",
+            purpose: "client-avatar",
             file: pendingAvatarFile,
           })
         : clientAvatar?.trim() || undefined;
@@ -286,7 +286,7 @@ export function useProjectCreation() {
     }
 
     try {
-      const prepared = await prepareAvatarUpload(file);
+      const prepared = await prepareClientAvatarUpload(file);
       setPendingAvatarFile(prepared.file);
       setClientAvatar(prepared.previewUrl);
       clearError();

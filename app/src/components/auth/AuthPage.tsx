@@ -32,6 +32,11 @@ export function AuthPage() {
     return null;
   }
 
+  function focusCodeInput(index: number) {
+    const input = document.getElementById(`code-${index}`);
+    input?.focus();
+  }
+
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
     const parsed = signInEmailSchema.safeParse({ email });
@@ -72,29 +77,53 @@ export function AuthPage() {
 
     // Auto-advance to next input
     if (value && index < 5) {
-      const next = document.getElementById(`code-${index + 1}`);
-      next?.focus();
+      focusCodeInput(index + 1);
     }
 
     // Auto-submit when all 6 digits filled
-    if (value && index === 5 && newCode.every((d) => d)) {
+    if (newCode.every((digit) => digit)) {
       handleCodeSubmit(newCode.join(""));
     }
   }
 
   function handleCodeKeyDown(index: number, e: React.KeyboardEvent) {
     if (e.key === "Backspace" && !code[index] && index > 0) {
-      const prev = document.getElementById(`code-${index - 1}`);
-      prev?.focus();
+      focusCodeInput(index - 1);
     }
   }
 
+  function handleCodePaste(index: number, e: React.ClipboardEvent<HTMLInputElement>) {
+    e.preventDefault();
+
+    const pastedDigits = e.clipboardData.getData("text").replace(/\D/g, "");
+    if (!pastedDigits) {
+      return;
+    }
+
+    const nextCode = [...code];
+    const digitsToInsert = pastedDigits.slice(0, nextCode.length - index).split("");
+
+    digitsToInsert.forEach((digit, offset) => {
+      nextCode[index + offset] = digit;
+    });
+
+    setCode(nextCode);
+
+    if (nextCode.every((digit) => digit)) {
+      void handleCodeSubmit(nextCode.join(""));
+      return;
+    }
+
+    const nextEmptyIndex = nextCode.findIndex((digit) => !digit);
+    focusCodeInput(nextEmptyIndex >= 0 ? nextEmptyIndex : Math.min(index + digitsToInsert.length, 5));
+  }
+
   async function handleCodeSubmit(fullCode: string) {
-    const parsed = verificationCodeSchema.safeParse({ code: fullCode });
+      const parsed = verificationCodeSchema.safeParse({ code: fullCode });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Code must be 6 digits.");
       setCode(["", "", "", "", "", ""]);
-      document.getElementById("code-0")?.focus();
+      focusCodeInput(0);
       return;
     }
 
@@ -114,7 +143,7 @@ export function AuthPage() {
         ),
       );
       setCode(["", "", "", "", "", ""]);
-      document.getElementById("code-0")?.focus();
+      focusCodeInput(0);
     } finally {
       setLoading(false);
     }
@@ -242,6 +271,7 @@ export function AuthPage() {
                       maxLength={1}
                       value={digit}
                       onChange={(e) => handleCodeChange(i, e.target.value)}
+                      onPaste={(e) => handleCodePaste(i, e)}
                       onKeyDown={(e) => handleCodeKeyDown(i, e)}
                       autoFocus={i === 0}
                       className="h-[60px] w-[52px] rounded-[10px] border border-transparent bg-input-bg text-center font-heading text-[24px] font-semibold text-text-primary transition-colors focus:border-accent focus:bg-white focus:outline-none"

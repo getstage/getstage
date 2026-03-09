@@ -53,11 +53,13 @@ export function DashboardPage() {
   const projects = dashboardData?.projects ?? [];
   const greetingName = user?.name?.split(" ")[0] ?? "there";
   const greeting = getGreeting(greetingName);
-  const previewEligible =
+  const previewFlowActive =
     !isLoading &&
-    projects.length === 0 &&
     user?.plan !== "pro" &&
     onboardingState?.isCompleted !== true;
+  const previewEligible = previewFlowActive && projects.length === 0;
+  const shouldShowPreviewExperience =
+    previewFlowActive && (projects.length === 0 || previewStage !== "preview");
   const hasReachedFreeProjectLimit =
     user?.plan !== "pro" && projects.length >= FREE_PLAN_PROJECT_LIMIT;
 
@@ -182,7 +184,7 @@ export function DashboardPage() {
         <title>Dashboard — Stage</title>
       </Helmet>
 
-      {previewEligible ? (
+      {shouldShowPreviewExperience ? (
         <>
           <DashboardPreview
             greetingName={greetingName}

@@ -2,6 +2,7 @@ export type UploadPurpose =
   | "task-attachment"
   | "csv-upload"
   | "profile-avatar"
+  | "client-avatar"
   | "portal-logo";
 
 type UploadRule = {
@@ -30,6 +31,11 @@ export const UPLOAD_RULES: Record<UploadPurpose, UploadRule> = {
     maxBytes: 5 * 1024 * 1024,
   },
   "profile-avatar": {
+    allowedMimeTypes: ["image/webp"],
+    allowedExtensions: [".webp"],
+    maxBytes: 2 * 1024 * 1024,
+  },
+  "client-avatar": {
     allowedMimeTypes: ["image/webp"],
     allowedExtensions: [".webp"],
     maxBytes: 2 * 1024 * 1024,

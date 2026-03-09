@@ -71,6 +71,8 @@ type DocsContent = {
   };
   gettingStarted: {
     bullets: string[];
+    guideUrl?: string;
+    guideLabel?: string;
   };
   requirements?: {
     items: string[];
@@ -240,7 +242,9 @@ const CONTENT = {
       "You'll need a Google account to create and share your sheet",
       "Make sure your transactions follow the required column format",
       "Any client or project referenced must already exist in Stage"
-    ]
+    ],
+    "guideUrl": "https://docs.google.com/spreadsheets/d/1vtsJxrdv0LBbLgKAjnEbkFc89NlrPAMrWmnEcqGjvB0/edit?usp=sharing",
+    "guideLabel": "Copy Google Sheets Template V1"
   },
   "steps": [
     {
@@ -579,6 +583,23 @@ const styles = {
     background: themePalette.panelBg,
     padding: 24,
   },
+  gettingStartedLink: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginBottom: 16,
+    padding: "16px 22px",
+    borderRadius: 18,
+    border: "1px solid rgba(21, 128, 61, 0.28)",
+    background: "linear-gradient(135deg, #22c55e 0%, #15803d 100%)",
+    color: "#f8fafc",
+    fontSize: 16,
+    fontWeight: 700,
+    lineHeight: 1.2,
+    textDecoration: "none",
+    boxShadow: "0 18px 40px rgba(21, 128, 61, 0.24)",
+  },
   list: {
     margin: 0,
     paddingLeft: 20,
@@ -878,20 +899,31 @@ function DocsOverview() {
 }
 
 function DocsGettingStarted() {
-  if (!CONTENT.gettingStarted.bullets.length) return null;
+  const guideUrl = CONTENT.gettingStarted.guideUrl?.trim();
+  const guideLabel = CONTENT.gettingStarted.guideLabel?.trim() || "Open source guide";
+  const hasBullets = Boolean(CONTENT.gettingStarted.bullets.length);
+
+  if (!guideUrl && !hasBullets) return null;
 
   return (
     <section id="getting-started" style={styles.section}>
       <h2 style={styles.sectionTitle}>Get started</h2>
-      <div style={styles.panel}>
-        <ol style={styles.list}>
-          {CONTENT.gettingStarted.bullets.map((bullet, index) => (
-            <li key={index} style={styles.listItem}>
-              {bullet.replace(/^\d+\.\s*/, "")}
-            </li>
-          ))}
-        </ol>
-      </div>
+      {guideUrl ? (
+        <a style={styles.gettingStartedLink} href={guideUrl} target="_blank" rel="noreferrer">
+          {guideLabel}
+        </a>
+      ) : null}
+      {hasBullets ? (
+        <div style={styles.panel}>
+          <ol style={styles.list}>
+            {CONTENT.gettingStarted.bullets.map((bullet, index) => (
+              <li key={index} style={styles.listItem}>
+                {bullet.replace(/^\d+\.\s*/, "")}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
     </section>
   );
 }
