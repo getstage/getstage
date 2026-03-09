@@ -34,7 +34,7 @@ export function TaskChecklist({
   const completedCount = phase.tasks.filter((task) => task.isCompleted).length;
 
   return (
-    <section className="mx-auto max-w-[560px]">
+    <section className="mx-auto mt-6 w-full max-w-[560px] flex-1 sm:mt-8">
       <header className="mb-5">
         <h2 className="font-heading text-[20px] font-semibold text-text-primary">
           {phase.name}
@@ -62,7 +62,7 @@ export function TaskChecklist({
       </div>
 
       {showAddTask ? (
-        <div className="mt-4 flex items-center gap-2">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
           <input
             ref={addTaskInputRef}
             type="text"
@@ -77,12 +77,13 @@ export function TaskChecklist({
             }}
             placeholder="Task title"
             autoFocus
-            className="flex-1 rounded-lg border border-border bg-white px-3 py-2 text-[14px] text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-accent"
+            className="w-full flex-1 rounded-lg border border-border bg-white px-3 py-2 text-[14px] text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-accent"
           />
           <Button
             size="sm"
             onClick={() => void onSubmitAddTask()}
             disabled={addTaskValue.trim().length === 0}
+            className="w-full sm:w-auto"
           >
             Add
           </Button>
@@ -92,7 +93,7 @@ export function TaskChecklist({
               onShowAddTaskChange(false);
               onAddTaskValueChange("");
             }}
-            className="cursor-pointer text-[13px] text-text-secondary transition-colors hover:text-text-primary"
+            className="cursor-pointer text-left text-[13px] text-text-secondary transition-colors hover:text-text-primary sm:text-center"
           >
             Cancel
           </button>
@@ -121,12 +122,12 @@ type TaskRowProps = {
 
 function TaskRow({ task, projectId, onToggle }: TaskRowProps) {
   return (
-    <div className="group flex items-center gap-3 rounded-lg border-t border-border-subtle px-3 py-2.5 first:border-t-0 hover:bg-border-subtle">
+    <div className="group flex items-center gap-3 rounded-lg border-t border-border-subtle px-1 py-2.5 first:border-t-0 hover:bg-border-subtle">
       <Checkbox checked={task.isCompleted} onCheckedChange={onToggle} />
       <Link
         to="/project/$id/task/$taskId"
         params={{ id: projectId, taskId: task.id }}
-        className={`flex-1 text-[14px] transition-colors ${
+        className={`min-w-0 flex-1 text-[14px] leading-[1.45] transition-colors ${
           task.isCompleted
             ? "text-text-tertiary line-through"
             : "text-text-primary hover:text-accent"
@@ -136,7 +137,7 @@ function TaskRow({ task, projectId, onToggle }: TaskRowProps) {
       </Link>
       <CaretRight
         size={14}
-        className="text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100"
+        className="hidden text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100 sm:block"
       />
     </div>
   );

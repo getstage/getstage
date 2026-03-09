@@ -29,9 +29,9 @@ export function ProjectHeader({
   onDelete,
 }: ProjectHeaderProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4">
-      <div className="flex items-center gap-3">
-        <div className="h-8 w-8 overflow-hidden rounded-full bg-input-bg">
+    <section className="text-center">
+      <div className="mx-auto flex max-w-[760px] flex-col items-center">
+        <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-input-bg sm:h-16 sm:w-16">
           {project.clientAvatarUrl ? (
             <img
               src={project.clientAvatarUrl}
@@ -40,21 +40,23 @@ export function ProjectHeader({
             />
           ) : null}
         </div>
-        <h1 className="font-heading text-[22px] font-medium tracking-[-0.3px] text-text-primary">
+
+        <h1 className="mt-5 max-w-[720px] text-balance font-heading text-[30px] font-semibold tracking-[-0.5px] text-text-primary sm:text-[42px]">
           {project.name}
         </h1>
-        <span className="text-[16px] text-text-secondary">· {project.clientName}</span>
+        <p className="mt-1 text-[15px] text-text-secondary sm:text-[16px]">
+          {project.clientName}
+        </p>
+
+        <div className="mt-6 w-full max-w-[260px] sm:max-w-[300px]">
+          <ProgressBar value={project.progress} showLabel className="w-full" />
+        </div>
       </div>
 
-      <div className="flex items-center gap-2.5">
-        <div className="w-[100px]">
-          <ProgressBar value={project.progress} showLabel />
-        </div>
-
+      <div className="mt-6 flex flex-col items-stretch justify-center gap-2.5 sm:flex-row sm:items-center">
         <Button
           variant="secondary"
-          size="sm"
-          className="h-8 rounded-[7px] px-3 text-[13px] text-text-secondary"
+          className="w-full sm:w-auto"
           onClick={onShare}
         >
           <ShareNetwork size={13} />
@@ -63,15 +65,16 @@ export function ProjectHeader({
 
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <button className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[7px] border border-border text-text-secondary transition-colors hover:text-text-primary">
+            <button className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-border px-4 text-[15px] font-medium text-text-secondary transition-colors hover:text-text-primary sm:h-11 sm:w-auto">
               <DotsThreeVertical size={14} weight="bold" />
+              Manage project
             </button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
             <DropdownMenu.Content
-              align="end"
+              align="center"
               sideOffset={6}
-              className="min-w-[200px] rounded-xl border border-border bg-white p-1.5 shadow-[0_6px_18px_rgba(26,26,46,0.08)]"
+              className="min-w-[220px] max-w-[calc(100vw-24px)] rounded-xl border border-border bg-white p-1.5 shadow-[0_6px_18px_rgba(26,26,46,0.08)]"
             >
               <DropdownMenu.Item
                 onSelect={onEditName}
@@ -115,6 +118,6 @@ export function ProjectHeader({
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
       </div>
-    </div>
+    </section>
   );
 }

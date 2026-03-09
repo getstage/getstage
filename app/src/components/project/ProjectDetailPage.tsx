@@ -28,50 +28,52 @@ export function ProjectDetailPage() {
         <title>{detail.project.name} — Stage</title>
       </Helmet>
 
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="mx-auto max-w-[1200px] px-6 pb-[120px] pt-6 sm:px-10 lg:px-14"
-      >
-        <Link
-          to="/dashboard"
-          className="mb-2 inline-flex items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary"
+      <div className="min-h-[calc(100vh-64px)]">
+        <motion.main
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mx-auto flex w-full max-w-[1440px] flex-col px-5 pb-[120px] pt-8 sm:px-10 sm:pt-10 lg:px-14"
         >
-          <ArrowLeft size={14} />
-          Dashboard
-        </Link>
+          <Link
+            to="/dashboard"
+            className="mb-6 inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary sm:mb-8"
+          >
+            <ArrowLeft size={14} />
+            Dashboard
+          </Link>
 
-        <ProjectHeader
-          project={detail.project}
-          onShare={() => detail.setDialogOpen("share", true)}
-          onEditName={detail.openEditNameDialog}
-          onEditClient={detail.openEditClientDialog}
-          onAdjustTimeline={detail.openTimelineDialog}
-          onEditPhases={detail.openPhasesDialog}
-          onTogglePaused={() => void detail.handleToggleProjectPaused()}
-          onDelete={() => detail.setDialogOpen("deleteConfirm", true)}
-        />
+          <ProjectHeader
+            project={detail.project}
+            onShare={() => detail.setDialogOpen("share", true)}
+            onEditName={detail.openEditNameDialog}
+            onEditClient={detail.openEditClientDialog}
+            onAdjustTimeline={detail.openTimelineDialog}
+            onEditPhases={detail.openPhasesDialog}
+            onTogglePaused={() => void detail.handleToggleProjectPaused()}
+            onDelete={() => detail.setDialogOpen("deleteConfirm", true)}
+          />
 
-        <PhaseNavigation
-          phases={detail.project.phases}
-          activePhaseId={detail.currentPhase.id}
-          onSelect={detail.setActivePhaseId}
-        />
+          <PhaseNavigation
+            phases={detail.project.phases}
+            activePhaseId={detail.currentPhase.id}
+            onSelect={detail.setActivePhaseId}
+          />
 
-        <TaskChecklist
-          phase={detail.currentPhase}
-          projectId={detail.project.id}
-          actionError={detail.actionError}
-          addTaskValue={detail.addTaskValue}
-          showAddTask={detail.showAddTask}
-          addTaskInputRef={detail.addTaskInputRef}
-          onAddTaskValueChange={detail.setAddTaskValue}
-          onShowAddTaskChange={detail.setShowAddTask}
-          onSubmitAddTask={() => void detail.handleAddTaskSubmit()}
-          onToggleTask={(taskId) => void detail.handleToggleTask(taskId)}
-        />
-      </motion.div>
+          <TaskChecklist
+            phase={detail.currentPhase}
+            projectId={detail.project.id}
+            actionError={detail.actionError}
+            addTaskValue={detail.addTaskValue}
+            showAddTask={detail.showAddTask}
+            addTaskInputRef={detail.addTaskInputRef}
+            onAddTaskValueChange={detail.setAddTaskValue}
+            onShowAddTaskChange={detail.setShowAddTask}
+            onSubmitAddTask={() => void detail.handleAddTaskSubmit()}
+            onToggleTask={(taskId) => void detail.handleToggleTask(taskId)}
+          />
+        </motion.main>
+      </div>
 
       <ProjectDialogs
         project={detail.project}
@@ -115,7 +117,7 @@ export function ProjectDetailPage() {
 
 function ProjectDetailLoadingState() {
   return (
-    <div className="mx-auto max-w-[1200px] px-6 py-10 sm:px-10 lg:px-14">
+    <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-10 lg:px-14">
       <div className="skeleton mb-3 h-4 w-28" />
       <div className="skeleton mb-2 h-8 w-60" />
       <div className="skeleton mb-12 h-4 w-40" />
