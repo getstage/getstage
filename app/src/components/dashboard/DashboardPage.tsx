@@ -261,20 +261,18 @@ export function DashboardPage() {
             </div>
           )}
 
-          {projects.length > 0 ? (
-            <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
-              <div className="mt-8 space-y-4">
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <UpcomingTasksCard tasks={upcomingTasks} />
-                  <RecentActivityCard entries={recentActivity} />
-                </div>
-
-                <PaymentsCard
-                  paymentSummary={dashboardData?.paymentSummary ?? null}
-                />
+          <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
+            <div className="mt-8 space-y-4">
+              <div className="grid gap-4 lg:grid-cols-2">
+                <UpcomingTasksCard tasks={upcomingTasks} />
+                <RecentActivityCard entries={recentActivity} />
               </div>
+
+              <PaymentsCard
+                paymentSummary={dashboardData?.paymentSummary ?? null}
+              />
             </div>
-          ) : null}
+          </div>
 
           <ProjectDock projects={dockProjects} />
         </div>

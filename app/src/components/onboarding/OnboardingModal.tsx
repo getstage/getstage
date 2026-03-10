@@ -119,9 +119,9 @@ export function OnboardingModal({
   const [stepError, setStepError] = useState<string | null>(null);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [creationReady, setCreationReady] = useState(false);
   const completionTimeoutRef = useRef<number | null>(null);
   const roadmapTimeoutRef = useRef<number | null>(null);
-  const celebrationTimeoutRef = useRef<number | null>(null);
   const phaseCounterRef = useRef(DEFAULT_PHASES.length);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
@@ -216,6 +216,7 @@ export function OnboardingModal({
     setStepError(null);
     setIsCheckoutLoading(false);
     setCheckoutError(null);
+    setCreationReady(false);
   }, [open]);
 
   useEffect(() => {
@@ -225,9 +226,6 @@ export function OnboardingModal({
       }
       if (roadmapTimeoutRef.current !== null) {
         window.clearTimeout(roadmapTimeoutRef.current);
-      }
-      if (celebrationTimeoutRef.current !== null) {
-        window.clearTimeout(celebrationTimeoutRef.current);
       }
     };
   }, []);
@@ -244,22 +242,6 @@ export function OnboardingModal({
     return () => {
       if (roadmapTimeoutRef.current !== null) {
         window.clearTimeout(roadmapTimeoutRef.current);
-      }
-    };
-  }, [step]);
-
-  useEffect(() => {
-    if (step !== "celebrating") {
-      return;
-    }
-
-    celebrationTimeoutRef.current = window.setTimeout(() => {
-      setStep("paywall");
-    }, 900);
-
-    return () => {
-      if (celebrationTimeoutRef.current !== null) {
-        window.clearTimeout(celebrationTimeoutRef.current);
       }
     };
   }, [step]);
@@ -352,6 +334,7 @@ export function OnboardingModal({
         };
 
         setPendingSubmission(submission);
+        setCreationReady(false);
         setStep("creating");
         return;
       }
@@ -418,16 +401,8 @@ export function OnboardingModal({
           return;
         }
 
-        if (submission.createProject && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-          try {
-            fireOnboardingConfetti();
-          } catch {
-            // Keep onboarding resilient if confetti is blocked by the browser or an extension.
-          }
-        }
-
         setPendingAvatarFile(null);
-        setStep(submission.createProject ? "celebrating" : "paywall");
+        setCreationReady(true);
       } catch (error) {
         if (cancelled) {
           return;
@@ -681,6 +656,11 @@ export function OnboardingModal({
             }
             transition={{ duration: isClosing ? 0.58 : 0.44, ease: [0.16, 1, 0.3, 1] }}
           >
+            <Dialog.Title className="sr-only">Stage onboarding</Dialog.Title>
+            <Dialog.Description className="sr-only">
+              Set up your workspace, project, and integrations.
+            </Dialog.Description>
+
             {step === "welcome" ? (
               <div className="mb-5 flex justify-end">
                 <StepDots total={flowSteps.length} current={currentIndex} />
@@ -1187,29 +1167,10 @@ export function OnboardingModal({
                   motionKey="creating"
                   className="flex min-h-[220px] flex-col items-center justify-center text-center sm:min-h-[300px]"
                 >
-                  <LoadingStage
-                    title={
-                      pendingSubmission?.createProject
-                        ? "Creating your project..."
-                        : `Setting up your workspace${userName ? `, ${userName}` : ""}...`
-                    }
-                    subtitle={
-                      pendingSubmission?.createProject
-                        ? "Saving the roadmap, phases, and tasks to your workspace."
-                        : "Finalizing your onboarding flow."
-                    }
-                  />
-                </OnboardingStepMotion>
-              ) : null}
-
-              {step === "celebrating" ? (
-                <OnboardingStepMotion
-                  motionKey="celebrating"
-                  className="flex min-h-[220px] flex-col items-center justify-center text-center sm:min-h-[300px]"
-                >
-                  <LoadingStage
-                    title="Your project is ready."
-                    subtitle="Opening the next step..."
+                  <CreatingDashboardText
+                    userName={userName}
+                    isReady={creationReady}
+                    onDone={() => setStep("paywall")}
                   />
                 </OnboardingStepMotion>
               ) : null}
@@ -1228,7 +1189,6 @@ export function OnboardingModal({
 
             {step !== "creating" &&
             step !== "generating-roadmap" &&
-            step !== "celebrating" &&
             step !== "paywall" ? (
               <div className="mt-8">
                 {stepError ? (
@@ -1605,6 +1565,178 @@ function LoadingStage({
         {title}
       </div>
       <div className="text-[15px] leading-normal text-text-secondary">{subtitle}</div>
+    </div>
+  );
+}
+
+function CreatingDashboardText({
+  userName,
+  isReady,
+  onDone,
+}: {
+  userName?: string;
+  isReady: boolean;
+  onDone: () => void;
+}) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const textRef = useRef<HTMLDivElement | null>(null);
+  const hasCompletedRef = useRef(false);
+  const hasCelebratedRef = useRef(false);
+  const [phase, setPhase] = useState<"loading" | "ready">("loading");
+  const [text, setText] = useState("Setting up your dashboard...");
+
+  useEffect(() => {
+    hasCompletedRef.current = false;
+    hasCelebratedRef.current = false;
+    setPhase("loading");
+    setText("Setting up your dashboard...");
+  }, []);
+
+  useEffect(() => {
+    if (!isReady || phase !== "loading" || !textRef.current) {
+      return;
+    }
+
+    const split = new SplitText(textRef.current, { type: "words" });
+    const timeline = gsap.timeline({
+      defaults: { ease: "power2.inOut" },
+      onComplete: () => {
+        split.revert();
+        setText(`You're all set${userName ? `, ${userName}` : ""}.`);
+        setPhase("ready");
+      },
+    });
+
+    timeline.to(split.words, {
+      opacity: 0,
+      y: -10,
+      filter: "blur(4px)",
+      duration: 0.24,
+      stagger: 0.03,
+      ease: "power2.in",
+    });
+
+    return () => {
+      timeline.kill();
+      split.revert();
+    };
+  }, [isReady, phase, userName]);
+
+  useGSAP(
+    () => {
+      if (!textRef.current || phase !== "loading") {
+        return;
+      }
+
+      const split = new SplitText(textRef.current, { type: "words" });
+      const words = split.words;
+      gsap.set(words, { color: "var(--color-text-secondary)", y: 0, opacity: 0.65 });
+
+      const timeline = gsap.timeline({
+        repeat: -1,
+        repeatDelay: 0.14,
+        defaults: { ease: "power2.inOut" },
+      });
+
+      timeline.fromTo(
+        words,
+        { opacity: 0.55, y: 4, filter: "blur(3px)" },
+        { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.46, stagger: 0.055 },
+        0,
+      );
+      timeline.to(
+        words,
+        {
+          color: "var(--color-accent)",
+          duration: 0.62,
+          stagger: 0.05,
+        },
+        0,
+      );
+      timeline.to(
+        words,
+        {
+          color: "var(--color-text-secondary)",
+          opacity: 0.72,
+          y: -1,
+          duration: 0.5,
+          stagger: 0.045,
+        },
+        ">"
+      );
+
+      return () => {
+        timeline.kill();
+        split.revert();
+      };
+    },
+    { scope: rootRef, dependencies: [phase] },
+  );
+
+  useEffect(() => {
+    if (phase !== "ready" || hasCelebratedRef.current) {
+      return;
+    }
+
+    hasCelebratedRef.current = true;
+
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      try {
+        fireOnboardingConfetti();
+      } catch {
+        // Keep progression resilient if confetti fails in some browsers/extensions.
+      }
+    }
+  }, [phase]);
+
+  useGSAP(
+    () => {
+      if (!textRef.current || phase !== "ready") {
+        return;
+      }
+
+      gsap.set(textRef.current, {
+        color: "var(--color-text-primary)",
+        y: 12,
+        opacity: 0,
+      });
+
+      const timeline = gsap.timeline();
+      timeline.to(textRef.current, {
+        opacity: 1,
+        y: 0,
+        duration: 0.42,
+        ease: "power2.out",
+      });
+
+      const doneCall = gsap.delayedCall(1.35, () => {
+        if (hasCompletedRef.current) {
+          return;
+        }
+
+        hasCompletedRef.current = true;
+        onDone();
+      });
+
+      return () => {
+        timeline.kill();
+        doneCall.kill();
+      };
+    },
+    { scope: rootRef, dependencies: [phase, onDone, text] },
+  );
+
+  return (
+    <div ref={rootRef} className="flex min-h-[150px] items-center justify-center text-center">
+      <div
+        ref={textRef}
+        className={cn(
+          "font-heading text-[clamp(1.625rem,5vw,1.875rem)] leading-[1.12] font-semibold tracking-[-0.45px] wrap-normal text-balance",
+          phase === "loading" ? "text-text-secondary" : "text-text-primary",
+        )}
+      >
+        {text}
+      </div>
     </div>
   );
 }
