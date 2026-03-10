@@ -11,6 +11,13 @@ import {
 export function PricingSection() {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("yearly");
   const pricing = PRO_PRICING[billingCycle];
+  const proDescription = "For freelancers and studios who want the full Stage workflow.";
+  const proNote =
+    billingCycle === "yearly"
+      ? "Launch offer — save 50% with yearly billing."
+      : "Flexible billing for growing client work.";
+  const proSubnote =
+    billingCycle === "yearly" ? "That works out to about $4/month billed yearly." : "Billed monthly. Cancel anytime.";
 
   return (
     <section className="landing-pricing-grid-section" id="pricing">
@@ -22,10 +29,9 @@ export function PricingSection() {
         <div className="landing-pricing-lattice-row landing-pricing-lattice-row-heading">
           <div className="landing-pricing-lattice-cell" aria-hidden="true" />
           <div className="landing-pricing-heading">
-            <h2 className="landing-section-title">Simplified pricing</h2>
+            <h2 className="landing-section-title">Simple pricing for growing client work</h2>
             <p className="landing-section-subtitle">
-              No confusing tiers. One plan for the complete experience, and a generous free tier to
-              start.
+              Use Stage free for up to 3 projects. Upgrade when you need unlimited work, custom portals, and integrations.
             </p>
           </div>
           <div className="landing-pricing-lattice-cell" aria-hidden="true" />
@@ -68,7 +74,7 @@ export function PricingSection() {
                     <h3 className="landing-feature-cell-title landing-pricing-plan-title">Free</h3>
                   </div>
                   <p className="landing-feature-cell-desc landing-pricing-plan-description">
-                    For getting started without friction.
+                    Best for trying Stage on real client work.
                   </p>
                 </div>
 
@@ -77,7 +83,7 @@ export function PricingSection() {
                     <span className="landing-pricing-price-amount">$0</span>
                   </div>
                   <p className="landing-pricing-price-period">/forever</p>
-                  <p className="landing-pricing-price-note">No credit card required.</p>
+                  <p className="landing-pricing-price-note">No credit card. No time limit.</p>
                 </div>
 
                 <ul className="landing-pricing-feature-list is-single-column is-free">
@@ -95,7 +101,7 @@ export function PricingSection() {
                   to="/auth"
                   className="landing-btn landing-btn-ghost landing-btn-secondary landing-pricing-grid-cta"
                 >
-                  Continue free
+                  Start free
                 </Link>
               </section>
 
@@ -105,12 +111,12 @@ export function PricingSection() {
                     <h3 className="landing-feature-cell-title landing-pricing-plan-title">Pro</h3>
                     {billingCycle === "yearly" ? (
                       <span className="landing-hero-badge landing-pricing-plan-tag">
-                        <span className="landing-pricing-plan-tag-text">Launch offer</span>
+                        <span className="landing-pricing-plan-tag-text">50% launch offer</span>
                       </span>
                     ) : null}
                   </div>
                   <p className="landing-feature-cell-desc landing-pricing-plan-description">
-                    Everything in Stage, with advanced workflow tools.
+                    {proDescription}
                   </p>
                 </div>
 
@@ -122,8 +128,8 @@ export function PricingSection() {
                     <span className="landing-pricing-price-amount">{pricing.price}</span>
                   </div>
                   <p className="landing-pricing-price-period">{pricing.period}</p>
-                  <p className="landing-pricing-price-note">{pricing.note}</p>
-                  <p className="landing-pricing-price-subnote">{pricing.subnote}</p>
+                  <p className="landing-pricing-price-note">{proNote}</p>
+                  <p className="landing-pricing-price-subnote">{proSubnote}</p>
                 </div>
 
                 <ul className="landing-pricing-feature-list is-single-column">

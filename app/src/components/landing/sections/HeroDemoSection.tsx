@@ -85,7 +85,7 @@ export function HeroDemoSection() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="landing-hero-demo-section" aria-label="Stage demo">
+    <section ref={sectionRef} id="demo" className="landing-hero-demo-section" aria-label="Stage demo">
       <div
         className="landing-hero-demo-bg"
         style={{ backgroundImage: `url(${heroBgImage})` }}

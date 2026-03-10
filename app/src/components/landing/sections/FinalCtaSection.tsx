@@ -16,20 +16,20 @@ export function FinalCtaSection() {
           <article className="landing-final-card">
             <div className="landing-final-plan-head">
               <h2 className="landing-section-title landing-final-title">
-                Clarity for every creative project
+                Run your next project with more clarity
               </h2>
               <p className="landing-section-subtitle landing-final-description">
-                Start tracking your projects today. Free to begin, upgrade when you're ready.
+                Start free, set up in minutes, and give clients a cleaner view of the work.
               </p>
             </div>
 
             <div className="landing-final-buttons">
               <Link to="/auth" className="landing-btn landing-btn-cta landing-final-primary-cta">
-                Get started
+                Start free
               </Link>
 
               <a
-                href="#features"
+                href="#demo"
                 className="landing-btn landing-btn-ghost landing-btn-secondary"
               >
                 See demo

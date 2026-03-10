@@ -2,47 +2,42 @@ export const FAQ_ITEMS = [
   {
     question: "Is it really free to get started?",
     answer:
-      "Yes! Stage offers a generous free tier that lets you manage up to 3 projects with all core features included. No credit card required, no time limits.",
+      "Yes. The free plan lets you manage up to 3 projects and use the core workflow before you pay anything. No credit card and no trial countdown.",
   },
   {
     question: "Do I need a credit card to sign up?",
     answer:
-      "No. You can sign up and start using Stage immediately with just your email address. We only ask for payment information if you choose to upgrade to Pro.",
+      "No. You can create an account with just your email. Payment details only matter if you choose to upgrade to Pro.",
   },
   {
     question: "What happens if I cancel my plan?",
     answer:
-      "Your projects and data remain accessible on the free tier. You won't lose any work — you'll just lose access to Pro features like AI roadmaps and Stripe integration.",
+      "Your work stays with you. If you cancel, you drop back to the free plan and keep access to your projects. You only lose Pro features like unlimited projects, custom portal branding, and advanced integrations.",
   },
   {
     question: "Do you have a free trial?",
     answer:
-      "We don't have a traditional trial because our free tier is already generous. You can use Stage for free with up to 3 projects, forever. Upgrade to Pro when you need more.",
+      "We skip the trial because the free plan already lets you use Stage on real client work. Upgrade only when you outgrow the free limit.",
   },
   {
     question: "How does Stripe integration work?",
     answer:
-      "Connect your Stripe account in Settings. Stage automatically syncs your invoices and payments, showing outstanding and received amounts directly on your dashboard.",
+      "Connect Stripe in Settings and Stage brings your payment data into the workspace, so you can see received and outstanding amounts without jumping between tools.",
   },
   {
     question: "Can I share progress with my clients?",
     answer:
-      "Yes! Each project has a Client Portal — a read-only, branded link you can share. Clients see real-time progress without needing to create an account or log in.",
+      "Yes. Every project can be shared as a read-only client portal, so clients can see phases and progress without logging in or asking you for screenshots.",
   },
   {
     question: "Can I invite my team to a project?",
     answer:
-      "Team collaboration is on our roadmap for an upcoming release. Currently, Stage is optimized for individual creatives and freelancers.",
+      "Not yet. Stage is optimized for solo designers and small studios today. Team collaboration is planned for a future release.",
   },
   {
     question: "How many projects can I have?",
     answer:
-      "Free tier: up to 3 active projects. Pro plan: unlimited projects with no restrictions.",
-  },
-  {
-    question: "Can I export my data?",
-    answer:
-      "Yes. You can export all project data, timelines, and payment records at any time. Your data is always yours.",
+      "Free includes up to 3 projects. Pro removes the cap so you can run unlimited client work.",
   },
 ] as const;
 

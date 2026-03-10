@@ -11,10 +11,11 @@ export function FooterSection() {
                 <img src={stageLogo} alt="Stage" />
               </a>
               <div className="landing-footer-brand-desc">
-                Project management built for creative professionals. Track work, manage clients, get
-                paid.
+                Plan phases, share progress, and keep payments in view from one calm workspace.
               </div>
-              <div className="landing-footer-brand-meta">Made for designers and freelancers.</div>
+              <div className="landing-footer-brand-meta">
+                Made for designers, freelancers, and small studios.
+              </div>
             </div>
             <div>
               <div className="landing-footer-col-title">Product</div>

@@ -15,9 +15,9 @@ import {
 import "@/styles/landing.css";
 
 const DEFAULT_SITE_URL = "https://usestage.com";
-const LANDING_TITLE = "Stage — Project clarity for designers and freelancers";
+const LANDING_TITLE = "Stage — Calm project management for designers and freelancers";
 const LANDING_DESCRIPTION =
-  "Track projects, manage phases, and monitor payments. Stage gives designers and freelancers a calm, focused way to run creative work without the chaos.";
+  "Stage helps designers and freelancers plan phases, track progress, share client portals, and keep payments in view from one calm dashboard.";
 
 export function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
@@ -50,7 +50,7 @@ export function LandingPage() {
         <meta property="og:image" content={ogImageUrl} />
         <meta
           property="og:image:alt"
-          content="Stage logo with the message Project clarity for designers and freelancers."
+          content="Stage dashboard for designers and freelancers, showing timelines, tasks, and payments."
         />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={LANDING_TITLE} />

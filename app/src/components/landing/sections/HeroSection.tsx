@@ -4,26 +4,23 @@ export function HeroSection() {
   return (
     <section className="landing-hero">
       <div className="landing-container">
-        <Link to="/auth" className="landing-hero-badge" aria-label="Go to login">
-          <span className="landing-hero-badge-pill">NEW</span>
-          <span className="landing-hero-badge-text">Just launched v1</span>
+        <a href="#pricing" className="landing-hero-badge" aria-label="Go to pricing">
+          <span className="landing-hero-badge-pill">50% off</span>
+          <span className="landing-hero-badge-text">Yearly launch pricing</span>
           <span className="landing-hero-badge-arrow" aria-hidden="true">
             ›
           </span>
-        </Link>
-        <h1 className="landing-hero-title">
-          Project clarity for designers and freelancers
-        </h1>
+        </a>
+        <h1 className="landing-hero-title">The calm way to run client projects</h1>
         <p className="landing-hero-subtitle">
-          Track projects, manage phases, monitor payments.{" "}
-          <span className="landing-text-soft">Everything you need to run your creative work</span> —
-          without the chaos.
+          Stage gives designers and freelancers one clear place to plan phases, track progress,
+          share client updates, and stay on top of payments.
         </p>
         <div className="landing-hero-buttons">
           <Link to="/auth" className="landing-btn landing-btn-cta">
-            Get started
+            Start free
           </Link>
-          <a href="#features" className="landing-btn landing-btn-ghost landing-btn-secondary">
+          <a href="#demo" className="landing-btn landing-btn-ghost landing-btn-secondary">
             See demo
           </a>
         </div>

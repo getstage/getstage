@@ -25,7 +25,7 @@ export function Nav({ scrolled }: { scrolled: boolean }) {
               Sign in
             </Link>
             <Link to="/auth" className="landing-btn landing-btn-cta">
-              Get started
+              Start free
             </Link>
           </div>
         </div>
