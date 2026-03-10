@@ -798,7 +798,7 @@ export function Timeline({
                 </p>
                 <div className="space-y-1.5">
                   {tracking.activeProjects.slice(0, 5).map((project) => (
-                    <p
+                    <div
                       key={`tracking-${project.id}`}
                       className="flex items-center gap-2 text-[13px] text-text-primary"
                     >
@@ -809,7 +809,7 @@ export function Timeline({
                         className="h-4 w-4 text-[9px]"
                       />
                       <span className="truncate">{project.name}</span>
-                    </p>
+                    </div>
                   ))}
                 </div>
               </div>
