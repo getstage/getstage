@@ -63,7 +63,7 @@ const GOOGLE_SHEETS_ICON_SRC = new URL("../../assets/icons/google-sheets.svg", i
   .href;
 const STRIPE_ICON_SRC = new URL("../../assets/icons/stripe.svg", import.meta.url).href;
 const GOOGLE_SHEETS_TEMPLATE_HREF =
-  "https://docs.google.com/spreadsheets/d/1Vs70QBQ5wPD8TVlaU5WH0bcPIm25w5wO/edit?usp=sharing&ouid=112519305894516346218&rtpof=true&sd=true";
+  "https://docs.google.com/spreadsheets/d/1vtsJxrdv0LBbLgKAjnEbkFc89NlrPAMrWmnEcqGjvB0/edit?gid=246791924#gid=246791924";
 
 export type OnboardingSubmission = {
   fieldOfWork: ProjectType;
@@ -1152,7 +1152,7 @@ export function OnboardingModal({
                       </>
                     ) : (
                       <p className="mt-3 max-w-[520px] text-[13px] leading-[1.45] text-text-secondary">
-                        Optional for now. Use the{" "}
+                        Optional for now. Copy our{" "}
                         <a
                           href={GOOGLE_SHEETS_TEMPLATE_HREF}
                           target="_blank"
@@ -1160,15 +1160,10 @@ export function OnboardingModal({
                           className="font-medium text-accent underline decoration-[rgba(135,130,245,0.35)] underline-offset-4 hover:text-accent-hover hover:decoration-[rgba(118,112,224,0.55)]"
                         >
                           Stage template
-                        </a>{" "}
-                        and fill in the{" "}
-                        <span className="font-medium text-text-primary">Transactions</span> tab with
-                        your transaction rows. The required columns are{" "}
-                        <span className="font-medium text-text-primary">
-                          Date, Type, Direction, Counterparty, Amount, Currency, and Status
-                        </span>
-                        , with optional fields like Project name, External reference, Due at, Paid
-                        at, Category, and Notes.
+                        </a>
+                        , fill in your invoices and expenses, then click{" "}
+                        <span className="font-medium text-text-primary">Link Google Sheets</span> to
+                        connect it. The template has everything set up for you.
                       </p>
                     )}
                   </div>
