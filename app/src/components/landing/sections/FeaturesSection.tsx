@@ -20,11 +20,9 @@ export function FeaturesSection() {
         <div className="landing-features-lattice-row landing-features-lattice-row-heading">
           <div className="landing-features-lattice-cell" aria-hidden="true" />
           <div className="landing-features-heading">
-            <h2 className="landing-section-title">
-              Everything you need to manage your creative projects
-            </h2>
+            <h2 className="landing-section-title">See every project, phase, and payment in one place</h2>
             <p className="landing-section-subtitle">
-              From timeline overview to revenue tracking, get the full picture without the clutter.
+              Stage gives you the timeline, structure, client visibility, and payment context to keep work moving.
             </p>
           </div>
           <div className="landing-features-lattice-cell" aria-hidden="true" />
@@ -34,7 +32,7 @@ export function FeaturesSection() {
           <div className="landing-features-lattice-cell" aria-hidden="true" />
           <FeatureCard
             title="Timeline Overview"
-            description="See all your projects mapped across time. The elevation curve shows workload density at a glance."
+            description="See every project across time, spot overlaps early, and understand workload at a glance."
             image={
               <FeatureImage
                 src={timelineOverviewImage}
@@ -45,7 +43,7 @@ export function FeaturesSection() {
           />
           <FeatureCard
             title="Client Portal"
-            description="Share a live, read-only view with your clients. They see progress without the noise."
+            description="Share a polished, read-only portal so clients can follow progress without chasing you for updates."
             image={<FeatureImage src={clientPortalImage} alt="Client portal view in Stage" motionSeed={1} />}
           />
           <div className="landing-features-lattice-cell" aria-hidden="true" />
@@ -55,12 +53,12 @@ export function FeaturesSection() {
           <div className="landing-features-lattice-cell" aria-hidden="true" />
           <FeatureCard
             title="Phase Management"
-            description="Break projects into clear phases with tasks. Drag, reorder, check off."
+            description="Break each project into clear phases and tasks, so nothing slips or lives in your head."
             image={<FeatureImage src={phaseManagementImage} alt="Phase management view in Stage" motionSeed={2} />}
           />
           <FeatureCard
             title="Payment Tracking"
-            description="Connect Stripe and see who's paid and who hasn't, right on your dashboard."
+            description="Connect Stripe and keep paid, pending, and outstanding work tied to the project itself."
             image={
               <FeatureImage
                 src={paymentTrackingImage}
@@ -75,15 +73,15 @@ export function FeaturesSection() {
         <div className="landing-features-lattice-row landing-features-lattice-row-compact">
           <div className="landing-features-lattice-cell" aria-hidden="true" />
           <FeatureCard
-            title="Privacy-first"
-            description="Your data stays yours. No selling, no tracking, no ads. GDPR-compliant by default."
+            title="Private by default"
+            description="No ads, no data selling, no creepy tracking. Just a focused workspace for client work."
             image={<Lock weight="duotone" className="landing-feature-compact-icon" aria-hidden="true" />}
             compact
             inlineHeadingMedia
           />
           <FeatureCard
             title="Integrations"
-            description="Connect with Stripe and Google Sheets today. Figma, Notion, and Slack coming soon."
+            description="Connect Stripe and Google Sheets today. Figma, Notion, and Slack are on the roadmap."
             image={<IntegrationsMockup />}
             compact
             cardClassName="is-integrations"

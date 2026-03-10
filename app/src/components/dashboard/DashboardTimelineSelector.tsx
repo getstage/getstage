@@ -69,7 +69,7 @@ export function DashboardTimelineSelector({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((current) => !current)}
-        className={`inline-flex h-[34px] items-center gap-1.5 rounded-[7px] border bg-white px-3 text-[13px] font-medium text-text-primary transition-colors outline-none focus:outline-none focus-visible:outline-none ${
+        className={`inline-flex h-[34px] cursor-pointer items-center gap-1.5 rounded-[7px] border bg-white px-3 text-[13px] font-medium text-text-primary transition-colors outline-none focus:outline-none focus-visible:outline-none ${
           isOpen ? "border-text-secondary" : "border-border"
         }`}
       >
@@ -101,7 +101,7 @@ export function DashboardTimelineSelector({
                 onClick={() => handleSelect(option.value)}
                 role="option"
                 aria-selected={value === option.value}
-                className="flex w-full items-center justify-between rounded-[5px] px-2.5 py-1.5 text-left text-[14px] font-normal text-text-primary transition-colors hover:bg-border-subtle"
+                className="flex w-full cursor-pointer items-center justify-between rounded-[5px] px-2.5 py-1.5 text-left text-[14px] font-normal text-text-primary transition-colors hover:bg-border-subtle"
               >
                 <span>{option.label}</span>
                 {value === option.value ? (
@@ -119,7 +119,7 @@ export function DashboardTimelineSelector({
                 onClick={() => handleSelect(option.value)}
                 role="option"
                 aria-selected={value === option.value}
-                className="flex w-full items-center justify-between rounded-[5px] px-2.5 py-1.5 text-left text-[14px] font-normal text-text-primary transition-colors hover:bg-border-subtle"
+                className="flex w-full cursor-pointer items-center justify-between rounded-[5px] px-2.5 py-1.5 text-left text-[14px] font-normal text-text-primary transition-colors hover:bg-border-subtle"
               >
                 <span>{option.label}</span>
                 {value === option.value ? (
@@ -135,7 +135,7 @@ export function DashboardTimelineSelector({
               onClick={() => handleSelect(ALL_TIME_OPTION.value)}
               role="option"
               aria-selected={value === ALL_TIME_OPTION.value}
-              className="flex w-full items-center justify-between rounded-[5px] px-2.5 py-1.5 text-left text-[14px] font-normal text-text-primary transition-colors hover:bg-border-subtle"
+              className="flex w-full cursor-pointer items-center justify-between rounded-[5px] px-2.5 py-1.5 text-left text-[14px] font-normal text-text-primary transition-colors hover:bg-border-subtle"
             >
               <span>{ALL_TIME_OPTION.label}</span>
               {value === ALL_TIME_OPTION.value ? (

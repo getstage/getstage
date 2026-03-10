@@ -372,6 +372,14 @@ export function SettingsPage() {
     window.open(previewUrl, "_blank", "noopener,noreferrer");
   }
 
+  function handleOpenBillingTab() {
+    setActiveTab("billing");
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", "billing");
+    window.history.pushState({}, "", url.toString());
+  }
+
   async function handleStartCheckout(billingCycle: BillingCycle) {
     setIsCheckoutLoading(true);
     try {
@@ -722,6 +730,7 @@ export function SettingsPage() {
               onPortalColorInput={handlePortalColorInput}
               onHexInputChange={handleHexInputChange}
               onHexInputBlur={handleHexInputBlur}
+              onUpgradeClick={handleOpenBillingTab}
               onSavePortalLogo={() => void persistPortalLogo()}
               onSavePortalColor={() => void persistPortalColor()}
             />

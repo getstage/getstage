@@ -26,20 +26,20 @@ const STEPS: Array<{
 }> = [
   {
     number: "1",
-    title: "Create a project",
-    description: "Name your client, pick a project type, and you're in.",
+    title: "Start a project",
+    description: "Add the client, choose the project type, and get the work moving fast.",
     showcase: <ProjectCreationAnimatedPreview className="landing-step-project-preview" />,
   },
   {
     number: "2",
-    title: "Track progress",
-    description: "Add phases, check off tasks, and keep work flowing in one place.",
+    title: "Organize the work",
+    description: "Break the project into phases, check off tasks, and keep every deliverable on track.",
     showcase: <ProjectWorkflowPreview />,
   },
   {
     number: "3",
-    title: "Stay informed",
-    description: "See your timeline, workload curve, and revenue at a glance.",
+    title: "See the full picture",
+    description: "Open the timeline to spot deadlines, workload, and payments in one glance.",
     showcase: <TimelineInteractivePreview />,
   },
 ];
@@ -57,9 +57,9 @@ export function StepsSection() {
         <div className="landing-steps-lattice-row landing-steps-lattice-row-heading">
           <div className="landing-steps-lattice-cell" aria-hidden="true" />
           <div className="landing-steps-heading">
-            <h2 className="landing-section-title">Get started in minutes</h2>
+            <h2 className="landing-section-title">Get a project running in minutes</h2>
             <p className="landing-section-subtitle">
-              From setup to daily workflow, Stage gives you a clear process without the clutter.
+              From blank page to daily workflow, Stage gives you structure without setup overhead.
             </p>
           </div>
           <div className="landing-steps-lattice-cell" aria-hidden="true" />

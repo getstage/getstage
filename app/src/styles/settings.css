@@ -170,8 +170,12 @@
 }
 
 .settings-card.locked {
-  opacity: 0.6;
-  pointer-events: none;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.settings-card.locked .logo-upload-area,
+.settings-card.locked .settings-input.disabled {
+  filter: blur(3px);
 }
 
 .card-body {
@@ -723,13 +727,34 @@
 /* ---- Badges ---- */
 
 .pro-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 10px;
   font-weight: 600;
   color: var(--color-accent);
-  background: var(--color-accent-light);
+  background: color-mix(in srgb, var(--color-accent-light) 76%, white);
   padding: 2px 8px;
   border-radius: 99px;
   letter-spacing: 0.3px;
+}
+
+.pro-badge-icon {
+  width: 12px;
+  height: 12px;
+  color: var(--color-accent);
+  display: block;
+  flex-shrink: 0;
+}
+
+.pro-badge-link {
+  border: none;
+  cursor: pointer;
+  transition: transform 150ms ease, background 150ms ease;
+}
+
+.pro-badge-link:hover {
+  background: color-mix(in srgb, var(--color-accent-light) 60%, white);
 }
 
 .coming-soon-badge {

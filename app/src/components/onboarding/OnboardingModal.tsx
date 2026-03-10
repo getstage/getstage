@@ -62,6 +62,8 @@ type PhaseItem = {
 const GOOGLE_SHEETS_ICON_SRC = new URL("../../assets/icons/google-sheets.svg", import.meta.url)
   .href;
 const STRIPE_ICON_SRC = new URL("../../assets/icons/stripe.svg", import.meta.url).href;
+const GOOGLE_SHEETS_TEMPLATE_HREF =
+  "https://docs.google.com/spreadsheets/d/1Vs70QBQ5wPD8TVlaU5WH0bcPIm25w5wO/edit?usp=sharing&ouid=112519305894516346218&rtpof=true&sd=true";
 
 export type OnboardingSubmission = {
   fieldOfWork: ProjectType;
@@ -670,7 +672,7 @@ export function OnboardingModal({
           onPointerDownOutside={(event) => event.preventDefault()}
         >
           <motion.div
-            className="project-creation-page onboarding-modal fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-20px)] w-[calc(100%-16px)] max-w-[760px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto overscroll-contain rounded-[22px] bg-white p-4 shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 sm:w-[calc(100%-32px)] sm:p-6 md:p-7"
+            className="project-creation-page onboarding-modal timeline-scrollbar-hidden fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-20px)] w-[calc(100%-16px)] max-w-[760px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto overscroll-contain rounded-[22px] bg-white p-4 shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 sm:w-[calc(100%-32px)] sm:p-6 md:p-7"
             initial={{ opacity: 0, y: 18, scale: 0.985, filter: "blur(10px)" }}
             animate={
               isClosing
@@ -1149,7 +1151,25 @@ export function OnboardingModal({
                         ) : null}
                       </>
                     ) : (
-                      <p className="mt-3 text-[13px] text-text-secondary">Optional for now.</p>
+                      <p className="mt-3 max-w-[520px] text-[13px] leading-[1.45] text-text-secondary">
+                        Optional for now. Use the{" "}
+                        <a
+                          href={GOOGLE_SHEETS_TEMPLATE_HREF}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="font-medium text-accent underline decoration-[rgba(135,130,245,0.35)] underline-offset-4 hover:text-accent-hover hover:decoration-[rgba(118,112,224,0.55)]"
+                        >
+                          Stage template
+                        </a>{" "}
+                        and fill in the{" "}
+                        <span className="font-medium text-text-primary">Transactions</span> tab with
+                        your transaction rows. The required columns are{" "}
+                        <span className="font-medium text-text-primary">
+                          Date, Type, Direction, Counterparty, Amount, Currency, and Status
+                        </span>
+                        , with optional fields like Project name, External reference, Due at, Paid
+                        at, Category, and Notes.
+                      </p>
                     )}
                   </div>
 

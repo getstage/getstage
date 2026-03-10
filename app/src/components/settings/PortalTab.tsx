@@ -1,4 +1,5 @@
 import type { ChangeEvent, DragEvent, MouseEvent, RefObject } from "react";
+import { Lock } from "@phosphor-icons/react";
 import type { SaveFeedback } from "@/hooks/useFeedback";
 import { FeedbackText } from "@/components/settings/FeedbackText";
 
@@ -24,6 +25,7 @@ type PortalTabProps = {
   onPortalColorInput: (value: string) => void;
   onHexInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onHexInputBlur: () => void;
+  onUpgradeClick: () => void;
   onSavePortalLogo: () => void;
   onSavePortalColor: () => void;
 };
@@ -50,6 +52,7 @@ export function PortalTab({
   onPortalColorInput,
   onHexInputChange,
   onHexInputBlur,
+  onUpgradeClick,
   onSavePortalLogo,
   onSavePortalColor,
 }: PortalTabProps) {
@@ -75,7 +78,12 @@ export function PortalTab({
         <div className="card-body">
           <div className="card-heading-row">
             <div className="card-heading sf">Logo</div>
-            {isPro ? null : <span className="pro-badge">PRO</span>}
+            {isPro ? null : (
+              <button type="button" className="pro-badge pro-badge-link" onClick={onUpgradeClick}>
+                <Lock size={12} weight="duotone" className="pro-badge-icon" aria-hidden="true" />
+                PRO
+              </button>
+            )}
           </div>
           <div className="card-desc">
             {isPro
@@ -224,7 +232,12 @@ export function PortalTab({
         <div className="card-body">
           <div className="card-heading-row">
             <div className="card-heading sf domain-heading">Custom domain</div>
-            <span className="pro-badge">PRO</span>
+            {isPro ? null : (
+              <button type="button" className="pro-badge pro-badge-link" onClick={onUpgradeClick}>
+                <Lock size={12} weight="duotone" className="pro-badge-icon" aria-hidden="true" />
+                PRO
+              </button>
+            )}
             <span className="coming-soon-badge">Coming soon</span>
           </div>
           <div className="card-desc">

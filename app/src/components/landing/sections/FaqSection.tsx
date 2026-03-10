@@ -18,9 +18,9 @@ export function FaqSection() {
           <div className="landing-faq-lattice-cell" aria-hidden="true" />
 
           <div className="landing-faq-grid-intro">
-            <h2 className="landing-section-title">Frequently asked questions</h2>
+            <h2 className="landing-section-title">Questions before you start?</h2>
             <p className="landing-section-subtitle">
-              Quick answers to common questions about pricing, billing, and getting started.
+              Clear answers on setup, pricing, client portals, and how Stage fits into your workflow.
             </p>
           </div>
 
