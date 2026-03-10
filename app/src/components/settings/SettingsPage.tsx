@@ -154,11 +154,31 @@ export function SettingsPage() {
 
   useEffect(() => {
     const applyTabFromUrl = () => {
-      const tabParam = new URLSearchParams(window.location.search).get("tab");
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
       if (tabParam === "billing" || tabParam === "integrations" || tabParam === "portal") {
         setActiveTab(tabParam);
       } else {
         setActiveTab("general");
+      }
+
+      // Handle Stripe OAuth redirect feedback
+      const stripeParam = params.get("stripe");
+      if (stripeParam === "connected") {
+        showStripeFeedback({ kind: "saved" });
+        params.delete("stripe");
+        const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+        window.history.replaceState({}, "", newUrl);
+      } else if (stripeParam === "error") {
+        const reason = params.get("reason");
+        const message = reason === "missing_code"
+          ? "Stripe connection failed: no authorization code received. Please try again."
+          : "Something went wrong connecting Stripe. Please try again.";
+        showStripeFeedback({ kind: "error", message });
+        params.delete("stripe");
+        params.delete("reason");
+        const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+        window.history.replaceState({}, "", newUrl);
       }
     };
 

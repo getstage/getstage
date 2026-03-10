@@ -178,7 +178,11 @@ export function IntegrationsTab({
               type="button"
               className="btn-outline"
               disabled={!stripeConnected || isStripeDisconnecting}
-              onClick={onStripeDisconnect}
+              onClick={() => {
+                if (window.confirm("This will stop syncing your invoices and payments from Stripe. Are you sure?")) {
+                  onStripeDisconnect();
+                }
+              }}
             >
               {isStripeDisconnecting ? "Disconnecting..." : "Disconnect"}
             </button>
