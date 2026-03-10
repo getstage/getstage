@@ -13,6 +13,7 @@ type PhasesStepProps = {
   onTogglePhase: (phaseId: string) => void;
   onAddPhase: () => void;
   onRenamePhase: (phaseId: string, name: string) => void;
+  onRemovePhase: (phaseId: string) => void;
   onDragStart: (event: DragEvent<HTMLDivElement>, phaseId: string) => void;
   onDrop: (event: DragEvent<HTMLDivElement>, targetId: string) => void;
   onDragEnd: () => void;
@@ -30,6 +31,7 @@ export function PhasesStep({
   onTogglePhase,
   onAddPhase,
   onRenamePhase,
+  onRemovePhase,
   onDragStart,
   onDrop,
   onDragEnd,
@@ -41,8 +43,8 @@ export function PhasesStep({
       <h2 className="mb-2 text-center font-heading text-[24px] font-semibold tracking-[-0.4px] text-text-primary">
         Select phases
       </h2>
-      <p className="mb-8 text-center text-[15px] leading-[1.5] text-text-secondary">
-        Toggle the phases you want. Reorder by dragging.
+      <p className="mb-8 text-center text-[15px] leading-normal text-text-secondary">
+        Rename, remove, toggle, or reorder the phases you want.
       </p>
 
       <div className="mb-3">
@@ -59,7 +61,7 @@ export function PhasesStep({
               index < phases.length - 1 && "border-b border-border-subtle",
             )}
           >
-            <div className="flex w-4 flex-shrink-0 cursor-grab flex-col items-center gap-0.5 text-text-tertiary">
+            <div className="flex w-4 shrink-0 cursor-grab flex-col items-center gap-0.5 text-text-tertiary">
               <span className="h-[1.5px] w-3 rounded bg-current" />
               <span className="h-[1.5px] w-3 rounded bg-current" />
               <span className="h-[1.5px] w-3 rounded bg-current" />
@@ -99,9 +101,18 @@ export function PhasesStep({
 
             <button
               type="button"
+              onClick={() => onRemovePhase(phase.id)}
+              disabled={phases.length <= 1}
+              className="cursor-pointer text-[12px] font-medium text-text-tertiary transition-colors hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Remove
+            </button>
+
+            <button
+              type="button"
               onClick={() => onTogglePhase(phase.id)}
               className={cn(
-                "relative h-5 w-9 flex-shrink-0 cursor-pointer rounded-[10px] transition-colors",
+                "relative h-5 w-9 shrink-0 cursor-pointer rounded-[10px] transition-colors",
                 phase.on ? "bg-accent" : "bg-[#D9D9D9]",
               )}
               aria-label={`Toggle ${phase.name}`}

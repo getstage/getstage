@@ -13,6 +13,8 @@ import {
 } from "convex/react";
 import { Helmet } from "react-helmet-async";
 import { motion } from "motion/react";
+import { UpgradePricingModal } from "@/components/billing/UpgradePricingModal";
+import { PRO_PRICING, type BillingCycle } from "@/components/onboarding/OnboardingPaywall";
 import { BillingTab } from "@/components/settings/BillingTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
 import { IntegrationsTab } from "@/components/settings/IntegrationsTab";
@@ -27,7 +29,7 @@ import { useAuth, useSignOut } from "@/lib/auth";
 import { api } from "@/lib/convex";
 import { DEFAULT_PORTAL_COLOR } from "@/lib/constants";
 import { toUserFacingErrorMessage } from "@/lib/errors";
-import { capitalize, formatPlanPrice, normalizeHex } from "@/lib/format";
+import { capitalize, normalizeHex } from "@/lib/format";
 import { rebaseUrlToCurrentOrigin } from "@/lib/portal";
 import type { SettingsTab } from "@/types/settings";
 import { googleSheetsUrlSchema, profileNameSchema } from "@/lib/validation";
@@ -128,6 +130,7 @@ export function SettingsPage() {
   const [isSavingPortalColor, setIsSavingPortalColor] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [upgradePricingOpen, setUpgradePricingOpen] = useState(false);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
   const [isStripeConnecting, setIsStripeConnecting] = useState(false);
   const [isStripeSyncing, setIsStripeSyncing] = useState(false);
@@ -369,10 +372,10 @@ export function SettingsPage() {
     window.open(previewUrl, "_blank", "noopener,noreferrer");
   }
 
-  async function handleStartCheckout() {
+  async function handleStartCheckout(billingCycle: BillingCycle) {
     setIsCheckoutLoading(true);
     try {
-      const result = await createCheckoutSession({});
+      const result = await createCheckoutSession({ billingCycle });
       if (!result.url) {
         throw new Error("Stripe checkout URL is missing.");
       }
@@ -566,7 +569,7 @@ export function SettingsPage() {
   const planName = subscription ? `Stage ${capitalize(subscription.plan)}` : "Stage Pro";
   const planStatus = subscription ? capitalize(subscription.status) : "Pending";
   const planCycle = subscription
-    ? `${capitalize(subscription.billingCycle)} · ${formatPlanPrice(subscription.plan)}`
+    ? `${capitalize(subscription.billingCycle)} · ${PRO_PRICING[subscription.billingCycle].price}${PRO_PRICING[subscription.billingCycle].period}`
     : "Provider not configured yet";
   const paymentText =
     subscription?.paymentMethodBrand && subscription.paymentMethodLast4
@@ -662,7 +665,7 @@ export function SettingsPage() {
               isCheckoutLoading={isCheckoutLoading}
               isPortalLoading={isPortalLoading}
               hasActiveSubscription={hasActiveSubscription}
-              onStartCheckout={() => void handleStartCheckout()}
+              onOpenUpgradePricing={() => setUpgradePricingOpen(true)}
               onOpenPortal={() => void handleOpenPortal()}
             />
 
@@ -725,6 +728,21 @@ export function SettingsPage() {
           </div>
         </div>
       </motion.div>
+
+      <UpgradePricingModal
+        open={upgradePricingOpen}
+        onClose={() => {
+          if (isCheckoutLoading) {
+            return;
+          }
+          setUpgradePricingOpen(false);
+        }}
+        onUpgrade={(billingCycle) => {
+          void handleStartCheckout(billingCycle);
+        }}
+        isLoading={isCheckoutLoading}
+        errorMessage={billingFeedback.kind === "error" ? billingFeedback.message : null}
+      />
     </>
   );
 }

@@ -337,6 +337,23 @@ export function useProjectCreation() {
     );
   }
 
+  function removePhase(phaseId: string) {
+    setPhases((current) => {
+      if (current.length <= 1) {
+        return current;
+      }
+
+      return current.filter((phase) => phase.id !== phaseId);
+    });
+
+    if (editingPhaseId === phaseId) {
+      setEditingPhaseId(null);
+    }
+    if (draggingPhaseId === phaseId) {
+      setDraggingPhaseId(null);
+    }
+  }
+
   function reorderPhases(sourceId: string, targetId: string) {
     if (sourceId === targetId) {
       return;
@@ -421,6 +438,7 @@ export function useProjectCreation() {
     togglePhase,
     addPhase,
     renamePhase,
+    removePhase,
     handleDragStart,
     handleDrop,
     handleDragEnd,

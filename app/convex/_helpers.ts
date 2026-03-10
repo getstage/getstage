@@ -559,9 +559,9 @@ export async function recomputeProjectState(
     }),
   );
 
-  const totalTasks = phaseStates.reduce((sum, phaseState) => sum + phaseState.total, 0);
-  const completedTasks = phaseStates.reduce((sum, phaseState) => sum + phaseState.completed, 0);
-  const nextProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const totalPhaseProgress = phaseStates.reduce((sum, phaseState) => sum + phaseState.progress, 0);
+  const nextProgress =
+    phaseStates.length > 0 ? Math.round(totalPhaseProgress / phaseStates.length) : 0;
   const nextStatus =
     phaseStates.length > 0 && phaseStates.every((phaseState) => phaseState.progress === 100)
       ? "completed"

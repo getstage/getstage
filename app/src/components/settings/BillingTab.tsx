@@ -12,7 +12,7 @@ type BillingTabProps = {
   isCheckoutLoading: boolean;
   isPortalLoading: boolean;
   hasActiveSubscription: boolean;
-  onStartCheckout: () => void;
+  onOpenUpgradePricing: () => void;
   onOpenPortal: () => void;
 };
 
@@ -27,7 +27,7 @@ export function BillingTab({
   isCheckoutLoading,
   isPortalLoading,
   hasActiveSubscription,
-  onStartCheckout,
+  onOpenUpgradePricing,
   onOpenPortal,
 }: BillingTabProps) {
   return (
@@ -66,9 +66,9 @@ export function BillingTab({
                 type="button"
                 className="btn-outline"
                 disabled={isCheckoutLoading}
-                onClick={onStartCheckout}
+                onClick={onOpenUpgradePricing}
               >
-                {isCheckoutLoading ? "Redirecting..." : "Upgrade"}
+                Upgrade
               </button>
             )}
           </div>

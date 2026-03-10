@@ -9,6 +9,7 @@ type UpgradePaywallModalProps = {
   onUpgrade: () => void;
   isLoading?: boolean;
   errorMessage?: string | null;
+  variant?: "preview" | "general";
 };
 
 export function UpgradePaywallModal({
@@ -17,7 +18,57 @@ export function UpgradePaywallModal({
   onUpgrade,
   isLoading = false,
   errorMessage = null,
+  variant = "preview",
 }: UpgradePaywallModalProps) {
+  const content =
+    variant === "general"
+      ? {
+          title: "Upgrade to Stage Pro",
+          headline: "Unlock the full workspace.",
+          description:
+            "Start checkout to unlock more projects, billing access, and the full Stage workspace.",
+          features: [
+            {
+              icon: <TrendUp size={18} weight="fill" />,
+              title: "More projects",
+              description: "Move beyond the free limit and keep growing your workspace.",
+            },
+            {
+              icon: <LockKeyOpen size={18} weight="fill" />,
+              title: "Billing access",
+              description: "Enable subscriptions and manage your billing setup in Stripe.",
+            },
+            {
+              icon: <CrownSimple size={18} weight="fill" />,
+              title: "Pro workspace",
+              description: "Unlock the paid workspace without routing through settings first.",
+            },
+          ],
+        }
+      : {
+          title: "Unlock your dashboard",
+          headline: "Finish setup, then unlock Stage.",
+          description:
+            "You have seen the preview. Upgrade next to turn this into your live workspace and start tracking real projects, payments, and client work.",
+          features: [
+            {
+              icon: <TrendUp size={18} weight="fill" />,
+              title: "Live dashboard",
+              description: "Replace the preview with your real project and revenue data.",
+            },
+            {
+              icon: <LockKeyOpen size={18} weight="fill" />,
+              title: "Billing access",
+              description: "Enable subscription billing and unlock the full workspace.",
+            },
+            {
+              icon: <CrownSimple size={18} weight="fill" />,
+              title: "Next connectors",
+              description: "Stripe Connect and Google Sheets import come right after.",
+            },
+          ],
+        };
+
   return (
     <Dialog.Root open={open} onOpenChange={onClose}>
       <Dialog.Portal>
@@ -25,7 +76,7 @@ export function UpgradePaywallModal({
         <Dialog.Content className="fixed inset-x-2 bottom-2 z-50 max-h-[calc(100dvh-16px)] overflow-y-auto overscroll-contain rounded-[22px] bg-white p-4 shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-[calc(100%-32px)] sm:max-w-[620px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:p-6 md:p-7">
           <div className="mb-5 flex items-start justify-between gap-4 sm:mb-6 sm:items-center">
             <Dialog.Title className="font-heading text-[18px] leading-[1.2] font-medium tracking-[-0.2px] text-text-primary sm:text-[20px]">
-              Unlock your dashboard
+              {content.title}
             </Dialog.Title>
             <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[rgba(135,130,245,0.12)] text-accent sm:h-10 sm:w-10">
               <CrownSimple size={18} weight="fill" />
@@ -35,29 +86,22 @@ export function UpgradePaywallModal({
           <div className="space-y-4 sm:space-y-5">
             <div>
               <h3 className="font-heading text-[24px] leading-[1.08] font-semibold tracking-[-0.5px] text-text-primary sm:text-[28px]">
-                Finish setup, then unlock Stage.
+                {content.headline}
               </h3>
               <p className="mt-3 max-w-[54ch] text-[14px] leading-[1.55] text-text-secondary sm:text-[15px] sm:leading-[1.6]">
-                You have seen the preview. Upgrade next to turn this into your live workspace and start tracking real projects, payments, and client work.
+                {content.description}
               </p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
-              <FeatureCard
-                icon={<TrendUp size={18} weight="fill" />}
-                title="Live dashboard"
-                description="Replace the preview with your real project and revenue data."
-              />
-              <FeatureCard
-                icon={<LockKeyOpen size={18} weight="fill" />}
-                title="Billing access"
-                description="Enable subscription billing and unlock the full workspace."
-              />
-              <FeatureCard
-                icon={<CrownSimple size={18} weight="fill" />}
-                title="Next connectors"
-                description="Stripe Connect and Google Sheets import come right after."
-              />
+              {content.features.map((feature) => (
+                <FeatureCard
+                  key={feature.title}
+                  icon={feature.icon}
+                  title={feature.title}
+                  description={feature.description}
+                />
+              ))}
             </div>
           </div>
 

@@ -1,5 +1,7 @@
 import { Helmet } from "react-helmet-async";
+import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
+import { ArrowLeft } from "@phosphor-icons/react";
 import { StepCard } from "@/components/creation/CreationChrome";
 import { GeneratingState, SuccessState } from "@/components/creation/CreationStates";
 import { MethodStep } from "@/components/creation/steps/MethodStep";
@@ -19,13 +21,24 @@ export function ProjectCreationPage() {
         <title>New Project — Stage</title>
       </Helmet>
 
-      <div className="flex min-h-[calc(100vh-64px)] flex-col items-center justify-center bg-bg px-10">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
-          className="w-full max-w-[420px]"
-        >
+      <div className="min-h-[calc(100vh-64px)]">
+        <div className="mx-auto w-full max-w-[1440px] px-5 pt-8 sm:px-10 sm:pt-10 lg:px-14">
+          <Link
+            to="/dashboard"
+            className="mb-6 inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary sm:mb-8"
+          >
+            <ArrowLeft size={14} />
+            Dashboard
+          </Link>
+        </div>
+
+        <div className="flex flex-col items-center px-10 pb-20">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-[420px]"
+          >
             {creation.errorMessage ? (
               <div className="mb-6 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-[13px] text-destructive">
                 {creation.errorMessage}
@@ -33,7 +46,8 @@ export function ProjectCreationPage() {
             ) : null}
 
             <StepCard>{renderStepContent(creation)}</StepCard>
-        </motion.div>
+          </motion.div>
+        </div>
       </div>
     </>
   );
@@ -125,6 +139,7 @@ function renderStepContent(creation: ProjectCreationState) {
           onTogglePhase={creation.togglePhase}
           onAddPhase={creation.addPhase}
           onRenamePhase={creation.renamePhase}
+          onRemovePhase={creation.removePhase}
           onDragStart={creation.handleDragStart}
           onDrop={creation.handleDrop}
           onDragEnd={creation.handleDragEnd}

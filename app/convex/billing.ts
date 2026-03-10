@@ -37,6 +37,8 @@ type ViewerContext = {
   name: string;
 };
 
+type BillingCycle = "monthly" | "yearly";
+
 type StripeSubscriptionSummary = {
   currentPeriodEnd: number;
   status: string;
@@ -50,7 +52,7 @@ type SubscriptionSnapshot = {
   plan: "pro";
   provider: "stripe";
   status: string;
-  billingCycle: "yearly";
+  billingCycle: BillingCycle;
   currentPeriodEnd: number;
   cancelAtPeriodEnd: boolean;
   paymentMethodBrand: null;
@@ -87,6 +89,36 @@ function getBillingUrls() {
   };
 }
 
+function getBillingCycleForPriceId(priceId: string | null | undefined): BillingCycle {
+  const monthlyPriceId = getEnv("STRIPE_MONTHLY_PRICE_ID");
+  if (monthlyPriceId && priceId === monthlyPriceId) {
+    return "monthly";
+  }
+
+  return "yearly";
+}
+
+function getPriceIdForBillingCycle(billingCycle: BillingCycle, explicitPriceId?: string) {
+  if (explicitPriceId) {
+    return explicitPriceId;
+  }
+
+  if (billingCycle === "monthly") {
+    const monthlyPriceId = getEnv("STRIPE_MONTHLY_PRICE_ID");
+    if (!monthlyPriceId) {
+      throw new Error("Monthly checkout is not configured yet.");
+    }
+    return monthlyPriceId;
+  }
+
+  const yearlyPriceId = getEnv("STRIPE_YEARLY_PRICE_ID") ?? getEnv("STRIPE_PRICE_ID");
+  if (!yearlyPriceId) {
+    throw new Error("Yearly checkout is not configured yet.");
+  }
+
+  return yearlyPriceId;
+}
+
 function getLoopsEventApiKey() {
   return getEnv("AUTH_LOOPS_API_KEY") ?? requireEnv("LOOPS_API_KEY");
 }
@@ -111,7 +143,7 @@ async function loadSubscriptionByUserId(
     plan: "pro" as const,
     provider: "stripe" as const,
     status: preferred.cancelAtPeriodEnd ? "cancelling" : preferred.status,
-    billingCycle: "yearly" as const,
+    billingCycle: getBillingCycleForPriceId(preferred.priceId),
     currentPeriodEnd: toMilliseconds(preferred.currentPeriodEnd),
     cancelAtPeriodEnd: preferred.cancelAtPeriodEnd,
     paymentMethodBrand: null,
@@ -169,13 +201,12 @@ export const getCurrentSubscription = query({
 export const createCheckoutSession = action({
   args: {
     priceId: v.optional(v.string()),
+    billingCycle: v.optional(v.union(v.literal("monthly"), v.literal("yearly"))),
   },
   handler: async (ctx, args): Promise<CheckoutSessionResponse> => {
     const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
-    const priceId = args.priceId ?? getEnv("STRIPE_YEARLY_PRICE_ID") ?? getEnv("STRIPE_PRICE_ID");
-    if (!priceId) {
-      throw new Error("STRIPE_YEARLY_PRICE_ID is not configured.");
-    }
+    const billingCycle = args.billingCycle ?? "yearly";
+    const priceId = getPriceIdForBillingCycle(billingCycle, args.priceId);
 
     const customer = await stripe.getOrCreateCustomer(ctx as ActionCtx, {
       userId: viewer.userIdString,

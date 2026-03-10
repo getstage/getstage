@@ -243,7 +243,7 @@ export default defineSchema({
     provider: billingProvider,
     plan,
     status: subscriptionStatus,
-    billingCycle: v.literal("yearly"),
+    billingCycle: v.union(v.literal("monthly"), v.literal("yearly")),
     currentPeriodEnd: v.number(),
     cancelAtPeriodEnd: v.optional(v.boolean()),
     paymentMethodBrand: v.optional(v.string()),

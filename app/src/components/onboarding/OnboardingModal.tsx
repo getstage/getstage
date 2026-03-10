@@ -10,7 +10,7 @@ import {
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "motion/react";
 import { useGSAP } from "@gsap/react";
-import { ArrowUpRight, Eye, UserCircle } from "@phosphor-icons/react";
+import { ArrowUpRight, Eye, PencilSimpleLine, Trash, UserCircle } from "@phosphor-icons/react";
 import confetti from "canvas-confetti";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
@@ -107,6 +107,7 @@ export function OnboardingModal({
   const [phases, setPhases] = useState<PhaseItem[]>(() =>
     DEFAULT_PHASES.map((name, index) => ({ id: `phase-${index}`, name, on: true })),
   );
+  const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
   const [draggingPhaseId, setDraggingPhaseId] = useState<string | null>(null);
   const [sheetUrl, setSheetUrl] = useState("");
   const [csvConnected, setCsvConnected] = useState(false);
@@ -119,6 +120,7 @@ export function OnboardingModal({
   const completionTimeoutRef = useRef<number | null>(null);
   const roadmapTimeoutRef = useRef<number | null>(null);
   const celebrationTimeoutRef = useRef<number | null>(null);
+  const phaseCounterRef = useRef(DEFAULT_PHASES.length);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
   const markProjectCreated = useConvexMutation(api.onboarding.markProjectCreated);
@@ -201,7 +203,9 @@ export function OnboardingModal({
     setStartDate(formatInputDate(new Date()));
     setEndDate(formatInputDate(addDays(new Date(), 30)));
     setPhases(DEFAULT_PHASES.map((name, index) => ({ id: `phase-${index}`, name, on: true })));
+    setEditingPhaseId(null);
     setDraggingPhaseId(null);
+    phaseCounterRef.current = DEFAULT_PHASES.length;
     setSheetUrl("");
     setCsvConnected(false);
     setCsvImported(false);
@@ -464,7 +468,7 @@ export function OnboardingModal({
     }, 720);
   }
 
-  async function handlePaywallUpgrade(_billingCycle: "monthly" | "yearly") {
+  async function handlePaywallUpgrade(billingCycle: "monthly" | "yearly") {
     if (!pendingSubmission) {
       return;
     }
@@ -479,7 +483,7 @@ export function OnboardingModal({
     }
 
     try {
-      const result = await createCheckoutSession({});
+      const result = await createCheckoutSession({ billingCycle });
       if (!result.url) {
         throw new Error("Checkout URL missing.");
       }
@@ -574,6 +578,38 @@ export function OnboardingModal({
     setPhases((current) =>
       current.map((phase) => (phase.id === phaseId ? { ...phase, on: !phase.on } : phase)),
     );
+  }
+
+  function addPhase() {
+    const id = `phase-${phaseCounterRef.current++}`;
+    setPhases((current) => [...current, { id, name: "New Phase", on: true }]);
+    setEditingPhaseId(id);
+  }
+
+  function renamePhase(phaseId: string, name: string) {
+    const trimmed = name.trim();
+    setPhases((current) =>
+      current.map((phase) =>
+        phase.id === phaseId ? { ...phase, name: trimmed || "New Phase" } : phase,
+      ),
+    );
+  }
+
+  function removePhase(phaseId: string) {
+    setPhases((current) => {
+      if (current.length <= 1) {
+        return current;
+      }
+
+      return current.filter((phase) => phase.id !== phaseId);
+    });
+
+    if (editingPhaseId === phaseId) {
+      setEditingPhaseId(null);
+    }
+    if (draggingPhaseId === phaseId) {
+      setDraggingPhaseId(null);
+    }
   }
 
   function reorderPhases(sourceId: string, targetId: string) {
@@ -863,7 +899,7 @@ export function OnboardingModal({
                     Select phases
                   </h3>
                   <p className="mt-2 text-[15px] leading-normal text-text-secondary">
-                    Toggle the phases you want. Reorder by dragging.
+                    Rename, remove, toggle, or reorder the phases you want.
                   </p>
 
                   <div className="mt-6">
@@ -885,6 +921,57 @@ export function OnboardingModal({
                           <span className="h-[1.5px] w-3 rounded bg-current" />
                           <span className="h-[1.5px] w-3 rounded bg-current" />
                         </div>
+                        {editingPhaseId === phase.id ? (
+                          <input
+                            autoFocus
+                            defaultValue={phase.name}
+                            onBlur={(event) => {
+                              renamePhase(phase.id, event.target.value);
+                              setEditingPhaseId(null);
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                renamePhase(phase.id, event.currentTarget.value);
+                                setEditingPhaseId(null);
+                              }
+                              if (event.key === "Escape") {
+                                setEditingPhaseId(null);
+                              }
+                            }}
+                            className="h-8 flex-1 rounded-md border border-border bg-white px-2.5 text-[14px] text-text-primary outline-none"
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setEditingPhaseId(phase.id)}
+                            className={cn(
+                              "flex-1 cursor-pointer text-left text-[14px]",
+                              phase.on ? "text-text-primary" : "text-text-tertiary",
+                            )}
+                          >
+                            {phase.name}
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => setEditingPhaseId(phase.id)}
+                          className="cursor-pointer text-text-tertiary transition-colors hover:text-text-primary"
+                          aria-label={`Rename ${phase.name}`}
+                        >
+                          <PencilSimpleLine size={15} weight="regular" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => removePhase(phase.id)}
+                          disabled={phases.length <= 1}
+                          className="cursor-pointer text-text-tertiary transition-colors hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
+                          aria-label={`Remove ${phase.name}`}
+                        >
+                          <Trash size={15} weight="regular" />
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => togglePhase(phase.id)}
@@ -900,17 +987,17 @@ export function OnboardingModal({
                             )}
                           />
                         </button>
-                        <span
-                          className={cn(
-                            "text-[14px]",
-                            phase.on ? "text-text-primary" : "text-text-tertiary",
-                          )}
-                        >
-                          {phase.name}
-                        </span>
                       </div>
                     ))}
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={addPhase}
+                    className="mt-2 inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-accent transition-colors hover:text-accent-hover"
+                  >
+                    + Add phase
+                  </button>
                 </OnboardingStepMotion>
               ) : null}
 
@@ -1502,7 +1589,7 @@ function LoadingStage({
       <div className="font-heading text-[clamp(1.625rem,5vw,1.875rem)] leading-[1.12] font-semibold tracking-[-0.45px] text-text-primary">
         {title}
       </div>
-      <div className="text-[15px] leading-[1.5] text-text-secondary">{subtitle}</div>
+      <div className="text-[15px] leading-normal text-text-secondary">{subtitle}</div>
     </div>
   );
 }

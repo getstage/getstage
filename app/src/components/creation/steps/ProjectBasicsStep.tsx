@@ -48,7 +48,7 @@ export function ProjectBasicsStep({
       <h2 className="mb-2 text-center font-heading text-[24px] font-semibold tracking-[-0.4px] text-text-primary">
         New project
       </h2>
-      <p className="mb-8 text-center text-[15px] leading-[1.5] text-text-secondary">
+      <p className="mb-8 text-center text-[15px] leading-normal text-text-secondary">
         Let&apos;s set it up. This only takes a minute.
       </p>
 

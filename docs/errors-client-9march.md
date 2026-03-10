@@ -17,6 +17,12 @@ The following onboarding changes are now implemented in code and passed `pnpm ty
 - Wired onboarding to create the project during the `creating` step instead of only marking onboarding complete
 - Moved onboarding/new-project client photo handling away from base64 mutation payloads and onto the existing R2 upload flow
 - Restored onboarding confetti only after a successful project creation, not during the fake loading step
+- Added OTP paste support so the full 6-digit login code can be pasted into the auth inputs
+- Updated project type copy to clarify this is the primary project type, not the user's only discipline
+- Added rename, remove, add, and reorder controls for manual phase selection in onboarding and new-project
+- Restored the normal top navbar on `New project`, including the `Dashboard` back link
+- Changed project progress calculation so empty phases no longer make a project look `100%` complete too early
+- Replaced the top-right navbar `Upgrade` link with a dedicated upgrade modal that starts checkout directly instead of routing to settings
 
 These items still need browser verification in testing before they can be marked fully closed.
 
