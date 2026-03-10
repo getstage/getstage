@@ -1,9 +1,11 @@
 import type { ChangeEvent, DragEvent, MouseEvent, RefObject } from "react";
+import { Lock } from "@phosphor-icons/react";
 import type { SaveFeedback } from "@/hooks/useFeedback";
 import { FeedbackText } from "@/components/settings/FeedbackText";
 
 type PortalTabProps = {
   active: boolean;
+  isPro: boolean;
   previewPortalUrl: string;
   portalLogoDataUrl: string | null;
   portalColor: string;
@@ -23,12 +25,14 @@ type PortalTabProps = {
   onPortalColorInput: (value: string) => void;
   onHexInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onHexInputBlur: () => void;
+  onUpgradeClick: () => void;
   onSavePortalLogo: () => void;
   onSavePortalColor: () => void;
 };
 
 export function PortalTab({
   active,
+  isPro,
   previewPortalUrl,
   portalLogoDataUrl,
   portalColor,
@@ -48,6 +52,7 @@ export function PortalTab({
   onPortalColorInput,
   onHexInputChange,
   onHexInputBlur,
+  onUpgradeClick,
   onSavePortalLogo,
   onSavePortalColor,
 }: PortalTabProps) {
@@ -69,16 +74,26 @@ export function PortalTab({
         </a>
       </div>
 
-      <div className="settings-card">
+      <div className={`settings-card ${isPro ? "" : "locked"}`}>
         <div className="card-body">
-          <div className="card-heading sf">Logo</div>
+          <div className="card-heading-row">
+            <div className="card-heading sf">Logo</div>
+            {isPro ? null : (
+              <button type="button" className="pro-badge pro-badge-link" onClick={onUpgradeClick}>
+                <Lock size={12} weight="duotone" className="pro-badge-icon" aria-hidden="true" />
+                PRO
+              </button>
+            )}
+          </div>
           <div className="card-desc">
-            Upload your logo to display on the client portal. PNG or SVG recommended.
+            {isPro
+              ? "Upload your logo to display on the client portal. PNG or SVG recommended."
+              : "Upgrade to Stage Pro to upload a custom logo for your client portal."}
           </div>
           <div
             className={`logo-upload-area ${portalLogoDataUrl ? "has-logo" : ""} ${logoDragActive ? "drag-active" : ""}`}
             onClick={() => {
-              if (!portalLogoDataUrl) {
+              if (isPro && !portalLogoDataUrl) {
                 logoInputRef.current?.click();
               }
             }}
@@ -127,16 +142,21 @@ export function PortalTab({
             type="file"
             accept="image/*"
             onChange={onLogoInputChange}
+            disabled={!isPro}
             className="hidden-file-input"
           />
         </div>
         <div className="card-footer">
-          <FeedbackText feedback={portalLogoFeedback} fallback="Max 2 MB · PNG, SVG, or JPG" />
+          {isPro ? (
+            <FeedbackText feedback={portalLogoFeedback} fallback="Max 2 MB · PNG, SVG, or JPG" />
+          ) : (
+            <span className="card-footer-text">Upgrade to Pro to unlock custom portal logos</span>
+          )}
           <button
             type="button"
             className="btn-save"
             onClick={onSavePortalLogo}
-            disabled={isSavingPortalLogo}
+            disabled={!isPro || isSavingPortalLogo}
           >
             Save
           </button>
@@ -212,7 +232,12 @@ export function PortalTab({
         <div className="card-body">
           <div className="card-heading-row">
             <div className="card-heading sf domain-heading">Custom domain</div>
-            <span className="pro-badge">PRO</span>
+            {isPro ? null : (
+              <button type="button" className="pro-badge pro-badge-link" onClick={onUpgradeClick}>
+                <Lock size={12} weight="duotone" className="pro-badge-icon" aria-hidden="true" />
+                PRO
+              </button>
+            )}
             <span className="coming-soon-badge">Coming soon</span>
           </div>
           <div className="card-desc">

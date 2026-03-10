@@ -369,6 +369,14 @@ export function SettingsPage() {
     window.open(previewUrl, "_blank", "noopener,noreferrer");
   }
 
+  function handleOpenBillingTab() {
+    setActiveTab("billing");
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", "billing");
+    window.history.pushState({}, "", url.toString());
+  }
+
   async function handleStartCheckout() {
     setIsCheckoutLoading(true);
     try {
@@ -695,6 +703,7 @@ export function SettingsPage() {
 
             <PortalTab
               active={activeTab === "portal"}
+              isPro={settingsData?.profile.plan === "pro"}
               previewPortalUrl={previewPortalUrl}
               portalLogoDataUrl={portalLogoDataUrl}
               portalColor={portalColor}
@@ -717,6 +726,7 @@ export function SettingsPage() {
               onPortalColorInput={handlePortalColorInput}
               onHexInputChange={handleHexInputChange}
               onHexInputBlur={handleHexInputBlur}
+              onUpgradeClick={handleOpenBillingTab}
               onSavePortalLogo={() => void persistPortalLogo()}
               onSavePortalColor={() => void persistPortalColor()}
             />
