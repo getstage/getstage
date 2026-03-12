@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   useAction as useConvexAction,
   useMutation as useConvexMutation,
@@ -17,29 +17,28 @@ import { ProjectDock } from "@/components/dashboard/ProjectDock";
 import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
 import { Timeline, type TimelineHorizon } from "@/components/dashboard/Timeline";
 import { UpcomingTasksCard } from "@/components/dashboard/UpcomingTasksCard";
-import type { DashboardTaskEntry } from "@/components/dashboard/dashboardTypes";
 import {
   OnboardingModal,
   type OnboardingSubmission,
 } from "@/components/onboarding/OnboardingModal";
 import { UpgradePaywallModal } from "@/components/onboarding/UpgradePaywallModal";
 import { Button } from "@/components/ui/Button";
+import {
+  buildDashboardMetrics,
+  getPreviewFlags,
+} from "@/features/dashboard/selectors";
+import { useBillingSuccessEvent } from "@/features/dashboard/useBillingSuccessEvent";
+import { useDashboardPreviewState } from "@/features/dashboard/useDashboardPreviewState";
 import { useAuth } from "@/lib/auth";
-import { FREE_PLAN_PROJECT_LIMIT } from "@/lib/constants";
 import { api } from "@/lib/convex";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { getGreeting } from "@/lib/utils";
-import type { Project } from "@/types";
 
-type PreviewStage = "onboarding" | "paywall" | "preview";
-
-const ONBOARDING_STORAGE_KEY = "stage:onboarding-preview";
 const GOOGLE_SHEETS_GUIDE_HREF = "/help/import-transactions-via-google-sheets";
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const [timelineHorizon, setTimelineHorizon] = useState<TimelineHorizon>("thisMonth");
-  const [previewStage, setPreviewStage] = useState<PreviewStage>("onboarding");
   const [projectLimitPaywallOpen, setProjectLimitPaywallOpen] = useState(false);
   const [isUpgradeLoading, setIsUpgradeLoading] = useState(false);
   const [paywallError, setPaywallError] = useState<string | null>(null);
@@ -53,74 +52,39 @@ export function DashboardPage() {
   const projects = dashboardData?.projects ?? [];
   const greetingName = user?.name?.split(" ")[0] ?? "there";
   const greeting = getGreeting(greetingName);
-  const previewFlowActive =
-    !isLoading &&
-    user?.plan !== "pro" &&
-    onboardingState?.isCompleted !== true;
-  const previewEligible = previewFlowActive && projects.length === 0;
-  const shouldShowPreviewExperience =
-    previewFlowActive && (projects.length === 0 || previewStage !== "preview");
-  const hasReachedFreeProjectLimit =
-    user?.plan !== "pro" && projects.length >= FREE_PLAN_PROJECT_LIMIT;
+  const previewBaseFlags = getPreviewFlags({
+    isLoading,
+    userPlan: user?.plan,
+    onboardingCompleted: onboardingState?.isCompleted,
+    projectsLength: projects.length,
+    previewStage: "onboarding",
+  });
+  const { previewStage, setPreviewStage } = useDashboardPreviewState({
+    userId: user?.id,
+    previewEligible: previewBaseFlags.previewEligible,
+    onboardingCompleted: onboardingState?.isCompleted,
+  });
+  const previewFlags = getPreviewFlags({
+    isLoading,
+    userPlan: user?.plan,
+    onboardingCompleted: onboardingState?.isCompleted,
+    projectsLength: projects.length,
+    previewStage,
+  });
+  const {
+    activeProjects,
+    tasksDue,
+    completed,
+    avgProgress,
+    upcomingTasks,
+    recentActivity,
+    dockProjects,
+  } = buildDashboardMetrics(projects);
 
-  const taskEntries = buildTaskEntries(projects);
-  const activeProjects = projects.filter((project: Project) => project.status === "active").length;
-  const tasksDue = taskEntries.filter((entry) => !entry.task.isCompleted).length;
-  const completed = taskEntries.filter((entry) => entry.task.isCompleted).length;
-  const avgProgress =
-    taskEntries.length > 0 ? Math.round((completed / taskEntries.length) * 100) : 0;
-  const upcomingTasks = taskEntries
-    .filter((entry) => !entry.task.isCompleted)
-    .sort((a, b) => a.task.createdAt - b.task.createdAt)
-    .slice(0, 3);
-  const recentActivity = [...taskEntries]
-    .sort((a, b) => b.task.updatedAt - a.task.updatedAt)
-    .slice(0, 3);
-  const dockProjects = projects.slice(0, 6);
-  const previewStorageKey = user ? `${ONBOARDING_STORAGE_KEY}:${user.id}` : null;
-
-  useEffect(() => {
-    if (!previewEligible || !previewStorageKey) {
-      return;
-    }
-
-    const savedStage = window.localStorage.getItem(previewStorageKey);
-    const defaultStage: PreviewStage = onboardingState?.isCompleted ? "paywall" : "onboarding";
-    if (savedStage === "onboarding" || savedStage === "paywall" || savedStage === "preview") {
-      setPreviewStage(onboardingState?.isCompleted && savedStage === "onboarding" ? "paywall" : savedStage);
-      return;
-    }
-
-    setPreviewStage(defaultStage);
-  }, [onboardingState?.isCompleted, previewEligible, previewStorageKey]);
-
-  useEffect(() => {
-    if (!previewEligible || !previewStorageKey) {
-      return;
-    }
-
-    window.localStorage.setItem(previewStorageKey, previewStage);
-  }, [previewEligible, previewStage, previewStorageKey]);
-
-  useEffect(() => {
-    if (!user) {
-      return;
-    }
-
-    const url = new URL(window.location.href);
-    if (url.searchParams.get("billing") !== "success") {
-      return;
-    }
-
-    void handleSuccessfulPaymentEvent()
-      .catch((error) => {
-        console.error("Could not send first payment event", error);
-      })
-      .finally(() => {
-        url.searchParams.delete("billing");
-        window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-      });
-  }, [handleSuccessfulPaymentEvent, user]);
+  useBillingSuccessEvent({
+    enabled: Boolean(user),
+    onSuccess: handleSuccessfulPaymentEvent,
+  });
 
   const handlePreviewPrimaryAction = () => {
     setPaywallError(null);
@@ -169,7 +133,7 @@ export function DashboardPage() {
   };
 
   const handleNewProjectClick = () => {
-    if (hasReachedFreeProjectLimit) {
+    if (previewFlags.hasReachedFreeProjectLimit) {
       setPaywallError(null);
       setProjectLimitPaywallOpen(true);
       return;
@@ -184,7 +148,7 @@ export function DashboardPage() {
         <title>Dashboard — Stage</title>
       </Helmet>
 
-      {shouldShowPreviewExperience ? (
+      {previewFlags.shouldShowPreviewExperience ? (
         <>
           <DashboardPreview
             greetingName={greetingName}
@@ -268,9 +232,7 @@ export function DashboardPage() {
                 <RecentActivityCard entries={recentActivity} />
               </div>
 
-              <PaymentsCard
-                paymentSummary={dashboardData?.paymentSummary ?? null}
-              />
+              <PaymentsCard paymentSummary={dashboardData?.paymentSummary ?? null} />
             </div>
           </div>
 
@@ -288,17 +250,5 @@ export function DashboardPage() {
         errorMessage={paywallError}
       />
     </>
-  );
-}
-
-function buildTaskEntries(projects: Project[]): DashboardTaskEntry[] {
-  return projects.flatMap((project) =>
-    project.phases.flatMap((phase) =>
-      phase.tasks.map((task) => ({
-        task,
-        phase,
-        project,
-      })),
-    ),
   );
 }

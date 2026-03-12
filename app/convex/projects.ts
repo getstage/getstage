@@ -2,17 +2,19 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getCurrentSubscriptionSnapshot } from "./billing";
 import {
-  buildProject,
   deleteClientAvatarIfUnused,
   deleteClientIfUnused,
   ensurePortalConfig,
   getClientByUserAndName,
-  recomputeProjectState,
   requireAuthUser,
   requireProjectOwner,
   syncClientAvatarAcrossProjects,
   upsertClient,
 } from "./_helpers";
+import {
+  buildProject,
+  recomputeProjectState,
+} from "./domain/projects/readModel";
 import { deleteOldR2Asset } from "./r2";
 
 function now() {

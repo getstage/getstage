@@ -1,8 +1,8 @@
 /**
  * Mock Data — matches the HTML prototypes
  *
- * Realistic data for development. Will be replaced
- * by real Convex data via queries/mutations.
+ * Deprecated prototype-only fixture set.
+ * Runtime code no longer reads this data; it remains as historical reference.
  */
 
 import type {

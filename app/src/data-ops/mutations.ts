@@ -1,10 +1,8 @@
 /**
  * Mutations — Write operations
  *
- * { Replace: Convex useMutation() hooks }
- *
- * All write operations are centralized here.
- * Components only import from this file.
+ * Deprecated prototype-only module.
+ * Runtime code uses Convex mutations directly; keep this only for reference during cleanup.
  */
 
 import { mockProjects } from "@/data-ops/mock";

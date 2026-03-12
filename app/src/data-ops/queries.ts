@@ -1,10 +1,8 @@
 /**
  * Queries — Read operations
  *
- * { Replace: Convex useQuery() hooks }
- *
- * All read operations are centralized here.
- * Components only import from this file.
+ * Deprecated prototype-only module.
+ * Runtime code uses Convex queries directly; keep this only for reference during cleanup.
  */
 
 import {

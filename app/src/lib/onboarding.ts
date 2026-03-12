@@ -1,3 +1,7 @@
+/**
+ * Deprecated prototype helper.
+ * The live onboarding flow now runs through Convex-backed controllers and UI modules.
+ */
 import type { Phase, Project, ProjectType, Task } from "@/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
