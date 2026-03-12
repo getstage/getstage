@@ -23,9 +23,9 @@
     },
     "production": {
       "name": "stage-app-production",
-      // "routes": [
-      //    { "pattern": "getstage.co", "custom_domain": true }
-     //   ]
+      "routes": [
+        { "pattern": "getstage.co", "custom_domain": true }
+      ]
     }
   }
 }

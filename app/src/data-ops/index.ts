@@ -3,9 +3,9 @@
  *
  * Structure:
  *   schema.ts    → Zod schemas (single source of truth)
- *   queries.ts   → Read operations  { Replace: Convex useQuery }
- *   mutations.ts → Write operations { Replace: Convex useMutation }
- *   mock.ts      → Mock data for development
+ *   queries.ts   → Legacy prototype reads  { deprecated }
+ *   mutations.ts → Legacy prototype writes { deprecated }
+ *   mock.ts      → Legacy prototype data   { deprecated }
  */
 
 export * from "./queries";

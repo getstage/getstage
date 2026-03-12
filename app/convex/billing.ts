@@ -89,6 +89,14 @@ function getBillingUrls() {
   };
 }
 
+function getYearlyPriceId() {
+  return (
+    getEnv("STRIPE_YEARLY_PRICE_LAUNCH_ID") ??
+    getEnv("STRIPE_YEARLY_PRICE_ID") ??
+    getEnv("STRIPE_PRICE_ID")
+  );
+}
+
 function getBillingCycleForPriceId(priceId: string | null | undefined): BillingCycle {
   const monthlyPriceId = getEnv("STRIPE_MONTHLY_PRICE_ID");
   if (monthlyPriceId && priceId === monthlyPriceId) {
@@ -111,7 +119,7 @@ function getPriceIdForBillingCycle(billingCycle: BillingCycle, explicitPriceId?:
     return monthlyPriceId;
   }
 
-  const yearlyPriceId = getEnv("STRIPE_YEARLY_PRICE_ID") ?? getEnv("STRIPE_PRICE_ID");
+  const yearlyPriceId = getYearlyPriceId();
   if (!yearlyPriceId) {
     throw new Error("Yearly checkout is not configured yet.");
   }

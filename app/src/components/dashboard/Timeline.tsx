@@ -1,382 +1,21 @@
-import {
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type MouseEvent as ReactMouseEvent,
-} from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { Link } from "@tanstack/react-router";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { DrawSVGPlugin } from "gsap/DrawSVGPlugin";
-import { Avatar } from "@/components/ui/Avatar";
-import type { Project } from "@/types";
+import {
+  CURVE_HEIGHT,
+  SKELETON_CURVE_PATH,
+  SKELETON_FILL_PATH,
+  SKELETON_VIEWBOX_WIDTH,
+} from "@/components/dashboard/timeline/constants";
+import { buildTimelineLayout } from "@/components/dashboard/timeline/selectors";
+import { TimelineMarkers } from "@/components/dashboard/timeline/TimelineMarkers";
+import { TimelineOverlays } from "@/components/dashboard/timeline/TimelineOverlays";
+import type { TimelineProps } from "@/components/dashboard/timeline/types";
+import { useTimelineInteraction } from "@/components/dashboard/timeline/useTimelineInteraction";
 
 gsap.registerPlugin(DrawSVGPlugin);
 
-interface TimelineProps {
-  projects: Project[];
-  horizon?: TimelineHorizon;
-  nowTimestamp?: number;
-  interactive?: boolean;
-}
-
-export type TimelineHorizon =
-  | "today"
-  | "yesterday"
-  | "thisWeek"
-  | "thisMonth"
-  | "thisYear"
-  | "30d"
-  | "6m"
-  | "12m"
-  | "all";
-
-type CurveSample = {
-  frac: number;
-  h: number;
-};
-
-type PositionedProject = {
-  project: Project;
-  pct: number;
-};
-
-type MarkerGroup = {
-  key: string;
-  pct: number;
-  curveTop: number;
-  items: PositionedProject[];
-};
-
-type TrackingState = {
-  x: number;
-  curveTop: number;
-  dateFull: string;
-  activeProjects: Project[];
-  tipLeft: number;
-  tipTop: number;
-  tipWidth: number;
-};
-
-type ProfileHoverState = {
-  projectId: string;
-  x: number;
-  y: number;
-  progress: number;
-};
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-const CURVE_HEIGHT = 160;
-const MARKER_SIZE = 36;
-const MARKER_RADIUS = MARKER_SIZE / 2;
-const MARKER_EDGE_INSET = MARKER_RADIUS + 4;
-const MAX_ELEVATION = 75;
-const SAMPLES = 120;
-const KERNEL = 0.025;
-const TOOLTIP_WIDTH = 286;
-const TRACKING_TOOLTIP_WIDTH = 220;
-const TOOLTIP_ARROW_INSET = 16;
-const RECENT_TASK_WINDOW_MS = 48 * 60 * 60 * 1000;
-
-const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-});
-
-const FULL_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-});
-
-const SKELETON_VIEWBOX_WIDTH = 1200;
-const SKELETON_CURVE_PATH =
-  "M 0 140 C 72 132, 112 118, 168 118 C 284 118, 332 131, 418 124 C 500 118, 548 96, 640 100 C 724 103, 760 128, 838 116 C 902 106, 944 128, 1020 126 C 1098 124, 1144 138, 1200 136";
-const SKELETON_FILL_PATH = `${SKELETON_CURVE_PATH} L 1200 160 L 0 160 Z`;
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
-}
-
-function startOfDay(timestamp: number) {
-  const date = new Date(timestamp);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
-}
-
-function endOfDay(timestamp: number) {
-  const date = new Date(timestamp);
-  date.setHours(23, 59, 59, 999);
-  return date.getTime();
-}
-
-function addDays(timestamp: number, days: number) {
-  const date = new Date(timestamp);
-  date.setDate(date.getDate() + days);
-  return date.getTime();
-}
-
-function addMonths(timestamp: number, months: number) {
-  const date = new Date(timestamp);
-  date.setMonth(date.getMonth() + months);
-  return date.getTime();
-}
-
-function startOfWeekMonday(timestamp: number) {
-  const date = new Date(startOfDay(timestamp));
-  const day = date.getDay();
-  const offset = (day + 6) % 7;
-  date.setDate(date.getDate() - offset);
-  return date.getTime();
-}
-
-function dateToPercent(dateTimestamp: number, startTimestamp: number, endTimestamp: number) {
-  const range = Math.max(endTimestamp - startTimestamp, DAY_MS);
-  return clamp(((dateTimestamp - startTimestamp) / range) * 100, 0, 100);
-}
-
-function smoothstep(edge0: number, edge1: number, x: number) {
-  const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
-  return t * t * (3 - 2 * t);
-}
-
-function countToHeight(count: number) {
-  const levels: Array<[number, number]> = [
-    [0, 0],
-    [1, 0.2],
-    [2, 0.45],
-    [3, 0.65],
-    [4, 0.8],
-  ];
-
-  if (count <= 0) return 0;
-  if (count >= 4) return levels[levels.length - 1]![1] * MAX_ELEVATION;
-
-  for (let index = 0; index < levels.length - 1; index += 1) {
-    const start = levels[index];
-    const end = levels[index + 1];
-    if (!start || !end) continue;
-    if (count <= end[0]) {
-      const progress = (count - start[0]) / (end[0] - start[0]);
-      return (start[1] + progress * (end[1] - start[1])) * MAX_ELEVATION;
-    }
-  }
-
-  return levels[levels.length - 1]![1] * MAX_ELEVATION;
-}
-
-function activityAt(
-  frac: number,
-  startTimestamp: number,
-  rangeMs: number,
-  projects: Project[],
-) {
-  const time = startTimestamp + frac * rangeMs;
-  const kernelMs = KERNEL * rangeMs;
-
-  let count = 0;
-  for (const project of projects) {
-    count +=
-      smoothstep(project.startDate - kernelMs, project.startDate + kernelMs, time) *
-      (1 - smoothstep(project.endDate - kernelMs, project.endDate + kernelMs, time));
-  }
-
-  return count;
-}
-
-function generateCurve(startTimestamp: number, endTimestamp: number, projects: Project[]) {
-  const rangeMs = Math.max(endTimestamp - startTimestamp, DAY_MS);
-  const points: CurveSample[] = [];
-
-  for (let index = 0; index <= SAMPLES; index += 1) {
-    const frac = index / SAMPLES;
-    const activity = activityAt(frac, startTimestamp, rangeMs, projects);
-    points.push({ frac, h: countToHeight(activity) });
-  }
-
-  return points;
-}
-
-function curveYAt(frac: number, points: CurveSample[]) {
-  if (points.length === 0) return 0;
-
-  const indexFloat = clamp(frac, 0, 1) * SAMPLES;
-  const index = Math.min(Math.floor(indexFloat), SAMPLES - 1);
-  const mix = indexFloat - index;
-
-  const first = points[index]?.h ?? 0;
-  const second = points[Math.min(index + 1, SAMPLES)]?.h ?? first;
-  return first + (second - first) * mix;
-}
-
-function pointsToPath(points: CurveSample[], width: number) {
-  if (points.length === 0) return "";
-
-  const coordinates = points.map((point) => ({
-    x: point.frac * width,
-    y: CURVE_HEIGHT - point.h,
-  }));
-
-  let path = `M ${coordinates[0]!.x.toFixed(1)} ${coordinates[0]!.y.toFixed(1)}`;
-
-  for (let index = 0; index < coordinates.length - 1; index += 1) {
-    const p0 = coordinates[Math.max(0, index - 1)]!;
-    const p1 = coordinates[index]!;
-    const p2 = coordinates[index + 1]!;
-    const p3 = coordinates[Math.min(coordinates.length - 1, index + 2)]!;
-
-    path += ` C ${(p1.x + (p2.x - p0.x) / 6).toFixed(1)} ${(p1.y + (p2.y - p0.y) / 6).toFixed(1)}, ${(p2.x - (p3.x - p1.x) / 6).toFixed(1)} ${(p2.y - (p3.y - p1.y) / 6).toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
-  }
-
-  return path;
-}
-
-function getViewRange(projects: Project[], horizon: TimelineHorizon, nowTimestamp: number) {
-  const today = startOfDay(nowTimestamp);
-
-  const fallbackStart = addDays(today, -30);
-  const fallbackEnd = addDays(today, 30);
-
-  if (projects.length === 0) {
-    return {
-      start: fallbackStart,
-      end: endOfDay(fallbackEnd),
-    };
-  }
-
-  const earliestStart = Math.min(...projects.map((project) => project.startDate));
-  const latestEnd = Math.max(...projects.map((project) => project.endDate));
-
-  switch (horizon) {
-    case "today":
-      return { start: today, end: endOfDay(today) };
-    case "yesterday": {
-      const yesterday = addDays(today, -1);
-      return { start: yesterday, end: endOfDay(yesterday) };
-    }
-    case "thisWeek": {
-      const weekStart = startOfWeekMonday(today);
-      const weekEnd = endOfDay(addDays(weekStart, 6));
-      return { start: weekStart, end: weekEnd };
-    }
-    case "thisMonth":
-      return {
-        start: startOfDay(earliestStart),
-        end: endOfDay(latestEnd),
-      };
-    case "thisYear": {
-      const current = new Date(today);
-      const start = new Date(current.getFullYear(), 0, 1).getTime();
-      const end = endOfDay(new Date(current.getFullYear(), 11, 31).getTime());
-      return { start, end };
-    }
-    case "30d":
-      return {
-        start: addDays(today, -30),
-        end: endOfDay(today),
-      };
-    case "6m":
-      return {
-        start: startOfDay(addMonths(today, -6)),
-        end: endOfDay(today),
-      };
-    case "12m":
-      return {
-        start: startOfDay(addMonths(today, -12)),
-        end: endOfDay(today),
-      };
-    case "all":
-    default:
-      return {
-        start: startOfDay(earliestStart - 90 * DAY_MS),
-        end: endOfDay(latestEnd + 90 * DAY_MS),
-      };
-  }
-}
-
-function getGroupingThreshold(horizon: TimelineHorizon, width: number) {
-  const minPctDistance = ((MARKER_SIZE + 6) / Math.max(width, 1)) * 100;
-  if (horizon === "thisYear" || horizon === "12m" || horizon === "all") {
-    return Math.max(1.5, minPctDistance);
-  }
-  if (horizon === "thisWeek" || horizon === "today" || horizon === "yesterday") {
-    return Math.max(8, minPctDistance);
-  }
-  return Math.max(2, minPctDistance);
-}
-
-function groupProjects(
-  positioned: PositionedProject[],
-  threshold: number,
-  curve: CurveSample[],
-): MarkerGroup[] {
-  const used = new Set<number>();
-  const groups: MarkerGroup[] = [];
-
-  for (let index = 0; index < positioned.length; index += 1) {
-    if (used.has(index)) continue;
-
-    const base = positioned[index];
-    if (!base) continue;
-
-    const group: PositionedProject[] = [base];
-    used.add(index);
-
-    for (let inner = index + 1; inner < positioned.length; inner += 1) {
-      if (used.has(inner)) continue;
-      const candidate = positioned[inner];
-      if (!candidate) continue;
-      if (Math.abs(candidate.pct - base.pct) <= threshold) {
-        group.push(candidate);
-        used.add(inner);
-      }
-    }
-
-    const avgPct =
-      group.reduce((total, item) => total + item.pct, 0) / Math.max(group.length, 1);
-    const curveTop = CURVE_HEIGHT - curveYAt(avgPct / 100, curve);
-
-    groups.push({
-      key: group.map((item) => item.project.id).join("-"),
-      pct: avgPct,
-      curveTop,
-      items: group,
-    });
-  }
-
-  return groups;
-}
-
-function markerOpacity(project: Project, hoveredProjectId: string | null) {
-  if (hoveredProjectId && project.id !== hoveredProjectId) return 0.2;
-  return 1;
-}
-
-function getPhasesByOrder(project: Project) {
-  return [...project.phases].sort((a, b) => a.order - b.order);
-}
-
-function getPhaseAtProgress(project: Project, progress: number) {
-  const phases = getPhasesByOrder(project);
-  if (phases.length === 0) return null;
-
-  const normalizedProgress = clamp(progress, 0, 1);
-  const phaseIndex = Math.min(phases.length - 1, Math.floor(normalizedProgress * phases.length));
-  return phases[phaseIndex] ?? phases[phases.length - 1] ?? null;
-}
-
-function getCurrentPhaseName(project: Project) {
-  const active = project.phases.find((phase) => phase.status === "active");
-  if (active) return active.name;
-
-  const upcoming = project.phases.find((phase) => phase.status === "upcoming");
-  if (upcoming && project.status !== "completed") return upcoming.name;
-
-  return project.phases[project.phases.length - 1]?.name ?? "Phase";
-}
+export type { TimelineHorizon } from "@/components/dashboard/timeline/types";
 
 export function Timeline({
   projects,
@@ -389,13 +28,12 @@ export function Timeline({
   const curveLineRef = useRef<SVGPathElement | null>(null);
   const curveFillRef = useRef<SVGPathElement | null>(null);
   const [regionWidth, setRegionWidth] = useState(0);
-  const [profileHover, setProfileHover] = useState<ProfileHoverState | null>(null);
-  const [tracking, setTracking] = useState<TrackingState | null>(null);
-  const hoveredProjectId = profileHover?.projectId ?? null;
 
   useEffect(() => {
     const element = regionRef.current;
-    if (!element) return;
+    if (!element) {
+      return;
+    }
 
     const updateWidth = () => {
       setRegionWidth(Math.round(element.getBoundingClientRect().width));
@@ -411,47 +49,30 @@ export function Timeline({
     };
   }, []);
 
-  const layout = useMemo(() => {
-    const width = Math.max(regionWidth, 1);
-    const view = getViewRange(projects, horizon, nowTimestamp);
-    const rangeMs = Math.max(view.end - view.start, DAY_MS);
-    const curve = generateCurve(view.start, view.end, projects);
-    const curvePath = pointsToPath(curve, width);
-    const fillPath = `${curvePath} L ${width.toFixed(1)} ${CURVE_HEIGHT} L 0 ${CURVE_HEIGHT} Z`;
+  const layout = useMemo(
+    () =>
+      buildTimelineLayout({
+        projects,
+        horizon,
+        nowTimestamp,
+        regionWidth,
+      }),
+    [horizon, nowTimestamp, projects, regionWidth],
+  );
 
-    const visibleProjects = projects
-      .filter((project) => project.startDate <= view.end && project.endDate >= view.start)
-      .sort((a, b) => a.startDate - b.startDate);
-
-    const positioned = visibleProjects.map((project) => {
-      const displayDate = Math.min(project.endDate, view.end);
-      const pct = dateToPercent(displayDate, view.start, view.end);
-      return { project, pct };
-    });
-
-    const threshold = getGroupingThreshold(horizon, width);
-    const groups = groupProjects(positioned, threshold, curve);
-    const edgeInset = Math.min(MARKER_EDGE_INSET, Math.max(0, width / 2 - 1));
-
-    return {
-      width,
-      start: view.start,
-      end: view.end,
-      rangeMs,
-      curve,
-      curvePath,
-      fillPath,
-      visibleProjects,
-      groups,
-      edgeInset,
-    };
-  }, [horizon, nowTimestamp, projects, regionWidth]);
+  const interaction = useTimelineInteraction({
+    regionRef,
+    layout,
+    nowTimestamp,
+  });
 
   useLayoutEffect(() => {
     const line = curveLineRef.current;
     const fill = curveFillRef.current;
     const region = regionRef.current;
-    if (!line || !fill || !region) return;
+    if (!line || !fill || !region) {
+      return;
+    }
 
     if (
       typeof window !== "undefined" &&
@@ -490,125 +111,14 @@ export function Timeline({
     };
   }, [layout.curvePath, layout.groups.length]);
 
-  const handleMouseMove = (clientX: number) => {
-    const region = regionRef.current;
-    if (!region || hoveredProjectId) return;
-
-    const bounds = region.getBoundingClientRect();
-    const x = clamp(clientX - bounds.left, 0, layout.width);
-    const frac = layout.width <= 0 ? 0 : x / layout.width;
-    const elevation = curveYAt(frac, layout.curve);
-    const curveTop = CURVE_HEIGHT - elevation;
-    const dateTimestamp = layout.start + layout.rangeMs * frac;
-
-    const activeProjects = layout.visibleProjects.filter(
-      (project) => project.startDate <= dateTimestamp && project.endDate >= dateTimestamp,
-    );
-
-    const tipWidth = Math.min(TRACKING_TOOLTIP_WIDTH, Math.max(120, layout.width - 16));
-    const tipHalf = tipWidth / 2;
-    const tipMin = Math.min(tipHalf + 8, Math.max(8, layout.width / 2));
-    const tipMax = Math.max(tipMin, layout.width - tipHalf - 8);
-
-    setTracking({
-      x,
-      curveTop,
-      dateFull: FULL_DATE_FORMATTER.format(new Date(dateTimestamp)),
-      activeProjects,
-      tipLeft: clamp(x, tipMin, tipMax),
-      tipTop: Math.max(0, curveTop - 16),
-      tipWidth,
-    });
-  };
-
-  const handleMarkerEnter = (
-    project: Project,
-    markerTimestamp: number,
-    markerElement: HTMLElement,
-  ) => {
-    setTracking(null);
-
-    const region = regionRef.current;
-    if (!region) return;
-
-    const regionBounds = region.getBoundingClientRect();
-    const markerBounds = markerElement.getBoundingClientRect();
-    const markerX = clamp(
-      markerBounds.left + markerBounds.width / 2 - regionBounds.left,
-      0,
-      layout.width,
-    );
-    const markerY = clamp(
-      markerBounds.top + markerBounds.height / 2 - regionBounds.top,
-      0,
-      CURVE_HEIGHT,
-    );
-
-    const projectDuration = Math.max(project.endDate - project.startDate, 1);
-    const progress = clamp(
-      (markerTimestamp - project.startDate) / projectDuration,
-      0,
-      1,
-    );
-
-    setProfileHover({
-      projectId: project.id,
-      x: markerX,
-      y: markerY,
-      progress,
-    });
-  };
-
-  const clearMarkerHover = (projectId: string) => {
-    setProfileHover((current) => (current?.projectId === projectId ? null : current));
-  };
-
-  const profileHoverDetails = useMemo(() => {
-    if (!profileHover) return null;
-
-    const project = layout.visibleProjects.find((entry) => entry.id === profileHover.projectId);
-    if (!project) return null;
-
-    const phaseAtCursor = getPhaseAtProgress(project, profileHover.progress);
-    const tasks = [...(phaseAtCursor?.tasks ?? [])].sort((a, b) => a.order - b.order);
-    const visibleTasks = tasks.slice(0, 5);
-    const overflowCount = Math.max(0, tasks.length - visibleTasks.length);
-
-    const tooltipDateRange = `${SHORT_DATE_FORMATTER.format(new Date(project.startDate))} – ${FULL_DATE_FORMATTER.format(new Date(project.endDate))}`;
-
-    const tooltipWidth = Math.min(TOOLTIP_WIDTH, Math.max(120, layout.width - 16));
-    const halfWidth = tooltipWidth / 2;
-    const leftMin = 8;
-    const leftMax = Math.max(8, layout.width - tooltipWidth - 8);
-    const left = clamp(profileHover.x - halfWidth, leftMin, leftMax);
-    const top = profileHover.y - MARKER_RADIUS - 12;
-    const arrowLeft = clamp(profileHover.x - left, TOOLTIP_ARROW_INSET, tooltipWidth - TOOLTIP_ARROW_INSET);
-
-    return {
-      tooltipDateRange,
-      projectName: project.name,
-      clientName: project.clientName,
-      phaseName: phaseAtCursor?.name ?? getCurrentPhaseName(project),
-      tasks: visibleTasks,
-      overflowCount,
-      left,
-      top,
-      width: tooltipWidth,
-      arrowLeft,
-    };
-  }, [layout.visibleProjects, layout.width, profileHover]);
-
   return (
     <section className="relative flex min-h-[35vh] items-center justify-center px-4 pb-[84px] pt-[50px]">
       <div
         ref={regionRef}
         className="relative w-full"
         style={{ height: `${CURVE_HEIGHT}px` }}
-        onMouseMove={(event) => handleMouseMove(event.clientX)}
-        onMouseLeave={() => {
-          setTracking(null);
-          setProfileHover(null);
-        }}
+        onMouseMove={(event) => interaction.handleMouseMove(event.clientX)}
+        onMouseLeave={interaction.clearAllHover}
       >
         <svg className="pointer-events-none absolute inset-0 z-0 h-full w-full" aria-hidden>
           <defs>
@@ -629,259 +139,19 @@ export function Timeline({
           />
         </svg>
 
-        {layout.groups.map((group) => {
-          const groupLeft = clamp(
-            (group.pct / 100) * layout.width,
-            layout.edgeInset,
-            layout.width - layout.edgeInset,
-          );
-          const markerTop = group.curveTop - MARKER_RADIUS;
-          const markerTimestamp = layout.start + layout.rangeMs * (group.pct / 100);
-          const visibleItems = group.items.slice(0, 3);
-          const overflow = Math.max(group.items.length - visibleItems.length, 0);
+        <TimelineMarkers
+          layout={layout}
+          interactive={interactive}
+          hoveredProjectId={interaction.hoveredProjectId}
+          onMarkerEnter={interaction.handleMarkerEnter}
+          onMarkerLeave={interaction.clearMarkerHover}
+        />
 
-          if (group.items.length === 1) {
-            const item = group.items[0];
-            if (!item) return null;
-
-            const markerProps = {
-              "data-curve-marker": true,
-              className:
-                "absolute z-[6] block h-9 w-9 -translate-x-1/2 overflow-hidden rounded-full border-2 border-white shadow-[0_0_0_2.5px_#8782F5] transition-[transform,box-shadow,opacity] duration-200 hover:scale-110 hover:shadow-[0_0_0_2.5px_#8782F5,0_3px_12px_rgba(26,26,46,0.12)]",
-              style: {
-                left: `${groupLeft}px`,
-                top: `${markerTop}px`,
-                opacity: markerOpacity(item.project, hoveredProjectId),
-              },
-              onMouseEnter: (event: ReactMouseEvent<HTMLElement>) =>
-                handleMarkerEnter(item.project, markerTimestamp, event.currentTarget),
-              onMouseLeave: () => clearMarkerHover(item.project.id),
-            };
-
-            return interactive ? (
-              <Link
-                key={group.key}
-                to="/project/$id"
-                params={{ id: item.project.id }}
-                {...markerProps}
-              >
-                <Avatar
-                  name={item.project.clientName}
-                  src={item.project.clientAvatarUrl}
-                  size="md"
-                  className="h-full w-full text-[11px]"
-                />
-              </Link>
-            ) : (
-              <button
-                key={group.key}
-                type="button"
-                aria-label={item.project.name}
-                {...markerProps}
-              >
-                <Avatar
-                  name={item.project.clientName}
-                  src={item.project.clientAvatarUrl}
-                  size="md"
-                  className="h-full w-full text-[11px]"
-                />
-              </button>
-            );
-          }
-
-          return (
-            <div
-              key={group.key}
-              className="group absolute z-[6] -translate-x-1/2"
-              style={{ left: `${groupLeft}px`, top: `${markerTop}px` }}
-            >
-              <div className="flex flex-col items-center">
-                {visibleItems.map((item, index) =>
-                  interactive ? (
-                    <Link
-                      key={item.project.id}
-                      to="/project/$id"
-                      params={{ id: item.project.id }}
-                      data-curve-marker
-                      className={`relative block h-9 w-9 overflow-hidden rounded-full border-2 border-white shadow-[0_0_0_2.5px_#8782F5] transition-[margin,transform,box-shadow,opacity] duration-200 hover:scale-110 hover:shadow-[0_0_0_2.5px_#8782F5,0_3px_12px_rgba(26,26,46,0.12)] ${
-                        index > 0 ? "-mt-8 group-hover:mt-2" : ""
-                      }`}
-                      style={{
-                        zIndex: visibleItems.length - index,
-                        opacity: markerOpacity(item.project, hoveredProjectId),
-                      }}
-                      onMouseEnter={(event) =>
-                        handleMarkerEnter(item.project, markerTimestamp, event.currentTarget)
-                      }
-                      onMouseLeave={() => clearMarkerHover(item.project.id)}
-                    >
-                      <Avatar
-                        name={item.project.clientName}
-                        src={item.project.clientAvatarUrl}
-                        size="md"
-                        className="h-full w-full text-[11px]"
-                      />
-                    </Link>
-                  ) : (
-                    <button
-                      key={item.project.id}
-                      type="button"
-                      aria-label={item.project.name}
-                      data-curve-marker
-                      className={`relative block h-9 w-9 overflow-hidden rounded-full border-2 border-white shadow-[0_0_0_2.5px_#8782F5] transition-[margin,transform,box-shadow,opacity] duration-200 hover:scale-110 hover:shadow-[0_0_0_2.5px_#8782F5,0_3px_12px_rgba(26,26,46,0.12)] ${
-                        index > 0 ? "-mt-8 group-hover:mt-2" : ""
-                      }`}
-                      style={{
-                        zIndex: visibleItems.length - index,
-                        opacity: markerOpacity(item.project, hoveredProjectId),
-                      }}
-                      onMouseEnter={(event) =>
-                        handleMarkerEnter(item.project, markerTimestamp, event.currentTarget)
-                      }
-                      onMouseLeave={() => clearMarkerHover(item.project.id)}
-                    >
-                      <Avatar
-                        name={item.project.clientName}
-                        src={item.project.clientAvatarUrl}
-                        size="md"
-                        className="h-full w-full text-[11px]"
-                      />
-                    </button>
-                  ),
-                )}
-
-                {overflow > 0 ? (
-                  <div className="relative -mt-8 flex h-9 w-9 items-center justify-center rounded-full border-[2.5px] border-white bg-border text-[11px] font-medium text-text-secondary transition-[margin,opacity] duration-200 group-hover:mt-2">
-                    +{overflow}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          );
-        })}
-
-        {profileHover ? (
-          <>
-            <div
-              className="pointer-events-none absolute top-0 z-[3] w-px -translate-x-1/2 bg-accent/26 transition-opacity duration-200"
-              style={{ left: `${profileHover.x}px`, height: `${CURVE_HEIGHT}px` }}
-            />
-            <div
-              className="pointer-events-none absolute z-[3] h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/65"
-              style={{ left: `${profileHover.x}px`, top: `${profileHover.y}px` }}
-            />
-          </>
-        ) : null}
-
-        {tracking && !hoveredProjectId ? (
-          <>
-            <div
-              className="pointer-events-none absolute top-0 z-[3] w-px -translate-x-1/2 bg-accent/26"
-              style={{ left: `${tracking.x}px`, height: `${CURVE_HEIGHT}px` }}
-            />
-            <div
-              className="pointer-events-none absolute z-[3] h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/72"
-              style={{ left: `${tracking.x}px`, top: `${tracking.curveTop}px` }}
-            />
-            {tracking.activeProjects.length > 0 ? (
-              <div
-                className="pointer-events-none absolute z-[15] -translate-x-1/2 -translate-y-full rounded-[12px] border border-border bg-white px-4 py-3 shadow-[0_4px_20px_rgba(0,0,0,0.08)]"
-                style={{
-                  left: `${tracking.tipLeft}px`,
-                  top: `${tracking.tipTop}px`,
-                  width: `${tracking.tipWidth}px`,
-                }}
-              >
-                <p className="mb-1.5 text-[12px] text-text-secondary">{tracking.dateFull}</p>
-                <p className="mb-2 text-[14px] font-medium text-text-primary">
-                  Active projects: {tracking.activeProjects.length}
-                </p>
-                <div className="space-y-1.5">
-                  {tracking.activeProjects.slice(0, 5).map((project) => (
-                    <div
-                      key={`tracking-${project.id}`}
-                      className="flex items-center gap-2 text-[13px] text-text-primary"
-                    >
-                      <Avatar
-                        name={project.clientName}
-                        src={project.clientAvatarUrl}
-                        size="sm"
-                        className="h-4 w-4 text-[9px]"
-                      />
-                      <span className="truncate">{project.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </>
-        ) : null}
-
-        <AnimatePresence>
-          {profileHoverDetails ? (
-            <motion.aside
-              initial={{ opacity: 0, y: 4 }}
-              animate={{
-                opacity: 1,
-                y: 0,
-                transition: { duration: 0.15, delay: 0.15 },
-              }}
-              exit={{ opacity: 0, y: 2, transition: { duration: 0.15 } }}
-              className="pointer-events-none absolute z-30 -translate-y-full rounded-[12px] border border-border bg-white px-4 py-3 text-text-primary shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-              style={{
-                left: `${profileHoverDetails.left}px`,
-                top: `${profileHoverDetails.top}px`,
-                width: `${profileHoverDetails.width}px`,
-              }}
-            >
-              <span
-                aria-hidden
-                className="absolute -bottom-[7px] h-3.5 w-3.5 -translate-x-1/2 rotate-45 border-b border-r border-border bg-white"
-                style={{ left: `${profileHoverDetails.arrowLeft}px` }}
-              />
-              <p className="text-[12px] text-text-secondary">{profileHoverDetails.tooltipDateRange}</p>
-              <p className="mt-1 truncate text-[15px] font-medium text-text-primary">
-                {profileHoverDetails.projectName}
-              </p>
-              <p className="mt-1 truncate text-[13px] text-text-secondary">
-                {profileHoverDetails.clientName}
-              </p>
-              <p className="mt-1 truncate text-[13px] text-text-secondary">
-                {profileHoverDetails.phaseName}
-              </p>
-
-              <div className="mt-2.5 border-t border-border-subtle pt-2">
-                {profileHoverDetails.tasks.length > 0 ? (
-                  profileHoverDetails.tasks.map((task) => {
-                    const isRecentlyAdded =
-                      !task.isCompleted &&
-                      nowTimestamp - task.createdAt <= RECENT_TASK_WINDOW_MS;
-                    return (
-                      <p
-                        key={task.id}
-                        className={`truncate py-0.5 text-[12px] ${
-                          task.isCompleted ? "text-text-secondary" : "text-text-primary"
-                        }`}
-                      >
-                        <span className="mr-1">{task.isCompleted ? "☑" : "☐"}</span>
-                        {task.title}
-                        {isRecentlyAdded ? <span className="ml-1 text-accent/70">●</span> : null}
-                      </p>
-                    );
-                  })
-                ) : (
-                  <p className="text-[12px] text-text-secondary">No tasks in this phase.</p>
-                )}
-
-                {profileHoverDetails.overflowCount > 0 ? (
-                  <p className="mt-0.5 text-[12px] text-text-secondary">
-                    +{profileHoverDetails.overflowCount} more
-                  </p>
-                ) : null}
-              </div>
-            </motion.aside>
-          ) : null}
-        </AnimatePresence>
+        <TimelineOverlays
+          profileHover={interaction.profileHover}
+          profileHoverDetails={interaction.profileHoverDetails}
+          tracking={interaction.tracking}
+        />
       </div>
     </section>
   );

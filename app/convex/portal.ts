@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { buildProject, ensurePortalConfig, requireProjectOwner } from "./_helpers";
+import { ensurePortalConfig, requireProjectOwner } from "./_helpers";
+import { buildProject } from "./domain/projects/readModel";
 import { resolveAssetUrl } from "./r2";
 
 export const getByShareToken = query({

@@ -88,9 +88,12 @@ Set:
 - `CONVEX_SITE_URL` (used for OAuth callback URL construction)
 - `SITE_URL` (used for billing/stripe redirects and callback return URLs)
 - `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
 - `STRIPE_CONNECT_CLIENT_ID`
-- `STRIPE_YEARLY_PRICE_ID` (preferred)
-- `STRIPE_PRICE_ID` (fallback when yearly id not set)
+- `STRIPE_MONTHLY_PRICE_ID`
+- `STRIPE_YEARLY_PRICE_LAUNCH_ID` (preferred)
+- `STRIPE_YEARLY_PRICE_ID` (legacy fallback)
+- `STRIPE_PRICE_ID` (last fallback when yearly id not set)
 - `AUTH_LOOPS_API_KEY` or `LOOPS_API_KEY`
 - `AUTH_LOOPS_TRANSACTIONAL_ID` or `LOOPS_TRANSACTIONAL_ID`
 
@@ -103,6 +106,49 @@ For Google auth provider in `[app/convex/auth.ts](/Users/wdiebenwdambitions/stag
 - R2 usage entry points in `[app/convex/r2.ts](/Users/wdiebenwdambitions/stagemvp/app/convex/r2.ts)`
 - Stripe webhook endpoint is exposed at `"/stripe/webhook"` in `[app/convex/http.ts](/Users/wdiebenwdambitions/stagemvp/app/convex/http.ts)` via `registerRoutes`
 - Stripe Connect callback endpoint is `"/stripe/connect/callback"`
+
+### 4.4 Stripe environment matrix
+
+Keep the webhook path identical in every environment. Only the hostname, Stripe mode, secrets,
+price ids, and `SITE_URL` change per environment.
+
+| Environment | Stripe mode | Webhook URL | Required Stripe envs |
+| --- | --- | --- | --- |
+| Local / development | Test | `https://<dev-convex-host>/stripe/webhook` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_MONTHLY_PRICE_ID`, `STRIPE_YEARLY_PRICE_LAUNCH_ID`, `SITE_URL` |
+| Testing | Test | `https://<testing-convex-host>/stripe/webhook` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_MONTHLY_PRICE_ID`, `STRIPE_YEARLY_PRICE_LAUNCH_ID`, `SITE_URL` |
+| Production | Live | `https://<production-convex-host>/stripe/webhook` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_MONTHLY_PRICE_ID`, `STRIPE_YEARLY_PRICE_LAUNCH_ID`, `SITE_URL` |
+
+Notes:
+- The app intentionally keeps using `"/stripe/webhook"` and does not version this path yet.
+- Every environment should have its own Stripe webhook destination and its own webhook secret.
+- Production must use live Stripe keys and live price ids; development and testing should stay on
+  Stripe test mode.
+
+### 4.5 Stripe webhook event selection
+
+Configure the same Stripe events for development, testing, and production:
+
+- `checkout.session.completed`
+- `customer.subscription.created`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+- `invoice.paid`
+- `payment_intent.succeeded`
+- `payment_intent.payment_failed`
+
+Do not add extra events unless the code starts consuming them explicitly.
+
+### 4.6 Stripe verification checklist
+
+Before opening production traffic:
+
+1. Development can create a checkout session and redirect back to `SITE_URL`.
+2. Testing can create a checkout session and complete a Stripe test payment.
+3. Testing webhook deliveries succeed against `"/stripe/webhook"`.
+4. Subscription status sync in Convex reflects the Stripe webhook result.
+5. Customer portal session opens for an active subscription.
+6. Production gets its own live webhook destination, live secret, and live price ids only after
+   testing is green.
 
 ## 5) Commands
 
@@ -154,4 +200,3 @@ Current worker (`app/worker/index.ts`) simply delegates all requests to ASSETS, 
 - [ ] Run `pnpm run dev` and verify local auth/login + basic flows
 - [ ] Run `pnpm run build:testing`
 - [ ] Run `pnpm run stage:deploy` (or production variant)
-

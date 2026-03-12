@@ -2,10 +2,10 @@ import { v } from "convex/values";
 import { mutation, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import {
-  recomputeProjectState,
   requirePhaseOwner,
   requireTaskOwner,
 } from "./_helpers";
+import { recomputeProjectState } from "./domain/projects/readModel";
 import { deleteOldR2Asset, r2 } from "./r2";
 
 function now() {

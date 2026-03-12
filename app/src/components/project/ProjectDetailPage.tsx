@@ -45,13 +45,13 @@ export function ProjectDetailPage() {
 
           <ProjectHeader
             project={detail.project}
-            onShare={() => detail.setDialogOpen("share", true)}
-            onEditName={detail.openEditNameDialog}
-            onEditClient={detail.openEditClientDialog}
-            onAdjustTimeline={detail.openTimelineDialog}
-            onEditPhases={detail.openPhasesDialog}
-            onTogglePaused={() => void detail.handleToggleProjectPaused()}
-            onDelete={() => detail.setDialogOpen("deleteConfirm", true)}
+            onShare={() => detail.share.setOpen(true)}
+            onEditName={detail.dialogs.openEditNameDialog}
+            onEditClient={detail.dialogs.openEditClientDialog}
+            onAdjustTimeline={detail.dialogs.openTimelineDialog}
+            onEditPhases={detail.dialogs.openPhasesDialog}
+            onTogglePaused={() => void detail.dialogs.handleToggleProjectPaused()}
+            onDelete={() => detail.dialogs.setOpen("deleteConfirm", true)}
           />
 
           <PhaseNavigation
@@ -64,53 +64,22 @@ export function ProjectDetailPage() {
             phase={detail.currentPhase}
             projectId={detail.project.id}
             actionError={detail.actionError}
-            addTaskValue={detail.addTaskValue}
-            showAddTask={detail.showAddTask}
-            addTaskInputRef={detail.addTaskInputRef}
-            onAddTaskValueChange={detail.setAddTaskValue}
-            onShowAddTaskChange={detail.setShowAddTask}
-            onSubmitAddTask={() => void detail.handleAddTaskSubmit()}
-            onToggleTask={(taskId) => void detail.handleToggleTask(taskId)}
-            onDeleteTask={(taskId) => void detail.handleDeleteTask(taskId)}
+            addTaskValue={detail.tasks.addTaskValue}
+            showAddTask={detail.tasks.showAddTask}
+            addTaskInputRef={detail.tasks.addTaskInputRef}
+            onAddTaskValueChange={detail.tasks.setAddTaskValue}
+            onShowAddTaskChange={detail.tasks.setShowAddTask}
+            onSubmitAddTask={() => void detail.tasks.handleAddTaskSubmit()}
+            onToggleTask={(taskId) => void detail.tasks.handleToggleTask(taskId)}
+            onDeleteTask={(taskId) => void detail.tasks.handleDeleteTask(taskId)}
           />
         </motion.main>
       </div>
 
       <ProjectDialogs
         project={detail.project}
-        clientAccess={detail.clientAccess}
-        shareUrl={detail.shareUrl}
-        copied={detail.copied}
-        projectId={detail.projectId}
-        showShareModal={detail.dialogState.share}
-        showEditNameModal={detail.dialogState.editName}
-        showEditClientModal={detail.dialogState.editClient}
-        showTimelineModal={detail.dialogState.editTimeline}
-        showPhasesModal={detail.dialogState.editPhases}
-        showDeleteConfirm={detail.dialogState.deleteConfirm}
-        editNameValue={detail.editNameValue}
-        editClientValue={detail.editClientValue}
-        editStartDate={detail.editStartDate}
-        editEndDate={detail.editEndDate}
-        editPhasesValue={detail.editPhasesValue}
-        onShowShareModalChange={(open) => detail.setDialogOpen("share", open)}
-        onShowEditNameModalChange={(open) => detail.setDialogOpen("editName", open)}
-        onShowEditClientModalChange={(open) => detail.setDialogOpen("editClient", open)}
-        onShowTimelineModalChange={(open) => detail.setDialogOpen("editTimeline", open)}
-        onShowPhasesModalChange={(open) => detail.setDialogOpen("editPhases", open)}
-        onShowDeleteConfirmChange={(open) => detail.setDialogOpen("deleteConfirm", open)}
-        onEditNameValueChange={detail.setEditNameValue}
-        onEditClientValueChange={detail.setEditClientValue}
-        onEditStartDateChange={detail.setEditStartDate}
-        onEditEndDateChange={detail.setEditEndDate}
-        onEditPhasesValueChange={detail.setEditPhasesValue}
-        onSaveProjectName={() => void detail.handleSaveProjectName()}
-        onSaveClient={() => void detail.handleSaveClient()}
-        onSaveTimeline={() => void detail.handleSaveTimeline()}
-        onSavePhases={() => void detail.handleSavePhases()}
-        onConfirmDeleteProject={() => void detail.handleConfirmDeleteProject()}
-        onTogglePortalEnabled={() => void detail.handleTogglePortalEnabled()}
-        onCopyShareUrl={() => void detail.handleCopyShareUrl()}
+        dialogs={detail.dialogs}
+        share={detail.share}
       />
     </>
   );
