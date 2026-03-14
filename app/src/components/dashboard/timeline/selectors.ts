@@ -82,29 +82,18 @@ function getPhasesByOrder(project: Project) {
   return [...project.phases].sort((a, b) => a.order - b.order);
 }
 
-function getPhaseAtProgress(project: Project, progress: number) {
-  const phases = getPhasesByOrder(project);
-  if (phases.length === 0) {
-    return null;
-  }
-
-  const normalizedProgress = Math.max(0, Math.min(progress, 1));
-  const phaseIndex = Math.min(phases.length - 1, Math.floor(normalizedProgress * phases.length));
-  return phases[phaseIndex] ?? phases[phases.length - 1] ?? null;
-}
-
-function getCurrentPhaseName(project: Project) {
+function getCurrentPhase(project: Project) {
   const active = project.phases.find((phase) => phase.status === "active");
   if (active) {
-    return active.name;
+    return active;
   }
 
   const upcoming = project.phases.find((phase) => phase.status === "upcoming");
   if (upcoming && project.status !== "completed") {
-    return upcoming.name;
+    return upcoming;
   }
 
-  return project.phases[project.phases.length - 1]?.name ?? "Phase";
+  return getPhasesByOrder(project).at(-1) ?? null;
 }
 
 export function buildTrackingState({
@@ -157,8 +146,8 @@ export function buildProfileHoverDetails({
     return null;
   }
 
-  const phaseAtCursor = getPhaseAtProgress(project, profileHover.progress);
-  const tasks = [...(phaseAtCursor?.tasks ?? [])].sort((a, b) => a.order - b.order);
+  const currentPhase = getCurrentPhase(project);
+  const tasks = [...(currentPhase?.tasks ?? [])].sort((a, b) => a.order - b.order);
   const visibleTasks = tasks.slice(0, 5);
   const overflowCount = Math.max(0, tasks.length - visibleTasks.length);
   const tooltipDateRange = `${SHORT_DATE_FORMATTER.format(new Date(project.startDate))} – ${FULL_DATE_FORMATTER.format(new Date(project.endDate))}`;
@@ -174,7 +163,7 @@ export function buildProfileHoverDetails({
     tooltipDateRange,
     projectName: project.name,
     clientName: project.clientName,
-    phaseName: phaseAtCursor?.name ?? getCurrentPhaseName(project),
+    phaseName: currentPhase?.name ?? "Phase",
     tasks: visibleTasks.map((task) => ({
       ...task,
       isRecentlyAdded:
