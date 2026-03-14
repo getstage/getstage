@@ -12,6 +12,7 @@ import { DEFAULT_PORTAL_COLOR } from "@/lib/constants";
 import { api } from "@/lib/convex";
 import { normalizeHex } from "@/lib/format";
 import { rebaseUrlToCurrentOrigin } from "@/lib/portal";
+import { savePortalPreviewBranding } from "@/lib/portalPreview";
 import {
   preparePortalLogoUpload,
   uploadFileToR2,
@@ -171,6 +172,10 @@ export function usePortalBrandingSettings({
 
   function handlePreviewPortalClick(event: MouseEvent<HTMLAnchorElement>) {
     event.preventDefault();
+    savePortalPreviewBranding({
+      accentColor: portalColor,
+      logoUrl: portalLogoDataUrl,
+    });
     const previewUrl = rebaseUrlToCurrentOrigin(previewPortalUrl ?? PREVIEW_PORTAL_URL);
     window.open(previewUrl, "_blank", "noopener,noreferrer");
   }

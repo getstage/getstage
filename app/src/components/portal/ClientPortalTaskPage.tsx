@@ -12,17 +12,20 @@ import { motion } from "motion/react";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { api } from "@/lib/convex";
 import { buildPortalPath } from "@/lib/portal";
+import { getPortalPreviewData } from "@/lib/portalPreview";
 import { formatFileSize } from "@/lib/utils";
 import type { Phase, Task } from "@/types";
 
 export function ClientPortalTaskPage() {
   const { token, taskId } = useParams({ from: "/portal/$token/task/$taskId" });
-  const data = useConvexQuery(api.portal.getByShareToken, { shareToken: token });
-  const isLoading = data === undefined;
   const isPreview =
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("preview") === "1";
   const previewSuffix = isPreview ? "?preview=1" : "";
+  const liveData = useConvexQuery(api.portal.getByShareToken, isPreview ? "skip" : { shareToken: token });
+  const previewData = isPreview ? getPortalPreviewData() : null;
+  const data = previewData ?? liveData;
+  const isLoading = !isPreview && liveData === undefined;
   const phases = (data?.project.phases as Phase[] | undefined) ?? [];
   const project = data?.project ?? null;
 

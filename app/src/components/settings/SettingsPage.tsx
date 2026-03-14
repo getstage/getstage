@@ -41,11 +41,11 @@ export function SettingsPage() {
   });
   const integrationsSettings = useIntegrationsSettings({ user });
   const portalBrandingSettings = usePortalBrandingSettings({
-    previewPortalUrl: settingsData?.previewPortalUrl ?? undefined,
+    previewPortalUrl: PREVIEW_PORTAL_URL,
     portalLogoUrl: settingsData?.portalBranding.logoUrl,
     portalAccentColor: settingsData?.portalBranding.accentColor ?? undefined,
   });
-  const previewPortalUrl = settingsData?.previewPortalUrl ?? PREVIEW_PORTAL_URL;
+  const previewPortalUrl = PREVIEW_PORTAL_URL;
 
   return (
     <>

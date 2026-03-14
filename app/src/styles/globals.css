@@ -104,6 +104,19 @@ button:focus-visible,
   box-shadow: none !important;
 }
 
+.task-detail-field,
+.task-detail-field:hover,
+.task-detail-field:active,
+.task-detail-field:focus,
+.task-detail-field:focus-visible {
+  border: 0 !important;
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 /* ============================================================
    SCROLLBAR (subtle, premium feel)
    ============================================================ */

@@ -7,14 +7,20 @@ import { motion } from "motion/react";
 import { api } from "@/lib/convex";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { buildPortalTaskPath } from "@/lib/portal";
+import { getPortalPreviewData } from "@/lib/portalPreview";
 import type { Phase } from "@/types";
 
 type PortalTask = Phase["tasks"][number];
 
 export function ClientPortalPage() {
   const { token } = useParams({ from: "/portal/$token" });
-  const data = useConvexQuery(api.portal.getByShareToken, { shareToken: token });
-  const isLoading = data === undefined;
+  const isPreview =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("preview") === "1";
+  const liveData = useConvexQuery(api.portal.getByShareToken, isPreview ? "skip" : { shareToken: token });
+  const previewData = isPreview ? getPortalPreviewData() : null;
+  const data = previewData ?? liveData;
+  const isLoading = !isPreview && liveData === undefined;
   const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
 
   if (isLoading) {
@@ -45,9 +51,6 @@ export function ClientPortalPage() {
     phases.find((phase) => phase.status === "active") ??
     phases[0] ??
     null;
-  const isPreview =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("preview") === "1";
   const previewSuffix = isPreview ? "?preview=1" : "";
 
   if (!selectedPhase) {

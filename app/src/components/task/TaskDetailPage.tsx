@@ -261,7 +261,7 @@ export function TaskDetailPage() {
                   void persistTaskUpdate({ title: title.trim() });
                 }
               }}
-              className={`w-full bg-transparent font-heading text-[28px] font-semibold leading-[1.3] tracking-[-0.5px] outline-none ${
+              className={`task-detail-field w-full appearance-none bg-transparent font-heading text-[28px] font-semibold leading-[1.3] tracking-[-0.5px] ${
                 task.isCompleted
                   ? "text-text-secondary line-through"
                   : "text-text-primary"
@@ -285,7 +285,7 @@ export function TaskDetailPage() {
                 debouncedContentSave(event.target.value);
               }}
               placeholder="Add notes, upload files, or drop images here..."
-              className="min-h-[220px] w-full resize-none border-none bg-transparent text-[15px] leading-8 text-text-primary outline-none placeholder:text-text-tertiary"
+              className="task-detail-field min-h-[220px] w-full resize-none bg-transparent text-[15px] leading-8 text-text-primary placeholder:text-text-tertiary"
             />
 
             <div className="space-y-4">
