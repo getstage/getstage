@@ -675,7 +675,7 @@ export const syncStripeData = action({
 export const connectCallback = httpAction(async (ctx, request) => {
   const siteUrl = requireEnv("SITE_URL");
   const redirectUrl = new URL(`${siteUrl}/settings`);
-  redirectUrl.searchParams.set("tab", "billing");
+  redirectUrl.searchParams.set("tab", "integrations");
 
   const url = new URL(request.url);
   const state = url.searchParams.get("state");
