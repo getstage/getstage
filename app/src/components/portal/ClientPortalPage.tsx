@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Check } from "@phosphor-icons/react";
+import { Check, CaretRight } from "@phosphor-icons/react";
 import { useQuery as useConvexQuery } from "convex/react";
 import { Helmet } from "react-helmet-async";
 import { useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { api } from "@/lib/convex";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
+import { buildPortalTaskPath } from "@/lib/portal";
 import type { Phase } from "@/types";
 
 type PortalTask = Phase["tasks"][number];
@@ -47,6 +48,7 @@ export function ClientPortalPage() {
   const isPreview =
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("preview") === "1";
+  const previewSuffix = isPreview ? "?preview=1" : "";
 
   if (!selectedPhase) {
     return null;
@@ -152,6 +154,7 @@ export function ClientPortalPage() {
                   key={task.id}
                   task={task}
                   accentColor={config.accentColor}
+                  href={`${buildPortalTaskPath(token, task.id)}${previewSuffix}`}
                 />
               ))}
             </div>
@@ -263,12 +266,17 @@ function PortalPhaseNode({
 function PortalTaskRow({
   task,
   accentColor,
+  href,
 }: {
   task: PortalTask;
   accentColor: string;
+  href: string;
 }) {
   return (
-    <div className="flex items-center gap-3 border-t border-border-subtle px-1 py-2.5 first:border-t-0">
+    <a
+      href={href}
+      className="group flex items-center gap-3 border-t border-border-subtle px-1 py-2.5 text-left transition-colors first:border-t-0 hover:bg-bg-subtle/70"
+    >
       <span
         className="inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border"
         style={{
@@ -285,7 +293,11 @@ function PortalTaskRow({
       >
         {task.title}
       </span>
-    </div>
+      <CaretRight
+        size={14}
+        className="ml-auto shrink-0 text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100"
+      />
+    </a>
   );
 }
 

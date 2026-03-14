@@ -139,7 +139,7 @@ export function AuthPage() {
       setError(
         toUserFacingErrorMessage(
           error,
-          "That code is invalid or has expired. Please request a new one.",
+          "That code didn't work. Enter the latest 6-digit code from your email and try again.",
         ),
       );
       setCode(["", "", "", "", "", ""]);

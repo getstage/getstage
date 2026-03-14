@@ -18,6 +18,7 @@ import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedNewProjectRouteImport } from './routes/_authed/new-project'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
 import { Route as AuthedProjectIdRouteImport } from './routes/_authed/project.$id'
+import { Route as PortalTokenTaskTaskIdRouteImport } from './routes/portal.$token.task.$taskId'
 import { Route as AuthedProjectIdTaskTaskIdRouteImport } from './routes/_authed/project.$id.task.$taskId'
 
 const AuthRoute = AuthRouteImport.update({
@@ -65,6 +66,11 @@ const AuthedProjectIdRoute = AuthedProjectIdRouteImport.update({
   path: '/project/$id',
   getParentRoute: () => AuthedRoute,
 } as any)
+const PortalTokenTaskTaskIdRoute = PortalTokenTaskTaskIdRouteImport.update({
+  id: '/task/$taskId',
+  path: '/task/$taskId',
+  getParentRoute: () => PortalTokenRoute,
+} as any)
 const AuthedProjectIdTaskTaskIdRoute =
   AuthedProjectIdTaskTaskIdRouteImport.update({
     id: '/task/$taskId',
@@ -79,8 +85,9 @@ export interface FileRoutesByFullPath {
   '/new-project': typeof AuthedNewProjectRoute
   '/settings': typeof AuthedSettingsRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
-  '/portal/$token': typeof PortalTokenRoute
+  '/portal/$token': typeof PortalTokenRouteWithChildren
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
+  '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
   '/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
 }
 export interface FileRoutesByTo {
@@ -90,8 +97,9 @@ export interface FileRoutesByTo {
   '/new-project': typeof AuthedNewProjectRoute
   '/settings': typeof AuthedSettingsRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
-  '/portal/$token': typeof PortalTokenRoute
+  '/portal/$token': typeof PortalTokenRouteWithChildren
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
+  '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
   '/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
 }
 export interface FileRoutesById {
@@ -103,8 +111,9 @@ export interface FileRoutesById {
   '/_authed/new-project': typeof AuthedNewProjectRoute
   '/_authed/settings': typeof AuthedSettingsRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
-  '/portal/$token': typeof PortalTokenRoute
+  '/portal/$token': typeof PortalTokenRouteWithChildren
   '/_authed/project/$id': typeof AuthedProjectIdRouteWithChildren
+  '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
   '/_authed/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
 }
 export interface FileRouteTypes {
@@ -118,6 +127,7 @@ export interface FileRouteTypes {
     | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
     | '/project/$id'
+    | '/portal/$token/task/$taskId'
     | '/project/$id/task/$taskId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -129,6 +139,7 @@ export interface FileRouteTypes {
     | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
     | '/project/$id'
+    | '/portal/$token/task/$taskId'
     | '/project/$id/task/$taskId'
   id:
     | '__root__'
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
     | '/_authed/project/$id'
+    | '/portal/$token/task/$taskId'
     | '/_authed/project/$id/task/$taskId'
   fileRoutesById: FileRoutesById
 }
@@ -149,7 +161,7 @@ export interface RootRouteChildren {
   AuthedRoute: typeof AuthedRouteWithChildren
   AuthRoute: typeof AuthRoute
   HelpImportTransactionsViaGoogleSheetsRoute: typeof HelpImportTransactionsViaGoogleSheetsRoute
-  PortalTokenRoute: typeof PortalTokenRoute
+  PortalTokenRoute: typeof PortalTokenRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -217,6 +229,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedProjectIdRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/portal/$token/task/$taskId': {
+      id: '/portal/$token/task/$taskId'
+      path: '/task/$taskId'
+      fullPath: '/portal/$token/task/$taskId'
+      preLoaderRoute: typeof PortalTokenTaskTaskIdRouteImport
+      parentRoute: typeof PortalTokenRoute
+    }
     '/_authed/project/$id/task/$taskId': {
       id: '/_authed/project/$id/task/$taskId'
       path: '/task/$taskId'
@@ -256,13 +275,25 @@ const AuthedRouteChildren: AuthedRouteChildren = {
 const AuthedRouteWithChildren =
   AuthedRoute._addFileChildren(AuthedRouteChildren)
 
+interface PortalTokenRouteChildren {
+  PortalTokenTaskTaskIdRoute: typeof PortalTokenTaskTaskIdRoute
+}
+
+const PortalTokenRouteChildren: PortalTokenRouteChildren = {
+  PortalTokenTaskTaskIdRoute: PortalTokenTaskTaskIdRoute,
+}
+
+const PortalTokenRouteWithChildren = PortalTokenRoute._addFileChildren(
+  PortalTokenRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
   AuthRoute: AuthRoute,
   HelpImportTransactionsViaGoogleSheetsRoute:
     HelpImportTransactionsViaGoogleSheetsRoute,
-  PortalTokenRoute: PortalTokenRoute,
+  PortalTokenRoute: PortalTokenRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

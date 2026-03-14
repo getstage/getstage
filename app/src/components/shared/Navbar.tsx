@@ -23,8 +23,7 @@ export function Navbar() {
   // Determine breadcrumb context from current route
   const isProjectDetail = matches.some((m) => m.routeId.includes("project.$id"));
   const isTaskDetail = matches.some((m) => m.routeId.includes("task.$taskId"));
-  const isSettings = matches.some((m) => m.routeId.includes("settings"));
-  const showBackLink = isProjectDetail || isTaskDetail || isSettings;
+  const showBackLink = isProjectDetail || isTaskDetail;
 
   function handleOpenUpgrade() {
     setUpgradeError(null);

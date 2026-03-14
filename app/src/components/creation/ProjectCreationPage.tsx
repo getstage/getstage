@@ -22,22 +22,20 @@ export function ProjectCreationPage() {
       </Helmet>
 
       <div className="min-h-[calc(100vh-64px)]">
-        <div className="mx-auto w-full max-w-[1440px] px-5 pt-8 sm:px-10 sm:pt-10 lg:px-14">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-col px-6 pb-20 pt-6 sm:px-10 lg:px-14">
           <Link
             to="/dashboard"
-            className="mb-6 inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary sm:mb-8"
+            className="mb-2 inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary"
           >
             <ArrowLeft size={14} />
             Dashboard
           </Link>
-        </div>
 
-        <div className="flex flex-col items-center px-10 pb-20">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
-            className="w-full max-w-[420px]"
+            className="mx-auto w-full max-w-[420px]"
           >
             {creation.errorMessage ? (
               <div className="mb-6 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-[13px] text-destructive">

@@ -1,6 +1,8 @@
 import { useQuery as useConvexQuery } from "convex/react";
 import { Helmet } from "react-helmet-async";
+import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
+import { ArrowLeft } from "@phosphor-icons/react";
 import { UpgradePricingModal } from "@/components/billing/UpgradePricingModal";
 import { BillingTab } from "@/components/settings/BillingTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
@@ -55,8 +57,16 @@ export function SettingsPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="settings-page"
+        className="settings-page mx-auto flex w-full max-w-[1200px] flex-col px-6 pb-[120px] pt-6 sm:px-10 lg:px-14"
       >
+        <Link
+          to="/dashboard"
+          className="mb-2 inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary"
+        >
+          <ArrowLeft size={14} />
+          Dashboard
+        </Link>
+
         <div className="settings-page-header">
           <h1 className="page-title sf">Settings</h1>
           <p className="page-subtitle">Manage your account</p>

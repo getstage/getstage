@@ -10,6 +10,10 @@ export function buildPortalPath(shareToken: string) {
   return `/portal/${encodeURIComponent(shareToken)}`;
 }
 
+export function buildPortalTaskPath(shareToken: string, taskId: string) {
+  return `/portal/${encodeURIComponent(shareToken)}/task/${encodeURIComponent(taskId)}`;
+}
+
 export function rebaseUrlToCurrentOrigin(url: string) {
   if (typeof window === "undefined") {
     return url;
