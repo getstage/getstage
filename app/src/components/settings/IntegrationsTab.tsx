@@ -1,4 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
+import { useState } from "react";
 import googleSheetsIcon from "@/assets/icons/google-sheets.svg";
 import stripeIcon from "@/assets/icons/stripe.svg";
 import { FeedbackText } from "@/components/settings/FeedbackText";
@@ -69,9 +70,70 @@ export function IntegrationsTab({
     stripeConnection?.status === "active" || stripeConnection?.status === "pending";
   const googleSheetConnected =
     googleSheetConnection?.status === "active" || googleSheetConnection?.status === "pending";
+  const [disconnectDialog, setDisconnectDialog] = useState<"stripe" | "google-sheets" | null>(
+    null,
+  );
+
+  const disconnectCopy =
+    disconnectDialog === "stripe"
+      ? {
+          title: "Disconnect Stripe?",
+          description:
+            "This will stop syncing your invoices and payments from Stripe. You can reconnect later.",
+          confirmLabel: isStripeDisconnecting ? "Disconnecting..." : "Disconnect",
+          onConfirm: onStripeDisconnect,
+          isLoading: isStripeDisconnecting,
+        }
+      : {
+          title: "Disconnect Google Sheets?",
+          description:
+            "This will remove the connected sheet link and stop future imports until you connect it again.",
+          confirmLabel: isGoogleSheetDisconnecting ? "Disconnecting..." : "Disconnect",
+          onConfirm: onGoogleSheetDisconnect,
+          isLoading: isGoogleSheetDisconnecting,
+        };
 
   return (
     <div className={`tab-content ${active ? "active" : ""}`}>
+      <Dialog.Root
+        open={disconnectDialog !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDisconnectDialog(null);
+          }
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-[460px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-7 shadow-xl">
+            <Dialog.Title className="font-heading text-[20px] font-semibold text-text-primary">
+              {disconnectCopy.title}
+            </Dialog.Title>
+            <p className="mt-3 text-[14px] leading-[1.6] text-text-secondary">
+              {disconnectCopy.description}
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <Dialog.Close asChild>
+                <button type="button" className="btn-outline" disabled={disconnectCopy.isLoading}>
+                  Cancel
+                </button>
+              </Dialog.Close>
+              <button
+                type="button"
+                className="btn-delete"
+                disabled={disconnectCopy.isLoading}
+                onClick={() => {
+                  disconnectCopy.onConfirm();
+                  setDisconnectDialog(null);
+                }}
+              >
+                {disconnectCopy.confirmLabel}
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
       <Dialog.Root
         open={googleSheetHelpDialogOpen}
         onOpenChange={onGoogleSheetHelpDialogOpenChange}
@@ -178,11 +240,7 @@ export function IntegrationsTab({
               type="button"
               className="btn-outline"
               disabled={!stripeConnected || isStripeDisconnecting}
-              onClick={() => {
-                if (window.confirm("This will stop syncing your invoices and payments from Stripe. Are you sure?")) {
-                  onStripeDisconnect();
-                }
-              }}
+              onClick={() => setDisconnectDialog("stripe")}
             >
               {isStripeDisconnecting ? "Disconnecting..." : "Disconnect"}
             </button>
@@ -278,7 +336,7 @@ export function IntegrationsTab({
               type="button"
               className="btn-outline"
               disabled={!googleSheetConnected || isGoogleSheetDisconnecting}
-              onClick={onGoogleSheetDisconnect}
+              onClick={() => setDisconnectDialog("google-sheets")}
             >
               {isGoogleSheetDisconnecting ? "Disconnecting..." : "Disconnect"}
             </button>
