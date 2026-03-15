@@ -90,6 +90,7 @@ Set:
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `STRIPE_CONNECT_CLIENT_ID`
+- `STRIPE_CONNECT_WEBHOOK_SECRET`
 - `STRIPE_MONTHLY_PRICE_ID`
 - `STRIPE_YEARLY_PRICE_LAUNCH_ID` (preferred)
 - `STRIPE_YEARLY_PRICE_ID` (legacy fallback)
@@ -106,27 +107,28 @@ For Google auth provider in `[app/convex/auth.ts](/Users/wdiebenwdambitions/stag
 - R2 usage entry points in `[app/convex/r2.ts](/Users/wdiebenwdambitions/stagemvp/app/convex/r2.ts)`
 - Stripe webhook endpoint is exposed at `"/stripe/webhook"` in `[app/convex/http.ts](/Users/wdiebenwdambitions/stagemvp/app/convex/http.ts)` via `registerRoutes`
 - Stripe Connect callback endpoint is `"/stripe/connect/callback"`
+- Stripe Connect lifecycle webhook endpoint is `"/stripe/connect/webhook"`
 
 ### 4.4 Stripe environment matrix
 
 Keep the webhook path identical in every environment. Only the hostname, Stripe mode, secrets,
 price ids, and `SITE_URL` change per environment.
 
-| Environment | Stripe mode | Webhook URL | Required Stripe envs |
-| --- | --- | --- | --- |
-| Local / development | Test | `https://<dev-convex-host>/stripe/webhook` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_MONTHLY_PRICE_ID`, `STRIPE_YEARLY_PRICE_LAUNCH_ID`, `SITE_URL` |
-| Testing | Test | `https://<testing-convex-host>/stripe/webhook` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_MONTHLY_PRICE_ID`, `STRIPE_YEARLY_PRICE_LAUNCH_ID`, `SITE_URL` |
-| Production | Live | `https://<production-convex-host>/stripe/webhook` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_MONTHLY_PRICE_ID`, `STRIPE_YEARLY_PRICE_LAUNCH_ID`, `SITE_URL` |
+| Environment | Stripe mode | Billing webhook URL | Connect webhook URL | Required Stripe envs |
+| --- | --- | --- | --- | --- |
+| Local / development | Test | `https://<dev-convex-host>/stripe/webhook` | `https://<dev-convex-host>/stripe/connect/webhook` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_CLIENT_ID`, `STRIPE_CONNECT_WEBHOOK_SECRET`, `STRIPE_MONTHLY_PRICE_ID`, `STRIPE_YEARLY_PRICE_LAUNCH_ID`, `SITE_URL` |
+| Testing | Test | `https://<testing-convex-host>/stripe/webhook` | `https://<testing-convex-host>/stripe/connect/webhook` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_CLIENT_ID`, `STRIPE_CONNECT_WEBHOOK_SECRET`, `STRIPE_MONTHLY_PRICE_ID`, `STRIPE_YEARLY_PRICE_LAUNCH_ID`, `SITE_URL` |
+| Production | Live | `https://<production-convex-host>/stripe/webhook` | `https://<production-convex-host>/stripe/connect/webhook` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_CLIENT_ID`, `STRIPE_CONNECT_WEBHOOK_SECRET`, `STRIPE_MONTHLY_PRICE_ID`, `STRIPE_YEARLY_PRICE_LAUNCH_ID`, `SITE_URL` |
 
 Notes:
-- The app intentionally keeps using `"/stripe/webhook"` and does not version this path yet.
+- The app intentionally keeps using `"/stripe/webhook"` for billing and `"/stripe/connect/webhook"` for Connect lifecycle events.
 - Every environment should have its own Stripe webhook destination and its own webhook secret.
 - Production must use live Stripe keys and live price ids; development and testing should stay on
   Stripe test mode.
 
 ### 4.5 Stripe webhook event selection
 
-Configure the same Stripe events for development, testing, and production:
+Configure these billing events for development, testing, and production:
 
 - `checkout.session.completed`
 - `customer.subscription.created`
@@ -135,6 +137,11 @@ Configure the same Stripe events for development, testing, and production:
 - `invoice.paid`
 - `payment_intent.succeeded`
 - `payment_intent.payment_failed`
+
+Configure these Connect events on a separate `"/stripe/connect/webhook"` destination:
+
+- `account.application.deauthorized`
+- `account.updated`
 
 Do not add extra events unless the code starts consuming them explicitly.
 
@@ -186,9 +193,12 @@ Current worker (`app/worker/index.ts`) simply delegates all requests to ASSETS, 
    - Auth provider configured (Google + Loops OTP path)
    - R2 component installed/configured
    - Stripe component + webhook URL reachable (`/stripe/webhook`)
+   - Stripe Connect webhook URL reachable (`/stripe/connect/webhook`)
 4. Confirm Stripe Connect callback URL in your Stripe app points to:
    - `${CONVEX_SITE_URL}/stripe/connect/callback`
-5. Confirm worker can build and serve `dist`:
+5. Confirm Stripe Connect webhook destination points to:
+   - `${CONVEX_SITE_URL}/stripe/connect/webhook`
+6. Confirm worker can build and serve `dist`:
    - `pnpm run build`
    - `pnpm run stage:deploy` (or `production`)
 

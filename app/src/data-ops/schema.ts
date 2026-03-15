@@ -237,6 +237,29 @@ export const updateTaskInputSchema = taskSchema.partial().omit({
   createdAt: true,
 });
 
+export const syncPhasesInputSchema = z.object({
+  phases: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        name: z
+          .string()
+          .trim()
+          .min(1, "Phase name cannot be empty")
+          .max(60, "Phase name must be 60 characters or less"),
+      }),
+    )
+    .min(1, "At least one phase is required")
+    .max(20, "A project can have at most 20 phases")
+    .refine(
+      (phases) => {
+        const names = phases.map((p) => p.name.toLowerCase());
+        return new Set(names).size === names.length;
+      },
+      { message: "Phase names must be unique" },
+    ),
+});
+
 export const signInInputSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });

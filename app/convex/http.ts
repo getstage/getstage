@@ -2,7 +2,7 @@ import { httpRouter } from "convex/server";
 import { registerRoutes, type StripeComponent } from "@convex-dev/stripe";
 import { components } from "./_generated/api";
 import { auth } from "./auth";
-import { connectCallback } from "./stripeConnect";
+import { connectCallback, connectWebhook } from "./stripeConnect";
 
 const http = httpRouter();
 auth.addHttpRoutes(http);
@@ -13,6 +13,11 @@ http.route({
   path: "/stripe/connect/callback",
   method: "GET",
   handler: connectCallback,
+});
+http.route({
+  path: "/stripe/connect/webhook",
+  method: "POST",
+  handler: connectWebhook,
 });
 
 export default http;

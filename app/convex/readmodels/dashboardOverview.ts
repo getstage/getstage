@@ -2,6 +2,13 @@ import type { Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { listProjectsForUser } from "../domain/projects/readModel";
 
+type PaymentRow = {
+  name: string;
+  avatarUrl?: string;
+  amount: number;
+  status: "paid" | "pending";
+};
+
 function buildClientAvatarMap(
   projects: Array<{ clientName: string; clientAvatarUrl?: string }>,
 ) {
@@ -10,6 +17,19 @@ function buildClientAvatarMap(
       .filter((project) => project.clientAvatarUrl)
       .map((project) => [project.clientName, project.clientAvatarUrl as string]),
   );
+}
+
+function addPaymentRow(
+  groups: Map<string, PaymentRow>,
+  row: PaymentRow,
+) {
+  const existing = groups.get(row.name);
+  groups.set(row.name, {
+    name: row.name,
+    avatarUrl: existing?.avatarUrl ?? row.avatarUrl,
+    amount: (existing?.amount ?? 0) + row.amount,
+    status: existing?.status === "pending" || row.status === "pending" ? "pending" : "paid",
+  });
 }
 
 export async function buildDashboardOverview(ctx: QueryCtx, userId: Id<"users">) {
@@ -21,8 +41,8 @@ export async function buildDashboardOverview(ctx: QueryCtx, userId: Id<"users">)
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .collect();
 
-  const activeConnection =
-    paymentConnectionDocs.find((connection) => connection.status === "active") ?? null;
+  const dashboardConnection =
+    paymentConnectionDocs.find((connection) => connection.status !== "disconnected") ?? null;
 
   const invoiceDocs = await ctx.db
     .query("invoices")
@@ -39,74 +59,106 @@ export async function buildDashboardOverview(ctx: QueryCtx, userId: Id<"users">)
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .collect();
 
-  const paidInvoices = invoiceDocs.filter((invoice) => invoice.status === "paid");
-  const outstandingInvoices = invoiceDocs.filter(
-    (invoice) => invoice.status === "open" || invoice.status === "overdue",
+  const nonStripeFinanceEntries = financeEntries.filter(
+    (entry) =>
+      entry.source !== "stripe_connect" &&
+      entry.direction === "incoming" &&
+      entry.status !== "failed",
   );
-  const successfulPayments = paymentDocs.filter((payment) => payment.status === "succeeded");
-  const incomingFinanceEntries = financeEntries.filter(
-    (entry) => entry.direction === "incoming" && entry.status !== "failed",
-  );
-  const financeOutstandingEntries = incomingFinanceEntries.filter(
+  const financeOutstandingEntries = nonStripeFinanceEntries.filter(
     (entry) =>
       entry.status === "pending" || entry.status === "overdue" || entry.status === "draft",
   );
-  const financeReceivedEntries = incomingFinanceEntries.filter((entry) => entry.status === "paid");
+  const financeReceivedEntries = nonStripeFinanceEntries.filter((entry) => entry.status === "paid");
 
-  const financeRows = Array.from(
-    incomingFinanceEntries.reduce((groups, entry) => {
-      const existing = groups.get(entry.counterpartyName);
-      const normalizedAmount = entry.amountCents / 100;
-      const isPendingLike =
-        entry.status === "pending" || entry.status === "overdue" || entry.status === "draft";
+  const stripeInvoices = dashboardConnection
+    ? invoiceDocs.filter((invoice) => invoice.paymentConnectionId === dashboardConnection._id)
+    : [];
+  const stripePayments = dashboardConnection
+    ? paymentDocs.filter((payment) => payment.paymentConnectionId === dashboardConnection._id)
+    : [];
 
-      groups.set(entry.counterpartyName, {
-        name: entry.counterpartyName,
-        avatarUrl: clientAvatarMap.get(entry.counterpartyName),
-        amount: (existing?.amount ?? 0) + normalizedAmount,
-        status: existing?.status === "pending" || isPendingLike ? "pending" : "paid",
-      });
+  const outstandingStripeInvoices = stripeInvoices.filter(
+    (invoice) => invoice.status === "open" || invoice.status === "overdue",
+  );
+  const successfulStripePayments = stripePayments.filter(
+    (payment) => payment.status === "succeeded",
+  );
+  const stripeInvoiceById = new Map(
+    stripeInvoices.map((invoice) => [invoice._id, invoice]),
+  );
+  const coveredPaidInvoiceIds = new Set(
+    successfulStripePayments.flatMap((payment) => (payment.invoiceId ? [payment.invoiceId] : [])),
+  );
+  const uncoveredPaidStripeInvoices = stripeInvoices.filter(
+    (invoice) => invoice.status === "paid" && !coveredPaidInvoiceIds.has(invoice._id),
+  );
 
-      return groups;
-    }, new Map<string, { name: string; avatarUrl?: string; amount: number; status: "paid" | "pending" }>()),
-  )
-    .map(([, value]) => value)
+  const rowGroups = new Map<string, PaymentRow>();
+  for (const entry of nonStripeFinanceEntries) {
+    addPaymentRow(rowGroups, {
+      name: entry.counterpartyName,
+      avatarUrl: clientAvatarMap.get(entry.counterpartyName),
+      amount: entry.amountCents / 100,
+      status:
+        entry.status === "pending" || entry.status === "overdue" || entry.status === "draft"
+          ? "pending"
+          : "paid",
+    });
+  }
+  for (const invoice of outstandingStripeInvoices) {
+    addPaymentRow(rowGroups, {
+      name: invoice.clientName,
+      avatarUrl: clientAvatarMap.get(invoice.clientName),
+      amount: invoice.amountDue,
+      status: "pending",
+    });
+  }
+  for (const payment of successfulStripePayments) {
+    const linkedInvoice = payment.invoiceId ? stripeInvoiceById.get(payment.invoiceId) : undefined;
+    const counterpartyName = linkedInvoice?.clientName ?? "Stripe customer";
+    addPaymentRow(rowGroups, {
+      name: counterpartyName,
+      avatarUrl: clientAvatarMap.get(counterpartyName),
+      amount: payment.amount,
+      status: "paid",
+    });
+  }
+  for (const invoice of uncoveredPaidStripeInvoices) {
+    addPaymentRow(rowGroups, {
+      name: invoice.clientName,
+      avatarUrl: clientAvatarMap.get(invoice.clientName),
+      amount: invoice.totalAmount,
+      status: "paid",
+    });
+  }
+
+  const paymentRows = Array.from(rowGroups.values())
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 3);
 
-  const legacyRows = Array.from(
-    paidInvoices.reduce((groups, invoice) => {
-      const existing = groups.get(invoice.clientName);
-      groups.set(invoice.clientName, {
-        name: invoice.clientName,
-        avatarUrl: clientAvatarMap.get(invoice.clientName),
-        amount: (existing?.amount ?? 0) + invoice.totalAmount,
-        status: "paid" as const,
-      });
-      return groups;
-    }, new Map<string, { name: string; avatarUrl?: string; amount: number; status: "paid" | "pending" }>()),
-  )
-    .map(([, value]) => value)
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 3);
-
-  const hasFinanceEntries = financeEntries.length > 0;
+  const outstandingTotal =
+    financeOutstandingEntries.reduce((sum, entry) => sum + entry.amountCents / 100, 0) +
+    outstandingStripeInvoices.reduce((sum, invoice) => sum + invoice.amountDue, 0);
+  const receivedTotal =
+    financeReceivedEntries.reduce((sum, entry) => sum + entry.amountCents / 100, 0) +
+    successfulStripePayments.reduce((sum, payment) => sum + payment.amount, 0) +
+    uncoveredPaidStripeInvoices.reduce((sum, invoice) => sum + invoice.totalAmount, 0);
+  const hasVisiblePaymentData =
+    nonStripeFinanceEntries.length > 0 ||
+    Boolean(dashboardConnection) ||
+    stripeInvoices.length > 0 ||
+    stripePayments.length > 0;
   const paymentSummary =
-    activeConnection || invoiceDocs.length > 0 || paymentDocs.length > 0 || hasFinanceEntries
+    hasVisiblePaymentData
       ? {
-          provider: activeConnection?.provider ?? "unknown",
-          accessMode: activeConnection?.accessMode ?? "restricted_key",
-          status: activeConnection?.status ?? "pending",
-          outstandingTotal: hasFinanceEntries
-            ? financeOutstandingEntries.reduce((sum, entry) => sum + entry.amountCents / 100, 0)
-            : outstandingInvoices.reduce((sum, invoice) => sum + invoice.amountDue, 0),
-          receivedTotal: hasFinanceEntries
-            ? financeReceivedEntries.reduce((sum, entry) => sum + entry.amountCents / 100, 0)
-            : successfulPayments.reduce((sum, payment) => sum + payment.amount, 0),
-          pendingTotal: hasFinanceEntries
-            ? financeOutstandingEntries.reduce((sum, entry) => sum + entry.amountCents / 100, 0)
-            : outstandingInvoices.reduce((sum, invoice) => sum + invoice.amountDue, 0),
-          rows: hasFinanceEntries ? financeRows : legacyRows,
+          provider: dashboardConnection?.provider ?? "unknown",
+          accessMode: dashboardConnection?.accessMode ?? "restricted_key",
+          status: dashboardConnection?.status ?? "pending",
+          outstandingTotal,
+          receivedTotal,
+          pendingTotal: outstandingTotal,
+          rows: paymentRows,
         }
       : null;
 

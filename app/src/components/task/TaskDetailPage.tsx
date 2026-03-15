@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useParams, Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
+  ArrowsClockwise,
   DownloadSimple,
   File as FileIcon,
-  Image as ImageIcon,
   Plus,
   Trash,
 } from "@phosphor-icons/react";
@@ -41,6 +41,8 @@ export function TaskDetailPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [confirmingAttachmentId, setConfirmingAttachmentId] = useState<string | null>(null);
+  const [replacingAttachmentId, setReplacingAttachmentId] = useState<string | null>(null);
+  const replaceInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   const task = useMemo(
     () =>
@@ -123,6 +125,39 @@ export function TaskDetailPage() {
       setErrorMessage(toUserFacingErrorMessage(error, "Could not delete that attachment."));
     } finally {
       setDeletingAttachmentId(null);
+    }
+  }
+
+  async function handleReplaceAttachment(oldAttachment: Attachment, file: File) {
+    setReplacingAttachmentId(oldAttachment.id);
+    setErrorMessage(null);
+
+    try {
+      const key = await uploadFileToR2({
+        generateUploadUrl: r2GenerateUploadUrl,
+        syncMetadata: r2SyncMetadata,
+        purpose: "task-attachment",
+        file,
+      });
+
+      await saveAttachment({
+        taskId: taskId as Id<"tasks">,
+        r2ObjectKey: key,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: getNormalizedMimeType(file),
+      });
+
+      await deleteAttachment({
+        attachmentId: oldAttachment.id as Id<"attachments">,
+      });
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    } catch (error) {
+      setErrorMessage(toUserFacingErrorMessage(error, "Could not replace the image."));
+    } finally {
+      setReplacingAttachmentId(null);
     }
   }
 
@@ -289,58 +324,131 @@ export function TaskDetailPage() {
             />
 
             <div className="space-y-4">
-              {attachments.map((attachment) => (
-                <div
-                  key={attachment.id}
-                  className="relative flex items-center gap-3 rounded-[10px] bg-bg-subtle px-4 py-3"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-[8px] border border-border bg-white">
-                    {attachment.type === "image" ? (
-                      <ImageIcon size={17} className="text-text-secondary" />
-                    ) : (
+              {attachments.map((attachment) =>
+                attachment.type === "image" ? (
+                  <div
+                    key={attachment.id}
+                    className="relative overflow-hidden rounded-[10px] border border-border-subtle bg-bg-subtle"
+                  >
+                    <img
+                      src={attachment.url}
+                      alt={attachment.fileName}
+                      className="w-full rounded-t-[10px] object-cover"
+                      style={{ maxHeight: 400 }}
+                    />
+                    <div className="flex items-center gap-3 px-4 py-2.5">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-medium text-text-primary">
+                          {attachment.fileName}
+                        </p>
+                        <p className="text-[11px] text-text-secondary">
+                          {formatFileSize(attachment.fileSize)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <label
+                          className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-text-tertiary transition-colors hover:text-text-secondary"
+                          aria-label={`Replace ${attachment.fileName}`}
+                        >
+                          <ArrowsClockwise
+                            size={16}
+                            className={replacingAttachmentId === attachment.id ? "animate-spin" : ""}
+                          />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            ref={(el) => {
+                              if (el) replaceInputRefs.current.set(attachment.id, el);
+                              else replaceInputRefs.current.delete(attachment.id);
+                            }}
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              if (file) void handleReplaceAttachment(attachment, file);
+                              event.target.value = "";
+                            }}
+                          />
+                        </label>
+                        <a
+                          href={attachment.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          download={attachment.fileName}
+                          className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-text-tertiary transition-colors hover:text-text-secondary"
+                          aria-label={`Download ${attachment.fileName}`}
+                        >
+                          <DownloadSimple size={16} />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingAttachmentId(attachment.id)}
+                          disabled={deletingAttachmentId === attachment.id}
+                          className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-text-tertiary transition-colors hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60"
+                          aria-label={`Delete ${attachment.fileName}`}
+                        >
+                          <Trash size={16} />
+                        </button>
+                      </div>
+                    </div>
+                    <ConfirmPopover
+                      open={confirmingAttachmentId === attachment.id}
+                      message={`Delete "${attachment.fileName}"?`}
+                      onCancel={() => setConfirmingAttachmentId(null)}
+                      onConfirm={() => {
+                        void handleDeleteAttachment(attachment);
+                      }}
+                      className="right-4 top-full mt-2"
+                    />
+                  </div>
+                ) : (
+                  <div
+                    key={attachment.id}
+                    className="relative flex items-center gap-3 rounded-[10px] bg-bg-subtle px-4 py-3"
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-[8px] border border-border bg-white">
                       <FileIcon size={17} className="text-text-secondary" />
-                    )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[14px] font-medium text-text-primary">
+                        {attachment.fileName}
+                      </p>
+                      <p className="text-[12px] text-text-secondary">
+                        {formatFileSize(attachment.fileSize)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <a
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        download={attachment.fileName}
+                        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-text-tertiary transition-colors hover:text-text-secondary"
+                        aria-label={`Download ${attachment.fileName}`}
+                      >
+                        <DownloadSimple size={16} />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingAttachmentId(attachment.id)}
+                        disabled={deletingAttachmentId === attachment.id}
+                        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-text-tertiary transition-colors hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60"
+                        aria-label={`Delete ${attachment.fileName}`}
+                      >
+                        <Trash size={16} />
+                      </button>
+                    </div>
+                    <ConfirmPopover
+                      open={confirmingAttachmentId === attachment.id}
+                      message={`Delete "${attachment.fileName}"?`}
+                      onCancel={() => setConfirmingAttachmentId(null)}
+                      onConfirm={() => {
+                        void handleDeleteAttachment(attachment);
+                      }}
+                      className="right-4 top-full mt-2"
+                    />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] font-medium text-text-primary">
-                      {attachment.fileName}
-                    </p>
-                    <p className="text-[12px] text-text-secondary">
-                      {formatFileSize(attachment.fileSize)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <a
-                      href={attachment.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      download={attachment.fileName}
-                      className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-text-tertiary transition-colors hover:text-text-secondary"
-                      aria-label={`Download ${attachment.fileName}`}
-                    >
-                      <DownloadSimple size={16} />
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmingAttachmentId(attachment.id)}
-                      disabled={deletingAttachmentId === attachment.id}
-                      className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-text-tertiary transition-colors hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60"
-                      aria-label={`Delete ${attachment.fileName}`}
-                    >
-                      <Trash size={16} />
-                    </button>
-                  </div>
-                  <ConfirmPopover
-                    open={confirmingAttachmentId === attachment.id}
-                    message={`Delete "${attachment.fileName}"?`}
-                    onCancel={() => setConfirmingAttachmentId(null)}
-                    onConfirm={() => {
-                      void handleDeleteAttachment(attachment);
-                    }}
-                    className="right-4 top-full mt-2"
-                  />
-                </div>
-              ))}
+                ),
+              )}
             </div>
           </div>
 

@@ -31,7 +31,7 @@ export function useIntegrationsSettings({ user }: IntegrationsSettingsInput) {
   );
   const connectSheet = useConvexMutation(api.googleSheets.connectSheet);
   const disconnectSheet = useConvexMutation(api.googleSheets.disconnectSheet);
-  const disconnectStripe = useConvexMutation(api.stripeConnect.disconnectStripe);
+  const disconnectStripe = useConvexAction(api.stripeConnect.disconnectStripe);
   const startStripeConnect = useConvexAction(api.stripeConnect.startConnect);
   const syncStripeData = useConvexAction(api.stripeConnect.syncStripeData);
   const runSheetImport = useConvexAction(api.googleSheets.runSheetImport);
@@ -51,6 +51,32 @@ export function useIntegrationsSettings({ user }: IntegrationsSettingsInput) {
   const [isGoogleSheetDisconnecting, setIsGoogleSheetDisconnecting] = useState(false);
   const { feedback: stripeFeedback, showFeedback: showStripeFeedback } = useFeedback();
   const { feedback: googleSheetFeedback, showFeedback: showGoogleSheetFeedback } = useFeedback();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const stripeParam = params.get("stripe");
+
+    if (stripeParam === "connected") {
+      showStripeFeedback(SAVED_FEEDBACK);
+    } else if (stripeParam === "error") {
+      const reason = params.get("reason");
+      showStripeFeedback({
+        kind: "error",
+        message:
+          reason === "missing_code"
+            ? "Stripe connection failed: no authorization code received. Please try again."
+            : "Something went wrong connecting Stripe. Please try again.",
+      });
+    } else {
+      return;
+    }
+
+    params.delete("stripe");
+    params.delete("reason");
+    const nextSearch = params.toString();
+    const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${window.location.hash}`;
+    window.history.replaceState({}, "", nextUrl);
+  }, [showStripeFeedback]);
 
   useEffect(() => {
     setGoogleSheetUrl(sheetConnections?.googleSheet?.sheetUrl ?? "");

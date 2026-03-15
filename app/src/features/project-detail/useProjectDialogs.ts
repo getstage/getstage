@@ -3,6 +3,7 @@ import { useMutation as useConvexMutation } from "convex/react";
 import { api } from "@/lib/convex";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { formatInputDate, parseInputDate } from "@/lib/format";
+import { syncPhasesInputSchema } from "@/data-ops/schema";
 import type {
   ProjectDialogController,
   ProjectDialogKey,
@@ -144,29 +145,33 @@ export function useProjectDialogs({
       .map((name) => name.trim())
       .filter((name) => name.length > 0);
 
-    if (nextNames.length === 0) {
-      showError("At least one phase is required.");
+    const parsed = syncPhasesInputSchema.safeParse({
+      phases: nextNames.map((name) => ({ name })),
+    });
+
+    if (!parsed.success) {
+      showError(parsed.error.issues[0]?.message ?? "Invalid phase input.");
       return;
     }
 
     const usedExistingIds = new Set<string>();
-    const phases = nextNames.map((name, index) => {
+    const phases = parsed.data.phases.map((item, index) => {
       const exactMatch = project.phases.find(
-        (phase: Phase) => phase.name === name && !usedExistingIds.has(phase.id),
+        (phase: Phase) => phase.name === item.name && !usedExistingIds.has(phase.id),
       );
 
       if (exactMatch) {
         usedExistingIds.add(exactMatch.id);
-        return { id: exactMatch.id as Id<"phases">, name };
+        return { id: exactMatch.id as Id<"phases">, name: item.name };
       }
 
       const sameIndexPhase = project.phases[index];
       if (sameIndexPhase && !usedExistingIds.has(sameIndexPhase.id)) {
         usedExistingIds.add(sameIndexPhase.id);
-        return { id: sameIndexPhase.id as Id<"phases">, name };
+        return { id: sameIndexPhase.id as Id<"phases">, name: item.name };
       }
 
-      return { name };
+      return { name: item.name };
     });
 
     try {

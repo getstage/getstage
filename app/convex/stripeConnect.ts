@@ -1,7 +1,7 @@
 import Stripe from "stripe";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { action, httpAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { action, httpAction, internalMutation, internalQuery, query, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireAuthUser } from "./_helpers";
 
@@ -33,6 +33,49 @@ function centsToAmount(value: number | null | undefined) {
 
 function secondsToMilliseconds(value: number | null | undefined) {
   return value ? value * 1000 : undefined;
+}
+
+function getAccountDisplayName(account: Stripe.Account) {
+  const dashboardSettings = account.settings?.dashboard as { display_name?: string } | undefined;
+  return (
+    account.business_profile?.name ||
+    account.business_type ||
+    dashboardSettings?.display_name ||
+    undefined
+  );
+}
+
+function getAccountConnectionStatus(account: Stripe.Account) {
+  return Boolean(account.details_submitted && account.charges_enabled) ? "active" : "pending";
+}
+
+async function clearStripeImportedData(
+  ctx: MutationCtx,
+  connectionId: Id<"paymentConnections">,
+) {
+  const financeEntries = await ctx.db
+    .query("financeEntries")
+    .withIndex("by_payment_connection", (q) => q.eq("paymentConnectionId", connectionId))
+    .collect();
+  for (const financeEntry of financeEntries) {
+    await ctx.db.delete(financeEntry._id);
+  }
+
+  const payments = await ctx.db
+    .query("payments")
+    .withIndex("by_connection", (q) => q.eq("paymentConnectionId", connectionId))
+    .collect();
+  for (const payment of payments) {
+    await ctx.db.delete(payment._id);
+  }
+
+  const invoices = await ctx.db
+    .query("invoices")
+    .withIndex("by_connection", (q) => q.eq("paymentConnectionId", connectionId))
+    .collect();
+  for (const invoice of invoices) {
+    await ctx.db.delete(invoice._id);
+  }
 }
 
 function mapInvoiceStatus(status: string | null | undefined) {
@@ -182,6 +225,18 @@ export const getConnectionForViewer = internalQuery({
   },
 });
 
+export const getConnectionByExternalAccountId = internalQuery({
+  args: {
+    externalAccountId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return ctx.db
+      .query("paymentConnections")
+      .filter((q) => q.eq(q.field("externalAccountId"), args.externalAccountId))
+      .first();
+  },
+});
+
 export const upsertPendingConnection = internalMutation({
   args: {
     userId: v.id("users"),
@@ -260,8 +315,27 @@ export const completeConnectionByState = internalMutation({
       return null;
     }
 
+    const switchedAccounts =
+      connection.externalAccountId &&
+      connection.externalAccountId !== args.externalAccountId;
+
+    if (switchedAccounts) {
+      await clearStripeImportedData(ctx, connection._id);
+    }
+
     const timestamp = now();
-    await ctx.db.patch(connection._id, {
+    const patch: {
+      externalAccountId: string;
+      displayName?: string;
+      accountEmail?: string;
+      status: "pending" | "active";
+      connectedAt: number;
+      lastSyncError: undefined;
+      oauthState: undefined;
+      updatedAt: number;
+      lastSyncedAt?: undefined;
+      lastSyncCursor?: undefined;
+    } = {
       externalAccountId: args.externalAccountId,
       displayName: args.displayName,
       accountEmail: args.accountEmail,
@@ -270,7 +344,13 @@ export const completeConnectionByState = internalMutation({
       lastSyncError: undefined,
       oauthState: undefined,
       updatedAt: timestamp,
-    });
+    };
+    if (switchedAccounts) {
+      patch.lastSyncedAt = undefined;
+      patch.lastSyncCursor = undefined;
+    }
+
+    await ctx.db.patch(connection._id, patch);
 
     return connection._id;
   },
@@ -297,6 +377,71 @@ export const updateConnectionSnapshot = internalMutation({
       lastSyncError: args.lastSyncError,
       updatedAt: now(),
     });
+  },
+});
+
+export const updateConnectionSnapshotByExternalAccountId = internalMutation({
+  args: {
+    externalAccountId: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("active"),
+      v.literal("error"),
+      v.literal("disconnected"),
+    ),
+    displayName: v.optional(v.string()),
+    accountEmail: v.optional(v.string()),
+    lastSyncError: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const connection = await ctx.db
+      .query("paymentConnections")
+      .filter((q) => q.eq(q.field("externalAccountId"), args.externalAccountId))
+      .first();
+
+    if (!connection) {
+      return null;
+    }
+
+    await ctx.db.patch(connection._id, {
+      status: args.status,
+      displayName: args.displayName,
+      accountEmail: args.accountEmail,
+      lastSyncError: args.lastSyncError,
+      updatedAt: now(),
+    });
+
+    return connection._id;
+  },
+});
+
+export const markConnectionDisconnected = internalMutation({
+  args: {
+    connectionId: v.id("paymentConnections"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.connectionId, {
+      status: "disconnected",
+      externalAccountId: undefined,
+      displayName: undefined,
+      accountEmail: undefined,
+      connectedAt: undefined,
+      lastSyncedAt: undefined,
+      lastSyncCursor: undefined,
+      lastSyncError: undefined,
+      oauthState: undefined,
+      updatedAt: now(),
+    });
+  },
+});
+
+export const clearStripeConnectionData = internalMutation({
+  args: {
+    connectionId: v.id("paymentConnections"),
+  },
+  handler: async (ctx, args) => {
+    await clearStripeImportedData(ctx, args.connectionId);
+    return { cleared: true };
   },
 });
 
@@ -499,24 +644,50 @@ export const applyStripeSync = internalMutation({
   },
 });
 
-export const disconnectStripe = mutation({
+export const disconnectStripe = action({
   args: {},
   handler: async (ctx) => {
-    const user = await requireAuthUser(ctx);
-    const connection = await ctx.db
-      .query("paymentConnections")
-      .withIndex("by_user_provider", (q) => q.eq("userId", user._id).eq("provider", "stripe"))
-      .first();
+    const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
+    const connection = (await ctx.runQuery(internal.stripeConnect.getConnectionForViewer, {
+      userId: viewer.userId,
+    })) as StripeConnectionRecord | null;
 
     if (!connection) {
       return null;
     }
 
-    await ctx.db.patch(connection._id, {
-      status: "disconnected",
-      lastSyncError: undefined,
-      oauthState: undefined,
-      updatedAt: now(),
+    if (connection.externalAccountId) {
+      const response = await fetch("https://connect.stripe.com/oauth/deauthorize", {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${btoa(`${requireEnv("STRIPE_SECRET_KEY")}:`)}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          client_id: requireEnv("STRIPE_CONNECT_CLIENT_ID"),
+          stripe_user_id: connection.externalAccountId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorPayload = (await response.json().catch(() => null)) as
+          | {
+              error?: string;
+              error_description?: string;
+            }
+          | null;
+        throw new Error(
+          errorPayload?.error_description ||
+            `Stripe deauthorize failed with ${response.status}.`,
+        );
+      }
+    }
+
+    await ctx.runMutation(internal.stripeConnect.clearStripeConnectionData, {
+      connectionId: connection._id,
+    });
+    await ctx.runMutation(internal.stripeConnect.markConnectionDisconnected, {
+      connectionId: connection._id,
     });
 
     return {
@@ -569,25 +740,19 @@ export const completeConnect = action({
 
     const stripe = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
     const account: Stripe.Account = await stripe.accounts.retrieve(connection.externalAccountId);
-    const dashboardSettings = account.settings?.dashboard as { display_name?: string } | undefined;
-    const displayName =
-      account.business_profile?.name ||
-      account.business_type ||
-      dashboardSettings?.display_name ||
-      undefined;
+    const displayName = getAccountDisplayName(account);
     const accountEmail = account.email ?? undefined;
-    const isActive: boolean = Boolean(account.details_submitted && account.charges_enabled);
 
     await ctx.runMutation(internal.stripeConnect.updateConnectionSnapshot, {
       connectionId: connection._id,
-      status: isActive ? "active" : "pending",
+      status: getAccountConnectionStatus(account),
       displayName,
       accountEmail,
       lastSyncError: undefined,
     });
 
     return {
-      status: isActive ? "active" : "pending",
+      status: getAccountConnectionStatus(account),
       displayName: displayName ?? null,
       accountEmail: accountEmail ?? null,
     };
@@ -611,7 +776,6 @@ export const syncStripeData = action({
 
     const stripe = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
     const account = await stripe.accounts.retrieve(connection.externalAccountId);
-    const dashboardSettings = account.settings?.dashboard as { display_name?: string } | undefined;
     const invoices = await stripe.invoices.list(
       { limit: 100 },
       { stripeAccount: connection.externalAccountId },
@@ -621,11 +785,7 @@ export const syncStripeData = action({
       { stripeAccount: connection.externalAccountId },
     );
 
-    const displayName =
-      account.business_profile?.name ||
-      account.business_type ||
-      dashboardSettings?.display_name ||
-      undefined;
+    const displayName = getAccountDisplayName(account);
     const accountEmail = account.email ?? undefined;
 
     const invoiceRows = invoices.data.map((invoice) => ({
@@ -727,19 +887,13 @@ export const connectCallback = httpAction(async (ctx, request) => {
 
     const stripe = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
     const account = await stripe.accounts.retrieve(payload.stripe_user_id);
-    const dashboardSettings = account.settings?.dashboard as { display_name?: string } | undefined;
-    const isActive = Boolean(account.details_submitted && account.charges_enabled);
 
     await ctx.runMutation(internal.stripeConnect.completeConnectionByState, {
       oauthState: state,
       externalAccountId: payload.stripe_user_id,
-      displayName:
-        account.business_profile?.name ||
-        account.business_type ||
-        dashboardSettings?.display_name ||
-        undefined,
+      displayName: getAccountDisplayName(account),
       accountEmail: account.email ?? undefined,
-      status: isActive ? "active" : "pending",
+      status: getAccountConnectionStatus(account),
     });
 
     redirectUrl.searchParams.set("stripe", "connected");
@@ -752,4 +906,94 @@ export const connectCallback = httpAction(async (ctx, request) => {
     redirectUrl.searchParams.set("stripe", "error");
     return createRedirect(redirectUrl.toString());
   }
+});
+
+function getConnectWebhookAccountId(event: Stripe.Event) {
+  if (event.account) {
+    return event.account;
+  }
+
+  const object = event.data.object as {
+    id?: string;
+    account?: string | { id?: string };
+    stripe_user_id?: string;
+  };
+
+  if (typeof object.id === "string" && object.id.startsWith("acct_")) {
+    return object.id;
+  }
+  if (typeof object.account === "string") {
+    return object.account;
+  }
+  if (typeof object.stripe_user_id === "string") {
+    return object.stripe_user_id;
+  }
+  if (object.account && typeof object.account === "object" && typeof object.account.id === "string") {
+    return object.account.id;
+  }
+
+  return null;
+}
+
+export const connectWebhook = httpAction(async (ctx, request) => {
+  const signature = request.headers.get("stripe-signature");
+  if (!signature) {
+    return new Response("Missing stripe-signature header.", { status: 400 });
+  }
+
+  const payload = await request.text();
+  const stripe = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
+
+  let event: Stripe.Event;
+  try {
+    event = await stripe.webhooks.constructEventAsync(
+      payload,
+      signature,
+      requireEnv("STRIPE_CONNECT_WEBHOOK_SECRET"),
+    );
+  } catch (error) {
+    return new Response(
+      error instanceof Error ? error.message : "Invalid webhook signature.",
+      { status: 400 },
+    );
+  }
+
+  const accountId = getConnectWebhookAccountId(event);
+  if (!accountId) {
+    return new Response("No connected account id on event.", { status: 200 });
+  }
+
+  switch (event.type) {
+    case "account.application.deauthorized": {
+      const connection = (await ctx.runQuery(internal.stripeConnect.getConnectionByExternalAccountId, {
+        externalAccountId: accountId,
+      })) as StripeConnectionRecord | null;
+      if (connection?._id) {
+        await ctx.runMutation(internal.stripeConnect.clearStripeConnectionData, {
+          connectionId: connection._id,
+        });
+        await ctx.runMutation(internal.stripeConnect.markConnectionDisconnected, {
+          connectionId: connection._id,
+        });
+      }
+      break;
+    }
+
+    case "account.updated": {
+      const account = event.data.object as Stripe.Account;
+      await ctx.runMutation(internal.stripeConnect.updateConnectionSnapshotByExternalAccountId, {
+        externalAccountId: accountId,
+        status: getAccountConnectionStatus(account),
+        displayName: getAccountDisplayName(account),
+        accountEmail: account.email ?? undefined,
+        lastSyncError: undefined,
+      });
+      break;
+    }
+
+    default:
+      break;
+  }
+
+  return new Response("ok", { status: 200 });
 });

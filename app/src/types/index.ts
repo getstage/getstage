@@ -34,6 +34,7 @@ import {
   createProjectInputSchema,
   updateProjectInputSchema,
   updateTaskInputSchema,
+  syncPhasesInputSchema,
 } from "@/data-ops/schema";
 
 // --- Inferred Types ---
@@ -74,6 +75,7 @@ export type RevenueSummary = z.infer<typeof revenueSummarySchema>;
 export type CreateProjectInput = z.infer<typeof createProjectInputSchema>;
 export type UpdateProjectInput = z.infer<typeof updateProjectInputSchema>;
 export type UpdateTaskInput = z.infer<typeof updateTaskInputSchema>;
+export type SyncPhasesInput = z.infer<typeof syncPhasesInputSchema>;
 
 // --- Constants ---
 
