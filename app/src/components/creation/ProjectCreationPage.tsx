@@ -21,21 +21,23 @@ export function ProjectCreationPage() {
         <title>New Project — Stage</title>
       </Helmet>
 
-      <div className="min-h-[calc(100vh-64px)]">
-        <div className="mx-auto flex w-full max-w-[1200px] flex-col px-6 pb-20 pt-6 sm:px-10 lg:px-14">
+      <div className="relative min-h-[calc(100vh-64px)] bg-bg">
+        <div className="absolute inset-x-0 top-0 z-10 mx-auto w-full max-w-[1200px] px-6 pt-6 sm:px-10 lg:px-14">
           <Link
             to="/dashboard"
-            className="mb-2 inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary"
+            className="inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary"
           >
             <ArrowLeft size={14} />
             Dashboard
           </Link>
+        </div>
 
+        <div className="flex min-h-[calc(100vh-64px)] items-center justify-center px-6 py-20 sm:px-10 lg:px-14">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
-            className="mx-auto w-full max-w-[420px]"
+            className="w-full max-w-[420px]"
           >
             {creation.errorMessage ? (
               <div className="mb-6 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-[13px] text-destructive">
