@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { useMutation as useConvexMutation } from "convex/react";
 import { api } from "@/lib/convex";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { formatInputDate, parseInputDate } from "@/lib/format";
+import {
+  prepareClientAvatarUpload,
+  uploadFileToR2,
+} from "@/lib/r2Uploads";
 import { syncPhasesInputSchema } from "@/data-ops/schema";
 import type {
   ProjectDialogController,
@@ -36,12 +40,18 @@ export function useProjectDialogs({
   const updateProject = useConvexMutation(api.projects.update);
   const syncPhases = useConvexMutation(api.projects.syncPhases);
   const deleteProject = useConvexMutation(api.projects.deleteById);
+  const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
+  const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
   const [state, setState] = useState<ProjectDialogState>(DEFAULT_DIALOG_STATE);
   const [editNameValue, setEditNameValue] = useState("");
   const [editClientValue, setEditClientValue] = useState("");
+  const [editClientAvatarDataUrl, setEditClientAvatarDataUrl] = useState<string | null>(null);
+  const [pendingClientAvatarFile, setPendingClientAvatarFile] = useState<File | null>(null);
+  const [isSavingClient, setIsSavingClient] = useState(false);
   const [editStartDate, setEditStartDate] = useState("");
   const [editEndDate, setEditEndDate] = useState("");
   const [editPhasesValue, setEditPhasesValue] = useState("");
+  const clientAvatarInputRef = useRef<HTMLInputElement>(null);
 
   function setOpen(dialog: ProjectDialogKey, open: boolean) {
     setState((current) => ({ ...current, [dialog]: open }));
@@ -62,7 +72,33 @@ export function useProjectDialogs({
     }
 
     setEditClientValue(project.clientName);
+    setEditClientAvatarDataUrl(project.clientAvatarUrl ?? null);
+    setPendingClientAvatarFile(null);
     setOpen("editClient", true);
+  }
+
+  function handleClientAvatarInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    void prepareClientAvatarUpload(file)
+      .then((prepared) => {
+        setPendingClientAvatarFile(prepared.file);
+        setEditClientAvatarDataUrl(prepared.previewUrl);
+      })
+      .catch((error) => {
+        showError(toUserFacingErrorMessage(error, "Could not prepare this image."));
+      })
+      .finally(() => {
+        event.target.value = "";
+      });
+  }
+
+  function handleRemoveClientAvatar() {
+    setPendingClientAvatarFile(null);
+    setEditClientAvatarDataUrl(null);
   }
 
   function openTimelineDialog() {
@@ -109,16 +145,46 @@ export function useProjectDialogs({
     }
 
     const clientName = editClientValue.trim();
-    if (!clientName || clientName === project.clientName) {
+    const nameChanged = clientName !== project.clientName;
+    const avatarRemoved = !editClientAvatarDataUrl && Boolean(project.clientAvatarUrl);
+    const hasPendingAvatarUpload = Boolean(pendingClientAvatarFile);
+
+    if (!clientName || (!nameChanged && !avatarRemoved && !hasPendingAvatarUpload)) {
       setOpen("editClient", false);
       return;
     }
 
+    setIsSavingClient(true);
     try {
-      await updateProject({ projectId, clientName });
+      const payload: {
+        projectId: Id<"projects">;
+        clientName?: string;
+        clientAvatarUrl?: string | null;
+      } = { projectId };
+
+      if (nameChanged) {
+        payload.clientName = clientName;
+      }
+
+      if (hasPendingAvatarUpload && pendingClientAvatarFile) {
+        const key = await uploadFileToR2({
+          generateUploadUrl: r2GenerateUploadUrl,
+          syncMetadata: r2SyncMetadata,
+          purpose: "client-avatar",
+          file: pendingClientAvatarFile,
+        });
+        payload.clientAvatarUrl = key;
+      } else if (avatarRemoved) {
+        payload.clientAvatarUrl = null;
+      }
+
+      await updateProject(payload);
+      setPendingClientAvatarFile(null);
       setOpen("editClient", false);
     } catch (error) {
       showError(toUserFacingErrorMessage(error, "Could not update the client."));
+    } finally {
+      setIsSavingClient(false);
     }
   }
 
@@ -210,9 +276,12 @@ export function useProjectDialogs({
     state,
     editNameValue,
     editClientValue,
+    editClientAvatarDataUrl,
     editStartDate,
     editEndDate,
     editPhasesValue,
+    isSavingClient,
+    clientAvatarInputRef,
     setOpen,
     openEditNameDialog,
     openEditClientDialog,
@@ -220,6 +289,8 @@ export function useProjectDialogs({
     openPhasesDialog,
     setEditNameValue,
     setEditClientValue,
+    handleClientAvatarInputChange,
+    handleRemoveClientAvatar,
     setEditStartDate,
     setEditEndDate,
     setEditPhasesValue,

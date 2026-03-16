@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import type { ChangeEvent, RefObject } from "react";
 import type { Id } from "../../../convex/_generated/dataModel";
 
 export type ProjectDialogKey =
@@ -14,9 +14,12 @@ export type ProjectDialogController = {
   state: ProjectDialogState;
   editNameValue: string;
   editClientValue: string;
+  editClientAvatarDataUrl: string | null;
   editStartDate: string;
   editEndDate: string;
   editPhasesValue: string;
+  isSavingClient: boolean;
+  clientAvatarInputRef: RefObject<HTMLInputElement | null>;
   setOpen: (dialog: ProjectDialogKey, open: boolean) => void;
   openEditNameDialog: () => void;
   openEditClientDialog: () => void;
@@ -24,6 +27,8 @@ export type ProjectDialogController = {
   openPhasesDialog: () => void;
   setEditNameValue: (value: string) => void;
   setEditClientValue: (value: string) => void;
+  handleClientAvatarInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  handleRemoveClientAvatar: () => void;
   setEditStartDate: (value: string) => void;
   setEditEndDate: (value: string) => void;
   setEditPhasesValue: (value: string) => void;

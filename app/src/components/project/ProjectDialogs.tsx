@@ -1,4 +1,5 @@
 import { DeleteProjectDialog } from "@/components/project/dialogs/DeleteProjectDialog";
+import { EditClientDialog } from "@/components/project/dialogs/EditClientDialog";
 import { EditProjectPhasesDialog } from "@/components/project/dialogs/EditProjectPhasesDialog";
 import { EditProjectTextDialog } from "@/components/project/dialogs/EditProjectTextDialog";
 import { EditProjectTimelineDialog } from "@/components/project/dialogs/EditProjectTimelineDialog";
@@ -37,13 +38,17 @@ export function ProjectDialogs({ project, dialogs, share }: ProjectDialogsProps)
         onSave={() => void dialogs.handleSaveProjectName()}
       />
 
-      <EditProjectTextDialog
+      <EditClientDialog
         open={dialogs.state.editClient}
-        title="Edit client"
-        value={dialogs.editClientValue}
+        clientName={dialogs.editClientValue}
+        clientAvatarUrl={dialogs.editClientAvatarDataUrl}
+        isSaving={dialogs.isSavingClient}
         onOpenChange={(open) => dialogs.setOpen("editClient", open)}
-        onValueChange={dialogs.setEditClientValue}
+        onClientNameChange={dialogs.setEditClientValue}
+        onAvatarInputChange={dialogs.handleClientAvatarInputChange}
+        onRemoveAvatar={dialogs.handleRemoveClientAvatar}
         onSave={() => void dialogs.handleSaveClient()}
+        avatarInputRef={dialogs.clientAvatarInputRef}
       />
 
       <EditProjectTimelineDialog
