@@ -117,6 +117,20 @@ button:focus-visible,
   appearance: none;
 }
 
+.share-project-dialog-input,
+.share-project-dialog-input:hover,
+.share-project-dialog-input:active,
+.share-project-dialog-input:focus,
+.share-project-dialog-input:focus-visible {
+  border: 0 !important;
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 /* ============================================================
    SCROLLBAR (subtle, premium feel)
    ============================================================ */

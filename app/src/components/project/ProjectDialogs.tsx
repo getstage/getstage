@@ -22,9 +22,7 @@ export function ProjectDialogs({ project, dialogs, share }: ProjectDialogsProps)
         open={share.open}
         shareUrl={share.shareUrl}
         copied={share.copied}
-        clientAccess={share.clientAccess}
         onOpenChange={share.setOpen}
-        onTogglePortalEnabled={() => void share.handleTogglePortalEnabled()}
         onCopyShareUrl={() => void share.handleCopyShareUrl()}
       />
 
