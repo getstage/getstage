@@ -2,17 +2,22 @@ import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { ArrowLeft } from "@phosphor-icons/react";
+import { useQuery as useConvexQuery } from "convex/react";
+import { ProjectDock } from "@/components/dashboard/ProjectDock";
 import { ProjectDialogs } from "@/components/project/ProjectDialogs";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { PhaseNavigation } from "@/components/project/PhaseNavigation";
 import { TaskChecklist } from "@/components/project/TaskChecklist";
 import { useProjectDetail } from "@/hooks/useProjectDetail";
+import { api } from "@/lib/convex";
 import type { Id } from "../../../convex/_generated/dataModel";
 
 export function ProjectDetailPage() {
   const { id } = useParams({ from: "/_authed/project/$id" });
   const projectId = id as Id<"projects">;
   const detail = useProjectDetail(projectId);
+  const dashboardData = useConvexQuery(api.dashboard.getOverview, {});
+  const dockProjects = dashboardData?.projects.slice(0, 6) ?? [];
 
   if (detail.isLoading) {
     return <ProjectDetailLoadingState />;
@@ -81,6 +86,8 @@ export function ProjectDetailPage() {
         dialogs={detail.dialogs}
         share={detail.share}
       />
+
+      <ProjectDock projects={dockProjects} />
     </>
   );
 }

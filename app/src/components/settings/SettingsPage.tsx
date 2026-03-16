@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { UpgradePricingModal } from "@/components/billing/UpgradePricingModal";
+import { ProjectDock } from "@/components/dashboard/ProjectDock";
 import { BillingTab } from "@/components/settings/BillingTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
 import { IntegrationsTab } from "@/components/settings/IntegrationsTab";
@@ -29,6 +30,7 @@ const PREVIEW_PORTAL_URL = "/portal/share_acme_2026?preview=1";
 export function SettingsPage() {
   const { user } = useAuth();
   const settingsData = useConvexQuery(api.settings.getOverview, !user ? "skip" : {});
+  const dashboardData = useConvexQuery(api.dashboard.getOverview, !user ? "skip" : {});
   const { activeTab, setActiveTab, openBillingTab } = useSettingsTabs();
   const generalSettings = useGeneralSettings({
     user,
@@ -46,6 +48,7 @@ export function SettingsPage() {
     portalAccentColor: settingsData?.portalBranding.accentColor ?? undefined,
   });
   const previewPortalUrl = PREVIEW_PORTAL_URL;
+  const dockProjects = dashboardData?.projects.slice(0, 6) ?? [];
 
   return (
     <>
@@ -219,6 +222,8 @@ export function SettingsPage() {
             : null
         }
       />
+
+      <ProjectDock projects={dockProjects} />
     </>
   );
 }

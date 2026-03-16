@@ -11,6 +11,7 @@ import {
   Trash,
 } from "@phosphor-icons/react";
 import { motion } from "motion/react";
+import { ProjectDock } from "@/components/dashboard/ProjectDock";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { ConfirmPopover } from "@/components/ui/ConfirmPopover";
@@ -26,10 +27,12 @@ export function TaskDetailPage() {
   const { id: projectId, taskId } = useParams({
     from: "/_authed/project/$id/task/$taskId",
   });
+  const dashboardData = useConvexQuery(api.dashboard.getOverview, {});
   const project = useConvexQuery(api.projects.getById, {
     projectId: projectId as Id<"projects">,
   });
   const isLoading = project === undefined;
+  const dockProjects = dashboardData?.projects.slice(0, 6) ?? [];
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -225,7 +228,7 @@ export function TaskDetailPage() {
         <title>{task.title} — Stage</title>
       </Helmet>
 
-      <div className="mx-auto max-w-[1200px] px-6 pb-14 pt-5 sm:px-10 lg:px-14">
+      <div className="mx-auto max-w-[1200px] px-6 pb-[120px] pt-5 sm:px-10 lg:px-14">
         <div className="flex items-center justify-between">
           <Link
             to="/project/$id"
@@ -468,6 +471,8 @@ export function TaskDetailPage() {
           )}
         </motion.div>
       </div>
+
+      <ProjectDock projects={dockProjects} />
     </>
   );
 }
