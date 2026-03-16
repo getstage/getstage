@@ -52,16 +52,28 @@ This generates and sets a fresh key pair on the production deployment.
 npx convex env set SITE_URL "https://getstage.co" --env-file .env.prod
 npx convex env set STRIPE_SECRET_KEY "sk_live_..." --env-file .env.prod
 npx convex env set STRIPE_WEBHOOK_SECRET "whsec_..." --env-file .env.prod
+npx convex env set STRIPE_CONNECT_CLIENT_ID "ca_..." --env-file .env.prod
+npx convex env set STRIPE_CONNECT_WEBHOOK_SECRET "whsec_..." --env-file .env.prod
 npx convex env set STRIPE_YEARLY_PRICE_ID "price_..." --env-file .env.prod
 ```
 
 To get the Stripe live values:
 1. Switch Stripe dashboard to **live mode**
-2. Create a product + price (or use the same product if already created in live)
-3. Copy `sk_live_...` from API keys
-4. Create a **new webhook endpoint** for production:
+2. In **Settings > Connect > Onboarding options > OAuth**, add the live redirect URI:
+   - `https://quirky-snail-763.convex.site/stripe/connect/callback`
+3. Enable live OAuth and copy the live `ca_...` client ID
+4. Create a product + price (or use the same product if already created in live)
+5. Copy `sk_live_...` from API keys
+6. Create a **new billing webhook endpoint** for production:
    - URL: `https://quirky-snail-763.convex.site/stripe/webhook`
    - Same 12 events as testing
+   - Copy the signing secret (`whsec_...`)
+7. Create a **new Connect webhook endpoint** for production:
+   - URL: `https://quirky-snail-763.convex.site/stripe/connect/webhook`
+   - Listen to **events on connected accounts**
+   - Select:
+     - `account.application.deauthorized`
+     - `account.updated`
    - Copy the signing secret (`whsec_...`)
 
 ### 3. Deploy Convex functions to production
