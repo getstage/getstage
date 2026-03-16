@@ -42,6 +42,34 @@ function addMonths(timestamp: number, months: number) {
   return date.getTime();
 }
 
+function startOfMonth(timestamp: number) {
+  const date = new Date(timestamp);
+  date.setDate(1);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+function endOfMonth(timestamp: number) {
+  const date = new Date(timestamp);
+  date.setMonth(date.getMonth() + 1, 0);
+  date.setHours(23, 59, 59, 999);
+  return date.getTime();
+}
+
+function startOfYear(timestamp: number) {
+  const date = new Date(timestamp);
+  date.setMonth(0, 1);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+function endOfYear(timestamp: number) {
+  const date = new Date(timestamp);
+  date.setMonth(11, 31);
+  date.setHours(23, 59, 59, 999);
+  return date.getTime();
+}
+
 function startOfWeekMonday(timestamp: number) {
   const date = new Date(startOfDay(timestamp));
   const day = date.getDay();
@@ -165,18 +193,6 @@ export function pointsToPath(points: CurveSample[], width: number) {
 
 export function getViewRange(projects: Project[], horizon: TimelineHorizon, nowTimestamp: number) {
   const today = startOfDay(nowTimestamp);
-  const fallbackStart = addDays(today, -30);
-  const fallbackEnd = addDays(today, 30);
-
-  if (projects.length === 0) {
-    return {
-      start: fallbackStart,
-      end: endOfDay(fallbackEnd),
-    };
-  }
-
-  const earliestStart = Math.min(...projects.map((project) => project.startDate));
-  const latestEnd = Math.max(...projects.map((project) => project.endDate));
 
   switch (horizon) {
     case "today":
@@ -191,24 +207,33 @@ export function getViewRange(projects: Project[], horizon: TimelineHorizon, nowT
       return { start: weekStart, end: weekEnd };
     }
     case "thisMonth":
-      return { start: startOfDay(earliestStart), end: endOfDay(latestEnd) };
-    case "thisYear": {
-      const current = new Date(today);
-      const start = new Date(current.getFullYear(), 0, 1).getTime();
-      const end = endOfDay(new Date(current.getFullYear(), 11, 31).getTime());
-      return { start, end };
-    }
+      return { start: startOfMonth(today), end: endOfMonth(today) };
+    case "thisYear":
+      return { start: startOfYear(today), end: endOfYear(today) };
     case "30d":
-      return { start: addDays(today, -30), end: endOfDay(today) };
+      return { start: addDays(today, -15), end: endOfDay(addDays(today, 14)) };
     case "6m":
-      return { start: startOfDay(addMonths(today, -6)), end: endOfDay(today) };
+      return {
+        start: startOfDay(addMonths(today, -3)),
+        end: endOfDay(addMonths(today, 3)),
+      };
     case "12m":
-      return { start: startOfDay(addMonths(today, -12)), end: endOfDay(today) };
+      return {
+        start: startOfDay(addMonths(today, -6)),
+        end: endOfDay(addMonths(today, 6)),
+      };
     case "all":
     default:
+      if (projects.length === 0) {
+        return {
+          start: addDays(today, -30),
+          end: endOfDay(addDays(today, 30)),
+        };
+      }
+
       return {
-        start: startOfDay(earliestStart - 90 * DAY_MS),
-        end: endOfDay(latestEnd + 90 * DAY_MS),
+        start: startOfDay(Math.min(...projects.map((project) => project.startDate)) - 90 * DAY_MS),
+        end: endOfDay(Math.max(...projects.map((project) => project.endDate)) + 90 * DAY_MS),
       };
   }
 }
