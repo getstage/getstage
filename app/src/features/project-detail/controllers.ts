@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import type { ChangeEvent, RefObject } from "react";
 import type { Id } from "../../../convex/_generated/dataModel";
 
 export type ProjectDialogKey =
@@ -13,21 +13,35 @@ export type ProjectDialogState = Record<ProjectDialogKey, boolean>;
 export type ProjectDialogController = {
   state: ProjectDialogState;
   editNameValue: string;
+  editStartMarkerDataUrl: string | null;
+  editEndMarkerDataUrl: string | null;
   editClientValue: string;
+  editClientAvatarDataUrl: string | null;
   editStartDate: string;
   editEndDate: string;
   editPhasesValue: string;
+  isSavingProject: boolean;
+  isSavingClient: boolean;
+  startMarkerInputRef: RefObject<HTMLInputElement | null>;
+  endMarkerInputRef: RefObject<HTMLInputElement | null>;
+  clientAvatarInputRef: RefObject<HTMLInputElement | null>;
   setOpen: (dialog: ProjectDialogKey, open: boolean) => void;
   openEditNameDialog: () => void;
   openEditClientDialog: () => void;
   openTimelineDialog: () => void;
   openPhasesDialog: () => void;
   setEditNameValue: (value: string) => void;
+  handleStartMarkerInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  handleEndMarkerInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  handleRemoveStartMarker: () => void;
+  handleRemoveEndMarker: () => void;
   setEditClientValue: (value: string) => void;
+  handleClientAvatarInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  handleRemoveClientAvatar: () => void;
   setEditStartDate: (value: string) => void;
   setEditEndDate: (value: string) => void;
   setEditPhasesValue: (value: string) => void;
-  handleSaveProjectName: () => Promise<void>;
+  handleSaveProject: () => Promise<void>;
   handleSaveClient: () => Promise<void>;
   handleSaveTimeline: () => Promise<void>;
   handleSavePhases: () => Promise<void>;

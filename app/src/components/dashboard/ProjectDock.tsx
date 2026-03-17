@@ -88,9 +88,9 @@ export function ProjectDock({ projects, interactive = true }: ProjectDockProps) 
                 </div>
               </div>
 
-              {project.clientAvatarUrl ? (
+              {project.projectImageUrl ?? project.clientAvatarUrl ? (
                 <img
-                  src={project.clientAvatarUrl}
+                  src={project.projectImageUrl ?? project.clientAvatarUrl}
                   alt={project.name}
                   className={`h-full w-full rounded-full object-cover shadow-[0_2px_8px_rgba(0,0,0,0.2)] ${
                     isActive ? "shadow-[0_4px_14px_rgba(135,130,245,0.34)]" : ""
@@ -102,7 +102,7 @@ export function ProjectDock({ projects, interactive = true }: ProjectDockProps) 
                     isActive ? "shadow-[0_4px_14px_rgba(135,130,245,0.34)]" : ""
                   }`}
                 >
-                  {project.clientName.slice(0, 2).toUpperCase()}
+                  {project.name.slice(0, 2).toUpperCase()}
                 </div>
               )}
             </>

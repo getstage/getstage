@@ -12,6 +12,7 @@ import type * as LoopsOTP from "../LoopsOTP.js";
 import type * as _helpers from "../_helpers.js";
 import type * as auth from "../auth.js";
 import type * as billing from "../billing.js";
+import type * as clients from "../clients.js";
 import type * as dashboard from "../dashboard.js";
 import type * as demo from "../demo.js";
 import type * as domain_accountCleanup from "../domain/accountCleanup.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   _helpers: typeof _helpers;
   auth: typeof auth;
   billing: typeof billing;
+  clients: typeof clients;
   dashboard: typeof dashboard;
   demo: typeof demo;
   "domain/accountCleanup": typeof domain_accountCleanup;

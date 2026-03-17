@@ -31,8 +31,8 @@ export function ProjectBentoGrid({ projects }: ProjectBentoGridProps) {
             >
               <div className="mb-3 flex items-center gap-2.5">
                 <Avatar
-                  name={project.clientName}
-                  src={project.clientAvatarUrl}
+                  name={project.name}
+                  src={project.projectImageUrl ?? project.clientAvatarUrl}
                   size="sm"
                 />
                 <div className="min-w-0 flex-1">

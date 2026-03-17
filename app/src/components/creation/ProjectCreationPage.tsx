@@ -69,22 +69,36 @@ function renderStepContent(creation: ProjectCreationState) {
       return (
         <ProjectBasicsStep
           projectName={creation.projectName}
+          startMarkerImage={creation.startMarkerImage}
+          endMarkerImage={creation.endMarkerImage}
+          clientMode={creation.clientMode}
+          selectedExistingClientName={creation.selectedExistingClientName}
           clientName={creation.clientName}
           clientAvatar={creation.clientAvatar}
-          avatarUrlOpen={creation.avatarUrlOpen}
-          avatarUrlInput={creation.avatarUrlInput}
-          avatarFetching={creation.avatarFetching}
+          existingClients={creation.existingClients}
           canContinue={creation.canContinue}
           currentIndex={creation.currentIndex}
           steps={creation.steps}
           fileInputRef={creation.fileInputRef}
+          startMarkerInputRef={creation.startMarkerInputRef}
+          endMarkerInputRef={creation.endMarkerInputRef}
           onProjectNameChange={creation.setProjectName}
-          onClientNameChange={creation.setClientName}
-          onAvatarUrlOpenChange={creation.setAvatarUrlOpen}
-          onAvatarUrlInputChange={creation.setAvatarUrlInput}
-          onClientAvatarChange={creation.setClientAvatar}
+          onStartMarkerImageChange={creation.setStartMarkerImage}
+          onEndMarkerImageChange={creation.setEndMarkerImage}
+          onClientAvatarChange={creation.handleClientAvatarChange}
+          onStartMarkerFileChange={creation.handleStartMarkerFileChange}
+          onEndMarkerFileChange={creation.handleEndMarkerFileChange}
           onAvatarFileChange={creation.handleAvatarFileChange}
-          onFetchAvatar={creation.fetchAvatarFromUrl}
+          onClientModeChange={creation.setClientMode}
+          onExistingClientSelect={(clientName) => {
+            const client = creation.existingClients.find((item) => item.name === clientName);
+            if (!client) {
+              creation.setClientMode("new");
+              return;
+            }
+            creation.selectExistingClient(client);
+          }}
+          onClientNameChange={creation.setClientName}
           onContinue={creation.handleContinue}
         />
       );

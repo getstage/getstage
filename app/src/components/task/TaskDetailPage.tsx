@@ -331,14 +331,17 @@ export function TaskDetailPage() {
                 attachment.type === "image" ? (
                   <div
                     key={attachment.id}
-                    className="relative overflow-hidden rounded-[10px] border border-border-subtle bg-bg-subtle"
+                    className="relative rounded-[10px] border border-border-subtle bg-bg-subtle"
                   >
-                    <img
-                      src={attachment.url}
-                      alt={attachment.fileName}
-                      className="w-full rounded-t-[10px] object-cover"
-                      style={{ maxHeight: 400 }}
-                    />
+                    <div className="px-4 pt-4">
+                      <a href={attachment.url} target="_blank" rel="noreferrer" className="block w-fit max-w-full">
+                        <img
+                          src={attachment.url}
+                          alt={attachment.fileName}
+                          className="block max-h-[260px] max-w-full rounded-[10px] border border-border-subtle bg-white object-contain shadow-sm"
+                        />
+                      </a>
+                    </div>
                     <div className="flex items-center gap-3 px-4 py-2.5">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[13px] font-medium text-text-primary">

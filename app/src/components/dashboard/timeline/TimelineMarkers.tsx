@@ -63,8 +63,8 @@ export function TimelineMarkers({
               {...markerProps}
             >
               <Avatar
-                name={item.project.clientName}
-                src={item.project.clientAvatarUrl}
+                name={item.project.name}
+                src={item.project.projectImageUrl ?? item.project.clientAvatarUrl}
                 size="md"
                 className="h-full w-full text-[11px]"
               />
@@ -77,8 +77,8 @@ export function TimelineMarkers({
               {...markerProps}
             >
               <Avatar
-                name={item.project.clientName}
-                src={item.project.clientAvatarUrl}
+                name={item.project.name}
+                src={item.project.projectImageUrl ?? item.project.clientAvatarUrl}
                 size="md"
                 className="h-full w-full text-[11px]"
               />
@@ -113,8 +113,8 @@ export function TimelineMarkers({
                     onMouseLeave={() => onMarkerLeave(item.project.id)}
                   >
                     <Avatar
-                      name={item.project.clientName}
-                      src={item.project.clientAvatarUrl}
+                      name={item.project.name}
+                      src={item.project.projectImageUrl ?? item.project.clientAvatarUrl}
                       size="md"
                       className="h-full w-full text-[11px]"
                     />
@@ -138,8 +138,8 @@ export function TimelineMarkers({
                     onMouseLeave={() => onMarkerLeave(item.project.id)}
                   >
                     <Avatar
-                      name={item.project.clientName}
-                      src={item.project.clientAvatarUrl}
+                      name={item.project.name}
+                      src={item.project.projectImageUrl ?? item.project.clientAvatarUrl}
                       size="md"
                       className="h-full w-full text-[11px]"
                     />

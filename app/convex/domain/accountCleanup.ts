@@ -58,6 +58,89 @@ export async function deleteAccountDataForUser(
     return { deleted: false };
   }
 
+  await deleteWorkspaceDataForUser(ctx, userId);
+
+  const refreshedUser = await ctx.db.get(userId);
+  if (!refreshedUser) {
+    return { deleted: false };
+  }
+
+  const authSessions = await ctx.db
+    .query("authSessions")
+    .withIndex("userId", (q) => q.eq("userId", userId))
+    .collect();
+  for (const authSession of authSessions) {
+    const refreshTokens = await ctx.db
+      .query("authRefreshTokens")
+      .withIndex("sessionId", (q) => q.eq("sessionId", authSession._id))
+      .collect();
+    for (const refreshToken of refreshTokens) {
+      await ctx.db.delete(refreshToken._id);
+    }
+
+    const verifiers = await ctx.db
+      .query("authVerifiers")
+      .filter((q) => q.eq(q.field("sessionId"), authSession._id))
+      .collect();
+    for (const verifier of verifiers) {
+      await ctx.db.delete(verifier._id);
+    }
+
+    await ctx.db.delete(authSession._id);
+  }
+
+  const authAccounts = await ctx.db
+    .query("authAccounts")
+    .filter((q) => q.eq(q.field("userId"), userId))
+    .collect();
+  for (const authAccount of authAccounts) {
+    const verificationCodes = await ctx.db
+      .query("authVerificationCodes")
+      .withIndex("accountId", (q) => q.eq("accountId", authAccount._id))
+      .collect();
+    for (const verificationCode of verificationCodes) {
+      await ctx.db.delete(verificationCode._id);
+    }
+
+    await ctx.db.delete(authAccount._id);
+  }
+
+  const userEmail = refreshedUser.email ?? null;
+  if (userEmail) {
+    const emailRateLimit = await ctx.db
+      .query("authRateLimits")
+      .withIndex("identifier", (q) => q.eq("identifier", userEmail))
+      .unique();
+    if (emailRateLimit) {
+      await ctx.db.delete(emailRateLimit._id);
+    }
+  }
+
+  const userPhone = refreshedUser.phone ?? null;
+  if (userPhone) {
+    const phoneRateLimit = await ctx.db
+      .query("authRateLimits")
+      .withIndex("identifier", (q) => q.eq("identifier", userPhone))
+      .unique();
+    if (phoneRateLimit) {
+      await ctx.db.delete(phoneRateLimit._id);
+    }
+  }
+
+  await ctx.db.delete(userId);
+
+  return { deleted: true };
+}
+
+export async function deleteWorkspaceDataForUser(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+) {
+  const user = await ctx.db.get(userId);
+  if (!user) {
+    return { deleted: false };
+  }
+
   const projectAvatarKeys = new Set<string>();
   const clientAvatarKeys = new Set<string>();
 
@@ -154,70 +237,6 @@ export async function deleteAccountDataForUser(
   }
   await deleteOldR2Asset(ctx, user.avatarUrl);
   await deleteOldR2Asset(ctx, user.defaultPortalLogoUrl);
-
-  const authSessions = await ctx.db
-    .query("authSessions")
-    .withIndex("userId", (q) => q.eq("userId", userId))
-    .collect();
-  for (const authSession of authSessions) {
-    const refreshTokens = await ctx.db
-      .query("authRefreshTokens")
-      .withIndex("sessionId", (q) => q.eq("sessionId", authSession._id))
-      .collect();
-    for (const refreshToken of refreshTokens) {
-      await ctx.db.delete(refreshToken._id);
-    }
-
-    const verifiers = await ctx.db
-      .query("authVerifiers")
-      .filter((q) => q.eq(q.field("sessionId"), authSession._id))
-      .collect();
-    for (const verifier of verifiers) {
-      await ctx.db.delete(verifier._id);
-    }
-
-    await ctx.db.delete(authSession._id);
-  }
-
-  const authAccounts = await ctx.db
-    .query("authAccounts")
-    .filter((q) => q.eq(q.field("userId"), userId))
-    .collect();
-  for (const authAccount of authAccounts) {
-    const verificationCodes = await ctx.db
-      .query("authVerificationCodes")
-      .withIndex("accountId", (q) => q.eq("accountId", authAccount._id))
-      .collect();
-    for (const verificationCode of verificationCodes) {
-      await ctx.db.delete(verificationCode._id);
-    }
-
-    await ctx.db.delete(authAccount._id);
-  }
-
-  const userEmail = user.email ?? null;
-  if (userEmail) {
-    const emailRateLimit = await ctx.db
-      .query("authRateLimits")
-      .withIndex("identifier", (q) => q.eq("identifier", userEmail))
-      .unique();
-    if (emailRateLimit) {
-      await ctx.db.delete(emailRateLimit._id);
-    }
-  }
-
-  const userPhone = user.phone ?? null;
-  if (userPhone) {
-    const phoneRateLimit = await ctx.db
-      .query("authRateLimits")
-      .withIndex("identifier", (q) => q.eq("identifier", userPhone))
-      .unique();
-    if (phoneRateLimit) {
-      await ctx.db.delete(phoneRateLimit._id);
-    }
-  }
-
-  await ctx.db.delete(userId);
 
   return { deleted: true };
 }

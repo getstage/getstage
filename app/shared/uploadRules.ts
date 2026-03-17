@@ -3,6 +3,7 @@ export type UploadPurpose =
   | "csv-upload"
   | "profile-avatar"
   | "client-avatar"
+  | "project-marker"
   | "portal-logo";
 
 type UploadRule = {
@@ -36,6 +37,11 @@ export const UPLOAD_RULES: Record<UploadPurpose, UploadRule> = {
     maxBytes: 2 * 1024 * 1024,
   },
   "client-avatar": {
+    allowedMimeTypes: ["image/webp"],
+    allowedExtensions: [".webp"],
+    maxBytes: 2 * 1024 * 1024,
+  },
+  "project-marker": {
     allowedMimeTypes: ["image/webp"],
     allowedExtensions: [".webp"],
     maxBytes: 2 * 1024 * 1024,
