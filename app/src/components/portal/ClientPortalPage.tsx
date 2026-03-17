@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Check, CaretRight } from "@phosphor-icons/react";
+import { Check, CaretRight, Plus, SignIn } from "@phosphor-icons/react";
 import { useQuery as useConvexQuery } from "convex/react";
 import { Helmet } from "react-helmet-async";
 import { useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { api } from "@/lib/convex";
+import { usePortalEdit } from "@/hooks/usePortalEdit";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { buildPortalTaskPath } from "@/lib/portal";
 import { getPortalPreviewData } from "@/lib/portalPreview";
@@ -22,6 +23,9 @@ export function ClientPortalPage() {
   const data = previewData ?? liveData;
   const isLoading = !isPreview && liveData === undefined;
   const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
+  const { canEdit, user: editUser, toggleTask, addTask } = usePortalEdit(token, isPreview);
+  const [addTaskValue, setAddTaskValue] = useState("");
+  const [isAddingTask, setIsAddingTask] = useState(false);
 
   if (isLoading) {
     return (
@@ -158,11 +162,55 @@ export function ClientPortalPage() {
                   task={task}
                   accentColor={config.accentColor}
                   href={`${buildPortalTaskPath(token, task.id)}${previewSuffix}`}
+                  canEdit={canEdit}
+                  onToggle={() => void toggleTask(task.id)}
                 />
               ))}
+
+              {canEdit ? (
+                <form
+                  className="flex items-center gap-3 border-t border-border-subtle px-1 py-2.5"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const title = addTaskValue.trim();
+                    if (!title || isAddingTask) return;
+                    setIsAddingTask(true);
+                    try {
+                      await addTask(selectedPhase.id, title);
+                      setAddTaskValue("");
+                    } finally {
+                      setIsAddingTask(false);
+                    }
+                  }}
+                >
+                  <span className="inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center">
+                    <Plus size={14} className="text-text-tertiary" />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Add a task…"
+                    value={addTaskValue}
+                    onChange={(e) => setAddTaskValue(e.target.value)}
+                    disabled={isAddingTask}
+                    className="min-w-0 flex-1 border-0 bg-transparent p-0 text-[14px] text-text-primary placeholder:text-text-tertiary focus:outline-none"
+                  />
+                </form>
+              ) : null}
             </div>
           </section>
         </motion.main>
+
+        {!editUser && !isPreview ? (
+          <div className="text-center pb-2">
+            <a
+              href={`/auth?redirect=${encodeURIComponent(`/portal/${token}`)}`}
+              className="inline-flex items-center gap-1.5 text-[13px] text-text-tertiary transition-colors hover:text-text-secondary"
+            >
+              <SignIn size={14} />
+              Sign in to collaborate
+            </a>
+          </div>
+        ) : null}
 
         <footer className="border-t border-border-subtle">
           <div className="mx-auto max-w-[1440px] px-6 py-6 text-center text-[12px] text-text-tertiary">
@@ -270,37 +318,48 @@ function PortalTaskRow({
   task,
   accentColor,
   href,
+  canEdit,
+  onToggle,
 }: {
   task: PortalTask;
   accentColor: string;
   href: string;
+  canEdit: boolean;
+  onToggle: () => void;
 }) {
   return (
-    <a
-      href={href}
-      className="group flex items-center gap-3 border-t border-border-subtle px-1 py-2.5 text-left transition-colors first:border-t-0 hover:bg-bg-subtle/70"
-    >
-      <span
-        className="inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border"
+    <div className="group flex items-center gap-3 border-t border-border-subtle px-1 py-2.5 text-left transition-colors first:border-t-0 hover:bg-bg-subtle/70">
+      <button
+        type="button"
+        onClick={(e) => {
+          if (!canEdit) return;
+          e.preventDefault();
+          onToggle();
+        }}
+        disabled={!canEdit}
+        className={`inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border ${canEdit ? "cursor-pointer" : "cursor-default"}`}
         style={{
           borderColor: task.isCompleted ? accentColor : "#D9D9D9",
           backgroundColor: task.isCompleted ? accentColor : "transparent",
         }}
       >
         {task.isCompleted ? <Check size={12} weight="bold" className="text-white" /> : null}
-      </span>
-      <span
-        className={`text-[14px] ${
+      </button>
+      <a
+        href={href}
+        className={`min-w-0 flex-1 text-[14px] ${
           task.isCompleted ? "text-text-tertiary line-through" : "text-text-primary"
         }`}
       >
         {task.title}
-      </span>
-      <CaretRight
-        size={14}
-        className="ml-auto shrink-0 text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100"
-      />
-    </a>
+      </a>
+      <a href={href}>
+        <CaretRight
+          size={14}
+          className="ml-auto shrink-0 text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100"
+        />
+      </a>
+    </div>
   );
 }
 

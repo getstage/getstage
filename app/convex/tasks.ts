@@ -2,7 +2,8 @@ import { v } from "convex/values";
 import { mutation, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import {
-  requirePhaseOwner,
+  requirePhaseAccess,
+  requireTaskAccess,
   requireTaskOwner,
 } from "./_helpers";
 import { recomputeProjectState } from "./domain/projects/readModel";
@@ -16,8 +17,8 @@ async function getProjectIdForTask(
   ctx: MutationCtx,
   taskId: Id<"tasks">,
 ) {
-  const { task, project } = await requireTaskOwner(ctx, taskId);
-  return { task, projectId: project._id };
+  const { task, project, role } = await requireTaskAccess(ctx, taskId);
+  return { task, projectId: project._id, role };
 }
 
 export const create = mutation({
@@ -26,7 +27,7 @@ export const create = mutation({
     title: v.string(),
   },
   handler: async (ctx, { phaseId, title }) => {
-    const { project } = await requirePhaseOwner(ctx, phaseId);
+    const { project } = await requirePhaseAccess(ctx, phaseId);
 
     const existingTasks = await ctx.db
       .query("tasks")
@@ -56,7 +57,7 @@ export const update = mutation({
     content: v.optional(v.string()),
   },
   handler: async (ctx, { taskId, title, content }) => {
-    await requireTaskOwner(ctx, taskId);
+    await requireTaskAccess(ctx, taskId);
 
     const patch: Record<string, string | number> = {
       updatedAt: now(),
@@ -153,7 +154,7 @@ export const saveAttachment = mutation({
     mimeType: v.string(),
   },
   handler: async (ctx, args) => {
-    await requireTaskOwner(ctx, args.taskId);
+    await requireTaskAccess(ctx, args.taskId);
 
     const timestamp = now();
 
@@ -197,7 +198,7 @@ export const deleteAttachment = mutation({
       throw new Error("Attachment not found.");
     }
 
-    const { task } = await requireTaskOwner(ctx, attachment.taskId);
+    const { task } = await requireTaskAccess(ctx, attachment.taskId);
 
     if (attachment.storageId) {
       await ctx.storage.delete(attachment.storageId);

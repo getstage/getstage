@@ -1,11 +1,16 @@
-import { Check, LinkSimple } from "@phosphor-icons/react";
+import { useState } from "react";
+import { Check, LinkSimple, Trash, UserPlus } from "@phosphor-icons/react";
 import * as Dialog from "@radix-ui/react-dialog";
+import { useQuery as useConvexQuery, useMutation } from "convex/react";
 import { Button } from "@/components/ui/Button";
+import { api } from "@/lib/convex";
+import type { Id } from "../../../../convex/_generated/dataModel";
 
 type ShareProjectDialogProps = {
   open: boolean;
   shareUrl: string;
   copied: boolean;
+  projectId: string;
   onOpenChange: (open: boolean) => void;
   onCopyShareUrl: () => void;
 };
@@ -14,9 +19,60 @@ export function ShareProjectDialog({
   open,
   shareUrl,
   copied,
+  projectId,
   onOpenChange,
   onCopyShareUrl,
 }: ShareProjectDialogProps) {
+  const [email, setEmail] = useState("");
+  const [addError, setAddError] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+
+  const collaborators = useConvexQuery(
+    api.collaborators.listByProject,
+    open ? { projectId: projectId as Id<"projects"> } : "skip",
+  );
+  const addCollaborator = useMutation(api.collaborators.add);
+  const removeCollaborator = useMutation(api.collaborators.remove);
+
+  async function handleAddCollaborator(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || isAdding) return;
+
+    setAddError("");
+    setIsAdding(true);
+    try {
+      await addCollaborator({
+        projectId: projectId as Id<"projects">,
+        email: trimmed,
+      });
+      setEmail("");
+    } catch (error) {
+      let message = "Failed to add team member. Please try again.";
+      if (error instanceof Error) {
+        const match = error.message.match(/Uncaught Error:\s*(.+?)(?:\.\s*at\s|$)/);
+        if (match?.[1]) {
+          message = match[1].trim();
+          if (!message.endsWith(".")) message += ".";
+        }
+      }
+      setAddError(message);
+    } finally {
+      setIsAdding(false);
+    }
+  }
+
+  async function handleRemove(collaboratorId: string) {
+    try {
+      await removeCollaborator({
+        projectId: projectId as Id<"projects">,
+        collaboratorId: collaboratorId as Id<"projectCollaborators">,
+      });
+    } catch {
+      // Silently handle — record may already be deleted
+    }
+  }
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -46,6 +102,69 @@ export function ShareProjectDialog({
                   className="share-project-dialog-input h-11 min-w-0 flex-1 border-0 bg-transparent p-0 text-[14px] text-text-primary"
                 />
               </div>
+            </div>
+
+            <div className="mt-6">
+              <label className="mb-2 block text-[13px] font-medium text-text-primary">
+                Team members
+              </label>
+              <p className="mb-3 text-[13px] text-text-secondary">
+                Team members with an active subscription can edit tasks via the portal link.
+              </p>
+
+              <form onSubmit={handleAddCollaborator} className="flex items-center gap-2">
+                <div className="flex flex-1 items-center gap-2 rounded-[10px] border border-border bg-bg px-3">
+                  <UserPlus size={16} className="shrink-0 text-text-secondary" />
+                  <input
+                    type="email"
+                    placeholder="Enter email address"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setAddError("");
+                    }}
+                    className="h-10 min-w-0 flex-1 border-0 bg-transparent p-0 text-[14px] text-text-primary placeholder:text-text-tertiary focus:outline-none"
+                  />
+                </div>
+                <Button type="submit" size="sm" disabled={isAdding || !email.trim()}>
+                  Add
+                </Button>
+              </form>
+
+              {addError ? (
+                <p className="mt-1.5 text-[12px] text-destructive">{addError}</p>
+              ) : null}
+
+              {collaborators && collaborators.length > 0 ? (
+                <div className="mt-3 space-y-1">
+                  {collaborators.map((collab) => (
+                    <div
+                      key={collab._id}
+                      className="flex items-center gap-3 rounded-[8px] px-2 py-2 hover:bg-bg-subtle"
+                    >
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-subtle text-[12px] font-medium text-text-secondary">
+                        {(collab.name ?? collab.email ?? "?").charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-medium text-text-primary">
+                          {collab.name ?? "Unknown"}
+                        </p>
+                        <p className="truncate text-[12px] text-text-secondary">
+                          {collab.email ?? ""}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void handleRemove(collab._id)}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-[6px] text-text-tertiary transition-colors hover:bg-bg-subtle hover:text-destructive"
+                        aria-label={`Remove ${collab.name ?? collab.email}`}
+                      >
+                        <Trash size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
 

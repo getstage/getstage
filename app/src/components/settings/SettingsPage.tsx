@@ -48,7 +48,9 @@ export function SettingsPage() {
     portalAccentColor: settingsData?.portalBranding.accentColor ?? undefined,
   });
   const previewPortalUrl = PREVIEW_PORTAL_URL;
-  const dockProjects = dashboardData?.projects.slice(0, 6) ?? [];
+  const dockProjects = dashboardData?.projects
+    .filter((p) => p.status === "active" && p.endDate > Date.now())
+    .slice(0, 6) ?? [];
 
   return (
     <>

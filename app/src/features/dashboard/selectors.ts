@@ -37,7 +37,9 @@ export function buildDashboardMetrics(projects: Project[]) {
     recentActivity: [...taskEntries]
       .sort((a, b) => b.task.updatedAt - a.task.updatedAt)
       .slice(0, 3),
-    dockProjects: projects.slice(0, 6),
+    dockProjects: projects
+      .filter((project) => project.status === "active" && project.endDate > Date.now())
+      .slice(0, 6),
   };
 }
 

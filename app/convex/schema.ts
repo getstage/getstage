@@ -230,6 +230,17 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_task", ["taskId"]),
 
+  projectCollaborators: defineTable({
+    projectId: v.id("projects"),
+    userId: v.id("users"),
+    role: v.literal("editor"),
+    addedBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_user", ["userId"])
+    .index("by_project_user", ["projectId", "userId"]),
+
   portalConfigs: defineTable({
     projectId: v.id("projects"),
     isEnabled: v.boolean(),

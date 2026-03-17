@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
 import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence } from "motion/react";
@@ -14,6 +14,8 @@ type Step = "email" | "code";
 
 export function AuthPage() {
   const navigate = useNavigate();
+  const { redirect } = useSearch({ from: "/auth" });
+  const redirectTo = redirect ?? "/dashboard";
   const { isAuthenticated } = useConvexAuth();
   const signIn = useSignIn();
   const [step, setStep] = useState<Step>("email");
@@ -24,9 +26,9 @@ export function AuthPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate({ to: "/dashboard", replace: true });
+      navigate({ to: redirectTo, replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, redirectTo]);
 
   if (isAuthenticated) {
     return null;
@@ -134,7 +136,7 @@ export function AuthPage() {
       formData.set("email", email);
       formData.set("code", parsed.data.code);
       await signIn("loops-otp", formData);
-      navigate({ to: "/dashboard", replace: true });
+      navigate({ to: redirectTo, replace: true });
     } catch (error) {
       setError(
         toUserFacingErrorMessage(
@@ -153,7 +155,7 @@ export function AuthPage() {
     setError("");
     setLoading(true);
     try {
-      await signIn("google", { redirectTo: "/dashboard" });
+      await signIn("google", { redirectTo });
     } catch (error) {
       setError(
         toUserFacingErrorMessage(

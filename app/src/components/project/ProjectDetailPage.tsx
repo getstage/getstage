@@ -17,7 +17,9 @@ export function ProjectDetailPage() {
   const projectId = id as Id<"projects">;
   const detail = useProjectDetail(projectId);
   const dashboardData = useConvexQuery(api.dashboard.getOverview, {});
-  const dockProjects = dashboardData?.projects.slice(0, 6) ?? [];
+  const dockProjects = dashboardData?.projects
+    .filter((p) => p.status === "active" && p.endDate > Date.now())
+    .slice(0, 6) ?? [];
 
   if (detail.isLoading) {
     return <ProjectDetailLoadingState />;

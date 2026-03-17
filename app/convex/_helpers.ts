@@ -1,6 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { getCurrentSubscriptionSnapshot } from "./billing";
 import { deleteOldR2Asset, r2 } from "./r2";
 
 function getEnv(name: string) {
@@ -93,6 +94,73 @@ export async function requireTaskOwner(
 
   const { user, project } = await requireProjectOwner(ctx, phase.projectId);
   return { user, project, phase, task };
+}
+
+// --- Access helpers (owner OR editor with active subscription) ---
+
+export async function requireProjectAccess(
+  ctx: ReaderCtx,
+  projectId: Id<"projects">,
+): Promise<{ user: Doc<"users">; project: Doc<"projects">; role: "owner" | "editor" }> {
+  const user = await requireAuthUser(ctx);
+  const project = await ctx.db.get(projectId);
+
+  if (!project) {
+    throw new Error("Project not found.");
+  }
+
+  if (project.userId === user._id) {
+    return { user, project, role: "owner" };
+  }
+
+  const collaborator = await ctx.db
+    .query("projectCollaborators")
+    .withIndex("by_project_user", (q) =>
+      q.eq("projectId", projectId).eq("userId", user._id),
+    )
+    .unique();
+
+  if (!collaborator) {
+    throw new Error("Not authorized.");
+  }
+
+  const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
+  if (!subscription) {
+    throw new Error("Not authorized. Active subscription required.");
+  }
+
+  return { user, project, role: "editor" };
+}
+
+export async function requirePhaseAccess(
+  ctx: ReaderCtx,
+  phaseId: Id<"phases">,
+) {
+  const phase = await ctx.db.get(phaseId);
+  if (!phase) {
+    throw new Error("Phase not found.");
+  }
+
+  const { user, project, role } = await requireProjectAccess(ctx, phase.projectId);
+  return { user, project, phase, role };
+}
+
+export async function requireTaskAccess(
+  ctx: ReaderCtx,
+  taskId: Id<"tasks">,
+) {
+  const task = await ctx.db.get(taskId);
+  if (!task) {
+    throw new Error("Task not found.");
+  }
+
+  const phase = await ctx.db.get(task.phaseId);
+  if (!phase) {
+    throw new Error("Phase not found.");
+  }
+
+  const { user, project, role } = await requireProjectAccess(ctx, phase.projectId);
+  return { user, project, phase, task, role };
 }
 
 // --- Legacy helpers (kept for backward compat during migration) ---

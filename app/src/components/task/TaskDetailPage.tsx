@@ -32,7 +32,9 @@ export function TaskDetailPage() {
     projectId: projectId as Id<"projects">,
   });
   const isLoading = project === undefined;
-  const dockProjects = dashboardData?.projects.slice(0, 6) ?? [];
+  const dockProjects = dashboardData?.projects
+    .filter((p) => p.status === "active" && p.endDate > Date.now())
+    .slice(0, 6) ?? [];
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
