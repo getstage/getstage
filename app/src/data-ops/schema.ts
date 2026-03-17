@@ -101,6 +101,7 @@ export const projectSchema = z.object({
   userId: z.string(),
   name: z.string().min(1),
   clientName: z.string().min(1),
+  clientEmail: z.string().email().optional(),
   clientAvatarUrl: z.string().url().optional(),
   startMarkerImageUrl: z.string().url().optional(),
   endMarkerImageUrl: z.string().url().optional(),
@@ -121,6 +122,7 @@ export const clientSchema = z.object({
   id: z.string(),
   userId: z.string(),
   name: z.string().min(1),
+  email: z.string().email().optional(),
   avatarUrl: z.string().url().optional(),
   projectCount: z.number(),
 });
@@ -213,6 +215,7 @@ export const revenueSummarySchema = z.object({
 export const createProjectInputSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   clientName: z.string().min(1, "Client name is required"),
+  clientEmail: z.string().email().optional(),
   clientAvatarUrl: z.string().optional(),
   projectImageUrl: z.string().optional(),
   startMarkerImageUrl: z.string().optional(),

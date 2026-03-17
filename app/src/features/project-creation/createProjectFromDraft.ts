@@ -47,6 +47,7 @@ export async function createProjectFromDraft<TResult>({
     projectName: draft.projectName,
     projectImageUrl,
     clientName: draft.clientName,
+    clientEmail: draft.clientEmail.trim() || undefined,
     clientAvatarUrl,
     projectType: draft.projectType,
     method: draft.method,

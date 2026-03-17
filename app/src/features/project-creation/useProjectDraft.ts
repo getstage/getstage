@@ -31,6 +31,7 @@ export type UseProjectDraftResult = {
   setClientMode: (value: "existing" | "new") => void;
   setSelectedExistingClientName: (value: string) => void;
   setClientName: (value: string) => void;
+  setClientEmail: (value: string) => void;
   setClientAvatar: (value: string | null) => void;
   setProjectType: (value: ProjectType | null) => void;
   setMethod: (value: Method) => void;
@@ -63,6 +64,7 @@ function createInitialDraft(): ProjectDraft {
     clientMode: "new",
     selectedExistingClientName: "",
     clientName: "",
+    clientEmail: "",
     clientAvatar: null,
     pendingAvatarFile: null,
     avatarUrlOpen: false,
@@ -143,6 +145,7 @@ export function useProjectDraft({
             ? ""
             : current.clientName
           : current.selectedExistingClientName,
+      clientEmail: value === "new" ? "" : current.clientEmail,
       clientAvatar: value === "new" ? null : current.clientAvatar,
       pendingAvatarFile: value === "new" ? null : current.pendingAvatarFile,
     }));
@@ -161,9 +164,14 @@ export function useProjectDraft({
       clientMode: "new",
       selectedExistingClientName: "",
       clientName: value,
+      clientEmail: "",
       clientAvatar: null,
       pendingAvatarFile: null,
     }));
+  }
+
+  function setClientEmail(value: string) {
+    setDraft((current) => ({ ...current, clientEmail: value }));
   }
 
   function setClientAvatar(value: string | null) {
@@ -262,12 +270,13 @@ export function useProjectDraft({
     }, avatarFetchDelayMs);
   }
 
-  function selectExistingClient(client: { name: string; avatarUrl?: string }) {
+  function selectExistingClient(client: { name: string; email?: string; avatarUrl?: string }) {
     setDraft((current) => ({
       ...current,
       clientMode: "existing",
       selectedExistingClientName: client.name,
       clientName: client.name,
+      clientEmail: client.email ?? "",
       clientAvatar: client.avatarUrl ?? null,
       pendingAvatarFile: null,
     }));
@@ -378,6 +387,7 @@ export function useProjectDraft({
     setClientMode,
     setSelectedExistingClientName,
     setClientName,
+    setClientEmail,
     setClientAvatar,
     setProjectType,
     setMethod,

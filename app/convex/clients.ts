@@ -28,6 +28,7 @@ export const listForCurrentUser = query({
       sortedClients.map(async (client) => ({
         id: String(client._id),
         name: client.name,
+        email: client.email,
         avatarUrl: (await resolveAssetUrl(client.avatarUrl ?? null)) ?? undefined,
         projectCount: projectCounts.get(client.name) ?? 0,
       })),

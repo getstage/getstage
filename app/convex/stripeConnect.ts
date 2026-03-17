@@ -35,15 +35,8 @@ function secondsToMilliseconds(value: number | null | undefined) {
   return value ? value * 1000 : undefined;
 }
 
-function normalizeStripeMatchKey(value: string) {
-  return value
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+function normalizeStripeEmail(value: string) {
+  return value.trim().toLowerCase();
 }
 
 function getAccountDisplayName(account: Stripe.Account) {
@@ -164,8 +157,11 @@ type StripeConnectionRecord = {
 };
 
 type StripeMatchIndexes = {
-  clientNamesByKey: Map<string, string[]>;
-  projectsByClientKey: Map<string, Array<{ _id: Id<"projects">; clientName: string }>>;
+  clientNamesByEmail: Map<string, string[]>;
+  projectsByClientEmail: Map<
+    string,
+    Array<{ _id: Id<"projects">; clientName: string }>
+  >;
 };
 
 function addToMatchIndex<T>(map: Map<string, T[]>, key: string, value: T) {
@@ -178,43 +174,53 @@ function addToMatchIndex<T>(map: Map<string, T[]>, key: string, value: T) {
 }
 
 function buildStripeMatchIndexes(args: {
-  clients: Array<{ name: string }>;
-  projects: Array<{ _id: Id<"projects">; clientName: string }>;
+  clients: Array<{ name: string; email?: string }>;
+  projects: Array<{ _id: Id<"projects">; clientName: string; clientEmail?: string }>;
 }): StripeMatchIndexes {
-  const clientNamesByKey = new Map<string, string[]>();
+  const clientNamesByEmail = new Map<string, string[]>();
   for (const client of args.clients) {
-    const key = normalizeStripeMatchKey(client.name);
-    if (!key) continue;
-    addToMatchIndex(clientNamesByKey, key, client.name);
+    if (!client.email) continue;
+    const email = normalizeStripeEmail(client.email);
+    if (!email) continue;
+    addToMatchIndex(clientNamesByEmail, email, client.name);
   }
 
-  const projectsByClientKey = new Map<string, Array<{ _id: Id<"projects">; clientName: string }>>();
+  const projectsByClientEmail = new Map<
+    string,
+    Array<{ _id: Id<"projects">; clientName: string }>
+  >();
   for (const project of args.projects) {
-    const key = normalizeStripeMatchKey(project.clientName);
-    if (!key) continue;
-    addToMatchIndex(projectsByClientKey, key, {
+    if (!project.clientEmail) continue;
+    const email = normalizeStripeEmail(project.clientEmail);
+    if (!email) continue;
+    addToMatchIndex(projectsByClientEmail, email, {
       _id: project._id,
       clientName: project.clientName,
     });
   }
 
   return {
-    clientNamesByKey,
-    projectsByClientKey,
+    clientNamesByEmail,
+    projectsByClientEmail,
   };
 }
 
 function resolveStripeCounterpartyMatch(
   rawName: string,
+  rawEmail: string | undefined,
   indexes: StripeMatchIndexes,
 ): { clientName: string; projectId?: Id<"projects"> } {
-  const normalizedKey = normalizeStripeMatchKey(rawName);
-  if (!normalizedKey) {
+  if (!rawEmail) {
     return { clientName: rawName };
   }
 
-  const clientNameCandidates = indexes.clientNamesByKey.get(normalizedKey) ?? [];
-  const projectCandidates = indexes.projectsByClientKey.get(normalizedKey) ?? [];
+  const normalizedEmail = normalizeStripeEmail(rawEmail);
+  if (!normalizedEmail) {
+    return { clientName: rawName };
+  }
+
+  const clientNameCandidates = indexes.clientNamesByEmail.get(normalizedEmail) ?? [];
+  const projectCandidates = indexes.projectsByClientEmail.get(normalizedEmail) ?? [];
   const uniqueProjectClientNames = Array.from(
     new Set(projectCandidates.map((project) => project.clientName)),
   );
@@ -238,6 +244,7 @@ const invoiceSyncValidator = v.object({
   externalInvoiceId: v.string(),
   number: v.optional(v.string()),
   clientName: v.string(),
+  clientEmail: v.optional(v.string()),
   status: v.union(
     v.literal("draft"),
     v.literal("open"),
@@ -257,6 +264,8 @@ const invoiceSyncValidator = v.object({
 const paymentSyncValidator = v.object({
   externalPaymentId: v.string(),
   externalInvoiceId: v.optional(v.string()),
+  counterpartyName: v.optional(v.string()),
+  counterpartyEmail: v.optional(v.string()),
   currency: v.string(),
   amount: v.number(),
   status: v.union(
@@ -551,6 +560,7 @@ export const applyStripeSync = internalMutation({
       projects: projects.map((project) => ({
         _id: project._id,
         clientName: project.clientName,
+        clientEmail: project.clientEmail,
       })),
     });
     const matchedInvoiceClientNames = new Map<string, string>();
@@ -569,7 +579,11 @@ export const applyStripeSync = internalMutation({
     let importedPayments = 0;
 
     for (const invoice of args.invoices) {
-      const matchedInvoice = resolveStripeCounterpartyMatch(invoice.clientName, matchIndexes);
+      const matchedInvoice = resolveStripeCounterpartyMatch(
+        invoice.clientName,
+        invoice.clientEmail,
+        matchIndexes,
+      );
       matchedInvoiceClientNames.set(invoice.externalInvoiceId, matchedInvoice.clientName);
       matchedInvoiceProjectIds.set(invoice.externalInvoiceId, matchedInvoice.projectId);
 
@@ -651,6 +665,14 @@ export const applyStripeSync = internalMutation({
     }
 
     for (const payment of args.payments) {
+      const matchedPayment =
+        !payment.externalInvoiceId && payment.counterpartyName
+          ? resolveStripeCounterpartyMatch(
+              payment.counterpartyName,
+              payment.counterpartyEmail,
+              matchIndexes,
+            )
+          : undefined;
       let linkedInvoiceId;
       if (payment.externalInvoiceId) {
         const linkedInvoice = await ctx.db
@@ -706,7 +728,9 @@ export const applyStripeSync = internalMutation({
         counterpartyName:
           (payment.externalInvoiceId
             ? matchedInvoiceClientNames.get(payment.externalInvoiceId)
-            : undefined) ?? "Stripe customer",
+            : undefined) ??
+          matchedPayment?.clientName ??
+          "Stripe customer",
         amountCents: Math.round(payment.amount * 100),
         currency: payment.currency,
         occurredAt: payment.receivedAt,
@@ -715,7 +739,7 @@ export const applyStripeSync = internalMutation({
         projectId:
           payment.externalInvoiceId !== undefined
             ? matchedInvoiceProjectIds.get(payment.externalInvoiceId)
-            : undefined,
+            : matchedPayment?.projectId,
         notes: undefined,
         rawLabel: payment.externalInvoiceId,
         updatedAt: timestamp,
@@ -901,6 +925,7 @@ export const syncStripeData = action({
         invoice.customer_email ||
         invoice.account_name ||
         "Stripe customer",
+      clientEmail: invoice.customer_email || undefined,
       status: mapInvoiceStatus(invoice.status),
       currency: invoice.currency.toUpperCase(),
       totalAmount: centsToAmount(invoice.total),
@@ -919,6 +944,9 @@ export const syncStripeData = action({
       return {
         externalPaymentId: charge.id,
         externalInvoiceId: typeof invoiceReference === "string" ? invoiceReference : undefined,
+        counterpartyName: charge.billing_details?.name || undefined,
+        counterpartyEmail:
+          charge.billing_details?.email || charge.receipt_email || undefined,
         currency: charge.currency.toUpperCase(),
         amount: centsToAmount(charge.amount),
         status: mapPaymentStatus(charge.status, charge.paid),

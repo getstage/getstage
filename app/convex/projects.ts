@@ -54,6 +54,7 @@ export const create = mutation({
   args: {
     name: v.string(),
     clientName: v.string(),
+    clientEmail: v.optional(v.string()),
     clientAvatarUrl: v.optional(v.string()),
     projectImageUrl: v.optional(v.string()),
     startMarkerImageUrl: v.optional(v.string()),
@@ -78,6 +79,7 @@ export const create = mutation({
     const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
     const plan = subscription?.plan ?? user.plan ?? "free";
     const clientName = args.clientName.trim();
+    const clientEmail = args.clientEmail?.trim() || undefined;
     const requestedClientAvatarUrl = args.clientAvatarUrl?.trim() || undefined;
     const projectImageUrl = args.projectImageUrl?.trim() || undefined;
     const startMarkerImageUrl = args.startMarkerImageUrl?.trim() || undefined;
@@ -103,6 +105,7 @@ export const create = mutation({
     await upsertClient(ctx, {
       userId: user._id,
       name: clientName,
+      email: clientEmail,
       avatarUrl: nextClientAvatarUrl,
     });
 
@@ -133,6 +136,7 @@ export const create = mutation({
       userId: user._id,
       name: args.name.trim(),
       clientName,
+      clientEmail,
       clientAvatarUrl: nextClientAvatarUrl,
       projectImageUrl,
       startMarkerImageUrl,
@@ -203,6 +207,7 @@ export const update = mutation({
     projectId: v.id("projects"),
     name: v.optional(v.string()),
     clientName: v.optional(v.string()),
+    clientEmail: v.optional(v.union(v.string(), v.null())),
     clientAvatarUrl: v.optional(v.union(v.string(), v.null())),
     projectImageUrl: v.optional(v.union(v.string(), v.null())),
     startMarkerImageUrl: v.optional(v.union(v.string(), v.null())),
@@ -238,6 +243,7 @@ export const update = mutation({
       return { provided: true, value };
     };
 
+    const clientEmailArg = resolve("clientEmail");
     const clientAvatar = resolve("clientAvatarUrl");
     const projectImage = resolve("projectImageUrl");
     const startMarker = resolve("startMarkerImageUrl");
@@ -265,6 +271,7 @@ export const update = mutation({
 
     if (nextName !== undefined) changed("name", nextName, project.name);
     if (nextClientName !== undefined) changed("clientName", nextClientName, project.clientName);
+    if (clientEmailArg.provided) changed("clientEmail", clientEmailArg.value, project.clientEmail);
     changed("clientAvatarUrl", resolvedClientAvatarUrl, project.clientAvatarUrl);
     if (projectImage.provided) {
       changed("projectImageUrl", projectImage.value, project.projectImageUrl);
@@ -284,10 +291,11 @@ export const update = mutation({
     }
 
     // --- Client sync & cleanup ---
-    if (nextClientName !== undefined || clientAvatar.provided) {
+    if (nextClientName !== undefined || clientAvatar.provided || clientEmailArg.provided) {
       await upsertClient(ctx, {
         userId: project.userId,
         name: finalClientName,
+        ...(clientEmailArg.provided ? { email: clientEmailArg.value ?? null } : {}),
         avatarUrl: resolvedClientAvatarUrl ?? null,
       });
     }

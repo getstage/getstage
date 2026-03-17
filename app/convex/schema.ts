@@ -166,6 +166,7 @@ export default defineSchema({
   clients: defineTable({
     userId: v.id("users"),
     name: v.string(),
+    email: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -177,6 +178,7 @@ export default defineSchema({
     userId: v.id("users"),
     name: v.string(),
     clientName: v.string(),
+    clientEmail: v.optional(v.string()),
     clientAvatarUrl: v.optional(v.string()),
     startMarkerImageUrl: v.optional(v.string()),
     endMarkerImageUrl: v.optional(v.string()),

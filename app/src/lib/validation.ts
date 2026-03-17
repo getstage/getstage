@@ -39,11 +39,18 @@ export const projectBasicsSchema = z.object({
     .trim()
     .min(1, "Please enter a project name.")
     .max(120, "Please keep the project name under 120 characters."),
+});
+
+export const clientInfoSchema = z.object({
   clientName: z
     .string()
     .trim()
     .min(1, "Please enter a client name.")
     .max(120, "Please keep the client name under 120 characters."),
+  clientEmail: z
+    .string()
+    .trim()
+    .email("Please enter a valid email address."),
 });
 
 export const manualPhaseSelectionSchema = z

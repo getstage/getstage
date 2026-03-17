@@ -34,6 +34,12 @@ export function PaymentsCard({ paymentSummary }: PaymentsCardProps) {
                         alt={row.name}
                         className="h-full w-full object-cover"
                       />
+                    ) : row.name === "Stripe customer" ? (
+                      <img
+                        src="/favicon.svg"
+                        alt="Stage"
+                        className="h-full w-full object-cover"
+                      />
                     ) : null}
                   </div>
                   <span className="truncate text-text-primary">{row.name}</span>

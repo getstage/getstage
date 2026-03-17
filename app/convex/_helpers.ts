@@ -136,6 +136,7 @@ export async function upsertClient(
   args: {
     userId: Id<"users">;
     name: string;
+    email?: string | null;
     avatarUrl?: string | null;
   },
 ) {
@@ -146,12 +147,15 @@ export async function upsertClient(
 
   const timestamp = now();
   const hasAvatarUpdate = Object.prototype.hasOwnProperty.call(args, "avatarUrl");
+  const hasEmailUpdate = Object.prototype.hasOwnProperty.call(args, "email");
 
   if (existing) {
     const nextAvatarUrl = hasAvatarUpdate ? (args.avatarUrl ?? undefined) : existing.avatarUrl;
-    if (nextAvatarUrl !== existing.avatarUrl) {
+    const nextEmail = hasEmailUpdate ? (args.email ?? undefined) : existing.email;
+    if (nextAvatarUrl !== existing.avatarUrl || nextEmail !== existing.email) {
       await ctx.db.patch(existing._id, {
         avatarUrl: nextAvatarUrl,
+        email: nextEmail,
         updatedAt: timestamp,
       });
     }
@@ -161,6 +165,7 @@ export async function upsertClient(
   return ctx.db.insert("clients", {
     userId: args.userId,
     name: args.name,
+    email: args.email ?? undefined,
     avatarUrl: args.avatarUrl ?? undefined,
     createdAt: timestamp,
     updatedAt: timestamp,

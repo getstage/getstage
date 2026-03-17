@@ -21,6 +21,7 @@ export type ProjectDraft = {
   clientMode: "existing" | "new";
   selectedExistingClientName: string;
   clientName: string;
+  clientEmail: string;
   clientAvatar: string | null;
   pendingAvatarFile: File | null;
   avatarUrlOpen: boolean;
@@ -39,6 +40,7 @@ export type ProjectDraftActions = {
   setClientMode: (value: "existing" | "new") => void;
   setSelectedExistingClientName: (value: string) => void;
   setClientName: (value: string) => void;
+  setClientEmail: (value: string) => void;
   setClientAvatar: (value: string | null) => void;
   setProjectType: (value: ProjectType | null) => void;
   setMethod: (value: Method) => void;
@@ -96,6 +98,7 @@ export function buildPreparedProjectPayload({
   projectName,
   projectImageUrl,
   clientName,
+  clientEmail,
   clientAvatarUrl,
   projectType,
   method,
@@ -107,6 +110,7 @@ export function buildPreparedProjectPayload({
   projectName: string;
   projectImageUrl?: string;
   clientName: string;
+  clientEmail?: string;
   clientAvatarUrl?: string;
   projectType: ProjectType;
   method: Exclude<Method, null>;
@@ -130,6 +134,7 @@ export function buildPreparedProjectPayload({
     name: projectName.trim(),
     projectImageUrl,
     clientName: clientName.trim(),
+    clientEmail: clientEmail?.trim() || undefined,
     clientAvatarUrl,
     type: projectType,
     method,

@@ -136,10 +136,14 @@ export function getStepValidationError({
         return null;
       }
 
-      const basicsParsed = projectBasicsSchema.safeParse({ projectName, clientName });
-      return basicsParsed.success
-        ? null
-        : (basicsParsed.error.issues[0]?.message ?? "Please complete the project details.");
+      const basicsParsed = projectBasicsSchema.safeParse({ projectName });
+      if (!basicsParsed.success) {
+        return basicsParsed.error.issues[0]?.message ?? "Please enter a project name.";
+      }
+      if (!clientName.trim()) {
+        return "Please enter a client name.";
+      }
+      return null;
     }
     case "project-type": {
       if (!projectType) {

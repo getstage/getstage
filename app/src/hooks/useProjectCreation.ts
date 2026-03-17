@@ -69,8 +69,10 @@ export function useProjectCreation() {
 
   const flow = useProjectCreationFlow({
     projectName: draft.projectName,
-    clientName: draft.clientName,
     hasProjectImage: Boolean(draft.projectImage),
+    clientName: draft.clientName,
+    clientEmail: draft.clientEmail,
+    hasClientAvatar: Boolean(draft.clientAvatar),
     projectType: draft.projectType,
     method: draft.method,
     startDate: draft.startDate,
@@ -94,6 +96,7 @@ export function useProjectCreation() {
     clientMode: draft.clientMode,
     selectedExistingClientName: draft.selectedExistingClientName,
     clientName: draft.clientName,
+    clientEmail: draft.clientEmail,
     clientAvatar: draft.clientAvatar,
     existingClients,
     projectType: draft.projectType,
@@ -120,6 +123,7 @@ export function useProjectCreation() {
     setClientMode: draftState.setClientMode,
     setSelectedExistingClientName: draftState.setSelectedExistingClientName,
     setClientName: draftState.setClientName,
+    setClientEmail: draftState.setClientEmail,
     setClientAvatar: draftState.setClientAvatar,
     setProjectType: draftState.setProjectType,
     setMethod: draftState.setMethod,

@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { StepCard } from "@/components/creation/CreationChrome";
 import { GeneratingState, SuccessState } from "@/components/creation/CreationStates";
+import { ClientStep } from "@/components/creation/steps/ClientStep";
 import { MethodStep } from "@/components/creation/steps/MethodStep";
 import { PhasesStep } from "@/components/creation/steps/PhasesStep";
 import { ProjectBasicsStep } from "@/components/creation/steps/ProjectBasicsStep";
@@ -70,21 +71,29 @@ function renderStepContent(creation: ProjectCreationState) {
         <ProjectBasicsStep
           projectName={creation.projectName}
           projectImage={creation.projectImage}
+          canContinue={creation.canContinue}
+          currentIndex={creation.currentIndex}
+          steps={creation.steps}
+          projectImageInputRef={creation.projectImageInputRef}
+          onProjectNameChange={creation.setProjectName}
+          onProjectImageChange={creation.setProjectImage}
+          onProjectImageFileChange={creation.handleProjectImageFileChange}
+          onContinue={creation.handleContinue}
+        />
+      );
+    case "1b":
+      return (
+        <ClientStep
           clientMode={creation.clientMode}
           selectedExistingClientName={creation.selectedExistingClientName}
           clientName={creation.clientName}
+          clientEmail={creation.clientEmail}
           clientAvatar={creation.clientAvatar}
           existingClients={creation.existingClients}
           canContinue={creation.canContinue}
           currentIndex={creation.currentIndex}
           steps={creation.steps}
           fileInputRef={creation.fileInputRef}
-          projectImageInputRef={creation.projectImageInputRef}
-          onProjectNameChange={creation.setProjectName}
-          onProjectImageChange={creation.setProjectImage}
-          onClientAvatarChange={creation.handleClientAvatarChange}
-          onProjectImageFileChange={creation.handleProjectImageFileChange}
-          onAvatarFileChange={creation.handleAvatarFileChange}
           onClientModeChange={creation.setClientMode}
           onExistingClientSelect={(clientName) => {
             const client = creation.existingClients.find((item) => item.name === clientName);
@@ -95,7 +104,11 @@ function renderStepContent(creation: ProjectCreationState) {
             creation.selectExistingClient(client);
           }}
           onClientNameChange={creation.setClientName}
+          onClientEmailChange={creation.setClientEmail}
+          onClientAvatarChange={creation.handleClientAvatarChange}
+          onAvatarFileChange={creation.handleAvatarFileChange}
           onContinue={creation.handleContinue}
+          onBack={creation.goBack}
         />
       );
     case 2:

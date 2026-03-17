@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  clientInfoSchema,
   dateRangeInputSchema,
   manualPhaseSelectionSchema,
   projectBasicsSchema,
 } from "@/lib/validation";
 
-export type WorkflowStep = 1 | 2 | 3 | "4a" | "4m" | "4mb" | 5;
+export type WorkflowStep = 1 | "1b" | 2 | 3 | "4a" | "4m" | "4mb" | 5;
 export type ProjectCreationStep = WorkflowStep | "success";
 
 type ProjectCreationFlowInput = {
   projectName: string;
-  clientName: string;
   hasProjectImage: boolean;
+  clientName: string;
+  clientEmail: string;
+  hasClientAvatar: boolean;
   projectType: string | null;
   method: "ai" | "manual" | null;
   startDate: string;
@@ -26,8 +29,10 @@ type ProjectCreationFlowInput = {
 
 export function useProjectCreationFlow({
   projectName,
-  clientName,
   hasProjectImage,
+  clientName,
+  clientEmail,
+  hasClientAvatar,
   projectType,
   method,
   startDate,
@@ -44,17 +49,22 @@ export function useProjectCreationFlow({
   const generationTimeoutRef = useRef<number | undefined>(undefined);
 
   const steps = useMemo<WorkflowStep[]>(
-    () => (method === "manual" ? [1, 2, 3, "4m", "4mb", 5] : [1, 2, 3, "4a", 5]),
+    () =>
+      method === "manual"
+        ? [1, "1b", 2, 3, "4m", "4mb", 5]
+        : [1, "1b", 2, 3, "4a", 5],
     [method],
   );
   const currentIndex = step === "success" ? steps.length - 1 : steps.indexOf(step);
   const canContinue = useMemo(() => {
     switch (step) {
       case 1:
+        return projectName.trim().length > 0 && hasProjectImage;
+      case "1b":
         return (
-          projectName.trim().length > 0 &&
           clientName.trim().length > 0 &&
-          hasProjectImage
+          clientEmail.trim().length > 0 &&
+          hasClientAvatar
         );
       case 2:
         return projectType !== null;
@@ -72,8 +82,10 @@ export function useProjectCreationFlow({
     }
   }, [
     activePhasesLength,
+    clientEmail,
     clientName,
     endDate,
+    hasClientAvatar,
     hasProjectImage,
     isCreating,
     method,
@@ -123,13 +135,26 @@ export function useProjectCreationFlow({
 
     switch (step) {
       case 1: {
-        const parsed = projectBasicsSchema.safeParse({ projectName, clientName });
+        const parsed = projectBasicsSchema.safeParse({ projectName });
         if (!parsed.success) {
-          onError(parsed.error.issues[0]?.message ?? "Please complete the project details.");
+          onError(parsed.error.issues[0]?.message ?? "Please enter a project name.");
           return;
         }
         if (!hasProjectImage) {
           onError("Please upload a project image.");
+          return;
+        }
+        setStep("1b");
+        return;
+      }
+      case "1b": {
+        const parsed = clientInfoSchema.safeParse({ clientName, clientEmail });
+        if (!parsed.success) {
+          onError(parsed.error.issues[0]?.message ?? "Please complete the client details.");
+          return;
+        }
+        if (!hasClientAvatar) {
+          onError("Please upload a client photo.");
           return;
         }
         setStep(2);

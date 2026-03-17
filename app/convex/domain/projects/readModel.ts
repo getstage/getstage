@@ -21,6 +21,7 @@ export async function buildProject(ctx: ReaderCtx, project: Doc<"projects">) {
     userId: String(project.userId),
     name: project.name,
     clientName: project.clientName,
+    clientEmail: project.clientEmail,
     clientAvatarUrl,
     startMarkerImageUrl,
     endMarkerImageUrl,
