@@ -88,6 +88,11 @@ export const getCollaboratorAccess = query({
       return { canEdit: false, user: userInfo };
     }
 
+    const ownerSubscription = await getCurrentSubscriptionSnapshot(ctx, String(project.userId));
+    if (!ownerSubscription) {
+      return { canEdit: false, user: userInfo };
+    }
+
     const subscription = await getCurrentSubscriptionSnapshot(ctx, String(userId));
     if (!subscription) {
       return { canEdit: false, user: userInfo };

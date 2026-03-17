@@ -2,6 +2,8 @@ import { MINUTE, RateLimiter } from "@convex-dev/rate-limiter";
 import { components } from "./_generated/api";
 
 const OTP_EMAIL_WINDOW_MS = 15 * MINUTE;
+const HOUR = 60 * MINUTE;
+const PROJECT_INVITE_RECIPIENT_WINDOW_MS = 10 * MINUTE;
 
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
   otpRequestsByEmail: {
@@ -12,6 +14,22 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
   otpRequestsGlobal: {
     kind: "fixed window",
     rate: 30,
+    period: MINUTE,
+    shards: 10,
+  },
+  projectInvitesByOwner: {
+    kind: "fixed window",
+    rate: 20,
+    period: HOUR,
+  },
+  projectInvitesByProjectRecipient: {
+    kind: "fixed window",
+    rate: 1,
+    period: PROJECT_INVITE_RECIPIENT_WINDOW_MS,
+  },
+  projectInvitesGlobal: {
+    kind: "fixed window",
+    rate: 60,
     period: MINUTE,
     shards: 10,
   },
@@ -50,6 +68,40 @@ export async function enforceOtpRequestRateLimit(
   if (!emailStatus.ok) {
     throw new Error(
       `Too many sign-in codes were requested for this email address. Please wait ${formatRetryAfter(emailStatus.retryAfter)} and try again.`,
+    );
+  }
+}
+
+export async function enforceProjectInviteRateLimit(
+  ctx: Parameters<typeof rateLimiter.limit>[0],
+  args: {
+    ownerId: string;
+    projectId: string;
+    email: string;
+  },
+) {
+  const globalStatus = await rateLimiter.limit(ctx, "projectInvitesGlobal");
+  if (!globalStatus.ok) {
+    throw new Error(
+      `Too many project invites are being sent right now. Please wait ${formatRetryAfter(globalStatus.retryAfter)} and try again.`,
+    );
+  }
+
+  const ownerStatus = await rateLimiter.limit(ctx, "projectInvitesByOwner", {
+    key: args.ownerId,
+  });
+  if (!ownerStatus.ok) {
+    throw new Error(
+      `You've sent too many project invites recently. Please wait ${formatRetryAfter(ownerStatus.retryAfter)} and try again.`,
+    );
+  }
+
+  const recipientStatus = await rateLimiter.limit(ctx, "projectInvitesByProjectRecipient", {
+    key: `${args.projectId}:${normalizeRateLimitEmail(args.email)}`,
+  });
+  if (!recipientStatus.ok) {
+    throw new Error(
+      `An invite was already sent to this email recently. Please wait ${formatRetryAfter(recipientStatus.retryAfter)} before sending another.`,
     );
   }
 }

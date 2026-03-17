@@ -124,6 +124,11 @@ export async function requireProjectAccess(
     throw new Error("Not authorized.");
   }
 
+  const ownerSubscription = await getCurrentSubscriptionSnapshot(ctx, String(project.userId));
+  if (!ownerSubscription) {
+    throw new Error("Not authorized. Project owner needs an active subscription.");
+  }
+
   const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
   if (!subscription) {
     throw new Error("Not authorized. Active subscription required.");

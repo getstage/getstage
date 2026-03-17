@@ -10,6 +10,14 @@ function now() {
 }
 
 export async function buildProject(ctx: ReaderCtx, project: Doc<"projects">) {
+  return buildProjectWithAccess(ctx, project);
+}
+
+export async function buildProjectWithAccess(
+  ctx: ReaderCtx,
+  project: Doc<"projects">,
+  accessRole?: "owner" | "editor",
+) {
   const portalConfig = await getPortalConfigByProjectId(ctx, project._id);
   const projectImageUrl = await resolveAssetUrl(project.projectImageUrl ?? null) ?? undefined;
   const startMarkerImageUrl = await resolveAssetUrl(project.startMarkerImageUrl ?? null) ?? undefined;
@@ -35,6 +43,7 @@ export async function buildProject(ctx: ReaderCtx, project: Doc<"projects">) {
     shareToken: portalConfig?.shareToken,
     shareUrl: portalConfig?.shareUrl,
     portalEnabled: portalConfig?.isEnabled,
+    accessRole,
     phases: await getPhasesForProject(ctx, project),
   };
 }
@@ -46,7 +55,7 @@ export async function listProjectsForUser(ctx: ReaderCtx, userId: Id<"users">) {
     .collect();
 
   const sortedProjectDocs = [...projectDocs].sort((a, b) => a.startDate - b.startDate);
-  return Promise.all(sortedProjectDocs.map((project) => buildProject(ctx, project)));
+  return Promise.all(sortedProjectDocs.map((project) => buildProjectWithAccess(ctx, project, "owner")));
 }
 
 export async function recomputeProjectState(

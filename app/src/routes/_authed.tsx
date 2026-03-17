@@ -19,7 +19,16 @@ function AuthedLayout() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
+    const redirect =
+      typeof window !== "undefined"
+        ? `${window.location.pathname}${window.location.search}${window.location.hash}`
+        : undefined;
+
+    return redirect ? (
+      <Navigate to="/auth" search={{ redirect }} replace />
+    ) : (
+      <Navigate to="/auth" replace />
+    );
   }
 
   return (

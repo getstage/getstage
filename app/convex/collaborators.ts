@@ -1,42 +1,140 @@
+import { action, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { getUserByEmail, requireProjectOwner } from "./_helpers";
+import { requireProjectOwner } from "./_helpers";
+import { internal } from "./_generated/api";
+import { enforceProjectInviteRateLimit } from "./rateLimits";
+import type { Id } from "./_generated/dataModel";
 
-export const add = mutation({
+type AddedCollaboratorPayload = {
+  collaboratorId: Id<"projectCollaborators">;
+  ownerId: string;
+  inviterName: string;
+  recipientEmail: string;
+  projectName: string;
+  portalUrl: string;
+  workspaceUrl: string;
+};
+
+type AddCollaboratorResult = {
+  collaboratorId: Id<"projectCollaborators">;
+  inviteSent: boolean;
+  inviteError?: string;
+};
+
+function getEnv(name: string) {
+  return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[
+    name
+  ];
+}
+
+function getProjectInviteTransactionalId() {
+  const transactionalId =
+    getEnv("LOOPS_INVITE_TRANSACTIONAL_ID") ??
+    getEnv("LOOPS_PROJECT_INVITE_TRANSACTIONAL_ID") ??
+    getEnv("AUTH_LOOPS_PROJECT_INVITE_TRANSACTIONAL_ID") ??
+    null;
+
+  if (!transactionalId) {
+    throw new Error("LOOPS_INVITE_TRANSACTIONAL_ID is not set");
+  }
+
+  return transactionalId;
+}
+
+function getLoopsApiKey() {
+  const apiKey = getEnv("AUTH_LOOPS_API_KEY") ?? getEnv("LOOPS_API_KEY");
+
+  if (!apiKey) {
+    throw new Error("AUTH_LOOPS_API_KEY is not set");
+  }
+
+  return apiKey;
+}
+
+function toInviteErrorMessage(error: unknown) {
+  if (!(error instanceof Error) || !error.message) {
+    return "Team member added, but the invite email could not be sent.";
+  }
+
+  const message = error.message.trim();
+  if (
+    message.startsWith("Too many project invites") ||
+    message.startsWith("You've sent too many project invites") ||
+    message.startsWith("An invite was already sent")
+  ) {
+    return message;
+  }
+
+  return "Team member added, but the invite email could not be sent.";
+}
+
+async function sendProjectInviteEmail(args: {
+  email: string;
+  inviterName: string;
+  projectName: string;
+  workspaceUrl: string;
+}) {
+  const response = await fetch("https://app.loops.so/api/v1/transactional", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${getLoopsApiKey()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      transactionalId: getProjectInviteTransactionalId(),
+      email: args.email,
+      dataVariables: {
+        inviterName: args.inviterName,
+        projectName: args.projectName,
+        portalUrl: args.workspaceUrl,
+        workspaceUrl: args.workspaceUrl,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to send project invite email: ${response.status} ${errorText}`);
+  }
+}
+
+export const add = action({
   args: {
     projectId: v.id("projects"),
     email: v.string(),
   },
-  handler: async (ctx, { projectId, email }) => {
-    const { user: owner } = await requireProjectOwner(ctx, projectId);
+  handler: async (ctx, args): Promise<AddCollaboratorResult> => {
+    const collaborator = (await ctx.runMutation(
+      internal.collaboratorInvites.addRecord,
+      args,
+    )) as AddedCollaboratorPayload;
 
-    const targetUser = await getUserByEmail(ctx, email.trim().toLowerCase());
-    if (!targetUser) {
-      throw new Error("No user found with that email address.");
+    try {
+      await enforceProjectInviteRateLimit(ctx, {
+        ownerId: collaborator.ownerId,
+        projectId: String(args.projectId),
+        email: collaborator.recipientEmail,
+      });
+
+      await sendProjectInviteEmail({
+        email: collaborator.recipientEmail,
+        inviterName: collaborator.inviterName,
+        projectName: collaborator.projectName,
+        workspaceUrl: collaborator.workspaceUrl,
+      });
+
+      return {
+        collaboratorId: collaborator.collaboratorId,
+        inviteSent: true,
+      };
+    } catch (error) {
+      console.error("Failed to send project invite email", error);
+      return {
+        collaboratorId: collaborator.collaboratorId,
+        inviteSent: false,
+        inviteError: toInviteErrorMessage(error),
+      };
     }
-
-    if (targetUser._id === owner._id) {
-      throw new Error("You are already the owner of this project.");
-    }
-
-    const existing = await ctx.db
-      .query("projectCollaborators")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", projectId).eq("userId", targetUser._id),
-      )
-      .unique();
-
-    if (existing) {
-      throw new Error("This user is already a collaborator on this project.");
-    }
-
-    return ctx.db.insert("projectCollaborators", {
-      projectId,
-      userId: targetUser._id,
-      role: "editor",
-      addedBy: owner._id,
-      createdAt: Date.now(),
-    });
   },
 });
 

@@ -97,6 +97,7 @@ Set:
 - `STRIPE_PRICE_ID` (last fallback when yearly id not set)
 - `AUTH_LOOPS_API_KEY` or `LOOPS_API_KEY`
 - `AUTH_LOOPS_TRANSACTIONAL_ID` or `LOOPS_TRANSACTIONAL_ID`
+- `LOOPS_INVITE_TRANSACTIONAL_ID` or `LOOPS_PROJECT_INVITE_TRANSACTIONAL_ID`
 
 For Google auth provider in `[app/convex/auth.ts](/Users/wdiebenwdambitions/stagemvp/app/convex/auth.ts)`, ensure your Google OAuth credentials are configured according to your auth setup (matching `@auth/core` provider expectations).
 
