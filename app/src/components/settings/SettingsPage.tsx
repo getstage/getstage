@@ -1,4 +1,3 @@
-import { useQuery as useConvexQuery } from "convex/react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
@@ -16,22 +15,23 @@ import {
 } from "@/components/settings/SettingsIcons";
 import { PortalTab } from "@/components/settings/PortalTab";
 import { useAuth } from "@/lib/auth";
-import { api } from "@/lib/convex";
 import { GOOGLE_SHEETS_GUIDE_HREF } from "@/features/settings/googleSheetsErrors";
 import { useBillingSettings } from "@/features/settings/useBillingSettings";
 import { useGeneralSettings } from "@/features/settings/useGeneralSettings";
 import { useIntegrationsSettings } from "@/features/settings/useIntegrationsSettings";
 import { usePortalBrandingSettings } from "@/features/settings/usePortalBrandingSettings";
 import { useSettingsTabs } from "@/features/settings/useSettingsTabs";
+import { useDockProjects } from "@/hooks/useDockProjects";
+import { useSettingsOverview } from "@/hooks/useSettingsOverview";
 import "@/styles/settings.css";
 
 const PREVIEW_PORTAL_URL = "/portal/share_acme_2026?preview=1";
 
 export function SettingsPage() {
   const { user } = useAuth();
-  const settingsData = useConvexQuery(api.settings.getOverview, !user ? "skip" : {});
-  const dashboardData = useConvexQuery(api.dashboard.getOverview, !user ? "skip" : {});
+  const { data: settingsData } = useSettingsOverview();
   const { activeTab, setActiveTab, openBillingTab } = useSettingsTabs();
+  const dockProjects = useDockProjects();
   const generalSettings = useGeneralSettings({
     user,
     profileName: settingsData?.profile.name,
@@ -41,16 +41,16 @@ export function SettingsPage() {
     profilePlan: settingsData?.profile.plan,
     subscription: settingsData?.subscription ?? null,
   });
-  const integrationsSettings = useIntegrationsSettings({ user });
+  const integrationsSettings = useIntegrationsSettings({
+    user,
+    enabled: activeTab === "integrations",
+  });
   const portalBrandingSettings = usePortalBrandingSettings({
     previewPortalUrl: PREVIEW_PORTAL_URL,
     portalLogoUrl: settingsData?.portalBranding.logoUrl,
     portalAccentColor: settingsData?.portalBranding.accentColor ?? undefined,
   });
   const previewPortalUrl = PREVIEW_PORTAL_URL;
-  const dockProjects = dashboardData?.projects
-    .filter((p) => p.status === "active" && p.endDate > Date.now())
-    .slice(0, 6) ?? [];
 
   return (
     <>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useParams, Link } from "@tanstack/react-router";
@@ -12,13 +12,14 @@ import {
 } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { ProjectDock } from "@/components/dashboard/ProjectDock";
+import { useDockProjects } from "@/hooks/useDockProjects";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { ConfirmPopover } from "@/components/ui/ConfirmPopover";
 import { api } from "@/lib/convex";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { debounce, formatFileSize } from "@/lib/utils";
-import type { Attachment, Phase, Task } from "@/types";
+import type { Attachment } from "@/types";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { uploadFileToR2, getNormalizedMimeType } from "@/lib/r2Uploads";
 
@@ -27,14 +28,14 @@ export function TaskDetailPage() {
   const { id: projectId, taskId } = useParams({
     from: "/_authed/project/$id/task/$taskId",
   });
-  const dashboardData = useConvexQuery(api.dashboard.getOverview, {});
-  const project = useConvexQuery(api.projects.getById, {
-    projectId: projectId as Id<"projects">,
+  const dockProjects = useDockProjects();
+  const detail = useConvexQuery(api.tasks.getDetail, {
+    taskId: taskId as Id<"tasks">,
   });
-  const isLoading = project === undefined;
-  const dockProjects = dashboardData?.projects
-    .filter((p) => p.status === "active" && p.endDate > Date.now())
-    .slice(0, 6) ?? [];
+  const task = detail?.task ?? null;
+  const project = detail?.project ?? null;
+  const phase = detail?.phase ?? null;
+  const isLoading = detail === undefined;
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -48,14 +49,6 @@ export function TaskDetailPage() {
   const [confirmingAttachmentId, setConfirmingAttachmentId] = useState<string | null>(null);
   const [replacingAttachmentId, setReplacingAttachmentId] = useState<string | null>(null);
   const replaceInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
-
-  const task = useMemo(
-    () =>
-      project?.phases
-        .flatMap((phase: Phase) => phase.tasks)
-        .find((phaseTask: Task) => phaseTask.id === taskId) ?? null,
-    [project, taskId],
-  );
 
   useEffect(() => {
     if (!task) return;
@@ -91,22 +84,16 @@ export function TaskDetailPage() {
     [],
   );
 
-  const phaseName = useMemo(() => {
-    if (!project) return "";
-    return (
-      project.phases.find((phase: Phase) =>
-        phase.tasks.some((phaseTask: Task) => phaseTask.id === taskId),
-      )?.name ?? ""
-    );
-  }, [project, taskId]);
-
   async function handleDeleteTask() {
     setIsDeleting(true);
     setErrorMessage(null);
 
     try {
       await deleteTask({ taskId: taskId as Id<"tasks"> });
-      await navigate({ to: "/project/$id", params: { id: projectId } });
+      await navigate({
+        to: "/project/$id",
+        params: { id: project?.id ?? projectId },
+      });
     } catch (error) {
       setErrorMessage(toUserFacingErrorMessage(error, "Could not delete the task."));
     } finally {
@@ -180,7 +167,7 @@ export function TaskDetailPage() {
     );
   }
 
-  if (!task || !project) {
+  if (!task || !project || !phase) {
     return (
       <div className="flex min-h-[420px] flex-col items-center justify-center">
         <h2 className="font-heading text-[22px] font-semibold text-text-primary">
@@ -234,11 +221,11 @@ export function TaskDetailPage() {
         <div className="flex items-center justify-between">
           <Link
             to="/project/$id"
-            params={{ id: projectId }}
+            params={{ id: project.id }}
             className="inline-flex items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary"
           >
             <ArrowLeft size={14} />
-            {project.name} · {phaseName}
+            {project.name} · {phase.name}
           </Link>
           <span
             className={`text-[12px] text-text-tertiary transition-opacity ${

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAction as useConvexAction, useMutation as useConvexMutation } from "convex/react";
 import { createProjectFromDraft } from "@/features/project-creation/createProjectFromDraft";
 import { useProjectDraft } from "@/features/project-creation/useProjectDraft";
@@ -12,6 +13,7 @@ import type { OnboardingStepId, OnboardingSubmission } from "@/features/onboardi
 import { AI_ROADMAPS } from "@/lib/constants";
 import { api } from "@/lib/convex";
 import { toUserFacingErrorMessage } from "@/lib/errors";
+import { convexQueryKeys } from "@/lib/queryKeys";
 import { googleSheetsUrlSchema } from "@/lib/validation";
 import type { ProjectType } from "@/types";
 
@@ -24,6 +26,7 @@ export function useOnboardingController({
   open,
   onComplete,
 }: UseOnboardingControllerInput) {
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<OnboardingStepId>("welcome");
   const [isClosing, setIsClosing] = useState(false);
   const [pendingSubmission, setPendingSubmission] = useState<OnboardingSubmission | null>(null);
@@ -162,6 +165,7 @@ export function useOnboardingController({
             syncMetadata: r2SyncMetadata,
             aiRoadmaps: AI_ROADMAPS,
           });
+          void queryClient.invalidateQueries({ queryKey: convexQueryKeys.dockProjects });
           await markProjectCreated({});
         } else {
           await new Promise((resolve) => window.setTimeout(resolve, 500));

@@ -31,6 +31,7 @@ import type * as readmodels_dashboardOverview from "../readmodels/dashboardOverv
 import type * as settings from "../settings.js";
 import type * as stripeConnect from "../stripeConnect.js";
 import type * as tasks from "../tasks.js";
+import type * as viewer from "../viewer.js";
 
 import type {
   ApiFromModules,
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   settings: typeof settings;
   stripeConnect: typeof stripeConnect;
   tasks: typeof tasks;
+  viewer: typeof viewer;
 }>;
 
 /**
