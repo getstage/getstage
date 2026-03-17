@@ -24,7 +24,6 @@ export function useProjectDetail(projectId: Id<"projects">) {
   });
   const share = useShareLink({
     project: query.project,
-    projectId,
     showError,
   });
 

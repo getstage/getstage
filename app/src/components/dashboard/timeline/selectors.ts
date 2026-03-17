@@ -48,10 +48,32 @@ export function buildTimelineLayout({
     .filter((project) => project.startDate <= view.end && project.endDate >= view.start)
     .sort((a, b) => a.startDate - b.startDate);
 
-  const positioned = visibleProjects.map((project) => {
-    const displayDate = Math.min(project.endDate, view.end);
-    const pct = dateToPercent(displayDate, view.start, view.end);
-    return { project, pct };
+  const positioned = visibleProjects.flatMap((project) => {
+    const markers = [];
+
+    if (project.startDate >= view.start && project.startDate <= view.end) {
+      markers.push({
+        key: `${project.id}-start`,
+        project,
+        pct: dateToPercent(project.startDate, view.start, view.end),
+        markerTimestamp: project.startDate,
+      });
+    }
+
+    if (
+      project.endDate >= view.start &&
+      project.endDate <= view.end &&
+      project.endDate !== project.startDate
+    ) {
+      markers.push({
+        key: `${project.id}-end`,
+        project,
+        pct: dateToPercent(project.endDate, view.start, view.end),
+        markerTimestamp: project.endDate,
+      });
+    }
+
+    return markers;
   });
 
   const threshold = getGroupingThreshold(horizon, width);

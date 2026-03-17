@@ -1,5 +1,6 @@
 export const DAY_MS = 24 * 60 * 60 * 1000;
 export const CURVE_HEIGHT = 160;
+export const CURVE_BASELINE_INSET = 4;
 export const MARKER_SIZE = 36;
 export const MARKER_RADIUS = MARKER_SIZE / 2;
 export const MARKER_EDGE_INSET = MARKER_RADIUS + 4;

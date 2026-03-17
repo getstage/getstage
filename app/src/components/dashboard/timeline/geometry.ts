@@ -1,4 +1,6 @@
 import {
+  CURVE_BASELINE_INSET,
+  CURVE_HEIGHT,
   DAY_MS,
   KERNEL,
   MARKER_EDGE_INSET,
@@ -39,6 +41,34 @@ function addDays(timestamp: number, days: number) {
 function addMonths(timestamp: number, months: number) {
   const date = new Date(timestamp);
   date.setMonth(date.getMonth() + months);
+  return date.getTime();
+}
+
+function startOfMonth(timestamp: number) {
+  const date = new Date(timestamp);
+  date.setDate(1);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+function endOfMonth(timestamp: number) {
+  const date = new Date(timestamp);
+  date.setMonth(date.getMonth() + 1, 0);
+  date.setHours(23, 59, 59, 999);
+  return date.getTime();
+}
+
+function startOfYear(timestamp: number) {
+  const date = new Date(timestamp);
+  date.setMonth(0, 1);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+function endOfYear(timestamp: number) {
+  const date = new Date(timestamp);
+  date.setMonth(11, 31);
+  date.setHours(23, 59, 59, 999);
   return date.getTime();
 }
 
@@ -144,9 +174,11 @@ export function pointsToPath(points: CurveSample[], width: number) {
     return "";
   }
 
+  const baselineY = CURVE_HEIGHT - CURVE_BASELINE_INSET;
+
   const coordinates = points.map((point) => ({
     x: point.frac * width,
-    y: 160 - point.h,
+    y: baselineY - point.h,
   }));
 
   let path = `M ${coordinates[0]!.x.toFixed(1)} ${coordinates[0]!.y.toFixed(1)}`;
@@ -165,18 +197,6 @@ export function pointsToPath(points: CurveSample[], width: number) {
 
 export function getViewRange(projects: Project[], horizon: TimelineHorizon, nowTimestamp: number) {
   const today = startOfDay(nowTimestamp);
-  const fallbackStart = addDays(today, -30);
-  const fallbackEnd = addDays(today, 30);
-
-  if (projects.length === 0) {
-    return {
-      start: fallbackStart,
-      end: endOfDay(fallbackEnd),
-    };
-  }
-
-  const earliestStart = Math.min(...projects.map((project) => project.startDate));
-  const latestEnd = Math.max(...projects.map((project) => project.endDate));
 
   switch (horizon) {
     case "today":
@@ -191,24 +211,33 @@ export function getViewRange(projects: Project[], horizon: TimelineHorizon, nowT
       return { start: weekStart, end: weekEnd };
     }
     case "thisMonth":
-      return { start: startOfDay(earliestStart), end: endOfDay(latestEnd) };
-    case "thisYear": {
-      const current = new Date(today);
-      const start = new Date(current.getFullYear(), 0, 1).getTime();
-      const end = endOfDay(new Date(current.getFullYear(), 11, 31).getTime());
-      return { start, end };
-    }
+      return { start: startOfMonth(today), end: endOfMonth(today) };
+    case "thisYear":
+      return { start: startOfYear(today), end: endOfYear(today) };
     case "30d":
-      return { start: addDays(today, -30), end: endOfDay(today) };
+      return { start: addDays(today, -15), end: endOfDay(addDays(today, 14)) };
     case "6m":
-      return { start: startOfDay(addMonths(today, -6)), end: endOfDay(today) };
+      return {
+        start: startOfDay(addMonths(today, -3)),
+        end: endOfDay(addMonths(today, 3)),
+      };
     case "12m":
-      return { start: startOfDay(addMonths(today, -12)), end: endOfDay(today) };
+      return {
+        start: startOfDay(addMonths(today, -6)),
+        end: endOfDay(addMonths(today, 6)),
+      };
     case "all":
     default:
+      if (projects.length === 0) {
+        return {
+          start: addDays(today, -30),
+          end: endOfDay(addDays(today, 30)),
+        };
+      }
+
       return {
-        start: startOfDay(earliestStart - 90 * DAY_MS),
-        end: endOfDay(latestEnd + 90 * DAY_MS),
+        start: startOfDay(Math.min(...projects.map((project) => project.startDate)) - 90 * DAY_MS),
+        end: endOfDay(Math.max(...projects.map((project) => project.endDate)) + 90 * DAY_MS),
       };
   }
 }
@@ -266,7 +295,7 @@ export function groupProjects(
     const curveTop = 160 - curveYAt(avgPct / 100, curve);
 
     groups.push({
-      key: group.map((item) => item.project.id).join("-"),
+      key: group.map((item) => item.key).join("-"),
       pct: avgPct,
       curveTop,
       items: group,

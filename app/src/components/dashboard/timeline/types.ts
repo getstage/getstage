@@ -24,8 +24,10 @@ export type CurveSample = {
 };
 
 export type PositionedProject = {
+  key: string;
   project: Project;
   pct: number;
+  markerTimestamp: number;
 };
 
 export type MarkerGroup = {

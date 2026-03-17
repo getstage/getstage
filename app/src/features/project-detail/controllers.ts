@@ -53,9 +53,7 @@ export type ProjectShareController = {
   open: boolean;
   setOpen: (open: boolean) => void;
   shareUrl: string;
-  clientAccess: boolean;
   copied: boolean;
-  handleTogglePortalEnabled: () => Promise<void>;
   handleCopyShareUrl: () => Promise<void>;
 };
 
