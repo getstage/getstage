@@ -214,6 +214,7 @@ export const createProjectInputSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   clientName: z.string().min(1, "Client name is required"),
   clientAvatarUrl: z.string().optional(),
+  projectImageUrl: z.string().optional(),
   startMarkerImageUrl: z.string().optional(),
   endMarkerImageUrl: z.string().optional(),
   type: projectTypeSchema,

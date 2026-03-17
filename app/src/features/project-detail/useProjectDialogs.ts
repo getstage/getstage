@@ -45,10 +45,8 @@ export function useProjectDialogs({
   const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
   const [state, setState] = useState<ProjectDialogState>(DEFAULT_DIALOG_STATE);
   const [editNameValue, setEditNameValue] = useState("");
-  const [editStartMarkerDataUrl, setEditStartMarkerDataUrl] = useState<string | null>(null);
-  const [editEndMarkerDataUrl, setEditEndMarkerDataUrl] = useState<string | null>(null);
-  const [pendingStartMarkerFile, setPendingStartMarkerFile] = useState<File | null>(null);
-  const [pendingEndMarkerFile, setPendingEndMarkerFile] = useState<File | null>(null);
+  const [editProjectImageDataUrl, setEditProjectImageDataUrl] = useState<string | null>(null);
+  const [pendingProjectImageFile, setPendingProjectImageFile] = useState<File | null>(null);
   const [editClientValue, setEditClientValue] = useState("");
   const [editClientAvatarDataUrl, setEditClientAvatarDataUrl] = useState<string | null>(null);
   const [pendingClientAvatarFile, setPendingClientAvatarFile] = useState<File | null>(null);
@@ -57,8 +55,7 @@ export function useProjectDialogs({
   const [editStartDate, setEditStartDate] = useState("");
   const [editEndDate, setEditEndDate] = useState("");
   const [editPhasesValue, setEditPhasesValue] = useState("");
-  const startMarkerInputRef = useRef<HTMLInputElement>(null);
-  const endMarkerInputRef = useRef<HTMLInputElement>(null);
+  const projectImageInputRef = useRef<HTMLInputElement>(null);
   const clientAvatarInputRef = useRef<HTMLInputElement>(null);
 
   function setOpen(dialog: ProjectDialogKey, open: boolean) {
@@ -71,14 +68,14 @@ export function useProjectDialogs({
     }
 
     setEditNameValue(project.name);
-    setEditStartMarkerDataUrl(project.startMarkerImageUrl ?? null);
-    setEditEndMarkerDataUrl(project.endMarkerImageUrl ?? null);
-    setPendingStartMarkerFile(null);
-    setPendingEndMarkerFile(null);
+    setEditProjectImageDataUrl(
+      project.projectImageUrl ?? project.endMarkerImageUrl ?? project.startMarkerImageUrl ?? null,
+    );
+    setPendingProjectImageFile(null);
     setOpen("editName", true);
   }
 
-  function handleStartMarkerInputChange(event: ChangeEvent<HTMLInputElement>) {
+  function handleProjectImageInputChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) {
       return;
@@ -86,8 +83,8 @@ export function useProjectDialogs({
 
     void prepareProjectMarkerUpload(file)
       .then((prepared) => {
-        setPendingStartMarkerFile(prepared.file);
-        setEditStartMarkerDataUrl(prepared.previewUrl);
+        setPendingProjectImageFile(prepared.file);
+        setEditProjectImageDataUrl(prepared.previewUrl);
       })
       .catch((error) => {
         showError(toUserFacingErrorMessage(error, "Could not prepare this image."));
@@ -97,33 +94,9 @@ export function useProjectDialogs({
       });
   }
 
-  function handleEndMarkerInputChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    void prepareProjectMarkerUpload(file)
-      .then((prepared) => {
-        setPendingEndMarkerFile(prepared.file);
-        setEditEndMarkerDataUrl(prepared.previewUrl);
-      })
-      .catch((error) => {
-        showError(toUserFacingErrorMessage(error, "Could not prepare this image."));
-      })
-      .finally(() => {
-        event.target.value = "";
-      });
-  }
-
-  function handleRemoveStartMarker() {
-    setPendingStartMarkerFile(null);
-    setEditStartMarkerDataUrl(null);
-  }
-
-  function handleRemoveEndMarker() {
-    setPendingEndMarkerFile(null);
-    setEditEndMarkerDataUrl(null);
+  function handleRemoveProjectImage() {
+    setPendingProjectImageFile(null);
+    setEditProjectImageDataUrl(null);
   }
 
   function openEditClientDialog() {
@@ -186,20 +159,13 @@ export function useProjectDialogs({
     }
 
     const name = editNameValue.trim();
-    const startMarkerRemoved = !editStartMarkerDataUrl && Boolean(project.startMarkerImageUrl);
-    const endMarkerRemoved = !editEndMarkerDataUrl && Boolean(project.endMarkerImageUrl);
-    const hasPendingStartMarkerUpload = Boolean(pendingStartMarkerFile);
-    const hasPendingEndMarkerUpload = Boolean(pendingEndMarkerFile);
+    const currentImageUrl =
+      project.projectImageUrl ?? project.endMarkerImageUrl ?? project.startMarkerImageUrl;
+    const imageRemoved = !editProjectImageDataUrl && Boolean(currentImageUrl);
+    const hasPendingImageUpload = Boolean(pendingProjectImageFile);
     const nameChanged = name !== project.name;
 
-    if (
-      !name ||
-      (!nameChanged &&
-        !startMarkerRemoved &&
-        !endMarkerRemoved &&
-        !hasPendingStartMarkerUpload &&
-        !hasPendingEndMarkerUpload)
-    ) {
+    if (!name || (!nameChanged && !imageRemoved && !hasPendingImageUpload)) {
       setOpen("editName", false);
       return;
     }
@@ -209,39 +175,26 @@ export function useProjectDialogs({
       const payload: {
         projectId: Id<"projects">;
         name?: string;
-        startMarkerImageUrl?: string | null;
-        endMarkerImageUrl?: string | null;
+        projectImageUrl?: string | null;
       } = { projectId };
 
       if (nameChanged) {
         payload.name = name;
       }
 
-      if (hasPendingStartMarkerUpload && pendingStartMarkerFile) {
-        payload.startMarkerImageUrl = await uploadFileToR2({
+      if (hasPendingImageUpload && pendingProjectImageFile) {
+        payload.projectImageUrl = await uploadFileToR2({
           generateUploadUrl: r2GenerateUploadUrl,
           syncMetadata: r2SyncMetadata,
           purpose: "project-marker",
-          file: pendingStartMarkerFile,
+          file: pendingProjectImageFile,
         });
-      } else if (startMarkerRemoved) {
-        payload.startMarkerImageUrl = null;
-      }
-
-      if (hasPendingEndMarkerUpload && pendingEndMarkerFile) {
-        payload.endMarkerImageUrl = await uploadFileToR2({
-          generateUploadUrl: r2GenerateUploadUrl,
-          syncMetadata: r2SyncMetadata,
-          purpose: "project-marker",
-          file: pendingEndMarkerFile,
-        });
-      } else if (endMarkerRemoved) {
-        payload.endMarkerImageUrl = null;
+      } else if (imageRemoved) {
+        payload.projectImageUrl = null;
       }
 
       await updateProject(payload);
-      setPendingStartMarkerFile(null);
-      setPendingEndMarkerFile(null);
+      setPendingProjectImageFile(null);
       setOpen("editName", false);
     } catch (error) {
       showError(toUserFacingErrorMessage(error, "Could not update the project."));
@@ -386,8 +339,7 @@ export function useProjectDialogs({
   return {
     state,
     editNameValue,
-    editStartMarkerDataUrl,
-    editEndMarkerDataUrl,
+    editProjectImageDataUrl,
     editClientValue,
     editClientAvatarDataUrl,
     editStartDate,
@@ -395,8 +347,7 @@ export function useProjectDialogs({
     editPhasesValue,
     isSavingProject,
     isSavingClient,
-    startMarkerInputRef,
-    endMarkerInputRef,
+    projectImageInputRef,
     clientAvatarInputRef,
     setOpen,
     openEditNameDialog,
@@ -404,10 +355,8 @@ export function useProjectDialogs({
     openTimelineDialog,
     openPhasesDialog,
     setEditNameValue,
-    handleStartMarkerInputChange,
-    handleEndMarkerInputChange,
-    handleRemoveStartMarker,
-    handleRemoveEndMarker,
+    handleProjectImageInputChange,
+    handleRemoveProjectImage,
     setEditClientValue,
     handleClientAvatarInputChange,
     handleRemoveClientAvatar,

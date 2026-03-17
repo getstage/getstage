@@ -13,8 +13,7 @@ export type ProjectDialogState = Record<ProjectDialogKey, boolean>;
 export type ProjectDialogController = {
   state: ProjectDialogState;
   editNameValue: string;
-  editStartMarkerDataUrl: string | null;
-  editEndMarkerDataUrl: string | null;
+  editProjectImageDataUrl: string | null;
   editClientValue: string;
   editClientAvatarDataUrl: string | null;
   editStartDate: string;
@@ -22,8 +21,7 @@ export type ProjectDialogController = {
   editPhasesValue: string;
   isSavingProject: boolean;
   isSavingClient: boolean;
-  startMarkerInputRef: RefObject<HTMLInputElement | null>;
-  endMarkerInputRef: RefObject<HTMLInputElement | null>;
+  projectImageInputRef: RefObject<HTMLInputElement | null>;
   clientAvatarInputRef: RefObject<HTMLInputElement | null>;
   setOpen: (dialog: ProjectDialogKey, open: boolean) => void;
   openEditNameDialog: () => void;
@@ -31,10 +29,8 @@ export type ProjectDialogController = {
   openTimelineDialog: () => void;
   openPhasesDialog: () => void;
   setEditNameValue: (value: string) => void;
-  handleStartMarkerInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  handleEndMarkerInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  handleRemoveStartMarker: () => void;
-  handleRemoveEndMarker: () => void;
+  handleProjectImageInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  handleRemoveProjectImage: () => void;
   setEditClientValue: (value: string) => void;
   handleClientAvatarInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
   handleRemoveClientAvatar: () => void;

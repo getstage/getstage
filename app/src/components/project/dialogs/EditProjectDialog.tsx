@@ -6,38 +6,29 @@ import { PROJECT_MARKER_ACCEPT } from "@/lib/r2Uploads";
 type EditProjectDialogProps = {
   open: boolean;
   projectName: string;
-  startMarkerImageUrl: string | null;
-  endMarkerImageUrl: string | null;
+  projectImageUrl: string | null;
   isSaving: boolean;
   onOpenChange: (open: boolean) => void;
   onProjectNameChange: (value: string) => void;
-  onStartMarkerInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  onEndMarkerInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  onRemoveStartMarker: () => void;
-  onRemoveEndMarker: () => void;
+  onProjectImageInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onRemoveProjectImage: () => void;
   onSave: () => void;
-  startMarkerInputRef: RefObject<HTMLInputElement | null>;
-  endMarkerInputRef: RefObject<HTMLInputElement | null>;
+  projectImageInputRef: RefObject<HTMLInputElement | null>;
 };
 
 export function EditProjectDialog({
   open,
   projectName,
-  startMarkerImageUrl,
-  endMarkerImageUrl,
+  projectImageUrl,
   isSaving,
   onOpenChange,
   onProjectNameChange,
-  onStartMarkerInputChange,
-  onEndMarkerInputChange,
-  onRemoveStartMarker,
-  onRemoveEndMarker,
+  onProjectImageInputChange,
+  onRemoveProjectImage,
   onSave,
-  startMarkerInputRef,
-  endMarkerInputRef,
+  projectImageInputRef,
 }: EditProjectDialogProps) {
-  const canSave =
-    projectName.trim().length > 0 && Boolean(startMarkerImageUrl) && Boolean(endMarkerImageUrl);
+  const canSave = projectName.trim().length > 0;
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -66,20 +57,51 @@ export function EditProjectDialog({
             />
           </div>
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <ProjectMarkerEditor
-              label="Start marker image"
-              imageUrl={startMarkerImageUrl}
-              inputRef={startMarkerInputRef}
-              onInputChange={onStartMarkerInputChange}
-              onRemove={onRemoveStartMarker}
-            />
-            <ProjectMarkerEditor
-              label="End marker image"
-              imageUrl={endMarkerImageUrl}
-              inputRef={endMarkerInputRef}
-              onInputChange={onEndMarkerInputChange}
-              onRemove={onRemoveEndMarker}
+          <div className="mt-5">
+            <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+              Project image
+            </label>
+
+            <div className="flex items-center gap-4 rounded-[12px] border border-border-subtle bg-white px-4 py-4">
+              <div className="shrink-0">
+                {projectImageUrl ? (
+                  <img
+                    src={projectImageUrl}
+                    alt="Project"
+                    className="h-12 w-12 rounded-full border border-border-subtle object-cover"
+                  />
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border-subtle bg-input-bg text-[11px] text-text-tertiary">
+                    IMG
+                  </div>
+                )}
+              </div>
+
+              <div className="min-w-0 space-y-1">
+                <button
+                  type="button"
+                  onClick={() => projectImageInputRef.current?.click()}
+                  className="block cursor-pointer bg-transparent p-0 text-left text-[13px] text-text-secondary transition-colors hover:text-accent"
+                >
+                  {projectImageUrl ? "Replace photo" : "Upload photo"}
+                </button>
+                <button
+                  type="button"
+                  onClick={onRemoveProjectImage}
+                  disabled={!projectImageUrl}
+                  className="block cursor-pointer bg-transparent p-0 text-left text-[13px] text-text-secondary transition-colors hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+
+            <input
+              ref={projectImageInputRef}
+              type="file"
+              accept={PROJECT_MARKER_ACCEPT}
+              className="hidden"
+              onChange={onProjectImageInputChange}
             />
           </div>
 
@@ -96,64 +118,5 @@ export function EditProjectDialog({
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
-  );
-}
-
-type ProjectMarkerEditorProps = {
-  label: string;
-  imageUrl: string | null;
-  inputRef: RefObject<HTMLInputElement | null>;
-  onInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  onRemove: () => void;
-};
-
-function ProjectMarkerEditor({
-  label,
-  imageUrl,
-  inputRef,
-  onInputChange,
-  onRemove,
-}: ProjectMarkerEditorProps) {
-  return (
-    <div>
-      <p className="mb-1.5 text-[13px] font-medium text-text-primary">{label}</p>
-      <div className="overflow-hidden rounded-xl border border-border-subtle bg-input-bg">
-        <div className="aspect-square bg-input-bg">
-          {imageUrl ? (
-            <img src={imageUrl} alt={label} className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center px-6 text-center text-[13px] text-text-tertiary">
-              Upload image
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-3 px-3 py-3">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => inputRef.current?.click()}
-          >
-            {imageUrl ? "Replace image" : "Upload image"}
-          </Button>
-          <button
-            type="button"
-            className="text-[13px] text-text-secondary transition-colors hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50"
-            onClick={onRemove}
-            disabled={!imageUrl}
-          >
-            Remove
-          </button>
-        </div>
-      </div>
-
-      <input
-        ref={inputRef}
-        type="file"
-        accept={PROJECT_MARKER_ACCEPT}
-        className="hidden"
-        onChange={onInputChange}
-      />
-    </div>
   );
 }

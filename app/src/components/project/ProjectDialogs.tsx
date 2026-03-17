@@ -30,18 +30,14 @@ export function ProjectDialogs({ project, dialogs, share }: ProjectDialogsProps)
       <EditProjectDialog
         open={dialogs.state.editName}
         projectName={dialogs.editNameValue}
-        startMarkerImageUrl={dialogs.editStartMarkerDataUrl}
-        endMarkerImageUrl={dialogs.editEndMarkerDataUrl}
+        projectImageUrl={dialogs.editProjectImageDataUrl}
         isSaving={dialogs.isSavingProject}
         onOpenChange={(open) => dialogs.setOpen("editName", open)}
         onProjectNameChange={dialogs.setEditNameValue}
-        onStartMarkerInputChange={dialogs.handleStartMarkerInputChange}
-        onEndMarkerInputChange={dialogs.handleEndMarkerInputChange}
-        onRemoveStartMarker={dialogs.handleRemoveStartMarker}
-        onRemoveEndMarker={dialogs.handleRemoveEndMarker}
+        onProjectImageInputChange={dialogs.handleProjectImageInputChange}
+        onRemoveProjectImage={dialogs.handleRemoveProjectImage}
         onSave={() => void dialogs.handleSaveProject()}
-        startMarkerInputRef={dialogs.startMarkerInputRef}
-        endMarkerInputRef={dialogs.endMarkerInputRef}
+        projectImageInputRef={dialogs.projectImageInputRef}
       />
 
       <EditClientDialog

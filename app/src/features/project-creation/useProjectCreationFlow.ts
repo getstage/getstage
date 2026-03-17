@@ -11,8 +11,7 @@ export type ProjectCreationStep = WorkflowStep | "success";
 type ProjectCreationFlowInput = {
   projectName: string;
   clientName: string;
-  hasStartMarkerImage: boolean;
-  hasEndMarkerImage: boolean;
+  hasProjectImage: boolean;
   projectType: string | null;
   method: "ai" | "manual" | null;
   startDate: string;
@@ -28,8 +27,7 @@ type ProjectCreationFlowInput = {
 export function useProjectCreationFlow({
   projectName,
   clientName,
-  hasStartMarkerImage,
-  hasEndMarkerImage,
+  hasProjectImage,
   projectType,
   method,
   startDate,
@@ -56,8 +54,7 @@ export function useProjectCreationFlow({
         return (
           projectName.trim().length > 0 &&
           clientName.trim().length > 0 &&
-          hasStartMarkerImage &&
-          hasEndMarkerImage
+          hasProjectImage
         );
       case 2:
         return projectType !== null;
@@ -77,8 +74,7 @@ export function useProjectCreationFlow({
     activePhasesLength,
     clientName,
     endDate,
-    hasEndMarkerImage,
-    hasStartMarkerImage,
+    hasProjectImage,
     isCreating,
     method,
     projectName,
@@ -132,8 +128,8 @@ export function useProjectCreationFlow({
           onError(parsed.error.issues[0]?.message ?? "Please complete the project details.");
           return;
         }
-        if (!hasStartMarkerImage || !hasEndMarkerImage) {
-          onError("Please upload both project marker images.");
+        if (!hasProjectImage) {
+          onError("Please upload a project image.");
           return;
         }
         setStep(2);

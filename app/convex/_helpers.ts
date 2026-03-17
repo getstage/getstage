@@ -282,7 +282,9 @@ export async function deleteProjectMarkerImageIfUnused(
 
   const isStillUsed = projects.some(
     (project) =>
-      project.startMarkerImageUrl === args.imageUrl || project.endMarkerImageUrl === args.imageUrl,
+      project.projectImageUrl === args.imageUrl ||
+      project.startMarkerImageUrl === args.imageUrl ||
+      project.endMarkerImageUrl === args.imageUrl,
   );
   if (isStillUsed) {
     return;

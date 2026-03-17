@@ -180,6 +180,7 @@ export default defineSchema({
     clientAvatarUrl: v.optional(v.string()),
     startMarkerImageUrl: v.optional(v.string()),
     endMarkerImageUrl: v.optional(v.string()),
+    projectImageUrl: v.optional(v.string()),
     type: projectType,
     status: projectStatus,
     startDate: v.number(),

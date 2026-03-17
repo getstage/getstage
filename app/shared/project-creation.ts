@@ -16,10 +16,8 @@ export type RoadmapTemplateItem = {
 
 export type ProjectDraft = {
   projectName: string;
-  startMarkerImage: string | null;
-  endMarkerImage: string | null;
-  pendingStartMarkerImageFile: File | null;
-  pendingEndMarkerImageFile: File | null;
+  projectImage: string | null;
+  pendingProjectImageFile: File | null;
   clientMode: "existing" | "new";
   selectedExistingClientName: string;
   clientName: string;
@@ -37,8 +35,7 @@ export type ProjectDraft = {
 
 export type ProjectDraftActions = {
   setProjectName: (value: string) => void;
-  setStartMarkerImage: (value: string | null) => void;
-  setEndMarkerImage: (value: string | null) => void;
+  setProjectImage: (value: string | null) => void;
   setClientMode: (value: "existing" | "new") => void;
   setSelectedExistingClientName: (value: string) => void;
   setClientName: (value: string) => void;
@@ -97,8 +94,7 @@ export function buildRoadmapPreview({
 
 export function buildPreparedProjectPayload({
   projectName,
-  startMarkerImageUrl,
-  endMarkerImageUrl,
+  projectImageUrl,
   clientName,
   clientAvatarUrl,
   projectType,
@@ -109,8 +105,7 @@ export function buildPreparedProjectPayload({
   aiRoadmaps,
 }: {
   projectName: string;
-  startMarkerImageUrl?: string;
-  endMarkerImageUrl?: string;
+  projectImageUrl?: string;
   clientName: string;
   clientAvatarUrl?: string;
   projectType: ProjectType;
@@ -133,8 +128,7 @@ export function buildPreparedProjectPayload({
 
   return {
     name: projectName.trim(),
-    startMarkerImageUrl,
-    endMarkerImageUrl,
+    projectImageUrl,
     clientName: clientName.trim(),
     clientAvatarUrl,
     type: projectType,

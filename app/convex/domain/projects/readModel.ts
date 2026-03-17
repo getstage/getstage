@@ -11,6 +11,7 @@ function now() {
 
 export async function buildProject(ctx: ReaderCtx, project: Doc<"projects">) {
   const portalConfig = await getPortalConfigByProjectId(ctx, project._id);
+  const projectImageUrl = await resolveAssetUrl(project.projectImageUrl ?? null) ?? undefined;
   const startMarkerImageUrl = await resolveAssetUrl(project.startMarkerImageUrl ?? null) ?? undefined;
   const endMarkerImageUrl = await resolveAssetUrl(project.endMarkerImageUrl ?? null) ?? undefined;
   const clientAvatarUrl = await resolveAssetUrl(project.clientAvatarUrl ?? null) ?? undefined;
@@ -23,7 +24,7 @@ export async function buildProject(ctx: ReaderCtx, project: Doc<"projects">) {
     clientAvatarUrl,
     startMarkerImageUrl,
     endMarkerImageUrl,
-    projectImageUrl: endMarkerImageUrl ?? startMarkerImageUrl ?? clientAvatarUrl,
+    projectImageUrl: projectImageUrl ?? endMarkerImageUrl ?? startMarkerImageUrl ?? clientAvatarUrl,
     type: project.type,
     status: project.status,
     startDate: project.startDate,

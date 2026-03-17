@@ -69,8 +69,7 @@ function renderStepContent(creation: ProjectCreationState) {
       return (
         <ProjectBasicsStep
           projectName={creation.projectName}
-          startMarkerImage={creation.startMarkerImage}
-          endMarkerImage={creation.endMarkerImage}
+          projectImage={creation.projectImage}
           clientMode={creation.clientMode}
           selectedExistingClientName={creation.selectedExistingClientName}
           clientName={creation.clientName}
@@ -80,14 +79,11 @@ function renderStepContent(creation: ProjectCreationState) {
           currentIndex={creation.currentIndex}
           steps={creation.steps}
           fileInputRef={creation.fileInputRef}
-          startMarkerInputRef={creation.startMarkerInputRef}
-          endMarkerInputRef={creation.endMarkerInputRef}
+          projectImageInputRef={creation.projectImageInputRef}
           onProjectNameChange={creation.setProjectName}
-          onStartMarkerImageChange={creation.setStartMarkerImage}
-          onEndMarkerImageChange={creation.setEndMarkerImage}
+          onProjectImageChange={creation.setProjectImage}
           onClientAvatarChange={creation.handleClientAvatarChange}
-          onStartMarkerFileChange={creation.handleStartMarkerFileChange}
-          onEndMarkerFileChange={creation.handleEndMarkerFileChange}
+          onProjectImageFileChange={creation.handleProjectImageFileChange}
           onAvatarFileChange={creation.handleAvatarFileChange}
           onClientModeChange={creation.setClientMode}
           onExistingClientSelect={(clientName) => {

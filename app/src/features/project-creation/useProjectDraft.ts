@@ -25,11 +25,9 @@ export type UseProjectDraftResult = {
   roadmap: RoadmapTemplateItem[];
   editingPhaseId: string | null;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
-  startMarkerInputRef: React.RefObject<HTMLInputElement | null>;
-  endMarkerInputRef: React.RefObject<HTMLInputElement | null>;
+  projectImageInputRef: React.RefObject<HTMLInputElement | null>;
   setProjectName: (value: string) => void;
-  setStartMarkerImage: (value: string | null) => void;
-  setEndMarkerImage: (value: string | null) => void;
+  setProjectImage: (value: string | null) => void;
   setClientMode: (value: "existing" | "new") => void;
   setSelectedExistingClientName: (value: string) => void;
   setClientName: (value: string) => void;
@@ -42,8 +40,7 @@ export type UseProjectDraftResult = {
   setStartDate: (value: string) => void;
   setEndDate: (value: string) => void;
   reset: () => void;
-  handleStartMarkerFileChange: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
-  handleEndMarkerFileChange: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
+  handleProjectImageFileChange: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleAvatarFileChange: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
   selectExistingClient: (client: { name: string; avatarUrl?: string }) => void;
   fetchAvatarFromUrl: () => void;
@@ -61,10 +58,8 @@ function createInitialDraft(): ProjectDraft {
 
   return {
     projectName: "",
-    startMarkerImage: null,
-    endMarkerImage: null,
-    pendingStartMarkerImageFile: null,
-    pendingEndMarkerImageFile: null,
+    projectImage: null,
+    pendingProjectImageFile: null,
     clientMode: "new",
     selectedExistingClientName: "",
     clientName: "",
@@ -89,8 +84,7 @@ export function useProjectDraft({
   const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
   const [draggingPhaseId, setDraggingPhaseId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const startMarkerInputRef = useRef<HTMLInputElement>(null);
-  const endMarkerInputRef = useRef<HTMLInputElement>(null);
+  const projectImageInputRef = useRef<HTMLInputElement>(null);
   const avatarTimeoutRef = useRef<number | undefined>(undefined);
   const phaseCounterRef = useRef(DEFAULT_PHASES.length);
 
@@ -129,21 +123,12 @@ export function useProjectDraft({
     setDraft((current) => ({ ...current, projectName: value }));
   }
 
-  function setStartMarkerImage(value: string | null) {
+  function setProjectImage(value: string | null) {
     setDraft((current) => ({
       ...current,
-      startMarkerImage: value,
-      pendingStartMarkerImageFile:
-        value === null || !value.startsWith("data:") ? null : current.pendingStartMarkerImageFile,
-    }));
-  }
-
-  function setEndMarkerImage(value: string | null) {
-    setDraft((current) => ({
-      ...current,
-      endMarkerImage: value,
-      pendingEndMarkerImageFile:
-        value === null || !value.startsWith("data:") ? null : current.pendingEndMarkerImageFile,
+      projectImage: value,
+      pendingProjectImageFile:
+        value === null || !value.startsWith("data:") ? null : current.pendingProjectImageFile,
     }));
   }
 
@@ -213,7 +198,7 @@ export function useProjectDraft({
     setDraft((current) => ({ ...current, endDate: value }));
   }
 
-  async function handleStartMarkerFileChange(event: ChangeEvent<HTMLInputElement>) {
+  async function handleProjectImageFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) {
       return;
@@ -223,28 +208,8 @@ export function useProjectDraft({
       const prepared = await prepareProjectMarkerUpload(file);
       setDraft((current) => ({
         ...current,
-        pendingStartMarkerImageFile: prepared.file,
-        startMarkerImage: prepared.previewUrl,
-      }));
-    } catch (error) {
-      onError?.(toUserFacingErrorMessage(error, "Could not prepare this image."));
-    } finally {
-      event.target.value = "";
-    }
-  }
-
-  async function handleEndMarkerFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    try {
-      const prepared = await prepareProjectMarkerUpload(file);
-      setDraft((current) => ({
-        ...current,
-        pendingEndMarkerImageFile: prepared.file,
-        endMarkerImage: prepared.previewUrl,
+        pendingProjectImageFile: prepared.file,
+        projectImage: prepared.previewUrl,
       }));
     } catch (error) {
       onError?.(toUserFacingErrorMessage(error, "Could not prepare this image."));
@@ -407,11 +372,9 @@ export function useProjectDraft({
     roadmap,
     editingPhaseId,
     fileInputRef,
-    startMarkerInputRef,
-    endMarkerInputRef,
+    projectImageInputRef,
     setProjectName,
-    setStartMarkerImage,
-    setEndMarkerImage,
+    setProjectImage,
     setClientMode,
     setSelectedExistingClientName,
     setClientName,
@@ -424,8 +387,7 @@ export function useProjectDraft({
     setStartDate,
     setEndDate,
     reset,
-    handleStartMarkerFileChange,
-    handleEndMarkerFileChange,
+    handleProjectImageFileChange,
     handleAvatarFileChange,
     selectExistingClient,
     fetchAvatarFromUrl,
