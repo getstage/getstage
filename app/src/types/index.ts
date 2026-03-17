@@ -97,6 +97,9 @@ export type TimelineProject = {
   name: string;
   clientName: string;
   clientAvatarUrl?: string;
+  startMarkerImageUrl?: string;
+  endMarkerImageUrl?: string;
+  projectImageUrl?: string;
   startDate: number;
   endDate: number;
   progress: number;

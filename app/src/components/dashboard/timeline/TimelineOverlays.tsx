@@ -63,8 +63,8 @@ export function TimelineOverlays({
                     className="flex items-center gap-2 text-[13px] text-text-primary"
                   >
                     <Avatar
-                      name={project.clientName}
-                      src={project.clientAvatarUrl}
+                      name={project.name}
+                      src={project.projectImageUrl ?? project.clientAvatarUrl}
                       size="sm"
                       className="h-4 w-4 text-[9px]"
                     />

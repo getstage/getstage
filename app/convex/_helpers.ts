@@ -264,6 +264,33 @@ export async function deleteClientAvatarIfUnused(
   await deleteOldR2Asset(ctx, args.avatarUrl);
 }
 
+export async function deleteProjectMarkerImageIfUnused(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    imageUrl: string | null | undefined;
+  },
+) {
+  if (!args.imageUrl) {
+    return;
+  }
+
+  const projects = await ctx.db
+    .query("projects")
+    .withIndex("by_user", (q) => q.eq("userId", args.userId))
+    .collect();
+
+  const isStillUsed = projects.some(
+    (project) =>
+      project.startMarkerImageUrl === args.imageUrl || project.endMarkerImageUrl === args.imageUrl,
+  );
+  if (isStillUsed) {
+    return;
+  }
+
+  await deleteOldR2Asset(ctx, args.imageUrl);
+}
+
 export async function deleteClientIfUnused(
   ctx: MutationCtx,
   args: {

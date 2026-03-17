@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useMutation as useConvexMutation } from "convex/react";
+import { useMemo, useState } from "react";
+import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { AI_ROADMAPS } from "@/lib/constants";
 import { api } from "@/lib/convex";
@@ -20,6 +20,7 @@ export function useProjectCreation() {
   const createProject = useConvexMutation(api.projects.create);
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
   const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
+  const existingClientsResult = useConvexQuery(api.clients.listForCurrentUser, {});
   const [isCreating, setIsCreating] = useState(false);
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -30,6 +31,7 @@ export function useProjectCreation() {
     },
   });
   const { draft, activePhases, roadmap } = draftState;
+  const existingClients = useMemo(() => existingClientsResult ?? [], [existingClientsResult]);
 
   async function handleCreate() {
     if (!draft.projectType || !draft.method) {
@@ -43,11 +45,11 @@ export function useProjectCreation() {
       const project = await createProjectFromDraft({
         draft,
         activePhases,
-      createProject,
-      generateUploadUrl: r2GenerateUploadUrl,
-      syncMetadata: r2SyncMetadata,
-      aiRoadmaps: AI_ROADMAPS,
-    });
+        createProject,
+        generateUploadUrl: r2GenerateUploadUrl,
+        syncMetadata: r2SyncMetadata,
+        aiRoadmaps: AI_ROADMAPS,
+      });
       setCreatedProjectId(project.id);
       flow.setStep("success");
     } catch (error) {
@@ -68,6 +70,8 @@ export function useProjectCreation() {
   const flow = useProjectCreationFlow({
     projectName: draft.projectName,
     clientName: draft.clientName,
+    hasStartMarkerImage: Boolean(draft.startMarkerImage),
+    hasEndMarkerImage: Boolean(draft.endMarkerImage),
     projectType: draft.projectType,
     method: draft.method,
     startDate: draft.startDate,
@@ -87,8 +91,13 @@ export function useProjectCreation() {
   return {
     step: flow.step,
     projectName: draft.projectName,
+    startMarkerImage: draft.startMarkerImage,
+    endMarkerImage: draft.endMarkerImage,
+    clientMode: draft.clientMode,
+    selectedExistingClientName: draft.selectedExistingClientName,
     clientName: draft.clientName,
     clientAvatar: draft.clientAvatar,
+    existingClients,
     projectType: draft.projectType,
     method: draft.method,
     isGenerating: flow.isGenerating,
@@ -107,7 +116,13 @@ export function useProjectCreation() {
     canContinue: flow.canContinue,
     errorMessage,
     fileInputRef: draftState.fileInputRef,
+    startMarkerInputRef: draftState.startMarkerInputRef,
+    endMarkerInputRef: draftState.endMarkerInputRef,
     setProjectName: draftState.setProjectName,
+    setStartMarkerImage: draftState.setStartMarkerImage,
+    setEndMarkerImage: draftState.setEndMarkerImage,
+    setClientMode: draftState.setClientMode,
+    setSelectedExistingClientName: draftState.setSelectedExistingClientName,
     setClientName: draftState.setClientName,
     setClientAvatar: draftState.setClientAvatar,
     setProjectType: draftState.setProjectType,
@@ -121,8 +136,11 @@ export function useProjectCreation() {
     goBack: flow.goBack,
     handleContinue: flow.handleContinue,
     handleViewProject,
+    handleStartMarkerFileChange: draftState.handleStartMarkerFileChange,
+    handleEndMarkerFileChange: draftState.handleEndMarkerFileChange,
     handleAvatarFileChange: draftState.handleAvatarFileChange,
     handleClientAvatarChange: draftState.setClientAvatar,
+    selectExistingClient: draftState.selectExistingClient,
     fetchAvatarFromUrl: draftState.fetchAvatarFromUrl,
     togglePhase: draftState.togglePhase,
     addPhase: draftState.addPhase,

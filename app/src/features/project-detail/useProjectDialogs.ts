@@ -5,6 +5,7 @@ import { toUserFacingErrorMessage } from "@/lib/errors";
 import { formatInputDate, parseInputDate } from "@/lib/format";
 import {
   prepareClientAvatarUpload,
+  prepareProjectMarkerUpload,
   uploadFileToR2,
 } from "@/lib/r2Uploads";
 import { syncPhasesInputSchema } from "@/data-ops/schema";
@@ -44,13 +45,20 @@ export function useProjectDialogs({
   const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
   const [state, setState] = useState<ProjectDialogState>(DEFAULT_DIALOG_STATE);
   const [editNameValue, setEditNameValue] = useState("");
+  const [editStartMarkerDataUrl, setEditStartMarkerDataUrl] = useState<string | null>(null);
+  const [editEndMarkerDataUrl, setEditEndMarkerDataUrl] = useState<string | null>(null);
+  const [pendingStartMarkerFile, setPendingStartMarkerFile] = useState<File | null>(null);
+  const [pendingEndMarkerFile, setPendingEndMarkerFile] = useState<File | null>(null);
   const [editClientValue, setEditClientValue] = useState("");
   const [editClientAvatarDataUrl, setEditClientAvatarDataUrl] = useState<string | null>(null);
   const [pendingClientAvatarFile, setPendingClientAvatarFile] = useState<File | null>(null);
+  const [isSavingProject, setIsSavingProject] = useState(false);
   const [isSavingClient, setIsSavingClient] = useState(false);
   const [editStartDate, setEditStartDate] = useState("");
   const [editEndDate, setEditEndDate] = useState("");
   const [editPhasesValue, setEditPhasesValue] = useState("");
+  const startMarkerInputRef = useRef<HTMLInputElement>(null);
+  const endMarkerInputRef = useRef<HTMLInputElement>(null);
   const clientAvatarInputRef = useRef<HTMLInputElement>(null);
 
   function setOpen(dialog: ProjectDialogKey, open: boolean) {
@@ -63,7 +71,59 @@ export function useProjectDialogs({
     }
 
     setEditNameValue(project.name);
+    setEditStartMarkerDataUrl(project.startMarkerImageUrl ?? null);
+    setEditEndMarkerDataUrl(project.endMarkerImageUrl ?? null);
+    setPendingStartMarkerFile(null);
+    setPendingEndMarkerFile(null);
     setOpen("editName", true);
+  }
+
+  function handleStartMarkerInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    void prepareProjectMarkerUpload(file)
+      .then((prepared) => {
+        setPendingStartMarkerFile(prepared.file);
+        setEditStartMarkerDataUrl(prepared.previewUrl);
+      })
+      .catch((error) => {
+        showError(toUserFacingErrorMessage(error, "Could not prepare this image."));
+      })
+      .finally(() => {
+        event.target.value = "";
+      });
+  }
+
+  function handleEndMarkerInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    void prepareProjectMarkerUpload(file)
+      .then((prepared) => {
+        setPendingEndMarkerFile(prepared.file);
+        setEditEndMarkerDataUrl(prepared.previewUrl);
+      })
+      .catch((error) => {
+        showError(toUserFacingErrorMessage(error, "Could not prepare this image."));
+      })
+      .finally(() => {
+        event.target.value = "";
+      });
+  }
+
+  function handleRemoveStartMarker() {
+    setPendingStartMarkerFile(null);
+    setEditStartMarkerDataUrl(null);
+  }
+
+  function handleRemoveEndMarker() {
+    setPendingEndMarkerFile(null);
+    setEditEndMarkerDataUrl(null);
   }
 
   function openEditClientDialog() {
@@ -120,22 +180,73 @@ export function useProjectDialogs({
     setOpen("editPhases", true);
   }
 
-  async function handleSaveProjectName() {
+  async function handleSaveProject() {
     if (!project) {
       return;
     }
 
     const name = editNameValue.trim();
-    if (!name || name === project.name) {
+    const startMarkerRemoved = !editStartMarkerDataUrl && Boolean(project.startMarkerImageUrl);
+    const endMarkerRemoved = !editEndMarkerDataUrl && Boolean(project.endMarkerImageUrl);
+    const hasPendingStartMarkerUpload = Boolean(pendingStartMarkerFile);
+    const hasPendingEndMarkerUpload = Boolean(pendingEndMarkerFile);
+    const nameChanged = name !== project.name;
+
+    if (
+      !name ||
+      (!nameChanged &&
+        !startMarkerRemoved &&
+        !endMarkerRemoved &&
+        !hasPendingStartMarkerUpload &&
+        !hasPendingEndMarkerUpload)
+    ) {
       setOpen("editName", false);
       return;
     }
 
+    setIsSavingProject(true);
     try {
-      await updateProject({ projectId, name });
+      const payload: {
+        projectId: Id<"projects">;
+        name?: string;
+        startMarkerImageUrl?: string | null;
+        endMarkerImageUrl?: string | null;
+      } = { projectId };
+
+      if (nameChanged) {
+        payload.name = name;
+      }
+
+      if (hasPendingStartMarkerUpload && pendingStartMarkerFile) {
+        payload.startMarkerImageUrl = await uploadFileToR2({
+          generateUploadUrl: r2GenerateUploadUrl,
+          syncMetadata: r2SyncMetadata,
+          purpose: "project-marker",
+          file: pendingStartMarkerFile,
+        });
+      } else if (startMarkerRemoved) {
+        payload.startMarkerImageUrl = null;
+      }
+
+      if (hasPendingEndMarkerUpload && pendingEndMarkerFile) {
+        payload.endMarkerImageUrl = await uploadFileToR2({
+          generateUploadUrl: r2GenerateUploadUrl,
+          syncMetadata: r2SyncMetadata,
+          purpose: "project-marker",
+          file: pendingEndMarkerFile,
+        });
+      } else if (endMarkerRemoved) {
+        payload.endMarkerImageUrl = null;
+      }
+
+      await updateProject(payload);
+      setPendingStartMarkerFile(null);
+      setPendingEndMarkerFile(null);
       setOpen("editName", false);
     } catch (error) {
-      showError(toUserFacingErrorMessage(error, "Could not update the project name."));
+      showError(toUserFacingErrorMessage(error, "Could not update the project."));
+    } finally {
+      setIsSavingProject(false);
     }
   }
 
@@ -275,12 +386,17 @@ export function useProjectDialogs({
   return {
     state,
     editNameValue,
+    editStartMarkerDataUrl,
+    editEndMarkerDataUrl,
     editClientValue,
     editClientAvatarDataUrl,
     editStartDate,
     editEndDate,
     editPhasesValue,
+    isSavingProject,
     isSavingClient,
+    startMarkerInputRef,
+    endMarkerInputRef,
     clientAvatarInputRef,
     setOpen,
     openEditNameDialog,
@@ -288,13 +404,17 @@ export function useProjectDialogs({
     openTimelineDialog,
     openPhasesDialog,
     setEditNameValue,
+    handleStartMarkerInputChange,
+    handleEndMarkerInputChange,
+    handleRemoveStartMarker,
+    handleRemoveEndMarker,
     setEditClientValue,
     handleClientAvatarInputChange,
     handleRemoveClientAvatar,
     setEditStartDate,
     setEditEndDate,
     setEditPhasesValue,
-    handleSaveProjectName,
+    handleSaveProject,
     handleSaveClient,
     handleSaveTimeline,
     handleSavePhases,

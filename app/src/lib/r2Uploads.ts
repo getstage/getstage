@@ -6,6 +6,7 @@ import { readFileAsDataUrl } from "@/lib/utils";
 export const TASK_ATTACHMENT_ACCEPT = ".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.txt";
 export const CSV_ACCEPT = ".csv,text/csv";
 export const AVATAR_ACCEPT = ".jpg,.jpeg,.png,.webp";
+export const PROJECT_MARKER_ACCEPT = ".jpg,.jpeg,.png,.webp";
 export const PORTAL_LOGO_ACCEPT = ".jpg,.jpeg,.png,.webp,.svg";
 
 type MutationFn = ReturnType<typeof useMutation<FunctionReference<"mutation">>>;
@@ -142,6 +143,19 @@ export async function prepareAvatarUpload(file: File): Promise<PreparedUpload> {
 export async function prepareClientAvatarUpload(file: File): Promise<PreparedUpload> {
   const converted = await convertRasterImageToWebP(file);
   const validationError = validateUploadFile("client-avatar", converted);
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  return {
+    file: converted,
+    previewUrl: await readFileAsDataUrl(converted),
+  };
+}
+
+export async function prepareProjectMarkerUpload(file: File): Promise<PreparedUpload> {
+  const converted = await convertRasterImageToWebP(file);
+  const validationError = validateUploadFile("project-marker", converted);
   if (validationError) {
     throw new Error(validationError);
   }

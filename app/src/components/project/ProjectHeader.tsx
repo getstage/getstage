@@ -32,10 +32,10 @@ export function ProjectHeader({
     <section className="flex flex-col gap-6 text-center sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:text-left">
       <div className="flex min-w-0 flex-col items-center sm:flex-row sm:items-center sm:gap-3">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-input-bg sm:h-8 sm:w-8">
-          {project.clientAvatarUrl ? (
+          {project.projectImageUrl ?? project.clientAvatarUrl ? (
             <img
-              src={project.clientAvatarUrl}
-              alt={project.clientName}
+              src={project.projectImageUrl ?? project.clientAvatarUrl}
+              alt={project.name}
               className="h-full w-full object-cover"
             />
           ) : null}
@@ -86,7 +86,7 @@ export function ProjectHeader({
                 onSelect={onEditName}
                 className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-text-primary outline-none hover:bg-bg-subtle"
               >
-                Edit project name
+                Edit project
               </DropdownMenu.Item>
               <DropdownMenu.Item
                 onSelect={onEditClient}
