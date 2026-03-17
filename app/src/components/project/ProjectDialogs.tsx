@@ -17,16 +17,20 @@ type ProjectDialogsProps = {
 };
 
 export function ProjectDialogs({ project, dialogs, share }: ProjectDialogsProps) {
+  const isOwner = project.accessRole !== "editor";
+
   return (
     <>
-      <ShareProjectDialog
-        open={share.open}
-        shareUrl={share.shareUrl}
-        copied={share.copied}
-        projectId={project.id}
-        onOpenChange={share.setOpen}
-        onCopyShareUrl={() => void share.handleCopyShareUrl()}
-      />
+      {isOwner ? (
+        <ShareProjectDialog
+          open={share.open}
+          shareUrl={share.shareUrl}
+          copied={share.copied}
+          projectId={project.id}
+          onOpenChange={share.setOpen}
+          onCopyShareUrl={() => void share.handleCopyShareUrl()}
+        />
+      ) : null}
 
       <EditProjectDialog
         open={dialogs.state.editName}
@@ -72,12 +76,14 @@ export function ProjectDialogs({ project, dialogs, share }: ProjectDialogsProps)
         onSave={() => void dialogs.handleSavePhases()}
       />
 
-      <DeleteProjectDialog
-        open={dialogs.state.deleteConfirm}
-        projectName={project.name}
-        onOpenChange={(open) => dialogs.setOpen("deleteConfirm", open)}
-        onConfirm={() => void dialogs.handleConfirmDeleteProject()}
-      />
+      {isOwner ? (
+        <DeleteProjectDialog
+          open={dialogs.state.deleteConfirm}
+          projectName={project.name}
+          onOpenChange={(open) => dialogs.setOpen("deleteConfirm", open)}
+          onConfirm={() => void dialogs.handleConfirmDeleteProject()}
+        />
+      ) : null}
     </>
   );
 }

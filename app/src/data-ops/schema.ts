@@ -116,6 +116,7 @@ export const projectSchema = z.object({
   shareToken: z.string().optional(),
   shareUrl: z.string().url().optional(),
   portalEnabled: z.boolean().optional(),
+  accessRole: z.union([z.literal("owner"), z.literal("editor")]).optional(),
 });
 
 export const clientSchema = z.object({

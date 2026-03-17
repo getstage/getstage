@@ -13,6 +13,8 @@ import type * as _helpers from "../_helpers.js";
 import type * as auth from "../auth.js";
 import type * as billing from "../billing.js";
 import type * as clients from "../clients.js";
+import type * as collaboratorInviteHelpers from "../collaboratorInviteHelpers.js";
+import type * as collaboratorInvites from "../collaboratorInvites.js";
 import type * as collaborators from "../collaborators.js";
 import type * as dashboard from "../dashboard.js";
 import type * as demo from "../demo.js";
@@ -42,6 +44,8 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   billing: typeof billing;
   clients: typeof clients;
+  collaboratorInviteHelpers: typeof collaboratorInviteHelpers;
+  collaboratorInvites: typeof collaboratorInvites;
   collaborators: typeof collaborators;
   dashboard: typeof dashboard;
   demo: typeof demo;

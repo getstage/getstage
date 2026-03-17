@@ -4,7 +4,6 @@ import type { Id } from "./_generated/dataModel";
 import {
   requirePhaseAccess,
   requireTaskAccess,
-  requireTaskOwner,
 } from "./_helpers";
 import { recomputeProjectState } from "./domain/projects/readModel";
 import { deleteOldR2Asset, r2 } from "./r2";
@@ -96,7 +95,7 @@ export const deleteById = mutation({
     taskId: v.id("tasks"),
   },
   handler: async (ctx, { taskId }) => {
-    const { task, project } = await requireTaskOwner(ctx, taskId);
+    const { task, project } = await requireTaskAccess(ctx, taskId);
 
     const attachments = await ctx.db
       .query("attachments")

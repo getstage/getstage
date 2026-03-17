@@ -28,6 +28,8 @@ export function ProjectHeader({
   onTogglePaused,
   onDelete,
 }: ProjectHeaderProps) {
+  const isOwner = project.accessRole !== "editor";
+
   return (
     <section className="flex flex-col gap-6 text-center sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:text-left">
       <div className="flex min-w-0 flex-col items-center sm:flex-row sm:items-center sm:gap-3">
@@ -59,15 +61,17 @@ export function ProjectHeader({
           <ProgressBar value={project.progress} showLabel className="w-full" />
         </div>
 
-        <Button
-          variant="secondary"
-          size="sm"
-          className="h-11 w-full rounded-[10px] text-[15px] sm:h-8 sm:w-auto sm:rounded-[7px] sm:px-3 sm:text-[13px] sm:text-text-secondary"
-          onClick={onShare}
-        >
-          <ShareNetwork size={13} />
-          Share
-        </Button>
+        {isOwner ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-11 w-full rounded-[10px] text-[15px] sm:h-8 sm:w-auto sm:rounded-[7px] sm:px-3 sm:text-[13px] sm:text-text-secondary"
+            onClick={onShare}
+          >
+            <ShareNetwork size={13} />
+            Share
+          </Button>
+        ) : null}
 
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
@@ -113,13 +117,17 @@ export function ProjectHeader({
               >
                 {project.status === "paused" ? "Resume project" : "Pause project"}
               </DropdownMenu.Item>
-              <DropdownMenu.Separator className="my-1 h-px bg-border-subtle" />
-              <DropdownMenu.Item
-                onSelect={onDelete}
-                className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-destructive outline-none hover:bg-destructive/5"
-              >
-                Delete project
-              </DropdownMenu.Item>
+              {isOwner ? (
+                <>
+                  <DropdownMenu.Separator className="my-1 h-px bg-border-subtle" />
+                  <DropdownMenu.Item
+                    onSelect={onDelete}
+                    className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-destructive outline-none hover:bg-destructive/5"
+                  >
+                    Delete project
+                  </DropdownMenu.Item>
+                </>
+              ) : null}
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
         </DropdownMenu.Root>

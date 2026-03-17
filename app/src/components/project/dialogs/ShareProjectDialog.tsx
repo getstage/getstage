@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, LinkSimple, Trash, UserPlus } from "@phosphor-icons/react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { useQuery as useConvexQuery, useMutation } from "convex/react";
+import { useAction, useQuery as useConvexQuery, useMutation } from "convex/react";
 import { Button } from "@/components/ui/Button";
 import { api } from "@/lib/convex";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -25,14 +25,23 @@ export function ShareProjectDialog({
 }: ShareProjectDialogProps) {
   const [email, setEmail] = useState("");
   const [addError, setAddError] = useState("");
+  const [addSuccess, setAddSuccess] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
   const collaborators = useConvexQuery(
     api.collaborators.listByProject,
     open ? { projectId: projectId as Id<"projects"> } : "skip",
   );
-  const addCollaborator = useMutation(api.collaborators.add);
+  const addCollaborator = useAction(api.collaborators.add);
   const removeCollaborator = useMutation(api.collaborators.remove);
+
+  useEffect(() => {
+    if (!open) {
+      setEmail("");
+      setAddError("");
+      setAddSuccess("");
+    }
+  }, [open]);
 
   async function handleAddCollaborator(e: React.FormEvent) {
     e.preventDefault();
@@ -40,13 +49,23 @@ export function ShareProjectDialog({
     if (!trimmed || isAdding) return;
 
     setAddError("");
+    setAddSuccess("");
     setIsAdding(true);
     try {
-      await addCollaborator({
+      const result = await addCollaborator({
         projectId: projectId as Id<"projects">,
         email: trimmed,
       });
       setEmail("");
+
+      if (result.inviteSent) {
+        setAddSuccess("Invite sent.");
+      } else {
+        setAddError(
+          result.inviteError ??
+            "Team member added, but the invite email could not be sent.",
+        );
+      }
     } catch (error) {
       let message = "Failed to add team member. Please try again.";
       if (error instanceof Error) {
@@ -109,7 +128,7 @@ export function ShareProjectDialog({
                 Team members
               </label>
               <p className="mb-3 text-[13px] text-text-secondary">
-                Team members with an active subscription can edit tasks via the portal link.
+                Team members with an active subscription can open this project in the Stage workspace and collaborate there.
               </p>
 
               <form onSubmit={handleAddCollaborator} className="flex items-center gap-2">
@@ -122,6 +141,7 @@ export function ShareProjectDialog({
                     onChange={(e) => {
                       setEmail(e.target.value);
                       setAddError("");
+                      setAddSuccess("");
                     }}
                     className="h-10 min-w-0 flex-1 border-0 bg-transparent p-0 text-[14px] text-text-primary placeholder:text-text-tertiary focus:outline-none"
                   />
@@ -133,6 +153,9 @@ export function ShareProjectDialog({
 
               {addError ? (
                 <p className="mt-1.5 text-[12px] text-destructive">{addError}</p>
+              ) : null}
+              {addSuccess ? (
+                <p className="mt-1.5 text-[12px] text-accent">{addSuccess}</p>
               ) : null}
 
               {collaborators && collaborators.length > 0 ? (

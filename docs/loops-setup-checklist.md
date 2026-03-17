@@ -41,6 +41,25 @@ pnpm add @devwithbobby/loops
 7. Run `npx convex dev`.
 8. Test send, verify, invalid code, expired code, and sign out.
 
+### For Stage project invite emails with Loops
+
+1. Create and publish a second transactional email in Loops for project invites.
+2. Add these data variables to that transactional template:
+   - `inviterName`
+   - `projectName`
+   - `workspaceUrl`
+   - `portalUrl` (kept as a compatibility alias that currently points to the workspace invite link)
+3. Set the Convex environment variable:
+   - `LOOPS_INVITE_TRANSACTIONAL_ID`
+4. Keep the collaborator invite send wired through [collaborators.ts](/Users/wernerjohannesdieben/stage_mvp/app/convex/collaborators.ts).
+5. Run `npx convex dev`.
+6. Test:
+   - collaborator add + invite sent
+   - duplicate collaborator add
+   - missing Loops template id
+   - invite rate limit messaging
+   - fallback manual link sharing via Copy
+
 ### If you also want the `@devwithbobby/loops` Convex component
 
 This is for Loops platform integration as a Convex component. It is not required for OTP auth.
@@ -57,6 +76,7 @@ For the current Stage OTP flow:
 
 - `AUTH_LOOPS_API_KEY`
 - `AUTH_LOOPS_TRANSACTIONAL_ID`
+- `LOOPS_INVITE_TRANSACTIONAL_ID`
 - `AUTH_GOOGLE_ID`
 - `AUTH_GOOGLE_SECRET`
 - `CONVEX_SITE_URL`
@@ -66,6 +86,8 @@ For the current Stage OTP flow:
 Optional fallback currently supported in code:
 
 - `LOOPS_TRANSACTIONAL_ID`
+- `LOOPS_PROJECT_INVITE_TRANSACTIONAL_ID`
+- `AUTH_LOOPS_PROJECT_INVITE_TRANSACTIONAL_ID`
 
 ## Sources
 

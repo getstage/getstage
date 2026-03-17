@@ -8,12 +8,14 @@ import {
   ensurePortalConfig,
   getClientByUserAndName,
   requireAuthUser,
+  requireProjectAccess,
   requireProjectOwner,
   syncClientAvatarAcrossProjects,
   upsertClient,
 } from "./_helpers";
 import {
   buildProject,
+  buildProjectWithAccess,
   recomputeProjectState,
 } from "./domain/projects/readModel";
 import { deleteOldR2Asset } from "./r2";
@@ -45,8 +47,8 @@ export const getById = query({
     projectId: v.id("projects"),
   },
   handler: async (ctx, { projectId }) => {
-    const { project } = await requireProjectOwner(ctx, projectId);
-    return buildProject(ctx, project);
+    const { project, role } = await requireProjectAccess(ctx, projectId);
+    return buildProjectWithAccess(ctx, project, role);
   },
 });
 
@@ -217,7 +219,7 @@ export const update = mutation({
     status: v.optional(projectStatusValidator),
   },
   handler: async (ctx, args) => {
-    const { project } = await requireProjectOwner(ctx, args.projectId);
+    const { project } = await requireProjectAccess(ctx, args.projectId);
     const has = (key: string) => Object.prototype.hasOwnProperty.call(args, key);
 
     const nextName = args.name?.trim();
@@ -358,7 +360,7 @@ export const syncPhases = mutation({
     phases: v.array(phaseInputValidator),
   },
   handler: async (ctx, { projectId, phases }) => {
-    await requireProjectOwner(ctx, projectId);
+    await requireProjectAccess(ctx, projectId);
 
     const normalizedPhases = phases.map((phase, index) => ({
       id: phase.id,
