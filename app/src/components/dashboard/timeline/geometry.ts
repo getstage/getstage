@@ -1,4 +1,6 @@
 import {
+  CURVE_BASELINE_INSET,
+  CURVE_HEIGHT,
   DAY_MS,
   KERNEL,
   MARKER_EDGE_INSET,
@@ -172,9 +174,11 @@ export function pointsToPath(points: CurveSample[], width: number) {
     return "";
   }
 
+  const baselineY = CURVE_HEIGHT - CURVE_BASELINE_INSET;
+
   const coordinates = points.map((point) => ({
     x: point.frac * width,
-    y: 160 - point.h,
+    y: baselineY - point.h,
   }));
 
   let path = `M ${coordinates[0]!.x.toFixed(1)} ${coordinates[0]!.y.toFixed(1)}`;
@@ -291,7 +295,7 @@ export function groupProjects(
     const curveTop = 160 - curveYAt(avgPct / 100, curve);
 
     groups.push({
-      key: group.map((item) => item.project.id).join("-"),
+      key: group.map((item) => item.key).join("-"),
       pct: avgPct,
       curveTop,
       items: group,

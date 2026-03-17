@@ -31,7 +31,6 @@ export function TimelineMarkers({
           layout.width - layout.edgeInset,
         );
         const markerTop = group.curveTop - MARKER_RADIUS;
-        const markerTimestamp = layout.start + layout.rangeMs * (group.pct / 100);
         const visibleItems = group.items.slice(0, 3);
         const overflow = Math.max(group.items.length - visibleItems.length, 0);
 
@@ -44,14 +43,14 @@ export function TimelineMarkers({
           const markerProps = {
             "data-curve-marker": true,
             className:
-              "absolute z-[6] block h-9 w-9 -translate-x-1/2 overflow-hidden rounded-full border-2 border-white shadow-[0_0_0_2.5px_#8782F5] transition-[transform,box-shadow,opacity] duration-200 hover:scale-110 hover:shadow-[0_0_0_2.5px_#8782F5,0_3px_12px_rgba(26,26,46,0.12)]",
+              "absolute z-[6] block h-9 w-9 -translate-x-1/2 overflow-hidden rounded-full shadow-[0_0_0_2.5px_#8782F5] transition-[transform,box-shadow,opacity] duration-200 hover:scale-110 hover:shadow-[0_0_0_2.5px_#8782F5,0_3px_12px_rgba(26,26,46,0.12)]",
             style: {
               left: `${groupLeft}px`,
               top: `${markerTop}px`,
               opacity: markerOpacity(item.project, hoveredProjectId),
             },
             onMouseEnter: (event: ReactMouseEvent<HTMLElement>) =>
-              onMarkerEnter(item.project, markerTimestamp, event.currentTarget),
+              onMarkerEnter(item.project, item.markerTimestamp, event.currentTarget),
             onMouseLeave: () => onMarkerLeave(item.project.id),
           };
 
@@ -100,7 +99,7 @@ export function TimelineMarkers({
                     to="/project/$id"
                     params={{ id: item.project.id }}
                     data-curve-marker
-                    className={`relative block h-9 w-9 overflow-hidden rounded-full border-2 border-white shadow-[0_0_0_2.5px_#8782F5] transition-[margin,transform,box-shadow,opacity] duration-200 hover:scale-110 hover:shadow-[0_0_0_2.5px_#8782F5,0_3px_12px_rgba(26,26,46,0.12)] ${
+                    className={`relative block h-9 w-9 overflow-hidden rounded-full shadow-[0_0_0_2.5px_#8782F5] transition-[margin,transform,box-shadow,opacity] duration-200 hover:scale-110 hover:shadow-[0_0_0_2.5px_#8782F5,0_3px_12px_rgba(26,26,46,0.12)] ${
                       index > 0 ? "-mt-8 group-hover:mt-2" : ""
                     }`}
                     style={{
@@ -108,7 +107,7 @@ export function TimelineMarkers({
                       opacity: markerOpacity(item.project, hoveredProjectId),
                     }}
                     onMouseEnter={(event) =>
-                      onMarkerEnter(item.project, markerTimestamp, event.currentTarget)
+                      onMarkerEnter(item.project, item.markerTimestamp, event.currentTarget)
                     }
                     onMouseLeave={() => onMarkerLeave(item.project.id)}
                   >
@@ -125,7 +124,7 @@ export function TimelineMarkers({
                     type="button"
                     aria-label={item.project.name}
                     data-curve-marker
-                    className={`relative block h-9 w-9 overflow-hidden rounded-full border-2 border-white shadow-[0_0_0_2.5px_#8782F5] transition-[margin,transform,box-shadow,opacity] duration-200 hover:scale-110 hover:shadow-[0_0_0_2.5px_#8782F5,0_3px_12px_rgba(26,26,46,0.12)] ${
+                    className={`relative block h-9 w-9 overflow-hidden rounded-full shadow-[0_0_0_2.5px_#8782F5] transition-[margin,transform,box-shadow,opacity] duration-200 hover:scale-110 hover:shadow-[0_0_0_2.5px_#8782F5,0_3px_12px_rgba(26,26,46,0.12)] ${
                       index > 0 ? "-mt-8 group-hover:mt-2" : ""
                     }`}
                     style={{
@@ -133,7 +132,7 @@ export function TimelineMarkers({
                       opacity: markerOpacity(item.project, hoveredProjectId),
                     }}
                     onMouseEnter={(event) =>
-                      onMarkerEnter(item.project, markerTimestamp, event.currentTarget)
+                      onMarkerEnter(item.project, item.markerTimestamp, event.currentTarget)
                     }
                     onMouseLeave={() => onMarkerLeave(item.project.id)}
                   >
@@ -148,7 +147,7 @@ export function TimelineMarkers({
               )}
 
               {overflow > 0 ? (
-                <div className="relative -mt-8 flex h-9 w-9 items-center justify-center rounded-full border-[2.5px] border-white bg-border text-[11px] font-medium text-text-secondary transition-[margin,opacity] duration-200 group-hover:mt-2">
+                <div className="relative -mt-8 flex h-9 w-9 items-center justify-center rounded-full bg-border text-[11px] font-medium text-text-secondary shadow-[0_0_0_2.5px_#8782F5] transition-[margin,opacity] duration-200 group-hover:mt-2">
                   +{overflow}
                 </div>
               ) : null}
