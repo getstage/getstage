@@ -1,8 +1,9 @@
 import { v } from "convex/values";
-import { mutation } from "./_generated/server";
+import { internalMutation, mutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { ensurePortalConfig, upsertClient } from "./_helpers";
+import { deleteWorkspaceDataForUser } from "./domain/accountCleanup";
 
 function now() {
   return Date.now();
@@ -205,6 +206,128 @@ async function seedProject(
   await ensurePortalConfig(ctx, projectId);
 }
 
+async function seedWorkspaceForUser(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  args: {
+    currency: string;
+    timestamp: number;
+    name?: string;
+    email?: string;
+  },
+) {
+  const patch: Record<string, string | number> = {
+    role: "freelancer",
+    plan: "pro",
+    workCategory: "web-design",
+    onboardingProjectCreatedAt: args.timestamp,
+    onboardingCompletedAt: args.timestamp,
+    onboardingPaywallSeenAt: args.timestamp,
+    updatedAt: args.timestamp,
+  };
+
+  if (args.name) {
+    patch.name = args.name.trim();
+  }
+
+  if (args.email) {
+    patch.email = args.email.trim().toLowerCase();
+  }
+
+  await ctx.db.patch(userId, patch);
+
+  for (const project of DEMO_PROJECTS) {
+    await seedProject(ctx, userId, args.timestamp, project);
+  }
+
+  const financeEntries = [
+    {
+      sourceRecordId: "demo_invoice_acme",
+      entryType: "invoice" as const,
+      status: "pending" as const,
+      counterpartyName: "Acme Studio",
+      amountCents: 240000,
+      occurredAt: args.timestamp - days(12),
+      dueAt: args.timestamp + days(2),
+      paidAt: undefined,
+    },
+    {
+      sourceRecordId: "demo_payment_meridian",
+      entryType: "payment" as const,
+      status: "paid" as const,
+      counterpartyName: "Meridian Labs",
+      amountCents: 180000,
+      occurredAt: args.timestamp - days(6),
+      dueAt: undefined,
+      paidAt: args.timestamp - days(6),
+    },
+    {
+      sourceRecordId: "demo_payment_flowstate",
+      entryType: "payment" as const,
+      status: "paid" as const,
+      counterpartyName: "Flowstate",
+      amountCents: 95000,
+      occurredAt: args.timestamp - days(3),
+      dueAt: undefined,
+      paidAt: args.timestamp - days(3),
+    },
+  ];
+
+  for (const entry of financeEntries) {
+    await ctx.db.insert("financeEntries", {
+      userId,
+      source: "csv_upload",
+      paymentConnectionId: undefined,
+      sheetConnectionId: undefined,
+      sourceRecordId: entry.sourceRecordId,
+      entryType: entry.entryType,
+      direction: "incoming",
+      status: entry.status,
+      counterpartyName: entry.counterpartyName,
+      amountCents: entry.amountCents,
+      currency: args.currency,
+      occurredAt: entry.occurredAt,
+      dueAt: entry.dueAt,
+      paidAt: entry.paidAt,
+      projectId: undefined,
+      notes: "Demo data",
+      rawLabel: entry.counterpartyName,
+      createdAt: args.timestamp,
+      updatedAt: args.timestamp,
+    });
+  }
+
+  return {
+    seeded: true,
+    userId,
+    projectsCreated: DEMO_PROJECTS.length,
+    financeEntriesCreated: financeEntries.length,
+    currency: args.currency,
+  };
+}
+
+export const resetAndSeedDemoWorkspace = internalMutation({
+  args: {
+    userId: v.id("users"),
+    email: v.optional(v.string()),
+    name: v.optional(v.string()),
+    currency: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const currency = (args.currency ?? "USD").trim().toUpperCase();
+    const timestamp = now();
+
+    await deleteWorkspaceDataForUser(ctx, args.userId);
+
+    return seedWorkspaceForUser(ctx, args.userId, {
+      currency,
+      timestamp,
+      email: args.email,
+      name: args.name,
+    });
+  },
+});
+
 export const seedDemoWorkspace = mutation({
   args: {
     email: v.string(),
@@ -254,85 +377,16 @@ export const seedDemoWorkspace = mutation({
     }
 
     const timestamp = now();
-
-    await ctx.db.patch(user._id, {
-      role: "freelancer",
-      plan: "pro",
-      workCategory: "web-design",
-      onboardingProjectCreatedAt: timestamp,
-      onboardingCompletedAt: timestamp,
-      onboardingPaywallSeenAt: timestamp,
-      updatedAt: timestamp,
+    const result = await seedWorkspaceForUser(ctx, user._id, {
+      currency,
+      timestamp,
+      email: normalizedEmail,
+      name: user.name ?? "Stage Demo",
     });
 
-    for (const project of DEMO_PROJECTS) {
-      await seedProject(ctx, user._id, timestamp, project);
-    }
-
-    const financeEntries = [
-      {
-        sourceRecordId: "demo_invoice_acme",
-        entryType: "invoice" as const,
-        status: "pending" as const,
-        counterpartyName: "Acme Studio",
-        amountCents: 240000,
-        occurredAt: timestamp - days(12),
-        dueAt: timestamp + days(2),
-        paidAt: undefined,
-      },
-      {
-        sourceRecordId: "demo_payment_meridian",
-        entryType: "payment" as const,
-        status: "paid" as const,
-        counterpartyName: "Meridian Labs",
-        amountCents: 180000,
-        occurredAt: timestamp - days(6),
-        dueAt: undefined,
-        paidAt: timestamp - days(6),
-      },
-      {
-        sourceRecordId: "demo_payment_flowstate",
-        entryType: "payment" as const,
-        status: "paid" as const,
-        counterpartyName: "Flowstate",
-        amountCents: 95000,
-        occurredAt: timestamp - days(3),
-        dueAt: undefined,
-        paidAt: timestamp - days(3),
-      },
-    ];
-
-    for (const entry of financeEntries) {
-      await ctx.db.insert("financeEntries", {
-        userId: user._id,
-        source: "csv_upload",
-        paymentConnectionId: undefined,
-        sheetConnectionId: undefined,
-        sourceRecordId: entry.sourceRecordId,
-        entryType: entry.entryType,
-        direction: "incoming",
-        status: entry.status,
-        counterpartyName: entry.counterpartyName,
-        amountCents: entry.amountCents,
-        currency,
-        occurredAt: entry.occurredAt,
-        dueAt: entry.dueAt,
-        paidAt: entry.paidAt,
-        projectId: undefined,
-        notes: "Demo data",
-        rawLabel: entry.counterpartyName,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      });
-    }
-
     return {
-      seeded: true,
+      ...result,
       email: normalizedEmail,
-      userId: user._id,
-      projectsCreated: DEMO_PROJECTS.length,
-      financeEntriesCreated: financeEntries.length,
-      currency,
     };
   },
 });

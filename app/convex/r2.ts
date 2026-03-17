@@ -56,6 +56,8 @@ function buildObjectKey(userId: string, purpose: UploadPurpose, fileName: string
       return `users/${userId}/profile/avatar-${uuid}.${extension}`;
     case "client-avatar":
       return `users/${userId}/clients/avatar-${uuid}.${extension}`;
+    case "project-marker":
+      return `users/${userId}/projects/marker-${uuid}.${extension}`;
     case "portal-logo":
       return `users/${userId}/portal/logo-${uuid}.${extension}`;
   }
@@ -99,6 +101,7 @@ export const generateUploadUrl = mutation({
       v.literal("csv-upload"),
       v.literal("profile-avatar"),
       v.literal("client-avatar"),
+      v.literal("project-marker"),
       v.literal("portal-logo"),
     ),
     fileName: v.string(),

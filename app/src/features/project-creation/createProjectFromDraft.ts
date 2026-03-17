@@ -34,8 +34,28 @@ export async function createProjectFromDraft<TResult>({
       })
     : draft.clientAvatar?.trim() || undefined;
 
+  const startMarkerImageUrl = draft.pendingStartMarkerImageFile
+    ? await uploadFileToR2({
+        generateUploadUrl,
+        syncMetadata,
+        purpose: "project-marker",
+        file: draft.pendingStartMarkerImageFile,
+      })
+    : draft.startMarkerImage?.trim() || undefined;
+
+  const endMarkerImageUrl = draft.pendingEndMarkerImageFile
+    ? await uploadFileToR2({
+        generateUploadUrl,
+        syncMetadata,
+        purpose: "project-marker",
+        file: draft.pendingEndMarkerImageFile,
+      })
+    : draft.endMarkerImage?.trim() || undefined;
+
   const payload = buildPreparedProjectPayload({
     projectName: draft.projectName,
+    startMarkerImageUrl,
+    endMarkerImageUrl,
     clientName: draft.clientName,
     clientAvatarUrl,
     projectType: draft.projectType,

@@ -18,10 +18,10 @@ export function UpcomingTasksCard({ tasks }: UpcomingTasksCardProps) {
               }`}
             >
               <div className="h-5 w-5 overflow-hidden rounded-full bg-input-bg">
-                {entry.project.clientAvatarUrl ? (
+                {entry.project.projectImageUrl ?? entry.project.clientAvatarUrl ? (
                   <img
-                    src={entry.project.clientAvatarUrl}
-                    alt={entry.project.clientName}
+                    src={entry.project.projectImageUrl ?? entry.project.clientAvatarUrl}
+                    alt={entry.project.name}
                     className="h-full w-full object-cover"
                   />
                 ) : null}

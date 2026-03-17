@@ -11,6 +11,8 @@ export type ProjectCreationStep = WorkflowStep | "success";
 type ProjectCreationFlowInput = {
   projectName: string;
   clientName: string;
+  hasStartMarkerImage: boolean;
+  hasEndMarkerImage: boolean;
   projectType: string | null;
   method: "ai" | "manual" | null;
   startDate: string;
@@ -26,6 +28,8 @@ type ProjectCreationFlowInput = {
 export function useProjectCreationFlow({
   projectName,
   clientName,
+  hasStartMarkerImage,
+  hasEndMarkerImage,
   projectType,
   method,
   startDate,
@@ -49,7 +53,12 @@ export function useProjectCreationFlow({
   const canContinue = useMemo(() => {
     switch (step) {
       case 1:
-        return projectName.trim().length > 0 && clientName.trim().length > 0;
+        return (
+          projectName.trim().length > 0 &&
+          clientName.trim().length > 0 &&
+          hasStartMarkerImage &&
+          hasEndMarkerImage
+        );
       case 2:
         return projectType !== null;
       case 3:
@@ -68,6 +77,8 @@ export function useProjectCreationFlow({
     activePhasesLength,
     clientName,
     endDate,
+    hasEndMarkerImage,
+    hasStartMarkerImage,
     isCreating,
     method,
     projectName,
@@ -119,6 +130,10 @@ export function useProjectCreationFlow({
         const parsed = projectBasicsSchema.safeParse({ projectName, clientName });
         if (!parsed.success) {
           onError(parsed.error.issues[0]?.message ?? "Please complete the project details.");
+          return;
+        }
+        if (!hasStartMarkerImage || !hasEndMarkerImage) {
+          onError("Please upload both project marker images.");
           return;
         }
         setStep(2);

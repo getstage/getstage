@@ -4,6 +4,7 @@ import { getCurrentSubscriptionSnapshot } from "./billing";
 import {
   deleteClientAvatarIfUnused,
   deleteClientIfUnused,
+  deleteProjectMarkerImageIfUnused,
   ensurePortalConfig,
   getClientByUserAndName,
   requireAuthUser,
@@ -54,6 +55,8 @@ export const create = mutation({
     name: v.string(),
     clientName: v.string(),
     clientAvatarUrl: v.optional(v.string()),
+    startMarkerImageUrl: v.optional(v.string()),
+    endMarkerImageUrl: v.optional(v.string()),
     type: v.union(
       v.literal("branding"),
       v.literal("web-design"),
@@ -75,6 +78,8 @@ export const create = mutation({
     const plan = subscription?.plan ?? user.plan ?? "free";
     const clientName = args.clientName.trim();
     const requestedClientAvatarUrl = args.clientAvatarUrl?.trim() || undefined;
+    const startMarkerImageUrl = args.startMarkerImageUrl?.trim() || undefined;
+    const endMarkerImageUrl = args.endMarkerImageUrl?.trim() || undefined;
 
     if (plan === "free") {
       const existingProjects = await ctx.db
@@ -127,6 +132,8 @@ export const create = mutation({
       name: args.name.trim(),
       clientName,
       clientAvatarUrl: nextClientAvatarUrl,
+      startMarkerImageUrl,
+      endMarkerImageUrl,
       type: args.type,
       status: "active",
       startDate: args.startDate,
@@ -193,6 +200,9 @@ export const update = mutation({
     projectId: v.id("projects"),
     name: v.optional(v.string()),
     clientName: v.optional(v.string()),
+    clientAvatarUrl: v.optional(v.union(v.string(), v.null())),
+    startMarkerImageUrl: v.optional(v.union(v.string(), v.null())),
+    endMarkerImageUrl: v.optional(v.union(v.string(), v.null())),
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     status: v.optional(projectStatusValidator),
@@ -204,6 +214,21 @@ export const update = mutation({
     const nextClientName = args.clientName?.trim();
     const nextStartDate = args.startDate ?? project.startDate;
     const nextEndDate = args.endDate ?? project.endDate;
+    const hasClientAvatarUpdate = Object.prototype.hasOwnProperty.call(args, "clientAvatarUrl");
+    const hasStartMarkerImageUpdate = Object.prototype.hasOwnProperty.call(
+      args,
+      "startMarkerImageUrl",
+    );
+    const hasEndMarkerImageUpdate = Object.prototype.hasOwnProperty.call(args, "endMarkerImageUrl");
+    const requestedClientAvatarUrl = hasClientAvatarUpdate
+      ? args.clientAvatarUrl?.trim() || undefined
+      : undefined;
+    const requestedStartMarkerImageUrl = hasStartMarkerImageUpdate
+      ? args.startMarkerImageUrl?.trim() || undefined
+      : undefined;
+    const requestedEndMarkerImageUrl = hasEndMarkerImageUpdate
+      ? args.endMarkerImageUrl?.trim() || undefined
+      : undefined;
 
     if (nextName !== undefined && nextName.length === 0) {
       throw new Error("Project name is required.");
@@ -218,9 +243,25 @@ export const update = mutation({
     }
 
     const timestamp = now();
+    const finalClientName = nextClientName ?? project.clientName;
+    const existingTargetClient =
+      nextClientName !== undefined
+        ? await getClientByUserAndName(ctx, {
+            userId: project.userId,
+            name: finalClientName,
+          })
+        : undefined;
+    const resolvedClientAvatarUrl = hasClientAvatarUpdate
+      ? requestedClientAvatarUrl
+      : nextClientName !== undefined && existingTargetClient?.avatarUrl !== undefined
+        ? existingTargetClient.avatarUrl
+        : project.clientAvatarUrl;
     const patch: {
       name?: string;
       clientName?: string;
+      clientAvatarUrl?: string;
+      startMarkerImageUrl?: string;
+      endMarkerImageUrl?: string;
       startDate?: number;
       endDate?: number;
       status?: "active" | "paused" | "completed";
@@ -238,11 +279,21 @@ export const update = mutation({
     if (nextClientName !== undefined && nextClientName !== project.clientName) {
       patch.clientName = nextClientName;
       hasChanges = true;
-      await upsertClient(ctx, {
-        userId: project.userId,
-        name: nextClientName,
-        avatarUrl: project.clientAvatarUrl,
-      });
+    }
+
+    if (resolvedClientAvatarUrl !== project.clientAvatarUrl) {
+      patch.clientAvatarUrl = resolvedClientAvatarUrl;
+      hasChanges = true;
+    }
+
+    if (hasStartMarkerImageUpdate && requestedStartMarkerImageUrl !== project.startMarkerImageUrl) {
+      patch.startMarkerImageUrl = requestedStartMarkerImageUrl;
+      hasChanges = true;
+    }
+
+    if (hasEndMarkerImageUpdate && requestedEndMarkerImageUrl !== project.endMarkerImageUrl) {
+      patch.endMarkerImageUrl = requestedEndMarkerImageUrl;
+      hasChanges = true;
     }
 
     if (nextStartDate !== project.startDate) {
@@ -264,10 +315,59 @@ export const update = mutation({
       await ctx.db.patch(args.projectId, patch);
     }
 
+    if (nextClientName !== undefined || hasClientAvatarUpdate) {
+      await upsertClient(ctx, {
+        userId: project.userId,
+        name: finalClientName,
+        avatarUrl: resolvedClientAvatarUrl ?? null,
+      });
+    }
+
+    if (hasClientAvatarUpdate) {
+      const previousAvatarUrls = await syncClientAvatarAcrossProjects(ctx, {
+        userId: project.userId,
+        clientName: finalClientName,
+        avatarUrl: resolvedClientAvatarUrl ?? null,
+      });
+
+      await Promise.all(
+        previousAvatarUrls.map((avatarUrl) =>
+          deleteClientAvatarIfUnused(ctx, {
+            userId: project.userId,
+            avatarUrl,
+          }),
+        ),
+      );
+    }
+
     if (nextClientName !== undefined && nextClientName !== project.clientName) {
       await deleteClientIfUnused(ctx, {
         userId: project.userId,
         name: project.clientName,
+      });
+    }
+
+    if (resolvedClientAvatarUrl !== project.clientAvatarUrl) {
+      await deleteClientAvatarIfUnused(ctx, {
+        userId: project.userId,
+        avatarUrl: project.clientAvatarUrl,
+      });
+    }
+
+    if (
+      hasStartMarkerImageUpdate &&
+      requestedStartMarkerImageUrl !== project.startMarkerImageUrl
+    ) {
+      await deleteProjectMarkerImageIfUnused(ctx, {
+        userId: project.userId,
+        imageUrl: project.startMarkerImageUrl,
+      });
+    }
+
+    if (hasEndMarkerImageUpdate && requestedEndMarkerImageUrl !== project.endMarkerImageUrl) {
+      await deleteProjectMarkerImageIfUnused(ctx, {
+        userId: project.userId,
+        imageUrl: project.endMarkerImageUrl,
       });
     }
 
@@ -448,6 +548,16 @@ export const deleteById = mutation({
     await deleteClientAvatarIfUnused(ctx, {
       userId: project.userId,
       avatarUrl: project.clientAvatarUrl,
+    });
+
+    await deleteProjectMarkerImageIfUnused(ctx, {
+      userId: project.userId,
+      imageUrl: project.startMarkerImageUrl,
+    });
+
+    await deleteProjectMarkerImageIfUnused(ctx, {
+      userId: project.userId,
+      imageUrl: project.endMarkerImageUrl,
     });
   },
 });

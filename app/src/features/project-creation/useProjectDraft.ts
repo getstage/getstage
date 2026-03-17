@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { DEFAULT_PHASES, AI_ROADMAPS } from "@/lib/constants";
 import { addDays, formatInputDate } from "@/lib/format";
-import { prepareClientAvatarUpload } from "@/lib/r2Uploads";
+import { prepareClientAvatarUpload, prepareProjectMarkerUpload } from "@/lib/r2Uploads";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import type { ProjectType } from "@/types";
 import {
@@ -25,7 +25,13 @@ export type UseProjectDraftResult = {
   roadmap: RoadmapTemplateItem[];
   editingPhaseId: string | null;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
+  startMarkerInputRef: React.RefObject<HTMLInputElement | null>;
+  endMarkerInputRef: React.RefObject<HTMLInputElement | null>;
   setProjectName: (value: string) => void;
+  setStartMarkerImage: (value: string | null) => void;
+  setEndMarkerImage: (value: string | null) => void;
+  setClientMode: (value: "existing" | "new") => void;
+  setSelectedExistingClientName: (value: string) => void;
   setClientName: (value: string) => void;
   setClientAvatar: (value: string | null) => void;
   setProjectType: (value: ProjectType | null) => void;
@@ -36,7 +42,10 @@ export type UseProjectDraftResult = {
   setStartDate: (value: string) => void;
   setEndDate: (value: string) => void;
   reset: () => void;
+  handleStartMarkerFileChange: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
+  handleEndMarkerFileChange: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleAvatarFileChange: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
+  selectExistingClient: (client: { name: string; avatarUrl?: string }) => void;
   fetchAvatarFromUrl: () => void;
   togglePhase: (phaseId: string) => void;
   addPhase: () => void;
@@ -52,6 +61,12 @@ function createInitialDraft(): ProjectDraft {
 
   return {
     projectName: "",
+    startMarkerImage: null,
+    endMarkerImage: null,
+    pendingStartMarkerImageFile: null,
+    pendingEndMarkerImageFile: null,
+    clientMode: "new",
+    selectedExistingClientName: "",
     clientName: "",
     clientAvatar: null,
     pendingAvatarFile: null,
@@ -74,6 +89,8 @@ export function useProjectDraft({
   const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
   const [draggingPhaseId, setDraggingPhaseId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const startMarkerInputRef = useRef<HTMLInputElement>(null);
+  const endMarkerInputRef = useRef<HTMLInputElement>(null);
   const avatarTimeoutRef = useRef<number | undefined>(undefined);
   const phaseCounterRef = useRef(DEFAULT_PHASES.length);
 
@@ -112,8 +129,56 @@ export function useProjectDraft({
     setDraft((current) => ({ ...current, projectName: value }));
   }
 
+  function setStartMarkerImage(value: string | null) {
+    setDraft((current) => ({
+      ...current,
+      startMarkerImage: value,
+      pendingStartMarkerImageFile:
+        value === null || !value.startsWith("data:") ? null : current.pendingStartMarkerImageFile,
+    }));
+  }
+
+  function setEndMarkerImage(value: string | null) {
+    setDraft((current) => ({
+      ...current,
+      endMarkerImage: value,
+      pendingEndMarkerImageFile:
+        value === null || !value.startsWith("data:") ? null : current.pendingEndMarkerImageFile,
+    }));
+  }
+
+  function setClientMode(value: "existing" | "new") {
+    setDraft((current) => ({
+      ...current,
+      clientMode: value,
+      selectedExistingClientName: value === "new" ? "" : current.selectedExistingClientName,
+      clientName:
+        value === "new"
+          ? current.clientMode === "existing"
+            ? ""
+            : current.clientName
+          : current.selectedExistingClientName,
+      clientAvatar: value === "new" ? null : current.clientAvatar,
+      pendingAvatarFile: value === "new" ? null : current.pendingAvatarFile,
+    }));
+  }
+
+  function setSelectedExistingClientName(value: string) {
+    setDraft((current) => ({
+      ...current,
+      selectedExistingClientName: value,
+    }));
+  }
+
   function setClientName(value: string) {
-    setDraft((current) => ({ ...current, clientName: value }));
+    setDraft((current) => ({
+      ...current,
+      clientMode: "new",
+      selectedExistingClientName: "",
+      clientName: value,
+      clientAvatar: null,
+      pendingAvatarFile: null,
+    }));
   }
 
   function setClientAvatar(value: string | null) {
@@ -146,6 +211,46 @@ export function useProjectDraft({
 
   function setEndDate(value: string) {
     setDraft((current) => ({ ...current, endDate: value }));
+  }
+
+  async function handleStartMarkerFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    try {
+      const prepared = await prepareProjectMarkerUpload(file);
+      setDraft((current) => ({
+        ...current,
+        pendingStartMarkerImageFile: prepared.file,
+        startMarkerImage: prepared.previewUrl,
+      }));
+    } catch (error) {
+      onError?.(toUserFacingErrorMessage(error, "Could not prepare this image."));
+    } finally {
+      event.target.value = "";
+    }
+  }
+
+  async function handleEndMarkerFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    try {
+      const prepared = await prepareProjectMarkerUpload(file);
+      setDraft((current) => ({
+        ...current,
+        pendingEndMarkerImageFile: prepared.file,
+        endMarkerImage: prepared.previewUrl,
+      }));
+    } catch (error) {
+      onError?.(toUserFacingErrorMessage(error, "Could not prepare this image."));
+    } finally {
+      event.target.value = "";
+    }
   }
 
   async function handleAvatarFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -190,6 +295,17 @@ export function useProjectDraft({
         avatarFetching: false,
       }));
     }, avatarFetchDelayMs);
+  }
+
+  function selectExistingClient(client: { name: string; avatarUrl?: string }) {
+    setDraft((current) => ({
+      ...current,
+      clientMode: "existing",
+      selectedExistingClientName: client.name,
+      clientName: client.name,
+      clientAvatar: client.avatarUrl ?? null,
+      pendingAvatarFile: null,
+    }));
   }
 
   function togglePhase(phaseId: string) {
@@ -291,7 +407,13 @@ export function useProjectDraft({
     roadmap,
     editingPhaseId,
     fileInputRef,
+    startMarkerInputRef,
+    endMarkerInputRef,
     setProjectName,
+    setStartMarkerImage,
+    setEndMarkerImage,
+    setClientMode,
+    setSelectedExistingClientName,
     setClientName,
     setClientAvatar,
     setProjectType,
@@ -302,7 +424,10 @@ export function useProjectDraft({
     setStartDate,
     setEndDate,
     reset,
+    handleStartMarkerFileChange,
+    handleEndMarkerFileChange,
     handleAvatarFileChange,
+    selectExistingClient,
     fetchAvatarFromUrl,
     togglePhase,
     addPhase,

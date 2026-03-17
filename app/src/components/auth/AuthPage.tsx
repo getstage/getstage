@@ -166,6 +166,23 @@ export function AuthPage() {
     }
   }
 
+  async function handleDemoSignIn() {
+    setError("");
+    setLoading(true);
+    try {
+      await signIn("demo");
+    } catch (error) {
+      setError(
+        toUserFacingErrorMessage(
+          error,
+          "Demo sign-in is temporarily unavailable. Please try again.",
+        ),
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <>
       <Helmet>
@@ -243,6 +260,15 @@ export function AuthPage() {
                     />
                   </svg>
                   Continue with Google
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDemoSignIn}
+                  disabled={loading}
+                  className="mt-3 flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-[10px] border border-border bg-bg-subtle px-4 py-2.5 text-[14px] font-medium text-text-primary transition-colors hover:bg-white disabled:opacity-50"
+                >
+                  Continue with demo
                 </button>
               </motion.div>
             ) : (

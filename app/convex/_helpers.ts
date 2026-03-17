@@ -136,7 +136,7 @@ export async function upsertClient(
   args: {
     userId: Id<"users">;
     name: string;
-    avatarUrl?: string;
+    avatarUrl?: string | null;
   },
 ) {
   const existing = await ctx.db
@@ -145,9 +145,10 @@ export async function upsertClient(
     .unique();
 
   const timestamp = now();
+  const hasAvatarUpdate = Object.prototype.hasOwnProperty.call(args, "avatarUrl");
 
   if (existing) {
-    const nextAvatarUrl = args.avatarUrl ?? existing.avatarUrl;
+    const nextAvatarUrl = hasAvatarUpdate ? (args.avatarUrl ?? undefined) : existing.avatarUrl;
     if (nextAvatarUrl !== existing.avatarUrl) {
       await ctx.db.patch(existing._id, {
         avatarUrl: nextAvatarUrl,
@@ -160,7 +161,7 @@ export async function upsertClient(
   return ctx.db.insert("clients", {
     userId: args.userId,
     name: args.name,
-    avatarUrl: args.avatarUrl,
+    avatarUrl: args.avatarUrl ?? undefined,
     createdAt: timestamp,
     updatedAt: timestamp,
   });
@@ -188,10 +189,11 @@ export async function syncClientAvatarAcrossProjects(
   args: {
     userId: Id<"users">;
     clientName: string;
-    avatarUrl: string;
+    avatarUrl?: string | null;
   },
 ) {
   const targetKey = normalizeClientKey(args.clientName);
+  const nextAvatarUrl = args.avatarUrl ?? undefined;
   const projects = await ctx.db
     .query("projects")
     .withIndex("by_user", (q) => q.eq("userId", args.userId))
@@ -200,7 +202,7 @@ export async function syncClientAvatarAcrossProjects(
   const matchingProjects = projects.filter(
     (project) =>
       normalizeClientKey(project.clientName) === targetKey &&
-      project.clientAvatarUrl !== args.avatarUrl,
+      project.clientAvatarUrl !== nextAvatarUrl,
   );
 
   if (matchingProjects.length === 0) {
@@ -219,7 +221,7 @@ export async function syncClientAvatarAcrossProjects(
   await Promise.all(
     matchingProjects.map((project) =>
       ctx.db.patch(project._id, {
-        clientAvatarUrl: args.avatarUrl,
+        clientAvatarUrl: nextAvatarUrl,
         updatedAt: timestamp,
       }),
     ),
@@ -260,6 +262,33 @@ export async function deleteClientAvatarIfUnused(
   }
 
   await deleteOldR2Asset(ctx, args.avatarUrl);
+}
+
+export async function deleteProjectMarkerImageIfUnused(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    imageUrl: string | null | undefined;
+  },
+) {
+  if (!args.imageUrl) {
+    return;
+  }
+
+  const projects = await ctx.db
+    .query("projects")
+    .withIndex("by_user", (q) => q.eq("userId", args.userId))
+    .collect();
+
+  const isStillUsed = projects.some(
+    (project) =>
+      project.startMarkerImageUrl === args.imageUrl || project.endMarkerImageUrl === args.imageUrl,
+  );
+  if (isStillUsed) {
+    return;
+  }
+
+  await deleteOldR2Asset(ctx, args.imageUrl);
 }
 
 export async function deleteClientIfUnused(
