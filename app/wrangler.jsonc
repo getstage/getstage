@@ -4,6 +4,12 @@
   "main": "worker/index.ts",
   "compatibility_date": "2025-02-20",
   "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "logs": {
+      "enabled": false,
+      "invocation_logs": true
+    }
+  },
   "assets": {
     "binding": "ASSETS",
     "directory": "dist",
@@ -24,7 +30,8 @@
     "production": {
       "name": "stage-app-production",
       "routes": [
-        { "pattern": "getstage.co", "custom_domain": true }
+        { "pattern": "getstage.co", "custom_domain": true },
+        { "pattern": "www.getstage.co", "custom_domain": true }
       ]
     }
   }

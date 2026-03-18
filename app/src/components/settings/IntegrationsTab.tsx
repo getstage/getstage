@@ -65,6 +65,7 @@ export function IntegrationsTab({
   onGoogleSheetHelpDialogOpenChange,
 }: IntegrationsTabProps) {
   const stripeStatusLabel = formatConnectionStatus(stripeConnection?.status ?? null);
+  const stripeErrorMessage = formatStripeErrorMessage(stripeConnection?.lastSyncError ?? null);
   const googleSheetStatusLabel = formatConnectionStatus(googleSheetConnection?.status ?? null);
   const stripeConnected =
     stripeConnection?.status === "active" || stripeConnection?.status === "pending";
@@ -208,8 +209,8 @@ export function IntegrationsTab({
                   {formatTimestamp(stripeConnection?.lastSyncedAt)}
                 </span>
               </div>
-              {stripeConnection?.lastSyncError ? (
-                <div className="text-[#E07070]">{stripeConnection.lastSyncError}</div>
+              {stripeErrorMessage ? (
+                <div className="text-[#E07070]">{stripeErrorMessage}</div>
               ) : null}
             </div>
           </div>
@@ -365,6 +366,39 @@ function formatConnectionStatus(status: string | null) {
     default:
       return status;
   }
+}
+
+function formatStripeErrorMessage(message: string | null) {
+  if (!message) {
+    return null;
+  }
+
+  const normalized = message.trim().toLowerCase();
+
+  switch (normalized) {
+    case "access_denied":
+      return "Access denied.";
+    case "invalid_client":
+    case "unauthorized_client":
+      return "Stripe connection is unavailable right now.";
+    case "invalid_grant":
+      return "This Stripe connection expired. Please reconnect Stripe.";
+    case "invalid_request":
+    case "invalid_scope":
+      return "Stripe needs attention before it can connect.";
+    default:
+      break;
+  }
+
+  if (/access[\s_-]?denied|forbidden|not authorized|unauthorized/i.test(message)) {
+    return "Access denied.";
+  }
+
+  if (/oauth|client_id|client_secret|redirect_uri|webhook|secret|signature/i.test(message)) {
+    return "Stripe needs attention before it can connect.";
+  }
+
+  return message;
 }
 
 function formatTimestamp(value: number | null | undefined) {
