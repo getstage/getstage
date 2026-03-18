@@ -89,6 +89,7 @@ export function OnboardingModal({
                 creationReady={controller.creationReady}
                 isCheckoutLoading={controller.isCheckoutLoading}
                 checkoutError={controller.checkoutError}
+                existingClients={controller.existingClients}
                 onSheetUrlChange={controller.setSheetUrl}
                 onToggleCsvConnection={controller.handleToggleCsvConnection}
                 onLinkSheetUrl={controller.handleLinkSheetUrl}

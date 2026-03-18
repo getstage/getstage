@@ -4,6 +4,7 @@ export type OnboardingStepId =
   | "welcome"
   | "personalise"
   | "details"
+  | "client"
   | "project-type"
   | "method"
   | "phase-select"
@@ -26,7 +27,9 @@ export type OnboardingSubmission = {
   fieldOfWorkSelections: ProjectType[];
   createProject: boolean;
   projectName: string;
+  projectImageUrl: string | null;
   clientName: string;
+  clientEmail: string;
   clientAvatarUrl: string | null;
   projectType: ProjectType;
   csvConnected: boolean;

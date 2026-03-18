@@ -1,4 +1,5 @@
 import {
+  clientInfoSchema,
   dateRangeInputSchema,
   manualPhaseSelectionSchema,
   projectBasicsSchema,
@@ -14,7 +15,10 @@ type ValidationContext = {
   setProjectLater: boolean;
   method: Method;
   projectName: string;
+  hasProjectImage: boolean;
   clientName: string;
+  clientEmail: string;
+  hasClientAvatar: boolean;
   projectType: ProjectType | null;
   activePhasesLength: number;
   startDate: string;
@@ -37,6 +41,7 @@ export function getFlowSteps({
       "welcome",
       "personalise",
       "details",
+      "client",
       "project-type",
       "method",
       "phase-select",
@@ -50,6 +55,7 @@ export function getFlowSteps({
     "welcome",
     "personalise",
     "details",
+    "client",
     "project-type",
     "method",
     "timeline",
@@ -76,7 +82,10 @@ export function canContinue({
   setProjectLater,
   method,
   projectName,
+  hasProjectImage,
   clientName,
+  clientEmail,
+  hasClientAvatar,
   projectType,
   activePhasesLength,
 }: Omit<ValidationContext, "startDate" | "endDate">) {
@@ -86,7 +95,9 @@ export function canContinue({
     case "personalise":
       return fieldOfWork.length > 0;
     case "details":
-      return setProjectLater || (projectName.trim().length > 0 && clientName.trim().length > 0);
+      return setProjectLater || (projectName.trim().length > 0 && hasProjectImage);
+    case "client":
+      return clientName.trim().length > 0 && clientEmail.trim().length > 0 && hasClientAvatar;
     case "project-type":
       return projectType !== null;
     case "method":
@@ -112,7 +123,10 @@ export function getStepValidationError({
   setProjectLater,
   method,
   projectName,
+  hasProjectImage,
   clientName,
+  clientEmail,
+  hasClientAvatar,
   projectType,
   activePhasesLength,
   startDate,
@@ -140,8 +154,18 @@ export function getStepValidationError({
       if (!basicsParsed.success) {
         return basicsParsed.error.issues[0]?.message ?? "Please enter a project name.";
       }
-      if (!clientName.trim()) {
-        return "Please enter a client name.";
+      if (!hasProjectImage) {
+        return "Please upload a project image.";
+      }
+      return null;
+    }
+    case "client": {
+      const clientParsed = clientInfoSchema.safeParse({ clientName, clientEmail });
+      if (!clientParsed.success) {
+        return clientParsed.error.issues[0]?.message ?? "Please complete the client details.";
+      }
+      if (!hasClientAvatar) {
+        return "Please upload a client photo.";
       }
       return null;
     }

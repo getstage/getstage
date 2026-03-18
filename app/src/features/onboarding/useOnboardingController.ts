@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAction as useConvexAction, useMutation as useConvexMutation } from "convex/react";
+import {
+  useAction as useConvexAction,
+  useMutation as useConvexMutation,
+  useQuery as useConvexQuery,
+} from "convex/react";
 import { createProjectFromDraft } from "@/features/project-creation/createProjectFromDraft";
 import { useProjectDraft } from "@/features/project-creation/useProjectDraft";
 import {
@@ -50,6 +54,8 @@ export function useOnboardingController({
     },
   });
   const { draft, activePhases } = draftState;
+  const existingClientsResult = useConvexQuery(api.clients.listForCurrentUser, {});
+  const existingClients = useMemo(() => existingClientsResult ?? [], [existingClientsResult]);
   const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
   const markProjectCreated = useConvexMutation(api.onboarding.markProjectCreated);
   const createProject = useConvexMutation(api.projects.create);
@@ -73,7 +79,10 @@ export function useOnboardingController({
     setProjectLater,
     method: draft.method,
     projectName: draft.projectName,
+    hasProjectImage: Boolean(draft.projectImage),
     clientName: draft.clientName,
+    clientEmail: draft.clientEmail,
+    hasClientAvatar: Boolean(draft.clientAvatar),
     projectType: draft.projectType,
     activePhasesLength: activePhases.length,
   });
@@ -135,11 +144,16 @@ export function useOnboardingController({
   }, [
     activePhases.length,
     csvConnected,
+    draft.clientAvatar,
+    draft.clientEmail,
     draft.clientName,
+    draft.clientMode,
     draft.endDate,
     draft.method,
+    draft.projectImage,
     draft.projectName,
     draft.projectType,
+    draft.selectedExistingClientName,
     draft.startDate,
     fieldOfWork,
     setProjectLater,
@@ -220,7 +234,10 @@ export function useOnboardingController({
       setProjectLater,
       method: draft.method,
       projectName: draft.projectName,
+      hasProjectImage: Boolean(draft.projectImage),
       clientName: draft.clientName,
+      clientEmail: draft.clientEmail,
+      hasClientAvatar: Boolean(draft.clientAvatar),
       projectType: draft.projectType,
       activePhasesLength: activePhases.length,
       startDate: draft.startDate,
@@ -242,7 +259,10 @@ export function useOnboardingController({
         setStep("details");
         return;
       case "details":
-        setStep(setProjectLater ? "integrations" : "project-type");
+        setStep(setProjectLater ? "integrations" : "client");
+        return;
+      case "client":
+        setStep("project-type");
         return;
       case "project-type":
         setStep("method");
@@ -274,7 +294,9 @@ export function useOnboardingController({
           fieldOfWorkSelections: fieldOfWork,
           createProject: !setProjectLater && hasProjectSetup,
           projectName: draft.projectName.trim(),
+          projectImageUrl: draft.projectImage,
           clientName: draft.clientName.trim(),
+          clientEmail: draft.clientEmail.trim(),
           clientAvatarUrl: draft.clientAvatar,
           projectType: fallbackProjectType,
           csvConnected,
@@ -406,6 +428,7 @@ export function useOnboardingController({
     creationReady,
     isCheckoutLoading,
     checkoutError,
+    existingClients,
     draftState,
     handleSelectField,
     handleContinue,

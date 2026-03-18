@@ -1,7 +1,9 @@
-import { PencilSimpleLine, Trash, UserCircle } from "@phosphor-icons/react";
+import { PencilSimpleLine, Trash } from "@phosphor-icons/react";
 import integrationsImage from "@/assets/onboarding/integrations.webp";
 import { OnboardingPaywall } from "@/components/onboarding/OnboardingPaywall";
+import { Avatar } from "@/components/ui/Avatar";
 import { PROJECT_TYPES } from "@/lib/constants";
+import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@/lib/r2Uploads";
 import { cn } from "@/lib/utils";
 import type { UseProjectDraftResult } from "@/features/project-creation/useProjectDraft";
 import type { OnboardingStepId } from "@/features/onboarding/model";
@@ -29,6 +31,13 @@ type OnboardingStepRendererProps = {
   creationReady: boolean;
   isCheckoutLoading: boolean;
   checkoutError: string | null;
+  existingClients: Array<{
+    id: string;
+    name: string;
+    email?: string;
+    avatarUrl?: string;
+    projectCount: number;
+  }>;
   onSheetUrlChange: (value: string) => void;
   onToggleCsvConnection: () => void;
   onLinkSheetUrl: () => void;
@@ -52,6 +61,7 @@ export function OnboardingStepRenderer({
   creationReady,
   isCheckoutLoading,
   checkoutError,
+  existingClients,
   onSheetUrlChange,
   onToggleCsvConnection,
   onLinkSheetUrl,
@@ -60,6 +70,10 @@ export function OnboardingStepRenderer({
   onUpgrade,
 }: OnboardingStepRendererProps) {
   const { draft } = draftState;
+  const selectedClient =
+    draft.clientMode === "existing"
+      ? existingClients.find((client) => client.name === draft.selectedExistingClientName) ?? null
+      : null;
 
   switch (step) {
     case "welcome":
@@ -100,105 +114,211 @@ export function OnboardingStepRenderer({
     case "details":
       return (
         <OnboardingStepMotion motionKey="details">
-          <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
-            Set up your first project <span className="text-text-tertiary">(optional)</span>
+          <h3 className="mb-2 text-center font-heading text-[24px] font-semibold tracking-[-0.4px] text-text-primary">
+            New project
           </h3>
-          <p className="mt-2 text-[15px] leading-normal text-text-secondary">
-            You can complete this now or continue and set it up later.
+          <p className="mb-8 text-center text-[15px] leading-normal text-text-secondary">
+            Let&apos;s set it up. This only takes a minute.
           </p>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                Project name
-              </label>
-              <input
-                value={draft.projectName}
-                onChange={(event) => draftState.setProjectName(event.target.value)}
-                placeholder="Website Redesign"
-                autoFocus
-                className="w-full rounded-[10px] border border-transparent bg-input-bg px-3.5 py-2.5 text-[14px] text-text-primary transition-all duration-200 outline-none placeholder:text-text-tertiary focus:border-border focus:bg-white"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                Client
-              </label>
-              <input
-                value={draft.clientName}
-                onChange={(event) => draftState.setClientName(event.target.value)}
-                placeholder="Acme Studio"
-                className="w-full rounded-[10px] border border-transparent bg-input-bg px-3.5 py-2.5 text-[14px] text-text-primary transition-all duration-200 outline-none placeholder:text-text-tertiary focus:border-border focus:bg-white"
-              />
-            </div>
+          <div className="mb-4">
+            <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+              Project name
+            </label>
+            <input
+              type="text"
+              value={draft.projectName}
+              onChange={(event) => draftState.setProjectName(event.target.value)}
+              placeholder="Website Redesign"
+              autoFocus
+              className="w-full rounded-[10px] border border-transparent bg-input-bg px-4 py-3 text-[15px] text-text-primary outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
+            />
           </div>
 
-          <div className="mt-4">
+          <div className="mb-6">
             <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-              Client photo <span className="font-normal text-text-tertiary">- optional</span>
+              Project image <span className="font-normal text-text-tertiary">- required</span>
             </label>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-input-bg">
-                {draft.clientAvatar ? (
+            <div className="flex items-center gap-4 rounded-[12px] border border-border-subtle bg-white px-4 py-4">
+              <div className="shrink-0">
+                {draft.projectImage ? (
                   <img
-                    src={draft.clientAvatar}
-                    alt="Client avatar"
-                    className="h-full w-full object-cover"
+                    src={draft.projectImage}
+                    alt="Project"
+                    className="h-12 w-12 rounded-full border border-border-subtle object-cover"
                   />
                 ) : (
-                  <UserCircle size={20} className="text-text-tertiary" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border-subtle bg-input-bg text-[11px] text-text-tertiary">
+                    IMG
+                  </div>
                 )}
               </div>
 
-              <button
-                type="button"
-                onClick={() => draftState.fileInputRef.current?.click()}
-                className="cursor-pointer text-[13px] text-text-secondary transition-colors hover:text-accent focus:outline-none"
-              >
-                Upload photo
-              </button>
-              <button
-                type="button"
-                onClick={() => draftState.setAvatarUrlOpen(!draft.avatarUrlOpen)}
-                className="cursor-pointer text-[13px] text-text-secondary transition-colors hover:text-accent focus:outline-none"
-              >
-                Import from URL
-              </button>
-              {draft.clientAvatar ? (
+              <div className="min-w-0 space-y-1">
                 <button
                   type="button"
-                  onClick={() => draftState.setClientAvatar(null)}
-                  className="cursor-pointer text-[13px] text-text-secondary transition-colors hover:text-text-primary focus:outline-none"
+                  onClick={() => draftState.projectImageInputRef.current?.click()}
+                  className="block cursor-pointer bg-transparent p-0 text-left text-[13px] text-text-secondary transition-colors hover:text-accent"
+                >
+                  {draft.projectImage ? "Replace photo" : "Upload photo"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => draftState.setProjectImage(null)}
+                  disabled={!draft.projectImage}
+                  className="block cursor-pointer bg-transparent p-0 text-left text-[13px] text-text-secondary transition-colors hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Remove
                 </button>
-              ) : null}
+              </div>
             </div>
 
-            {draft.avatarUrlOpen ? (
-              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                <input
-                  value={draft.avatarUrlInput}
-                  onChange={(event) => draftState.setAvatarUrlInput(event.target.value)}
-                  placeholder="Paste image URL..."
-                  className="h-9 flex-1 rounded-[8px] border border-transparent bg-input-bg px-3 text-[13px] text-text-primary transition-all duration-200 outline-none placeholder:text-text-tertiary focus:border-border focus:bg-white"
+            <input
+              ref={draftState.projectImageInputRef}
+              type="file"
+              accept={PROJECT_MARKER_ACCEPT}
+              className="hidden"
+              onChange={(event) => {
+                void draftState.handleProjectImageFileChange(event);
+              }}
+            />
+          </div>
+        </OnboardingStepMotion>
+      );
+    case "client":
+      return (
+        <OnboardingStepMotion motionKey="client">
+          <h3 className="mb-2 text-center font-heading text-[24px] font-semibold tracking-[-0.4px] text-text-primary">
+            Client details
+          </h3>
+          <p className="mb-8 text-center text-[15px] leading-normal text-text-secondary">
+            Who is this project for?
+          </p>
+
+          <div className="mb-4">
+            <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+              Client
+            </label>
+            <select
+              value={
+                draft.clientMode === "existing"
+                  ? draft.selectedExistingClientName
+                  : "__new__"
+              }
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                if (nextValue === "__new__") {
+                  draftState.setClientMode("new");
+                  return;
+                }
+
+                const client = existingClients.find((item) => item.name === nextValue);
+                if (!client) {
+                  draftState.setClientMode("new");
+                  return;
+                }
+
+                draftState.selectExistingClient(client);
+              }}
+              className="w-full rounded-[10px] border border-transparent bg-input-bg px-4 py-3 text-[15px] text-text-primary outline-none transition-all duration-200 focus:border-border focus:bg-white"
+            >
+              <option value="__new__">Create a new client</option>
+              {existingClients.map((client) => (
+                <option key={client.id} value={client.name}>
+                  {client.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {draft.clientMode === "existing" && selectedClient ? (
+            <div className="mb-4 flex items-center gap-3 rounded-[12px] border border-border-subtle bg-bg-subtle px-3 py-3">
+              <Avatar
+                name={selectedClient.name}
+                src={selectedClient.avatarUrl}
+                size="md"
+                className="border border-border-subtle"
+              />
+              <div className="min-w-0">
+                <p className="truncate text-[14px] font-medium text-text-primary">
+                  {selectedClient.name}
+                </p>
+                <p className="text-[12px] text-text-secondary">
+                  {selectedClient.projectCount} project{selectedClient.projectCount === 1 ? "" : "s"}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-4">
+              <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                Client name
+              </label>
+              <input
+                type="text"
+                value={draft.clientMode === "new" ? draft.clientName : ""}
+                onChange={(event) => draftState.setClientName(event.target.value)}
+                placeholder="Acme Studio"
+                className="w-full rounded-[10px] border border-transparent bg-input-bg px-4 py-3 text-[15px] text-text-primary outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
+              />
+            </div>
+          )}
+
+          <div className="mb-4">
+            <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+              Client email <span className="font-normal text-text-tertiary">- required</span>
+            </label>
+            <input
+              type="email"
+              value={draft.clientEmail}
+              onChange={(event) => draftState.setClientEmail(event.target.value)}
+              placeholder="client@example.com"
+              className="w-full rounded-[10px] border border-transparent bg-input-bg px-4 py-3 text-[15px] text-text-primary outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
+            />
+          </div>
+
+          <div className="mb-6">
+            <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+              Client photo <span className="font-normal text-text-tertiary">- required</span>
+            </label>
+
+            <div className="flex items-center gap-4 rounded-[12px] border border-border-subtle bg-white px-4 py-4">
+              <div className="shrink-0">
+                <Avatar
+                  name={
+                    draft.clientMode === "existing"
+                      ? draft.selectedExistingClientName || draft.clientName
+                      : draft.clientName || "Client"
+                  }
+                  src={draft.clientAvatar ?? undefined}
+                  size="lg"
+                  className="border border-border-subtle"
                 />
+              </div>
+
+              <div className="min-w-0 space-y-1">
                 <button
                   type="button"
-                  onClick={draftState.fetchAvatarFromUrl}
-                  className="h-9 cursor-pointer rounded-[8px] border border-[rgba(135,130,245,0.2)] bg-[rgba(135,130,245,0.08)] px-3 text-[13px] font-medium text-accent transition-colors hover:bg-[rgba(135,130,245,0.15)] focus:outline-none"
+                  onClick={() => draftState.fileInputRef.current?.click()}
+                  className="block cursor-pointer bg-transparent p-0 text-left text-[13px] text-text-secondary transition-colors hover:text-accent"
                 >
-                  Fetch
+                  {draft.clientAvatar ? "Replace photo" : "Upload photo"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => draftState.setClientAvatar(null)}
+                  disabled={!draft.clientAvatar}
+                  className="block cursor-pointer bg-transparent p-0 text-left text-[13px] text-text-secondary transition-colors hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Remove
                 </button>
               </div>
-            ) : null}
+            </div>
 
             <input
               ref={draftState.fileInputRef}
               type="file"
-              accept="image/*"
+              accept={AVATAR_ACCEPT}
               className="hidden"
               onChange={(event) => {
                 void draftState.handleAvatarFileChange(event);
