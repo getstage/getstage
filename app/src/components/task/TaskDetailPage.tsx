@@ -187,6 +187,7 @@ export function TaskDetailPage() {
   async function handleFiles(files: FileList | null) {
     if (!files?.length) return;
     setUploading(true);
+    setErrorMessage(null);
     try {
       for (const file of Array.from(files)) {
         const key = await uploadFileToR2({
@@ -206,6 +207,8 @@ export function TaskDetailPage() {
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 1500);
+    } catch (error) {
+      setErrorMessage(toUserFacingErrorMessage(error, "Could not upload that file."));
     } finally {
       setUploading(false);
     }
@@ -454,7 +457,11 @@ export function TaskDetailPage() {
               type="file"
               multiple
               className="hidden"
-              onChange={(event) => handleFiles(event.target.files)}
+              onChange={(event) => {
+                const files = event.target.files;
+                event.target.value = "";
+                void handleFiles(files);
+              }}
             />
           </label>
 
