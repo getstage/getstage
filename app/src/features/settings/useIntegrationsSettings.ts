@@ -18,16 +18,17 @@ import { showFriendlyFeedback } from "./feedback";
 
 type IntegrationsSettingsInput = {
   user: AuthUser | null;
+  enabled: boolean;
 };
 
-export function useIntegrationsSettings({ user }: IntegrationsSettingsInput) {
+export function useIntegrationsSettings({ user, enabled }: IntegrationsSettingsInput) {
   const stripeConnection = useConvexQuery(
     api.stripeConnect.getStripeConnectionStatus,
-    !user ? "skip" : {},
+    !user || !enabled ? "skip" : {},
   );
   const sheetConnections = useConvexQuery(
     api.googleSheets.getSheetConnectionStatus,
-    !user ? "skip" : {},
+    !user || !enabled ? "skip" : {},
   );
   const connectSheet = useConvexMutation(api.googleSheets.connectSheet);
   const disconnectSheet = useConvexMutation(api.googleSheets.disconnectSheet);
@@ -79,8 +80,12 @@ export function useIntegrationsSettings({ user }: IntegrationsSettingsInput) {
   }, [showStripeFeedback]);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     setGoogleSheetUrl(sheetConnections?.googleSheet?.sheetUrl ?? "");
-  }, [sheetConnections?.googleSheet?.sheetUrl]);
+  }, [enabled, sheetConnections?.googleSheet?.sheetUrl]);
 
   function openGoogleSheetHelpDialog(title: string, message: string) {
     setGoogleSheetHelpDialogTitle(title);

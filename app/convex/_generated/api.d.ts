@@ -11,11 +11,13 @@
 import type * as LoopsOTP from "../LoopsOTP.js";
 import type * as _helpers from "../_helpers.js";
 import type * as auth from "../auth.js";
+import type * as authCleanup from "../authCleanup.js";
 import type * as billing from "../billing.js";
 import type * as clients from "../clients.js";
 import type * as collaboratorInviteHelpers from "../collaboratorInviteHelpers.js";
 import type * as collaboratorInvites from "../collaboratorInvites.js";
 import type * as collaborators from "../collaborators.js";
+import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
 import type * as demo from "../demo.js";
 import type * as domain_accountCleanup from "../domain/accountCleanup.js";
@@ -31,6 +33,7 @@ import type * as readmodels_dashboardOverview from "../readmodels/dashboardOverv
 import type * as settings from "../settings.js";
 import type * as stripeConnect from "../stripeConnect.js";
 import type * as tasks from "../tasks.js";
+import type * as viewer from "../viewer.js";
 
 import type {
   ApiFromModules,
@@ -42,11 +45,13 @@ declare const fullApi: ApiFromModules<{
   LoopsOTP: typeof LoopsOTP;
   _helpers: typeof _helpers;
   auth: typeof auth;
+  authCleanup: typeof authCleanup;
   billing: typeof billing;
   clients: typeof clients;
   collaboratorInviteHelpers: typeof collaboratorInviteHelpers;
   collaboratorInvites: typeof collaboratorInvites;
   collaborators: typeof collaborators;
+  crons: typeof crons;
   dashboard: typeof dashboard;
   demo: typeof demo;
   "domain/accountCleanup": typeof domain_accountCleanup;
@@ -62,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   settings: typeof settings;
   stripeConnect: typeof stripeConnect;
   tasks: typeof tasks;
+  viewer: typeof viewer;
 }>;
 
 /**

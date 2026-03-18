@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAction as useConvexAction, useMutation as useConvexMutation } from "convex/react";
 import type { AuthUser } from "@/lib/auth";
 import { api } from "@/lib/convex";
 import { SAVED_FEEDBACK, useFeedback } from "@/hooks/useFeedback";
+import { convexQueryKeys } from "@/lib/queryKeys";
 import { prepareAvatarUpload, uploadFileToR2 } from "@/lib/r2Uploads";
 import { profileNameSchema } from "@/lib/validation";
 import { useSignOut } from "@/lib/auth";
@@ -19,6 +21,7 @@ export function useGeneralSettings({
   profileName,
   profileAvatarUrl,
 }: GeneralSettingsInput) {
+  const queryClient = useQueryClient();
   const updateProfile = useConvexMutation(api.settings.updateProfile);
   const deleteAccount = useConvexAction(api.settings.deleteAccount);
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
@@ -76,6 +79,7 @@ export function useGeneralSettings({
     setIsSavingName(true);
     try {
       await updateProfile({ name: parsed.data });
+      void queryClient.invalidateQueries({ queryKey: convexQueryKeys.settingsOverview });
       setName(parsed.data);
       showNameFeedback(SAVED_FEEDBACK);
     } catch (error) {
@@ -99,6 +103,7 @@ export function useGeneralSettings({
         file: pendingAvatarFile,
       });
       await updateProfile({ avatarKey: key });
+      void queryClient.invalidateQueries({ queryKey: convexQueryKeys.settingsOverview });
       setPendingAvatarFile(null);
       showAvatarFeedback(SAVED_FEEDBACK);
     } catch (error) {

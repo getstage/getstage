@@ -1,8 +1,10 @@
 import { useRef, useState, type ChangeEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMutation as useConvexMutation } from "convex/react";
 import { api } from "@/lib/convex";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { formatInputDate, parseInputDate } from "@/lib/format";
+import { convexQueryKeys } from "@/lib/queryKeys";
 import {
   prepareClientAvatarUpload,
   prepareProjectMarkerUpload,
@@ -38,6 +40,7 @@ export function useProjectDialogs({
   showError,
   onDeleteSuccess,
 }: ProjectDialogsInput): ProjectDialogController {
+  const queryClient = useQueryClient();
   const updateProject = useConvexMutation(api.projects.update);
   const syncPhases = useConvexMutation(api.projects.syncPhases);
   const deleteProject = useConvexMutation(api.projects.deleteById);
@@ -194,6 +197,7 @@ export function useProjectDialogs({
       }
 
       await updateProject(payload);
+      void queryClient.invalidateQueries({ queryKey: convexQueryKeys.dockProjects });
       setPendingProjectImageFile(null);
       setOpen("editName", false);
     } catch (error) {
@@ -243,6 +247,7 @@ export function useProjectDialogs({
       }
 
       await updateProject(payload);
+      void queryClient.invalidateQueries({ queryKey: convexQueryKeys.dockProjects });
       setPendingClientAvatarFile(null);
       setOpen("editClient", false);
     } catch (error) {
@@ -259,6 +264,7 @@ export function useProjectDialogs({
         startDate: parseInputDate(editStartDate),
         endDate: parseInputDate(editEndDate),
       });
+      void queryClient.invalidateQueries({ queryKey: convexQueryKeys.dockProjects });
       setOpen("editTimeline", false);
     } catch (error) {
       showError(toUserFacingErrorMessage(error, "Could not update the timeline."));
@@ -322,6 +328,7 @@ export function useProjectDialogs({
         projectId,
         status: project.status === "paused" ? "active" : "paused",
       });
+      void queryClient.invalidateQueries({ queryKey: convexQueryKeys.dockProjects });
     } catch (error) {
       showError(toUserFacingErrorMessage(error, "Could not update the project status."));
     }
@@ -330,6 +337,7 @@ export function useProjectDialogs({
   async function handleConfirmDeleteProject() {
     try {
       await deleteProject({ projectId });
+      void queryClient.invalidateQueries({ queryKey: convexQueryKeys.dockProjects });
       onDeleteSuccess();
     } catch (error) {
       showError(toUserFacingErrorMessage(error, "Could not delete the project."));

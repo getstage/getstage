@@ -1,7 +1,9 @@
 import { v } from "convex/values";
-import { mutation, type MutationCtx } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import {
+  getAttachmentsForTask,
+  requireProjectAccess,
   requirePhaseAccess,
   requireTaskAccess,
 } from "./_helpers";
@@ -46,6 +48,45 @@ export const create = mutation({
 
     await recomputeProjectState(ctx, project._id);
     return taskId;
+  },
+});
+
+export const getDetail = query({
+  args: {
+    taskId: v.id("tasks"),
+  },
+  handler: async (ctx, { taskId }) => {
+    const task = await ctx.db.get(taskId);
+    if (!task) {
+      return null;
+    }
+
+    const phase = await ctx.db.get(task.phaseId);
+    if (!phase) {
+      return null;
+    }
+
+    const { project, role } = await requireProjectAccess(ctx, phase.projectId);
+
+    return {
+      project: {
+        id: String(project._id),
+        name: project.name,
+        accessRole: role,
+      },
+      phase: {
+        id: String(phase._id),
+        name: phase.name,
+      },
+      task: {
+        id: String(task._id),
+        title: task.title,
+        isCompleted: task.isCompleted,
+        content: task.content,
+        attachments: await getAttachmentsForTask(ctx, task._id),
+        updatedAt: task.updatedAt,
+      },
+    };
   },
 });
 

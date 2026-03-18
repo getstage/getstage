@@ -6,6 +6,7 @@ import {
   type DragEvent,
   type MouseEvent,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMutation as useConvexMutation } from "convex/react";
 import { SAVED_FEEDBACK, useFeedback } from "@/hooks/useFeedback";
 import { DEFAULT_PORTAL_COLOR } from "@/lib/constants";
@@ -13,6 +14,7 @@ import { api } from "@/lib/convex";
 import { normalizeHex } from "@/lib/format";
 import { rebaseUrlToCurrentOrigin } from "@/lib/portal";
 import { savePortalPreviewBranding } from "@/lib/portalPreview";
+import { convexQueryKeys } from "@/lib/queryKeys";
 import {
   preparePortalLogoUpload,
   uploadFileToR2,
@@ -32,6 +34,7 @@ export function usePortalBrandingSettings({
   portalLogoUrl,
   portalAccentColor,
 }: PortalBrandingInput) {
+  const queryClient = useQueryClient();
   const updatePortalBranding = useConvexMutation(api.settings.updatePortalBranding);
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
   const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
@@ -124,6 +127,7 @@ export function usePortalBrandingSettings({
       setIsSavingPortalLogo(true);
       try {
         await updatePortalBranding({ logoUrl: null });
+        void queryClient.invalidateQueries({ queryKey: convexQueryKeys.settingsOverview });
         setPendingLogoFile(null);
         showPortalLogoFeedback(SAVED_FEEDBACK);
       } catch (error) {
@@ -147,6 +151,7 @@ export function usePortalBrandingSettings({
         file: pendingLogoFile,
       });
       await updatePortalBranding({ logoKey: key });
+      void queryClient.invalidateQueries({ queryKey: convexQueryKeys.settingsOverview });
       setPendingLogoFile(null);
       showPortalLogoFeedback(SAVED_FEEDBACK);
     } catch (error) {
@@ -162,6 +167,7 @@ export function usePortalBrandingSettings({
       await updatePortalBranding({
         accentColor: portalColor,
       });
+      void queryClient.invalidateQueries({ queryKey: convexQueryKeys.settingsOverview });
       showPortalColorFeedback(SAVED_FEEDBACK);
     } catch (error) {
       showFriendlyFeedback(showPortalColorFeedback, error, "Could not save the portal color.");

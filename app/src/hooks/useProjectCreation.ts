@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { AI_ROADMAPS } from "@/lib/constants";
@@ -6,6 +7,7 @@ import { api } from "@/lib/convex";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { createProjectFromDraft } from "@/features/project-creation/createProjectFromDraft";
 import { useProjectDraft } from "@/features/project-creation/useProjectDraft";
+import { convexQueryKeys } from "@/lib/queryKeys";
 import {
   useProjectCreationFlow,
   type ProjectCreationStep as Step,
@@ -16,6 +18,7 @@ export type { WorkflowStep, Step };
 export type { Method, PhaseItem } from "../../shared/project-creation";
 
 export function useProjectCreation() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const createProject = useConvexMutation(api.projects.create);
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
@@ -50,6 +53,7 @@ export function useProjectCreation() {
         syncMetadata: r2SyncMetadata,
         aiRoadmaps: AI_ROADMAPS,
       });
+      void queryClient.invalidateQueries({ queryKey: convexQueryKeys.dockProjects });
       setCreatedProjectId(project.id);
       flow.setStep("success");
     } catch (error) {

@@ -1,13 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import type { Project } from "@/types";
+
+export type DockProject = {
+  id: string;
+  name: string;
+  clientName: string;
+  clientAvatarUrl?: string;
+  projectImageUrl?: string;
+};
 
 const DOCK_BASE_SIZE = 44;
 const DOCK_MAX_SIZE = 72;
 const DOCK_SIGMA = 55;
 
 type ProjectDockProps = {
-  projects: Project[];
+  projects: DockProject[];
   interactive?: boolean;
 };
 

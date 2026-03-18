@@ -18,7 +18,7 @@ import {
   buildProjectWithAccess,
   recomputeProjectState,
 } from "./domain/projects/readModel";
-import { deleteOldR2Asset } from "./r2";
+import { deleteOldR2Asset, resolveAssetUrl } from "./r2";
 
 function now() {
   return Date.now();
@@ -49,6 +49,45 @@ export const getById = query({
   handler: async (ctx, { projectId }) => {
     const { project, role } = await requireProjectAccess(ctx, projectId);
     return buildProjectWithAccess(ctx, project, role);
+  },
+});
+
+export const getDockProjects = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireAuthUser(ctx);
+    const timestamp = now();
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    const activeProjects = projects
+      .filter((project) => project.status === "active" && project.endDate > timestamp)
+      .sort((a, b) => a.startDate - b.startDate || a.endDate - b.endDate)
+      .slice(0, 6);
+
+    return Promise.all(
+      activeProjects.map(async (project) => {
+        const clientAvatarUrl = await resolveAssetUrl(project.clientAvatarUrl ?? null);
+        const projectImageUrl = await resolveAssetUrl(project.projectImageUrl ?? null);
+        const startMarkerImageUrl = await resolveAssetUrl(project.startMarkerImageUrl ?? null);
+        const endMarkerImageUrl = await resolveAssetUrl(project.endMarkerImageUrl ?? null);
+
+        return {
+          id: String(project._id),
+          name: project.name,
+          clientName: project.clientName,
+          clientAvatarUrl: clientAvatarUrl ?? undefined,
+          projectImageUrl:
+            projectImageUrl ??
+            endMarkerImageUrl ??
+            startMarkerImageUrl ??
+            clientAvatarUrl ??
+            undefined,
+        };
+      }),
+    );
   },
 });
 

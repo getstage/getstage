@@ -50,11 +50,11 @@ export const getOverview = query({
       paymentConnections[0] ??
       null;
 
-    const projects = await ctx.db
-      .query("projects")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
-    const firstProject = projects[0] ?? null;
+    const firstProject =
+      (await ctx.db
+        .query("projects")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .first()) ?? null;
     const previewConfig = firstProject
       ? await ctx.db
           .query("portalConfigs")

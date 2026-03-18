@@ -5,6 +5,7 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
 import { routeTree } from "./routeTree.gen";
+import { AuthProvider } from "@/lib/auth";
 import { convex } from "@/lib/convex";
 import "@/styles/globals.css";
 
@@ -37,7 +38,9 @@ createRoot(rootEl).render(
     <HelmetProvider>
       <ConvexAuthProvider client={convex}>
         <QueryClientProvider client={queryClient}>
-          <RouterProvider router={router} />
+          <AuthProvider>
+            <RouterProvider router={router} />
+          </AuthProvider>
         </QueryClientProvider>
       </ConvexAuthProvider>
     </HelmetProvider>
