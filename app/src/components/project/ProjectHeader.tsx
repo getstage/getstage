@@ -5,6 +5,7 @@ import {
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { Avatar } from "@/components/ui/Avatar";
 import type { Project } from "@/types";
 
 type ProjectHeaderProps = {
@@ -33,15 +34,13 @@ export function ProjectHeader({
   return (
     <section className="flex flex-col gap-6 text-center sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:text-left">
       <div className="flex min-w-0 flex-col items-center sm:flex-row sm:items-center sm:gap-3">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-input-bg sm:h-8 sm:w-8">
-          {project.projectImageUrl ?? project.clientAvatarUrl ? (
-            <img
-              src={project.projectImageUrl ?? project.clientAvatarUrl}
-              alt={project.name}
-              className="h-full w-full object-cover"
-            />
-          ) : null}
-        </div>
+        <Avatar
+          name={project.name}
+          src={project.projectImageUrl ?? project.clientAvatarUrl}
+          size="lg"
+          variant="project"
+          className="h-14 w-14 shrink-0 sm:h-8 sm:w-8 sm:text-[11px]"
+        />
 
         <div className="min-w-0">
           <h1 className="max-w-[720px] text-balance font-heading text-[30px] font-semibold tracking-[-0.5px] text-text-primary sm:inline-block sm:max-w-none sm:text-[22px] sm:font-medium sm:tracking-[-0.3px]">

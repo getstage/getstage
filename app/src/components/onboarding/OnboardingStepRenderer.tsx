@@ -137,22 +137,18 @@ export function OnboardingStepRenderer({
 
           <div className="mb-6">
             <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-              Project image <span className="font-normal text-text-tertiary">- required</span>
+              Project image <span className="font-normal text-text-tertiary">- optional</span>
             </label>
 
             <div className="flex items-center gap-4 rounded-[12px] border border-border-subtle bg-white px-4 py-4">
               <div className="shrink-0">
-                {draft.projectImage ? (
-                  <img
-                    src={draft.projectImage}
-                    alt="Project"
-                    className="h-12 w-12 rounded-full border border-border-subtle object-cover"
-                  />
-                ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border-subtle bg-input-bg text-[11px] text-text-tertiary">
-                    IMG
-                  </div>
-                )}
+                <Avatar
+                  name={draft.projectName.trim() || "Project"}
+                  src={draft.projectImage ?? undefined}
+                  size="lg"
+                  variant="project"
+                  className="border border-border-subtle"
+                />
               </div>
 
               <div className="min-w-0 space-y-1">

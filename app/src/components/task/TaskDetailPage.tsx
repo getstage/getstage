@@ -184,12 +184,13 @@ export function TaskDetailPage() {
     );
   }
 
-  async function handleFiles(files: FileList | null) {
-    if (!files?.length) return;
+  async function handleFiles(files: File[] | FileList | null) {
+    const nextFiles = files ? Array.from(files) : [];
+    if (!nextFiles.length) return;
     setUploading(true);
     setErrorMessage(null);
     try {
-      for (const file of Array.from(files)) {
+      for (const file of nextFiles) {
         const key = await uploadFileToR2({
           generateUploadUrl: r2GenerateUploadUrl,
           syncMetadata: r2SyncMetadata,
@@ -458,7 +459,7 @@ export function TaskDetailPage() {
               multiple
               className="hidden"
               onChange={(event) => {
-                const files = event.target.files;
+                const files = event.target.files ? Array.from(event.target.files) : [];
                 event.target.value = "";
                 void handleFiles(files);
               }}

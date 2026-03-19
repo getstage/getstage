@@ -98,7 +98,7 @@ const GUIDE: {
   readonly steps: readonly SourceStep[];
 } = {
   "title": "Import transactions via Google Sheets",
-  "brandImageKey": "https://assets.stepps.ai/brand-logos/93fb9ba1-c1ed-4034-bfce-7884ac07ae47/1773067497926.png",
+  "brandImageKey": "/apple-touch-icon.png",
   "steps": [
     {
       "id": "324a2a8c-36a7-411a-a3d5-5b0341758d09",
@@ -1038,8 +1038,8 @@ export default function GuideImportTransactionsViaGoogleSheetsDocs() {
               <div style={styles.brandEyebrow}>Documentation</div>
             </div>
           </div>
-          <a href="https://stepps.ai" target="_blank" rel="noreferrer" style={styles.headerBadge}>
-            Powered by Stepps
+          <a href="/" style={styles.headerBadge}>
+            Stage
           </a>
         </div>
       </header>

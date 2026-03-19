@@ -34,6 +34,7 @@ export function ProjectBentoGrid({ projects }: ProjectBentoGridProps) {
                   name={project.name}
                   src={project.projectImageUrl ?? project.clientAvatarUrl}
                   size="sm"
+                  variant="project"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[14px] font-medium text-text-primary">

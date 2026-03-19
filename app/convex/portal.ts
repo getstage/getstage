@@ -1,7 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getCurrentSubscriptionSnapshot } from "./billing";
 import { ensurePortalConfig, requireProjectOwner } from "./_helpers";
 import { buildProject } from "./domain/projects/readModel";
 import { resolveAssetUrl } from "./r2";
@@ -72,33 +71,7 @@ export const getCollaboratorAccess = query({
     }
 
     const userInfo = { name: user.name ?? null, email: user.email ?? null };
-
-    if (project.userId === userId) {
-      return { canEdit: true, user: userInfo };
-    }
-
-    const collaborator = await ctx.db
-      .query("projectCollaborators")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", config.projectId).eq("userId", userId),
-      )
-      .unique();
-
-    if (!collaborator) {
-      return { canEdit: false, user: userInfo };
-    }
-
-    const ownerSubscription = await getCurrentSubscriptionSnapshot(ctx, String(project.userId));
-    if (!ownerSubscription) {
-      return { canEdit: false, user: userInfo };
-    }
-
-    const subscription = await getCurrentSubscriptionSnapshot(ctx, String(userId));
-    if (!subscription) {
-      return { canEdit: false, user: userInfo };
-    }
-
-    return { canEdit: true, user: userInfo };
+    return { canEdit: false, user: userInfo };
   },
 });
 

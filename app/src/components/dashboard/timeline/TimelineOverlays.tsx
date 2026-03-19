@@ -66,6 +66,7 @@ export function TimelineOverlays({
                       name={project.name}
                       src={project.projectImageUrl ?? project.clientAvatarUrl}
                       size="sm"
+                      variant="project"
                       className="h-4 w-4 text-[9px]"
                     />
                     <span className="truncate">{project.name}</span>

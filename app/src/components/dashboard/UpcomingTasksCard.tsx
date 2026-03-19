@@ -1,4 +1,5 @@
 import { DashboardCard } from "@/components/dashboard/DashboardCard";
+import { Avatar } from "@/components/ui/Avatar";
 import type { DashboardTaskEntry } from "@/components/dashboard/dashboardTypes";
 
 type UpcomingTasksCardProps = {
@@ -17,15 +18,13 @@ export function UpcomingTasksCard({ tasks }: UpcomingTasksCardProps) {
                 index > 0 ? "border-t border-border-subtle" : ""
               }`}
             >
-              <div className="h-5 w-5 overflow-hidden rounded-full bg-input-bg">
-                {entry.project.projectImageUrl ?? entry.project.clientAvatarUrl ? (
-                  <img
-                    src={entry.project.projectImageUrl ?? entry.project.clientAvatarUrl}
-                    alt={entry.project.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : null}
-              </div>
+              <Avatar
+                name={entry.project.name}
+                src={entry.project.projectImageUrl ?? entry.project.clientAvatarUrl}
+                size="sm"
+                variant="project"
+                className="h-5 w-5 text-[9px]"
+              />
               <span className="truncate text-text-primary">{entry.task.title}</span>
               <span className="ml-auto rounded-full bg-border-subtle px-2 py-0.5 text-[11px] text-text-secondary">
                 {entry.phase.name}

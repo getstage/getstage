@@ -82,7 +82,6 @@ export function canContinue({
   setProjectLater,
   method,
   projectName,
-  hasProjectImage,
   clientName,
   clientEmail,
   hasClientAvatar,
@@ -95,7 +94,7 @@ export function canContinue({
     case "personalise":
       return fieldOfWork.length > 0;
     case "details":
-      return setProjectLater || (projectName.trim().length > 0 && hasProjectImage);
+      return setProjectLater || projectName.trim().length > 0;
     case "client":
       return clientName.trim().length > 0 && clientEmail.trim().length > 0 && hasClientAvatar;
     case "project-type":
@@ -123,7 +122,6 @@ export function getStepValidationError({
   setProjectLater,
   method,
   projectName,
-  hasProjectImage,
   clientName,
   clientEmail,
   hasClientAvatar,
@@ -153,9 +151,6 @@ export function getStepValidationError({
       const basicsParsed = projectBasicsSchema.safeParse({ projectName });
       if (!basicsParsed.success) {
         return basicsParsed.error.issues[0]?.message ?? "Please enter a project name.";
-      }
-      if (!hasProjectImage) {
-        return "Please upload a project image.";
       }
       return null;
     }

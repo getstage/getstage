@@ -4,6 +4,7 @@ interface AvatarProps {
   name: string;
   src?: string;
   size?: "sm" | "md" | "lg";
+  variant?: "default" | "project";
   className?: string;
 }
 
@@ -13,7 +14,13 @@ const sizeMap = {
   lg: "h-12 w-12 text-[15px]",
 };
 
-export function Avatar({ name, src, size = "md", className }: AvatarProps) {
+export function Avatar({
+  name,
+  src,
+  size = "md",
+  variant = "default",
+  className,
+}: AvatarProps) {
   if (src) {
     return (
       <img
@@ -31,7 +38,10 @@ export function Avatar({ name, src, size = "md", className }: AvatarProps) {
   return (
     <div
       className={cn(
-        "flex items-center justify-center rounded-full bg-input-bg font-medium text-text-primary",
+        "flex items-center justify-center rounded-full font-medium",
+        variant === "project"
+          ? "bg-[rgba(135,130,245,0.16)] text-accent ring-1 ring-[rgba(135,130,245,0.14)]"
+          : "bg-input-bg text-text-primary",
         sizeMap[size],
         className,
       )}

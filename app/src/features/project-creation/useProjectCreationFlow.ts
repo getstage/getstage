@@ -29,7 +29,6 @@ type ProjectCreationFlowInput = {
 
 export function useProjectCreationFlow({
   projectName,
-  hasProjectImage,
   clientName,
   clientEmail,
   hasClientAvatar,
@@ -59,7 +58,7 @@ export function useProjectCreationFlow({
   const canContinue = useMemo(() => {
     switch (step) {
       case 1:
-        return projectName.trim().length > 0 && hasProjectImage;
+        return projectName.trim().length > 0;
       case "1b":
         return (
           clientName.trim().length > 0 &&
@@ -86,7 +85,6 @@ export function useProjectCreationFlow({
     clientName,
     endDate,
     hasClientAvatar,
-    hasProjectImage,
     isCreating,
     method,
     projectName,
@@ -138,10 +136,6 @@ export function useProjectCreationFlow({
         const parsed = projectBasicsSchema.safeParse({ projectName });
         if (!parsed.success) {
           onError(parsed.error.issues[0]?.message ?? "Please enter a project name.");
-          return;
-        }
-        if (!hasProjectImage) {
-          onError("Please upload a project image.");
           return;
         }
         setStep("1b");

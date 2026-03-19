@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { getInitials } from "@/lib/utils";
 
 export type DockProject = {
   id: string;
@@ -105,11 +106,11 @@ export function ProjectDock({ projects, interactive = true }: ProjectDockProps) 
                 />
               ) : (
                 <div
-                  className={`flex h-full w-full items-center justify-center rounded-full bg-[#2A2D44] text-[13px] font-medium text-white ${
+                  className={`flex h-full w-full items-center justify-center rounded-full bg-[rgba(135,130,245,0.16)] text-[13px] font-semibold text-accent ring-1 ring-[rgba(135,130,245,0.22)] ${
                     isActive ? "shadow-[0_4px_14px_rgba(135,130,245,0.34)]" : ""
                   }`}
                 >
-                  {project.name.slice(0, 2).toUpperCase()}
+                  {getInitials(project.name)}
                 </div>
               )}
             </>
