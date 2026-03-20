@@ -16,6 +16,7 @@ import {
 import type { OnboardingStepId, OnboardingSubmission } from "@/features/onboarding/model";
 import { AI_ROADMAPS } from "@/lib/constants";
 import { api } from "@/lib/convex";
+import { getDatafastCheckoutMetadata } from "@/lib/datafast";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { convexQueryKeys } from "@/lib/queryKeys";
 import { googleSheetsUrlSchema } from "@/lib/validation";
@@ -54,7 +55,10 @@ export function useOnboardingController({
     },
   });
   const { draft, activePhases } = draftState;
-  const existingClientsResult = useConvexQuery(api.clients.listForCurrentUser, {});
+  const existingClientsResult = useConvexQuery(
+    api.clients.listForCurrentUser,
+    open ? {} : "skip",
+  );
   const existingClients = useMemo(() => existingClientsResult ?? [], [existingClientsResult]);
   const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
   const markProjectCreated = useConvexMutation(api.onboarding.markProjectCreated);
@@ -338,7 +342,10 @@ export function useOnboardingController({
     }
 
     try {
-      const result = await createCheckoutSession({ billingCycle });
+      const result = await createCheckoutSession({
+        billingCycle,
+        ...getDatafastCheckoutMetadata(),
+      });
       if (!result.url) {
         throw new Error("Checkout URL missing.");
       }

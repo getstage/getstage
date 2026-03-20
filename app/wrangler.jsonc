@@ -27,6 +27,14 @@
          { "pattern": "testing.getstage.co", "custom_domain": true }
        ]
     },
+    "stage": {
+      "name": "stage-app-stage",
+      // Stage deployt met production build-mode zodat hij dezelfde Convex/DB target gebruikt.
+      "workers_dev": true,
+      "routes": [
+        { "pattern": "stage.getstage.co", "custom_domain": true }
+      ]
+    },
     "production": {
       "name": "stage-app-production",
       "routes": [

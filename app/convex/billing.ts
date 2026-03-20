@@ -210,6 +210,8 @@ export const createCheckoutSession = action({
   args: {
     priceId: v.optional(v.string()),
     billingCycle: v.optional(v.union(v.literal("monthly"), v.literal("yearly"))),
+    datafastVisitorId: v.optional(v.string()),
+    datafastSessionId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<CheckoutSessionResponse> => {
     const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
@@ -232,6 +234,8 @@ export const createCheckoutSession = action({
       cancelUrl: urls.cancelUrl,
       metadata: {
         scope: "stage_billing",
+        ...(args.datafastVisitorId ? { datafast_visitor_id: args.datafastVisitorId } : {}),
+        ...(args.datafastSessionId ? { datafast_session_id: args.datafastSessionId } : {}),
       },
       subscriptionMetadata: {
         userId: viewer.userIdString,

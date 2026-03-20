@@ -3,6 +3,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getCurrentSubscriptionSnapshot } from "./billing";
 import { deleteOldR2Asset, r2 } from "./r2";
+import { buildNameFromEmail, getCanonicalUserByEmail, normalizeEmailAddress } from "./userEmails";
 
 function getEnv(name: string) {
   return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[
@@ -16,17 +17,6 @@ type ReaderCtx = QueryCtx | MutationCtx;
 
 function now() {
   return Date.now();
-}
-
-function sanitizeNameFromEmail(email: string) {
-  const [localPart] = email.split("@");
-  if (!localPart) return "Stage User";
-
-  return localPart
-    .split(/[._-]/g)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
 }
 
 function generateShareToken() {
@@ -171,25 +161,23 @@ export async function requireTaskAccess(
 // --- Legacy helpers (kept for backward compat during migration) ---
 
 export async function getUserByEmail(ctx: ReaderCtx, email: string) {
-  return ctx.db
-    .query("users")
-    .withIndex("email", (q) => q.eq("email", email))
-    .unique();
+  return getCanonicalUserByEmail(ctx, email);
 }
 
 export async function ensureUserByEmail(
   ctx: MutationCtx,
   args: { email: string; name?: string },
 ) {
-  const existing = await getUserByEmail(ctx, args.email);
+  const normalizedEmail = normalizeEmailAddress(args.email);
+  const existing = await getUserByEmail(ctx, normalizedEmail);
   if (existing) {
     return existing;
   }
 
   const timestamp = now();
   const userId = await ctx.db.insert("users", {
-    email: args.email,
-    name: args.name?.trim() || sanitizeNameFromEmail(args.email),
+    email: normalizedEmail,
+    name: args.name?.trim() || buildNameFromEmail(normalizedEmail),
     role: "freelancer",
     plan: "free",
     createdAt: timestamp,

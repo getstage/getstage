@@ -31,10 +31,12 @@ import { useBillingSuccessEvent } from "@/features/dashboard/useBillingSuccessEv
 import { useDashboardPreviewState } from "@/features/dashboard/useDashboardPreviewState";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/convex";
+import { getDatafastCheckoutMetadata } from "@/lib/datafast";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { getGreeting } from "@/lib/utils";
 
 const GOOGLE_SHEETS_GUIDE_HREF = "/help/import-transactions-via-google-sheets";
+const FEEDBACK_TALLY_URL = "https://tally.so/r/OD0gqM";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -43,12 +45,23 @@ export function DashboardPage() {
   const [isUpgradeLoading, setIsUpgradeLoading] = useState(false);
   const [paywallError, setPaywallError] = useState<string | null>(null);
   const { user, isLoading: authLoading } = useAuth();
-  const dashboardData = useConvexQuery(api.dashboard.getOverview, {});
-  const onboardingState = useConvexQuery(api.onboarding.getState, !user ? "skip" : {});
+  const shouldLoadDashboardData = Boolean(user);
+  const shouldLoadOnboardingState = Boolean(user && user.plan !== "pro");
+  const dashboardData = useConvexQuery(
+    api.dashboard.getOverview,
+    shouldLoadDashboardData ? {} : "skip",
+  );
+  const onboardingState = useConvexQuery(
+    api.onboarding.getState,
+    shouldLoadOnboardingState ? {} : "skip",
+  );
   const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
   const createCheckoutSession = useConvexAction(api.billing.createCheckoutSession);
   const handleSuccessfulPaymentEvent = useConvexAction(api.billing.handleSuccessfulPaymentEvent);
-  const isLoading = authLoading || dashboardData === undefined || onboardingState === undefined;
+  const isLoading =
+    authLoading ||
+    dashboardData === undefined ||
+    (shouldLoadOnboardingState && onboardingState === undefined);
   const projects = dashboardData?.projects ?? [];
   const greetingName = user?.name?.split(" ")[0] ?? "there";
   const greeting = getGreeting(greetingName);
@@ -118,7 +131,7 @@ export function DashboardPage() {
     setPaywallError(null);
 
     try {
-      const result = await createCheckoutSession({});
+      const result = await createCheckoutSession(getDatafastCheckoutMetadata());
       if (!result.url) {
         throw new Error("Stripe checkout URL is missing.");
       }
@@ -235,6 +248,27 @@ export function DashboardPage() {
               <PaymentsCard paymentSummary={dashboardData?.paymentSummary ?? null} />
             </div>
           </div>
+
+          <a
+            href={FEEDBACK_TALLY_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Share feedback"
+            title="Share feedback"
+            className="group fixed right-6 z-30 block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 bottom-[max(96px,calc(env(safe-area-inset-bottom)+24px))] md:bottom-[max(24px,calc(env(safe-area-inset-bottom)+20px))]"
+          >
+            <span className="pointer-events-none absolute right-full top-1/2 mr-3 -translate-y-1/2 whitespace-nowrap rounded-full border border-[rgba(21,21,32,0.08)] bg-white px-3 py-2 text-[12px] font-medium text-text-primary opacity-0 shadow-[0_10px_30px_rgba(15,23,42,0.12)] transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
+              Share feedback
+            </span>
+            <span className="flex h-[60px] w-[60px] items-center justify-center rounded-full border border-[rgba(135,130,245,0.26)] bg-[#151520] p-2.5 shadow-[0_18px_40px_rgba(21,21,32,0.22)] transition-transform duration-150 group-hover:-translate-y-0.5">
+              <img
+                src="/apple-touch-icon.png"
+                alt=""
+                aria-hidden="true"
+                className="h-full w-full rounded-full object-cover"
+              />
+            </span>
+          </a>
 
           <ProjectDock projects={dockProjects} />
         </div>

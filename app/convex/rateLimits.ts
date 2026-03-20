@@ -1,5 +1,6 @@
 import { MINUTE, RateLimiter } from "@convex-dev/rate-limiter";
 import { components } from "./_generated/api";
+import { normalizeEmailAddress } from "./userEmails";
 
 const OTP_EMAIL_WINDOW_MS = 15 * MINUTE;
 const HOUR = 60 * MINUTE;
@@ -36,7 +37,7 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 });
 
 export function normalizeRateLimitEmail(email: string) {
-  return email.trim().toLowerCase();
+  return normalizeEmailAddress(email);
 }
 
 function formatRetryAfter(retryAfter?: number) {

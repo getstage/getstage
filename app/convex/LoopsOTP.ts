@@ -2,6 +2,7 @@ import { Email } from "@convex-dev/auth/providers/Email";
 import type { RandomReader } from "@oslojs/crypto/random";
 import { generateRandomString } from "@oslojs/crypto/random";
 import { enforceOtpRequestRateLimit } from "./rateLimits";
+import { normalizeEmailAddress } from "./userEmails";
 
 function getEnv(name: string) {
   return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[
@@ -26,7 +27,8 @@ export const LoopsOTP = Email({
     provider: { apiKey?: string };
     token: string;
   }) {
-    const { identifier: email, provider, token } = params;
+    const { provider, token } = params;
+    const email = normalizeEmailAddress(params.identifier);
     const ctx = arguments[1] as Parameters<typeof enforceOtpRequestRateLimit>[0] | undefined;
     const transactionalId =
       getEnv("AUTH_LOOPS_TRANSACTIONAL_ID") ?? getEnv("LOOPS_TRANSACTIONAL_ID");

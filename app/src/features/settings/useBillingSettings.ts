@@ -3,6 +3,7 @@ import { useAction as useConvexAction } from "convex/react";
 import { PRO_PRICING, type BillingCycle } from "@/components/onboarding/OnboardingPaywall";
 import { useFeedback } from "@/hooks/useFeedback";
 import { api } from "@/lib/convex";
+import { getDatafastCheckoutMetadata } from "@/lib/datafast";
 import { capitalize } from "@/lib/format";
 import { showFriendlyFeedback } from "./feedback";
 
@@ -31,7 +32,10 @@ export function useBillingSettings({ profilePlan, subscription }: BillingSetting
   async function handleStartCheckout(billingCycle: BillingCycle) {
     setIsCheckoutLoading(true);
     try {
-      const result = await createCheckoutSession({ billingCycle });
+      const result = await createCheckoutSession({
+        billingCycle,
+        ...getDatafastCheckoutMetadata(),
+      });
       if (!result.url) {
         throw new Error("Stripe checkout URL is missing.");
       }

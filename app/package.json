@@ -6,12 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:stage": "tsc -b && vite build --mode production",
     "build:testing": "tsc -b && vite build --mode testing",
     "build:production": "tsc -b && vite build --mode production",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "stage:deploy": "pnpm run build:testing && npx wrangler deploy -e testing",
-    "stage:upload": "pnpm run build:testing && npx wrangler versions upload -e testing",
+    "testing:deploy": "pnpm run build:testing && npx wrangler deploy -e testing",
+    "testing:upload": "pnpm run build:testing && npx wrangler versions upload -e testing",
+    "stage:deploy": "pnpm run build:stage && npx wrangler deploy -e stage",
+    "stage:upload": "pnpm run build:stage && npx wrangler versions upload -e stage",
     "production:deploy": "pnpm run build:production && npx wrangler deploy -e production",
     "production:upload": "pnpm run build:production && npx wrangler versions upload -e production",
     "cf:typegen": "npx wrangler types --env-interface CloudflareEnv worker-env.d.ts"

@@ -7,8 +7,10 @@ import {
   type GenericActionCtxWithAuthConfig,
 } from "@convex-dev/auth/server";
 import type { Value } from "convex/values";
+import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { LoopsOTP } from "./LoopsOTP";
+import { buildNameFromEmail, getCanonicalUserByEmail, normalizeEmailAddress } from "./userEmails";
 
 function now() {
   return Date.now();
@@ -20,18 +22,171 @@ function getEnv(name: string) {
   ];
 }
 
-function buildNameFromEmail(email: string) {
-  const [localPart] = email.split("@");
-  if (!localPart) {
-    return "Stage User";
+type AuthProfile = {
+  email?: string;
+  phone?: string;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
+  name?: string;
+  image?: string;
+  avatarUrl?: string;
+  role?: Doc<"users">["role"];
+  plan?: Doc<"users">["plan"];
+  createdAt?: number;
+};
+
+function getOptionalTrimmedString(value: unknown) {
+  if (typeof value !== "string") {
+    return undefined;
   }
 
-  const parts = localPart
-    .split(/[._-]/g)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1));
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
 
-  return parts.length > 0 ? parts.join(" ") : "Stage User";
+function getOptionalNumber(value: unknown) {
+  return typeof value === "number" ? value : undefined;
+}
+
+function getOptionalRole(value: unknown): Doc<"users">["role"] {
+  switch (value) {
+    case "freelancer":
+    case "studio":
+    case "in-house":
+    case "agency":
+      return value;
+    default:
+      return undefined;
+  }
+}
+
+function getOptionalPlan(value: unknown): Doc<"users">["plan"] {
+  switch (value) {
+    case "free":
+    case "pro":
+      return value;
+    default:
+      return undefined;
+  }
+}
+
+function getAuthProfile(profile: Record<string, unknown>): AuthProfile {
+  return {
+    email: getOptionalTrimmedString(profile.email),
+    phone: getOptionalTrimmedString(profile.phone),
+    emailVerified: typeof profile.emailVerified === "boolean" ? profile.emailVerified : undefined,
+    phoneVerified: typeof profile.phoneVerified === "boolean" ? profile.phoneVerified : undefined,
+    name: getOptionalTrimmedString(profile.name),
+    image: getOptionalTrimmedString(profile.image),
+    avatarUrl: getOptionalTrimmedString(profile.avatarUrl),
+    role: getOptionalRole(profile.role),
+    plan: getOptionalPlan(profile.plan),
+    createdAt: getOptionalNumber(profile.createdAt),
+  };
+}
+
+function shouldTreatEmailAsVerified(args: {
+  provider: { type?: string; allowDangerousEmailAccountLinking?: boolean };
+  profile: AuthProfile;
+}) {
+  return (
+    args.profile.emailVerified ??
+    ((args.provider.type === "oauth" || args.provider.type === "oidc") &&
+      args.provider.allowDangerousEmailAccountLinking !== false)
+  );
+}
+
+function buildUserMutationData(args: {
+  profile: AuthProfile;
+  normalizedEmail?: string;
+  emailVerified: boolean;
+  timestamp: number;
+}) {
+  const data: Record<string, Value> = {
+    updatedAt: args.timestamp,
+  };
+
+  if (args.normalizedEmail) {
+    data.email = args.normalizedEmail;
+  }
+
+  if (args.profile.phone) {
+    data.phone = args.profile.phone;
+  }
+
+  if (args.profile.name) {
+    data.name = args.profile.name;
+  }
+
+  if (args.profile.image) {
+    data.image = args.profile.image;
+  }
+
+  if (args.profile.avatarUrl) {
+    data.avatarUrl = args.profile.avatarUrl;
+  }
+
+  if (args.profile.role) {
+    data.role = args.profile.role;
+  }
+
+  if (args.profile.plan) {
+    data.plan = args.profile.plan;
+  }
+
+  if (args.profile.createdAt !== undefined) {
+    data.createdAt = args.profile.createdAt;
+  }
+
+  if (args.emailVerified) {
+    data.emailVerificationTime = args.timestamp;
+  }
+
+  if (args.profile.phoneVerified) {
+    data.phoneVerificationTime = args.timestamp;
+  }
+
+  return data;
+}
+
+function applyUserDefaults(args: {
+  data: Record<string, Value>;
+  existingUser: Doc<"users"> | null;
+  normalizedEmail?: string;
+  profile: AuthProfile;
+  timestamp: number;
+}) {
+  const nextData = { ...args.data };
+
+  if (args.existingUser?.createdAt === undefined && nextData.createdAt === undefined) {
+    nextData.createdAt = args.timestamp;
+  }
+
+  if (args.existingUser?.role === undefined && nextData.role === undefined) {
+    nextData.role = "freelancer";
+  }
+
+  if (args.existingUser?.plan === undefined && nextData.plan === undefined) {
+    nextData.plan = "free";
+  }
+
+  const fallbackName = args.normalizedEmail
+    ? buildNameFromEmail(args.normalizedEmail)
+    : "Stage User";
+  const hasExistingName =
+    typeof args.existingUser?.name === "string" && args.existingUser.name.trim().length > 0;
+  const hasNextName = typeof nextData.name === "string" && nextData.name.trim().length > 0;
+
+  if (!hasExistingName && !hasNextName) {
+    nextData.name = fallbackName;
+  }
+
+  const providerAvatarUrl = args.profile.avatarUrl ?? args.profile.image;
+  if (!args.existingUser?.avatarUrl && providerAvatarUrl && nextData.avatarUrl === undefined) {
+    nextData.avatarUrl = providerAvatarUrl;
+  }
+
+  return nextData;
 }
 
 const DEMO_PROVIDER_ID = "demo";
@@ -81,48 +236,54 @@ const Demo = ConvexCredentials({
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [Google, LoopsOTP, Demo],
   callbacks: {
-    async afterUserCreatedOrUpdated(ctx, { userId, profile }) {
-      const user = await ctx.db.get(userId);
-      if (!user) {
-        return;
+    async createOrUpdateUser(ctx, { existingUserId, profile, provider }) {
+      const timestamp = now();
+      const normalizedProfile = getAuthProfile(profile);
+      const normalizedEmail = normalizedProfile.email
+        ? normalizeEmailAddress(normalizedProfile.email)
+        : undefined;
+      const emailVerified = shouldTreatEmailAsVerified({
+        provider,
+        profile: normalizedProfile,
+      });
+
+      let userId = existingUserId as Id<"users"> | null;
+      let user =
+        userId === null
+          ? normalizedEmail
+            ? await getCanonicalUserByEmail(ctx, normalizedEmail)
+            : null
+          : await ctx.db.get(userId);
+
+      if (userId !== null && !user) {
+        throw new Error(
+          `Could not update user document with ID \`${userId}\`, either the user has been deleted but their account has not, or the linked auth account is invalid.`,
+        );
       }
 
-      const patch: Record<string, string | number> = {
-        updatedAt: now(),
-      };
-
-      if (user.createdAt === undefined) {
-        patch.createdAt = now();
+      if (userId === null && user) {
+        userId = user._id;
       }
 
-      if (user.role === undefined) {
-        patch.role = "freelancer";
+      const userData = applyUserDefaults({
+        data: buildUserMutationData({
+          profile: normalizedProfile,
+          normalizedEmail,
+          emailVerified,
+          timestamp,
+        }),
+        existingUser: user,
+        normalizedEmail,
+        profile: normalizedProfile,
+        timestamp,
+      });
+
+      if (userId !== null) {
+        await ctx.db.patch(userId, userData);
+        return userId;
       }
 
-      if (user.plan === undefined) {
-        patch.plan = "free";
-      }
-
-      if (!user.name && typeof profile.email === "string") {
-        patch.name = buildNameFromEmail(profile.email);
-      }
-
-      if (!user.avatarUrl) {
-        const avatarUrl =
-          typeof profile.image === "string"
-            ? profile.image
-            : typeof user.image === "string"
-              ? user.image
-              : null;
-
-        if (avatarUrl) {
-          patch.avatarUrl = avatarUrl;
-        }
-      }
-
-      if (Object.keys(patch).length > 1) {
-        await ctx.db.patch(userId, patch);
-      }
+      return await ctx.db.insert("users", userData);
     },
   },
 });

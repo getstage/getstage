@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
 import { Helmet } from "react-helmet-async";
@@ -23,9 +23,12 @@ export function AuthPage() {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const activeAuthFlowRef = useRef<null | "email" | "code" | "google" | "demo">(null);
 
   useEffect(() => {
     if (isAuthenticated) {
+      activeAuthFlowRef.current = null;
+      setLoading(false);
       navigate({ to: redirectTo, replace: true });
     }
   }, [isAuthenticated, navigate, redirectTo]);
@@ -41,6 +44,10 @@ export function AuthPage() {
 
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (activeAuthFlowRef.current) {
+      return;
+    }
+
     const parsed = signInEmailSchema.safeParse({ email });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Please enter a valid email address.");
@@ -50,6 +57,7 @@ export function AuthPage() {
     const normalizedEmail = parsed.data.email;
 
     setError("");
+    activeAuthFlowRef.current = "email";
     setLoading(true);
     try {
       const formData = new FormData();
@@ -65,6 +73,9 @@ export function AuthPage() {
         ),
       );
     } finally {
+      if (activeAuthFlowRef.current === "email") {
+        activeAuthFlowRef.current = null;
+      }
       setLoading(false);
     }
   }
@@ -121,7 +132,11 @@ export function AuthPage() {
   }
 
   async function handleCodeSubmit(fullCode: string) {
-      const parsed = verificationCodeSchema.safeParse({ code: fullCode });
+    if (activeAuthFlowRef.current) {
+      return;
+    }
+
+    const parsed = verificationCodeSchema.safeParse({ code: fullCode });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Code must be 6 digits.");
       setCode(["", "", "", "", "", ""]);
@@ -130,6 +145,7 @@ export function AuthPage() {
     }
 
     setError("");
+    activeAuthFlowRef.current = "code";
     setLoading(true);
     try {
       const formData = new FormData();
@@ -147,15 +163,25 @@ export function AuthPage() {
       setCode(["", "", "", "", "", ""]);
       focusCodeInput(0);
     } finally {
+      if (activeAuthFlowRef.current === "code") {
+        activeAuthFlowRef.current = null;
+      }
       setLoading(false);
     }
   }
 
   async function handleGoogleSignIn() {
+    if (activeAuthFlowRef.current) {
+      return;
+    }
+
     setError("");
+    activeAuthFlowRef.current = "google";
     setLoading(true);
+    let redirected = false;
     try {
-      await signIn("google", { redirectTo });
+      const result = await signIn("google", { redirectTo });
+      redirected = result.redirect !== undefined;
     } catch (error) {
       setError(
         toUserFacingErrorMessage(
@@ -164,12 +190,20 @@ export function AuthPage() {
         ),
       );
     } finally {
-      setLoading(false);
+      if (!redirected && activeAuthFlowRef.current === "google") {
+        activeAuthFlowRef.current = null;
+        setLoading(false);
+      }
     }
   }
 
   async function handleDemoSignIn() {
+    if (activeAuthFlowRef.current) {
+      return;
+    }
+
     setError("");
+    activeAuthFlowRef.current = "demo";
     setLoading(true);
     try {
       await signIn("demo");
@@ -181,6 +215,9 @@ export function AuthPage() {
         ),
       );
     } finally {
+      if (activeAuthFlowRef.current === "demo") {
+        activeAuthFlowRef.current = null;
+      }
       setLoading(false);
     }
   }
