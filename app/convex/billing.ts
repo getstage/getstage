@@ -210,6 +210,7 @@ export const createCheckoutSession = action({
   args: {
     priceId: v.optional(v.string()),
     billingCycle: v.optional(v.union(v.literal("monthly"), v.literal("yearly"))),
+    source: v.optional(v.string()),
     datafastVisitorId: v.optional(v.string()),
     datafastSessionId: v.optional(v.string()),
   },

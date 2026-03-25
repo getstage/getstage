@@ -73,6 +73,15 @@ const attachmentType = v.union(
   v.literal("other"),
 );
 
+const uploadPurpose = v.union(
+  v.literal("task-attachment"),
+  v.literal("csv-upload"),
+  v.literal("profile-avatar"),
+  v.literal("client-avatar"),
+  v.literal("project-marker"),
+  v.literal("portal-logo"),
+);
+
 const subscriptionStatus = v.union(
   v.literal("active"),
   v.literal("trialing"),
@@ -394,4 +403,24 @@ export default defineSchema({
     .index("by_user_source_record", ["userId", "source", "sourceRecordId"])
     .index("by_payment_connection", ["paymentConnectionId"])
     .index("by_sheet_connection", ["sheetConnectionId"]),
+
+  uploadedAssets: defineTable({
+    userId: v.id("users"),
+    key: v.string(),
+    purpose: uploadPurpose,
+    fileName: v.string(),
+    fileSize: v.number(),
+    mimeType: v.string(),
+    createdAt: v.number(),
+    // Legacy fields kept optional so older rows don't block deploys.
+    status: v.optional(v.string()),
+    source: v.optional(v.string()),
+    entityType: v.optional(v.string()),
+    entityId: v.optional(v.string()),
+    attachedAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_key", ["key"])
+    .index("by_createdAt", ["createdAt"])
+    .index("by_user_createdAt", ["userId", "createdAt"]),
 });

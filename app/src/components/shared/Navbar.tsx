@@ -6,7 +6,7 @@ import { UpgradePricingModal } from "@/components/billing/UpgradePricingModal";
 import type { BillingCycle } from "@/components/onboarding/OnboardingPaywall";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/convex";
-import { getDatafastCheckoutMetadata } from "@/lib/datafast";
+import { getDatafastCheckoutMetadata, trackDatafastGoal } from "@/lib/datafast";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { Avatar } from "@/components/ui/Avatar";
 import { ProfileDropdown } from "@/components/shared/ProfileDropdown";
@@ -47,11 +47,17 @@ export function Navbar() {
     try {
       const result = await createCheckoutSession({
         billingCycle,
+        source: "navbar_upgrade",
         ...getDatafastCheckoutMetadata(),
       });
       if (!result.url) {
         throw new Error("Stripe checkout URL is missing.");
       }
+      trackDatafastGoal("checkout_started", {
+        source: "navbar_upgrade",
+        billing_cycle: billingCycle,
+        plan: "pro",
+      });
       window.location.assign(result.url);
     } catch (error) {
       setUpgradeError(

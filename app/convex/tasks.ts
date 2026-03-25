@@ -8,7 +8,7 @@ import {
   requireTaskAccess,
 } from "./_helpers";
 import { recomputeProjectState } from "./domain/projects/readModel";
-import { deleteOldR2Asset, r2 } from "./r2";
+import { attachTrackedR2Asset, deleteOldR2Asset, r2 } from "./r2";
 
 function now() {
   return Date.now();
@@ -223,6 +223,8 @@ export const saveAttachment = mutation({
     await ctx.db.patch(args.taskId, {
       updatedAt: timestamp,
     });
+
+    await attachTrackedR2Asset(ctx, { key: args.r2ObjectKey });
 
     return attachmentId;
   },

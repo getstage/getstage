@@ -18,7 +18,7 @@ import {
   buildProjectWithAccess,
   recomputeProjectState,
 } from "./domain/projects/readModel";
-import { deleteOldR2Asset, resolveAssetUrl } from "./r2";
+import { attachTrackedR2Asset, deleteOldR2Asset, resolveAssetUrl } from "./r2";
 
 function now() {
   return Date.now();
@@ -191,6 +191,13 @@ export const create = mutation({
       updatedAt: timestamp,
     });
 
+    await Promise.all([
+      attachTrackedR2Asset(ctx, { key: nextClientAvatarUrl }),
+      attachTrackedR2Asset(ctx, { key: projectImageUrl }),
+      attachTrackedR2Asset(ctx, { key: startMarkerImageUrl }),
+      attachTrackedR2Asset(ctx, { key: endMarkerImageUrl }),
+    ]);
+
     const phases =
       args.phases
         ?.map((phase) => ({
@@ -330,6 +337,19 @@ export const update = mutation({
     if (hasChanges) {
       await ctx.db.patch(args.projectId, patch);
     }
+
+    await Promise.all([
+      attachTrackedR2Asset(ctx, { key: resolvedClientAvatarUrl }),
+      attachTrackedR2Asset(ctx, {
+        key: projectImage.provided ? projectImage.value : project.projectImageUrl,
+      }),
+      attachTrackedR2Asset(ctx, {
+        key: startMarker.provided ? startMarker.value : project.startMarkerImageUrl,
+      }),
+      attachTrackedR2Asset(ctx, {
+        key: endMarker.provided ? endMarker.value : project.endMarkerImageUrl,
+      }),
+    ]);
 
     // --- Client sync & cleanup ---
     if (nextClientName !== undefined || clientAvatar.provided || clientEmailArg.provided) {

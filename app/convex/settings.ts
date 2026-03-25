@@ -5,7 +5,7 @@ import { components, internal } from "./_generated/api";
 import { deleteAccountDataForUser } from "./domain/accountCleanup";
 import { ensurePortalConfig, pruneOrphanClientsForUser, requireAuthUser } from "./_helpers";
 import { getCurrentSubscriptionSnapshot } from "./billing";
-import { deleteOldR2Asset, resolveAssetUrl } from "./r2";
+import { attachTrackedR2Asset, deleteOldR2Asset, resolveAssetUrl } from "./r2";
 
 const DEFAULT_PORTAL_COLOR = "#E8734A";
 const DELETE_ACCOUNT_CONFIRMATION = "DELETE";
@@ -128,6 +128,7 @@ export const updateProfile = mutation({
     if (nextAvatarUrl !== undefined) patch.avatarUrl = nextAvatarUrl;
 
     await ctx.db.patch(user._id, patch);
+    await attachTrackedR2Asset(ctx, { key: nextAvatarUrl ?? user.avatarUrl });
 
     return {
       email: user.email ?? "",
@@ -169,6 +170,9 @@ export const updatePortalBranding = mutation({
     }
 
     await ctx.db.patch(user._id, userPatch);
+    await attachTrackedR2Asset(ctx, {
+      key: nextLogoUrl !== undefined ? nextLogoUrl : user.defaultPortalLogoUrl,
+    });
 
     const projects = await ctx.db
       .query("projects")

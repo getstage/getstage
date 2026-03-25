@@ -7,6 +7,7 @@ import {
 import type { AuthUser } from "@/lib/auth";
 import { SAVED_FEEDBACK, useFeedback } from "@/hooks/useFeedback";
 import { api } from "@/lib/convex";
+import { trackDatafastGoal } from "@/lib/datafast";
 import { googleSheetsUrlSchema } from "@/lib/validation";
 import {
   GOOGLE_SHEETS_TRANSACTIONS_DIALOG_MESSAGE,
@@ -166,6 +167,10 @@ export function useIntegrationsSettings({ user, enabled }: IntegrationsSettingsI
         templateVersion: "v1",
       });
       setGoogleSheetUrl(normalizedUrl);
+      trackDatafastGoal("google_sheets_connected", {
+        source: "settings_integrations",
+        import_type: "google_sheet",
+      });
       showGoogleSheetFeedback(SAVED_FEEDBACK);
     } catch (error) {
       showFriendlyFeedback(

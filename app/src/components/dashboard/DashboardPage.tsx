@@ -31,7 +31,11 @@ import { useBillingSuccessEvent } from "@/features/dashboard/useBillingSuccessEv
 import { useDashboardPreviewState } from "@/features/dashboard/useDashboardPreviewState";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/convex";
-import { getDatafastCheckoutMetadata } from "@/lib/datafast";
+import {
+  getDatafastCheckoutMetadata,
+  trackDatafastGoal,
+  trackDatafastGoalOnce,
+} from "@/lib/datafast";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { getGreeting } from "@/lib/utils";
 
@@ -109,6 +113,10 @@ export function DashboardPage() {
       await completeOnboarding({
         workCategory: submission.fieldOfWork,
       });
+      trackDatafastGoalOnce("onboarding_completed", "onboarding_completed", {
+        source: "onboarding_modal",
+        work_category: submission.fieldOfWork,
+      });
     } catch (error) {
       console.error("Could not persist onboarding state", error);
     } finally {
@@ -131,10 +139,18 @@ export function DashboardPage() {
     setPaywallError(null);
 
     try {
-      const result = await createCheckoutSession(getDatafastCheckoutMetadata());
+      const result = await createCheckoutSession({
+        source: "dashboard_upgrade",
+        ...getDatafastCheckoutMetadata(),
+      });
       if (!result.url) {
         throw new Error("Stripe checkout URL is missing.");
       }
+      trackDatafastGoal("checkout_started", {
+        source: "dashboard_upgrade",
+        billing_cycle: "yearly",
+        plan: "pro",
+      });
       window.location.assign(result.url);
     } catch (error) {
       setPaywallError(

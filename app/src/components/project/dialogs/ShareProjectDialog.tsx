@@ -4,6 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useAction, useQuery as useConvexQuery, useMutation } from "convex/react";
 import { Button } from "@/components/ui/Button";
 import { api } from "@/lib/convex";
+import { trackDatafastGoalOnce } from "@/lib/datafast";
 import { useAuth } from "@/lib/auth";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
@@ -77,6 +78,11 @@ export function ShareProjectDialog({
         email: trimmed,
       });
       setEmail("");
+      trackDatafastGoalOnce("collaborator_invited", `collaborator_invited:${projectId}:${trimmed}`, {
+        source: "share_dialog",
+        project_id: projectId,
+        invitee_email: trimmed,
+      });
 
       if (result.inviteSent) {
         setAddSuccess("Invite sent.");

@@ -16,7 +16,11 @@ import {
 import type { OnboardingStepId, OnboardingSubmission } from "@/features/onboarding/model";
 import { AI_ROADMAPS } from "@/lib/constants";
 import { api } from "@/lib/convex";
-import { getDatafastCheckoutMetadata } from "@/lib/datafast";
+import {
+  getDatafastCheckoutMetadata,
+  trackDatafastGoal,
+  trackDatafastGoalOnce,
+} from "@/lib/datafast";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { convexQueryKeys } from "@/lib/queryKeys";
 import { googleSheetsUrlSchema } from "@/lib/validation";
@@ -114,6 +118,10 @@ export function useOnboardingController({
     setCheckoutError(null);
     setCreationReady(false);
     resetDraftRef.current?.();
+
+    trackDatafastGoalOnce("onboarding_started", "onboarding_started", {
+      source: "onboarding_modal",
+    });
   }, [open]);
 
   useEffect(() => {
@@ -185,6 +193,11 @@ export function useOnboardingController({
           });
           void queryClient.invalidateQueries({ queryKey: convexQueryKeys.dockProjects });
           await markProjectCreated({});
+          trackDatafastGoalOnce("first_project_created", "first_project_created", {
+            source: "onboarding_creation",
+            project_type: draft.projectType ?? submission.fieldOfWork,
+            method: draft.method,
+          });
         } else {
           await new Promise((resolve) => window.setTimeout(resolve, 500));
         }
@@ -337,6 +350,10 @@ export function useOnboardingController({
 
     try {
       await completeOnboarding({ workCategory: pendingSubmission.fieldOfWork });
+      trackDatafastGoalOnce("onboarding_completed", "onboarding_completed", {
+        source: "onboarding_paywall",
+        work_category: pendingSubmission.fieldOfWork,
+      });
     } catch {
       // Best-effort persist; checkout redirect takes priority.
     }
@@ -344,11 +361,17 @@ export function useOnboardingController({
     try {
       const result = await createCheckoutSession({
         billingCycle,
+        source: "onboarding_paywall",
         ...getDatafastCheckoutMetadata(),
       });
       if (!result.url) {
         throw new Error("Checkout URL missing.");
       }
+      trackDatafastGoal("checkout_started", {
+        source: "onboarding_paywall",
+        billing_cycle: billingCycle,
+        plan: "pro",
+      });
       window.location.assign(result.url);
     } catch {
       setCheckoutError("Could not start checkout. Please try again.");
@@ -411,6 +434,10 @@ export function useOnboardingController({
         setSheetUrl(normalizedUrl);
         setCsvImported(true);
         setCsvConnected(true);
+        trackDatafastGoal("google_sheets_connected", {
+          source: "onboarding_integrations",
+          import_type: "google_sheet",
+        });
       })
       .catch(() => {
         setStepError("Could not connect that Google Sheets URL.");

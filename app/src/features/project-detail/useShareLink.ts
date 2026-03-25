@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toUserFacingErrorMessage } from "@/lib/errors";
+import { trackDatafastGoalOnce } from "@/lib/datafast";
 import { resolvePortalShareUrl } from "@/lib/portal";
 import type { ProjectShareController } from "@/features/project-detail/controllers";
 import type { Project } from "@/types";
@@ -40,6 +41,13 @@ export function useShareLink({
 
       if (copyTimeoutRef.current !== undefined) {
         window.clearTimeout(copyTimeoutRef.current);
+      }
+
+      if (project?.id) {
+        trackDatafastGoalOnce("portal_shared", `portal_shared:${project.id}`, {
+          source: "share_dialog",
+          project_id: project.id,
+        });
       }
 
       copyTimeoutRef.current = window.setTimeout(() => {

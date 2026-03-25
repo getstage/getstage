@@ -3,7 +3,7 @@ import { action, internalMutation, internalQuery, mutation, query } from "./_gen
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { requireAuthUser } from "./_helpers";
-import { r2 } from "./r2";
+import { attachTrackedR2Asset, deleteOldR2Asset, r2 } from "./r2";
 
 function now() {
   return Date.now();
@@ -579,7 +579,7 @@ export const connectSheet = mutation({
       return connectionId._id;
     }
 
-    return ctx.db.insert("sheetConnections", {
+    const createdId = await ctx.db.insert("sheetConnections", {
       userId: user._id,
       sourceType: "google_sheet",
       status: "active",
@@ -589,6 +589,8 @@ export const connectSheet = mutation({
       createdAt: timestamp,
       updatedAt: timestamp,
     });
+
+    return createdId;
   },
 });
 
@@ -615,6 +617,10 @@ export const uploadCsv = mutation({
       .first();
 
     if (existing) {
+      if (existing.r2ObjectKey && existing.r2ObjectKey !== args.r2ObjectKey) {
+        await deleteOldR2Asset(ctx, existing.r2ObjectKey);
+      }
+
       await ctx.db.patch(existing._id, {
         status: "active",
         storageId: undefined,
@@ -626,10 +632,13 @@ export const uploadCsv = mutation({
       if (existing.storageId) {
         await ctx.storage.delete(existing.storageId);
       }
+
+      await attachTrackedR2Asset(ctx, { key: args.r2ObjectKey });
+
       return existing._id;
     }
 
-    return ctx.db.insert("sheetConnections", {
+    const connectionId = await ctx.db.insert("sheetConnections", {
       userId: user._id,
       sourceType: "csv_upload",
       status: "active",
@@ -638,6 +647,10 @@ export const uploadCsv = mutation({
       createdAt: timestamp,
       updatedAt: timestamp,
     });
+
+    await attachTrackedR2Asset(ctx, { key: args.r2ObjectKey });
+
+    return connectionId;
   },
 });
 
@@ -661,6 +674,9 @@ export const disconnectSheet = mutation({
 
     if (sourceType === "csv_upload" && connection.storageId) {
       await ctx.storage.delete(connection.storageId);
+    }
+    if (sourceType === "csv_upload" && connection.r2ObjectKey) {
+      await deleteOldR2Asset(ctx, connection.r2ObjectKey);
     }
 
     await ctx.db.patch(connection._id, {
