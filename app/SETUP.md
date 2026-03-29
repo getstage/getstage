@@ -182,6 +182,9 @@ pnpm run cf:typegen             # generate worker env types from Wrangler
 - `assets.binding = "ASSETS"` from `dist/`
 - `env.testing.name = stage-app-testing`
 - `env.production.name = stage-app-production`
+- Cloudflare Worker observability logs enabled
+- Cloudflare Worker invocation logs enabled
+- Cloudflare Worker traces disabled
 - SPA fallback (`not_found_handling = "single-page-application"`)
 
 Current worker (`app/worker/index.ts`) simply delegates all requests to ASSETS, so runtime logic currently lives in the Convex backend and frontend bundles.
