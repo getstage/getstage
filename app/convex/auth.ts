@@ -10,6 +10,7 @@ import type { Value } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { LoopsOTP } from "./LoopsOTP";
+import { getHostnameFromUrl, isDemoAuthEnabledForHostname } from "../shared/demoAuth";
 import { buildNameFromEmail, getCanonicalUserByEmail, normalizeEmailAddress } from "./userEmails";
 
 function now() {
@@ -20,6 +21,17 @@ function getEnv(name: string) {
   return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[
     name
   ];
+}
+
+function isDemoAuthEnabled() {
+  const explicitSetting = getEnv("ENABLE_DEMO_AUTH");
+  if (explicitSetting !== undefined) {
+    return explicitSetting === "true";
+  }
+
+  const siteHostname =
+    getHostnameFromUrl(getEnv("SITE_URL")) ?? getHostnameFromUrl(getEnv("CONVEX_SITE_URL"));
+  return isDemoAuthEnabledForHostname(siteHostname);
 }
 
 type AuthProfile = {
@@ -190,6 +202,7 @@ function applyUserDefaults(args: {
 }
 
 const DEMO_PROVIDER_ID = "demo";
+const DEMO_AUTH_ENABLED = isDemoAuthEnabled();
 const DEMO_EMAIL = (getEnv("DEMO_EMAIL") ?? "demo@getstage.co").trim().toLowerCase();
 const DEMO_NAME = (getEnv("DEMO_NAME") ?? "Stage Demo").trim();
 const DEMO_CURRENCY = (getEnv("DEMO_CURRENCY") ?? "USD").trim().toUpperCase();
@@ -234,7 +247,7 @@ const Demo = ConvexCredentials({
 });
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
-  providers: [Google, LoopsOTP, Demo],
+  providers: DEMO_AUTH_ENABLED ? [Google, LoopsOTP, Demo] : [Google, LoopsOTP],
   callbacks: {
     async createOrUpdateUser(ctx, { existingUserId, profile, provider }) {
       const timestamp = now();

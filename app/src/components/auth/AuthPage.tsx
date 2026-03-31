@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { useSignIn } from "@/lib/auth";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { signInEmailSchema, verificationCodeSchema } from "@/lib/validation";
+import { isDemoAuthEnabledForHostname } from "../../../shared/demoAuth";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 
 type Step = "email" | "code";
@@ -24,6 +25,8 @@ export function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const activeAuthFlowRef = useRef<null | "email" | "code" | "google" | "demo">(null);
+  const showDemoSignIn =
+    typeof window !== "undefined" ? isDemoAuthEnabledForHostname(window.location.hostname) : true;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -301,14 +304,16 @@ export function AuthPage() {
                   Continue with Google
                 </button>
 
-                <button
-                  type="button"
-                  onClick={handleDemoSignIn}
-                  disabled={loading}
-                  className="mt-3 flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-[10px] border border-border bg-bg-subtle px-4 py-2.5 text-[14px] font-medium text-text-primary transition-colors hover:bg-white disabled:opacity-50"
-                >
-                  Continue with demo
-                </button>
+                {showDemoSignIn ? (
+                  <button
+                    type="button"
+                    onClick={handleDemoSignIn}
+                    disabled={loading}
+                    className="mt-3 flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-[10px] border border-border bg-bg-subtle px-4 py-2.5 text-[14px] font-medium text-text-primary transition-colors hover:bg-white disabled:opacity-50"
+                  >
+                    Continue with demo
+                  </button>
+                ) : null}
               </motion.div>
             ) : (
               <motion.div
