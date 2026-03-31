@@ -74,12 +74,21 @@ export const attachmentSchema = z.object({
   mimeType: z.string(),
 });
 
+export const taskAssigneeSchema = z.object({
+  userId: z.string(),
+  name: z.string().nullable(),
+  email: z.string().nullable(),
+});
+
 export const taskSchema = z.object({
   id: z.string(),
   phaseId: z.string(),
   title: z.string().min(1),
   isCompleted: z.boolean(),
   content: z.string().optional(),
+  dueDate: z.number().optional(),
+  assigneeIds: z.array(z.string()).optional(),
+  assignees: z.array(taskAssigneeSchema).optional(),
   attachments: z.array(attachmentSchema),
   order: z.number(),
   createdAt: z.number(),

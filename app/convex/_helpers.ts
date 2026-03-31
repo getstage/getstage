@@ -529,17 +529,34 @@ export async function getTasksForPhase(ctx: ReaderCtx, phase: Doc<"phases">) {
     .collect();
 
   return Promise.all(
-    tasks.map(async (task) => ({
-      id: String(task._id),
-      phaseId: String(task.phaseId),
-      title: task.title,
-      isCompleted: task.isCompleted,
-      content: task.content,
-      attachments: await getAttachmentsForTask(ctx, task._id),
-      order: task.order,
-      createdAt: task.createdAt,
-      updatedAt: task.updatedAt,
-    })),
+    tasks.map(async (task) => {
+      const assigneeIds = task.assigneeIds ?? [];
+      const assignees = await Promise.all(
+        assigneeIds.map(async (userId) => {
+          const user = await ctx.db.get(userId as Id<"users">);
+          return {
+            userId,
+            name: user?.name ?? null,
+            email: user?.email ?? null,
+          };
+        }),
+      );
+
+      return {
+        id: String(task._id),
+        phaseId: String(task.phaseId),
+        title: task.title,
+        isCompleted: task.isCompleted,
+        content: task.content,
+        dueDate: task.dueDate,
+        assigneeIds,
+        assignees,
+        attachments: await getAttachmentsForTask(ctx, task._id),
+        order: task.order,
+        createdAt: task.createdAt,
+        updatedAt: task.updatedAt,
+      };
+    }),
   );
 }
 

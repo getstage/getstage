@@ -22,6 +22,48 @@ async function getProjectIdForTask(
   return { task, projectId: project._id, role };
 }
 
+export const getProjectMembers = query({
+  args: {
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, { projectId }) => {
+    const { user } = await requireProjectAccess(ctx, projectId);
+
+    const collaborators = await ctx.db
+      .query("projectCollaborators")
+      .withIndex("by_project", (q) => q.eq("projectId", projectId))
+      .collect();
+
+    const members: Array<{
+      userId: string;
+      name: string | null;
+      email: string | null;
+      role: "owner" | "editor";
+    }> = [
+      {
+        userId: String(user._id),
+        name: user.name ?? null,
+        email: user.email ?? null,
+        role: "owner",
+      },
+    ];
+
+    for (const collab of collaborators) {
+      const collabUser = await ctx.db.get(collab.userId);
+      if (collabUser) {
+        members.push({
+          userId: String(collabUser._id),
+          name: collabUser.name ?? null,
+          email: collabUser.email ?? null,
+          role: "editor",
+        });
+      }
+    }
+
+    return members;
+  },
+});
+
 export const create = mutation({
   args: {
     phaseId: v.id("phases"),
@@ -68,6 +110,18 @@ export const getDetail = query({
 
     const { project, role } = await requireProjectAccess(ctx, phase.projectId);
 
+    const assigneeIds = task.assigneeIds ?? [];
+    const assignees = await Promise.all(
+      assigneeIds.map(async (userId) => {
+        const user = await ctx.db.get(userId as Id<"users">);
+        return {
+          userId,
+          name: user?.name ?? null,
+          email: user?.email ?? null,
+        };
+      }),
+    );
+
     return {
       project: {
         id: String(project._id),
@@ -83,6 +137,9 @@ export const getDetail = query({
         title: task.title,
         isCompleted: task.isCompleted,
         content: task.content,
+        dueDate: task.dueDate,
+        assigneeIds,
+        assignees,
         attachments: await getAttachmentsForTask(ctx, task._id),
         updatedAt: task.updatedAt,
       },
@@ -112,6 +169,36 @@ export const update = mutation({
     }
 
     await ctx.db.patch(taskId, patch);
+  },
+});
+
+export const setDueDate = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    dueDate: v.union(v.number(), v.null()),
+  },
+  handler: async (ctx, { taskId, dueDate }) => {
+    await requireTaskAccess(ctx, taskId);
+
+    await ctx.db.patch(taskId, {
+      dueDate: dueDate ?? undefined,
+      updatedAt: now(),
+    });
+  },
+});
+
+export const setAssignees = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    assigneeIds: v.array(v.string()),
+  },
+  handler: async (ctx, { taskId, assigneeIds }) => {
+    await requireTaskAccess(ctx, taskId);
+
+    await ctx.db.patch(taskId, {
+      assigneeIds,
+      updatedAt: now(),
+    });
   },
 });
 
