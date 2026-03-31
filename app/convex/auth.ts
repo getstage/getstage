@@ -9,7 +9,7 @@ import {
 import type { Value } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
-import { LoopsOTP } from "./LoopsOTP";
+import { LoopsOTP } from "./integrations/loopsOtp";
 import { getHostnameFromUrl, isDemoAuthEnabledForHostname } from "../shared/demoAuth";
 import { buildNameFromEmail, getCanonicalUserByEmail, normalizeEmailAddress } from "./userEmails";
 
@@ -235,7 +235,7 @@ const Demo = ConvexCredentials({
       });
     }
 
-    await ctx.runMutation(internal.demo.resetAndSeedDemoWorkspace, {
+    await ctx.runMutation(internal.domain.demo.workspace.resetAndSeedDemoWorkspace, {
       userId: existing.user._id,
       email: DEMO_EMAIL,
       name: DEMO_NAME,
@@ -302,7 +302,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       if (isNewUser && normalizedEmail) {
         const fullName = (userData.name as string | undefined) ?? "";
         const nameParts = fullName.split(" ");
-        await ctx.scheduler.runAfter(0, internal.resendAudience.syncContactToResend, {
+        await ctx.scheduler.runAfter(0, internal.integrations.resendAudience.syncContactToResend, {
           email: normalizedEmail,
           firstName: nameParts[0] || undefined,
           lastName: nameParts.slice(1).join(" ") || undefined,

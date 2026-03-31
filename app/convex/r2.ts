@@ -177,6 +177,13 @@ async function collectReferencedKeysForUser(ctx: QueryCtx, userId: string) {
     }
   }
 
+  const generatedDesigns = await ctx.db.query("projectGeneratedDesigns").collect();
+  for (const generatedDesign of generatedDesigns) {
+    if (generatedDesign.r2ObjectKey.startsWith(userPrefix)) {
+      referencedKeys.add(generatedDesign.r2ObjectKey);
+    }
+  }
+
   const portalConfigs = await ctx.db.query("portalConfigs").collect();
   for (const config of portalConfigs) {
     if (config.logoUrl?.startsWith(userPrefix)) {

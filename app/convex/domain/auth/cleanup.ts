@@ -1,4 +1,4 @@
-import { internalMutation } from "./_generated/server";
+import { internalMutation } from "../../_generated/server";
 
 function now() {
   return Date.now();

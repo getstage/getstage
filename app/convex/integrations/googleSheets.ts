@@ -1,9 +1,9 @@
 import { v } from "convex/values";
-import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
-import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
-import { requireAuthUser } from "./_helpers";
-import { attachTrackedR2Asset, deleteOldR2Asset, r2 } from "./r2";
+import { action, internalMutation, internalQuery, mutation, query } from "../_generated/server";
+import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
+import { requireAuthUser } from "../_helpers";
+import { attachTrackedR2Asset, deleteOldR2Asset, r2 } from "../r2";
 
 function now() {
   return Date.now();
@@ -702,7 +702,7 @@ export const runSheetImport = action({
     skippedCount: number;
   }> => {
     const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
-    const connection = (await ctx.runQuery(internal.googleSheets.getConnectionForImport, {
+    const connection = (await ctx.runQuery(internal.integrations.googleSheets.getConnectionForImport, {
       userId: viewer.userId,
       sourceType: args.sourceType,
     })) as SheetConnectionRecord | null;
@@ -784,11 +784,11 @@ export const runSheetImport = action({
         }
       }
 
-      const clients = (await ctx.runQuery(internal.googleSheets.getClientsForImport, {
+      const clients = (await ctx.runQuery(internal.integrations.googleSheets.getClientsForImport, {
         userId: viewer.userId,
       })) as ImportClient[];
       const clientSet = new Set(clients.map((client: ImportClient) => client.name.trim().toLowerCase()));
-      const projects = (await ctx.runQuery(internal.googleSheets.getProjectsForImport, {
+      const projects = (await ctx.runQuery(internal.integrations.googleSheets.getProjectsForImport, {
         userId: viewer.userId,
       })) as ImportProject[];
       const projectMap = new Map<string, Id<"projects">>(
@@ -863,14 +863,14 @@ export const runSheetImport = action({
         };
       });
 
-      return ctx.runMutation(internal.googleSheets.applyImportedEntries, {
+      return ctx.runMutation(internal.integrations.googleSheets.applyImportedEntries, {
         userId: viewer.userId,
         sheetConnectionId: connection._id,
         source: connection.sourceType,
         entries,
       });
     } catch (error) {
-      await ctx.runMutation(internal.googleSheets.markImportError, {
+      await ctx.runMutation(internal.integrations.googleSheets.markImportError, {
         userId: viewer.userId,
         sheetConnectionId: connection._id,
         errorSummary: error instanceof Error ? error.message : "Import failed.",

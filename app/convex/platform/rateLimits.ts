@@ -1,10 +1,11 @@
 import { MINUTE, RateLimiter } from "@convex-dev/rate-limiter";
-import { components } from "./_generated/api";
-import { normalizeEmailAddress } from "./userEmails";
+import { components } from "../_generated/api";
+import { normalizeEmailAddress } from "../userEmails";
 
 const OTP_EMAIL_WINDOW_MS = 15 * MINUTE;
 const HOUR = 60 * MINUTE;
 const PROJECT_INVITE_RECIPIENT_WINDOW_MS = 10 * MINUTE;
+const API_REQUEST_WINDOW_MS = MINUTE;
 
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
   otpRequestsByEmail: {
@@ -32,6 +33,17 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     kind: "fixed window",
     rate: 60,
     period: MINUTE,
+    shards: 10,
+  },
+  apiRequestsByKey: {
+    kind: "fixed window",
+    rate: 120,
+    period: API_REQUEST_WINDOW_MS,
+  },
+  apiRequestsGlobal: {
+    kind: "fixed window",
+    rate: 1000,
+    period: API_REQUEST_WINDOW_MS,
     shards: 10,
   },
 });
@@ -103,6 +115,27 @@ export async function enforceProjectInviteRateLimit(
   if (!recipientStatus.ok) {
     throw new Error(
       `An invite was already sent to this email recently. Please wait ${formatRetryAfter(recipientStatus.retryAfter)} before sending another.`,
+    );
+  }
+}
+
+export async function enforceApiRequestRateLimit(
+  ctx: Parameters<typeof rateLimiter.limit>[0],
+  apiKeyId: string,
+) {
+  const globalStatus = await rateLimiter.limit(ctx, "apiRequestsGlobal");
+  if (!globalStatus.ok) {
+    throw new Error(
+      `Too many API requests are being made right now. Please wait ${formatRetryAfter(globalStatus.retryAfter)} and try again.`,
+    );
+  }
+
+  const keyStatus = await rateLimiter.limit(ctx, "apiRequestsByKey", {
+    key: apiKeyId,
+  });
+  if (!keyStatus.ok) {
+    throw new Error(
+      `This API key has hit its rate limit. Please wait ${formatRetryAfter(keyStatus.retryAfter)} and try again.`,
     );
   }
 }

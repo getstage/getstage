@@ -1,11 +1,9 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getCurrentSubscriptionSnapshot } from "./billing";
 import {
   deleteClientAvatarIfUnused,
   deleteClientIfUnused,
   deleteProjectMarkerImageIfUnused,
-  ensurePortalConfig,
   getClientByUserAndName,
   requireAuthUser,
   requireProjectAccess,
@@ -18,29 +16,23 @@ import {
   buildProjectWithAccess,
   recomputeProjectState,
 } from "./domain/projects/readModel";
+import {
+  createProjectArgsValidator,
+  createProjectForUser,
+  phaseInputValidator,
+} from "./domain/projects/service";
 import { attachTrackedR2Asset, deleteOldR2Asset, resolveAssetUrl } from "./r2";
+import { deleteGeneratedDesignsForProject } from "./integrations/stitch";
 
 function now() {
   return Date.now();
 }
-
-const FREE_PLAN_PROJECT_LIMIT = 3;
 
 const projectStatusValidator = v.union(
   v.literal("active"),
   v.literal("paused"),
   v.literal("completed"),
 );
-
-const phaseInputValidator = v.object({
-  id: v.optional(v.id("phases")),
-  name: v.string(),
-});
-
-const phaseCreationInputValidator = v.object({
-  name: v.string(),
-  tasks: v.optional(v.array(v.string())),
-});
 
 export const getById = query({
   args: {
@@ -92,161 +84,13 @@ export const getDockProjects = query({
 });
 
 export const create = mutation({
-  args: {
-    name: v.string(),
-    clientName: v.string(),
-    clientEmail: v.optional(v.string()),
-    clientAvatarUrl: v.optional(v.string()),
-    projectImageUrl: v.optional(v.string()),
-    startMarkerImageUrl: v.optional(v.string()),
-    endMarkerImageUrl: v.optional(v.string()),
-    type: v.union(
-      v.literal("branding"),
-      v.literal("web-design"),
-      v.literal("product-design"),
-      v.literal("app-design"),
-      v.literal("packaging"),
-      v.literal("motion-design"),
-      v.literal("illustration"),
-      v.literal("other"),
-    ),
-    method: v.union(v.literal("ai"), v.literal("manual")),
-    startDate: v.number(),
-    endDate: v.number(),
-    phases: v.optional(v.array(phaseCreationInputValidator)),
-  },
+  args: createProjectArgsValidator,
   handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
-    const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
-    const plan = subscription?.plan ?? user.plan ?? "free";
-    const clientName = args.clientName.trim();
-    const clientEmail = args.clientEmail?.trim() || undefined;
-    const requestedClientAvatarUrl = args.clientAvatarUrl?.trim() || undefined;
-    const projectImageUrl = args.projectImageUrl?.trim() || undefined;
-    const startMarkerImageUrl = args.startMarkerImageUrl?.trim() || undefined;
-    const endMarkerImageUrl = args.endMarkerImageUrl?.trim() || undefined;
-
-    if (plan === "free") {
-      const existingProjects = await ctx.db
-        .query("projects")
-        .withIndex("by_user", (q) => q.eq("userId", user._id))
-        .collect();
-
-      if (existingProjects.length >= FREE_PLAN_PROJECT_LIMIT) {
-        throw new Error("Free plan includes up to 3 projects. Upgrade to Pro to create another.");
-      }
-    }
-
-    const existingClient = await getClientByUserAndName(ctx, {
+    return createProjectForUser(ctx, {
       userId: user._id,
-      name: clientName,
+      ...args,
     });
-    const nextClientAvatarUrl = requestedClientAvatarUrl ?? existingClient?.avatarUrl;
-
-    await upsertClient(ctx, {
-      userId: user._id,
-      name: clientName,
-      email: clientEmail,
-      avatarUrl: nextClientAvatarUrl,
-    });
-
-    if (requestedClientAvatarUrl) {
-      const previousProjectAvatarUrls = await syncClientAvatarAcrossProjects(ctx, {
-        userId: user._id,
-        clientName,
-        avatarUrl: requestedClientAvatarUrl,
-      });
-
-      const staleAvatarUrls = new Set(previousProjectAvatarUrls);
-      if (existingClient?.avatarUrl && existingClient.avatarUrl !== requestedClientAvatarUrl) {
-        staleAvatarUrls.add(existingClient.avatarUrl);
-      }
-
-      await Promise.all(
-        Array.from(staleAvatarUrls).map((avatarUrl) =>
-          deleteClientAvatarIfUnused(ctx, {
-            userId: user._id,
-            avatarUrl,
-          }),
-        ),
-      );
-    }
-
-    const timestamp = now();
-    const projectId = await ctx.db.insert("projects", {
-      userId: user._id,
-      name: args.name.trim(),
-      clientName,
-      clientEmail,
-      clientAvatarUrl: nextClientAvatarUrl,
-      projectImageUrl,
-      startMarkerImageUrl,
-      endMarkerImageUrl,
-      type: args.type,
-      status: "active",
-      startDate: args.startDate,
-      endDate: args.endDate,
-      progress: 0,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
-
-    await Promise.all([
-      attachTrackedR2Asset(ctx, { key: nextClientAvatarUrl }),
-      attachTrackedR2Asset(ctx, { key: projectImageUrl }),
-      attachTrackedR2Asset(ctx, { key: startMarkerImageUrl }),
-      attachTrackedR2Asset(ctx, { key: endMarkerImageUrl }),
-    ]);
-
-    const phases =
-      args.phases
-        ?.map((phase) => ({
-          name: phase.name.trim(),
-          tasks:
-            phase.tasks?.map((task) => task.trim()).filter((task) => task.length > 0) ?? [],
-        }))
-        .filter((phase) => phase.name.length > 0) ?? [];
-
-    const normalizedPhases =
-      phases.length > 0 ? phases : [{ name: "Planning", tasks: [] as string[] }];
-
-    for (const [index, phase] of normalizedPhases.entries()) {
-      const phaseId = await ctx.db.insert("phases", {
-        projectId,
-        name: phase.name,
-        order: index,
-        status: index === 0 ? "active" : "upcoming",
-        progress: 0,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      });
-
-      if (phase.tasks.length > 0) {
-        await Promise.all(
-          phase.tasks.map((title, taskIndex) =>
-            ctx.db.insert("tasks", {
-              phaseId,
-              title,
-              isCompleted: false,
-              content: "",
-              order: taskIndex,
-              createdAt: timestamp,
-              updatedAt: timestamp,
-            }),
-          ),
-        );
-      }
-    }
-
-    await ensurePortalConfig(ctx, projectId);
-    await recomputeProjectState(ctx, projectId);
-
-    const project = await ctx.db.get(projectId);
-    if (!project) {
-      throw new Error("Failed to create project.");
-    }
-
-    return buildProject(ctx, project);
   },
 });
 
@@ -570,6 +414,8 @@ export const deleteById = mutation({
         });
       }
     }
+
+    await deleteGeneratedDesignsForProject(ctx, projectId);
 
     await ctx.db.delete(project._id);
 

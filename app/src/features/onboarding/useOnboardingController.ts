@@ -68,7 +68,7 @@ export function useOnboardingController({
   const markProjectCreated = useConvexMutation(api.onboarding.markProjectCreated);
   const createProject = useConvexMutation(api.projects.create);
   const createCheckoutSession = useConvexAction(api.billing.createCheckoutSession);
-  const connectSheet = useConvexMutation(api.googleSheets.connectSheet);
+  const connectSheet = useConvexMutation(api.integrations.googleSheets.connectSheet);
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
   const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
 

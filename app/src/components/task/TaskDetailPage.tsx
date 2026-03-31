@@ -331,7 +331,11 @@ export function TaskDetailPage() {
             {/* Assignees */}
             <div className="relative flex items-center gap-2">
               <UserCircle size={15} className="text-text-tertiary" />
-              {(task.assignees ?? []).map((assignee) => (
+              {(task.assignees ?? []).map((assignee: {
+                userId: string;
+                name?: string | null;
+                email?: string | null;
+              }) => (
                 <div
                   key={assignee.userId}
                   className="flex items-center gap-1 rounded-full bg-accent/10 py-0.5 pl-1.5 pr-1 text-[12px] font-medium text-accent"
@@ -343,9 +347,7 @@ export function TaskDetailPage() {
                       const currentIds = task.assigneeIds ?? [];
                       void setAssignees({
                         taskId: task.id as Id<"tasks">,
-                        assigneeIds: currentIds.filter(
-                          (id) => id !== assignee.userId,
-                        ),
+                        assigneeIds: currentIds.filter((id: string) => id !== assignee.userId),
                       });
                     }}
                     className="inline-flex h-4 w-4 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-accent/20"
@@ -371,7 +373,12 @@ export function TaskDetailPage() {
                       No team members yet
                     </p>
                   ) : (
-                    projectMembers.map((member) => {
+                    projectMembers.map((member: {
+                      userId: string;
+                      name?: string | null;
+                      email?: string | null;
+                      role: "owner" | "editor";
+                    }) => {
                       const isAssigned = (task.assigneeIds ?? []).includes(
                         member.userId,
                       );
@@ -382,9 +389,7 @@ export function TaskDetailPage() {
                           onClick={() => {
                             const currentIds = task.assigneeIds ?? [];
                             const nextIds = isAssigned
-                              ? currentIds.filter(
-                                  (id) => id !== member.userId,
-                                )
+                              ? currentIds.filter((id: string) => id !== member.userId)
                               : [...currentIds, member.userId];
                             void setAssignees({
                               taskId: task.id as Id<"tasks">,

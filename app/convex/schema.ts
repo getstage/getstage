@@ -73,6 +73,27 @@ const attachmentType = v.union(
   v.literal("other"),
 );
 
+const generatedDesignProvider = v.literal("stitch");
+
+const generatedDesignStatus = v.union(
+  v.literal("ready"),
+  v.literal("error"),
+);
+
+const stitchDeviceType = v.union(
+  v.literal("DEVICE_TYPE_UNSPECIFIED"),
+  v.literal("MOBILE"),
+  v.literal("DESKTOP"),
+  v.literal("TABLET"),
+  v.literal("AGNOSTIC"),
+);
+
+const stitchModelId = v.union(
+  v.literal("MODEL_ID_UNSPECIFIED"),
+  v.literal("GEMINI_3_PRO"),
+  v.literal("GEMINI_3_FLASH"),
+);
+
 const uploadPurpose = v.union(
   v.literal("task-attachment"),
   v.literal("csv-upload"),
@@ -240,6 +261,26 @@ export default defineSchema({
     mimeType: v.string(),
     createdAt: v.number(),
   }).index("by_task", ["taskId"]),
+
+  projectGeneratedDesigns: defineTable({
+    userId: v.id("users"),
+    projectId: v.id("projects"),
+    phaseId: v.optional(v.id("phases")),
+    provider: generatedDesignProvider,
+    prompt: v.string(),
+    deviceType: stitchDeviceType,
+    modelId: v.optional(stitchModelId),
+    stitchProjectId: v.string(),
+    stitchScreenId: v.string(),
+    r2ObjectKey: v.string(),
+    status: generatedDesignStatus,
+    errorMessage: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_project_createdAt", ["projectId", "createdAt"])
+    .index("by_user", ["userId"]),
 
   projectCollaborators: defineTable({
     projectId: v.id("projects"),

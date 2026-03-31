@@ -227,7 +227,7 @@ export function ShareProjectDialog({
 
               {collaborators && collaborators.length > 0 ? (
                 <div className="mt-3 space-y-1">
-                  {collaborators.map((collab) => (
+                  {collaborators.map((collab: { _id: string; name?: string | null; email?: string | null }) => (
                     <div
                       key={collab._id}
                       className="flex items-center gap-3 rounded-[8px] px-2 py-2 hover:bg-bg-subtle"

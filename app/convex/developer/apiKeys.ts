@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query, internalQuery, internalMutation } from "./_generated/server";
-import { requireAuthUser } from "./_helpers";
+import { mutation, query, internalQuery, internalMutation } from "../_generated/server";
+import { requireAuthUser } from "../_helpers";
 
 const KEY_PREFIX = "stg_";
 const KEY_BYTE_LENGTH = 32;
@@ -128,7 +128,34 @@ export const getUserByHashedKey = internalQuery({
       return null;
     }
 
-    return { apiKeyId: apiKey._id, userId: user._id, user };
+    return { apiKeyId: apiKey._id, userId: user._id };
+  },
+});
+
+export const authenticateByHashedKey = internalMutation({
+  args: {
+    hashedKey: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const apiKey = await ctx.db
+      .query("apiKeys")
+      .withIndex("by_hashed_key", (q) => q.eq("hashedKey", args.hashedKey))
+      .unique();
+
+    if (!apiKey || apiKey.revokedAt) {
+      return null;
+    }
+
+    const user = await ctx.db.get(apiKey.userId);
+    if (!user) {
+      return null;
+    }
+
+    await ctx.db.patch(apiKey._id, {
+      lastUsedAt: Date.now(),
+    });
+
+    return { apiKeyId: apiKey._id, userId: user._id };
   },
 });
 

@@ -1,9 +1,9 @@
 import { v } from "convex/values";
-import { internalMutation, mutation } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
-import type { MutationCtx } from "./_generated/server";
-import { ensurePortalConfig, upsertClient } from "./_helpers";
-import { deleteWorkspaceDataForUser } from "./domain/accountCleanup";
+import { internalMutation, mutation } from "../../_generated/server";
+import type { Id } from "../../_generated/dataModel";
+import type { MutationCtx } from "../../_generated/server";
+import { ensurePortalConfig, upsertClient } from "../../_helpers";
+import { deleteWorkspaceDataForUser } from "../accountCleanup";
 
 function now() {
   return Date.now();
