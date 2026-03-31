@@ -404,6 +404,17 @@ export default defineSchema({
     .index("by_payment_connection", ["paymentConnectionId"])
     .index("by_sheet_connection", ["sheetConnectionId"]),
 
+  apiKeys: defineTable({
+    userId: v.id("users"),
+    hashedKey: v.string(),
+    name: v.string(),
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+  })
+    .index("by_hashed_key", ["hashedKey"])
+    .index("by_user", ["userId"]),
+
   uploadedAssets: defineTable({
     userId: v.id("users"),
     key: v.string(),

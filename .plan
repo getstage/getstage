@@ -1,0 +1,211 @@
+# Stage Public API + AI Integration — Full Plan
+
+## Work Split
+
+### This session (Claude) — Frontend & Design
+- Developer tab in Settings (API key management UI)
+- API Docs page at `/docs` (Stepps-style: sidebar nav, method badges, code tabs)
+- OpenClaw landing page at `/openclaw`
+- `stage-api-docs.ts` data file (like Stepps' `agent-api-docs.ts`)
+- SKILL.md file for Claude Code / ClawHub
+
+### Other AI session (Convex) — Backend & Routing
+- Hono with Convex router layer on `http.ts`
+- API route handlers (projects, phases, tasks CRUD)
+- API key auth middleware (bearer token → userId lookup)
+- AI project generation endpoint (`/api/v1/projects/generate`)
+- Rate limiting for external API
+- MCP server (later phase)
+
+---
+
+## Phase 1: `stage-api-docs.ts` — API Endpoint Data File
+
+**What:** Data-driven endpoint definitions (same architecture as Stepps' `agent-api-docs.ts`).
+
+**File:** `app/src/lib/stage-api-docs.ts`
+
+**Defines:**
+- `ApiEndpointDoc[]` — all Stage API endpoints with method, path, fields, examples
+- `ApiSectionDoc[]` — doc sections (intro, auth, projects, phases, tasks, models, examples)
+- Base URL: `https://getstage.co/api/v1`
+- Key prefix: `stg_`
+
+**Sections & Endpoints:**
+
+| Section | Endpoints |
+|---------|-----------|
+| API Keys (session auth) | POST create, GET list, DELETE revoke |
+| Projects (bearer auth) | GET list, GET by id, POST create, POST generate (AI) |
+| Phases (bearer auth) | GET list by project, POST create |
+| Tasks (bearer auth) | GET list by phase, POST create, POST toggle |
+
+**This file is the single source of truth** — consumed by both the docs page renderer AND the SKILL.md generator.
+
+---
+
+## Phase 2: Developer Tab in Settings
+
+**What:** New "Developer" tab in Settings. Pro-only (free users see upgrade prompt).
+
+**Files to modify:**
+- `app/src/types/settings.ts` — add `"developer"` to `SettingsTab` union
+- `app/src/features/settings/useSettingsTabs.ts` — add to valid tabs
+- `app/src/components/settings/SettingsPage.tsx` — add sidebar button + render
+
+**File to create:**
+- `app/src/components/settings/DeveloperTab.tsx`
+
+**UI:**
+```
+┌──────────────────────────────────────────────┐
+│  API Keys                                    │
+│  Create keys to access the Stage API.        │
+│  Keys are shown once — store them securely.  │
+│                                              │
+│  ┌─ Key List ──────────────────────────────┐ │
+│  │  stg_...a3f8  "My Agent"    2d ago     │ │
+│  │  Last used: today            [Revoke]  │ │
+│  │                                        │ │
+│  │  stg_...b2c1  "Claude Code"  5d ago    │ │
+│  │  Last used: never            [Revoke]  │ │
+│  └────────────────────────────────────────┘ │
+│                                              │
+│  [+ Create API Key]                          │
+│                                              │
+│  On create → dialog with name input          │
+│  On success → one-time key reveal + copy btn │
+│                                              │
+│  Links:                                      │
+│  📖 Read the API docs → /docs                │
+│  🔗 View on ClawHub                          │
+└──────────────────────────────────────────────┘
+```
+
+**Backend:** Already done in `apiKeys.ts` (generate, list, revoke, max 5 keys, SHA-256 hashing).
+
+---
+
+## Phase 3: API Docs Page
+
+**What:** Public page at `/docs`, matching Stepps pattern exactly.
+
+**Files to create:**
+- `app/src/routes/docs.tsx` — public route (no auth)
+- `app/src/components/api-docs/ApiDocsPage.tsx` — renderer
+
+**Layout:** Sidebar nav (sections + endpoint sub-items with method badges) | Main content (scrolling sections with code tabs).
+
+**Features (matching Stepps):**
+- Sidebar with section headers + endpoint items with GET/POST/DELETE badges
+- Active section highlighting on scroll
+- 3-language code tabs: cURL, TypeScript, Python
+- Request body field tables (name, type, required, description)
+- JSON response examples with syntax highlighting
+- Dark mode support
+- Mobile responsive
+
+**Public & crawlable:** No auth required. AI agents can crawl it.
+
+---
+
+## Phase 4: SKILL.md
+
+**What:** Claude Code / OpenClaw skill file.
+
+**File:** `app/public/SKILL.md` (served as static file, downloadable)
+
+**Structure:**
+```yaml
+---
+name: stage
+description: Manage creative projects in Stage — create projects
+  with phases and tasks, track progress, toggle completions
+requiredEnv:
+  - STAGE_API_KEY
+---
+
+# Stage API
+
+Base URL: https://getstage.co/api/v1
+Auth: Authorization: Bearer $STAGE_API_KEY
+
+## Endpoints
+[all endpoints with curl examples, field descriptions, response shapes]
+
+## Project Types
+branding | web-design | product-design | app-design | packaging |
+motion-design | illustration | other
+
+## Example Flows
+[3-4 end-to-end scenarios like the ones in stage-api-plan.md]
+```
+
+---
+
+## Phase 5: OpenClaw Landing Page
+
+**What:** Public page at `/openclaw` (like post-bridge.com/openclaw).
+
+**Files to create:**
+- `app/src/routes/openclaw.tsx` — public route
+- `app/src/components/openclaw/OpenClawPage.tsx` — page component
+
+**Layout:**
+```
+┌─────────────────────────────────────────────┐
+│  [Stage logo]                    [Login]    │
+│                                             │
+│  Your OpenClaw + [Stage]                    │
+│                                             │
+│  Give Your Agent                            │
+│  Project Management Superpowers.            │
+│                                             │
+│  Create full projects with phases, tasks    │
+│  & timelines — all from one chat message.   │
+│                                             │
+│  [Get API Key →]   [Download Skill File]    │
+│       ↓                    ↓                │
+│  /settings?tab=developer   /SKILL.md        │
+│                                             │
+│  View skill on ClawHub                      │
+│                                             │
+│  ─── This is how simple it should be ───    │
+│                                             │
+│  Terminal-style demo:                       │
+│  > "Create a branding project for Brew &    │
+│     Co, budget €3k, deadline 6 weeks"       │
+│  < ✅ Created: Brew & Co — Brand Identity   │
+│    5 phases, 16 tasks                       │
+│    Open: getstage.co/projects/k17abc...     │
+│                                             │
+│  ─── What you can do ───                    │
+│  • Create projects from natural language    │
+│  • Check project status and workload        │
+│  • Mark tasks as complete                   │
+│  • Generate projects from client briefs     │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+## Build Order
+
+| Step | What | Parallel? |
+|------|------|-----------|
+| 1 | `stage-api-docs.ts` | Start here — everything depends on it |
+| 2a | `DeveloperTab.tsx` + Settings integration | ← parallel |
+| 2b | `ApiDocsPage.tsx` + `/docs` route | ← parallel |
+| 3a | `SKILL.md` | ← parallel |
+| 3b | `OpenClawPage.tsx` + `/openclaw` route | ← parallel |
+| 4 | ClawHub listing (manual submission) | After backend deployed |
+
+---
+
+## Env Vars (already set or needed)
+
+| Variable | Status | Purpose |
+|----------|--------|---------|
+| `STAGE_RESEND_API_KEY` | ✅ Set | Resend API |
+| `RESEND_AUDIENCE_ID` | ✅ Set | Audience sync |
+| `STAGE_API_KEY` | User's machine | For Claude Code / MCP auth |

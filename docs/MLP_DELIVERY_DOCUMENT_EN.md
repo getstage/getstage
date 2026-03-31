@@ -197,7 +197,7 @@ Advanced infrastructure setup, deployment, integrations, and operational mainten
 ### Recommended Additional Guides
 - how to review Cloudflare, Convex, Stripe, R2, and Loops for monitoring and logging
 - where to find the most important operational settings and error surfaces
-- how to verify that the platform, billing, and integrations are working correctly
+- how to verify that the platform, billing, and integrations are working correctlys
 
 ### Monitoring Note
 - Cloudflare Worker observability logs are enabled

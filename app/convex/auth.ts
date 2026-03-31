@@ -291,12 +291,25 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         timestamp,
       });
 
+      const isNewUser = userId === null && !user;
+
       if (userId !== null) {
         await ctx.db.patch(userId, userData);
-        return userId;
+      } else {
+        userId = await ctx.db.insert("users", userData);
       }
 
-      return await ctx.db.insert("users", userData);
+      if (isNewUser && normalizedEmail) {
+        const fullName = (userData.name as string | undefined) ?? "";
+        const nameParts = fullName.split(" ");
+        await ctx.scheduler.runAfter(0, internal.resendAudience.syncContactToResend, {
+          email: normalizedEmail,
+          firstName: nameParts[0] || undefined,
+          lastName: nameParts.slice(1).join(" ") || undefined,
+        });
+      }
+
+      return userId;
     },
   },
 });
