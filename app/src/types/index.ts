@@ -17,6 +17,7 @@ import {
   phaseSchema,
   phaseStatusSchema,
   taskSchema,
+  taskAssigneeSchema,
   attachmentSchema,
   attachmentTypeSchema,
   clientSchema,
@@ -53,6 +54,7 @@ export type Phase = z.infer<typeof phaseSchema>;
 export type PhaseStatus = z.infer<typeof phaseStatusSchema>;
 
 export type Task = z.infer<typeof taskSchema>;
+export type TaskAssignee = z.infer<typeof taskAssigneeSchema>;
 
 export type Attachment = z.infer<typeof attachmentSchema>;
 export type AttachmentType = z.infer<typeof attachmentTypeSchema>;

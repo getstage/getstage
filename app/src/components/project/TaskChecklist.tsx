@@ -1,11 +1,39 @@
 import { useState, type RefObject } from "react";
-import { CaretRight, Trash } from "@phosphor-icons/react";
+import { CalendarBlank, CaretRight, Trash } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { ConfirmPopover } from "@/components/ui/ConfirmPopover";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { Phase, Task } from "@/types";
+
+function formatDueDate(timestamp: number): { label: string; isOverdue: boolean; isDueSoon: boolean } {
+  const now = new Date();
+  const due = new Date(timestamp);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+  const diffMs = dueDay.getTime() - today.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return { label: `${Math.abs(diffDays)}d overdue`, isOverdue: true, isDueSoon: false };
+  }
+  if (diffDays === 0) {
+    return { label: "Due today", isOverdue: false, isDueSoon: true };
+  }
+  if (diffDays === 1) {
+    return { label: "Due tomorrow", isOverdue: false, isDueSoon: true };
+  }
+  if (diffDays <= 3) {
+    return { label: `Due in ${diffDays}d`, isOverdue: false, isDueSoon: true };
+  }
+
+  return {
+    label: due.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    isOverdue: false,
+    isDueSoon: false,
+  };
+}
 
 type TaskChecklistProps = {
   phase: Phase;
@@ -141,6 +169,9 @@ function TaskRow({
   onCancelDelete,
   onDelete,
 }: TaskRowProps) {
+  const dueDateInfo = task.dueDate ? formatDueDate(task.dueDate) : null;
+  const assignees = task.assignees ?? [];
+
   return (
     <div className="group relative flex items-center gap-3 rounded-lg border-t border-border-subtle px-3 py-2.5 first:border-t-0 hover:bg-border-subtle">
       <Checkbox checked={task.isCompleted} onCheckedChange={onToggle} />
@@ -155,6 +186,43 @@ function TaskRow({
       >
         {task.title}
       </Link>
+
+      <div className="flex items-center gap-2">
+        {dueDateInfo && !task.isCompleted ? (
+          <span
+            className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${
+              dueDateInfo.isOverdue
+                ? "bg-destructive/10 text-destructive"
+                : dueDateInfo.isDueSoon
+                  ? "bg-amber-500/10 text-amber-600"
+                  : "bg-bg-subtle text-text-secondary"
+            }`}
+          >
+            <CalendarBlank size={11} />
+            {dueDateInfo.label}
+          </span>
+        ) : null}
+
+        {assignees.length > 0 ? (
+          <div className="flex -space-x-1.5">
+            {assignees.slice(0, 3).map((assignee) => (
+              <div
+                key={assignee.userId}
+                className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/10 text-[9px] font-semibold text-accent ring-2 ring-white"
+                title={assignee.name ?? assignee.email ?? "Team member"}
+              >
+                {(assignee.name ?? assignee.email ?? "?").charAt(0).toUpperCase()}
+              </div>
+            ))}
+            {assignees.length > 3 ? (
+              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-bg-subtle text-[9px] font-medium text-text-secondary ring-2 ring-white">
+                +{assignees.length - 3}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
       <CaretRight
         size={14}
         className="hidden text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100 sm:block"

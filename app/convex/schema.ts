@@ -220,6 +220,8 @@ export default defineSchema({
     title: v.string(),
     isCompleted: v.boolean(),
     content: v.optional(v.string()),
+    dueDate: v.optional(v.number()),
+    assigneeIds: v.optional(v.array(v.string())),
     order: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),

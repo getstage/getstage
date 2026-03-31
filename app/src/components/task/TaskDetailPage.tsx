@@ -5,10 +5,13 @@ import { useNavigate, useParams, Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
   ArrowsClockwise,
+  Check,
   DownloadSimple,
   File as FileIcon,
   Plus,
   Trash,
+  UserCircle,
+  X,
 } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { ProjectDock } from "@/components/dashboard/ProjectDock";
@@ -16,6 +19,7 @@ import { useDockProjects } from "@/hooks/useDockProjects";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { ConfirmPopover } from "@/components/ui/ConfirmPopover";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { api } from "@/lib/convex";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { debounce, formatFileSize } from "@/lib/utils";
@@ -57,9 +61,17 @@ export function TaskDetailPage() {
     setAttachments(task.attachments);
   }, [task]);
 
+  const projectMembers = useConvexQuery(
+    api.tasks.getProjectMembers,
+    project ? { projectId: project.id as Id<"projects"> } : "skip",
+  );
+  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
+
   const updateTask = useConvexMutation(api.tasks.update);
   const deleteTask = useConvexMutation(api.tasks.deleteById);
   const toggleTaskComplete = useConvexMutation(api.tasks.toggleComplete);
+  const setDueDate = useConvexMutation(api.tasks.setDueDate);
+  const setAssignees = useConvexMutation(api.tasks.setAssignees);
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
   const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
   const saveAttachment = useConvexMutation(api.tasks.saveAttachment);
@@ -274,7 +286,7 @@ export function TaskDetailPage() {
             </div>
           ) : null}
 
-          <div className="mb-10 flex items-start gap-3">
+          <div className="mb-6 flex items-start gap-3">
             <div className="pt-1">
               <Checkbox
                 checked={task.isCompleted}
@@ -299,6 +311,127 @@ export function TaskDetailPage() {
               }`}
               placeholder="Task title"
             />
+          </div>
+
+          {/* Due date & Assignees */}
+          <div className="mb-8 flex flex-wrap items-center gap-3">
+            {/* Due date */}
+            <DatePicker
+              value={task.dueDate ? new Date(task.dueDate) : null}
+              onChange={(date) => {
+                void setDueDate({
+                  taskId: task.id as Id<"tasks">,
+                  dueDate: date ? date.getTime() : null,
+                });
+              }}
+            />
+
+            <div className="h-4 w-px bg-border-subtle" />
+
+            {/* Assignees */}
+            <div className="relative flex items-center gap-2">
+              <UserCircle size={15} className="text-text-tertiary" />
+              {(task.assignees ?? []).map((assignee) => (
+                <div
+                  key={assignee.userId}
+                  className="flex items-center gap-1 rounded-full bg-accent/10 py-0.5 pl-1.5 pr-1 text-[12px] font-medium text-accent"
+                >
+                  <span>{assignee.name ?? assignee.email ?? "Member"}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentIds = task.assigneeIds ?? [];
+                      void setAssignees({
+                        taskId: task.id as Id<"tasks">,
+                        assigneeIds: currentIds.filter(
+                          (id) => id !== assignee.userId,
+                        ),
+                      });
+                    }}
+                    className="inline-flex h-4 w-4 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-accent/20"
+                    aria-label={`Remove ${assignee.name ?? assignee.email}`}
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setShowAssigneeDropdown(!showAssigneeDropdown)}
+                className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-md border border-dashed border-border px-2 text-[12px] text-text-tertiary transition-colors hover:border-accent hover:text-accent"
+              >
+                <Plus size={11} />
+                Assign
+              </button>
+
+              {showAssigneeDropdown && projectMembers ? (
+                <div className="absolute left-0 top-full z-10 mt-1 w-56 rounded-lg border border-border bg-white py-1 shadow-lg">
+                  {projectMembers.length === 0 ? (
+                    <p className="px-3 py-2 text-[12px] text-text-tertiary">
+                      No team members yet
+                    </p>
+                  ) : (
+                    projectMembers.map((member) => {
+                      const isAssigned = (task.assigneeIds ?? []).includes(
+                        member.userId,
+                      );
+                      return (
+                        <button
+                          key={member.userId}
+                          type="button"
+                          onClick={() => {
+                            const currentIds = task.assigneeIds ?? [];
+                            const nextIds = isAssigned
+                              ? currentIds.filter(
+                                  (id) => id !== member.userId,
+                                )
+                              : [...currentIds, member.userId];
+                            void setAssignees({
+                              taskId: task.id as Id<"tasks">,
+                              assigneeIds: nextIds,
+                            });
+                          }}
+                          className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-[13px] transition-colors hover:bg-bg-subtle"
+                        >
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-[10px] font-semibold text-accent">
+                            {(
+                              member.name ??
+                              member.email ??
+                              "?"
+                            )
+                              .charAt(0)
+                              .toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-medium text-text-primary">
+                              {member.name ?? "Unnamed"}
+                            </p>
+                            <p className="truncate text-[11px] text-text-secondary">
+                              {member.email ?? ""}
+                              {member.role === "owner" ? " (owner)" : ""}
+                            </p>
+                          </div>
+                          {isAssigned ? (
+                            <Check
+                              size={14}
+                              className="text-accent"
+                              weight="bold"
+                            />
+                          ) : null}
+                        </button>
+                      );
+                    })
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowAssigneeDropdown(false)}
+                    className="mt-1 w-full cursor-pointer border-t border-border-subtle px-3 py-1.5 text-left text-[11px] text-text-tertiary transition-colors hover:text-text-secondary"
+                  >
+                    Close
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <div
