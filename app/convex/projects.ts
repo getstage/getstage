@@ -91,6 +91,14 @@ export const getDockProjects = query({
   },
 });
 
+export const count = query({
+  args: {},
+  handler: async (ctx) => {
+    const projects = await ctx.db.query("projects").collect();
+    return projects.length;
+  },
+});
+
 export const create = mutation({
   args: {
     name: v.string(),
