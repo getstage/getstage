@@ -34,6 +34,7 @@ import type * as settings from "../settings.js";
 import type * as stripeConnect from "../stripeConnect.js";
 import type * as tasks from "../tasks.js";
 import type * as userEmails from "../userEmails.js";
+import type * as users from "../users.js";
 import type * as viewer from "../viewer.js";
 
 import type {
@@ -69,6 +70,7 @@ declare const fullApi: ApiFromModules<{
   stripeConnect: typeof stripeConnect;
   tasks: typeof tasks;
   userEmails: typeof userEmails;
+  users: typeof users;
   viewer: typeof viewer;
 }>;
 
