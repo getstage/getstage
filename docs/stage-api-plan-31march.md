@@ -128,7 +128,7 @@ Must exist:
 - `POST /api/v1/projects/:id/phases`
 - `POST /api/v1/phases/:id/tasks`
 
-Preferred addition:
+Preferred AI write path:
 - `POST /api/v1/projects/import-plan`
 
 Why `import-plan` is better:
@@ -202,31 +202,47 @@ Already in place:
 - shared project service layer
 - lean API read models to reduce overfetching
 - CRUD routes for projects, phases, and tasks
+- `GET /api/v1/tasks/:id`
+- `POST /api/v1/projects/import-plan`
+- `POST /api/v1/projects/generate` now returns a deprecation error instead of calling an LLM
 - Stitch backend exists technically, but product direction is still not settled
 
 Current Convex direction:
 - keep app-facing entrypoints at root
 - keep backend-only logic inside folders
 
+Generated Convex files:
+- `app/convex/_generated/*` is recreated by `npx convex dev`
+- do not hand-edit generated files
+
+## Parallel Work Right Now
+
+Frontend agent can work now on:
+- API docs page
+- developer UI for API keys
+- agent or `SKILL.md` docs
+- frontend wiring to the current read/create endpoints
+
+Backend agent focus now:
+- tighten `POST /api/v1/projects/import-plan` validation
+- add API tests
+- keep list/detail response shapes lean
+
+Avoid simultaneous edits in:
+- `app/convex/api/routes/projects.ts`
+- `app/convex/api/models.ts`
+- `app/convex/domain/projects/service.ts`
+
 ## What Needs To Change Next
 
 ### Backend
 
-1. Remove or deprecate server-side project generation.
-   Reason: Stage should not call LLMs for normal project setup.
-
-2. Add `GET /api/v1/tasks/:id`.
-   Reason: task viewing is part of the basic action model.
-
-3. Add `POST /api/v1/projects/import-plan`.
-   Reason: external AI should be able to create a whole structured project in one request.
-
-4. Add validation rules for bulk import.
+1. Tighten validation rules for bulk import.
    Reason: malformed AI output should fail cleanly.
 
-5. Design destructive confirmation flow before delete endpoints are added.
+2. Design destructive confirmation flow before delete endpoints are added.
 
-6. Add API tests.
+3. Add API tests.
    Needed for:
    - auth
    - rate limiting
@@ -278,14 +294,14 @@ Decision for now:
 ### Phase 1
 
 - keep read routes clean
-- add `GET /api/v1/tasks/:id`
 - keep `POST /api/v1/projects` working
+- keep `GET /api/v1/tasks/:id` working
 
 ### Phase 2
 
-- add `POST /api/v1/projects/import-plan`
 - validate nested phases/tasks strictly
 - document the import shape for external AIs
+- keep `POST /api/v1/projects/import-plan` as the preferred AI write path
 
 ### Phase 3
 

@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OpenclawRouteImport } from './routes/openclaw'
+import { Route as DocsRouteImport } from './routes/docs'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
@@ -21,6 +23,16 @@ import { Route as AuthedProjectIdRouteImport } from './routes/_authed/project.$i
 import { Route as PortalTokenTaskTaskIdRouteImport } from './routes/portal.$token.task.$taskId'
 import { Route as AuthedProjectIdTaskTaskIdRouteImport } from './routes/_authed/project.$id.task.$taskId'
 
+const OpenclawRoute = OpenclawRouteImport.update({
+  id: '/openclaw',
+  path: '/openclaw',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -81,6 +93,8 @@ const AuthedProjectIdTaskTaskIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/docs': typeof DocsRoute
+  '/openclaw': typeof OpenclawRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
   '/settings': typeof AuthedSettingsRoute
@@ -93,6 +107,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/docs': typeof DocsRoute
+  '/openclaw': typeof OpenclawRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
   '/settings': typeof AuthedSettingsRoute
@@ -107,6 +123,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
   '/auth': typeof AuthRoute
+  '/docs': typeof DocsRoute
+  '/openclaw': typeof OpenclawRoute
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/new-project': typeof AuthedNewProjectRoute
   '/_authed/settings': typeof AuthedSettingsRoute
@@ -121,6 +139,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/docs'
+    | '/openclaw'
     | '/dashboard'
     | '/new-project'
     | '/settings'
@@ -133,6 +153,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/docs'
+    | '/openclaw'
     | '/dashboard'
     | '/new-project'
     | '/settings'
@@ -146,6 +168,8 @@ export interface FileRouteTypes {
     | '/'
     | '/_authed'
     | '/auth'
+    | '/docs'
+    | '/openclaw'
     | '/_authed/dashboard'
     | '/_authed/new-project'
     | '/_authed/settings'
@@ -160,12 +184,28 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
   AuthRoute: typeof AuthRoute
+  DocsRoute: typeof DocsRoute
+  OpenclawRoute: typeof OpenclawRoute
   HelpImportTransactionsViaGoogleSheetsRoute: typeof HelpImportTransactionsViaGoogleSheetsRoute
   PortalTokenRoute: typeof PortalTokenRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/openclaw': {
+      id: '/openclaw'
+      path: '/openclaw'
+      fullPath: '/openclaw'
+      preLoaderRoute: typeof OpenclawRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -291,6 +331,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
   AuthRoute: AuthRoute,
+  DocsRoute: DocsRoute,
+  OpenclawRoute: OpenclawRoute,
   HelpImportTransactionsViaGoogleSheetsRoute:
     HelpImportTransactionsViaGoogleSheetsRoute,
   PortalTokenRoute: PortalTokenRouteWithChildren,

@@ -20,9 +20,6 @@
     "cf:typegen": "npx wrangler types --env-interface CloudflareEnv worker-env.d.ts"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.64",
-    "@ai-sdk/google": "^3.0.54",
-    "@ai-sdk/openai": "^3.0.49",
     "@auth/core": "0.37.0",
     "@convex-dev/auth": "^0.0.91",
     "@convex-dev/r2": "^0.9.1",
@@ -42,7 +39,6 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@tanstack/react-query": "^5.66.0",
     "@tanstack/react-router": "^1.112.0",
-    "ai": "^6.0.142",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "convex": "^1.32.0",

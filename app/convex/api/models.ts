@@ -32,7 +32,19 @@ export const projectTypeSchema = z.enum([
   "other",
 ]);
 
-export const createProjectBodySchema = z.object({
+const projectDatesAreOrdered = (
+  value: {
+    startDate: number;
+    endDate: number;
+  },
+) => value.endDate >= value.startDate;
+
+const projectDateRangeError = {
+  path: ["endDate"],
+  message: "End date must be on or after the start date.",
+};
+
+const projectBodyFieldsSchema = z.object({
   name: trimmedString("Project name"),
   clientName: trimmedString("Client name"),
   clientEmail: z.string().trim().email().optional(),
@@ -54,6 +66,25 @@ export const createProjectBodySchema = z.object({
     .optional(),
 });
 
+export const createProjectBodySchema = projectBodyFieldsSchema.refine(
+  projectDatesAreOrdered,
+  projectDateRangeError,
+);
+
+export const importProjectPlanBodySchema = projectBodyFieldsSchema
+  .omit({ method: true })
+  .extend({
+    phases: z
+      .array(
+        z.object({
+          name: trimmedString("Phase name"),
+          tasks: z.array(trimmedString("Task name")).optional(),
+        }),
+      )
+      .min(1, "At least one phase is required."),
+  })
+  .refine(projectDatesAreOrdered, projectDateRangeError);
+
 export const createPhaseBodySchema = z.object({
   name: trimmedString("Phase name"),
   tasks: z.array(trimmedString("Task name")).optional(),
@@ -61,11 +92,6 @@ export const createPhaseBodySchema = z.object({
 
 export const createTaskBodySchema = z.object({
   title: trimmedString("Task title"),
-});
-
-export const generateProjectBodySchema = z.object({
-  description: trimmedString("Project description"),
-  model: optionalTrimmedString,
 });
 
 export const generateDesignBodySchema = z.object({

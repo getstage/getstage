@@ -11,6 +11,21 @@ export function createTaskRoutes() {
     Bindings: ApiBindings;
   }>();
 
+  app.get(
+    "/:id",
+    zValidator("param", taskIdParamSchema, validationHook),
+    async (c) => {
+      const auth = await authenticateApiKey(c);
+      const { id } = c.req.valid("param");
+      const task = await c.env.runQuery(internal.domain.projects.service.getTaskForApi, {
+        userId: auth.userId,
+        taskId: id,
+      });
+
+      return c.json({ task });
+    },
+  );
+
   app.post(
     "/:id/toggle",
     zValidator("param", taskIdParamSchema, validationHook),

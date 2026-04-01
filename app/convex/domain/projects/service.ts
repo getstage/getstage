@@ -69,6 +69,30 @@ function now() {
   return Date.now();
 }
 
+function requireNonEmptyTrimmedString(value: string, field: string) {
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    throw new Error(`${field} is required.`);
+  }
+  return normalized;
+}
+
+function normalizePhaseInputs(phases?: Array<{ name: string; tasks?: string[] }>) {
+  if (!phases) {
+    return [];
+  }
+
+  return phases.map((phase, phaseIndex) => {
+    const name = requireNonEmptyTrimmedString(phase.name, `Phase ${phaseIndex + 1} name`);
+    const tasks =
+      phase.tasks?.map((task, taskIndex) =>
+        requireNonEmptyTrimmedString(task, `Phase ${phaseIndex + 1} task ${taskIndex + 1}`),
+      ) ?? [];
+
+    return { name, tasks };
+  });
+}
+
 async function requireActorUser(ctx: ReaderCtx, userId: Id<"users">) {
   const user = await ctx.db.get(userId);
   if (!user) {
@@ -201,12 +225,17 @@ export async function createProjectForUser(
   const user = await requireActorUser(ctx, args.userId);
   const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
   const plan = subscription?.plan ?? user.plan ?? "free";
-  const clientName = args.clientName.trim();
+  const projectName = requireNonEmptyTrimmedString(args.name, "Project name");
+  const clientName = requireNonEmptyTrimmedString(args.clientName, "Client name");
   const clientEmail = args.clientEmail?.trim() || undefined;
   const requestedClientAvatarUrl = args.clientAvatarUrl?.trim() || undefined;
   const projectImageUrl = args.projectImageUrl?.trim() || undefined;
   const startMarkerImageUrl = args.startMarkerImageUrl?.trim() || undefined;
   const endMarkerImageUrl = args.endMarkerImageUrl?.trim() || undefined;
+
+  if (args.endDate < args.startDate) {
+    throw new Error("End date must be on or after the start date.");
+  }
 
   if (plan === "free") {
     const existingProjects = await ctx.db
@@ -254,10 +283,15 @@ export async function createProjectForUser(
     );
   }
 
+  const normalizedProvidedPhases = normalizePhaseInputs(args.phases);
+  if (args.method === "ai" && normalizedProvidedPhases.length === 0) {
+    throw new Error("AI project import requires at least one phase.");
+  }
+
   const timestamp = now();
   const projectId = await ctx.db.insert("projects", {
     userId: user._id,
-    name: args.name.trim(),
+    name: projectName,
     clientName,
     clientEmail,
     clientAvatarUrl: nextClientAvatarUrl,
@@ -280,17 +314,10 @@ export async function createProjectForUser(
     attachTrackedR2Asset(ctx, { key: endMarkerImageUrl }),
   ]);
 
-  const phases =
-    args.phases
-      ?.map((phase) => ({
-        name: phase.name.trim(),
-        tasks:
-          phase.tasks?.map((task) => task.trim()).filter((task) => task.length > 0) ?? [],
-      }))
-      .filter((phase) => phase.name.length > 0) ?? [];
-
   const normalizedPhases =
-    phases.length > 0 ? phases : [{ name: "Planning", tasks: [] as string[] }];
+    normalizedProvidedPhases.length > 0
+      ? normalizedProvidedPhases
+      : [{ name: "Planning", tasks: [] as string[] }];
 
   for (const [index, phase] of normalizedPhases.entries()) {
     const phaseId = await ctx.db.insert("phases", {

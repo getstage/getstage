@@ -6,10 +6,10 @@ import {
   createPhaseBodySchema,
   generateDesignBodySchema,
   createProjectBodySchema,
-  generateProjectBodySchema,
+  importProjectPlanBodySchema,
   projectIdParamSchema,
 } from "../models";
-import { validationHook } from "../errors";
+import { jsonError, validationHook } from "../errors";
 import type { ApiBindings } from "../types";
 
 export function createProjectRoutes() {
@@ -28,14 +28,26 @@ export function createProjectRoutes() {
 
   app.post(
     "/generate",
-    zValidator("json", generateProjectBodySchema, validationHook),
+    async (c) => {
+      return jsonError(
+        c,
+        410,
+        "Server-side project generation is deprecated. External AI should generate the structured project plan and call POST /api/v1/projects/import-plan or POST /api/v1/projects.",
+        "deprecated_endpoint",
+      );
+    },
+  );
+
+  app.post(
+    "/import-plan",
+    zValidator("json", importProjectPlanBodySchema, validationHook),
     async (c) => {
       const auth = await authenticateApiKey(c);
       const body = c.req.valid("json");
-      const project = await c.env.runAction(internal.domain.projects.generation.generateProjectForApi, {
+      const project = await c.env.runMutation(internal.domain.projects.service.createProjectForApi, {
         userId: auth.userId,
-        description: body.description,
-        model: body.model,
+        ...body,
+        method: "ai",
       });
 
       return c.json({ project }, 201);

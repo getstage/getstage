@@ -30,12 +30,10 @@ import type * as domain_collaborators_invites from "../domain/collaborators/invi
 import type * as domain_collaborators_service from "../domain/collaborators/service.js";
 import type * as domain_demo_workspace from "../domain/demo/workspace.js";
 import type * as domain_projects_apiReadModel from "../domain/projects/apiReadModel.js";
-import type * as domain_projects_generation from "../domain/projects/generation.js";
 import type * as domain_projects_readModel from "../domain/projects/readModel.js";
 import type * as domain_projects_service from "../domain/projects/service.js";
 import type * as http from "../http.js";
 import type * as integrations_googleSheets from "../integrations/googleSheets.js";
-import type * as integrations_llm from "../integrations/llm.js";
 import type * as integrations_loopsOtp from "../integrations/loopsOtp.js";
 import type * as integrations_resendAudience from "../integrations/resendAudience.js";
 import type * as integrations_stitch from "../integrations/stitch.js";
@@ -81,12 +79,10 @@ declare const fullApi: ApiFromModules<{
   "domain/collaborators/service": typeof domain_collaborators_service;
   "domain/demo/workspace": typeof domain_demo_workspace;
   "domain/projects/apiReadModel": typeof domain_projects_apiReadModel;
-  "domain/projects/generation": typeof domain_projects_generation;
   "domain/projects/readModel": typeof domain_projects_readModel;
   "domain/projects/service": typeof domain_projects_service;
   http: typeof http;
   "integrations/googleSheets": typeof integrations_googleSheets;
-  "integrations/llm": typeof integrations_llm;
   "integrations/loopsOtp": typeof integrations_loopsOtp;
   "integrations/resendAudience": typeof integrations_resendAudience;
   "integrations/stitch": typeof integrations_stitch;
