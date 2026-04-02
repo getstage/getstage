@@ -105,3 +105,68 @@ export const generateDesignBodySchema = z.object({
     .enum(["MODEL_ID_UNSPECIFIED", "GEMINI_3_PRO", "GEMINI_3_FLASH"])
     .optional(),
 });
+
+const stitchProviderSchema = z.literal("stitch");
+
+const stitchDeviceTypeSchema = z.enum([
+  "DEVICE_TYPE_UNSPECIFIED",
+  "MOBILE",
+  "DESKTOP",
+  "TABLET",
+  "AGNOSTIC",
+]);
+
+const stitchModelIdSchema = z.enum([
+  "MODEL_ID_UNSPECIFIED",
+  "GEMINI_3_PRO",
+  "GEMINI_3_FLASH",
+]);
+
+export const upsertDesignConnectionBodySchema = z.object({
+  provider: stitchProviderSchema.default("stitch"),
+  externalProjectUrl: z.string().trim().url("Stitch project URL must be a valid URL."),
+  externalProjectId: optionalTrimmedString,
+  title: optionalTrimmedString,
+});
+
+export const createDesignUploadUrlBodySchema = z.object({
+  fileName: trimmedString("File name"),
+  fileSize: z.number().int().positive("File size must be greater than 0."),
+  mimeType: trimmedString("MIME type"),
+});
+
+const syncDesignScreenSchema = z.object({
+  stitchScreenId: trimmedString("Stitch screen ID"),
+  stitchScreenUrl: z.string().trim().url("Stitch screen URL must be a valid URL.").optional(),
+  r2ObjectKey: trimmedString("R2 object key"),
+  title: optionalTrimmedString,
+  prompt: optionalTrimmedString,
+  phaseId: z.string().trim().min(1).optional(),
+  deviceType: stitchDeviceTypeSchema.optional(),
+  modelId: stitchModelIdSchema.optional(),
+  sortOrder: z.number().int().min(0).optional(),
+});
+
+export const syncProjectDesignsBodySchema = z
+  .object({
+    externalProjectUrl: z.string().trim().url("Stitch project URL must be a valid URL."),
+    externalProjectId: optionalTrimmedString,
+    title: optionalTrimmedString,
+    screens: z.array(syncDesignScreenSchema).min(1, "At least one screen is required."),
+  })
+  .superRefine((value, ctx) => {
+    const stitchScreenIds = new Set<string>();
+
+    value.screens.forEach((screen, index) => {
+      if (stitchScreenIds.has(screen.stitchScreenId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["screens", index, "stitchScreenId"],
+          message: "Each Stitch screen ID must be unique within the sync request.",
+        });
+        return;
+      }
+
+      stitchScreenIds.add(screen.stitchScreenId);
+    });
+  });

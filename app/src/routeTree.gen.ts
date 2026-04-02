@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as OpenclawRouteImport } from './routes/openclaw'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalTokenRouteImport } from './routes/portal.$token'
@@ -36,6 +37,11 @@ const DocsRoute = DocsRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentsRoute = AgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedRoute = AuthedRouteImport.update({
@@ -92,6 +98,7 @@ const AuthedProjectIdTaskTaskIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agents': typeof AgentsRoute
   '/auth': typeof AuthRoute
   '/docs': typeof DocsRoute
   '/openclaw': typeof OpenclawRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agents': typeof AgentsRoute
   '/auth': typeof AuthRoute
   '/docs': typeof DocsRoute
   '/openclaw': typeof OpenclawRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
+  '/agents': typeof AgentsRoute
   '/auth': typeof AuthRoute
   '/docs': typeof DocsRoute
   '/openclaw': typeof OpenclawRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/agents'
     | '/auth'
     | '/docs'
     | '/openclaw'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/agents'
     | '/auth'
     | '/docs'
     | '/openclaw'
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authed'
+    | '/agents'
     | '/auth'
     | '/docs'
     | '/openclaw'
@@ -183,6 +195,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
+  AgentsRoute: typeof AgentsRoute
   AuthRoute: typeof AuthRoute
   DocsRoute: typeof DocsRoute
   OpenclawRoute: typeof OpenclawRoute
@@ -211,6 +224,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agents': {
+      id: '/agents'
+      path: '/agents'
+      fullPath: '/agents'
+      preLoaderRoute: typeof AgentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authed': {
@@ -330,6 +350,7 @@ const PortalTokenRouteWithChildren = PortalTokenRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
+  AgentsRoute: AgentsRoute,
   AuthRoute: AuthRoute,
   DocsRoute: DocsRoute,
   OpenclawRoute: OpenclawRoute,

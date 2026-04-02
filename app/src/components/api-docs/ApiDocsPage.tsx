@@ -858,7 +858,11 @@ export function ApiDocsPage() {
               to="/"
               className="inline-flex items-center gap-3 text-lg font-bold text-slate-900 dark:text-white"
             >
-              <img src={stageLogo} alt="Stage" className="h-8 w-auto" />
+              <img
+                src={stageLogo}
+                alt="Stage"
+                className={cn("h-8 w-auto transition-[filter]", dark && "brightness-0 invert")}
+              />
               <span>Stage</span>
             </Link>
             <CaretRight className="h-3.5 w-3.5 text-slate-400" />

@@ -218,6 +218,204 @@ export const stageApiEndpoints: ApiEndpointDoc[] = [
       "At least one phase is required. Tasks within phases are optional.",
     ],
   },
+  {
+    id: "list-design-connections",
+    title: "List design connections",
+    method: "GET",
+    path: "/api/v1/projects/:id/design-connections",
+    pathExample: "/api/v1/projects/k17abc123/design-connections",
+    summary: "List external design workspaces linked to a project.",
+    description:
+      "Returns the connected Stitch workspace for the project. In v1 Stage usually stores one Stitch project link per project.",
+    pathFields: [
+      { name: "id", type: "string", required: true, description: "The project ID." },
+    ],
+    responseExample: {
+      connections: [
+        {
+          id: "dc_123",
+          projectId: "k17abc123",
+          provider: "stitch",
+          externalProjectId: "6902984668756034217",
+          externalProjectUrl: "https://stitch.withgoogle.com/projects/6902984668756034217",
+          title: "Brew & Co Stitch workspace",
+          status: "active",
+          lastSyncedAt: 1717200000000,
+          createdAt: 1717200000000,
+          updatedAt: 1717200000000,
+        },
+      ],
+    },
+  },
+  {
+    id: "upsert-design-connection",
+    title: "Link Stitch project",
+    method: "POST",
+    path: "/api/v1/projects/:id/design-connections",
+    pathExample: "/api/v1/projects/k17abc123/design-connections",
+    summary: "Link or update the Stitch workspace connected to a project.",
+    description:
+      "Stores the project-level Stitch URL so Stage can show a deep link back to the full design workspace.",
+    pathFields: [
+      { name: "id", type: "string", required: true, description: "The project ID." },
+    ],
+    bodyFields: [
+      { name: "provider", type: "string", required: false, description: 'Currently always "stitch".', defaultValue: "stitch" },
+      { name: "externalProjectUrl", type: "string", required: true, description: "Full Stitch project URL." },
+      { name: "externalProjectId", type: "string", required: false, description: "Optional Stitch project ID." },
+      { name: "title", type: "string", required: false, description: "Optional label shown inside Stage." },
+    ],
+    bodyExample: {
+      provider: "stitch",
+      externalProjectUrl: "https://stitch.withgoogle.com/projects/6902984668756034217",
+      externalProjectId: "6902984668756034217",
+      title: "Brew & Co Stitch workspace",
+    },
+    responseExample: {
+      connection: {
+        id: "dc_123",
+        projectId: "k17abc123",
+        provider: "stitch",
+        externalProjectId: "6902984668756034217",
+        externalProjectUrl: "https://stitch.withgoogle.com/projects/6902984668756034217",
+        title: "Brew & Co Stitch workspace",
+        status: "active",
+        createdAt: 1717200000000,
+        updatedAt: 1717200000000,
+      },
+    },
+    notes: ["Returns 201 on success."],
+  },
+  {
+    id: "create-design-upload-url",
+    title: "Create design upload URL",
+    method: "POST",
+    path: "/api/v1/projects/:id/designs/upload-url",
+    pathExample: "/api/v1/projects/k17abc123/designs/upload-url",
+    summary: "Create a signed upload URL for a generated Stitch preview image.",
+    description:
+      "Agents upload selected Stitch preview images to Stage storage before syncing the latest preview set into the project.",
+    pathFields: [
+      { name: "id", type: "string", required: true, description: "The project ID." },
+    ],
+    bodyFields: [
+      { name: "fileName", type: "string", required: true, description: "Original file name." },
+      { name: "fileSize", type: "number", required: true, description: "File size in bytes." },
+      { name: "mimeType", type: "string", required: true, description: 'Image MIME type. Use "image/png", "image/jpeg", or "image/webp".' },
+    ],
+    bodyExample: {
+      fileName: "brew-dashboard.png",
+      fileSize: 482193,
+      mimeType: "image/png",
+    },
+    responseExample: {
+      uploadUrl: "https://r2.getstage.co/upload/...",
+      r2ObjectKey: "users/u_123/generated-designs/4ca1b0f9-9f11-4f5f-a4ce-abc123.png",
+    },
+    notes: ["Returns 201 on success.", "Upload the binary file to the returned URL, then call the sync endpoint."],
+  },
+  {
+    id: "sync-designs",
+    title: "Sync latest Stitch previews",
+    method: "POST",
+    path: "/api/v1/projects/:id/designs/sync",
+    pathExample: "/api/v1/projects/k17abc123/designs/sync",
+    summary: "Replace the project’s current synced Stitch previews with the latest selected screens.",
+    description:
+      "Use this after uploading preview images to Stage. The sync request updates the linked Stitch project and replaces the project’s current user-synced preview set so Stage reflects the latest workspace state.",
+    pathFields: [
+      { name: "id", type: "string", required: true, description: "The project ID." },
+    ],
+    bodyFields: [
+      { name: "externalProjectUrl", type: "string", required: true, description: "Full Stitch project URL." },
+      { name: "externalProjectId", type: "string", required: false, description: "Optional Stitch project ID." },
+      { name: "title", type: "string", required: false, description: "Optional label shown for the linked Stitch workspace." },
+      { name: "screens", type: "array", required: true, description: "The latest preview screens to keep in Stage. Omitted previously-synced screens are removed." },
+    ],
+    bodyExample: {
+      externalProjectUrl: "https://stitch.withgoogle.com/projects/6902984668756034217",
+      externalProjectId: "6902984668756034217",
+      title: "Brew & Co dashboard concepts",
+      screens: [
+        {
+          stitchScreenId: "screen-overview",
+          stitchScreenUrl: "https://stitch.withgoogle.com/projects/6902984668756034217/screens/screen-overview",
+          r2ObjectKey: "users/u_123/generated-designs/overview.png",
+          title: "Overview dashboard",
+          prompt: "Dashboard overview with KPI cards and production logs",
+          deviceType: "DESKTOP",
+          sortOrder: 0,
+        },
+        {
+          stitchScreenId: "screen-alerts",
+          r2ObjectKey: "users/u_123/generated-designs/alerts.png",
+          title: "Alerts center",
+          deviceType: "DESKTOP",
+          sortOrder: 1,
+        },
+      ],
+    },
+    responseExample: {
+      connection: {
+        id: "dc_123",
+        provider: "stitch",
+        externalProjectId: "6902984668756034217",
+        externalProjectUrl: "https://stitch.withgoogle.com/projects/6902984668756034217",
+        title: "Brew & Co dashboard concepts",
+        status: "active",
+        lastSyncedAt: 1717200000000,
+      },
+      designs: [
+        {
+          id: "d_sync_1",
+          projectId: "k17abc123",
+          source: "user_sync",
+          title: "Overview dashboard",
+          stitchScreenId: "screen-overview",
+          imageUrl: "https://r2.getstage.co/generated/overview.png",
+          sortOrder: 0,
+          lastSyncedAt: 1717200000000,
+          createdAt: 1717200000000,
+          updatedAt: 1717200000000,
+        },
+      ],
+    },
+    notes: [
+      "Returns 201 on success.",
+      "This is the preferred Stitch flow for agents because it keeps Stage in sync with a user-owned Stitch workspace.",
+    ],
+  },
+  {
+    id: "list-designs",
+    title: "List synced designs",
+    method: "GET",
+    path: "/api/v1/projects/:id/designs",
+    pathExample: "/api/v1/projects/k17abc123/designs",
+    summary: "List the current generated and synced design previews for a project.",
+    description:
+      "Returns the stored preview screens linked to the project. Use the design connection endpoint for the full Stitch workspace URL.",
+    pathFields: [
+      { name: "id", type: "string", required: true, description: "The project ID." },
+    ],
+    responseExample: {
+      designs: [
+        {
+          id: "d_sync_1",
+          projectId: "k17abc123",
+          source: "user_sync",
+          title: "Overview dashboard",
+          stitchProjectId: "6902984668756034217",
+          stitchScreenId: "screen-overview",
+          stitchScreenUrl: "https://stitch.withgoogle.com/projects/6902984668756034217/screens/screen-overview",
+          imageUrl: "https://r2.getstage.co/generated/overview.png",
+          sortOrder: 0,
+          lastSyncedAt: 1717200000000,
+          createdAt: 1717200000000,
+          updatedAt: 1717200000000,
+        },
+      ],
+    },
+  },
 
   // ── Phases ──
   {
@@ -430,6 +628,7 @@ export const stageApiEndpoints: ApiEndpointDoc[] = [
     },
     notes: [
       "Returns 201 on success.",
+      "This route is still supported, but the preferred v1 flow is to link a user-owned Stitch project and sync preview screens with /designs/sync.",
       "Design generation may take 10-30 seconds depending on complexity.",
       "Requires Stitch to be configured on the Stage backend.",
     ],
@@ -490,11 +689,19 @@ export const stageApiSections: ApiSectionDoc[] = [
   {
     id: "design-generation",
     title: "Design Generation",
-    summary: "Generate UI designs from text prompts using Google Stitch.",
+    summary: "Link a Stitch project and keep the latest preview screens synced into Stage.",
     paragraphs: [
-      "Stage integrates with Google Stitch to generate UI screen designs from natural language prompts. Generated designs are stored and linked to projects.",
+      "The preferred Stitch flow is user-owned: the agent or user works in Stitch, uploads a few selected previews to Stage, then syncs them into the project. Stage stores the latest preview set plus the Stitch project link.",
+      "The older server-side generate-design route still exists, but it is secondary to the linked-workspace sync flow.",
     ],
-    endpointIds: ["generate-design"],
+    endpointIds: [
+      "list-design-connections",
+      "upsert-design-connection",
+      "create-design-upload-url",
+      "sync-designs",
+      "list-designs",
+      "generate-design",
+    ],
   },
   {
     id: "action-policy",

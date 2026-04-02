@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 
 export function FooterSection() {
@@ -25,8 +26,20 @@ export function FooterSection() {
               <a href="#pricing" className="landing-footer-link">
                 Pricing
               </a>
-              <a href="#" className="landing-footer-link">
-                Changelog
+              <Link to="/agents" className="landing-footer-link">
+                Agents
+              </Link>
+              <Link to="/docs" className="landing-footer-link">
+                REST API
+              </Link>
+            </div>
+            <div>
+              <div className="landing-footer-col-title">Integrations</div>
+              <Link to="/openclaw" className="landing-footer-link">
+                OpenClaw
+              </Link>
+              <a href="/SKILL.md" className="landing-footer-link">
+                Agent Skills
               </a>
             </div>
             <div>
@@ -64,6 +77,9 @@ export function FooterSection() {
               <a href="#pricing" className="landing-footer-bottom-link">
                 Pricing
               </a>
+              <Link to="/agents" className="landing-footer-bottom-link">
+                Agents
+              </Link>
             </div>
           </div>
         </div>

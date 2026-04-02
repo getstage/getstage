@@ -3,11 +3,14 @@ import { Hono } from "hono";
 import { internal } from "../../_generated/api";
 import { authenticateApiKey } from "../auth";
 import {
+  createDesignUploadUrlBodySchema,
   createPhaseBodySchema,
   generateDesignBodySchema,
   createProjectBodySchema,
   importProjectPlanBodySchema,
   projectIdParamSchema,
+  syncProjectDesignsBodySchema,
+  upsertDesignConnectionBodySchema,
 } from "../models";
 import { jsonError, validationHook } from "../errors";
 import type { ApiBindings } from "../types";
@@ -51,6 +54,110 @@ export function createProjectRoutes() {
       });
 
       return c.json({ project }, 201);
+    },
+  );
+
+  app.get(
+    "/:id/design-connections",
+    zValidator("param", projectIdParamSchema, validationHook),
+    async (c) => {
+      const auth = await authenticateApiKey(c);
+      const { id } = c.req.valid("param");
+      const connections = await c.env.runQuery(internal.integrations.stitch.listDesignConnectionsForApi, {
+        userId: auth.userId,
+        projectId: id,
+      });
+
+      return c.json({ connections });
+    },
+  );
+
+  app.post(
+    "/:id/design-connections",
+    zValidator("param", projectIdParamSchema, validationHook),
+    zValidator("json", upsertDesignConnectionBodySchema, validationHook),
+    async (c) => {
+      const auth = await authenticateApiKey(c);
+      const { id } = c.req.valid("param");
+      const body = c.req.valid("json");
+      const connection = await c.env.runMutation(internal.integrations.stitch.upsertDesignConnectionForApi, {
+        userId: auth.userId,
+        projectId: id,
+        provider: body.provider,
+        externalProjectUrl: body.externalProjectUrl,
+        externalProjectId: body.externalProjectId,
+        title: body.title,
+      });
+
+      return c.json({ connection }, 201);
+    },
+  );
+
+  app.get(
+    "/:id/designs",
+    zValidator("param", projectIdParamSchema, validationHook),
+    async (c) => {
+      const auth = await authenticateApiKey(c);
+      const { id } = c.req.valid("param");
+      const designs = await c.env.runQuery(internal.integrations.stitch.listByProjectForApi, {
+        userId: auth.userId,
+        projectId: id,
+      });
+
+      return c.json({ designs });
+    },
+  );
+
+  app.post(
+    "/:id/designs/upload-url",
+    zValidator("param", projectIdParamSchema, validationHook),
+    zValidator("json", createDesignUploadUrlBodySchema, validationHook),
+    async (c) => {
+      const auth = await authenticateApiKey(c);
+      const { id } = c.req.valid("param");
+      const body = c.req.valid("json");
+
+      await c.env.runQuery(internal.domain.projects.service.getProjectReferenceForApi, {
+        userId: auth.userId,
+        projectId: id,
+      });
+
+      const upload = await c.env.runMutation(internal.r2.generateUploadUrlForApi, {
+        userId: auth.userId,
+        purpose: "generated-design",
+        fileName: body.fileName,
+        fileSize: body.fileSize,
+        mimeType: body.mimeType,
+      });
+
+      return c.json(
+        {
+          uploadUrl: upload.uploadUrl,
+          r2ObjectKey: upload.key,
+        },
+        201,
+      );
+    },
+  );
+
+  app.post(
+    "/:id/designs/sync",
+    zValidator("param", projectIdParamSchema, validationHook),
+    zValidator("json", syncProjectDesignsBodySchema, validationHook),
+    async (c) => {
+      const auth = await authenticateApiKey(c);
+      const { id } = c.req.valid("param");
+      const body = c.req.valid("json");
+      const result = await c.env.runMutation(internal.integrations.stitch.syncProjectDesignsForApi, {
+        userId: auth.userId,
+        projectId: id,
+        externalProjectUrl: body.externalProjectUrl,
+        externalProjectId: body.externalProjectId,
+        title: body.title,
+        screens: body.screens,
+      });
+
+      return c.json(result, 201);
     },
   );
 

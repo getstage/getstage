@@ -19,6 +19,9 @@ export function Nav({ scrolled }: { scrolled: boolean }) {
             <a href="#faq" className="landing-nav-link">
               FAQ
             </a>
+            <Link to="/agents" className="landing-nav-link">
+              Agents
+            </Link>
           </div>
           <div className="landing-nav-auth">
             <Link to="/auth" className="landing-nav-signin">

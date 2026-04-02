@@ -86,13 +86,52 @@ Avoid:
 
 That endpoint is deprecated. Build the plan yourself and use `import-plan`.
 
+## Stitch workflow
+
+If the user wants UI work after the project is created:
+
+1. Create the project in Stage first.
+2. Ask once before using Stitch, because Stitch spend is a separate external step.
+3. Use the user's Stitch workflow or account.
+4. Link the Stitch project back into Stage.
+5. Sync the latest preview screens back into the Stage project.
+
+Important:
+- Stage is not the full Stitch workspace.
+- Stage stores the linked Stitch project and the latest synced previews.
+- The full design workspace remains in Stitch.
+- If multiple collaborators work in the same Stitch project, sync the newest selected previews back into Stage so Stage reflects the latest state.
+
+### Stitch endpoints
+
+Link project:
+- `POST /api/v1/projects/:id/design-connections`
+- `GET /api/v1/projects/:id/design-connections`
+
+Upload previews:
+- `POST /api/v1/projects/:id/designs/upload-url`
+
+Sync latest preview set:
+- `POST /api/v1/projects/:id/designs/sync`
+
+Read current synced previews:
+- `GET /api/v1/projects/:id/designs`
+
+### Stitch behavior rules
+
+- Treat Stitch as project-level, not task-level, in v1.
+- A synced preview may optionally be tagged to a phase.
+- Do not invent separate Stitch sync flows per task.
+- If the user later wants a task linked to a design, reference an already-synced preview instead of treating the task as its own Stitch workspace.
+
 ## Recommended flow
 
 1. Classify the request: read, create, update, destructive, or clarify.
 2. Resolve the target entity.
 3. Decide whether confidence is high enough to act.
 4. If creating a full project, prefer `POST /api/v1/projects/import-plan`.
-5. Keep list requests lean. Use detail endpoints only when richer data is needed.
+5. If UI work is requested, create the project first and then do the Stitch step.
+6. Keep list requests lean. Use detail endpoints only when richer data is needed.
 
 ## Example: create a project
 

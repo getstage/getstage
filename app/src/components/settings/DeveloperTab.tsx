@@ -1,3 +1,11 @@
+import {
+  ArrowSquareOut,
+  BracketsAngle,
+  Key,
+  ShieldCheckered,
+  Sparkle,
+} from "@phosphor-icons/react";
+
 type ApiKeyRow = {
   id: string;
   name: string;
@@ -59,12 +67,25 @@ export function DeveloperTab({
   return (
     <div className={`tab-content ${active ? "active" : ""}`}>
       {!isPro ? (
-        <div className="settings-card">
+        <div className="settings-card developer-locked-card">
           <div className="card-body">
-            <h2>Developer</h2>
-            <p className="card-description">
+            <div className="developer-card-hero">
+              <span className="developer-icon-chip developer-icon-chip-accent">
+                <BracketsAngle size={18} weight="bold" />
+              </span>
+              <div>
+                <div className="developer-eyebrow">Developer access</div>
+                <div className="card-heading sf">Developer</div>
+              </div>
+            </div>
+            <p className="card-desc">
               API access is available on the Pro plan. Upgrade to create API keys and integrate Stage with AI agents.
             </p>
+            <div className="developer-pill-row">
+              <span className="developer-pill">API keys</span>
+              <span className="developer-pill">Bearer auth</span>
+              <span className="developer-pill">External agents</span>
+            </div>
           </div>
           <div className="card-footer">
             <button type="button" className="btn btn-primary" onClick={onUpgradeClick}>
@@ -75,16 +96,30 @@ export function DeveloperTab({
       ) : (
         <>
           {/* Create key */}
-          <div className="settings-card">
+          <div className="settings-card developer-keys-card">
             <div className="card-body">
-              <h2>API Keys</h2>
-              <p className="card-description">
+              <div className="developer-card-hero developer-card-hero-spaced">
+                <div className="developer-card-hero">
+                  <span className="developer-icon-chip developer-icon-chip-accent">
+                    <Key size={18} weight="bold" />
+                  </span>
+                  <div>
+                    <div className="developer-eyebrow">Developer access</div>
+                    <div className="card-heading sf">API Keys</div>
+                  </div>
+                </div>
+                <div className="developer-pill-row">
+                  <span className="developer-pill developer-pill-purple">stg_ keys</span>
+                  <span className="developer-pill developer-pill-blue">Bearer auth</span>
+                </div>
+              </div>
+              <p className="card-desc">
                 Create API keys to integrate Stage with Claude Code, OpenClaw, or any external tool.
                 Keys are shown once at creation and cannot be retrieved later.
               </p>
 
               {revealedKey ? (
-                <div className="developer-key-reveal">
+                <div className="developer-key-reveal developer-surface developer-surface-accent">
                   <label className="developer-label">Your new API key</label>
                   <div className="developer-key-box">
                     <code className="developer-key-value">{revealedKey}</code>
@@ -101,14 +136,14 @@ export function DeveloperTab({
                   </p>
                   <button
                     type="button"
-                    className="btn btn-sm btn-secondary"
+                    className="btn-outline"
                     onClick={onDismissRevealedKey}
                   >
                     Done
                   </button>
                 </div>
               ) : (
-                <div className="developer-create-form">
+                <div className="developer-create-form developer-surface developer-surface-accent">
                   <label className="developer-label" htmlFor="dev-key-name">
                     Key name
                   </label>
@@ -132,6 +167,16 @@ export function DeveloperTab({
                       {isCreating ? "Creating..." : "Create key"}
                     </button>
                   </div>
+                  <div className="developer-microcopy-row">
+                    <span className="developer-inline-note">
+                      <ShieldCheckered size={14} weight="fill" />
+                      Stored hashed, never shown twice
+                    </span>
+                    <span className="developer-inline-note">
+                      <Sparkle size={14} weight="fill" />
+                      Best for Claude Code or OpenClaw
+                    </span>
+                  </div>
                   {activeKeys.length >= 5 && (
                     <p className="developer-key-warning">
                       Maximum 5 active keys. Revoke an existing key to create a new one.
@@ -142,35 +187,63 @@ export function DeveloperTab({
             </div>
 
             {feedback.kind !== "idle" && (
-              <div className="card-footer">
-                <span className={`feedback ${feedback.kind}`}>{feedback.message}</span>
+              <div className="card-footer developer-feedback-footer">
+                <span className={`developer-feedback developer-feedback-${feedback.kind}`}>
+                  {feedback.message}
+                </span>
               </div>
             )}
           </div>
 
           {/* Key list */}
           {keys.length > 0 && (
-            <div className="settings-card">
+            <div className="settings-card developer-list-card">
               <div className="card-body">
-                <h2>Active Keys</h2>
+                <div className="developer-card-hero developer-card-hero-spaced">
+                  <div className="developer-card-hero">
+                    <span className="developer-icon-chip developer-icon-chip-green">
+                      <ShieldCheckered size={18} weight="bold" />
+                    </span>
+                    <div>
+                      <div className="developer-eyebrow">Access overview</div>
+                      <div className="card-heading sf">Active Keys</div>
+                    </div>
+                  </div>
+                  <span className="developer-pill developer-pill-green">
+                    {activeKeys.length} active
+                  </span>
+                </div>
                 <div className="developer-key-list">
                   {keys.map((k) => (
                     <div
                       key={k.id}
                       className={`developer-key-row ${k.isRevoked ? "revoked" : ""}`}
                     >
-                      <div className="developer-key-info">
-                        <span className="developer-key-name">{k.name}</span>
-                        <span className="developer-key-meta">
+                      <div className="developer-key-main">
+                        <span
+                          className={`developer-key-icon ${k.isRevoked ? "developer-key-icon-revoked" : ""}`}
+                        >
+                          <Key size={16} weight="bold" />
+                        </span>
+                        <div className="developer-key-info">
+                          <div className="developer-key-title-row">
+                            <span className="developer-key-name">{k.name}</span>
+                            <span
+                              className={`developer-status-badge ${k.isRevoked ? "revoked" : "active"}`}
+                            >
+                              {k.isRevoked ? "Revoked" : "Active"}
+                            </span>
+                          </div>
+                          <span className="developer-key-meta">
                           Created {formatDate(k.createdAt)}
                           {k.lastUsedAt && ` · Last used ${formatDate(k.lastUsedAt)}`}
-                          {k.isRevoked && " · Revoked"}
-                        </span>
+                          </span>
+                        </div>
                       </div>
                       {!k.isRevoked && (
                         <button
                           type="button"
-                          className="btn btn-sm btn-danger"
+                          className="btn-outline developer-revoke-button"
                           onClick={() => onRevoke(k.id)}
                           disabled={isRevoking === k.id}
                         >
@@ -185,15 +258,34 @@ export function DeveloperTab({
           )}
 
           {/* Docs link */}
-          <div className="settings-card">
+          <div className="settings-card developer-docs-card">
             <div className="card-body">
-              <h2>Documentation</h2>
-              <p className="card-description">
+              <div className="developer-card-hero developer-card-hero-spaced">
+                <div className="developer-card-hero">
+                  <span className="developer-icon-chip developer-icon-chip-blue">
+                    <BracketsAngle size={18} weight="bold" />
+                  </span>
+                  <div>
+                    <div className="developer-eyebrow">Reference</div>
+                    <div className="card-heading sf">Documentation</div>
+                  </div>
+                </div>
+                <a href="/SKILL.md" className="developer-inline-link">
+                  Download skill
+                  <ArrowSquareOut size={14} weight="bold" />
+                </a>
+              </div>
+              <p className="card-desc">
                 Read the API docs to learn how to integrate Stage with your AI agents and tools.
               </p>
+              <div className="developer-pill-row developer-pill-row-wrap">
+                <span className="developer-pill developer-pill-purple">Import plan</span>
+                <span className="developer-pill developer-pill-blue">Task detail</span>
+                <span className="developer-pill developer-pill-amber">Action policy</span>
+              </div>
             </div>
             <div className="card-footer">
-              <a href="/docs" className="btn btn-secondary">
+              <a href="/docs" className="btn-outline developer-docs-button">
                 View API Docs
               </a>
             </div>

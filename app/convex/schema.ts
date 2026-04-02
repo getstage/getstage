@@ -75,6 +75,17 @@ const attachmentType = v.union(
 
 const generatedDesignProvider = v.literal("stitch");
 
+const designConnectionStatus = v.union(
+  v.literal("active"),
+  v.literal("error"),
+  v.literal("archived"),
+);
+
+const generatedDesignSource = v.union(
+  v.literal("stage_proxy"),
+  v.literal("user_sync"),
+);
+
 const generatedDesignStatus = v.union(
   v.literal("ready"),
   v.literal("error"),
@@ -101,6 +112,7 @@ const uploadPurpose = v.union(
   v.literal("client-avatar"),
   v.literal("project-marker"),
   v.literal("portal-logo"),
+  v.literal("generated-design"),
 );
 
 const subscriptionStatus = v.union(
@@ -262,25 +274,45 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_task", ["taskId"]),
 
+  projectDesignConnections: defineTable({
+    projectId: v.id("projects"),
+    provider: generatedDesignProvider,
+    externalProjectId: v.optional(v.string()),
+    externalProjectUrl: v.string(),
+    title: v.optional(v.string()),
+    status: designConnectionStatus,
+    lastSyncedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_project_provider", ["projectId", "provider"]),
+
   projectGeneratedDesigns: defineTable({
     userId: v.id("users"),
     projectId: v.id("projects"),
     phaseId: v.optional(v.id("phases")),
     provider: generatedDesignProvider,
-    prompt: v.string(),
-    deviceType: stitchDeviceType,
+    source: generatedDesignSource,
+    title: v.optional(v.string()),
+    prompt: v.optional(v.string()),
+    deviceType: v.optional(stitchDeviceType),
     modelId: v.optional(stitchModelId),
-    stitchProjectId: v.string(),
-    stitchScreenId: v.string(),
+    stitchProjectId: v.optional(v.string()),
+    stitchScreenId: v.optional(v.string()),
+    stitchScreenUrl: v.optional(v.string()),
     r2ObjectKey: v.string(),
+    sortOrder: v.optional(v.number()),
     status: generatedDesignStatus,
     errorMessage: v.optional(v.string()),
+    lastSyncedAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_project", ["projectId"])
     .index("by_project_createdAt", ["projectId", "createdAt"])
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    .index("by_project_screen", ["projectId", "stitchScreenId"]),
 
   projectCollaborators: defineTable({
     projectId: v.id("projects"),

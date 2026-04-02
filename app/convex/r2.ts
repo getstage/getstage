@@ -16,6 +16,7 @@ const uploadPurposeValidator = v.union(
   v.literal("client-avatar"),
   v.literal("project-marker"),
   v.literal("portal-logo"),
+  v.literal("generated-design"),
 );
 
 export const { syncMetadata } = r2.clientApi<DataModel>({
@@ -70,6 +71,8 @@ function buildObjectKey(userId: string, purpose: UploadPurpose, fileName: string
       return `users/${userId}/projects/marker-${uuid}.${extension}`;
     case "portal-logo":
       return `users/${userId}/portal/logo-${uuid}.${extension}`;
+    case "generated-design":
+      return `users/${userId}/generated-designs/${uuid}.${extension}`;
   }
 }
 
@@ -235,6 +238,44 @@ export async function attachTrackedR2Asset(
   await deleteTrackedUploadRecord(ctx, args.key);
 }
 
+async function createTrackedUpload(
+  ctx: MutationCtx,
+  args: {
+    userId: DataModel["users"]["document"]["_id"];
+    purpose: UploadPurpose;
+    fileName: string;
+    fileSize: number;
+    mimeType: string;
+  },
+) {
+  const validationError = getUploadValidationError(args.purpose, {
+    fileName: args.fileName,
+    fileSize: args.fileSize,
+    mimeType: args.mimeType,
+  });
+
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  const key = buildObjectKey(String(args.userId), args.purpose, args.fileName, args.mimeType);
+  const timestamp = Date.now();
+  await ctx.db.insert("uploadedAssets", {
+    userId: args.userId,
+    key,
+    purpose: args.purpose,
+    fileName: args.fileName,
+    fileSize: args.fileSize,
+    mimeType: args.mimeType,
+    createdAt: timestamp,
+  });
+
+  return {
+    key,
+    uploadUrl: await r2.generateUploadUrl(key),
+  };
+}
+
 export const generateUploadUrl = mutation({
   args: {
     purpose: uploadPurposeValidator,
@@ -244,29 +285,34 @@ export const generateUploadUrl = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
-    const validationError = getUploadValidationError(args.purpose, {
-      fileName: args.fileName,
-      fileSize: args.fileSize,
-      mimeType: args.mimeType,
-    });
-
-    if (validationError) {
-      throw new Error(validationError);
-    }
-
-    const key = buildObjectKey(String(user._id), args.purpose, args.fileName, args.mimeType);
-    const timestamp = Date.now();
-    await ctx.db.insert("uploadedAssets", {
+    const trackedUpload = await createTrackedUpload(ctx, {
       userId: user._id,
-      key,
       purpose: args.purpose,
       fileName: args.fileName,
       fileSize: args.fileSize,
       mimeType: args.mimeType,
-      createdAt: timestamp,
     });
 
-    return r2.generateUploadUrl(key);
+    return trackedUpload.uploadUrl;
+  },
+});
+
+export const generateUploadUrlForApi = internalMutation({
+  args: {
+    userId: v.id("users"),
+    purpose: uploadPurposeValidator,
+    fileName: v.string(),
+    fileSize: v.number(),
+    mimeType: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return createTrackedUpload(ctx, {
+      userId: args.userId,
+      purpose: args.purpose,
+      fileName: args.fileName,
+      fileSize: args.fileSize,
+      mimeType: args.mimeType,
+    });
   },
 });
 

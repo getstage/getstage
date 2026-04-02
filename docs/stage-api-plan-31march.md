@@ -1,12 +1,14 @@
 # Stage API Plan - 31 March
 
+Updated: 2026-04-02
+
 ## Core Decision
 
 Stage is the executor.
 The external AI is the interpreter.
 
 That means:
-- ChatGPT / Claude / Gemini / another agent reads the messy user prompt
+- ChatGPT / Claude / Cursor / Codex / another agent reads the messy prompt
 - the external AI decides what the user wants
 - the external AI turns that into structured Stage actions
 - Stage API validates, writes, reads, and returns data
@@ -14,24 +16,42 @@ That means:
 Stage should not call Anthropic / OpenAI / Gemini for normal project creation.
 If an AI already exists on the caller side, Stage only needs to accept clean structured input.
 
+## North Star Workflow
+
+The main agent workflow in v1 is:
+
+1. User gives a complete brief.
+2. Agent creates the full project in Stage.
+3. Agent or user generates UI in Stitch.
+4. Stage links the Stitch project back to the Stage project.
+5. Stage shows the latest synced UI previews inside the project.
+
+Important:
+- REST, Skills, and later MCP are only different surfaces for the same workflow
+- the real goal is not "have many integration types"
+- the real goal is "create the project, then link the UI work back into the project cleanly"
+
 ## Scope Right Now
 
 Focus now:
-- project creation
-- project/task reads
-- clear action safety rules
-- clean API docs and skill docs
+- full project creation
+- lean project/task reads
+- safe action policy
+- Stitch project linking
+- latest synced Stitch previews inside Stage
+- clean docs and handoffs for other agents
 
 Do not expand scope right now:
 - no server-side LLM project generation
-- no complicated Stitch flow decisions yet
-- no destructive bulk deletion without a confirmation design
+- no heavy Stitch embed inside Stage
+- no Stage-owned Stitch billing model for the public story
+- no destructive bulk deletion without explicit confirmation
 
 ## Action Policy
 
 The external AI must classify the user request before calling Stage.
 
-### 1. Read
+### Read
 
 Execute immediately.
 
@@ -40,7 +60,7 @@ Examples:
 - "Show me this task"
 - "What is due this week?"
 
-### 2. Create
+### Create
 
 Execute immediately only if the draft is high confidence.
 Otherwise ask a follow-up or show a draft first.
@@ -56,11 +76,7 @@ High confidence means the AI can resolve at least:
 - a reasonable phase/task structure
 - no major ambiguity about scope
 
-If confidence is not high:
-- ask a clarification
-- or return a draft summary before writing
-
-### 3. Update
+### Update
 
 Execute immediately only when the target and intended change are unambiguous.
 If not, ask a follow-up.
@@ -70,7 +86,7 @@ Examples:
 - "Rename this phase to Strategy"
 - "Add two tasks to Discovery"
 
-### 4. Destructive
+### Destructive
 
 Never execute without explicit confirmation.
 
@@ -85,6 +101,15 @@ Required behavior:
 - require an explicit confirm step
 - then execute
 
+### Stitch spend
+
+Creating the Stage project can run immediately at high confidence.
+Stitch generation should be treated as a second step because it spends external credits.
+
+Preferred behavior:
+- create the project first
+- then ask once before the agent uses Stitch
+
 ## Correct Architecture
 
 ### What should happen
@@ -94,14 +119,51 @@ Required behavior:
 3. The external AI maps that to Stage API calls.
 4. Stage API executes only the structured action.
 5. Stage returns clean structured results.
+6. If UI work is needed, the agent uses the user's own Stitch account and then syncs the latest result back into Stage.
 
 ### What should not happen
 
 1. Stage receives a natural-language prompt.
 2. Stage calls an LLM to figure out what the user meant.
-3. Stage invents a plan itself.
+3. Stage invents the project plan itself.
 
 That architecture is wrong for this product direction.
+
+## Stitch Model In Stage
+
+Stage should not try to become the full Stitch workspace.
+
+Stage should store:
+- one linked Stitch project at the Stage project level
+- the latest synced preview screens from that Stitch project
+- a direct link to open the full Stitch workspace
+
+This is the expected v1 behavior:
+- multiple people may work inside the Stitch project
+- Stage should show the latest synced state, not a stale one-off upload
+- the full editing and generation experience still lives in Stitch
+
+### Recommended representation
+
+1. Project-level Stitch connection
+   - `stitchProjectUrl`
+   - optional `stitchProjectId`
+   - optional title / status / last synced time
+
+2. Preview screens inside Stage
+   - latest synced `2-4` previews from the linked Stitch project
+   - stored in Stage storage
+   - shown as thumbnails/cards in the Stage project
+
+3. Full workspace link
+   - always available via `Open in Stitch`
+
+### Important limitation
+
+Because public v1 is user-owned Stitch:
+- Stage should not poll Stitch directly using Stage-held credentials
+- the latest sync is agent-driven or user-triggered
+- Stage receives the newest previews from the agent that has Stitch access
 
 ## API Requirements
 
@@ -137,6 +199,21 @@ Why `import-plan` is better:
 - avoids many sequential calls
 - easier to validate high-confidence drafts before write
 
+### Stitch linking and sync
+
+Implemented:
+- `POST /api/v1/projects/:id/design-connections`
+- `GET /api/v1/projects/:id/design-connections`
+- `POST /api/v1/projects/:id/designs/upload-url`
+- `POST /api/v1/projects/:id/designs/sync`
+- `GET /api/v1/projects/:id/designs`
+
+Preferred meaning:
+- `design-connections` stores the linked Stitch project
+- `upload-url` is for preview image upload to Stage
+- `designs/sync` replaces the current user-synced preview set from Stitch so Stage reflects the latest workspace state
+- `GET /designs` returns the current synced previews shown in Stage
+
 ### Update
 
 Must exist:
@@ -165,6 +242,7 @@ These are important and should not be relaxed:
 - `GET /api/v1/projects/:id/phases` returns phase summaries, not nested task payloads
 - `GET /api/v1/phases/:id/tasks` returns task summaries, not full attachments/content blobs
 - `GET /api/v1/tasks/:id` is the correct place for full task detail
+- Stitch list responses should stay lean too
 
 Never:
 - reuse the app read model for public API routes by default
@@ -205,120 +283,128 @@ Already in place:
 - `GET /api/v1/tasks/:id`
 - `POST /api/v1/projects/import-plan`
 - `POST /api/v1/projects/generate` now returns a deprecation error instead of calling an LLM
-- Stitch backend exists technically, but product direction is still not settled
+- Stitch backend exists technically through `POST /api/v1/projects/:id/generate-design`
+- Stitch connection storage exists through `projectDesignConnections`
+- latest-preview sync flow exists through `POST /api/v1/projects/:id/designs/sync`
+- public API docs data now covers the Stitch linking and sync endpoints
 
-Current Convex direction:
-- keep app-facing entrypoints at root
-- keep backend-only logic inside folders
+Current product direction:
+- keep the existing Stitch proxy route available if useful internally
+- do not make it the main public Stitch story
+- the main public Stitch story is user-owned Stitch + Stage sync
 
 Generated Convex files:
 - `app/convex/_generated/*` is recreated by `npx convex dev`
 - do not hand-edit generated files
 
-## Parallel Work Right Now
+## Public Launch Surfaces
 
-Frontend agent can work now on:
-- API docs page
-- developer UI for API keys
-- agent or `SKILL.md` docs
-- frontend wiring to the current read/create endpoints
+Public v1 should position:
+- Stitch as active
+- REST API as active
+- Agent Skills as active
 
-Backend agent focus now:
-- tighten `POST /api/v1/projects/import-plan` validation
-- add API tests
-- keep list/detail response shapes lean
+Keep as coming soon:
+- MCP Server
+- OpenClaw
+- OpenAI later
 
-Avoid simultaneous edits in:
-- `app/convex/api/routes/projects.ts`
-- `app/convex/api/models.ts`
-- `app/convex/domain/projects/service.ts`
+Reason:
+- Stitch already exists as a real workflow direction
+- REST is already real
+- Skills can become installable quickly
+- MCP is not yet implemented
+
+## Current Work Split
+
+Backend agent owns:
+- API contracts and validation
+- Convex schema changes
+- Stitch connection storage
+- latest-preview sync flow
+- auth, rate limits, and response-shape discipline
+- backend implementation handoff accuracy
+
+Frontend agent owns:
+- `/agents` information architecture and copy
+- `/agents/stitch`
+- `/agents/skills`
+- public docs presentation
+- nav/footer/public-route linkage
+- future in-app Stitch section presentation
+
+Coordination rule:
+- frontend should not change backend route contracts or schema without backend coordination
+- backend should not rewrite the public marketing/integration surface unless frontend is blocked
 
 ## What Needs To Change Next
 
 ### Backend
 
-1. Tighten validation rules for bulk import.
-   Reason: malformed AI output should fail cleanly.
-
-2. Design destructive confirmation flow before delete endpoints are added.
-
-3. Add API tests.
+1. Add API tests.
    Needed for:
    - auth
    - rate limiting
    - read shapes
    - import-plan validation
-   - destructive confirmation later
+   - Stitch connection/sync flow
+
+2. Add authenticated in-app read support for the future Stitch project panel.
+   Reason: the public API is ready, but the project UI will still need a clean authenticated read shape.
 
 ### Frontend / Docs
 
-1. Developer tab for API keys.
-2. Public docs page.
-3. `SKILL.md` / agent docs that teach:
+1. Finish `/agents`.
+   Current state:
+   - the main hub exists
+   - Stitch is already moved to the first active card
+   - the hero/how-it-works copy is closer to the real workflow
+   - but `/agents/stitch` and `/agents/skills` do not exist yet
+   - CTA/link cleanup is still needed
+2. Add `/agents/stitch` page.
+3. Add `/agents/skills` page with install flow.
+4. Expand `SKILL.md` so it teaches:
    - action classification
    - high-confidence creation rule
    - destructive confirmation rule
-   - correct endpoint usage
+   - create project first
+   - use Stitch second
+   - sync latest previews back into Stage
+5. Align nav/footer/public links with the real active surfaces.
+   Important:
+   - do not make raw `/SKILL.md` the main Skills destination
+   - do not over-position OpenClaw relative to Stitch
 
-## Stitch
+### Frontend app work that is still missing
 
-Do not let Stitch confuse the core API design.
+This is separate from the public pages.
 
-There are two valid models:
+The logged-in Stage app still needs:
+1. a project-level Stitch panel inside the normal project UI
+2. states for:
+   - no Stitch project linked
+   - linked but no previews synced
+   - linked with synced previews
+   - syncing
+   - sync failed
+3. a clear `Open in Stitch` action
+4. a clear `Sync latest` action
+5. latest synced preview grid
+6. optional phase badges on preview cards
 
-### Model A: Stage-owned Stitch
+Important v1 decision:
+- sync belongs to the project, not to each task
+- phase tagging is okay
+- task-level preview references are later work, not v1
 
-User clicks "Generate Design" inside Stage.
-Stage calls Stitch.
-Stage stores the result.
+Important frontend technical note:
+- the public API routes are for agents and external tools
+- the logged-in app should eventually use normal authenticated Convex queries/mutations for this panel, not a manual API-key flow
 
-In this model:
-- Stage needs Stitch credentials
-- this is a native Stage feature
+### Product UI later
 
-### Model B: Agent-owned generation
-
-External AI or tool generates the design elsewhere.
-Stage only stores the output.
-
-In this model:
-- Stage does not need Stitch
-- Stage is only a storage/execution layer
-
-Decision for now:
-- do not expand Stitch architecture until the product choice is explicit
-- do not let Stitch affect project creation design
-
-## Recommended Build Order
-
-### Phase 1
-
-- keep read routes clean
-- keep `POST /api/v1/projects` working
-- keep `GET /api/v1/tasks/:id` working
-
-### Phase 2
-
-- validate nested phases/tasks strictly
-- document the import shape for external AIs
-- keep `POST /api/v1/projects/import-plan` as the preferred AI write path
-
-### Phase 3
-
-- add update routes where needed
-- design destructive confirmation flow
-
-### Phase 4
-
-- API tests
-- MCP server after the API shape is stable
-
-## Final Rule
-
-If the request is:
-- read: execute
-- create: execute only at high confidence
-- update: execute only if unambiguous
-- destructive: require explicit confirmation
-
-That is the policy the API, docs, and skill file should all reflect.
+Inside the Stage project UI, add a Stitch section with:
+- linked Stitch project
+- latest synced previews
+- last synced timestamp
+- `Open in Stitch` action
