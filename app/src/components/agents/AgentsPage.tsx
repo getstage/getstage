@@ -380,13 +380,13 @@ export function AgentsPage() {
                 Read the API docs
                 <ArrowRight size={16} weight="bold" />
               </Link>
-              <a
-                href="/SKILL.md"
+              <Link
+                to="/agents/skills"
                 className="inline-flex items-center gap-2 rounded-[16px] border border-border bg-white px-6 py-4 text-[15px] font-medium text-text-primary transition-colors hover:bg-bg-subtle"
               >
-                Download SKILL.md
+                Install Agent Skills
                 <Sparkle size={16} weight="bold" />
-              </a>
+              </Link>
             </div>
           </section>
         </main>

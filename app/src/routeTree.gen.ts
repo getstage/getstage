@@ -15,8 +15,11 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgentsIndexRouteImport } from './routes/agents/index'
 import { Route as PortalTokenRouteImport } from './routes/portal.$token'
 import { Route as HelpImportTransactionsViaGoogleSheetsRouteImport } from './routes/help/import-transactions-via-google-sheets'
+import { Route as AgentsStitchRouteImport } from './routes/agents/stitch'
+import { Route as AgentsSkillsRouteImport } from './routes/agents/skills'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedNewProjectRouteImport } from './routes/_authed/new-project'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
@@ -53,6 +56,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgentsIndexRoute = AgentsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AgentsRoute,
+} as any)
 const PortalTokenRoute = PortalTokenRouteImport.update({
   id: '/portal/$token',
   path: '/portal/$token',
@@ -64,6 +72,16 @@ const HelpImportTransactionsViaGoogleSheetsRoute =
     path: '/help/import-transactions-via-google-sheets',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AgentsStitchRoute = AgentsStitchRouteImport.update({
+  id: '/stitch',
+  path: '/stitch',
+  getParentRoute: () => AgentsRoute,
+} as any)
+const AgentsSkillsRoute = AgentsSkillsRouteImport.update({
+  id: '/skills',
+  path: '/skills',
+  getParentRoute: () => AgentsRoute,
+} as any)
 const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -98,30 +116,35 @@ const AuthedProjectIdTaskTaskIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/agents': typeof AgentsRoute
+  '/agents': typeof AgentsRouteWithChildren
   '/auth': typeof AuthRoute
   '/docs': typeof DocsRoute
   '/openclaw': typeof OpenclawRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
   '/settings': typeof AuthedSettingsRoute
+  '/agents/skills': typeof AgentsSkillsRoute
+  '/agents/stitch': typeof AgentsStitchRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
+  '/agents/': typeof AgentsIndexRoute
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
   '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
   '/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/agents': typeof AgentsRoute
   '/auth': typeof AuthRoute
   '/docs': typeof DocsRoute
   '/openclaw': typeof OpenclawRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
   '/settings': typeof AuthedSettingsRoute
+  '/agents/skills': typeof AgentsSkillsRoute
+  '/agents/stitch': typeof AgentsStitchRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
+  '/agents': typeof AgentsIndexRoute
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
   '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
   '/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
@@ -130,15 +153,18 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
-  '/agents': typeof AgentsRoute
+  '/agents': typeof AgentsRouteWithChildren
   '/auth': typeof AuthRoute
   '/docs': typeof DocsRoute
   '/openclaw': typeof OpenclawRoute
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/new-project': typeof AuthedNewProjectRoute
   '/_authed/settings': typeof AuthedSettingsRoute
+  '/agents/skills': typeof AgentsSkillsRoute
+  '/agents/stitch': typeof AgentsStitchRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
+  '/agents/': typeof AgentsIndexRoute
   '/_authed/project/$id': typeof AuthedProjectIdRouteWithChildren
   '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
   '/_authed/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
@@ -154,23 +180,28 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/new-project'
     | '/settings'
+    | '/agents/skills'
+    | '/agents/stitch'
     | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
+    | '/agents/'
     | '/project/$id'
     | '/portal/$token/task/$taskId'
     | '/project/$id/task/$taskId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/agents'
     | '/auth'
     | '/docs'
     | '/openclaw'
     | '/dashboard'
     | '/new-project'
     | '/settings'
+    | '/agents/skills'
+    | '/agents/stitch'
     | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
+    | '/agents'
     | '/project/$id'
     | '/portal/$token/task/$taskId'
     | '/project/$id/task/$taskId'
@@ -185,8 +216,11 @@ export interface FileRouteTypes {
     | '/_authed/dashboard'
     | '/_authed/new-project'
     | '/_authed/settings'
+    | '/agents/skills'
+    | '/agents/stitch'
     | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
+    | '/agents/'
     | '/_authed/project/$id'
     | '/portal/$token/task/$taskId'
     | '/_authed/project/$id/task/$taskId'
@@ -195,7 +229,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
-  AgentsRoute: typeof AgentsRoute
+  AgentsRoute: typeof AgentsRouteWithChildren
   AuthRoute: typeof AuthRoute
   DocsRoute: typeof DocsRoute
   OpenclawRoute: typeof OpenclawRoute
@@ -247,6 +281,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agents/': {
+      id: '/agents/'
+      path: '/'
+      fullPath: '/agents/'
+      preLoaderRoute: typeof AgentsIndexRouteImport
+      parentRoute: typeof AgentsRoute
+    }
     '/portal/$token': {
       id: '/portal/$token'
       path: '/portal/$token'
@@ -260,6 +301,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/help/import-transactions-via-google-sheets'
       preLoaderRoute: typeof HelpImportTransactionsViaGoogleSheetsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/agents/stitch': {
+      id: '/agents/stitch'
+      path: '/stitch'
+      fullPath: '/agents/stitch'
+      preLoaderRoute: typeof AgentsStitchRouteImport
+      parentRoute: typeof AgentsRoute
+    }
+    '/agents/skills': {
+      id: '/agents/skills'
+      path: '/skills'
+      fullPath: '/agents/skills'
+      preLoaderRoute: typeof AgentsSkillsRouteImport
+      parentRoute: typeof AgentsRoute
     }
     '/_authed/settings': {
       id: '/_authed/settings'
@@ -335,6 +390,21 @@ const AuthedRouteChildren: AuthedRouteChildren = {
 const AuthedRouteWithChildren =
   AuthedRoute._addFileChildren(AuthedRouteChildren)
 
+interface AgentsRouteChildren {
+  AgentsSkillsRoute: typeof AgentsSkillsRoute
+  AgentsStitchRoute: typeof AgentsStitchRoute
+  AgentsIndexRoute: typeof AgentsIndexRoute
+}
+
+const AgentsRouteChildren: AgentsRouteChildren = {
+  AgentsSkillsRoute: AgentsSkillsRoute,
+  AgentsStitchRoute: AgentsStitchRoute,
+  AgentsIndexRoute: AgentsIndexRoute,
+}
+
+const AgentsRouteWithChildren =
+  AgentsRoute._addFileChildren(AgentsRouteChildren)
+
 interface PortalTokenRouteChildren {
   PortalTokenTaskTaskIdRoute: typeof PortalTokenTaskTaskIdRoute
 }
@@ -350,7 +420,7 @@ const PortalTokenRouteWithChildren = PortalTokenRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
-  AgentsRoute: AgentsRoute,
+  AgentsRoute: AgentsRouteWithChildren,
   AuthRoute: AuthRoute,
   DocsRoute: DocsRoute,
   OpenclawRoute: OpenclawRoute,

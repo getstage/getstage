@@ -35,12 +35,15 @@ export function FooterSection() {
             </div>
             <div>
               <div className="landing-footer-col-title">Integrations</div>
+              <Link to="/agents/stitch" className="landing-footer-link">
+                Stitch
+              </Link>
+              <Link to="/agents/skills" className="landing-footer-link">
+                Agent Skills
+              </Link>
               <Link to="/openclaw" className="landing-footer-link">
                 OpenClaw
               </Link>
-              <a href="/SKILL.md" className="landing-footer-link">
-                Agent Skills
-              </a>
             </div>
             <div>
               <div className="landing-footer-col-title">Company</div>
