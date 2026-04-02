@@ -337,74 +337,178 @@ Coordination rule:
 - frontend should not change backend route contracts or schema without backend coordination
 - backend should not rewrite the public marketing/integration surface unless frontend is blocked
 
-## What Needs To Change Next
+---
 
-### Backend
+## Full Status As Of 2026-04-02
 
-1. Add API tests.
-   Needed for:
-   - auth
-   - rate limiting
-   - read shapes
-   - import-plan validation
-   - Stitch connection/sync flow
+This section tracks what is done, what is not, and what is blocked.
 
-2. Add authenticated in-app read support for the future Stitch project panel.
-   Reason: the public API is ready, but the project UI will still need a clean authenticated read shape.
+### Backend — done
 
-### Frontend / Docs
+| What | Status | Notes |
+|------|--------|-------|
+| Hono API structure, CORS, error handling | Done | `app/convex/api/index.ts` |
+| API key auth (SHA-256, reveal-once, max 5 per user) | Done | `app/convex/developer/apiKeys.ts` |
+| Rate limiting (120/min per key, 1000/min global) | Done | `app/convex/platform/rateLimits.ts` |
+| Project CRUD (create, list, get) | Done | `app/convex/api/routes/projects.ts` |
+| `POST /import-plan` (one-call project creation) | Done | preferred path for agents |
+| Phase + Task CRUD | Done | routes + service layer |
+| `GET /tasks/:id` with full detail | Done | includes content + attachments |
+| `POST /tasks/:id/toggle` | Done | |
+| Stitch connection storage (`projectDesignConnections`) | Done | create/update + list |
+| Stitch preview sync (`designs/sync`, replaces old set) | Done | de-duplicates by stitchScreenId |
+| Upload URL generation for preview images | Done | R2 pre-signed URLs |
+| Stitch proxy route (`generate-design`) | Done | kept for internal use |
+| Lean API read models (no overfetching) | Done | `apiReadModel.ts` separate from app read model |
+| Schema + indexes | Done | `app/convex/schema.ts`, 512 lines |
+| R2 cleanup includes Stitch assets | Done | project deletion cleans up everything |
+| `POST /generate` deprecated with 410 | Done | points to `/import-plan` |
+| Shared project service layer | Done | `domain/projects/service.ts`, 717 lines |
+| Free plan project limit (3 projects) | Done | enforced in create flow |
 
-1. Finish `/agents`.
-   Current state:
-   - the main hub exists
-   - Stitch is already moved to the first active card
-   - the hero/how-it-works copy is closer to the real workflow
-   - but `/agents/stitch` and `/agents/skills` do not exist yet
-   - CTA/link cleanup is still needed
-2. Add `/agents/stitch` page.
-3. Add `/agents/skills` page with install flow.
-4. Expand `SKILL.md` so it teaches:
-   - action classification
-   - high-confidence creation rule
-   - destructive confirmation rule
-   - create project first
-   - use Stitch second
-   - sync latest previews back into Stage
-5. Align nav/footer/public links with the real active surfaces.
-   Important:
-   - do not make raw `/SKILL.md` the main Skills destination
-   - do not over-position OpenClaw relative to Stitch
+### Frontend — public pages — done
 
-### Frontend app work that is still missing
+| What | Status | Notes |
+|------|--------|-------|
+| `/agents` hub | Done | Stitch first, REST API, Skills active, MCP + OpenClaw coming soon |
+| `/agents/stitch` | Done | workflow explainer, API endpoints, what Stage shows |
+| `/agents/skills` | Done | `npx skills add stage-hq/agent-mode`, setup steps, supported clients |
+| `/docs` API reference | Done | interactive, all endpoints including Stitch |
+| `/openclaw` | Done | live but de-emphasized as coming soon |
+| `SKILL.md` | Done | action policy, endpoints, full Stitch workflow |
+| Footer | Done | Stitch + Skills links, no raw `/SKILL.md` |
+| Nav | Done | links to `/agents` |
+| Developer settings tab | Done | create/list/revoke API keys, links to docs |
+| All hub card links resolve to real pages | Done | no dead links |
 
-This is separate from the public pages.
+### Backend — not done yet
 
-The logged-in Stage app still needs:
-1. a project-level Stitch panel inside the normal project UI
-2. states for:
-   - no Stitch project linked
-   - linked but no previews synced
-   - linked with synced previews
-   - syncing
-   - sync failed
-3. a clear `Open in Stitch` action
-4. a clear `Sync latest` action
-5. latest synced preview grid
-6. optional phase badges on preview cards
+| What | Status | Blocked by | Notes |
+|------|--------|-----------|-------|
+| Authenticated Convex queries for in-app Stitch panel | Not started | nothing | the logged-in app needs session-auth queries for design connections + synced previews, not API-key routes |
+| API tests | Not started | nothing | auth, rate limiting, read shapes, import-plan, Stitch sync |
+| Update/patch endpoints | Not started | nothing | `PATCH /projects/:id`, `PATCH /tasks/:id`, `PATCH /phases/:id` |
+| Destructive action safety model | Not started | product decision | preview + confirm token pattern |
+| MCP server package | Not started | API stability | expose Stage tools for Claude Desktop etc |
 
-Important v1 decision:
-- sync belongs to the project, not to each task
-- phase tagging is okay
-- task-level preview references are later work, not v1
+### Frontend — not done yet
 
-Important frontend technical note:
-- the public API routes are for agents and external tools
-- the logged-in app should eventually use normal authenticated Convex queries/mutations for this panel, not a manual API-key flow
+| What | Status | Blocked by | Notes |
+|------|--------|-----------|-------|
+| In-app Stitch panel (project detail) | Not started | backend auth queries | `ProjectDesignPanel` component inside `ProjectDetailPage.tsx` |
+| Link Stitch project dialog | Not started | backend auth queries | paste URL, connect to project |
+| Synced preview thumbnail grid | Not started | backend auth queries | show latest screens from Stitch |
+| Last synced timestamp display | Not started | backend auth queries | |
+| Open in Stitch action | Not started | backend auth queries | external link to Stitch workspace |
+| Sync latest action (in-app trigger) | Not started | backend auth queries | |
+| Optional phase badges on previews | Not started | backend auth queries | |
 
-### Product UI later
+### Infra / other — not done yet
 
-Inside the Stage project UI, add a Stitch section with:
-- linked Stitch project
-- latest synced previews
-- last synced timestamp
-- `Open in Stitch` action
+| What | Status | Notes |
+|------|--------|-------|
+| Publish `stage-hq/agent-mode` npm package | Not started | the Skills page references `npx skills add stage-hq/agent-mode` but the package doesn't exist yet |
+| MCP server package | Not started | needs stable API first |
+
+---
+
+## Priority Order
+
+| # | What | Owner | Blocked by |
+|---|------|-------|-----------|
+| 1 | Authenticated Convex queries for Stitch panel | Backend | nothing |
+| 2 | In-app Stitch panel (project detail page) | Frontend | #1 |
+| 3 | API tests | Backend | nothing |
+| 4 | Publish `stage-hq/agent-mode` npm package | Infra | nothing |
+| 5 | Update/Patch endpoints | Backend | nothing |
+| 6 | MCP Server package | Backend | nothing |
+| 7 | Destructive action safety model | Backend + Frontend | product decision |
+
+---
+
+## Edge Cases That Matter For The North Star
+
+These are the things that can silently break the agent workflow.
+
+### Agent sends no client name
+
+`clientName` is optional in `import-plan`. The project just gets created without one. Fine for now, but agents should be guided to ask. The SKILL.md already lists `clientName` as part of the high-confidence check.
+
+### Agent sends a bad project type
+
+Validated against 8 types (branding, web-design, product-design, app-design, packaging, motion-design, illustration, other). Unknown types get a 400 error. Good.
+
+### Agent sends an incomplete brief
+
+`import-plan` requires at least 1 phase. But doesn't require tasks, dates, or budget. The agent should fill in reasonable defaults — that's the agent's job per the "Stage is executor" rule.
+
+### Stitch sync with no connection
+
+Worth verifying: does `designs/sync` require an existing design connection, or can you sync previews without linking a Stitch project first? If it allows orphan syncs, that could create confusing state.
+
+### Multiple agents syncing at the same time
+
+`designs/sync` replaces the full preview set. If two agents sync at the same time, the last one wins. This is acceptable for v1 but worth noting.
+
+### Free plan limits
+
+Free users can create max 3 projects. The API enforces this. If an agent hits the limit, it gets a clear error. The agent should handle this gracefully (suggest upgrading or archiving).
+
+---
+
+## File Reference
+
+### Backend files
+
+```
+app/convex/api/index.ts          — main Hono app, CORS, route mount
+app/convex/api/auth.ts           — Bearer token auth, SHA-256 lookup
+app/convex/api/errors.ts         — ApiError class, global handler
+app/convex/api/models.ts         — Zod schemas for all endpoints
+app/convex/api/types.ts          — context types
+app/convex/api/routes/projects.ts — all project + design routes
+app/convex/api/routes/phases.ts  — phase task routes
+app/convex/api/routes/tasks.ts   — task detail + toggle
+app/convex/http.ts               — thin mount (Hono + Auth + Stripe)
+app/convex/schema.ts             — full database schema
+app/convex/domain/projects/service.ts     — shared business logic
+app/convex/domain/projects/readModel.ts   — app-side read builders
+app/convex/domain/projects/apiReadModel.ts — API-side read builders
+app/convex/integrations/stitch.ts         — Stitch SDK, sync, connections
+app/convex/developer/apiKeys.ts           — key generation + auth
+app/convex/platform/rateLimits.ts         — rate limit configs
+```
+
+### Frontend files
+
+```
+app/src/components/agents/AgentsPage.tsx   — /agents hub
+app/src/components/agents/StitchPage.tsx   — /agents/stitch
+app/src/components/agents/SkillsPage.tsx   — /agents/skills
+app/src/components/api-docs/ApiDocsPage.tsx — /docs
+app/src/components/openclaw/OpenClawPage.tsx — /openclaw
+app/src/components/settings/DeveloperTab.tsx — API key management
+app/src/components/landing/sections/Nav.tsx
+app/src/components/landing/sections/FooterSection.tsx
+app/src/lib/stage-api-docs.ts             — API docs data
+app/public/SKILL.md                        — agent skill file
+app/src/routes/agents.tsx                  — layout with Outlet
+app/src/routes/agents/index.tsx            — /agents route
+app/src/routes/agents/stitch.tsx           — /agents/stitch route
+app/src/routes/agents/skills.tsx           — /agents/skills route
+```
+
+### Files that will need changes for in-app Stitch panel
+
+```
+app/src/components/project/ProjectDetailPage.tsx — add design panel
+app/src/components/project/ProjectHeader.tsx     — add Stitch menu item
+app/src/hooks/useProjectDetail.ts                — add design data fetch
+```
+
+### Do not hand-edit
+
+```
+app/src/routeTree.gen.ts    — regenerated by TanStack Router
+app/convex/_generated/*     — regenerated by Convex
+```
