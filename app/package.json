@@ -17,7 +17,10 @@
     "stage:upload": "pnpm run build:stage && npx wrangler versions upload -e stage",
     "production:deploy": "pnpm run build:production && npx wrangler deploy -e production",
     "production:upload": "pnpm run build:production && npx wrangler versions upload -e production",
-    "cf:typegen": "npx wrangler types --env-interface CloudflareEnv worker-env.d.ts"
+    "cf:typegen": "npx wrangler types --env-interface CloudflareEnv worker-env.d.ts",
+    "smoke:rest": "node ./scripts/smoke/rest.mjs",
+    "smoke:stitch": "node ./scripts/smoke/stitch.mjs",
+    "smoke:top3": "pnpm run smoke:rest && pnpm run smoke:stitch"
   },
   "dependencies": {
     "@auth/core": "0.37.0",

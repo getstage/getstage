@@ -25,6 +25,7 @@ import { Route as AuthedNewProjectRouteImport } from './routes/_authed/new-proje
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
 import { Route as AuthedProjectIdRouteImport } from './routes/_authed/project.$id'
 import { Route as PortalTokenTaskTaskIdRouteImport } from './routes/portal.$token.task.$taskId'
+import { Route as AuthedProjectIdStitchRouteImport } from './routes/_authed/project.$id.stitch'
 import { Route as AuthedProjectIdTaskTaskIdRouteImport } from './routes/_authed/project.$id.task.$taskId'
 
 const OpenclawRoute = OpenclawRouteImport.update({
@@ -107,6 +108,11 @@ const PortalTokenTaskTaskIdRoute = PortalTokenTaskTaskIdRouteImport.update({
   path: '/task/$taskId',
   getParentRoute: () => PortalTokenRoute,
 } as any)
+const AuthedProjectIdStitchRoute = AuthedProjectIdStitchRouteImport.update({
+  id: '/stitch',
+  path: '/stitch',
+  getParentRoute: () => AuthedProjectIdRoute,
+} as any)
 const AuthedProjectIdTaskTaskIdRoute =
   AuthedProjectIdTaskTaskIdRouteImport.update({
     id: '/task/$taskId',
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/portal/$token': typeof PortalTokenRouteWithChildren
   '/agents/': typeof AgentsIndexRoute
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
+  '/project/$id/stitch': typeof AuthedProjectIdStitchRoute
   '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
   '/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
 }
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/portal/$token': typeof PortalTokenRouteWithChildren
   '/agents': typeof AgentsIndexRoute
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
+  '/project/$id/stitch': typeof AuthedProjectIdStitchRoute
   '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
   '/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
 }
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/portal/$token': typeof PortalTokenRouteWithChildren
   '/agents/': typeof AgentsIndexRoute
   '/_authed/project/$id': typeof AuthedProjectIdRouteWithChildren
+  '/_authed/project/$id/stitch': typeof AuthedProjectIdStitchRoute
   '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
   '/_authed/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
 }
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/portal/$token'
     | '/agents/'
     | '/project/$id'
+    | '/project/$id/stitch'
     | '/portal/$token/task/$taskId'
     | '/project/$id/task/$taskId'
   fileRoutesByTo: FileRoutesByTo
@@ -203,6 +213,7 @@ export interface FileRouteTypes {
     | '/portal/$token'
     | '/agents'
     | '/project/$id'
+    | '/project/$id/stitch'
     | '/portal/$token/task/$taskId'
     | '/project/$id/task/$taskId'
   id:
@@ -222,6 +233,7 @@ export interface FileRouteTypes {
     | '/portal/$token'
     | '/agents/'
     | '/_authed/project/$id'
+    | '/_authed/project/$id/stitch'
     | '/portal/$token/task/$taskId'
     | '/_authed/project/$id/task/$taskId'
   fileRoutesById: FileRoutesById
@@ -351,6 +363,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalTokenTaskTaskIdRouteImport
       parentRoute: typeof PortalTokenRoute
     }
+    '/_authed/project/$id/stitch': {
+      id: '/_authed/project/$id/stitch'
+      path: '/stitch'
+      fullPath: '/project/$id/stitch'
+      preLoaderRoute: typeof AuthedProjectIdStitchRouteImport
+      parentRoute: typeof AuthedProjectIdRoute
+    }
     '/_authed/project/$id/task/$taskId': {
       id: '/_authed/project/$id/task/$taskId'
       path: '/task/$taskId'
@@ -362,10 +381,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthedProjectIdRouteChildren {
+  AuthedProjectIdStitchRoute: typeof AuthedProjectIdStitchRoute
   AuthedProjectIdTaskTaskIdRoute: typeof AuthedProjectIdTaskTaskIdRoute
 }
 
 const AuthedProjectIdRouteChildren: AuthedProjectIdRouteChildren = {
+  AuthedProjectIdStitchRoute: AuthedProjectIdStitchRoute,
   AuthedProjectIdTaskTaskIdRoute: AuthedProjectIdTaskTaskIdRoute,
 }
 

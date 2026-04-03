@@ -14,7 +14,7 @@ const PAGE_TITLE = "Agent Skills for Stage";
 const PAGE_DESCRIPTION =
   "Install the Stage skill into Claude Code or any compatible agent. It teaches the agent Stage's API, action policy, and the project-then-design workflow.";
 
-const INSTALL_COMMAND = "npx skills add stage-hq/agent-mode";
+const INSTALL_COMMAND = "npx skills add getstage/agent-mode";
 
 const SUPPORTED_CLIENTS = [
   {
@@ -120,11 +120,8 @@ export function SkillsPage() {
         {/* Header */}
         <header className="relative border-b border-border-subtle bg-white/88 backdrop-blur-sm">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 sm:px-10">
-            <Link to="/" className="inline-flex items-center gap-4">
+            <Link to="/" className="inline-flex items-center">
               <img src={stageLogo} alt="Stage" className="h-10 w-auto" />
-              <span className="font-heading text-[18px] font-semibold">
-                Stage
-              </span>
             </Link>
             <div className="flex items-center gap-3">
               <Link
@@ -156,7 +153,7 @@ export function SkillsPage() {
             </h1>
 
             <p className="mt-5 max-w-[540px] text-[17px] leading-[1.75] text-text-secondary">
-              Install the Stage skill and your agent learns the API, action
+              Install the Stage skill from GitHub and your agent learns the API, action
               policy, and the project-first workflow — including when to create,
               when to confirm, and when to use Stitch.
             </p>

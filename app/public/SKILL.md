@@ -1,5 +1,15 @@
 # Stage API Skill
 
+Installable source:
+
+```bash
+npx skills add getstage/agent-mode
+```
+
+Manual fallback:
+- download this file
+- drop it into your agent workspace or project context
+
 Use this skill when acting on behalf of a user inside Stage.
 
 ## Core model

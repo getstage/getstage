@@ -576,17 +576,17 @@ function QuickstartSection({
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
               <Link
-                to="/openclaw"
+                to="/agents/skills"
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white"
               >
-                OpenClaw guide
+                Agent skills
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
               <a
-                href="/SKILL.md"
+                href="/agents/stitch"
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white"
               >
-                Download SKILL.md
+                Stitch guide
                 <ArrowRight className="h-3.5 w-3.5" />
               </a>
             </div>
@@ -856,14 +856,13 @@ export function ApiDocsPage() {
           <div className="flex items-center gap-3">
             <Link
               to="/"
-              className="inline-flex items-center gap-3 text-lg font-bold text-slate-900 dark:text-white"
+              className="inline-flex items-center"
             >
               <img
                 src={stageLogo}
                 alt="Stage"
                 className={cn("h-8 w-auto transition-[filter]", dark && "brightness-0 invert")}
               />
-              <span>Stage</span>
             </Link>
             <CaretRight className="h-3.5 w-3.5 text-slate-400" />
             <span className="font-medium text-slate-900 dark:text-white">

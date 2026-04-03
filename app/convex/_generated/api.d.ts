@@ -17,6 +17,7 @@ import type * as api_routes_phases from "../api/routes/phases.js";
 import type * as api_routes_projects from "../api/routes/projects.js";
 import type * as api_routes_tasks from "../api/routes/tasks.js";
 import type * as api_types from "../api/types.js";
+import type * as app_projectStitch from "../app/projectStitch.js";
 import type * as auth from "../auth.js";
 import type * as billing from "../billing.js";
 import type * as clients from "../clients.js";
@@ -66,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   "api/routes/projects": typeof api_routes_projects;
   "api/routes/tasks": typeof api_routes_tasks;
   "api/types": typeof api_types;
+  "app/projectStitch": typeof app_projectStitch;
   auth: typeof auth;
   billing: typeof billing;
   clients: typeof clients;

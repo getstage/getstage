@@ -1,120 +1,188 @@
 # Backend Agent Handoff - 2026-03-31
 
-This file is the backend handoff log for the Stage public API and agent workflow.
+Updated: 2026-04-03
+
+This file tracks the real backend state for the Stage API and Stitch workflow.
 It is meant for other AI agents and humans picking up the same branch.
 
-Updated: 2026-04-02
+## Goal
 
-## Status Summary
+Main product workflow:
+1. agent creates the full project in Stage
+2. user or agent works in Stitch
+3. Stage links the Stitch project to the Stage project
+4. Stage shows the latest synced previews
 
-Completed:
-- Clean Hono API structure under `app/convex/api/`
-- Thin `app/convex/http.ts` mount using `HttpRouterWithHono`
-- API key auth flow with SHA-256 lookup and `lastUsedAt` updates
-- Per-key API rate limiting
-- Shared project/task service layer in `app/convex/domain/projects/service.ts`
-- Separate app read models vs API read models
-- CRUD API routes for projects, phases, and tasks
-- `GET /api/v1/tasks/:id`
-- `POST /api/v1/projects/import-plan`
-- `POST /api/v1/projects/generate` deprecated with a `410` response
-- Stitch backend service in `app/convex/integrations/stitch.ts`
-- Stitch proxy API endpoint `POST /api/v1/projects/:id/generate-design`
-- project-level Stitch connection storage in `projectDesignConnections`
-- latest-preview sync flow for linked Stitch projects
-- `GET /api/v1/projects/:id/design-connections`
-- `POST /api/v1/projects/:id/design-connections`
-- `POST /api/v1/projects/:id/designs/upload-url`
-- `POST /api/v1/projects/:id/designs/sync`
-- `GET /api/v1/projects/:id/designs`
-- Resend audience sync switched to the official `resend` SDK in `app/convex/integrations/resendAudience.ts`
-- Convex structure cleanup: integrations/domain/platform folders instead of flat backend files at root
+Stage is the executor.
+Stitch remains the design workspace.
 
-Not done yet:
-- MCP server package
-- formal API tests
-- final tightening of destructive-action safety
+## Architecture Update
+
+The public API is moving direction.
+
+New target:
+- Convex remains the app/data backend
+- a new Cloudflare Worker + Hono service called `agent-service` becomes the public REST surface
+- `agent-mode` remains the separate public skill repo
+
+Why:
+- avoids leaning on Convex custom-domain setup for the public API
+- gives Stage a clean public API host such as `api-testing.getstage.co`
+- keeps current Convex app logic and logged-in product behavior intact
+
+Temporary truth for testing:
+- the working HTTP API host right now is:
+  - `https://reliable-bullfrog-917.convex.site/api/v1`
+- `testing.getstage.co/api/*` is not the correct public API target
 
 ## Ownership
 
-Backend scope is owned by the backend agent.
-
-Backend agent should handle:
+Backend agent owns:
 - API contracts
+- `agent-service` architecture and route migration
 - Convex schema changes
 - Stitch connection storage
-- latest-preview sync flow
+- Stitch preview sync logic
+- app-auth Convex modules
 - auth / rate limits / validation
-- backend handoff and implementation truth
+- backend handoff accuracy
+- tests
 
 Frontend-owned work that backend should not take over unless needed:
 - `/agents`
 - `/agents/stitch`
 - `/agents/skills`
 - nav/footer/public copy
-- future in-app Stitch section layout and presentation
+- logged-in Stitch page presentation
 
-Current frontend progress already visible on branch:
-- `/agents` exists and has been partially updated toward the Stitch-first direction
-- `/agents/stitch` does not exist yet
-- `/agents/skills` does not exist yet
-- footer still needs alignment with the final Stitch/Skills-first public flow
+## What Is Already Done
 
-## Locked Architecture Decisions
+### Core API foundation
 
-### 1. Stage is still the executor
+Done:
+- clean Hono API structure under `app/convex/api/`
+- thin `app/convex/http.ts`
+- API key auth
+- rate limiting
+- lean API read models
+- project, phase, task CRUD foundations
+- `GET /api/v1/tasks/:id`
+- `POST /api/v1/projects/import-plan`
+- `POST /api/v1/projects/generate` deprecated with `410`
 
-External AI interprets the prompt.
-Stage stores and executes structured actions.
+Important new framing:
+- these Convex Hono routes are now the source implementation
+- they are not the desired final public edge host
 
-### 2. Project creation stays first
+### Stitch public API
 
-Preferred path:
-- external AI builds the project plan
-- caller uses `POST /api/v1/projects/import-plan`
+Done:
+- project-level Stitch connection storage
+- preview upload URL flow
+- synced preview list flow
+- synced preview replacement flow
 
-### 3. Public Stitch story is user-owned
+Implemented public Stitch routes:
+- `GET /api/v1/projects/:id/design-connections`
+- `POST /api/v1/projects/:id/design-connections`
+- `GET /api/v1/projects/:id/designs`
+- `POST /api/v1/projects/:id/designs/upload-url`
+- `POST /api/v1/projects/:id/designs/sync`
 
-For the public agent workflow:
-- the user or agent uses the user's own Stitch setup
-- Stage does not become the main public Stitch proxy
-- Stage links the Stitch project back into the Stage project
+### App-auth Stitch support for the logged-in product
 
-### 4. Stage should show the latest synced Stitch state
+Now added:
+- `app/convex/app/projectStitch.ts`
 
-Important new decision:
-- multiple collaborators may work inside the same Stitch project
-- Stage should therefore show the latest synced previews, not a stale one-off import
+This file is the logged-in app Convex surface for `/project/:id/stitch`.
 
-Because Stage should not hold user Stitch credentials in public v1:
-- latest sync is agent-driven or user-triggered
-- Stage receives the newest preview set from the caller that has Stitch access
+Implemented in that module:
+- `getForProject`
+- `listPreviews`
+- `linkProject`
+- `syncLatest`
 
-## File Layout
+What those do right now:
+- `getForProject` returns the project-level Stitch connection
+- `listPreviews` returns synced preview cards for the project
+- `linkProject` creates or updates the linked Stitch project URL
+- `syncLatest` currently throws a clear "not wired yet" error
 
-Current backend layout:
-- `app/convex/api/index.ts`
-- `app/convex/api/auth.ts`
-- `app/convex/api/errors.ts`
-- `app/convex/api/models.ts`
+Important:
+- this was deliberate
+- it removes fake behavior
+- it does not pretend the logged-in app can already sync from Stitch directly
+
+### Skills + REST hardening support
+
+Now added:
+- installable Stage skill source in this repo:
+  - `agent-mode/skills/stage-project-manager/SKILL.md`
+- marketplace-ready plugin config (added 2026-04-03):
+  - `agent-mode/.claude-plugin/plugin.json`
+  - `agent-mode/.claude-plugin/marketplace.json`
+- full package metadata:
+  - `agent-mode/package.json` (v1.0.0, not private, author, repo, homepage, keywords)
+- comprehensive README:
+  - `agent-mode/README.md` (install, setup, example prompts, action policy, endpoints, supported clients, troubleshooting, contributors)
+- manual fallback file:
+  - `app/public/SKILL.md`
+- smoke scripts for the current top 3 flows:
+  - `app/scripts/smoke/rest.mjs`
+  - `app/scripts/smoke/stitch.mjs`
+
+Package scripts:
+- `pnpm run smoke:rest`
+- `pnpm run smoke:stitch`
+- `pnpm run smoke:top3`
+
+Verified locally:
+- `npx skills add ./ --list` finds exactly one installable skill:
+  - `stage-project-manager`
+
+Important:
+- the public install command now targets this repo:
+  - `npx skills add getstage/agent-mode`
+- that becomes real for users once these changes are pushed to `https://github.com/getstage/agent-mode` and the repo is public
+- the repo structure now matches the Post Bridge `agent-mode` pattern (`.claude-plugin/`, `skills/`, `package.json`, `README.md`, `LICENSE`)
+
+### Testing host that works now
+
+Verified:
+- `https://reliable-bullfrog-917.convex.site/api/v1/projects`
+
+Not the right host for public smoke tests:
+- `https://testing.getstage.co/api/v1/projects`
+
+## Current Backend Structure
+
+Keep this structure:
+- `app/convex/api/` for Hono API
+- `app/convex/domain/` for business logic
+- `app/convex/integrations/` for third-party integration logic
+- `app/convex/platform/` for platform helpers
+- `app/convex/developer/` for developer tooling
+- `app/convex/app/` for logged-in app Convex surfaces
+
+Target new structure:
+- `apps/agent-service/` for the public Cloudflare Hono API
+- `packages/contracts/` for shared Zod request/response schemas
+
+Current relevant files:
 - `app/convex/api/routes/projects.ts`
-- `app/convex/api/routes/phases.ts`
-- `app/convex/api/routes/tasks.ts`
-- `app/convex/developer/apiKeys.ts`
-- `app/convex/platform/rateLimits.ts`
 - `app/convex/domain/projects/service.ts`
-- `app/convex/domain/projects/readModel.ts`
-- `app/convex/domain/projects/apiReadModel.ts`
-- `app/convex/domain/collaborators/service.ts`
-- `app/convex/domain/collaborators/invites.ts`
-- `app/convex/domain/auth/cleanup.ts`
-- `app/convex/domain/demo/workspace.ts`
 - `app/convex/integrations/stitch.ts`
-- `app/convex/integrations/resendAudience.ts`
-- `app/convex/integrations/googleSheets.ts`
-- `app/convex/integrations/stripeConnect.ts`
-- `app/convex/integrations/loopsOtp.ts`
-- `app/convex/http.ts`
+- `app/convex/app/projectStitch.ts`
+
+Future relevant files:
+- `apps/agent-service/src/index.ts`
+- `apps/agent-service/src/hono/*`
+- `apps/agent-service/wrangler.jsonc`
+- `packages/contracts/*`
+
+Important cleanup done in this pass:
+- removed loose new root files
+- consolidated logged-in app Stitch logic into a single `app/projectStitch.ts` module
 
 ## Current HTTP API
 
@@ -138,187 +206,167 @@ Implemented routes:
 - `GET /api/v1/tasks/:id`
 - `POST /api/v1/phases/:id/tasks`
 - `POST /api/v1/tasks/:id/toggle`
-- `POST /api/v1/projects/:id/generate-design` exists as a Stitch proxy route
+- `POST /api/v1/projects/:id/generate-design` still exists as a Stitch proxy route
 
-Auth:
-- Bearer token only
-- Uses Stage API keys from `developer/apiKeys`
-- Hashes incoming key with SHA-256 before lookup
-- API auth returns only `apiKeyId` and `userId`
+## Current Product Truth
 
-Rate limiting:
-- global API limiter
-- per-API-key limiter
-- implemented in `app/convex/platform/rateLimits.ts`
+### Stage is still the executor
 
-## API Shape Rules
+External AI interprets the prompt.
+Stage stores and executes structured actions.
 
-Public API responses were trimmed to avoid overfetching.
+### Project creation stays first
 
-Current intent:
-- `GET /api/v1/projects` returns project summaries only
-- `GET /api/v1/projects/:id` returns project metadata and counts, not nested phases/tasks
-- `GET /api/v1/projects/:id/phases` returns phase summaries with counts, not nested tasks
-- `GET /api/v1/phases/:id/tasks` returns task summaries, not full content/attachments
-- full task content + attachments belong in task-detail reads, not list responses
+Preferred path:
+- external AI builds the project plan
+- caller uses `POST /api/v1/projects/import-plan`
 
-Important:
-- do not reuse the app read model for public API responses by default
-- do not expose `shareToken` in public API read models
-- avoid returning full `user` docs from auth/helper calls when ids are enough
-- if Stitch list/detail routes are added, keep them lean too
+### Public REST host should move out of Convex hosting
 
-## Project Creation Notes
+Target:
+- `api-testing.getstage.co`
+- `api.getstage.co`
 
-Current architecture decision:
-- Stage is the executor
-- external AI is the interpreter
-- Stage should not call Anthropic/OpenAI/Gemini for normal project creation
+Implementation direction:
+- Cloudflare Worker + Hono in `agent-service`
+- Convex underneath for storage and internal logic
 
-What this means in practice:
-- external AI should generate the structured project plan
-- callers should use `POST /api/v1/projects/import-plan` or `POST /api/v1/projects`
-- `POST /api/v1/projects/generate` is intentionally deprecated
+### Public Stitch story is user-owned
 
-## Stitch Direction For Public v1
-
-### Current implementation truth
-
-Already implemented:
-- Stitch SDK integration in `app/convex/integrations/stitch.ts`
-- project-level Stitch connections stored in `projectDesignConnections`
-- synced preview screens stored in `projectGeneratedDesigns`
-- `designs/sync` replaces the project's current user-synced preview set so Stage can show the latest state
-- R2 cleanup already knows about generated design objects
-
-### Product direction change
-
-The public v1 Stitch story is no longer:
-- "Stage calls Stitch and owns the full generation flow"
-
-The public v1 Stitch story is now:
-- agent or user works in Stitch
-- Stage stores a linked Stitch project on the Stage project
-- Stage stores the latest synced preview set from that Stitch project
+For public v1:
+- user or agent uses the user's own Stitch setup
+- Stage links the Stitch project back into Stage
+- Stage stores synced previews
 - full editing remains in Stitch
 
-### Why
+### Stage should show the latest synced Stitch state
 
-Reasons:
-- avoids making Stage the owner of Stitch usage costs
-- matches the "Stage is executor" architecture
-- supports multiple collaborators working in the same Stitch project
-- lets Stage show the freshest synced state without pretending to be the full design workspace
+Important new product rule:
+- multiple collaborators may work inside the same Stitch project
+- Stage should therefore show the latest synced preview set
+- not a stale one-off import
 
-## Required Backend Changes Next
+## Current Frontend Reality Relevant To Backend
 
-### 1. Add formal API tests
+Frontend now already built:
+- `/agents`
+- `/agents/stitch`
+- `/agents/skills`
+- `/project/:id/stitch`
 
-Highest-value coverage:
+Important:
+- `/project/:id/stitch` is no longer just waiting on read queries
+- it can already read project, connection, and previews
+- it can already link a Stitch project
+
+What is still incomplete from backend side:
+- real logged-in app sync behavior
+
+## What Is Still Not Done
+
+### 1. Real in-app sync behavior
+
+This is the main remaining backend blocker.
+
+Current state:
+- `syncLatest` exists in `app/convex/app/projectStitch.ts`
+- it throws a clear error
+
+Why this is unresolved:
+- public v1 is user-owned Stitch
+- Stage should not fake universal Stitch access
+- product still needs a real answer for how sync should run from inside the logged-in app
+
+This is the main open backend/product question now.
+
+### 2. API tests
+
+Still not done:
 - auth failures
 - rate limiting
 - lean read shapes
 - `import-plan` validation
-- Stitch connection + sync flow
+- Stitch connection routes
+- Stitch preview sync routes
 
-### 2. Add authenticated project-facing read model support for the Stitch panel
+Current stopgap:
+- smoke scripts now exist for REST and Stitch
+- they should currently target `reliable-bullfrog-917.convex.site`
+- later they should target `api-testing.getstage.co`
 
-The public API is ready, but the in-app project UI will need a clean read shape for:
-- linked Stitch project
-- latest synced previews
-- last synced timestamp
+### 3. Public API migration
 
-Important:
-- the logged-in app should not be forced to use the public API-key routes for this
-- backend should provide normal app-auth Convex queries/mutations for the project detail UI
-- phase tagging is already compatible with the current sync model
-- task-level preview linking is not modeled yet and should not be faked in the frontend
+Still not done:
+- scaffold `apps/agent-service`
+- add `wrangler.jsonc`
+- add package scripts for stage and production deploys
+- extract shared request/response Zod schemas into `packages/contracts`
+- migrate the public REST routes out of Convex hosting
+- keep Convex as the backend source of truth underneath
+### 4. Update endpoints
 
-### 3. Keep the current proxy route, but de-emphasize it
+Still not done:
+- patch/update project
+- patch/update phase
+- patch/update task
 
-Current route:
-- `POST /api/v1/projects/:id/generate-design`
+### 5. Destructive-action safety
 
-Action:
-- keep it if internally useful
-- do not treat it as the primary public Stitch path
-- public docs and frontend should center on linking + sync
+Still not done:
+- preview affected entities
+- explicit confirmation step
+- confirmation token or similar pattern
 
-## Frontend Dependency Notes
+### 6. MCP server package
 
-Frontend depends on backend for:
-- authenticated project-facing read model for the in-app Stitch panel
-- authenticated write surface for linking/syncing from inside the app if that becomes part of the logged-in flow
-- any later task-to-preview association model, if product decides that tasks should reference synced screens
+Still not done.
+Not a current blocker for the main workflow.
 
-Frontend does not need to wait for backend to do:
-- `/agents` completion
-- `/agents/stitch`
-- `/agents/skills`
-- install-flow messaging
+## Important Backend Constraints
 
-## Shared Logic Notes
+### Do not move more logic back into `http.ts`
 
-`app/convex/domain/projects/service.ts` remains the backend sharing layer.
+`http.ts` should stay thin.
 
-Why it exists:
-- UI mutations have direct `ctx.db` access
-- Hono routes run through Convex action/http context and need internal wrappers
-- this file keeps the real project/task logic in one place
+### Do not flatten app-facing modules into the Convex root
 
-The next Stitch sync logic should follow the same pattern:
-- shared helper/service logic first
-- internal wrappers for Hono routes second
+New logged-in app logic should prefer:
+- `app/convex/app/*`
 
-## Important Constraints For Next Agent
+### Do not model task-level Stitch ownership yet
 
-### 1. Do not put more logic back into `http.ts`
+Current v1 model is:
+- project-level Stitch connection
+- project-level synced previews
+- optional phase context
 
-`http.ts` should stay a thin mount point plus existing Stripe/auth route registration.
+Do not add yet:
+- task-level Stitch sync
+- task-owned preview records
 
-### 2. Keep the current folder split intact
+### Do not fake sync success
 
-Do not move backend service code back into the Convex root unless the file is a real app-facing entrypoint.
+If sync is unresolved:
+- keep the behavior honest
+- return clear error states
 
-Preferred placement:
-- `domain/*` for business logic and read models
-- `integrations/*` for third-party services and webhooks
-- `platform/*` for internal infra helpers
-- `developer/*` for developer-facing tooling like API keys
+## Recommended Next Backend Order
 
-### 3. Stitch should not reuse `attachments`
+1. Scaffold `apps/agent-service`
+2. Add `wrangler.jsonc` and package scripts
+3. Extract shared Zod contracts into `packages/contracts`
+4. Move public REST routes into `agent-service`
+5. Point smoke tests to the temporary Convex HTTP host until `agent-service` is live
+6. Decide and implement real in-app sync behavior
+7. Add formal API tests
+8. Add update endpoints
+9. Add destructive-action safety
+10. Build MCP later
 
-Current `attachments` rows are task-scoped:
-- table requires `taskId`
-- existing cleanup/query code assumes task ownership
+## Verification
 
-Stitch should continue to use:
-- project-level design connection storage
-- `projectGeneratedDesigns` for synced previews
-
-### 4. R2 cleanup already includes Stitch
-
-Implemented:
-- project deletion cleanup calls Stitch cleanup
-- `app/convex/r2.ts` includes generated design keys in reference scanning
-
-Keep this in mind if new preview-sync keys are added.
-
-## Verification Already Run
-
-Commands already run successfully in prior backend work:
+Verified successfully after the current work:
 - `npx convex codegen`
 - `pnpm typecheck`
-
-## Recommended Next Backend Step
-
-Highest-value next backend work:
-1. Add authenticated Convex read/write functions for the in-app Stitch panel
-2. Add API tests for:
-   - auth
-   - task detail
-   - import-plan
-   - Stitch connection/sync routes
-3. Keep lean response shapes protected
-4. Define the later task-to-preview association model only if product decides it is needed
-5. Build the MCP server package after the public API shape is stable
+- `pnpm exec vite build`
+- `npx skills add ./ --list`

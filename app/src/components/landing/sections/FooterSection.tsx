@@ -41,8 +41,8 @@ export function FooterSection() {
               <Link to="/agents/skills" className="landing-footer-link">
                 Agent Skills
               </Link>
-              <Link to="/openclaw" className="landing-footer-link">
-                OpenClaw
+              <Link to="/agents" className="landing-footer-link">
+                All integrations
               </Link>
             </div>
             <div>

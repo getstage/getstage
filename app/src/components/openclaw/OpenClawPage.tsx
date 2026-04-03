@@ -193,11 +193,8 @@ export function OpenClawPage() {
         {/* Header */}
         <header className="relative border-b border-border-subtle bg-white/88 backdrop-blur-sm">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 sm:px-10">
-            <Link to="/" className="inline-flex items-center gap-4">
+            <Link to="/" className="inline-flex items-center">
               <img src={stageLogo} alt="Stage" className="h-10 w-auto" />
-              <span className="font-heading text-[18px] font-semibold">
-                Stage
-              </span>
             </Link>
             <div className="flex items-center gap-3">
               <Link

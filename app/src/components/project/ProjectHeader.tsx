@@ -1,7 +1,5 @@
-import {
-  DotsThreeVertical,
-  ShareNetwork,
-} from "@phosphor-icons/react";
+import { Link } from "@tanstack/react-router";
+import { DotsThreeVertical, ShareNetwork } from "@phosphor-icons/react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -59,6 +57,19 @@ export function ProjectHeader({
         <div className="mx-auto w-full max-w-[260px] sm:mx-0 sm:w-[100px] sm:max-w-none">
           <ProgressBar value={project.progress} showLabel className="w-full" />
         </div>
+
+        <Link
+          to="/project/$id/stitch"
+          params={{ id: project.id }}
+          className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-[rgba(59,175,218,0.24)] bg-white px-4 text-[15px] font-medium text-[#0891b2] transition-colors hover:bg-[rgba(59,175,218,0.06)] sm:h-8 sm:w-auto sm:rounded-[7px] sm:px-3 sm:text-[13px]"
+        >
+          <img
+            src="/stitch.png"
+            alt=""
+            className="h-4 w-4 rounded-[3px]"
+          />
+          Stitch
+        </Link>
 
         {isOwner ? (
           <Button

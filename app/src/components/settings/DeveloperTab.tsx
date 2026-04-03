@@ -63,6 +63,7 @@ export function DeveloperTab({
   onUpgradeClick,
 }: DeveloperTabProps) {
   const activeKeys = keys.filter((k) => !k.isRevoked);
+  const revokedKeys = keys.filter((k) => k.isRevoked);
 
   return (
     <div className={`tab-content ${active ? "active" : ""}`}>
@@ -114,7 +115,7 @@ export function DeveloperTab({
                 </div>
               </div>
               <p className="card-desc">
-                Create API keys to integrate Stage with Claude Code, OpenClaw, or any external tool.
+                Create API keys to integrate Stage with Claude Code, Stitch workflows, or any compatible external agent.
                 Keys are shown once at creation and cannot be retrieved later.
               </p>
 
@@ -152,7 +153,7 @@ export function DeveloperTab({
                       id="dev-key-name"
                       type="text"
                       className="developer-input"
-                      placeholder="e.g. Claude Code, OpenClaw agent"
+                      placeholder="e.g. Claude Code, Stitch sync agent"
                       value={keyName}
                       onChange={(e) => onKeyNameChange(e.target.value)}
                       maxLength={64}
@@ -174,7 +175,7 @@ export function DeveloperTab({
                     </span>
                     <span className="developer-inline-note">
                       <Sparkle size={14} weight="fill" />
-                      Best for Claude Code or OpenClaw
+                      Best for Claude Code or any compatible agent
                     </span>
                   </div>
                   {activeKeys.length >= 5 && (
@@ -214,33 +215,29 @@ export function DeveloperTab({
                   </span>
                 </div>
                 <div className="developer-key-list">
-                  {keys.map((k) => (
-                    <div
-                      key={k.id}
-                      className={`developer-key-row ${k.isRevoked ? "revoked" : ""}`}
-                    >
-                      <div className="developer-key-main">
-                        <span
-                          className={`developer-key-icon ${k.isRevoked ? "developer-key-icon-revoked" : ""}`}
-                        >
-                          <Key size={16} weight="bold" />
-                        </span>
-                        <div className="developer-key-info">
-                          <div className="developer-key-title-row">
-                            <span className="developer-key-name">{k.name}</span>
-                            <span
-                              className={`developer-status-badge ${k.isRevoked ? "revoked" : "active"}`}
-                            >
-                              {k.isRevoked ? "Revoked" : "Active"}
+                  {activeKeys.length > 0 ? (
+                    activeKeys.map((k) => (
+                      <div
+                        key={k.id}
+                        className="developer-key-row"
+                      >
+                        <div className="developer-key-main">
+                          <span className="developer-key-icon">
+                            <Key size={16} weight="bold" />
+                          </span>
+                          <div className="developer-key-info">
+                            <div className="developer-key-title-row">
+                              <span className="developer-key-name">{k.name}</span>
+                              <span className="developer-status-badge active">
+                                Active
+                              </span>
+                            </div>
+                            <span className="developer-key-meta">
+                              Created {formatDate(k.createdAt)}
+                              {k.lastUsedAt && ` · Last used ${formatDate(k.lastUsedAt)}`}
                             </span>
                           </div>
-                          <span className="developer-key-meta">
-                          Created {formatDate(k.createdAt)}
-                          {k.lastUsedAt && ` · Last used ${formatDate(k.lastUsedAt)}`}
-                          </span>
                         </div>
-                      </div>
-                      {!k.isRevoked && (
                         <button
                           type="button"
                           className="btn-outline developer-revoke-button"
@@ -249,10 +246,68 @@ export function DeveloperTab({
                         >
                           {isRevoking === k.id ? "Revoking..." : "Revoke"}
                         </button>
-                      )}
+                      </div>
+                    ))
+                  ) : (
+                    <div
+                      className="developer-key-row revoked"
+                    >
+                      <div className="developer-key-main">
+                        <span className="developer-key-icon developer-key-icon-revoked">
+                          <Key size={16} weight="bold" />
+                        </span>
+                        <div className="developer-key-info">
+                          <span className="developer-key-meta">
+                            No active keys. Create one above to run the API, Stitch sync, or smoke checks.
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  ))}
+                  )}
                 </div>
+
+                {revokedKeys.length > 0 && (
+                  <div className="developer-key-list" style={{ marginTop: 16 }}>
+                    <div className="developer-card-hero developer-card-hero-spaced">
+                      <div className="developer-card-hero">
+                        <span className="developer-icon-chip developer-icon-chip-blue">
+                          <ShieldCheckered size={18} weight="bold" />
+                        </span>
+                        <div>
+                          <div className="developer-eyebrow">History</div>
+                          <div className="card-heading sf">Revoked Keys</div>
+                        </div>
+                      </div>
+                      <span className="developer-pill">
+                        {revokedKeys.length} revoked
+                      </span>
+                    </div>
+                    {revokedKeys.map((k) => (
+                      <div
+                        key={k.id}
+                        className="developer-key-row revoked"
+                      >
+                        <div className="developer-key-main">
+                          <span className="developer-key-icon developer-key-icon-revoked">
+                            <Key size={16} weight="bold" />
+                          </span>
+                          <div className="developer-key-info">
+                            <div className="developer-key-title-row">
+                              <span className="developer-key-name">{k.name}</span>
+                              <span className="developer-status-badge revoked">
+                                Revoked
+                              </span>
+                            </div>
+                            <span className="developer-key-meta">
+                              Created {formatDate(k.createdAt)}
+                              {k.lastUsedAt && ` · Last used ${formatDate(k.lastUsedAt)}`}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -270,8 +325,8 @@ export function DeveloperTab({
                     <div className="card-heading sf">Documentation</div>
                   </div>
                 </div>
-                <a href="/SKILL.md" className="developer-inline-link">
-                  Download skill
+                <a href="/agents/skills" className="developer-inline-link">
+                  Install skill
                   <ArrowSquareOut size={14} weight="bold" />
                 </a>
               </div>

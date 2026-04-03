@@ -130,9 +130,12 @@ export function createProjectRoutes() {
         mimeType: body.mimeType,
       });
 
+      const uploadUrl =
+        typeof upload.uploadUrl === "string" ? upload.uploadUrl : upload.uploadUrl.url;
+
       return c.json(
         {
-          uploadUrl: upload.uploadUrl,
+          uploadUrl,
           r2ObjectKey: upload.key,
         },
         201,
