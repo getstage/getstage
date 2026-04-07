@@ -1,12 +1,13 @@
 import { v } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
-import { mutation, query } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { action, mutation, query } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { requireProjectAccess } from "../_helpers";
 import { resolveAssetUrl } from "../r2";
 
-function now() {
-  return Date.now();
-}
+type ViewerContext = {
+  userId: Id<"users">;
+};
 
 function normalizeStitchProjectUrl(value: string) {
   const normalized = value.trim();
@@ -28,11 +29,6 @@ function normalizeStitchProjectUrl(value: string) {
   return url.toString();
 }
 
-function extractStitchProjectId(url: string) {
-  const match = url.match(/\/projects\/([^/?#]+)/i);
-  return match?.[1];
-}
-
 function formatConnection(connection: {
   _id: string;
   provider: "stitch";
@@ -52,6 +48,8 @@ function formatConnection(connection: {
     lastSyncedAt: connection.lastSyncedAt,
   };
 }
+
+type FormattedConnection = ReturnType<typeof formatConnection>;
 
 function sortSyncedDesigns(designs: Array<Doc<"projectGeneratedDesigns">>) {
   return [...designs].sort((a, b) => {
@@ -89,61 +87,37 @@ export const getForProject = query({
   },
 });
 
-export const linkProject = mutation({
+export const linkProject = action({
   args: {
     projectId: v.id("projects"),
     externalProjectUrl: v.string(),
     title: v.optional(v.string()),
   },
-  handler: async (ctx, { projectId, externalProjectUrl, title }) => {
-    await requireProjectAccess(ctx, projectId);
+  handler: async (
+    ctx,
+    { projectId, externalProjectUrl, title },
+  ): Promise<FormattedConnection> => {
+    const viewer: ViewerContext = await ctx.runQuery(internal.onboarding.getViewerContext, {});
 
-    const normalizedUrl = normalizeStitchProjectUrl(externalProjectUrl);
-    const normalizedTitle = title?.trim() || undefined;
-    const externalProjectId = extractStitchProjectId(normalizedUrl);
-    const timestamp = now();
+    const connection = await ctx.runAction(
+      internal.integrations.stitch.verifyAndUpsertDesignConnectionForApi,
+      {
+      userId: viewer.userId,
+      projectId: String(projectId),
+      externalProjectUrl: normalizeStitchProjectUrl(externalProjectUrl),
+      title: title?.trim() || undefined,
+      },
+    );
 
-    const existingConnection = await ctx.db
-      .query("projectDesignConnections")
-      .withIndex("by_project_provider", (q) =>
-        q.eq("projectId", projectId).eq("provider", "stitch"),
-      )
-      .unique();
-
-    if (existingConnection) {
-      await ctx.db.patch(existingConnection._id, {
-        externalProjectUrl: normalizedUrl,
-        externalProjectId,
-        title: normalizedTitle,
-        status: "active",
-        updatedAt: timestamp,
-      });
-
-      const updatedConnection = await ctx.db.get(existingConnection._id);
-      if (!updatedConnection) {
-        throw new Error("Failed to update Stitch connection.");
-      }
-
-      return formatConnection(updatedConnection as never);
-    }
-
-    const connectionId = await ctx.db.insert("projectDesignConnections", {
-      projectId,
-      provider: "stitch",
-      externalProjectUrl: normalizedUrl,
-      externalProjectId,
-      title: normalizedTitle,
-      status: "active",
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
-
-    const connection = await ctx.db.get(connectionId);
-    if (!connection) {
-      throw new Error("Failed to create Stitch connection.");
-    }
-
-    return formatConnection(connection as never);
+    return {
+      _id: connection.id,
+      provider: connection.provider,
+      externalProjectUrl: connection.externalProjectUrl,
+      externalProjectId: connection.externalProjectId,
+      title: connection.title,
+      status: connection.status,
+      lastSyncedAt: connection.lastSyncedAt,
+    };
   },
 });
 

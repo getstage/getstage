@@ -28,6 +28,14 @@ import { buildProject, recomputeProjectState } from "./readModel";
 type ReaderCtx = QueryCtx | MutationCtx;
 
 const FREE_PLAN_PROJECT_LIMIT = 3;
+const DEFAULT_PROJECT_PHASES = [
+  "Discovery",
+  "Strategy",
+  "Design",
+  "Development",
+  "Launch",
+] as const;
+const MIN_PROJECT_PHASE_COUNT = 2;
 
 export const projectTypeValidator = v.union(
   v.literal("branding"),
@@ -91,6 +99,22 @@ function normalizePhaseInputs(phases?: Array<{ name: string; tasks?: string[] }>
 
     return { name, tasks };
   });
+}
+
+function buildDefaultProjectPhases() {
+  return DEFAULT_PROJECT_PHASES.map((name) => ({
+    name,
+    tasks: [] as string[],
+  }));
+}
+
+function requireMinimumPhaseCount(
+  phases: Array<{ name: string; tasks: string[] }>,
+  field = "phases",
+) {
+  if (phases.length < MIN_PROJECT_PHASE_COUNT) {
+    throw new Error(`At least ${MIN_PROJECT_PHASE_COUNT} phases are required for ${field}.`);
+  }
 }
 
 async function requireActorUser(ctx: ReaderCtx, userId: Id<"users">) {
@@ -252,12 +276,21 @@ export async function createProjectForUser(
     userId: user._id,
     name: clientName,
   });
+  const nextClientEmail = clientEmail ?? existingClient?.email;
   const nextClientAvatarUrl = requestedClientAvatarUrl ?? existingClient?.avatarUrl;
+
+  if (!nextClientEmail) {
+    throw new Error("Client email is required.");
+  }
+
+  if (!nextClientAvatarUrl) {
+    throw new Error("Client photo is required.");
+  }
 
   await upsertClient(ctx, {
     userId: user._id,
     name: clientName,
-    email: clientEmail,
+    email: nextClientEmail,
     avatarUrl: nextClientAvatarUrl,
   });
 
@@ -293,7 +326,7 @@ export async function createProjectForUser(
     userId: user._id,
     name: projectName,
     clientName,
-    clientEmail,
+    clientEmail: nextClientEmail,
     clientAvatarUrl: nextClientAvatarUrl,
     projectImageUrl,
     startMarkerImageUrl,
@@ -317,7 +350,9 @@ export async function createProjectForUser(
   const normalizedPhases =
     normalizedProvidedPhases.length > 0
       ? normalizedProvidedPhases
-      : [{ name: "Planning", tasks: [] as string[] }];
+      : buildDefaultProjectPhases();
+
+  requireMinimumPhaseCount(normalizedPhases);
 
   for (const [index, phase] of normalizedPhases.entries()) {
     const phaseId = await ctx.db.insert("phases", {

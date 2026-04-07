@@ -103,6 +103,34 @@ function buildStitchProjectUrl(projectId: string) {
   return `https://stitch.withgoogle.com/projects/${projectId}`;
 }
 
+function extractStitchProjectIdFromUrl(url: string) {
+  const match = url.match(/\/projects\/([^/?#]+)/i);
+  return match?.[1];
+}
+
+async function verifyStitchProjectAccess(externalProjectUrl: string) {
+  const apiKey = requireEnv("STITCH_API_KEY");
+  const projectId = extractStitchProjectIdFromUrl(externalProjectUrl);
+
+  if (!projectId) {
+    throw new Error("Stitch project URL must include /projects/{projectId}.");
+  }
+
+  const client = new StitchToolClient({ apiKey });
+  const stitch = new Stitch(client);
+
+  try {
+    const project = stitch.project(projectId);
+    await project.screens();
+    return {
+      externalProjectId: project.id,
+      externalProjectUrl: buildStitchProjectUrl(project.id),
+    };
+  } finally {
+    await client.close().catch(() => undefined);
+  }
+}
+
 async function formatGeneratedDesign(
   design: {
     _id: Id<"projectGeneratedDesigns">;
@@ -178,6 +206,10 @@ async function formatProjectDesignConnection(
     updatedAt: connection.updatedAt,
   };
 }
+
+type FormattedProjectDesignConnection = Awaited<
+  ReturnType<typeof formatProjectDesignConnection>
+>;
 
 async function normalizeProjectId(ctx: ReaderCtx, projectId: string) {
   const normalized = await ctx.db.normalizeId("projects", projectId);
@@ -387,6 +419,35 @@ export const upsertDesignConnectionForApi = internalMutation({
     }
 
     return formatProjectDesignConnection(connection);
+  },
+});
+
+export const verifyAndUpsertDesignConnectionForApi = internalAction({
+  args: {
+    userId: v.id("users"),
+    projectId: v.string(),
+    externalProjectUrl: v.string(),
+    title: v.optional(v.string()),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<FormattedProjectDesignConnection> => {
+    await ctx.runQuery(internal.domain.projects.service.getProjectReferenceForApi, {
+      userId: args.userId,
+      projectId: args.projectId,
+    });
+
+    const verified = await verifyStitchProjectAccess(args.externalProjectUrl);
+
+    return ctx.runMutation(internal.integrations.stitch.upsertDesignConnectionForApi, {
+      userId: args.userId,
+      projectId: args.projectId,
+      provider: "stitch",
+      externalProjectUrl: verified.externalProjectUrl,
+      externalProjectId: verified.externalProjectId,
+      title: args.title,
+    });
   },
 });
 

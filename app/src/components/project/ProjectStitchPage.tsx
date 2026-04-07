@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "@tanstack/react-router";
-import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
+import { useAction as useConvexAction, useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
@@ -296,7 +296,7 @@ export function ProjectStitchPage() {
     from: "/_authed/project/$id/stitch",
   });
   const dockProjects = useDockProjects();
-  const linkStitchProject = useConvexMutation(api.app.projectStitch.linkProject);
+  const linkStitchProject = useConvexAction(api.app.projectStitch.linkProject);
   const syncLatest = useConvexMutation(api.app.projectStitch.syncLatest);
   const { project, isLoading, connection, previews, connectionLoading } =
     useProjectStitchData(projectId as Id<"projects">);

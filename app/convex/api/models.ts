@@ -63,6 +63,7 @@ const projectBodyFieldsSchema = z.object({
         tasks: z.array(trimmedString("Task name")).optional(),
       }),
     )
+    .min(2, "Select at least two phases.")
     .optional(),
 });
 
@@ -81,7 +82,7 @@ export const importProjectPlanBodySchema = projectBodyFieldsSchema
           tasks: z.array(trimmedString("Task name")).optional(),
         }),
       )
-      .min(1, "At least one phase is required."),
+      .min(2, "Select at least two phases."),
   })
   .refine(projectDatesAreOrdered, projectDateRangeError);
 

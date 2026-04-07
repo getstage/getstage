@@ -73,6 +73,8 @@ export function createProjectPayload(prefix) {
   return {
     name: `${prefix} ${new Date(now).toISOString().replace(/[:.]/g, "-")}`,
     clientName: "Smoke Client",
+    clientEmail: "contact@lumenapps.dev",
+    clientAvatarUrl: "https://api.dicebear.com/9.x/initials/svg?seed=Smoke%20Client",
     type: "branding",
     startDate: now,
     endDate: now + 14 * 24 * 60 * 60 * 1000,
@@ -82,8 +84,20 @@ export function createProjectPayload(prefix) {
         tasks: ["Kickoff", "Research"],
       },
       {
+        name: "Strategy",
+        tasks: ["Brand positioning", "Audience summary"],
+      },
+      {
         name: "Design",
         tasks: ["Moodboard", "First concepts"],
+      },
+      {
+        name: "Development",
+        tasks: ["Build core screens", "Review implementation"],
+      },
+      {
+        name: "Launch",
+        tasks: ["Final QA", "Launch checklist"],
       },
     ],
   };

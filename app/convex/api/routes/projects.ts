@@ -80,12 +80,10 @@ export function createProjectRoutes() {
       const auth = await authenticateApiKey(c);
       const { id } = c.req.valid("param");
       const body = c.req.valid("json");
-      const connection = await c.env.runMutation(internal.integrations.stitch.upsertDesignConnectionForApi, {
+      const connection = await c.env.runAction(internal.integrations.stitch.verifyAndUpsertDesignConnectionForApi, {
         userId: auth.userId,
         projectId: id,
-        provider: body.provider,
         externalProjectUrl: body.externalProjectUrl,
-        externalProjectId: body.externalProjectId,
         title: body.title,
       });
 
