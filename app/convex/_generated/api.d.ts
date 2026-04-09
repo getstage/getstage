@@ -25,6 +25,7 @@ import type * as collaborators from "../collaborators.js";
 import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
 import type * as developer_apiKeys from "../developer/apiKeys.js";
+import type * as developer_testingFixtures from "../developer/testingFixtures.js";
 import type * as domain_accountCleanup from "../domain/accountCleanup.js";
 import type * as domain_auth_cleanup from "../domain/auth/cleanup.js";
 import type * as domain_collaborators_invites from "../domain/collaborators/invites.js";
@@ -75,6 +76,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   dashboard: typeof dashboard;
   "developer/apiKeys": typeof developer_apiKeys;
+  "developer/testingFixtures": typeof developer_testingFixtures;
   "domain/accountCleanup": typeof domain_accountCleanup;
   "domain/auth/cleanup": typeof domain_auth_cleanup;
   "domain/collaborators/invites": typeof domain_collaborators_invites;

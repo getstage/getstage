@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stage — Website Redesign</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-bg: #FFFFFF;
+      --color-text-primary: #1A1A2E;
+      --color-text-secondary: #8C8C8C;
+      --color-text-tertiary: #BFBFBF;
+      --color-border: #E8E8E8;
+      --color-border-subtle: #F0F0F0;
+      --color-accent-purple: #8782F5;
+      --color-accent-purple-hover: #7670E0;
+      --color-purple-light-bg: #EEEDFE;
+      --color-destructive: #E07070;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      width: 100%;
+      max-width: 1440px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+
+    .sf { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif; }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 56px;
+    }
+
+    /* ===== TOP BAR (matches dashboard nav) ===== */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px 56px;
+    }
+
+    .topbar-logo { height: 22px; width: auto; display: block; }
+
+    .profile-wrap { position: relative; }
+
+    .profile-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      overflow: hidden; cursor: pointer;
+      border: 2px solid var(--color-bg);
+      box-shadow: 0 1px 3px rgba(26, 26, 46, 0.08);
+      transition: box-shadow 150ms;
+    }
+    .profile-avatar:hover { box-shadow: 0 2px 8px rgba(26, 26, 46, 0.14); }
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .profile-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 4px;
+      min-width: 140px;
+      z-index: 50;
+      box-shadow: 0 4px 16px rgba(26, 26, 46, 0.08);
+    }
+    .profile-dropdown.visible { display: block; }
+
+    .profile-menu-item {
+      display: block;
+      padding: 6px 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; font-weight: 400;
+      color: var(--color-text-primary);
+      text-decoration: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 100ms;
+    }
+    .profile-menu-item:hover { background: var(--color-border-subtle); }
+    .profile-menu-item.logout { color: var(--color-text-secondary); }
+    .profile-divider { height: 1px; background: var(--color-border-subtle); margin: 4px 0; }
+
+    /* ===== NAV ROW (tabs left + actions right) ===== */
+    .nav-row {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 8px 56px 24px 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-row-tabs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-row-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 8px 16px; background: transparent;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500; font-size: 13px;
+      color: var(--color-text-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: 8px; cursor: pointer; transition: all 150ms;
+    }
+    .btn-ghost:hover { border-color: var(--color-text-secondary); color: var(--color-text-primary); }
+    .btn-ghost svg { width: 13px; height: 13px; }
+
+    .more-wrap { position: relative; }
+    .more-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 34px; height: 34px;
+      background: transparent; border: 1px solid var(--color-border);
+      border-radius: 9px; cursor: pointer;
+      color: var(--color-text-secondary); transition: all 150ms;
+    }
+    .more-btn:hover { border-color: var(--color-text-secondary); color: var(--color-text-primary); }
+    .more-btn svg { width: 16px; height: 16px; }
+
+    .more-dropdown {
+      display: none; position: absolute;
+      top: calc(100% + 6px); right: 0;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 8px; padding: 4px;
+      min-width: 180px; z-index: 50;
+      box-shadow: 0 4px 16px rgba(26, 26, 46, 0.08);
+    }
+    .more-dropdown.visible { display: block; }
+    .more-option {
+      display: block; padding: 7px 10px;
+      font-size: 13px; color: var(--color-text-primary);
+      border-radius: 5px; cursor: pointer;
+      text-decoration: none; transition: background 100ms;
+    }
+    .more-option:hover { background: var(--color-border-subtle); }
+    .more-divider { height: 1px; background: var(--color-border-subtle); margin: 4px 0; }
+    .more-option.destructive { color: var(--color-destructive); }
+
+    /* ===== PROJECT HERO (ring left, metadata right) ===== */
+    .project-hero {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 56px 0 56px;
+      display: flex;
+      align-items: flex-start;
+      gap: 56px;
+    }
+
+    .project-hero-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+    }
+
+    /* Progress ring — hero size */
+    .progress-ring-wrap {
+      position: relative;
+      width: 88px; height: 88px;
+      flex-shrink: 0;
+    }
+    .progress-ring-wrap svg { width: 88px; height: 88px; transform: rotate(-90deg); }
+    .progress-ring-bg {
+      fill: none;
+      stroke: var(--color-border-subtle);
+      stroke-width: 4;
+    }
+    .progress-ring-fill {
+      fill: none;
+      stroke: var(--color-accent-purple);
+      stroke-width: 4;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 500ms ease;
+    }
+    .progress-ring-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      font-weight: 600;
+      font-size: 22px;
+      color: var(--color-text-primary);
+      letter-spacing: -0.5px;
+    }
+
+    .project-identity {
+      padding-top: 12px;
+    }
+
+    .project-title {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      font-weight: 600; font-size: 26px;
+      color: var(--color-text-primary);
+      letter-spacing: -0.5px;
+      line-height: 1.25;
+    }
+
+    .project-client {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      margin-top: 4px;
+    }
+
+    /* Right: metadata */
+    .project-meta {
+      margin-left: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding-top: 12px;
+      flex-shrink: 0;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--color-text-secondary);
+    }
+
+    .meta-icon {
+      width: 16px; height: 16px;
+      color: var(--color-text-tertiary);
+      flex-shrink: 0;
+    }
+
+    .meta-label {
+      color: var(--color-text-tertiary);
+      min-width: 56px;
+    }
+
+    .meta-value {
+      color: var(--color-text-primary);
+      font-weight: 400;
+    }
+
+    /* ===== DIVIDER ===== */
+    .hero-divider {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 56px;
+    }
+    .hero-divider-line {
+      height: 1px;
+      background: var(--color-border);
+    }
+
+    /* ===== PHASE TIMELINE ZONE ===== */
+    .timeline-zone {
+      margin-top: 0;
+      padding: 112px 0 48px 0;
+      position: relative;
+    }
+
+    .timeline-wrap {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 32px;
+      position: relative;
+    }
+
+    .timeline-bar {
+      display: flex;
+      width: 100%;
+      height: 64px;
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--color-border-subtle);
+      box-shadow: none;
+      position: relative;
+    }
+
+    .timeline-segment {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 150ms ease;
+      overflow: visible;
+      border-radius: 0;
+    }
+    .timeline-segment:first-child { border-radius: 14px 0 0 14px; }
+    .timeline-segment:last-child { border-radius: 0 14px 14px 0; }
+    .timeline-segment:hover { filter: brightness(0.94); }
+    .timeline-segment.selected { z-index: 2; }
+
+    .timeline-segment.completed { background: var(--color-accent-purple); }
+    .timeline-segment.active {
+      background: linear-gradient(90deg, var(--color-accent-purple) 0%, var(--color-accent-purple) 67%, rgba(135,130,245,0.15) 67%, rgba(135,130,245,0.15) 100%);
+    }
+    .timeline-segment.upcoming { background: var(--color-border-subtle); }
+
+    .timeline-segment-name {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 500;
+      white-space: nowrap; pointer-events: none;
+    }
+    .timeline-segment.completed .timeline-segment-name { color: rgba(255,255,255,0.9); }
+    .timeline-segment.active .timeline-segment-name { color: rgba(255,255,255,0.9); }
+    .timeline-segment.upcoming .timeline-segment-name { color: var(--color-text-tertiary); }
+
+    .timeline-segment-count {
+      font-size: 11px; font-weight: 400; pointer-events: none;
+    }
+    .timeline-segment.completed .timeline-segment-count { color: rgba(255,255,255,0.6); }
+    .timeline-segment.active .timeline-segment-count { color: rgba(255,255,255,0.6); }
+    .timeline-segment.upcoming .timeline-segment-count { color: var(--color-text-tertiary); }
+
+
+
+    /* Date labels below */
+    .timeline-dates {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 4px 0 4px;
+    }
+    .timeline-date {
+      font-size: 11px;
+      color: var(--color-text-secondary);
+    }
+
+    /* ===== CONTENT GRID (two columns below timeline) ===== */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 32px;
+      margin-top: 32px;
+    }
+
+    /* Sidebar */
+    .sidebar-section { margin-bottom: 28px; }
+    .sidebar-title {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      font-weight: 600; font-size: 14px; color: var(--color-text-primary);
+      margin-bottom: 14px; letter-spacing: -0.2px;
+    }
+
+    .upcoming-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--color-border-subtle);
+    }
+    .upcoming-item:last-child { border-bottom: none; }
+    .upcoming-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .upcoming-dot.soon { background: #D4890A; }
+    .upcoming-dot.normal { background: var(--color-border); }
+    .upcoming-text { font-size: 13px; color: var(--color-text-primary); flex: 1; }
+    .upcoming-date { font-size: 12px; color: var(--color-text-tertiary); flex-shrink: 0; }
+    .upcoming-date.soon { color: #D4890A; }
+
+    .activity-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--color-border-subtle);
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .activity-content { flex: 1; }
+    .activity-text { font-size: 13px; color: var(--color-text-secondary); line-height: 1.4; }
+    .activity-text strong { color: var(--color-text-primary); font-weight: 500; }
+    .activity-time { font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; }
+
+    /* ===== PHASE DROPDOWN (inside content zone, Overview only) ===== */
+    .phase-select {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .phase-select-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      background: transparent;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 150ms;
+    }
+    .phase-select-btn:hover { border-color: var(--color-text-secondary); }
+
+    .phase-select-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--color-accent-purple);
+      flex-shrink: 0;
+    }
+
+    .phase-select-chevron {
+      width: 14px; height: 14px;
+      color: var(--color-text-tertiary);
+      transition: transform 200ms;
+      flex-shrink: 0;
+    }
+    .phase-select.open .phase-select-chevron { transform: rotate(180deg); }
+
+    .phase-select-count {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--color-text-secondary);
+    }
+
+    .phase-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 4px;
+      min-width: 220px;
+      z-index: 60;
+      box-shadow: 0 8px 24px rgba(26, 26, 46, 0.12);
+    }
+    .phase-select.open .phase-dropdown { display: block; }
+
+    .phase-dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 100ms;
+      font-size: 13px;
+    }
+    .phase-dropdown-item:hover { background: var(--color-border-subtle); }
+    .phase-dropdown-item.active { background: var(--color-purple-light-bg); }
+
+    .phase-dropdown-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .phase-dropdown-dot.completed { background: var(--color-text-tertiary); }
+    .phase-dropdown-dot.active-dot { background: var(--color-accent-purple); }
+    .phase-dropdown-dot.upcoming { background: transparent; border: 1.5px solid var(--color-border); }
+
+    .phase-dropdown-name {
+      flex: 1;
+      color: var(--color-text-primary);
+    }
+    .phase-dropdown-item.completed-item .phase-dropdown-name { color: var(--color-text-secondary); }
+    .phase-dropdown-item.upcoming-item .phase-dropdown-name { color: var(--color-text-tertiary); }
+
+    .phase-dropdown-count {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      flex-shrink: 0;
+    }
+    .phase-dropdown-item.upcoming-item .phase-dropdown-count { color: var(--color-text-tertiary); }
+
+    .page-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 20px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      background: transparent;
+      border: 1px solid var(--color-border);
+      border-radius: 9px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 150ms;
+      white-space: nowrap;
+    }
+    .page-tab:hover {
+      border-color: var(--color-text-secondary);
+      color: var(--color-text-primary);
+      background: var(--color-border-subtle);
+    }
+    .page-tab.active {
+      background: var(--color-text-primary);
+      border-color: var(--color-text-primary);
+      color: #fff;
+    }
+
+    .page-tab svg.tab-icon {
+      width: 16px; height: 16px;
+      flex-shrink: 0;
+      color: var(--color-text-tertiary);
+      transition: color 150ms;
+    }
+    .page-tab:hover svg.tab-icon { color: var(--color-text-secondary); }
+    .page-tab.active svg.tab-icon { color: rgba(255,255,255,0.7); }
+
+    /* ===== CONTENT ZONE ===== */
+    .content-zone {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 56px 140px 56px;
+    }
+
+    .check-item {
+      display: flex; align-items: center;
+      padding: 12px 16px;
+      border-radius: 8px;
+      transition: background 100ms;
+    }
+    .check-item:hover { background: var(--color-border-subtle); }
+    .check-item + .check-item { border-top: 1px solid var(--color-border-subtle); }
+
+    .check-box {
+      width: 20px; height: 20px;
+      border-radius: 5px;
+      border: 1.5px solid #D9D9D9;
+      background: var(--color-bg);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      transition: all 200ms;
+    }
+    .check-box:hover { border-color: var(--color-accent-purple); }
+    .check-box.checked {
+      background: var(--color-accent-purple);
+      border-color: var(--color-accent-purple);
+    }
+    .check-box svg {
+      width: 11px; height: 11px;
+      color: #fff; opacity: 0;
+      transition: opacity 200ms;
+    }
+    .check-box.checked svg { opacity: 1; }
+
+    .check-text {
+      flex: 1; font-size: 14px;
+      color: var(--color-text-primary);
+      margin: 0 16px;
+      cursor: pointer; transition: color 200ms;
+      text-decoration: none;
+    }
+    .check-text:hover { color: var(--color-accent-purple); }
+    .check-item.done .check-text {
+      color: var(--color-text-tertiary);
+      text-decoration: line-through;
+    }
+
+    .check-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      margin-right: 8px;
+    }
+
+    /* Assignee */
+    .check-assignee {
+      position: relative;
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      overflow: visible;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .check-assignee img {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      border: 1.5px solid var(--color-bg);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .check-assignee-empty {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      border: 1.5px dashed var(--color-border);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: border-color 150ms;
+      opacity: 0;
+    }
+    .check-item:hover .check-assignee-empty { opacity: 1; }
+    .check-assignee-empty:hover { border-color: var(--color-accent-purple); }
+    .check-assignee-empty svg { width: 10px; height: 10px; color: var(--color-text-tertiary); }
+
+    .assignee-name-tip {
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333546;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: 5px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 150ms;
+    }
+    .check-assignee:hover .assignee-name-tip { opacity: 1; }
+
+    /* Deadline */
+    .check-deadline {
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+      white-space: nowrap;
+      cursor: pointer;
+      padding: 2px 8px;
+      border-radius: 4px;
+      transition: all 150ms;
+    }
+    .check-deadline:hover { background: var(--color-border-subtle); color: var(--color-text-secondary); }
+    .check-deadline.overdue { color: var(--color-destructive); }
+    .check-deadline.soon { color: #D4890A; }
+    .check-deadline-empty {
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+      padding: 2px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 150ms;
+      white-space: nowrap;
+    }
+    .check-item:hover .check-deadline-empty { opacity: 1; }
+    .check-deadline-empty:hover { background: var(--color-border-subtle); color: var(--color-text-secondary); }
+
+    .check-arrow {
+      color: var(--color-text-tertiary);
+      opacity: 0; transition: opacity 150ms;
+      flex-shrink: 0;
+      text-decoration: none;
+    }
+    .check-item:hover .check-arrow { opacity: 1; }
+    .check-arrow svg { width: 14px; height: 14px; }
+
+    .add-task {
+      display: flex; align-items: center;
+      padding: 12px 16px; margin-top: 8px;
+    }
+    .add-task-icon {
+      width: 18px; height: 18px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--color-text-tertiary); flex-shrink: 0;
+    }
+    .add-task-icon svg { width: 13px; height: 13px; }
+    .add-task-input {
+      flex: 1; margin-left: 12px;
+      border: none; outline: none;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; color: var(--color-text-primary);
+      background: transparent;
+    }
+    .add-task-input::placeholder { color: var(--color-text-tertiary); }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(135, 130, 245, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(135, 130, 245, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(135, 130, 245, 0); }
+    }
+
+    /* ===== DOCK ===== */
+    .dock {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 150;
+    }
+    .dock-container {
+      background: #151520;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 10px 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.24);
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    .dock-item {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .dock-item img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      border: 2px solid rgba(255,255,255,0.12);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .dock-item.active img {
+      border: 2px solid var(--color-accent-purple);
+    }
+    .dock-tooltip {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333546;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      padding: 8px 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 150ms;
+    }
+    .dock-tooltip.visible {
+      opacity: 1;
+    }
+    .dock-tooltip-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: #FFFFFF;
+      line-height: 1.3;
+    }
+    .dock-tooltip-client {
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.3;
+    }
+
+    /* Dock: project avatars only (V2 page icons moved to top tabs) */
+
+    /* ===== SHARE MODAL ===== */
+    .share-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 300ms ease;
+    }
+    .share-overlay.visible { display: flex; }
+    .share-overlay.show { opacity: 1; }
+
+    .share-modal {
+      background: #fff;
+      border-radius: 16px;
+      width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 40px;
+      position: relative;
+      transform: scale(0.97);
+      transition: transform 200ms ease;
+    }
+    .share-overlay.show .share-modal { transform: scale(1); }
+
+    .share-close {
+      position: absolute;
+      top: 20px; right: 20px;
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: none;
+      font-size: 20px; color: var(--color-text-tertiary);
+      cursor: pointer; border-radius: 6px;
+      transition: color 150ms, background 150ms;
+    }
+    .share-close:hover { color: var(--color-text-primary); background: var(--color-border-subtle); }
+
+    .share-title {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      font-weight: 600; font-size: 18px;
+      color: var(--color-text-primary);
+      margin-bottom: 6px;
+    }
+
+    .share-subtitle {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    /* Invite row */
+    .share-invite-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .share-invite-input {
+      flex: 1;
+      padding: 10px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: var(--color-text-primary);
+      background: #fff;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 200ms;
+      min-width: 0;
+    }
+    .share-invite-input:focus { border-color: var(--color-accent-purple); }
+    .share-invite-input::placeholder { color: var(--color-text-tertiary); }
+
+    .share-permission-select {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: var(--color-text-primary);
+      background: #fff;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 10px 28px 10px 12px;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 200ms;
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='%238C8C8C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 6 8 10 12 6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .share-permission-select:focus { border-color: var(--color-accent-purple); }
+
+    .share-invite-btn {
+      padding: 10px 18px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 500;
+      color: #fff;
+      background: var(--color-accent-purple);
+      border: none; border-radius: 8px;
+      cursor: pointer;
+      transition: background 150ms;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .share-invite-btn:hover { background: var(--color-accent-purple-hover); }
+
+    .share-perm-hint {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      margin-bottom: 24px;
+      transition: opacity 150ms;
+    }
+
+    .share-invite-sent {
+      display: none;
+      font-size: 13px; font-weight: 500;
+      color: var(--color-accent-purple);
+      margin-bottom: 12px;
+    }
+
+    /* Members list */
+    .share-members-label {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      margin-bottom: 12px;
+    }
+    .share-member {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+    .share-member:last-child { border-bottom: none; }
+
+    .share-member-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--color-border-subtle);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 500;
+      color: var(--color-text-secondary);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .share-member-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .share-member-avatar.link-avatar {
+      background: none;
+      border: 1px solid var(--color-border);
+    }
+    .share-member-avatar.link-avatar svg {
+      width: 16px; height: 16px;
+      color: var(--color-text-secondary);
+    }
+    .share-member-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .share-member-name {
+      font-size: 14px; font-weight: 500;
+      color: var(--color-text-primary);
+    }
+    .share-member-email {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+    .share-member-badge {
+      font-size: 11px; font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 99px;
+      white-space: nowrap;
+    }
+    .share-member-badge.owner {
+      background: var(--color-purple-light-bg);
+      color: var(--color-accent-purple);
+    }
+    .share-member-badge.edit {
+      background: #F0F0F0;
+      color: var(--color-text-primary);
+    }
+    .share-member-badge.view {
+      background: #F0F0F0;
+      color: var(--color-text-secondary);
+    }
+    .share-member-badge.client {
+      background: #F0F0F0;
+      color: var(--color-text-secondary);
+    }
+    .share-member-remove {
+      width: 24px; height: 24px;
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: none;
+      font-size: 16px;
+      color: var(--color-text-tertiary);
+      cursor: pointer;
+      border-radius: 4px;
+      transition: color 150ms, background 150ms;
+    }
+    .share-member-remove:hover { color: var(--color-text-secondary); background: var(--color-border-subtle); }
+
+    /* Project link */
+    .share-link-divider {
+      height: 1px;
+      background: var(--color-border-subtle);
+      margin: 24px 0 20px;
+    }
+    .share-link-label {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      margin-bottom: 10px;
+    }
+    .share-link-row {
+      display: flex;
+      gap: 8px;
+    }
+    .share-link-input {
+      flex: 1;
+      padding: 10px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: var(--color-text-primary);
+      background: #F5F5F5;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      outline: none;
+    }
+    .share-copy-btn {
+      padding: 0 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 500;
+      color: var(--color-accent-purple);
+      background: none; border: none;
+      cursor: pointer;
+      transition: opacity 150ms;
+      white-space: nowrap;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .share-copy-btn:hover { opacity: 0.7; }
+    .share-copy-btn svg { width: 14px; height: 14px; }
+
+    @media (max-width: 1440px) { body { width: 100%; min-width: 1280px; } }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR (minimal shell) -->
+  <nav class="topbar">
+    <a href="dashboard-prototype.html"><img src="FULaL LOGO - Light mode.png" alt="Stage" class="topbar-logo"></a>
+    <div class="profile-wrap">
+      <div class="profile-avatar" id="profileAvatar">
+        <img src="https://randomuser.me/api/portraits/men/46.jpg" alt="Profile">
+      </div>
+      <div class="profile-dropdown" id="profileDropdown">
+        <a href="settings-prototype.html" class="profile-menu-item">Settings</a>
+        <a href="settings-prototype.html?tab=billing" class="profile-menu-item">Plan & Billing</a>
+        <div class="profile-divider"></div>
+        <a href="#" class="profile-menu-item logout">Log out</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- NAV ROW: tabs + actions -->
+  <div class="nav-row">
+    <div class="nav-row-tabs">
+      <a class="page-tab active" data-href="project-detail-prototype.html">
+        <svg class="tab-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+        Overview
+      </a>
+      <a class="page-tab" data-href="research-prototype.html">
+        <svg class="tab-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+        Research
+      </a>
+      <a class="page-tab" data-href="strategy-prototype.html">
+        <svg class="tab-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h10v10H3z" rx="1"/><path d="M6 6h4M6 8.5h4M6 11h2.5"/></svg>
+        Strategy
+      </a>
+      <a class="page-tab" data-href="generate-prototype.html">
+        <svg class="tab-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l1.5 3.5L13 7l-3 2.5L11 13l-3-2-3 2 1-3.5L3 7l3.5-1.5z"/></svg>
+        Generate
+      </a>
+      <a class="page-tab" data-href="assets-prototype.html">
+        <svg class="tab-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h12v8H2z" rx="1.5"/><circle cx="5.5" cy="7" r="1.5" stroke-width="1"/><path d="M2 11l3.5-3 2.5 2 3-3.5L14 10" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Assets
+      </a>
+    </div>
+    <div class="nav-row-actions">
+      <button class="btn-ghost" id="shareBtn">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10v3a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-3"/><polyline points="8 2 8 10"/><polyline points="5 5 8 2 11 5"/></svg>
+        Share
+      </button>
+      <div class="more-wrap">
+        <button class="more-btn" id="moreBtn">
+          <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="8" cy="13" r="1.5"/></svg>
+        </button>
+        <div class="more-dropdown" id="moreDropdown">
+          <a href="#" class="more-option">Edit project name</a>
+          <a href="#" class="more-option">Edit client</a>
+          <a href="#" class="more-option">Adjust timeline</a>
+          <a href="#" class="more-option">Add or remove phases</a>
+          <div class="more-divider"></div>
+          <a href="#" class="more-option">Pause project</a>
+          <div class="more-divider"></div>
+          <a href="#" class="more-option destructive">Delete project</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROJECT HERO -->
+  <section class="project-hero">
+    <div class="project-hero-left">
+      <div class="progress-ring-wrap" id="progressRing">
+        <svg viewBox="0 0 88 88">
+          <circle class="progress-ring-bg" cx="44" cy="44" r="38"/>
+          <circle class="progress-ring-fill" id="progressRingFill" cx="44" cy="44" r="38"/>
+        </svg>
+        <span class="progress-ring-text" id="progressRingText">52</span>
+      </div>
+      <div class="project-identity">
+        <div class="project-title sf">Website Redesign</div>
+        <div class="project-client">Acme Studio</div>
+      </div>
+    </div>
+
+    <div class="project-meta">
+      <div class="meta-item">
+        <svg class="meta-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12"/><path d="M5.5 1.5v3M10.5 1.5v3"/></svg>
+        <span class="meta-label">Timeline</span>
+        <span class="meta-value">Mar 10 – May 15</span>
+      </div>
+      <div class="meta-item">
+        <svg class="meta-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1.5"/></svg>
+        <span class="meta-label">Type</span>
+        <span class="meta-value">Website Design</span>
+      </div>
+      <div class="meta-item">
+        <svg class="meta-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h10v10H3z" rx="1"/><path d="M6 6h4M6 8.5h4M6 11h2.5"/></svg>
+        <span class="meta-label">Scope</span>
+        <span class="meta-value" id="metaScope">5 phases · 21 tasks</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- PHASE TIMELINE ZONE -->
+  <div class="timeline-zone">
+    <div class="timeline-wrap">
+      <div class="timeline-bar" id="timelineBar">
+        <!-- Segments rendered by JS -->
+      </div>
+      <div class="timeline-dates">
+        <span class="timeline-date">Mar 10</span>
+        <span class="timeline-date">Mar 20</span>
+        <span class="timeline-date">Mar 30</span>
+        <span class="timeline-date">Apr 10</span>
+        <span class="timeline-date">May 15</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENT (two columns) -->
+  <section class="content-zone" id="contentZone">
+    <div class="content-grid">
+      <!-- Left: phase dropdown + tasks -->
+      <div>
+        <div class="phase-select" id="phaseSelect">
+          <button class="phase-select-btn" id="phaseSelectBtn">
+            <span class="phase-select-dot"></span>
+            <span id="phaseSelectName">Design</span>
+            <span class="phase-select-count" id="phaseSelectCount">· 4 of 6</span>
+            <svg class="phase-select-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 6 8 10 12 6"/></svg>
+          </button>
+          <div class="phase-dropdown" id="phaseDropdown"></div>
+        </div>
+
+        <div id="checklistItems"></div>
+        <div class="add-task">
+          <div class="add-task-icon">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+          </div>
+          <input type="text" class="add-task-input" id="addTaskInput" placeholder="Add a task...">
+        </div>
+      </div>
+
+      <!-- Right: sidebar -->
+      <div>
+        <div class="sidebar-section">
+          <div class="sidebar-title">Upcoming</div>
+          <div class="upcoming-item">
+            <span class="upcoming-dot soon"></span>
+            <span class="upcoming-text">Inner page layouts</span>
+            <span class="upcoming-date soon">Apr 2</span>
+          </div>
+          <div class="upcoming-item">
+            <span class="upcoming-dot soon"></span>
+            <span class="upcoming-text">Mobile responsive pass</span>
+            <span class="upcoming-date soon">Apr 5</span>
+          </div>
+          <div class="upcoming-item">
+            <span class="upcoming-dot normal"></span>
+            <span class="upcoming-text">Frontend scaffolding</span>
+            <span class="upcoming-date">Apr 10</span>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-title">Recent activity</div>
+          <div class="activity-item">
+            <img class="activity-avatar" src="https://randomuser.me/api/portraits/men/46.jpg" alt="Sam">
+            <div class="activity-content">
+              <div class="activity-text"><strong>Sam</strong> completed Homepage high-fidelity</div>
+              <div class="activity-time">2 hours ago</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <img class="activity-avatar" src="https://randomuser.me/api/portraits/women/68.jpg" alt="Jordan">
+            <div class="activity-content">
+              <div class="activity-text"><strong>Jordan</strong> approved Style guide draft</div>
+              <div class="activity-time">Yesterday</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <img class="activity-avatar" src="https://randomuser.me/api/portraits/men/75.jpg" alt="Alex">
+            <div class="activity-content">
+              <div class="activity-text"><strong>Alex</strong> completed Style guide draft</div>
+              <div class="activity-time">2 days ago</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <img class="activity-avatar" src="https://randomuser.me/api/portraits/men/46.jpg" alt="Sam">
+            <div class="activity-content">
+              <div class="activity-text"><strong>Sam</strong> completed Wireframes v2 delivered</div>
+              <div class="activity-time">3 days ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SHARE MODAL -->
+  <div class="share-overlay" id="shareOverlay">
+    <div class="share-modal">
+      <button class="share-close" id="shareClose">&times;</button>
+      <div class="share-title sf">Share project</div>
+      <div class="share-subtitle">Invite people to view or collaborate on this project.</div>
+
+      <!-- Invite row -->
+      <div class="share-invite-row">
+        <input class="share-invite-input" type="email" placeholder="name@email.com" id="inviteEmailInput">
+        <select class="share-permission-select" id="invitePermission">
+          <option value="edit">Can edit</option>
+          <option value="view">Can view</option>
+          <option value="client">Client view</option>
+        </select>
+        <button class="share-invite-btn" id="inviteBtn">Send invite</button>
+      </div>
+      <div class="share-perm-hint" id="permHint">Full access to phases, tasks, and content</div>
+      <div class="share-invite-sent" id="inviteSent">Invite sent!</div>
+
+      <!-- People with access -->
+      <div class="share-members-label">People with access</div>
+      <div id="membersList">
+        <div class="share-member">
+          <div class="share-member-avatar">
+            <img src="https://randomuser.me/api/portraits/men/46.jpg" alt="">
+          </div>
+          <div class="share-member-info">
+            <div class="share-member-name">You</div>
+            <div class="share-member-email">sam.harper@email.com</div>
+          </div>
+          <span class="share-member-badge owner">Owner</span>
+        </div>
+        <div class="share-member">
+          <div class="share-member-avatar">JK</div>
+          <div class="share-member-info">
+            <div class="share-member-name">Jordan Kim</div>
+            <div class="share-member-email">jordan.kim@email.com</div>
+          </div>
+          <span class="share-member-badge edit">Can edit</span>
+          <button class="share-member-remove">&times;</button>
+        </div>
+      </div>
+
+      <!-- Project link -->
+      <div class="share-link-divider"></div>
+      <div class="share-link-label">Project link</div>
+      <div class="share-link-row">
+        <input class="share-link-input" type="text" value="https://app.stage.so/share/a8f2k9..." readonly id="shareLinkInput">
+        <button class="share-copy-btn" id="copyBtn">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOCK -->
+  <div class="dock">
+    <div class="dock-container" id="dockContainer">
+      <!-- Project avatars injected by JS -->
+    </div>
+  </div>
+
+  <script>
+    const teamMembers = [
+      { name: 'Sam', avatar: 'https://randomuser.me/api/portraits/men/46.jpg' },
+      { name: 'Jordan', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
+      { name: 'Alex', avatar: 'https://randomuser.me/api/portraits/men/75.jpg' },
+      { name: 'Maya', avatar: 'https://randomuser.me/api/portraits/women/22.jpg' },
+    ];
+
+    const phases = [
+      { name: 'Strategy', tasks: [
+        { text: 'Define project goals', done: true, assignee: 0, deadline: '2026-03-10' },
+        { text: 'Stakeholder interviews', done: true, assignee: 1, deadline: '2026-03-12' },
+        { text: 'Success metrics document', done: true, assignee: 0, deadline: '2026-03-14' },
+      ]},
+      { name: 'Research', tasks: [
+        { text: 'Competitive audit', done: true, assignee: 2, deadline: '2026-03-17' },
+        { text: 'User survey analysis', done: true, assignee: 1, deadline: '2026-03-18' },
+        { text: 'Analytics deep-dive', done: true, assignee: 3, deadline: '2026-03-20' },
+        { text: 'Research synthesis deck', done: true, assignee: 0, deadline: '2026-03-22' },
+      ]},
+      { name: 'Design', tasks: [
+        { text: 'Moodboard approved', done: true, assignee: 0, deadline: '2026-03-24' },
+        { text: 'Wireframes v2 delivered', done: true, assignee: 0, deadline: '2026-03-26' },
+        { text: 'Style guide draft', done: true, assignee: 2, deadline: '2026-03-28' },
+        { text: 'Homepage high-fidelity', done: true, assignee: 0, deadline: '2026-03-30' },
+        { text: 'Inner page layouts', done: false, assignee: 0, deadline: '2026-04-02' },
+        { text: 'Mobile responsive pass', done: false, assignee: null, deadline: '2026-04-05' },
+      ]},
+      { name: 'Development', tasks: [
+        { text: 'Frontend scaffolding', done: false, assignee: 2, deadline: '2026-04-10' },
+        { text: 'CMS integration', done: false, assignee: null, deadline: null },
+        { text: 'Responsive QA', done: false, assignee: null, deadline: null },
+        { text: 'Performance optimization', done: false, assignee: null, deadline: null },
+        { text: 'Cross-browser testing', done: false, assignee: null, deadline: null },
+      ]},
+      { name: 'Launch', tasks: [
+        { text: 'Final client review', done: false, assignee: null, deadline: null },
+        { text: 'DNS and deploy', done: false, assignee: null, deadline: null },
+        { text: 'Post-launch monitoring', done: false, assignee: null, deadline: null },
+      ]},
+    ];
+
+    let selectedPhase = 2;
+
+    const checklistItems = document.getElementById('checklistItems');
+    const contentZone = document.getElementById('contentZone');
+    const phaseSelectEl = document.getElementById('phaseSelect');
+    const phaseSelectBtn = document.getElementById('phaseSelectBtn');
+    const phaseSelectName = document.getElementById('phaseSelectName');
+    const phaseSelectCount = document.getElementById('phaseSelectCount');
+    const phaseDropdown = document.getElementById('phaseDropdown');
+    const phaseSelectDot = phaseSelectBtn.querySelector('.phase-select-dot');
+    const progressRingFill = document.getElementById('progressRingFill');
+    const progressRingText = document.getElementById('progressRingText');
+    const RING_CIRCUMFERENCE = 2 * Math.PI * 38; // r=38
+
+    function updateProgressRing() {
+      const total = phases.reduce((s, p) => s + p.tasks.length, 0);
+      const done = phases.reduce((s, p) => s + p.tasks.filter(t => t.done).length, 0);
+      const pct = Math.round((done / total) * 100);
+      const offset = RING_CIRCUMFERENCE - (pct / 100) * RING_CIRCUMFERENCE;
+      progressRingFill.style.strokeDasharray = RING_CIRCUMFERENCE;
+      progressRingFill.style.strokeDashoffset = offset;
+      progressRingText.textContent = pct;
+    }
+
+    function getActivePhaseIndex() {
+      for (let i = 0; i < phases.length; i++) {
+        if (phases[i].tasks.some(t => !t.done)) return i;
+      }
+      return phases.length - 1;
+    }
+
+    function formatDeadline(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr + 'T00:00:00');
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return months[d.getMonth()] + ' ' + d.getDate();
+    }
+
+    function deadlineClass(dateStr, done) {
+      if (!dateStr || done) return '';
+      const today = new Date(); today.setHours(0,0,0,0);
+      const dl = new Date(dateStr + 'T00:00:00');
+      const diff = (dl - today) / (1000*60*60*24);
+      if (diff < 0) return 'overdue';
+      if (diff <= 2) return 'soon';
+      return '';
+    }
+
+    function updatePhaseSelect() {
+      const phase = phases[selectedPhase];
+      const done = phase.tasks.filter(t => t.done).length;
+      const allDone = phase.tasks.every(t => t.done);
+      const activeIndex = getActivePhaseIndex();
+
+      phaseSelectName.textContent = phase.name;
+      phaseSelectCount.textContent = `· ${done} of ${phase.tasks.length}`;
+
+      // Dot color
+      if (allDone) {
+        phaseSelectDot.style.background = 'var(--color-text-tertiary)';
+      } else if (selectedPhase === activeIndex) {
+        phaseSelectDot.style.background = 'var(--color-accent-purple)';
+      } else {
+        phaseSelectDot.style.background = 'var(--color-border)';
+      }
+    }
+
+    function renderPhaseDropdown() {
+      const activeIndex = getActivePhaseIndex();
+      phaseDropdown.innerHTML = phases.map((p, i) => {
+        const done = p.tasks.filter(t => t.done).length;
+        const total = p.tasks.length;
+        const allDone = done === total;
+
+        let stateClass = 'upcoming-item';
+        let dotClass = 'upcoming';
+        if (allDone && i <= activeIndex) { stateClass = 'completed-item'; dotClass = 'completed'; }
+        else if (i === activeIndex) { stateClass = ''; dotClass = 'active-dot'; }
+
+        const isActive = i === selectedPhase;
+        return `
+          <div class="phase-dropdown-item ${stateClass}${isActive ? ' active' : ''}" data-phase="${i}">
+            <span class="phase-dropdown-dot ${dotClass}"></span>
+            <span class="phase-dropdown-name">${p.name}</span>
+            <span class="phase-dropdown-count">${allDone ? '✓' : done + '/' + total}</span>
+          </div>`;
+      }).join('');
+
+      phaseDropdown.querySelectorAll('.phase-dropdown-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const pi = parseInt(item.dataset.phase);
+          selectedPhase = pi;
+          phaseSelectEl.classList.remove('open');
+
+          // Fade switch
+          contentZone.style.transition = 'opacity 100ms ease';
+          contentZone.style.opacity = '0';
+          setTimeout(() => {
+            renderChecklist();
+            updatePhaseSelect();
+            renderPhaseDropdown();
+            contentZone.style.opacity = '1';
+            setTimeout(() => { contentZone.style.transition = ''; contentZone.style.opacity = ''; }, 150);
+          }, 100);
+        });
+      });
+    }
+
+    function renderChecklist() {
+      const phase = phases[selectedPhase];
+
+      checklistItems.innerHTML = phase.tasks.map((task, i) => {
+        const member = task.assignee !== null && task.assignee !== undefined ? teamMembers[task.assignee] : null;
+        const dlFormatted = formatDeadline(task.deadline);
+        const dlClass = deadlineClass(task.deadline, task.done);
+        return `
+        <div class="check-item ${task.done ? 'done' : ''}" data-index="${i}">
+          <div class="check-box ${task.done ? 'checked' : ''}">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>
+          </div>
+          <a class="check-text" href="task-detail-prototype.html?phase=${selectedPhase}&task=${i}">${task.text}</a>
+          <div class="check-meta">
+            ${member ? `
+              <div class="check-assignee">
+                <div class="assignee-name-tip">${member.name}</div>
+                <img src="${member.avatar}" alt="${member.name}">
+              </div>
+            ` : `
+              <div class="check-assignee-empty" title="Assign">
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 3v6M3 6h6"/></svg>
+              </div>
+            `}
+            ${task.deadline ? `
+              <span class="check-deadline ${dlClass}">${dlFormatted}</span>
+            ` : `
+              <span class="check-deadline-empty">+ Deadline</span>
+            `}
+          </div>
+          <a class="check-arrow" href="task-detail-prototype.html?phase=${selectedPhase}&task=${i}">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 2 12 8 6 14"/></svg>
+          </a>
+        </div>`;
+      }).join('');
+
+      checklistItems.querySelectorAll('.check-box').forEach(box => {
+        box.addEventListener('click', () => {
+          const idx = parseInt(box.closest('.check-item').dataset.index);
+          const activeIndex = getActivePhaseIndex();
+          const wasOnActivePhase = selectedPhase === activeIndex;
+          phase.tasks[idx].done = !phase.tasks[idx].done;
+          const allDone = phase.tasks.every(t => t.done);
+          renderChecklist();
+          updatePhaseSelect();
+          renderPhaseDropdown();
+          updateProgressRing();
+          renderTimeline();
+          // Auto-advance to next phase
+          if (wasOnActivePhase && allDone && selectedPhase < phases.length - 1) {
+            setTimeout(() => {
+              selectedPhase = selectedPhase + 1;
+              contentZone.style.transition = 'opacity 150ms ease';
+              contentZone.style.opacity = '0';
+              setTimeout(() => {
+                renderChecklist();
+                updatePhaseSelect();
+                renderPhaseDropdown();
+                contentZone.style.opacity = '1';
+                setTimeout(() => { contentZone.style.transition = ''; contentZone.style.opacity = ''; }, 200);
+              }, 150);
+            }, 500);
+          }
+        });
+      });
+    }
+
+    // Phase dropdown toggle
+    phaseSelectBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      phaseSelectEl.classList.toggle('open');
+    });
+    document.addEventListener('click', () => {
+      phaseSelectEl.classList.remove('open');
+    });
+
+    // Add task
+    const addTaskInput = document.getElementById('addTaskInput');
+    addTaskInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && addTaskInput.value.trim()) {
+        phases[selectedPhase].tasks.push({ text: addTaskInput.value.trim(), done: false, assignee: null, deadline: null });
+        addTaskInput.value = '';
+        renderChecklist();
+        updatePhaseSelect();
+        renderPhaseDropdown();
+        updateProgressRing();
+        renderTimeline();
+      }
+    });
+
+    // Dropdowns
+    const profileAvatar = document.getElementById('profileAvatar');
+    const profileDropdown = document.getElementById('profileDropdown');
+    const moreBtn = document.getElementById('moreBtn');
+    const moreDropdown = document.getElementById('moreDropdown');
+
+    profileAvatar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      profileDropdown.classList.toggle('visible');
+      moreDropdown.classList.remove('visible');
+    });
+
+    moreBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      moreDropdown.classList.toggle('visible');
+      profileDropdown.classList.remove('visible');
+    });
+
+    document.addEventListener('click', () => {
+      profileDropdown.classList.remove('visible');
+      moreDropdown.classList.remove('visible');
+    });
+
+    // ===== TIMELINE BAR =====
+    function renderTimeline() {
+      const activeIndex = getActivePhaseIndex();
+      const totalTasks = phases.reduce((s, p) => s + p.tasks.length, 0);
+      const timelineBar = document.getElementById('timelineBar');
+      const segmentsHtml = phases.map((p, i) => {
+        const done = p.tasks.filter(t => t.done).length;
+        const total = p.tasks.length;
+        const allDone = done === total;
+        const pct = Math.max(10, Math.round((total / totalTasks) * 100));
+
+        let stateClass = 'upcoming';
+        if (allDone && i <= activeIndex) stateClass = 'completed';
+        else if (i === activeIndex) stateClass = 'active';
+
+        const isSelected = i === selectedPhase;
+        const countText = allDone ? '✓' : done + '/' + total;
+
+        let bgStyle = '';
+        if (stateClass === 'active') {
+          const fillPct = Math.round((done / total) * 100);
+          bgStyle = `background:linear-gradient(90deg, var(--color-accent-purple) 0%, var(--color-accent-purple) ${fillPct}%, rgba(135,130,245,0.12) ${fillPct}%, rgba(135,130,245,0.12) 100%);`;
+        }
+
+        return `<div class="timeline-segment ${stateClass}${isSelected ? ' selected' : ''}" data-phase="${i}" style="flex:${pct};${bgStyle}">
+          <span class="timeline-segment-name">${p.name}</span>
+          <span class="timeline-segment-count">${countText}</span>
+        </div>`;
+      }).join('');
+
+      timelineBar.innerHTML = segmentsHtml;
+
+      // Click to switch phase
+      timelineBar.querySelectorAll('.timeline-segment').forEach(seg => {
+        seg.addEventListener('click', () => {
+          const pi = parseInt(seg.dataset.phase);
+          selectedPhase = pi;
+          renderChecklist();
+          updatePhaseSelect();
+          renderPhaseDropdown();
+          renderTimeline();
+        });
+      });
+
+    }
+
+    // Initialize
+    renderChecklist();
+    updatePhaseSelect();
+    renderPhaseDropdown();
+    updateProgressRing();
+    renderTimeline();
+
+    // ===== SHARE MODAL =====
+    (function() {
+      const overlay = document.getElementById('shareOverlay');
+      const shareBtn = document.getElementById('shareBtn');
+      const shareClose = document.getElementById('shareClose');
+
+      // Open
+      shareBtn.addEventListener('click', () => {
+        overlay.classList.add('visible');
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => overlay.classList.add('show'));
+        });
+      });
+
+      // Close
+      function closeModal() {
+        overlay.classList.remove('show');
+        setTimeout(() => overlay.classList.remove('visible'), 300);
+      }
+      shareClose.addEventListener('click', closeModal);
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeModal();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && overlay.classList.contains('visible')) closeModal();
+      });
+
+      // Permission hint
+      const permSelect = document.getElementById('invitePermission');
+      const permHint = document.getElementById('permHint');
+      const hints = {
+        edit: 'Full access to phases, tasks, and content',
+        view: 'Read-only, requires a Stage account',
+        client: 'Read-only link, no account needed'
+      };
+      permSelect.addEventListener('change', () => {
+        permHint.textContent = hints[permSelect.value];
+      });
+
+      // Copy link
+      const copyBtn = document.getElementById('copyBtn');
+      const shareLinkInput = document.getElementById('shareLinkInput');
+
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(shareLinkInput.value).catch(() => {});
+        copyBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 8 6 11 13 4"/></svg> Copied!';
+        setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+      });
+
+      // Invite
+      const inviteBtn = document.getElementById('inviteBtn');
+      const inviteEmail = document.getElementById('inviteEmailInput');
+      const inviteSent = document.getElementById('inviteSent');
+      const membersList = document.getElementById('membersList');
+
+      const linkIcon = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 9.5a3.5 3.5 0 0 0 5 0l2-2a3.5 3.5 0 0 0-5-5l-1 1"/><path d="M9.5 6.5a3.5 3.5 0 0 0-5 0l-2 2a3.5 3.5 0 0 0 5 5l1-1"/></svg>';
+
+      inviteBtn.addEventListener('click', () => {
+        const email = inviteEmail.value.trim();
+        if (!email) return;
+        const perm = permSelect.value;
+        const name = email.split('@')[0].replace(/\./g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+        const isClient = perm === 'client';
+
+        const badgeLabels = { edit: 'Can edit', view: 'Can view', client: 'Client view' };
+
+        const row = document.createElement('div');
+        row.className = 'share-member';
+        row.innerHTML = `
+          <div class="share-member-avatar${isClient ? ' link-avatar' : ''}">${isClient ? linkIcon : initials}</div>
+          <div class="share-member-info">
+            <div class="share-member-name">${name}</div>
+            <div class="share-member-email">${email}</div>
+          </div>
+          <span class="share-member-badge ${perm}">${badgeLabels[perm]}</span>
+          <button class="share-member-remove">&times;</button>
+        `;
+        row.querySelector('.share-member-remove').addEventListener('click', () => row.remove());
+        membersList.appendChild(row);
+
+        inviteEmail.value = '';
+        inviteSent.style.display = 'block';
+        setTimeout(() => { inviteSent.style.display = 'none'; }, 3000);
+      });
+
+      // Remove member (existing rows)
+      membersList.querySelectorAll('.share-member-remove').forEach(btn => {
+        btn.addEventListener('click', () => btn.closest('.share-member').remove());
+      });
+    })();
+
+    // ===== PAGE TAB PILLS =====
+    (function() {
+      document.querySelectorAll('.page-tab').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+          e.preventDefault();
+          const href = tab.dataset.href;
+          if (tab.classList.contains('active')) return;
+
+          document.body.style.transition = 'opacity 150ms ease-out';
+          document.body.style.opacity = '0';
+          setTimeout(() => { window.location.href = href; }, 180);
+        });
+      });
+    })();
+
+    // ===== DOCK — project avatars only =====
+    (function() {
+      const dockProjects = [
+        { name: 'Website Redesign', client: 'Acme Studio', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
+        { name: 'Brand Identity', client: 'Nomad Co', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
+        { name: 'App Design', client: 'Pulse Labs', avatar: 'https://randomuser.me/api/portraits/men/75.jpg' },
+        { name: 'Social Campaign', client: 'Vibe Co', avatar: 'https://randomuser.me/api/portraits/women/22.jpg' },
+        { name: 'Product Strategy', client: 'Luna Digital', avatar: 'https://randomuser.me/api/portraits/women/50.jpg' },
+        { name: 'Editorial Design', client: 'Oak Press', avatar: 'https://randomuser.me/api/portraits/men/85.jpg' },
+      ];
+
+      const activeIdx = 0;
+      const BASE = 44, MAX_SIZE = 72, SIGMA = 55;
+      const container = document.getElementById('dockContainer');
+
+      // Render project avatars only — no page icons
+      container.innerHTML = dockProjects.map((p, i) => `
+        <div class="dock-item${i === activeIdx ? ' active' : ''}" data-idx="${i}">
+          <div class="dock-tooltip">
+            <div class="dock-tooltip-name">${p.name}</div>
+            <div class="dock-tooltip-client">${p.client}</div>
+          </div>
+          <img src="${p.avatar}" alt="${p.name}">
+        </div>
+      `).join('');
+
+      const items = [...container.querySelectorAll('.dock-item')];
+
+      function magnify(mouseX) {
+        let closestIdx = 0, minDist = Infinity;
+        items.forEach((item, i) => {
+          const rect = item.getBoundingClientRect();
+          const center = rect.left + rect.width / 2;
+          const dist = Math.abs(mouseX - center);
+          const scale = Math.exp(-(dist * dist) / (2 * SIGMA * SIGMA));
+          const size = Math.round(BASE + (MAX_SIZE - BASE) * scale);
+          item.style.width = size + 'px';
+          item.style.height = size + 'px';
+          if (dist < minDist) { minDist = dist; closestIdx = i; }
+        });
+        items.forEach((item, i) => {
+          const tip = item.querySelector('.dock-tooltip');
+          if (i === closestIdx) tip.classList.add('visible');
+          else tip.classList.remove('visible');
+        });
+      }
+
+      container.addEventListener('mouseenter', () => {
+        items.forEach(item => { item.style.transition = 'none'; });
+      });
+
+      container.addEventListener('mousemove', (e) => {
+        magnify(e.clientX);
+      });
+
+      container.addEventListener('mouseleave', () => {
+        items.forEach(item => {
+          item.style.transition = 'width 200ms ease, height 200ms ease';
+          item.style.width = BASE + 'px';
+          item.style.height = BASE + 'px';
+          item.querySelector('.dock-tooltip').classList.remove('visible');
+        });
+      });
+
+      items.forEach(item => {
+        item.addEventListener('click', () => {
+          document.body.style.opacity = '0';
+          setTimeout(() => { window.location.href = 'project-detail-prototype.html'; }, 300);
+        });
+      });
+    })();
+  </script>
+
+</body>
+</html>

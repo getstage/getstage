@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stage — New Project</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-bg: #FFFFFF;
+      --color-text-primary: #1A1A2E;
+      --color-text-secondary: #8C8C8C;
+      --color-text-tertiary: #BFBFBF;
+      --color-border: #E8E8E8;
+      --color-border-subtle: #F0F0F0;
+      --color-input-bg: #F5F5F5;
+      --color-accent-purple: #8782F5;
+      --color-accent-purple-hover: #7670E0;
+      --color-purple-light: rgba(135, 130, 245, 0.08);
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      width: 1440px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sf { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif; }
+
+    /* ===== NAV ===== */
+    .nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 56px;
+      flex-shrink: 0;
+    }
+    .nav-left {
+      display: flex; align-items: center; gap: 24px;
+    }
+    .nav-logo {
+      height: 22px; width: auto;
+    }
+    .nav-back {
+      display: flex; align-items: center; gap: 6px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: color 150ms;
+    }
+    .nav-back:hover { color: var(--color-text-primary); }
+    .nav-back svg { width: 14px; height: 14px; }
+    .nav-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--color-border-subtle);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 500;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+    }
+
+    /* ===== MAIN CONTENT ===== */
+    .page-center {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 40px;
+    }
+
+    .step-container {
+      width: 100%;
+      max-width: 420px;
+      transition: opacity 200ms ease;
+    }
+
+    /* ===== STEP TITLE ===== */
+    .step-title {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+      font-weight: 600; font-size: 24px;
+      color: var(--color-text-primary);
+      letter-spacing: -0.4px;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .step-subtitle {
+      font-size: 15px; color: var(--color-text-secondary);
+      text-align: center;
+      line-height: 1.5;
+      margin-bottom: 32px;
+    }
+
+    /* ===== INPUT FIELDS ===== */
+    .input-group { margin-bottom: 16px; }
+    .input-label {
+      display: block; font-size: 13px; font-weight: 500;
+      color: var(--color-text-primary);
+      margin-bottom: 6px;
+    }
+    .input-field {
+      width: 100%; padding: 12px 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px; color: var(--color-text-primary);
+      background: var(--color-input-bg);
+      border: 1px solid transparent;
+      border-radius: 10px; outline: none;
+      transition: all 200ms;
+    }
+    .input-field:focus { border-color: var(--color-border); background: var(--color-bg); }
+    .input-field::placeholder { color: var(--color-text-tertiary); }
+
+    /* ===== PILL GRID (project type) ===== */
+    .pill-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+    .type-pill {
+      padding: 12px 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; font-weight: 500;
+      color: var(--color-text-primary);
+      background: var(--color-input-bg);
+      border: 1.5px solid transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 150ms;
+      text-align: center;
+    }
+    .type-pill:hover { background: #EFEFEF; }
+    .type-pill.selected {
+      border-color: var(--color-accent-purple);
+      background: var(--color-purple-light);
+      color: var(--color-accent-purple);
+    }
+
+    /* ===== OPTION CARDS (AI / Manual) ===== */
+    .option-cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .option-card {
+      padding: 18px 20px;
+      background: var(--color-input-bg);
+      border: 1.5px solid transparent;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 200ms;
+    }
+    .option-card:hover { background: #EFEFEF; }
+    .option-card.selected {
+      border-color: var(--color-accent-purple);
+      background: var(--color-purple-light);
+    }
+    .option-card-title {
+      font-weight: 500; font-size: 15px;
+      color: var(--color-text-primary);
+      margin-bottom: 4px;
+    }
+    .option-card.selected .option-card-title { color: var(--color-accent-purple); }
+    .option-card-desc {
+      font-size: 13px; color: var(--color-text-secondary);
+      line-height: 1.4;
+    }
+
+    /* ===== PHASE LIST (manual) ===== */
+    .phase-list { margin-bottom: 12px; }
+    .phase-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+    .phase-item:last-child { border-bottom: none; }
+    .drag-handle {
+      width: 16px; display: flex; flex-direction: column;
+      align-items: center; gap: 2px;
+      color: var(--color-text-tertiary);
+      cursor: grab; flex-shrink: 0;
+    }
+    .drag-handle span {
+      display: block; width: 12px; height: 1.5px;
+      background: currentColor; border-radius: 1px;
+    }
+    .phase-name {
+      flex: 1; font-size: 14px;
+      color: var(--color-text-primary);
+    }
+    .phase-name.disabled { color: var(--color-text-tertiary); }
+
+    /* Toggle switch */
+    .toggle {
+      width: 36px; height: 20px;
+      border-radius: 10px;
+      background: #D9D9D9;
+      position: relative;
+      cursor: pointer;
+      transition: background 200ms;
+      flex-shrink: 0;
+    }
+    .toggle.active { background: var(--color-accent-purple); }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: white;
+      transition: left 200ms;
+    }
+    .toggle.active::after { left: 18px; }
+
+    .add-phase-link {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 13px; font-weight: 500;
+      color: var(--color-accent-purple);
+      cursor: pointer; margin-bottom: 28px;
+      transition: color 150ms;
+    }
+    .add-phase-link:hover { color: var(--color-accent-purple-hover); }
+
+    /* ===== DATE INPUTS ===== */
+    .date-row { display: flex; gap: 12px; margin-bottom: 28px; }
+    .date-group { flex: 1; }
+    .input-date {
+      width: 100%; padding: 12px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; color: var(--color-text-primary);
+      background: var(--color-input-bg);
+      border: 1px solid transparent;
+      border-radius: 10px; outline: none;
+      transition: all 200ms;
+    }
+    .input-date:focus { border-color: var(--color-border); background: var(--color-bg); }
+
+    /* ===== VERTICAL ROADMAP PREVIEW ===== */
+    .roadmap-vertical {
+      margin-bottom: 28px;
+    }
+    .roadmap-row {
+      display: flex; align-items: center; gap: 14px;
+      position: relative;
+      padding: 0 0 0 0;
+    }
+    .roadmap-row-left {
+      display: flex; flex-direction: column; align-items: center;
+      width: 18px; flex-shrink: 0;
+    }
+    .roadmap-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--color-accent-purple);
+      flex-shrink: 0;
+      z-index: 1;
+    }
+    .roadmap-line {
+      width: 1px; height: 28px;
+      background: var(--color-border);
+      flex-shrink: 0;
+    }
+    .roadmap-row-right {
+      display: flex; align-items: center; justify-content: space-between;
+      flex: 1;
+      padding: 8px 0;
+    }
+    .roadmap-name {
+      font-size: 14px; font-weight: 500;
+      color: var(--color-text-primary);
+    }
+    .roadmap-tasks {
+      font-size: 13px; color: var(--color-text-secondary);
+    }
+
+    /* ===== GENERATION ANIMATION ===== */
+    .generating {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 80px 0;
+      gap: 20px;
+    }
+    .gen-dots { display: flex; gap: 6px; }
+    .gen-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--color-accent-purple);
+      animation: genPulse 1.2s ease-in-out infinite;
+    }
+    .gen-dot:nth-child(2) { animation-delay: 0.2s; }
+    .gen-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes genPulse {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1); }
+    }
+    .gen-text {
+      font-size: 15px; color: var(--color-text-secondary);
+    }
+
+    /* ===== CLIENT AVATAR UPLOAD ===== */
+    .avatar-upload {
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 24px;
+    }
+    .avatar-placeholder {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--color-input-bg);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+      position: relative;
+    }
+    .avatar-placeholder img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .avatar-placeholder svg {
+      color: var(--color-text-tertiary);
+    }
+    .avatar-remove {
+      position: absolute;
+      top: -4px; right: -4px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--color-text-secondary);
+      color: #fff;
+      font-size: 11px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      border: 2px solid #fff;
+      line-height: 1;
+      transition: background 150ms;
+    }
+    .avatar-remove:hover { background: var(--color-text-primary); }
+    .avatar-actions {
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .avatar-link {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; color: var(--color-text-secondary);
+      background: none; border: none;
+      cursor: pointer; padding: 0;
+      text-align: left;
+      transition: color 150ms;
+    }
+    .avatar-link:hover { color: var(--color-accent-purple); }
+    .avatar-url-row {
+      display: flex; gap: 8px; align-items: center;
+      margin-top: 4px;
+    }
+    .avatar-url-input {
+      flex: 1; padding: 6px 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; color: var(--color-text-primary);
+      background: var(--color-input-bg);
+      border: 1px solid transparent;
+      border-radius: 6px; outline: none;
+      transition: all 200ms;
+    }
+    .avatar-url-input:focus { border-color: var(--color-border); background: var(--color-bg); }
+    .avatar-url-input::placeholder { color: var(--color-text-tertiary); }
+    .avatar-fetch-btn {
+      padding: 6px 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px; font-weight: 500;
+      color: var(--color-accent-purple);
+      background: var(--color-purple-light);
+      border: 1px solid rgba(135, 130, 245, 0.2);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 150ms;
+      white-space: nowrap;
+    }
+    .avatar-fetch-btn:hover { background: rgba(135, 130, 245, 0.15); }
+
+    /* ===== SUCCESS STATE ===== */
+    .success-state {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 40px 0;
+      gap: 16px;
+    }
+    .success-check {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: var(--color-purple-light);
+      display: flex; align-items: center; justify-content: center;
+      animation: successPop 400ms ease-out;
+    }
+    .success-check svg {
+      width: 30px; height: 30px;
+      color: var(--color-accent-purple);
+    }
+    .success-text {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+      font-weight: 600; font-size: 22px;
+      color: var(--color-text-primary);
+      letter-spacing: -0.3px;
+    }
+    .success-sub {
+      font-size: 14px; color: var(--color-text-secondary);
+      margin-top: -4px;
+    }
+    .success-btn {
+      margin-top: 12px;
+      width: 100%; padding: 13px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500; font-size: 15px;
+      color: #fff;
+      background: var(--color-text-primary);
+      border: none; border-radius: 10px;
+      cursor: pointer;
+      transition: opacity 150ms;
+    }
+    .success-btn:hover { opacity: 0.85; }
+    @keyframes successPop {
+      0% { transform: scale(0); opacity: 0; }
+      60% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ===== BUTTONS ===== */
+    .btn-primary {
+      width: 100%; padding: 13px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500; font-size: 15px;
+      color: #fff;
+      background: var(--color-text-primary);
+      border: none; border-radius: 10px;
+      cursor: pointer;
+      transition: opacity 150ms;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-primary:disabled {
+      opacity: 0.25; cursor: default;
+    }
+    .btn-primary:disabled:hover { opacity: 0.25; }
+
+    .btn-back {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; color: var(--color-text-secondary);
+      background: none; border: none;
+      cursor: pointer; margin-top: 16px;
+      transition: color 150ms;
+    }
+    .btn-back:hover { color: var(--color-text-primary); }
+    .btn-back svg { width: 12px; height: 12px; }
+
+    /* ===== STEP DOTS (below button) ===== */
+    .step-dots {
+      display: flex; gap: 6px;
+      justify-content: center;
+      margin-top: 24px;
+    }
+    .step-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #D9D9D9;
+      transition: all 250ms;
+    }
+    .step-dot.active { background: var(--color-accent-purple); width: 20px; border-radius: 3px; }
+    .step-dot.done { background: var(--color-accent-purple); }
+
+    /* ===== FOOTER ===== */
+    .page-footer {
+      display: flex; justify-content: center; gap: 24px;
+      padding: 20px 0 24px;
+      flex-shrink: 0;
+    }
+    .footer-link {
+      font-size: 12px; color: var(--color-text-tertiary);
+      text-decoration: none;
+      transition: color 150ms;
+    }
+    .footer-link:hover { color: var(--color-text-secondary); }
+
+    @media (max-width: 1440px) { body { width: 100%; min-width: 1280px; } }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="nav-left">
+      <a href="dashboard-prototype.html"><img src="FULaL LOGO - Light mode.png" alt="Stage" class="nav-logo"></a>
+      <a href="dashboard-prototype.html" class="nav-back" id="navBack">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 3 5 8 10 13"/></svg>
+        Dashboard
+      </a>
+    </div>
+    <div class="nav-avatar">SN</div>
+  </nav>
+
+  <!-- CENTERED CONTENT -->
+  <div class="page-center">
+    <div class="step-container" id="stepContainer"></div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="page-footer">
+    <a href="#" class="footer-link">Terms</a>
+    <a href="#" class="footer-link">Privacy</a>
+  </div>
+
+  <script>
+    // ===== State =====
+    let currentStep = 1;
+    let data = {
+      projectName: '',
+      clientName: '',
+      clientAvatar: null,
+      projectType: null,
+      method: null,
+      phases: [
+        { name: 'Discovery', on: true },
+        { name: 'Strategy', on: true },
+        { name: 'Design', on: true },
+        { name: 'Development', on: true },
+        { name: 'Launch', on: true },
+      ],
+      startDate: '',
+      endDate: '',
+    };
+
+    const today = new Date();
+    const in30 = new Date(today); in30.setDate(in30.getDate() + 30);
+    data.startDate = fmt(today);
+    data.endDate = fmt(in30);
+
+    function fmt(d) { return d.toISOString().split('T')[0]; }
+
+    // AI roadmap presets per project type
+    const aiRoadmaps = {
+      'Branding':        [{ n: 'Research', t: 4 }, { n: 'Strategy', t: 3 }, { n: 'Identity', t: 5 }, { n: 'Guidelines', t: 4 }, { n: 'Delivery', t: 3 }],
+      'Web Design':      [{ n: 'Strategy', t: 3 }, { n: 'Research', t: 4 }, { n: 'Design', t: 6 }, { n: 'Development', t: 5 }, { n: 'Launch', t: 3 }],
+      'Product Design':  [{ n: 'Discovery', t: 4 }, { n: 'Research', t: 5 }, { n: 'Design', t: 6 }, { n: 'Prototyping', t: 4 }, { n: 'Validation', t: 3 }],
+      'App Design':      [{ n: 'Research', t: 3 }, { n: 'Architecture', t: 4 }, { n: 'Design', t: 6 }, { n: 'Development', t: 5 }, { n: 'Testing', t: 4 }],
+      'Packaging':       [{ n: 'Brief', t: 3 }, { n: 'Research', t: 4 }, { n: 'Concept', t: 5 }, { n: 'Refinement', t: 4 }, { n: 'Production', t: 3 }],
+      'Motion Design':   [{ n: 'Brief', t: 3 }, { n: 'Storyboard', t: 4 }, { n: 'Design', t: 5 }, { n: 'Animation', t: 6 }, { n: 'Delivery', t: 3 }],
+      'Illustration':    [{ n: 'Brief', t: 3 }, { n: 'Sketching', t: 4 }, { n: 'Refinement', t: 5 }, { n: 'Final Art', t: 4 }, { n: 'Delivery', t: 3 }],
+      'Other':           [{ n: 'Planning', t: 3 }, { n: 'Research', t: 4 }, { n: 'Execution', t: 5 }, { n: 'Review', t: 3 }, { n: 'Delivery', t: 3 }],
+    };
+
+    const backArrow = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 3 5 8 10 13"/></svg>';
+    const userIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+
+    // ===== Step sequence =====
+    function getSteps() {
+      if (data.method === 'manual') return [1, 2, 3, '4m', '4mb', 5];
+      return [1, 2, 3, '4a', 5];
+    }
+    function getStepIndex() { return getSteps().indexOf(currentStep); }
+
+    // ===== Render dots =====
+    function dotsHtml() {
+      const steps = getSteps();
+      const idx = getStepIndex();
+      return `<div class="step-dots">${steps.map((s, i) => {
+        let cls = 'step-dot';
+        if (i < idx) cls += ' done';
+        if (i === idx) cls += ' active';
+        return `<div class="${cls}"></div>`;
+      }).join('')}</div>`;
+    }
+
+    // ===== Navigate =====
+    function goTo(step) {
+      const el = document.getElementById('stepContainer');
+      el.style.opacity = '0';
+      setTimeout(() => {
+        currentStep = step;
+        renderStep();
+        el.style.opacity = '1';
+      }, 200);
+    }
+
+    function goBack() {
+      const steps = getSteps();
+      const idx = getStepIndex();
+      if (idx > 0) goTo(steps[idx - 1]);
+    }
+
+    // ===== Render current step =====
+    function renderStep() {
+      const el = document.getElementById('stepContainer');
+      switch (currentStep) {
+        case 1: return renderStep1(el);
+        case 2: return renderStep2(el);
+        case 3: return renderStep3(el);
+        case '4a': return renderStep4A(el);
+        case '4m': return renderStep4M(el);
+        case '4mb': return renderStep4Mb(el);
+        case 5: return renderStep5(el);
+      }
+    }
+
+    // ===== STEP 1: Name & Client =====
+    function renderStep1(el) {
+      const avatarContent = data.clientAvatar
+        ? `<img src="${data.clientAvatar}" alt="Client"><div class="avatar-remove" id="avatarRemove">&times;</div>`
+        : userIcon;
+
+      el.innerHTML = `
+        <div class="step-title sf">New project</div>
+        <div class="step-subtitle">Let's set it up. This only takes a minute.</div>
+        <div class="input-group">
+          <label class="input-label">Project name</label>
+          <input class="input-field" id="s1Name" type="text" placeholder="Website Redesign" value="${data.projectName}">
+        </div>
+        <div class="input-group" style="margin-bottom:20px;">
+          <label class="input-label">Client</label>
+          <input class="input-field" id="s1Client" type="text" placeholder="Acme Studio" value="${data.clientName}">
+        </div>
+        <div class="input-group" style="margin-bottom:0;">
+          <label class="input-label">Client photo <span style="font-weight:400;color:var(--color-text-tertiary)">— optional</span></label>
+        </div>
+        <div class="avatar-upload">
+          <div class="avatar-placeholder" id="avatarCircle">${avatarContent}</div>
+          <div class="avatar-actions">
+            <button class="avatar-link" id="avatarUploadBtn">Upload photo</button>
+            <button class="avatar-link" id="avatarUrlBtn">Import from URL</button>
+            <div id="avatarUrlRow" style="display:none;">
+              <div class="avatar-url-row">
+                <input class="avatar-url-input" id="avatarUrlInput" type="text" placeholder="Paste LinkedIn or website URL...">
+                <button class="avatar-fetch-btn" id="avatarFetchBtn">Fetch</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="avatarFileInput" accept="image/*" style="display:none;">
+        <button class="btn-primary" id="s1Continue" ${(!data.projectName || !data.clientName) ? 'disabled' : ''}>Continue</button>
+        ${dotsHtml()}
+      `;
+
+      const nameInput = document.getElementById('s1Name');
+      const clientInput = document.getElementById('s1Client');
+      const btn = document.getElementById('s1Continue');
+
+      function validate() {
+        data.projectName = nameInput.value.trim();
+        data.clientName = clientInput.value.trim();
+        btn.disabled = !(data.projectName && data.clientName);
+      }
+
+      nameInput.addEventListener('input', validate);
+      clientInput.addEventListener('input', validate);
+      btn.addEventListener('click', () => goTo(2));
+
+      // Avatar upload via file picker
+      const fileInput = document.getElementById('avatarFileInput');
+      document.getElementById('avatarUploadBtn').addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          data.clientAvatar = ev.target.result;
+          updateAvatarPreview();
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // Avatar import from URL
+      document.getElementById('avatarUrlBtn').addEventListener('click', () => {
+        const row = document.getElementById('avatarUrlRow');
+        row.style.display = row.style.display === 'none' ? 'block' : 'none';
+        if (row.style.display === 'block') {
+          setTimeout(() => document.getElementById('avatarUrlInput').focus(), 50);
+        }
+      });
+      document.getElementById('avatarFetchBtn').addEventListener('click', () => {
+        const url = document.getElementById('avatarUrlInput').value.trim();
+        if (!url) return;
+        const fetchBtn = document.getElementById('avatarFetchBtn');
+        fetchBtn.textContent = '...';
+        setTimeout(() => {
+          data.clientAvatar = 'https://randomuser.me/api/portraits/men/32.jpg';
+          updateAvatarPreview();
+          fetchBtn.textContent = 'Fetch';
+        }, 800);
+      });
+
+      function bindRemove() {
+        const removeBtn = document.getElementById('avatarRemove');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', () => {
+            data.clientAvatar = null;
+            updateAvatarPreview();
+          });
+        }
+      }
+      bindRemove();
+
+      function updateAvatarPreview() {
+        const circle = document.getElementById('avatarCircle');
+        if (data.clientAvatar) {
+          circle.innerHTML = `<img src="${data.clientAvatar}" alt="Client"><div class="avatar-remove" id="avatarRemove">&times;</div>`;
+        } else {
+          circle.innerHTML = userIcon;
+        }
+        bindRemove();
+      }
+
+      setTimeout(() => nameInput.focus(), 250);
+    }
+
+    // ===== STEP 2: Project Type =====
+    function renderStep2(el) {
+      const types = ['Branding', 'Web Design', 'Product Design', 'App Design', 'Packaging', 'Motion Design', 'Illustration', 'Other'];
+
+      el.innerHTML = `
+        <div class="step-title sf">What type of project?</div>
+        <div class="step-subtitle">Pick the closest match. You can always change it later.</div>
+        <div class="pill-grid">
+          ${types.map(t => `<div class="type-pill ${data.projectType === t ? 'selected' : ''}" data-type="${t}">${t}</div>`).join('')}
+        </div>
+        <button class="btn-primary" id="s2Continue" ${!data.projectType ? 'disabled' : ''}>Continue</button>
+        <button class="btn-back" id="s2Back">${backArrow} Back</button>
+        ${dotsHtml()}
+      `;
+
+      const btn = document.getElementById('s2Continue');
+      el.querySelectorAll('.type-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          el.querySelectorAll('.type-pill').forEach(p => p.classList.remove('selected'));
+          pill.classList.add('selected');
+          data.projectType = pill.dataset.type;
+          btn.disabled = false;
+        });
+      });
+      btn.addEventListener('click', () => goTo(3));
+      document.getElementById('s2Back').addEventListener('click', goBack);
+    }
+
+    // ===== STEP 3: AI or Manual =====
+    function renderStep3(el) {
+      el.innerHTML = `
+        <div class="step-title sf">Build your roadmap</div>
+        <div class="step-subtitle">How do you want to structure this project?</div>
+        <div class="option-cards">
+          <div class="option-card ${data.method === 'ai' ? 'selected' : ''}" data-method="ai">
+            <div class="option-card-title">AI-Generated</div>
+            <div class="option-card-desc">Tailored phases and tasks based on your project type.</div>
+          </div>
+          <div class="option-card ${data.method === 'manual' ? 'selected' : ''}" data-method="manual">
+            <div class="option-card-title">Manual Setup</div>
+            <div class="option-card-desc">Choose your own phases and add tasks as you go.</div>
+          </div>
+        </div>
+        <button class="btn-primary" id="s3Continue" ${!data.method ? 'disabled' : ''}>Continue</button>
+        <button class="btn-back" id="s3Back">${backArrow} Back</button>
+        ${dotsHtml()}
+      `;
+
+      const btn = document.getElementById('s3Continue');
+      el.querySelectorAll('.option-card').forEach(card => {
+        card.addEventListener('click', () => {
+          el.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          data.method = card.dataset.method;
+          btn.disabled = false;
+        });
+      });
+      btn.addEventListener('click', () => {
+        goTo(data.method === 'ai' ? '4a' : '4m');
+      });
+      document.getElementById('s3Back').addEventListener('click', goBack);
+    }
+
+    // ===== STEP 4A: Timeline (AI) =====
+    function renderStep4A(el) {
+      el.innerHTML = `
+        <div class="step-title sf">Project timeline</div>
+        <div class="step-subtitle">When does this project start and end?</div>
+        <div class="date-row">
+          <div class="date-group">
+            <label class="input-label">Start date</label>
+            <input class="input-date" id="s4aStart" type="date" value="${data.startDate}">
+          </div>
+          <div class="date-group">
+            <label class="input-label">End date</label>
+            <input class="input-date" id="s4aEnd" type="date" value="${data.endDate}">
+          </div>
+        </div>
+        <button class="btn-primary" id="s4aGenerate">Generate Roadmap</button>
+        <button class="btn-back" id="s4aBack">${backArrow} Back</button>
+        ${dotsHtml()}
+      `;
+
+      const startInput = document.getElementById('s4aStart');
+      const endInput = document.getElementById('s4aEnd');
+      startInput.addEventListener('change', () => { data.startDate = startInput.value; });
+      endInput.addEventListener('change', () => { data.endDate = endInput.value; });
+
+      document.getElementById('s4aGenerate').addEventListener('click', () => {
+        el.style.opacity = '0';
+        setTimeout(() => {
+          el.innerHTML = `
+            <div class="generating">
+              <div class="gen-dots">
+                <div class="gen-dot"></div>
+                <div class="gen-dot"></div>
+                <div class="gen-dot"></div>
+              </div>
+              <div class="gen-text">Creating your roadmap...</div>
+            </div>
+          `;
+          el.style.opacity = '1';
+          setTimeout(() => goTo(5), 1500);
+        }, 200);
+      });
+      document.getElementById('s4aBack').addEventListener('click', goBack);
+    }
+
+    // ===== STEP 4M: Phase Selection (Manual) =====
+    function renderStep4M(el) {
+      function render() {
+        const activeCount = data.phases.filter(p => p.on).length;
+        el.innerHTML = `
+          <div class="step-title sf">Select phases</div>
+          <div class="step-subtitle">Toggle the phases you want. Reorder by dragging.</div>
+          <div class="phase-list">
+            ${data.phases.map((p, i) => `
+              <div class="phase-item" data-idx="${i}">
+                <div class="drag-handle"><span></span><span></span><span></span></div>
+                <div class="phase-name ${p.on ? '' : 'disabled'}">${p.name}</div>
+                <div class="toggle ${p.on ? 'active' : ''}" data-toggle="${i}"></div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="add-phase-link" id="addPhase">+ Add phase</div>
+          <button class="btn-primary" id="s4mContinue" ${activeCount < 2 ? 'disabled' : ''}>Continue</button>
+          <button class="btn-back" id="s4mBack">${backArrow} Back</button>
+          ${dotsHtml()}
+        `;
+
+        el.querySelectorAll('.toggle').forEach(tog => {
+          tog.addEventListener('click', () => {
+            const idx = parseInt(tog.dataset.toggle);
+            data.phases[idx].on = !data.phases[idx].on;
+            render();
+          });
+        });
+
+        document.getElementById('addPhase').addEventListener('click', () => {
+          data.phases.push({ name: 'New Phase', on: true });
+          render();
+          const items = el.querySelectorAll('.phase-name');
+          const last = items[items.length - 1];
+          last.setAttribute('contenteditable', 'true');
+          last.focus();
+          last.addEventListener('blur', () => {
+            const idx = data.phases.length - 1;
+            data.phases[idx].name = last.textContent.trim() || 'New Phase';
+            last.removeAttribute('contenteditable');
+          });
+        });
+
+        document.getElementById('s4mContinue').addEventListener('click', () => goTo('4mb'));
+        document.getElementById('s4mBack').addEventListener('click', goBack);
+      }
+      render();
+    }
+
+    // ===== STEP 4Mb: Timeline (Manual) =====
+    function renderStep4Mb(el) {
+      el.innerHTML = `
+        <div class="step-title sf">Project timeline</div>
+        <div class="step-subtitle">When does this project start and end?</div>
+        <div class="date-row">
+          <div class="date-group">
+            <label class="input-label">Start date</label>
+            <input class="input-date" id="s4mbStart" type="date" value="${data.startDate}">
+          </div>
+          <div class="date-group">
+            <label class="input-label">End date</label>
+            <input class="input-date" id="s4mbEnd" type="date" value="${data.endDate}">
+          </div>
+        </div>
+        <button class="btn-primary" id="s4mbContinue">Continue</button>
+        <button class="btn-back" id="s4mbBack">${backArrow} Back</button>
+        ${dotsHtml()}
+      `;
+
+      const startInput = document.getElementById('s4mbStart');
+      const endInput = document.getElementById('s4mbEnd');
+      startInput.addEventListener('change', () => { data.startDate = startInput.value; });
+      endInput.addEventListener('change', () => { data.endDate = endInput.value; });
+
+      document.getElementById('s4mbContinue').addEventListener('click', () => goTo(5));
+      document.getElementById('s4mbBack').addEventListener('click', goBack);
+    }
+
+    // ===== STEP 5: Roadmap Preview (Vertical) =====
+    function renderStep5(el) {
+      let roadmap;
+      if (data.method === 'ai') {
+        roadmap = (aiRoadmaps[data.projectType] || aiRoadmaps['Other']).map(p => ({ name: p.n, tasks: p.t }));
+      } else {
+        roadmap = data.phases.filter(p => p.on).map(p => ({ name: p.name, tasks: 0 }));
+      }
+
+      const roadmapHtml = roadmap.map((p, i) => {
+        const line = i < roadmap.length - 1 ? '<div class="roadmap-line"></div>' : '';
+        return `
+          <div class="roadmap-row">
+            <div class="roadmap-row-left">
+              <div class="roadmap-dot"></div>
+              ${line}
+            </div>
+            <div class="roadmap-row-right">
+              <div class="roadmap-name">${p.name}</div>
+              <div class="roadmap-tasks">${p.tasks ? p.tasks + ' tasks' : '0 tasks'}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      el.innerHTML = `
+        <div class="step-title sf">Your roadmap</div>
+        <div class="step-subtitle">Looking good. You can adjust everything later.</div>
+        <div class="roadmap-vertical">${roadmapHtml}</div>
+        <button class="btn-primary" id="s5Create">Create Project</button>
+        <button class="btn-back" id="s5Back">${backArrow} Back</button>
+        ${dotsHtml()}
+      `;
+
+      document.getElementById('s5Create').addEventListener('click', handleCreateProject);
+      document.getElementById('s5Back').addEventListener('click', goBack);
+    }
+
+    // ===== Create Project flow =====
+    function handleCreateProject() {
+      const btn = document.getElementById('s5Create');
+      btn.textContent = 'Creating...';
+      btn.style.opacity = '0.7';
+      btn.style.pointerEvents = 'none';
+
+      setTimeout(() => {
+        const el = document.getElementById('stepContainer');
+        el.style.opacity = '0';
+        setTimeout(() => {
+          el.innerHTML = `
+            <div class="success-state">
+              <div class="success-check">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="success-text">Project created!</div>
+              <div class="success-sub">Your roadmap is ready to go.</div>
+              <button class="success-btn" id="successGoBtn">View Project</button>
+            </div>
+          `;
+          el.style.opacity = '1';
+
+          document.getElementById('successGoBtn').addEventListener('click', () => {
+            window.location.href = 'project-detail-prototype.html';
+          });
+        }, 200);
+      }, 1000);
+    }
+
+    // ===== Init =====
+    renderStep();
+  </script>
+
+</body>
+</html>

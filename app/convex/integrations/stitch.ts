@@ -131,6 +131,49 @@ async function verifyStitchProjectAccess(externalProjectUrl: string) {
   }
 }
 
+async function verifyStitchProjectSyncAccess(args: {
+  externalProjectUrl: string;
+  externalProjectId?: string;
+  screens: Array<{
+    stitchScreenId: string;
+  }>;
+}) {
+  const apiKey = requireEnv("STITCH_API_KEY");
+  const projectId = extractStitchProjectIdFromUrl(args.externalProjectUrl);
+
+  if (!projectId) {
+    throw new Error("Stitch project URL must include /projects/{projectId}.");
+  }
+
+  const client = new StitchToolClient({ apiKey });
+  const stitch = new Stitch(client);
+
+  try {
+    const project = stitch.project(projectId);
+    const screens = await project.screens();
+
+    if (args.externalProjectId && args.externalProjectId !== project.id) {
+      throw new Error("Provided Stitch project ID does not match the Stitch project URL.");
+    }
+
+    const screenIds = new Set(screens.map((screen) => screen.id));
+    for (const screen of args.screens) {
+      if (!screenIds.has(screen.stitchScreenId)) {
+        throw new Error(
+          `Stitch screen ${screen.stitchScreenId} was not found in project ${project.id}.`,
+        );
+      }
+    }
+
+    return {
+      externalProjectId: project.id,
+      externalProjectUrl: buildStitchProjectUrl(project.id),
+    };
+  } finally {
+    await client.close().catch(() => undefined);
+  }
+}
+
 async function formatGeneratedDesign(
   design: {
     _id: Id<"projectGeneratedDesigns">;
@@ -791,6 +834,44 @@ export const syncProjectDesignsForApi = internalMutation({
         sortGeneratedDesigns(latestDesigns).map((design) => formatGeneratedDesign(design)),
       ),
     };
+  },
+});
+
+export const verifyAndSyncProjectDesignsForApi = internalAction({
+  args: {
+    userId: v.id("users"),
+    projectId: v.string(),
+    externalProjectUrl: v.string(),
+    externalProjectId: v.optional(v.string()),
+    title: v.optional(v.string()),
+    screens: v.array(syncProjectDesignScreenValidator),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    connection: FormattedProjectDesignConnection | null;
+    designs: SavedGeneratedDesign[];
+  }> => {
+    await ctx.runQuery(internal.domain.projects.service.getProjectReferenceForApi, {
+      userId: args.userId,
+      projectId: args.projectId,
+    });
+
+    const verified = await verifyStitchProjectSyncAccess({
+      externalProjectUrl: args.externalProjectUrl,
+      externalProjectId: args.externalProjectId,
+      screens: args.screens,
+    });
+
+    return ctx.runMutation(internal.integrations.stitch.syncProjectDesignsForApi, {
+      userId: args.userId,
+      projectId: args.projectId,
+      externalProjectUrl: verified.externalProjectUrl,
+      externalProjectId: verified.externalProjectId,
+      title: args.title,
+      screens: args.screens,
+    });
   },
 });
 

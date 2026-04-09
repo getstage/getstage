@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stage — Task Detail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-bg: #FFFFFF;
+      --color-text-primary: #1A1A2E;
+      --color-text-secondary: #8C8C8C;
+      --color-text-tertiary: #BFBFBF;
+      --color-border: #E8E8E8;
+      --color-border-subtle: #F0F0F0;
+      --color-accent-purple: #8782F5;
+      --color-accent-purple-hover: #7670E0;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      width: 1440px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+
+    .sf { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif; }
+
+    /* ===== NAVIGATION ===== */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px 56px;
+    }
+
+    .nav-logo { height: 22px; width: auto; display: block; }
+
+    .profile-wrap { position: relative; }
+
+    .profile-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      overflow: hidden; cursor: pointer;
+      border: 2px solid var(--color-bg);
+      box-shadow: 0 1px 3px rgba(26, 26, 46, 0.08);
+      transition: box-shadow 150ms;
+    }
+    .profile-avatar:hover { box-shadow: 0 2px 8px rgba(26, 26, 46, 0.14); }
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .profile-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 4px;
+      min-width: 140px;
+      z-index: 50;
+      box-shadow: 0 4px 16px rgba(26, 26, 46, 0.08);
+    }
+    .profile-dropdown.visible { display: block; }
+
+    .profile-menu-item {
+      display: block;
+      padding: 6px 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; font-weight: 400;
+      color: var(--color-text-primary);
+      text-decoration: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 100ms;
+    }
+    .profile-menu-item:hover { background: var(--color-border-subtle); }
+    .profile-menu-item.logout { color: #8C8C8C; }
+    .profile-divider { height: 1px; background: #F0F0F0; margin: 4px 0; }
+
+    /* ===== BREADCRUMB ===== */
+    .breadcrumb-bar {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px 56px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .breadcrumb-link {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 14px; color: var(--color-text-secondary);
+      text-decoration: none; transition: color 150ms;
+    }
+    .breadcrumb-link:hover { color: var(--color-accent-purple); }
+    .breadcrumb-link svg { width: 14px; height: 14px; }
+
+    .breadcrumb-phase { color: var(--color-text-tertiary); }
+
+    .saved-indicator {
+      font-size: 12px; color: var(--color-text-tertiary);
+      opacity: 0; transition: opacity 300ms;
+    }
+    .saved-indicator.visible { opacity: 1; }
+
+    /* ===== CONTENT AREA ===== */
+    .content-area {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* Task Header */
+    .task-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 40px;
+    }
+
+    .task-checkbox {
+      width: 22px; height: 22px;
+      border-radius: 4px;
+      border: 1.5px solid #D9D9D9;
+      background: var(--color-bg);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      transition: all 200ms;
+      margin-top: 7px;
+    }
+    .task-checkbox:hover { border-color: var(--color-accent-purple); }
+    .task-checkbox.checked {
+      background: var(--color-accent-purple);
+      border-color: var(--color-accent-purple);
+    }
+    .task-checkbox svg {
+      width: 13px; height: 13px;
+      color: #fff; opacity: 0;
+      transition: opacity 200ms;
+    }
+    .task-checkbox.checked svg { opacity: 1; }
+
+    .task-title {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+      font-weight: 600; font-size: 28px;
+      color: var(--color-text-primary);
+      letter-spacing: -0.5px;
+      line-height: 1.3;
+      border: none; outline: none;
+      width: 100%;
+      background: transparent;
+      text-decoration: none;
+      transition: color 200ms ease, text-decoration-color 200ms ease;
+    }
+    .task-title::placeholder { color: var(--color-text-tertiary); }
+    .task-title.completed {
+      color: var(--color-text-secondary);
+      text-decoration: line-through;
+      text-decoration-color: var(--color-text-tertiary);
+    }
+
+    /* Content body */
+    .content-body {
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--color-text-primary);
+      outline: none;
+      min-height: 200px;
+    }
+
+    .content-body p { margin-bottom: 20px; }
+
+    .content-body a {
+      color: var(--color-accent-purple);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(135, 130, 245, 0.3);
+      transition: border-color 150ms;
+    }
+    .content-body a:hover { border-color: var(--color-accent-purple); }
+
+    .content-body strong { font-weight: 500; }
+
+    .content-body ul, .content-body ol {
+      margin-bottom: 20px;
+      padding-left: 20px;
+    }
+    .content-body li { margin-bottom: 6px; }
+
+    .content-body em { font-style: italic; color: var(--color-text-secondary); }
+
+    /* Placeholder */
+    .content-body:empty::before {
+      content: 'Add notes, upload files, or drop images here...';
+      color: var(--color-text-tertiary);
+      font-size: 15px;
+    }
+
+    /* Inline image */
+    .content-image {
+      width: 100%;
+      border-radius: 10px;
+      margin: 8px 0 28px;
+      display: block;
+    }
+
+    /* File card */
+    .file-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--color-border-subtle);
+      border-radius: 10px;
+      margin: 8px 0 28px;
+      cursor: pointer;
+      transition: background 150ms;
+    }
+    .file-card:hover { background: var(--color-border); }
+
+    .file-icon {
+      width: 40px; height: 40px;
+      border-radius: 8px;
+      background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid var(--color-border);
+    }
+    .file-icon svg { width: 18px; height: 18px; color: var(--color-text-secondary); }
+
+    .file-info { flex: 1; }
+    .file-name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+    .file-meta { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+
+    .file-download {
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 6px;
+      color: var(--color-text-tertiary);
+      transition: color 150ms;
+    }
+    .file-card:hover .file-download { color: var(--color-text-secondary); }
+    .file-download svg { width: 16px; height: 16px; }
+
+    /* Task meta row — assignee + deadline */
+    .task-meta {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+
+    .meta-field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .meta-label {
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+      min-width: 60px;
+    }
+
+    /* Assignee selector */
+    .assignee-selector {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px 5px 5px;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 150ms;
+      min-width: 160px;
+    }
+    .assignee-selector:hover { border-color: var(--color-text-secondary); }
+    .assignee-selector img {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .assignee-selector-name {
+      font-size: 13px;
+      color: var(--color-text-primary);
+      flex: 1;
+    }
+    .assignee-selector-placeholder {
+      font-size: 13px;
+      color: var(--color-text-tertiary);
+      flex: 1;
+    }
+    .assignee-selector-chevron {
+      width: 12px; height: 12px;
+      color: var(--color-text-tertiary);
+      flex-shrink: 0;
+    }
+
+    .assignee-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 4px;
+      min-width: 200px;
+      z-index: 60;
+      box-shadow: 0 4px 16px rgba(26, 26, 46, 0.1);
+    }
+    .assignee-dropdown.visible { display: block; }
+
+    .assignee-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 100ms;
+      font-size: 13px;
+      color: var(--color-text-primary);
+    }
+    .assignee-option:hover { background: var(--color-border-subtle); }
+    .assignee-option img {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .assignee-option .check-mark {
+      margin-left: auto;
+      color: var(--color-accent-purple);
+      font-size: 14px;
+    }
+    .assignee-option.unassign {
+      color: var(--color-text-tertiary);
+      border-top: 1px solid var(--color-border-subtle);
+      margin-top: 2px;
+      padding-top: 9px;
+    }
+
+    /* Deadline selector */
+    .deadline-selector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .deadline-selector input[type="date"] {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: var(--color-text-primary);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      outline: none;
+      transition: border-color 150ms;
+      cursor: pointer;
+    }
+    .deadline-selector input[type="date"]:focus { border-color: var(--color-accent-purple); }
+    .deadline-selector input[type="date"]::-webkit-calendar-picker-indicator {
+      opacity: 0.4;
+      cursor: pointer;
+    }
+    .deadline-status {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-weight: 500;
+    }
+    .deadline-status.overdue { background: #FDECEC; color: #E07070; }
+    .deadline-status.soon { background: #FEF6E0; color: #D4890A; }
+    .deadline-status.on-track { background: #EDFCF2; color: #22C55E; }
+
+    /* Bottom attach link */
+    .attach-trigger {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 13px; color: var(--color-text-tertiary);
+      text-decoration: none;
+      padding-top: 16px;
+      margin-top: 8px;
+      border-top: 1px solid var(--color-border-subtle);
+      width: 100%;
+      transition: color 150ms;
+      cursor: pointer;
+    }
+    .attach-trigger:hover { color: var(--color-accent-purple); }
+    .attach-trigger svg { width: 14px; height: 14px; }
+
+    @media (max-width: 1440px) { body { width: 100%; min-width: 1280px; } }
+  </style>
+</head>
+<body>
+
+  <!-- NAVIGATION -->
+  <nav class="nav">
+    <a href="dashboard-prototype.html"><img src="FULaL LOGO - Light mode.png" alt="Stage" class="nav-logo"></a>
+    <div class="profile-wrap">
+      <div class="profile-avatar" id="profileAvatar">
+        <img src="https://randomuser.me/api/portraits/men/46.jpg" alt="Profile">
+      </div>
+      <div class="profile-dropdown" id="profileDropdown">
+        <a href="settings-prototype.html" class="profile-menu-item">Settings</a>
+        <a href="settings-prototype.html?tab=billing" class="profile-menu-item">Plan & Billing</a>
+        <a href="settings-prototype.html?tab=portal" class="profile-menu-item">Client Portal</a>
+        <div class="profile-divider"></div>
+        <a href="#" class="profile-menu-item logout">Log out</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- BREADCRUMB -->
+  <div class="breadcrumb-bar">
+    <a href="project-detail-prototype.html" class="breadcrumb-link" id="breadcrumbLink">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 3 5 8 10 13"/></svg>
+      <span id="breadcrumbText"></span>
+    </a>
+    <span class="saved-indicator" id="savedIndicator">Saved</span>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content-area">
+    <div class="task-header">
+      <div class="task-checkbox" id="taskCheckbox">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>
+      </div>
+      <input type="text" class="task-title sf" id="taskTitle" value="" spellcheck="false">
+    </div>
+    <!-- Task meta: assignee + deadline -->
+    <div class="task-meta">
+      <div class="meta-field">
+        <span class="meta-label">Assignee</span>
+        <div class="assignee-selector" id="assigneeSelector">
+          <span class="assignee-selector-placeholder" id="assigneePlaceholder">Unassigned</span>
+          <svg class="assignee-selector-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 6 8 10 12 6"/></svg>
+          <div class="assignee-dropdown" id="assigneeDropdown"></div>
+        </div>
+      </div>
+      <div class="meta-field">
+        <span class="meta-label">Deadline</span>
+        <div class="deadline-selector">
+          <input type="date" id="deadlineInput" />
+          <span class="deadline-status" id="deadlineStatus" style="display:none;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-body" id="contentBody" contenteditable="true"></div>
+    <div class="attach-trigger" id="attachTrigger">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+      Attach file
+    </div>
+  </div>
+
+  <script>
+    // ===== SVG helpers for content =====
+    const fileSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+    const dlSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+
+    function fileCard(name, meta) {
+      return `<div class="file-card" contenteditable="false"><div class="file-icon">${fileSvg}</div><div class="file-info"><div class="file-name">${name}</div><div class="file-meta">${meta}</div></div><div class="file-download">${dlSvg}</div></div>`;
+    }
+
+    function img(url, alt) {
+      return `<img src="${url}" alt="${alt}" class="content-image" contenteditable="false">`;
+    }
+
+    // ===== Task content database =====
+    const phases = [
+      { name: 'Strategy', tasks: [
+        { title: 'Define project goals', done: true, content:
+          `<p>Core objective: redesign the Acme Studio website to improve conversion rates and reflect the brand's evolution toward a more premium market position.</p>
+          <p><strong>Primary goals:</strong></p>
+          <ul>
+            <li>Increase demo request conversion by 40% within 3 months of launch</li>
+            <li>Reduce bounce rate on landing pages from 65% to under 40%</li>
+            <li>Establish a visual identity that positions Acme as a premium creative partner</li>
+            <li>Improve page load performance — target under 2s on mobile</li>
+          </ul>
+          <p><strong>Secondary goals:</strong></p>
+          <ul>
+            <li>Create a scalable design system for future pages and campaigns</li>
+            <li>Improve SEO structure — clean URLs, proper heading hierarchy, meta tags</li>
+            <li>Make the portfolio section self-serve (client can add new case studies)</li>
+          </ul>
+          <p>Timeline: 8 weeks total, with a soft launch checkpoint at week 6. Final sign-off from Marcus (CEO) and the marketing lead.</p>`
+        },
+        { title: 'Stakeholder interviews', done: true, content:
+          `<p>Completed interviews with all three key stakeholders. Consolidated takeaways below.</p>
+          <p><strong>Marcus (CEO):</strong> Wants the site to "feel like a $10M company." Referenced Linear and Stripe as benchmarks. Biggest concern is that the current site looks dated compared to competitors. Open to bold choices on the homepage.</p>
+          <p><strong>Jess (Marketing Lead):</strong> Focused on lead generation. Current site has no clear CTA hierarchy — too many competing actions on each page. Wants a single primary CTA per section. Also wants better case study pages with measurable results, not just visuals.</p>
+          <p><strong>Tom (Head of Product):</strong> Cares about the technical implementation. Wants to move away from WordPress to something headless. Suggested a CMS that the marketing team can manage without developer help. Flagged that the current site takes 6+ seconds to load on mobile.</p>
+          <p>Common theme across all three: <strong>simplicity and speed</strong>. Nobody wants more features or pages — they want fewer, better ones.</p>`
+        },
+        { title: 'Success metrics document', done: true, content:
+          `<p>Final metrics document shared with the team and approved. These are the KPIs we'll track post-launch.</p>
+          ${fileCard('Acme-Success-Metrics-v2.pdf', 'PDF · 840 KB')}
+          <p><strong>Quantitative targets (3 months post-launch):</strong></p>
+          <ul>
+            <li>Demo requests: 120/month → 170/month (+40%)</li>
+            <li>Landing page bounce rate: 65% → under 40%</li>
+            <li>Average session duration: 1.2min → 2.5min</li>
+            <li>Mobile page load: 6.2s → under 2s</li>
+          </ul>
+          <p><strong>Qualitative signals:</strong></p>
+          <ul>
+            <li>Sales team reports positive client feedback on "the new website"</li>
+            <li>No major usability complaints in the first month</li>
+            <li>Internal team feels confident sharing the site link in cold outreach</li>
+          </ul>`
+        },
+      ]},
+      { name: 'Research', tasks: [
+        { title: 'Competitive audit', done: true, content:
+          `<p>Audited 6 direct competitors and 4 aspirational brands. Full report is in the deck, but here are the key patterns.</p>
+          <p><strong>What the best sites do well:</strong></p>
+          <ul>
+            <li>Single hero message — one sentence, one CTA. No sliders or carousels.</li>
+            <li>Social proof above the fold — logos or a short testimonial</li>
+            <li>Case studies lead with the result ("40% increase in conversions"), not the process</li>
+            <li>Fast. Every top-performing competitor loads under 2 seconds.</li>
+          </ul>
+          <p><strong>Common weaknesses we can exploit:</strong></p>
+          <ul>
+            <li>Most competitor "About" pages are generic. Ours can stand out with a personal touch.</li>
+            <li>Nobody has a good pricing/packages page — it's all "Contact us." We could win by being transparent.</li>
+            <li>Portfolio sections are usually just grids of thumbnails. Interactive case studies would differentiate us.</li>
+          </ul>
+          ${img('https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&q=80', 'Competitor analysis overview')}
+          <p>Next: cross-reference these patterns with our user survey data to prioritize which ones align with what our audience actually wants.</p>`
+        },
+        { title: 'User survey analysis', done: true, content:
+          `<p>Survey went out to 200 past and current clients. Got 67 responses (33.5% response rate — solid for B2B).</p>
+          <p><strong>Top findings:</strong></p>
+          <ul>
+            <li>78% of respondents visited the website before reaching out — confirms it's a key touchpoint</li>
+            <li>The #1 thing they looked for: <strong>past work / portfolio</strong> (89%)</li>
+            <li>#2: pricing or package information (71%)</li>
+            <li>#3: team / about page (54%)</li>
+            <li>Only 12% cared about blog content — deprioritize for v1</li>
+          </ul>
+          <p><strong>Verbatim quotes worth noting:</strong></p>
+          <p><em>"I couldn't tell from the website what you actually do. The homepage was beautiful but vague."</em></p>
+          <p><em>"I almost didn't reach out because the site felt outdated. A friend convinced me."</em></p>
+          <p>These responses validate the redesign. The current site is actively hurting conversion. The new design needs to lead with clarity, not aesthetics alone.</p>`
+        },
+        { title: 'Analytics deep-dive', done: true, content:
+          `<p>Pulled 12 months of analytics data. The numbers tell a clear story.</p>
+          <p><strong>Traffic overview:</strong></p>
+          <ul>
+            <li>~3,400 unique visitors/month (steady, slight growth)</li>
+            <li>62% mobile, 38% desktop — mobile-first approach is critical</li>
+            <li>Top sources: organic search (41%), direct (28%), social (18%), referral (13%)</li>
+          </ul>
+          <p><strong>Problem areas:</strong></p>
+          <ul>
+            <li>Homepage bounce rate: 65% — people land and leave immediately</li>
+            <li>Portfolio page: high engagement (3.2min avg) but only 8% proceed to contact</li>
+            <li>Contact page: 45% drop-off on the form. 9 fields — way too many.</li>
+            <li>Mobile load time: 6.2s average. This alone accounts for significant bounce.</li>
+          </ul>
+          <p><strong>Quick wins identified:</strong></p>
+          <ul>
+            <li>Reduce contact form to 3 fields (name, email, brief)</li>
+            <li>Add CTAs within portfolio pages, not just at the end</li>
+            <li>Compress images and implement lazy loading — could cut load time by 60%</li>
+          </ul>`
+        },
+        { title: 'Research synthesis deck', done: true, content:
+          `<p>Combined all research findings into a single deck for the client review. This is the definitive reference document going into the Design phase.</p>
+          ${fileCard('Acme-Research-Synthesis.pdf', 'PDF · 4.1 MB')}
+          <p><strong>Key sections in the deck:</strong></p>
+          <ul>
+            <li>Competitive landscape overview (6 competitors mapped)</li>
+            <li>User survey findings (67 responses analyzed)</li>
+            <li>Analytics audit (12 months of data)</li>
+            <li>Recommended site architecture</li>
+            <li>Content strategy recommendations</li>
+            <li>Technical requirements summary</li>
+          </ul>
+          <p>Client reviewed and approved on Feb 3rd. Marcus specifically called out the user quotes section as "the most convincing argument for the redesign." Clear to move into Design.</p>`
+        },
+      ]},
+      { name: 'Design', tasks: [
+        { title: 'Moodboard approved', done: true, content:
+          `<p>Presented three moodboard directions. The client selected <strong>Direction B: "Quiet Confidence"</strong> — minimal layouts, muted tones with strategic color pops, generous whitespace, editorial typography.</p>
+          ${img('https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=1200&q=80', 'Moodboard — Quiet Confidence direction')}
+          <p>Direction A (Bold & Dynamic) was too aggressive for the brand. Direction C (Warm & Organic) felt too casual for a premium positioning.</p>
+          <p><strong>Key visual principles from the approved direction:</strong></p>
+          <ul>
+            <li>Black and white as the primary palette, with one accent color used sparingly</li>
+            <li>Large type for headlines — confident, not decorative</li>
+            <li>Photography style: high contrast, candid, real environments (no stock feel)</li>
+            <li>Lots of negative space — let the work breathe</li>
+            <li>Subtle micro-interactions on hover and scroll, nothing flashy</li>
+          </ul>
+          <p>This direction maps well to the competitive audit findings — it positions Acme distinctly from competitors who tend toward busier, more colorful designs.</p>`
+        },
+        { title: 'Wireframes v2 delivered', done: true, content:
+          `<p>V2 wireframes address all feedback from the first round. Major changes:</p>
+          <ul>
+            <li>Homepage hero simplified from 3 CTAs to 1 primary + 1 secondary</li>
+            <li>Portfolio grid changed from 4 columns to 3 — larger thumbnails, more impact</li>
+            <li>Contact form reduced from 9 fields to 3 (name, email, project brief)</li>
+            <li>Added "Results" section to each case study template — numbers above narrative</li>
+            <li>Footer streamlined — removed social feeds, kept only essential links</li>
+          </ul>
+          ${img('https://images.unsplash.com/photo-1581291518633-83b4eef1d2f8?w=1200&q=80', 'Wireframe layouts')}
+          <p><strong>Pages wireframed:</strong></p>
+          <ul>
+            <li>Homepage (desktop + mobile)</li>
+            <li>About / Team</li>
+            <li>Portfolio grid</li>
+            <li>Case study template</li>
+            <li>Contact</li>
+            <li>Services overview</li>
+          </ul>
+          <p>Client approved V2 with one note: "Can we explore making the team section more personal?" — will address in high-fidelity phase.</p>`
+        },
+        { title: 'Style guide draft', done: true, content:
+          `<p>Draft style guide covering typography, color, spacing, and component foundations. This will evolve as we build out high-fidelity screens.</p>
+          ${fileCard('Acme-Style-Guide-Draft.fig', 'Figma file · Shared')}
+          <p><strong>Typography:</strong></p>
+          <ul>
+            <li>Headlines: Inter, Semibold, tracked tight (-0.02em)</li>
+            <li>Body: Inter, Regular, 16px/1.6 line height</li>
+            <li>Captions/labels: Inter, Medium, 13px, uppercase optional</li>
+          </ul>
+          <p><strong>Color palette:</strong></p>
+          <ul>
+            <li>Primary: Near-black (#111111) — text and dominant elements</li>
+            <li>Background: Off-white (#FAFAFA)</li>
+            <li>Accent: Deep blue (#2B4FFF) — CTAs and interactive elements only</li>
+            <li>Muted: Medium gray (#999999) — secondary text, borders</li>
+          </ul>
+          <p><strong>Spacing system:</strong> 4px base grid, with 8/16/24/32/48/64 as the primary scale. Generous by default.</p>
+          <p>Awaiting feedback from Marcus on the accent color choice. He mentioned wanting to consider a warmer option.</p>`
+        },
+        { title: 'Homepage high-fidelity', done: true, content:
+          `<p>The client wants the homepage to convey <strong>trust and simplicity</strong>. They referenced Apple's product pages and Stripe's landing page as inspiration — clean layouts with generous whitespace, a single hero message, and subtle motion on scroll.</p>
+          ${img('https://images.unsplash.com/photo-1522542550221-31fd19575a2d?w=1200&q=80', 'Design reference — minimal landing page layout')}
+          <p>Key decisions from the last review session:</p>
+          <ul>
+            <li>Hero section uses a single headline + subline + CTA — no carousel or multiple messages</li>
+            <li>Social proof section moved below the fold, using small client logos in grayscale</li>
+            <li>The feature grid uses <strong>3 columns max</strong> with icon + short copy</li>
+            <li>Footer stays minimal — links only, no newsletter signup for launch</li>
+          </ul>
+          <p>Sarah shared the updated brand guidelines with the refined color palette. Make sure to reference <strong>v3</strong> — the earlier versions had the wrong secondary blue.</p>
+          ${fileCard('Brand-Guidelines-v3.pdf', 'PDF · 2.4 MB')}
+          <p>Next step: deliver the high-fidelity homepage by Thursday. Will share a <a href="#">Figma link</a> once the first pass is ready for review.</p>`
+        },
+        { title: 'Inner page layouts', done: false, content:
+          `<p>Need to design the following inner pages at high fidelity:</p>
+          <ul>
+            <li>About / Team page</li>
+            <li>Services overview</li>
+            <li>Case study template (with one real example populated)</li>
+            <li>Contact page</li>
+          </ul>
+          <p>The wireframes (V2) are approved — this is about applying the visual direction from the style guide and homepage to these templates. Should be faster than the homepage since the design language is already established.</p>
+          <p>Priority order: Case study → Contact → About → Services. The case study template is the most complex and will inform the others.</p>`
+        },
+        { title: 'Mobile responsive pass', done: false, content: '' },
+      ]},
+      { name: 'Development', tasks: [
+        { title: 'Frontend scaffolding', done: false, content:
+          `<p>Set up the frontend project with the agreed-upon stack:</p>
+          <ul>
+            <li>Next.js 14 with App Router</li>
+            <li>Tailwind CSS for styling (matches the design system spacing scale)</li>
+            <li>Framer Motion for scroll animations and micro-interactions</li>
+            <li>Sanity CMS for portfolio and case study content</li>
+          </ul>
+          <p>Tom will handle the initial repo setup and Vercel deployment pipeline. I'll work on converting the design system tokens into Tailwind config once the style guide is finalized.</p>`
+        },
+        { title: 'CMS integration', done: false, content: '' },
+        { title: 'Responsive QA', done: false, content: '' },
+        { title: 'Performance optimization', done: false, content: '' },
+        { title: 'Cross-browser testing', done: false, content: '' },
+      ]},
+      { name: 'Launch', tasks: [
+        { title: 'Final client review', done: false, content: '' },
+        { title: 'DNS and deploy', done: false, content: '' },
+        { title: 'Post-launch monitoring', done: false, content: '' },
+      ]},
+    ];
+
+    // ===== Team members =====
+    const teamMembers = [
+      { name: 'Sam', avatar: 'https://randomuser.me/api/portraits/men/46.jpg' },
+      { name: 'Jordan', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
+      { name: 'Alex', avatar: 'https://randomuser.me/api/portraits/men/75.jpg' },
+      { name: 'Maya', avatar: 'https://randomuser.me/api/portraits/women/22.jpg' },
+    ];
+
+    // Assignee/deadline map (keyed by "phase-task")
+    const taskMeta = {
+      '0-0': { assignee: 0, deadline: '2026-03-10' },
+      '0-1': { assignee: 1, deadline: '2026-03-12' },
+      '0-2': { assignee: 0, deadline: '2026-03-14' },
+      '1-0': { assignee: 2, deadline: '2026-03-17' },
+      '1-1': { assignee: 1, deadline: '2026-03-18' },
+      '1-2': { assignee: 3, deadline: '2026-03-20' },
+      '1-3': { assignee: 0, deadline: '2026-03-22' },
+      '2-0': { assignee: 0, deadline: '2026-03-24' },
+      '2-1': { assignee: 0, deadline: '2026-03-26' },
+      '2-2': { assignee: 2, deadline: '2026-03-28' },
+      '2-3': { assignee: 0, deadline: '2026-03-30' },
+      '2-4': { assignee: 0, deadline: '2026-04-02' },
+      '2-5': { assignee: null, deadline: '2026-04-05' },
+      '3-0': { assignee: 2, deadline: '2026-04-10' },
+    };
+
+    // ===== Read URL params =====
+    const params = new URLSearchParams(window.location.search);
+    const phaseIdx = parseInt(params.get('phase')) || 0;
+    const taskIdx = parseInt(params.get('task')) || 0;
+
+    const phase = phases[phaseIdx] || phases[0];
+    const task = phase.tasks[taskIdx] || phase.tasks[0];
+    const metaKey = `${phaseIdx}-${taskIdx}`;
+    const meta = taskMeta[metaKey] || { assignee: null, deadline: null };
+
+    // ===== Populate page =====
+    document.title = `Stage — ${task.title}`;
+
+    // Breadcrumb
+    document.getElementById('breadcrumbText').innerHTML =
+      `Website Redesign <span class="breadcrumb-phase">&nbsp;·&nbsp;${phase.name}</span>`;
+
+    // Task title
+    const taskTitle = document.getElementById('taskTitle');
+    taskTitle.value = task.title;
+
+    // Checkbox
+    const taskCheckbox = document.getElementById('taskCheckbox');
+    if (task.done) {
+      taskCheckbox.classList.add('checked');
+      taskTitle.classList.add('completed');
+    }
+
+    // Content body
+    const contentBody = document.getElementById('contentBody');
+    contentBody.innerHTML = task.content;
+
+    // ===== Interactions =====
+    taskCheckbox.addEventListener('click', () => {
+      taskCheckbox.classList.toggle('checked');
+      taskTitle.classList.toggle('completed');
+      showSaved();
+    });
+
+    taskTitle.addEventListener('input', () => showSaved());
+    taskTitle.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); taskTitle.blur(); }
+    });
+
+    contentBody.addEventListener('input', () => showSaved());
+
+    // Saved indicator
+    const savedIndicator = document.getElementById('savedIndicator');
+    let savedTimeout;
+    function showSaved() {
+      savedIndicator.classList.add('visible');
+      clearTimeout(savedTimeout);
+      savedTimeout = setTimeout(() => {
+        savedIndicator.classList.remove('visible');
+      }, 2000);
+    }
+
+    // Attach file
+    document.getElementById('attachTrigger').addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.click();
+    });
+
+    // ===== Assignee selector =====
+    const assigneeSelector = document.getElementById('assigneeSelector');
+    const assigneeDropdown = document.getElementById('assigneeDropdown');
+    const assigneePlaceholder = document.getElementById('assigneePlaceholder');
+
+    function renderAssignee() {
+      const member = meta.assignee !== null ? teamMembers[meta.assignee] : null;
+      // Update selector display
+      if (member) {
+        assigneePlaceholder.outerHTML = `
+          <img src="${member.avatar}" alt="${member.name}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;">
+          <span class="assignee-selector-name" id="assigneePlaceholder">${member.name}</span>
+        `;
+      } else {
+        const existing = assigneeSelector.querySelector('img');
+        if (existing) existing.remove();
+        const nameEl = assigneeSelector.querySelector('.assignee-selector-name');
+        if (nameEl) {
+          nameEl.outerHTML = '<span class="assignee-selector-placeholder" id="assigneePlaceholder">Unassigned</span>';
+        }
+      }
+
+      // Build dropdown
+      assigneeDropdown.innerHTML = teamMembers.map((m, i) => `
+        <div class="assignee-option" data-idx="${i}">
+          <img src="${m.avatar}" alt="${m.name}">
+          ${m.name}
+          ${meta.assignee === i ? '<span class="check-mark">✓</span>' : ''}
+        </div>
+      `).join('') + (meta.assignee !== null ? '<div class="assignee-option unassign" data-idx="-1">Remove assignee</div>' : '');
+
+      assigneeDropdown.querySelectorAll('.assignee-option').forEach(opt => {
+        opt.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = parseInt(opt.dataset.idx);
+          meta.assignee = idx === -1 ? null : idx;
+          assigneeDropdown.classList.remove('visible');
+          renderAssignee();
+          showSaved();
+        });
+      });
+    }
+
+    assigneeSelector.addEventListener('click', (e) => {
+      e.stopPropagation();
+      renderAssignee();
+      assigneeDropdown.classList.toggle('visible');
+    });
+
+    renderAssignee();
+
+    // ===== Deadline selector =====
+    const deadlineInput = document.getElementById('deadlineInput');
+    const deadlineStatus = document.getElementById('deadlineStatus');
+
+    function updateDeadlineStatus() {
+      const val = deadlineInput.value;
+      if (!val) {
+        deadlineStatus.style.display = 'none';
+        return;
+      }
+      const today = new Date(); today.setHours(0,0,0,0);
+      const dl = new Date(val + 'T00:00:00');
+      const diff = (dl - today) / (1000*60*60*24);
+
+      deadlineStatus.style.display = 'inline-block';
+      if (diff < 0) {
+        deadlineStatus.textContent = 'Overdue';
+        deadlineStatus.className = 'deadline-status overdue';
+      } else if (diff <= 2) {
+        deadlineStatus.textContent = 'Due soon';
+        deadlineStatus.className = 'deadline-status soon';
+      } else {
+        deadlineStatus.textContent = 'On track';
+        deadlineStatus.className = 'deadline-status on-track';
+      }
+    }
+
+    if (meta.deadline) {
+      deadlineInput.value = meta.deadline;
+    }
+    updateDeadlineStatus();
+
+    deadlineInput.addEventListener('change', () => {
+      meta.deadline = deadlineInput.value || null;
+      updateDeadlineStatus();
+      showSaved();
+    });
+
+    // Profile dropdown
+    const profileAvatar = document.getElementById('profileAvatar');
+    const profileDropdown = document.getElementById('profileDropdown');
+    profileAvatar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      profileDropdown.classList.toggle('visible');
+    });
+    document.addEventListener('click', () => {
+      profileDropdown.classList.remove('visible');
+      assigneeDropdown.classList.remove('visible');
+    });
+  </script>
+
+</body>
+</html>

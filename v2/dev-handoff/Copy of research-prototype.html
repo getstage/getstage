@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stage — Research</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-bg: #FFFFFF;
+      --color-text-primary: #1A1A2E;
+      --color-text-secondary: #8C8C8C;
+      --color-text-tertiary: #BFBFBF;
+      --color-border: #E8E8E8;
+      --color-border-subtle: #F0F0F0;
+      --color-accent-purple: #8782F5;
+      --color-accent-purple-hover: #7670E0;
+      --color-purple-light-bg: #EEEDFE;
+      --color-green: #22C55E;
+      --color-green-light: #EDFCF2;
+      --color-red: #E07070;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      width: 100%;
+      max-width: 1440px;
+      opacity: 0;
+      transition: opacity 300ms ease;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+
+    .sf { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif; }
+
+    /* ===== TOP BAR ===== */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      max-width: 1200px; margin: 0 auto; padding: 16px 56px;
+    }
+    .topbar-logo { height: 22px; width: auto; display: block; }
+
+    .profile-wrap { position: relative; }
+    .profile-avatar {
+      width: 32px; height: 32px; border-radius: 50%; overflow: hidden; cursor: pointer;
+      border: 2px solid var(--color-bg); box-shadow: 0 1px 3px rgba(26,26,46,0.08); transition: box-shadow 150ms;
+    }
+    .profile-avatar:hover { box-shadow: 0 2px 8px rgba(26,26,46,0.14); }
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .profile-dropdown {
+      display: none; position: absolute; top: calc(100% + 6px); right: 0;
+      background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px;
+      padding: 4px; min-width: 140px; z-index: 50; box-shadow: 0 4px 16px rgba(26,26,46,0.08);
+    }
+    .profile-dropdown.visible { display: block; }
+    .profile-menu-item {
+      display: block; padding: 6px 10px; font-family: 'DM Sans', sans-serif;
+      font-size: 14px; color: var(--color-text-primary); text-decoration: none;
+      border-radius: 5px; cursor: pointer; transition: background 100ms;
+    }
+    .profile-menu-item:hover { background: var(--color-border-subtle); }
+    .profile-menu-item.logout { color: var(--color-text-secondary); }
+    .profile-divider { height: 1px; background: var(--color-border-subtle); margin: 4px 0; }
+
+    /* ===== NAV ROW ===== */
+    .nav-row {
+      max-width: 1200px; margin: 0 auto; padding: 8px 56px 24px 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-row-tabs { display: flex; align-items: center; gap: 8px; }
+    .nav-row-actions { display: flex; align-items: center; gap: 8px; }
+
+    .page-tab {
+      display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+      color: var(--color-text-secondary); background: transparent;
+      border: 1px solid var(--color-border); border-radius: 9px;
+      cursor: pointer; text-decoration: none; transition: all 150ms; white-space: nowrap;
+    }
+    .page-tab:hover { border-color: var(--color-text-secondary); color: var(--color-text-primary); background: var(--color-border-subtle); }
+    .page-tab.active { background: var(--color-text-primary); border-color: var(--color-text-primary); color: #fff; }
+    .page-tab svg.tab-icon { width: 16px; height: 16px; flex-shrink: 0; color: var(--color-text-tertiary); transition: color 150ms; }
+    .page-tab:hover svg.tab-icon { color: var(--color-text-secondary); }
+    .page-tab.active svg.tab-icon { color: rgba(255,255,255,0.7); }
+
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 5px; padding: 8px 16px;
+      background: transparent; font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 13px;
+      color: var(--color-text-secondary); border: 1px solid var(--color-border);
+      border-radius: 9px; cursor: pointer; transition: all 150ms;
+    }
+    .btn-ghost:hover { border-color: var(--color-text-secondary); color: var(--color-text-primary); }
+    .btn-ghost svg { width: 13px; height: 13px; }
+
+    .btn-notion {
+      display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+      background: var(--color-bg); font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 13px;
+      color: var(--color-text-primary); border: 1px solid var(--color-border); border-radius: 9px;
+      cursor: pointer; transition: all 150ms;
+    }
+    .btn-notion:hover { border-color: var(--color-text-secondary); background: var(--color-border-subtle); }
+    .btn-notion img { width: 16px; height: 16px; }
+
+    .badge-complete {
+      display: inline-flex; align-items: center; padding: 4px 12px;
+      background: var(--color-green-light); color: var(--color-green);
+      font-size: 12px; font-weight: 500; border-radius: 99px;
+    }
+
+    /* ===== PROJECT HERO ===== */
+    .project-hero {
+      max-width: 1200px; margin: 0 auto; padding: 24px 56px 40px 56px;
+      display: flex; align-items: flex-start; gap: 56px;
+    }
+    .project-hero-left { display: flex; align-items: flex-start; gap: 24px; }
+    .progress-ring-wrap { position: relative; width: 88px; height: 88px; flex-shrink: 0; }
+    .progress-ring-wrap svg { width: 88px; height: 88px; transform: rotate(-90deg); }
+    .progress-ring-bg { fill: none; stroke: var(--color-border-subtle); stroke-width: 4; }
+    .progress-ring-fill { fill: none; stroke: var(--color-accent-purple); stroke-width: 4; stroke-linecap: round; }
+    .progress-ring-text {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      font-weight: 600; font-size: 22px; color: var(--color-text-primary); letter-spacing: -0.5px;
+    }
+    .project-identity { padding-top: 12px; }
+    .project-title { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; font-weight: 600; font-size: 26px; color: var(--color-text-primary); letter-spacing: -0.5px; line-height: 1.25; }
+    .project-client { font-size: 14px; color: var(--color-text-secondary); margin-top: 4px; }
+    .project-meta { margin-left: auto; display: flex; flex-direction: column; gap: 14px; padding-top: 12px; flex-shrink: 0; }
+    .meta-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--color-text-secondary); }
+    .meta-icon { width: 16px; height: 16px; color: var(--color-text-tertiary); flex-shrink: 0; }
+    .meta-label { color: var(--color-text-tertiary); min-width: 56px; }
+    .meta-value { color: var(--color-text-primary); }
+
+    .hero-divider { max-width: 1200px; margin: 0 auto; padding: 0 56px; }
+    .hero-divider-line { height: 1px; background: var(--color-border); }
+
+    /* ===== CONTENT ===== */
+    .content { max-width: 1200px; margin: 0 auto; padding: 32px 56px 160px 56px; }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 80px 0; text-align: center;
+    }
+    .empty-icon { margin-bottom: 20px; color: var(--color-text-tertiary); }
+    .empty-title { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; font-weight: 600; font-size: 22px; color: var(--color-text-primary); margin-bottom: 8px; letter-spacing: -0.3px; }
+    .empty-subtitle { font-size: 14px; color: var(--color-text-secondary); line-height: 1.6; max-width: 400px; margin-bottom: 32px; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+      color: #fff; background: var(--color-accent-purple); border: none; border-radius: 10px;
+      cursor: pointer; transition: background 150ms;
+    }
+    .btn-primary:hover { background: var(--color-accent-purple-hover); }
+    .btn-primary svg { width: 16px; height: 16px; }
+
+    /* ===== CONFIGURATION PANEL ===== */
+    .config-panel {
+      max-width: 560px; margin: 0 auto; padding: 48px 0;
+    }
+    .config-title { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; font-weight: 600; font-size: 20px; color: var(--color-text-primary); margin-bottom: 6px; letter-spacing: -0.3px; }
+    .config-subtitle { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 32px; line-height: 1.5; }
+
+    .config-group { margin-bottom: 24px; }
+    .config-label { display: block; font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 8px; }
+    .config-hint { font-size: 12px; color: var(--color-text-tertiary); margin-top: 4px; }
+    .config-input {
+      width: 100%; padding: 12px 14px; font-family: 'DM Sans', sans-serif; font-size: 14px;
+      color: var(--color-text-primary); background: var(--color-bg);
+      border: 1px solid var(--color-border); border-radius: 10px; outline: none; transition: border-color 200ms;
+    }
+    .config-input:focus { border-color: var(--color-accent-purple); }
+    .config-input::placeholder { color: var(--color-text-tertiary); }
+
+    .config-textarea {
+      width: 100%; padding: 12px 14px; font-family: 'DM Sans', sans-serif; font-size: 14px;
+      color: var(--color-text-primary); background: var(--color-bg);
+      border: 1px solid var(--color-border); border-radius: 10px; outline: none;
+      resize: vertical; min-height: 80px; transition: border-color 200ms; line-height: 1.5;
+    }
+    .config-textarea:focus { border-color: var(--color-accent-purple); }
+    .config-textarea::placeholder { color: var(--color-text-tertiary); }
+
+    .upload-zone {
+      display: flex; align-items: center; gap: 12px; padding: 16px;
+      border: 1.5px dashed var(--color-border); border-radius: 10px;
+      cursor: pointer; transition: all 150ms;
+    }
+    .upload-zone:hover { border-color: var(--color-accent-purple); background: rgba(135,130,245,0.03); }
+    .upload-zone-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--color-border-subtle); border-radius: 8px; color: var(--color-text-secondary); flex-shrink: 0; }
+    .upload-zone-icon svg { width: 18px; height: 18px; }
+    .upload-zone-text { font-size: 13px; color: var(--color-text-secondary); }
+    .upload-zone-text strong { color: var(--color-accent-purple); font-weight: 500; }
+
+    .competitor-input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .competitor-input-row .config-input { flex: 1; }
+    .remove-btn {
+      width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+      background: none; border: 1px solid var(--color-border); border-radius: 10px;
+      color: var(--color-text-tertiary); cursor: pointer; transition: all 150ms; flex-shrink: 0;
+    }
+    .remove-btn:hover { border-color: var(--color-red); color: var(--color-red); }
+    .remove-btn svg { width: 14px; height: 14px; }
+    .add-competitor-btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 8px 0;
+      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+      color: var(--color-accent-purple); background: none; border: none; cursor: pointer; transition: opacity 150ms;
+    }
+    .add-competitor-btn:hover { opacity: 0.7; }
+    .add-competitor-btn svg { width: 14px; height: 14px; }
+
+    .config-actions { display: flex; gap: 12px; margin-top: 32px; }
+    .btn-secondary {
+      padding: 12px 24px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+      color: var(--color-text-secondary); background: none; border: 1px solid var(--color-border);
+      border-radius: 10px; cursor: pointer; transition: all 150ms;
+    }
+    .btn-secondary:hover { border-color: var(--color-text-secondary); color: var(--color-text-primary); }
+
+    /* ===== RUNNING STATE ===== */
+    .running-state { padding: 64px 0; max-width: 480px; margin: 0 auto; text-align: center; }
+    .running-icon { margin-bottom: 24px; }
+    .running-title { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; font-weight: 600; font-size: 20px; color: var(--color-text-primary); margin-bottom: 8px; }
+    .running-subtitle { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 40px; }
+
+    .running-steps { text-align: left; }
+    .running-step {
+      display: flex; align-items: center; gap: 14px; padding: 14px 0;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+    .running-step:last-child { border-bottom: none; }
+    .running-step-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .running-step-icon.done { color: var(--color-green); }
+    .running-step-icon.active { color: var(--color-accent-purple); }
+    .running-step-icon.pending { color: var(--color-text-tertiary); }
+    .running-step-text { font-size: 14px; color: var(--color-text-primary); }
+    .running-step.pending .running-step-text { color: var(--color-text-tertiary); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin 1s linear infinite; }
+
+    /* ===== COMPLETE STATE: Notion-like sections ===== */
+    .research-doc { max-width: 720px; }
+
+    .doc-section { margin-bottom: 32px; position: relative; }
+    .doc-section:hover .doc-section-actions { opacity: 1; }
+
+    .doc-section-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+    }
+    .doc-section-title {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      font-weight: 600; font-size: 17px; color: var(--color-text-primary); letter-spacing: -0.2px;
+    }
+    .doc-section-actions {
+      display: flex; align-items: center; gap: 4px; opacity: 0; transition: opacity 150ms;
+    }
+    .doc-action-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 6px; background: none;
+      border: none; color: var(--color-text-tertiary); cursor: pointer; transition: all 150ms;
+    }
+    .doc-action-btn:hover { background: var(--color-border-subtle); color: var(--color-text-secondary); }
+    .doc-action-btn svg { width: 14px; height: 14px; }
+
+    .doc-section-body {
+      font-size: 14px; line-height: 1.7; color: var(--color-text-secondary);
+      padding: 12px 16px; border-radius: 10px; border: 1px solid transparent;
+      transition: all 150ms; cursor: text; min-height: 40px;
+    }
+    .doc-section-body:hover { background: var(--color-border-subtle); }
+    .doc-section-body:focus {
+      outline: none; background: var(--color-bg);
+      border-color: var(--color-accent-purple); color: var(--color-text-primary);
+    }
+    .doc-section-body[contenteditable="true"]:empty::before {
+      content: "Click to add content..."; color: var(--color-text-tertiary);
+    }
+
+    /* Competitor cards in doc */
+    .competitors-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px; }
+    .competitor-card {
+      border: 1px solid var(--color-border); border-radius: 12px; padding: 18px 20px;
+      transition: border-color 150ms;
+    }
+    .competitor-card:hover { border-color: var(--color-text-tertiary); }
+    .competitor-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .competitor-logo { width: 24px; height: 24px; border-radius: 6px; object-fit: contain; flex-shrink: 0; }
+    .competitor-logo-fallback { width: 24px; height: 24px; border-radius: 6px; background: var(--color-border-subtle); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--color-text-secondary); flex-shrink: 0; }
+    .competitor-name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+    .competitor-url { font-size: 12px; color: var(--color-text-tertiary); }
+    .competitor-positioning { font-size: 13px; color: var(--color-text-secondary); font-style: italic; line-height: 1.5; margin-bottom: 14px; }
+    .competitor-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .competitor-col-label { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .competitor-item { font-size: 12px; line-height: 1.6; }
+    .competitor-item.strength { color: var(--color-green); }
+    .competitor-item.weakness { color: var(--color-red); }
+
+    /* Insight items */
+    .insight-list { list-style: none; }
+    .insight-item { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; }
+    .insight-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent-purple); flex-shrink: 0; margin-top: 7px; }
+    .insight-text { font-size: 14px; line-height: 1.6; color: var(--color-text-secondary); }
+
+    /* Continue CTA */
+    .continue-cta {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px; background: var(--color-purple-light-bg); border-radius: 12px;
+      margin-top: 40px;
+    }
+    .continue-cta-text { font-size: 14px; color: var(--color-text-primary); }
+    .continue-cta-text span { color: var(--color-text-secondary); font-size: 13px; display: block; margin-top: 2px; }
+    .btn-continue {
+      display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+      color: #fff; background: var(--color-accent-purple); border: none; border-radius: 9px;
+      cursor: pointer; transition: background 150ms; white-space: nowrap;
+    }
+    .btn-continue:hover { background: var(--color-accent-purple-hover); }
+
+    /* ===== DOCK ===== */
+    .dock { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 150; }
+    .dock-container {
+      background: #151520; border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px; padding: 10px 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.24); display: flex; align-items: flex-end; gap: 8px;
+    }
+    .dock-item { position: relative; width: 44px; height: 44px; flex-shrink: 0; cursor: pointer; }
+    .dock-item img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; border: 2px solid rgba(255,255,255,0.12); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .dock-item.active img { border: 2px solid var(--color-accent-purple); }
+    .dock-tooltip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #333546; border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 8px 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.3); white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 150ms; }
+    .dock-tooltip.visible { opacity: 1; }
+    .dock-tooltip-name { font-size: 13px; font-weight: 500; color: #FFFFFF; line-height: 1.3; }
+    .dock-tooltip-client { font-size: 12px; color: rgba(255,255,255,0.5); line-height: 1.3; }
+
+    @media (max-width: 1440px) { body { width: 100%; min-width: 1280px; } }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <nav class="topbar">
+    <a href="dashboard-prototype.html"><img src="FULaL LOGO - Light mode.png" alt="Stage" class="topbar-logo"></a>
+    <div class="profile-wrap">
+      <div class="profile-avatar" id="profileToggle">
+        <img src="https://randomuser.me/api/portraits/men/46.jpg" alt="Profile">
+      </div>
+      <div class="profile-dropdown" id="profileDropdown">
+        <a href="settings-prototype.html" class="profile-menu-item">Settings</a>
+        <a href="settings-prototype.html?tab=billing" class="profile-menu-item">Plan & Billing</a>
+        <div class="profile-divider"></div>
+        <a href="#" class="profile-menu-item logout">Log out</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- NAV ROW -->
+  <div class="nav-row">
+    <div class="nav-row-tabs">
+      <a class="page-tab" data-href="project-detail-prototype.html"><svg class="tab-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg> Overview</a>
+      <a class="page-tab active" data-href="research-prototype.html"><svg class="tab-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg> Research</a>
+      <a class="page-tab" data-href="strategy-prototype.html"><svg class="tab-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h10v10H3z" rx="1"/><path d="M6 6h4M6 8.5h4M6 11h2.5"/></svg> Strategy</a>
+      <a class="page-tab" data-href="generate-prototype.html"><svg class="tab-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l1.5 3.5L13 7l-3 2.5L11 13l-3-2-3 2 1-3.5L3 7l3.5-1.5z"/></svg> Generate</a>
+      <a class="page-tab" data-href="assets-prototype.html"><svg class="tab-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h12v8H2z" rx="1.5"/><circle cx="5.5" cy="7" r="1.5" stroke-width="1"/><path d="M2 11l3.5-3 2.5 2 3-3.5L14 10" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg> Assets</a>
+    </div>
+    <div class="nav-row-actions" id="navActions">
+      <!-- Populated by JS based on state -->
+    </div>
+  </div>
+
+  <!-- PROJECT HERO -->
+  <section class="project-hero">
+    <div class="project-hero-left">
+      <div class="progress-ring-wrap">
+        <svg viewBox="0 0 88 88">
+          <circle class="progress-ring-bg" cx="44" cy="44" r="38"/>
+          <circle class="progress-ring-fill" cx="44" cy="44" r="38" stroke-dasharray="238.76" stroke-dashoffset="114.6"/>
+        </svg>
+        <span class="progress-ring-text">52</span>
+      </div>
+      <div class="project-identity">
+        <div class="project-title sf">Website Redesign</div>
+        <div class="project-client">Acme Studio</div>
+      </div>
+    </div>
+    <div class="project-meta">
+      <div class="meta-item">
+        <svg class="meta-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12"/><path d="M5.5 1.5v3M10.5 1.5v3"/></svg>
+        <span class="meta-label">Timeline</span>
+        <span class="meta-value">Mar 10 – May 15</span>
+      </div>
+      <div class="meta-item">
+        <svg class="meta-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1.5"/></svg>
+        <span class="meta-label">Type</span>
+        <span class="meta-value">Website Design</span>
+      </div>
+      <div class="meta-item">
+        <svg class="meta-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h10v10H3z" rx="1"/><path d="M6 6h4M6 8.5h4M6 11h2.5"/></svg>
+        <span class="meta-label">Scope</span>
+        <span class="meta-value">5 phases · 21 tasks</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="hero-divider"><div class="hero-divider-line"></div></div>
+
+  <!-- CONTENT (state-driven) -->
+  <div class="content" id="content">
+    <!-- Rendered by JS -->
+  </div>
+
+  <!-- DOCK -->
+  <div class="dock">
+    <div class="dock-container" id="dockContainer"></div>
+  </div>
+
+  <script>
+    requestAnimationFrame(() => { document.body.style.opacity = '1'; });
+
+    let currentState = 'empty'; // 'empty' | 'config' | 'running' | 'complete'
+    const content = document.getElementById('content');
+    const navActions = document.getElementById('navActions');
+
+    // ===== STATE RENDERING =====
+    function renderState() {
+      switch (currentState) {
+        case 'empty': renderEmpty(); break;
+        case 'config': renderConfig(); break;
+        case 'running': renderRunning(); break;
+        case 'complete': renderComplete(); break;
+      }
+      renderNavActions();
+    }
+
+    function renderNavActions() {
+      if (currentState === 'complete') {
+        navActions.innerHTML = `
+          <span class="badge-complete">Complete</span>
+          <button class="btn-ghost" id="regenBtn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8a6 6 0 0 1 6-6 6 6 0 0 1 6 6"/><path d="M2 8a6 6 0 0 0 6 6 6 6 0 0 0 6-6"/><polyline points="12 2 14 4.5 11.5 5.5"/></svg> Regenerate</button>
+          <button class="btn-ghost" id="shareBtn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10v3a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-3"/><polyline points="8 2 8 10"/><polyline points="5 5 8 2 11 5"/></svg> Share</button>
+        `;
+        document.getElementById('regenBtn').addEventListener('click', () => { currentState = 'config'; renderState(); });
+      } else {
+        navActions.innerHTML = '';
+      }
+    }
+
+    // ===== EMPTY STATE =====
+    function renderEmpty() {
+      content.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="20" cy="20" r="14"/><path d="M30 30L42 42"/><path d="M15 17v6M12 20h6"/></svg>
+          </div>
+          <div class="empty-title sf">Research the market</div>
+          <div class="empty-subtitle">AI will analyze your client's competitors, identify market patterns, and surface strategic opportunities.</div>
+          <button class="btn-primary" id="startBtn">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12V8.5a4 4 0 0 1 8 0V12"/><circle cx="8" cy="5" r="1"/></svg>
+            Start Research
+          </button>
+        </div>
+      `;
+      document.getElementById('startBtn').addEventListener('click', () => { currentState = 'config'; renderState(); });
+    }
+
+    // ===== CONFIG STATE =====
+    let competitors = [''];
+    function renderConfig() {
+      content.innerHTML = `
+        <div class="config-panel">
+          <div class="config-title sf">Configure research</div>
+          <div class="config-subtitle">Provide context about the client and their market. The more you give, the better the research.</div>
+
+          <div class="config-group">
+            <label class="config-label">Client website</label>
+            <input class="config-input" id="clientUrl" type="url" placeholder="https://acmestudio.com" value="https://acmestudio.com">
+          </div>
+
+          <div class="config-group">
+            <label class="config-label">Project brief or context</label>
+            <textarea class="config-textarea" id="briefText" placeholder="Describe the project goals, target audience, or any specific direction you'd like the research to focus on..."></textarea>
+            <div class="config-hint">Optional — helps AI focus the research</div>
+          </div>
+
+          <div class="config-group">
+            <label class="config-label">Upload a brief</label>
+            <div class="upload-zone" id="uploadZone">
+              <div class="upload-zone-icon">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10v3a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-3"/><polyline points="8 2 8 10"/><polyline points="5 5 8 2 11 5"/></svg>
+              </div>
+              <div class="upload-zone-text"><strong>Click to upload</strong> or drag a file here<br>PDF, DOCX, or TXT</div>
+            </div>
+          </div>
+
+          <div class="config-group">
+            <label class="config-label">Specific competitors to include</label>
+            <div id="competitorInputs">
+              ${competitors.map((c, i) => `
+                <div class="competitor-input-row">
+                  <input class="config-input competitor-url" type="url" placeholder="https://competitor.com" value="${c}">
+                  ${competitors.length > 1 ? `<button class="remove-btn" data-idx="${i}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>` : ''}
+                </div>
+              `).join('')}
+            </div>
+            <button class="add-competitor-btn" id="addComp">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+              Add another competitor
+            </button>
+            <div class="config-hint">Optional — AI will also discover competitors automatically</div>
+          </div>
+
+          <div class="config-actions">
+            <button class="btn-primary" id="runBtn">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 14 8 5 13 5 3"/></svg>
+              Run Research
+            </button>
+            <button class="btn-secondary" id="cancelBtn">Cancel</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('runBtn').addEventListener('click', () => { currentState = 'running'; renderState(); });
+      document.getElementById('cancelBtn').addEventListener('click', () => { currentState = 'empty'; renderState(); });
+      document.getElementById('addComp').addEventListener('click', () => { competitors.push(''); renderConfig(); });
+      document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', () => { competitors.splice(parseInt(btn.dataset.idx), 1); renderConfig(); });
+      });
+    }
+
+    // ===== RUNNING STATE =====
+    function renderRunning() {
+      const checkSvg = '<svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 8 6 11 13 4"/></svg>';
+      const spinSvg = '<svg class="spinner" viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 2a6 6 0 0 1 6 6"/></svg>';
+      const dotSvg = '<svg viewBox="0 0 16 16" width="18" height="18" fill="none"><circle cx="8" cy="8" r="3" fill="currentColor"/></svg>';
+
+      content.innerHTML = `
+        <div class="running-state">
+          <div class="running-icon">
+            <svg class="spinner" viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="${getComputedStyle(document.documentElement).getPropertyValue('--color-accent-purple').trim()}" stroke-width="3" stroke-linecap="round"><path d="M24 4a20 20 0 0 1 20 20"/></svg>
+          </div>
+          <div class="running-title sf">Researching the market...</div>
+          <div class="running-subtitle">This usually takes 30–60 seconds. You can watch the progress below.</div>
+          <div class="running-steps" id="runningSteps">
+            <div class="running-step" data-step="0">
+              <div class="running-step-icon active">${spinSvg}</div>
+              <div class="running-step-text">Scraping client website...</div>
+            </div>
+            <div class="running-step pending" data-step="1">
+              <div class="running-step-icon pending">${dotSvg}</div>
+              <div class="running-step-text">Identifying competitors...</div>
+            </div>
+            <div class="running-step pending" data-step="2">
+              <div class="running-step-icon pending">${dotSvg}</div>
+              <div class="running-step-text">Analyzing competitors...</div>
+            </div>
+            <div class="running-step pending" data-step="3">
+              <div class="running-step-icon pending">${dotSvg}</div>
+              <div class="running-step-text">Generating insights...</div>
+            </div>
+          </div>
+        </div>
+      `;
+      // Simulate progress
+      simulateProgress();
+    }
+
+    function simulateProgress() {
+      const steps = document.querySelectorAll('.running-step');
+      const checkSvg = '<svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 8 6 11 13 4"/></svg>';
+      const spinSvg = '<svg class="spinner" viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 2a6 6 0 0 1 6 6"/></svg>';
+      let step = 0;
+
+      function advance() {
+        if (step > 0) {
+          const prev = steps[step - 1];
+          prev.classList.remove('pending');
+          prev.querySelector('.running-step-icon').className = 'running-step-icon done';
+          prev.querySelector('.running-step-icon').innerHTML = checkSvg;
+        }
+        if (step < steps.length) {
+          const curr = steps[step];
+          curr.classList.remove('pending');
+          curr.querySelector('.running-step-icon').className = 'running-step-icon active';
+          curr.querySelector('.running-step-icon').innerHTML = spinSvg;
+          step++;
+          setTimeout(advance, 1200 + Math.random() * 800);
+        } else {
+          setTimeout(() => { currentState = 'complete'; renderState(); }, 600);
+        }
+      }
+      setTimeout(advance, 800);
+    }
+
+    // ===== COMPLETE STATE =====
+    function renderComplete() {
+      content.innerHTML = `
+        <div style="display:flex;justify-content:flex-end;margin-bottom:24px;">
+          <button class="btn-notion"><img src="https://www.google.com/s2/favicons?domain=notion.so&sz=64" alt="Notion"> Add to Notion</button>
+        </div>
+        <div class="research-doc">
+
+          <div class="doc-section">
+            <div class="doc-section-header">
+              <div class="doc-section-title">Company Overview</div>
+              <div class="doc-section-actions">
+                <button class="doc-action-btn" title="Regenerate section"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8a6 6 0 0 1 6-6 6 6 0 0 1 6 6"/><path d="M2 8a6 6 0 0 0 6 6 6 6 0 0 0 6-6"/><polyline points="12 2 14 4.5 11.5 5.5"/></svg></button>
+                <button class="doc-action-btn" title="Add note"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10l-4 4H4v-4l4-4m4 0l2-2-4-4-2 2m4 4l-4-4"/></svg></button>
+              </div>
+            </div>
+            <div class="doc-section-body" contenteditable="true">Acme is a mid-stage B2B SaaS company providing workflow automation tools for operations teams. Founded in 2021, they serve ~2,000 companies. Their current brand feels generic and doesn't differentiate them in an increasingly crowded market.</div>
+          </div>
+
+          <div class="doc-section">
+            <div class="doc-section-header">
+              <div class="doc-section-title">Market Landscape</div>
+              <div class="doc-section-actions">
+                <button class="doc-action-btn" title="Regenerate section"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8a6 6 0 0 1 6-6 6 6 0 0 1 6 6"/><path d="M2 8a6 6 0 0 0 6 6 6 6 0 0 0 6-6"/><polyline points="12 2 14 4.5 11.5 5.5"/></svg></button>
+                <button class="doc-action-btn" title="Add note"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10l-4 4H4v-4l4-4m4 0l2-2-4-4-2 2m4 4l-4-4"/></svg></button>
+              </div>
+            </div>
+            <div class="doc-section-body" contenteditable="true">The workflow automation space is experiencing rapid growth, projected to reach $26B by 2027. The market is becoming increasingly fragmented with both horizontal platforms (Zapier, Make) and vertical solutions targeting specific industries. Enterprise buyers are consolidating vendors while SMBs are adopting no-code tools at accelerating rates.</div>
+          </div>
+
+          <div class="doc-section">
+            <div class="doc-section-header">
+              <div class="doc-section-title">Competitors</div>
+              <div class="doc-section-actions">
+                <button class="doc-action-btn" title="Add competitor"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg></button>
+              </div>
+            </div>
+            <div class="competitors-grid">
+              <div class="competitor-card">
+                <div class="competitor-header"><img class="competitor-logo" src="https://www.google.com/s2/favicons?domain=zapier.com&sz=64" alt="Zapier"><span class="competitor-name">Zapier</span><span class="competitor-url">zapier.com</span></div>
+                <p class="competitor-positioning">"Easy automation for busy people" — the dominant horizontal player.</p>
+                <div class="competitor-columns">
+                  <div><div class="competitor-col-label">Strengths</div><div class="competitor-item strength">+ 7,000+ integrations</div><div class="competitor-item strength">+ Strong brand recognition</div><div class="competitor-item strength">+ Excellent onboarding</div></div>
+                  <div><div class="competitor-col-label">Weaknesses</div><div class="competitor-item weakness">- Premium pricing at scale</div><div class="competitor-item weakness">- Limited complex logic</div><div class="competitor-item weakness">- Generic enterprise story</div></div>
+                </div>
+              </div>
+              <div class="competitor-card">
+                <div class="competitor-header"><img class="competitor-logo" src="https://www.google.com/s2/favicons?domain=make.com&sz=64" alt="Make"><span class="competitor-name">Make</span><span class="competitor-url">make.com</span></div>
+                <p class="competitor-positioning">"Visual automation for anyone" — the developer-friendly alternative.</p>
+                <div class="competitor-columns">
+                  <div><div class="competitor-col-label">Strengths</div><div class="competitor-item strength">+ Visual workflow builder</div><div class="competitor-item strength">+ Competitive pricing</div><div class="competitor-item strength">+ Complex logic support</div></div>
+                  <div><div class="competitor-col-label">Weaknesses</div><div class="competitor-item weakness">- Steeper learning curve</div><div class="competitor-item weakness">- Weaker brand in US</div><div class="competitor-item weakness">- Fewer native integrations</div></div>
+                </div>
+              </div>
+              <div class="competitor-card">
+                <div class="competitor-header"><img class="competitor-logo" src="https://www.google.com/s2/favicons?domain=monday.com&sz=64" alt="Monday.com"><span class="competitor-name">Monday.com</span><span class="competitor-url">monday.com</span></div>
+                <p class="competitor-positioning">"A new way of working" — work OS with built-in automation.</p>
+                <div class="competitor-columns">
+                  <div><div class="competitor-col-label">Strengths</div><div class="competitor-item strength">+ All-in-one platform</div><div class="competitor-item strength">+ Strong marketing spend</div><div class="competitor-item strength">+ Broad feature set</div></div>
+                  <div><div class="competitor-col-label">Weaknesses</div><div class="competitor-item weakness">- Automation not core</div><div class="competitor-item weakness">- Can feel bloated</div><div class="competitor-item weakness">- Higher total cost</div></div>
+                </div>
+              </div>
+              <div class="competitor-card">
+                <div class="competitor-header"><img class="competitor-logo" src="https://www.google.com/s2/favicons?domain=n8n.io&sz=64" alt="n8n"><span class="competitor-name">n8n</span><span class="competitor-url">n8n.io</span></div>
+                <p class="competitor-positioning">"Workflow automation for technical people" — open-source, self-hostable.</p>
+                <div class="competitor-columns">
+                  <div><div class="competitor-col-label">Strengths</div><div class="competitor-item strength">+ Open-source / self-hosted</div><div class="competitor-item strength">+ Developer community</div><div class="competitor-item strength">+ Full code flexibility</div></div>
+                  <div><div class="competitor-col-label">Weaknesses</div><div class="competitor-item weakness">- Niche audience</div><div class="competitor-item weakness">- Requires technical skill</div><div class="competitor-item weakness">- Limited enterprise sales</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="doc-section">
+            <div class="doc-section-header">
+              <div class="doc-section-title">Opportunities</div>
+              <div class="doc-section-actions">
+                <button class="doc-action-btn" title="Regenerate section"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8a6 6 0 0 1 6-6 6 6 0 0 1 6 6"/><path d="M2 8a6 6 0 0 0 6 6 6 6 0 0 0 6-6"/><polyline points="12 2 14 4.5 11.5 5.5"/></svg></button>
+              </div>
+            </div>
+            <div class="doc-section-body" contenteditable="true">1. Position around outcomes for ops teams, not automation features — "less firefighting, more strategy" resonates strongly with target buyers.\n\n2. Lean into the mid-market gap: Zapier is too simple for power users, Tray.io is too expensive for growing teams.\n\n3. Develop a distinctive visual brand — competitors default to generic SaaS blue/purple gradients.\n\n4. Build thought leadership around "operational excellence" to create a category narrative.\n\n5. Invest in community and ecosystem early — n8n proves developer advocacy creates durable advantage.</div>
+          </div>
+
+          <div class="doc-section">
+            <div class="doc-section-header">
+              <div class="doc-section-title">Key Insights</div>
+              <div class="doc-section-actions">
+                <button class="doc-action-btn" title="Regenerate section"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8a6 6 0 0 1 6-6 6 6 0 0 1 6 6"/><path d="M2 8a6 6 0 0 0 6 6 6 6 0 0 0 6-6"/><polyline points="12 2 14 4.5 11.5 5.5"/></svg></button>
+              </div>
+            </div>
+            <ul class="insight-list">
+              <li class="insight-item"><span class="insight-dot"></span><span class="insight-text">Operations teams feel underserved by tools built primarily for marketing and sales workflows — there is a clear positioning gap.</span></li>
+              <li class="insight-item"><span class="insight-dot"></span><span class="insight-text">Brand trust matters more than feature count in enterprise buying decisions; Acme's current generic brand is actively hurting conversions.</span></li>
+              <li class="insight-item"><span class="insight-dot"></span><span class="insight-text">The top competitors invest heavily in educational content and templates, not just product features — brand-as-resource is the winning model.</span></li>
+              <li class="insight-item"><span class="insight-dot"></span><span class="insight-text">AI-native automation is the next battleground; whoever establishes the strongest brand around intelligent workflows will capture disproportionate market share.</span></li>
+              <li class="insight-item"><span class="insight-dot"></span><span class="insight-text">Customer interviews reveal that "reliability" and "ease of handoff between teams" are the most valued qualities — far above integration count.</span></li>
+            </ul>
+          </div>
+
+          <div class="continue-cta">
+            <div class="continue-cta-text">
+              Research complete
+              <span>Continue to build your strategy based on these findings.</span>
+            </div>
+            <a class="btn-continue" href="strategy-prototype.html">
+              Continue to Strategy
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 3 11 8 6 13"/></svg>
+            </a>
+          </div>
+
+        </div>
+      `;
+    }
+
+    // ===== INIT =====
+    // Start with complete state to show the full research doc
+    // Change to 'empty' to see the empty state, 'config' for setup, 'running' for progress
+    currentState = 'complete';
+    renderState();
+
+    // ===== PROFILE DROPDOWN =====
+    (function() {
+      const toggle = document.getElementById('profileToggle');
+      const dropdown = document.getElementById('profileDropdown');
+      toggle.addEventListener('click', (e) => { e.stopPropagation(); dropdown.classList.toggle('visible'); });
+      document.addEventListener('click', () => dropdown.classList.remove('visible'));
+    })();
+
+    // ===== PAGE TAB PILLS =====
+    document.querySelectorAll('.page-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (tab.classList.contains('active')) return;
+        document.body.style.transition = 'opacity 150ms ease-out';
+        document.body.style.opacity = '0';
+        setTimeout(() => { window.location.href = tab.dataset.href; }, 180);
+      });
+    });
+
+    // ===== DOCK =====
+    (function() {
+      const dockProjects = [
+        { name: 'Website Redesign', client: 'Acme Studio', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
+        { name: 'Brand Identity', client: 'Nomad Co', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
+        { name: 'App Design', client: 'Pulse Labs', avatar: 'https://randomuser.me/api/portraits/men/75.jpg' },
+        { name: 'Social Campaign', client: 'Vibe Co', avatar: 'https://randomuser.me/api/portraits/women/22.jpg' },
+        { name: 'Product Strategy', client: 'Luna Digital', avatar: 'https://randomuser.me/api/portraits/women/50.jpg' },
+        { name: 'Editorial Design', client: 'Oak Press', avatar: 'https://randomuser.me/api/portraits/men/85.jpg' },
+      ];
+      const activeIdx = 0;
+      const BASE = 44, MAX_SIZE = 72, SIGMA = 55;
+      const container = document.getElementById('dockContainer');
+
+      container.innerHTML = dockProjects.map((p, i) => `
+        <div class="dock-item${i === activeIdx ? ' active' : ''}" data-idx="${i}">
+          <div class="dock-tooltip"><div class="dock-tooltip-name">${p.name}</div><div class="dock-tooltip-client">${p.client}</div></div>
+          <img src="${p.avatar}" alt="${p.name}">
+        </div>
+      `).join('');
+
+      const items = [...container.querySelectorAll('.dock-item')];
+      function magnify(mouseX) {
+        let closestIdx = 0, minDist = Infinity;
+        items.forEach((item, i) => {
+          const rect = item.getBoundingClientRect();
+          const center = rect.left + rect.width / 2;
+          const dist = Math.abs(mouseX - center);
+          const scale = Math.exp(-(dist * dist) / (2 * SIGMA * SIGMA));
+          const size = Math.round(BASE + (MAX_SIZE - BASE) * scale);
+          item.style.width = size + 'px'; item.style.height = size + 'px';
+          if (dist < minDist) { minDist = dist; closestIdx = i; }
+        });
+        items.forEach((item, i) => {
+          const tip = item.querySelector('.dock-tooltip');
+          if (i === closestIdx) tip.classList.add('visible'); else tip.classList.remove('visible');
+        });
+      }
+      container.addEventListener('mouseenter', () => { items.forEach(item => { item.style.transition = 'none'; }); });
+      container.addEventListener('mousemove', (e) => { magnify(e.clientX); });
+      container.addEventListener('mouseleave', () => {
+        items.forEach(item => {
+          item.style.transition = 'width 200ms ease, height 200ms ease';
+          item.style.width = BASE + 'px'; item.style.height = BASE + 'px';
+          item.querySelector('.dock-tooltip').classList.remove('visible');
+        });
+      });
+      items.forEach(item => {
+        item.addEventListener('click', () => {
+          document.body.style.opacity = '0';
+          setTimeout(() => { window.location.href = 'project-detail-prototype.html'; }, 300);
+        });
+      });
+    })();
+  </script>
+
+</body>
+</html>

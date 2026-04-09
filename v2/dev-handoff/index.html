@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dev Handoff Viewer</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #171a22;
+      --panel-border: #272c38;
+      --text: #f5f7fb;
+      --muted: #99a1b3;
+      --accent: #8782f5;
+      --accent-soft: rgba(135, 130, 245, 0.16);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      height: 100vh;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--panel-border);
+      background: linear-gradient(180deg, #141824 0%, #0f1117 100%);
+      padding: 24px 18px;
+      overflow: auto;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 24px;
+      line-height: 1.1;
+    }
+
+    .sub {
+      margin: 0 0 22px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .item {
+      display: block;
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 14px;
+      line-height: 1.35;
+      transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+    }
+
+    .item:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      transform: translateY(-1px);
+    }
+
+    .item.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .viewer {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-width: 0;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--panel-border);
+      background: rgba(15, 17, 23, 0.88);
+      backdrop-filter: blur(10px);
+    }
+
+    .title {
+      min-width: 0;
+    }
+
+    .title strong {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .title span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .open-link {
+      color: var(--text);
+      text-decoration: none;
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      background: var(--panel);
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h1>Dev Handoff</h1>
+      <p class="sub">Choose a prototype on the left. The HTML renders directly on the right.</p>
+      <nav class="list" id="list"></nav>
+    </aside>
+
+    <main class="viewer">
+      <div class="topbar">
+        <div class="title">
+          <strong id="current-title">Dashboard Prototype</strong>
+          <span id="current-file">Copy of dashboard-prototype.html</span>
+        </div>
+        <a class="open-link" id="open-link" href="Copy%20of%20dashboard-prototype.html" target="_blank" rel="noreferrer">Open file directly</a>
+      </div>
+      <iframe id="frame" src="Copy%20of%20dashboard-prototype.html" title="Prototype preview"></iframe>
+    </main>
+  </div>
+
+  <script>
+    const files = [
+      "Copy of dashboard-prototype.html",
+      "Copy of project-detail-prototype.html",
+      "Copy of project-creation-modal.html",
+      "Copy of landing-prototype.html",
+      "Copy of task-detail-prototype.html",
+      "Copy of settings-prototype.html",
+      "Copy of integrations-prototype.html",
+      "Copy of assets-prototype.html",
+      "Copy of auth-prototype.html",
+      "Copy of client-portal-prototype.html",
+      "Copy of generate-prototype.html",
+      "Copy of research-prototype.html",
+      "Copy of strategy-prototype.html"
+    ];
+
+    const labels = Object.fromEntries(files.map((file) => [
+      file,
+      file
+        .replace(/^Copy of /, "")
+        .replace(/-prototype\.html$/, "")
+        .replace(/-modal\.html$/, " modal")
+        .replace(/\.html$/, "")
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+    ]));
+
+    const list = document.getElementById("list");
+    const frame = document.getElementById("frame");
+    const currentTitle = document.getElementById("current-title");
+    const currentFile = document.getElementById("current-file");
+    const openLink = document.getElementById("open-link");
+
+    function setActive(file) {
+      const encoded = encodeURIComponent(file);
+      frame.src = encoded;
+      currentTitle.textContent = labels[file];
+      currentFile.textContent = file;
+      openLink.href = encoded;
+      document.querySelectorAll(".item").forEach((item) => {
+        item.classList.toggle("active", item.dataset.file === file);
+      });
+    }
+
+    files.forEach((file) => {
+      const link = document.createElement("a");
+      link.href = "#";
+      link.className = "item";
+      link.dataset.file = file;
+      link.textContent = labels[file];
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        setActive(file);
+      });
+      list.appendChild(link);
+    });
+
+    setActive(files[0]);
+  </script>
+</body>
+</html>
