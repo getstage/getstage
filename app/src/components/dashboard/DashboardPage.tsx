@@ -13,6 +13,7 @@ import { DashboardPreview } from "@/components/dashboard/DashboardPreview";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { DashboardTimelineSelector } from "@/components/dashboard/DashboardTimelineSelector";
 import { PaymentsCard } from "@/components/dashboard/PaymentsCard";
+import { PipelineCard } from "@/components/dashboard/PipelineCard";
 import { ProjectDock } from "@/components/dashboard/ProjectDock";
 import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
 import { Timeline, type TimelineHorizon } from "@/components/dashboard/Timeline";
@@ -255,12 +256,10 @@ export function DashboardPage() {
           )}
 
           <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
-            <div className="mt-8 space-y-4">
-              <div className="grid gap-4 lg:grid-cols-2">
-                <UpcomingTasksCard tasks={upcomingTasks} />
-                <RecentActivityCard entries={recentActivity} />
-              </div>
-
+            <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <UpcomingTasksCard tasks={upcomingTasks} />
+              <RecentActivityCard entries={recentActivity} />
+              <PipelineCard projects={projects} />
               <PaymentsCard paymentSummary={dashboardData?.paymentSummary ?? null} />
             </div>
           </div>

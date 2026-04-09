@@ -207,32 +207,36 @@ function LinkedState({
       {/* Preview grid */}
       {previews.length > 0 ? (
         <div>
-          <div className="mb-3 flex items-center gap-2">
-            <Images size={16} weight="bold" className="text-text-tertiary" />
-            <span className="text-[13px] font-medium text-text-secondary">
-              Latest previews
-            </span>
-            <span className="text-[12px] text-text-tertiary">
-              ({previews.length})
-            </span>
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Images size={16} weight="bold" className="text-text-tertiary" />
+              <span className="text-[13px] font-medium text-text-secondary">
+                Latest previews
+              </span>
+              <span className="rounded-full bg-border-subtle px-2 py-0.5 text-[11px] font-medium text-text-secondary">
+                {previews.length}
+              </span>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {previews.map((preview) => (
               <PreviewCard key={preview._id} preview={preview} />
             ))}
           </div>
         </div>
       ) : (
-        <div className="rounded-[18px] border border-dashed border-border-subtle bg-bg-subtle/50 p-8 text-center">
-          <Images
-            size={28}
-            weight="light"
-            className="mx-auto text-text-tertiary"
-          />
-          <p className="mt-3 text-[14px] text-text-secondary">
+        <div className="flex flex-col items-center rounded-[18px] border border-dashed border-border-subtle bg-bg-subtle/50 px-8 py-14 text-center">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-[14px] bg-white shadow-[0_2px_8px_rgba(17,24,39,0.06)]">
+            <Images
+              size={22}
+              weight="light"
+              className="text-text-tertiary"
+            />
+          </span>
+          <p className="mt-4 text-[15px] font-medium text-text-primary">
             No previews synced yet
           </p>
-          <p className="mt-1 text-[12px] text-text-tertiary">
+          <p className="mt-1.5 max-w-[320px] text-[13px] leading-[1.6] text-text-secondary">
             Work in Stitch, then hit "Sync latest" to pull in the newest screens.
           </p>
         </div>
@@ -245,28 +249,28 @@ function LinkedState({
 
 function PreviewCard({ preview }: { preview: SyncedPreview }) {
   return (
-    <div className="group overflow-hidden rounded-[14px] border border-border-subtle bg-white shadow-[0_4px_12px_rgba(17,24,39,0.03)] transition-shadow hover:shadow-[0_8px_20px_rgba(17,24,39,0.06)]">
-      <div className="aspect-[4/3] overflow-hidden bg-bg-subtle">
+    <div className="group overflow-hidden rounded-[12px] border border-border bg-white transition-[border-color,box-shadow] duration-150 hover:border-border-subtle hover:shadow-[0_8px_20px_rgba(17,24,39,0.06)]">
+      <div className="aspect-[4/3] overflow-hidden bg-border-subtle">
         <img
           src={preview.imageUrl}
           alt={preview.title || "Design preview"}
-          className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
+          className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
           loading="lazy"
         />
       </div>
-      <div className="px-3 py-2.5">
-        {preview.title && (
-          <p className="truncate text-[13px] font-medium text-text-primary">
+      <div className="px-4 py-3">
+        {preview.title ? (
+          <p className="mb-1 truncate text-[14px] font-medium text-text-primary">
             {preview.title}
           </p>
-        )}
+        ) : null}
         <div className="flex items-center gap-2">
-          {preview.phaseName && (
+          {preview.phaseName ? (
             <span className="rounded-full bg-[rgba(59,175,218,0.10)] px-2 py-0.5 text-[10px] font-semibold text-[#0891b2]">
               {preview.phaseName}
             </span>
-          )}
-          <span className="text-[11px] text-text-tertiary">
+          ) : null}
+          <span className="text-[12px] text-text-tertiary">
             {formatRelativeTime(preview.syncedAt)}
           </span>
         </div>
