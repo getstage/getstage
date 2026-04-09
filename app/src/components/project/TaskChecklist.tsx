@@ -66,7 +66,7 @@ export function TaskChecklist({
   const [confirmingTaskId, setConfirmingTaskId] = useState<string | null>(null);
 
   return (
-    <section className="mx-auto mt-6 w-full max-w-[560px] flex-1 sm:mt-8">
+    <section className="mt-6 w-full flex-1 sm:mt-8">
       <header className="mb-5">
         <h2 className="font-heading text-[20px] font-semibold text-text-primary">
           {phase.name}

@@ -1,8 +1,8 @@
 import { Email } from "@convex-dev/auth/providers/Email";
 import type { RandomReader } from "@oslojs/crypto/random";
 import { generateRandomString } from "@oslojs/crypto/random";
-import { enforceOtpRequestRateLimit } from "./rateLimits";
-import { normalizeEmailAddress } from "./userEmails";
+import { enforceOtpRequestRateLimit } from "../platform/rateLimits";
+import { normalizeEmailAddress } from "../userEmails";
 
 function getEnv(name: string) {
   return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[

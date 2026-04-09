@@ -3,7 +3,7 @@ import type { SettingsTab } from "@/types/settings";
 
 function getTabFromUrl(): SettingsTab {
   const tabParam = new URLSearchParams(window.location.search).get("tab");
-  if (tabParam === "billing" || tabParam === "integrations" || tabParam === "portal") {
+  if (tabParam === "billing" || tabParam === "integrations" || tabParam === "portal" || tabParam === "developer") {
     return tabParam;
   }
   return "general";

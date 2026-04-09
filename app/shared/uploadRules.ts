@@ -4,7 +4,8 @@ export type UploadPurpose =
   | "profile-avatar"
   | "client-avatar"
   | "project-marker"
-  | "portal-logo";
+  | "portal-logo"
+  | "generated-design";
 
 type UploadRule = {
   allowedMimeTypes: string[];
@@ -50,6 +51,11 @@ export const UPLOAD_RULES: Record<UploadPurpose, UploadRule> = {
     allowedMimeTypes: ["image/webp", "image/svg+xml"],
     allowedExtensions: [".webp", ".svg"],
     maxBytes: 2 * 1024 * 1024,
+  },
+  "generated-design": {
+    allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
+    allowedExtensions: [".jpg", ".jpeg", ".png", ".webp"],
+    maxBytes: 10 * 1024 * 1024,
   },
 };
 

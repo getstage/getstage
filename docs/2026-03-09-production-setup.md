@@ -101,6 +101,11 @@ pnpm run stage:deploy        # builds with --mode testing, deploys to stage-app-
 pnpm run production:deploy   # builds with --mode production, deploys to stage-app-production
 ```
 
+Cloudflare Worker observability is configured in `app/wrangler.jsonc` with:
+- logs enabled
+- invocation logs enabled
+- traces disabled
+
 ## Stripe Webhook Events (both environments)
 
 Select these 12 events when creating webhook endpoints:

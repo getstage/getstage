@@ -9,10 +9,12 @@ import { GeneralTab } from "@/components/settings/GeneralTab";
 import { IntegrationsTab } from "@/components/settings/IntegrationsTab";
 import {
   BillingIcon,
+  DeveloperIcon,
   GeneralIcon,
   IntegrationsIcon,
   PortalIcon,
 } from "@/components/settings/SettingsIcons";
+import { DeveloperTab } from "@/components/settings/DeveloperTab";
 import { PortalTab } from "@/components/settings/PortalTab";
 import { useAuth } from "@/lib/auth";
 import { GOOGLE_SHEETS_GUIDE_HREF } from "@/features/settings/googleSheetsErrors";
@@ -20,6 +22,7 @@ import { useBillingSettings } from "@/features/settings/useBillingSettings";
 import { useGeneralSettings } from "@/features/settings/useGeneralSettings";
 import { useIntegrationsSettings } from "@/features/settings/useIntegrationsSettings";
 import { usePortalBrandingSettings } from "@/features/settings/usePortalBrandingSettings";
+import { useDeveloperSettings } from "@/features/settings/useDeveloperSettings";
 import { useSettingsTabs } from "@/features/settings/useSettingsTabs";
 import { useDockProjects } from "@/hooks/useDockProjects";
 import { useSettingsOverview } from "@/hooks/useSettingsOverview";
@@ -44,6 +47,9 @@ export function SettingsPage() {
   const integrationsSettings = useIntegrationsSettings({
     user,
     enabled: activeTab === "integrations",
+  });
+  const developerSettings = useDeveloperSettings({
+    enabled: activeTab === "developer",
   });
   const portalBrandingSettings = usePortalBrandingSettings({
     previewPortalUrl: PREVIEW_PORTAL_URL,
@@ -110,6 +116,14 @@ export function SettingsPage() {
             >
               <PortalIcon />
               Client Portal
+            </button>
+            <button
+              type="button"
+              className={`sidebar-item ${activeTab === "developer" ? "active" : ""}`}
+              onClick={() => setActiveTab("developer")}
+            >
+              <DeveloperIcon />
+              Developer
             </button>
           </aside>
 
@@ -201,6 +215,24 @@ export function SettingsPage() {
               onUpgradeClick={openBillingTab}
               onSavePortalLogo={() => void portalBrandingSettings.persistPortalLogo()}
               onSavePortalColor={() => void portalBrandingSettings.persistPortalColor()}
+            />
+
+            <DeveloperTab
+              active={activeTab === "developer"}
+              isPro={billingSettings.isPro}
+              keys={developerSettings.keys}
+              keyName={developerSettings.keyName}
+              isCreating={developerSettings.isCreating}
+              isRevoking={developerSettings.isRevoking}
+              revealedKey={developerSettings.revealedKey}
+              copied={developerSettings.copied}
+              feedback={developerSettings.feedback}
+              onKeyNameChange={developerSettings.setKeyName}
+              onCreate={() => void developerSettings.handleCreate()}
+              onRevoke={(keyId) => void developerSettings.handleRevoke(keyId)}
+              onCopyKey={() => void developerSettings.handleCopyKey()}
+              onDismissRevealedKey={developerSettings.dismissRevealedKey}
+              onUpgradeClick={openBillingTab}
             />
           </div>
         </div>

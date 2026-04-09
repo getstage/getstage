@@ -2,7 +2,7 @@ import { action, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireProjectOwner } from "./_helpers";
 import { internal } from "./_generated/api";
-import { enforceProjectInviteRateLimit } from "./rateLimits";
+import { enforceProjectInviteRateLimit } from "./platform/rateLimits";
 import type { Id } from "./_generated/dataModel";
 
 type AddedCollaboratorPayload = {
@@ -105,7 +105,7 @@ export const add = action({
   },
   handler: async (ctx, args): Promise<AddCollaboratorResult> => {
     const collaborator = (await ctx.runMutation(
-      internal.collaboratorInvites.addRecord,
+      internal.domain.collaborators.invites.addRecord,
       args,
     )) as AddedCollaboratorPayload;
 

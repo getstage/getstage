@@ -241,6 +241,7 @@ export const createProjectInputSchema = z.object({
         tasks: z.array(z.string().min(1, "Task name is required")).optional(),
       }),
     )
+    .min(2, "Select at least two phases.")
     .optional(),
 });
 

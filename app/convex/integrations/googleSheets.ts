@@ -1,9 +1,9 @@
 import { v } from "convex/values";
-import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
-import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
-import { requireAuthUser } from "./_helpers";
-import { r2 } from "./r2";
+import { action, internalMutation, internalQuery, mutation, query } from "../_generated/server";
+import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
+import { requireAuthUser } from "../_helpers";
+import { attachTrackedR2Asset, deleteOldR2Asset, r2 } from "../r2";
 
 function now() {
   return Date.now();
@@ -579,7 +579,7 @@ export const connectSheet = mutation({
       return connectionId._id;
     }
 
-    return ctx.db.insert("sheetConnections", {
+    const createdId = await ctx.db.insert("sheetConnections", {
       userId: user._id,
       sourceType: "google_sheet",
       status: "active",
@@ -589,6 +589,8 @@ export const connectSheet = mutation({
       createdAt: timestamp,
       updatedAt: timestamp,
     });
+
+    return createdId;
   },
 });
 
@@ -615,6 +617,10 @@ export const uploadCsv = mutation({
       .first();
 
     if (existing) {
+      if (existing.r2ObjectKey && existing.r2ObjectKey !== args.r2ObjectKey) {
+        await deleteOldR2Asset(ctx, existing.r2ObjectKey);
+      }
+
       await ctx.db.patch(existing._id, {
         status: "active",
         storageId: undefined,
@@ -626,10 +632,13 @@ export const uploadCsv = mutation({
       if (existing.storageId) {
         await ctx.storage.delete(existing.storageId);
       }
+
+      await attachTrackedR2Asset(ctx, { key: args.r2ObjectKey });
+
       return existing._id;
     }
 
-    return ctx.db.insert("sheetConnections", {
+    const connectionId = await ctx.db.insert("sheetConnections", {
       userId: user._id,
       sourceType: "csv_upload",
       status: "active",
@@ -638,6 +647,10 @@ export const uploadCsv = mutation({
       createdAt: timestamp,
       updatedAt: timestamp,
     });
+
+    await attachTrackedR2Asset(ctx, { key: args.r2ObjectKey });
+
+    return connectionId;
   },
 });
 
@@ -661,6 +674,9 @@ export const disconnectSheet = mutation({
 
     if (sourceType === "csv_upload" && connection.storageId) {
       await ctx.storage.delete(connection.storageId);
+    }
+    if (sourceType === "csv_upload" && connection.r2ObjectKey) {
+      await deleteOldR2Asset(ctx, connection.r2ObjectKey);
     }
 
     await ctx.db.patch(connection._id, {
@@ -686,7 +702,7 @@ export const runSheetImport = action({
     skippedCount: number;
   }> => {
     const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
-    const connection = (await ctx.runQuery(internal.googleSheets.getConnectionForImport, {
+    const connection = (await ctx.runQuery(internal.integrations.googleSheets.getConnectionForImport, {
       userId: viewer.userId,
       sourceType: args.sourceType,
     })) as SheetConnectionRecord | null;
@@ -768,11 +784,11 @@ export const runSheetImport = action({
         }
       }
 
-      const clients = (await ctx.runQuery(internal.googleSheets.getClientsForImport, {
+      const clients = (await ctx.runQuery(internal.integrations.googleSheets.getClientsForImport, {
         userId: viewer.userId,
       })) as ImportClient[];
       const clientSet = new Set(clients.map((client: ImportClient) => client.name.trim().toLowerCase()));
-      const projects = (await ctx.runQuery(internal.googleSheets.getProjectsForImport, {
+      const projects = (await ctx.runQuery(internal.integrations.googleSheets.getProjectsForImport, {
         userId: viewer.userId,
       })) as ImportProject[];
       const projectMap = new Map<string, Id<"projects">>(
@@ -847,14 +863,14 @@ export const runSheetImport = action({
         };
       });
 
-      return ctx.runMutation(internal.googleSheets.applyImportedEntries, {
+      return ctx.runMutation(internal.integrations.googleSheets.applyImportedEntries, {
         userId: viewer.userId,
         sheetConnectionId: connection._id,
         source: connection.sourceType,
         entries,
       });
     } catch (error) {
-      await ctx.runMutation(internal.googleSheets.markImportError, {
+      await ctx.runMutation(internal.integrations.googleSheets.markImportError, {
         userId: viewer.userId,
         sheetConnectionId: connection._id,
         errorSummary: error instanceof Error ? error.message : "Import failed.",

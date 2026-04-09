@@ -96,7 +96,9 @@ function renderStepContent(creation: ProjectCreationState) {
           fileInputRef={creation.fileInputRef}
           onClientModeChange={creation.setClientMode}
           onExistingClientSelect={(clientName) => {
-            const client = creation.existingClients.find((item) => item.name === clientName);
+            const client = creation.existingClients.find(
+              (item: { name: string }) => item.name === clientName,
+            );
             if (!client) {
               creation.setClientMode("new");
               return;

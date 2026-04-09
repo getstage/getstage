@@ -1,7 +1,7 @@
-import type { Id } from "./_generated/dataModel";
-import type { MutationCtx } from "./_generated/server";
-import { ensurePortalConfig, getUserByEmail, requireProjectOwner } from "./_helpers";
-import { getCurrentSubscriptionSnapshot } from "./billing";
+import type { Id } from "../../_generated/dataModel";
+import type { MutationCtx } from "../../_generated/server";
+import { ensurePortalConfig, getUserByEmail, requireProjectOwner } from "../../_helpers";
+import { getCurrentSubscriptionSnapshot } from "../../billing";
 
 function getEnv(name: string) {
   return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[

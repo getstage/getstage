@@ -7,6 +7,7 @@ import {
 import type { AuthUser } from "@/lib/auth";
 import { SAVED_FEEDBACK, useFeedback } from "@/hooks/useFeedback";
 import { api } from "@/lib/convex";
+import { trackDatafastGoal } from "@/lib/datafast";
 import { googleSheetsUrlSchema } from "@/lib/validation";
 import {
   GOOGLE_SHEETS_TRANSACTIONS_DIALOG_MESSAGE,
@@ -23,19 +24,19 @@ type IntegrationsSettingsInput = {
 
 export function useIntegrationsSettings({ user, enabled }: IntegrationsSettingsInput) {
   const stripeConnection = useConvexQuery(
-    api.stripeConnect.getStripeConnectionStatus,
+    api.integrations.stripeConnect.getStripeConnectionStatus,
     !user || !enabled ? "skip" : {},
   );
   const sheetConnections = useConvexQuery(
-    api.googleSheets.getSheetConnectionStatus,
+    api.integrations.googleSheets.getSheetConnectionStatus,
     !user || !enabled ? "skip" : {},
   );
-  const connectSheet = useConvexMutation(api.googleSheets.connectSheet);
-  const disconnectSheet = useConvexMutation(api.googleSheets.disconnectSheet);
-  const disconnectStripe = useConvexAction(api.stripeConnect.disconnectStripe);
-  const startStripeConnect = useConvexAction(api.stripeConnect.startConnect);
-  const syncStripeData = useConvexAction(api.stripeConnect.syncStripeData);
-  const runSheetImport = useConvexAction(api.googleSheets.runSheetImport);
+  const connectSheet = useConvexMutation(api.integrations.googleSheets.connectSheet);
+  const disconnectSheet = useConvexMutation(api.integrations.googleSheets.disconnectSheet);
+  const disconnectStripe = useConvexAction(api.integrations.stripeConnect.disconnectStripe);
+  const startStripeConnect = useConvexAction(api.integrations.stripeConnect.startConnect);
+  const syncStripeData = useConvexAction(api.integrations.stripeConnect.syncStripeData);
+  const runSheetImport = useConvexAction(api.integrations.googleSheets.runSheetImport);
   const [googleSheetUrl, setGoogleSheetUrl] = useState("");
   const [googleSheetHelpDialogOpen, setGoogleSheetHelpDialogOpen] = useState(false);
   const [googleSheetHelpDialogTitle, setGoogleSheetHelpDialogTitle] = useState(
@@ -166,6 +167,10 @@ export function useIntegrationsSettings({ user, enabled }: IntegrationsSettingsI
         templateVersion: "v1",
       });
       setGoogleSheetUrl(normalizedUrl);
+      trackDatafastGoal("google_sheets_connected", {
+        source: "settings_integrations",
+        import_type: "google_sheet",
+      });
       showGoogleSheetFeedback(SAVED_FEEDBACK);
     } catch (error) {
       showFriendlyFeedback(

@@ -13,6 +13,7 @@ import { DashboardPreview } from "@/components/dashboard/DashboardPreview";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { DashboardTimelineSelector } from "@/components/dashboard/DashboardTimelineSelector";
 import { PaymentsCard } from "@/components/dashboard/PaymentsCard";
+import { PipelineCard } from "@/components/dashboard/PipelineCard";
 import { ProjectDock } from "@/components/dashboard/ProjectDock";
 import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
 import { Timeline, type TimelineHorizon } from "@/components/dashboard/Timeline";
@@ -31,7 +32,11 @@ import { useBillingSuccessEvent } from "@/features/dashboard/useBillingSuccessEv
 import { useDashboardPreviewState } from "@/features/dashboard/useDashboardPreviewState";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/convex";
-import { getDatafastCheckoutMetadata } from "@/lib/datafast";
+import {
+  getDatafastCheckoutMetadata,
+  trackDatafastGoal,
+  trackDatafastGoalOnce,
+} from "@/lib/datafast";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { getGreeting } from "@/lib/utils";
 
@@ -109,6 +114,10 @@ export function DashboardPage() {
       await completeOnboarding({
         workCategory: submission.fieldOfWork,
       });
+      trackDatafastGoalOnce("onboarding_completed", "onboarding_completed", {
+        source: "onboarding_modal",
+        work_category: submission.fieldOfWork,
+      });
     } catch (error) {
       console.error("Could not persist onboarding state", error);
     } finally {
@@ -131,10 +140,18 @@ export function DashboardPage() {
     setPaywallError(null);
 
     try {
-      const result = await createCheckoutSession(getDatafastCheckoutMetadata());
+      const result = await createCheckoutSession({
+        source: "dashboard_upgrade",
+        ...getDatafastCheckoutMetadata(),
+      });
       if (!result.url) {
         throw new Error("Stripe checkout URL is missing.");
       }
+      trackDatafastGoal("checkout_started", {
+        source: "dashboard_upgrade",
+        billing_cycle: "yearly",
+        plan: "pro",
+      });
       window.location.assign(result.url);
     } catch (error) {
       setPaywallError(
@@ -239,12 +256,10 @@ export function DashboardPage() {
           )}
 
           <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
-            <div className="mt-8 space-y-4">
-              <div className="grid gap-4 lg:grid-cols-2">
-                <UpcomingTasksCard tasks={upcomingTasks} />
-                <RecentActivityCard entries={recentActivity} />
-              </div>
-
+            <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <UpcomingTasksCard tasks={upcomingTasks} />
+              <RecentActivityCard entries={recentActivity} />
+              <PipelineCard projects={projects} />
               <PaymentsCard paymentSummary={dashboardData?.paymentSummary ?? null} />
             </div>
           </div>

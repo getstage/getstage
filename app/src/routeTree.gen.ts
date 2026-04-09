@@ -9,21 +9,43 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OpenclawRouteImport } from './routes/openclaw'
+import { Route as DocsRouteImport } from './routes/docs'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgentsIndexRouteImport } from './routes/agents/index'
 import { Route as PortalTokenRouteImport } from './routes/portal.$token'
 import { Route as HelpImportTransactionsViaGoogleSheetsRouteImport } from './routes/help/import-transactions-via-google-sheets'
+import { Route as AgentsStitchRouteImport } from './routes/agents/stitch'
+import { Route as AgentsSkillsRouteImport } from './routes/agents/skills'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedNewProjectRouteImport } from './routes/_authed/new-project'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
 import { Route as AuthedProjectIdRouteImport } from './routes/_authed/project.$id'
 import { Route as PortalTokenTaskTaskIdRouteImport } from './routes/portal.$token.task.$taskId'
+import { Route as AuthedProjectIdStitchRouteImport } from './routes/_authed/project.$id.stitch'
 import { Route as AuthedProjectIdTaskTaskIdRouteImport } from './routes/_authed/project.$id.task.$taskId'
 
+const OpenclawRoute = OpenclawRouteImport.update({
+  id: '/openclaw',
+  path: '/openclaw',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentsRoute = AgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedRoute = AuthedRouteImport.update({
@@ -34,6 +56,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AgentsIndexRoute = AgentsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AgentsRoute,
 } as any)
 const PortalTokenRoute = PortalTokenRouteImport.update({
   id: '/portal/$token',
@@ -46,6 +73,16 @@ const HelpImportTransactionsViaGoogleSheetsRoute =
     path: '/help/import-transactions-via-google-sheets',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AgentsStitchRoute = AgentsStitchRouteImport.update({
+  id: '/stitch',
+  path: '/stitch',
+  getParentRoute: () => AgentsRoute,
+} as any)
+const AgentsSkillsRoute = AgentsSkillsRouteImport.update({
+  id: '/skills',
+  path: '/skills',
+  getParentRoute: () => AgentsRoute,
+} as any)
 const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -71,6 +108,11 @@ const PortalTokenTaskTaskIdRoute = PortalTokenTaskTaskIdRouteImport.update({
   path: '/task/$taskId',
   getParentRoute: () => PortalTokenRoute,
 } as any)
+const AuthedProjectIdStitchRoute = AuthedProjectIdStitchRouteImport.update({
+  id: '/stitch',
+  path: '/stitch',
+  getParentRoute: () => AuthedProjectIdRoute,
+} as any)
 const AuthedProjectIdTaskTaskIdRoute =
   AuthedProjectIdTaskTaskIdRouteImport.update({
     id: '/task/$taskId',
@@ -80,25 +122,38 @@ const AuthedProjectIdTaskTaskIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agents': typeof AgentsRouteWithChildren
   '/auth': typeof AuthRoute
+  '/docs': typeof DocsRoute
+  '/openclaw': typeof OpenclawRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
   '/settings': typeof AuthedSettingsRoute
+  '/agents/skills': typeof AgentsSkillsRoute
+  '/agents/stitch': typeof AgentsStitchRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
+  '/agents/': typeof AgentsIndexRoute
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
+  '/project/$id/stitch': typeof AuthedProjectIdStitchRoute
   '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
   '/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/docs': typeof DocsRoute
+  '/openclaw': typeof OpenclawRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
   '/settings': typeof AuthedSettingsRoute
+  '/agents/skills': typeof AgentsSkillsRoute
+  '/agents/stitch': typeof AgentsStitchRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
+  '/agents': typeof AgentsIndexRoute
   '/project/$id': typeof AuthedProjectIdRouteWithChildren
+  '/project/$id/stitch': typeof AuthedProjectIdStitchRoute
   '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
   '/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
 }
@@ -106,13 +161,20 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
+  '/agents': typeof AgentsRouteWithChildren
   '/auth': typeof AuthRoute
+  '/docs': typeof DocsRoute
+  '/openclaw': typeof OpenclawRoute
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/new-project': typeof AuthedNewProjectRoute
   '/_authed/settings': typeof AuthedSettingsRoute
+  '/agents/skills': typeof AgentsSkillsRoute
+  '/agents/stitch': typeof AgentsStitchRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
+  '/agents/': typeof AgentsIndexRoute
   '/_authed/project/$id': typeof AuthedProjectIdRouteWithChildren
+  '/_authed/project/$id/stitch': typeof AuthedProjectIdStitchRoute
   '/portal/$token/task/$taskId': typeof PortalTokenTaskTaskIdRoute
   '/_authed/project/$id/task/$taskId': typeof AuthedProjectIdTaskTaskIdRoute
 }
@@ -120,38 +182,58 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/agents'
     | '/auth'
+    | '/docs'
+    | '/openclaw'
     | '/dashboard'
     | '/new-project'
     | '/settings'
+    | '/agents/skills'
+    | '/agents/stitch'
     | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
+    | '/agents/'
     | '/project/$id'
+    | '/project/$id/stitch'
     | '/portal/$token/task/$taskId'
     | '/project/$id/task/$taskId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
+    | '/docs'
+    | '/openclaw'
     | '/dashboard'
     | '/new-project'
     | '/settings'
+    | '/agents/skills'
+    | '/agents/stitch'
     | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
+    | '/agents'
     | '/project/$id'
+    | '/project/$id/stitch'
     | '/portal/$token/task/$taskId'
     | '/project/$id/task/$taskId'
   id:
     | '__root__'
     | '/'
     | '/_authed'
+    | '/agents'
     | '/auth'
+    | '/docs'
+    | '/openclaw'
     | '/_authed/dashboard'
     | '/_authed/new-project'
     | '/_authed/settings'
+    | '/agents/skills'
+    | '/agents/stitch'
     | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
+    | '/agents/'
     | '/_authed/project/$id'
+    | '/_authed/project/$id/stitch'
     | '/portal/$token/task/$taskId'
     | '/_authed/project/$id/task/$taskId'
   fileRoutesById: FileRoutesById
@@ -159,18 +241,42 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
+  AgentsRoute: typeof AgentsRouteWithChildren
   AuthRoute: typeof AuthRoute
+  DocsRoute: typeof DocsRoute
+  OpenclawRoute: typeof OpenclawRoute
   HelpImportTransactionsViaGoogleSheetsRoute: typeof HelpImportTransactionsViaGoogleSheetsRoute
   PortalTokenRoute: typeof PortalTokenRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/openclaw': {
+      id: '/openclaw'
+      path: '/openclaw'
+      fullPath: '/openclaw'
+      preLoaderRoute: typeof OpenclawRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agents': {
+      id: '/agents'
+      path: '/agents'
+      fullPath: '/agents'
+      preLoaderRoute: typeof AgentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authed': {
@@ -187,6 +293,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agents/': {
+      id: '/agents/'
+      path: '/'
+      fullPath: '/agents/'
+      preLoaderRoute: typeof AgentsIndexRouteImport
+      parentRoute: typeof AgentsRoute
+    }
     '/portal/$token': {
       id: '/portal/$token'
       path: '/portal/$token'
@@ -200,6 +313,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/help/import-transactions-via-google-sheets'
       preLoaderRoute: typeof HelpImportTransactionsViaGoogleSheetsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/agents/stitch': {
+      id: '/agents/stitch'
+      path: '/stitch'
+      fullPath: '/agents/stitch'
+      preLoaderRoute: typeof AgentsStitchRouteImport
+      parentRoute: typeof AgentsRoute
+    }
+    '/agents/skills': {
+      id: '/agents/skills'
+      path: '/skills'
+      fullPath: '/agents/skills'
+      preLoaderRoute: typeof AgentsSkillsRouteImport
+      parentRoute: typeof AgentsRoute
     }
     '/_authed/settings': {
       id: '/_authed/settings'
@@ -236,6 +363,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalTokenTaskTaskIdRouteImport
       parentRoute: typeof PortalTokenRoute
     }
+    '/_authed/project/$id/stitch': {
+      id: '/_authed/project/$id/stitch'
+      path: '/stitch'
+      fullPath: '/project/$id/stitch'
+      preLoaderRoute: typeof AuthedProjectIdStitchRouteImport
+      parentRoute: typeof AuthedProjectIdRoute
+    }
     '/_authed/project/$id/task/$taskId': {
       id: '/_authed/project/$id/task/$taskId'
       path: '/task/$taskId'
@@ -247,10 +381,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthedProjectIdRouteChildren {
+  AuthedProjectIdStitchRoute: typeof AuthedProjectIdStitchRoute
   AuthedProjectIdTaskTaskIdRoute: typeof AuthedProjectIdTaskTaskIdRoute
 }
 
 const AuthedProjectIdRouteChildren: AuthedProjectIdRouteChildren = {
+  AuthedProjectIdStitchRoute: AuthedProjectIdStitchRoute,
   AuthedProjectIdTaskTaskIdRoute: AuthedProjectIdTaskTaskIdRoute,
 }
 
@@ -275,6 +411,21 @@ const AuthedRouteChildren: AuthedRouteChildren = {
 const AuthedRouteWithChildren =
   AuthedRoute._addFileChildren(AuthedRouteChildren)
 
+interface AgentsRouteChildren {
+  AgentsSkillsRoute: typeof AgentsSkillsRoute
+  AgentsStitchRoute: typeof AgentsStitchRoute
+  AgentsIndexRoute: typeof AgentsIndexRoute
+}
+
+const AgentsRouteChildren: AgentsRouteChildren = {
+  AgentsSkillsRoute: AgentsSkillsRoute,
+  AgentsStitchRoute: AgentsStitchRoute,
+  AgentsIndexRoute: AgentsIndexRoute,
+}
+
+const AgentsRouteWithChildren =
+  AgentsRoute._addFileChildren(AgentsRouteChildren)
+
 interface PortalTokenRouteChildren {
   PortalTokenTaskTaskIdRoute: typeof PortalTokenTaskTaskIdRoute
 }
@@ -290,7 +441,10 @@ const PortalTokenRouteWithChildren = PortalTokenRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
+  AgentsRoute: AgentsRouteWithChildren,
   AuthRoute: AuthRoute,
+  DocsRoute: DocsRoute,
+  OpenclawRoute: OpenclawRoute,
   HelpImportTransactionsViaGoogleSheetsRoute:
     HelpImportTransactionsViaGoogleSheetsRoute,
   PortalTokenRoute: PortalTokenRouteWithChildren,

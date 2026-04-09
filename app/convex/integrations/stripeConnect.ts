@@ -1,9 +1,9 @@
 import Stripe from "stripe";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
-import { action, httpAction, internalMutation, internalQuery, query, type MutationCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
-import { requireAuthUser } from "./_helpers";
+import { internal } from "../_generated/api";
+import { action, httpAction, internalMutation, internalQuery, query, type MutationCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
+import { requireAuthUser } from "../_helpers";
 
 function getEnv(name: string) {
   return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[
@@ -777,7 +777,7 @@ export const disconnectStripe = action({
   args: {},
   handler: async (ctx) => {
     const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
-    const connection = (await ctx.runQuery(internal.stripeConnect.getConnectionForViewer, {
+    const connection = (await ctx.runQuery(internal.integrations.stripeConnect.getConnectionForViewer, {
       userId: viewer.userId,
     })) as StripeConnectionRecord | null;
 
@@ -812,10 +812,10 @@ export const disconnectStripe = action({
       }
     }
 
-    await ctx.runMutation(internal.stripeConnect.clearStripeConnectionData, {
+    await ctx.runMutation(internal.integrations.stripeConnect.clearStripeConnectionData, {
       connectionId: connection._id,
     });
-    await ctx.runMutation(internal.stripeConnect.markConnectionDisconnected, {
+    await ctx.runMutation(internal.integrations.stripeConnect.markConnectionDisconnected, {
       connectionId: connection._id,
     });
 
@@ -832,7 +832,7 @@ export const startConnect = action({
     const clientId = requireEnv("STRIPE_CONNECT_CLIENT_ID");
     const state = crypto.randomUUID();
 
-    await ctx.runMutation(internal.stripeConnect.upsertPendingConnection, {
+    await ctx.runMutation(internal.integrations.stripeConnect.upsertPendingConnection, {
       userId: viewer.userId,
       oauthState: state,
     });
@@ -859,7 +859,7 @@ export const completeConnect = action({
     accountEmail: string | null;
   }> => {
     const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
-    const connection = (await ctx.runQuery(internal.stripeConnect.getConnectionForViewer, {
+    const connection = (await ctx.runQuery(internal.integrations.stripeConnect.getConnectionForViewer, {
       userId: viewer.userId,
     })) as StripeConnectionRecord | null;
 
@@ -872,7 +872,7 @@ export const completeConnect = action({
     const displayName = getAccountDisplayName(account);
     const accountEmail = account.email ?? undefined;
 
-    await ctx.runMutation(internal.stripeConnect.updateConnectionSnapshot, {
+    await ctx.runMutation(internal.integrations.stripeConnect.updateConnectionSnapshot, {
       connectionId: connection._id,
       status: getAccountConnectionStatus(account),
       displayName,
@@ -895,7 +895,7 @@ export const syncStripeData = action({
     importedPayments: number;
   }> => {
     const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
-    const connection = (await ctx.runQuery(internal.stripeConnect.getConnectionForViewer, {
+    const connection = (await ctx.runQuery(internal.integrations.stripeConnect.getConnectionForViewer, {
       userId: viewer.userId,
     })) as StripeConnectionRecord | null;
 
@@ -954,7 +954,7 @@ export const syncStripeData = action({
       };
     });
 
-    return ctx.runMutation(internal.stripeConnect.applyStripeSync, {
+    return ctx.runMutation(internal.integrations.stripeConnect.applyStripeSync, {
       userId: viewer.userId,
       paymentConnectionId: connection._id,
       displayName,
@@ -977,7 +977,7 @@ export const connectCallback = httpAction(async (ctx, request) => {
 
   if (error) {
     if (state) {
-      await ctx.runMutation(internal.stripeConnect.markConnectionErrorByState, {
+      await ctx.runMutation(internal.integrations.stripeConnect.markConnectionErrorByState, {
         oauthState: state,
         error,
       });
@@ -1021,7 +1021,7 @@ export const connectCallback = httpAction(async (ctx, request) => {
     const stripe = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
     const account = await stripe.accounts.retrieve(payload.stripe_user_id);
 
-    await ctx.runMutation(internal.stripeConnect.completeConnectionByState, {
+    await ctx.runMutation(internal.integrations.stripeConnect.completeConnectionByState, {
       oauthState: state,
       externalAccountId: payload.stripe_user_id,
       displayName: getAccountDisplayName(account),
@@ -1032,7 +1032,7 @@ export const connectCallback = httpAction(async (ctx, request) => {
     redirectUrl.searchParams.set("stripe", "connected");
     return createRedirect(redirectUrl.toString());
   } catch (error) {
-    await ctx.runMutation(internal.stripeConnect.markConnectionErrorByState, {
+    await ctx.runMutation(internal.integrations.stripeConnect.markConnectionErrorByState, {
       oauthState: state,
       error: error instanceof Error ? error.message : "Stripe connect failed.",
     });
@@ -1098,14 +1098,14 @@ export const connectWebhook = httpAction(async (ctx, request) => {
 
   switch (event.type) {
     case "account.application.deauthorized": {
-      const connection = (await ctx.runQuery(internal.stripeConnect.getConnectionByExternalAccountId, {
+      const connection = (await ctx.runQuery(internal.integrations.stripeConnect.getConnectionByExternalAccountId, {
         externalAccountId: accountId,
       })) as StripeConnectionRecord | null;
       if (connection?._id) {
-        await ctx.runMutation(internal.stripeConnect.clearStripeConnectionData, {
+        await ctx.runMutation(internal.integrations.stripeConnect.clearStripeConnectionData, {
           connectionId: connection._id,
         });
-        await ctx.runMutation(internal.stripeConnect.markConnectionDisconnected, {
+        await ctx.runMutation(internal.integrations.stripeConnect.markConnectionDisconnected, {
           connectionId: connection._id,
         });
       }
@@ -1114,7 +1114,7 @@ export const connectWebhook = httpAction(async (ctx, request) => {
 
     case "account.updated": {
       const account = event.data.object as Stripe.Account;
-      await ctx.runMutation(internal.stripeConnect.updateConnectionSnapshotByExternalAccountId, {
+      await ctx.runMutation(internal.integrations.stripeConnect.updateConnectionSnapshotByExternalAccountId, {
         externalAccountId: accountId,
         status: getAccountConnectionStatus(account),
         displayName: getAccountDisplayName(account),

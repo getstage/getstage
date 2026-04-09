@@ -1,6 +1,7 @@
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { deleteOldR2Asset } from "../r2";
+import { deleteGeneratedDesignsForProject } from "../integrations/stitch";
 
 async function deleteAttachmentTreeForProject(
   ctx: MutationCtx,
@@ -47,6 +48,8 @@ async function deleteAttachmentTreeForProject(
   if (portalConfig) {
     await ctx.db.delete(portalConfig._id);
   }
+
+  await deleteGeneratedDesignsForProject(ctx, projectId);
 }
 
 export async function deleteAccountDataForUser(

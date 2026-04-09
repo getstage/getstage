@@ -73,6 +73,48 @@ const attachmentType = v.union(
   v.literal("other"),
 );
 
+const generatedDesignProvider = v.literal("stitch");
+
+const designConnectionStatus = v.union(
+  v.literal("active"),
+  v.literal("error"),
+  v.literal("archived"),
+);
+
+const generatedDesignSource = v.union(
+  v.literal("stage_proxy"),
+  v.literal("user_sync"),
+);
+
+const generatedDesignStatus = v.union(
+  v.literal("ready"),
+  v.literal("error"),
+);
+
+const stitchDeviceType = v.union(
+  v.literal("DEVICE_TYPE_UNSPECIFIED"),
+  v.literal("MOBILE"),
+  v.literal("DESKTOP"),
+  v.literal("TABLET"),
+  v.literal("AGNOSTIC"),
+);
+
+const stitchModelId = v.union(
+  v.literal("MODEL_ID_UNSPECIFIED"),
+  v.literal("GEMINI_3_PRO"),
+  v.literal("GEMINI_3_FLASH"),
+);
+
+const uploadPurpose = v.union(
+  v.literal("task-attachment"),
+  v.literal("csv-upload"),
+  v.literal("profile-avatar"),
+  v.literal("client-avatar"),
+  v.literal("project-marker"),
+  v.literal("portal-logo"),
+  v.literal("generated-design"),
+);
+
 const subscriptionStatus = v.union(
   v.literal("active"),
   v.literal("trialing"),
@@ -231,6 +273,46 @@ export default defineSchema({
     mimeType: v.string(),
     createdAt: v.number(),
   }).index("by_task", ["taskId"]),
+
+  projectDesignConnections: defineTable({
+    projectId: v.id("projects"),
+    provider: generatedDesignProvider,
+    externalProjectId: v.optional(v.string()),
+    externalProjectUrl: v.string(),
+    title: v.optional(v.string()),
+    status: designConnectionStatus,
+    lastSyncedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_project_provider", ["projectId", "provider"]),
+
+  projectGeneratedDesigns: defineTable({
+    userId: v.id("users"),
+    projectId: v.id("projects"),
+    phaseId: v.optional(v.id("phases")),
+    provider: generatedDesignProvider,
+    source: generatedDesignSource,
+    title: v.optional(v.string()),
+    prompt: v.optional(v.string()),
+    deviceType: v.optional(stitchDeviceType),
+    modelId: v.optional(stitchModelId),
+    stitchProjectId: v.optional(v.string()),
+    stitchScreenId: v.optional(v.string()),
+    stitchScreenUrl: v.optional(v.string()),
+    r2ObjectKey: v.string(),
+    sortOrder: v.optional(v.number()),
+    status: generatedDesignStatus,
+    errorMessage: v.optional(v.string()),
+    lastSyncedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_project_createdAt", ["projectId", "createdAt"])
+    .index("by_user", ["userId"])
+    .index("by_project_screen", ["projectId", "stitchScreenId"]),
 
   projectCollaborators: defineTable({
     projectId: v.id("projects"),
@@ -396,4 +478,35 @@ export default defineSchema({
     .index("by_user_source_record", ["userId", "source", "sourceRecordId"])
     .index("by_payment_connection", ["paymentConnectionId"])
     .index("by_sheet_connection", ["sheetConnectionId"]),
+
+  apiKeys: defineTable({
+    userId: v.id("users"),
+    hashedKey: v.string(),
+    name: v.string(),
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+  })
+    .index("by_hashed_key", ["hashedKey"])
+    .index("by_user", ["userId"]),
+
+  uploadedAssets: defineTable({
+    userId: v.id("users"),
+    key: v.string(),
+    purpose: uploadPurpose,
+    fileName: v.string(),
+    fileSize: v.number(),
+    mimeType: v.string(),
+    createdAt: v.number(),
+    // Legacy fields kept optional so older rows don't block deploys.
+    status: v.optional(v.string()),
+    source: v.optional(v.string()),
+    entityType: v.optional(v.string()),
+    entityId: v.optional(v.string()),
+    attachedAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_key", ["key"])
+    .index("by_createdAt", ["createdAt"])
+    .index("by_user_createdAt", ["userId", "createdAt"]),
 });

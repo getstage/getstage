@@ -1,10 +1,12 @@
-import { httpRouter } from "convex/server";
+import type { ActionCtx } from "./_generated/server";
+import { HttpRouterWithHono, type HonoWithConvex } from "convex-helpers/server/hono";
 import { registerRoutes, type StripeComponent } from "@convex-dev/stripe";
 import { components } from "./_generated/api";
 import { auth } from "./auth";
-import { connectCallback, connectWebhook } from "./stripeConnect";
+import { apiApp } from "./api";
+import { connectCallback, connectWebhook } from "./integrations/stripeConnect";
 
-const http = httpRouter();
+const http = new HttpRouterWithHono(apiApp as HonoWithConvex<ActionCtx>);
 auth.addHttpRoutes(http);
 registerRoutes(http, (components as { stripe: StripeComponent }).stripe, {
   webhookPath: "/stripe/webhook",

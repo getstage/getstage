@@ -25,3 +25,7 @@ yarn-error.log*
 
 # Wrangler / Cloudflare local files
 .wrangler/
+
+# Local Claude tooling
+.claude/settings.local.json
+.claude/worktrees/

@@ -7,11 +7,13 @@ export const Route = createFileRoute("/_authed/project/$id")({
 
 function ProjectRoute() {
   const matches = useMatches();
-  const isTaskRouteActive = matches.some(
-    (match) => match.routeId === "/_authed/project/$id/task/$taskId",
+  const isChildRouteActive = matches.some(
+    (match) =>
+      match.routeId === "/_authed/project/$id/task/$taskId" ||
+      match.routeId === "/_authed/project/$id/stitch",
   );
 
-  if (isTaskRouteActive) {
+  if (isChildRouteActive) {
     return <Outlet />;
   }
 

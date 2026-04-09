@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import {
   getAttachmentsForTask,
@@ -7,19 +7,12 @@ import {
   requirePhaseAccess,
   requireTaskAccess,
 } from "./_helpers";
+import { addTaskForUser, toggleTaskForUser } from "./domain/projects/service";
 import { recomputeProjectState } from "./domain/projects/readModel";
-import { deleteOldR2Asset, r2 } from "./r2";
+import { attachTrackedR2Asset, deleteOldR2Asset, r2 } from "./r2";
 
 function now() {
   return Date.now();
-}
-
-async function getProjectIdForTask(
-  ctx: MutationCtx,
-  taskId: Id<"tasks">,
-) {
-  const { task, project, role } = await requireTaskAccess(ctx, taskId);
-  return { task, projectId: project._id, role };
 }
 
 export const getProjectMembers = query({
@@ -70,26 +63,12 @@ export const create = mutation({
     title: v.string(),
   },
   handler: async (ctx, { phaseId, title }) => {
-    const { project } = await requirePhaseAccess(ctx, phaseId);
-
-    const existingTasks = await ctx.db
-      .query("tasks")
-      .withIndex("by_phase_order", (q) => q.eq("phaseId", phaseId))
-      .collect();
-
-    const timestamp = now();
-    const taskId = await ctx.db.insert("tasks", {
+    const { user } = await requirePhaseAccess(ctx, phaseId);
+    return addTaskForUser(ctx, {
+      userId: user._id,
       phaseId,
-      title: title.trim(),
-      isCompleted: false,
-      content: "",
-      order: existingTasks.length,
-      createdAt: timestamp,
-      updatedAt: timestamp,
+      title,
     });
-
-    await recomputeProjectState(ctx, project._id);
-    return taskId;
   },
 });
 
@@ -207,14 +186,11 @@ export const toggleComplete = mutation({
     taskId: v.id("tasks"),
   },
   handler: async (ctx, { taskId }) => {
-    const { task, projectId } = await getProjectIdForTask(ctx, taskId);
-
-    await ctx.db.patch(taskId, {
-      isCompleted: !task.isCompleted,
-      updatedAt: now(),
+    const { user } = await requireTaskAccess(ctx, taskId);
+    return toggleTaskForUser(ctx, {
+      userId: user._id,
+      taskId,
     });
-
-    await recomputeProjectState(ctx, projectId);
   },
 });
 
@@ -310,6 +286,8 @@ export const saveAttachment = mutation({
     await ctx.db.patch(args.taskId, {
       updatedAt: timestamp,
     });
+
+    await attachTrackedR2Asset(ctx, { key: args.r2ObjectKey });
 
     return attachmentId;
   },
