@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { ActionCtx } from "../_generated/server";
+import { createAgentRoutes } from "./routes/agent";
+import { createAiRoutes } from "./routes/ai";
 import { handleApiError, jsonError } from "./errors";
 import { createPhaseRoutes } from "./routes/phases";
 import { createProjectRoutes } from "./routes/projects";
@@ -31,6 +33,8 @@ export function createApiApp() {
     }),
   );
 
+  app.route("/api/v1/agent", createAgentRoutes());
+  app.route("/api/v1/ai", createAiRoutes());
   app.route("/api/v1/projects", createProjectRoutes());
   app.route("/api/v1/phases", createPhaseRoutes());
   app.route("/api/v1/tasks", createTaskRoutes());

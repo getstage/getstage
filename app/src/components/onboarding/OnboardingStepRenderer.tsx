@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import type { UseProjectDraftResult } from "@/features/project-creation/useProjectDraft";
 import type { OnboardingStepId } from "@/features/onboarding/model";
 import type { ProjectType } from "@/types";
+import type { ClaudeConnectionSummary } from "@/types/settings";
 import { CreatingDashboardText, LoadingStage, StaticOnboardingImage, WelcomeSlide } from "./OnboardingAnimations";
 import { GuideLink, OnboardingStepMotion, OptionCard } from "./OnboardingPrimitives";
 
@@ -38,6 +39,9 @@ type OnboardingStepRendererProps = {
     avatarUrl?: string;
     projectCount: number;
   }>;
+  claudeConnection: ClaudeConnectionSummary;
+  claudeSetupHref: string;
+  claudeInstallCommand: string;
   onSheetUrlChange: (value: string) => void;
   onToggleCsvConnection: () => void;
   onLinkSheetUrl: () => void;
@@ -62,6 +66,9 @@ export function OnboardingStepRenderer({
   isCheckoutLoading,
   checkoutError,
   existingClients,
+  claudeConnection,
+  claudeSetupHref,
+  claudeInstallCommand,
   onSheetUrlChange,
   onToggleCsvConnection,
   onLinkSheetUrl,
@@ -567,6 +574,48 @@ export function OnboardingStepRenderer({
       return (
         <OnboardingStepMotion motionKey="integrations">
           <StaticOnboardingImage src={integrationsImage} alt="Integrations preview" />
+
+          <div className="mt-6 border-t border-border-subtle pt-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2.5">
+                  <img src="/claude.svg" alt="Claude" className="h-4 w-4" />
+                  <p className="text-[15px] font-medium text-text-primary">Claude</p>
+                  <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-[11px] font-medium text-text-secondary">
+                    {claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
+                      ? "Connected"
+                      : claudeConnection?.status === "error"
+                        ? "Needs attention"
+                        : "Not connected"}
+                  </span>
+                </div>
+                <p className="mt-2 max-w-[520px] text-[13px] leading-[1.45] text-text-secondary">
+                  Connect Claude now, or do it later in Settings. Stage will use Claude as the
+                  main workflow layer for research, strategy, and generation.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href={claudeSetupHref}
+                  className="inline-flex h-[42px] items-center justify-center rounded-[10px] bg-text-primary px-4 text-[14px] font-medium text-white transition-opacity hover:opacity-90"
+                >
+                  Continue with Claude
+                </a>
+                <button
+                  type="button"
+                  onClick={() => void navigator.clipboard.writeText(claudeInstallCommand)}
+                  className="inline-flex h-[42px] items-center justify-center rounded-[10px] border border-border px-4 text-[14px] font-medium text-text-primary transition-colors hover:bg-bg-subtle"
+                >
+                  Copy code
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3 text-[12px] text-text-secondary">
+              Install: <span className="font-mono text-text-primary">{claudeInstallCommand}</span>
+            </div>
+          </div>
 
           <div className="mt-6 border-t border-border-subtle pt-5">
             <div className="flex flex-wrap items-start justify-between gap-3">

@@ -12,7 +12,7 @@ import { useState } from "react";
 
 const PAGE_TITLE = "Agent Skills for Stage";
 const PAGE_DESCRIPTION =
-  "Install the Stage skill into Claude Code or any compatible agent. It teaches the agent Stage's API, action policy, and the project-then-design workflow.";
+  "Install the Stage skill into Claude Code or any compatible agent. It teaches the agent Stage's API, action policy, and the research-to-strategy-to-generate workflow.";
 
 const INSTALL_COMMAND = "npx skills add getstage/agent-mode";
 
@@ -62,18 +62,18 @@ const SETUP_STEPS = [
     step: "3",
     title: "Create a project first",
     description:
-      "Tell your agent to create a project in Stage. The skill teaches the agent the right endpoints, action policy, and request format.",
-    code: '"Set up a branding project for a bakery, 4 weeks, budget 2500"',
+      "Tell your agent to create or import the project in Stage first. Stage stays the source of truth before research or design work starts.",
+    code: '"Set up a website project for Lumen Apps with discovery, strategy, and delivery phases"',
     codeLabel: "Example prompt",
     color: "rgba(135,130,245,0.10)",
     border: "rgba(135,130,245,0.16)",
   },
   {
     step: "4",
-    title: "Design in Stitch, sync back",
+    title: "Run the workflow in Claude",
     description:
-      "After the project exists, use Stitch for the UI work. The skill teaches the agent to sync the latest previews back into Stage.",
-    code: '"Link this Stitch project and sync the latest screens"',
+      "After the project exists, use Claude to run research, strategy, generate, and Claude-mediated exports while writing the state back into Stage.",
+    code: '"Research this client, generate strategy sections, then add the summary to Notion"',
     codeLabel: "Example prompt",
     color: "rgba(59,175,218,0.10)",
     border: "rgba(59,175,218,0.18)",
@@ -149,13 +149,13 @@ export function SkillsPage() {
             </div>
 
             <h1 className="mt-6 max-w-[600px] font-heading text-[42px] font-semibold leading-[1.06] tracking-[-1.2px] text-text-primary sm:text-[52px]">
-              Teach your agent how to use Stage
+              Teach your agent how to operate Stage
             </h1>
 
             <p className="mt-5 max-w-[540px] text-[17px] leading-[1.75] text-text-secondary">
               Install the Stage skill from GitHub and your agent learns the API, action
-              policy, and the project-first workflow — including when to create,
-              when to confirm, and when to use Stitch.
+              policy, and the full workflow from project setup to research, strategy,
+              generate, and delivery. Stage stores the truth. Claude does the work.
             </p>
 
             {/* Primary CTA: install command */}

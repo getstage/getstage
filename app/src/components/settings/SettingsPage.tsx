@@ -165,6 +165,24 @@ export function SettingsPage() {
 
             <IntegrationsTab
               active={activeTab === "integrations"}
+              claudeConnection={integrationsSettings.claudeConnection}
+              claudeTools={integrationsSettings.claudeTools}
+              anthropicCredential={integrationsSettings.anthropicCredential}
+              claudeFeedback={integrationsSettings.claudeFeedback}
+              anthropicFeedback={integrationsSettings.anthropicFeedback}
+              isClaudeDisconnecting={integrationsSettings.isClaudeDisconnecting}
+              anthropicApiKey={integrationsSettings.anthropicApiKey}
+              anthropicModelPreference={integrationsSettings.anthropicModelPreference}
+              isAnthropicSaving={integrationsSettings.isAnthropicSaving}
+              isAnthropicTesting={integrationsSettings.isAnthropicTesting}
+              claudeSetupHref={integrationsSettings.claudeSetupHref}
+              claudeInstallCommand={integrationsSettings.claudeInstallCommand}
+              claudeVerifyPrompt={integrationsSettings.claudeVerifyPrompt}
+              onClaudeDisconnect={() => void integrationsSettings.handleClaudeDisconnect()}
+              onAnthropicApiKeyChange={integrationsSettings.setAnthropicApiKey}
+              onAnthropicModelPreferenceChange={integrationsSettings.setAnthropicModelPreference}
+              onAnthropicSave={() => void integrationsSettings.handleAnthropicSave()}
+              onAnthropicTest={() => void integrationsSettings.handleAnthropicTest()}
               stripeConnection={integrationsSettings.stripeConnection}
               stripeFeedback={integrationsSettings.stripeFeedback}
               isStripeConnecting={integrationsSettings.isStripeConnecting}

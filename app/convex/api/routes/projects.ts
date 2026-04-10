@@ -3,6 +3,8 @@ import { Hono } from "hono";
 import { internal } from "../../_generated/api";
 import { authenticateApiKey } from "../auth";
 import {
+  createProjectAiArtifactBodySchema,
+  createProjectAiRunBodySchema,
   createDesignUploadUrlBodySchema,
   createPhaseBodySchema,
   generateDesignBodySchema,
@@ -10,10 +12,12 @@ import {
   importProjectPlanBodySchema,
   projectIdParamSchema,
   syncProjectDesignsBodySchema,
+  upsertProjectAiContextBodySchema,
   upsertDesignConnectionBodySchema,
 } from "../models";
 import { jsonError, validationHook } from "../errors";
 import type { ApiBindings } from "../types";
+import type { Doc, Id } from "../../_generated/dataModel";
 
 export function createProjectRoutes() {
   const app = new Hono<{
@@ -54,6 +58,175 @@ export function createProjectRoutes() {
       });
 
       return c.json({ project }, 201);
+    },
+  );
+
+  app.get(
+    "/:id/ai/context",
+    zValidator("param", projectIdParamSchema, validationHook),
+    async (c) => {
+      const auth = await authenticateApiKey(c);
+      const { id } = c.req.valid("param");
+      const context = await c.env.runQuery(internal.projectAi.getContextForApi, {
+        userId: auth.userId,
+        projectId: id as Id<"projects">,
+      });
+
+      return c.json({
+        context: context
+          ? {
+              id: String(context._id),
+              projectId: String(context.projectId),
+              clientWebsite: context.clientWebsite ?? null,
+              competitorUrls: context.competitorUrls,
+              referenceUrls: context.referenceUrls,
+              brief: context.brief ?? null,
+              notes: context.notes ?? null,
+              updatedAt: context.updatedAt,
+            }
+          : null,
+      });
+    },
+  );
+
+  app.post(
+    "/:id/ai/context",
+    zValidator("param", projectIdParamSchema, validationHook),
+    zValidator("json", upsertProjectAiContextBodySchema, validationHook),
+    async (c) => {
+      const auth = await authenticateApiKey(c);
+      const { id } = c.req.valid("param");
+      const body = c.req.valid("json");
+      const result = await c.env.runMutation(internal.projectAi.upsertContextForApi, {
+        userId: auth.userId,
+        projectId: id as Id<"projects">,
+        clientWebsite: body.clientWebsite,
+        competitorUrls: body.competitorUrls,
+        referenceUrls: body.referenceUrls,
+        brief: body.brief,
+        notes: body.notes,
+      });
+
+      return c.json({ contextId: String(result.contextId) }, 201);
+    },
+  );
+
+  app.get(
+    "/:id/ai/runs",
+    zValidator("param", projectIdParamSchema, validationHook),
+    async (c) => {
+      const auth = await authenticateApiKey(c);
+      const { id } = c.req.valid("param");
+      const module = c.req.query("module");
+      const runs = await c.env.runQuery(internal.projectAi.listRunsForApi, {
+        userId: auth.userId,
+        projectId: id as Id<"projects">,
+        module: module as "research" | "strategy" | "generate" | "delivery" | undefined,
+      }) as Doc<"projectAiRuns">[];
+
+      return c.json({
+        runs: runs.map((run: Doc<"projectAiRuns">) => ({
+          id: String(run._id),
+          projectId: String(run.projectId),
+          connectionId: run.connectionId ? String(run.connectionId) : null,
+          module: run.module,
+          title: run.title,
+          status: run.status,
+          trigger: run.trigger,
+          externalRunId: run.externalRunId ?? null,
+          inputSummary: run.inputSummary ?? null,
+          errorMessage: run.errorMessage ?? null,
+          startedAt: run.startedAt,
+          completedAt: run.completedAt ?? null,
+          updatedAt: run.updatedAt,
+        })),
+      });
+    },
+  );
+
+  app.post(
+    "/:id/ai/runs",
+    zValidator("param", projectIdParamSchema, validationHook),
+    zValidator("json", createProjectAiRunBodySchema, validationHook),
+    async (c) => {
+      const auth = await authenticateApiKey(c);
+      const { id } = c.req.valid("param");
+      const body = c.req.valid("json");
+      const result = await c.env.runMutation(internal.projectAi.createRunForApi, {
+        userId: auth.userId,
+        projectId: id as Id<"projects">,
+        connectionId: body.connectionId as Id<"agentConnections"> | undefined,
+        module: body.module,
+        title: body.title,
+        status: body.status,
+        trigger: body.trigger,
+        inputSummary: body.inputSummary,
+        externalRunId: body.externalRunId,
+      });
+
+      return c.json({ runId: String(result.runId) }, 201);
+    },
+  );
+
+  app.get(
+    "/:id/ai/artifacts",
+    zValidator("param", projectIdParamSchema, validationHook),
+    async (c) => {
+      const auth = await authenticateApiKey(c);
+      const { id } = c.req.valid("param");
+      const module = c.req.query("module");
+      const artifacts = await c.env.runQuery(internal.projectAi.listArtifactsForApi, {
+        userId: auth.userId,
+        projectId: id as Id<"projects">,
+        module: module as "research" | "strategy" | "generate" | "delivery" | undefined,
+      }) as Doc<"projectAiArtifacts">[];
+
+      return c.json({
+        artifacts: artifacts.map((artifact: Doc<"projectAiArtifacts">) => ({
+          id: String(artifact._id),
+          projectId: String(artifact.projectId),
+          runId: artifact.runId ? String(artifact.runId) : null,
+          module: artifact.module,
+          kind: artifact.kind,
+          title: artifact.title,
+          summary: artifact.summary ?? null,
+          status: artifact.status,
+          contentFormat: artifact.contentFormat,
+          contentMarkdown: artifact.contentMarkdown ?? null,
+          contentJson: artifact.contentJson ?? null,
+          externalUrl: artifact.externalUrl ?? null,
+          createdAt: artifact.createdAt,
+          updatedAt: artifact.updatedAt,
+          approvedAt: artifact.approvedAt ?? null,
+        })),
+      });
+    },
+  );
+
+  app.post(
+    "/:id/ai/artifacts",
+    zValidator("param", projectIdParamSchema, validationHook),
+    zValidator("json", createProjectAiArtifactBodySchema, validationHook),
+    async (c) => {
+      const auth = await authenticateApiKey(c);
+      const { id } = c.req.valid("param");
+      const body = c.req.valid("json");
+      const result = await c.env.runMutation(internal.projectAi.createArtifactForApi, {
+        userId: auth.userId,
+        projectId: id as Id<"projects">,
+        runId: body.runId as Id<"projectAiRuns"> | undefined,
+        module: body.module,
+        kind: body.kind,
+        title: body.title,
+        summary: body.summary,
+        status: body.status,
+        contentFormat: body.contentFormat,
+        contentMarkdown: body.contentMarkdown,
+        contentJson: body.contentJson,
+        externalUrl: body.externalUrl,
+      });
+
+      return c.json({ artifactId: String(result.artifactId) }, 201);
     },
   );
 

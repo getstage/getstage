@@ -20,6 +20,7 @@ import { Route as PortalTokenRouteImport } from './routes/portal.$token'
 import { Route as HelpImportTransactionsViaGoogleSheetsRouteImport } from './routes/help/import-transactions-via-google-sheets'
 import { Route as AgentsStitchRouteImport } from './routes/agents/stitch'
 import { Route as AgentsSkillsRouteImport } from './routes/agents/skills'
+import { Route as AgentsClaudeRouteImport } from './routes/agents/claude'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedNewProjectRouteImport } from './routes/_authed/new-project'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
@@ -83,6 +84,11 @@ const AgentsSkillsRoute = AgentsSkillsRouteImport.update({
   path: '/skills',
   getParentRoute: () => AgentsRoute,
 } as any)
+const AgentsClaudeRoute = AgentsClaudeRouteImport.update({
+  id: '/claude',
+  path: '/claude',
+  getParentRoute: () => AgentsRoute,
+} as any)
 const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
   '/settings': typeof AuthedSettingsRoute
+  '/agents/claude': typeof AgentsClaudeRoute
   '/agents/skills': typeof AgentsSkillsRoute
   '/agents/stitch': typeof AgentsStitchRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
@@ -147,6 +154,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
   '/settings': typeof AuthedSettingsRoute
+  '/agents/claude': typeof AgentsClaudeRoute
   '/agents/skills': typeof AgentsSkillsRoute
   '/agents/stitch': typeof AgentsStitchRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
@@ -168,6 +176,7 @@ export interface FileRoutesById {
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/new-project': typeof AuthedNewProjectRoute
   '/_authed/settings': typeof AuthedSettingsRoute
+  '/agents/claude': typeof AgentsClaudeRoute
   '/agents/skills': typeof AgentsSkillsRoute
   '/agents/stitch': typeof AgentsStitchRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/new-project'
     | '/settings'
+    | '/agents/claude'
     | '/agents/skills'
     | '/agents/stitch'
     | '/help/import-transactions-via-google-sheets'
@@ -207,6 +217,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/new-project'
     | '/settings'
+    | '/agents/claude'
     | '/agents/skills'
     | '/agents/stitch'
     | '/help/import-transactions-via-google-sheets'
@@ -227,6 +238,7 @@ export interface FileRouteTypes {
     | '/_authed/dashboard'
     | '/_authed/new-project'
     | '/_authed/settings'
+    | '/agents/claude'
     | '/agents/skills'
     | '/agents/stitch'
     | '/help/import-transactions-via-google-sheets'
@@ -328,6 +340,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgentsSkillsRouteImport
       parentRoute: typeof AgentsRoute
     }
+    '/agents/claude': {
+      id: '/agents/claude'
+      path: '/claude'
+      fullPath: '/agents/claude'
+      preLoaderRoute: typeof AgentsClaudeRouteImport
+      parentRoute: typeof AgentsRoute
+    }
     '/_authed/settings': {
       id: '/_authed/settings'
       path: '/settings'
@@ -412,12 +431,14 @@ const AuthedRouteWithChildren =
   AuthedRoute._addFileChildren(AuthedRouteChildren)
 
 interface AgentsRouteChildren {
+  AgentsClaudeRoute: typeof AgentsClaudeRoute
   AgentsSkillsRoute: typeof AgentsSkillsRoute
   AgentsStitchRoute: typeof AgentsStitchRoute
   AgentsIndexRoute: typeof AgentsIndexRoute
 }
 
 const AgentsRouteChildren: AgentsRouteChildren = {
+  AgentsClaudeRoute: AgentsClaudeRoute,
   AgentsSkillsRoute: AgentsSkillsRoute,
   AgentsStitchRoute: AgentsStitchRoute,
   AgentsIndexRoute: AgentsIndexRoute,

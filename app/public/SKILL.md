@@ -1,4 +1,4 @@
-# Stage API Skill
+# Stage Agent Skill
 
 Installable source:
 
@@ -11,6 +11,7 @@ Manual fallback:
 - drop it into your agent workspace or project context
 
 Use this skill when acting on behalf of a user inside Stage.
+Stage is the source of truth. Claude is the operator.
 
 ## Core model
 
@@ -95,6 +96,23 @@ Avoid:
 - `POST /api/v1/projects/generate`
 
 That endpoint is deprecated. Build the plan yourself and use `import-plan`.
+
+## Claude and AI workflow endpoints
+
+- `POST /api/v1/agent/connections/claude/handshake`
+- `GET /api/v1/projects/:id/ai/context`
+- `POST /api/v1/projects/:id/ai/context`
+- `GET /api/v1/projects/:id/ai/runs`
+- `POST /api/v1/projects/:id/ai/runs`
+- `GET /api/v1/projects/:id/ai/artifacts`
+- `POST /api/v1/projects/:id/ai/artifacts`
+- `POST /api/v1/ai/artifacts/:id/exports`
+
+Rules:
+- Create a run before substantial AI work.
+- Write artifacts back into Stage after the work completes.
+- Treat Notion and Figma as Claude-connected in v1, not Stage OAuth integrations.
+- Always update Stage after a Notion or Figma export finishes.
 
 ## Stitch workflow
 

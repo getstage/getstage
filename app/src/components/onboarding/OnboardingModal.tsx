@@ -90,6 +90,9 @@ export function OnboardingModal({
                 isCheckoutLoading={controller.isCheckoutLoading}
                 checkoutError={controller.checkoutError}
                 existingClients={controller.existingClients}
+                claudeConnection={controller.claudeConnection}
+                claudeSetupHref={controller.claudeSetupHref}
+                claudeInstallCommand={controller.claudeInstallCommand}
                 onSheetUrlChange={controller.setSheetUrl}
                 onToggleCsvConnection={controller.handleToggleCsvConnection}
                 onLinkSheetUrl={controller.handleLinkSheetUrl}

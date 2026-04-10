@@ -21,6 +21,10 @@ export const taskIdParamSchema = z.object({
   id: trimmedString("Task ID"),
 });
 
+export const artifactIdParamSchema = z.object({
+  id: trimmedString("Artifact ID"),
+});
+
 export const projectTypeSchema = z.enum([
   "branding",
   "web-design",
@@ -123,6 +127,35 @@ const stitchModelIdSchema = z.enum([
   "GEMINI_3_FLASH",
 ]);
 
+const aiModuleSchema = z.enum(["research", "strategy", "generate", "delivery"]);
+
+const aiRunStatusSchema = z.enum([
+  "draft",
+  "running",
+  "completed",
+  "failed",
+  "needs_input",
+]);
+
+const aiArtifactStatusSchema = z.enum([
+  "draft",
+  "ready",
+  "approved",
+  "superseded",
+  "failed",
+]);
+
+const aiContentFormatSchema = z.enum(["markdown", "json", "link_set"]);
+
+const exportProviderSchema = z.enum(["notion", "figma"]);
+
+const exportStatusSchema = z.enum([
+  "requested",
+  "in_progress",
+  "completed",
+  "failed",
+]);
+
 export const upsertDesignConnectionBodySchema = z.object({
   provider: stitchProviderSchema.default("stitch"),
   externalProjectUrl: z.string().trim().url("Stitch project URL must be a valid URL."),
@@ -171,3 +204,55 @@ export const syncProjectDesignsBodySchema = z
       stitchScreenIds.add(screen.stitchScreenId);
     });
   });
+
+export const claudeHandshakeBodySchema = z.object({
+  connectionId: z.string().trim().min(1).optional(),
+  client: z.literal("claude_code").default("claude_code"),
+  capabilities: z
+    .object({
+      notionMcp: z.boolean().optional(),
+      figmaMcp: z.boolean().optional(),
+    })
+    .optional(),
+});
+
+export const upsertProjectAiContextBodySchema = z.object({
+  clientWebsite: optionalTrimmedString,
+  competitorUrls: z.array(z.string().trim()).default([]),
+  referenceUrls: z.array(z.string().trim()).default([]),
+  brief: optionalTrimmedString,
+  notes: optionalTrimmedString,
+});
+
+export const createProjectAiRunBodySchema = z.object({
+  connectionId: z.string().trim().min(1).optional(),
+  module: aiModuleSchema,
+  title: trimmedString("Run title"),
+  status: aiRunStatusSchema.optional().default("running"),
+  trigger: z.enum(["user", "agent"]).optional().default("user"),
+  inputSummary: optionalTrimmedString,
+  externalRunId: optionalTrimmedString,
+});
+
+export const createProjectAiArtifactBodySchema = z.object({
+  runId: z.string().trim().min(1).optional(),
+  module: aiModuleSchema,
+  kind: trimmedString("Artifact kind"),
+  title: trimmedString("Artifact title"),
+  summary: optionalTrimmedString,
+  status: aiArtifactStatusSchema.optional().default("ready"),
+  contentFormat: aiContentFormatSchema,
+  contentMarkdown: optionalTrimmedString,
+  contentJson: optionalTrimmedString,
+  externalUrl: z.string().trim().url().optional(),
+});
+
+export const createArtifactExportBodySchema = z.object({
+  provider: exportProviderSchema,
+  action: trimmedString("Export action"),
+  status: exportStatusSchema.optional().default("completed"),
+  destinationLabel: optionalTrimmedString,
+  destinationUrl: z.string().trim().url().optional(),
+  errorMessage: optionalTrimmedString,
+  lastSyncedAt: z.number().optional(),
+});

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
@@ -41,6 +41,14 @@ export function ProjectDetailPage() {
   const detail = useProjectDetail(projectId);
   const dockProjects = useDockProjects();
   const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedTab = params.get("tab");
+    if (requestedTab && isProjectTab(requestedTab)) {
+      setActiveTab(requestedTab);
+    }
+  }, []);
 
   const upcomingTasks = useMemo(() => {
     if (!detail.project) return [];
@@ -204,19 +212,19 @@ export function ProjectDetailPage() {
 
           {activeTab === "research" && (
             <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
-              <ResearchTab projectName={detail.project.name} />
+              <ResearchTab projectId={projectId} projectName={detail.project.name} />
             </div>
           )}
 
           {activeTab === "strategy" && (
             <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
-              <StrategyTab projectName={detail.project.name} />
+              <StrategyTab projectId={projectId} projectName={detail.project.name} />
             </div>
           )}
 
           {activeTab === "generate" && (
             <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
-              <GenerateTab projectName={detail.project.name} />
+              <GenerateTab projectId={projectId} projectName={detail.project.name} />
             </div>
           )}
 
@@ -237,6 +245,10 @@ export function ProjectDetailPage() {
       <ProjectDock projects={dockProjects} />
     </>
   );
+}
+
+function isProjectTab(value: string): value is ProjectTab {
+  return value === "overview" || value === "research" || value === "strategy" || value === "generate" || value === "assets";
 }
 
 function ProjectDetailLoadingState() {

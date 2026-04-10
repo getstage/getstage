@@ -9,10 +9,14 @@
  */
 
 import type * as _helpers from "../_helpers.js";
+import type * as agentConnections from "../agentConnections.js";
+import type * as aiCredentials from "../aiCredentials.js";
 import type * as api_auth from "../api/auth.js";
 import type * as api_errors from "../api/errors.js";
 import type * as api_index from "../api/index.js";
 import type * as api_models from "../api/models.js";
+import type * as api_routes_agent from "../api/routes/agent.js";
+import type * as api_routes_ai from "../api/routes/ai.js";
 import type * as api_routes_phases from "../api/routes/phases.js";
 import type * as api_routes_projects from "../api/routes/projects.js";
 import type * as api_routes_tasks from "../api/routes/tasks.js";
@@ -43,6 +47,7 @@ import type * as integrations_stripeConnect from "../integrations/stripeConnect.
 import type * as onboarding from "../onboarding.js";
 import type * as platform_rateLimits from "../platform/rateLimits.js";
 import type * as portal from "../portal.js";
+import type * as projectAi from "../projectAi.js";
 import type * as projects from "../projects.js";
 import type * as r2 from "../r2.js";
 import type * as readmodels_dashboardOverview from "../readmodels/dashboardOverview.js";
@@ -60,10 +65,14 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   _helpers: typeof _helpers;
+  agentConnections: typeof agentConnections;
+  aiCredentials: typeof aiCredentials;
   "api/auth": typeof api_auth;
   "api/errors": typeof api_errors;
   "api/index": typeof api_index;
   "api/models": typeof api_models;
+  "api/routes/agent": typeof api_routes_agent;
+  "api/routes/ai": typeof api_routes_ai;
   "api/routes/phases": typeof api_routes_phases;
   "api/routes/projects": typeof api_routes_projects;
   "api/routes/tasks": typeof api_routes_tasks;
@@ -94,6 +103,7 @@ declare const fullApi: ApiFromModules<{
   onboarding: typeof onboarding;
   "platform/rateLimits": typeof platform_rateLimits;
   portal: typeof portal;
+  projectAi: typeof projectAi;
   projects: typeof projects;
   r2: typeof r2;
   "readmodels/dashboardOverview": typeof readmodels_dashboardOverview;

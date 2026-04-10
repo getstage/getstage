@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useAction as useConvexAction,
   useMutation as useConvexMutation,
@@ -9,6 +9,11 @@ import { SAVED_FEEDBACK, useFeedback } from "@/hooks/useFeedback";
 import { api } from "@/lib/convex";
 import { trackDatafastGoal } from "@/lib/datafast";
 import { googleSheetsUrlSchema } from "@/lib/validation";
+import type {
+  AnthropicCredentialSummary,
+  ClaudeConnectionSummary,
+  ClaudeToolSummary,
+} from "@/types/settings";
 import {
   GOOGLE_SHEETS_TRANSACTIONS_DIALOG_MESSAGE,
   GOOGLE_SHEETS_TRANSACTIONS_DIALOG_TITLE,
@@ -17,10 +22,29 @@ import {
 } from "./googleSheetsErrors";
 import { showFriendlyFeedback } from "./feedback";
 
+export const CLAUDE_INSTALL_COMMAND = "npx skills add getstage/agent-mode";
+
 type IntegrationsSettingsInput = {
   user: AuthUser | null;
   enabled: boolean;
 };
+
+function buildClaudeSetupHref(source: "settings" | "onboarding") {
+  return `/agents/claude?source=${source}`;
+}
+
+function buildVerifyPrompt(connection: ClaudeConnectionSummary | null) {
+  if (!connection?.id) {
+    return 'Open the Stage Claude setup page first, then copy the generated verification prompt.';
+  }
+
+  return [
+    "Use the installed Stage skill and verify that Claude can talk to Stage.",
+    `Handshake connectionId "${connection.id}" with client "claude_code".`,
+    'If Notion MCP is available set notionMcp=true. If Figma MCP is available set figmaMcp=true.',
+    "Then tell me whether the handshake succeeded.",
+  ].join(" ");
+}
 
 export function useIntegrationsSettings({ user, enabled }: IntegrationsSettingsInput) {
   const stripeConnection = useConvexQuery(
@@ -31,12 +55,33 @@ export function useIntegrationsSettings({ user, enabled }: IntegrationsSettingsI
     api.integrations.googleSheets.getSheetConnectionStatus,
     !user || !enabled ? "skip" : {},
   );
+  const claudeState = useConvexQuery(
+    api.agentConnections.getClaudeConnectionSummary,
+    !user || !enabled ? "skip" : {},
+  ) as
+    | {
+        connection: ClaudeConnectionSummary;
+        tools: {
+          figma: ClaudeToolSummary;
+          notion: ClaudeToolSummary;
+        };
+      }
+    | undefined;
+  const anthropicCredential = useConvexQuery(
+    api.aiCredentials.getAnthropicCredentialSummary,
+    !user || !enabled ? "skip" : {},
+  ) as AnthropicCredentialSummary | undefined;
+
   const connectSheet = useConvexMutation(api.integrations.googleSheets.connectSheet);
   const disconnectSheet = useConvexMutation(api.integrations.googleSheets.disconnectSheet);
   const disconnectStripe = useConvexAction(api.integrations.stripeConnect.disconnectStripe);
   const startStripeConnect = useConvexAction(api.integrations.stripeConnect.startConnect);
   const syncStripeData = useConvexAction(api.integrations.stripeConnect.syncStripeData);
   const runSheetImport = useConvexAction(api.integrations.googleSheets.runSheetImport);
+  const disconnectClaude = useConvexMutation(api.agentConnections.disconnectClaude);
+  const saveAnthropicKey = useConvexMutation(api.aiCredentials.saveAnthropicKey);
+  const testAnthropicKey = useConvexAction(api.aiCredentials.testAnthropicKey);
+
   const [googleSheetUrl, setGoogleSheetUrl] = useState("");
   const [googleSheetHelpDialogOpen, setGoogleSheetHelpDialogOpen] = useState(false);
   const [googleSheetHelpDialogTitle, setGoogleSheetHelpDialogTitle] = useState(
@@ -51,8 +96,21 @@ export function useIntegrationsSettings({ user, enabled }: IntegrationsSettingsI
   const [isGoogleSheetConnecting, setIsGoogleSheetConnecting] = useState(false);
   const [isGoogleSheetImporting, setIsGoogleSheetImporting] = useState(false);
   const [isGoogleSheetDisconnecting, setIsGoogleSheetDisconnecting] = useState(false);
+  const [isClaudeDisconnecting, setIsClaudeDisconnecting] = useState(false);
+  const [anthropicApiKey, setAnthropicApiKey] = useState("");
+  const [anthropicModelPreference, setAnthropicModelPreference] = useState("claude-sonnet-4-0");
+  const [isAnthropicSaving, setIsAnthropicSaving] = useState(false);
+  const [isAnthropicTesting, setIsAnthropicTesting] = useState(false);
   const { feedback: stripeFeedback, showFeedback: showStripeFeedback } = useFeedback();
   const { feedback: googleSheetFeedback, showFeedback: showGoogleSheetFeedback } = useFeedback();
+  const { feedback: claudeFeedback, showFeedback: showClaudeFeedback } = useFeedback();
+  const { feedback: anthropicFeedback, showFeedback: showAnthropicFeedback } = useFeedback();
+
+  const claudeConnection = claudeState?.connection ?? null;
+  const claudeTools = useMemo(
+    () => claudeState?.tools ?? { figma: defaultToolSummary(), notion: defaultToolSummary() },
+    [claudeState?.tools],
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -87,6 +145,14 @@ export function useIntegrationsSettings({ user, enabled }: IntegrationsSettingsI
 
     setGoogleSheetUrl(sheetConnections?.googleSheet?.sheetUrl ?? "");
   }, [enabled, sheetConnections?.googleSheet?.sheetUrl]);
+
+  useEffect(() => {
+    if (!enabled || !anthropicCredential) {
+      return;
+    }
+
+    setAnthropicModelPreference(anthropicCredential.modelPreference);
+  }, [anthropicCredential, enabled]);
 
   function openGoogleSheetHelpDialog(title: string, message: string) {
     setGoogleSheetHelpDialogTitle(title);
@@ -226,11 +292,77 @@ export function useIntegrationsSettings({ user, enabled }: IntegrationsSettingsI
     }
   }
 
+  async function handleClaudeDisconnect() {
+    setIsClaudeDisconnecting(true);
+    try {
+      await disconnectClaude({});
+      showClaudeFeedback(SAVED_FEEDBACK);
+    } catch (error) {
+      showFriendlyFeedback(showClaudeFeedback, error, "Could not disconnect Claude.");
+    } finally {
+      setIsClaudeDisconnecting(false);
+    }
+  }
+
+  async function handleAnthropicSave() {
+    const trimmed = anthropicApiKey.trim();
+    if (!trimmed) {
+      showAnthropicFeedback({
+        kind: "error",
+        message: "Enter an Anthropic API key first.",
+      });
+      return;
+    }
+
+    setIsAnthropicSaving(true);
+    try {
+      await saveAnthropicKey({
+        apiKey: trimmed,
+        modelPreference: anthropicModelPreference,
+      });
+      showAnthropicFeedback(SAVED_FEEDBACK);
+    } catch (error) {
+      showFriendlyFeedback(showAnthropicFeedback, error, "Could not save the Anthropic API key.");
+    } finally {
+      setIsAnthropicSaving(false);
+    }
+  }
+
+  async function handleAnthropicTest() {
+    setIsAnthropicTesting(true);
+    try {
+      await testAnthropicKey({
+        apiKey: anthropicApiKey.trim() || undefined,
+        modelPreference: anthropicModelPreference,
+      });
+      showAnthropicFeedback(SAVED_FEEDBACK);
+    } catch (error) {
+      showFriendlyFeedback(showAnthropicFeedback, error, "Could not validate the Anthropic API key.");
+    } finally {
+      setIsAnthropicTesting(false);
+    }
+  }
+
   return {
     stripeConnection: stripeConnection ?? null,
     sheetConnection: sheetConnections?.googleSheet ?? null,
+    claudeConnection,
+    claudeTools,
+    anthropicCredential:
+      anthropicCredential ??
+      ({
+        provider: "anthropic",
+        label: "claude",
+        keyLast4: null,
+        modelPreference: anthropicModelPreference,
+        status: "untested",
+        testedAt: null,
+        hasSavedKey: false,
+      } satisfies AnthropicCredentialSummary),
     stripeFeedback,
     googleSheetFeedback,
+    claudeFeedback,
+    anthropicFeedback,
     googleSheetUrl,
     googleSheetHelpDialogOpen,
     googleSheetHelpDialogTitle,
@@ -241,13 +373,37 @@ export function useIntegrationsSettings({ user, enabled }: IntegrationsSettingsI
     isGoogleSheetConnecting,
     isGoogleSheetImporting,
     isGoogleSheetDisconnecting,
+    isClaudeDisconnecting,
+    anthropicApiKey,
+    anthropicModelPreference,
+    isAnthropicSaving,
+    isAnthropicTesting,
+    claudeSetupHref: buildClaudeSetupHref("settings"),
+    claudeInstallCommand: CLAUDE_INSTALL_COMMAND,
+    claudeVerifyPrompt: buildVerifyPrompt(claudeConnection),
     setGoogleSheetUrl,
     setGoogleSheetHelpDialogOpen,
+    setAnthropicApiKey,
+    setAnthropicModelPreference,
     handleStripeConnect,
     handleStripeSync,
     handleStripeDisconnect,
     handleGoogleSheetConnect,
     handleGoogleSheetImport,
     handleGoogleSheetDisconnect,
+    handleClaudeDisconnect,
+    handleAnthropicSave,
+    handleAnthropicTest,
+  };
+}
+
+function defaultToolSummary(): ClaudeToolSummary {
+  return {
+    availability: "unknown",
+    lastExportAt: null,
+    lastExportStatus: null,
+    lastExportUrl: null,
+    destinationLabel: null,
+    lastError: null,
   };
 }

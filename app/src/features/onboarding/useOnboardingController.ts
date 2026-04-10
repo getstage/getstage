@@ -24,7 +24,9 @@ import {
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { convexQueryKeys } from "@/lib/queryKeys";
 import { googleSheetsUrlSchema } from "@/lib/validation";
+import type { ClaudeConnectionSummary } from "@/types/settings";
 import type { ProjectType } from "@/types";
+import { CLAUDE_INSTALL_COMMAND } from "@/features/settings/useIntegrationsSettings";
 
 type UseOnboardingControllerInput = {
   open: boolean;
@@ -63,6 +65,11 @@ export function useOnboardingController({
     api.clients.listForCurrentUser,
     open ? {} : "skip",
   );
+  const claudeState = useConvexQuery(api.agentConnections.getClaudeConnectionSummary, open ? {} : "skip") as
+    | {
+        connection: ClaudeConnectionSummary;
+      }
+    | undefined;
   const existingClients = useMemo(() => existingClientsResult ?? [], [existingClientsResult]);
   const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
   const markProjectCreated = useConvexMutation(api.onboarding.markProjectCreated);
@@ -463,6 +470,9 @@ export function useOnboardingController({
     isCheckoutLoading,
     checkoutError,
     existingClients,
+    claudeConnection: claudeState?.connection ?? null,
+    claudeSetupHref: "/agents/claude?source=onboarding",
+    claudeInstallCommand: CLAUDE_INSTALL_COMMAND,
     draftState,
     handleSelectField,
     handleContinue,

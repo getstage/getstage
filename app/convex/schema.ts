@@ -173,6 +173,87 @@ const financeStatus = v.union(
   v.literal("failed"),
 );
 
+const agentProvider = v.literal("claude");
+
+const agentClient = v.literal("claude_code");
+
+const agentConnectionMode = v.literal("skill");
+
+const agentConnectionStatus = v.union(
+  v.literal("pending"),
+  v.literal("connected"),
+  v.literal("error"),
+  v.literal("disconnected"),
+);
+
+const agentConnectionSource = v.union(
+  v.literal("onboarding"),
+  v.literal("settings"),
+);
+
+const claudeToolAvailability = v.union(
+  v.literal("unknown"),
+  v.literal("claimed"),
+);
+
+const aiProvider = v.literal("anthropic");
+
+const aiProviderCredentialLabel = v.literal("claude");
+
+const aiProviderCredentialStatus = v.union(
+  v.literal("untested"),
+  v.literal("valid"),
+  v.literal("invalid"),
+);
+
+const aiRunModule = v.union(
+  v.literal("research"),
+  v.literal("strategy"),
+  v.literal("generate"),
+  v.literal("delivery"),
+);
+
+const aiRunStatus = v.union(
+  v.literal("draft"),
+  v.literal("running"),
+  v.literal("completed"),
+  v.literal("failed"),
+  v.literal("needs_input"),
+);
+
+const aiRunTrigger = v.union(
+  v.literal("user"),
+  v.literal("agent"),
+);
+
+const aiArtifactStatus = v.union(
+  v.literal("draft"),
+  v.literal("ready"),
+  v.literal("approved"),
+  v.literal("superseded"),
+  v.literal("failed"),
+);
+
+const aiArtifactContentFormat = v.union(
+  v.literal("markdown"),
+  v.literal("json"),
+  v.literal("link_set"),
+);
+
+const artifactDestinationProvider = v.union(
+  v.literal("notion"),
+  v.literal("figma"),
+);
+
+const artifactDestinationStatus = v.union(
+  v.literal("requested"),
+  v.literal("in_progress"),
+  v.literal("completed"),
+  v.literal("failed"),
+);
+
+const artifactDestinationRequestedVia = v.literal("claude");
+
 export default defineSchema({
   ...authTables,
 
@@ -378,6 +459,122 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_provider", ["userId", "provider"])
     .index("by_oauth_state", ["oauthState"]),
+
+  agentConnections: defineTable({
+    userId: v.id("users"),
+    provider: agentProvider,
+    client: agentClient,
+    mode: agentConnectionMode,
+    status: agentConnectionStatus,
+    displayName: v.optional(v.string()),
+    apiKeyId: v.optional(v.id("apiKeys")),
+    source: agentConnectionSource,
+    stageApiVerified: v.boolean(),
+    notionInClaude: claudeToolAvailability,
+    figmaInClaude: claudeToolAvailability,
+    connectedAt: v.optional(v.number()),
+    lastSeenAt: v.optional(v.number()),
+    lastHandshakeAt: v.optional(v.number()),
+    lastError: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_provider_client", ["userId", "provider", "client"]),
+
+  aiProviderCredentials: defineTable({
+    userId: v.id("users"),
+    provider: aiProvider,
+    label: aiProviderCredentialLabel,
+    encryptedApiKey: v.string(),
+    encryptionIv: v.string(),
+    keyLast4: v.string(),
+    modelPreference: v.optional(v.string()),
+    status: aiProviderCredentialStatus,
+    testedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_provider", ["userId", "provider"]),
+
+  projectAiContexts: defineTable({
+    userId: v.id("users"),
+    projectId: v.id("projects"),
+    clientWebsite: v.optional(v.string()),
+    competitorUrls: v.array(v.string()),
+    referenceUrls: v.array(v.string()),
+    brief: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_project", ["projectId"])
+    .index("by_user_project", ["userId", "projectId"]),
+
+  projectAiRuns: defineTable({
+    userId: v.id("users"),
+    projectId: v.id("projects"),
+    connectionId: v.optional(v.id("agentConnections")),
+    module: aiRunModule,
+    title: v.string(),
+    status: aiRunStatus,
+    trigger: aiRunTrigger,
+    externalRunId: v.optional(v.string()),
+    inputSummary: v.optional(v.string()),
+    errorMessage: v.optional(v.string()),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    updatedAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_project_module", ["projectId", "module"])
+    .index("by_project_startedAt", ["projectId", "startedAt"])
+    .index("by_user", ["userId"]),
+
+  projectAiArtifacts: defineTable({
+    userId: v.id("users"),
+    projectId: v.id("projects"),
+    runId: v.optional(v.id("projectAiRuns")),
+    module: aiRunModule,
+    kind: v.string(),
+    title: v.string(),
+    summary: v.optional(v.string()),
+    status: aiArtifactStatus,
+    contentFormat: aiArtifactContentFormat,
+    contentMarkdown: v.optional(v.string()),
+    contentJson: v.optional(v.string()),
+    externalUrl: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    approvedAt: v.optional(v.number()),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_project_module", ["projectId", "module"])
+    .index("by_run", ["runId"])
+    .index("by_user", ["userId"]),
+
+  artifactDestinations: defineTable({
+    userId: v.id("users"),
+    artifactId: v.id("projectAiArtifacts"),
+    projectId: v.id("projects"),
+    provider: artifactDestinationProvider,
+    action: v.string(),
+    status: artifactDestinationStatus,
+    destinationLabel: v.optional(v.string()),
+    destinationUrl: v.optional(v.string()),
+    requestedVia: artifactDestinationRequestedVia,
+    errorMessage: v.optional(v.string()),
+    lastSyncedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_artifact", ["artifactId"])
+    .index("by_user", ["userId"])
+    .index("by_user_provider", ["userId", "provider"])
+    .index("by_project", ["projectId"])
+    .index("by_project_provider", ["projectId", "provider"]),
 
   invoices: defineTable({
     userId: v.id("users"),
