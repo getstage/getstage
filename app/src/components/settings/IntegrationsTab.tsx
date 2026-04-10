@@ -96,6 +96,187 @@ export function IntegrationsTab({
 
   return (
     <div className={`tab-content ${active ? "active" : ""}`}>
+      {/* Claude AI integration card */}
+      <div className="settings-card">
+        <div className="card-body">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]"
+                style={{ backgroundColor: "#FDF0E8" }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M16.98 3H7.02C4.804 3 3 4.804 3 7.02v9.96C3 19.196 4.804 21 7.02 21h9.96C19.196 21 21 19.196 21 16.98V7.02C21 4.804 19.196 3 16.98 3Z"
+                    fill="#D97757"
+                  />
+                  <path
+                    d="M13.14 8.429 10.7 15.571h1.68l2.44-7.142h-1.68Zm-2.96 0L7.74 15.571h1.68l2.44-7.142H9.18Z"
+                    fill="#FDF0E8"
+                  />
+                </svg>
+              </div>
+              <div>
+                <div className="card-heading sf">Claude AI</div>
+                <div className="text-[13px] text-text-secondary">Anthropic</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-[#34C759]" />
+              <span className="text-[13px] font-medium text-text-secondary">Connected</span>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <div>
+              <label className="settings-label">API key</label>
+              <div className="flex gap-2">
+                <input
+                  className="settings-input"
+                  type="password"
+                  value="sk-ant-api03-xxxx...xxxx"
+                  readOnly
+                />
+                <button type="button" className="btn-outline shrink-0">
+                  Test
+                </button>
+              </div>
+            </div>
+            <div className="flex gap-6 text-[13px] text-text-secondary">
+              <div>
+                Usage this month: <span className="text-text-primary">$12.40</span>
+              </div>
+              <div>
+                Model preference: <span className="text-text-primary">Claude Sonnet 4</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="card-footer">
+          <a
+            href="https://console.anthropic.com"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[13px] font-medium text-accent transition-colors hover:text-accent-hover"
+          >
+            Manage on Anthropic &rarr;
+          </a>
+          <button type="button" className="btn-save">
+            Save
+          </button>
+        </div>
+      </div>
+
+      {/* Figma integration card */}
+      <div className="settings-card">
+        <div className="card-body">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]"
+                style={{ backgroundColor: "#F5F0FF" }}
+              >
+                <svg width="16" height="22" viewBox="0 0 38 57" fill="none" aria-hidden="true">
+                  <path
+                    d="M19 28.5a9.5 9.5 0 1 1 19 0 9.5 9.5 0 0 1-19 0z"
+                    fill="#1ABCFE"
+                  />
+                  <path
+                    d="M0 47.5A9.5 9.5 0 0 1 9.5 38H19v9.5a9.5 9.5 0 1 1-19 0z"
+                    fill="#0ACF83"
+                  />
+                  <path
+                    d="M19 0v19h9.5a9.5 9.5 0 1 0 0-19H19z"
+                    fill="#FF7262"
+                  />
+                  <path
+                    d="M0 9.5A9.5 9.5 0 0 0 9.5 19H19V0H9.5A9.5 9.5 0 0 0 0 9.5z"
+                    fill="#F24E1E"
+                  />
+                  <path
+                    d="M0 28.5A9.5 9.5 0 0 0 9.5 38H19V19H9.5A9.5 9.5 0 0 0 0 28.5z"
+                    fill="#A259FF"
+                  />
+                </svg>
+              </div>
+              <div>
+                <div className="card-heading sf">Figma</div>
+                <div className="text-[13px] text-text-secondary">sam@stage.design</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-[#34C759]" />
+              <span className="text-[13px] font-medium text-text-secondary">Connected</span>
+            </div>
+          </div>
+
+          <div className="card-desc mt-3">
+            Import designs, extract design systems, and push wireframes to Figma.
+          </div>
+          <div className="mt-3 text-[13px] text-text-secondary">
+            Last sync: <span className="text-text-primary">2 hours ago</span>
+          </div>
+        </div>
+        <div className="card-footer">
+          <button
+            type="button"
+            className="text-[13px] font-medium text-text-secondary transition-colors hover:text-text-primary"
+          >
+            Disconnect
+          </button>
+          <button type="button" className="btn-save">
+            Sync now
+          </button>
+        </div>
+      </div>
+
+      {/* Notion integration card */}
+      <div className="settings-card">
+        <div className="card-body">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]"
+                style={{ backgroundColor: "#F5F5F5" }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M4.46 3.12c.58.47.8.44 1.89.37l10.29-.62c.22 0 .04-.22-.04-.25l-1.71-1.24c-.33-.25-.77-.52-1.61-.45L3.24 1.87c-.36.03-.44.22-.29.36l1.51.89Zm.6 2.19v10.83c0 .58.29.8.95.76l11.29-.64c.66-.04.73-.44.73-.91V4.62c0-.47-.18-.69-.58-.66l-11.8.67c-.44.04-.59.25-.59.68Zm11.14.43c.07.33 0 .66-.33.69l-.55.11v8.01c-.47.26-.92.4-1.28.4-.59 0-.73-.18-1.17-.73l-3.58-5.62v5.44l1.14.26s0 .66-.92.66l-2.53.15c-.07-.15 0-.51.26-.58l.66-.18V9.04l-.92-.07c-.07-.33.11-.8.62-.84l2.72-.18 3.72 5.69V9.27l-.95-.11c-.08-.4.22-.69.58-.73l2.53-.15Zm-14.06-4L13.5.8c1.32-.11 1.65-.04 2.47.55l3.41 2.39c.55.4.73.51.73.94v13.43c0 .84-.29 1.32-1.32 1.39l-12.03.73C2.18 20.27 1.8 20.09 1.47 19.67L.18 17.98c-.36-.47-.51-.84-.51-1.24V2.69c0-.55.29-1.02.95-1.02v.07Z"
+                    fill="#000"
+                  />
+                </svg>
+              </div>
+              <div>
+                <div className="card-heading sf">Notion</div>
+                <div className="text-[13px] text-text-secondary">sam@stage.design</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-[#34C759]" />
+              <span className="text-[13px] font-medium text-text-secondary">Connected</span>
+            </div>
+          </div>
+
+          <div className="card-desc mt-3">
+            Export research and strategy documents as fully formatted Notion pages.
+          </div>
+          <div className="mt-3 text-[13px] text-text-secondary">
+            Last export: <span className="text-text-primary">1 day ago</span>
+          </div>
+        </div>
+        <div className="card-footer">
+          <button
+            type="button"
+            className="text-[13px] font-medium text-text-secondary transition-colors hover:text-text-primary"
+          >
+            Disconnect
+          </button>
+          <button type="button" className="btn-save">
+            Export now
+          </button>
+        </div>
+      </div>
+
       <Dialog.Root
         open={disconnectDialog !== null}
         onOpenChange={(open) => {

@@ -1,4 +1,4 @@
-export type SettingsTab = "general" | "billing" | "integrations" | "portal" | "developer";
+export type SettingsTab = "general" | "billing" | "integrations" | "portal" | "developer" | "clients" | "account";
 
 export type StripeConnectionSummary = {
   status: "pending" | "active" | "error" | "disconnected";

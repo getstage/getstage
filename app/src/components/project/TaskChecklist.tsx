@@ -1,5 +1,5 @@
-import { useState, type RefObject } from "react";
-import { CalendarBlank, CaretRight, Trash } from "@phosphor-icons/react";
+import { useState, useRef, useEffect, type RefObject } from "react";
+import { CalendarBlank, CaretRight, CaretDown, CaretUp, Check, Trash } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -37,6 +37,7 @@ function formatDueDate(timestamp: number): { label: string; isOverdue: boolean; 
 
 type TaskChecklistProps = {
   phase: Phase;
+  allPhases: Phase[];
   projectId: string;
   actionError: string | null;
   addTaskValue: string;
@@ -47,10 +48,12 @@ type TaskChecklistProps = {
   onSubmitAddTask: () => void;
   onToggleTask: (taskId: Id<"tasks">) => void;
   onDeleteTask: (taskId: Id<"tasks">) => void;
+  onSelectPhase: (phaseId: string) => void;
 };
 
 export function TaskChecklist({
   phase,
+  allPhases,
   projectId,
   actionError,
   addTaskValue,
@@ -61,19 +64,115 @@ export function TaskChecklist({
   onSubmitAddTask,
   onToggleTask,
   onDeleteTask,
+  onSelectPhase,
 }: TaskChecklistProps) {
   const completedCount = phase.tasks.filter((task) => task.isCompleted).length;
   const [confirmingTaskId, setConfirmingTaskId] = useState<string | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    if (dropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [dropdownOpen]);
 
   return (
     <section className="mt-6 w-full flex-1 sm:mt-8">
       <header className="mb-5">
-        <h2 className="font-heading text-[20px] font-semibold text-text-primary">
-          {phase.name}
-        </h2>
-        <p className="text-[13px] text-text-secondary">
-          {completedCount} of {phase.tasks.length} complete
-        </p>
+        <div className="relative inline-block" ref={dropdownRef}>
+          <button
+            type="button"
+            onClick={() => setDropdownOpen((prev) => !prev)}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-[9px] border border-border bg-transparent px-3.5 py-2 transition-colors hover:border-text-secondary"
+          >
+            <span
+              className={`h-2 w-2 shrink-0 rounded-full ${
+                phase.status === "completed"
+                  ? "bg-text-tertiary"
+                  : phase.status === "active"
+                    ? "bg-accent"
+                    : "border-[1.5px] border-border bg-transparent"
+              }`}
+            />
+            <span className="font-heading text-[15px] font-semibold text-text-primary">
+              {phase.name}
+            </span>
+            <span className="text-[13px] text-text-secondary">
+              · {completedCount} of {phase.tasks.length}
+            </span>
+            {dropdownOpen ? (
+              <CaretUp size={14} className="text-text-tertiary" />
+            ) : (
+              <CaretDown size={14} className="text-text-tertiary" />
+            )}
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute left-0 top-full z-20 mt-1.5 min-w-[220px] rounded-[10px] border border-border-subtle bg-white p-1.5 shadow-[0_4px_16px_rgba(26,26,46,0.08)]">
+              {allPhases.map((p) => {
+                const done = p.tasks.filter((t) => t.isCompleted).length;
+                const total = p.tasks.length;
+                const allDone = total > 0 && done === total;
+                const isActive = p.id === phase.id;
+
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      onSelectPhase(p.id);
+                      setDropdownOpen(false);
+                    }}
+                    className={`flex w-full cursor-pointer items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-left transition-colors ${
+                      isActive ? "bg-accent/8" : "hover:bg-border-subtle"
+                    }`}
+                  >
+                    <span
+                      className={`h-[7px] w-[7px] shrink-0 rounded-full ${
+                        p.status === "completed"
+                          ? "bg-text-tertiary"
+                          : p.status === "active"
+                            ? "bg-accent"
+                            : "border-[1.5px] border-border bg-transparent"
+                      }`}
+                    />
+                    <span
+                      className={`flex-1 text-[14px] ${
+                        p.status === "completed"
+                          ? "text-text-secondary"
+                          : p.status === "active" || isActive
+                            ? "text-text-primary"
+                            : "text-text-tertiary"
+                      }`}
+                    >
+                      {p.name}
+                    </span>
+                    <span
+                      className={`shrink-0 text-[12px] ${
+                        p.status !== "active" && p.status !== "completed"
+                          ? "text-text-tertiary"
+                          : "text-text-secondary"
+                      }`}
+                    >
+                      {allDone ? (
+                        <Check size={14} className="text-text-tertiary" />
+                      ) : (
+                        `${done}/${total}`
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </header>
 
       {actionError ? (

@@ -95,6 +95,7 @@
 .sidebar-item.active {
   color: var(--color-text-primary);
   font-weight: 500;
+  background: var(--color-border-subtle);
 }
 
 .sidebar-item svg {
@@ -316,6 +317,118 @@
 .btn-delete:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* ---- Clients ---- */
+
+@keyframes settings-client-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.clients-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.client-summary-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 14px;
+  background: #fafafd;
+}
+
+.client-summary-value {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  color: var(--color-text-primary);
+}
+
+.client-summary-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.client-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.client-card {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 16px;
+  padding: 16px;
+  background: #fff;
+}
+
+.client-card-skeleton {
+  animation: settings-client-pulse 1.8s ease-in-out infinite;
+}
+
+.client-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.client-card-avatar {
+  flex-shrink: 0;
+}
+
+.client-card-footer {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.clients-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 0 4px;
+}
+
+.clients-empty-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 150ms;
+}
+
+.clients-empty-link:hover {
+  border-color: var(--color-text-secondary);
+}
+
+@media (max-width: 767px) {
+  .clients-summary-grid,
+  .client-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .clients-empty-state {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 .btn-outline {

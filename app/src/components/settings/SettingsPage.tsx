@@ -8,12 +8,14 @@ import { BillingTab } from "@/components/settings/BillingTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
 import { IntegrationsTab } from "@/components/settings/IntegrationsTab";
 import {
+  AccountIcon,
   BillingIcon,
-  DeveloperIcon,
-  GeneralIcon,
-  IntegrationsIcon,
-  PortalIcon,
+  ClientsIcon,
+  IntegrationsLinkIcon,
+  ProfileIcon,
 } from "@/components/settings/SettingsIcons";
+import { AccountTab } from "@/components/settings/AccountTab";
+import { ClientsTab } from "@/components/settings/ClientsTab";
 import { DeveloperTab } from "@/components/settings/DeveloperTab";
 import { PortalTab } from "@/components/settings/PortalTab";
 import { useAuth } from "@/lib/auth";
@@ -25,6 +27,7 @@ import { usePortalBrandingSettings } from "@/features/settings/usePortalBranding
 import { useDeveloperSettings } from "@/features/settings/useDeveloperSettings";
 import { useSettingsTabs } from "@/features/settings/useSettingsTabs";
 import { useDockProjects } from "@/hooks/useDockProjects";
+import { useSettingsClients } from "@/hooks/useSettingsClients";
 import { useSettingsOverview } from "@/hooks/useSettingsOverview";
 import "@/styles/settings.css";
 
@@ -35,6 +38,7 @@ export function SettingsPage() {
   const { data: settingsData } = useSettingsOverview();
   const { activeTab, setActiveTab, openBillingTab } = useSettingsTabs();
   const dockProjects = useDockProjects();
+  const { clients, isLoading: clientsLoading } = useSettingsClients(activeTab === "clients");
   const generalSettings = useGeneralSettings({
     user,
     profileName: settingsData?.profile.name,
@@ -90,8 +94,16 @@ export function SettingsPage() {
               className={`sidebar-item ${activeTab === "general" ? "active" : ""}`}
               onClick={() => setActiveTab("general")}
             >
-              <GeneralIcon />
-              General
+              <ProfileIcon />
+              Profile
+            </button>
+            <button
+              type="button"
+              className={`sidebar-item ${activeTab === "integrations" ? "active" : ""}`}
+              onClick={() => setActiveTab("integrations")}
+            >
+              <IntegrationsLinkIcon />
+              Integrations
             </button>
             <button
               type="button"
@@ -99,31 +111,23 @@ export function SettingsPage() {
               onClick={() => setActiveTab("billing")}
             >
               <BillingIcon />
-              Billing
+              Plan &amp; Billing
             </button>
             <button
               type="button"
-              className={`sidebar-item ${activeTab === "integrations" ? "active" : ""}`}
-              onClick={() => setActiveTab("integrations")}
+              className={`sidebar-item ${activeTab === "clients" ? "active" : ""}`}
+              onClick={() => setActiveTab("clients")}
             >
-              <IntegrationsIcon />
-              Integrations
+              <ClientsIcon />
+              Clients
             </button>
             <button
               type="button"
-              className={`sidebar-item ${activeTab === "portal" ? "active" : ""}`}
-              onClick={() => setActiveTab("portal")}
+              className={`sidebar-item ${activeTab === "account" ? "active" : ""}`}
+              onClick={() => setActiveTab("account")}
             >
-              <PortalIcon />
-              Client Portal
-            </button>
-            <button
-              type="button"
-              className={`sidebar-item ${activeTab === "developer" ? "active" : ""}`}
-              onClick={() => setActiveTab("developer")}
-            >
-              <DeveloperIcon />
-              Developer
+              <AccountIcon />
+              Account
             </button>
           </aside>
 
@@ -136,15 +140,12 @@ export function SettingsPage() {
               avatarInputRef={generalSettings.avatarInputRef}
               isSavingName={generalSettings.isSavingName}
               isSavingAvatar={generalSettings.isSavingAvatar}
-              isDeletingAccount={generalSettings.isDeletingAccount}
               nameFeedback={generalSettings.nameFeedback}
               avatarFeedback={generalSettings.avatarFeedback}
-              deleteAccountFeedback={generalSettings.deleteAccountFeedback}
               onNameChange={generalSettings.setName}
               onAvatarInputChange={generalSettings.handleAvatarInputChange}
               onSaveName={() => void generalSettings.persistName()}
               onSaveAvatar={() => void generalSettings.persistAvatar()}
-              onDeleteAccount={generalSettings.handleDeleteAccount}
             />
 
             <BillingTab
@@ -233,6 +234,19 @@ export function SettingsPage() {
               onCopyKey={() => void developerSettings.handleCopyKey()}
               onDismissRevealedKey={developerSettings.dismissRevealedKey}
               onUpgradeClick={openBillingTab}
+            />
+
+            <ClientsTab
+              active={activeTab === "clients"}
+              clients={clients}
+              isLoading={clientsLoading}
+            />
+
+            <AccountTab
+              active={activeTab === "account"}
+              isDeletingAccount={generalSettings.isDeletingAccount}
+              deleteAccountFeedback={generalSettings.deleteAccountFeedback}
+              onDeleteAccount={generalSettings.handleDeleteAccount}
             />
           </div>
         </div>

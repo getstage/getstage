@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
@@ -6,8 +6,13 @@ import { ArrowLeft } from "@phosphor-icons/react";
 import { ProjectDock } from "@/components/dashboard/ProjectDock";
 import { ProjectDialogs } from "@/components/project/ProjectDialogs";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
+import type { ProjectTab } from "@/components/project/ProjectHeader";
 import { PhaseNavigation } from "@/components/project/PhaseNavigation";
 import { TaskChecklist } from "@/components/project/TaskChecklist";
+import { ResearchTab } from "@/components/project/ResearchTab";
+import { StrategyTab } from "@/components/project/StrategyTab";
+import { GenerateTab } from "@/components/project/GenerateTab";
+import { AssetsTab } from "@/components/project/AssetsTab";
 import { useDockProjects } from "@/hooks/useDockProjects";
 import { useProjectDetail } from "@/hooks/useProjectDetail";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -35,6 +40,7 @@ export function ProjectDetailPage() {
   const projectId = id as Id<"projects">;
   const detail = useProjectDetail(projectId);
   const dockProjects = useDockProjects();
+  const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
 
   const upcomingTasks = useMemo(() => {
     if (!detail.project) return [];
@@ -96,6 +102,8 @@ export function ProjectDetailPage() {
 
             <ProjectHeader
               project={detail.project}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
               onShare={() => detail.share.setOpen(true)}
               onEditName={detail.dialogs.openEditNameDialog}
               onEditClient={detail.dialogs.openEditClientDialog}
@@ -106,113 +114,117 @@ export function ProjectDetailPage() {
             />
           </div>
 
-          {/* Phase timeline bar — full-bleed */}
-          <PhaseNavigation
-            phases={detail.project.phases}
-            activePhaseId={detail.currentPhase.id}
-            onSelect={detail.setActivePhaseId}
-          />
-
-          {/* Content grid: tasks left + sidebar right */}
-          <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_340px]">
-              {/* Main: task checklist */}
-              <TaskChecklist
-                phase={detail.currentPhase}
-                projectId={detail.project.id}
-                actionError={detail.actionError}
-                addTaskValue={detail.tasks.addTaskValue}
-                showAddTask={detail.tasks.showAddTask}
-                addTaskInputRef={detail.tasks.addTaskInputRef}
-                onAddTaskValueChange={detail.tasks.setAddTaskValue}
-                onShowAddTaskChange={detail.tasks.setShowAddTask}
-                onSubmitAddTask={() => void detail.tasks.handleAddTaskSubmit()}
-                onToggleTask={(taskId) => void detail.tasks.handleToggleTask(taskId)}
-                onDeleteTask={(taskId) => void detail.tasks.handleDeleteTask(taskId)}
+          {activeTab === "overview" && (
+            <>
+              {/* Phase timeline bar — full-bleed */}
+              <PhaseNavigation
+                phases={detail.project.phases}
+                activePhaseId={detail.currentPhase.id}
+                onSelect={detail.setActivePhaseId}
               />
 
-              {/* Sidebar */}
-              <aside className="hidden lg:block">
-                {/* Upcoming */}
-                {upcomingTasks.length > 0 && (
-                  <div className="mb-7">
-                    <h3 className="mb-3 font-heading text-[13px] font-semibold text-text-primary">
-                      Upcoming
-                    </h3>
-                    <div className="space-y-0">
-                      {upcomingTasks.map(({ task }) => {
-                        const now = Date.now();
-                        const isSoon =
-                          task.dueDate !== undefined &&
-                          task.dueDate - now < 3 * 24 * 60 * 60 * 1000;
+              {/* Content grid: tasks left + sidebar right */}
+              <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_340px]">
+                  <TaskChecklist
+                    phase={detail.currentPhase}
+                    allPhases={detail.project.phases}
+                    projectId={detail.project.id}
+                    actionError={detail.actionError}
+                    addTaskValue={detail.tasks.addTaskValue}
+                    showAddTask={detail.tasks.showAddTask}
+                    addTaskInputRef={detail.tasks.addTaskInputRef}
+                    onAddTaskValueChange={detail.tasks.setAddTaskValue}
+                    onShowAddTaskChange={detail.tasks.setShowAddTask}
+                    onSubmitAddTask={() => void detail.tasks.handleAddTaskSubmit()}
+                    onToggleTask={(taskId) => void detail.tasks.handleToggleTask(taskId)}
+                    onDeleteTask={(taskId) => void detail.tasks.handleDeleteTask(taskId)}
+                    onSelectPhase={detail.setActivePhaseId}
+                  />
 
-                        return (
-                          <div
-                            key={task.id}
-                            className="flex items-center gap-2.5 py-2 text-[13px]"
-                          >
-                            <span
-                              className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                                isSoon ? "bg-warning" : "bg-border"
-                              }`}
-                            />
-                            <span className="min-w-0 flex-1 truncate text-text-primary">
-                              {task.title}
-                            </span>
-                            {task.dueDate && (
-                              <span
-                                className={`shrink-0 text-[12px] ${
-                                  isSoon ? "text-warning" : "text-text-tertiary"
-                                }`}
-                              >
-                                {formatDateShort(task.dueDate)}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Recent activity */}
-                {recentTasks.length > 0 && (
-                  <div>
-                    <h3 className="mb-3 font-heading text-[13px] font-semibold text-text-primary">
-                      Recent activity
-                    </h3>
-                    <div className="space-y-0">
-                      {recentTasks.map(({ task }) => {
-                        const action = task.isCompleted ? "Completed" : "Updated";
-
-                        return (
-                          <div
-                            key={task.id}
-                            className="flex items-start gap-2.5 py-2"
-                          >
-                            <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[9px] font-semibold text-accent">
-                              {task.assignees?.[0]?.name?.charAt(0)?.toUpperCase() ?? "S"}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-[13px] text-text-primary">
-                                <span className="font-medium">
-                                  {task.assignees?.[0]?.name?.split(" ")[0] ?? "You"}
-                                </span>{" "}
-                                {action.toLowerCase()} {task.title}
+                  <aside className="hidden pt-6 sm:pt-8 lg:block">
+                    {upcomingTasks.length > 0 && (
+                      <div className="mb-7">
+                        <h3 className="mb-3 font-heading text-[13px] font-semibold text-text-primary">
+                          Upcoming
+                        </h3>
+                        <div className="space-y-0">
+                          {upcomingTasks.map(({ task }) => {
+                            const now = Date.now();
+                            const isSoon =
+                              task.dueDate !== undefined &&
+                              task.dueDate - now < 3 * 24 * 60 * 60 * 1000;
+                            return (
+                              <div key={task.id} className="flex items-center gap-2.5 py-2 text-[13px]">
+                                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${isSoon ? "bg-warning" : "bg-border"}`} />
+                                <span className="min-w-0 flex-1 truncate text-text-primary">{task.title}</span>
+                                {task.dueDate && (
+                                  <span className={`shrink-0 text-[12px] ${isSoon ? "text-warning" : "text-text-tertiary"}`}>
+                                    {formatDateShort(task.dueDate)}
+                                  </span>
+                                )}
                               </div>
-                              <div className="mt-0.5 text-[11px] text-text-tertiary">
-                                {getTimeAgo(task.updatedAt)}
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {recentTasks.length > 0 && (
+                      <div>
+                        <h3 className="mb-3 font-heading text-[13px] font-semibold text-text-primary">
+                          Recent activity
+                        </h3>
+                        <div className="space-y-0">
+                          {recentTasks.map(({ task }) => {
+                            const action = task.isCompleted ? "Completed" : "Updated";
+                            return (
+                              <div key={task.id} className="flex items-start gap-2.5 py-2">
+                                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[9px] font-semibold text-accent">
+                                  {task.assignees?.[0]?.name?.charAt(0)?.toUpperCase() ?? "S"}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-[13px] text-text-primary">
+                                    <span className="font-medium">{task.assignees?.[0]?.name?.split(" ")[0] ?? "You"}</span>{" "}
+                                    {action.toLowerCase()} {task.title}
+                                  </div>
+                                  <div className="mt-0.5 text-[11px] text-text-tertiary">{getTimeAgo(task.updatedAt)}</div>
+                                </div>
                               </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </aside>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </aside>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === "research" && (
+            <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
+              <ResearchTab projectName={detail.project.name} />
             </div>
-          </div>
+          )}
+
+          {activeTab === "strategy" && (
+            <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
+              <StrategyTab projectName={detail.project.name} />
+            </div>
+          )}
+
+          {activeTab === "generate" && (
+            <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
+              <GenerateTab projectName={detail.project.name} />
+            </div>
+          )}
+
+          {activeTab === "assets" && (
+            <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
+              <AssetsTab projectName={detail.project.name} />
+            </div>
+          )}
         </motion.div>
       </div>
 

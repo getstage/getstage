@@ -4,6 +4,7 @@ import type { Project } from "@/types";
 
 type PipelineCardProps = {
   projects: Project[];
+  onOpenAllProjects?: () => void;
 };
 
 type PipelineStage = {
@@ -34,7 +35,7 @@ function getStageStyle(category: string): { dot: string; fill: string } {
   return STAGE_CATEGORIES[category] ?? { dot: "bg-border", fill: "bg-border-subtle" };
 }
 
-export function PipelineCard({ projects }: PipelineCardProps) {
+export function PipelineCard({ projects, onOpenAllProjects }: PipelineCardProps) {
   const stages = useMemo((): PipelineStage[] => {
     const activeProjects = projects.filter((p) => p.status === "active");
     const counts = new Map<string, number>();
@@ -68,7 +69,7 @@ export function PipelineCard({ projects }: PipelineCardProps) {
     <DashboardCard
       className="h-full"
       title="Pipeline"
-      action={<CardTab label="All projects" />}
+      action={<CardTab label="All projects" onClick={onOpenAllProjects} />}
     >
       {stages.length > 0 ? (
         <>

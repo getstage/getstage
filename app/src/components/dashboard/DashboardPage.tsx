@@ -9,6 +9,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Plus } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { DashboardEmptyState } from "@/components/dashboard/DashboardEmptyState";
+import { AllProjectsDialog } from "@/components/dashboard/AllProjectsDialog";
 import { DashboardPreview } from "@/components/dashboard/DashboardPreview";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { DashboardTimelineSelector } from "@/components/dashboard/DashboardTimelineSelector";
@@ -46,6 +47,7 @@ const FEEDBACK_TALLY_URL = "https://tally.so/r/OD0gqM";
 export function DashboardPage() {
   const navigate = useNavigate();
   const [timelineHorizon, setTimelineHorizon] = useState<TimelineHorizon>("thisMonth");
+  const [projectsOverviewOpen, setProjectsOverviewOpen] = useState(false);
   const [projectLimitPaywallOpen, setProjectLimitPaywallOpen] = useState(false);
   const [isUpgradeLoading, setIsUpgradeLoading] = useState(false);
   const [paywallError, setPaywallError] = useState<string | null>(null);
@@ -259,7 +261,10 @@ export function DashboardPage() {
             <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
               <UpcomingTasksCard tasks={upcomingTasks} />
               <RecentActivityCard entries={recentActivity} />
-              <PipelineCard projects={projects} />
+              <PipelineCard
+                projects={projects}
+                onOpenAllProjects={() => setProjectsOverviewOpen(true)}
+              />
               <PaymentsCard paymentSummary={dashboardData?.paymentSummary ?? null} />
             </div>
           </div>
@@ -286,6 +291,11 @@ export function DashboardPage() {
           </a>
 
           <ProjectDock projects={dockProjects} />
+          <AllProjectsDialog
+            open={projectsOverviewOpen}
+            projects={projects}
+            onOpenChange={setProjectsOverviewOpen}
+          />
         </div>
       )}
 
