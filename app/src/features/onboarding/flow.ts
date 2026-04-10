@@ -33,13 +33,14 @@ export function getFlowSteps({
   setProjectLater: boolean;
 }): OnboardingStepId[] {
   if (setProjectLater) {
-    return ["welcome", "personalise", "details", "integrations"];
+    return ["welcome", "personalise", "claude", "details", "integrations"];
   }
 
   if (method === "manual") {
     return [
       "welcome",
       "personalise",
+      "claude",
       "details",
       "client",
       "project-type",
@@ -54,6 +55,7 @@ export function getFlowSteps({
   return [
     "welcome",
     "personalise",
+    "claude",
     "details",
     "client",
     "project-type",
@@ -93,6 +95,8 @@ export function canContinue({
       return true;
     case "personalise":
       return fieldOfWork.length > 0;
+    case "claude":
+      return true;
     case "details":
       return setProjectLater || projectName.trim().length > 0;
     case "client":
@@ -132,6 +136,8 @@ export function getStepValidationError({
 }: ValidationContext) {
   switch (step) {
     case "welcome":
+      return null;
+    case "claude":
       return null;
     case "personalise": {
       if (fieldOfWork.length === 0) {

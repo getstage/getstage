@@ -166,7 +166,9 @@ export function IntegrationsTab({
               </div>
               <div>
                 <div className="card-heading sf">Claude</div>
-                <div className="text-[13px] text-text-secondary">Claude Code via Stage skill</div>
+                <div className="text-[13px] text-text-secondary">
+                  AI-powered research, strategy, and generation
+                </div>
               </div>
             </div>
             <StatusPill
@@ -175,42 +177,51 @@ export function IntegrationsTab({
             />
           </div>
 
-          <div className="mt-4 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="rounded-[12px] border border-border-subtle bg-bg-subtle p-4">
-              <div className="text-[13px] font-medium text-text-primary">Connection</div>
-              <div className="mt-2 space-y-1 text-[13px] text-text-secondary">
-                <div>
-                  Stage verification:{" "}
-                  <span className="text-text-primary">
-                    {claudeConnection?.stageApiVerified ? "Verified" : "Not verified"}
-                  </span>
-                </div>
-                <div>
-                  Last handshake:{" "}
-                  <span className="text-text-primary">
-                    {formatTimestamp(claudeConnection?.lastHandshakeAt)}
-                  </span>
-                </div>
-                <div>
-                  Last seen:{" "}
-                  <span className="text-text-primary">{formatTimestamp(claudeConnection?.lastSeenAt)}</span>
-                </div>
-                {claudeConnection?.lastError ? (
-                  <div className="text-[#E07070]">{claudeConnection.lastError}</div>
-                ) : null}
-              </div>
+          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
+            <div className="flex items-center gap-2">
+              <span
+                className={`h-2 w-2 shrink-0 rounded-full ${
+                  claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
+                    ? "bg-[#22C55E]"
+                    : claudeConnection?.status === "error"
+                      ? "bg-[#E54D4D]"
+                      : "bg-[#D9D9D9]"
+                }`}
+              />
+              <span className="text-text-primary">
+                {claudeConnection?.stageApiVerified
+                  ? "Verified"
+                  : claudeConnection?.status === "error"
+                    ? "Connection error"
+                    : "Awaiting verification"}
+              </span>
+            </div>
+            {claudeConnection?.lastHandshakeAt ? (
+              <span className="text-text-tertiary">
+                Last sync {formatTimestamp(claudeConnection.lastHandshakeAt)}
+              </span>
+            ) : null}
+          </div>
 
-              <div className="mt-4 flex flex-wrap gap-2">
-                <a href={claudeSetupHref} className="btn-save">
-                  Continue with Claude
-                </a>
-                <button
-                  type="button"
-                  className="btn-outline"
-                  onClick={() => void handleCopy(claudeInstallCommand, "install")}
-                >
-                  {copiedValue === "install" ? "Copied" : "Copy install command"}
-                </button>
+          {claudeConnection?.lastError ? (
+            <p className="mt-2 text-[13px] text-[#E07070]">{claudeConnection.lastError}</p>
+          ) : null}
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <a href={claudeSetupHref} className="btn-save">
+              {claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
+                ? "Open setup"
+                : "Connect Claude"}
+            </a>
+            <button
+              type="button"
+              className="btn-outline"
+              onClick={() => void handleCopy(claudeInstallCommand, "install")}
+            >
+              {copiedValue === "install" ? "Copied" : "Copy install command"}
+            </button>
+            {claudeConnection && claudeConnection.status !== "disconnected" ? (
+              <>
                 <button
                   type="button"
                   className="btn-outline"
@@ -221,50 +232,61 @@ export function IntegrationsTab({
                 <button
                   type="button"
                   className="btn-outline"
-                  disabled={!claudeConnection || isClaudeDisconnecting}
+                  disabled={isClaudeDisconnecting}
                   onClick={() => setDisconnectDialog("claude")}
                 >
                   {isClaudeDisconnecting ? "Disconnecting..." : "Disconnect"}
                 </button>
+              </>
+            ) : null}
+          </div>
+
+          <div className="mt-2">
+            <FeedbackText feedback={claudeFeedback} />
+          </div>
+
+          <div className="mt-6 border-t border-border-subtle pt-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="text-[13px] font-medium text-text-primary">Anthropic API key</div>
+                <div className="mt-0.5 text-[12px] text-text-secondary">
+                  Optional. Store your key to enable Stage-managed background runs.
+                </div>
               </div>
-              <div className="mt-3">
-                <FeedbackText
-                  feedback={claudeFeedback}
-                  fallback="Connect Claude now, or do it later in Settings. Stage tracks verification and exports."
-                />
-              </div>
+              <a
+                href="https://console.anthropic.com"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[13px] font-medium text-accent transition-colors hover:text-accent-hover"
+              >
+                Manage on Anthropic &rarr;
+              </a>
             </div>
 
-            <div className="rounded-[12px] border border-border-subtle bg-white p-4">
-              <div className="text-[13px] font-medium text-text-primary">
-                Anthropic API key
-              </div>
-              <div className="mt-1 text-[12px] text-text-secondary">
-                For future background runs. Claude Code remains the main V1 workflow.
-              </div>
-              <label className="settings-label mt-4">API key</label>
-              <div className="flex gap-2">
-                <input
-                  className="settings-input"
-                  type="password"
-                  value={anthropicApiKey}
-                  onChange={(event) => onAnthropicApiKeyChange(event.target.value)}
-                  placeholder={
-                    anthropicCredential.hasSavedKey
-                      ? `Saved key ending in ${anthropicCredential.keyLast4 ?? "----"}`
-                      : "sk-ant-..."
-                  }
-                />
-                <button
-                  type="button"
-                  className="btn-outline shrink-0"
-                  disabled={isAnthropicTesting}
-                  onClick={onAnthropicTest}
-                >
-                  {isAnthropicTesting ? "Testing..." : "Test"}
-                </button>
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-[13px] text-text-secondary">
+            <div className="mt-3 flex gap-2">
+              <input
+                className="settings-input"
+                type="password"
+                value={anthropicApiKey}
+                onChange={(event) => onAnthropicApiKeyChange(event.target.value)}
+                placeholder={
+                  anthropicCredential.hasSavedKey
+                    ? `Saved key ending in ${anthropicCredential.keyLast4 ?? "----"}`
+                    : "sk-ant-..."
+                }
+              />
+              <button
+                type="button"
+                className="btn-outline shrink-0"
+                disabled={isAnthropicTesting}
+                onClick={onAnthropicTest}
+              >
+                {isAnthropicTesting ? "Testing..." : "Test"}
+              </button>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3 text-[13px] text-text-secondary">
                 <label className="inline-flex items-center gap-2">
                   <span>Model</span>
                   <select
@@ -276,45 +298,33 @@ export function IntegrationsTab({
                     <option value="claude-opus-4-1">Claude Opus 4.1</option>
                   </select>
                 </label>
-                <span>
-                  Saved key:{" "}
-                  <span className="text-text-primary">
-                    {anthropicCredential.hasSavedKey
-                      ? `••••${anthropicCredential.keyLast4 ?? ""}`
-                      : "None"}
-                  </span>
-                </span>
-                <span>
-                  Status:{" "}
-                  <span className="text-text-primary">
+                {anthropicCredential.hasSavedKey ? (
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        anthropicCredential.status === "valid"
+                          ? "bg-[#22C55E]"
+                          : anthropicCredential.status === "invalid"
+                            ? "bg-[#E54D4D]"
+                            : "bg-[#D9D9D9]"
+                      }`}
+                    />
                     {formatCredentialStatus(anthropicCredential.status)}
                   </span>
-                </span>
+                ) : null}
               </div>
-              <div className="mt-4 flex items-center justify-between gap-3">
-                <a
-                  href="https://console.anthropic.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[13px] font-medium text-accent transition-colors hover:text-accent-hover"
-                >
-                  Manage on Anthropic &rarr;
-                </a>
-                <button
-                  type="button"
-                  className="btn-save"
-                  disabled={isAnthropicSaving}
-                  onClick={onAnthropicSave}
-                >
-                  {isAnthropicSaving ? "Saving..." : "Save"}
-                </button>
-              </div>
-              <div className="mt-3">
-                <FeedbackText
-                  feedback={anthropicFeedback}
-                  fallback="Store your own Anthropic key if you want Stage-run jobs later."
-                />
-              </div>
+              <button
+                type="button"
+                className="btn-save"
+                disabled={isAnthropicSaving}
+                onClick={onAnthropicSave}
+              >
+                {isAnthropicSaving ? "Saving..." : "Save"}
+              </button>
+            </div>
+
+            <div className="mt-2">
+              <FeedbackText feedback={anthropicFeedback} />
             </div>
           </div>
         </div>
@@ -627,12 +637,12 @@ function ToolCard({
             <div>
               <div className="card-heading sf">{title}</div>
               <div className="text-[13px] text-text-secondary">
-                {available ? "Available in Claude" : "Needs setup in Claude"}
+                {available ? "Connected and ready" : "Not connected yet"}
               </div>
             </div>
           </div>
           <StatusPill
-            label={available ? "Available" : "Needs setup"}
+            label={available ? "Connected" : "Setup required"}
             tone={available ? "success" : "neutral"}
           />
         </div>
@@ -651,7 +661,7 @@ function ToolCard({
       </div>
       <div className="card-footer">
         <span className="text-[13px] text-text-secondary">
-          {tool.destinationLabel || tool.lastExportUrl || "Claude will use your connected tooling."}
+          {tool.destinationLabel || tool.lastExportUrl || "Connect through the Claude setup page."}
         </span>
         <a href={setupHref} className="btn-save">
           {primaryLabel}

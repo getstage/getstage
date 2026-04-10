@@ -3,6 +3,7 @@ import type { ProjectType } from "@/types";
 export type OnboardingStepId =
   | "welcome"
   | "personalise"
+  | "claude"
   | "details"
   | "client"
   | "project-type"

@@ -280,6 +280,9 @@ export function useOnboardingController({
         setStep("personalise");
         return;
       case "personalise":
+        setStep("claude");
+        return;
+      case "claude":
         setStep("details");
         return;
       case "details":
