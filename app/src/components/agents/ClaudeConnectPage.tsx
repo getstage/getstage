@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "@tanstack/react-router";
-import { Check, Copy } from "@phosphor-icons/react";
+import { Check, Copy, Key, Terminal } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "convex/react";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { useAuth } from "@/lib/auth";
@@ -123,12 +123,14 @@ export function ClaudeConnectPage() {
         </header>
 
         <main className="mx-auto max-w-5xl px-6 pb-20 pt-12">
+          {/* Hero with brand lockup */}
           <section className="max-w-2xl">
-            <p className="flex items-center gap-2 text-[13px] font-medium text-text-secondary">
-              <img src="/claude.svg" alt="" className="h-4 w-4" />
-              Setup
-            </p>
-            <h1 className="mt-3 font-heading text-[36px] font-semibold leading-[1.08] tracking-[-0.8px] text-text-primary sm:text-[44px]">
+            <div className="flex items-center gap-4">
+              <img src="/claude-full.svg" alt="Claude" className="h-6" />
+              <span className="text-[20px] font-light text-text-tertiary">&times;</span>
+              <img src={stageLogo} alt="Stage" className="h-7" />
+            </div>
+            <h1 className="mt-5 font-heading text-[36px] font-semibold leading-[1.08] tracking-[-0.8px] text-text-primary sm:text-[44px]">
               Connect Claude to Stage
             </h1>
             <p className="mt-4 max-w-[520px] text-[16px] leading-[1.65] text-text-secondary">
@@ -139,8 +141,11 @@ export function ClaudeConnectPage() {
 
           <section className="mt-10 grid items-start gap-8 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="space-y-4">
+              {/* Step 1: API Key */}
               <StepCard
-                number={1}
+                icon={<Key size={18} weight="bold" />}
+                iconBg="#F3F2FF"
+                iconColor="#8782F5"
                 title="Create a Stage API key"
                 description="Generate a dedicated key for Claude Code."
               >
@@ -178,8 +183,11 @@ export function ClaudeConnectPage() {
                 )}
               </StepCard>
 
+              {/* Step 2: Install */}
               <StepCard
-                number={2}
+                icon={<Terminal size={18} weight="bold" />}
+                iconBg="#1E1E2E"
+                iconColor="#FFFFFF"
                 title="Install the Stage skill"
                 description="Run this command in Claude Code."
               >
@@ -190,8 +198,10 @@ export function ClaudeConnectPage() {
                 />
               </StepCard>
 
+              {/* Step 3: Notion */}
               <StepCard
-                number={3}
+                icon={<img src="/notion.svg" alt="" className="h-[18px] w-[18px]" />}
+                iconBg="#F5F5F5"
                 title="Connect Notion"
                 description="Enable the Notion MCP in Claude so Stage can export research and strategy docs."
               >
@@ -200,8 +210,10 @@ export function ClaudeConnectPage() {
                 </p>
               </StepCard>
 
+              {/* Step 4: Figma */}
               <StepCard
-                number={4}
+                icon={<img src="/figma.svg" alt="" className="h-[18px] w-[14px]" />}
+                iconBg="#F5F0FF"
                 title="Connect Figma"
                 description="Enable Figma tooling in Claude for design iteration and generation."
               >
@@ -210,8 +222,10 @@ export function ClaudeConnectPage() {
                 </p>
               </StepCard>
 
+              {/* Step 5: Verify */}
               <StepCard
-                number={5}
+                icon={<img src="/claude.svg" alt="" className="h-[18px] w-[18px]" />}
+                iconBg="#FDF0E8"
                 title="Verify the connection"
                 description="Paste this prompt into Claude after completing the steps above."
               >
@@ -222,9 +236,12 @@ export function ClaudeConnectPage() {
                 />
               </StepCard>
 
+              {/* Step 6: Task (conditional) */}
               {taskPrompt ? (
                 <StepCard
-                  number={6}
+                  icon={<Terminal size={18} weight="bold" />}
+                  iconBg="#1E1E2E"
+                  iconColor="#FFFFFF"
                   title="Continue your task"
                   description="This prompt continues the workflow that brought you here."
                 >
@@ -237,9 +254,11 @@ export function ClaudeConnectPage() {
               ) : null}
             </div>
 
+            {/* Sidebar */}
             <div className="space-y-4 lg:sticky lg:top-6">
+              {/* Live status */}
               <div className="rounded-2xl border border-border-subtle bg-white p-6">
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-3">
                   <span
                     className={`h-2.5 w-2.5 shrink-0 rounded-full ${
                       isConnected ? "bg-[#22C55E]" : "animate-pulse bg-[#D9D9D9]"
@@ -252,11 +271,13 @@ export function ClaudeConnectPage() {
 
                 <div className="mt-5 space-y-3 text-[13px]">
                   <StatusRow
+                    icon={<img src="/notion.svg" alt="" className="h-3.5 w-3.5" />}
                     label="Notion"
                     value={claudeState?.connection?.notionInClaude === "claimed" ? "Connected" : "Not detected"}
                     active={claudeState?.connection?.notionInClaude === "claimed"}
                   />
                   <StatusRow
+                    icon={<img src="/figma.svg" alt="" className="h-3.5 w-[10px]" />}
                     label="Figma"
                     value={claudeState?.connection?.figmaInClaude === "claimed" ? "Connected" : "Not detected"}
                     active={claudeState?.connection?.figmaInClaude === "claimed"}
@@ -276,21 +297,22 @@ export function ClaudeConnectPage() {
                 </a>
               </div>
 
+              {/* What happens next */}
               <div className="rounded-2xl border border-border-subtle bg-white p-6">
                 <div className="font-heading text-[17px] font-semibold text-text-primary">
                   What happens next
                 </div>
-                <ul className="mt-4 space-y-2.5 text-[14px] leading-[1.6] text-text-secondary">
-                  <li className="flex gap-2.5">
-                    <span className="mt-[9px] h-1 w-1 shrink-0 rounded-full bg-text-tertiary" />
+                <ul className="mt-4 space-y-3 text-[14px] leading-[1.6] text-text-secondary">
+                  <li className="flex items-start gap-2.5">
+                    <img src="/claude.svg" alt="" className="mt-[3px] h-3.5 w-3.5 shrink-0 opacity-50" />
                     Research, strategy, and generate workflows run through Claude.
                   </li>
-                  <li className="flex gap-2.5">
-                    <span className="mt-[9px] h-1 w-1 shrink-0 rounded-full bg-text-tertiary" />
+                  <li className="flex items-start gap-2.5">
+                    <img src="/favicon.svg" alt="" className="mt-[3px] h-3.5 w-3.5 shrink-0 opacity-50" />
                     Stage tracks run state, artifacts, approvals, and export history.
                   </li>
-                  <li className="flex gap-2.5">
-                    <span className="mt-[9px] h-1 w-1 shrink-0 rounded-full bg-text-tertiary" />
+                  <li className="flex items-start gap-2.5">
+                    <img src="/notion.svg" alt="" className="mt-[3px] h-3.5 w-3.5 shrink-0 opacity-50" />
                     Notion and Figma stay connected through Claude&apos;s native integrations.
                   </li>
                 </ul>
@@ -304,12 +326,16 @@ export function ClaudeConnectPage() {
 }
 
 function StepCard({
-  number,
+  icon,
+  iconBg,
+  iconColor,
   title,
   description,
   children,
 }: {
-  number: number;
+  icon: ReactNode;
+  iconBg: string;
+  iconColor?: string;
   title: string;
   description: string;
   children: ReactNode;
@@ -317,31 +343,39 @@ function StepCard({
   return (
     <div className="rounded-2xl border border-border-subtle bg-white p-6">
       <div className="flex items-start gap-3.5">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-[13px] font-semibold text-accent">
-          {number}
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+          style={{ backgroundColor: iconBg, color: iconColor }}
+        >
+          {icon}
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="text-[16px] font-semibold text-text-primary">{title}</h2>
           <p className="mt-1 text-[14px] leading-[1.5] text-text-secondary">{description}</p>
         </div>
       </div>
-      <div className="mt-4 pl-[38px]">{children}</div>
+      <div className="mt-4 pl-[50px]">{children}</div>
     </div>
   );
 }
 
 function StatusRow({
+  icon,
   label,
   value,
   active,
 }: {
+  icon?: ReactNode;
   label: string;
   value: string;
   active: boolean;
 }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-text-secondary">{label}</span>
+      <span className="flex items-center gap-2 text-text-secondary">
+        {icon}
+        {label}
+      </span>
       <span className={`flex items-center gap-1.5 ${active ? "text-text-primary" : "text-text-tertiary"}`}>
         {active ? <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" /> : null}
         {value}
