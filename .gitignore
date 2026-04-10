@@ -29,3 +29,6 @@ yarn-error.log*
 # Local Claude tooling
 .claude/settings.local.json
 .claude/worktrees/
+
+# Local sibling repo used outside the app deploy
+agent-mode/
