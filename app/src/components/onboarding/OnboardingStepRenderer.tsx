@@ -739,29 +739,29 @@ function ClaudeOnboardingStep({
       </div>
 
       <div className="mt-7">
-        {/* Primary CTA — Stage accent, not black */}
+        {/* Primary CTA — light Claude-tinted button */}
         <button
           type="button"
           onClick={() => void handleContinue()}
-          className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[10px] bg-accent text-[15px] font-medium text-white transition-all duration-150 hover:bg-accent-hover active:brightness-95"
+          className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-[#D97757]/18 bg-[#D97757]/[0.06] text-[15px] font-medium text-text-primary transition-all duration-150 hover:bg-[#D97757]/[0.11] active:bg-[#D97757]/[0.15]"
         >
           {copied === "full" ? (
             <>
-              <Check size={15} weight="bold" />
+              <Check size={15} weight="bold" className="text-[#22C55E]" />
               Copied — opening Claude
             </>
           ) : (
             <>
               Continue with
-              <img src="/claude-full.svg" alt="Claude" className="h-[14px] brightness-0 invert" />
-              <ArrowRight size={14} weight="bold" />
+              <img src="/claude-full.svg" alt="Claude" className="h-[14px]" />
+              <ArrowRight size={14} weight="bold" className="text-text-tertiary" />
             </>
           )}
         </button>
 
         {/* Manual fallback */}
-        <div className="mt-5 rounded-[10px] border border-border-subtle bg-bg-subtle px-4 py-3">
-          <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.04em] text-text-tertiary">
+        <div className="mt-5 rounded-[10px] border border-[#8782F5]/12 bg-[#F8F7FF] px-4 py-3">
+          <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.04em] text-[#8782F5]/60">
             Install
           </div>
           <div className="flex items-center justify-between gap-3">

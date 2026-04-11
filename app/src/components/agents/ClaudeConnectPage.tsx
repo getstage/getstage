@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Check, Copy, CaretDown } from "@phosphor-icons/react";
+import { ArrowRight, Check, Copy, CaretDown, Key } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "convex/react";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { useAuth } from "@/lib/auth";
@@ -194,11 +194,16 @@ export function ClaudeConnectPage() {
                   />
                   <button
                     type="button"
-                    className="h-11 shrink-0 cursor-pointer rounded-[10px] bg-accent px-6 text-[15px] font-medium text-white transition-all duration-150 hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-40"
+                    className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-[10px] bg-accent text-white transition-all duration-150 hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-40"
                     disabled={developerSettings.isCreating}
                     onClick={() => void developerSettings.handleCreate()}
+                    aria-label="Create API key"
                   >
-                    {developerSettings.isCreating ? "Creating..." : "Create key"}
+                    {developerSettings.isCreating ? (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    ) : (
+                      <Key size={18} weight="bold" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -211,11 +216,11 @@ export function ClaudeConnectPage() {
               <button
                 type="button"
                 onClick={() => void handleContinueWithClaude()}
-                className="mt-6 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[10px] bg-accent text-[15px] font-medium text-white transition-all duration-150 hover:bg-accent-hover active:brightness-95 disabled:pointer-events-none disabled:opacity-40"
+                className="mt-6 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-[#D97757]/18 bg-[#D97757]/[0.06] text-[15px] font-medium text-text-primary transition-all duration-150 hover:bg-[#D97757]/[0.11] active:bg-[#D97757]/[0.15] disabled:pointer-events-none disabled:opacity-40"
               >
                 {copied ? (
                   <>
-                    <Check size={16} weight="bold" />
+                    <Check size={15} weight="bold" className="text-[#22C55E]" />
                     Copied — opening Claude
                   </>
                 ) : (
@@ -224,9 +229,9 @@ export function ClaudeConnectPage() {
                     <img
                       src="/claude-full.svg"
                       alt="Claude"
-                      className="h-[15px] brightness-0 invert"
+                      className="h-[15px]"
                     />
-                    <ArrowRight size={15} weight="bold" />
+                    <ArrowRight size={14} weight="bold" className="text-text-tertiary" />
                   </>
                 )}
               </button>
@@ -314,8 +319,8 @@ function CommandBlock({ label, code }: { label: string; code: string }) {
   }
 
   return (
-    <div className="rounded-[10px] border border-border-subtle bg-bg-subtle px-4 py-3">
-      <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.04em] text-text-tertiary">
+    <div className="rounded-[10px] border border-[#8782F5]/12 bg-[#F8F7FF] px-4 py-3">
+      <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.04em] text-[#8782F5]/60">
         {label}
       </div>
       <div className="flex items-start justify-between gap-4">
