@@ -728,72 +728,69 @@ function ClaudeOnboardingStep({
   return (
     <>
       <div className="flex flex-col items-center text-center">
-        <img
-          src="/claude.svg"
-          alt="Claude"
-          className="h-16 w-16"
-        />
-        <h3 className="mt-5 font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
+        <img src="/claude.svg" alt="Claude" className="h-12 w-12" />
+        <h3 className="mt-4 font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
           Connect Claude
         </h3>
-        <p className="mt-2 max-w-[440px] text-[15px] leading-[1.5] text-text-secondary">
+        <p className="mt-2 max-w-[420px] text-[14px] leading-[1.55] text-text-secondary">
           Stage uses Claude for research, strategy, and content generation.
-          One click copies the setup prompt — paste it in Claude Code.
+          One click copies the setup prompt and opens Claude.
         </p>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-7">
+        {/* Primary CTA — Stage accent, not black */}
         <button
           type="button"
           onClick={() => void handleContinue()}
-          className="inline-flex h-[48px] w-full cursor-pointer items-center justify-center gap-3 rounded-xl bg-accent text-[15px] font-semibold text-white transition-all hover:bg-accent-hover active:scale-[0.98]"
+          className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[10px] bg-accent text-[15px] font-medium text-white transition-all duration-150 hover:bg-accent-hover active:brightness-95"
         >
           {copied === "full" ? (
             <>
-              <Check size={18} weight="bold" />
+              <Check size={15} weight="bold" />
               Copied — opening Claude
             </>
           ) : (
             <>
               Continue with
-              <img src="/claude-full.svg" alt="Claude" className="h-[16px] brightness-0 invert" />
-              <ArrowRight size={16} weight="bold" />
+              <img src="/claude-full.svg" alt="Claude" className="h-[14px] brightness-0 invert" />
+              <ArrowRight size={14} weight="bold" />
             </>
           )}
         </button>
 
-        <div className="mt-5 border-t border-border-subtle pt-4">
-          <p className="mb-2.5 text-[13px] font-medium text-text-secondary">
-            Or copy the install command manually
-          </p>
-          <div className="overflow-hidden rounded-lg bg-bg-subtle px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <code className="min-w-0 truncate text-[13px] text-text-primary">
-                {claudeInstallCommand}
-              </code>
-              <button
-                type="button"
-                onClick={() => {
-                  void navigator.clipboard.writeText(claudeInstallCommand);
-                  setCopied("install");
-                  window.setTimeout(() => setCopied(null), 1600);
-                }}
-                className="shrink-0 cursor-pointer bg-transparent p-0 text-[12px] font-medium text-text-tertiary transition-colors hover:text-text-secondary"
-              >
-                {copied === "install" ? "Copied" : "Copy"}
-              </button>
-            </div>
+        {/* Manual fallback */}
+        <div className="mt-5 rounded-[10px] border border-border-subtle bg-bg-subtle px-4 py-3">
+          <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.04em] text-text-tertiary">
+            Install
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <code className="min-w-0 truncate font-body text-[13px] text-text-primary">
+              {claudeInstallCommand}
+            </code>
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard.writeText(claudeInstallCommand);
+                setCopied("install");
+                window.setTimeout(() => setCopied(null), 1600);
+              }}
+              className="shrink-0 cursor-pointer rounded-md px-1.5 py-0.5 text-[11px] font-medium text-text-tertiary transition-colors duration-150 hover:bg-white hover:text-text-secondary"
+            >
+              {copied === "install" ? "Copied" : "Copy"}
+            </button>
           </div>
         </div>
 
+        {/* Status + link */}
         <div className="mt-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span
               className={cn(
-                "h-2 w-2 shrink-0 rounded-full",
+                "h-[7px] w-[7px] shrink-0 rounded-full",
                 claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
-                  ? "bg-[#22C55E]"
-                  : "bg-[#D9D9D9]",
+                  ? "bg-success"
+                  : "bg-border",
               )}
             />
             <span className="text-[13px] text-text-secondary">
@@ -804,14 +801,14 @@ function ClaudeOnboardingStep({
           </div>
           <a
             href={claudeSetupHref}
-            className="text-[13px] font-medium text-accent transition-colors hover:text-accent-hover"
+            className="text-[13px] font-medium text-accent transition-colors duration-150 hover:text-accent-hover"
           >
-            Full setup guide &rarr;
+            Setup guide &rarr;
           </a>
         </div>
 
-        <p className="mt-5 text-center text-[13px] text-text-secondary">
-          You can also connect Claude later from Settings.
+        <p className="mt-4 text-center text-[13px] text-text-tertiary">
+          You can also set this up later from Settings.
         </p>
       </div>
     </>

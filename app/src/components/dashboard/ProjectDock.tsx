@@ -279,9 +279,15 @@ export function ProjectDock({ projects, interactive = true }: ProjectDockProps) 
                   >
                     {/* Tooltip */}
                     <div
-                      className={`pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-[8px] border border-white/6 bg-[#333546] px-2.5 py-1.5 text-[12px] font-medium text-white opacity-0 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-opacity duration-150 ${
+                      className={`pointer-events-none absolute bottom-full mb-2 rounded-[8px] border border-white/6 bg-[#333546] px-2.5 py-1.5 text-[12px] font-medium text-white opacity-0 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-opacity duration-150 ${
                         isHovered ? "opacity-100" : ""
                       }`}
+                      style={{
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        whiteSpace: "nowrap",
+                        maxWidth: "calc(100vw - 32px)",
+                      }}
                     >
                       {navItem.name}
                     </div>

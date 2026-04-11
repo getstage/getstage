@@ -1,5 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
+import { ArrowRight, Check } from "@phosphor-icons/react";
 import googleSheetsIcon from "@/assets/icons/google-sheets.svg";
 import stripeIcon from "@/assets/icons/stripe.svg";
 import { FeedbackText } from "@/components/settings/FeedbackText";
@@ -175,100 +176,85 @@ export function IntegrationsTab({
     <div className={`tab-content ${active ? "active" : ""}`}>
       <div className="settings-card">
         <div className="card-body">
+          {/* Header */}
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]"
-                style={{ backgroundColor: "#FDF0E8" }}
-              >
-                <img src="/claude.svg" alt="" className="h-5 w-5" />
-              </div>
+              <img src="/claude.svg" alt="" className="h-8 w-8 shrink-0" />
               <div>
                 <div className="card-heading sf">Claude</div>
                 <div className="text-[13px] text-text-secondary">
-                  AI-powered research, strategy, and generation
+                  Research, strategy, and generation
                 </div>
               </div>
             </div>
-            <StatusPill
-              label={formatClaudeStatusLabel(claudeConnection)}
-              tone={formatClaudeTone(claudeConnection)}
-            />
-          </div>
-
-          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
             <div className="flex items-center gap-2">
               <span
-                className={`h-2 w-2 shrink-0 rounded-full ${
+                className={`h-[7px] w-[7px] shrink-0 rounded-full ${
                   claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
-                    ? "bg-[#22C55E]"
+                    ? "bg-success"
                     : claudeConnection?.status === "error"
-                      ? "bg-[#E54D4D]"
-                      : "bg-[#D9D9D9]"
+                      ? "bg-destructive"
+                      : "bg-border"
                 }`}
               />
-              <span className="text-text-primary">
-                {claudeConnection?.stageApiVerified
-                  ? "Verified"
-                  : claudeConnection?.status === "error"
-                    ? "Connection error"
-                    : "Awaiting verification"}
+              <span className="text-[12px] font-medium text-text-secondary">
+                {formatClaudeStatusLabel(claudeConnection)}
               </span>
             </div>
-            {claudeConnection?.lastHandshakeAt ? (
-              <span className="text-text-tertiary">
-                Last sync {formatTimestamp(claudeConnection.lastHandshakeAt)}
-              </span>
-            ) : null}
           </div>
 
           {claudeConnection?.lastError ? (
-            <p className="mt-2 text-[13px] text-[#E07070]">{claudeConnection.lastError}</p>
+            <p className="mt-3 text-[13px] text-destructive">{claudeConnection.lastError}</p>
           ) : null}
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          {/* Primary action */}
+          <div className="mt-5 flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="btn-save inline-flex items-center gap-2"
+              className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-[10px] bg-accent px-4 text-[14px] font-medium text-white transition-all duration-150 hover:bg-accent-hover active:brightness-95"
               onClick={() => void handleContinueWithClaude()}
             >
               {copiedValue === "full" ? (
-                "Copied — opening Claude"
+                <>
+                  <Check size={14} weight="bold" />
+                  Copied — opening Claude
+                </>
               ) : (
                 <>
                   Continue with Claude
-                  <span className="text-[12px] opacity-70">&rarr;</span>
+                  <ArrowRight size={14} weight="bold" />
                 </>
               )}
             </button>
-            <a href={claudeSetupHref} className="btn-outline">
+            <a
+              href={claudeSetupHref}
+              className="inline-flex h-9 items-center rounded-[10px] border border-border px-4 text-[14px] font-medium text-text-primary transition-all duration-150 hover:bg-bg-subtle"
+            >
               Setup guide
             </a>
             {claudeConnection && claudeConnection.status !== "disconnected" ? (
-              <>
-                <button
-                  type="button"
-                  className="btn-outline"
-                  onClick={() => void handleCopy(claudeVerifyPrompt, "verify")}
-                >
-                  {copiedValue === "verify" ? "Copied" : "Copy verify prompt"}
-                </button>
-                <button
-                  type="button"
-                  className="btn-outline"
-                  disabled={isClaudeDisconnecting}
-                  onClick={() => setDisconnectDialog("claude")}
-                >
-                  {isClaudeDisconnecting ? "Disconnecting..." : "Disconnect"}
-                </button>
-              </>
+              <button
+                type="button"
+                className="inline-flex h-9 cursor-pointer items-center rounded-[10px] border border-border px-4 text-[14px] font-medium text-text-primary transition-all duration-150 hover:bg-bg-subtle"
+                disabled={isClaudeDisconnecting}
+                onClick={() => setDisconnectDialog("claude")}
+              >
+                {isClaudeDisconnecting ? "Disconnecting..." : "Disconnect"}
+              </button>
             ) : null}
           </div>
 
-          <div className="mt-2">
+          {claudeConnection?.lastHandshakeAt ? (
+            <p className="mt-3 text-[12px] text-text-tertiary">
+              Last synced {formatTimestamp(claudeConnection.lastHandshakeAt)}
+            </p>
+          ) : null}
+
+          <div className="mt-1">
             <FeedbackText feedback={claudeFeedback} />
           </div>
 
+          {/* API key section */}
           <div className="mt-6 border-t border-border-subtle pt-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -725,15 +711,6 @@ function formatClaudeStatusLabel(connection: ClaudeConnectionSummary) {
   return "Pending";
 }
 
-function formatClaudeTone(connection: ClaudeConnectionSummary): "success" | "warning" | "neutral" {
-  if (!connection || connection.status === "disconnected" || connection.status === "pending") {
-    return "neutral";
-  }
-  if (connection.status === "error" || !connection.stageApiVerified) {
-    return "warning";
-  }
-  return "success";
-}
 
 function formatCredentialStatus(status: AnthropicCredentialSummary["status"]) {
   switch (status) {
