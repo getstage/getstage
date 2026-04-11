@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "@tanstack/react-router";
-import { Check, Copy, ArrowRight } from "@phosphor-icons/react";
+import { ArrowRight, Check } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "convex/react";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { useAuth } from "@/lib/auth";
@@ -12,6 +12,8 @@ import { CLAUDE_INSTALL_COMMAND } from "@/features/settings/useIntegrationsSetti
 const PAGE_TITLE = "Connect Claude to Stage";
 const PAGE_DESCRIPTION =
   "Connect Claude Code to your Stage workspace for AI-powered research, strategy, and generation.";
+
+const CLAUDE_APP_URL = "https://claude.ai/new";
 
 function useSearchParams() {
   return useMemo(() => new URLSearchParams(window.location.search), []);
@@ -98,7 +100,7 @@ export function ClaudeConnectPage() {
   const claudeState = useQuery(api.agentConnections.getClaudeConnectionSummary, isAuthenticated ? {} : "skip");
   const createPendingConnection = useMutation(api.agentConnections.createPendingClaudeConnection);
   const developerSettings = useDeveloperSettings({ enabled: isAuthenticated });
-  const [copied, setCopied] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [showManual, setShowManual] = useState(false);
 
   useEffect(() => {
@@ -121,16 +123,11 @@ export function ClaudeConnectPage() {
     verificationPrompt,
   });
 
-  async function handleCopy(value: string, key: string) {
-    await navigator.clipboard.writeText(value);
-    setCopied(key);
-    window.setTimeout(() => setCopied(null), 2000);
-  }
-
   async function handleContinueWithClaude() {
     await navigator.clipboard.writeText(fullSetupPrompt);
-    setCopied("full");
-    window.setTimeout(() => setCopied(null), 3000);
+    setCopied(true);
+    window.open(CLAUDE_APP_URL, "_blank");
+    window.setTimeout(() => setCopied(false), 4000);
   }
 
   const isConnected = claudeState?.connection?.stageApiVerified === true;
@@ -166,25 +163,21 @@ export function ClaudeConnectPage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-3xl px-6 pb-20 pt-16">
-          {/* Hero */}
+        <main className="mx-auto max-w-xl px-6 pb-20 pt-16">
+          {/* Hero — just the Claude logo */}
           <section className="flex flex-col items-center text-center">
             <img
               src="/claude-full.svg"
               alt="Claude"
-              className="h-8 sm:h-10"
+              className="h-9 sm:h-11"
             />
-            <h1 className="mt-6 font-heading text-[36px] font-semibold leading-[1.08] tracking-[-0.8px] text-text-primary sm:text-[44px]">
-              Connect Claude to Stage
-            </h1>
-            <p className="mt-4 max-w-[460px] text-[16px] leading-[1.65] text-text-secondary">
-              One prompt sets up the Stage skill, connects your API key, and verifies
-              that Claude can talk to your workspace.
+            <p className="mt-5 max-w-[400px] text-[16px] leading-[1.65] text-text-secondary">
+              One prompt connects Claude to your Stage workspace.
             </p>
           </section>
 
           {/* Main card */}
-          <section className="mx-auto mt-10 max-w-xl">
+          <section className="mt-8">
             <div className="rounded-2xl border border-border-subtle bg-white p-8 sm:p-10">
               {/* Key creation (only if no key yet) */}
               {needsKey ? (
@@ -221,97 +214,63 @@ export function ClaudeConnectPage() {
                 <img
                   src="/claude.svg"
                   alt=""
-                  className="h-16 w-16 sm:h-20 sm:w-20"
+                  className="h-14 w-14 sm:h-16 sm:w-16"
                 />
 
                 <button
                   type="button"
                   onClick={() => void handleContinueWithClaude()}
-                  className="mt-6 inline-flex h-[52px] w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl bg-text-primary text-[15px] font-semibold text-white shadow-[0_1px_3px_rgba(0,0,0,0.12)] transition-all hover:opacity-90 active:scale-[0.98]"
+                  className="mt-6 inline-flex h-[52px] w-full cursor-pointer items-center justify-center gap-3 rounded-2xl bg-accent text-[15px] font-semibold text-white shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-all hover:bg-accent-hover active:scale-[0.98]"
                 >
-                  {copied === "full" ? (
+                  {copied ? (
                     <>
                       <Check size={18} weight="bold" />
-                      Copied — paste in Claude Code
+                      Copied — opening Claude
                     </>
                   ) : (
                     <>
-                      Continue with Claude
+                      Continue with
+                      <img src="/claude-full.svg" alt="Claude" className="h-[18px] brightness-0 invert" />
                       <ArrowRight size={18} weight="bold" />
                     </>
                   )}
                 </button>
 
-                <p className="mt-3 text-[13px] text-text-secondary">
-                  Copies the full setup prompt to your clipboard.
-                  <br />
-                  Open Claude Code and paste to get started.
+                <p className="mt-3 text-[13px] text-text-tertiary">
+                  Copies the setup prompt and opens Claude.
                 </p>
               </div>
 
-              {/* Manual alternative */}
-              <div className="mt-8 border-t border-border-subtle pt-6">
+              {/* Manual fallback */}
+              <div className="mt-8 border-t border-border-subtle pt-5">
                 <button
                   type="button"
                   onClick={() => setShowManual(!showManual)}
-                  className="flex w-full cursor-pointer items-center justify-between text-[14px] font-medium text-text-secondary transition-colors hover:text-text-primary"
+                  className="flex w-full cursor-pointer items-center justify-between text-[13px] font-medium text-text-secondary transition-colors hover:text-text-primary"
                 >
-                  Or set up manually
-                  <span className={`text-[12px] transition-transform ${showManual ? "rotate-90" : ""}`}>
+                  Or copy and paste in Claude Code
+                  <span
+                    className="inline-block text-[16px] transition-transform"
+                    style={{ transform: showManual ? "rotate(90deg)" : "none" }}
+                  >
                     &rsaquo;
                   </span>
                 </button>
 
                 {showManual ? (
-                  <div className="mt-5 space-y-4">
-                    <div>
-                      <p className="mb-2 text-[13px] font-medium text-text-primary">
-                        Install the Stage skill
-                      </p>
-                      <CodeBlock
-                        code={CLAUDE_INSTALL_COMMAND}
-                        copied={copied === "install"}
-                        onCopy={() => void handleCopy(CLAUDE_INSTALL_COMMAND, "install")}
-                      />
-                    </div>
-
+                  <div className="mt-4 space-y-3">
+                    <ManualCodeBlock
+                      label="Install"
+                      code={CLAUDE_INSTALL_COMMAND}
+                    />
                     {envSnippet ? (
-                      <div>
-                        <p className="mb-2 text-[13px] font-medium text-text-primary">
-                          Set your API key
-                        </p>
-                        <CodeBlock
-                          code={envSnippet}
-                          copied={copied === "env"}
-                          onCopy={() => void handleCopy(envSnippet, "env")}
-                        />
-                      </div>
+                      <ManualCodeBlock label="API key" code={envSnippet} />
                     ) : null}
-
                     {verificationPrompt ? (
-                      <div>
-                        <p className="mb-2 text-[13px] font-medium text-text-primary">
-                          Verify the connection
-                        </p>
-                        <CodeBlock
-                          code={verificationPrompt}
-                          copied={copied === "verify"}
-                          onCopy={() => void handleCopy(verificationPrompt, "verify")}
-                        />
-                      </div>
+                      <ManualCodeBlock label="Verify" code={verificationPrompt} />
                     ) : null}
-
                     {taskPrompt ? (
-                      <div>
-                        <p className="mb-2 text-[13px] font-medium text-text-primary">
-                          Continue your task
-                        </p>
-                        <CodeBlock
-                          code={taskPrompt}
-                          copied={copied === "task"}
-                          onCopy={() => void handleCopy(taskPrompt, "task")}
-                        />
-                      </div>
+                      <ManualCodeBlock label="Task" code={taskPrompt} />
                     ) : null}
                   </div>
                 ) : null}
@@ -319,7 +278,7 @@ export function ClaudeConnectPage() {
             </div>
 
             {/* Status bar */}
-            <div className="mt-4 rounded-2xl border border-border-subtle bg-white px-6 py-4">
+            <div className="mt-3 rounded-2xl border border-border-subtle bg-white px-5 py-3.5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   <span
@@ -327,33 +286,28 @@ export function ClaudeConnectPage() {
                       isConnected ? "bg-[#22C55E]" : "animate-pulse bg-[#D9D9D9]"
                     }`}
                   />
-                  <span className="text-[14px] font-medium text-text-primary">
+                  <span className="text-[13px] font-medium text-text-primary">
                     {isConnected ? "Connected" : "Waiting for verification"}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-4 text-[13px] text-text-secondary">
+                <div className="flex items-center gap-4 text-[12px] text-text-tertiary">
                   <span className="flex items-center gap-1.5">
-                    <img src="/notion.svg" alt="" className="h-3.5 w-3.5" />
+                    <img src="/notion.svg" alt="" className="h-3 w-3 opacity-60" />
                     {claudeState?.connection?.notionInClaude === "claimed" ? (
-                      <span className="text-text-primary">Notion connected</span>
+                      <span className="text-text-secondary">Connected</span>
                     ) : (
                       "Notion"
                     )}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <img src="/figma.svg" alt="" className="h-3.5 w-[10px]" />
+                    <img src="/figma.svg" alt="" className="h-3 w-[8px] opacity-60" />
                     {claudeState?.connection?.figmaInClaude === "claimed" ? (
-                      <span className="text-text-primary">Figma connected</span>
+                      <span className="text-text-secondary">Connected</span>
                     ) : (
                       "Figma"
                     )}
                   </span>
-                  {claudeState?.connection?.lastHandshakeAt ? (
-                    <span>
-                      Synced {formatTimestamp(claudeState.connection.lastHandshakeAt)}
-                    </span>
-                  ) : null}
                 </div>
               </div>
             </div>
@@ -364,42 +318,38 @@ export function ClaudeConnectPage() {
   );
 }
 
-function CodeBlock({
+function ManualCodeBlock({
+  label,
   code,
-  copied,
-  onCopy,
 }: {
+  label: string;
   code: string;
-  copied: boolean;
-  onCopy: () => void;
 }) {
+  const [wasCopied, setWasCopied] = useState(false);
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(code);
+    setWasCopied(true);
+    window.setTimeout(() => setWasCopied(false), 1500);
+  }
+
   return (
-    <div className="rounded-xl bg-[#1e1e2e] px-4 py-3.5">
+    <div className="rounded-xl bg-bg-subtle px-4 py-3">
+      <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-text-tertiary">
+        {label}
+      </div>
       <div className="flex items-start justify-between gap-3">
-        <code className="min-w-0 whitespace-pre-wrap text-[13px] leading-[1.65] text-[#cdd6f4]">
+        <code className="min-w-0 whitespace-pre-wrap text-[13px] leading-[1.6] text-text-primary">
           {code}
         </code>
         <button
           type="button"
-          onClick={onCopy}
-          className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md bg-transparent px-2 py-1 text-[12px] font-medium text-[#cdd6f4]/70 transition-colors hover:bg-white/5 hover:text-[#cdd6f4]"
+          onClick={() => void handleCopy()}
+          className="mt-0.5 shrink-0 cursor-pointer rounded-md px-2 py-0.5 text-[11px] font-medium text-text-tertiary transition-colors hover:bg-white hover:text-text-secondary"
         >
-          {copied ? <Check size={13} weight="bold" /> : <Copy size={13} />}
-          {copied ? "Copied" : "Copy"}
+          {wasCopied ? "Copied" : "Copy"}
         </button>
       </div>
     </div>
   );
-}
-
-function formatTimestamp(value: number | null) {
-  if (!value) {
-    return "Never";
-  }
-
-  return new Date(value).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }

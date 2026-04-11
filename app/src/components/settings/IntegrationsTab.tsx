@@ -149,7 +149,7 @@ export function IntegrationsTab({
   async function handleCopy(value: string, key: "install" | "verify" | "full") {
     await navigator.clipboard.writeText(value);
     setCopiedValue(key);
-    window.setTimeout(() => setCopiedValue(null), key === "full" ? 3000 : 1600);
+    window.setTimeout(() => setCopiedValue(null), key === "full" ? 4000 : 1600);
   }
 
   function buildFullSetupPrompt() {
@@ -164,6 +164,11 @@ export function IntegrationsTab({
     }
 
     return parts.join("\n");
+  }
+
+  async function handleContinueWithClaude() {
+    await handleCopy(buildFullSetupPrompt(), "full");
+    window.open("https://claude.ai/new", "_blank");
   }
 
   return (
@@ -221,17 +226,20 @@ export function IntegrationsTab({
             <p className="mt-2 text-[13px] text-[#E07070]">{claudeConnection.lastError}</p>
           ) : null}
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="btn-save"
-              onClick={() => void handleCopy(buildFullSetupPrompt(), "full")}
+              className="btn-save inline-flex items-center gap-2"
+              onClick={() => void handleContinueWithClaude()}
             >
-              {copiedValue === "full"
-                ? "Copied — paste in Claude"
-                : claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
-                  ? "Copy setup prompt"
-                  : "Continue with Claude"}
+              {copiedValue === "full" ? (
+                "Copied — opening Claude"
+              ) : (
+                <>
+                  Continue with Claude
+                  <span className="text-[12px] opacity-70">&rarr;</span>
+                </>
+              )}
             </button>
             <a href={claudeSetupHref} className="btn-outline">
               Setup guide

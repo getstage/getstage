@@ -721,7 +721,8 @@ function ClaudeOnboardingStep({
 
     await navigator.clipboard.writeText(prompt);
     setCopied("full");
-    window.setTimeout(() => setCopied(null), 3000);
+    window.open("https://claude.ai/new", "_blank");
+    window.setTimeout(() => setCopied(null), 4000);
   }
 
   return (
@@ -745,17 +746,18 @@ function ClaudeOnboardingStep({
         <button
           type="button"
           onClick={() => void handleContinue()}
-          className="inline-flex h-[48px] w-full cursor-pointer items-center justify-center gap-2.5 rounded-xl bg-text-primary text-[15px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+          className="inline-flex h-[48px] w-full cursor-pointer items-center justify-center gap-3 rounded-xl bg-accent text-[15px] font-semibold text-white transition-all hover:bg-accent-hover active:scale-[0.98]"
         >
           {copied === "full" ? (
             <>
               <Check size={18} weight="bold" />
-              Copied — paste in Claude Code
+              Copied — opening Claude
             </>
           ) : (
             <>
-              Continue with Claude
-              <ArrowRight size={18} weight="bold" />
+              Continue with
+              <img src="/claude-full.svg" alt="Claude" className="h-[16px] brightness-0 invert" />
+              <ArrowRight size={16} weight="bold" />
             </>
           )}
         </button>
@@ -764,9 +766,9 @@ function ClaudeOnboardingStep({
           <p className="mb-2.5 text-[13px] font-medium text-text-secondary">
             Or copy the install command manually
           </p>
-          <div className="overflow-hidden rounded-lg bg-[#1E1E2E] px-4 py-3">
+          <div className="overflow-hidden rounded-lg bg-bg-subtle px-4 py-3">
             <div className="flex items-center justify-between gap-3">
-              <code className="min-w-0 truncate text-[13px] text-white/80">
+              <code className="min-w-0 truncate text-[13px] text-text-primary">
                 {claudeInstallCommand}
               </code>
               <button
@@ -776,7 +778,7 @@ function ClaudeOnboardingStep({
                   setCopied("install");
                   window.setTimeout(() => setCopied(null), 1600);
                 }}
-                className="shrink-0 cursor-pointer bg-transparent p-0 text-[12px] font-medium text-white/50 transition-colors hover:text-white/80"
+                className="shrink-0 cursor-pointer bg-transparent p-0 text-[12px] font-medium text-text-tertiary transition-colors hover:text-text-secondary"
               >
                 {copied === "install" ? "Copied" : "Copy"}
               </button>
