@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
-import { ArrowRight, Check } from "@phosphor-icons/react";
+import { ArrowRight, Check, CopySimple } from "@phosphor-icons/react";
 import googleSheetsIcon from "@/assets/icons/google-sheets.svg";
 import stripeIcon from "@/assets/icons/stripe.svg";
 import { FeedbackText } from "@/components/settings/FeedbackText";
@@ -226,6 +226,14 @@ export function IntegrationsTab({
                   <ArrowRight size={13} weight="bold" className="text-text-tertiary" />
                 </>
               )}
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#D97757]/15 bg-[#D97757]/[0.04] px-4 text-[13px] font-medium text-[#D97757] transition-all duration-150 hover:bg-[#D97757]/[0.09]"
+              onClick={() => void handleCopy(buildFullSetupPrompt(), "full")}
+            >
+              <CopySimple size={13} weight="bold" />
+              {copiedValue === "full" ? "Copied!" : "Copy prompt"}
             </button>
             <a
               href={claudeSetupHref}

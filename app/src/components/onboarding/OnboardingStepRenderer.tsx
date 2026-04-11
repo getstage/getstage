@@ -1,4 +1,4 @@
-import { ArrowRight, Check, PencilSimpleLine, Trash } from "@phosphor-icons/react";
+import { ArrowRight, Check, CopySimple, PencilSimpleLine, Trash } from "@phosphor-icons/react";
 import { useState } from "react";
 import integrationsImage from "@/assets/onboarding/integrations.webp";
 import { OnboardingPaywall } from "@/components/onboarding/OnboardingPaywall";
@@ -711,15 +711,15 @@ function ClaudeOnboardingStep({
 }) {
   const [copied, setCopied] = useState<string | null>(null);
 
-  async function handleContinue() {
-    const prompt = [
-      "Set up the Stage skill in this project.",
-      "",
-      `1. Run: ${claudeInstallCommand}`,
-      "2. Then verify the connection by running a Stage handshake.",
-    ].join("\n");
+  const fullPrompt = [
+    "Set up the Stage skill in this project.",
+    "",
+    `1. Run: ${claudeInstallCommand}`,
+    "2. Then verify the connection by running a Stage handshake.",
+  ].join("\n");
 
-    await navigator.clipboard.writeText(prompt);
+  async function handleContinue() {
+    await navigator.clipboard.writeText(fullPrompt);
     setCopied("full");
     window.open("https://claude.ai/new", "_blank");
     window.setTimeout(() => setCopied(null), 4000);
@@ -759,6 +759,22 @@ function ClaudeOnboardingStep({
           )}
         </button>
 
+        {/* Copy prompt fallback */}
+        <div className="mt-3 flex justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              void navigator.clipboard.writeText(fullPrompt);
+              setCopied("prompt");
+              window.setTimeout(() => setCopied(null), 2500);
+            }}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] border border-[#D97757]/15 bg-[#D97757]/[0.04] px-3 py-1.5 text-[12px] font-medium text-[#D97757] transition-all duration-150 hover:bg-[#D97757]/[0.09]"
+          >
+            <CopySimple size={12} weight="bold" />
+            {copied === "prompt" ? "Copied!" : "Copy Claude prompt"}
+          </button>
+        </div>
+
         {/* Manual fallback */}
         <div className="mt-5 rounded-[10px] border border-[#8782F5]/12 bg-[#F8F7FF] px-4 py-3">
           <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.04em] text-[#8782F5]/60">
@@ -775,8 +791,9 @@ function ClaudeOnboardingStep({
                 setCopied("install");
                 window.setTimeout(() => setCopied(null), 1600);
               }}
-              className="shrink-0 cursor-pointer rounded-md px-1.5 py-0.5 text-[11px] font-medium text-text-tertiary transition-colors duration-150 hover:bg-white hover:text-text-secondary"
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-text-tertiary transition-colors duration-150 hover:bg-white hover:text-text-secondary"
             >
+              {copied === "install" ? <Check size={11} weight="bold" /> : <CopySimple size={11} />}
               {copied === "install" ? "Copied" : "Copy"}
             </button>
           </div>

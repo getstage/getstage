@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Check, Copy, CaretDown, Key } from "@phosphor-icons/react";
+import { ArrowRight, Check, CopySimple, CaretDown, Key } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "convex/react";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { useAuth } from "@/lib/auth";
@@ -236,6 +236,19 @@ export function ClaudeConnectPage() {
                 )}
               </button>
 
+              <button
+                type="button"
+                onClick={() => {
+                  void navigator.clipboard.writeText(fullSetupPrompt);
+                  setCopied(true);
+                  window.setTimeout(() => setCopied(false), 2500);
+                }}
+                className="mt-3 inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] border border-[#D97757]/15 bg-[#D97757]/[0.04] px-3 py-1.5 text-[12px] font-medium text-[#D97757] transition-all duration-150 hover:bg-[#D97757]/[0.09]"
+              >
+                <CopySimple size={12} weight="bold" />
+                {copied ? "Copied!" : "Copy Claude prompt"}
+              </button>
+
               <p className="mt-2.5 text-[13px] text-text-tertiary">
                 Copies the setup prompt and opens Claude.
               </p>
@@ -332,7 +345,7 @@ function CommandBlock({ label, code }: { label: string; code: string }) {
           onClick={() => void handleCopy()}
           className="mt-0.5 inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-text-tertiary transition-colors duration-150 hover:bg-white hover:text-text-secondary"
         >
-          {wasCopied ? <Check size={11} weight="bold" /> : <Copy size={11} />}
+          {wasCopied ? <Check size={11} weight="bold" /> : <CopySimple size={11} />}
           {wasCopied ? "Copied" : "Copy"}
         </button>
       </div>
