@@ -98,7 +98,7 @@ export function useIntegrationsSettings({ user, enabled }: IntegrationsSettingsI
   const [isGoogleSheetDisconnecting, setIsGoogleSheetDisconnecting] = useState(false);
   const [isClaudeDisconnecting, setIsClaudeDisconnecting] = useState(false);
   const [anthropicApiKey, setAnthropicApiKey] = useState("");
-  const [anthropicModelPreference, setAnthropicModelPreference] = useState("claude-sonnet-4-0");
+  const [anthropicModelPreference, setAnthropicModelPreference] = useState("claude-sonnet-4-5");
   const [isAnthropicSaving, setIsAnthropicSaving] = useState(false);
   const [isAnthropicTesting, setIsAnthropicTesting] = useState(false);
   const { feedback: stripeFeedback, showFeedback: showStripeFeedback } = useFeedback();

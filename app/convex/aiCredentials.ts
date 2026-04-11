@@ -91,7 +91,7 @@ export const getAnthropicCredentialSummary = query({
           provider: credential.provider,
           label: credential.label,
           keyLast4: credential.keyLast4,
-          modelPreference: credential.modelPreference ?? "claude-sonnet-4-0",
+          modelPreference: credential.modelPreference ?? "claude-sonnet-4-5",
           status: credential.status,
           testedAt: credential.testedAt ?? null,
           hasSavedKey: true,
@@ -100,7 +100,7 @@ export const getAnthropicCredentialSummary = query({
           provider: AI_PROVIDER,
           label: AI_LABEL,
           keyLast4: null,
-          modelPreference: "claude-sonnet-4-0",
+          modelPreference: "claude-sonnet-4-5",
           status: "untested" as const,
           testedAt: null,
           hasSavedKey: false,
@@ -142,7 +142,7 @@ export const saveAnthropicKey = mutation({
         encryptedApiKey: encrypted.encryptedApiKey,
         encryptionIv: encrypted.encryptionIv,
         keyLast4: trimmedKey.slice(-4),
-        modelPreference: args.modelPreference?.trim() || "claude-sonnet-4-0",
+        modelPreference: args.modelPreference?.trim() || "claude-sonnet-4-5",
         status: "untested",
         createdAt: timestamp,
         updatedAt: timestamp,
@@ -248,7 +248,7 @@ export const testAnthropicKey = action({
       valid: true,
       modelCount: payload.data?.length ?? 0,
       modelPreference:
-        args.modelPreference?.trim() || credential?.modelPreference || "claude-sonnet-4-0",
+        args.modelPreference?.trim() || credential?.modelPreference || "claude-sonnet-4-5",
     };
   },
 });

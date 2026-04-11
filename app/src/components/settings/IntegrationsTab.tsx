@@ -116,7 +116,7 @@ export function IntegrationsTab({
   const googleSheetConnected =
     googleSheetConnection?.status === "active" || googleSheetConnection?.status === "pending";
   const [disconnectDialog, setDisconnectDialog] = useState<DisconnectDialogType>(null);
-  const [copiedValue, setCopiedValue] = useState<"install" | "verify" | null>(null);
+  const [copiedValue, setCopiedValue] = useState<"install" | "verify" | "full" | null>(null);
 
   const disconnectCopy =
     disconnectDialog === "claude"
@@ -146,10 +146,24 @@ export function IntegrationsTab({
             isLoading: isGoogleSheetDisconnecting,
           };
 
-  async function handleCopy(value: string, key: "install" | "verify") {
+  async function handleCopy(value: string, key: "install" | "verify" | "full") {
     await navigator.clipboard.writeText(value);
     setCopiedValue(key);
-    window.setTimeout(() => setCopiedValue(null), 1600);
+    window.setTimeout(() => setCopiedValue(null), key === "full" ? 3000 : 1600);
+  }
+
+  function buildFullSetupPrompt() {
+    const parts = [
+      "Set up the Stage skill in this project.",
+      "",
+      `1. Run: ${claudeInstallCommand}`,
+    ];
+
+    if (claudeVerifyPrompt) {
+      parts.push("", "2. Then verify the connection:", claudeVerifyPrompt);
+    }
+
+    return parts.join("\n");
   }
 
   return (
@@ -208,18 +222,20 @@ export function IntegrationsTab({
           ) : null}
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <a href={claudeSetupHref} className="btn-save">
-              {claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
-                ? "Open setup"
-                : "Connect Claude"}
-            </a>
             <button
               type="button"
-              className="btn-outline"
-              onClick={() => void handleCopy(claudeInstallCommand, "install")}
+              className="btn-save"
+              onClick={() => void handleCopy(buildFullSetupPrompt(), "full")}
             >
-              {copiedValue === "install" ? "Copied" : "Copy install command"}
+              {copiedValue === "full"
+                ? "Copied — paste in Claude"
+                : claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
+                  ? "Copy setup prompt"
+                  : "Continue with Claude"}
             </button>
+            <a href={claudeSetupHref} className="btn-outline">
+              Setup guide
+            </a>
             {claudeConnection && claudeConnection.status !== "disconnected" ? (
               <>
                 <button
@@ -294,8 +310,8 @@ export function IntegrationsTab({
                     value={anthropicModelPreference}
                     onChange={(event) => onAnthropicModelPreferenceChange(event.target.value)}
                   >
-                    <option value="claude-sonnet-4-0">Claude Sonnet 4</option>
-                    <option value="claude-opus-4-1">Claude Opus 4.1</option>
+                    <option value="claude-sonnet-4-5">Claude Sonnet 4.5</option>
+                    <option value="claude-opus-4-6">Claude Opus 4.6</option>
                   </select>
                 </label>
                 {anthropicCredential.hasSavedKey ? (

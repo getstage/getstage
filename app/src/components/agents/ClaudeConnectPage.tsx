@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "@tanstack/react-router";
-import { Check, Copy, Key, Terminal } from "@phosphor-icons/react";
+import { Check, Copy, ArrowRight } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "convex/react";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { useAuth } from "@/lib/auth";
@@ -19,7 +19,7 @@ function useSearchParams() {
 
 function buildVerificationPrompt(connectionId: string | null) {
   if (!connectionId) {
-    return "Open the Stage Claude setup page again after the pending connection is created.";
+    return null;
   }
 
   return [
@@ -29,6 +29,36 @@ function buildVerificationPrompt(connectionId: string | null) {
     "If Figma MCP is available set figmaMcp=true.",
     "Return a short success summary.",
   ].join(" ");
+}
+
+function buildFullSetupPrompt({
+  installCommand,
+  envSnippet,
+  verificationPrompt,
+}: {
+  installCommand: string;
+  envSnippet: string | null;
+  verificationPrompt: string | null;
+}) {
+  const parts = [
+    "Set up the Stage skill in this project.",
+    "",
+    `1. Run: ${installCommand}`,
+  ];
+
+  if (envSnippet) {
+    parts.push(`2. Set the environment variable: ${envSnippet}`);
+  }
+
+  if (verificationPrompt) {
+    parts.push(
+      "",
+      `${envSnippet ? "3" : "2"}. Then verify the connection:`,
+      verificationPrompt,
+    );
+  }
+
+  return parts.join("\n");
 }
 
 function buildTaskPrompt(search: URLSearchParams) {
@@ -69,6 +99,7 @@ export function ClaudeConnectPage() {
   const createPendingConnection = useMutation(api.agentConnections.createPendingClaudeConnection);
   const developerSettings = useDeveloperSettings({ enabled: isAuthenticated });
   const [copied, setCopied] = useState<string | null>(null);
+  const [showManual, setShowManual] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated || claudeState?.connection) {
@@ -79,18 +110,31 @@ export function ClaudeConnectPage() {
   }, [claudeState?.connection, createPendingConnection, isAuthenticated, source]);
 
   const connectionId = claudeState?.connection?.id ?? null;
+  const revealedKey = developerSettings.revealedKey;
+  const envSnippet = revealedKey ? `export STAGE_API_KEY=${revealedKey}` : null;
   const verificationPrompt = buildVerificationPrompt(connectionId);
   const taskPrompt = buildTaskPrompt(search);
-  const revealedKey = developerSettings.revealedKey;
-  const envSnippet = revealedKey ? `export STAGE_API_KEY=${revealedKey}` : "export STAGE_API_KEY=stg_...";
+
+  const fullSetupPrompt = buildFullSetupPrompt({
+    installCommand: CLAUDE_INSTALL_COMMAND,
+    envSnippet,
+    verificationPrompt,
+  });
 
   async function handleCopy(value: string, key: string) {
     await navigator.clipboard.writeText(value);
     setCopied(key);
-    window.setTimeout(() => setCopied(null), 1500);
+    window.setTimeout(() => setCopied(null), 2000);
+  }
+
+  async function handleContinueWithClaude() {
+    await navigator.clipboard.writeText(fullSetupPrompt);
+    setCopied("full");
+    window.setTimeout(() => setCopied(null), 3000);
   }
 
   const isConnected = claudeState?.connection?.stageApiVerified === true;
+  const needsKey = isAuthenticated && !revealedKey;
 
   return (
     <>
@@ -122,265 +166,201 @@ export function ClaudeConnectPage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-5xl px-6 pb-20 pt-12">
-          {/* Hero with brand lockup */}
-          <section className="max-w-2xl">
-            <div className="flex items-center gap-4">
-              <img src="/claude-full.svg" alt="Claude" className="h-6" />
-              <span className="text-[20px] font-light text-text-tertiary">&times;</span>
-              <img src={stageLogo} alt="Stage" className="h-7" />
-            </div>
-            <h1 className="mt-5 font-heading text-[36px] font-semibold leading-[1.08] tracking-[-0.8px] text-text-primary sm:text-[44px]">
+        <main className="mx-auto max-w-3xl px-6 pb-20 pt-16">
+          {/* Hero */}
+          <section className="flex flex-col items-center text-center">
+            <img
+              src="/claude-full.svg"
+              alt="Claude"
+              className="h-8 sm:h-10"
+            />
+            <h1 className="mt-6 font-heading text-[36px] font-semibold leading-[1.08] tracking-[-0.8px] text-text-primary sm:text-[44px]">
               Connect Claude to Stage
             </h1>
-            <p className="mt-4 max-w-[520px] text-[16px] leading-[1.65] text-text-secondary">
-              Follow these steps to link Claude Code with your Stage workspace.
-              Once verified, all AI workflows run through Claude.
+            <p className="mt-4 max-w-[460px] text-[16px] leading-[1.65] text-text-secondary">
+              One prompt sets up the Stage skill, connects your API key, and verifies
+              that Claude can talk to your workspace.
             </p>
           </section>
 
-          <section className="mt-10 grid items-start gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-            <div className="space-y-4">
-              {/* Step 1: API Key */}
-              <StepCard
-                icon={<Key size={18} weight="bold" />}
-                iconBg="#F3F2FF"
-                iconColor="#8782F5"
-                title="Create a Stage API key"
-                description="Generate a dedicated key for Claude Code."
-              >
-                {isAuthenticated ? (
-                  <>
-                    {!revealedKey ? (
-                      <div className="flex flex-col gap-2.5 sm:flex-row">
-                        <input
-                          type="text"
-                          className="w-full rounded-xl border border-transparent bg-input-bg px-4 py-2.5 text-[14px] text-text-primary outline-none transition-all placeholder:text-text-tertiary focus:border-border focus:bg-white"
-                          value={developerSettings.keyName}
-                          onChange={(event) => developerSettings.setKeyName(event.target.value)}
-                          placeholder="e.g. Claude Code"
+          {/* Main card */}
+          <section className="mx-auto mt-10 max-w-xl">
+            <div className="rounded-2xl border border-border-subtle bg-white p-8 sm:p-10">
+              {/* Key creation (only if no key yet) */}
+              {needsKey ? (
+                <div className="mb-8">
+                  <p className="text-[14px] font-medium text-text-primary">
+                    First, create a Stage API key
+                  </p>
+                  <p className="mt-1 text-[13px] text-text-secondary">
+                    This key lets Claude authenticate with your workspace.
+                  </p>
+                  <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
+                    <input
+                      type="text"
+                      className="w-full rounded-xl border border-transparent bg-input-bg px-4 py-2.5 text-[14px] text-text-primary outline-none transition-all placeholder:text-text-tertiary focus:border-border focus:bg-white"
+                      value={developerSettings.keyName}
+                      onChange={(event) => developerSettings.setKeyName(event.target.value)}
+                      placeholder="e.g. Claude Code"
+                    />
+                    <button
+                      type="button"
+                      className="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={developerSettings.isCreating}
+                      onClick={() => void developerSettings.handleCreate()}
+                    >
+                      {developerSettings.isCreating ? "Creating..." : "Create key"}
+                    </button>
+                  </div>
+                  <div className="mt-6 border-t border-border-subtle" />
+                </div>
+              ) : null}
+
+              {/* Continue with Claude CTA */}
+              <div className="flex flex-col items-center text-center">
+                <img
+                  src="/claude.svg"
+                  alt=""
+                  className="h-16 w-16 sm:h-20 sm:w-20"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => void handleContinueWithClaude()}
+                  className="mt-6 inline-flex h-[52px] w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl bg-text-primary text-[15px] font-semibold text-white shadow-[0_1px_3px_rgba(0,0,0,0.12)] transition-all hover:opacity-90 active:scale-[0.98]"
+                >
+                  {copied === "full" ? (
+                    <>
+                      <Check size={18} weight="bold" />
+                      Copied — paste in Claude Code
+                    </>
+                  ) : (
+                    <>
+                      Continue with Claude
+                      <ArrowRight size={18} weight="bold" />
+                    </>
+                  )}
+                </button>
+
+                <p className="mt-3 text-[13px] text-text-secondary">
+                  Copies the full setup prompt to your clipboard.
+                  <br />
+                  Open Claude Code and paste to get started.
+                </p>
+              </div>
+
+              {/* Manual alternative */}
+              <div className="mt-8 border-t border-border-subtle pt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowManual(!showManual)}
+                  className="flex w-full cursor-pointer items-center justify-between text-[14px] font-medium text-text-secondary transition-colors hover:text-text-primary"
+                >
+                  Or set up manually
+                  <span className={`text-[12px] transition-transform ${showManual ? "rotate-90" : ""}`}>
+                    &rsaquo;
+                  </span>
+                </button>
+
+                {showManual ? (
+                  <div className="mt-5 space-y-4">
+                    <div>
+                      <p className="mb-2 text-[13px] font-medium text-text-primary">
+                        Install the Stage skill
+                      </p>
+                      <CodeBlock
+                        code={CLAUDE_INSTALL_COMMAND}
+                        copied={copied === "install"}
+                        onCopy={() => void handleCopy(CLAUDE_INSTALL_COMMAND, "install")}
+                      />
+                    </div>
+
+                    {envSnippet ? (
+                      <div>
+                        <p className="mb-2 text-[13px] font-medium text-text-primary">
+                          Set your API key
+                        </p>
+                        <CodeBlock
+                          code={envSnippet}
+                          copied={copied === "env"}
+                          onCopy={() => void handleCopy(envSnippet, "env")}
                         />
-                        <button
-                          type="button"
-                          className="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
-                          disabled={developerSettings.isCreating}
-                          onClick={() => void developerSettings.handleCreate()}
-                        >
-                          {developerSettings.isCreating ? "Creating..." : "Create key"}
-                        </button>
                       </div>
                     ) : null}
-                    <CodeBlock
-                      code={envSnippet}
-                      copied={copied === "env"}
-                      onCopy={() => void handleCopy(envSnippet, "env")}
-                    />
-                  </>
-                ) : (
-                  <p className="text-[14px] text-text-secondary">
-                    Sign in to Stage first to generate an API key.
-                  </p>
-                )}
-              </StepCard>
 
-              {/* Step 2: Install */}
-              <StepCard
-                icon={<Terminal size={18} weight="bold" />}
-                iconBg="#1E1E2E"
-                iconColor="#FFFFFF"
-                title="Install the Stage skill"
-                description="Run this command in Claude Code."
-              >
-                <CodeBlock
-                  code={CLAUDE_INSTALL_COMMAND}
-                  copied={copied === "install"}
-                  onCopy={() => void handleCopy(CLAUDE_INSTALL_COMMAND, "install")}
-                />
-              </StepCard>
+                    {verificationPrompt ? (
+                      <div>
+                        <p className="mb-2 text-[13px] font-medium text-text-primary">
+                          Verify the connection
+                        </p>
+                        <CodeBlock
+                          code={verificationPrompt}
+                          copied={copied === "verify"}
+                          onCopy={() => void handleCopy(verificationPrompt, "verify")}
+                        />
+                      </div>
+                    ) : null}
 
-              {/* Step 3: Notion */}
-              <StepCard
-                icon={<img src="/notion.svg" alt="" className="h-[18px] w-[18px]" />}
-                iconBg="#F5F5F5"
-                title="Connect Notion"
-                description="Enable the Notion MCP in Claude so Stage can export research and strategy docs."
-              >
-                <p className="text-[14px] leading-[1.6] text-text-secondary">
-                  Once Notion is available in Claude, the verification step will detect it automatically.
-                </p>
-              </StepCard>
-
-              {/* Step 4: Figma */}
-              <StepCard
-                icon={<img src="/figma.svg" alt="" className="h-[18px] w-[14px]" />}
-                iconBg="#F5F0FF"
-                title="Connect Figma"
-                description="Enable Figma tooling in Claude for design iteration and generation."
-              >
-                <p className="text-[14px] leading-[1.6] text-text-secondary">
-                  Figma availability is detected automatically during verification.
-                </p>
-              </StepCard>
-
-              {/* Step 5: Verify */}
-              <StepCard
-                icon={<img src="/claude.svg" alt="" className="h-[18px] w-[18px]" />}
-                iconBg="#FDF0E8"
-                title="Verify the connection"
-                description="Paste this prompt into Claude after completing the steps above."
-              >
-                <CodeBlock
-                  code={verificationPrompt}
-                  copied={copied === "verify"}
-                  onCopy={() => void handleCopy(verificationPrompt, "verify")}
-                />
-              </StepCard>
-
-              {/* Step 6: Task (conditional) */}
-              {taskPrompt ? (
-                <StepCard
-                  icon={<Terminal size={18} weight="bold" />}
-                  iconBg="#1E1E2E"
-                  iconColor="#FFFFFF"
-                  title="Continue your task"
-                  description="This prompt continues the workflow that brought you here."
-                >
-                  <CodeBlock
-                    code={taskPrompt}
-                    copied={copied === "task"}
-                    onCopy={() => void handleCopy(taskPrompt, "task")}
-                  />
-                </StepCard>
-              ) : null}
+                    {taskPrompt ? (
+                      <div>
+                        <p className="mb-2 text-[13px] font-medium text-text-primary">
+                          Continue your task
+                        </p>
+                        <CodeBlock
+                          code={taskPrompt}
+                          copied={copied === "task"}
+                          onCopy={() => void handleCopy(taskPrompt, "task")}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
             </div>
 
-            {/* Sidebar */}
-            <div className="space-y-4 lg:sticky lg:top-6">
-              {/* Live status */}
-              <div className="rounded-2xl border border-border-subtle bg-white p-6">
-                <div className="flex items-center gap-3">
+            {/* Status bar */}
+            <div className="mt-4 rounded-2xl border border-border-subtle bg-white px-6 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
                   <span
-                    className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                    className={`h-2 w-2 shrink-0 rounded-full ${
                       isConnected ? "bg-[#22C55E]" : "animate-pulse bg-[#D9D9D9]"
                     }`}
                   />
-                  <span className="font-heading text-[20px] font-semibold text-text-primary">
+                  <span className="text-[14px] font-medium text-text-primary">
                     {isConnected ? "Connected" : "Waiting for verification"}
                   </span>
                 </div>
 
-                <div className="mt-5 space-y-3 text-[13px]">
-                  <StatusRow
-                    icon={<img src="/notion.svg" alt="" className="h-3.5 w-3.5" />}
-                    label="Notion"
-                    value={claudeState?.connection?.notionInClaude === "claimed" ? "Connected" : "Not detected"}
-                    active={claudeState?.connection?.notionInClaude === "claimed"}
-                  />
-                  <StatusRow
-                    icon={<img src="/figma.svg" alt="" className="h-3.5 w-[10px]" />}
-                    label="Figma"
-                    value={claudeState?.connection?.figmaInClaude === "claimed" ? "Connected" : "Not detected"}
-                    active={claudeState?.connection?.figmaInClaude === "claimed"}
-                  />
-                  <StatusRow
-                    label="Last sync"
-                    value={formatTimestamp(claudeState?.connection?.lastHandshakeAt ?? null)}
-                    active={Boolean(claudeState?.connection?.lastHandshakeAt)}
-                  />
+                <div className="flex items-center gap-4 text-[13px] text-text-secondary">
+                  <span className="flex items-center gap-1.5">
+                    <img src="/notion.svg" alt="" className="h-3.5 w-3.5" />
+                    {claudeState?.connection?.notionInClaude === "claimed" ? (
+                      <span className="text-text-primary">Notion connected</span>
+                    ) : (
+                      "Notion"
+                    )}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <img src="/figma.svg" alt="" className="h-3.5 w-[10px]" />
+                    {claudeState?.connection?.figmaInClaude === "claimed" ? (
+                      <span className="text-text-primary">Figma connected</span>
+                    ) : (
+                      "Figma"
+                    )}
+                  </span>
+                  {claudeState?.connection?.lastHandshakeAt ? (
+                    <span>
+                      Synced {formatTimestamp(claudeState.connection.lastHandshakeAt)}
+                    </span>
+                  ) : null}
                 </div>
-
-                <a
-                  href="/settings"
-                  className="mt-5 inline-flex items-center text-[13px] font-medium text-accent transition-colors hover:text-accent-hover"
-                >
-                  Open settings &rarr;
-                </a>
-              </div>
-
-              {/* What happens next */}
-              <div className="rounded-2xl border border-border-subtle bg-white p-6">
-                <div className="font-heading text-[17px] font-semibold text-text-primary">
-                  What happens next
-                </div>
-                <ul className="mt-4 space-y-3 text-[14px] leading-[1.6] text-text-secondary">
-                  <li className="flex items-start gap-2.5">
-                    <img src="/claude.svg" alt="" className="mt-[3px] h-3.5 w-3.5 shrink-0 opacity-50" />
-                    Research, strategy, and generate workflows run through Claude.
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <img src="/favicon.svg" alt="" className="mt-[3px] h-3.5 w-3.5 shrink-0 opacity-50" />
-                    Stage tracks run state, artifacts, approvals, and export history.
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <img src="/notion.svg" alt="" className="mt-[3px] h-3.5 w-3.5 shrink-0 opacity-50" />
-                    Notion and Figma stay connected through Claude&apos;s native integrations.
-                  </li>
-                </ul>
               </div>
             </div>
           </section>
         </main>
       </div>
     </>
-  );
-}
-
-function StepCard({
-  icon,
-  iconBg,
-  iconColor,
-  title,
-  description,
-  children,
-}: {
-  icon: ReactNode;
-  iconBg: string;
-  iconColor?: string;
-  title: string;
-  description: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border border-border-subtle bg-white p-6">
-      <div className="flex items-start gap-3.5">
-        <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-          style={{ backgroundColor: iconBg, color: iconColor }}
-        >
-          {icon}
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-[16px] font-semibold text-text-primary">{title}</h2>
-          <p className="mt-1 text-[14px] leading-[1.5] text-text-secondary">{description}</p>
-        </div>
-      </div>
-      <div className="mt-4 pl-[50px]">{children}</div>
-    </div>
-  );
-}
-
-function StatusRow({
-  icon,
-  label,
-  value,
-  active,
-}: {
-  icon?: ReactNode;
-  label: string;
-  value: string;
-  active: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="flex items-center gap-2 text-text-secondary">
-        {icon}
-        {label}
-      </span>
-      <span className={`flex items-center gap-1.5 ${active ? "text-text-primary" : "text-text-tertiary"}`}>
-        {active ? <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" /> : null}
-        {value}
-      </span>
-    </div>
   );
 }
 

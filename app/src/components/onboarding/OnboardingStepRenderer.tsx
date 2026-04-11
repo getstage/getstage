@@ -1,4 +1,5 @@
-import { PencilSimpleLine, Trash } from "@phosphor-icons/react";
+import { ArrowRight, Check, PencilSimpleLine, Trash } from "@phosphor-icons/react";
+import { useState } from "react";
 import integrationsImage from "@/assets/onboarding/integrations.webp";
 import { OnboardingPaywall } from "@/components/onboarding/OnboardingPaywall";
 import { Avatar } from "@/components/ui/Avatar";
@@ -121,67 +122,11 @@ export function OnboardingStepRenderer({
     case "claude":
       return (
         <OnboardingStepMotion motionKey="claude">
-          <div className="flex flex-col items-center text-center">
-            <div
-              className="flex h-14 w-14 items-center justify-center rounded-2xl"
-              style={{ backgroundColor: "#FDF0E8" }}
-            >
-              <img src="/claude.svg" alt="Claude" className="h-7 w-7" />
-            </div>
-            <h3 className="mt-5 font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
-              Connect Claude
-            </h3>
-            <p className="mt-2 max-w-[460px] text-[15px] leading-[1.5] text-text-secondary">
-              Stage uses Claude as the AI layer for research, strategy, and content generation.
-              Set it up now to get the most out of your workspace.
-            </p>
-          </div>
-
-          <div className="mt-8 space-y-4">
-            <div className="rounded-xl border border-border-subtle bg-bg-subtle p-5">
-              <div className="flex items-center gap-2.5">
-                <span
-                  className={cn(
-                    "h-2 w-2 shrink-0 rounded-full",
-                    claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
-                      ? "bg-[#22C55E]"
-                      : "bg-[#D9D9D9]",
-                  )}
-                />
-                <span className="text-[14px] font-medium text-text-primary">
-                  {claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
-                    ? "Connected"
-                    : "Not connected yet"}
-                </span>
-              </div>
-
-              <div className="mt-4 overflow-hidden rounded-lg bg-[#1E1E2E] px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <code className="min-w-0 truncate text-[13px] text-white/80">
-                    {claudeInstallCommand}
-                  </code>
-                  <button
-                    type="button"
-                    onClick={() => void navigator.clipboard.writeText(claudeInstallCommand)}
-                    className="shrink-0 cursor-pointer bg-transparent p-0 text-[12px] font-medium text-white/50 transition-colors hover:text-white/80"
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-
-              <a
-                href={claudeSetupHref}
-                className="mt-4 inline-flex h-[42px] w-full items-center justify-center rounded-[10px] bg-text-primary text-[14px] font-medium text-white transition-opacity hover:opacity-90"
-              >
-                Set up Claude
-              </a>
-            </div>
-
-            <p className="text-center text-[13px] text-text-secondary">
-              You can also connect Claude later from Settings.
-            </p>
-          </div>
+          <ClaudeOnboardingStep
+            claudeConnection={claudeConnection}
+            claudeSetupHref={claudeSetupHref}
+            claudeInstallCommand={claudeInstallCommand}
+          />
         </OnboardingStepMotion>
       );
     case "details":
@@ -753,4 +698,120 @@ export function OnboardingStepRenderer({
     default:
       return null;
   }
+}
+
+function ClaudeOnboardingStep({
+  claudeConnection,
+  claudeSetupHref,
+  claudeInstallCommand,
+}: {
+  claudeConnection: ClaudeConnectionSummary;
+  claudeSetupHref: string;
+  claudeInstallCommand: string;
+}) {
+  const [copied, setCopied] = useState<string | null>(null);
+
+  async function handleContinue() {
+    const prompt = [
+      "Set up the Stage skill in this project.",
+      "",
+      `1. Run: ${claudeInstallCommand}`,
+      "2. Then verify the connection by running a Stage handshake.",
+    ].join("\n");
+
+    await navigator.clipboard.writeText(prompt);
+    setCopied("full");
+    window.setTimeout(() => setCopied(null), 3000);
+  }
+
+  return (
+    <>
+      <div className="flex flex-col items-center text-center">
+        <img
+          src="/claude.svg"
+          alt="Claude"
+          className="h-16 w-16"
+        />
+        <h3 className="mt-5 font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
+          Connect Claude
+        </h3>
+        <p className="mt-2 max-w-[440px] text-[15px] leading-[1.5] text-text-secondary">
+          Stage uses Claude for research, strategy, and content generation.
+          One click copies the setup prompt — paste it in Claude Code.
+        </p>
+      </div>
+
+      <div className="mt-8">
+        <button
+          type="button"
+          onClick={() => void handleContinue()}
+          className="inline-flex h-[48px] w-full cursor-pointer items-center justify-center gap-2.5 rounded-xl bg-text-primary text-[15px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+        >
+          {copied === "full" ? (
+            <>
+              <Check size={18} weight="bold" />
+              Copied — paste in Claude Code
+            </>
+          ) : (
+            <>
+              Continue with Claude
+              <ArrowRight size={18} weight="bold" />
+            </>
+          )}
+        </button>
+
+        <div className="mt-5 border-t border-border-subtle pt-4">
+          <p className="mb-2.5 text-[13px] font-medium text-text-secondary">
+            Or copy the install command manually
+          </p>
+          <div className="overflow-hidden rounded-lg bg-[#1E1E2E] px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <code className="min-w-0 truncate text-[13px] text-white/80">
+                {claudeInstallCommand}
+              </code>
+              <button
+                type="button"
+                onClick={() => {
+                  void navigator.clipboard.writeText(claudeInstallCommand);
+                  setCopied("install");
+                  window.setTimeout(() => setCopied(null), 1600);
+                }}
+                className="shrink-0 cursor-pointer bg-transparent p-0 text-[12px] font-medium text-white/50 transition-colors hover:text-white/80"
+              >
+                {copied === "install" ? "Copied" : "Copy"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "h-2 w-2 shrink-0 rounded-full",
+                claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
+                  ? "bg-[#22C55E]"
+                  : "bg-[#D9D9D9]",
+              )}
+            />
+            <span className="text-[13px] text-text-secondary">
+              {claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
+                ? "Connected"
+                : "Not connected yet"}
+            </span>
+          </div>
+          <a
+            href={claudeSetupHref}
+            className="text-[13px] font-medium text-accent transition-colors hover:text-accent-hover"
+          >
+            Full setup guide &rarr;
+          </a>
+        </div>
+
+        <p className="mt-5 text-center text-[13px] text-text-secondary">
+          You can also connect Claude later from Settings.
+        </p>
+      </div>
+    </>
+  );
 }
