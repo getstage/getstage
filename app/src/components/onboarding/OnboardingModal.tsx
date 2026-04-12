@@ -93,6 +93,7 @@ export function OnboardingModal({
                 claudeConnection={controller.claudeConnection}
                 claudeSetupHref={controller.claudeSetupHref}
                 claudeInstallCommand={controller.claudeInstallCommand}
+                claudeConnectionId={controller.claudeConnectionId}
                 onSheetUrlChange={controller.setSheetUrl}
                 onToggleCsvConnection={controller.handleToggleCsvConnection}
                 onLinkSheetUrl={controller.handleLinkSheetUrl}

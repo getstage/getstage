@@ -43,6 +43,7 @@ type OnboardingStepRendererProps = {
   claudeConnection: ClaudeConnectionSummary;
   claudeSetupHref: string;
   claudeInstallCommand: string;
+  claudeConnectionId: string | null;
   onSheetUrlChange: (value: string) => void;
   onToggleCsvConnection: () => void;
   onLinkSheetUrl: () => void;
@@ -70,6 +71,7 @@ export function OnboardingStepRenderer({
   claudeConnection,
   claudeSetupHref,
   claudeInstallCommand,
+  claudeConnectionId,
   onSheetUrlChange,
   onToggleCsvConnection,
   onLinkSheetUrl,
@@ -126,6 +128,7 @@ export function OnboardingStepRenderer({
             claudeConnection={claudeConnection}
             claudeSetupHref={claudeSetupHref}
             claudeInstallCommand={claudeInstallCommand}
+            claudeConnectionId={claudeConnectionId}
           />
         </OnboardingStepMotion>
       );
@@ -704,19 +707,38 @@ function ClaudeOnboardingStep({
   claudeConnection,
   claudeSetupHref,
   claudeInstallCommand,
+  claudeConnectionId,
 }: {
   claudeConnection: ClaudeConnectionSummary;
   claudeSetupHref: string;
   claudeInstallCommand: string;
+  claudeConnectionId: string | null;
 }) {
   const [copied, setCopied] = useState<string | null>(null);
 
-  const fullPrompt = [
+  const verificationStep = claudeConnectionId
+    ? [
+        "Use the installed Stage skill and verify Stage connectivity.",
+        `Handshake connectionId "${claudeConnectionId}" with client "claude_code".`,
+        "If Notion MCP is available set notionMcp=true.",
+        "If Figma MCP is available set figmaMcp=true.",
+        "Return a short success summary.",
+      ].join(" ")
+    : null;
+
+  const parts = [
     "Set up the Stage skill in this project.",
     "",
     `1. Run: ${claudeInstallCommand}`,
-    "2. Then verify the connection by running a Stage handshake.",
-  ].join("\n");
+    "",
+    "2. Make sure STAGE_API_KEY is set in your environment (create one in Stage → Settings → Developer if you don't have one).",
+  ];
+
+  if (verificationStep) {
+    parts.push("", "3. Then verify the connection:", verificationStep);
+  }
+
+  const fullPrompt = parts.join("\n");
 
   async function handleContinue() {
     await navigator.clipboard.writeText(fullPrompt);

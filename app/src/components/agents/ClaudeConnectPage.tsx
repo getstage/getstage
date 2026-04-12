@@ -49,13 +49,15 @@ function buildFullSetupPrompt({
   ];
 
   if (envSnippet) {
-    parts.push(`2. Set the environment variable: ${envSnippet}`);
+    parts.push("", `2. Set the environment variable: ${envSnippet}`);
+  } else {
+    parts.push("", "2. Make sure STAGE_API_KEY is set in your environment (create one in Stage → Settings → Developer if you don't have one).");
   }
 
   if (verificationPrompt) {
     parts.push(
       "",
-      `${envSnippet ? "3" : "2"}. Then verify the connection:`,
+      "3. Then verify the connection:",
       verificationPrompt,
     );
   }

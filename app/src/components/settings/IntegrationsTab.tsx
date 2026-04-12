@@ -30,7 +30,7 @@ type IntegrationsTabProps = {
   isAnthropicTesting: boolean;
   claudeSetupHref: string;
   claudeInstallCommand: string;
-  claudeVerifyPrompt: string;
+  claudeVerifyPrompt: string | null;
   onClaudeDisconnect: () => void;
   onAnthropicApiKeyChange: (value: string) => void;
   onAnthropicModelPreferenceChange: (value: string) => void;
@@ -158,10 +158,12 @@ export function IntegrationsTab({
       "Set up the Stage skill in this project.",
       "",
       `1. Run: ${claudeInstallCommand}`,
+      "",
+      "2. Make sure STAGE_API_KEY is set in your environment (create one in Stage → Settings → Developer if you don't have one).",
     ];
 
     if (claudeVerifyPrompt) {
-      parts.push("", "2. Then verify the connection:", claudeVerifyPrompt);
+      parts.push("", "3. Then verify the connection:", claudeVerifyPrompt);
     }
 
     return parts.join("\n");

@@ -35,7 +35,7 @@ function buildClaudeSetupHref(source: "settings" | "onboarding") {
 
 function buildVerifyPrompt(connection: ClaudeConnectionSummary | null) {
   if (!connection?.id) {
-    return 'Open the Stage Claude setup page first, then copy the generated verification prompt.';
+    return null;
   }
 
   return [
@@ -79,6 +79,7 @@ export function useIntegrationsSettings({ user, enabled }: IntegrationsSettingsI
   const syncStripeData = useConvexAction(api.integrations.stripeConnect.syncStripeData);
   const runSheetImport = useConvexAction(api.integrations.googleSheets.runSheetImport);
   const disconnectClaude = useConvexMutation(api.agentConnections.disconnectClaude);
+  const createPendingConnection = useConvexMutation(api.agentConnections.createPendingClaudeConnection);
   const saveAnthropicKey = useConvexMutation(api.aiCredentials.saveAnthropicKey);
   const testAnthropicKey = useConvexAction(api.aiCredentials.testAnthropicKey);
 
@@ -111,6 +112,15 @@ export function useIntegrationsSettings({ user, enabled }: IntegrationsSettingsI
     () => claudeState?.tools ?? { figma: defaultToolSummary(), notion: defaultToolSummary() },
     [claudeState?.tools],
   );
+
+  // Auto-create a pending Claude connection so the verify prompt always has a connectionId
+  useEffect(() => {
+    if (!enabled || !user || claudeState === undefined || claudeState.connection) {
+      return;
+    }
+
+    void createPendingConnection({ source: "settings" });
+  }, [enabled, user, claudeState, createPendingConnection]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

@@ -70,6 +70,7 @@ export function useOnboardingController({
         connection: ClaudeConnectionSummary;
       }
     | undefined;
+  const createPendingConnection = useConvexMutation(api.agentConnections.createPendingClaudeConnection);
   const existingClients = useMemo(() => existingClientsResult ?? [], [existingClientsResult]);
   const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
   const markProjectCreated = useConvexMutation(api.onboarding.markProjectCreated);
@@ -157,6 +158,15 @@ export function useOnboardingController({
       }
     };
   }, [step]);
+
+  // Create a pending Claude connection when the user reaches the claude step
+  useEffect(() => {
+    if (step !== "claude" || claudeState?.connection) {
+      return;
+    }
+
+    void createPendingConnection({ source: "onboarding" });
+  }, [step, claudeState?.connection, createPendingConnection]);
 
   useEffect(() => {
     setStepError(null);
@@ -476,6 +486,7 @@ export function useOnboardingController({
     claudeConnection: claudeState?.connection ?? null,
     claudeSetupHref: "/agents/claude?source=onboarding",
     claudeInstallCommand: CLAUDE_INSTALL_COMMAND,
+    claudeConnectionId: claudeState?.connection?.id ?? null,
     draftState,
     handleSelectField,
     handleContinue,
