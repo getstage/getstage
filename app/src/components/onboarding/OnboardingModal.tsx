@@ -44,7 +44,7 @@ export function OnboardingModal({
           onPointerDownOutside={(event) => event.preventDefault()}
         >
           <motion.div
-            className="project-creation-page onboarding-modal timeline-scrollbar-hidden fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-20px)] w-[calc(100%-16px)] max-w-[760px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto overscroll-contain rounded-[22px] bg-white p-4 shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 sm:w-[calc(100%-32px)] sm:p-6 md:p-7"
+            className="project-creation-page onboarding-modal timeline-scrollbar-hidden fixed inset-x-0 bottom-0 z-50 max-h-[92svh] w-full overflow-y-auto overscroll-contain rounded-t-[22px] bg-white px-5 pt-5 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[calc(100svh-40px)] sm:w-[calc(100%-32px)] sm:max-w-[760px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[22px] sm:p-6 md:p-7"
             initial={{ opacity: 0, y: 18, scale: 0.985, filter: "blur(10px)" }}
             animate={
               controller.isClosing

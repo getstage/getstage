@@ -26,7 +26,7 @@ export function DashboardPreview({
 
   return (
     <div className="min-h-[calc(100vh-64px)]">
-      <div className="mx-auto max-w-[1200px] px-6 pt-3 sm:px-10 lg:px-14">
+      <div className="mx-auto max-w-[1200px] px-4 pt-3 sm:px-10 lg:px-14">
         <div className="min-w-[320px]">
           <h1 className="font-heading text-[20px] leading-[1.2] font-medium tracking-[-0.2px] text-text-primary">
             {getGreeting(greetingName)}
@@ -57,7 +57,7 @@ export function DashboardPreview({
         />
       </div>
 
-      <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
+      <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
         <div className="mt-8 space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
             <UpcomingTasksCard tasks={dashboardPreviewData.upcomingTasks} />

@@ -354,7 +354,7 @@ export function ProjectStitchPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="mx-auto flex w-full max-w-[1200px] flex-col px-6 pb-[120px] pt-6 sm:px-10 lg:px-14"
+          className="mx-auto flex w-full max-w-[1200px] flex-col px-4 pb-[120px] pt-4 sm:px-10 sm:pt-6 lg:px-14"
         >
           {/* Back link */}
           <Link
@@ -419,7 +419,7 @@ export function ProjectStitchPage() {
 
 function StitchLoadingState() {
   return (
-    <div className="mx-auto max-w-[1200px] px-6 py-10 sm:px-10 lg:px-14">
+    <div className="mx-auto max-w-[1200px] px-4 py-10 sm:px-10 lg:px-14">
       <div className="skeleton mb-5 h-4 w-28" />
       <div className="skeleton mb-2 h-8 w-48" />
       <div className="skeleton mb-8 h-4 w-64" />

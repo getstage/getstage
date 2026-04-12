@@ -39,7 +39,7 @@ export function AllProjectsDialog({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[rgba(25,24,42,0.54)] backdrop-blur-[3px]" />
-        <Dialog.Content className="fixed inset-x-2 bottom-2 z-50 max-h-[calc(100dvh-16px)] overflow-hidden rounded-[22px] bg-white shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-[calc(100%-32px)] sm:max-w-[860px] sm:-translate-x-1/2 sm:-translate-y-1/2">
+        <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92svh] flex-col overflow-hidden rounded-t-[22px] bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[calc(100svh-40px)] sm:w-[calc(100%-32px)] sm:max-w-[860px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[22px] sm:pb-0">
           <div className="flex items-start justify-between gap-4 border-b border-border-subtle px-5 py-5 sm:px-7">
             <div>
               <Dialog.Title className="font-heading text-[20px] font-medium tracking-[-0.2px] text-text-primary">

@@ -191,7 +191,7 @@ export function AgentsPage() {
 
         {/* Header */}
         <header className="relative border-b border-border-subtle bg-white/88 backdrop-blur-sm">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 sm:px-10">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-10 sm:py-5">
             <Link to="/" className="inline-flex items-center">
               <img src={stageLogo} alt="Stage" className="h-10 w-auto" />
             </Link>
@@ -213,7 +213,7 @@ export function AgentsPage() {
         </header>
 
         {/* Main */}
-        <main className="relative mx-auto max-w-7xl px-6 pb-24 pt-16 sm:px-10">
+        <main className="relative mx-auto max-w-7xl px-4 pb-24 pt-10 sm:px-10 sm:pt-16">
           {/* Hero */}
           <div className="text-center">
             <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-[rgba(135,130,245,0.16)] bg-[rgba(135,130,245,0.10)] px-4 py-2 text-[13px] font-medium text-text-primary">

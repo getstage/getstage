@@ -167,7 +167,7 @@ export function TaskDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-[1200px] px-6 py-10 sm:px-10 lg:px-14">
+      <div className="mx-auto max-w-[1200px] px-4 py-10 sm:px-10 lg:px-14">
         <div className="skeleton mb-6 h-4 w-60" />
         <div className="mx-auto max-w-[680px]">
           <div className="skeleton mb-8 h-10 w-full" />
@@ -233,7 +233,7 @@ export function TaskDetailPage() {
         <title>{task.title} — Stage</title>
       </Helmet>
 
-      <div className="mx-auto max-w-[1200px] px-6 pb-[120px] pt-5 sm:px-10 lg:px-14">
+      <div className="mx-auto max-w-[1200px] px-4 pb-[120px] pt-5 sm:px-10 lg:px-14">
         <div className="flex items-center justify-between">
           <Link
             to="/project/$id"

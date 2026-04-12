@@ -143,7 +143,7 @@ export function ClaudeConnectPage() {
       <div className="min-h-screen bg-bg text-text-primary">
         {/* Navbar — mirrors the Stage navbar pattern exactly */}
         <header className="h-[64px] border-b border-border-subtle bg-white">
-          <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between px-6 sm:px-10 lg:px-14">
+          <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between px-4 sm:px-10 lg:px-14">
             <Link to="/" className="inline-flex items-center">
               <img src={stageLogo} alt="Stage" className="h-[22px] w-auto" />
             </Link>

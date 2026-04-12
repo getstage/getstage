@@ -72,11 +72,11 @@ export function SettingsPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="settings-page mx-auto flex w-full max-w-[1200px] flex-col px-6 pb-[120px] pt-6 sm:px-10 lg:px-14"
+        className="settings-page mx-auto flex w-full max-w-[1200px] flex-col px-4 pb-[120px] pt-4 sm:px-10 sm:pt-6 lg:px-14"
       >
         <Link
           to="/dashboard"
-          className="mb-2 inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary"
+          className="mb-2 ml-1 inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary sm:ml-0"
         >
           <ArrowLeft size={14} />
           Dashboard

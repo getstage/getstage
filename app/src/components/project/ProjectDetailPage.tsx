@@ -99,7 +99,7 @@ export function ProjectDetailPage() {
           transition={{ duration: 0.3 }}
         >
           {/* Top content: back link + header */}
-          <div className="mx-auto max-w-[1200px] px-6 pt-6 sm:px-10 lg:px-14">
+          <div className="mx-auto max-w-[1200px] px-4 pt-4 sm:px-10 sm:pt-6 lg:px-14">
             <Link
               to="/dashboard"
               className="mb-2 inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary"
@@ -132,7 +132,7 @@ export function ProjectDetailPage() {
               />
 
               {/* Content grid: tasks left + sidebar right */}
-              <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
+              <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
                 <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_340px]">
                   <TaskChecklist
                     phase={detail.currentPhase}
@@ -211,25 +211,25 @@ export function ProjectDetailPage() {
           )}
 
           {activeTab === "research" && (
-            <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
+            <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
               <ResearchTab projectId={projectId} projectName={detail.project.name} />
             </div>
           )}
 
           {activeTab === "strategy" && (
-            <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
+            <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
               <StrategyTab projectId={projectId} projectName={detail.project.name} />
             </div>
           )}
 
           {activeTab === "generate" && (
-            <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
+            <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
               <GenerateTab projectId={projectId} projectName={detail.project.name} />
             </div>
           )}
 
           {activeTab === "assets" && (
-            <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
+            <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
               <AssetsTab projectName={detail.project.name} />
             </div>
           )}
@@ -253,7 +253,7 @@ function isProjectTab(value: string): value is ProjectTab {
 
 function ProjectDetailLoadingState() {
   return (
-    <div className="mx-auto max-w-[1200px] px-6 py-10 sm:px-10 lg:px-14">
+    <div className="mx-auto max-w-[1200px] px-4 py-10 sm:px-10 lg:px-14">
       <div className="skeleton mb-3 h-4 w-28" />
       <div className="flex items-start gap-6">
         <div className="skeleton h-[88px] w-[88px] shrink-0 rounded-full" />

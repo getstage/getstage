@@ -70,7 +70,7 @@ export function Navbar() {
   return (
     <>
       <header className="top-0 z-40 bg-white">
-        <div className="mx-auto flex h-[64px] w-full max-w-[1200px] items-center justify-between px-6 sm:px-10 lg:px-14">
+        <div className="mx-auto flex h-[64px] w-full max-w-[1200px] items-center justify-between px-4 sm:px-10 lg:px-14">
           <div className="flex items-center gap-6">
             <Link to="/dashboard" className="inline-flex items-center">
               <img src={stageLogo} alt="Stage" className="h-[22px] w-auto" />

@@ -88,7 +88,7 @@ export function ClientPortalPage() {
         ) : null}
 
         <header className="border-b border-border-subtle">
-          <div className="mx-auto flex max-w-[1440px] justify-center px-6 py-7 sm:px-10 lg:px-14">
+          <div className="mx-auto flex max-w-[1440px] justify-center px-4 py-5 sm:px-10 sm:py-7 lg:px-14">
             <img
               src={config.logoUrl ?? stageLogo}
               alt={`${project.clientName} portal logo`}

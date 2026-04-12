@@ -208,7 +208,7 @@ export function DashboardPage() {
         </>
       ) : (
         <div className="min-h-[calc(100vh-64px)]">
-          <div className="mx-auto max-w-[1200px] px-6 pt-3 sm:px-10 lg:px-14">
+          <div className="mx-auto max-w-[1200px] px-4 pt-3 sm:px-10 lg:px-14">
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -252,12 +252,12 @@ export function DashboardPage() {
               <Timeline projects={projects} horizon={timelineHorizon} />
             </div>
           ) : (
-            <div className="mx-auto mt-10 max-w-[1200px] px-6 sm:mt-14 sm:px-10 lg:px-14">
+            <div className="mx-auto mt-10 max-w-[1200px] px-4 sm:mt-14 sm:px-10 lg:px-14">
               <DashboardEmptyState />
             </div>
           )}
 
-          <div className="mx-auto max-w-[1200px] px-6 pb-[120px] sm:px-10 lg:px-14">
+          <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
             <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
               <UpcomingTasksCard tasks={upcomingTasks} />
               <RecentActivityCard entries={recentActivity} />
@@ -275,7 +275,7 @@ export function DashboardPage() {
             rel="noreferrer"
             aria-label="Share feedback"
             title="Share feedback"
-            className="group fixed right-6 z-30 block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 bottom-[max(96px,calc(env(safe-area-inset-bottom)+24px))] md:bottom-[max(24px,calc(env(safe-area-inset-bottom)+20px))]"
+            className="group fixed right-4 z-30 hidden rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 sm:right-6 sm:block bottom-[max(96px,calc(env(safe-area-inset-bottom)+24px))] md:bottom-[max(24px,calc(env(safe-area-inset-bottom)+20px))]"
           >
             <span className="pointer-events-none absolute right-full top-1/2 mr-3 -translate-y-1/2 whitespace-nowrap rounded-full border border-[rgba(21,21,32,0.08)] bg-white px-3 py-2 text-[12px] font-medium text-text-primary opacity-0 shadow-[0_10px_30px_rgba(15,23,42,0.12)] transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
               Share feedback

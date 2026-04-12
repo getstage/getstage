@@ -192,7 +192,7 @@ export function OpenClawPage() {
 
         {/* Header */}
         <header className="relative border-b border-border-subtle bg-white/88 backdrop-blur-sm">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 sm:px-10">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-10 sm:py-5">
             <Link to="/" className="inline-flex items-center">
               <img src={stageLogo} alt="Stage" className="h-10 w-auto" />
             </Link>
@@ -213,7 +213,7 @@ export function OpenClawPage() {
           </div>
         </header>
 
-        <main className="relative mx-auto max-w-7xl px-6 pb-24 pt-16 sm:px-10">
+        <main className="relative mx-auto max-w-7xl px-4 pb-24 pt-10 sm:px-10 sm:pt-16">
           {/* Hero */}
           <section className="grid gap-12 lg:grid-cols-[1fr_1fr] lg:items-start">
             <div>

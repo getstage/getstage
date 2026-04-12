@@ -18,6 +18,12 @@
   padding: 40px 0 48px;
 }
 
+@media (max-width: 767px) {
+  .settings-page-header {
+    padding: 16px 0 28px;
+  }
+}
+
 .page-title {
   font-family: var(--font-heading);
   font-weight: 600;
@@ -46,8 +52,8 @@
 @media (max-width: 767px) {
   .settings-layout {
     flex-direction: column;
-    gap: 24px;
-    padding: 0 24px 80px;
+    gap: 16px;
+    padding: 0 0 80px;
   }
 }
 
@@ -63,8 +69,17 @@
   .settings-sidebar {
     display: flex;
     width: 100%;
-    gap: 2px;
+    gap: 4px;
     overflow-x: auto;
+    padding: 4px 16px 6px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .settings-sidebar::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -85,6 +100,15 @@
   white-space: nowrap;
   text-align: left;
   width: 100%;
+}
+
+@media (max-width: 767px) {
+  .sidebar-item {
+    width: auto;
+    flex-shrink: 0;
+    margin-bottom: 0;
+    scroll-snap-align: start;
+  }
 }
 
 .sidebar-item:hover {
@@ -182,6 +206,24 @@
 
 .card-body {
   padding: 24px;
+}
+
+@media (max-width: 767px) {
+  .card-body {
+    padding: 18px;
+  }
+
+  .settings-card {
+    margin-bottom: 14px;
+  }
+
+  .settings-content {
+    padding: 0 16px;
+  }
+
+  .card-footer {
+    padding: 12px 18px;
+  }
 }
 
 .card-heading {

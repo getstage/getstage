@@ -23,7 +23,7 @@ export function ProjectCreationPage() {
       </Helmet>
 
       <div className="relative min-h-[calc(100vh-64px)] bg-bg">
-        <div className="absolute inset-x-0 top-0 z-10 mx-auto w-full max-w-[1200px] px-6 pt-6 sm:px-10 lg:px-14">
+        <div className="absolute inset-x-0 top-0 z-10 mx-auto w-full max-w-[1200px] px-4 pt-4 sm:px-10 sm:pt-6 lg:px-14">
           <Link
             to="/dashboard"
             className="inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary"
@@ -33,7 +33,7 @@ export function ProjectCreationPage() {
           </Link>
         </div>
 
-        <div className="flex min-h-[calc(100vh-64px)] items-center justify-center px-6 py-20 sm:px-10 lg:px-14">
+        <div className="flex min-h-[calc(100vh-64px)] items-center justify-center px-4 py-16 sm:px-10 sm:py-20 lg:px-14">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
