@@ -212,7 +212,11 @@ export function ProjectDetailPage() {
 
           {activeTab === "research" && (
             <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
-              <ResearchTab projectId={projectId} projectName={detail.project.name} />
+              <ResearchTab
+                projectId={projectId}
+                projectName={detail.project.name}
+                onReturnToOverview={() => setActiveTab("overview")}
+              />
             </div>
           )}
 

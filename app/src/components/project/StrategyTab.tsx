@@ -57,9 +57,10 @@ export function StrategyTab({ projectId, projectName }: StrategyTabProps) {
           <button
             type="button"
             onClick={() => void launchStrategyRun()}
-            className="inline-flex items-center justify-center rounded-[10px] border border-border px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:bg-bg-subtle"
+            className="inline-flex items-center justify-center gap-2 rounded-[10px] border border-border px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:bg-bg-subtle"
           >
-            Regenerate in Claude
+            <span>{runList[0]?.status === "running" ? "Open" : "Regenerate in"}</span>
+            <img src="/claude-full.svg" alt="Claude" className="h-[15px]" />
           </button>
         </div>
       </div>

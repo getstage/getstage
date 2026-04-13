@@ -34,11 +34,11 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
 
   async function launchGenerateRun() {
     const result = await createRun({
-        projectId,
-        module: "generate",
-        title: `${projectName} generate run`,
-        inputSummary: `Existing generated outputs: ${artifactList.length}`,
-      });
+      projectId,
+      module: "generate",
+      title: `${projectName} generate run`,
+      inputSummary: `Existing generated outputs: ${artifactList.length}`,
+    });
     window.location.assign(`/agents/claude?source=settings&projectId=${projectId}&module=generate&runId=${result.runId}`);
   }
 
@@ -66,10 +66,11 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
         </span>
         <button
           type="button"
-          className="rounded-[10px] border border-border px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:bg-bg-subtle"
+          className="inline-flex items-center gap-2 rounded-[10px] border border-border px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:bg-bg-subtle"
           onClick={() => void launchGenerateRun()}
         >
-          {latestRun?.status === "running" ? "Open Claude" : "Generate via Claude"}
+          <span>{latestRun?.status === "running" ? "Open" : "Generate via"}</span>
+          <img src="/claude-full.svg" alt="Claude" className="h-[15px]" />
         </button>
       </div>
 

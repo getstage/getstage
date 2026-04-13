@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { ArrowClockwise, Plus, ShareNetwork, UploadSimple, X } from "@phosphor-icons/react";
 import { api } from "@/lib/convex";
@@ -110,6 +110,10 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
         });
         setPendingBriefFile(null);
       }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not save the research context.";
+      setUploadError(message);
+      throw error;
     } finally {
       setIsSaving(false);
     }
@@ -132,6 +136,9 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
       });
       const nextUrl = `/agents/claude?source=settings&projectId=${projectId}&module=research&runId=${result.runId}`;
       window.location.assign(nextUrl);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not launch the Claude research run.";
+      setUploadError(message);
     } finally {
       setIsLaunching(false);
     }
@@ -148,8 +155,8 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
 
     while (
       next.length > 1 &&
-      next[next.length - 1].trim() === "" &&
-      next[next.length - 2].trim() === ""
+      (next[next.length - 1] ?? "").trim() === "" &&
+      (next[next.length - 2] ?? "").trim() === ""
     ) {
       next.pop();
     }
@@ -189,7 +196,7 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
     setUploadError(null);
   }
 
-  function handleBriefDrop(event: React.DragEvent<HTMLButtonElement>) {
+  function handleBriefDrop(event: DragEvent<HTMLButtonElement>) {
     event.preventDefault();
     setIsDragActive(false);
     handleBriefFilePicked(event.dataTransfer.files[0] ?? null);
@@ -611,7 +618,7 @@ function ContextTextarea({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-[13px] font-medium text-text-primary">{label}</span>
