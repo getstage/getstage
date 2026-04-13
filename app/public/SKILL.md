@@ -99,7 +99,36 @@ That endpoint is deprecated. Build the plan yourself and use `import-plan`.
 
 ## Claude and AI workflow endpoints
 
-- `POST /api/v1/agent/connections/claude/handshake`
+### Handshake — verify connection
+
+```http
+POST /api/v1/agent/connections/claude/handshake
+Authorization: Bearer stg_...
+Content-Type: application/json
+
+{
+  "connectionId": "<optional — provided in the setup prompt>",
+  "client": "claude_code",
+  "capabilities": {
+    "notionMcp": true,
+    "figmaMcp": false
+  }
+}
+```
+
+Response `201 Created`:
+```json
+{ "connectionId": "abc123", "status": "connected" }
+```
+
+Rules:
+- Call this once after installing the skill and setting the API key.
+- Set `notionMcp` to `true` if you have a Notion MCP tool available.
+- Set `figmaMcp` to `true` if you have a Figma MCP tool available.
+- If `connectionId` is omitted, Stage will find or create one for your user.
+
+### Other AI endpoints
+
 - `GET /api/v1/projects/:id/ai/context`
 - `POST /api/v1/projects/:id/ai/context`
 - `GET /api/v1/projects/:id/ai/runs`
@@ -191,9 +220,22 @@ Example payload:
 
 ## Authentication
 
+Base URL for all API calls:
+
+```
+https://reliable-bullfrog-917.convex.site
+```
+
 Use Bearer auth:
 
 ```http
+Authorization: Bearer stg_...
+```
+
+Every request must include the full URL, e.g.:
+
+```http
+GET https://reliable-bullfrog-917.convex.site/api/v1/projects
 Authorization: Bearer stg_...
 ```
 

@@ -7,7 +7,7 @@ import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/convex";
 import { useDeveloperSettings } from "@/features/settings/useDeveloperSettings";
-import { CLAUDE_INSTALL_COMMAND } from "@/features/settings/useIntegrationsSettings";
+import { CLAUDE_INSTALL_COMMAND, STAGE_API_BASE_URL } from "@/features/settings/useIntegrationsSettings";
 
 const PAGE_TITLE = "Connect Claude to Stage";
 const PAGE_DESCRIPTION =

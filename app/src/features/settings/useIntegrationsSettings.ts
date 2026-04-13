@@ -23,6 +23,8 @@ import {
 import { showFriendlyFeedback } from "./feedback";
 
 export const CLAUDE_INSTALL_COMMAND = "npx skills add getstage/agent-mode";
+export const STAGE_API_BASE_URL =
+  import.meta.env.VITE_CONVEX_SITE_URL ?? "https://reliable-bullfrog-917.convex.site";
 
 type IntegrationsSettingsInput = {
   user: AuthUser | null;
