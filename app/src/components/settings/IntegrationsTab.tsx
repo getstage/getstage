@@ -320,9 +320,6 @@ export function IntegrationsTab({
     },
   ];
 
-  const connectedCount = cards.filter((card) => card.status === "connected").length;
-  const availableCount = cards.filter((card) => card.status !== "connected").length;
-  const needsAttentionCount = cards.filter((card) => card.status === "pending" || card.status === "error").length;
   const selectedCardData = cards.find((card) => card.id === selectedCard) ?? null;
   const filteredCards = cards.filter((card) => {
     if (activeFilter === "connected") {
@@ -337,22 +334,14 @@ export function IntegrationsTab({
   return (
     <div className={`tab-content ${active ? "active" : ""}`}>
       <div className="rounded-[20px] border border-border-subtle bg-white p-5 shadow-[0_8px_24px_rgba(17,24,39,0.04)] sm:p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-[640px]">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
-              Connector directory
-            </div>
-            <h2 className="mt-2 text-[22px] font-semibold text-text-primary">Integrations</h2>
-            <p className="mt-2 text-[14px] leading-[1.65] text-text-secondary">
-              Browse the connectors available in Stage and open each one in a focused dialog instead of scrolling through every setup flow inline.
-            </p>
+        <div className="max-w-[680px]">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+            Connector directory
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            <SummaryChip label="Connected" value={connectedCount} tone="connected" />
-            <SummaryChip label="Available" value={availableCount} tone="neutral" />
-            <SummaryChip label="Needs attention" value={needsAttentionCount} tone="pending" />
-          </div>
+          <h2 className="mt-2 text-[22px] font-semibold text-text-primary">Integrations</h2>
+          <p className="mt-2 text-[14px] leading-[1.65] text-text-secondary">
+            Browse the connectors available in Stage and open each one in a focused dialog instead of scrolling through every setup flow inline.
+          </p>
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
@@ -926,31 +915,6 @@ function FilterButton({
     >
       {label}
     </button>
-  );
-}
-
-function SummaryChip({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: "connected" | "pending" | "neutral";
-}) {
-  const dotClass =
-    tone === "connected"
-      ? "bg-[#22C55E]"
-      : tone === "pending"
-        ? "bg-[#F59E0B]"
-        : "bg-[#CBD5E1]";
-
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-subtle px-3 py-2 text-[12px] text-text-secondary">
-      <span className={`h-2 w-2 rounded-full ${dotClass}`} />
-      <span>{label}</span>
-      <span className="font-semibold text-text-primary">{value}</span>
-    </div>
   );
 }
 
