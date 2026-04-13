@@ -11,6 +11,7 @@ import {
   AccountIcon,
   BillingIcon,
   ClientsIcon,
+  DeveloperIcon,
   IntegrationsLinkIcon,
   ProfileIcon,
 } from "@/components/settings/SettingsIcons";
@@ -120,6 +121,14 @@ export function SettingsPage() {
             >
               <ClientsIcon />
               Clients
+            </button>
+            <button
+              type="button"
+              className={`sidebar-item ${activeTab === "developer" ? "active" : ""}`}
+              onClick={() => setActiveTab("developer")}
+            >
+              <DeveloperIcon />
+              Developer
             </button>
             <button
               type="button"

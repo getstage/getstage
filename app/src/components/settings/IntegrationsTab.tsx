@@ -155,16 +155,54 @@ export function IntegrationsTab({
 
   function buildFullSetupPrompt() {
     const parts = [
-      "Set up the Stage skill in this project.",
+      "Set up the Stage agent skill so you can operate Stage on my behalf.",
+      "Stage is an AI-powered project management tool. The skill file teaches you the full API, action policy, and the research → strategy → generate → delivery workflow.",
       "",
-      `1. Run: ${claudeInstallCommand}`,
+      "## Step 1 — Install the skill",
       "",
-      "2. Make sure STAGE_API_KEY is set in your environment (create one in Stage → Settings → Developer if you don't have one).",
+      "Run this command to install the Stage skill into your workspace:",
+      "",
+      "```",
+      claudeInstallCommand,
+      "```",
+      "",
+      "This downloads the SKILL.md file which contains every endpoint, action classification, and workflow rule you need.",
+      "",
+      "## Step 2 — Authenticate",
+      "",
+      "You need a Stage API key to authenticate. Create one in Stage under Settings → Developer.",
+      "Once you have the key, set it as an environment variable:",
+      "",
+      "```",
+      "export STAGE_API_KEY=stg_your_key_here",
+      "```",
+      "",
+      "The key uses Bearer auth: `Authorization: Bearer stg_...`",
     ];
 
     if (claudeVerifyPrompt) {
-      parts.push("", "3. Then verify the connection:", claudeVerifyPrompt);
+      parts.push(
+        "",
+        "## Step 3 — Verify the connection",
+        "",
+        claudeVerifyPrompt,
+        "",
+        "This confirms Stage can receive calls from Claude and registers your MCP capabilities (Notion, Figma).",
+      );
     }
+
+    parts.push(
+      "",
+      "## What you can do after setup",
+      "",
+      "- Read projects, phases, and tasks from Stage",
+      "- Create new projects using `POST /api/v1/projects/import-plan` with structured phases and tasks",
+      "- Run research, strategy, and content generation workflows",
+      "- Write artifacts back to Stage and export to Notion or Figma",
+      "- Toggle task completion and update project state",
+      "",
+      "Always create the project in Stage first before doing research or design work. Stage is the source of truth.",
+    );
 
     return parts.join("\n");
   }

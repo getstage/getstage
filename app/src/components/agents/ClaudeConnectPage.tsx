@@ -43,24 +43,69 @@ function buildFullSetupPrompt({
   verificationPrompt: string | null;
 }) {
   const parts = [
-    "Set up the Stage skill in this project.",
+    "Set up the Stage agent skill so you can operate Stage on my behalf.",
+    "Stage is an AI-powered project management tool. The skill file teaches you the full API, action policy, and the research → strategy → generate → delivery workflow.",
     "",
-    `1. Run: ${installCommand}`,
+    "## Step 1 — Install the skill",
+    "",
+    `Run this command to install the Stage skill into your workspace:`,
+    "",
+    `\`\`\``,
+    installCommand,
+    `\`\`\``,
+    "",
+    "This downloads the SKILL.md file which contains every endpoint, action classification, and workflow rule you need.",
+    "",
+    "## Step 2 — Authenticate",
+    "",
   ];
 
   if (envSnippet) {
-    parts.push("", `2. Set the environment variable: ${envSnippet}`);
+    parts.push(
+      "Set this environment variable so your API calls are authenticated:",
+      "",
+      `\`\`\``,
+      envSnippet,
+      `\`\`\``,
+      "",
+      "The key format is `stg_...` and uses Bearer auth: `Authorization: Bearer stg_...`",
+    );
   } else {
-    parts.push("", "2. Make sure STAGE_API_KEY is set in your environment (create one in Stage → Settings → Developer if you don't have one).");
+    parts.push(
+      "You need a Stage API key to authenticate. Create one in Stage under Settings → Developer.",
+      "Once you have the key, set it as an environment variable:",
+      "",
+      `\`\`\``,
+      "export STAGE_API_KEY=stg_your_key_here",
+      `\`\`\``,
+      "",
+      "The key uses Bearer auth: `Authorization: Bearer stg_...`",
+    );
   }
 
   if (verificationPrompt) {
     parts.push(
       "",
-      "3. Then verify the connection:",
+      "## Step 3 — Verify the connection",
+      "",
       verificationPrompt,
+      "",
+      "This confirms Stage can receive calls from Claude and registers your MCP capabilities (Notion, Figma).",
     );
   }
+
+  parts.push(
+    "",
+    "## What you can do after setup",
+    "",
+    "- Read projects, phases, and tasks from Stage",
+    "- Create new projects using `POST /api/v1/projects/import-plan` with structured phases and tasks",
+    "- Run research, strategy, and content generation workflows",
+    "- Write artifacts back to Stage and export to Notion or Figma",
+    "- Toggle task completion and update project state",
+    "",
+    "Always create the project in Stage first before doing research or design work. Stage is the source of truth.",
+  );
 
   return parts.join("\n");
 }

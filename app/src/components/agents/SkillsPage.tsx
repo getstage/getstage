@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   Check,
-  Copy,
+  CopySimple,
   Terminal,
   FileCode,
 } from "@phosphor-icons/react";
@@ -93,9 +93,9 @@ function CopyButton({ text }: { text: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className="inline-flex h-7 w-7 items-center justify-center rounded-[8px] text-[#6c7086] transition-colors hover:text-[#cdd6f4]"
+      className="inline-flex h-7 w-7 items-center justify-center rounded-[8px] text-text-tertiary transition-colors hover:text-text-secondary"
     >
-      {copied ? <Check size={14} weight="bold" /> : <Copy size={14} />}
+      {copied ? <Check size={14} weight="bold" /> : <CopySimple size={14} />}
     </button>
   );
 }
@@ -160,8 +160,8 @@ export function SkillsPage() {
 
             {/* Primary CTA: install command */}
             <div className="mt-8 max-w-lg">
-              <div className="relative rounded-[16px] bg-[#1e1e2e] px-5 py-4">
-                <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#6c7086]">
+              <div className="relative rounded-[16px] border border-[#8782F5]/12 bg-[#F8F7FF] px-5 py-4">
+                <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8782F5]/60">
                   Install
                 </div>
                 <div className="flex items-center justify-between gap-3">
@@ -169,9 +169,9 @@ export function SkillsPage() {
                     <Terminal
                       size={14}
                       weight="bold"
-                      className="text-[#0d9488]"
+                      className="text-accent"
                     />
-                    <code className="text-[14px] leading-[1.6] text-[#cdd6f4]">
+                    <code className="text-[14px] leading-[1.6] text-text-primary">
                       {INSTALL_COMMAND}
                     </code>
                   </div>
@@ -223,14 +223,17 @@ export function SkillsPage() {
                   <p className="mt-2 text-[14px] leading-[1.7] text-text-secondary">
                     {step.description}
                   </p>
-                  <div className="mt-4 rounded-[12px] bg-[#1e1e2e] px-4 py-3">
+                  <div
+                    className="mt-4 rounded-[12px] border px-4 py-3"
+                    style={{ borderColor: step.border, backgroundColor: step.color }}
+                  >
                     <div className="mb-1 flex items-center justify-between">
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#6c7086]">
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-text-tertiary">
                         {step.codeLabel}
                       </span>
                       <CopyButton text={step.code} />
                     </div>
-                    <code className="text-[12px] leading-[1.6] text-[#cdd6f4]">
+                    <code className="text-[12px] leading-[1.6] text-text-primary">
                       {step.code}
                     </code>
                   </div>
