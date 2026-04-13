@@ -505,6 +505,8 @@ export default defineSchema({
     competitorUrls: v.array(v.string()),
     referenceUrls: v.array(v.string()),
     brief: v.optional(v.string()),
+    briefAttachmentName: v.optional(v.string()),
+    briefAttachmentR2ObjectKey: v.optional(v.string()),
     notes: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),

@@ -7,6 +7,7 @@ import {
 } from "./_generated/server";
 import { requireProjectAccess } from "./_helpers";
 import type { Id } from "./_generated/dataModel";
+import { attachTrackedR2Asset, deleteOldR2Asset, resolveAssetUrl } from "./r2";
 
 const aiModule = v.union(
   v.literal("research"),
@@ -126,19 +127,35 @@ async function upsertContextRecord(
     competitorUrls: string[];
     referenceUrls: string[];
     brief?: string;
+    briefAttachmentName?: string | null;
+    briefAttachmentR2ObjectKey?: string | null;
     notes?: string;
   },
 ) {
   const existing = await getContextRecord(ctx, args.projectId);
   const timestamp = now();
+  const nextBriefAttachmentKey = normalizeOptional(args.briefAttachmentR2ObjectKey);
   const payload = {
     clientWebsite: normalizeOptional(args.clientWebsite),
     competitorUrls: normalizeList(args.competitorUrls),
     referenceUrls: normalizeList(args.referenceUrls),
     brief: normalizeOptional(args.brief),
+    briefAttachmentName: normalizeOptional(args.briefAttachmentName),
+    briefAttachmentR2ObjectKey: nextBriefAttachmentKey,
     notes: normalizeOptional(args.notes),
     updatedAt: timestamp,
   };
+
+  if (
+    existing?.briefAttachmentR2ObjectKey &&
+    existing.briefAttachmentR2ObjectKey !== nextBriefAttachmentKey
+  ) {
+    await deleteOldR2Asset(ctx, existing.briefAttachmentR2ObjectKey);
+  }
+
+  if (nextBriefAttachmentKey && existing?.briefAttachmentR2ObjectKey !== nextBriefAttachmentKey) {
+    await attachTrackedR2Asset(ctx, { key: nextBriefAttachmentKey });
+  }
 
   if (existing) {
     await ctx.db.patch(existing._id, payload);
@@ -246,6 +263,9 @@ export const getContext = query({
       competitorUrls: record?.competitorUrls ?? [],
       referenceUrls: record?.referenceUrls ?? [],
       brief: record?.brief ?? "",
+      briefAttachmentName: record?.briefAttachmentName ?? null,
+      briefAttachmentR2ObjectKey: record?.briefAttachmentR2ObjectKey ?? null,
+      briefAttachmentUrl: await resolveAssetUrl(record?.briefAttachmentR2ObjectKey ?? null),
       notes: record?.notes ?? "",
       updatedAt: record?.updatedAt ?? null,
     };
@@ -259,6 +279,8 @@ export const upsertContext = mutation({
     competitorUrls: v.array(v.string()),
     referenceUrls: v.array(v.string()),
     brief: v.optional(v.string()),
+    briefAttachmentName: v.optional(v.union(v.string(), v.null())),
+    briefAttachmentR2ObjectKey: v.optional(v.union(v.string(), v.null())),
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -270,6 +292,8 @@ export const upsertContext = mutation({
       competitorUrls: args.competitorUrls,
       referenceUrls: args.referenceUrls,
       brief: args.brief,
+      briefAttachmentName: args.briefAttachmentName,
+      briefAttachmentR2ObjectKey: args.briefAttachmentR2ObjectKey,
       notes: args.notes,
     });
 
@@ -449,7 +473,16 @@ export const getContextForApi = internalQuery({
   },
   handler: async (ctx, args) => {
     await requireProjectForApi(ctx, args.userId, args.projectId);
-    return getContextRecord(ctx, args.projectId);
+    const record = await getContextRecord(ctx, args.projectId);
+    if (!record) {
+      return null;
+    }
+
+    return {
+      ...record,
+      briefAttachmentName: record.briefAttachmentName ?? null,
+      briefAttachmentUrl: await resolveAssetUrl(record.briefAttachmentR2ObjectKey ?? null),
+    };
   },
 });
 
@@ -461,6 +494,8 @@ export const upsertContextForApi = internalMutation({
     competitorUrls: v.array(v.string()),
     referenceUrls: v.array(v.string()),
     brief: v.optional(v.string()),
+    briefAttachmentName: v.optional(v.union(v.string(), v.null())),
+    briefAttachmentR2ObjectKey: v.optional(v.union(v.string(), v.null())),
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {

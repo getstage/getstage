@@ -81,6 +81,8 @@ export function createProjectRoutes() {
               competitorUrls: context.competitorUrls,
               referenceUrls: context.referenceUrls,
               brief: context.brief ?? null,
+              briefAttachmentName: context.briefAttachmentName ?? null,
+              briefAttachmentUrl: context.briefAttachmentUrl ?? null,
               notes: context.notes ?? null,
               updatedAt: context.updatedAt,
             }
@@ -104,6 +106,8 @@ export function createProjectRoutes() {
         competitorUrls: body.competitorUrls,
         referenceUrls: body.referenceUrls,
         brief: body.brief,
+        briefAttachmentName: body.briefAttachmentName,
+        briefAttachmentR2ObjectKey: body.briefAttachmentR2ObjectKey,
         notes: body.notes,
       });
 

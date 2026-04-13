@@ -221,6 +221,8 @@ export const upsertProjectAiContextBodySchema = z.object({
   competitorUrls: z.array(z.string().trim()).default([]),
   referenceUrls: z.array(z.string().trim()).default([]),
   brief: optionalTrimmedString,
+  briefAttachmentName: optionalTrimmedString.nullable().optional(),
+  briefAttachmentR2ObjectKey: optionalTrimmedString.nullable().optional(),
   notes: optionalTrimmedString,
 });
 

@@ -7,6 +7,9 @@ export type ProjectAiContext = {
   competitorUrls: string[];
   referenceUrls: string[];
   brief: string;
+  briefAttachmentName: string | null;
+  briefAttachmentR2ObjectKey: string | null;
+  briefAttachmentUrl: string | null;
   notes: string;
   updatedAt: number | null;
 };
