@@ -743,7 +743,9 @@ function ClaudeOnboardingStep({
   async function handleContinue() {
     await navigator.clipboard.writeText(fullPrompt);
     setCopied("full");
-    window.open("https://claude.ai/new", "_blank");
+    window.setTimeout(() => {
+      window.open("https://claude.ai/new", "_blank");
+    }, 1200);
     window.setTimeout(() => setCopied(null), 4000);
   }
 

@@ -128,7 +128,9 @@ export function ClaudeConnectPage() {
   async function handleContinueWithClaude() {
     await navigator.clipboard.writeText(fullSetupPrompt);
     setCopied(true);
-    window.open(CLAUDE_APP_URL, "_blank");
+    window.setTimeout(() => {
+      window.open(CLAUDE_APP_URL, "_blank");
+    }, 1200);
     window.setTimeout(() => setCopied(false), 4000);
   }
 

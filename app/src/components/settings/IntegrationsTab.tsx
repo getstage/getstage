@@ -171,7 +171,9 @@ export function IntegrationsTab({
 
   async function handleContinueWithClaude() {
     await handleCopy(buildFullSetupPrompt(), "full");
-    window.open("https://claude.ai/new", "_blank");
+    window.setTimeout(() => {
+      window.open("https://claude.ai/new", "_blank");
+    }, 1200);
   }
 
   return (
