@@ -7,7 +7,7 @@ import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/convex";
 import { useDeveloperSettings } from "@/features/settings/useDeveloperSettings";
-import { CLAUDE_INSTALL_COMMAND, STAGE_API_BASE_URL } from "@/features/settings/useIntegrationsSettings";
+import { CLAUDE_INSTALL_COMMAND } from "@/features/settings/useIntegrationsSettings";
 
 const PAGE_TITLE = "Connect Claude to Stage";
 const PAGE_DESCRIPTION =
@@ -141,7 +141,7 @@ function buildTaskPrompt(search: URLSearchParams) {
 }
 
 export function ClaudeConnectPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const search = useSearchParams();
   const source = search.get("source") === "onboarding" ? "onboarding" : "settings";
   const claudeState = useQuery(api.agentConnections.getClaudeConnectionSummary, isAuthenticated ? {} : "skip");
@@ -149,14 +149,15 @@ export function ClaudeConnectPage() {
   const developerSettings = useDeveloperSettings({ enabled: isAuthenticated });
   const [copied, setCopied] = useState(false);
   const [showManual, setShowManual] = useState(false);
+  const isPro = user?.plan === "pro";
 
   useEffect(() => {
-    if (!isAuthenticated || claudeState?.connection) {
+    if (!isAuthenticated || !isPro || claudeState?.connection) {
       return;
     }
 
     void createPendingConnection({ source });
-  }, [claudeState?.connection, createPendingConnection, isAuthenticated, source]);
+  }, [claudeState?.connection, createPendingConnection, isAuthenticated, isPro, source]);
 
   const connectionId = claudeState?.connection?.id ?? null;
   const revealedKey = developerSettings.revealedKey;
@@ -180,7 +181,7 @@ export function ClaudeConnectPage() {
   }
 
   const isConnected = claudeState?.connection?.stageApiVerified === true;
-  const needsKey = isAuthenticated && !revealedKey;
+  const needsKey = isAuthenticated && isPro && !revealedKey;
 
   return (
     <>
@@ -225,6 +226,26 @@ export function ClaudeConnectPage() {
           {/* Main card */}
           <div className="mt-8 rounded-[14px] border border-border bg-white">
             {/* API key section — only if needed */}
+            {!isPro ? (
+              <div className="border-b border-border-subtle px-6 py-6">
+                <p className="text-[14px] font-medium text-text-primary">
+                  Stage API keys require Pro
+                </p>
+                <p className="mt-1 text-[13px] text-text-secondary">
+                  Upgrade in Settings → Plan & Billing before you connect Claude. The verification flow depends on a Stage API key from Developer settings.
+                </p>
+                <div className="mt-4">
+                  <Link
+                    to="/settings"
+                    search={{ tab: "billing" }}
+                    className="inline-flex h-10 items-center justify-center rounded-[10px] bg-accent px-4 text-[14px] font-medium text-white transition-all duration-150 hover:bg-accent-hover"
+                  >
+                    Upgrade to Pro
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+
             {needsKey ? (
               <div className="border-b border-border-subtle px-6 py-6">
                 <p className="text-[14px] font-medium text-text-primary">
@@ -266,6 +287,7 @@ export function ClaudeConnectPage() {
                 type="button"
                 onClick={() => void handleContinueWithClaude()}
                 className="mt-6 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-[#D97757]/18 bg-[#D97757]/[0.06] text-[15px] font-medium text-text-primary transition-all duration-150 hover:bg-[#D97757]/[0.11] active:bg-[#D97757]/[0.15] disabled:pointer-events-none disabled:opacity-40"
+                disabled={!isPro}
               >
                 {copied ? (
                   <>
@@ -293,13 +315,14 @@ export function ClaudeConnectPage() {
                   window.setTimeout(() => setCopied(false), 2500);
                 }}
                 className="mt-3 inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] border border-[#D97757]/15 bg-[#D97757]/[0.04] px-3 py-1.5 text-[12px] font-medium text-[#D97757] transition-all duration-150 hover:bg-[#D97757]/[0.09]"
+                disabled={!isPro}
               >
                 <CopySimple size={12} weight="bold" />
                 {copied ? "Copied!" : "Copy Claude prompt"}
               </button>
 
               <p className="mt-2.5 text-[13px] text-text-tertiary">
-                Copies the setup prompt and opens Claude.
+                {isPro ? "Copies the setup prompt and opens Claude." : "Upgrade first to create a Stage API key and finish setup."}
               </p>
             </div>
 

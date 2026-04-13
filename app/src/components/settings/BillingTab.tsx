@@ -3,6 +3,7 @@ import type { SaveFeedback } from "@/hooks/useFeedback";
 
 type BillingTabProps = {
   active: boolean;
+  isPro: boolean;
   planName: string;
   planStatus: string;
   planCycle: string;
@@ -18,6 +19,7 @@ type BillingTabProps = {
 
 export function BillingTab({
   active,
+  isPro,
   planName,
   planStatus,
   planCycle,
@@ -48,7 +50,9 @@ export function BillingTab({
             fallback={
               hasActiveSubscription
                 ? "Manage your subscription in Stripe Customer Portal"
-                : "Annual checkout unlocks the live dashboard"
+                : isPro
+                  ? "This workspace already has Pro access."
+                  : "Upgrade to Stage Pro to unlock the live dashboard and API access."
             }
           />
           <div className="flex items-center gap-2">
@@ -60,6 +64,14 @@ export function BillingTab({
                 onClick={onOpenPortal}
               >
                 {isPortalLoading ? "Opening..." : "Manage billing"}
+              </button>
+            ) : isPro ? (
+              <button
+                type="button"
+                className="btn-outline"
+                disabled
+              >
+                Pro active
               </button>
             ) : (
               <button

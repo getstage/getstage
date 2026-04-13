@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalQuery, internalMutation } from "../_generated/server";
 import { requireAuthUser } from "../_helpers";
+import { getCurrentSubscriptionSnapshot } from "../billing";
 
 const KEY_PREFIX = "stg_";
 const KEY_BYTE_LENGTH = 32;
@@ -33,6 +34,12 @@ export const generate = mutation({
   handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
     const trimmedName = args.name.trim();
+    const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
+    const plan = subscription?.plan ?? user.plan ?? "free";
+
+    if (plan !== "pro") {
+      throw new Error("API keys require Stage Pro.");
+    }
 
     if (!trimmedName || trimmedName.length > 64) {
       throw new Error("Key name must be between 1 and 64 characters.");
@@ -128,6 +135,12 @@ export const getUserByHashedKey = internalQuery({
       return null;
     }
 
+    const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
+    const plan = subscription?.plan ?? user.plan ?? "free";
+    if (plan !== "pro") {
+      return null;
+    }
+
     return { apiKeyId: apiKey._id, userId: user._id };
   },
 });
@@ -148,6 +161,12 @@ export const authenticateByHashedKey = internalMutation({
 
     const user = await ctx.db.get(apiKey.userId);
     if (!user) {
+      return null;
+    }
+
+    const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
+    const plan = subscription?.plan ?? user.plan ?? "free";
+    if (plan !== "pro") {
       return null;
     }
 

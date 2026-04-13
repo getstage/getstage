@@ -29,6 +29,7 @@ export const STAGE_API_BASE_URL =
 type IntegrationsSettingsInput = {
   user: AuthUser | null;
   enabled: boolean;
+  isPro: boolean;
 };
 
 function buildClaudeSetupHref(source: "settings" | "onboarding") {
@@ -48,7 +49,7 @@ function buildVerifyPrompt(connection: ClaudeConnectionSummary | null) {
   ].join(" ");
 }
 
-export function useIntegrationsSettings({ user, enabled }: IntegrationsSettingsInput) {
+export function useIntegrationsSettings({ user, enabled, isPro }: IntegrationsSettingsInput) {
   const stripeConnection = useConvexQuery(
     api.integrations.stripeConnect.getStripeConnectionStatus,
     !user || !enabled ? "skip" : {},
@@ -117,12 +118,12 @@ export function useIntegrationsSettings({ user, enabled }: IntegrationsSettingsI
 
   // Auto-create a pending Claude connection so the verify prompt always has a connectionId
   useEffect(() => {
-    if (!enabled || !user || claudeState === undefined || claudeState.connection) {
+    if (!enabled || !user || !isPro || claudeState === undefined || claudeState.connection) {
       return;
     }
 
     void createPendingConnection({ source: "settings" });
-  }, [enabled, user, claudeState, createPendingConnection]);
+  }, [enabled, user, isPro, claudeState, createPendingConnection]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

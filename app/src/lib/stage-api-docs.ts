@@ -651,6 +651,7 @@ export const stageApiSections: ApiSectionDoc[] = [
       "Set your key: Authorization: Bearer stg_...",
       "Make your first call: GET /api/v1/projects",
       "Or use POST /api/v1/projects/import-plan to create a full project from a structured plan.",
+      "Current limits: 120 requests per minute per API key, 1000 requests per minute globally.",
     ],
   },
   {
@@ -666,6 +667,7 @@ export const stageApiSections: ApiSectionDoc[] = [
       "Keys are owner-scoped. They can access all projects owned by the user.",
       "Maximum 5 active keys per user.",
       "Revoke keys in Settings > Developer. Revoked keys return 401 immediately.",
+      "Rate-limit responses return HTTP 429 with retry guidance.",
     ],
   },
   {

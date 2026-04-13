@@ -77,18 +77,31 @@ export function useBillingSettings({ profilePlan, subscription }: BillingSetting
   }
 
   const viewModel = useMemo(() => {
-    const planName = subscription ? `Stage ${capitalize(subscription.plan)}` : "Stage Pro";
-    const planStatus = subscription ? capitalize(subscription.status) : "Pending";
+    const isPro = profilePlan === "pro";
+    const planName = subscription
+      ? `Stage ${capitalize(subscription.plan)}`
+      : isPro
+        ? "Stage Pro"
+        : "Stage Free";
+    const planStatus = subscription
+      ? capitalize(subscription.status)
+      : isPro
+        ? "Included"
+        : "Free";
     const planCycle = subscription
       ? `${capitalize(subscription.billingCycle)} · ${PRO_PRICING[subscription.billingCycle].price}${PRO_PRICING[subscription.billingCycle].period}`
-      : "Provider not configured yet";
+      : isPro
+        ? "Pro access without an active Stripe subscription"
+        : "No active subscription";
     const paymentText =
       subscription?.paymentMethodBrand && subscription.paymentMethodLast4
         ? `${capitalize(subscription.paymentMethodBrand)} ending in ${subscription.paymentMethodLast4}`
         : "No payment method on file";
     const paymentProviderText = subscription?.provider
       ? `Powered by ${capitalize(subscription.provider)}`
-      : "Billing provider not configured";
+      : isPro
+        ? "Payment details are not available for this Pro account yet."
+        : "Payment details appear here after you start Stage Pro.";
 
     return {
       planName,
@@ -97,7 +110,7 @@ export function useBillingSettings({ profilePlan, subscription }: BillingSetting
       paymentText,
       paymentProviderText,
       hasActiveSubscription: Boolean(subscription),
-      isPro: profilePlan === "pro",
+      isPro,
     };
   }, [profilePlan, subscription]);
 

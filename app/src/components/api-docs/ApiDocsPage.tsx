@@ -555,6 +555,10 @@ function QuickstartSection({
                   step: "4",
                   text: "GET /api/v1/projects to see your created projects",
                 },
+                {
+                  step: "5",
+                  text: "Current limits: 120 requests/minute per key and 1000 requests/minute globally",
+                },
               ].map((item) => (
                 <li key={item.step} className="flex gap-3">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-100 text-xs font-bold text-violet-700 dark:bg-violet-900/40 dark:text-violet-400">

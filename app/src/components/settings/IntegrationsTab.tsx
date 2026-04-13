@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
-import { ArrowRight, Check, CopySimple } from "@phosphor-icons/react";
+import { ArrowRight, Check, CopySimple, X } from "@phosphor-icons/react";
 import googleSheetsIcon from "@/assets/icons/google-sheets.svg";
 import stripeIcon from "@/assets/icons/stripe.svg";
 import { FeedbackText } from "@/components/settings/FeedbackText";
@@ -16,6 +16,7 @@ import type {
 
 type IntegrationsTabProps = {
   active: boolean;
+  isPro: boolean;
   claudeConnection: ClaudeConnectionSummary;
   claudeTools: {
     figma: ClaudeToolSummary;
@@ -61,17 +62,28 @@ type IntegrationsTabProps = {
   googleSheetHelpDialogTitle: string;
   googleSheetHelpDialogMessage: string;
   onGoogleSheetHelpDialogOpenChange: (open: boolean) => void;
+  onOpenDeveloperSettings: () => void;
+  onUpgradeClick: () => void;
 };
 
 type CardId = "claude" | "figma" | "notion" | "stripe" | "google-sheets";
+type CardFilter = "all" | "connected" | "available";
+type CardStatus = "connected" | "pending" | "error" | "none";
 type DisconnectDialogType = "claude" | "stripe" | "google-sheets" | null;
 
-/* ------------------------------------------------------------------ */
-/*  Main component                                                     */
-/* ------------------------------------------------------------------ */
+type CardDef = {
+  id: CardId;
+  icon: string;
+  iconBg: string;
+  title: string;
+  description: string;
+  status: CardStatus;
+  statusLabel: string;
+};
 
 export function IntegrationsTab({
   active,
+  isPro,
   claudeConnection,
   claudeTools,
   anthropicCredential,
@@ -114,16 +126,13 @@ export function IntegrationsTab({
   googleSheetHelpDialogTitle,
   googleSheetHelpDialogMessage,
   onGoogleSheetHelpDialogOpenChange,
+  onOpenDeveloperSettings,
+  onUpgradeClick,
 }: IntegrationsTabProps) {
-  const [expanded, setExpanded] = useState<CardId | null>(null);
+  const [selectedCard, setSelectedCard] = useState<CardId | null>(null);
+  const [activeFilter, setActiveFilter] = useState<CardFilter>("all");
   const [disconnectDialog, setDisconnectDialog] = useState<DisconnectDialogType>(null);
   const [copiedValue, setCopiedValue] = useState<"install" | "verify" | "full" | null>(null);
-
-  function toggle(id: CardId) {
-    setExpanded((prev) => (prev === id ? null : id));
-  }
-
-  /* ---- copy helpers ---- */
 
   async function handleCopy(value: string, key: "install" | "verify" | "full") {
     await navigator.clipboard.writeText(value);
@@ -163,7 +172,7 @@ export function IntegrationsTab({
       STAGE_API_BASE_URL,
       "```",
       "",
-      "For example: `GET " + STAGE_API_BASE_URL + "/api/v1/projects`",
+      `For example: \`GET ${STAGE_API_BASE_URL}/api/v1/projects\``,
     ];
 
     if (claudeVerifyPrompt) {
@@ -200,19 +209,26 @@ export function IntegrationsTab({
     }, 1200);
   }
 
-  /* ---- status derivation ---- */
+  function handleOpenDeveloper() {
+    setSelectedCard(null);
+    onOpenDeveloperSettings();
+  }
+
+  function handleUpgrade() {
+    setSelectedCard(null);
+    onUpgradeClick();
+  }
 
   const claudeConnected = claudeConnection?.status === "connected" && claudeConnection.stageApiVerified;
   const figmaAvailable = claudeConnection?.figmaInClaude === "claimed";
   const notionAvailable = claudeConnection?.notionInClaude === "claimed";
   const stripeConnected = stripeConnection?.status === "active" || stripeConnection?.status === "pending";
-  const googleSheetConnected = googleSheetConnection?.status === "active" || googleSheetConnection?.status === "pending";
-
+  const googleSheetConnected =
+    googleSheetConnection?.status === "active" || googleSheetConnection?.status === "pending";
   const stripeStatusLabel = formatConnectionStatus(stripeConnection?.status ?? null);
   const stripeErrorMessage = formatStripeErrorMessage(stripeConnection?.lastSyncError ?? null);
   const googleSheetStatusLabel = formatConnectionStatus(googleSheetConnection?.status ?? null);
-
-  /* ---- disconnect dialog copy ---- */
+  const claudeRequiresUpgrade = !isPro && !claudeConnected;
 
   const disconnectCopy =
     disconnectDialog === "claude"
@@ -241,18 +257,6 @@ export function IntegrationsTab({
             onConfirm: onGoogleSheetDisconnect,
             isLoading: isGoogleSheetDisconnecting,
           };
-
-  /* ---- card definitions ---- */
-
-  type CardDef = {
-    id: CardId;
-    icon: string;
-    iconBg: string;
-    title: string;
-    description: string;
-    status: "connected" | "pending" | "error" | "none";
-    statusLabel: string;
-  };
 
   const cards: CardDef[] = [
     {
@@ -316,410 +320,530 @@ export function IntegrationsTab({
     },
   ];
 
+  const connectedCount = cards.filter((card) => card.status === "connected").length;
+  const availableCount = cards.filter((card) => card.status !== "connected").length;
+  const needsAttentionCount = cards.filter((card) => card.status === "pending" || card.status === "error").length;
+  const selectedCardData = cards.find((card) => card.id === selectedCard) ?? null;
+  const filteredCards = cards.filter((card) => {
+    if (activeFilter === "connected") {
+      return card.status === "connected";
+    }
+    if (activeFilter === "available") {
+      return card.status !== "connected";
+    }
+    return true;
+  });
+
   return (
     <div className={`tab-content ${active ? "active" : ""}`}>
-      {/* ---- Compact grid ---- */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-2">
-        {cards.map((card) => (
+      <div className="rounded-[20px] border border-border-subtle bg-white p-5 shadow-[0_8px_24px_rgba(17,24,39,0.04)] sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-[640px]">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+              Connector directory
+            </div>
+            <h2 className="mt-2 text-[22px] font-semibold text-text-primary">Integrations</h2>
+            <p className="mt-2 text-[14px] leading-[1.65] text-text-secondary">
+              Browse the connectors available in Stage and open each one in a focused dialog instead of scrolling through every setup flow inline.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <SummaryChip label="Connected" value={connectedCount} tone="connected" />
+            <SummaryChip label="Available" value={availableCount} tone="neutral" />
+            <SummaryChip label="Needs attention" value={needsAttentionCount} tone="pending" />
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          <FilterButton
+            active={activeFilter === "all"}
+            label="All"
+            onClick={() => setActiveFilter("all")}
+          />
+          <FilterButton
+            active={activeFilter === "connected"}
+            label="Connected"
+            onClick={() => setActiveFilter("connected")}
+          />
+          <FilterButton
+            active={activeFilter === "available"}
+            label="Available"
+            onClick={() => setActiveFilter("available")}
+          />
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {filteredCards.map((card) => (
           <button
             key={card.id}
             type="button"
-            onClick={() => toggle(card.id)}
-            className={`group flex cursor-pointer items-start gap-3 rounded-[14px] border px-4 py-3.5 text-left transition-all duration-150 ${
-              expanded === card.id
-                ? "border-accent/25 bg-accent/[0.03] shadow-[0_2px_8px_rgba(135,130,245,0.08)]"
-                : "border-border-subtle bg-white hover:border-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
-            }`}
+            onClick={() => setSelectedCard(card.id)}
+            className="group flex cursor-pointer items-start gap-4 rounded-[18px] border border-border-subtle bg-white px-4 py-4 text-left transition-all duration-150 hover:border-border hover:shadow-[0_10px_28px_rgba(17,24,39,0.06)]"
           >
             <div
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px]"
               style={{ backgroundColor: card.iconBg }}
             >
-              <img src={card.icon} alt="" className="h-[18px] w-[18px] object-contain" />
+              <img src={card.icon} alt="" className="h-[22px] w-[22px] object-contain" />
             </div>
+
             <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[13px] font-semibold text-text-primary">{card.title}</span>
-                <StatusDot status={card.status} />
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-[15px] font-semibold text-text-primary">{card.title}</div>
+                  <div className="mt-1 text-[13px] leading-[1.55] text-text-secondary">
+                    {card.description}
+                  </div>
+                </div>
+                <ArrowRight
+                  size={16}
+                  weight="bold"
+                  className="mt-0.5 shrink-0 text-text-tertiary transition-transform duration-150 group-hover:translate-x-0.5"
+                />
               </div>
-              <span className="mt-0.5 block text-[11px] leading-[1.4] text-text-tertiary">
-                {card.description}
-              </span>
+
+              <div className="mt-3">
+                <StatusPill status={card.status} label={card.statusLabel} />
+              </div>
             </div>
           </button>
         ))}
       </div>
 
-      {/* ---- Expanded detail panel ---- */}
-      {expanded === "claude" ? (
-        <DetailPanel title="Claude" onClose={() => setExpanded(null)}>
-          {claudeConnection?.lastError ? (
-            <p className="mb-3 text-[13px] text-destructive">{claudeConnection.lastError}</p>
-          ) : null}
+      {filteredCards.length === 0 ? (
+        <div className="mt-4 rounded-[18px] border border-dashed border-border bg-white px-5 py-10 text-center">
+          <div className="text-[14px] font-medium text-text-primary">No connectors in this view</div>
+          <div className="mt-1 text-[13px] text-text-secondary">
+            Switch filters to browse the rest of the available integrations.
+          </div>
+        </div>
+      ) : null}
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-[10px] border border-[#D97757]/18 bg-[#D97757]/[0.06] px-4 text-[13px] font-medium text-text-primary transition-all duration-150 hover:bg-[#D97757]/[0.11] active:bg-[#D97757]/[0.15]"
-              onClick={() => void handleContinueWithClaude()}
-            >
-              {copiedValue === "full" ? (
+      <Dialog.Root
+        open={selectedCard !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedCard(null);
+          }
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
+          {selectedCardData ? (
+            <ConnectorDialogShell card={selectedCardData}>
+              {selectedCard === "claude" ? (
                 <>
-                  <Check size={13} weight="bold" className="text-[#22C55E]" />
-                  Copied — opening Claude
+                  {claudeRequiresUpgrade ? (
+                    <div className="rounded-[14px] border border-border-subtle bg-bg-subtle px-4 py-4">
+                      <div className="text-[14px] font-medium text-text-primary">
+                        Stage API access is part of Stage Pro
+                      </div>
+                      <p className="mt-2 text-[13px] leading-[1.65] text-text-secondary">
+                        Upgrade before you connect Claude. API keys live in Settings → Developer and the Claude handshake depends on them.
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button type="button" className="btn-save" onClick={handleUpgrade}>
+                          Upgrade to Pro
+                        </button>
+                        <a href="/agents/skills" className="btn-outline">
+                          View skill docs
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {claudeConnection?.lastError ? (
+                        <p className="mb-3 text-[13px] text-destructive">{claudeConnection.lastError}</p>
+                      ) : null}
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-[10px] border border-[#D97757]/18 bg-[#D97757]/[0.06] px-4 text-[13px] font-medium text-text-primary transition-all duration-150 hover:bg-[#D97757]/[0.11] active:bg-[#D97757]/[0.15]"
+                          onClick={() => void handleContinueWithClaude()}
+                        >
+                          {copiedValue === "full" ? (
+                            <>
+                              <Check size={13} weight="bold" className="text-[#22C55E]" />
+                              Copied — opening Claude
+                            </>
+                          ) : (
+                            <>
+                              Continue with
+                              <img src="/claude-full.svg" alt="Claude" className="h-[12px]" />
+                              <ArrowRight size={12} weight="bold" className="text-text-tertiary" />
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#D97757]/15 bg-[#D97757]/[0.04] px-3 text-[12px] font-medium text-[#D97757] transition-all duration-150 hover:bg-[#D97757]/[0.09]"
+                          onClick={() => void handleCopy(buildFullSetupPrompt(), "full")}
+                        >
+                          <CopySimple size={12} weight="bold" />
+                          {copiedValue === "full" ? "Copied!" : "Copy prompt"}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-outline"
+                          onClick={handleOpenDeveloper}
+                        >
+                          API keys
+                        </button>
+                        <a href={claudeSetupHref} className="btn-outline">
+                          Setup guide
+                        </a>
+                        {claudeConnection && claudeConnection.status !== "disconnected" ? (
+                          <button
+                            type="button"
+                            className="btn-outline"
+                            disabled={isClaudeDisconnecting}
+                            onClick={() => setDisconnectDialog("claude")}
+                          >
+                            {isClaudeDisconnecting ? "Disconnecting..." : "Disconnect"}
+                          </button>
+                        ) : null}
+                      </div>
+
+                      {claudeConnection?.lastHandshakeAt ? (
+                        <p className="mt-2 text-[11px] text-text-tertiary">
+                          Last synced {formatTimestamp(claudeConnection.lastHandshakeAt)}
+                        </p>
+                      ) : null}
+                      <FeedbackText feedback={claudeFeedback} />
+
+                      <div className="mt-5 border-t border-border-subtle pt-5">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <div className="text-[13px] font-medium text-text-primary">Anthropic API key</div>
+                            <div className="mt-0.5 text-[11px] text-text-secondary">
+                              Optional. Enables Stage-managed background runs.
+                            </div>
+                          </div>
+                          <a
+                            href="https://console.anthropic.com"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[12px] font-medium text-accent transition-colors hover:text-accent-hover"
+                          >
+                            Manage on Anthropic &rarr;
+                          </a>
+                        </div>
+
+                        <div className="mt-3 flex gap-2">
+                          <input
+                            className="settings-input"
+                            type="password"
+                            value={anthropicApiKey}
+                            onChange={(event) => onAnthropicApiKeyChange(event.target.value)}
+                            placeholder={
+                              anthropicCredential.hasSavedKey
+                                ? `Saved key ending in ${anthropicCredential.keyLast4 ?? "----"}`
+                                : "sk-ant-..."
+                            }
+                          />
+                          <button
+                            type="button"
+                            className="btn-outline shrink-0"
+                            disabled={isAnthropicTesting}
+                            onClick={onAnthropicTest}
+                          >
+                            {isAnthropicTesting ? "Testing..." : "Test"}
+                          </button>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-3 text-[12px] text-text-secondary">
+                            <label className="inline-flex items-center gap-1.5">
+                              <span>Model</span>
+                              <select
+                                className="rounded-[8px] border border-border-subtle bg-white px-2 py-1 text-[12px] text-text-primary"
+                                value={anthropicModelPreference}
+                                onChange={(event) => onAnthropicModelPreferenceChange(event.target.value)}
+                              >
+                                <option value="claude-sonnet-4-5">Claude Sonnet 4.5</option>
+                                <option value="claude-opus-4-6">Claude Opus 4.6</option>
+                              </select>
+                            </label>
+                            {anthropicCredential.hasSavedKey ? (
+                              <span className="flex items-center gap-1.5">
+                                <span
+                                  className={`h-1.5 w-1.5 rounded-full ${
+                                    anthropicCredential.status === "valid"
+                                      ? "bg-[#22C55E]"
+                                      : anthropicCredential.status === "invalid"
+                                        ? "bg-[#E54D4D]"
+                                        : "bg-[#D9D9D9]"
+                                  }`}
+                                />
+                                {formatCredentialStatus(anthropicCredential.status)}
+                              </span>
+                            ) : null}
+                          </div>
+                          <button
+                            type="button"
+                            className="btn-save"
+                            disabled={isAnthropicSaving}
+                            onClick={onAnthropicSave}
+                          >
+                            {isAnthropicSaving ? "Saving..." : "Save"}
+                          </button>
+                        </div>
+                        <FeedbackText feedback={anthropicFeedback} />
+                      </div>
+                    </>
+                  )}
                 </>
-              ) : (
-                <>
-                  Continue with
-                  <img src="/claude-full.svg" alt="Claude" className="h-[12px]" />
-                  <ArrowRight size={12} weight="bold" className="text-text-tertiary" />
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#D97757]/15 bg-[#D97757]/[0.04] px-3 text-[12px] font-medium text-[#D97757] transition-all duration-150 hover:bg-[#D97757]/[0.09]"
-              onClick={() => void handleCopy(buildFullSetupPrompt(), "full")}
-            >
-              <CopySimple size={12} weight="bold" />
-              {copiedValue === "full" ? "Copied!" : "Copy prompt"}
-            </button>
-            <a
-              href={claudeSetupHref}
-              className="inline-flex h-9 items-center rounded-[10px] border border-border px-3 text-[13px] font-medium text-text-primary transition-all duration-150 hover:bg-bg-subtle"
-            >
-              Setup guide
-            </a>
-            {claudeConnection && claudeConnection.status !== "disconnected" ? (
-              <button
-                type="button"
-                className="inline-flex h-9 cursor-pointer items-center rounded-[10px] border border-border px-3 text-[13px] font-medium text-text-primary transition-all duration-150 hover:bg-bg-subtle"
-                disabled={isClaudeDisconnecting}
-                onClick={() => setDisconnectDialog("claude")}
-              >
-                {isClaudeDisconnecting ? "Disconnecting..." : "Disconnect"}
-              </button>
-            ) : null}
-          </div>
-
-          {claudeConnection?.lastHandshakeAt ? (
-            <p className="mt-2 text-[11px] text-text-tertiary">
-              Last synced {formatTimestamp(claudeConnection.lastHandshakeAt)}
-            </p>
-          ) : null}
-          <FeedbackText feedback={claudeFeedback} />
-
-          {/* Anthropic API key section */}
-          <div className="mt-4 border-t border-border-subtle pt-4">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <div className="text-[13px] font-medium text-text-primary">Anthropic API key</div>
-                <div className="mt-0.5 text-[11px] text-text-secondary">
-                  Optional. Enables Stage-managed background runs.
-                </div>
-              </div>
-              <a
-                href="https://console.anthropic.com"
-                target="_blank"
-                rel="noreferrer"
-                className="text-[12px] font-medium text-accent transition-colors hover:text-accent-hover"
-              >
-                Manage on Anthropic &rarr;
-              </a>
-            </div>
-
-            <div className="mt-2 flex gap-2">
-              <input
-                className="settings-input"
-                type="password"
-                value={anthropicApiKey}
-                onChange={(event) => onAnthropicApiKeyChange(event.target.value)}
-                placeholder={
-                  anthropicCredential.hasSavedKey
-                    ? `Saved key ending in ${anthropicCredential.keyLast4 ?? "----"}`
-                    : "sk-ant-..."
-                }
-              />
-              <button
-                type="button"
-                className="btn-outline shrink-0"
-                disabled={isAnthropicTesting}
-                onClick={onAnthropicTest}
-              >
-                {isAnthropicTesting ? "Testing..." : "Test"}
-              </button>
-            </div>
-
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-3 text-[12px] text-text-secondary">
-                <label className="inline-flex items-center gap-1.5">
-                  <span>Model</span>
-                  <select
-                    className="rounded-[8px] border border-border-subtle bg-white px-2 py-1 text-[12px] text-text-primary"
-                    value={anthropicModelPreference}
-                    onChange={(event) => onAnthropicModelPreferenceChange(event.target.value)}
-                  >
-                    <option value="claude-sonnet-4-5">Claude Sonnet 4.5</option>
-                    <option value="claude-opus-4-6">Claude Opus 4.6</option>
-                  </select>
-                </label>
-                {anthropicCredential.hasSavedKey ? (
-                  <span className="flex items-center gap-1.5">
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${
-                        anthropicCredential.status === "valid"
-                          ? "bg-[#22C55E]"
-                          : anthropicCredential.status === "invalid"
-                            ? "bg-[#E54D4D]"
-                            : "bg-[#D9D9D9]"
-                      }`}
-                    />
-                    {formatCredentialStatus(anthropicCredential.status)}
-                  </span>
-                ) : null}
-              </div>
-              <button
-                type="button"
-                className="btn-save"
-                disabled={isAnthropicSaving}
-                onClick={onAnthropicSave}
-              >
-                {isAnthropicSaving ? "Saving..." : "Save"}
-              </button>
-            </div>
-            <FeedbackText feedback={anthropicFeedback} />
-          </div>
-        </DetailPanel>
-      ) : null}
-
-      {expanded === "figma" ? (
-        <DetailPanel title="Figma in Claude" onClose={() => setExpanded(null)}>
-          <p className="text-[13px] text-text-secondary">
-            Open wireframes, iterate outputs, and push updates through Claude with Figma tooling.
-          </p>
-          <div className="mt-3 space-y-1 text-[12px] text-text-secondary">
-            <div>
-              Last export:{" "}
-              <span className="text-text-primary">{formatTimestamp(claudeTools.figma.lastExportAt)}</span>
-            </div>
-            <div>
-              Last status:{" "}
-              <span className="text-text-primary">
-                {claudeTools.figma.lastExportStatus ? formatExportStatus(claudeTools.figma.lastExportStatus) : "Never"}
-              </span>
-            </div>
-            {claudeTools.figma.lastError ? (
-              <div className="text-[#E07070]">{claudeTools.figma.lastError}</div>
-            ) : null}
-          </div>
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-[12px] text-text-tertiary">
-              {claudeTools.figma.destinationLabel || "Connect through the Claude setup page."}
-            </span>
-            <a
-              href={claudeSetupHref}
-              className="btn-save text-[12px]"
-            >
-              Open Claude setup
-            </a>
-          </div>
-        </DetailPanel>
-      ) : null}
-
-      {expanded === "notion" ? (
-        <DetailPanel title="Notion in Claude" onClose={() => setExpanded(null)}>
-          <p className="text-[13px] text-text-secondary">
-            Export research and strategy artifacts to Notion through Claude.
-          </p>
-          <div className="mt-3 space-y-1 text-[12px] text-text-secondary">
-            <div>
-              Last export:{" "}
-              <span className="text-text-primary">{formatTimestamp(claudeTools.notion.lastExportAt)}</span>
-            </div>
-            <div>
-              Last status:{" "}
-              <span className="text-text-primary">
-                {claudeTools.notion.lastExportStatus ? formatExportStatus(claudeTools.notion.lastExportStatus) : "Never"}
-              </span>
-            </div>
-            {claudeTools.notion.lastError ? (
-              <div className="text-[#E07070]">{claudeTools.notion.lastError}</div>
-            ) : null}
-          </div>
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-[12px] text-text-tertiary">
-              {claudeTools.notion.destinationLabel || "Connect through the Claude setup page."}
-            </span>
-            <a
-              href={claudeSetupHref}
-              className="btn-save text-[12px]"
-            >
-              Open Claude setup
-            </a>
-          </div>
-        </DetailPanel>
-      ) : null}
-
-      {expanded === "stripe" ? (
-        <DetailPanel title="Stripe Connect" onClose={() => setExpanded(null)}>
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <p className="text-[13px] text-text-secondary">
-              Connect a client-facing Stripe account so Stage can sync invoices and payments.
-            </p>
-            {stripeGuideHref ? (
-              <a
-                href={stripeGuideHref}
-                target="_blank"
-                rel="noreferrer"
-                className="text-[12px] font-medium text-accent transition-colors hover:text-accent-hover"
-              >
-                View guide
-              </a>
-            ) : null}
-          </div>
-
-          <div className="mt-3 rounded-[10px] border border-border-subtle bg-bg-subtle px-3.5 py-2.5 text-[12px]">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`stripe-dot ${stripeConnection?.status === "error" ? "bg-[#E54D4D]" : ""}`} />
-              <span className="text-text-primary">
-                {stripeConnection?.displayName || stripeConnection?.accountEmail || "No Stripe account connected"}
-              </span>
-              <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-text-secondary">
-                {stripeStatusLabel}
-              </span>
-            </div>
-            <div className="mt-2 space-y-0.5 text-text-secondary">
-              <div>
-                Account: <span className="text-text-primary">{stripeConnection?.accountEmail || "—"}</span>
-              </div>
-              <div>
-                Last sync: <span className="text-text-primary">{formatTimestamp(stripeConnection?.lastSyncedAt)}</span>
-              </div>
-              {stripeErrorMessage ? <div className="text-[#E07070]">{stripeErrorMessage}</div> : null}
-            </div>
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <FeedbackText
-              feedback={stripeFeedback}
-              fallback="Use Connect first, then run a sync whenever you want fresh data."
-            />
-            <div className="flex flex-wrap items-center gap-2">
-              <button type="button" className="btn-outline" disabled={isStripeConnecting} onClick={onStripeConnect}>
-                {isStripeConnecting ? "Redirecting..." : stripeConnected ? "Reconnect" : "Connect"}
-              </button>
-              <button
-                type="button"
-                className="btn-outline"
-                disabled={!stripeConnected || isStripeSyncing}
-                onClick={onStripeSync}
-              >
-                {isStripeSyncing ? "Syncing..." : "Sync"}
-              </button>
-              <button
-                type="button"
-                className="btn-outline"
-                disabled={!stripeConnected || isStripeDisconnecting}
-                onClick={() => setDisconnectDialog("stripe")}
-              >
-                Disconnect
-              </button>
-            </div>
-          </div>
-        </DetailPanel>
-      ) : null}
-
-      {expanded === "google-sheets" ? (
-        <DetailPanel title="Google Sheets (CSV)" onClose={() => setExpanded(null)}>
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <p className="text-[13px] text-text-secondary">
-              Paste a Google Sheets link that follows your template. Import manually whenever the sheet changes.
-            </p>
-            {googleSheetsGuideHref ? (
-              <a
-                href={googleSheetsGuideHref}
-                target="_blank"
-                rel="noreferrer"
-                className="text-[12px] font-medium text-accent transition-colors hover:text-accent-hover"
-              >
-                View guide
-              </a>
-            ) : null}
-          </div>
-
-          <div className="mt-3">
-            <label className="mb-1 block text-[12px] font-medium text-text-primary">
-              Google Sheets URL
-            </label>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <input
-                className="settings-input"
-                type="url"
-                placeholder="https://docs.google.com/spreadsheets/d/..."
-                value={googleSheetUrl}
-                onChange={(event) => onGoogleSheetUrlChange(event.target.value)}
-              />
-              <button
-                type="button"
-                className="btn-outline shrink-0"
-                disabled={isGoogleSheetConnecting || googleSheetUrl.trim().length === 0}
-                onClick={onGoogleSheetConnect}
-              >
-                {isGoogleSheetConnecting ? "Saving..." : googleSheetConnected ? "Update link" : "Connect"}
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-3 rounded-[10px] border border-border-subtle bg-bg-subtle px-3.5 py-2.5 text-[12px] text-text-secondary">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`stripe-dot ${googleSheetConnection?.status === "error" ? "bg-[#E54D4D]" : ""}`} />
-              <span className="text-text-primary">{googleSheetStatusLabel}</span>
-            </div>
-            <div className="mt-2 space-y-0.5">
-              <div>
-                Connected sheet:{" "}
-                <span className="text-text-primary">
-                  {googleSheetConnection?.sheetTitle || googleSheetConnection?.sheetUrl || "—"}
-                </span>
-              </div>
-              <div>
-                Last import:{" "}
-                <span className="text-text-primary">{formatTimestamp(googleSheetConnection?.lastImportedAt)}</span>
-              </div>
-              {googleSheetConnection?.lastImportError ? (
-                <div className="text-[#E07070]">{googleSheetConnection.lastImportError}</div>
               ) : null}
-            </div>
-          </div>
 
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <FeedbackText
-              feedback={googleSheetFeedback}
-              fallback="Required columns: date, type, direction, client, amount, currency, status"
-            />
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                className="btn-outline"
-                disabled={!googleSheetConnected || isGoogleSheetImporting}
-                onClick={onGoogleSheetImport}
-              >
-                {isGoogleSheetImporting ? "Importing..." : "Import now"}
-              </button>
-              <button
-                type="button"
-                className="btn-outline"
-                disabled={!googleSheetConnected || isGoogleSheetDisconnecting}
-                onClick={() => setDisconnectDialog("google-sheets")}
-              >
-                Disconnect
-              </button>
-            </div>
-          </div>
-        </DetailPanel>
-      ) : null}
+              {selectedCard === "figma" ? (
+                <>
+                  {!isPro && !figmaAvailable ? (
+                    <LockedConnectorMessage onUpgradeClick={handleUpgrade} />
+                  ) : (
+                    <>
+                      <p className="text-[13px] text-text-secondary">
+                        Open wireframes, iterate outputs, and push updates through Claude with Figma tooling.
+                      </p>
+                      <div className="mt-4 space-y-1 text-[12px] text-text-secondary">
+                        <div>
+                          Last export:{" "}
+                          <span className="text-text-primary">{formatTimestamp(claudeTools.figma.lastExportAt)}</span>
+                        </div>
+                        <div>
+                          Last status:{" "}
+                          <span className="text-text-primary">
+                            {claudeTools.figma.lastExportStatus
+                              ? formatExportStatus(claudeTools.figma.lastExportStatus)
+                              : "Never"}
+                          </span>
+                        </div>
+                        {claudeTools.figma.lastError ? (
+                          <div className="text-[#E07070]">{claudeTools.figma.lastError}</div>
+                        ) : null}
+                      </div>
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[12px] text-text-tertiary">
+                          {claudeTools.figma.destinationLabel || "Connect through the Claude setup page."}
+                        </span>
+                        <a href={claudeSetupHref} className="btn-save text-[12px]">
+                          Open Claude setup
+                        </a>
+                      </div>
+                    </>
+                  )}
+                </>
+              ) : null}
 
-      {/* ---- Disconnect confirmation dialog ---- */}
+              {selectedCard === "notion" ? (
+                <>
+                  {!isPro && !notionAvailable ? (
+                    <LockedConnectorMessage onUpgradeClick={handleUpgrade} />
+                  ) : (
+                    <>
+                      <p className="text-[13px] text-text-secondary">
+                        Export research and strategy artifacts to Notion through Claude.
+                      </p>
+                      <div className="mt-4 space-y-1 text-[12px] text-text-secondary">
+                        <div>
+                          Last export:{" "}
+                          <span className="text-text-primary">{formatTimestamp(claudeTools.notion.lastExportAt)}</span>
+                        </div>
+                        <div>
+                          Last status:{" "}
+                          <span className="text-text-primary">
+                            {claudeTools.notion.lastExportStatus
+                              ? formatExportStatus(claudeTools.notion.lastExportStatus)
+                              : "Never"}
+                          </span>
+                        </div>
+                        {claudeTools.notion.lastError ? (
+                          <div className="text-[#E07070]">{claudeTools.notion.lastError}</div>
+                        ) : null}
+                      </div>
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[12px] text-text-tertiary">
+                          {claudeTools.notion.destinationLabel || "Connect through the Claude setup page."}
+                        </span>
+                        <a href={claudeSetupHref} className="btn-save text-[12px]">
+                          Open Claude setup
+                        </a>
+                      </div>
+                    </>
+                  )}
+                </>
+              ) : null}
+
+              {selectedCard === "stripe" ? (
+                <>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="text-[13px] text-text-secondary">
+                      Connect a client-facing Stripe account so Stage can sync invoices and payments.
+                    </p>
+                    {stripeGuideHref ? (
+                      <a
+                        href={stripeGuideHref}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[12px] font-medium text-accent transition-colors hover:text-accent-hover"
+                      >
+                        View guide
+                      </a>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-4 rounded-[12px] border border-border-subtle bg-bg-subtle px-3.5 py-3 text-[12px]">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`stripe-dot ${stripeConnection?.status === "error" ? "bg-[#E54D4D]" : ""}`} />
+                      <span className="text-text-primary">
+                        {stripeConnection?.displayName || stripeConnection?.accountEmail || "No Stripe account connected"}
+                      </span>
+                      <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-text-secondary">
+                        {stripeStatusLabel}
+                      </span>
+                    </div>
+                    <div className="mt-2 space-y-0.5 text-text-secondary">
+                      <div>
+                        Account: <span className="text-text-primary">{stripeConnection?.accountEmail || "—"}</span>
+                      </div>
+                      <div>
+                        Last sync: <span className="text-text-primary">{formatTimestamp(stripeConnection?.lastSyncedAt)}</span>
+                      </div>
+                      {stripeErrorMessage ? <div className="text-[#E07070]">{stripeErrorMessage}</div> : null}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                    <FeedbackText
+                      feedback={stripeFeedback}
+                      fallback="Use Connect first, then run a sync whenever you want fresh data."
+                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        className="btn-outline"
+                        disabled={isStripeConnecting}
+                        onClick={onStripeConnect}
+                      >
+                        {isStripeConnecting ? "Redirecting..." : stripeConnected ? "Reconnect" : "Connect"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-outline"
+                        disabled={!stripeConnected || isStripeSyncing}
+                        onClick={onStripeSync}
+                      >
+                        {isStripeSyncing ? "Syncing..." : "Sync"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-outline"
+                        disabled={!stripeConnected || isStripeDisconnecting}
+                        onClick={() => setDisconnectDialog("stripe")}
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : null}
+
+              {selectedCard === "google-sheets" ? (
+                <>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="text-[13px] text-text-secondary">
+                      Paste a Google Sheets link that follows your template. Import manually whenever the sheet changes.
+                    </p>
+                    {googleSheetsGuideHref ? (
+                      <a
+                        href={googleSheetsGuideHref}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[12px] font-medium text-accent transition-colors hover:text-accent-hover"
+                      >
+                        View guide
+                      </a>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-4">
+                    <label className="mb-1 block text-[12px] font-medium text-text-primary">
+                      Google Sheets URL
+                    </label>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        className="settings-input"
+                        type="url"
+                        placeholder="https://docs.google.com/spreadsheets/d/..."
+                        value={googleSheetUrl}
+                        onChange={(event) => onGoogleSheetUrlChange(event.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="btn-outline shrink-0"
+                        disabled={isGoogleSheetConnecting || googleSheetUrl.trim().length === 0}
+                        onClick={onGoogleSheetConnect}
+                      >
+                        {isGoogleSheetConnecting ? "Saving..." : googleSheetConnected ? "Update link" : "Connect"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 rounded-[12px] border border-border-subtle bg-bg-subtle px-3.5 py-3 text-[12px] text-text-secondary">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`stripe-dot ${googleSheetConnection?.status === "error" ? "bg-[#E54D4D]" : ""}`} />
+                      <span className="text-text-primary">{googleSheetStatusLabel}</span>
+                    </div>
+                    <div className="mt-2 space-y-0.5">
+                      <div>
+                        Connected sheet:{" "}
+                        <span className="text-text-primary">
+                          {googleSheetConnection?.sheetTitle || googleSheetConnection?.sheetUrl || "—"}
+                        </span>
+                      </div>
+                      <div>
+                        Last import:{" "}
+                        <span className="text-text-primary">{formatTimestamp(googleSheetConnection?.lastImportedAt)}</span>
+                      </div>
+                      {googleSheetConnection?.lastImportError ? (
+                        <div className="text-[#E07070]">{googleSheetConnection.lastImportError}</div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                    <FeedbackText
+                      feedback={googleSheetFeedback}
+                      fallback="Required columns: date, type, direction, client, amount, currency, status"
+                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        className="btn-outline"
+                        disabled={!googleSheetConnected || isGoogleSheetImporting}
+                        onClick={onGoogleSheetImport}
+                      >
+                        {isGoogleSheetImporting ? "Importing..." : "Import now"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-outline"
+                        disabled={!googleSheetConnected || isGoogleSheetDisconnecting}
+                        onClick={() => setDisconnectDialog("google-sheets")}
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : null}
+            </ConnectorDialogShell>
+          ) : null}
+        </Dialog.Portal>
+      </Dialog.Root>
+
       <Dialog.Root
         open={disconnectDialog !== null}
         onOpenChange={(open) => {
@@ -728,7 +852,7 @@ export function IntegrationsTab({
       >
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-24px)] max-w-[460px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-5 shadow-xl sm:w-[calc(100%-32px)] sm:p-7">
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-[60] w-[calc(100%-24px)] max-w-[460px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-5 shadow-xl sm:w-[calc(100%-32px)] sm:p-7">
             <Dialog.Title className="font-heading text-[20px] font-semibold text-text-primary">
               {disconnectCopy.title}
             </Dialog.Title>
@@ -757,7 +881,6 @@ export function IntegrationsTab({
         </Dialog.Portal>
       </Dialog.Root>
 
-      {/* ---- Google Sheets help dialog ---- */}
       <Dialog.Root open={googleSheetHelpDialogOpen} onOpenChange={onGoogleSheetHelpDialogOpenChange}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
@@ -782,11 +905,74 @@ export function IntegrationsTab({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Sub-components                                                     */
-/* ------------------------------------------------------------------ */
+function FilterButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full border px-4 py-2 text-[13px] font-medium transition-all duration-150 ${
+        active
+          ? "border-accent bg-accent text-white"
+          : "border-border bg-white text-text-secondary hover:border-border hover:text-text-primary"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
 
-function StatusDot({ status }: { status: "connected" | "pending" | "error" | "none" }) {
+function SummaryChip({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "connected" | "pending" | "neutral";
+}) {
+  const dotClass =
+    tone === "connected"
+      ? "bg-[#22C55E]"
+      : tone === "pending"
+        ? "bg-[#F59E0B]"
+        : "bg-[#CBD5E1]";
+
+  return (
+    <div className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-bg-subtle px-3 py-2 text-[12px] text-text-secondary">
+      <span className={`h-2 w-2 rounded-full ${dotClass}`} />
+      <span>{label}</span>
+      <span className="font-semibold text-text-primary">{value}</span>
+    </div>
+  );
+}
+
+function StatusPill({ status, label }: { status: CardStatus; label: string }) {
+  const toneClass =
+    status === "connected"
+      ? "bg-[#ECFDF3] text-[#15803D]"
+      : status === "pending"
+        ? "bg-[#FFF7E8] text-[#B45309]"
+        : status === "error"
+          ? "bg-[#FEF2F2] text-[#B91C1C]"
+          : "bg-bg-subtle text-text-secondary";
+
+  return (
+    <span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px] font-medium ${toneClass}`}>
+      <StatusDot status={status} />
+      {label}
+    </span>
+  );
+}
+
+function StatusDot({ status }: { status: CardStatus }) {
   const color =
     status === "connected"
       ? "bg-[#22C55E]"
@@ -799,35 +985,69 @@ function StatusDot({ status }: { status: "connected" | "pending" | "error" | "no
   return <span className={`h-[6px] w-[6px] shrink-0 rounded-full ${color}`} />;
 }
 
-function DetailPanel({
-  title,
-  onClose,
+function ConnectorDialogShell({
+  card,
   children,
 }: {
-  title: string;
-  onClose: () => void;
+  card: CardDef;
   children: React.ReactNode;
 }) {
   return (
-    <div className="mt-2.5 rounded-[14px] border border-border-subtle bg-white px-5 py-4">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-[13px] font-semibold text-text-primary">{title}</span>
-        <button
-          type="button"
-          onClick={onClose}
-          className="cursor-pointer text-[11px] font-medium text-text-tertiary transition-colors hover:text-text-secondary"
-        >
-          Close
-        </button>
+    <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-24px)] max-w-[720px] -translate-x-1/2 -translate-y-1/2 rounded-[24px] bg-white shadow-[0_24px_80px_rgba(17,24,39,0.28)] sm:w-[calc(100%-32px)]">
+      <div className="max-h-[min(88vh,760px)] overflow-y-auto p-5 sm:p-7">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-start gap-4">
+            <div
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px]"
+              style={{ backgroundColor: card.iconBg }}
+            >
+              <img src={card.icon} alt="" className="h-[26px] w-[26px] object-contain" />
+            </div>
+            <div className="min-w-0">
+              <Dialog.Title className="text-[28px] font-semibold text-text-primary">
+                {card.title}
+              </Dialog.Title>
+              <p className="mt-1 text-[15px] leading-[1.6] text-text-secondary">
+                {card.description}
+              </p>
+              <div className="mt-3">
+                <StatusPill status={card.status} label={card.statusLabel} />
+              </div>
+            </div>
+          </div>
+
+          <Dialog.Close asChild>
+            <button
+              type="button"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border-subtle bg-white text-text-secondary transition-colors hover:text-text-primary"
+              aria-label="Close"
+            >
+              <X size={18} weight="bold" />
+            </button>
+          </Dialog.Close>
+        </div>
+
+        <div className="mt-6">{children}</div>
       </div>
-      {children}
-    </div>
+    </Dialog.Content>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Formatting helpers                                                 */
-/* ------------------------------------------------------------------ */
+function LockedConnectorMessage({ onUpgradeClick }: { onUpgradeClick: () => void }) {
+  return (
+    <div className="rounded-[14px] border border-border-subtle bg-bg-subtle px-4 py-4">
+      <div className="text-[14px] font-medium text-text-primary">Requires Stage Pro</div>
+      <p className="mt-2 text-[13px] leading-[1.65] text-text-secondary">
+        This connector depends on Stage API access and a verified Claude setup. Upgrade first, then finish the handshake from the Claude connector.
+      </p>
+      <div className="mt-4">
+        <button type="button" className="btn-save" onClick={onUpgradeClick}>
+          Upgrade to Pro
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function formatClaudeStatusLabel(connection: ClaudeConnectionSummary) {
   if (!connection || connection.status === "disconnected") return "Not connected";

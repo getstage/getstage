@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { requireAuthUser } from "./_helpers";
 import type { Id } from "./_generated/dataModel";
+import { getCurrentSubscriptionSnapshot } from "./billing";
 
 const claudeSource = v.union(
   v.literal("onboarding"),
@@ -113,8 +114,14 @@ export const createPendingClaudeConnection = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
+    const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
+    const plan = subscription?.plan ?? user.plan ?? "free";
     const timestamp = now();
     const existing = await getClaudeConnectionRecord(ctx, user._id);
+
+    if (!existing && plan !== "pro") {
+      throw new Error("Claude workspace connections require Stage Pro.");
+    }
 
     if (existing) {
       await ctx.db.patch(existing._id, {

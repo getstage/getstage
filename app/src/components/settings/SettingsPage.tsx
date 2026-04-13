@@ -52,6 +52,7 @@ export function SettingsPage() {
   const integrationsSettings = useIntegrationsSettings({
     user,
     enabled: activeTab === "integrations",
+    isPro: billingSettings.isPro,
   });
   const developerSettings = useDeveloperSettings({
     enabled: activeTab === "developer",
@@ -159,6 +160,7 @@ export function SettingsPage() {
 
             <BillingTab
               active={activeTab === "billing"}
+              isPro={billingSettings.isPro}
               planName={billingSettings.planName}
               planStatus={billingSettings.planStatus}
               planCycle={billingSettings.planCycle}
@@ -174,6 +176,7 @@ export function SettingsPage() {
 
             <IntegrationsTab
               active={activeTab === "integrations"}
+              isPro={billingSettings.isPro}
               claudeConnection={integrationsSettings.claudeConnection}
               claudeTools={integrationsSettings.claudeTools}
               anthropicCredential={integrationsSettings.anthropicCredential}
@@ -216,6 +219,8 @@ export function SettingsPage() {
               googleSheetHelpDialogTitle={integrationsSettings.googleSheetHelpDialogTitle}
               googleSheetHelpDialogMessage={integrationsSettings.googleSheetHelpDialogMessage}
               onGoogleSheetHelpDialogOpenChange={integrationsSettings.setGoogleSheetHelpDialogOpen}
+              onOpenDeveloperSettings={() => setActiveTab("developer")}
+              onUpgradeClick={openBillingTab}
             />
 
             <PortalTab

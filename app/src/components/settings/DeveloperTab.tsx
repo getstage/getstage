@@ -349,6 +349,32 @@ export function DeveloperTab({
               </a>
             </div>
           </div>
+
+          <div className="settings-card developer-docs-card">
+            <div className="card-body">
+              <div className="developer-card-hero developer-card-hero-spaced">
+                <div className="developer-card-hero">
+                  <span className="developer-icon-chip developer-icon-chip-green">
+                    <ShieldCheckered size={18} weight="bold" />
+                  </span>
+                  <div>
+                    <div className="developer-eyebrow">API limits</div>
+                    <div className="card-heading sf">Rate Limits</div>
+                  </div>
+                </div>
+                <div className="developer-pill-row developer-pill-row-wrap">
+                  <span className="developer-pill developer-pill-green">120 req / min / key</span>
+                  <span className="developer-pill developer-pill-blue">1000 req / min global</span>
+                </div>
+              </div>
+              <p className="card-desc">
+                Stage currently enforces per-key and global API request limits. Exceeding either limit returns HTTP 429 and the response asks the agent to retry later.
+              </p>
+            </div>
+            <div className="card-footer">
+              <span className="card-footer-text">Good enough for normal agent runs, but worth revisiting before opening public API access wider.</span>
+            </div>
+          </div>
         </>
       )}
     </div>
