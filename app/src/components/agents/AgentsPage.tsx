@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   BracketsAngle,
-  PlugsConnected,
   FileCode,
   Robot,
   Sparkle,
@@ -12,13 +11,13 @@ import stageLogo from "@/assets/logos/stage-logo-light.png";
 
 const PAGE_TITLE = "Stage for Agents";
 const PAGE_DESCRIPTION =
-  "Connect AI agents to Stage through REST API, MCP, Claude Code skills, OpenClaw, or Stitch. Five ways to let agents create and manage projects.";
+  "Connect AI agents to Stage through the REST API or install the Agent Skill into Claude Code and other compatible agents.";
 
 type IntegrationCard = {
   id: string;
   title: string;
   description: string;
-  icon: "api" | "skill" | "mcp" | "openclaw" | "stitch";
+  icon: "api" | "skill";
   href: string;
   isExternal?: boolean;
   badge?: string;
@@ -29,20 +28,6 @@ type IntegrationCard = {
 };
 
 const INTEGRATIONS: IntegrationCard[] = [
-  {
-    id: "stitch",
-    title: "Stitch",
-    description:
-      "Link a Google Stitch project to your Stage project. Stage stores the latest synced previews so your team always sees the current design state.",
-    icon: "stitch",
-    href: "/agents/stitch",
-    badge: "Design",
-    accentColor: "text-[#0891b2]",
-    accentBg: "bg-[rgba(59,175,218,0.10)]",
-    borderColor: "border-[rgba(59,175,218,0.18)]",
-    gradientBg:
-      "bg-[linear-gradient(180deg,rgba(59,175,218,0.06)_0%,#ffffff_100%)]",
-  },
   {
     id: "rest-api",
     title: "REST API",
@@ -61,7 +46,7 @@ const INTEGRATIONS: IntegrationCard[] = [
     id: "agent-skills",
     title: "Agent Skills",
     description:
-      "Install a skill into Claude Code or any compatible agent. It teaches the agent Stage's API, action policy, and the full project-then-design workflow.",
+      "Install a skill into Claude Code or any compatible agent. It teaches the agent Stage's API, action policy, and the full research → strategy → generate → delivery workflow.",
     icon: "skill",
     href: "/agents/skills",
     accentColor: "text-[#0d9488]",
@@ -69,34 +54,6 @@ const INTEGRATIONS: IntegrationCard[] = [
     borderColor: "border-[rgba(13,148,136,0.16)]",
     gradientBg:
       "bg-[linear-gradient(180deg,rgba(13,148,136,0.06)_0%,#ffffff_100%)]",
-  },
-  {
-    id: "mcp",
-    title: "MCP Server",
-    description:
-      "Model Context Protocol server for Claude Desktop and compatible clients. Exposes Stage tools natively inside the conversation.",
-    icon: "mcp",
-    href: "/agents/mcp",
-    badge: "Coming soon",
-    accentColor: "text-[#2563eb]",
-    accentBg: "bg-[rgba(37,99,235,0.10)]",
-    borderColor: "border-[rgba(37,99,235,0.16)]",
-    gradientBg:
-      "bg-[linear-gradient(180deg,rgba(37,99,235,0.06)_0%,#ffffff_100%)]",
-  },
-  {
-    id: "openclaw",
-    title: "OpenClaw",
-    description:
-      "Conversational AI layer that interprets prompts and calls Stage with structured actions. Currently in preview.",
-    icon: "openclaw",
-    href: "/openclaw",
-    badge: "Coming soon",
-    accentColor: "text-[#dc2626]",
-    accentBg: "bg-[rgba(255,77,77,0.10)]",
-    borderColor: "border-[rgba(255,77,77,0.16)]",
-    gradientBg:
-      "bg-[linear-gradient(180deg,rgba(255,77,77,0.06)_0%,#ffffff_100%)]",
   },
 ];
 
@@ -106,14 +63,6 @@ function CardIcon({ icon }: { icon: IntegrationCard["icon"] }) {
       return <BracketsAngle size={22} weight="bold" />;
     case "skill":
       return <FileCode size={22} weight="bold" />;
-    case "mcp":
-      return <PlugsConnected size={22} weight="bold" />;
-    case "openclaw":
-      return <img src="/openclaw.svg" alt="" className="h-[22px] w-[22px]" />;
-    case "stitch":
-      return (
-        <img src="/stitch.png" alt="" className="h-[22px] w-[22px] rounded-[6px]" />
-      );
   }
 }
 
@@ -185,7 +134,7 @@ export function AgentsPage() {
         {/* Ambient blurs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute left-[-140px] top-[120px] h-[320px] w-[320px] rounded-full bg-[rgba(135,130,245,0.10)] blur-3xl" />
-          <div className="absolute right-[-120px] top-[220px] h-[320px] w-[320px] rounded-full bg-[rgba(255,77,77,0.08)] blur-3xl" />
+          <div className="absolute right-[-120px] top-[220px] h-[320px] w-[320px] rounded-full bg-[rgba(13,148,136,0.08)] blur-3xl" />
           <div className="absolute left-[42%] top-[760px] h-[260px] w-[260px] rounded-full bg-[rgba(59,175,218,0.08)] blur-3xl" />
         </div>
 
@@ -226,13 +175,13 @@ export function AgentsPage() {
             </h1>
 
             <p className="mx-auto mt-6 max-w-[640px] text-[18px] leading-[1.75] text-text-secondary">
-              Create the full project in Stage, then link your design work from
-              Stitch. Multiple ways to connect — pick the one that fits.
+              Use the REST API to build custom integrations, or install the Agent
+              Skill to give Claude Code full context on Stage's workflow.
             </p>
           </div>
 
           {/* Integration cards grid */}
-          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mx-auto mt-14 grid max-w-3xl gap-5 sm:grid-cols-2">
             {INTEGRATIONS.map((card) => (
               <IntegrationCardComponent key={card.id} card={card} />
             ))}
@@ -245,8 +194,8 @@ export function AgentsPage() {
                 How it works
               </h2>
               <p className="mx-auto mt-3 max-w-[540px] text-[16px] leading-[1.7] text-text-secondary">
-                Stage is the executor. Your AI agent is the interpreter. Stage
-                never calls LLMs — it authenticates, validates, and stores.
+                Stage is the source of truth. Your AI agent does the work.
+                Stage authenticates, validates, and stores every result.
               </p>
             </div>
 
@@ -261,22 +210,22 @@ export function AgentsPage() {
                 },
                 {
                   step: "2",
-                  title: "Design in Stitch",
-                  desc: "You or your agent works in Google Stitch to create the UI. Stage links the Stitch project back to your Stage project.",
-                  color: "rgba(59,175,218,0.10)",
-                  border: "rgba(59,175,218,0.18)",
+                  title: "Run the workflow",
+                  desc: "Claude handles research, strategy, and content generation. Every artifact is written back to Stage as the source of truth.",
+                  color: "rgba(13,148,136,0.10)",
+                  border: "rgba(13,148,136,0.16)",
                 },
                 {
                   step: "3",
-                  title: "Sync latest previews",
-                  desc: "Stage stores the latest synced design previews. Your whole team sees the current state without leaving Stage.",
-                  color: "rgba(13,148,136,0.10)",
-                  border: "rgba(13,148,136,0.16)",
+                  title: "Deliver & export",
+                  desc: "Export finished artifacts to Notion, Figma, or other tools. Your team sees the current state without leaving Stage.",
+                  color: "rgba(59,175,218,0.10)",
+                  border: "rgba(59,175,218,0.18)",
                 },
               ].map((item) => (
                 <div
                   key={item.step}
-                  className={`rounded-[24px] border border-[${item.border}] bg-white p-6 shadow-[0_12px_30px_rgba(17,24,39,0.04)]`}
+                  className="rounded-[24px] border bg-white p-6 shadow-[0_12px_30px_rgba(17,24,39,0.04)]"
                   style={{ borderColor: item.border }}
                 >
                   <span

@@ -89,7 +89,11 @@ export function DeveloperTab({
             </div>
           </div>
           <div className="card-footer">
-            <button type="button" className="btn btn-primary" onClick={onUpgradeClick}>
+            <button
+              type="button"
+              className="cursor-pointer rounded-[10px] bg-accent px-6 py-2.5 text-[14px] font-medium text-white transition-all duration-150 hover:bg-accent-hover"
+              onClick={onUpgradeClick}
+            >
               Upgrade to Pro
             </button>
           </div>
@@ -126,7 +130,7 @@ export function DeveloperTab({
                     <code className="developer-key-value">{revealedKey}</code>
                     <button
                       type="button"
-                      className="btn btn-sm btn-secondary"
+                      className="cursor-pointer rounded-[8px] border border-border bg-white px-3 py-1.5 text-[13px] font-medium text-text-primary transition-all duration-150 hover:bg-bg-subtle"
                       onClick={onCopyKey}
                     >
                       {copied ? "Copied" : "Copy"}
@@ -161,7 +165,7 @@ export function DeveloperTab({
                     />
                     <button
                       type="button"
-                      className="btn btn-primary"
+                      className="cursor-pointer rounded-[10px] bg-accent px-5 py-2.5 text-[14px] font-medium text-white transition-all duration-150 hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-40"
                       onClick={onCreate}
                       disabled={isCreating || activeKeys.length >= 5}
                     >
