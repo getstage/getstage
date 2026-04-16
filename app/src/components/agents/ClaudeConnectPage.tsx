@@ -140,6 +140,21 @@ function buildTaskPrompt(search: URLSearchParams) {
   return null;
 }
 
+function buildConnectedPrompt(taskPrompt: string | null) {
+  const parts = [
+    "Stage is already connected to my workspace in Claude.",
+    "Use the installed Stage skill to operate Stage on my behalf.",
+  ];
+
+  if (taskPrompt) {
+    parts.push("", taskPrompt);
+  } else {
+    parts.push("", "Start from the existing Stage connection and continue working without reinstalling or re-authenticating.");
+  }
+
+  return parts.join("\n");
+}
+
 export function ClaudeConnectPage() {
   const { isAuthenticated, user } = useAuth();
   const search = useSearchParams();
@@ -161,9 +176,12 @@ export function ClaudeConnectPage() {
 
   const connectionId = claudeState?.connection?.id ?? null;
   const revealedKey = developerSettings.revealedKey;
+  const hasExistingKeys = developerSettings.keys.length > 0;
   const envSnippet = revealedKey ? `export STAGE_API_KEY=${revealedKey}` : null;
   const verificationPrompt = buildVerificationPrompt(connectionId);
   const taskPrompt = buildTaskPrompt(search);
+  const isConnected = claudeState?.connection?.stageApiVerified === true;
+  const connectedPrompt = buildConnectedPrompt(taskPrompt);
 
   const fullSetupPrompt = buildFullSetupPrompt({
     installCommand: CLAUDE_INSTALL_COMMAND,
@@ -171,8 +189,10 @@ export function ClaudeConnectPage() {
     verificationPrompt,
   });
 
+  const primaryPrompt = isConnected ? connectedPrompt : fullSetupPrompt;
+
   async function handleContinueWithClaude() {
-    await navigator.clipboard.writeText(fullSetupPrompt);
+    await navigator.clipboard.writeText(primaryPrompt);
     setCopied(true);
     window.setTimeout(() => {
       window.open(CLAUDE_APP_URL, "_blank");
@@ -180,8 +200,8 @@ export function ClaudeConnectPage() {
     window.setTimeout(() => setCopied(false), 4000);
   }
 
-  const isConnected = claudeState?.connection?.stageApiVerified === true;
-  const needsKey = isAuthenticated && isPro && !revealedKey;
+  const needsKey = isAuthenticated && isPro && !isConnected && !revealedKey && !hasExistingKeys;
+  const shouldShowReconnectNote = isAuthenticated && isPro && !isConnected && hasExistingKeys && !revealedKey;
 
   return (
     <>
@@ -219,7 +239,9 @@ export function ClaudeConnectPage() {
           <div className="flex flex-col items-center text-center">
             <img src="/claude-full.svg" alt="Claude" className="h-[38px]" />
             <p className="mt-4 text-[15px] leading-[1.6] text-text-secondary">
-              One prompt connects Claude to your Stage workspace.
+              {isConnected
+                ? "Claude is already connected to your Stage workspace."
+                : "One prompt connects Claude to your Stage workspace."}
             </p>
           </div>
 
@@ -279,9 +301,27 @@ export function ClaudeConnectPage() {
               </div>
             ) : null}
 
+            {shouldShowReconnectNote ? (
+              <div className="border-b border-border-subtle px-6 py-6">
+                <p className="text-[14px] font-medium text-text-primary">
+                  Use an existing API key or create a fresh one
+                </p>
+                <p className="mt-1 text-[13px] text-text-secondary">
+                  Stage already has API keys on file for this workspace, but keys are only shown once at creation. If you still have one saved locally, use that. Otherwise create a fresh key in Settings → Developer.
+                </p>
+              </div>
+            ) : null}
+
             {/* Primary CTA */}
             <div className="flex flex-col items-center px-6 py-8">
               <img src="/claude.svg" alt="" className="h-12 w-12" />
+
+              {isConnected ? (
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#22C55E]/10 px-3 py-1 text-[12px] font-medium text-[#15803D]">
+                  <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
+                  Connected
+                </div>
+              ) : null}
 
               <button
                 type="button"
@@ -296,12 +336,8 @@ export function ClaudeConnectPage() {
                   </>
                 ) : (
                   <>
-                    Continue with
-                    <img
-                      src="/claude-full.svg"
-                      alt="Claude"
-                      className="h-[15px]"
-                    />
+                    {isConnected ? "Open" : "Continue with"}
+                    <img src="/claude-full.svg" alt="Claude" className="h-[15px]" />
                     <ArrowRight size={14} weight="bold" className="text-text-tertiary" />
                   </>
                 )}
@@ -310,7 +346,7 @@ export function ClaudeConnectPage() {
               <button
                 type="button"
                 onClick={() => {
-                  void navigator.clipboard.writeText(fullSetupPrompt);
+                  void navigator.clipboard.writeText(primaryPrompt);
                   setCopied(true);
                   window.setTimeout(() => setCopied(false), 2500);
                 }}
@@ -318,11 +354,15 @@ export function ClaudeConnectPage() {
                 disabled={!isPro}
               >
                 <CopySimple size={12} weight="bold" />
-                {copied ? "Copied!" : "Copy Claude prompt"}
+                {copied ? "Copied!" : isConnected ? "Copy working prompt" : "Copy Claude prompt"}
               </button>
 
               <p className="mt-2.5 text-[13px] text-text-tertiary">
-                {isPro ? "Copies the setup prompt and opens Claude." : "Upgrade first to create a Stage API key and finish setup."}
+                {isPro
+                  ? isConnected
+                    ? "Opens a fresh Claude session using your existing Stage connection."
+                    : "Copies the setup prompt and opens Claude."
+                  : "Upgrade first to create a Stage API key and finish setup."}
               </p>
             </div>
 
@@ -343,19 +383,25 @@ export function ClaudeConnectPage() {
 
               {showManual ? (
                 <div className="space-y-3 px-6 pb-6">
-                  <CommandBlock
-                    label="Install"
-                    code={CLAUDE_INSTALL_COMMAND}
-                  />
-                  {envSnippet ? (
-                    <CommandBlock label="API key" code={envSnippet} />
-                  ) : null}
-                  {verificationPrompt ? (
-                    <CommandBlock label="Verify" code={verificationPrompt} />
-                  ) : null}
-                  {taskPrompt ? (
-                    <CommandBlock label="Task" code={taskPrompt} />
-                  ) : null}
+                  {isConnected ? (
+                    <CommandBlock label="Prompt" code={primaryPrompt} />
+                  ) : (
+                    <>
+                      <CommandBlock
+                        label="Install"
+                        code={CLAUDE_INSTALL_COMMAND}
+                      />
+                      {envSnippet ? (
+                        <CommandBlock label="API key" code={envSnippet} />
+                      ) : null}
+                      {verificationPrompt ? (
+                        <CommandBlock label="Verify" code={verificationPrompt} />
+                      ) : null}
+                      {taskPrompt ? (
+                        <CommandBlock label="Task" code={taskPrompt} />
+                      ) : null}
+                    </>
+                  )}
                 </div>
               ) : null}
             </div>
