@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "stage-project-manager": {
+      "source": "getstage/agent-mode",
+      "sourceType": "github",
+      "computedHash": "93f843bd5baca18b1ad26bc4c9570ab05b32caefddf3cb732bbf822e2eac410e"
+    }
+  }
+}

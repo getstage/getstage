@@ -26,6 +26,9 @@
       // Zodra het testing-domein in Cloudflare bestaat en proxied is,
       // kun je hieronder de `routes` sectie weer terugzetten.
       "workers_dev": true,
+      "vars": {
+        "CONVEX_HTTP_ORIGIN": "https://reliable-bullfrog-917.convex.site"
+      },
       "routes": [
          { "pattern": "testing.getstage.co", "custom_domain": true }
        ]
@@ -34,12 +37,18 @@
       "name": "stage-app-stage",
       // Stage deployt met production build-mode zodat hij dezelfde Convex/DB target gebruikt.
       "workers_dev": true,
+      "vars": {
+        "CONVEX_HTTP_ORIGIN": "https://quirky-snail-763.convex.site"
+      },
       "routes": [
         { "pattern": "stage.getstage.co", "custom_domain": true }
       ]
     },
     "production": {
       "name": "stage-app-production",
+      "vars": {
+        "CONVEX_HTTP_ORIGIN": "https://quirky-snail-763.convex.site"
+      },
       "routes": [
         { "pattern": "getstage.co", "custom_domain": true },
         { "pattern": "www.getstage.co", "custom_domain": true }

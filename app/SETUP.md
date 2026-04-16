@@ -187,7 +187,7 @@ pnpm run cf:typegen             # generate worker env types from Wrangler
 - Cloudflare Worker traces disabled
 - SPA fallback (`not_found_handling = "single-page-application"`)
 
-Current worker (`app/worker/index.ts`) simply delegates all requests to ASSETS, so runtime logic currently lives in the Convex backend and frontend bundles.
+Current worker (`app/worker/index.ts`) serves static assets for the SPA and proxies `"/api/*"` + `"/stripe/*"` requests to the configured Convex HTTP origin via `CONVEX_HTTP_ORIGIN`.
 
 ## 7) What to check before first run
 
