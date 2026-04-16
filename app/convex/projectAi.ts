@@ -350,7 +350,7 @@ export const createRun = mutation({
       connectionId: args.connectionId,
       module: args.module,
       title: args.title,
-      status: "running",
+      status: "draft",
       trigger: "user",
       inputSummary: args.inputSummary,
     });

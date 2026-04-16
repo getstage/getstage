@@ -47,6 +47,7 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
   const latestArtifact = artifactList[0] ?? null;
   const latestRun = runList[0] ?? null;
   const hasResearchArtifact = latestArtifact !== null;
+  const latestRunStatusLabel = formatRunStatus(latestRun?.status);
 
   useEffect(() => {
     if (!context) {
@@ -408,9 +409,9 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
   }
 
   return (
-    <div className="pb-20">
+      <div className="pb-20">
       <div className="flex flex-wrap items-center gap-2.5 py-6">
-        <StatusBadge label={latestRun?.status === "running" ? "Running" : "Complete"} />
+        <StatusBadge label={latestRunStatusLabel} tone={runStatusTone(latestRun?.status)} />
         <div className="flex-1" />
         <button
           type="button"
@@ -523,7 +524,7 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
               </div>
               {latestRun ? (
                 <span className="rounded-full bg-bg-subtle px-3 py-1 text-[12px] font-medium text-text-secondary">
-                  {latestRun.status}
+                  {formatRunStatus(latestRun.status)}
                 </span>
               ) : null}
             </div>
@@ -627,9 +628,18 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function StatusBadge({ label }: { label: string }) {
+function StatusBadge({ label, tone = "success" }: { label: string; tone?: "success" | "neutral" | "warning" | "danger" }) {
+  const classes =
+    tone === "warning"
+      ? "bg-[#FEF9EC] text-[#D4890A]"
+      : tone === "danger"
+        ? "bg-[#FDECEC] text-[#D64545]"
+        : tone === "neutral"
+          ? "bg-bg-subtle text-text-secondary"
+          : "bg-[#EDFCF2] text-[#22C55E]";
+
   return (
-    <span className="inline-flex items-center rounded-full bg-[#EDFCF2] px-2.5 py-0.5 text-[12px] font-medium text-[#22C55E]">
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-medium ${classes}`}>
       {label}
     </span>
   );
@@ -653,7 +663,7 @@ function RunHistoryCard({ runList }: { runList: ProjectAiRun[] }) {
                 </div>
               </div>
               <span className="rounded-full bg-bg-subtle px-2.5 py-1 text-[12px] font-medium text-text-secondary">
-                {run.status}
+                {formatRunStatus(run.status)}
               </span>
             </div>
           ))
@@ -699,4 +709,34 @@ function formatTimestamp(value: number | null | undefined) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function formatRunStatus(status: ProjectAiRun["status"] | undefined) {
+  switch (status) {
+    case "draft":
+      return "Awaiting Claude";
+    case "running":
+      return "Running";
+    case "needs_input":
+      return "Needs input";
+    case "failed":
+      return "Failed";
+    case "completed":
+      return "Complete";
+    default:
+      return "Ready";
+  }
+}
+
+function runStatusTone(status: ProjectAiRun["status"] | undefined): "success" | "neutral" | "warning" | "danger" {
+  switch (status) {
+    case "draft":
+      return "neutral";
+    case "needs_input":
+      return "warning";
+    case "failed":
+      return "danger";
+    default:
+      return "success";
+  }
 }

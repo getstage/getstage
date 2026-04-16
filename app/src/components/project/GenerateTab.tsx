@@ -18,6 +18,7 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
   const runList: ProjectAiRun[] = runs ?? [];
   const latestRun = runList[0] ?? null;
   const completedCount = artifactList.filter((artifact) => artifact.status !== "failed").length;
+  const latestRunActive = latestRun && latestRun.status !== "completed" && latestRun.status !== "failed";
 
   const latestDestinationByArtifact = useMemo(() => {
     const map = new Map<string, { figma?: string; notion?: string }>();
@@ -62,14 +63,22 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="inline-flex items-center gap-2 rounded-full bg-[#EDFCF2] px-3 py-1 text-[13px] font-medium text-[#22C55E]">
           <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
-          {latestRun?.status === "running" ? "Generating" : completedCount > 0 ? "Generated" : "Ready"}
+          {latestRun?.status === "draft"
+            ? "Awaiting Claude"
+            : latestRun?.status === "running"
+              ? "Generating"
+              : latestRun?.status === "needs_input"
+                ? "Needs input"
+                : completedCount > 0
+                  ? "Generated"
+                  : "Ready"}
         </span>
         <button
           type="button"
           className="inline-flex items-center gap-2 rounded-[10px] border border-border px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:bg-bg-subtle"
           onClick={() => void launchGenerateRun()}
         >
-          <span>{latestRun?.status === "running" ? "Open" : "Generate via"}</span>
+          <span>{latestRunActive ? "Open in" : "Generate via"}</span>
           <img src="/claude-full.svg" alt="Claude" className="h-[15px]" />
         </button>
       </div>

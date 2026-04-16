@@ -30,6 +30,7 @@ export function StrategyTab({ projectId, projectName }: StrategyTabProps) {
   const approvedCount = sections.filter((section) => section.uiStatus === "approved").length;
   const totalCount = sections.length;
   const progressPercent = totalCount > 0 ? (approvedCount / totalCount) * 100 : 0;
+  const latestRun = runList[0] ?? null;
 
   async function launchStrategyRun() {
     const result = await createRun({
@@ -54,14 +55,14 @@ export function StrategyTab({ projectId, projectName }: StrategyTabProps) {
               style={{ width: `${progressPercent}%` }}
             />
           </div>
-          <button
-            type="button"
-            onClick={() => void launchStrategyRun()}
-            className="inline-flex items-center justify-center gap-2 rounded-[10px] border border-border px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:bg-bg-subtle"
-          >
-            <span>{runList[0]?.status === "running" ? "Open" : "Regenerate in"}</span>
-            <img src="/claude-full.svg" alt="Claude" className="h-[15px]" />
-          </button>
+        <button
+          type="button"
+          onClick={() => void launchStrategyRun()}
+          className="inline-flex items-center justify-center gap-2 rounded-[10px] border border-border px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:bg-bg-subtle"
+        >
+          <span>{latestRun && latestRun.status !== "completed" ? "Open in" : "Regenerate in"}</span>
+          <img src="/claude-full.svg" alt="Claude" className="h-[15px]" />
+        </button>
         </div>
       </div>
 
@@ -121,7 +122,7 @@ export function StrategyTab({ projectId, projectName }: StrategyTabProps) {
                     </div>
                   </div>
                   <span className="rounded-full bg-bg-subtle px-2.5 py-1 text-[12px] font-medium text-text-secondary">
-                    {run.status}
+                    {formatRunStatus(run.status)}
                   </span>
                 </div>
               ))}
@@ -231,4 +232,19 @@ function formatTimestamp(value: number | null | undefined) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function formatRunStatus(status: ProjectAiRun["status"]) {
+  switch (status) {
+    case "draft":
+      return "Awaiting Claude";
+    case "running":
+      return "Running";
+    case "needs_input":
+      return "Needs input";
+    case "failed":
+      return "Failed";
+    case "completed":
+      return "Complete";
+  }
 }
