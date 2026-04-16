@@ -33,7 +33,21 @@ export interface ApiSectionDoc {
   endpointIds?: string[];
 }
 
-export const API_REFERENCE_BASE_URL = "https://getstage.co/api/v1";
+function resolveApiReferenceBaseUrl() {
+  if (typeof window !== "undefined") {
+    const { hostname } = window.location;
+    if (hostname === "testing.getstage.co") {
+      return "https://testing.getstage.co/api/v1";
+    }
+    if (hostname === "stage.getstage.co") {
+      return "https://stage.getstage.co/api/v1";
+    }
+  }
+
+  return "https://getstage.co/api/v1";
+}
+
+export const API_REFERENCE_BASE_URL = resolveApiReferenceBaseUrl();
 
 export const quickstartPrompt = `"I just signed a new client — Brew & Co, a specialty coffee shop.
 They need full branding. Budget is €3,000, deadline is 6 weeks from now.
@@ -219,202 +233,233 @@ export const stageApiEndpoints: ApiEndpointDoc[] = [
     ],
   },
   {
-    id: "list-design-connections",
-    title: "List design connections",
+    id: "get-ai-context",
+    title: "Get AI context",
     method: "GET",
-    path: "/api/v1/projects/:id/design-connections",
-    pathExample: "/api/v1/projects/k17abc123/design-connections",
-    summary: "List external design workspaces linked to a project.",
+    path: "/api/v1/projects/:id/ai/context",
+    pathExample: "/api/v1/projects/k17abc123/ai/context",
+    summary: "Get the saved AI workflow context for a project.",
     description:
-      "Returns the connected Stitch workspace for the project. In v1 Stage usually stores one Stitch project link per project.",
+      "Returns the structured inputs Stage stores for research, strategy, and generation. Use this before starting a run so the agent works from the latest project context.",
     pathFields: [
       { name: "id", type: "string", required: true, description: "The project ID." },
     ],
     responseExample: {
-      connections: [
-        {
-          id: "dc_123",
-          projectId: "k17abc123",
-          provider: "stitch",
-          externalProjectId: "6902984668756034217",
-          externalProjectUrl: "https://stitch.withgoogle.com/projects/6902984668756034217",
-          title: "Brew & Co Stitch workspace",
-          status: "active",
-          lastSyncedAt: 1717200000000,
-          createdAt: 1717200000000,
-          updatedAt: 1717200000000,
-        },
-      ],
+      context: {
+        id: "ctx_123",
+        projectId: "k17abc123",
+        clientWebsite: "https://brewandco.com",
+        competitorUrls: ["https://bluebottlecoffee.com", "https://www.stumptowncoffee.com"],
+        referenceUrls: ["https://www.pinterest.com/search/pins/?q=coffee%20branding"],
+        brief: "Premium brand refresh focused on packaging and social rollout.",
+        briefAttachmentName: null,
+        briefAttachmentUrl: null,
+        notes: "Start with tone of voice and competitor positioning.",
+        updatedAt: 1717200000000,
+      },
     },
   },
   {
-    id: "upsert-design-connection",
-    title: "Link Stitch project",
+    id: "upsert-ai-context",
+    title: "Save AI context",
     method: "POST",
-    path: "/api/v1/projects/:id/design-connections",
-    pathExample: "/api/v1/projects/k17abc123/design-connections",
-    summary: "Link or update the Stitch workspace connected to a project.",
+    path: "/api/v1/projects/:id/ai/context",
+    pathExample: "/api/v1/projects/k17abc123/ai/context",
+    summary: "Create or update the project context used by AI workflows.",
     description:
-      "Stores the project-level Stitch URL so Stage can show a deep link back to the full design workspace.",
+      "Stores the working context for Stage's AI workflow. This is the main setup step before research, strategy, or generate runs.",
     pathFields: [
       { name: "id", type: "string", required: true, description: "The project ID." },
     ],
     bodyFields: [
-      { name: "provider", type: "string", required: false, description: 'Currently always "stitch".', defaultValue: "stitch" },
-      { name: "externalProjectUrl", type: "string", required: true, description: "Full Stitch project URL." },
-      { name: "externalProjectId", type: "string", required: false, description: "Optional Stitch project ID." },
-      { name: "title", type: "string", required: false, description: "Optional label shown inside Stage." },
+      { name: "clientWebsite", type: "string", required: false, description: "Client or company website." },
+      { name: "competitorUrls", type: "string[]", required: false, description: "Optional competitor URLs to include in research." },
+      { name: "referenceUrls", type: "string[]", required: false, description: "Optional reference or inspiration URLs." },
+      { name: "brief", type: "string", required: false, description: "Short brief or research context." },
+      { name: "notes", type: "string", required: false, description: "Extra notes for the agent." },
     ],
     bodyExample: {
-      provider: "stitch",
-      externalProjectUrl: "https://stitch.withgoogle.com/projects/6902984668756034217",
-      externalProjectId: "6902984668756034217",
-      title: "Brew & Co Stitch workspace",
+      clientWebsite: "https://brewandco.com",
+      competitorUrls: ["https://bluebottlecoffee.com", "https://www.stumptowncoffee.com"],
+      referenceUrls: ["https://www.pinterest.com/search/pins/?q=coffee%20branding"],
+      brief: "Premium brand refresh focused on packaging and social rollout.",
+      notes: "Start with positioning, audience, and visual direction.",
     },
     responseExample: {
-      connection: {
-        id: "dc_123",
-        projectId: "k17abc123",
-        provider: "stitch",
-        externalProjectId: "6902984668756034217",
-        externalProjectUrl: "https://stitch.withgoogle.com/projects/6902984668756034217",
-        title: "Brew & Co Stitch workspace",
-        status: "active",
-        createdAt: 1717200000000,
-        updatedAt: 1717200000000,
-      },
+      contextId: "ctx_123",
     },
     notes: ["Returns 201 on success."],
   },
   {
-    id: "create-design-upload-url",
-    title: "Create design upload URL",
-    method: "POST",
-    path: "/api/v1/projects/:id/designs/upload-url",
-    pathExample: "/api/v1/projects/k17abc123/designs/upload-url",
-    summary: "Create a signed upload URL for a generated Stitch preview image.",
+    id: "list-ai-runs",
+    title: "List AI runs",
+    method: "GET",
+    path: "/api/v1/projects/:id/ai/runs",
+    pathExample: "/api/v1/projects/k17abc123/ai/runs?module=research",
+    summary: "List AI runs for a project.",
     description:
-      "Agents upload selected Stitch preview images to Stage storage before syncing the latest preview set into the project.",
+      'Returns research, strategy, generate, or delivery runs. Pass the optional query param "module" to scope the list.',
     pathFields: [
       { name: "id", type: "string", required: true, description: "The project ID." },
     ],
-    bodyFields: [
-      { name: "fileName", type: "string", required: true, description: "Original file name." },
-      { name: "fileSize", type: "number", required: true, description: "File size in bytes." },
-      { name: "mimeType", type: "string", required: true, description: 'Image MIME type. Use "image/png", "image/jpeg", or "image/webp".' },
-    ],
-    bodyExample: {
-      fileName: "brew-dashboard.png",
-      fileSize: 482193,
-      mimeType: "image/png",
-    },
     responseExample: {
-      uploadUrl: "https://r2.getstage.co/upload/...",
-      r2ObjectKey: "users/u_123/generated-designs/4ca1b0f9-9f11-4f5f-a4ce-abc123.png",
-    },
-    notes: ["Returns 201 on success.", "Upload the binary file to the returned URL, then call the sync endpoint."],
-  },
-  {
-    id: "sync-designs",
-    title: "Sync latest Stitch previews",
-    method: "POST",
-    path: "/api/v1/projects/:id/designs/sync",
-    pathExample: "/api/v1/projects/k17abc123/designs/sync",
-    summary: "Replace the project’s current synced Stitch previews with the latest selected screens.",
-    description:
-      "Use this after uploading preview images to Stage. The sync request updates the linked Stitch project and replaces the project’s current user-synced preview set so Stage reflects the latest workspace state.",
-    pathFields: [
-      { name: "id", type: "string", required: true, description: "The project ID." },
-    ],
-    bodyFields: [
-      { name: "externalProjectUrl", type: "string", required: true, description: "Full Stitch project URL." },
-      { name: "externalProjectId", type: "string", required: false, description: "Optional Stitch project ID." },
-      { name: "title", type: "string", required: false, description: "Optional label shown for the linked Stitch workspace." },
-      { name: "screens", type: "array", required: true, description: "The latest preview screens to keep in Stage. Omitted previously-synced screens are removed." },
-    ],
-    bodyExample: {
-      externalProjectUrl: "https://stitch.withgoogle.com/projects/6902984668756034217",
-      externalProjectId: "6902984668756034217",
-      title: "Brew & Co dashboard concepts",
-      screens: [
+      runs: [
         {
-          stitchScreenId: "screen-overview",
-          stitchScreenUrl: "https://stitch.withgoogle.com/projects/6902984668756034217/screens/screen-overview",
-          r2ObjectKey: "users/u_123/generated-designs/overview.png",
-          title: "Overview dashboard",
-          prompt: "Dashboard overview with KPI cards and production logs",
-          deviceType: "DESKTOP",
-          sortOrder: 0,
-        },
-        {
-          stitchScreenId: "screen-alerts",
-          r2ObjectKey: "users/u_123/generated-designs/alerts.png",
-          title: "Alerts center",
-          deviceType: "DESKTOP",
-          sortOrder: 1,
-        },
-      ],
-    },
-    responseExample: {
-      connection: {
-        id: "dc_123",
-        provider: "stitch",
-        externalProjectId: "6902984668756034217",
-        externalProjectUrl: "https://stitch.withgoogle.com/projects/6902984668756034217",
-        title: "Brew & Co dashboard concepts",
-        status: "active",
-        lastSyncedAt: 1717200000000,
-      },
-      designs: [
-        {
-          id: "d_sync_1",
+          id: "run_123",
           projectId: "k17abc123",
-          source: "user_sync",
-          title: "Overview dashboard",
-          stitchScreenId: "screen-overview",
-          imageUrl: "https://r2.getstage.co/generated/overview.png",
-          sortOrder: 0,
-          lastSyncedAt: 1717200000000,
-          createdAt: 1717200000000,
+          connectionId: null,
+          module: "research",
+          title: "Brew & Co research run",
+          status: "running",
+          trigger: "user",
+          externalRunId: null,
+          inputSummary: "Website: https://brewandco.com · Competitors: 2 · References: 1 · Brief file: no",
+          errorMessage: null,
+          startedAt: 1717200000000,
+          completedAt: null,
           updatedAt: 1717200000000,
         },
       ],
+    },
+  },
+  {
+    id: "create-ai-run",
+    title: "Create AI run",
+    method: "POST",
+    path: "/api/v1/projects/:id/ai/runs",
+    pathExample: "/api/v1/projects/k17abc123/ai/runs",
+    summary: "Create a research, strategy, generate, or delivery run.",
+    description:
+      "Use this when the agent starts work for a project module. Stage records the run first, then the agent can write artifacts back against it.",
+    pathFields: [
+      { name: "id", type: "string", required: true, description: "The project ID." },
+    ],
+    bodyFields: [
+      { name: "module", type: "string", required: true, description: 'One of: "research", "strategy", "generate", or "delivery".' },
+      { name: "title", type: "string", required: true, description: "Human-readable run title." },
+      { name: "status", type: "string", required: false, description: 'Optional initial status. Defaults to "running".', defaultValue: "running" },
+      { name: "trigger", type: "string", required: false, description: 'Optional trigger source. Defaults to "user".', defaultValue: "user" },
+      { name: "inputSummary", type: "string", required: false, description: "Short summary of the run input." },
+      { name: "externalRunId", type: "string", required: false, description: "Optional external run ID from the agent runtime." },
+    ],
+    bodyExample: {
+      module: "research",
+      title: "Brew & Co research run",
+      inputSummary: "Initial competitor and positioning research",
+    },
+    responseExample: {
+      runId: "run_123",
+    },
+    notes: ["Returns 201 on success."],
+  },
+  {
+    id: "list-ai-artifacts",
+    title: "List AI artifacts",
+    method: "GET",
+    path: "/api/v1/projects/:id/ai/artifacts",
+    pathExample: "/api/v1/projects/k17abc123/ai/artifacts?module=research",
+    summary: "List saved AI artifacts for a project.",
+    description:
+      'Returns research, strategy, generate, or delivery artifacts. Pass the optional query param "module" to scope the list.',
+    pathFields: [
+      { name: "id", type: "string", required: true, description: "The project ID." },
+    ],
+    responseExample: {
+      artifacts: [
+        {
+          id: "art_123",
+          projectId: "k17abc123",
+          runId: "run_123",
+          module: "research",
+          kind: "market_scan",
+          title: "Brew & Co market scan",
+          summary: "Competitor overview and visual patterns.",
+          status: "ready",
+          contentFormat: "markdown",
+          contentMarkdown: "## Competitor themes\n\n- Warm editorial photography\n- Premium minimal packaging",
+          contentJson: null,
+          externalUrl: null,
+          createdAt: 1717200000000,
+          updatedAt: 1717200000000,
+          approvedAt: null,
+        },
+      ],
+    },
+  },
+  {
+    id: "create-ai-artifact",
+    title: "Create AI artifact",
+    method: "POST",
+    path: "/api/v1/projects/:id/ai/artifacts",
+    pathExample: "/api/v1/projects/k17abc123/ai/artifacts",
+    summary: "Write an AI artifact back into Stage.",
+    description:
+      "Use this after the agent finishes a step in research, strategy, generate, or delivery. Stage stores the artifact as the source of truth.",
+    pathFields: [
+      { name: "id", type: "string", required: true, description: "The project ID." },
+    ],
+    bodyFields: [
+      { name: "runId", type: "string", required: false, description: "Optional run ID this artifact belongs to." },
+      { name: "module", type: "string", required: true, description: 'One of: "research", "strategy", "generate", or "delivery".' },
+      { name: "kind", type: "string", required: true, description: "Artifact type label." },
+      { name: "title", type: "string", required: true, description: "Artifact title." },
+      { name: "summary", type: "string", required: false, description: "Short artifact summary." },
+      { name: "status", type: "string", required: false, description: 'Optional artifact status. Defaults to "ready".', defaultValue: "ready" },
+      { name: "contentFormat", type: "string", required: true, description: 'One of: "markdown", "json", or "link_set".' },
+      { name: "contentMarkdown", type: "string", required: false, description: "Markdown body for the artifact." },
+      { name: "contentJson", type: "string", required: false, description: "JSON string body for structured artifacts." },
+      { name: "externalUrl", type: "string", required: false, description: "Optional external URL." },
+    ],
+    bodyExample: {
+      runId: "run_123",
+      module: "research",
+      kind: "market_scan",
+      title: "Brew & Co market scan",
+      summary: "Competitor overview and visual patterns.",
+      contentFormat: "markdown",
+      contentMarkdown: "## Competitor themes\n\n- Warm editorial photography\n- Premium minimal packaging",
+    },
+    responseExample: {
+      artifactId: "art_123",
+    },
+    notes: ["Returns 201 on success."],
+  },
+  {
+    id: "create-ai-export",
+    title: "Record artifact export",
+    method: "POST",
+    path: "/api/v1/ai/artifacts/:id/exports",
+    pathExample: "/api/v1/ai/artifacts/art_123/exports",
+    summary: "Record a Figma or Notion export result for an artifact.",
+    description:
+      "This is the current test flow for Figma and Notion. Stage records export status and destination metadata, but native OAuth connections are not part of this setup.",
+    pathFields: [
+      { name: "id", type: "string", required: true, description: "The artifact ID." },
+    ],
+    bodyFields: [
+      { name: "provider", type: "string", required: true, description: 'One of: "figma" or "notion".' },
+      { name: "action", type: "string", required: true, description: "Export action label such as open_in_figma or export_to_notion." },
+      { name: "status", type: "string", required: false, description: 'Optional export status. Defaults to "completed".', defaultValue: "completed" },
+      { name: "destinationLabel", type: "string", required: false, description: "Human-readable destination name." },
+      { name: "destinationUrl", type: "string", required: false, description: "Direct URL to the exported destination." },
+      { name: "errorMessage", type: "string", required: false, description: "Optional error text if the export failed." },
+      { name: "lastSyncedAt", type: "number", required: false, description: "Optional sync timestamp in milliseconds." },
+    ],
+    bodyExample: {
+      provider: "notion",
+      action: "export_to_notion",
+      status: "completed",
+      destinationLabel: "Brew & Co strategy page",
+      destinationUrl: "https://www.notion.so/workspace/brew-co-strategy",
+      lastSyncedAt: 1717200000000,
+    },
+    responseExample: {
+      destinationId: "dest_123",
     },
     notes: [
       "Returns 201 on success.",
-      "This is the preferred Stitch flow for agents because it keeps Stage in sync with a user-owned Stitch workspace.",
+      "Figma and Notion are tracked as export destinations in this test flow, not as native OAuth integrations.",
     ],
-  },
-  {
-    id: "list-designs",
-    title: "List synced designs",
-    method: "GET",
-    path: "/api/v1/projects/:id/designs",
-    pathExample: "/api/v1/projects/k17abc123/designs",
-    summary: "List the current generated and synced design previews for a project.",
-    description:
-      "Returns the stored preview screens linked to the project. Use the design connection endpoint for the full Stitch workspace URL.",
-    pathFields: [
-      { name: "id", type: "string", required: true, description: "The project ID." },
-    ],
-    responseExample: {
-      designs: [
-        {
-          id: "d_sync_1",
-          projectId: "k17abc123",
-          source: "user_sync",
-          title: "Overview dashboard",
-          stitchProjectId: "6902984668756034217",
-          stitchScreenId: "screen-overview",
-          stitchScreenUrl: "https://stitch.withgoogle.com/projects/6902984668756034217/screens/screen-overview",
-          imageUrl: "https://r2.getstage.co/generated/overview.png",
-          sortOrder: 0,
-          lastSyncedAt: 1717200000000,
-          createdAt: 1717200000000,
-          updatedAt: 1717200000000,
-        },
-      ],
-    },
   },
 
   // ── Phases ──
@@ -582,57 +627,6 @@ export const stageApiEndpoints: ApiEndpointDoc[] = [
     },
   },
 
-  // ── Design Generation (Stitch) ──
-  {
-    id: "generate-design",
-    title: "Generate design",
-    method: "POST",
-    path: "/api/v1/projects/:id/generate-design",
-    pathExample: "/api/v1/projects/k17abc123/generate-design",
-    summary: "Generate a UI design from a text prompt using Google Stitch.",
-    description:
-      "Calls Google Stitch to generate a screen design and attaches it to the project. The generated image is stored and linked to the project.",
-    pathFields: [
-      { name: "id", type: "string", required: true, description: "The project ID." },
-    ],
-    bodyFields: [
-      { name: "prompt", type: "string", required: true, description: "Text description of the design to generate." },
-      { name: "phaseId", type: "string", required: false, description: "Optional phase to associate the design with." },
-      {
-        name: "deviceType",
-        type: "string",
-        required: false,
-        description: '"DESKTOP" (default), "MOBILE", "TABLET", or "AGNOSTIC".',
-        defaultValue: "DESKTOP",
-      },
-      {
-        name: "modelId",
-        type: "string",
-        required: false,
-        description: 'Optional Stitch model. "GEMINI_3_PRO" or "GEMINI_3_FLASH".',
-      },
-    ],
-    bodyExample: {
-      prompt: "Premium editorial homepage for a specialty coffee brand with dark theme, hero image, and product grid",
-      deviceType: "DESKTOP",
-    },
-    responseExample: {
-      design: {
-        id: "d_gen123",
-        projectId: "k17abc123",
-        prompt: "Premium editorial homepage for a specialty coffee brand...",
-        imageUrl: "https://r2.getstage.co/generated/d_gen123.png",
-        deviceType: "DESKTOP",
-        createdAt: 1717200000000,
-      },
-    },
-    notes: [
-      "Returns 201 on success.",
-      "This route is still supported, but the preferred v1 flow is to link a user-owned Stitch project and sync preview screens with /designs/sync.",
-      "Design generation may take 10-30 seconds depending on complexity.",
-      "Requires Stitch to be configured on the Stage backend.",
-    ],
-  },
 ];
 
 /* ─── Sections ─── */
@@ -644,13 +638,15 @@ export const stageApiSections: ApiSectionDoc[] = [
     summary: "Set up your API key and make your first call.",
     paragraphs: [
       "The Stage API lets AI agents and external tools create and manage creative projects. It is a REST API authenticated with Bearer tokens.",
-      "All endpoints are under https://getstage.co/api/v1. Authentication uses API keys created in Settings > Developer.",
+      `All endpoints are under ${API_REFERENCE_BASE_URL}. Authentication uses API keys created in Settings > Developer.`,
     ],
     bullets: [
       "Create an API key in Settings > Developer (Pro plan required).",
       "Set your key: Authorization: Bearer stg_...",
-      "Make your first call: GET /api/v1/projects",
-      "Or use POST /api/v1/projects/import-plan to create a full project from a structured plan.",
+      "Create a project first with POST /api/v1/projects/import-plan.",
+      "Save the workflow inputs with POST /api/v1/projects/:id/ai/context.",
+      "Start research, strategy, or generate with POST /api/v1/projects/:id/ai/runs.",
+      "Record Figma or Notion results with POST /api/v1/ai/artifacts/:id/exports.",
       "Current limits: 120 requests per minute per API key, 1000 requests per minute globally.",
     ],
   },
@@ -689,20 +685,21 @@ export const stageApiSections: ApiSectionDoc[] = [
     endpointIds: ["list-tasks", "get-task", "create-task", "toggle-task"],
   },
   {
-    id: "design-generation",
-    title: "Design Generation",
-    summary: "Link a Stitch project and keep the latest preview screens synced into Stage.",
+    id: "ai-workflows",
+    title: "AI Workflows",
+    summary: "Store AI context, create runs, write artifacts back, and record exports.",
     paragraphs: [
-      "The preferred Stitch flow is user-owned: the agent or user works in Stitch, uploads a few selected previews to Stage, then syncs them into the project. Stage stores the latest preview set plus the Stitch project link.",
-      "The older server-side generate-design route still exists, but it is secondary to the linked-workspace sync flow.",
+      "This is the current test API surface for research, strategy, generate, and delivery.",
+      "Figma and Notion are recorded as export destinations in this flow. Native OAuth connections are not part of the current test setup.",
     ],
     endpointIds: [
-      "list-design-connections",
-      "upsert-design-connection",
-      "create-design-upload-url",
-      "sync-designs",
-      "list-designs",
-      "generate-design",
+      "get-ai-context",
+      "upsert-ai-context",
+      "list-ai-runs",
+      "create-ai-run",
+      "list-ai-artifacts",
+      "create-ai-artifact",
+      "create-ai-export",
     ],
   },
   {

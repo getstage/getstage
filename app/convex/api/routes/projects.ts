@@ -5,15 +5,11 @@ import { authenticateApiKey } from "../auth";
 import {
   createProjectAiArtifactBodySchema,
   createProjectAiRunBodySchema,
-  createDesignUploadUrlBodySchema,
   createPhaseBodySchema,
-  generateDesignBodySchema,
   createProjectBodySchema,
   importProjectPlanBodySchema,
   projectIdParamSchema,
-  syncProjectDesignsBodySchema,
   upsertProjectAiContextBodySchema,
-  upsertDesignConnectionBodySchema,
 } from "../models";
 import { jsonError, validationHook } from "../errors";
 import type { ApiBindings } from "../types";
@@ -235,111 +231,6 @@ export function createProjectRoutes() {
   );
 
   app.get(
-    "/:id/design-connections",
-    zValidator("param", projectIdParamSchema, validationHook),
-    async (c) => {
-      const auth = await authenticateApiKey(c);
-      const { id } = c.req.valid("param");
-      const connections = await c.env.runQuery(internal.integrations.stitch.listDesignConnectionsForApi, {
-        userId: auth.userId,
-        projectId: id,
-      });
-
-      return c.json({ connections });
-    },
-  );
-
-  app.post(
-    "/:id/design-connections",
-    zValidator("param", projectIdParamSchema, validationHook),
-    zValidator("json", upsertDesignConnectionBodySchema, validationHook),
-    async (c) => {
-      const auth = await authenticateApiKey(c);
-      const { id } = c.req.valid("param");
-      const body = c.req.valid("json");
-      const connection = await c.env.runAction(internal.integrations.stitch.verifyAndUpsertDesignConnectionForApi, {
-        userId: auth.userId,
-        projectId: id,
-        externalProjectUrl: body.externalProjectUrl,
-        title: body.title,
-      });
-
-      return c.json({ connection }, 201);
-    },
-  );
-
-  app.get(
-    "/:id/designs",
-    zValidator("param", projectIdParamSchema, validationHook),
-    async (c) => {
-      const auth = await authenticateApiKey(c);
-      const { id } = c.req.valid("param");
-      const designs = await c.env.runQuery(internal.integrations.stitch.listByProjectForApi, {
-        userId: auth.userId,
-        projectId: id,
-      });
-
-      return c.json({ designs });
-    },
-  );
-
-  app.post(
-    "/:id/designs/upload-url",
-    zValidator("param", projectIdParamSchema, validationHook),
-    zValidator("json", createDesignUploadUrlBodySchema, validationHook),
-    async (c) => {
-      const auth = await authenticateApiKey(c);
-      const { id } = c.req.valid("param");
-      const body = c.req.valid("json");
-
-      await c.env.runQuery(internal.domain.projects.service.getProjectReferenceForApi, {
-        userId: auth.userId,
-        projectId: id,
-      });
-
-      const upload = await c.env.runMutation(internal.r2.generateUploadUrlForApi, {
-        userId: auth.userId,
-        purpose: "generated-design",
-        fileName: body.fileName,
-        fileSize: body.fileSize,
-        mimeType: body.mimeType,
-      });
-
-      const uploadUrl =
-        typeof upload.uploadUrl === "string" ? upload.uploadUrl : upload.uploadUrl.url;
-
-      return c.json(
-        {
-          uploadUrl,
-          r2ObjectKey: upload.key,
-        },
-        201,
-      );
-    },
-  );
-
-  app.post(
-    "/:id/designs/sync",
-    zValidator("param", projectIdParamSchema, validationHook),
-    zValidator("json", syncProjectDesignsBodySchema, validationHook),
-    async (c) => {
-      const auth = await authenticateApiKey(c);
-      const { id } = c.req.valid("param");
-      const body = c.req.valid("json");
-      const result = await c.env.runAction(internal.integrations.stitch.verifyAndSyncProjectDesignsForApi, {
-        userId: auth.userId,
-        projectId: id,
-        externalProjectUrl: body.externalProjectUrl,
-        externalProjectId: body.externalProjectId,
-        title: body.title,
-        screens: body.screens,
-      });
-
-      return c.json(result, 201);
-    },
-  );
-
-  app.get(
     "/:id/phases",
     zValidator("param", projectIdParamSchema, validationHook),
     async (c) => {
@@ -351,27 +242,6 @@ export function createProjectRoutes() {
       });
 
       return c.json({ phases });
-    },
-  );
-
-  app.post(
-    "/:id/generate-design",
-    zValidator("param", projectIdParamSchema, validationHook),
-    zValidator("json", generateDesignBodySchema, validationHook),
-    async (c) => {
-      const auth = await authenticateApiKey(c);
-      const { id } = c.req.valid("param");
-      const body = c.req.valid("json");
-      const design = await c.env.runAction(internal.integrations.stitch.generateDesignForApi, {
-        userId: auth.userId,
-        projectId: id,
-        prompt: body.prompt,
-        phaseId: body.phaseId,
-        deviceType: body.deviceType,
-        modelId: body.modelId,
-      });
-
-      return c.json({ design }, 201);
     },
   );
 

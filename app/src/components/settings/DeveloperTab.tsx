@@ -119,7 +119,7 @@ export function DeveloperTab({
                 </div>
               </div>
               <p className="card-desc">
-                Create API keys to integrate Stage with Claude Code, Stitch workflows, or any compatible external agent.
+                Create API keys to integrate Stage with Claude Code, the test AI workflow, or any compatible external agent.
                 Keys are shown once at creation and cannot be retrieved later.
               </p>
 
@@ -157,7 +157,7 @@ export function DeveloperTab({
                       id="dev-key-name"
                       type="text"
                       className="developer-input"
-                      placeholder="e.g. Claude Code, Stitch sync agent"
+                      placeholder="e.g. Claude Code, research test agent"
                       value={keyName}
                       onChange={(e) => onKeyNameChange(e.target.value)}
                       maxLength={64}
@@ -260,11 +260,11 @@ export function DeveloperTab({
                         <span className="developer-key-icon developer-key-icon-revoked">
                           <Key size={16} weight="bold" />
                         </span>
-                        <div className="developer-key-info">
-                          <span className="developer-key-meta">
-                            No active keys. Create one above to run the API, Stitch sync, or smoke checks.
-                          </span>
-                        </div>
+                          <div className="developer-key-info">
+                            <span className="developer-key-meta">
+                              No active keys. Create one above to run the API, AI workflow tests, or smoke checks.
+                            </span>
+                          </div>
                       </div>
                     </div>
                   )}

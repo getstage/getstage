@@ -553,11 +553,11 @@ function QuickstartSection({
                 },
                 {
                   step: "4",
-                  text: "GET /api/v1/projects to see your created projects",
+                  text: "POST /api/v1/projects/:id/ai/context and /api/v1/projects/:id/ai/runs to start the workflow",
                 },
                 {
                   step: "5",
-                  text: "Current limits: 120 requests/minute per key and 1000 requests/minute globally",
+                  text: "POST /api/v1/ai/artifacts/:id/exports to record Figma or Notion results",
                 },
               ].map((item) => (
                 <li key={item.step} className="flex gap-3">
@@ -586,13 +586,13 @@ function QuickstartSection({
                 Agent skills
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
-              <a
-                href="/agents/stitch"
+              <Link
+                to="/agents/claude"
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white"
               >
-                Stitch guide
+                Claude setup
                 <ArrowRight className="h-3.5 w-3.5" />
-              </a>
+              </Link>
             </div>
           </div>
 

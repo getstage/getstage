@@ -295,13 +295,13 @@ export function SkillsPage() {
                 },
                 {
                   title: "API endpoints",
-                  desc: "Every Stage endpoint the agent needs — projects, phases, tasks, and Stitch sync.",
+                  desc: "Every Stage endpoint the agent needs — projects, phases, tasks, AI runs, artifacts, and export tracking.",
                   color: "#8782f5",
                   bg: "rgba(135,130,245,0.08)",
                 },
                 {
                   title: "Project-first workflow",
-                  desc: "Create the project in Stage first, then design in Stitch, then sync previews back.",
+                  desc: "Create the project in Stage first, then run research, strategy, generate, and export tracking back into Stage.",
                   color: "#0891b2",
                   bg: "rgba(59,175,218,0.08)",
                 },
@@ -348,10 +348,10 @@ export function SkillsPage() {
                 <ArrowRight size={16} weight="bold" />
               </Link>
               <Link
-                to="/agents/stitch"
+                to="/agents/claude"
                 className="inline-flex items-center gap-2 rounded-[16px] border border-border bg-white px-6 py-4 text-[15px] font-medium text-text-primary transition-colors hover:bg-bg-subtle"
               >
-                Learn about Stitch
+                Open Claude setup
                 <ArrowRight size={16} weight="bold" />
               </Link>
             </div>

@@ -143,43 +143,20 @@ Rules:
 - Treat Notion and Figma as Claude-connected in v1, not Stage OAuth integrations.
 - Always update Stage after a Notion or Figma export finishes.
 
-## Stitch workflow
+## Figma and Notion exports
 
-If the user wants UI work after the project is created:
+If the user wants work pushed to Figma or Notion after the project exists:
 
 1. Create the project in Stage first.
-2. Ask once before using Stitch, because Stitch spend is a separate external step.
-3. Use the user's Stitch workflow or account.
-4. Link the Stitch project back into Stage.
-5. Sync the latest preview screens back into the Stage project.
+2. Save AI context if needed.
+3. Create a run for research, strategy, generate, or delivery.
+4. Write the resulting artifact back into Stage.
+5. Record the export result in Stage after the Figma or Notion step finishes.
 
-Important:
-- Stage is not the full Stitch workspace.
-- Stage stores the linked Stitch project and the latest synced previews.
-- The full design workspace remains in Stitch.
-- If multiple collaborators work in the same Stitch project, sync the newest selected previews back into Stage so Stage reflects the latest state.
-
-### Stitch endpoints
-
-Link project:
-- `POST /api/v1/projects/:id/design-connections`
-- `GET /api/v1/projects/:id/design-connections`
-
-Upload previews:
-- `POST /api/v1/projects/:id/designs/upload-url`
-
-Sync latest preview set:
-- `POST /api/v1/projects/:id/designs/sync`
-
-Read current synced previews:
-- `GET /api/v1/projects/:id/designs`
-
-### Stitch behavior rules
-
-- Treat Stitch as project-level, not task-level, in v1.
-- A synced preview may optionally be tagged to a phase.
-- Do not invent separate Stitch sync flows per task.
-- If the user later wants a task linked to a design, reference an already-synced preview instead of treating the task as its own Stitch workspace.
+Current rule:
+- Treat Figma and Notion as export destinations in v1.
+- Do not assume Stage has native OAuth for Figma or Notion.
+- Always write the export result back with `POST /api/v1/ai/artifacts/:id/exports`.
 
 ## Recommended flow
 
@@ -187,7 +164,7 @@ Read current synced previews:
 2. Resolve the target entity.
 3. Decide whether confidence is high enough to act.
 4. If creating a full project, prefer `POST /api/v1/projects/import-plan`.
-5. If UI work is requested, create the project first and then do the Stitch step.
+5. If research, strategy, generate, or delivery work is requested, create the project first and track the work through AI context, runs, artifacts, and exports.
 6. Keep list requests lean. Use detail endpoints only when richer data is needed.
 
 ## Example: create a project
@@ -222,8 +199,9 @@ Example payload:
 
 Base URL for all API calls:
 
-```
-https://reliable-bullfrog-917.convex.site
+```text
+Testing:    https://testing.getstage.co
+Production: https://getstage.co
 ```
 
 Use Bearer auth:
@@ -232,10 +210,10 @@ Use Bearer auth:
 Authorization: Bearer stg_...
 ```
 
-Every request must include the full URL, e.g.:
+Every request must include the full URL, e.g. for testing:
 
 ```http
-GET https://reliable-bullfrog-917.convex.site/api/v1/projects
+GET https://testing.getstage.co/api/v1/projects
 Authorization: Bearer stg_...
 ```
 
