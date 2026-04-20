@@ -631,7 +631,7 @@ export function OnboardingStepRenderer({
                     type="button"
                     onClick={onLinkSheetUrl}
                     disabled={!sheetUrl.trim() || csvImporting}
-                    className="h-[44px] w-full cursor-pointer rounded-[10px] bg-text-primary px-4 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-45 focus:outline-none md:min-w-[220px] md:w-auto"
+                    className="h-[44px] w-full cursor-pointer rounded-[10px] bg-accent px-4 text-[14px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-default disabled:opacity-45 focus:outline-none md:min-w-[220px] md:w-auto"
                   >
                     {csvImporting ? "Linking..." : "Link Google Sheets"}
                   </button>

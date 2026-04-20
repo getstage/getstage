@@ -117,7 +117,7 @@ export function OnboardingModal({
 
                 <button
                   type="button"
-                  className="h-[50px] w-full cursor-pointer rounded-[12px] bg-text-primary px-5 text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-45 focus:outline-none"
+                  className="h-[50px] w-full cursor-pointer rounded-[12px] bg-accent px-5 text-[15px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-default disabled:opacity-45 focus:outline-none"
                   disabled={!controller.continueEnabled}
                   onClick={controller.handleContinue}
                 >

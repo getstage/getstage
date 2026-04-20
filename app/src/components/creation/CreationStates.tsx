@@ -40,7 +40,7 @@ export function SuccessState({ onViewProject }: SuccessStateProps) {
       <button
         type="button"
         onClick={onViewProject}
-        className="mt-3 w-full cursor-pointer rounded-[10px] bg-text-primary px-4 py-[13px] text-[15px] font-medium text-white transition-opacity hover:opacity-85"
+        className="mt-3 w-full cursor-pointer rounded-[10px] bg-accent px-4 py-[13px] text-[15px] font-medium text-white transition-colors hover:bg-accent-hover"
       >
         View Project
       </button>

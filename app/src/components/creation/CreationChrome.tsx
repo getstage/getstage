@@ -31,8 +31,8 @@ export function PrimaryButton({ label, disabled, onClick }: PrimaryButtonProps) 
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "w-full rounded-[10px] bg-text-primary px-4 py-[13px] text-[15px] font-medium text-white transition-opacity",
-        disabled ? "cursor-default opacity-25" : "cursor-pointer hover:opacity-85",
+        "w-full rounded-[10px] bg-accent px-4 py-[13px] text-[15px] font-medium text-white transition-colors",
+        disabled ? "cursor-default opacity-40" : "cursor-pointer hover:bg-accent-hover",
       )}
     >
       {label}
@@ -69,12 +69,12 @@ export function StepDots({ steps, currentIndex }: StepDotsProps) {
         <div
           key={`${step}-${index}`}
           className={cn(
-            "h-1.5 rounded-full transition-all duration-200",
+            "h-1.5 rounded-[3px] transition-all duration-200",
             index === currentIndex
-              ? "w-5 bg-accent"
+              ? "w-8 bg-accent"
               : index < currentIndex
-                ? "w-1.5 bg-accent"
-                : "w-1.5 bg-[#D9D9D9]",
+                ? "w-2 bg-accent"
+                : "w-2 bg-[#D9D9D9]",
           )}
         />
       ))}
