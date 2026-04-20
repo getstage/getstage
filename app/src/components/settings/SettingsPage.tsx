@@ -178,11 +178,18 @@ export function SettingsPage() {
               active={activeTab === "integrations"}
               isPro={billingSettings.isPro}
               claudeConnection={integrationsSettings.claudeConnection}
-              claudeTools={integrationsSettings.claudeTools}
+              notionConnection={integrationsSettings.notionConnection}
+              figmaConnection={integrationsSettings.figmaConnection}
               anthropicCredential={integrationsSettings.anthropicCredential}
               claudeFeedback={integrationsSettings.claudeFeedback}
               anthropicFeedback={integrationsSettings.anthropicFeedback}
+              notionFeedback={integrationsSettings.notionFeedback}
+              figmaFeedback={integrationsSettings.figmaFeedback}
               isClaudeDisconnecting={integrationsSettings.isClaudeDisconnecting}
+              isNotionConnecting={integrationsSettings.isNotionConnecting}
+              isNotionDisconnecting={integrationsSettings.isNotionDisconnecting}
+              isFigmaConnecting={integrationsSettings.isFigmaConnecting}
+              isFigmaDisconnecting={integrationsSettings.isFigmaDisconnecting}
               anthropicApiKey={integrationsSettings.anthropicApiKey}
               anthropicModelPreference={integrationsSettings.anthropicModelPreference}
               isAnthropicSaving={integrationsSettings.isAnthropicSaving}
@@ -191,6 +198,10 @@ export function SettingsPage() {
               claudeInstallCommand={integrationsSettings.claudeInstallCommand}
               claudeVerifyPrompt={integrationsSettings.claudeVerifyPrompt}
               onClaudeDisconnect={() => void integrationsSettings.handleClaudeDisconnect()}
+              onNotionConnect={() => void integrationsSettings.handleNotionConnect()}
+              onNotionDisconnect={() => void integrationsSettings.handleNotionDisconnect()}
+              onFigmaConnect={() => void integrationsSettings.handleFigmaConnect()}
+              onFigmaDisconnect={() => void integrationsSettings.handleFigmaDisconnect()}
               onAnthropicApiKeyChange={integrationsSettings.setAnthropicApiKey}
               onAnthropicModelPreferenceChange={integrationsSettings.setAnthropicModelPreference}
               onAnthropicSave={() => void integrationsSettings.handleAnthropicSave()}

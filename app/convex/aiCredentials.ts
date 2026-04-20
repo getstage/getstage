@@ -3,6 +3,7 @@ import { action, internalMutation, internalQuery, mutation, query } from "./_gen
 import { internal } from "./_generated/api";
 import { requireAuthUser } from "./_helpers";
 import type { Doc, Id } from "./_generated/dataModel";
+import { decryptSecret, encryptSecret } from "./lib/credentialVault";
 
 const AI_PROVIDER = "anthropic";
 const AI_LABEL = "claude";
@@ -13,61 +14,16 @@ function now() {
   return Date.now();
 }
 
-function getEnv(name: string) {
-  return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[
-    name
-  ];
-}
-
-function requireSecret() {
-  const secret = getEnv("ANTHROPIC_CREDENTIALS_SECRET");
-  if (!secret) {
-    throw new Error("Missing ANTHROPIC_CREDENTIALS_SECRET.");
-  }
-  return secret;
-}
-
-function toBase64(value: ArrayBuffer | Uint8Array) {
-  const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary);
-}
-
-function fromBase64(value: string) {
-  const binary = atob(value);
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
-}
-
-async function getEncryptionKey(secret: string) {
-  const encoded = new TextEncoder().encode(secret);
-  const digest = await crypto.subtle.digest("SHA-256", encoded);
-  return crypto.subtle.importKey("raw", digest, "AES-GCM", false, ["encrypt", "decrypt"]);
-}
-
 async function encryptApiKey(rawApiKey: string) {
-  const key = await getEncryptionKey(requireSecret());
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encoded = new TextEncoder().encode(rawApiKey);
-  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded);
-
+  const encrypted = await encryptSecret(rawApiKey);
   return {
-    encryptedApiKey: toBase64(ciphertext),
-    encryptionIv: toBase64(iv),
+    encryptedApiKey: encrypted.encryptedValue,
+    encryptionIv: encrypted.encryptionIv,
   };
 }
 
 async function decryptApiKey(encryptedApiKey: string, encryptionIv: string) {
-  const key = await getEncryptionKey(requireSecret());
-  const plaintext = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: fromBase64(encryptionIv) },
-    key,
-    fromBase64(encryptedApiKey),
-  );
-
-  return new TextDecoder().decode(plaintext);
+  return decryptSecret(encryptedApiKey, encryptionIv);
 }
 
 async function getCredentialRecord(

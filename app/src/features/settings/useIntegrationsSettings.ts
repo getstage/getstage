@@ -13,6 +13,7 @@ import type {
   AnthropicCredentialSummary,
   ClaudeConnectionSummary,
   ClaudeToolSummary,
+  NativeIntegrationSummary,
 } from "@/types/settings";
 import {
   GOOGLE_SHEETS_TRANSACTIONS_DIALOG_MESSAGE,
@@ -70,6 +71,15 @@ export function useIntegrationsSettings({ user, enabled, isPro }: IntegrationsSe
         };
       }
     | undefined;
+  const nativeConnections = useConvexQuery(
+    api.integrations.contentPlatforms.getNativeConnectionStatus,
+    !user || !enabled ? "skip" : {},
+  ) as
+    | {
+        notion: NativeIntegrationSummary;
+        figma: NativeIntegrationSummary;
+      }
+    | undefined;
   const anthropicCredential = useConvexQuery(
     api.aiCredentials.getAnthropicCredentialSummary,
     !user || !enabled ? "skip" : {},
@@ -82,6 +92,8 @@ export function useIntegrationsSettings({ user, enabled, isPro }: IntegrationsSe
   const syncStripeData = useConvexAction(api.integrations.stripeConnect.syncStripeData);
   const runSheetImport = useConvexAction(api.integrations.googleSheets.runSheetImport);
   const disconnectClaude = useConvexMutation(api.agentConnections.disconnectClaude);
+  const disconnectNativeIntegration = useConvexMutation(api.integrations.contentPlatforms.disconnectConnection);
+  const startNativeOAuthConnect = useConvexAction(api.integrations.contentPlatforms.startOAuthConnect);
   const createPendingConnection = useConvexMutation(api.agentConnections.createPendingClaudeConnection);
   const saveAnthropicKey = useConvexMutation(api.aiCredentials.saveAnthropicKey);
   const testAnthropicKey = useConvexAction(api.aiCredentials.testAnthropicKey);
@@ -101,6 +113,10 @@ export function useIntegrationsSettings({ user, enabled, isPro }: IntegrationsSe
   const [isGoogleSheetImporting, setIsGoogleSheetImporting] = useState(false);
   const [isGoogleSheetDisconnecting, setIsGoogleSheetDisconnecting] = useState(false);
   const [isClaudeDisconnecting, setIsClaudeDisconnecting] = useState(false);
+  const [isNotionConnecting, setIsNotionConnecting] = useState(false);
+  const [isNotionDisconnecting, setIsNotionDisconnecting] = useState(false);
+  const [isFigmaConnecting, setIsFigmaConnecting] = useState(false);
+  const [isFigmaDisconnecting, setIsFigmaDisconnecting] = useState(false);
   const [anthropicApiKey, setAnthropicApiKey] = useState("");
   const [anthropicModelPreference, setAnthropicModelPreference] = useState("claude-sonnet-4-5");
   const [isAnthropicSaving, setIsAnthropicSaving] = useState(false);
@@ -109,8 +125,12 @@ export function useIntegrationsSettings({ user, enabled, isPro }: IntegrationsSe
   const { feedback: googleSheetFeedback, showFeedback: showGoogleSheetFeedback } = useFeedback();
   const { feedback: claudeFeedback, showFeedback: showClaudeFeedback } = useFeedback();
   const { feedback: anthropicFeedback, showFeedback: showAnthropicFeedback } = useFeedback();
+  const { feedback: notionFeedback, showFeedback: showNotionFeedback } = useFeedback();
+  const { feedback: figmaFeedback, showFeedback: showFigmaFeedback } = useFeedback();
 
   const claudeConnection = claudeState?.connection ?? null;
+  const notionConnection = nativeConnections?.notion ?? null;
+  const figmaConnection = nativeConnections?.figma ?? null;
   const claudeTools = useMemo(
     () => claudeState?.tools ?? { figma: defaultToolSummary(), notion: defaultToolSummary() },
     [claudeState?.tools],
@@ -150,6 +170,35 @@ export function useIntegrationsSettings({ user, enabled, isPro }: IntegrationsSe
     const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${window.location.hash}`;
     window.history.replaceState({}, "", nextUrl);
   }, [showStripeFeedback]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const provider = params.get("integration");
+    const status = params.get("integration_status");
+    if ((provider !== "notion" && provider !== "figma") || !status) {
+      return;
+    }
+
+    const showFeedback = provider === "notion" ? showNotionFeedback : showFigmaFeedback;
+    if (status === "connected") {
+      showFeedback(SAVED_FEEDBACK);
+    } else {
+      showFeedback({
+        kind: "error",
+        message:
+          provider === "notion"
+            ? "Could not complete Notion connection."
+            : "Could not complete Figma connection.",
+      });
+    }
+
+    params.delete("integration");
+    params.delete("integration_status");
+    params.delete("reason");
+    const nextSearch = params.toString();
+    const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${window.location.hash}`;
+    window.history.replaceState({}, "", nextUrl);
+  }, [showFigmaFeedback, showNotionFeedback]);
 
   useEffect(() => {
     if (!enabled) {
@@ -317,6 +366,46 @@ export function useIntegrationsSettings({ user, enabled, isPro }: IntegrationsSe
     }
   }
 
+  async function handleNativeConnect(provider: "notion" | "figma") {
+    const setLoading = provider === "notion" ? setIsNotionConnecting : setIsFigmaConnecting;
+    const showFeedback = provider === "notion" ? showNotionFeedback : showFigmaFeedback;
+    const fallback =
+      provider === "notion"
+        ? "Could not start Notion connection."
+        : "Could not start Figma connection.";
+
+    setLoading(true);
+    try {
+      const result = await startNativeOAuthConnect({ provider });
+      if (!result.url) {
+        throw new Error("OAuth URL is missing.");
+      }
+      window.location.assign(result.url);
+    } catch (error) {
+      showFriendlyFeedback(showFeedback, error, fallback);
+      setLoading(false);
+    }
+  }
+
+  async function handleNativeDisconnect(provider: "notion" | "figma") {
+    const setLoading = provider === "notion" ? setIsNotionDisconnecting : setIsFigmaDisconnecting;
+    const showFeedback = provider === "notion" ? showNotionFeedback : showFigmaFeedback;
+    const fallback =
+      provider === "notion"
+        ? "Could not disconnect Notion."
+        : "Could not disconnect Figma.";
+
+    setLoading(true);
+    try {
+      await disconnectNativeIntegration({ provider });
+      showFeedback(SAVED_FEEDBACK);
+    } catch (error) {
+      showFriendlyFeedback(showFeedback, error, fallback);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleAnthropicSave() {
     const trimmed = anthropicApiKey.trim();
     if (!trimmed) {
@@ -360,6 +449,8 @@ export function useIntegrationsSettings({ user, enabled, isPro }: IntegrationsSe
     stripeConnection: stripeConnection ?? null,
     sheetConnection: sheetConnections?.googleSheet ?? null,
     claudeConnection,
+    notionConnection,
+    figmaConnection,
     claudeTools,
     anthropicCredential:
       anthropicCredential ??
@@ -376,6 +467,8 @@ export function useIntegrationsSettings({ user, enabled, isPro }: IntegrationsSe
     googleSheetFeedback,
     claudeFeedback,
     anthropicFeedback,
+    notionFeedback,
+    figmaFeedback,
     googleSheetUrl,
     googleSheetHelpDialogOpen,
     googleSheetHelpDialogTitle,
@@ -387,6 +480,10 @@ export function useIntegrationsSettings({ user, enabled, isPro }: IntegrationsSe
     isGoogleSheetImporting,
     isGoogleSheetDisconnecting,
     isClaudeDisconnecting,
+    isNotionConnecting,
+    isNotionDisconnecting,
+    isFigmaConnecting,
+    isFigmaDisconnecting,
     anthropicApiKey,
     anthropicModelPreference,
     isAnthropicSaving,
@@ -405,6 +502,10 @@ export function useIntegrationsSettings({ user, enabled, isPro }: IntegrationsSe
     handleGoogleSheetImport,
     handleGoogleSheetDisconnect,
     handleClaudeDisconnect,
+    handleNotionConnect: () => handleNativeConnect("notion"),
+    handleNotionDisconnect: () => handleNativeDisconnect("notion"),
+    handleFigmaConnect: () => handleNativeConnect("figma"),
+    handleFigmaDisconnect: () => handleNativeDisconnect("figma"),
     handleAnthropicSave,
     handleAnthropicTest,
   };

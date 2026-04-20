@@ -63,3 +63,17 @@ export type CsvUploadSummary = {
   lastImportStatus: "success" | "error" | "running" | null;
   lastImportError: string | null;
 } | null;
+
+export type NativeIntegrationSummary = {
+  id: string;
+  provider: "notion" | "figma";
+  status: "pending" | "active" | "error" | "disconnected";
+  displayName: string | null;
+  workspaceName: string | null;
+  workspaceIcon: string | null;
+  accountEmail: string | null;
+  accountName: string | null;
+  connectedAt: number | null;
+  lastSyncedAt: number | null;
+  lastError: string | null;
+} | null;

@@ -9,8 +9,8 @@ import type { SaveFeedback } from "@/hooks/useFeedback";
 import type {
   AnthropicCredentialSummary,
   ClaudeConnectionSummary,
-  ClaudeToolSummary,
   GoogleSheetSummary,
+  NativeIntegrationSummary,
   StripeConnectionSummary,
 } from "@/types/settings";
 
@@ -18,14 +18,18 @@ type IntegrationsTabProps = {
   active: boolean;
   isPro: boolean;
   claudeConnection: ClaudeConnectionSummary;
-  claudeTools: {
-    figma: ClaudeToolSummary;
-    notion: ClaudeToolSummary;
-  };
+  notionConnection: NativeIntegrationSummary;
+  figmaConnection: NativeIntegrationSummary;
   anthropicCredential: AnthropicCredentialSummary;
   claudeFeedback: SaveFeedback;
   anthropicFeedback: SaveFeedback;
+  notionFeedback: SaveFeedback;
+  figmaFeedback: SaveFeedback;
   isClaudeDisconnecting: boolean;
+  isNotionConnecting: boolean;
+  isNotionDisconnecting: boolean;
+  isFigmaConnecting: boolean;
+  isFigmaDisconnecting: boolean;
   anthropicApiKey: string;
   anthropicModelPreference: string;
   isAnthropicSaving: boolean;
@@ -34,6 +38,10 @@ type IntegrationsTabProps = {
   claudeInstallCommand: string;
   claudeVerifyPrompt: string | null;
   onClaudeDisconnect: () => void;
+  onNotionConnect: () => void;
+  onNotionDisconnect: () => void;
+  onFigmaConnect: () => void;
+  onFigmaDisconnect: () => void;
   onAnthropicApiKeyChange: (value: string) => void;
   onAnthropicModelPreferenceChange: (value: string) => void;
   onAnthropicSave: () => void;
@@ -69,7 +77,7 @@ type IntegrationsTabProps = {
 type CardId = "claude" | "figma" | "notion" | "stripe" | "google-sheets";
 type CardFilter = "all" | "connected" | "available";
 type CardStatus = "connected" | "pending" | "error" | "none";
-type DisconnectDialogType = "claude" | "stripe" | "google-sheets" | null;
+type DisconnectDialogType = "claude" | "figma" | "notion" | "stripe" | "google-sheets" | null;
 
 type CardDef = {
   id: CardId;
@@ -85,11 +93,18 @@ export function IntegrationsTab({
   active,
   isPro,
   claudeConnection,
-  claudeTools,
+  notionConnection,
+  figmaConnection,
   anthropicCredential,
   claudeFeedback,
   anthropicFeedback,
+  notionFeedback,
+  figmaFeedback,
   isClaudeDisconnecting,
+  isNotionConnecting,
+  isNotionDisconnecting,
+  isFigmaConnecting,
+  isFigmaDisconnecting,
   anthropicApiKey,
   anthropicModelPreference,
   isAnthropicSaving,
@@ -98,6 +113,10 @@ export function IntegrationsTab({
   claudeInstallCommand,
   claudeVerifyPrompt,
   onClaudeDisconnect,
+  onNotionConnect,
+  onNotionDisconnect,
+  onFigmaConnect,
+  onFigmaDisconnect,
   onAnthropicApiKeyChange,
   onAnthropicModelPreferenceChange,
   onAnthropicSave,
@@ -220,8 +239,8 @@ export function IntegrationsTab({
   }
 
   const claudeConnected = claudeConnection?.status === "connected" && claudeConnection.stageApiVerified;
-  const figmaAvailable = claudeConnection?.figmaInClaude === "claimed";
-  const notionAvailable = claudeConnection?.notionInClaude === "claimed";
+  const figmaConnected = figmaConnection?.status === "active" || figmaConnection?.status === "pending";
+  const notionConnected = notionConnection?.status === "active" || notionConnection?.status === "pending";
   const stripeConnected = stripeConnection?.status === "active" || stripeConnection?.status === "pending";
   const googleSheetConnected =
     googleSheetConnection?.status === "active" || googleSheetConnection?.status === "pending";
@@ -249,6 +268,24 @@ export function IntegrationsTab({
             onConfirm: onStripeDisconnect,
             isLoading: isStripeDisconnecting,
           }
+        : disconnectDialog === "figma"
+          ? {
+              title: "Disconnect Figma?",
+              description:
+                "This removes Stage's native Figma connection for this workspace. You can reconnect later.",
+              confirmLabel: isFigmaDisconnecting ? "Disconnecting..." : "Disconnect",
+              onConfirm: onFigmaDisconnect,
+              isLoading: isFigmaDisconnecting,
+            }
+          : disconnectDialog === "notion"
+            ? {
+                title: "Disconnect Notion?",
+                description:
+                  "This removes Stage's native Notion connection for this workspace. You can reconnect later.",
+                confirmLabel: isNotionDisconnecting ? "Disconnecting..." : "Disconnect",
+                onConfirm: onNotionDisconnect,
+                isLoading: isNotionDisconnecting,
+              }
         : {
             title: "Disconnect Google Sheets?",
             description:
@@ -278,19 +315,19 @@ export function IntegrationsTab({
       id: "figma",
       icon: "/figma.svg",
       iconBg: "#F5F0FF",
-      title: "Figma in Claude",
-      description: "Wireframes and design tooling",
-      status: figmaAvailable ? "connected" : "none",
-      statusLabel: figmaAvailable ? "Connected" : "Setup required",
+      title: "Figma",
+      description: "Native design export and handoff",
+      status: toNativeCardStatus(figmaConnection),
+      statusLabel: formatNativeStatusLabel(figmaConnection),
     },
     {
       id: "notion",
       icon: "/notion.svg",
       iconBg: "#F5F5F5",
-      title: "Notion in Claude",
-      description: "Export research and artifacts",
-      status: notionAvailable ? "connected" : "none",
-      statusLabel: notionAvailable ? "Connected" : "Setup required",
+      title: "Notion",
+      description: "Native document export and review",
+      status: toNativeCardStatus(notionConnection),
+      statusLabel: formatNativeStatusLabel(notionConnection),
     },
     {
       id: "stripe",
@@ -589,37 +626,53 @@ export function IntegrationsTab({
 
               {selectedCard === "figma" ? (
                 <>
-                  {!isPro && !figmaAvailable ? (
+                  {!isPro && !figmaConnected ? (
                     <LockedConnectorMessage onUpgradeClick={handleUpgrade} />
                   ) : (
                     <>
                       <p className="text-[13px] text-text-secondary">
-                        Open wireframes, iterate outputs, and push updates through Claude with Figma tooling.
+                        Connect Figma directly to Stage so exports and design handoff no longer depend on Claude.
                       </p>
-                      <div className="mt-4 space-y-1 text-[12px] text-text-secondary">
+                      <div className="mt-4 rounded-[12px] border border-border-subtle bg-bg-subtle px-3.5 py-3 text-[12px] text-text-secondary">
                         <div>
-                          Last export:{" "}
-                          <span className="text-text-primary">{formatTimestamp(claudeTools.figma.lastExportAt)}</span>
-                        </div>
-                        <div>
-                          Last status:{" "}
+                          Workspace:{" "}
                           <span className="text-text-primary">
-                            {claudeTools.figma.lastExportStatus
-                              ? formatExportStatus(claudeTools.figma.lastExportStatus)
-                              : "Never"}
+                            {figmaConnection?.workspaceName || figmaConnection?.accountName || "—"}
                           </span>
                         </div>
-                        {claudeTools.figma.lastError ? (
-                          <div className="text-[#E07070]">{claudeTools.figma.lastError}</div>
-                        ) : null}
+                        <div>
+                          Account:{" "}
+                          <span className="text-text-primary">{figmaConnection?.accountEmail || "—"}</span>
+                        </div>
+                        <div>
+                          Connected:{" "}
+                          <span className="text-text-primary">{formatTimestamp(figmaConnection?.connectedAt)}</span>
+                        </div>
+                        {figmaConnection?.lastError ? <div className="text-[#E07070]">{figmaConnection.lastError}</div> : null}
                       </div>
                       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-[12px] text-text-tertiary">
-                          {claudeTools.figma.destinationLabel || "Connect through the Claude setup page."}
-                        </span>
-                        <a href={claudeSetupHref} className="btn-save text-[12px]">
-                          Open Claude setup
-                        </a>
+                        <FeedbackText
+                          feedback={figmaFeedback}
+                          fallback="Public OAuth app setup is required before users can connect Figma."
+                        />
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            className="btn-outline"
+                            disabled={isFigmaConnecting}
+                            onClick={onFigmaConnect}
+                          >
+                            {isFigmaConnecting ? "Redirecting..." : figmaConnected ? "Reconnect" : "Connect"}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-outline"
+                            disabled={!figmaConnected || isFigmaDisconnecting}
+                            onClick={() => setDisconnectDialog("figma")}
+                          >
+                            Disconnect
+                          </button>
+                        </div>
                       </div>
                     </>
                   )}
@@ -628,37 +681,53 @@ export function IntegrationsTab({
 
               {selectedCard === "notion" ? (
                 <>
-                  {!isPro && !notionAvailable ? (
+                  {!isPro && !notionConnected ? (
                     <LockedConnectorMessage onUpgradeClick={handleUpgrade} />
                   ) : (
                     <>
                       <p className="text-[13px] text-text-secondary">
-                        Export research and strategy artifacts to Notion through Claude.
+                        Connect Notion directly to Stage so research, strategy, and generated outputs can publish natively.
                       </p>
-                      <div className="mt-4 space-y-1 text-[12px] text-text-secondary">
+                      <div className="mt-4 rounded-[12px] border border-border-subtle bg-bg-subtle px-3.5 py-3 text-[12px] text-text-secondary">
                         <div>
-                          Last export:{" "}
-                          <span className="text-text-primary">{formatTimestamp(claudeTools.notion.lastExportAt)}</span>
-                        </div>
-                        <div>
-                          Last status:{" "}
+                          Workspace:{" "}
                           <span className="text-text-primary">
-                            {claudeTools.notion.lastExportStatus
-                              ? formatExportStatus(claudeTools.notion.lastExportStatus)
-                              : "Never"}
+                            {notionConnection?.workspaceName || notionConnection?.displayName || "—"}
                           </span>
                         </div>
-                        {claudeTools.notion.lastError ? (
-                          <div className="text-[#E07070]">{claudeTools.notion.lastError}</div>
-                        ) : null}
+                        <div>
+                          Account:{" "}
+                          <span className="text-text-primary">{notionConnection?.accountEmail || "—"}</span>
+                        </div>
+                        <div>
+                          Connected:{" "}
+                          <span className="text-text-primary">{formatTimestamp(notionConnection?.connectedAt)}</span>
+                        </div>
+                        {notionConnection?.lastError ? <div className="text-[#E07070]">{notionConnection.lastError}</div> : null}
                       </div>
                       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-[12px] text-text-tertiary">
-                          {claudeTools.notion.destinationLabel || "Connect through the Claude setup page."}
-                        </span>
-                        <a href={claudeSetupHref} className="btn-save text-[12px]">
-                          Open Claude setup
-                        </a>
+                        <FeedbackText
+                          feedback={notionFeedback}
+                          fallback="Public OAuth app setup is required before users can connect Notion."
+                        />
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            className="btn-outline"
+                            disabled={isNotionConnecting}
+                            onClick={onNotionConnect}
+                          >
+                            {isNotionConnecting ? "Redirecting..." : notionConnected ? "Reconnect" : "Connect"}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-outline"
+                            disabled={!notionConnected || isNotionDisconnecting}
+                            onClick={() => setDisconnectDialog("notion")}
+                          >
+                            Disconnect
+                          </button>
+                        </div>
                       </div>
                     </>
                   )}
@@ -1002,7 +1071,7 @@ function LockedConnectorMessage({ onUpgradeClick }: { onUpgradeClick: () => void
     <div className="rounded-[14px] border border-border-subtle bg-bg-subtle px-4 py-4">
       <div className="text-[14px] font-medium text-text-primary">Requires Stage Pro</div>
       <p className="mt-2 text-[13px] leading-[1.65] text-text-secondary">
-        This connector depends on Stage API access and a verified Claude setup. Upgrade first, then finish the handshake from the Claude connector.
+        Native publishing is part of Stage Pro. Upgrade first, then connect the provider directly from this settings page.
       </p>
       <div className="mt-4">
         <button type="button" className="btn-save" onClick={onUpgradeClick}>
@@ -1031,6 +1100,36 @@ function formatCredentialStatus(status: AnthropicCredentialSummary["status"]) {
   }
 }
 
+function toNativeCardStatus(connection: NativeIntegrationSummary): CardStatus {
+  if (!connection) return "none";
+  switch (connection.status) {
+    case "active":
+      return "connected";
+    case "pending":
+      return "pending";
+    case "error":
+      return "error";
+    default:
+      return "none";
+  }
+}
+
+function formatNativeStatusLabel(connection: NativeIntegrationSummary) {
+  if (!connection) return "Setup required";
+  switch (connection.status) {
+    case "active":
+      return "Connected";
+    case "pending":
+      return "Pending";
+    case "error":
+      return "Needs attention";
+    case "disconnected":
+      return "Not connected";
+    default:
+      return "Setup required";
+  }
+}
+
 function formatConnectionStatus(status: string | null) {
   if (!status) return "Not connected";
   switch (status) {
@@ -1044,21 +1143,6 @@ function formatConnectionStatus(status: string | null) {
       return "Disconnected";
     default:
       return status;
-  }
-}
-
-function formatExportStatus(status: ClaudeToolSummary["lastExportStatus"]) {
-  switch (status) {
-    case "requested":
-      return "Requested";
-    case "in_progress":
-      return "In progress";
-    case "completed":
-      return "Completed";
-    case "failed":
-      return "Failed";
-    default:
-      return "Never";
   }
 }
 

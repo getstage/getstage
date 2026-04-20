@@ -252,7 +252,22 @@ const artifactDestinationStatus = v.union(
   v.literal("failed"),
 );
 
-const artifactDestinationRequestedVia = v.literal("claude");
+const artifactDestinationRequestedVia = v.union(
+  v.literal("claude"),
+  v.literal("native"),
+);
+
+const nativeIntegrationProvider = v.union(
+  v.literal("notion"),
+  v.literal("figma"),
+);
+
+const nativeIntegrationStatus = v.union(
+  v.literal("pending"),
+  v.literal("active"),
+  v.literal("error"),
+  v.literal("disconnected"),
+);
 
 export default defineSchema({
   ...authTables,
@@ -481,6 +496,34 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_provider_client", ["userId", "provider", "client"]),
+
+  nativeIntegrationConnections: defineTable({
+    userId: v.id("users"),
+    provider: nativeIntegrationProvider,
+    status: nativeIntegrationStatus,
+    displayName: v.optional(v.string()),
+    workspaceId: v.optional(v.string()),
+    workspaceName: v.optional(v.string()),
+    workspaceIcon: v.optional(v.string()),
+    accountId: v.optional(v.string()),
+    accountEmail: v.optional(v.string()),
+    accountName: v.optional(v.string()),
+    accountAvatarUrl: v.optional(v.string()),
+    encryptedTokenPayload: v.optional(v.string()),
+    encryptionIv: v.optional(v.string()),
+    accessTokenExpiresAt: v.optional(v.number()),
+    scopes: v.optional(v.array(v.string())),
+    oauthState: v.optional(v.string()),
+    pkceVerifier: v.optional(v.string()),
+    connectedAt: v.optional(v.number()),
+    lastSyncedAt: v.optional(v.number()),
+    lastError: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_provider", ["userId", "provider"])
+    .index("by_oauth_state", ["oauthState"]),
 
   aiProviderCredentials: defineTable({
     userId: v.id("users"),

@@ -39,11 +39,13 @@ import type * as domain_projects_apiReadModel from "../domain/projects/apiReadMo
 import type * as domain_projects_readModel from "../domain/projects/readModel.js";
 import type * as domain_projects_service from "../domain/projects/service.js";
 import type * as http from "../http.js";
+import type * as integrations_contentPlatforms from "../integrations/contentPlatforms.js";
 import type * as integrations_googleSheets from "../integrations/googleSheets.js";
 import type * as integrations_loopsOtp from "../integrations/loopsOtp.js";
 import type * as integrations_resendAudience from "../integrations/resendAudience.js";
 import type * as integrations_stitch from "../integrations/stitch.js";
 import type * as integrations_stripeConnect from "../integrations/stripeConnect.js";
+import type * as lib_credentialVault from "../lib/credentialVault.js";
 import type * as onboarding from "../onboarding.js";
 import type * as platform_rateLimits from "../platform/rateLimits.js";
 import type * as portal from "../portal.js";
@@ -95,11 +97,13 @@ declare const fullApi: ApiFromModules<{
   "domain/projects/readModel": typeof domain_projects_readModel;
   "domain/projects/service": typeof domain_projects_service;
   http: typeof http;
+  "integrations/contentPlatforms": typeof integrations_contentPlatforms;
   "integrations/googleSheets": typeof integrations_googleSheets;
   "integrations/loopsOtp": typeof integrations_loopsOtp;
   "integrations/resendAudience": typeof integrations_resendAudience;
   "integrations/stitch": typeof integrations_stitch;
   "integrations/stripeConnect": typeof integrations_stripeConnect;
+  "lib/credentialVault": typeof lib_credentialVault;
   onboarding: typeof onboarding;
   "platform/rateLimits": typeof platform_rateLimits;
   portal: typeof portal;
