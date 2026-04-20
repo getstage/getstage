@@ -298,7 +298,7 @@ export function IntegrationsTab({
   const cards: CardDef[] = [
     {
       id: "claude",
-      icon: "/claude.svg",
+      icon: "/logos/integrations/claude.svg",
       iconBg: "#FFF5F0",
       title: "Claude",
       description: "Research, strategy, and generation",
@@ -313,7 +313,7 @@ export function IntegrationsTab({
     },
     {
       id: "figma",
-      icon: "/figma.svg",
+      icon: "/logos/integrations/figma.svg",
       iconBg: "#F5F0FF",
       title: "Figma",
       description: "Native design export and handoff",
@@ -322,7 +322,7 @@ export function IntegrationsTab({
     },
     {
       id: "notion",
-      icon: "/notion.svg",
+      icon: "/logos/integrations/notion.svg",
       iconBg: "#F5F5F5",
       title: "Notion",
       description: "Native document export and review",
@@ -498,7 +498,7 @@ export function IntegrationsTab({
                           ) : (
                             <>
                               Continue with
-                              <img src="/claude-full.svg" alt="Claude" className="h-[12px]" />
+                              <img src="/logos/integrations/claude-full.svg" alt="Claude" className="h-[12px]" />
                               <ArrowRight size={12} weight="bold" className="text-text-tertiary" />
                             </>
                           )}

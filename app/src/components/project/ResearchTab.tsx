@@ -215,7 +215,7 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
         <div className="mx-auto max-w-[940px] pt-4">
           <div className="mb-7">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#D97757]/15 bg-[#FFF5F0] px-3 py-1.5 text-[12px] font-medium text-[#D97757]">
-              <img src="/claude.svg" alt="" className="h-3.5 w-3.5" />
+              <img src="/logos/integrations/claude.svg" alt="" className="h-3.5 w-3.5" />
               First run starts in Claude
             </div>
             <h2 className="mt-5 font-heading text-[34px] font-semibold tracking-[-0.04em] text-text-primary">
@@ -289,7 +289,7 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
               {briefAttachment ? (
                 <div className="mt-3 flex flex-wrap items-center gap-2 rounded-[14px] border border-border-subtle bg-bg-subtle px-4 py-3">
                   <span className="inline-flex items-center gap-2 text-[14px] text-text-primary">
-                    <img src="/claude.svg" alt="" className="h-4 w-4" />
+                    <img src="/logos/integrations/claude.svg" alt="" className="h-4 w-4" />
                     {briefAttachment.name}
                   </span>
                   {briefAttachment.url ? (
@@ -419,7 +419,7 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
           onClick={() => void launchResearchRun()}
           disabled={isLaunching}
         >
-          <img src="/claude.svg" alt="" className="h-4 w-4" />
+          <img src="/logos/integrations/claude.svg" alt="" className="h-4 w-4" />
           {isLaunching ? "Launching..." : "Regenerate in Claude"}
         </button>
         <button
@@ -560,7 +560,7 @@ function ClaudeButton({
       disabled={disabled}
       className="inline-flex h-12 items-center justify-center gap-2 rounded-[12px] bg-accent px-6 text-[15px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
     >
-      <img src="/claude.svg" alt="" className="h-4 w-4" />
+      <img src="/logos/integrations/claude.svg" alt="" className="h-4 w-4" />
       {label}
     </button>
   );

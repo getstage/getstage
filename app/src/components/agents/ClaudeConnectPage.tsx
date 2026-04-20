@@ -237,7 +237,7 @@ export function ClaudeConnectPage() {
         <main className="mx-auto max-w-[520px] px-6 pb-24 pt-16 sm:px-0">
           {/* Hero — brand lockup centered */}
           <div className="flex flex-col items-center text-center">
-            <img src="/claude-full.svg" alt="Claude" className="h-[38px]" />
+            <img src="/logos/integrations/claude-full.svg" alt="Claude" className="h-[38px]" />
             <p className="mt-4 text-[15px] leading-[1.6] text-text-secondary">
               {isConnected
                 ? "Claude is already connected to your Stage workspace."
@@ -314,7 +314,7 @@ export function ClaudeConnectPage() {
 
             {/* Primary CTA */}
             <div className="flex flex-col items-center px-6 py-8">
-              <img src="/claude.svg" alt="" className="h-12 w-12" />
+              <img src="/logos/integrations/claude.svg" alt="" className="h-12 w-12" />
 
               {isConnected ? (
                 <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#22C55E]/10 px-3 py-1 text-[12px] font-medium text-[#15803D]">
@@ -337,7 +337,7 @@ export function ClaudeConnectPage() {
                 ) : (
                   <>
                     {isConnected ? "Open" : "Continue with"}
-                    <img src="/claude-full.svg" alt="Claude" className="h-[15px]" />
+                    <img src="/logos/integrations/claude-full.svg" alt="Claude" className="h-[15px]" />
                     <ArrowRight size={14} weight="bold" className="text-text-tertiary" />
                   </>
                 )}
@@ -421,13 +421,13 @@ export function ClaudeConnectPage() {
             </div>
             <div className="flex items-center gap-3.5 text-[12px] text-text-tertiary">
               <span className="flex items-center gap-1.5">
-                <img src="/notion.svg" alt="" className="h-3 w-3 opacity-40" />
+                <img src="/logos/integrations/notion.svg" alt="" className="h-3 w-3 opacity-40" />
                 {claudeState?.connection?.notionInClaude === "claimed"
                   ? "Connected"
                   : "Notion"}
               </span>
               <span className="flex items-center gap-1.5">
-                <img src="/figma.svg" alt="" className="h-3 w-[8px] opacity-40" />
+                <img src="/logos/integrations/figma.svg" alt="" className="h-3 w-[8px] opacity-40" />
                 {claudeState?.connection?.figmaInClaude === "claimed"
                   ? "Connected"
                   : "Figma"}

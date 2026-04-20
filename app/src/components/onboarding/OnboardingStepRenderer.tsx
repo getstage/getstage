@@ -1,9 +1,9 @@
-import { ArrowRight, Check, CopySimple, PencilSimpleLine, Trash } from "@phosphor-icons/react";
+import { ArrowRight, Check, CopySimple, Package, PencilSimpleLine, Trash } from "@phosphor-icons/react";
 import { useState } from "react";
 import integrationsImage from "@/assets/onboarding/integrations.webp";
 import { OnboardingPaywall } from "@/components/onboarding/OnboardingPaywall";
 import { Avatar } from "@/components/ui/Avatar";
-import { PROJECT_TYPES } from "@/lib/constants";
+import { PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
 import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@/lib/r2Uploads";
 import { cn } from "@/lib/utils";
 import type { UseProjectDraftResult } from "@/features/project-creation/useProjectDraft";
@@ -103,21 +103,30 @@ export function OnboardingStepRenderer({
           </p>
 
           <div className="mt-7 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {PROJECT_TYPES.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => onSelectField(option.value)}
-                className={cn(
-                  "cursor-pointer rounded-[10px] border-[1.5px] px-4 py-3 text-[14px] font-medium transition-colors focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0",
-                  fieldOfWork.includes(option.value)
-                    ? "border-accent bg-[rgba(135,130,245,0.09)] text-accent"
-                    : "border-transparent bg-input-bg text-text-primary hover:bg-[#EFEFF2]",
-                )}
-              >
-                {option.label}
-              </button>
-            ))}
+            {PROJECT_TYPES.map((option) => {
+              const iconSrc = PROJECT_TYPE_ICONS[option.value];
+              const isSelected = fieldOfWork.includes(option.value);
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => onSelectField(option.value)}
+                  className={cn(
+                    "flex cursor-pointer items-center justify-center gap-2 rounded-[10px] border-[1.5px] px-4 py-3 text-[14px] font-medium transition-colors focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0",
+                    isSelected
+                      ? "border-accent bg-[rgba(135,130,245,0.09)] text-accent"
+                      : "border-transparent bg-input-bg text-text-primary hover:bg-[#EFEFF2]",
+                  )}
+                >
+                  {iconSrc ? (
+                    <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 object-contain" />
+                  ) : option.value === "packaging" ? (
+                    <Package size={16} weight="regular" className="shrink-0" />
+                  ) : null}
+                  <span>{option.label}</span>
+                </button>
+              );
+            })}
           </div>
         </OnboardingStepMotion>
       );
@@ -355,21 +364,30 @@ export function OnboardingStepRenderer({
           </p>
 
           <div className="mt-7 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {PROJECT_TYPES.map((typeOption) => (
-              <button
-                key={typeOption.value}
-                type="button"
-                onClick={() => draftState.setProjectType(typeOption.value)}
-                className={cn(
-                  "cursor-pointer rounded-[10px] border-[1.5px] px-4 py-3 text-center text-[14px] font-medium transition-all duration-150 focus:outline-none",
-                  draft.projectType === typeOption.value
-                    ? "border-accent bg-[rgba(135,130,245,0.08)] text-accent"
-                    : "border-transparent bg-input-bg text-text-primary hover:bg-[#EFEFEF]",
-                )}
-              >
-                {typeOption.label}
-              </button>
-            ))}
+            {PROJECT_TYPES.map((typeOption) => {
+              const iconSrc = PROJECT_TYPE_ICONS[typeOption.value];
+              const isSelected = draft.projectType === typeOption.value;
+              return (
+                <button
+                  key={typeOption.value}
+                  type="button"
+                  onClick={() => draftState.setProjectType(typeOption.value)}
+                  className={cn(
+                    "flex cursor-pointer items-center justify-center gap-2 rounded-[10px] border-[1.5px] px-4 py-3 text-center text-[14px] font-medium transition-all duration-150 focus:outline-none",
+                    isSelected
+                      ? "border-accent bg-[rgba(135,130,245,0.08)] text-accent"
+                      : "border-transparent bg-input-bg text-text-primary hover:bg-[#EFEFEF]",
+                  )}
+                >
+                  {iconSrc ? (
+                    <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 object-contain" />
+                  ) : typeOption.value === "packaging" ? (
+                    <Package size={16} weight="regular" className="shrink-0" />
+                  ) : null}
+                  <span>{typeOption.label}</span>
+                </button>
+              );
+            })}
           </div>
         </OnboardingStepMotion>
       );
@@ -790,7 +808,7 @@ function ClaudeOnboardingStep({
   return (
     <>
       <div className="flex flex-col items-center text-center">
-        <img src="/claude.svg" alt="Claude" className="h-12 w-12" />
+        <img src="/logos/integrations/claude.svg" alt="Claude" className="h-12 w-12" />
         <h3 className="mt-4 font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
           Connect Claude
         </h3>
@@ -815,7 +833,7 @@ function ClaudeOnboardingStep({
           ) : (
             <>
               Continue with
-              <img src="/claude-full.svg" alt="Claude" className="h-[14px]" />
+              <img src="/logos/integrations/claude-full.svg" alt="Claude" className="h-[14px]" />
               <ArrowRight size={14} weight="bold" className="text-text-tertiary" />
             </>
           )}

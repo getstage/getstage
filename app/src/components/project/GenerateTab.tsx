@@ -79,7 +79,7 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
           onClick={() => void launchGenerateRun()}
         >
           <span>{latestRunActive ? "Open in" : "Generate via"}</span>
-          <img src="/claude-full.svg" alt="Claude" className="h-[15px]" />
+          <img src="/logos/integrations/claude-full.svg" alt="Claude" className="h-[15px]" />
         </button>
       </div>
 

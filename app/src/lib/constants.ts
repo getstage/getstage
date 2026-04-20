@@ -23,6 +23,17 @@ export const PROJECT_TYPES: ProjectTypeOption[] = [
   { value: "other", label: "Other" },
 ];
 
+export const PROJECT_TYPE_ICONS: Record<ProjectType, string | null> = {
+  branding: "/logos/create-project/pen.svg",
+  "web-design": "/logos/create-project/globe.svg",
+  "product-design": "/logos/create-project/computer.svg",
+  "app-design": "/logos/create-project/mobile.svg",
+  packaging: null,
+  "motion-design": "/logos/create-project/bounce.svg",
+  illustration: "/logos/create-project/draw.svg",
+  other: null,
+};
+
 export const DEFAULT_PHASES = ["Discovery", "Strategy", "Design", "Development", "Launch"];
 
 export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
