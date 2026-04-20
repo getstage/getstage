@@ -1,5 +1,5 @@
 import { Package } from "@phosphor-icons/react";
-import { BackButton, PrimaryButton, StepDots } from "@/components/creation/CreationChrome";
+import { BackButton, PrimaryButton } from "@/components/creation/CreationChrome";
 import { PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { WorkflowStep } from "@/hooks/useProjectCreation";
@@ -18,8 +18,8 @@ type ProjectTypeStepProps = {
 export function ProjectTypeStep({
   projectType,
   canContinue,
-  currentIndex,
-  steps,
+  currentIndex: _currentIndex,
+  steps: _steps,
   onProjectTypeChange,
   onContinue,
   onBack,
@@ -62,7 +62,6 @@ export function ProjectTypeStep({
 
       <PrimaryButton label="Continue" disabled={!canContinue} onClick={onContinue} />
       <BackButton onClick={onBack} />
-      <StepDots steps={steps} currentIndex={currentIndex} />
     </div>
   );
 }

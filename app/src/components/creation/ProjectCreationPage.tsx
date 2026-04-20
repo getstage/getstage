@@ -2,7 +2,8 @@ import { Helmet } from "react-helmet-async";
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { ArrowLeft } from "@phosphor-icons/react";
-import { StepCard } from "@/components/creation/CreationChrome";
+import stageLogo from "@/assets/logos/stage-logo-light.png";
+import { StepCard, StepDots } from "@/components/creation/CreationChrome";
 import { GeneratingState, SuccessState } from "@/components/creation/CreationStates";
 import { ClientStep } from "@/components/creation/steps/ClientStep";
 import { MethodStep } from "@/components/creation/steps/MethodStep";
@@ -33,13 +34,32 @@ export function ProjectCreationPage() {
           </Link>
         </div>
 
-        <div className="flex min-h-[calc(100vh-64px)] items-center justify-center px-4 py-16 sm:px-10 sm:py-20 lg:px-14">
+        <div className="flex min-h-[calc(100vh-64px)] items-start justify-center px-4 py-14 sm:px-10 sm:py-20 lg:px-14">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
-            className="w-full max-w-[420px]"
+            className="w-full max-w-[520px]"
           >
+            {creation.step !== "success" && !creation.isGenerating ? (
+              <div className="mb-7">
+                <img src={stageLogo} alt="Stage" className="mb-7 h-[22px] w-auto" />
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.3px] text-text-primary">
+                      Create a new project
+                    </h2>
+                    <p className="mt-1.5 text-[14px] leading-normal text-text-secondary">
+                      Set up the basics to get started
+                    </p>
+                  </div>
+                  <div className="pt-3 shrink-0">
+                    <StepDots steps={creation.steps} currentIndex={creation.currentIndex} />
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             {creation.errorMessage ? (
               <div className="mb-6 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-[13px] text-destructive">
                 {creation.errorMessage}

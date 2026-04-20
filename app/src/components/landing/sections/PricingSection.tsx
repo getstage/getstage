@@ -134,11 +134,11 @@ export function PricingSection() {
 
                 <ul className="landing-pricing-feature-list is-single-column">
                   {PRO_FEATURES.map((feature) => (
-                    <li key={feature} className="landing-pricing-feature-item">
+                    <li key={feature.label} className="landing-pricing-feature-item">
                       <span className="landing-pricing-feature-icon" aria-hidden="true">
                         <Check size={15} weight="bold" />
                       </span>
-                      <span className="landing-pricing-feature-text">{feature}</span>
+                      <span className="landing-pricing-feature-text">{feature.label}</span>
                     </li>
                   ))}
                 </ul>

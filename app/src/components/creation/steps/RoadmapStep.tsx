@@ -1,4 +1,4 @@
-import { BackButton, PrimaryButton, StepDots } from "@/components/creation/CreationChrome";
+import { BackButton, PrimaryButton } from "@/components/creation/CreationChrome";
 import type { WorkflowStep } from "@/hooks/useProjectCreation";
 import type { RoadmapTemplateItem } from "@/lib/constants";
 
@@ -16,8 +16,8 @@ export function RoadmapStep({
   roadmap,
   canContinue,
   isCreating,
-  currentIndex,
-  steps,
+  currentIndex: _currentIndex,
+  steps: _steps,
   onContinue,
   onBack,
 }: RoadmapStepProps) {
@@ -53,7 +53,6 @@ export function RoadmapStep({
         onClick={onContinue}
       />
       <BackButton onClick={onBack} />
-      <StepDots steps={steps} currentIndex={currentIndex} />
     </div>
   );
 }

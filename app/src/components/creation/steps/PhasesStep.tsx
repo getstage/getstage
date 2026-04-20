@@ -1,5 +1,5 @@
 import type { DragEvent } from "react";
-import { BackButton, PrimaryButton, StepDots } from "@/components/creation/CreationChrome";
+import { BackButton, PrimaryButton } from "@/components/creation/CreationChrome";
 import { cn } from "@/lib/utils";
 import type { PhaseItem, WorkflowStep } from "@/hooks/useProjectCreation";
 
@@ -25,8 +25,8 @@ export function PhasesStep({
   phases,
   editingPhaseId,
   canContinue,
-  currentIndex,
-  steps,
+  currentIndex: _currentIndex,
+  steps: _steps,
   onEditingPhaseIdChange,
   onTogglePhase,
   onAddPhase,
@@ -138,7 +138,6 @@ export function PhasesStep({
 
       <PrimaryButton label="Continue" disabled={!canContinue} onClick={onContinue} />
       <BackButton onClick={onBack} />
-      <StepDots steps={steps} currentIndex={currentIndex} />
     </div>
   );
 }

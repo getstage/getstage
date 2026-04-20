@@ -1,5 +1,5 @@
 import type { ChangeEvent, RefObject } from "react";
-import { PrimaryButton, StepDots } from "@/components/creation/CreationChrome";
+import { PrimaryButton } from "@/components/creation/CreationChrome";
 import { Avatar } from "@/components/ui/Avatar";
 import { PROJECT_MARKER_ACCEPT } from "@/lib/r2Uploads";
 import type { WorkflowStep } from "@/hooks/useProjectCreation";
@@ -21,8 +21,8 @@ export function ProjectBasicsStep({
   projectName,
   projectImage,
   canContinue,
-  currentIndex,
-  steps,
+  currentIndex: _currentIndex,
+  steps: _steps,
   projectImageInputRef,
   onProjectNameChange,
   onProjectImageChange,
@@ -97,7 +97,6 @@ export function ProjectBasicsStep({
       </div>
 
       <PrimaryButton label="Continue" disabled={!canContinue} onClick={onContinue} />
-      <StepDots steps={steps} currentIndex={currentIndex} />
     </div>
   );
 }

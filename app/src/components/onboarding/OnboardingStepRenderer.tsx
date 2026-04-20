@@ -1,6 +1,5 @@
 import { ArrowRight, Check, CopySimple, Package, PencilSimpleLine, Trash } from "@phosphor-icons/react";
 import { useState } from "react";
-import integrationsImage from "@/assets/onboarding/integrations.webp";
 import { OnboardingPaywall } from "@/components/onboarding/OnboardingPaywall";
 import { Avatar } from "@/components/ui/Avatar";
 import { PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
@@ -10,8 +9,8 @@ import type { UseProjectDraftResult } from "@/features/project-creation/useProje
 import type { OnboardingStepId } from "@/features/onboarding/model";
 import type { ProjectType } from "@/types";
 import type { ClaudeConnectionSummary } from "@/types/settings";
-import { CreatingDashboardText, LoadingStage, StaticOnboardingImage, WelcomeSlide } from "./OnboardingAnimations";
-import { GuideLink, OnboardingStepMotion, OptionCard } from "./OnboardingPrimitives";
+import { CreatingDashboardText, LoadingStage, WelcomeSlide } from "./OnboardingAnimations";
+import { GuideLink, OnboardingStepMotion, StepShell } from "./OnboardingPrimitives";
 
 const GOOGLE_SHEETS_ICON_SRC = new URL("../../assets/icons/google-sheets.svg", import.meta.url).href;
 const STRIPE_ICON_SRC = new URL("../../assets/icons/stripe.svg", import.meta.url).href;
@@ -95,39 +94,34 @@ export function OnboardingStepRenderer({
     case "personalise":
       return (
         <OnboardingStepMotion motionKey="personalise">
-          <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
-            Personalise your workspace
-          </h3>
-          <p className="mt-2 text-[15px] leading-normal text-text-secondary">
-            Choose one or more fields so Stage can tailor your workspace.
-          </p>
-
-          <div className="mt-7 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {PROJECT_TYPES.map((option) => {
-              const iconSrc = PROJECT_TYPE_ICONS[option.value];
-              const isSelected = fieldOfWork.includes(option.value);
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => onSelectField(option.value)}
-                  className={cn(
-                    "flex cursor-pointer items-center justify-center gap-2 rounded-[10px] border-[1.5px] px-4 py-3 text-[14px] font-medium transition-colors focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0",
-                    isSelected
-                      ? "border-accent bg-[rgba(135,130,245,0.09)] text-accent"
-                      : "border-transparent bg-input-bg text-text-primary hover:bg-[#EFEFF2]",
-                  )}
-                >
-                  {iconSrc ? (
-                    <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 object-contain" />
-                  ) : option.value === "packaging" ? (
-                    <Package size={16} weight="regular" className="shrink-0" />
-                  ) : null}
-                  <span>{option.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          <StepShell label="Field of work">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {PROJECT_TYPES.map((option) => {
+                const iconSrc = PROJECT_TYPE_ICONS[option.value];
+                const isSelected = fieldOfWork.includes(option.value);
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => onSelectField(option.value)}
+                    className={cn(
+                      "flex cursor-pointer items-center justify-center gap-2 rounded-[10px] border-[1.5px] bg-[#F5F5F7] px-4 py-4 text-[14px] font-medium transition-colors focus:outline-none",
+                      isSelected
+                        ? "border-accent bg-[rgba(135,130,245,0.09)] text-accent"
+                        : "border-transparent text-text-primary hover:bg-[#EFEFF2]",
+                    )}
+                  >
+                    {iconSrc ? (
+                      <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 object-contain" />
+                    ) : option.value === "packaging" ? (
+                      <Package size={16} weight="regular" className="shrink-0" />
+                    ) : null}
+                    <span>{option.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </StepShell>
         </OnboardingStepMotion>
       );
     case "claude":
@@ -144,87 +138,76 @@ export function OnboardingStepRenderer({
     case "details":
       return (
         <OnboardingStepMotion motionKey="details">
-          <h3 className="mb-2 text-center font-heading text-[24px] font-semibold tracking-[-0.4px] text-text-primary">
-            New project
-          </h3>
-          <p className="mb-8 text-center text-[15px] leading-normal text-text-secondary">
-            Let&apos;s set it up. This only takes a minute.
-          </p>
-
-          <div className="mb-4">
-            <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-              Project name
-            </label>
-            <input
-              type="text"
-              value={draft.projectName}
-              onChange={(event) => draftState.setProjectName(event.target.value)}
-              placeholder="Website Redesign"
-              autoFocus
-              className="w-full rounded-[10px] border border-transparent bg-input-bg px-4 py-3 text-[15px] text-text-primary outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
-            />
-          </div>
-
-          <div className="mb-6">
-            <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-              Project image <span className="font-normal text-text-tertiary">- optional</span>
-            </label>
-
-            <div className="flex items-center gap-4 rounded-[12px] border border-border-subtle bg-white px-4 py-4">
-              <div className="shrink-0">
-                <Avatar
-                  name={draft.projectName.trim() || "Project"}
-                  src={draft.projectImage ?? undefined}
-                  size="lg"
-                  variant="project"
-                  className="border border-border-subtle"
+          <StepShell label="Project Basics">
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                  Project name
+                </label>
+                <input
+                  type="text"
+                  value={draft.projectName}
+                  onChange={(event) => draftState.setProjectName(event.target.value)}
+                  placeholder="Baseframe"
+                  autoFocus
+                  className="w-full rounded-[10px] border border-transparent bg-[#F5F5F7] px-4 py-3 text-[15px] text-text-primary outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
                 />
               </div>
 
-              <div className="min-w-0 space-y-1">
-                <button
-                  type="button"
-                  onClick={() => draftState.projectImageInputRef.current?.click()}
-                  className="block cursor-pointer bg-transparent p-0 text-left text-[13px] text-text-secondary transition-colors hover:text-accent"
-                >
-                  {draft.projectImage ? "Replace photo" : "Upload photo"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => draftState.setProjectImage(null)}
-                  disabled={!draft.projectImage}
-                  className="block cursor-pointer bg-transparent p-0 text-left text-[13px] text-text-secondary transition-colors hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Remove
-                </button>
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                  Cover <span className="font-normal text-text-tertiary">(Optional)</span>
+                </label>
+                <div className="flex items-center gap-4 rounded-[10px] bg-[#F5F5F7] px-4 py-3">
+                  <div className="shrink-0">
+                    <Avatar
+                      name={draft.projectName.trim() || "Project"}
+                      src={draft.projectImage ?? undefined}
+                      size="md"
+                      variant="project"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1 space-x-3 text-[13px]">
+                    <button
+                      type="button"
+                      onClick={() => draftState.projectImageInputRef.current?.click()}
+                      className="cursor-pointer bg-transparent p-0 text-text-secondary transition-colors hover:text-accent"
+                    >
+                      {draft.projectImage ? "Replace photo" : "Upload Document"}
+                    </button>
+                    {draft.projectImage ? (
+                      <button
+                        type="button"
+                        onClick={() => draftState.setProjectImage(null)}
+                        className="cursor-pointer bg-transparent p-0 text-text-secondary transition-colors hover:text-destructive"
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+                <input
+                  ref={draftState.projectImageInputRef}
+                  type="file"
+                  accept={PROJECT_MARKER_ACCEPT}
+                  className="hidden"
+                  onChange={(event) => {
+                    void draftState.handleProjectImageFileChange(event);
+                  }}
+                />
               </div>
             </div>
-
-            <input
-              ref={draftState.projectImageInputRef}
-              type="file"
-              accept={PROJECT_MARKER_ACCEPT}
-              className="hidden"
-              onChange={(event) => {
-                void draftState.handleProjectImageFileChange(event);
-              }}
-            />
-          </div>
+          </StepShell>
         </OnboardingStepMotion>
       );
     case "client":
       return (
         <OnboardingStepMotion motionKey="client">
-          <h3 className="mb-2 text-center font-heading text-[24px] font-semibold tracking-[-0.4px] text-text-primary">
-            Client details
-          </h3>
-          <p className="mb-8 text-center text-[15px] leading-normal text-text-secondary">
-            Who is this project for?
-          </p>
-
-          <div className="mb-4">
+          <StepShell label="Client Details">
+            <div className="space-y-4">
+          <div>
             <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-              Client
+              Who is this for?
             </label>
             <select
               value={
@@ -259,12 +242,11 @@ export function OnboardingStepRenderer({
           </div>
 
           {draft.clientMode === "existing" && selectedClient ? (
-            <div className="mb-4 flex items-center gap-3 rounded-[12px] border border-border-subtle bg-bg-subtle px-3 py-3">
+            <div className="flex items-center gap-3 rounded-[10px] bg-[#F5F5F7] px-3 py-3">
               <Avatar
                 name={selectedClient.name}
                 src={selectedClient.avatarUrl}
                 size="md"
-                className="border border-border-subtle"
               />
               <div className="min-w-0">
                 <p className="truncate text-[14px] font-medium text-text-primary">
@@ -276,39 +258,39 @@ export function OnboardingStepRenderer({
               </div>
             </div>
           ) : (
-            <div className="mb-4">
+            <div>
               <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                Client name
+                Client Name
               </label>
               <input
                 type="text"
                 value={draft.clientMode === "new" ? draft.clientName : ""}
                 onChange={(event) => draftState.setClientName(event.target.value)}
-                placeholder="Acme Studio"
-                className="w-full rounded-[10px] border border-transparent bg-input-bg px-4 py-3 text-[15px] text-text-primary outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
+                placeholder="Baseframe"
+                className="w-full rounded-[10px] border border-transparent bg-[#F5F5F7] px-4 py-3 text-[15px] text-text-primary outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
               />
             </div>
           )}
 
-          <div className="mb-4">
+          <div>
             <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-              Client email <span className="font-normal text-text-tertiary">- required</span>
+              Client email <span className="font-normal text-text-tertiary">(Optional)</span>
             </label>
             <input
               type="email"
               value={draft.clientEmail}
               onChange={(event) => draftState.setClientEmail(event.target.value)}
               placeholder="client@example.com"
-              className="w-full rounded-[10px] border border-transparent bg-input-bg px-4 py-3 text-[15px] text-text-primary outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
+              className="w-full rounded-[10px] border border-transparent bg-[#F5F5F7] px-4 py-3 text-[15px] text-text-primary outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
             />
           </div>
 
-          <div className="mb-6">
+          <div>
             <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-              Client photo <span className="font-normal text-text-tertiary">- required</span>
+              Photo <span className="font-normal text-text-tertiary">(Optional)</span>
             </label>
 
-            <div className="flex items-center gap-4 rounded-[12px] border border-border-subtle bg-white px-4 py-4">
+            <div className="flex items-center gap-4 rounded-[10px] bg-[#F5F5F7] px-4 py-3">
               <div className="shrink-0">
                 <Avatar
                   name={
@@ -317,27 +299,26 @@ export function OnboardingStepRenderer({
                       : draft.clientName || "Client"
                   }
                   src={draft.clientAvatar ?? undefined}
-                  size="lg"
-                  className="border border-border-subtle"
+                  size="md"
                 />
               </div>
-
-              <div className="min-w-0 space-y-1">
+              <div className="min-w-0 flex-1 space-x-3 text-[13px]">
                 <button
                   type="button"
                   onClick={() => draftState.fileInputRef.current?.click()}
-                  className="block cursor-pointer bg-transparent p-0 text-left text-[13px] text-text-secondary transition-colors hover:text-accent"
+                  className="cursor-pointer bg-transparent p-0 text-text-secondary transition-colors hover:text-accent"
                 >
-                  {draft.clientAvatar ? "Replace photo" : "Upload photo"}
+                  {draft.clientAvatar ? "Replace photo" : "Upload Photo"}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => draftState.setClientAvatar(null)}
-                  disabled={!draft.clientAvatar}
-                  className="block cursor-pointer bg-transparent p-0 text-left text-[13px] text-text-secondary transition-colors hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Remove
-                </button>
+                {draft.clientAvatar ? (
+                  <button
+                    type="button"
+                    onClick={() => draftState.setClientAvatar(null)}
+                    className="cursor-pointer bg-transparent p-0 text-text-secondary transition-colors hover:text-destructive"
+                  >
+                    Remove
+                  </button>
+                ) : null}
               </div>
             </div>
 
@@ -351,83 +332,118 @@ export function OnboardingStepRenderer({
               }}
             />
           </div>
+            </div>
+          </StepShell>
         </OnboardingStepMotion>
       );
     case "project-type":
       return (
         <OnboardingStepMotion motionKey="project-type">
-          <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
-            What is the primary project type?
-          </h3>
-          <p className="mt-2 text-[15px] leading-normal text-text-secondary">
-            Pick the closest match for the roadmap. You can still work across multiple disciplines.
-          </p>
-
-          <div className="mt-7 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {PROJECT_TYPES.map((typeOption) => {
-              const iconSrc = PROJECT_TYPE_ICONS[typeOption.value];
-              const isSelected = draft.projectType === typeOption.value;
-              return (
-                <button
-                  key={typeOption.value}
-                  type="button"
-                  onClick={() => draftState.setProjectType(typeOption.value)}
-                  className={cn(
-                    "flex cursor-pointer items-center justify-center gap-2 rounded-[10px] border-[1.5px] px-4 py-3 text-center text-[14px] font-medium transition-all duration-150 focus:outline-none",
-                    isSelected
-                      ? "border-accent bg-[rgba(135,130,245,0.08)] text-accent"
-                      : "border-transparent bg-input-bg text-text-primary hover:bg-[#EFEFEF]",
-                  )}
-                >
-                  {iconSrc ? (
-                    <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 object-contain" />
-                  ) : typeOption.value === "packaging" ? (
-                    <Package size={16} weight="regular" className="shrink-0" />
-                  ) : null}
-                  <span>{typeOption.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          <StepShell label="Project Type">
+            <div className="grid grid-cols-2 gap-2">
+              {PROJECT_TYPES.map((typeOption) => {
+                const iconSrc = PROJECT_TYPE_ICONS[typeOption.value];
+                const isSelected = draft.projectType === typeOption.value;
+                return (
+                  <button
+                    key={typeOption.value}
+                    type="button"
+                    onClick={() => draftState.setProjectType(typeOption.value)}
+                    className={cn(
+                      "flex cursor-pointer items-center justify-center gap-2 rounded-[10px] border-[1.5px] bg-[#F5F5F7] px-4 py-6 text-center text-[14px] font-medium transition-all duration-150 focus:outline-none",
+                      isSelected
+                        ? "border-accent bg-[rgba(135,130,245,0.08)] text-accent"
+                        : "border-transparent text-text-primary hover:bg-[#EFEFEF]",
+                    )}
+                  >
+                    {iconSrc ? (
+                      <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 object-contain" />
+                    ) : typeOption.value === "packaging" ? (
+                      <Package size={16} weight="regular" className="shrink-0" />
+                    ) : null}
+                    <span>{typeOption.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </StepShell>
         </OnboardingStepMotion>
       );
-    case "method":
+    case "method": {
+      const activePhases = draft.phases.filter((phase) => phase.on);
       return (
         <OnboardingStepMotion motionKey="method">
-          <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
-            Build your roadmap
-          </h3>
-          <p className="mt-2 text-[15px] leading-normal text-text-secondary">
-            How do you want to structure this project?
-          </p>
+          <div className="space-y-3">
+            <StepShell label="How do you want to structure this project?">
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => draftState.setMethod("ai")}
+                  className="flex w-full cursor-pointer items-center gap-3 rounded-[10px] bg-transparent px-3 py-2.5 text-left transition-colors hover:bg-[#F5F5F7] focus:outline-none"
+                >
+                  <span
+                    className={cn(
+                      "grid h-5 w-5 shrink-0 place-items-center rounded-full border-[1.5px]",
+                      draft.method === "ai" ? "border-accent" : "border-[#D9D9D9]",
+                    )}
+                  >
+                    {draft.method === "ai" ? (
+                      <span className="h-[9px] w-[9px] rounded-full bg-accent" />
+                    ) : null}
+                  </span>
+                  <span className="text-[15px] font-medium text-text-primary">Smart Setup</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => draftState.setMethod("manual")}
+                  className="flex w-full cursor-pointer items-center gap-3 rounded-[10px] bg-transparent px-3 py-2.5 text-left transition-colors hover:bg-[#F5F5F7] focus:outline-none"
+                >
+                  <span
+                    className={cn(
+                      "grid h-5 w-5 shrink-0 place-items-center rounded-full border-[1.5px]",
+                      draft.method === "manual" ? "border-accent" : "border-[#D9D9D9]",
+                    )}
+                  >
+                    {draft.method === "manual" ? (
+                      <span className="h-[9px] w-[9px] rounded-full bg-accent" />
+                    ) : null}
+                  </span>
+                  <span className="text-[15px] font-medium text-text-primary">Manual Setup</span>
+                </button>
+              </div>
+            </StepShell>
 
-          <div className="mt-7 flex flex-col gap-2.5">
-            <OptionCard
-              active={draft.method === "ai"}
-              title="AI-Generated"
-              description="Tailored phases and tasks based on your project type."
-              onClick={() => draftState.setMethod("ai")}
-            />
-            <OptionCard
-              active={draft.method === "manual"}
-              title="Manual Setup"
-              description="Choose your own phases and add tasks as you go."
-              onClick={() => draftState.setMethod("manual")}
-            />
+            {activePhases.length > 0 ? (
+              <StepShell>
+                <div className="relative py-1 pl-1">
+                  <span
+                    aria-hidden
+                    className="absolute bottom-[18px] left-[10px] top-[18px] w-[2px] rounded-full bg-accent"
+                  />
+                  <ul className="space-y-4">
+                    {activePhases.map((phase) => (
+                      <li key={phase.id} className="relative flex items-center gap-3">
+                        <span className="relative z-10 grid h-5 w-5 shrink-0 place-items-center rounded-full border-[2px] border-accent bg-white">
+                          <span className="h-[9px] w-[9px] rounded-full bg-accent" />
+                        </span>
+                        <span className="text-[15px] font-medium text-text-primary">
+                          {phase.name}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </StepShell>
+            ) : null}
           </div>
         </OnboardingStepMotion>
       );
+    }
     case "phase-select":
       return (
         <OnboardingStepMotion motionKey="phase-select">
-          <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
-            Select phases
-          </h3>
-          <p className="mt-2 text-[15px] leading-normal text-text-secondary">
-            Rename, remove, toggle, or reorder the phases you want.
-          </p>
-
-          <div className="mt-6">
+          <StepShell label="Select phases">
+          <div>
             {draft.phases.map((phase, index) => (
               <div
                 key={phase.id}
@@ -516,78 +532,74 @@ export function OnboardingStepRenderer({
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={draftState.addPhase}
-            className="mt-2 inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-accent transition-colors hover:text-accent-hover"
-          >
-            + Add phase
-          </button>
+            <button
+              type="button"
+              onClick={draftState.addPhase}
+              className="mt-2 inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-accent transition-colors hover:text-accent-hover"
+            >
+              + Add phase
+            </button>
+          </StepShell>
         </OnboardingStepMotion>
       );
     case "timeline":
       return (
         <OnboardingStepMotion motionKey="timeline">
-          <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
-            Project timeline
-          </h3>
-          <p className="mt-2 text-[15px] leading-normal text-text-secondary">
-            When does this project start and end?
-          </p>
+          <StepShell label="Project timeline">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex-1">
+                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                  Start date
+                </label>
+                <input
+                  type="date"
+                  value={draft.startDate}
+                  onChange={(event) => draftState.setStartDate(event.target.value)}
+                  className="w-full rounded-[10px] border border-transparent bg-[#F5F5F7] px-[14px] py-3 text-[14px] text-text-primary outline-none transition-all focus:border-border focus:bg-white"
+                />
+              </div>
 
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-            <div className="flex-1">
-              <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                Start date
-              </label>
-              <input
-                type="date"
-                value={draft.startDate}
-                onChange={(event) => draftState.setStartDate(event.target.value)}
-                className="w-full rounded-[10px] border border-transparent bg-input-bg px-[14px] py-3 text-[14px] text-text-primary outline-none transition-all duration-200 focus:border-border focus:bg-white"
-              />
+              <div className="flex-1">
+                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                  End date
+                </label>
+                <input
+                  type="date"
+                  value={draft.endDate}
+                  onChange={(event) => draftState.setEndDate(event.target.value)}
+                  className="w-full rounded-[10px] border border-transparent bg-[#F5F5F7] px-[14px] py-3 text-[14px] text-text-primary outline-none transition-all focus:border-border focus:bg-white"
+                />
+              </div>
             </div>
-
-            <div className="flex-1">
-              <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                End date
-              </label>
-              <input
-                type="date"
-                value={draft.endDate}
-                onChange={(event) => draftState.setEndDate(event.target.value)}
-                className="w-full rounded-[10px] border border-transparent bg-input-bg px-[14px] py-3 text-[14px] text-text-primary outline-none transition-all duration-200 focus:border-border focus:bg-white"
-              />
-            </div>
-          </div>
+          </StepShell>
         </OnboardingStepMotion>
       );
     case "preview":
       return (
         <OnboardingStepMotion motionKey="preview">
-          <h3 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
-            Your roadmap
-          </h3>
-          <p className="mt-2 text-[15px] leading-normal text-text-secondary">
-            Looking good. You can adjust everything later.
-          </p>
-
-          <div className="mt-7">
-            {previewRoadmap.map((phase, index) => (
-              <div key={`${phase.name}-${index}`} className="flex items-center gap-3.5">
-                <div className="flex w-[18px] shrink-0 flex-col items-center">
-                  <span className="h-2.5 w-2.5 rounded-full bg-accent" />
-                  {index < previewRoadmap.length - 1 ? <span className="h-7 w-px bg-border" /> : null}
-                </div>
-                <div className="flex flex-1 items-center justify-between py-2">
-                  <span className="text-[14px] font-medium text-text-primary">{phase.name}</span>
-                  <span className="text-[13px] text-text-secondary">
-                    {phase.tasks.length > 0 ? `${phase.tasks.length} tasks` : "0 tasks"}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+          <StepShell label="Your roadmap">
+            <div className="relative py-1 pl-1">
+              <span
+                aria-hidden
+                className="absolute bottom-[18px] left-[10px] top-[18px] w-[2px] rounded-full bg-accent"
+              />
+              <ul className="space-y-4">
+                {previewRoadmap.map((phase, index) => (
+                  <li key={`${phase.name}-${index}`} className="relative flex items-center gap-3">
+                    <span className="relative z-10 grid h-5 w-5 shrink-0 place-items-center rounded-full border-[2px] border-accent bg-white">
+                      <span className="h-[9px] w-[9px] rounded-full bg-accent" />
+                    </span>
+                    <span className="flex-1 text-[15px] font-medium text-text-primary">
+                      {phase.name}
+                    </span>
+                    <span className="text-[13px] text-text-secondary">
+                      {phase.tasks.length > 0 ? `${phase.tasks.length} tasks` : "0 tasks"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </StepShell>
         </OnboardingStepMotion>
       );
     case "generating-roadmap":
@@ -605,90 +617,124 @@ export function OnboardingStepRenderer({
     case "integrations":
       return (
         <OnboardingStepMotion motionKey="integrations">
-          <StaticOnboardingImage src={integrationsImage} alt="Integrations preview" />
-
-          <div className="mt-6 border-t border-border-subtle pt-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2.5">
+          <div className="space-y-3">
+            <StepShell label="Select tools you want to integrate">
+              <ul className="divide-y divide-[#EFEFF2]">
+                <li className="flex items-center gap-3 py-3">
                   <img
-                    src={GOOGLE_SHEETS_ICON_SRC}
-                    alt="Google Sheets"
-                    className="h-4 w-4"
+                    src="/logos/integrations/claude.svg"
+                    alt=""
+                    className="h-5 w-5 shrink-0 object-contain"
                   />
-                  <p className="text-[15px] font-medium text-text-primary">Google Sheets import</p>
-                </div>
-                <GuideLink
-                  href={googleSheetsGuideHref}
-                  openInNewTab
-                  className="mt-1 text-[13px] font-medium text-accent underline decoration-[rgba(135,130,245,0.35)] underline-offset-4 hover:text-accent-hover hover:decoration-[rgba(118,112,224,0.55)]"
-                >
-                  View import guide
-                </GuideLink>
-              </div>
-
-              <button
-                type="button"
-                onClick={onToggleCsvConnection}
-                className="cursor-pointer text-[14px] font-medium text-accent transition-colors hover:text-accent-hover focus:outline-none"
-              >
-                {csvConnected ? "Unlink" : "Link Google Sheets"}
-              </button>
-            </div>
-
-            {csvConnected ? (
-              <>
-                <div className="mt-3 flex flex-col gap-2 md:flex-row">
-                  <input
-                    value={sheetUrl}
-                    onChange={(event) => onSheetUrlChange(event.target.value)}
-                    placeholder="Paste your Google Sheets link"
-                    className="h-[44px] flex-1 rounded-[10px] border border-transparent bg-input-bg px-3.5 text-[14px] text-text-primary transition-all duration-200 outline-none placeholder:text-text-tertiary focus:border-border focus:bg-white"
+                  <span className="text-[15px] font-medium text-text-primary">Claude</span>
+                </li>
+                <li className="flex items-center gap-3 py-3">
+                  <img
+                    src="/logos/integrations/codex.svg"
+                    alt=""
+                    className="h-5 w-5 shrink-0 object-contain"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
                   />
+                  <span className="text-[15px] font-medium text-text-primary">Codex</span>
+                </li>
+                <li className="flex items-center gap-3 py-3">
+                  <img
+                    src="/logos/integrations/figma.svg"
+                    alt=""
+                    className="h-5 w-5 shrink-0 object-contain"
+                  />
+                  <span className="text-[15px] font-medium text-text-primary">Figma</span>
+                </li>
+                <li className="flex items-center gap-3 py-3">
+                  <img
+                    src="/logos/integrations/notion.svg"
+                    alt=""
+                    className="h-5 w-5 shrink-0 object-contain"
+                  />
+                  <span className="text-[15px] font-medium text-text-primary">Notion</span>
+                </li>
+              </ul>
+            </StepShell>
+
+            <details className="rounded-[12px] bg-[#F5F5F7] px-4 py-3 text-[13px] text-text-secondary">
+              <summary className="cursor-pointer text-[13px] font-medium text-text-primary">
+                Advanced: Google Sheets &amp; Stripe
+              </summary>
+              <div className="mt-3 space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2.5">
+                      <img src={GOOGLE_SHEETS_ICON_SRC} alt="Google Sheets" className="h-4 w-4" />
+                      <p className="text-[14px] font-medium text-text-primary">Google Sheets import</p>
+                    </div>
+                    <GuideLink
+                      href={googleSheetsGuideHref}
+                      openInNewTab
+                      className="mt-1 text-[12px] font-medium text-accent underline decoration-[rgba(135,130,245,0.35)] underline-offset-4 hover:text-accent-hover hover:decoration-[rgba(118,112,224,0.55)]"
+                    >
+                      View import guide
+                    </GuideLink>
+                  </div>
                   <button
                     type="button"
-                    onClick={onLinkSheetUrl}
-                    disabled={!sheetUrl.trim() || csvImporting}
-                    className="h-[44px] w-full cursor-pointer rounded-[10px] bg-accent px-4 text-[14px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-default disabled:opacity-45 focus:outline-none md:min-w-[220px] md:w-auto"
+                    onClick={onToggleCsvConnection}
+                    className="cursor-pointer text-[13px] font-medium text-accent transition-colors hover:text-accent-hover focus:outline-none"
                   >
-                    {csvImporting ? "Linking..." : "Link Google Sheets"}
+                    {csvConnected ? "Unlink" : "Link Google Sheets"}
                   </button>
                 </div>
-                {csvImported ? (
-                  <div className="mt-2 text-[12px] text-accent">
-                    Imported. We&apos;ll use this data in your dashboard.
-                  </div>
-                ) : null}
-              </>
-            ) : (
-              <p className="mt-3 max-w-[520px] text-[13px] leading-[1.45] text-text-secondary">
-                Optional for now. Copy our{" "}
-                <a
-                  href={GOOGLE_SHEETS_TEMPLATE_HREF}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="font-medium text-accent underline decoration-[rgba(135,130,245,0.35)] underline-offset-4 hover:text-accent-hover hover:decoration-[rgba(118,112,224,0.55)]"
-                >
-                  Stage template
-                </a>
-                , fill in your invoices and expenses, then click{" "}
-                <span className="font-medium text-text-primary">Link Google Sheets</span> to connect
-                it. The template has everything set up for you.
-              </p>
-            )}
-          </div>
+                {csvConnected ? (
+                  <>
+                    <div className="flex flex-col gap-2 md:flex-row">
+                      <input
+                        value={sheetUrl}
+                        onChange={(event) => onSheetUrlChange(event.target.value)}
+                        placeholder="Paste your Google Sheets link"
+                        className="h-[40px] flex-1 rounded-[10px] border border-transparent bg-white px-3.5 text-[13px] text-text-primary transition-all outline-none placeholder:text-text-tertiary focus:border-border"
+                      />
+                      <button
+                        type="button"
+                        onClick={onLinkSheetUrl}
+                        disabled={!sheetUrl.trim() || csvImporting}
+                        className="h-[40px] cursor-pointer rounded-[10px] bg-accent px-4 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-default disabled:opacity-45 focus:outline-none"
+                      >
+                        {csvImporting ? "Linking..." : "Link"}
+                      </button>
+                    </div>
+                    {csvImported ? (
+                      <div className="text-[12px] text-accent">
+                        Imported. We&apos;ll use this data in your dashboard.
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className="text-[12px] leading-[1.45] text-text-secondary">
+                    Optional. Copy our{" "}
+                    <a
+                      href={GOOGLE_SHEETS_TEMPLATE_HREF}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="font-medium text-accent underline decoration-[rgba(135,130,245,0.35)] underline-offset-4 hover:text-accent-hover"
+                    >
+                      Stage template
+                    </a>
+                    , fill in your invoices and expenses, then click Link Google Sheets.
+                  </p>
+                )}
 
-          <div className="mt-4 border-t border-border-subtle pt-5">
-            <div className="flex items-start gap-2.5">
-              <img src={STRIPE_ICON_SRC} alt="Stripe" className="mt-0.5 h-4 w-4 shrink-0" />
-              <div>
-                <p className="text-[15px] font-medium text-text-primary">Stripe</p>
-                <p className="mt-1 text-[13px] leading-[1.45] text-text-secondary">
-                  Stripe will be ready right after onboarding, so you can connect payouts and payment
-                  tracking next.
-                </p>
+                <div className="flex items-start gap-2.5 border-t border-[#EFEFF2] pt-3">
+                  <img src={STRIPE_ICON_SRC} alt="Stripe" className="mt-0.5 h-4 w-4 shrink-0" />
+                  <div>
+                    <p className="text-[14px] font-medium text-text-primary">Stripe</p>
+                    <p className="mt-1 text-[12px] leading-[1.45] text-text-secondary">
+                      Stripe will be ready right after onboarding.
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
+            </details>
           </div>
         </OnboardingStepMotion>
       );

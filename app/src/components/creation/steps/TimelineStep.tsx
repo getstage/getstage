@@ -1,4 +1,4 @@
-import { BackButton, PrimaryButton, StepDots } from "@/components/creation/CreationChrome";
+import { BackButton, PrimaryButton } from "@/components/creation/CreationChrome";
 import type { WorkflowStep } from "@/hooks/useProjectCreation";
 
 type TimelineStepProps = {
@@ -16,8 +16,8 @@ type TimelineStepProps = {
 
 export function TimelineStep({
   canContinue,
-  currentIndex,
-  steps,
+  currentIndex: _currentIndex,
+  steps: _steps,
   startDate,
   endDate,
   continueLabel,
@@ -42,7 +42,6 @@ export function TimelineStep({
 
       <PrimaryButton label={continueLabel} disabled={!canContinue} onClick={onContinue} />
       <BackButton onClick={onBack} />
-      <StepDots steps={steps} currentIndex={currentIndex} />
     </div>
   );
 }

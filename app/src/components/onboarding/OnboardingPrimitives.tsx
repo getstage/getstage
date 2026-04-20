@@ -92,6 +92,25 @@ export function StepDots({ total, current }: { total: number; current: number })
   );
 }
 
+export function StepShell({
+  label,
+  children,
+  className,
+}: {
+  label?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("rounded-[16px] bg-[#F4F4F5] p-1", className)}>
+      {label ? (
+        <div className="px-4 pb-3 pt-3 text-[14px] font-semibold text-text-primary">{label}</div>
+      ) : null}
+      <div className="rounded-[12px] bg-white p-4">{children}</div>
+    </div>
+  );
+}
+
 export function OnboardingStepMotion({
   motionKey,
   children,

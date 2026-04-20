@@ -1,5 +1,5 @@
 import type { ChangeEvent, RefObject } from "react";
-import { PrimaryButton, StepDots } from "@/components/creation/CreationChrome";
+import { PrimaryButton } from "@/components/creation/CreationChrome";
 import { Avatar } from "@/components/ui/Avatar";
 import type { WorkflowStep } from "@/hooks/useProjectCreation";
 
@@ -42,8 +42,8 @@ export function ClientStep({
   clientAvatar,
   existingClients,
   canContinue,
-  currentIndex,
-  steps,
+  currentIndex: _currentIndex,
+  steps: _steps,
   fileInputRef,
   onClientModeChange,
   onExistingClientSelect,
@@ -185,7 +185,6 @@ export function ClientStep({
       </div>
 
       <PrimaryButton label="Continue" disabled={!canContinue} onClick={onContinue} />
-      <StepDots steps={steps} currentIndex={currentIndex} />
 
       <button
         type="button"

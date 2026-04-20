@@ -109,11 +109,11 @@ export function UpgradePricingModal({
               <ul className="mt-5 flex-1 space-y-2.5">
                 {PRO_FEATURES.map((feature) => (
                   <li
-                    key={feature}
+                    key={feature.label}
                     className="flex items-start gap-2 text-[14px] text-text-primary"
                   >
                     <Check size={14} weight="bold" className="mt-0.5 shrink-0 text-accent" />
-                    {feature}
+                    {feature.label}
                   </li>
                 ))}
               </ul>
