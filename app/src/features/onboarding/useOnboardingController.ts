@@ -438,7 +438,7 @@ export function useOnboardingController({
     setSetProjectLater(true);
     const submission = buildPendingSubmission(false);
     setPendingSubmission(submission);
-    setStep("paywall");
+    completeWithSubmission(submission);
   }
 
   function handleToggleCsvConnection() {

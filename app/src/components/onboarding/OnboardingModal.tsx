@@ -149,7 +149,6 @@ export function OnboardingModal({
                 onSelectField={controller.handleSelectField}
                 draftState={controller.draftState}
                 stepError={controller.stepError}
-                previewRoadmap={controller.draftState.roadmap}
                 sheetUrl={controller.sheetUrl}
                 csvConnected={controller.csvConnected}
                 csvImported={controller.csvImported}

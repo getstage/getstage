@@ -164,9 +164,9 @@ export function useProjectDraft({
       clientMode: "new",
       selectedExistingClientName: "",
       clientName: value,
-      clientEmail: "",
-      clientAvatar: null,
-      pendingAvatarFile: null,
+      clientEmail: current.clientMode === "existing" ? "" : current.clientEmail,
+      clientAvatar: current.clientMode === "existing" ? null : current.clientAvatar,
+      pendingAvatarFile: current.clientMode === "existing" ? null : current.pendingAvatarFile,
     }));
   }
 

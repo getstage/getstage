@@ -74,15 +74,17 @@ export function GuideLink({
 
 export function StepDots({ total, current }: { total: number; current: number }) {
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-2">
       {Array.from({ length: total }).map((_, index) => (
         <div
           key={index}
           className={cn(
-            "h-1.5 w-8 rounded-[3px] transition-colors duration-200",
+            "h-1.5 rounded-full transition-all duration-200",
             index <= current
-              ? "bg-gradient-to-r from-[#8D87FF] to-[#716BE6]"
-              : "bg-[#E7E6FD]",
+              ? index === current
+                ? "w-8 bg-gradient-to-r from-[#8D87FF] to-[#716BE6]"
+                : "w-1.5 bg-[#8D87FF]"
+              : "w-1.5 bg-[#D9D9D9]",
           )}
         />
       ))}

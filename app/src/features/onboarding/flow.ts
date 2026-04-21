@@ -66,6 +66,7 @@ export function canContinue({
   method,
   projectName,
   clientName,
+  clientEmail,
   projectType,
   activePhasesLength,
 }: Omit<ValidationContext, "startDate" | "endDate">) {
@@ -75,7 +76,12 @@ export function canContinue({
     case "claude":
       return true;
     case "details":
-      return setProjectLater || (projectName.trim().length > 0 && clientName.trim().length > 0);
+      return (
+        setProjectLater ||
+        (projectName.trim().length > 0 &&
+          clientName.trim().length > 0 &&
+          clientEmail.trim().length > 0)
+      );
     case "project-type":
       return projectType !== null;
     case "method":
@@ -123,11 +129,11 @@ export function getStepValidationError({
       if (!clientNameParsed.success) {
         return clientNameParsed.error.issues[0]?.message ?? "Please enter a client name.";
       }
-      if (clientEmail.trim()) {
-        const clientEmailParsed = clientInfoSchema.shape.clientEmail.safeParse(clientEmail);
-        if (!clientEmailParsed.success) {
-          return clientEmailParsed.error.issues[0]?.message ?? "Please enter a valid email address.";
-        }
+      const clientEmailParsed = clientInfoSchema.shape.clientEmail.safeParse(clientEmail);
+      if (!clientEmailParsed.success) {
+        return clientEmail.trim().length === 0
+          ? "Client email is required."
+          : (clientEmailParsed.error.issues[0]?.message ?? "Please enter a valid email address.");
       }
       return null;
     }
