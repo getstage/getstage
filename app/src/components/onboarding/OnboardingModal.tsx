@@ -9,6 +9,13 @@ import { useOnboardingController } from "@/features/onboarding/useOnboardingCont
 
 export type { OnboardingSubmission } from "@/features/onboarding/model";
 
+const SETUP_PROGRESS_STEPS: OnboardingStepId[] = [
+  "details",
+  "project-type",
+  "method",
+  "timeline",
+];
+
 type OnboardingModalProps = {
   open: boolean;
   userName?: string;
@@ -16,17 +23,17 @@ type OnboardingModalProps = {
   googleSheetsGuideHref?: string | null;
 };
 
-function getStepHeader(step: OnboardingStepId, userName?: string): { title: string; subtitle: string } {
+function getStepHeader(step: OnboardingStepId): { title: string; subtitle: string } {
   switch (step) {
     case "welcome":
       return {
-        title: userName ? `Welcome to Stage, ${userName}.` : "Welcome to Stage.",
-        subtitle: "A better way to organize your creative work starts here.",
+        title: "",
+        subtitle: "",
       };
     case "claude":
       return {
-        title: "Connect Claude",
-        subtitle: "Give Stage AI access to generate and manage your workspace.",
+        title: "Set up Claude",
+        subtitle: "Connect Claude to power conversations, reasoning, and content generation in your workspace.",
       };
     case "details":
     case "project-type":
@@ -64,16 +71,17 @@ export function OnboardingModal({
     onComplete,
   });
 
-  const { title: headerTitle, subtitle: headerSubtitle } = getStepHeader(controller.step, userName);
+  const { title: headerTitle, subtitle: headerSubtitle } = getStepHeader(controller.step);
   const showChrome =
     controller.step !== "creating" &&
     controller.step !== "celebrating" &&
     controller.step !== "generating-roadmap";
-  const showStepDots = controller.currentIndex >= 0 && controller.step !== "paywall";
+  const setupProgressIndex = SETUP_PROGRESS_STEPS.indexOf(controller.step);
+  const showStepDots = setupProgressIndex >= 0;
   const showContinueBar =
     controller.step !== "creating" &&
-    controller.step !== "celebrating" &&
     controller.step !== "generating-roadmap" &&
+    controller.step !== "claude" &&
     controller.step !== "paywall";
 
   return (
@@ -112,25 +120,27 @@ export function OnboardingModal({
             {showChrome ? (
               <div className="mb-7">
                 <img src={stageLogo} alt="Stage" className="mb-7 h-[22px] w-auto" />
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    {headerTitle ? (
-                      <h2 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.3px] text-text-primary">
-                        {headerTitle}
-                      </h2>
-                    ) : null}
-                    {headerSubtitle ? (
-                      <p className="mt-1.5 text-[14px] leading-normal text-text-secondary">
-                        {headerSubtitle}
-                      </p>
+                {headerTitle || headerSubtitle || showStepDots ? (
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      {headerTitle ? (
+                        <h2 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.3px] text-text-primary">
+                          {headerTitle}
+                        </h2>
+                      ) : null}
+                      {headerSubtitle ? (
+                        <p className="mt-1.5 text-[14px] leading-normal text-text-secondary">
+                          {headerSubtitle}
+                        </p>
+                      ) : null}
+                    </div>
+                    {showStepDots ? (
+                      <div className="shrink-0 pt-3">
+                        <StepDots total={SETUP_PROGRESS_STEPS.length} current={setupProgressIndex} />
+                      </div>
                     ) : null}
                   </div>
-                  {showStepDots ? (
-                    <div className="pt-3 shrink-0">
-                      <StepDots total={controller.flowSteps.length} current={controller.currentIndex} />
-                    </div>
-                  ) : null}
-                </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -155,11 +165,12 @@ export function OnboardingModal({
                 claudeSetupHref={controller.claudeSetupHref}
                 claudeInstallCommand={controller.claudeInstallCommand}
                 claudeConnectionId={controller.claudeConnectionId}
+                onClaudeActivated={controller.handleContinue}
                 onSheetUrlChange={controller.setSheetUrl}
                 onToggleCsvConnection={controller.handleToggleCsvConnection}
                 onLinkSheetUrl={controller.handleLinkSheetUrl}
                 onCreationDone={() => controller.setStep("paywall")}
-                  onContinueFree={() => controller.setStep("integrations")}
+                onContinueFree={() => controller.setStep("celebrating")}
                 onUpgrade={(billingCycle) => {
                   void controller.handlePaywallUpgrade(billingCycle);
                 }}
@@ -183,6 +194,8 @@ export function OnboardingModal({
                   <span>
                     {controller.step === "welcome"
                       ? "Start Setup"
+                      : controller.step === "celebrating"
+                        ? "Continue"
                       : controller.step === "integrations"
                         ? "Get Started"
                         : "Continue"}

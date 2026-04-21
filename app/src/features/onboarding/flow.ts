@@ -1,4 +1,5 @@
 import {
+  clientInfoSchema,
   dateRangeInputSchema,
   projectBasicsSchema,
   projectTypeSchema as projectTypeValidationSchema,
@@ -30,7 +31,7 @@ export function getFlowSteps({
   setProjectLater: boolean;
 }): OnboardingStepId[] {
   if (setProjectLater) {
-    return ["welcome", "details", "paywall", "integrations", "claude"];
+    return ["welcome", "details", "paywall", "celebrating", "integrations", "claude"];
   }
 
   return [
@@ -41,6 +42,7 @@ export function getFlowSteps({
     "timeline",
     "preview",
     "paywall",
+    "celebrating",
     "integrations",
     "claude",
   ];
@@ -63,6 +65,7 @@ export function canContinue({
   setProjectLater,
   method,
   projectName,
+  clientName,
   projectType,
   activePhasesLength,
 }: Omit<ValidationContext, "startDate" | "endDate">) {
@@ -72,7 +75,7 @@ export function canContinue({
     case "claude":
       return true;
     case "details":
-      return setProjectLater || projectName.trim().length > 0;
+      return setProjectLater || (projectName.trim().length > 0 && clientName.trim().length > 0);
     case "project-type":
       return projectType !== null;
     case "method":
@@ -80,10 +83,10 @@ export function canContinue({
     case "timeline":
     case "preview":
     case "integrations":
+    case "celebrating":
       return true;
     case "generating-roadmap":
     case "creating":
-    case "celebrating":
       return false;
     default:
       return false;
@@ -95,6 +98,8 @@ export function getStepValidationError({
   setProjectLater,
   method,
   projectName,
+  clientName,
+  clientEmail,
   projectType,
   activePhasesLength,
   startDate,
@@ -113,6 +118,16 @@ export function getStepValidationError({
       const basicsParsed = projectBasicsSchema.safeParse({ projectName });
       if (!basicsParsed.success) {
         return basicsParsed.error.issues[0]?.message ?? "Please enter a project name.";
+      }
+      const clientNameParsed = clientInfoSchema.shape.clientName.safeParse(clientName);
+      if (!clientNameParsed.success) {
+        return clientNameParsed.error.issues[0]?.message ?? "Please enter a client name.";
+      }
+      if (clientEmail.trim()) {
+        const clientEmailParsed = clientInfoSchema.shape.clientEmail.safeParse(clientEmail);
+        if (!clientEmailParsed.success) {
+          return clientEmailParsed.error.issues[0]?.message ?? "Please enter a valid email address.";
+        }
       }
       return null;
     }

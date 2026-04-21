@@ -61,6 +61,7 @@ type OnboardingStepRendererProps = {
   onCreationDone: () => void;
   onContinueFree: () => void;
   onUpgrade: (billingCycle: "monthly" | "yearly") => void;
+  onClaudeActivated: () => void;
 };
 
 export function OnboardingStepRenderer({
@@ -89,6 +90,7 @@ export function OnboardingStepRenderer({
   onCreationDone,
   onContinueFree,
   onUpgrade,
+  onClaudeActivated,
 }: OnboardingStepRendererProps) {
   const { draft } = draftState;
   const selectedClient =
@@ -144,70 +146,195 @@ export function OnboardingStepRenderer({
             claudeSetupHref={claudeSetupHref}
             claudeInstallCommand={claudeInstallCommand}
             claudeConnectionId={claudeConnectionId}
+            onActivate={onClaudeActivated}
           />
         </OnboardingStepMotion>
       );
     case "details":
       return (
         <OnboardingStepMotion motionKey="details">
-          <StepShell label="Project Basics">
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                  Project name
-                </label>
-                <input
-                  type="text"
-                  value={draft.projectName}
-                  onChange={(event) => draftState.setProjectName(event.target.value)}
-                  placeholder="Baseframe"
-                  autoFocus
-                  className="w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 py-2.5 text-[13px] font-medium text-text-primary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
-                />
-              </div>
+          <div className="space-y-3">
+            <StepShell label="Project Basics">
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                    Project name
+                  </label>
+                  <input
+                    type="text"
+                    value={draft.projectName}
+                    onChange={(event) => draftState.setProjectName(event.target.value)}
+                    placeholder="Baseframe"
+                    autoFocus
+                    className="w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 py-2.5 text-[13px] font-medium text-text-primary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
+                  />
+                </div>
 
-              <div>
-                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                  Cover <span className="font-normal text-text-tertiary">(Optional)</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => draftState.projectImageInputRef.current?.click()}
-                  className="flex w-full cursor-pointer items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
-                >
-                  <div className="shrink-0">
-                    <Avatar
-                      name={draft.projectName.trim() || "Project"}
-                      src={draft.projectImage ?? undefined}
-                      size="md"
-                      variant="project"
-                    />
-                  </div>
-                  <span className="text-[13px] font-medium text-text-secondary">
-                    {draft.projectImage ? "Replace document" : "Upload Document"}
-                  </span>
-                </button>
-                {draft.projectImage ? (
+                <div>
+                  <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                    Cover <span className="font-normal text-text-tertiary">(Optional)</span>
+                  </label>
                   <button
                     type="button"
-                    onClick={() => draftState.setProjectImage(null)}
-                    className="mt-2 cursor-pointer bg-transparent p-0 text-[12px] text-text-secondary transition-colors hover:text-destructive"
+                    onClick={() => draftState.projectImageInputRef.current?.click()}
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
                   >
-                    Remove document
+                    <div className="shrink-0">
+                      <Avatar
+                        name={draft.projectName.trim() || "Project"}
+                        src={draft.projectImage ?? undefined}
+                        size="md"
+                        variant="project"
+                      />
+                    </div>
+                    <span className="text-[13px] font-medium text-text-secondary">
+                      {draft.projectImage ? "Replace document" : "Upload Document"}
+                    </span>
                   </button>
-                ) : null}
-                <input
-                  ref={draftState.projectImageInputRef}
-                  type="file"
-                  accept={PROJECT_MARKER_ACCEPT}
-                  className="hidden"
-                  onChange={(event) => {
-                    void draftState.handleProjectImageFileChange(event);
-                  }}
-                />
+                  {draft.projectImage ? (
+                    <button
+                      type="button"
+                      onClick={() => draftState.setProjectImage(null)}
+                      className="mt-2 cursor-pointer bg-transparent p-0 text-[12px] text-text-secondary transition-colors hover:text-destructive"
+                    >
+                      Remove document
+                    </button>
+                  ) : null}
+                  <input
+                    ref={draftState.projectImageInputRef}
+                    type="file"
+                    accept={PROJECT_MARKER_ACCEPT}
+                    className="hidden"
+                    onChange={(event) => {
+                      void draftState.handleProjectImageFileChange(event);
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-          </StepShell>
+            </StepShell>
+
+            <StepShell label="Client Details">
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                    Who is this for?
+                  </label>
+                  <select
+                    value={
+                      draft.clientMode === "existing"
+                        ? draft.selectedExistingClientName
+                        : "__new__"
+                    }
+                    onChange={(event) => {
+                      const nextValue = event.target.value;
+                      if (nextValue === "__new__") {
+                        draftState.setClientMode("new");
+                        return;
+                      }
+
+                      const client = existingClients.find((item) => item.name === nextValue);
+                      if (!client) {
+                        draftState.setClientMode("new");
+                        return;
+                      }
+
+                      draftState.selectExistingClient(client);
+                    }}
+                    className="w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 py-2.5 text-[13px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 focus:border-border focus:bg-white"
+                  >
+                    <option value="__new__">Select Client</option>
+                    {existingClients.map((client) => (
+                      <option key={client.id} value={client.name}>
+                        {client.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {draft.clientMode === "existing" && selectedClient ? (
+                  <div className="flex items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+                    <Avatar name={selectedClient.name} src={selectedClient.avatarUrl} size="md" />
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-medium text-text-primary">
+                        {selectedClient.name}
+                      </p>
+                      <p className="text-[12px] text-text-secondary">
+                        {selectedClient.projectCount} project{selectedClient.projectCount === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                      Client Name
+                    </label>
+                    <input
+                      type="text"
+                      value={draft.clientMode === "new" ? draft.clientName : ""}
+                      onChange={(event) => draftState.setClientName(event.target.value)}
+                      placeholder="Baseframe"
+                      className="w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 py-2.5 text-[13px] font-medium text-text-primary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                    Client email <span className="font-normal text-text-tertiary">(Optional)</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={draft.clientEmail}
+                    onChange={(event) => draftState.setClientEmail(event.target.value)}
+                    placeholder="client@example.com"
+                    className="w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 py-2.5 text-[13px] font-medium text-text-primary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                    Photo <span className="font-normal text-text-tertiary">(Optional)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => draftState.fileInputRef.current?.click()}
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
+                  >
+                    <Avatar
+                      name={
+                        draft.clientMode === "existing"
+                          ? draft.selectedExistingClientName || draft.clientName
+                          : draft.clientName || "Client"
+                      }
+                      src={draft.clientAvatar ?? undefined}
+                      size="md"
+                    />
+                    <span className="text-[13px] font-medium text-text-secondary">
+                      {draft.clientAvatar ? "Replace photo" : "Upload Photo"}
+                    </span>
+                  </button>
+                  {draft.clientAvatar ? (
+                    <button
+                      type="button"
+                      onClick={() => draftState.setClientAvatar(null)}
+                      className="mt-2 cursor-pointer bg-transparent p-0 text-[12px] text-text-secondary transition-colors hover:text-destructive"
+                    >
+                      Remove photo
+                    </button>
+                  ) : null}
+                  <input
+                    ref={draftState.fileInputRef}
+                    type="file"
+                    accept={AVATAR_ACCEPT}
+                    className="hidden"
+                    onChange={(event) => {
+                      void draftState.handleAvatarFileChange(event);
+                    }}
+                  />
+                </div>
+              </div>
+            </StepShell>
+          </div>
         </OnboardingStepMotion>
       );
     case "client":
@@ -702,16 +829,8 @@ export function OnboardingStepRenderer({
       return (
         <OnboardingStepMotion motionKey="integrations">
           <div className="space-y-3">
-            <StepShell label="Select tools you want to integrate">
+            <StepShell label="Select your AI model">
               <ul className="divide-y divide-[#EFEFF2]">
-                <li className="flex items-center gap-3 py-3">
-                  <img
-                    src="/logos/integrations/claude.svg"
-                    alt=""
-                    className="h-5 w-5 shrink-0 object-contain"
-                  />
-                  <span className="text-[15px] font-medium text-text-primary">Claude</span>
-                </li>
                 <li className="flex items-center gap-3 py-3">
                   <img
                     src="/logos/integrations/codex.svg"
@@ -721,15 +840,54 @@ export function OnboardingStepRenderer({
                       event.currentTarget.style.display = "none";
                     }}
                   />
-                  <span className="text-[15px] font-medium text-text-primary">Codex</span>
+                  <span className="min-w-0 flex-1 text-[15px] font-medium text-text-primary">
+                    Codex
+                  </span>
+                  <button
+                    type="button"
+                    className="rounded-[6px] bg-[#F5F5F5] px-3 py-1.5 text-[12px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
+                  >
+                    Connect Codex
+                  </button>
                 </li>
+                <li className="flex items-center gap-3 py-3">
+                  <img
+                    src="/logos/integrations/claude.svg"
+                    alt=""
+                    className="h-5 w-5 shrink-0 object-contain"
+                  />
+                  <span className="min-w-0 flex-1 text-[15px] font-medium text-text-primary">
+                    Claude
+                  </span>
+                  <button
+                    type="button"
+                    className="rounded-[6px] bg-[#F5F5F5] px-3 py-1.5 text-[12px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
+                  >
+                    {claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
+                      ? "Connected"
+                      : "Connect Claude"}
+                  </button>
+                </li>
+              </ul>
+            </StepShell>
+
+            <StepShell label="Select tools you want to integrate">
+              <ul className="divide-y divide-[#EFEFF2]">
                 <li className="flex items-center gap-3 py-3">
                   <img
                     src="/logos/integrations/figma.svg"
                     alt=""
                     className="h-5 w-5 shrink-0 object-contain"
                   />
-                  <span className="text-[15px] font-medium text-text-primary">Figma</span>
+                  <span className="min-w-0 flex-1 text-[15px] font-medium text-text-primary">
+                    Figma
+                  </span>
+                  <button
+                    type="button"
+                    className="rounded-[6px] bg-[#F5F5F5] px-3 py-1.5 text-[12px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
+                  >
+                    Connect Figma
+                  </button>
                 </li>
                 <li className="flex items-center gap-3 py-3">
                   <img
@@ -737,7 +895,15 @@ export function OnboardingStepRenderer({
                     alt=""
                     className="h-5 w-5 shrink-0 object-contain"
                   />
-                  <span className="text-[15px] font-medium text-text-primary">Notion</span>
+                  <span className="min-w-0 flex-1 text-[15px] font-medium text-text-primary">
+                    Notion
+                  </span>
+                  <button
+                    type="button"
+                    className="rounded-[6px] bg-[#F5F5F5] px-3 py-1.5 text-[12px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
+                  >
+                    Connect Notion
+                  </button>
                 </li>
               </ul>
             </StepShell>
@@ -869,7 +1035,11 @@ function AlmostSetupPreview() {
         </p>
       </div>
       <div className="relative min-h-[280px] overflow-hidden bg-[#4B46C6]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_0%,rgba(255,255,255,0.95),rgba(255,255,255,0.08)_34%,rgba(255,255,255,0)_58%)]" />
+        <img
+          src="/onboarding/almost-setup-gradient.png"
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+        />
         <div className="absolute left-[12%] top-[18%] w-[108%] overflow-hidden rounded-[12px] bg-white shadow-[0_24px_70px_rgba(20,20,45,0.25)]">
           <img
             src={timelineOverviewImage}
@@ -888,7 +1058,7 @@ function ProSuccessCard() {
       <div className="rounded-[8px] bg-gradient-to-b from-[rgba(158,153,248,0.12)] to-white px-6 py-[72px] text-center shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
         <img src={stageLogo} alt="Stage" className="mx-auto h-[22px] w-auto" />
         <h3 className="mt-8 font-heading text-[18px] font-semibold leading-[1.2] text-text-primary">
-          You&apos;re on Pro now 🚀
+          You&apos;re on Pro now
         </h3>
         <p className="mx-auto mt-2 max-w-[422px] text-[12px] font-medium leading-[1.5] text-text-secondary">
           Unlock advanced workflows, deeper integrations, and faster execution. Connect Claude,
@@ -904,11 +1074,13 @@ function ClaudeOnboardingStep({
   claudeSetupHref,
   claudeInstallCommand,
   claudeConnectionId,
+  onActivate,
 }: {
   claudeConnection: ClaudeConnectionSummary;
   claudeSetupHref: string;
   claudeInstallCommand: string;
   claudeConnectionId: string | null;
+  onActivate: () => void;
 }) {
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -973,119 +1145,114 @@ function ClaudeOnboardingStep({
   );
 
   const fullPrompt = parts.join("\n");
+  const visibleSetup = [
+    "# Claude Setup",
+    "1. Install Stage agent mode:",
+    claudeInstallCommand,
+    "",
+    "2. Add your Stage API key:",
+    "export STAGE_API_KEY=stg_...",
+    "",
+    "3. Paste the copied setup prompt in Claude.",
+  ].join("\n");
 
-  async function handleContinue() {
+  async function handleActivate() {
     await navigator.clipboard.writeText(fullPrompt);
     setCopied("full");
     window.setTimeout(() => {
       window.open("https://claude.ai/new", "_blank");
-    }, 1200);
+    }, 500);
+    window.setTimeout(onActivate, 900);
     window.setTimeout(() => setCopied(null), 4000);
   }
 
   return (
-    <>
-      <div className="flex flex-col items-center text-center">
-        <img src="/logos/integrations/claude.svg" alt="Claude" className="h-12 w-12" />
-        <h3 className="mt-4 font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary">
-          Connect Claude
-        </h3>
-        <p className="mt-2 max-w-[420px] text-[14px] leading-[1.55] text-text-secondary">
-          Stage uses Claude for research, strategy, and content generation.
-          One click copies the setup prompt and opens Claude.
-        </p>
-      </div>
-
-      <div className="mt-7">
-        {/* Primary CTA — light Claude-tinted button */}
-        <button
-          type="button"
-          onClick={() => void handleContinue()}
-          className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-[#D97757]/18 bg-[#D97757]/[0.06] text-[15px] font-medium text-text-primary transition-all duration-150 hover:bg-[#D97757]/[0.11] active:bg-[#D97757]/[0.15]"
-        >
-          {copied === "full" ? (
-            <>
-              <Check size={15} weight="bold" className="text-[#22C55E]" />
-              Copied — opening Claude
-            </>
-          ) : (
-            <>
-              Continue with
-              <img src="/logos/integrations/claude-full.svg" alt="Claude" className="h-[14px]" />
-              <ArrowRight size={14} weight="bold" className="text-text-tertiary" />
-            </>
-          )}
-        </button>
-
-        {/* Copy prompt fallback */}
-        <div className="mt-3 flex justify-center">
-          <button
-            type="button"
-            onClick={() => {
-              void navigator.clipboard.writeText(fullPrompt);
-              setCopied("prompt");
-              window.setTimeout(() => setCopied(null), 2500);
-            }}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] border border-[#D97757]/15 bg-[#D97757]/[0.04] px-3 py-1.5 text-[12px] font-medium text-[#D97757] transition-all duration-150 hover:bg-[#D97757]/[0.09]"
-          >
-            <CopySimple size={12} weight="bold" />
-            {copied === "prompt" ? "Copied!" : "Copy Claude prompt"}
-          </button>
-        </div>
-
-        {/* Manual fallback */}
-        <div className="mt-5 rounded-[10px] border border-[#8782F5]/12 bg-[#F8F7FF] px-4 py-3">
-          <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.04em] text-[#8782F5]/60">
-            Install
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <code className="min-w-0 truncate font-body text-[13px] text-text-primary">
-              {claudeInstallCommand}
-            </code>
-            <button
-              type="button"
-              onClick={() => {
-                void navigator.clipboard.writeText(claudeInstallCommand);
-                setCopied("install");
-                window.setTimeout(() => setCopied(null), 1600);
-              }}
-              className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-text-tertiary transition-colors duration-150 hover:bg-white hover:text-text-secondary"
-            >
-              {copied === "install" ? <Check size={11} weight="bold" /> : <CopySimple size={11} />}
-              {copied === "install" ? "Copied" : "Copy"}
-            </button>
-          </div>
-        </div>
-
-        {/* Status + link */}
-        <div className="mt-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "h-[7px] w-[7px] shrink-0 rounded-full",
-                claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
-                  ? "bg-success"
-                  : "bg-border",
-              )}
-            />
-            <span className="text-[13px] text-text-secondary">
-              {claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
-                ? "Connected"
-                : "Not connected yet"}
+    <div className="space-y-3">
+      <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+        <div className="space-y-1">
+          <div className="flex items-center justify-between rounded-[8px] bg-white p-3 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+            <div className="flex items-center gap-2">
+              <img src="/logos/integrations/claude.svg" alt="" className="h-4 w-4" />
+              <span className="text-[13px] font-medium text-text-primary">Claude</span>
+            </div>
+            <span className="flex h-[18px] w-[30px] items-center justify-end rounded-full bg-[#DBD9FC] p-0.5">
+              <span className="h-[14px] w-[14px] rounded-full bg-[#221E6C]" />
             </span>
           </div>
-          <a
-            href={claudeSetupHref}
-            className="text-[13px] font-medium text-accent transition-colors duration-150 hover:text-accent-hover"
-          >
-            Setup guide &rarr;
-          </a>
-        </div>
 
-        <p className="mt-4 text-center text-[13px] text-text-tertiary">
-          You can also set this up later from Settings.
-        </p>
+          <div className="rounded-[8px] bg-white p-3 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+            <label className="mb-2 block text-[13px] font-medium text-text-primary">
+              API Key
+            </label>
+            <div className="flex items-center justify-between gap-3 rounded-[6px] bg-[#F5F5F5] py-1 pl-3 pr-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+              <span className="min-w-0 truncate text-[12px] font-medium text-text-secondary">
+                *******************
+              </span>
+              <button
+                type="button"
+                onClick={() => window.open(claudeSetupHref, "_blank")}
+                className="shrink-0 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 py-1 text-[12px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
+              >
+                Generate Key
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-[8px] bg-white p-3 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="text-[13px] font-medium text-text-primary">Auto-generated Setup</p>
+              <button
+                type="button"
+                onClick={() => {
+                  void navigator.clipboard.writeText(fullPrompt);
+                  setCopied("prompt");
+                  window.setTimeout(() => setCopied(null), 2500);
+                }}
+                className="inline-flex cursor-pointer items-center gap-1 text-[12px] font-medium text-text-tertiary transition-colors hover:text-text-primary"
+              >
+                {copied === "prompt" ? <Check size={12} weight="bold" /> : <CopySimple size={12} />}
+                {copied === "prompt" ? "Copied" : "Copy full prompt"}
+              </button>
+            </div>
+            <pre className="max-h-[172px] w-full overflow-auto whitespace-pre-wrap rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 font-body text-[12px] font-medium leading-[1.5] text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+              {visibleSetup}
+            </pre>
+          </div>
+        </div>
       </div>
-    </>
+
+      <button
+        type="button"
+        onClick={() => void handleActivate()}
+        className="inline-flex h-[40px] w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-5 text-[13px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 focus:outline-none"
+      >
+        {copied === "full" ? "Copied - opening Claude" : "Activate Claude"}
+        <ArrowRight size={16} weight="bold" />
+      </button>
+
+      <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              "h-[7px] w-[7px] shrink-0 rounded-full",
+              claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
+                ? "bg-success"
+                : "bg-border",
+            )}
+          />
+          <span className="text-[13px] text-text-secondary">
+            {claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
+              ? "Connected"
+              : "Not connected yet"}
+          </span>
+        </div>
+        <a
+          href={claudeSetupHref}
+          className="text-[13px] font-medium text-accent transition-colors duration-150 hover:text-accent-hover"
+        >
+          Setup guide &rarr;
+        </a>
+      </div>
+    </div>
   );
 }

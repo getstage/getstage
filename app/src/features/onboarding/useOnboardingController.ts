@@ -362,6 +362,9 @@ export function useOnboardingController({
         setStep("creating");
         return;
       }
+      case "celebrating":
+        setStep("integrations");
+        return;
       case "integrations": {
         setStep("claude");
         return;
