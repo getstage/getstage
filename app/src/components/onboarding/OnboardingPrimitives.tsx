@@ -81,10 +81,10 @@ export function StepDots({ total, current }: { total: number; current: number })
           className={cn(
             "h-1.5 rounded-[3px] transition-all duration-200",
             index === current
-              ? "w-8 bg-accent"
+              ? "w-8 bg-[#8D87FF]"
               : index < current
-                ? "w-2 bg-accent"
-                : "w-2 bg-[#D9D9D9]",
+                ? "w-2 bg-[#8D87FF]"
+                : "w-2 bg-[#E7E6FD]",
           )}
         />
       ))}
@@ -102,11 +102,11 @@ export function StepShell({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-[16px] bg-[#F4F4F5] p-1", className)}>
+    <div className={cn("rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]", className)}>
       {label ? (
-        <div className="px-4 pb-3 pt-3 text-[14px] font-semibold text-text-primary">{label}</div>
+        <div className="px-4 pb-3 pt-3 text-[13px] font-semibold text-text-primary">{label}</div>
       ) : null}
-      <div className="rounded-[12px] bg-white p-4">{children}</div>
+      <div className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">{children}</div>
     </div>
   );
 }

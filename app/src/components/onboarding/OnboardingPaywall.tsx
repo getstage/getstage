@@ -73,34 +73,44 @@ export function OnboardingPaywall({
   const pricing = PRO_PRICING[billingCycle];
 
   return (
-    <div className="rounded-[16px] bg-[#F4F4F5] p-1">
-      <div className="flex items-center gap-2 px-4 py-3">
-        <Sparkle size={16} weight="fill" className="text-accent" />
-        <p className="text-[14px] font-medium text-accent">Unlock more with Pro</p>
+    <div className="mx-auto w-full max-w-[520px] rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+      <div className="flex items-center gap-2 px-3 py-3">
+        <Sparkle size={18} weight="fill" className="text-[#5A52D5]" />
+        <p className="bg-gradient-to-r from-[#463FBA] via-[rgba(70,63,186,0.75)] to-[#463FBA] bg-clip-text text-[13px] font-medium text-transparent">
+          Unlock more with Pro
+        </p>
       </div>
 
-      <div className="rounded-[12px] bg-[rgba(135,130,245,0.08)] p-5">
+      <div className="rounded-[8px] bg-gradient-to-b from-white to-[rgba(158,153,248,0.05)] p-4 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
         <div className="flex items-center justify-between">
-          <p className="text-[15px] font-semibold text-accent">Pro</p>
+          <p className="bg-gradient-to-r from-[#463FBA] via-[rgba(70,63,186,0.75)] to-[#463FBA] bg-clip-text text-[13px] font-medium text-transparent">
+            Pro
+          </p>
           {pricing.badge ? (
-            <p className="text-[13px] font-medium text-accent">Most Popular</p>
+            <p className="bg-gradient-to-r from-[#463FBA] via-[rgba(70,63,186,0.75)] to-[#463FBA] bg-clip-text text-[13px] font-medium text-transparent">
+              Most Popular
+            </p>
           ) : (
-            <p className="text-[13px] font-medium text-accent">Most Popular</p>
+            <p className="bg-gradient-to-r from-[#463FBA] via-[rgba(70,63,186,0.75)] to-[#463FBA] bg-clip-text text-[13px] font-medium text-transparent">
+              Most Popular
+            </p>
           )}
         </div>
 
-        <div className="mt-4 flex items-baseline gap-1">
-          <span className="text-[36px] font-bold leading-none tracking-[-1px] text-text-primary">
+        <div className="mt-5">
+          <span className="block text-[19px] font-semibold leading-none text-text-primary">
             {pricing.price}
           </span>
-          <span className="text-[14px] text-text-secondary">{pricing.period}</span>
+          <span className="block text-[13px] font-medium leading-normal text-text-secondary">
+            {pricing.period}
+          </span>
         </div>
 
-        <ul className="mt-5 space-y-3">
+        <ul className="mt-6 space-y-3">
           {PRO_FEATURES.map(({ icon: Icon, label }) => (
-            <li key={label} className="flex items-start gap-2.5 text-[14px] text-text-primary">
-              <Icon size={16} weight="regular" className="mt-0.5 shrink-0 text-text-secondary" />
-              <span>{label}</span>
+            <li key={label} className="flex items-center gap-2 text-[13px] font-medium text-text-secondary">
+              <Icon size={16} weight="fill" className="shrink-0 text-text-secondary" />
+              <span className="min-w-0">{label}</span>
             </li>
           ))}
         </ul>
@@ -113,7 +123,7 @@ export function OnboardingPaywall({
           type="button"
           onClick={() => onUpgrade(billingCycle)}
           disabled={isUpgradeLoading}
-          className="mt-5 inline-flex h-[48px] w-full cursor-pointer items-center justify-center rounded-[12px] bg-accent text-[15px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-default disabled:opacity-50 focus:outline-none"
+          className="mt-6 inline-flex h-[40px] w-full cursor-pointer items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] text-[13px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-default disabled:opacity-50 focus:outline-none"
         >
           {isUpgradeLoading ? "Redirecting to checkout..." : pricing.cta}
         </button>
@@ -122,7 +132,7 @@ export function OnboardingPaywall({
       <button
         type="button"
         onClick={onContinueFree}
-        className="mt-1 inline-flex h-[48px] w-full cursor-pointer items-center justify-center gap-2 rounded-[12px] bg-white text-[14px] font-medium text-text-primary transition-colors hover:bg-[#EFEFF2] focus:outline-none"
+        className="mt-1 inline-flex h-[40px] w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-white text-[13px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFF2] focus:outline-none"
       >
         See All Plans
         <ArrowRight size={14} weight="bold" />

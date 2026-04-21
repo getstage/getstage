@@ -23,21 +23,14 @@ function getStepHeader(step: OnboardingStepId, userName?: string): { title: stri
         title: userName ? `Welcome to Stage, ${userName}.` : "Welcome to Stage.",
         subtitle: "A better way to organize your creative work starts here.",
       };
-    case "personalise":
-      return {
-        title: "Personalise your workspace",
-        subtitle: "Choose one or more fields so Stage can tailor your workspace.",
-      };
     case "claude":
       return {
         title: "Connect Claude",
         subtitle: "Give Stage AI access to generate and manage your workspace.",
       };
     case "details":
-    case "client":
     case "project-type":
     case "method":
-    case "phase-select":
     case "timeline":
     case "preview":
     case "generating-roadmap":
@@ -102,7 +95,7 @@ export function OnboardingModal({
           onPointerDownOutside={(event) => event.preventDefault()}
         >
           <motion.div
-            className="project-creation-page onboarding-modal timeline-scrollbar-hidden fixed inset-x-0 bottom-0 z-50 max-h-[92svh] w-full overflow-y-auto overscroll-contain rounded-t-[22px] bg-white px-5 pt-6 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[calc(100svh-40px)] sm:w-[calc(100%-32px)] sm:max-w-[560px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[22px] sm:px-7 sm:pt-7 sm:pb-7"
+            className="project-creation-page onboarding-modal timeline-scrollbar-hidden fixed inset-x-0 bottom-0 z-50 max-h-[92svh] w-full overflow-y-auto overscroll-contain rounded-t-[22px] bg-white px-5 pt-6 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[calc(100svh-40px)] sm:w-[calc(100%-32px)] sm:max-w-[844px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[22px] sm:px-9 sm:pt-9 sm:pb-8"
             initial={{ opacity: 0, y: 18, scale: 0.985, filter: "blur(10px)" }}
             animate={
               controller.isClosing
@@ -166,7 +159,7 @@ export function OnboardingModal({
                 onToggleCsvConnection={controller.handleToggleCsvConnection}
                 onLinkSheetUrl={controller.handleLinkSheetUrl}
                 onCreationDone={() => controller.setStep("paywall")}
-                onContinueFree={controller.handleContinueFree}
+                  onContinueFree={() => controller.setStep("integrations")}
                 onUpgrade={(billingCycle) => {
                   void controller.handlePaywallUpgrade(billingCycle);
                 }}
@@ -183,7 +176,7 @@ export function OnboardingModal({
 
                 <button
                   type="button"
-                  className="inline-flex h-[50px] w-full cursor-pointer items-center justify-center gap-2 rounded-[12px] bg-accent px-5 text-[15px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-default disabled:opacity-45 focus:outline-none"
+                  className="inline-flex h-[48px] w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-5 text-[13px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-default disabled:opacity-45 focus:outline-none"
                   disabled={!controller.continueEnabled}
                   onClick={controller.handleContinue}
                 >

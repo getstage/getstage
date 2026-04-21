@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  clientInfoSchema,
   dateRangeInputSchema,
-  manualPhaseSelectionSchema,
   projectBasicsSchema,
 } from "@/lib/validation";
 
-export type WorkflowStep = 1 | "1b" | 2 | 3 | "4a" | "4m" | "4mb" | 5;
+export type WorkflowStep = 1 | 2 | 3 | 4 | 5;
 export type ProjectCreationStep = WorkflowStep | "success";
 
 type ProjectCreationFlowInput = {
@@ -29,9 +27,6 @@ type ProjectCreationFlowInput = {
 
 export function useProjectCreationFlow({
   projectName,
-  clientName,
-  clientEmail,
-  hasClientAvatar,
   projectType,
   method,
   startDate,
@@ -48,32 +43,20 @@ export function useProjectCreationFlow({
   const generationTimeoutRef = useRef<number | undefined>(undefined);
 
   const steps = useMemo<WorkflowStep[]>(
-    () =>
-      method === "manual"
-        ? [1, "1b", 2, 3, "4m", "4mb", 5]
-        : [1, "1b", 2, 3, "4a", 5],
-    [method],
+    () => [1, 2, 3, 4, 5],
+    [],
   );
   const currentIndex = step === "success" ? steps.length - 1 : steps.indexOf(step);
   const canContinue = useMemo(() => {
     switch (step) {
       case 1:
         return projectName.trim().length > 0;
-      case "1b":
-        return (
-          clientName.trim().length > 0 &&
-          clientEmail.trim().length > 0 &&
-          hasClientAvatar
-        );
       case 2:
         return projectType !== null;
       case 3:
-        return method !== null;
-      case "4a":
-      case "4mb":
+        return method === "manual" ? activePhasesLength >= 2 : method !== null;
+      case 4:
         return Boolean(startDate && endDate);
-      case "4m":
-        return activePhasesLength >= 2;
       case 5:
         return roadmapLength > 0 && !isCreating;
       default:
@@ -81,10 +64,7 @@ export function useProjectCreationFlow({
     }
   }, [
     activePhasesLength,
-    clientEmail,
-    clientName,
     endDate,
-    hasClientAvatar,
     isCreating,
     method,
     projectName,
@@ -138,19 +118,6 @@ export function useProjectCreationFlow({
           onError(parsed.error.issues[0]?.message ?? "Please enter a project name.");
           return;
         }
-        setStep("1b");
-        return;
-      }
-      case "1b": {
-        const parsed = clientInfoSchema.safeParse({ clientName, clientEmail });
-        if (!parsed.success) {
-          onError(parsed.error.issues[0]?.message ?? "Please complete the client details.");
-          return;
-        }
-        if (!hasClientAvatar) {
-          onError("Please upload a client photo.");
-          return;
-        }
         setStep(2);
         return;
       }
@@ -158,37 +125,27 @@ export function useProjectCreationFlow({
         setStep(3);
         return;
       case 3:
-        setStep(method === "manual" ? "4m" : "4a");
-        return;
-      case "4m": {
-        const parsed = manualPhaseSelectionSchema.safeParse(activePhasesLength);
-        if (!parsed.success) {
-          onError(parsed.error.issues[0]?.message ?? "Select at least two phases.");
+        if (method === "manual" && activePhasesLength < 2) {
+          onError("Select at least two phases.");
           return;
         }
-        setStep("4mb");
+        setStep(4);
         return;
-      }
-      case "4mb": {
+      case 4: {
         const parsed = dateRangeInputSchema.safeParse({ startDate, endDate });
         if (!parsed.success) {
           onError(parsed.error.issues[0]?.message ?? "Select a valid timeline.");
+          return;
+        }
+        if (method === "ai") {
+          setIsGenerating(true);
+          generationTimeoutRef.current = window.setTimeout(() => {
+            setIsGenerating(false);
+            setStep(5);
+          }, 1500);
           return;
         }
         setStep(5);
-        return;
-      }
-      case "4a": {
-        const parsed = dateRangeInputSchema.safeParse({ startDate, endDate });
-        if (!parsed.success) {
-          onError(parsed.error.issues[0]?.message ?? "Select a valid timeline.");
-          return;
-        }
-        setIsGenerating(true);
-        generationTimeoutRef.current = window.setTimeout(() => {
-          setIsGenerating(false);
-          setStep(5);
-        }, 1500);
         return;
       }
       case 5:

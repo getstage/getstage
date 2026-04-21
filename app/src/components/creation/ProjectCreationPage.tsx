@@ -5,9 +5,7 @@ import { ArrowLeft } from "@phosphor-icons/react";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { StepCard, StepDots } from "@/components/creation/CreationChrome";
 import { GeneratingState, SuccessState } from "@/components/creation/CreationStates";
-import { ClientStep } from "@/components/creation/steps/ClientStep";
 import { MethodStep } from "@/components/creation/steps/MethodStep";
-import { PhasesStep } from "@/components/creation/steps/PhasesStep";
 import { ProjectBasicsStep } from "@/components/creation/steps/ProjectBasicsStep";
 import { ProjectTypeStep } from "@/components/creation/steps/ProjectTypeStep";
 import { RoadmapStep } from "@/components/creation/steps/RoadmapStep";
@@ -101,38 +99,6 @@ function renderStepContent(creation: ProjectCreationState) {
           onContinue={creation.handleContinue}
         />
       );
-    case "1b":
-      return (
-        <ClientStep
-          clientMode={creation.clientMode}
-          selectedExistingClientName={creation.selectedExistingClientName}
-          clientName={creation.clientName}
-          clientEmail={creation.clientEmail}
-          clientAvatar={creation.clientAvatar}
-          existingClients={creation.existingClients}
-          canContinue={creation.canContinue}
-          currentIndex={creation.currentIndex}
-          steps={creation.steps}
-          fileInputRef={creation.fileInputRef}
-          onClientModeChange={creation.setClientMode}
-          onExistingClientSelect={(clientName) => {
-            const client = creation.existingClients.find(
-              (item: { name: string }) => item.name === clientName,
-            );
-            if (!client) {
-              creation.setClientMode("new");
-              return;
-            }
-            creation.selectExistingClient(client);
-          }}
-          onClientNameChange={creation.setClientName}
-          onClientEmailChange={creation.setClientEmail}
-          onClientAvatarChange={creation.handleClientAvatarChange}
-          onAvatarFileChange={creation.handleAvatarFileChange}
-          onContinue={creation.handleContinue}
-          onBack={creation.goBack}
-        />
-      );
     case 2:
       return (
         <ProjectTypeStep
@@ -149,37 +115,12 @@ function renderStepContent(creation: ProjectCreationState) {
       return (
         <MethodStep
           method={creation.method}
-          canContinue={creation.canContinue}
-          currentIndex={creation.currentIndex}
-          steps={creation.steps}
-          onMethodChange={creation.setMethod}
-          onContinue={creation.handleContinue}
-          onBack={creation.goBack}
-        />
-      );
-    case "4a":
-      return (
-        <TimelineStep
-          canContinue={creation.canContinue}
-          currentIndex={creation.currentIndex}
-          steps={creation.steps}
-          startDate={creation.startDate}
-          endDate={creation.endDate}
-          continueLabel="Generate roadmap"
-          onStartDateChange={creation.setStartDate}
-          onEndDateChange={creation.setEndDate}
-          onContinue={creation.handleContinue}
-          onBack={creation.goBack}
-        />
-      );
-    case "4m":
-      return (
-        <PhasesStep
           phases={creation.phases}
           editingPhaseId={creation.editingPhaseId}
           canContinue={creation.canContinue}
           currentIndex={creation.currentIndex}
           steps={creation.steps}
+          onMethodChange={creation.setMethod}
           onEditingPhaseIdChange={creation.setEditingPhaseId}
           onTogglePhase={creation.togglePhase}
           onAddPhase={creation.addPhase}
@@ -192,7 +133,7 @@ function renderStepContent(creation: ProjectCreationState) {
           onBack={creation.goBack}
         />
       );
-    case "4mb":
+    case 4:
       return (
         <TimelineStep
           canContinue={creation.canContinue}

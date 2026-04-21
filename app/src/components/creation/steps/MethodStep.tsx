@@ -1,49 +1,176 @@
+import type { DragEvent } from "react";
+import { DotsSixVertical, Plus, Trash } from "@phosphor-icons/react";
 import { BackButton, PrimaryButton } from "@/components/creation/CreationChrome";
 import { cn } from "@/lib/utils";
-import type { Method, WorkflowStep } from "@/hooks/useProjectCreation";
+import type { Method, PhaseItem, WorkflowStep } from "@/hooks/useProjectCreation";
 
 type MethodStepProps = {
   method: Method;
+  phases: PhaseItem[];
+  editingPhaseId: string | null;
   canContinue: boolean;
   currentIndex: number;
   steps: WorkflowStep[];
   onMethodChange: (value: Exclude<Method, null>) => void;
+  onEditingPhaseIdChange: (phaseId: string | null) => void;
+  onTogglePhase: (phaseId: string) => void;
+  onAddPhase: () => void;
+  onRenamePhase: (phaseId: string, name: string) => void;
+  onRemovePhase: (phaseId: string) => void;
+  onDragStart: (event: DragEvent<HTMLDivElement>, phaseId: string) => void;
+  onDrop: (event: DragEvent<HTMLDivElement>, targetId: string) => void;
+  onDragEnd: () => void;
   onContinue: () => void;
   onBack: () => void;
 };
 
 export function MethodStep({
   method,
+  phases,
+  editingPhaseId,
   canContinue,
   currentIndex: _currentIndex,
   steps: _steps,
   onMethodChange,
+  onEditingPhaseIdChange,
+  onTogglePhase,
+  onAddPhase,
+  onRenamePhase,
+  onRemovePhase,
+  onDragStart,
+  onDrop,
+  onDragEnd,
   onContinue,
   onBack,
 }: MethodStepProps) {
+  const activePhases = phases.filter((phase) => phase.on);
+
   return (
     <div>
-      <h2 className="mb-2 text-center font-heading text-[24px] font-semibold tracking-[-0.4px] text-text-primary">
-        Build your roadmap
-      </h2>
-      <p className="mb-8 text-center text-[15px] leading-[1.5] text-text-secondary">
-        How do you want to structure this project?
-      </p>
-
-      <div className="mb-7 flex flex-col gap-2.5">
-        <MethodOption
-          selected={method === "ai"}
-          title="AI-Generated"
-          description="Tailored phases and tasks based on your project type."
-          onClick={() => onMethodChange("ai")}
-        />
-        <MethodOption
-          selected={method === "manual"}
-          title="Manual Setup"
-          description="Choose your own phases and add tasks as you go."
-          onClick={() => onMethodChange("manual")}
-        />
+      <div className="mb-3 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+        <div className="px-4 pb-3 pt-3 text-[13px] font-semibold text-text-primary">
+          How do you want to structure this project?
+        </div>
+        <div className="rounded-[8px] bg-white p-3 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+          <RadioRow
+            selected={method === "ai"}
+            title="Smart Setup"
+            onClick={() => onMethodChange("ai")}
+          />
+          <RadioRow
+            selected={method === "manual"}
+            title="Manual Setup"
+            onClick={() => onMethodChange("manual")}
+          />
+        </div>
       </div>
+
+      {method === "manual" ? (
+        <div className="mb-7 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+          <div className="rounded-[8px] bg-white p-3 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+            <p className="mb-2 text-[13px] font-medium text-text-primary">Select Phases</p>
+            {phases.map((phase, index) => (
+              <div
+                key={phase.id}
+                draggable
+                onDragStart={(event) => onDragStart(event, phase.id)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => onDrop(event, phase.id)}
+                onDragEnd={onDragEnd}
+                className={cn(
+                  "flex items-center gap-3 py-2.5",
+                  index < phases.length - 1 ? "border-b border-[#EFEFF2]" : "",
+                )}
+              >
+                <DotsSixVertical size={15} className="shrink-0 text-text-tertiary" />
+                {editingPhaseId === phase.id ? (
+                  <input
+                    autoFocus
+                    defaultValue={phase.name}
+                    onBlur={(event) => {
+                      onRenamePhase(phase.id, event.target.value);
+                      onEditingPhaseIdChange(null);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        onRenamePhase(phase.id, event.currentTarget.value);
+                        onEditingPhaseIdChange(null);
+                      }
+                      if (event.key === "Escape") {
+                        onEditingPhaseIdChange(null);
+                      }
+                    }}
+                    className="h-8 flex-1 rounded-[6px] border border-border bg-[#F5F5F5] px-2.5 text-[13px] text-text-primary outline-none"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onEditingPhaseIdChange(phase.id)}
+                    className={cn(
+                      "flex-1 cursor-pointer text-left text-[13px] font-medium",
+                      phase.on ? "text-text-primary" : "text-text-tertiary",
+                    )}
+                  >
+                    {phase.name}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onTogglePhase(phase.id)}
+                  className={cn(
+                    "relative h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors focus:outline-none",
+                    phase.on ? "bg-[#DEDDFD]" : "bg-[#E5E5E5]",
+                  )}
+                  aria-label={`Toggle ${phase.name}`}
+                >
+                  <span
+                    className={cn(
+                      "absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full transition-all",
+                      phase.on ? "left-[18px] bg-[#525252]" : "left-0.5 bg-[#BFBFBF]",
+                    )}
+                  />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRemovePhase(phase.id)}
+                  disabled={phases.length <= 1}
+                  className="cursor-pointer text-text-tertiary transition-colors hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label={`Remove ${phase.name}`}
+                >
+                  <Trash size={14} />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={onAddPhase}
+              className="mt-3 inline-flex h-9 w-full cursor-pointer items-center justify-center gap-1 rounded-[6px] bg-[#F5F5F5] text-[13px] font-medium text-text-primary transition-colors hover:bg-[#EFEFEF]"
+            >
+              <Plus size={14} />
+              Add Phase
+            </button>
+          </div>
+        </div>
+      ) : method === "ai" && activePhases.length > 0 ? (
+        <div className="mb-7 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+          <div className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+            <div className="relative py-1 pl-1">
+              <span
+                aria-hidden
+                className="absolute bottom-[18px] left-[10px] top-[18px] w-px rounded-full bg-[#A3A3A3]"
+              />
+              <ul className="space-y-4">
+                {activePhases.map((phase) => (
+                  <li key={phase.id} className="relative flex items-center gap-3">
+                    <span className="relative z-10 grid h-5 w-5 shrink-0 place-items-center rounded-full border-[4px] border-[#2F2B7F] bg-white" />
+                    <span className="text-[15px] font-medium text-text-primary">{phase.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <PrimaryButton label="Continue" disabled={!canContinue} onClick={onContinue} />
       <BackButton onClick={onBack} />
@@ -51,29 +178,28 @@ export function MethodStep({
   );
 }
 
-type MethodOptionProps = {
+type RadioRowProps = {
   selected: boolean;
   title: string;
-  description: string;
   onClick: () => void;
 };
 
-function MethodOption({ selected, title, description, onClick }: MethodOptionProps) {
+function RadioRow({ selected, title, onClick }: RadioRowProps) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={cn(
-        "cursor-pointer rounded-xl border-[1.5px] bg-input-bg px-5 py-[18px] text-left transition-all duration-200",
-        selected
-          ? "border-accent bg-[rgba(135,130,245,0.08)]"
-          : "border-transparent hover:bg-[#EFEFEF]",
-      )}
+      className="flex w-full cursor-pointer items-center gap-3 rounded-[6px] bg-transparent px-1 py-2 text-left transition-colors hover:bg-[#F5F5F5] focus:outline-none"
     >
-      <div className={cn("mb-1 text-[15px] font-medium", selected ? "text-accent" : "text-text-primary")}>
-        {title}
-      </div>
-      <div className="text-[13px] leading-[1.4] text-text-secondary">{description}</div>
+      <span
+        className={cn(
+          "grid h-5 w-5 shrink-0 place-items-center rounded-full",
+          selected ? "bg-[#171717]" : "bg-[#E5E5E5]",
+        )}
+      >
+        {selected ? <span className="h-2 w-2 rounded-full bg-white" /> : null}
+      </span>
+      <span className="text-[15px] font-medium text-text-primary">{title}</span>
     </button>
   );
 }

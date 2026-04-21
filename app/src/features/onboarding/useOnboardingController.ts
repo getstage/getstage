@@ -261,6 +261,39 @@ export function useOnboardingController({
     });
   }
 
+  function buildPendingSubmission(createProject: boolean): OnboardingSubmission {
+    const fallbackProjectType = draft.projectType ?? fieldOfWork[0] ?? "other";
+    const fieldSelections = fieldOfWork.length > 0 ? fieldOfWork : [fallbackProjectType];
+    const projectName = draft.projectName.trim();
+    const clientName = draft.clientName.trim() || projectName || "Stage setup";
+
+    return {
+      fieldOfWork: fieldSelections[0]!,
+      fieldOfWorkSelections: fieldSelections,
+      createProject,
+      projectName,
+      projectImageUrl: draft.projectImage,
+      clientName,
+      clientEmail: draft.clientEmail.trim(),
+      clientAvatarUrl: draft.clientAvatar,
+      projectType: fallbackProjectType,
+      csvConnected,
+      csvImported,
+      stripeConnected,
+    };
+  }
+
+  function completeWithSubmission(submission: OnboardingSubmission | null) {
+    if (isClosing || !submission) {
+      return;
+    }
+
+    setIsClosing(true);
+    completionTimeoutRef.current = window.setTimeout(() => {
+      onComplete(submission);
+    }, 720);
+  }
+
   function handleContinue() {
     const validationError = getStepValidationError({
       step,
@@ -287,25 +320,34 @@ export function useOnboardingController({
 
     switch (step) {
       case "welcome":
-        setStep("personalise");
-        return;
-      case "personalise":
-        setStep("claude");
-        return;
-      case "claude":
         setStep("details");
         return;
+      case "personalise":
+        setStep("details");
+        return;
+      case "claude":
+        completeWithSubmission(pendingSubmission ?? buildPendingSubmission(false));
+        return;
       case "details":
-        setStep(setProjectLater ? "integrations" : "client");
+        if (setProjectLater) {
+          const submission = buildPendingSubmission(false);
+          setPendingSubmission(submission);
+          setStep("paywall");
+          return;
+        }
+        setStep("project-type");
         return;
       case "client":
         setStep("project-type");
         return;
       case "project-type":
+        if (draft.projectType && fieldOfWork.length === 0) {
+          setFieldOfWork([draft.projectType]);
+        }
         setStep("method");
         return;
       case "method":
-        setStep(draft.method === "manual" ? "phase-select" : "timeline");
+        setStep("timeline");
         return;
       case "phase-select":
         setStep("timeline");
@@ -313,35 +355,15 @@ export function useOnboardingController({
       case "timeline":
         setStep(draft.method === "ai" ? "generating-roadmap" : "preview");
         return;
-      case "preview":
-        setStep("integrations");
-        return;
-      case "integrations": {
-        const fallbackProjectType = draft.projectType ?? fieldOfWork[0];
-        const hasProjectSetup =
-          draft.projectName.trim().length > 0 && draft.clientName.trim().length > 0;
-
-        if (!fallbackProjectType || fieldOfWork.length === 0) {
-          setStepError("Choose at least one field of work to continue.");
-          return;
-        }
-
-        setPendingSubmission({
-          fieldOfWork: fieldOfWork[0]!,
-          fieldOfWorkSelections: fieldOfWork,
-          createProject: !setProjectLater && hasProjectSetup,
-          projectName: draft.projectName.trim(),
-          projectImageUrl: draft.projectImage,
-          clientName: draft.clientName.trim(),
-          clientEmail: draft.clientEmail.trim(),
-          clientAvatarUrl: draft.clientAvatar,
-          projectType: fallbackProjectType,
-          csvConnected,
-          csvImported,
-          stripeConnected,
-        });
+      case "preview": {
+        const submission = buildPendingSubmission(!setProjectLater);
+        setPendingSubmission(submission);
         setCreationReady(false);
         setStep("creating");
+        return;
+      }
+      case "integrations": {
+        setStep("claude");
         return;
       }
       default:
@@ -350,14 +372,7 @@ export function useOnboardingController({
   }
 
   function handleContinueFree() {
-    if (isClosing || !pendingSubmission) {
-      return;
-    }
-
-    setIsClosing(true);
-    completionTimeoutRef.current = window.setTimeout(() => {
-      onComplete(pendingSubmission);
-    }, 720);
+    completeWithSubmission(pendingSubmission);
   }
 
   async function handlePaywallUpgrade(billingCycle: "monthly" | "yearly") {
@@ -418,7 +433,9 @@ export function useOnboardingController({
 
     setStepError(null);
     setSetProjectLater(true);
-    setStep("integrations");
+    const submission = buildPendingSubmission(false);
+    setPendingSubmission(submission);
+    setStep("paywall");
   }
 
   function handleToggleCsvConnection() {

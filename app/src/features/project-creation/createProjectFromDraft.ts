@@ -46,7 +46,7 @@ export async function createProjectFromDraft<TResult>({
   const payload = buildPreparedProjectPayload({
     projectName: draft.projectName,
     projectImageUrl,
-    clientName: draft.clientName,
+    clientName: draft.clientName.trim() || draft.projectName.trim(),
     clientEmail: draft.clientEmail.trim() || undefined,
     clientAvatarUrl,
     projectType: draft.projectType,

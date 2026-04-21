@@ -31,11 +31,11 @@ export function PrimaryButton({ label, disabled, onClick }: PrimaryButtonProps) 
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "w-full rounded-[10px] bg-accent px-4 py-[13px] text-[15px] font-medium text-white transition-colors",
-        disabled ? "cursor-default opacity-40" : "cursor-pointer hover:bg-accent-hover",
+        "w-full rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-4 py-[10px] text-[13px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity",
+        disabled ? "cursor-default opacity-40" : "cursor-pointer hover:opacity-95",
       )}
     >
-      {label}
+      {label} <span className="ml-2">→</span>
     </button>
   );
 }
@@ -64,17 +64,17 @@ export function StepDots({ steps, currentIndex }: StepDotsProps) {
   }
 
   return (
-    <div className="mt-6 flex justify-center gap-1.5">
+    <div className="flex justify-center gap-1.5">
       {steps.map((step, index) => (
         <div
           key={`${step}-${index}`}
           className={cn(
             "h-1.5 rounded-[3px] transition-all duration-200",
             index === currentIndex
-              ? "w-8 bg-accent"
+              ? "w-8 bg-[#8D87FF]"
               : index < currentIndex
-                ? "w-2 bg-accent"
-                : "w-2 bg-[#D9D9D9]",
+                ? "w-2 bg-[#8D87FF]"
+                : "w-2 bg-[#E7E6FD]",
           )}
         />
       ))}
