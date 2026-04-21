@@ -39,8 +39,6 @@ function getStepHeader(step: OnboardingStepId): { title: string; subtitle: strin
     case "project-type":
     case "method":
     case "timeline":
-    case "preview":
-    case "generating-roadmap":
       return {
         title: "Create a new project",
         subtitle: "Set up the basics to get started",
@@ -49,11 +47,6 @@ function getStepHeader(step: OnboardingStepId): { title: string; subtitle: strin
       return {
         title: "Bring your project to life",
         subtitle: "Connect your tools to sync files, tasks, and updates",
-      };
-    case "paywall":
-      return {
-        title: "Want to connect claude, figma & notion?",
-        subtitle: "Upgrade your workspace plan to unlock integrations.",
       };
     default:
       return { title: "", subtitle: "" };
@@ -75,12 +68,15 @@ export function OnboardingModal({
   const showChrome =
     controller.step !== "creating" &&
     controller.step !== "celebrating" &&
-    controller.step !== "generating-roadmap";
+    controller.step !== "generating-roadmap" &&
+    controller.step !== "preview" &&
+    controller.step !== "paywall";
   const setupProgressIndex = SETUP_PROGRESS_STEPS.indexOf(controller.step);
   const showStepDots = setupProgressIndex >= 0;
   const showContinueBar =
     controller.step !== "creating" &&
     controller.step !== "generating-roadmap" &&
+    controller.step !== "preview" &&
     controller.step !== "claude" &&
     controller.step !== "paywall";
 
@@ -152,6 +148,7 @@ export function OnboardingModal({
                 fieldOfWork={controller.fieldOfWork}
                 onSelectField={controller.handleSelectField}
                 draftState={controller.draftState}
+                stepError={controller.stepError}
                 previewRoadmap={controller.draftState.roadmap}
                 sheetUrl={controller.sheetUrl}
                 csvConnected={controller.csvConnected}
@@ -169,11 +166,9 @@ export function OnboardingModal({
                 onSheetUrlChange={controller.setSheetUrl}
                 onToggleCsvConnection={controller.handleToggleCsvConnection}
                 onLinkSheetUrl={controller.handleLinkSheetUrl}
+                onContinue={controller.handleContinue}
                 onCreationDone={() => controller.setStep("paywall")}
                 onContinueFree={() => controller.setStep("celebrating")}
-                onUpgrade={(billingCycle) => {
-                  void controller.handlePaywallUpgrade(billingCycle);
-                }}
               />
             </AnimatePresence>
 

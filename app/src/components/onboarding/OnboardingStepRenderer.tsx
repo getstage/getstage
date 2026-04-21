@@ -1,15 +1,12 @@
 import {
   ArrowRight,
-  CalendarBlank,
   Check,
   CopySimple,
-  DotsSixVertical,
   Package,
   PencilSimpleLine,
-  Plus,
   Trash,
 } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { OnboardingPaywall } from "@/components/onboarding/OnboardingPaywall";
 import { Avatar } from "@/components/ui/Avatar";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
@@ -28,6 +25,52 @@ const GOOGLE_SHEETS_ICON_SRC = new URL("../../assets/icons/google-sheets.svg", i
 const STRIPE_ICON_SRC = new URL("../../assets/icons/stripe.svg", import.meta.url).href;
 const GOOGLE_SHEETS_TEMPLATE_HREF =
   "https://docs.google.com/spreadsheets/d/1vtsJxrdv0LBbLgKAjnEbkFc89NlrPAMrWmnEcqGjvB0/edit?gid=246791924#gid=246791924";
+const ONBOARDING_ICON_SRC = {
+  add: "/logos/add.svg",
+  calendar: "/logos/calendar.svg",
+  dots: "/logos/dots.svg",
+  download: "/logos/download.svg",
+  dropdown: "/logos/dropdown.svg",
+};
+
+function formatTimelineDate(value: string) {
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) {
+    return "DD/MM/YYYY";
+  }
+
+  return `${day}-${month}-${year}`;
+}
+
+function TimelineDateField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="flex-1">
+      <label className="mb-2 block text-[13px] font-semibold text-text-primary">{label}</label>
+      <div className="relative flex h-[46px] items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+        <img src={ONBOARDING_ICON_SRC.calendar} alt="" className="h-4 w-4 shrink-0 opacity-70" />
+        <span className={cn("min-w-0 flex-1 text-[13px] font-medium", value ? "text-text-secondary" : "text-text-tertiary")}>
+          {formatTimelineDate(value)}
+        </span>
+        <img src={ONBOARDING_ICON_SRC.calendar} alt="" className="h-4 w-4 shrink-0" />
+        <input
+          type="date"
+          aria-label={label}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="absolute inset-0 cursor-pointer opacity-0"
+        />
+      </div>
+    </div>
+  );
+}
 
 type OnboardingStepRendererProps = {
   step: OnboardingStepId;
@@ -36,6 +79,7 @@ type OnboardingStepRendererProps = {
   fieldOfWork: ProjectType[];
   onSelectField: (value: ProjectType) => void;
   draftState: UseProjectDraftResult;
+  stepError: string | null;
   previewRoadmap: Array<{ name: string; tasks: string[] }>;
   sheetUrl: string;
   csvConnected: boolean;
@@ -58,9 +102,9 @@ type OnboardingStepRendererProps = {
   onSheetUrlChange: (value: string) => void;
   onToggleCsvConnection: () => void;
   onLinkSheetUrl: () => void;
+  onContinue: () => void;
   onCreationDone: () => void;
   onContinueFree: () => void;
-  onUpgrade: (billingCycle: "monthly" | "yearly") => void;
   onClaudeActivated: () => void;
 };
 
@@ -71,6 +115,7 @@ export function OnboardingStepRenderer({
   fieldOfWork,
   onSelectField,
   draftState,
+  stepError,
   previewRoadmap,
   sheetUrl,
   csvConnected,
@@ -87,16 +132,31 @@ export function OnboardingStepRenderer({
   onSheetUrlChange,
   onToggleCsvConnection,
   onLinkSheetUrl,
+  onContinue,
   onCreationDone,
   onContinueFree,
-  onUpgrade,
   onClaudeActivated,
 }: OnboardingStepRendererProps) {
   const { draft } = draftState;
+  const [isAddingPhase, setIsAddingPhase] = useState(false);
+  const [newPhaseName, setNewPhaseName] = useState("");
   const selectedClient =
     draft.clientMode === "existing"
       ? existingClients.find((client) => client.name === draft.selectedExistingClientName) ?? null
       : null;
+
+  useEffect(() => {
+    if (step !== "method") {
+      setIsAddingPhase(false);
+      setNewPhaseName("");
+    }
+  }, [step]);
+
+  function commitNewPhase() {
+    draftState.addPhase(newPhaseName.trim() || "New Phase");
+    setNewPhaseName("");
+    setIsAddingPhase(false);
+  }
 
   switch (step) {
     case "welcome":
@@ -179,14 +239,7 @@ export function OnboardingStepRenderer({
                     onClick={() => draftState.projectImageInputRef.current?.click()}
                     className="flex w-full cursor-pointer items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
                   >
-                    <div className="shrink-0">
-                      <Avatar
-                        name={draft.projectName.trim() || "Project"}
-                        src={draft.projectImage ?? undefined}
-                        size="md"
-                        variant="project"
-                      />
-                    </div>
+                    <img src={ONBOARDING_ICON_SRC.download} alt="" className="h-4 w-4 shrink-0 opacity-70" />
                     <span className="text-[13px] font-medium text-text-secondary">
                       {draft.projectImage ? "Replace document" : "Upload Document"}
                     </span>
@@ -219,36 +272,43 @@ export function OnboardingStepRenderer({
                   <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
                     Who is this for?
                   </label>
-                  <select
-                    value={
-                      draft.clientMode === "existing"
-                        ? draft.selectedExistingClientName
-                        : "__new__"
-                    }
-                    onChange={(event) => {
-                      const nextValue = event.target.value;
-                      if (nextValue === "__new__") {
-                        draftState.setClientMode("new");
-                        return;
+                  <div className="relative">
+                    <select
+                      value={
+                        draft.clientMode === "existing"
+                          ? draft.selectedExistingClientName
+                          : "__new__"
                       }
+                      onChange={(event) => {
+                        const nextValue = event.target.value;
+                        if (nextValue === "__new__") {
+                          draftState.setClientMode("new");
+                          return;
+                        }
 
-                      const client = existingClients.find((item) => item.name === nextValue);
-                      if (!client) {
-                        draftState.setClientMode("new");
-                        return;
-                      }
+                        const client = existingClients.find((item) => item.name === nextValue);
+                        if (!client) {
+                          draftState.setClientMode("new");
+                          return;
+                        }
 
-                      draftState.selectExistingClient(client);
-                    }}
-                    className="w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 py-2.5 text-[13px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 focus:border-border focus:bg-white"
-                  >
-                    <option value="__new__">Select Client</option>
-                    {existingClients.map((client) => (
-                      <option key={client.id} value={client.name}>
-                        {client.name}
-                      </option>
-                    ))}
-                  </select>
+                        draftState.selectExistingClient(client);
+                      }}
+                      className="w-full appearance-none rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 py-2.5 pr-10 text-[13px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 focus:border-border focus:bg-white"
+                    >
+                      <option value="__new__">Select Client</option>
+                      {existingClients.map((client) => (
+                        <option key={client.id} value={client.name}>
+                          {client.name}
+                        </option>
+                      ))}
+                    </select>
+                    <img
+                      src={ONBOARDING_ICON_SRC.dropdown}
+                      alt=""
+                      className="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 opacity-70"
+                    />
+                  </div>
                 </div>
 
                 {draft.clientMode === "existing" && selectedClient ? (
@@ -300,15 +360,7 @@ export function OnboardingStepRenderer({
                     onClick={() => draftState.fileInputRef.current?.click()}
                     className="flex w-full cursor-pointer items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
                   >
-                    <Avatar
-                      name={
-                        draft.clientMode === "existing"
-                          ? draft.selectedExistingClientName || draft.clientName
-                          : draft.clientName || "Client"
-                      }
-                      src={draft.clientAvatar ?? undefined}
-                      size="md"
-                    />
+                    <img src={ONBOARDING_ICON_SRC.download} alt="" className="h-4 w-4 shrink-0 opacity-70" />
                     <span className="text-[13px] font-medium text-text-secondary">
                       {draft.clientAvatar ? "Replace photo" : "Upload Photo"}
                     </span>
@@ -570,7 +622,11 @@ export function OnboardingStepRenderer({
                           index < draft.phases.length - 1 ? "border-b border-[#EFEFF2]" : "",
                         )}
                       >
-                        <DotsSixVertical size={15} className="shrink-0 text-text-tertiary" />
+                        <img
+                          src={ONBOARDING_ICON_SRC.dots}
+                          alt=""
+                          className="h-4 w-4 shrink-0 cursor-grab opacity-45"
+                        />
                         {draftState.editingPhaseId === phase.id ? (
                           <input
                             autoFocus
@@ -630,14 +686,43 @@ export function OnboardingStepRenderer({
                       </div>
                     ))}
                   </div>
-                  <button
-                    type="button"
-                    onClick={draftState.addPhase}
-                    className="mt-3 inline-flex h-9 w-full cursor-pointer items-center justify-center gap-1 rounded-[6px] bg-[#F5F5F5] text-[13px] font-medium text-text-primary transition-colors hover:bg-[#EFEFEF]"
-                  >
-                    <Plus size={14} />
-                    Add Phase
-                  </button>
+                  {isAddingPhase ? (
+                    <div className="mt-3 flex items-center gap-2 rounded-[6px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.18)]">
+                      <input
+                        autoFocus
+                        value={newPhaseName}
+                        onChange={(event) => setNewPhaseName(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            commitNewPhase();
+                          }
+                          if (event.key === "Escape") {
+                            setIsAddingPhase(false);
+                            setNewPhaseName("");
+                          }
+                        }}
+                        placeholder="New Phase"
+                        className="h-8 min-w-0 flex-1 rounded-[4px] border border-transparent bg-transparent px-2.5 text-[13px] font-medium text-text-primary outline-none placeholder:text-text-tertiary focus:border-border focus:bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={commitNewPhase}
+                        className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-[4px] bg-gradient-to-b from-neutral-700 to-neutral-950 px-3 text-[12px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+                      >
+                        <img src={ONBOARDING_ICON_SRC.add} alt="" className="h-3 w-3 invert" />
+                        Add
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingPhase(true)}
+                      className="mt-3 inline-flex h-9 w-full cursor-pointer items-center justify-center gap-1 rounded-[6px] bg-[#F5F5F5] text-[13px] font-medium text-text-primary transition-colors hover:bg-[#EFEFEF]"
+                    >
+                      <img src={ONBOARDING_ICON_SRC.add} alt="" className="h-3.5 w-3.5 opacity-70" />
+                      Add Phase
+                    </button>
+                  )}
                 </div>
               ) : draft.method === "ai" && roadmapItems.length > 0 ? (
                 <div className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
@@ -761,7 +846,7 @@ export function OnboardingStepRenderer({
 
             <button
               type="button"
-              onClick={draftState.addPhase}
+              onClick={() => draftState.addPhase()}
               className="mt-2 inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-accent transition-colors hover:text-accent-hover"
             >
               + Add phase
@@ -774,35 +859,16 @@ export function OnboardingStepRenderer({
         <OnboardingStepMotion motionKey="timeline">
           <StepShell label="Timeline">
             <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="flex-1">
-                <label className="mb-2 block text-[13px] font-semibold text-text-primary">
-                  Start
-                </label>
-                <div className="flex items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-                  <CalendarBlank size={16} className="shrink-0 text-text-secondary" />
-                  <input
-                    type="date"
-                    value={draft.startDate}
-                    onChange={(event) => draftState.setStartDate(event.target.value)}
-                    className="min-w-0 flex-1 bg-transparent text-[13px] font-medium text-text-secondary outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="flex-1">
-                <label className="mb-2 block text-[13px] font-semibold text-text-primary">
-                  End
-                </label>
-                <div className="flex items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-                  <CalendarBlank size={16} className="shrink-0 text-text-secondary" />
-                  <input
-                    type="date"
-                    value={draft.endDate}
-                    onChange={(event) => draftState.setEndDate(event.target.value)}
-                    className="min-w-0 flex-1 bg-transparent text-[13px] font-medium text-text-secondary outline-none"
-                  />
-                </div>
-              </div>
+              <TimelineDateField
+                label="Start"
+                value={draft.startDate}
+                onChange={draftState.setStartDate}
+              />
+              <TimelineDateField
+                label="End"
+                value={draft.endDate}
+                onChange={draftState.setEndDate}
+              />
             </div>
           </StepShell>
         </OnboardingStepMotion>
@@ -810,7 +876,7 @@ export function OnboardingStepRenderer({
     case "preview":
       return (
         <OnboardingStepMotion motionKey="preview">
-          <AlmostSetupPreview />
+          <AlmostSetupPreview onContinue={onContinue} errorMessage={stepError} />
         </OnboardingStepMotion>
       );
     case "generating-roadmap":
@@ -820,7 +886,7 @@ export function OnboardingStepRenderer({
           className="flex min-h-[220px] flex-col items-center justify-center text-center sm:min-h-[300px]"
         >
           <LoadingStage
-            title="AI is generating your roadmap..."
+            title="Stage is generating your roadmap..."
             subtitle="We are shaping the phases and tasks for your project."
           />
         </OnboardingStepMotion>
@@ -843,10 +909,11 @@ export function OnboardingStepRenderer({
                   <span className="min-w-0 flex-1 text-[15px] font-medium text-text-primary">
                     Codex
                   </span>
-                  <button
-                    type="button"
-                    className="rounded-[6px] bg-[#F5F5F5] px-3 py-1.5 text-[12px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
-                  >
+	                  <button
+	                    type="button"
+	                    onClick={onClaudeActivated}
+	                    className="rounded-[6px] bg-[#F5F5F5] px-3 py-1.5 text-[12px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
+	                  >
                     Connect Codex
                   </button>
                 </li>
@@ -859,10 +926,11 @@ export function OnboardingStepRenderer({
                   <span className="min-w-0 flex-1 text-[15px] font-medium text-text-primary">
                     Claude
                   </span>
-                  <button
-                    type="button"
-                    className="rounded-[6px] bg-[#F5F5F5] px-3 py-1.5 text-[12px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
-                  >
+	                  <button
+	                    type="button"
+	                    onClick={onClaudeActivated}
+	                    className="rounded-[6px] bg-[#F5F5F5] px-3 py-1.5 text-[12px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
+	                  >
                     {claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
                       ? "Connected"
                       : "Connect Claude"}
@@ -1010,12 +1078,11 @@ export function OnboardingStepRenderer({
     case "paywall":
       return (
         <OnboardingStepMotion motionKey="paywall">
-          <OnboardingPaywall
-            onContinueFree={onContinueFree}
-            onUpgrade={(billingCycle) => onUpgrade(billingCycle)}
-            isUpgradeLoading={isCheckoutLoading}
-            upgradeError={checkoutError}
-          />
+	          <OnboardingPaywall
+	            onContinueFree={onContinueFree}
+	            isUpgradeLoading={isCheckoutLoading}
+	            upgradeError={checkoutError}
+	          />
         </OnboardingStepMotion>
       );
     default:
@@ -1023,31 +1090,51 @@ export function OnboardingStepRenderer({
   }
 }
 
-function AlmostSetupPreview() {
+function AlmostSetupPreview({
+  onContinue,
+  errorMessage,
+}: {
+  onContinue: () => void;
+  errorMessage: string | null;
+}) {
   return (
-    <div className="grid min-h-[360px] overflow-hidden rounded-[12px] bg-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] md:grid-cols-[0.42fr_0.58fr]">
-      <div className="flex flex-col justify-center px-7 py-10">
-        <h3 className="font-heading text-[24px] font-semibold leading-[1.15] tracking-[-0.4px] text-text-primary">
-          You&apos;re almost setup.
-        </h3>
-        <p className="mt-3 text-[14px] font-medium leading-[1.5] text-text-secondary">
-          Here&apos;s your workspace, set up and ready to go
-        </p>
-      </div>
-      <div className="relative min-h-[280px] overflow-hidden bg-[#4B46C6]">
-        <img
-          src="/onboarding/almost-setup-gradient.png"
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        <div className="absolute left-[12%] top-[18%] w-[108%] overflow-hidden rounded-[12px] bg-white shadow-[0_24px_70px_rgba(20,20,45,0.25)]">
+    <div>
+      <img src={stageLogo} alt="Stage" className="mb-7 h-[22px] w-auto" />
+      <div className="grid min-h-[360px] overflow-hidden rounded-[12px] bg-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] md:grid-cols-[0.42fr_0.58fr]">
+        <div className="flex flex-col justify-center px-7 py-10">
+          <h3 className="font-heading text-[24px] font-semibold leading-[1.15] tracking-[-0.4px] text-text-primary">
+            You&apos;re almost setup.
+          </h3>
+          <p className="mt-3 text-[14px] font-medium leading-[1.5] text-text-secondary">
+            Here&apos;s your workspace, set up and ready to go
+          </p>
+        </div>
+        <div className="relative min-h-[280px] overflow-hidden">
           <img
-            src={timelineOverviewImage}
+            src="/onboarding/almost-setup-gradient.png"
             alt=""
-            className="h-full max-h-[360px] w-full object-cover object-left-top opacity-95"
+            className="absolute inset-0 h-full w-full object-cover"
           />
+          <div className="absolute left-[15%] top-[18%] w-[108%] overflow-hidden rounded-[12px] bg-white shadow-[0_24px_70px_rgba(20,20,45,0.25)]">
+            <img
+              src={timelineOverviewImage}
+              alt=""
+              className="h-full max-h-[360px] w-full object-cover object-left-top opacity-95"
+            />
+          </div>
         </div>
       </div>
+      {errorMessage ? (
+        <p className="mt-4 text-[13px] leading-normal text-destructive">{errorMessage}</p>
+      ) : null}
+      <button
+        type="button"
+        onClick={onContinue}
+        className="mt-6 inline-flex h-[48px] w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-5 text-[13px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 focus:outline-none"
+      >
+        Continue
+        <ArrowRight size={16} weight="bold" />
+      </button>
     </div>
   );
 }
@@ -1058,7 +1145,7 @@ function ProSuccessCard() {
       <div className="rounded-[8px] bg-gradient-to-b from-[rgba(158,153,248,0.12)] to-white px-6 py-[72px] text-center shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
         <img src={stageLogo} alt="Stage" className="mx-auto h-[22px] w-auto" />
         <h3 className="mt-8 font-heading text-[18px] font-semibold leading-[1.2] text-text-primary">
-          You&apos;re on Pro now
+          You&apos;re on Pro now 🚀
         </h3>
         <p className="mx-auto mt-2 max-w-[422px] text-[12px] font-medium leading-[1.5] text-text-secondary">
           Unlock advanced workflows, deeper integrations, and faster execution. Connect Claude,

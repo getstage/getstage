@@ -230,7 +230,7 @@ export function useOnboardingController({
         }
 
         setStepError(toUserFacingErrorMessage(error, "Could not create the project."));
-        setStep("integrations");
+        setStep("preview");
       }
     }
 
