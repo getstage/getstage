@@ -93,7 +93,7 @@ export function ProjectDock({ projects, interactive = true }: ProjectDockProps) 
           style={{
             maxWidth: navExpanded ? "400px" : "0px",
             opacity: navExpanded ? 1 : 0,
-            clipPath: "inset(-100px 0px -100px 0px)",
+            clipPath: "inset(-100px -100px -100px -100px)",
             transition: "max-width 250ms ease, opacity 200ms ease",
           }}
         >
