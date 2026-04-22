@@ -1,7 +1,6 @@
 import {
   clientInfoSchema,
   dateRangeInputSchema,
-  manualPhaseSelectionSchema,
   projectBasicsSchema,
   projectTypeSchema as projectTypeValidationSchema,
 } from "@/lib/validation";
@@ -26,43 +25,26 @@ type ValidationContext = {
 };
 
 export function getFlowSteps({
-  method,
   setProjectLater,
 }: {
   method: Method;
   setProjectLater: boolean;
 }): OnboardingStepId[] {
   if (setProjectLater) {
-    return ["welcome", "personalise", "claude", "details", "integrations"];
-  }
-
-  if (method === "manual") {
-    return [
-      "welcome",
-      "personalise",
-      "claude",
-      "details",
-      "client",
-      "project-type",
-      "method",
-      "phase-select",
-      "timeline",
-      "preview",
-      "integrations",
-    ];
+    return ["welcome", "details", "paywall", "celebrating", "integrations", "claude"];
   }
 
   return [
     "welcome",
-    "personalise",
-    "claude",
     "details",
-    "client",
     "project-type",
     "method",
     "timeline",
     "preview",
+    "paywall",
+    "celebrating",
     "integrations",
+    "claude",
   ];
 }
 
@@ -71,8 +53,8 @@ export function getCurrentStepForProgress(step: OnboardingStepId) {
     return "preview";
   }
 
-  if (step === "creating" || step === "celebrating" || step === "paywall") {
-    return "integrations";
+  if (step === "creating" || step === "celebrating") {
+    return "preview";
   }
 
   return step;
@@ -80,40 +62,37 @@ export function getCurrentStepForProgress(step: OnboardingStepId) {
 
 export function canContinue({
   step,
-  fieldOfWork,
   setProjectLater,
   method,
   projectName,
   clientName,
   clientEmail,
-  hasClientAvatar,
   projectType,
   activePhasesLength,
 }: Omit<ValidationContext, "startDate" | "endDate">) {
   switch (step) {
     case "welcome":
       return true;
-    case "personalise":
-      return fieldOfWork.length > 0;
     case "claude":
       return true;
     case "details":
-      return setProjectLater || projectName.trim().length > 0;
-    case "client":
-      return clientName.trim().length > 0 && clientEmail.trim().length > 0 && hasClientAvatar;
+      return (
+        setProjectLater ||
+        (projectName.trim().length > 0 &&
+          clientName.trim().length > 0 &&
+          clientEmail.trim().length > 0)
+      );
     case "project-type":
       return projectType !== null;
     case "method":
-      return method !== null;
-    case "phase-select":
-      return activePhasesLength >= 2;
+      return method === "manual" ? activePhasesLength >= 2 : method !== null;
     case "timeline":
     case "preview":
     case "integrations":
+    case "celebrating":
       return true;
     case "generating-roadmap":
     case "creating":
-    case "celebrating":
       return false;
     default:
       return false;
@@ -122,13 +101,11 @@ export function canContinue({
 
 export function getStepValidationError({
   step,
-  fieldOfWork,
   setProjectLater,
   method,
   projectName,
   clientName,
   clientEmail,
-  hasClientAvatar,
   projectType,
   activePhasesLength,
   startDate,
@@ -139,16 +116,6 @@ export function getStepValidationError({
       return null;
     case "claude":
       return null;
-    case "personalise": {
-      if (fieldOfWork.length === 0) {
-        return "Choose at least one field of work to continue.";
-      }
-
-      const hasInvalidSelection = fieldOfWork.some(
-        (selectedField) => !projectTypeValidationSchema.safeParse(selectedField).success,
-      );
-      return hasInvalidSelection ? "Choose a valid field of work." : null;
-    }
     case "details": {
       if (setProjectLater) {
         return null;
@@ -158,15 +125,15 @@ export function getStepValidationError({
       if (!basicsParsed.success) {
         return basicsParsed.error.issues[0]?.message ?? "Please enter a project name.";
       }
-      return null;
-    }
-    case "client": {
-      const clientParsed = clientInfoSchema.safeParse({ clientName, clientEmail });
-      if (!clientParsed.success) {
-        return clientParsed.error.issues[0]?.message ?? "Please complete the client details.";
+      const clientNameParsed = clientInfoSchema.shape.clientName.safeParse(clientName);
+      if (!clientNameParsed.success) {
+        return clientNameParsed.error.issues[0]?.message ?? "Please enter a client name.";
       }
-      if (!hasClientAvatar) {
-        return "Please upload a client photo.";
+      const clientEmailParsed = clientInfoSchema.shape.clientEmail.safeParse(clientEmail);
+      if (!clientEmailParsed.success) {
+        return clientEmail.trim().length === 0
+          ? "Client email is required."
+          : (clientEmailParsed.error.issues[0]?.message ?? "Please enter a valid email address.");
       }
       return null;
     }
@@ -181,13 +148,12 @@ export function getStepValidationError({
         : (projectTypeParsed.error.issues[0]?.message ?? "Choose the project type.");
     }
     case "method":
-      return method ? null : "Choose how you want to build your roadmap.";
-    case "phase-select": {
-      const parsed = manualPhaseSelectionSchema.safeParse(activePhasesLength);
-      return parsed.success
-        ? null
-        : (parsed.error.issues[0]?.message ?? "Select at least two phases.");
-    }
+      if (!method) {
+        return "Choose how you want to build your roadmap.";
+      }
+      return method === "manual" && activePhasesLength < 2
+        ? "Select at least two phases."
+        : null;
     case "timeline": {
       const parsed = dateRangeInputSchema.safeParse({ startDate, endDate });
       return parsed.success

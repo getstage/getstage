@@ -5,9 +5,7 @@ import { ArrowLeft } from "@phosphor-icons/react";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { StepCard, StepDots } from "@/components/creation/CreationChrome";
 import { GeneratingState, SuccessState } from "@/components/creation/CreationStates";
-import { ClientStep } from "@/components/creation/steps/ClientStep";
 import { MethodStep } from "@/components/creation/steps/MethodStep";
-import { PhasesStep } from "@/components/creation/steps/PhasesStep";
 import { ProjectBasicsStep } from "@/components/creation/steps/ProjectBasicsStep";
 import { ProjectTypeStep } from "@/components/creation/steps/ProjectTypeStep";
 import { RoadmapStep } from "@/components/creation/steps/RoadmapStep";
@@ -91,19 +89,6 @@ function renderStepContent(creation: ProjectCreationState) {
         <ProjectBasicsStep
           projectName={creation.projectName}
           projectImage={creation.projectImage}
-          canContinue={creation.canContinue}
-          currentIndex={creation.currentIndex}
-          steps={creation.steps}
-          projectImageInputRef={creation.projectImageInputRef}
-          onProjectNameChange={creation.setProjectName}
-          onProjectImageChange={creation.setProjectImage}
-          onProjectImageFileChange={creation.handleProjectImageFileChange}
-          onContinue={creation.handleContinue}
-        />
-      );
-    case "1b":
-      return (
-        <ClientStep
           clientMode={creation.clientMode}
           selectedExistingClientName={creation.selectedExistingClientName}
           clientName={creation.clientName}
@@ -114,23 +99,17 @@ function renderStepContent(creation: ProjectCreationState) {
           currentIndex={creation.currentIndex}
           steps={creation.steps}
           fileInputRef={creation.fileInputRef}
+          projectImageInputRef={creation.projectImageInputRef}
+          onProjectNameChange={creation.setProjectName}
+          onProjectImageChange={creation.setProjectImage}
+          onProjectImageFileChange={creation.handleProjectImageFileChange}
           onClientModeChange={creation.setClientMode}
-          onExistingClientSelect={(clientName) => {
-            const client = creation.existingClients.find(
-              (item: { name: string }) => item.name === clientName,
-            );
-            if (!client) {
-              creation.setClientMode("new");
-              return;
-            }
-            creation.selectExistingClient(client);
-          }}
+          onExistingClientSelect={creation.selectExistingClient}
           onClientNameChange={creation.setClientName}
           onClientEmailChange={creation.setClientEmail}
-          onClientAvatarChange={creation.handleClientAvatarChange}
+          onClientAvatarChange={creation.setClientAvatar}
           onAvatarFileChange={creation.handleAvatarFileChange}
           onContinue={creation.handleContinue}
-          onBack={creation.goBack}
         />
       );
     case 2:
@@ -149,42 +128,12 @@ function renderStepContent(creation: ProjectCreationState) {
       return (
         <MethodStep
           method={creation.method}
+          phases={creation.phases}
           canContinue={creation.canContinue}
           currentIndex={creation.currentIndex}
           steps={creation.steps}
           onMethodChange={creation.setMethod}
-          onContinue={creation.handleContinue}
-          onBack={creation.goBack}
-        />
-      );
-    case "4a":
-      return (
-        <TimelineStep
-          canContinue={creation.canContinue}
-          currentIndex={creation.currentIndex}
-          steps={creation.steps}
-          startDate={creation.startDate}
-          endDate={creation.endDate}
-          continueLabel="Generate roadmap"
-          onStartDateChange={creation.setStartDate}
-          onEndDateChange={creation.setEndDate}
-          onContinue={creation.handleContinue}
-          onBack={creation.goBack}
-        />
-      );
-    case "4m":
-      return (
-        <PhasesStep
-          phases={creation.phases}
-          editingPhaseId={creation.editingPhaseId}
-          canContinue={creation.canContinue}
-          currentIndex={creation.currentIndex}
-          steps={creation.steps}
-          onEditingPhaseIdChange={creation.setEditingPhaseId}
           onTogglePhase={creation.togglePhase}
-          onAddPhase={creation.addPhase}
-          onRenamePhase={creation.renamePhase}
-          onRemovePhase={creation.removePhase}
           onDragStart={creation.handleDragStart}
           onDrop={creation.handleDrop}
           onDragEnd={creation.handleDragEnd}
@@ -192,7 +141,7 @@ function renderStepContent(creation: ProjectCreationState) {
           onBack={creation.goBack}
         />
       );
-    case "4mb":
+    case 4:
       return (
         <TimelineStep
           canContinue={creation.canContinue}
@@ -207,7 +156,7 @@ function renderStepContent(creation: ProjectCreationState) {
           onBack={creation.goBack}
         />
       );
-    case 5:
+    case "overview":
       return (
         <RoadmapStep
           roadmap={creation.roadmap}

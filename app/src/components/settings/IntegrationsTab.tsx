@@ -370,7 +370,7 @@ export function IntegrationsTab({
 
   return (
     <div className={`tab-content ${active ? "active" : ""}`}>
-      <div className="rounded-[20px] border border-border-subtle bg-white p-5 shadow-[0_8px_24px_rgba(17,24,39,0.04)] sm:p-6">
+      <div className="rounded-[14px] bg-[#F5F5F5] p-[3px] shadow-[0_0.45px_1px_rgba(10,10,10,0.2)]"><div className="rounded-[11px] bg-white p-5 shadow-[0_0.45px_1px_rgba(10,10,10,0.12)] sm:p-6">
         <div className="max-w-[680px]">
           <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
             Connector directory
@@ -398,7 +398,7 @@ export function IntegrationsTab({
             onClick={() => setActiveFilter("available")}
           />
         </div>
-      </div>
+      </div></div>
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {filteredCards.map((card) => (
@@ -406,32 +406,34 @@ export function IntegrationsTab({
             key={card.id}
             type="button"
             onClick={() => setSelectedCard(card.id)}
-            className="group flex cursor-pointer items-start gap-4 rounded-[18px] border border-border-subtle bg-white px-4 py-4 text-left transition-all duration-150 hover:border-border hover:shadow-[0_10px_28px_rgba(17,24,39,0.06)]"
+            className="group cursor-pointer rounded-[14px] bg-[#F5F5F5] p-[3px] text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.2)] transition-all duration-150 hover:shadow-[0_2px_8px_rgba(10,10,10,0.1)]"
           >
-            <div
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px]"
-              style={{ backgroundColor: card.iconBg }}
-            >
-              <img src={card.icon} alt="" className="h-[22px] w-[22px] object-contain" />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-[15px] font-semibold text-text-primary">{card.title}</div>
-                  <div className="mt-1 text-[13px] leading-[1.55] text-text-secondary">
-                    {card.description}
-                  </div>
-                </div>
-                <ArrowRight
-                  size={16}
-                  weight="bold"
-                  className="mt-0.5 shrink-0 text-text-tertiary transition-transform duration-150 group-hover:translate-x-0.5"
-                />
+            <div className="flex w-full items-start gap-4 rounded-[11px] bg-white px-4 py-4 shadow-[0_0.45px_1px_rgba(10,10,10,0.12)]">
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px]"
+                style={{ backgroundColor: card.iconBg }}
+              >
+                <img src={card.icon} alt="" className="h-[22px] w-[22px] object-contain" />
               </div>
 
-              <div className="mt-3">
-                <StatusPill status={card.status} label={card.statusLabel} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-[15px] font-semibold text-text-primary">{card.title}</div>
+                    <div className="mt-1 text-[13px] leading-[1.55] text-text-secondary">
+                      {card.description}
+                    </div>
+                  </div>
+                  <ArrowRight
+                    size={16}
+                    weight="bold"
+                    className="mt-0.5 shrink-0 text-text-tertiary transition-transform duration-150 group-hover:translate-x-0.5"
+                  />
+                </div>
+
+                <div className="mt-3">
+                  <StatusPill status={card.status} label={card.statusLabel} />
+                </div>
               </div>
             </div>
           </button>
@@ -439,12 +441,12 @@ export function IntegrationsTab({
       </div>
 
       {filteredCards.length === 0 ? (
-        <div className="mt-4 rounded-[18px] border border-dashed border-border bg-white px-5 py-10 text-center">
+        <div className="mt-4 rounded-[14px] bg-[#F5F5F5] p-[3px] shadow-[0_0.45px_1px_rgba(10,10,10,0.15)]"><div className="rounded-[11px] bg-white px-5 py-10 text-center shadow-[0_0.45px_1px_rgba(10,10,10,0.12)]">
           <div className="text-[14px] font-medium text-text-primary">No connectors in this view</div>
           <div className="mt-1 text-[13px] text-text-secondary">
             Switch filters to browse the rest of the available integrations.
           </div>
-        </div>
+        </div></div>
       ) : null}
 
       <Dialog.Root
@@ -976,10 +978,10 @@ function FilterButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-4 py-2 text-[13px] font-medium transition-all duration-150 ${
+      className={`rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-150 ${
         active
-          ? "border-accent bg-accent text-white"
-          : "border-border bg-white text-text-secondary hover:border-border hover:text-text-primary"
+          ? "border border-[rgba(158,153,248,0.6)] bg-gradient-to-b from-[#7B76DF] to-[#5E58C4] text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.2)]"
+          : "border border-border-subtle bg-input-bg text-text-secondary hover:text-text-primary"
       }`}
     >
       {label}
@@ -1026,8 +1028,8 @@ function ConnectorDialogShell({
   children: React.ReactNode;
 }) {
   return (
-    <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-24px)] max-w-[720px] -translate-x-1/2 -translate-y-1/2 rounded-[24px] bg-white shadow-[0_24px_80px_rgba(17,24,39,0.28)] sm:w-[calc(100%-32px)]">
-      <div className="max-h-[min(88vh,760px)] overflow-y-auto p-5 sm:p-7">
+    <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-24px)] max-w-[720px] -translate-x-1/2 -translate-y-1/2 rounded-[16px] bg-[#F5F5F5] p-[3px] shadow-[0_24px_80px_rgba(17,24,39,0.28)] sm:w-[calc(100%-32px)]">
+      <div className="max-h-[min(88vh,760px)] overflow-y-auto rounded-[13px] bg-white p-5 shadow-[0_0.45px_1px_rgba(10,10,10,0.12)] sm:p-7">
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-4">
             <div

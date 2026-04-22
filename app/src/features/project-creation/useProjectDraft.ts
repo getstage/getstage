@@ -43,10 +43,10 @@ export type UseProjectDraftResult = {
   reset: () => void;
   handleProjectImageFileChange: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleAvatarFileChange: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
-  selectExistingClient: (client: { name: string; avatarUrl?: string }) => void;
+  selectExistingClient: (client: { name: string; email?: string; avatarUrl?: string }) => void;
   fetchAvatarFromUrl: () => void;
   togglePhase: (phaseId: string) => void;
-  addPhase: () => void;
+  addPhase: (name?: string) => void;
   renamePhase: (phaseId: string, name: string) => void;
   removePhase: (phaseId: string) => void;
   handleDragStart: (event: DragEvent<HTMLDivElement>, phaseId: string) => void;
@@ -164,9 +164,9 @@ export function useProjectDraft({
       clientMode: "new",
       selectedExistingClientName: "",
       clientName: value,
-      clientEmail: "",
-      clientAvatar: null,
-      pendingAvatarFile: null,
+      clientEmail: current.clientMode === "existing" ? "" : current.clientEmail,
+      clientAvatar: current.clientMode === "existing" ? null : current.clientAvatar,
+      pendingAvatarFile: current.clientMode === "existing" ? null : current.pendingAvatarFile,
     }));
   }
 
@@ -291,13 +291,15 @@ export function useProjectDraft({
     }));
   }
 
-  function addPhase() {
+  function addPhase(name?: string) {
     const id = `phase-${phaseCounterRef.current++}`;
+    const trimmedName = name?.trim() ?? "";
+    const nextName = trimmedName || "New Phase";
     setDraft((current) => ({
       ...current,
-      phases: [...current.phases, { id, name: "New Phase", on: true }],
+      phases: [...current.phases, { id, name: nextName, on: true }],
     }));
-    setEditingPhaseId(id);
+    setEditingPhaseId(trimmedName ? null : id);
   }
 
   function renamePhase(phaseId: string, name: string) {

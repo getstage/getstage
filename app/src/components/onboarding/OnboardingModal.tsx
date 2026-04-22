@@ -9,6 +9,13 @@ import { useOnboardingController } from "@/features/onboarding/useOnboardingCont
 
 export type { OnboardingSubmission } from "@/features/onboarding/model";
 
+const SETUP_PROGRESS_STEPS: OnboardingStepId[] = [
+  "details",
+  "project-type",
+  "method",
+  "timeline",
+];
+
 type OnboardingModalProps = {
   open: boolean;
   userName?: string;
@@ -16,31 +23,22 @@ type OnboardingModalProps = {
   googleSheetsGuideHref?: string | null;
 };
 
-function getStepHeader(step: OnboardingStepId, userName?: string): { title: string; subtitle: string } {
+function getStepHeader(step: OnboardingStepId): { title: string; subtitle: string } {
   switch (step) {
     case "welcome":
       return {
-        title: userName ? `Welcome to Stage, ${userName}.` : "Welcome to Stage.",
-        subtitle: "A better way to organize your creative work starts here.",
-      };
-    case "personalise":
-      return {
-        title: "Personalise your workspace",
-        subtitle: "Choose one or more fields so Stage can tailor your workspace.",
+        title: "",
+        subtitle: "",
       };
     case "claude":
       return {
-        title: "Connect Claude",
-        subtitle: "Give Stage AI access to generate and manage your workspace.",
+        title: "Set up Claude",
+        subtitle: "Connect Claude to power conversations, reasoning, and content generation in your workspace.",
       };
     case "details":
-    case "client":
     case "project-type":
     case "method":
-    case "phase-select":
     case "timeline":
-    case "preview":
-    case "generating-roadmap":
       return {
         title: "Create a new project",
         subtitle: "Set up the basics to get started",
@@ -49,11 +47,6 @@ function getStepHeader(step: OnboardingStepId, userName?: string): { title: stri
       return {
         title: "Bring your project to life",
         subtitle: "Connect your tools to sync files, tasks, and updates",
-      };
-    case "paywall":
-      return {
-        title: "Want to connect claude, figma & notion?",
-        subtitle: "Upgrade your workspace plan to unlock integrations.",
       };
     default:
       return { title: "", subtitle: "" };
@@ -71,16 +64,20 @@ export function OnboardingModal({
     onComplete,
   });
 
-  const { title: headerTitle, subtitle: headerSubtitle } = getStepHeader(controller.step, userName);
+  const { title: headerTitle, subtitle: headerSubtitle } = getStepHeader(controller.step);
   const showChrome =
     controller.step !== "creating" &&
     controller.step !== "celebrating" &&
-    controller.step !== "generating-roadmap";
-  const showStepDots = controller.currentIndex >= 0 && controller.step !== "paywall";
+    controller.step !== "generating-roadmap" &&
+    controller.step !== "preview" &&
+    controller.step !== "paywall";
+  const setupProgressIndex = SETUP_PROGRESS_STEPS.indexOf(controller.step);
+  const showStepDots = setupProgressIndex >= 0;
   const showContinueBar =
     controller.step !== "creating" &&
-    controller.step !== "celebrating" &&
     controller.step !== "generating-roadmap" &&
+    controller.step !== "preview" &&
+    controller.step !== "claude" &&
     controller.step !== "paywall";
 
   return (
@@ -102,7 +99,7 @@ export function OnboardingModal({
           onPointerDownOutside={(event) => event.preventDefault()}
         >
           <motion.div
-            className="project-creation-page onboarding-modal timeline-scrollbar-hidden fixed inset-x-0 bottom-0 z-50 max-h-[92svh] w-full overflow-y-auto overscroll-contain rounded-t-[22px] bg-white px-5 pt-6 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[calc(100svh-40px)] sm:w-[calc(100%-32px)] sm:max-w-[560px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[22px] sm:px-7 sm:pt-7 sm:pb-7"
+            className="project-creation-page onboarding-modal timeline-scrollbar-hidden fixed inset-x-0 bottom-0 z-50 max-h-[92svh] w-full overflow-y-auto overscroll-contain rounded-t-[22px] bg-white px-5 pt-6 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[calc(100svh-40px)] sm:w-[calc(100%-32px)] sm:max-w-[844px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[22px] sm:px-9 sm:pt-9 sm:pb-8"
             initial={{ opacity: 0, y: 18, scale: 0.985, filter: "blur(10px)" }}
             animate={
               controller.isClosing
@@ -119,25 +116,27 @@ export function OnboardingModal({
             {showChrome ? (
               <div className="mb-7">
                 <img src={stageLogo} alt="Stage" className="mb-7 h-[22px] w-auto" />
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    {headerTitle ? (
-                      <h2 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.3px] text-text-primary">
-                        {headerTitle}
-                      </h2>
-                    ) : null}
-                    {headerSubtitle ? (
-                      <p className="mt-1.5 text-[14px] leading-normal text-text-secondary">
-                        {headerSubtitle}
-                      </p>
+                {headerTitle || headerSubtitle || showStepDots ? (
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      {headerTitle ? (
+                        <h2 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.3px] text-text-primary">
+                          {headerTitle}
+                        </h2>
+                      ) : null}
+                      {headerSubtitle ? (
+                        <p className="mt-1.5 text-[14px] leading-normal text-text-secondary">
+                          {headerSubtitle}
+                        </p>
+                      ) : null}
+                    </div>
+                    {showStepDots ? (
+                      <div className="shrink-0 pt-3">
+                        <StepDots total={SETUP_PROGRESS_STEPS.length} current={setupProgressIndex} />
+                      </div>
                     ) : null}
                   </div>
-                  {showStepDots ? (
-                    <div className="pt-3 shrink-0">
-                      <StepDots total={controller.flowSteps.length} current={controller.currentIndex} />
-                    </div>
-                  ) : null}
-                </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -149,7 +148,7 @@ export function OnboardingModal({
                 fieldOfWork={controller.fieldOfWork}
                 onSelectField={controller.handleSelectField}
                 draftState={controller.draftState}
-                previewRoadmap={controller.draftState.roadmap}
+                stepError={controller.stepError}
                 sheetUrl={controller.sheetUrl}
                 csvConnected={controller.csvConnected}
                 csvImported={controller.csvImported}
@@ -162,14 +161,13 @@ export function OnboardingModal({
                 claudeSetupHref={controller.claudeSetupHref}
                 claudeInstallCommand={controller.claudeInstallCommand}
                 claudeConnectionId={controller.claudeConnectionId}
+                onClaudeActivated={controller.handleContinue}
                 onSheetUrlChange={controller.setSheetUrl}
                 onToggleCsvConnection={controller.handleToggleCsvConnection}
                 onLinkSheetUrl={controller.handleLinkSheetUrl}
+                onContinue={controller.handleContinue}
                 onCreationDone={() => controller.setStep("paywall")}
-                onContinueFree={controller.handleContinueFree}
-                onUpgrade={(billingCycle) => {
-                  void controller.handlePaywallUpgrade(billingCycle);
-                }}
+                onContinueFree={() => controller.setStep("celebrating")}
               />
             </AnimatePresence>
 
@@ -183,13 +181,15 @@ export function OnboardingModal({
 
                 <button
                   type="button"
-                  className="inline-flex h-[50px] w-full cursor-pointer items-center justify-center gap-2 rounded-[12px] bg-accent px-5 text-[15px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-default disabled:opacity-45 focus:outline-none"
+                  className="inline-flex h-[48px] w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-5 text-[13px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-default disabled:opacity-45 focus:outline-none"
                   disabled={!controller.continueEnabled}
                   onClick={controller.handleContinue}
                 >
                   <span>
                     {controller.step === "welcome"
                       ? "Start Setup"
+                      : controller.step === "celebrating"
+                        ? "Continue"
                       : controller.step === "integrations"
                         ? "Get Started"
                         : "Continue"}

@@ -3,7 +3,6 @@ import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { ArrowLeft } from "@phosphor-icons/react";
-import { ProjectDock } from "@/components/dashboard/ProjectDock";
 import { ProjectDialogs } from "@/components/project/ProjectDialogs";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import type { ProjectTab } from "@/components/project/ProjectHeader";
@@ -13,7 +12,6 @@ import { ResearchTab } from "@/components/project/ResearchTab";
 import { StrategyTab } from "@/components/project/StrategyTab";
 import { GenerateTab } from "@/components/project/GenerateTab";
 import { AssetsTab } from "@/components/project/AssetsTab";
-import { useDockProjects } from "@/hooks/useDockProjects";
 import { useProjectDetail } from "@/hooks/useProjectDetail";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { Task } from "@/types";
@@ -39,7 +37,6 @@ export function ProjectDetailPage() {
   const { id } = useParams({ from: "/_authed/project/$id" });
   const projectId = id as Id<"projects">;
   const detail = useProjectDetail(projectId);
-  const dockProjects = useDockProjects();
   const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
 
   useEffect(() => {
@@ -246,7 +243,6 @@ export function ProjectDetailPage() {
         share={detail.share}
       />
 
-      <ProjectDock projects={dockProjects} />
     </>
   );
 }

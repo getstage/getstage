@@ -11,17 +11,17 @@ type PipelineStage = {
   name: string;
   count: number;
   dotColor: string;
-  fillColor: string;
+  barGradient: string;
 };
 
-const STAGE_CATEGORIES: Record<string, { dot: string; barGradient: string }> = {
-  research: { dot: "bg-accent", barGradient: "from-[#9e99f8] via-[rgba(158,153,248,0.75)] to-[#9e99f8]" },
-  discovery: { dot: "bg-[#d6d3d1]", barGradient: "from-[#d6d3d1] via-[rgba(214,211,209,0.75)] to-[#d6d3d1]" },
-  brief: { dot: "bg-accent", barGradient: "from-[#9e99f8] via-[rgba(158,153,248,0.75)] to-[#9e99f8]" },
-  strategy: { dot: "bg-[#3B82F6]", barGradient: "from-[#3B82F6] via-[rgba(59,130,246,0.75)] to-[#3B82F6]" },
-  design: { dot: "bg-[#22C55E]", barGradient: "from-[#22C55E] via-[rgba(34,197,94,0.75)] to-[#22C55E]" },
-  generate: { dot: "bg-[#22C55E]", barGradient: "from-[#22C55E] via-[rgba(34,197,94,0.75)] to-[#22C55E]" },
-  delivery: { dot: "bg-[#D4890A]", barGradient: "from-[#D4890A] via-[rgba(212,137,10,0.75)] to-[#D4890A]" },
+const STAGE_CATEGORIES: Record<string, { dot: string; bar: string }> = {
+  research: { dot: "bg-[#9e99f8]", bar: "bg-gradient-to-r from-[#9e99f8] to-[#9e99f8]" },
+  discovery: { dot: "bg-[#d6d3d1]", bar: "bg-gradient-to-r from-[#d6d3d1] to-[#d6d3d1]" },
+  brief: { dot: "bg-[#9e99f8]", bar: "bg-gradient-to-r from-[#9e99f8] to-[#9e99f8]" },
+  strategy: { dot: "bg-[#d6d3d1]", bar: "bg-gradient-to-r from-[#d6d3d1] to-[#d6d3d1]" },
+  design: { dot: "bg-[#d6d3d1]", bar: "bg-gradient-to-r from-[#d6d3d1] to-[#d6d3d1]" },
+  generate: { dot: "bg-[#d6d3d1]", bar: "bg-gradient-to-r from-[#d6d3d1] to-[#d6d3d1]" },
+  delivery: { dot: "bg-[#d6d3d1]", bar: "bg-gradient-to-r from-[#d6d3d1] to-[#d6d3d1]" },
 };
 
 function categorizePhase(phaseName: string): string {
@@ -32,8 +32,8 @@ function categorizePhase(phaseName: string): string {
   return lower;
 }
 
-function getStageStyle(category: string): { dot: string; barGradient: string } {
-  return STAGE_CATEGORIES[category] ?? { dot: "bg-border", barGradient: "from-[#d6d3d1] via-[rgba(214,211,209,0.75)] to-[#d6d3d1]" };
+function getStageStyle(category: string): { dot: string; bar: string } {
+  return STAGE_CATEGORIES[category] ?? { dot: "bg-[#d6d3d1]", bar: "bg-[#d6d3d1]" };
 }
 
 export function PipelineCard({ projects, onOpenAllProjects }: PipelineCardProps) {
@@ -57,7 +57,7 @@ export function PipelineCard({ projects, onOpenAllProjects }: PipelineCardProps)
         name: category.charAt(0).toUpperCase() + category.slice(1),
         count,
         dotColor: style.dot,
-        fillColor: style.barGradient,
+        barGradient: style.bar,
       });
     }
 
@@ -68,36 +68,45 @@ export function PipelineCard({ projects, onOpenAllProjects }: PipelineCardProps)
 
   return (
     <DashboardCard
-      className="h-full"
+      className="h-full flex-1"
       title="Project Pipeline"
       subtitle="Active projects by stage"
-      action={<CardTab label="This Month" onClick={onOpenAllProjects} />}
+      action={<CardTab label="All projects" onClick={onOpenAllProjects} />}
     >
       {stages.length > 0 ? (
         <>
-          <div className="flex flex-col gap-5">
-            {stages.map((stage) => (
-              <div key={stage.name} className="flex flex-col gap-2.5">
-                <div className="flex items-center gap-2">
+          <div className="mb-5 flex flex-col gap-2.5">
+            {stages.map((stage) => {
+              const maxCount = Math.max(...stages.map((s) => s.count), 1);
+              const widthPct = Math.max((stage.count / maxCount) * 100, 8);
+
+              return (
+                <div key={stage.name} className="flex items-center gap-3">
                   <span
-                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${stage.dotColor}`}
+                    className={`h-[6px] w-[6px] shrink-0 rounded-full ${stage.dotColor}`}
                   />
-                  <span className="text-[13px] font-medium leading-[1.2] text-text-primary">
+                  <span className="w-[72px] shrink-0 text-[13px] text-[#737373]">
                     {stage.name}
                   </span>
+                  <div className="relative flex-1 overflow-hidden rounded-[6px] bg-[#f5f5f5]">
+                    <div
+                      className={`h-6 rounded-[6px] transition-[width] duration-300 ${stage.barGradient}`}
+                      style={{ width: `${widthPct}%` }}
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] font-medium text-[#737373]">
+                      {stage.count} project{stage.count !== 1 ? "s" : ""}
+                    </span>
+                  </div>
                 </div>
-                <div
-                  className={`h-[19px] w-full rounded-[4px] bg-gradient-to-r ${stage.fillColor}`}
-                />
-              </div>
-            ))}
+              );
+            })}
           </div>
-          <div className="mt-6 text-[12px] text-text-secondary">
+          <div className="text-[12px] font-normal text-[#737373]">
             {totalActive} active project{totalActive !== 1 ? "s" : ""} across all stages
           </div>
         </>
       ) : (
-        <p className="text-[13px] text-text-secondary">No active projects.</p>
+        <p className="text-[13px] text-[#737373]">No active projects.</p>
       )}
     </DashboardCard>
   );

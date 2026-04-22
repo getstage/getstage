@@ -11,8 +11,6 @@ import {
   LinkSimple,
   X,
 } from "@phosphor-icons/react";
-import { ProjectDock } from "@/components/dashboard/ProjectDock";
-import { useDockProjects } from "@/hooks/useDockProjects";
 import { Button } from "@/components/ui/Button";
 import { api } from "@/lib/convex";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -299,7 +297,6 @@ export function ProjectStitchPage() {
   const { id: projectId } = useParams({
     from: "/_authed/project/$id/stitch",
   });
-  const dockProjects = useDockProjects();
   const linkStitchProject = useConvexAction(api.app.projectStitch.linkProject);
   const syncLatest = useConvexMutation(api.app.projectStitch.syncLatest);
   const { project, isLoading, connection, previews, connectionLoading } =
@@ -410,7 +407,6 @@ export function ProjectStitchPage() {
         </motion.main>
       </div>
 
-      <ProjectDock projects={dockProjects} />
     </>
   );
 }

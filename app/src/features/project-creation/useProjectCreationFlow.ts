@@ -2,12 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   clientInfoSchema,
   dateRangeInputSchema,
-  manualPhaseSelectionSchema,
   projectBasicsSchema,
 } from "@/lib/validation";
 
-export type WorkflowStep = 1 | "1b" | 2 | 3 | "4a" | "4m" | "4mb" | 5;
-export type ProjectCreationStep = WorkflowStep | "success";
+export type WorkflowStep = 1 | 2 | 3 | 4;
+export type ProjectCreationStep = WorkflowStep | "overview" | "success";
 
 type ProjectCreationFlowInput = {
   projectName: string;
@@ -31,7 +30,6 @@ export function useProjectCreationFlow({
   projectName,
   clientName,
   clientEmail,
-  hasClientAvatar,
   projectType,
   method,
   startDate,
@@ -48,33 +46,26 @@ export function useProjectCreationFlow({
   const generationTimeoutRef = useRef<number | undefined>(undefined);
 
   const steps = useMemo<WorkflowStep[]>(
-    () =>
-      method === "manual"
-        ? [1, "1b", 2, 3, "4m", "4mb", 5]
-        : [1, "1b", 2, 3, "4a", 5],
-    [method],
+    () => [1, 2, 3, 4],
+    [],
   );
-  const currentIndex = step === "success" ? steps.length - 1 : steps.indexOf(step);
+  const currentIndex =
+    step === "overview" ? steps.length - 1 : step === "success" ? -1 : steps.indexOf(step);
   const canContinue = useMemo(() => {
     switch (step) {
       case 1:
-        return projectName.trim().length > 0;
-      case "1b":
         return (
+          projectName.trim().length > 0 &&
           clientName.trim().length > 0 &&
-          clientEmail.trim().length > 0 &&
-          hasClientAvatar
+          clientEmail.trim().length > 0
         );
       case 2:
         return projectType !== null;
       case 3:
-        return method !== null;
-      case "4a":
-      case "4mb":
+        return method === "manual" ? activePhasesLength >= 2 : method !== null;
+      case 4:
         return Boolean(startDate && endDate);
-      case "4m":
-        return activePhasesLength >= 2;
-      case 5:
+      case "overview":
         return roadmapLength > 0 && !isCreating;
       default:
         return false;
@@ -84,7 +75,6 @@ export function useProjectCreationFlow({
     clientEmail,
     clientName,
     endDate,
-    hasClientAvatar,
     isCreating,
     method,
     projectName,
@@ -112,7 +102,12 @@ export function useProjectCreationFlow({
     }
 
     clearError();
-    const index = steps.indexOf(step as WorkflowStep);
+    if (step === "overview") {
+      setStep(4);
+      return;
+    }
+
+    const index = typeof step === "number" ? steps.indexOf(step) : -1;
     if (index > 0) {
       const previous = steps[index - 1];
       if (previous) {
@@ -138,17 +133,9 @@ export function useProjectCreationFlow({
           onError(parsed.error.issues[0]?.message ?? "Please enter a project name.");
           return;
         }
-        setStep("1b");
-        return;
-      }
-      case "1b": {
-        const parsed = clientInfoSchema.safeParse({ clientName, clientEmail });
-        if (!parsed.success) {
-          onError(parsed.error.issues[0]?.message ?? "Please complete the client details.");
-          return;
-        }
-        if (!hasClientAvatar) {
-          onError("Please upload a client photo.");
+        const clientParsed = clientInfoSchema.safeParse({ clientName, clientEmail });
+        if (!clientParsed.success) {
+          onError(clientParsed.error.issues[0]?.message ?? "Please enter the client details.");
           return;
         }
         setStep(2);
@@ -158,27 +145,13 @@ export function useProjectCreationFlow({
         setStep(3);
         return;
       case 3:
-        setStep(method === "manual" ? "4m" : "4a");
-        return;
-      case "4m": {
-        const parsed = manualPhaseSelectionSchema.safeParse(activePhasesLength);
-        if (!parsed.success) {
-          onError(parsed.error.issues[0]?.message ?? "Select at least two phases.");
+        if (method === "manual" && activePhasesLength < 2) {
+          onError("Select at least two phases.");
           return;
         }
-        setStep("4mb");
+        setStep(4);
         return;
-      }
-      case "4mb": {
-        const parsed = dateRangeInputSchema.safeParse({ startDate, endDate });
-        if (!parsed.success) {
-          onError(parsed.error.issues[0]?.message ?? "Select a valid timeline.");
-          return;
-        }
-        setStep(5);
-        return;
-      }
-      case "4a": {
+      case 4: {
         const parsed = dateRangeInputSchema.safeParse({ startDate, endDate });
         if (!parsed.success) {
           onError(parsed.error.issues[0]?.message ?? "Select a valid timeline.");
@@ -187,11 +160,11 @@ export function useProjectCreationFlow({
         setIsGenerating(true);
         generationTimeoutRef.current = window.setTimeout(() => {
           setIsGenerating(false);
-          setStep(5);
+          setStep("overview");
         }, 1500);
         return;
       }
-      case 5:
+      case "overview":
         onCreate();
         return;
       default:
