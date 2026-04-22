@@ -46,13 +46,23 @@ export function Sidebar() {
       <div className={`flex flex-col gap-[28px] ${collapsed ? "items-center w-full" : ""}`}>
         {/* Logo + sidebar toggle */}
         <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
-          <Link to="/dashboard" className="flex items-center gap-[2px] outline-none">
-            <img
-              src={stageLogo}
-              alt="Stage"
-              className={collapsed ? "h-[24px] w-auto" : "h-[22px] w-auto"}
-            />
-          </Link>
+          {collapsed ? (
+            <button
+              type="button"
+              onClick={() => setCollapsed(false)}
+              className="cursor-pointer outline-none"
+            >
+              <img
+                src="/apple-touch-icon.png"
+                alt="Stage"
+                className="h-[24px] w-[24px]"
+              />
+            </button>
+          ) : (
+            <Link to="/dashboard" className="flex items-center gap-[2px] outline-none">
+              <img src={stageLogo} alt="Stage" className="h-[22px] w-auto" />
+            </Link>
+          )}
           {!collapsed && (
             <button
               type="button"
