@@ -7,7 +7,9 @@ import {
   Trash,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
+import { useMutation } from "convex/react";
 import { OnboardingPaywall } from "@/components/onboarding/OnboardingPaywall";
+import { api } from "@/lib/convex";
 import { Avatar } from "@/components/ui/Avatar";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import timelineOverviewImage from "@/assets/landing-images/timeline-overview.webp";
@@ -1300,6 +1302,9 @@ function ClaudeOnboardingStep({
   onActivate: () => void;
 }) {
   const [copied, setCopied] = useState<string | null>(null);
+  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+  const [isGeneratingKey, setIsGeneratingKey] = useState(false);
+  const generateKeyMutation = useMutation(api.developer.apiKeys.generate);
 
   const verificationStep = claudeConnectionId
     ? [
@@ -1403,14 +1408,28 @@ function ClaudeOnboardingStep({
             </label>
             <div className="flex items-center justify-between gap-3 rounded-[6px] bg-[#F5F5F5] py-1 pl-3 pr-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
               <span className="min-w-0 truncate text-[12px] font-medium text-text-secondary">
-                *******************
+                {generatedKey ? generatedKey : "*******************"}
               </span>
               <button
                 type="button"
-                onClick={() => window.open(claudeSetupHref, "_blank")}
-                className="shrink-0 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 py-1 text-[12px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
+                disabled={isGeneratingKey}
+                onClick={async () => {
+                  setIsGeneratingKey(true);
+                  try {
+                    const result = await generateKeyMutation({ name: "Claude Onboarding" });
+                    setGeneratedKey(result.key);
+                    await navigator.clipboard.writeText(result.key);
+                    setCopied("key");
+                    window.setTimeout(() => setCopied(null), 3000);
+                  } catch {
+                    // silently fail
+                  } finally {
+                    setIsGeneratingKey(false);
+                  }
+                }}
+                className="shrink-0 cursor-pointer rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 py-1 text-[12px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] disabled:opacity-50"
               >
-                Generate Key
+                {isGeneratingKey ? "Generating..." : copied === "key" ? "Copied!" : generatedKey ? "Regenerate" : "Generate Key"}
               </button>
             </div>
           </div>

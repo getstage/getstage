@@ -64,7 +64,7 @@ export function StepDots({ steps, currentIndex }: StepDotsProps) {
   }
 
   return (
-    <div className="flex items-center justify-center gap-2">
+    <div className="flex items-center justify-center gap-[6px]">
       {steps.map((step, index) => (
         <div
           key={`${step}-${index}`}
@@ -72,7 +72,9 @@ export function StepDots({ steps, currentIndex }: StepDotsProps) {
             "h-[6px] rounded-full transition-all duration-200",
             index === currentIndex
               ? "w-[32px] bg-gradient-to-r from-[#8D87FF] to-[#716BE6]"
-              : "w-[6px] bg-[#D9D9D9]",
+              : index < currentIndex
+                ? "w-[16px] bg-[#C4C1F7]"
+                : "w-[16px] bg-[#E5E5E5]",
           )}
         />
       ))}

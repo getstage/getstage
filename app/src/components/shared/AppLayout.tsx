@@ -18,9 +18,11 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f5f5f5] p-[4px]">
-      <div className="flex flex-1 flex-col overflow-clip rounded-[8px] border border-[#f5f5f5] bg-white">
-        <div className="flex flex-1 flex-col gap-[56px] overflow-y-auto px-6 py-[44px] md:px-[120px] lg:px-[200px] xl:px-[250px]">
+      <div className="flex flex-1 flex-col rounded-[8px] border border-[#f5f5f5] bg-white">
+        <div className="relative z-10 shrink-0 px-6 pt-[44px] md:px-[120px] lg:px-[200px] xl:px-[250px]">
           <TopBar />
+        </div>
+        <div className="flex flex-1 flex-col gap-[56px] overflow-y-auto px-6 pb-[44px] pt-[56px] md:px-[120px] lg:px-[200px] xl:px-[250px]">
           <main className="flex-1">{children}</main>
         </div>
       </div>

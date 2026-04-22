@@ -23,62 +23,66 @@ export function PaymentsCard({ paymentSummary }: PaymentsCardProps) {
       subtitle="Track outstanding and received payments"
       action={<CardTab label={new Date().getFullYear().toString()} />}
     >
-      <div className="mb-5 flex gap-8">
-        <Metric label="Outstanding" tone="default" value={outstandingDisplay} />
-        <Metric label="Received" tone="accent" value={receivedDisplay} />
-      </div>
+      {total > 0 ? (
+        <>
+          <div className="mb-5 flex gap-8">
+            <Metric label="Outstanding" tone="default" value={outstandingDisplay} />
+            <Metric label="Received" tone="accent" value={receivedDisplay} />
+          </div>
 
-      {total > 0 && (
-        <div className="mb-5 flex h-1.5 gap-[3px] overflow-hidden rounded-full">
-          <div
-            className="h-full rounded-full bg-[#9e99f8]"
-            style={{ flex: receivedPct }}
-          />
-          <div
-            className="h-full rounded-full bg-[#d6d3d1]"
-            style={{ flex: outstandingPct }}
-          />
-        </div>
-      )}
+          <div className="mb-5 flex h-1.5 gap-[3px] overflow-hidden rounded-full">
+            <div
+              className="h-full rounded-full bg-[#9e99f8]"
+              style={{ flex: receivedPct }}
+            />
+            <div
+              className="h-full rounded-full bg-[#d6d3d1]"
+              style={{ flex: outstandingPct }}
+            />
+          </div>
 
-      {paymentRows.length > 0 ? (
-        <div>
-          {paymentRows.map((row, index) => {
-            const rowAmountDisplay = formatCurrencyDisplay(row.amount);
-            const isPending = row.status === "pending";
+          {paymentRows.length > 0 ? (
+            <div>
+              {paymentRows.map((row, index) => {
+                const rowAmountDisplay = formatCurrencyDisplay(row.amount);
+                const isPending = row.status === "pending";
 
-            return (
-              <div
-                key={row.name}
-                className={`flex items-center gap-2.5 py-[9px] ${
-                  index > 0 ? "border-t border-[#f0f0f0]" : ""
-                }`}
-              >
-                <div className="flex h-[13px] w-[13px] shrink-0 items-center justify-center">
-                  {isPending ? (
-                    <div className="h-[13px] w-[13px] rounded-[2px] bg-[#0a0a0a]" />
-                  ) : (
-                    <img src="/logos/dashboard/check.svg" alt="" aria-hidden="true" className="h-[13px] w-[13px]" />
-                  )}
-                </div>
-                <span className="flex-1 truncate text-[13px] text-[#0a0a0a]">
-                  {row.name}
-                </span>
-                <span
-                  className={`shrink-0 text-[13px] font-medium ${
-                    isPending ? "text-[#737373]" : "text-[#16a34a]"
-                  }`}
-                  title={rowAmountDisplay.isCompact ? rowAmountDisplay.full : undefined}
-                  aria-label={rowAmountDisplay.isCompact ? rowAmountDisplay.full : undefined}
-                >
-                  {isPending
-                    ? `Pending ${rowAmountDisplay.short}`
-                    : `${rowAmountDisplay.short}`}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+                return (
+                  <div
+                    key={row.name}
+                    className={`flex items-center gap-2.5 py-[9px] ${
+                      index > 0 ? "border-t border-[#f0f0f0]" : ""
+                    }`}
+                  >
+                    <div className="flex h-[13px] w-[13px] shrink-0 items-center justify-center">
+                      {isPending ? (
+                        <div className="h-[13px] w-[13px] rounded-[2px] bg-[#0a0a0a]" />
+                      ) : (
+                        <img src="/logos/dashboard/check.svg" alt="" aria-hidden="true" className="h-[13px] w-[13px]" />
+                      )}
+                    </div>
+                    <span className="flex-1 truncate text-[13px] text-[#0a0a0a]">
+                      {row.name}
+                    </span>
+                    <span
+                      className={`shrink-0 text-[13px] font-medium ${
+                        isPending ? "text-[#737373]" : "text-[#16a34a]"
+                      }`}
+                      title={rowAmountDisplay.isCompact ? rowAmountDisplay.full : undefined}
+                      aria-label={rowAmountDisplay.isCompact ? rowAmountDisplay.full : undefined}
+                    >
+                      {isPending
+                        ? `Pending ${rowAmountDisplay.short}`
+                        : `${rowAmountDisplay.short}`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-[13px] text-[#737373]">No payments yet.</p>
+          )}
+        </>
       ) : (
         <p className="text-[13px] text-[#737373]">No payments yet.</p>
       )}

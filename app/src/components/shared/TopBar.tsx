@@ -13,7 +13,7 @@ export function TopBar() {
     <header className="flex w-full items-center justify-between">
       {/* Left: Stage logo */}
       <Link to="/dashboard" className="shrink-0 outline-none focus:outline-none">
-        <img src={stageLogo} alt="Stage" className="h-[18px] w-auto" />
+        <img src={stageLogo} alt="Stage" className="h-[22px] w-auto" />
       </Link>
 
       {/* Right: User avatar + name */}
@@ -28,9 +28,9 @@ export function TopBar() {
               name={user.name}
               src={user.avatarUrl}
               size="sm"
-              className="h-6 w-6 text-[10px]"
+              className="h-[30px] w-[30px] text-[11px]"
             />
-            <span className="text-[13px] font-medium text-[#0a0a0a]">
+            <span className="text-[14px] font-medium text-[#0a0a0a]">
               {user.name}
             </span>
           </button>
