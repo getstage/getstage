@@ -89,13 +89,26 @@ function renderStepContent(creation: ProjectCreationState) {
         <ProjectBasicsStep
           projectName={creation.projectName}
           projectImage={creation.projectImage}
+          clientMode={creation.clientMode}
+          selectedExistingClientName={creation.selectedExistingClientName}
+          clientName={creation.clientName}
+          clientEmail={creation.clientEmail}
+          clientAvatar={creation.clientAvatar}
+          existingClients={creation.existingClients}
           canContinue={creation.canContinue}
           currentIndex={creation.currentIndex}
           steps={creation.steps}
+          fileInputRef={creation.fileInputRef}
           projectImageInputRef={creation.projectImageInputRef}
           onProjectNameChange={creation.setProjectName}
           onProjectImageChange={creation.setProjectImage}
           onProjectImageFileChange={creation.handleProjectImageFileChange}
+          onClientModeChange={creation.setClientMode}
+          onExistingClientSelect={creation.selectExistingClient}
+          onClientNameChange={creation.setClientName}
+          onClientEmailChange={creation.setClientEmail}
+          onClientAvatarChange={creation.setClientAvatar}
+          onAvatarFileChange={creation.handleAvatarFileChange}
           onContinue={creation.handleContinue}
         />
       );
@@ -116,16 +129,11 @@ function renderStepContent(creation: ProjectCreationState) {
         <MethodStep
           method={creation.method}
           phases={creation.phases}
-          editingPhaseId={creation.editingPhaseId}
           canContinue={creation.canContinue}
           currentIndex={creation.currentIndex}
           steps={creation.steps}
           onMethodChange={creation.setMethod}
-          onEditingPhaseIdChange={creation.setEditingPhaseId}
           onTogglePhase={creation.togglePhase}
-          onAddPhase={creation.addPhase}
-          onRenamePhase={creation.renamePhase}
-          onRemovePhase={creation.removePhase}
           onDragStart={creation.handleDragStart}
           onDrop={creation.handleDrop}
           onDragEnd={creation.handleDragEnd}
@@ -148,7 +156,7 @@ function renderStepContent(creation: ProjectCreationState) {
           onBack={creation.goBack}
         />
       );
-    case 5:
+    case "overview":
       return (
         <RoadmapStep
           roadmap={creation.roadmap}

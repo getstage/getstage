@@ -64,17 +64,15 @@ export function StepDots({ steps, currentIndex }: StepDotsProps) {
   }
 
   return (
-    <div className="flex justify-center gap-1.5">
+    <div className="flex items-center justify-center gap-2">
       {steps.map((step, index) => (
         <div
           key={`${step}-${index}`}
           className={cn(
-            "h-1.5 rounded-[3px] transition-all duration-200",
+            "h-[6px] rounded-full transition-all duration-200",
             index === currentIndex
-              ? "w-8 bg-[#8D87FF]"
-              : index < currentIndex
-                ? "w-2 bg-[#8D87FF]"
-                : "w-2 bg-[#E7E6FD]",
+              ? "w-[32px] bg-gradient-to-r from-[#8D87FF] to-[#716BE6]"
+              : "w-[6px] bg-[#D9D9D9]",
           )}
         />
       ))}

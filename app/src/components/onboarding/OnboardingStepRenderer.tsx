@@ -353,25 +353,10 @@ export function OnboardingStepRenderer({
   onClaudeActivated,
 }: OnboardingStepRendererProps) {
   const { draft } = draftState;
-  const [isAddingPhase, setIsAddingPhase] = useState(false);
-  const [newPhaseName, setNewPhaseName] = useState("");
   const selectedClient =
     draft.clientMode === "existing"
       ? existingClients.find((client) => client.name === draft.selectedExistingClientName) ?? null
       : null;
-
-  useEffect(() => {
-    if (step !== "method") {
-      setIsAddingPhase(false);
-      setNewPhaseName("");
-    }
-  }, [step]);
-
-  function commitNewPhase() {
-    draftState.addPhase(newPhaseName.trim() || "New Phase");
-    setNewPhaseName("");
-    setIsAddingPhase(false);
-  }
 
   switch (step) {
     case "welcome":
@@ -481,7 +466,7 @@ export function OnboardingStepRenderer({
               </div>
             </StepShell>
 
-            <StepShell label="Client Details">
+            <StepShell label="Who is this for?">
               <div className="space-y-4">
                 <div>
                   <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
@@ -608,7 +593,7 @@ export function OnboardingStepRenderer({
     case "client":
       return (
         <OnboardingStepMotion motionKey="client">
-          <StepShell label="Client Details">
+          <StepShell label="Who is this for?">
             <div className="space-y-4">
           <div>
             <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
@@ -841,37 +826,14 @@ export function OnboardingStepRenderer({
                           alt=""
                           className="h-4 w-4 shrink-0 cursor-grab opacity-45"
                         />
-                        {draftState.editingPhaseId === phase.id ? (
-                          <input
-                            autoFocus
-                            defaultValue={phase.name}
-                            onBlur={(event) => {
-                              draftState.renamePhase(phase.id, event.target.value);
-                              draftState.setEditingPhaseId(null);
-                            }}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter") {
-                                draftState.renamePhase(phase.id, event.currentTarget.value);
-                                draftState.setEditingPhaseId(null);
-                              }
-                              if (event.key === "Escape") {
-                                draftState.setEditingPhaseId(null);
-                              }
-                            }}
-                            className="h-8 flex-1 rounded-[6px] border border-border bg-[#F5F5F5] px-2.5 text-[13px] text-text-primary outline-none"
-                          />
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => draftState.setEditingPhaseId(phase.id)}
-                            className={cn(
-                              "flex-1 cursor-pointer text-left text-[13px] font-medium",
-                              phase.on ? "text-text-primary" : "text-text-tertiary",
-                            )}
-                          >
-                            {phase.name}
-                          </button>
-                        )}
+                        <span
+                          className={cn(
+                            "flex-1 text-left text-[13px] font-medium",
+                            phase.on ? "text-text-primary" : "text-text-tertiary",
+                          )}
+                        >
+                          {phase.name}
+                        </span>
                         <button
                           type="button"
                           onClick={() => draftState.togglePhase(phase.id)}
@@ -888,55 +850,9 @@ export function OnboardingStepRenderer({
                             )}
                           />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => draftState.removePhase(phase.id)}
-                          disabled={draft.phases.length <= 1}
-                          className="cursor-pointer text-text-tertiary transition-colors hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
-                          aria-label={`Remove ${phase.name}`}
-                        >
-                          <Trash size={14} />
-                        </button>
                       </div>
                     ))}
                   </div>
-                  {isAddingPhase ? (
-                    <div className="mt-3 flex items-center gap-2 rounded-[6px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.18)]">
-                      <input
-                        autoFocus
-                        value={newPhaseName}
-                        onChange={(event) => setNewPhaseName(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            commitNewPhase();
-                          }
-                          if (event.key === "Escape") {
-                            setIsAddingPhase(false);
-                            setNewPhaseName("");
-                          }
-                        }}
-                        placeholder="New Phase"
-                        className="h-8 min-w-0 flex-1 rounded-[4px] border border-transparent bg-transparent px-2.5 text-[13px] font-medium text-text-primary outline-none placeholder:text-text-tertiary focus:border-border focus:bg-white"
-                      />
-                      <button
-                        type="button"
-                        onClick={commitNewPhase}
-                        className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-[4px] bg-gradient-to-b from-neutral-700 to-neutral-950 px-3 text-[12px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
-                      >
-                        <img src={ONBOARDING_ICON_SRC.add} alt="" className="h-3 w-3 invert" />
-                        Add
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setIsAddingPhase(true)}
-                      className="mt-3 inline-flex h-9 w-full cursor-pointer items-center justify-center gap-1 rounded-[6px] bg-[#F5F5F5] text-[13px] font-medium text-text-primary transition-colors hover:bg-[#EFEFEF]"
-                    >
-                      <img src={ONBOARDING_ICON_SRC.add} alt="" className="h-3.5 w-3.5 opacity-70" />
-                      Add Phase
-                    </button>
-                  )}
                 </div>
               ) : draft.method === "ai" && roadmapItems.length > 0 ? (
                 <div className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">

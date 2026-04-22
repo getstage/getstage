@@ -79,12 +79,10 @@ export function StepDots({ total, current }: { total: number; current: number })
         <div
           key={index}
           className={cn(
-            "h-1.5 rounded-full transition-all duration-200",
-            index <= current
-              ? index === current
-                ? "w-8 bg-gradient-to-r from-[#8D87FF] to-[#716BE6]"
-                : "w-1.5 bg-[#8D87FF]"
-              : "w-1.5 bg-[#D9D9D9]",
+            "h-[6px] rounded-full transition-all duration-200",
+            index === current
+              ? "w-[32px] bg-gradient-to-r from-[#8D87FF] to-[#716BE6]"
+              : "w-[6px] bg-[#D9D9D9]",
           )}
         />
       ))}

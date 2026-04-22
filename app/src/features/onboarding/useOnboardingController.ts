@@ -353,7 +353,7 @@ export function useOnboardingController({
         setStep("timeline");
         return;
       case "timeline":
-        setStep(draft.method === "ai" ? "generating-roadmap" : "preview");
+        setStep("generating-roadmap");
         return;
       case "preview": {
         const submission = buildPendingSubmission(!setProjectLater);

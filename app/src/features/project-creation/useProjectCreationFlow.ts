@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  clientInfoSchema,
   dateRangeInputSchema,
   projectBasicsSchema,
 } from "@/lib/validation";
 
-export type WorkflowStep = 1 | 2 | 3 | 4 | 5;
-export type ProjectCreationStep = WorkflowStep | "success";
+export type WorkflowStep = 1 | 2 | 3 | 4;
+export type ProjectCreationStep = WorkflowStep | "overview" | "success";
 
 type ProjectCreationFlowInput = {
   projectName: string;
@@ -27,6 +28,8 @@ type ProjectCreationFlowInput = {
 
 export function useProjectCreationFlow({
   projectName,
+  clientName,
+  clientEmail,
   projectType,
   method,
   startDate,
@@ -43,27 +46,34 @@ export function useProjectCreationFlow({
   const generationTimeoutRef = useRef<number | undefined>(undefined);
 
   const steps = useMemo<WorkflowStep[]>(
-    () => [1, 2, 3, 4, 5],
+    () => [1, 2, 3, 4],
     [],
   );
-  const currentIndex = step === "success" ? steps.length - 1 : steps.indexOf(step);
+  const currentIndex =
+    step === "overview" ? steps.length - 1 : step === "success" ? -1 : steps.indexOf(step);
   const canContinue = useMemo(() => {
     switch (step) {
       case 1:
-        return projectName.trim().length > 0;
+        return (
+          projectName.trim().length > 0 &&
+          clientName.trim().length > 0 &&
+          clientEmail.trim().length > 0
+        );
       case 2:
         return projectType !== null;
       case 3:
         return method === "manual" ? activePhasesLength >= 2 : method !== null;
       case 4:
         return Boolean(startDate && endDate);
-      case 5:
+      case "overview":
         return roadmapLength > 0 && !isCreating;
       default:
         return false;
     }
   }, [
     activePhasesLength,
+    clientEmail,
+    clientName,
     endDate,
     isCreating,
     method,
@@ -92,7 +102,12 @@ export function useProjectCreationFlow({
     }
 
     clearError();
-    const index = steps.indexOf(step as WorkflowStep);
+    if (step === "overview") {
+      setStep(4);
+      return;
+    }
+
+    const index = typeof step === "number" ? steps.indexOf(step) : -1;
     if (index > 0) {
       const previous = steps[index - 1];
       if (previous) {
@@ -118,6 +133,11 @@ export function useProjectCreationFlow({
           onError(parsed.error.issues[0]?.message ?? "Please enter a project name.");
           return;
         }
+        const clientParsed = clientInfoSchema.safeParse({ clientName, clientEmail });
+        if (!clientParsed.success) {
+          onError(clientParsed.error.issues[0]?.message ?? "Please enter the client details.");
+          return;
+        }
         setStep(2);
         return;
       }
@@ -137,18 +157,14 @@ export function useProjectCreationFlow({
           onError(parsed.error.issues[0]?.message ?? "Select a valid timeline.");
           return;
         }
-        if (method === "ai") {
-          setIsGenerating(true);
-          generationTimeoutRef.current = window.setTimeout(() => {
-            setIsGenerating(false);
-            setStep(5);
-          }, 1500);
-          return;
-        }
-        setStep(5);
+        setIsGenerating(true);
+        generationTimeoutRef.current = window.setTimeout(() => {
+          setIsGenerating(false);
+          setStep("overview");
+        }, 1500);
         return;
       }
-      case 5:
+      case "overview":
         onCreate();
         return;
       default:

@@ -1,5 +1,4 @@
 import type { DragEvent } from "react";
-import { DotsSixVertical, Plus, Trash } from "@phosphor-icons/react";
 import { BackButton, PrimaryButton } from "@/components/creation/CreationChrome";
 import { cn } from "@/lib/utils";
 import type { Method, PhaseItem, WorkflowStep } from "@/hooks/useProjectCreation";
@@ -7,16 +6,11 @@ import type { Method, PhaseItem, WorkflowStep } from "@/hooks/useProjectCreation
 type MethodStepProps = {
   method: Method;
   phases: PhaseItem[];
-  editingPhaseId: string | null;
   canContinue: boolean;
   currentIndex: number;
   steps: WorkflowStep[];
   onMethodChange: (value: Exclude<Method, null>) => void;
-  onEditingPhaseIdChange: (phaseId: string | null) => void;
   onTogglePhase: (phaseId: string) => void;
-  onAddPhase: () => void;
-  onRenamePhase: (phaseId: string, name: string) => void;
-  onRemovePhase: (phaseId: string) => void;
   onDragStart: (event: DragEvent<HTMLDivElement>, phaseId: string) => void;
   onDrop: (event: DragEvent<HTMLDivElement>, targetId: string) => void;
   onDragEnd: () => void;
@@ -27,16 +21,11 @@ type MethodStepProps = {
 export function MethodStep({
   method,
   phases,
-  editingPhaseId,
   canContinue,
   currentIndex: _currentIndex,
   steps: _steps,
   onMethodChange,
-  onEditingPhaseIdChange,
   onTogglePhase,
-  onAddPhase,
-  onRenamePhase,
-  onRemovePhase,
   onDragStart,
   onDrop,
   onDragEnd,
@@ -82,38 +71,19 @@ export function MethodStep({
                   index < phases.length - 1 ? "border-b border-[#EFEFF2]" : "",
                 )}
               >
-                <DotsSixVertical size={15} className="shrink-0 text-text-tertiary" />
-                {editingPhaseId === phase.id ? (
-                  <input
-                    autoFocus
-                    defaultValue={phase.name}
-                    onBlur={(event) => {
-                      onRenamePhase(phase.id, event.target.value);
-                      onEditingPhaseIdChange(null);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        onRenamePhase(phase.id, event.currentTarget.value);
-                        onEditingPhaseIdChange(null);
-                      }
-                      if (event.key === "Escape") {
-                        onEditingPhaseIdChange(null);
-                      }
-                    }}
-                    className="h-8 flex-1 rounded-[6px] border border-border bg-[#F5F5F5] px-2.5 text-[13px] text-text-primary outline-none"
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => onEditingPhaseIdChange(phase.id)}
-                    className={cn(
-                      "flex-1 cursor-pointer text-left text-[13px] font-medium",
-                      phase.on ? "text-text-primary" : "text-text-tertiary",
-                    )}
-                  >
-                    {phase.name}
-                  </button>
-                )}
+                <img
+                  src="/logos/dots.svg"
+                  alt=""
+                  className="h-4 w-4 shrink-0 cursor-grab opacity-45"
+                />
+                <span
+                  className={cn(
+                    "flex-1 text-left text-[13px] font-medium",
+                    phase.on ? "text-text-primary" : "text-text-tertiary",
+                  )}
+                >
+                  {phase.name}
+                </span>
                 <button
                   type="button"
                   onClick={() => onTogglePhase(phase.id)}
@@ -130,25 +100,8 @@ export function MethodStep({
                     )}
                   />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => onRemovePhase(phase.id)}
-                  disabled={phases.length <= 1}
-                  className="cursor-pointer text-text-tertiary transition-colors hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label={`Remove ${phase.name}`}
-                >
-                  <Trash size={14} />
-                </button>
               </div>
             ))}
-            <button
-              type="button"
-              onClick={onAddPhase}
-              className="mt-3 inline-flex h-9 w-full cursor-pointer items-center justify-center gap-1 rounded-[6px] bg-[#F5F5F5] text-[13px] font-medium text-text-primary transition-colors hover:bg-[#EFEFEF]"
-            >
-              <Plus size={14} />
-              Add Phase
-            </button>
           </div>
         </div>
       ) : method === "ai" && activePhases.length > 0 ? (
