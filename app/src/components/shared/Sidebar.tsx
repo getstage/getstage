@@ -15,6 +15,11 @@ const NAV_ITEMS = [
   { name: "Client Portal", to: "/settings" as const, icon: "/logos/dashboard/clientportal.svg" },
 ];
 
+function getDefaultActiveItem(path: string): string {
+  if (path.startsWith("/settings")) return "Settings";
+  return "Dashboard";
+}
+
 const FEEDBACK_TALLY_URL = "https://tally.so/r/OD0gqM";
 
 export function Sidebar() {
@@ -23,6 +28,8 @@ export function Sidebar() {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [activeItem, setActiveItem] = useState(() => getDefaultActiveItem(currentPath));
 
   const projects = useConvexQuery(
     api.projects.getDockProjects,
@@ -30,66 +37,103 @@ export function Sidebar() {
   );
 
   return (
-    <nav className="flex h-full w-[240px] shrink-0 flex-col justify-between overflow-hidden rounded-[6px] bg-[#f5f5f5] px-[12px] py-[16px]">
+    <nav
+      className={`flex h-full shrink-0 flex-col justify-between overflow-hidden rounded-[6px] bg-[#f5f5f5] py-[16px] transition-all duration-200 ${
+        collapsed ? "w-[60px] items-center px-[8px]" : "w-[240px] px-[12px]"
+      }`}
+    >
       {/* Top section */}
-      <div className="flex flex-col gap-[28px]">
+      <div className={`flex flex-col gap-[28px] ${collapsed ? "items-center w-full" : ""}`}>
         {/* Logo + sidebar toggle */}
-        <div className="flex items-center justify-between">
+        <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
           <Link to="/dashboard" className="flex items-center gap-[2px] outline-none">
-            <img src={stageLogo} alt="Stage" className="h-[22px] w-auto" />
+            <img
+              src={stageLogo}
+              alt="Stage"
+              className={collapsed ? "h-[24px] w-auto" : "h-[22px] w-auto"}
+            />
           </Link>
-          <img
-            src="/logos/dashboard/updown.svg"
-            alt=""
-            aria-hidden="true"
-            className="h-[20px] w-[20px] opacity-50"
-          />
+          {!collapsed && (
+            <button
+              type="button"
+              onClick={() => setCollapsed(true)}
+              className="cursor-pointer rounded-[4px] outline-none transition-colors hover:bg-[#e5e5e5]"
+            >
+              <img
+                src="/logos/dashboard/close.svg"
+                alt="Collapse sidebar"
+                className="h-[20px] w-[20px]"
+              />
+            </button>
+          )}
         </div>
 
         {/* Search + nav */}
-        <div className="flex flex-col gap-[28px]">
+        <div className={`flex flex-col gap-[28px] ${collapsed ? "w-full items-center" : ""}`}>
           {/* Search + main nav */}
-          <div className="flex flex-col gap-[16px]">
+          <div className={`flex flex-col gap-[16px] ${collapsed ? "w-full items-center" : ""}`}>
             {/* Search box */}
-            <div className="flex w-full items-center gap-[8px] rounded-[6px] bg-white px-[12px] py-[6px] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.15)]">
-              <img
-                src="/logos/dashboard/search.svg"
-                alt=""
-                aria-hidden="true"
-                className="h-[15px] w-[15px]"
-              />
-              <span className="text-[13px] font-medium text-[#525252]">
-                Search here...
-              </span>
-            </div>
+            {collapsed ? (
+              <button
+                type="button"
+                onClick={() => setCollapsed(false)}
+                className="flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[6px] bg-white shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.15)]"
+              >
+                <img
+                  src="/logos/dashboard/search.svg"
+                  alt="Search"
+                  className="h-[15px] w-[15px]"
+                />
+              </button>
+            ) : (
+              <div className="flex w-full items-center gap-[8px] rounded-[6px] bg-white px-[12px] py-[6px] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.15)]">
+                <img
+                  src="/logos/dashboard/search.svg"
+                  alt=""
+                  aria-hidden="true"
+                  className="h-[15px] w-[15px]"
+                />
+                <span className="text-[13px] font-medium text-[#525252]">
+                  Search here...
+                </span>
+              </div>
+            )}
 
             {/* Navigation items */}
-            <div className="flex flex-col gap-[8px]">
+            <div className={`flex flex-col gap-[8px] ${collapsed ? "items-center w-full" : ""}`}>
               {NAV_ITEMS.map((item) => {
-                const isActive =
-                  currentPath === item.to ||
-                  (item.name === "Dashboard" && currentPath === "/dashboard") ||
-                  (item.name === "Settings" && currentPath === "/settings");
+                const isActive = activeItem === item.name;
 
                 return (
                   <Link
                     key={item.name}
                     to={item.to}
-                    className={`flex w-full items-center gap-[8px] rounded-[6px] px-[12px] py-[6px] outline-none transition-colors ${
-                      isActive
-                        ? "bg-[#e5e5e5] text-[#0a0a0a]"
-                        : "bg-transparent text-[#525252] hover:bg-[#ebebeb]"
+                    onClick={() => setActiveItem(item.name)}
+                    className={`flex items-center outline-none transition-colors ${
+                      collapsed
+                        ? `h-[32px] w-[32px] justify-center rounded-[8px] ${
+                            isActive
+                              ? "bg-[#1a1a1a]"
+                              : "bg-transparent hover:bg-[#ebebeb]"
+                          }`
+                        : `w-full gap-[8px] rounded-[6px] px-[12px] py-[6px] ${
+                            isActive
+                              ? "bg-[#e5e5e5] text-[#0a0a0a]"
+                              : "bg-transparent text-[#525252] hover:bg-[#ebebeb]"
+                          }`
                     }`}
                   >
                     <img
                       src={item.icon}
-                      alt=""
-                      aria-hidden="true"
-                      className="h-[15px] w-[15px]"
+                      alt={collapsed ? item.name : ""}
+                      aria-hidden={!collapsed}
+                      className={`h-[15px] w-[15px] ${collapsed && isActive ? "brightness-0 invert" : ""}`}
                     />
-                    <span className="text-[13px] font-medium">
-                      {item.name}
-                    </span>
+                    {!collapsed && (
+                      <span className="text-[13px] font-medium">
+                        {item.name}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -97,44 +141,50 @@ export function Sidebar() {
           </div>
 
           {/* Projects section */}
-          <div className="flex flex-col gap-[12px]">
-            <div className="flex items-center justify-between px-[12px]">
-              <div className="flex items-center gap-[8px]">
-                <img
-                  src="/logos/dashboard/folder.svg"
-                  alt=""
-                  aria-hidden="true"
-                  className="h-[15px] w-[15px]"
-                />
-                <span className="text-[13px] font-medium text-[#525252]">
-                  Projects
-                </span>
+          <div className={`flex flex-col gap-[12px] ${collapsed ? "w-full items-center" : ""}`}>
+            {!collapsed && (
+              <div className="flex items-center justify-between px-[12px]">
+                <div className="flex items-center gap-[8px]">
+                  <img
+                    src="/logos/dashboard/folder.svg"
+                    alt=""
+                    aria-hidden="true"
+                    className="h-[15px] w-[15px]"
+                  />
+                  <span className="text-[13px] font-medium text-[#525252]">
+                    Projects
+                  </span>
+                </div>
+                <Link
+                  to="/new-project"
+                  className="flex items-center rounded-[4px] bg-white p-[4px] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] outline-none transition-colors hover:bg-[#fafafa]"
+                >
+                  <img
+                    src="/logos/dashboard/plus.svg"
+                    alt="New project"
+                    className="h-[12px] w-[12px]"
+                  />
+                </Link>
               </div>
-              <Link
-                to="/new-project"
-                className="flex items-center rounded-[4px] bg-white p-[4px] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] outline-none transition-colors hover:bg-[#fafafa]"
-              >
-                <img
-                  src="/logos/dashboard/plus.svg"
-                  alt="New project"
-                  className="h-[12px] w-[12px]"
-                />
-              </Link>
-            </div>
+            )}
 
             {/* Project list */}
-            <div className="flex flex-col gap-[8px]">
+            <div className={`flex flex-col gap-[8px] ${collapsed ? "items-center w-full" : ""}`}>
               {(projects ?? []).map((project) => (
                 <Link
                   key={project.id}
                   to="/project/$id"
                   params={{ id: project.id }}
-                  className="flex w-full items-center gap-[8px] rounded-[6px] px-[12px] py-[6px] outline-none transition-colors hover:bg-[#ebebeb]"
+                  className={`flex items-center outline-none transition-colors hover:bg-[#ebebeb] ${
+                    collapsed
+                      ? "h-[32px] w-[32px] justify-center rounded-[8px]"
+                      : "w-full gap-[8px] rounded-[6px] px-[12px] py-[6px]"
+                  }`}
                 >
                   {project.projectImageUrl ?? project.clientAvatarUrl ? (
                     <img
                       src={project.projectImageUrl ?? project.clientAvatarUrl}
-                      alt=""
+                      alt={collapsed ? project.name : ""}
                       className="h-[24px] w-[24px] shrink-0 rounded-full object-cover"
                     />
                   ) : (
@@ -142,9 +192,11 @@ export function Sidebar() {
                       {project.name.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <span className="truncate text-[13px] font-medium text-[#525252]">
-                    {project.name}
-                  </span>
+                  {!collapsed && (
+                    <span className="truncate text-[13px] font-medium text-[#525252]">
+                      {project.name}
+                    </span>
+                  )}
                 </Link>
               ))}
             </div>
@@ -153,23 +205,29 @@ export function Sidebar() {
       </div>
 
       {/* Bottom section */}
-      <div className="flex flex-col gap-[8px]">
+      <div className={`flex flex-col gap-[8px] ${collapsed ? "items-center w-full" : ""}`}>
         {/* Help & Feedback */}
         <a
           href={FEEDBACK_TALLY_URL}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center gap-[8px] rounded-[6px] px-[12px] py-[6px] text-[#525252] transition-colors hover:bg-[#ebebeb]"
+          className={`flex items-center transition-colors hover:bg-[#ebebeb] ${
+            collapsed
+              ? "h-[32px] w-[32px] justify-center rounded-[8px]"
+              : "gap-[8px] rounded-[6px] px-[12px] py-[6px] text-[#525252]"
+          }`}
         >
           <img
             src="/logos/dashboard/question.svg"
-            alt=""
-            aria-hidden="true"
+            alt={collapsed ? "Help & Feedback" : ""}
+            aria-hidden={!collapsed}
             className="h-[15px] w-[15px]"
           />
-          <span className="text-[13px] font-medium">
-            Help & Feedback
-          </span>
+          {!collapsed && (
+            <span className="text-[13px] font-medium">
+              Help & Feedback
+            </span>
+          )}
         </a>
 
         {/* User profile */}
@@ -177,8 +235,18 @@ export function Sidebar() {
           <div className="relative">
             <button
               type="button"
-              onClick={() => setProfileMenuOpen((prev) => !prev)}
-              className="flex w-full cursor-pointer items-center justify-between rounded-[6px] px-[12px] py-[6px] outline-none transition-colors hover:bg-[#ebebeb]"
+              onClick={() => {
+                if (collapsed) {
+                  setCollapsed(false);
+                } else {
+                  setProfileMenuOpen((prev) => !prev);
+                }
+              }}
+              className={`flex cursor-pointer items-center outline-none transition-colors hover:bg-[#ebebeb] ${
+                collapsed
+                  ? "h-[32px] w-[32px] justify-center rounded-[8px]"
+                  : "w-full justify-between rounded-[6px] px-[12px] py-[6px]"
+              }`}
             >
               <div className="flex items-center gap-[8px]">
                 <Avatar
@@ -187,19 +255,23 @@ export function Sidebar() {
                   size="sm"
                   className="h-[24px] w-[24px] text-[10px]"
                 />
-                <span className="text-[13px] font-medium text-[#0a0a0a]">
-                  {user.name}
-                </span>
+                {!collapsed && (
+                  <span className="text-[13px] font-medium text-[#0a0a0a]">
+                    {user.name}
+                  </span>
+                )}
               </div>
-              <img
-                src="/logos/dashboard/dots.svg"
-                alt=""
-                aria-hidden="true"
-                className="h-[15px] w-[15px]"
-              />
+              {!collapsed && (
+                <img
+                  src="/logos/dashboard/dots.svg"
+                  alt=""
+                  aria-hidden="true"
+                  className="h-[15px] w-[15px]"
+                />
+              )}
             </button>
 
-            {profileMenuOpen && (
+            {profileMenuOpen && !collapsed && (
               <ProfileMenu
                 user={user}
                 onClose={() => setProfileMenuOpen(false)}
