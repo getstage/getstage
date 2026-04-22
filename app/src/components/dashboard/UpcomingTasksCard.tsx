@@ -6,18 +6,19 @@ type UpcomingTasksCardProps = {
   tasks: DashboardTaskEntry[];
 };
 
-function formatDueDate(dueDate: number | undefined): string {
-  if (!dueDate) return "";
-  const date = new Date(dueDate);
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${months[date.getMonth()]} ${date.getDate()}`;
-}
+function getDueLabel(dueDate: number | undefined): { text: string; color: string } | null {
+  if (!dueDate) return null;
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const due = new Date(dueDate);
+  due.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((due.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
 
-function isUrgent(dueDate: number | undefined): boolean {
-  if (!dueDate) return false;
-  const now = Date.now();
-  const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
-  return dueDate - now < threeDaysMs;
+  if (diffDays < 0) return { text: "Overdue", color: "text-[#ef4444]" };
+  if (diffDays === 0) return { text: "Due today", color: "text-[#ef4444]" };
+  if (diffDays === 1) return { text: "Due tomorrow", color: "text-[#f97316]" };
+  if (diffDays <= 7) return { text: `Due in ${diffDays} days`, color: "text-[#16a34a]" };
+  return { text: `Due in ${diffDays} days`, color: "text-text-secondary" };
 }
 
 export function UpcomingTasksCard({ tasks }: UpcomingTasksCardProps) {
@@ -26,58 +27,48 @@ export function UpcomingTasksCard({ tasks }: UpcomingTasksCardProps) {
   return (
     <DashboardCard
       className="h-full"
-      title="Due Soon"
-      action={<CardTab label="This week" />}
+      title="Upcoming Deadlines"
+      subtitle="Tasks requiring your attention soon"
+      action={<CardTab label="This Month" />}
     >
       {tasks.length > 0 ? (
         <>
-          <div>
+          <div className="flex flex-col gap-4">
             {tasks.map((entry, index) => {
-              const urgent = isUrgent(entry.task.dueDate);
-              const dateStr = formatDueDate(entry.task.dueDate);
+              const dueLabel = getDueLabel(entry.task.dueDate);
 
               return (
-                <div
-                  key={entry.task.id}
-                  className={`flex items-center gap-2.5 py-2.5 ${
-                    index > 0 ? "border-t border-border-subtle" : ""
-                  }`}
-                >
-                  <span
-                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                      urgent ? "bg-warning" : "bg-border"
-                    }`}
-                  />
-                  <Avatar
-                    name={entry.project.clientName}
-                    src={entry.project.projectImageUrl ?? entry.project.clientAvatarUrl}
-                    size="sm"
-                    variant="project"
-                    className="h-[22px] w-[22px] shrink-0 text-[9px]"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13px] text-text-primary">
-                      {entry.task.title}
-                    </div>
-                    <div className="text-[11px] text-text-tertiary">
-                      {entry.project.name}
+                <div key={entry.task.id}>
+                  {index > 0 && <div className="mb-4 h-px bg-border-subtle" />}
+                  <div className="flex items-start gap-2.5">
+                    <Avatar
+                      name={entry.project.clientName}
+                      src={entry.project.projectImageUrl ?? entry.project.clientAvatarUrl}
+                      size="sm"
+                      variant="project"
+                      className="h-7 w-7 shrink-0 text-[10px]"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium leading-[1.2] text-text-primary">
+                        {entry.task.title}
+                      </div>
+                      <div className="mt-1 flex items-center gap-2 text-[12px] font-medium leading-[1.5] text-text-secondary">
+                        <span>{entry.project.name}</span>
+                        {dueLabel && (
+                          <>
+                            <span className="h-1 w-1 shrink-0 rounded-full bg-text-tertiary" />
+                            <span className={dueLabel.color}>{dueLabel.text}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  {dateStr && (
-                    <span
-                      className={`shrink-0 text-[12px] ${
-                        urgent ? "text-warning" : "text-text-tertiary"
-                      }`}
-                    >
-                      {dateStr}
-                    </span>
-                  )}
                 </div>
               );
             })}
           </div>
           {totalDue > 0 && (
-            <div className="mt-2.5 border-t border-border-subtle pt-2.5 text-[12px] text-text-tertiary">
+            <div className="mt-6 text-[12px] text-text-secondary">
               {totalDue} task{totalDue !== 1 ? "s" : ""} due soon
             </div>
           )}

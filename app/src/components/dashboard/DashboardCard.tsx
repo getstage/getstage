@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 type DashboardCardProps = {
   title: string;
+  subtitle?: string;
   children: ReactNode;
   className?: string;
   action?: ReactNode;
@@ -10,6 +11,7 @@ type DashboardCardProps = {
 
 export function DashboardCard({
   title,
+  subtitle,
   children,
   className,
   action,
@@ -17,12 +19,19 @@ export function DashboardCard({
 }: DashboardCardProps) {
   return (
     <div
-      className={`rounded-[14px] border border-border bg-white p-6 ${fullWidth ? "col-span-full" : ""} ${className ?? ""}`}
+      className={`rounded-[8px] bg-input-bg p-4 shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] ${fullWidth ? "col-span-full" : ""} ${className ?? ""}`}
     >
-      <div className="mb-5 flex items-center justify-between">
-        <h2 className="font-heading text-[15px] font-semibold text-text-primary">
-          {title}
-        </h2>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-[14px] font-medium leading-[1.2] text-text-primary">
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="text-[12px] font-medium leading-[1.5] text-text-secondary">
+              {subtitle}
+            </p>
+          )}
+        </div>
         {action}
       </div>
       {children}
@@ -40,7 +49,7 @@ export function CardTab({ label, onClick }: CardTabProps) {
     <button
       type="button"
       onClick={onClick}
-      className="rounded-[6px] border border-border bg-transparent px-3 py-1 font-body text-[12px] font-medium text-text-secondary transition-all duration-150 hover:border-text-secondary hover:text-text-primary"
+      className="rounded-[6px] bg-bg-subtle px-3 py-1.5 text-[13px] font-medium text-text-secondary shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] transition-all duration-150 hover:text-text-primary"
     >
       {label}
     </button>

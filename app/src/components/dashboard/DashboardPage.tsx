@@ -24,7 +24,6 @@ import {
   type OnboardingSubmission,
 } from "@/components/onboarding/OnboardingModal";
 import { UpgradePaywallModal } from "@/components/onboarding/UpgradePaywallModal";
-import { Button } from "@/components/ui/Button";
 import {
   buildDashboardMetrics,
   getPreviewFlags,
@@ -215,23 +214,33 @@ export function DashboardPage() {
               transition={{ duration: 0.4 }}
               className="min-w-[320px]"
             >
-              <h1 className="font-heading text-[20px] leading-[1.2] font-medium tracking-[-0.2px] text-text-primary">
-                {greeting}
-              </h1>
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-2">
+                  <h1 className="text-[20px] font-semibold leading-[1.2] text-text-primary">
+                    {greeting}
+                  </h1>
+                  <p className="text-[13px] font-medium leading-[1.2] text-text-secondary">
+                    {activeProjects > 0
+                      ? `You have ${activeProjects} project${activeProjects !== 1 ? "s" : ""} that need your attention.`
+                      : "Here's what's happening across your projects."}
+                  </p>
+                </div>
 
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-                <DashboardTimelineSelector
-                  value={timelineHorizon}
-                  onChange={setTimelineHorizon}
-                />
+                <div className="flex shrink-0 items-center gap-3">
+                  <DashboardTimelineSelector
+                    value={timelineHorizon}
+                    onChange={setTimelineHorizon}
+                  />
 
-                <Button
-                  className="h-[34px] shrink-0 rounded-[7px] px-3 text-[13px]"
-                  onClick={handleNewProjectClick}
-                >
-                  <Plus size={11} weight="bold" aria-hidden="true" />
-                  New Project
-                </Button>
+                  <button
+                    type="button"
+                    onClick={handleNewProjectClick}
+                    className="inline-flex h-[34px] cursor-pointer items-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] px-3 text-[13px] font-medium text-white shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] transition-all duration-150 hover:brightness-110"
+                  >
+                    <Plus size={14} weight="bold" aria-hidden="true" />
+                    Create Project
+                  </button>
+                </div>
               </div>
 
               <DashboardStats
@@ -258,7 +267,7 @@ export function DashboardPage() {
           )}
 
           <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
-            <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="mt-8 grid grid-cols-1 gap-2 lg:grid-cols-2">
               <UpcomingTasksCard tasks={upcomingTasks} />
               <RecentActivityCard entries={recentActivity} />
               <PipelineCard
