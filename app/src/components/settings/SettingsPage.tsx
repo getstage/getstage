@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { UpgradePricingModal } from "@/components/billing/UpgradePricingModal";
-import { ProjectDock } from "@/components/dashboard/ProjectDock";
 import { BillingTab } from "@/components/settings/BillingTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
 import { IntegrationsTab } from "@/components/settings/IntegrationsTab";
@@ -27,7 +26,6 @@ import { useIntegrationsSettings } from "@/features/settings/useIntegrationsSett
 import { usePortalBrandingSettings } from "@/features/settings/usePortalBrandingSettings";
 import { useDeveloperSettings } from "@/features/settings/useDeveloperSettings";
 import { useSettingsTabs } from "@/features/settings/useSettingsTabs";
-import { useDockProjects } from "@/hooks/useDockProjects";
 import { useSettingsClients } from "@/hooks/useSettingsClients";
 import { useSettingsOverview } from "@/hooks/useSettingsOverview";
 import "@/styles/settings.css";
@@ -38,7 +36,6 @@ export function SettingsPage() {
   const { user } = useAuth();
   const { data: settingsData } = useSettingsOverview();
   const { activeTab, setActiveTab, openBillingTab } = useSettingsTabs();
-  const dockProjects = useDockProjects();
   const { clients, isLoading: clientsLoading } = useSettingsClients(activeTab === "clients");
   const generalSettings = useGeneralSettings({
     user,
@@ -314,7 +311,6 @@ export function SettingsPage() {
         }
       />
 
-      <ProjectDock projects={dockProjects} />
     </>
   );
 }

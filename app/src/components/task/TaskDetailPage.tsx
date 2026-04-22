@@ -14,8 +14,6 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { motion } from "motion/react";
-import { ProjectDock } from "@/components/dashboard/ProjectDock";
-import { useDockProjects } from "@/hooks/useDockProjects";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { ConfirmPopover } from "@/components/ui/ConfirmPopover";
@@ -32,7 +30,6 @@ export function TaskDetailPage() {
   const { id: projectId, taskId } = useParams({
     from: "/_authed/project/$id/task/$taskId",
   });
-  const dockProjects = useDockProjects();
   const detail = useConvexQuery(api.tasks.getDetail, {
     taskId: taskId as Id<"tasks">,
   });
@@ -610,7 +607,6 @@ export function TaskDetailPage() {
         </motion.div>
       </div>
 
-      <ProjectDock projects={dockProjects} />
     </>
   );
 }

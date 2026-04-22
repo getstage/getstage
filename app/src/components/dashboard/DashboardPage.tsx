@@ -6,8 +6,8 @@ import {
 } from "convex/react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "@tanstack/react-router";
-import { Plus } from "@phosphor-icons/react";
 import { motion } from "motion/react";
+import { CardGroup } from "@/components/dashboard/CardGroup";
 import { DashboardEmptyState } from "@/components/dashboard/DashboardEmptyState";
 import { AllProjectsDialog } from "@/components/dashboard/AllProjectsDialog";
 import { DashboardPreview } from "@/components/dashboard/DashboardPreview";
@@ -15,7 +15,6 @@ import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { DashboardTimelineSelector } from "@/components/dashboard/DashboardTimelineSelector";
 import { PaymentsCard } from "@/components/dashboard/PaymentsCard";
 import { PipelineCard } from "@/components/dashboard/PipelineCard";
-import { ProjectDock } from "@/components/dashboard/ProjectDock";
 import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
 import { Timeline, type TimelineHorizon } from "@/components/dashboard/Timeline";
 import { UpcomingTasksCard } from "@/components/dashboard/UpcomingTasksCard";
@@ -24,7 +23,6 @@ import {
   type OnboardingSubmission,
 } from "@/components/onboarding/OnboardingModal";
 import { UpgradePaywallModal } from "@/components/onboarding/UpgradePaywallModal";
-import { Button } from "@/components/ui/Button";
 import {
   buildDashboardMetrics,
   getPreviewFlags,
@@ -98,7 +96,6 @@ export function DashboardPage() {
     avgProgress,
     upcomingTasks,
     recentActivity,
-    dockProjects,
   } = buildDashboardMetrics(projects);
 
   useBillingSuccessEvent({
@@ -207,68 +204,77 @@ export function DashboardPage() {
           />
         </>
       ) : (
-        <div className="min-h-[calc(100vh-64px)]">
-          <div className="mx-auto max-w-[1200px] px-4 pt-3 sm:px-10 lg:px-14">
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="min-w-[320px]"
-            >
-              <h1 className="font-heading text-[20px] leading-[1.2] font-medium tracking-[-0.2px] text-text-primary">
+        <div className="flex flex-col gap-[44px]">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="flex flex-col gap-[18px]"
+          >
+            {/* Header section */}
+            <div>
+              <h1 className="text-[20px] font-semibold leading-[1.2] text-[#0a0a0a]">
                 {greeting}
               </h1>
+              <p className="mt-1 text-[13px] font-medium text-[#737373]">
+                Here's what's happening across your projects
+              </p>
+            </div>
 
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-                <DashboardTimelineSelector
-                  value={timelineHorizon}
-                  onChange={setTimelineHorizon}
-                />
-
-                <Button
-                  className="h-[34px] shrink-0 rounded-[7px] px-3 text-[13px]"
-                  onClick={handleNewProjectClick}
-                >
-                  <Plus size={11} weight="bold" aria-hidden="true" />
-                  New Project
-                </Button>
-              </div>
-
-              <DashboardStats
-                activeProjects={activeProjects}
-                tasksDue={tasksDue}
-                completed={completed}
-                avgProgress={avgProgress}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <DashboardTimelineSelector
+                value={timelineHorizon}
+                onChange={setTimelineHorizon}
               />
-            </motion.div>
-          </div>
 
+              <button
+                type="button"
+                onClick={handleNewProjectClick}
+                className="inline-flex h-[34px] shrink-0 cursor-pointer items-center gap-1.5 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] px-3 text-[13px] font-medium text-white shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90"
+              >
+                <img src="/logos/dashboard/plus.svg" alt="" aria-hidden="true" className="h-3 w-3 brightness-0 invert" />
+                Create Project
+              </button>
+            </div>
+
+            {/* Stats cards */}
+            <DashboardStats
+              activeProjects={activeProjects}
+              tasksDue={tasksDue}
+              completed={completed}
+              avgProgress={avgProgress}
+            />
+          </motion.div>
+
+          {/* Timeline */}
           {isLoading ? (
-            <div className="relative left-1/2 mt-0 w-screen -translate-x-1/2">
-              <div className="mx-auto h-[360px] max-w-[1400px] animate-pulse rounded-[28px] border border-border-subtle bg-white/70" />
+            <div className="relative left-1/2 w-screen -translate-x-1/2">
+              <div className="mx-auto h-[360px] max-w-[1400px] animate-pulse rounded-[28px] border border-[#f0f0f0] bg-white/70" />
             </div>
           ) : projects.length > 0 ? (
-            <div className="relative left-1/2 mt-0 w-screen -translate-x-1/2">
+            <div className="relative left-1/2 w-screen -translate-x-1/2">
               <Timeline projects={projects} horizon={timelineHorizon} />
             </div>
           ) : (
-            <div className="mx-auto mt-10 max-w-[1200px] px-4 sm:mt-14 sm:px-10 lg:px-14">
-              <DashboardEmptyState />
-            </div>
+            <DashboardEmptyState />
           )}
 
-          <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
-            <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {/* Dashboard cards in grouped container */}
+          <CardGroup className="flex flex-col gap-[2px]">
+            <div className="flex gap-[2px]">
               <UpcomingTasksCard tasks={upcomingTasks} />
               <RecentActivityCard entries={recentActivity} />
+            </div>
+            <div className="flex gap-[2px]">
               <PipelineCard
                 projects={projects}
                 onOpenAllProjects={() => setProjectsOverviewOpen(true)}
               />
               <PaymentsCard paymentSummary={dashboardData?.paymentSummary ?? null} />
             </div>
-          </div>
+          </CardGroup>
 
+          {/* Feedback link */}
           <a
             href={FEEDBACK_TALLY_URL}
             target="_blank"
@@ -277,7 +283,7 @@ export function DashboardPage() {
             title="Share feedback"
             className="group fixed right-4 z-30 hidden rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 sm:right-6 sm:block bottom-[max(96px,calc(env(safe-area-inset-bottom)+24px))] md:bottom-[max(24px,calc(env(safe-area-inset-bottom)+20px))]"
           >
-            <span className="pointer-events-none absolute right-full top-1/2 mr-3 -translate-y-1/2 whitespace-nowrap rounded-full border border-[rgba(21,21,32,0.08)] bg-white px-3 py-2 text-[12px] font-medium text-text-primary opacity-0 shadow-[0_10px_30px_rgba(15,23,42,0.12)] transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
+            <span className="pointer-events-none absolute right-full top-1/2 mr-3 -translate-y-1/2 whitespace-nowrap rounded-full border border-[rgba(21,21,32,0.08)] bg-white px-3 py-2 text-[12px] font-medium text-[#0a0a0a] opacity-0 shadow-[0_10px_30px_rgba(15,23,42,0.12)] transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
               Share feedback
             </span>
             <span className="flex h-[60px] w-[60px] items-center justify-center rounded-full border border-[rgba(135,130,245,0.26)] bg-[#151520] p-2.5 shadow-[0_18px_40px_rgba(21,21,32,0.22)] transition-transform duration-150 group-hover:-translate-y-0.5">
@@ -290,7 +296,6 @@ export function DashboardPage() {
             </span>
           </a>
 
-          <ProjectDock projects={dockProjects} />
           <AllProjectsDialog
             open={projectsOverviewOpen}
             projects={projects}

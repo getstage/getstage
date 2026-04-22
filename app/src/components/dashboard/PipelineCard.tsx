@@ -11,16 +11,17 @@ type PipelineStage = {
   name: string;
   count: number;
   dotColor: string;
-  fillColor: string;
+  barGradient: string;
 };
 
-const STAGE_CATEGORIES: Record<string, { dot: string; fill: string }> = {
-  research: { dot: "bg-accent", fill: "bg-accent/20" },
-  discovery: { dot: "bg-accent", fill: "bg-accent/20" },
-  strategy: { dot: "bg-[#3B82F6]", fill: "bg-[#3B82F6]/15" },
-  design: { dot: "bg-[#22C55E]", fill: "bg-[#22C55E]/15" },
-  generate: { dot: "bg-[#22C55E]", fill: "bg-[#22C55E]/15" },
-  delivery: { dot: "bg-[#D4890A]", fill: "bg-[#D4890A]/15" },
+const STAGE_CATEGORIES: Record<string, { dot: string; bar: string }> = {
+  research: { dot: "bg-[#9e99f8]", bar: "bg-gradient-to-r from-[#9e99f8] to-[#9e99f8]" },
+  discovery: { dot: "bg-[#d6d3d1]", bar: "bg-gradient-to-r from-[#d6d3d1] to-[#d6d3d1]" },
+  brief: { dot: "bg-[#9e99f8]", bar: "bg-gradient-to-r from-[#9e99f8] to-[#9e99f8]" },
+  strategy: { dot: "bg-[#d6d3d1]", bar: "bg-gradient-to-r from-[#d6d3d1] to-[#d6d3d1]" },
+  design: { dot: "bg-[#d6d3d1]", bar: "bg-gradient-to-r from-[#d6d3d1] to-[#d6d3d1]" },
+  generate: { dot: "bg-[#d6d3d1]", bar: "bg-gradient-to-r from-[#d6d3d1] to-[#d6d3d1]" },
+  delivery: { dot: "bg-[#d6d3d1]", bar: "bg-gradient-to-r from-[#d6d3d1] to-[#d6d3d1]" },
 };
 
 function categorizePhase(phaseName: string): string {
@@ -31,8 +32,8 @@ function categorizePhase(phaseName: string): string {
   return lower;
 }
 
-function getStageStyle(category: string): { dot: string; fill: string } {
-  return STAGE_CATEGORIES[category] ?? { dot: "bg-border", fill: "bg-border-subtle" };
+function getStageStyle(category: string): { dot: string; bar: string } {
+  return STAGE_CATEGORIES[category] ?? { dot: "bg-[#d6d3d1]", bar: "bg-[#d6d3d1]" };
 }
 
 export function PipelineCard({ projects, onOpenAllProjects }: PipelineCardProps) {
@@ -56,7 +57,7 @@ export function PipelineCard({ projects, onOpenAllProjects }: PipelineCardProps)
         name: category.charAt(0).toUpperCase() + category.slice(1),
         count,
         dotColor: style.dot,
-        fillColor: style.fill,
+        barGradient: style.bar,
       });
     }
 
@@ -67,8 +68,9 @@ export function PipelineCard({ projects, onOpenAllProjects }: PipelineCardProps)
 
   return (
     <DashboardCard
-      className="h-full"
-      title="Pipeline"
+      className="h-full flex-1"
+      title="Project Pipeline"
+      subtitle="Active projects by stage"
       action={<CardTab label="All projects" onClick={onOpenAllProjects} />}
     >
       {stages.length > 0 ? (
@@ -81,17 +83,17 @@ export function PipelineCard({ projects, onOpenAllProjects }: PipelineCardProps)
               return (
                 <div key={stage.name} className="flex items-center gap-3">
                   <span
-                    className={`h-2 w-2 shrink-0 rounded-full ${stage.dotColor}`}
+                    className={`h-[6px] w-[6px] shrink-0 rounded-full ${stage.dotColor}`}
                   />
-                  <span className="w-[72px] shrink-0 text-[13px] text-text-secondary">
+                  <span className="w-[72px] shrink-0 text-[13px] text-[#737373]">
                     {stage.name}
                   </span>
-                  <div className="relative flex-1 overflow-hidden rounded-[6px] bg-border-subtle">
+                  <div className="relative flex-1 overflow-hidden rounded-[6px] bg-[#f5f5f5]">
                     <div
-                      className={`h-6 rounded-[6px] transition-[width] duration-300 ${stage.fillColor}`}
+                      className={`h-6 rounded-[6px] transition-[width] duration-300 ${stage.barGradient}`}
                       style={{ width: `${widthPct}%` }}
                     />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] font-medium text-text-secondary">
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] font-medium text-[#737373]">
                       {stage.count} project{stage.count !== 1 ? "s" : ""}
                     </span>
                   </div>
@@ -99,12 +101,12 @@ export function PipelineCard({ projects, onOpenAllProjects }: PipelineCardProps)
               );
             })}
           </div>
-          <div className="text-right text-[12px] text-text-tertiary">
+          <div className="text-[12px] font-normal text-[#737373]">
             {totalActive} active project{totalActive !== 1 ? "s" : ""} across all stages
           </div>
         </>
       ) : (
-        <p className="text-[13px] text-text-secondary">No active projects.</p>
+        <p className="text-[13px] text-[#737373]">No active projects.</p>
       )}
     </DashboardCard>
   );

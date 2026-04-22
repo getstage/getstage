@@ -1,3 +1,5 @@
+import { CardGroup } from "@/components/dashboard/CardGroup";
+
 type DashboardStatsProps = {
   activeProjects: number;
   tasksDue: number;
@@ -12,26 +14,50 @@ export function DashboardStats({
   avgProgress,
 }: DashboardStatsProps) {
   return (
-    <div className="mt-5 flex flex-wrap items-start gap-x-12 gap-y-3">
-      <StatItem label="Active Projects" value={activeProjects.toLocaleString()} />
-      <StatItem label="Tasks Due" value={tasksDue.toLocaleString()} />
-      <StatItem label="Completed" value={completed.toLocaleString()} />
-      <StatItem label="Avg. Progress" value={`${avgProgress}%`} />
-    </div>
+    <CardGroup>
+      <div className="flex gap-[2px]">
+        <StatCard
+          icon="/logos/dashboard/radio.svg"
+          value={activeProjects.toLocaleString()}
+          label="Active Projects"
+        />
+        <StatCard
+          icon="/logos/dashboard/flag.svg"
+          value={tasksDue.toLocaleString()}
+          label="Tasks Due"
+        />
+        <StatCard
+          icon="/logos/dashboard/check.svg"
+          value={completed.toLocaleString()}
+          label="Completed"
+        />
+        <StatCard
+          icon="/logos/dashboard/calculator.svg"
+          value={`${avgProgress}%`}
+          label="Avg. Process"
+        />
+      </div>
+    </CardGroup>
   );
 }
 
-type StatItemProps = {
-  label: string;
+type StatCardProps = {
+  icon: string;
   value: string;
+  label: string;
 };
 
-function StatItem({ label, value }: StatItemProps) {
+function StatCard({ icon, value, label }: StatCardProps) {
   return (
-    <div className="min-w-[86px]">
-      <div className="text-[13px] text-text-secondary">{label}</div>
-      <div className="mt-0.5 font-heading text-[26px] leading-[1.15] font-semibold tracking-[-0.5px] tabular-nums text-text-primary">
-        {value}
+    <div className="flex flex-1 flex-col gap-[28px] rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[16px] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)]">
+      <img src={icon} alt="" aria-hidden="true" className="h-[18px] w-[18px]" />
+      <div>
+        <div className="text-[20px] font-semibold leading-[1.2] tracking-[-0.2px] text-[#0a0a0a]">
+          {value}
+        </div>
+        <div className="text-[12px] font-medium leading-[1.5] text-[#737373]">
+          {label}
+        </div>
       </div>
     </div>
   );
