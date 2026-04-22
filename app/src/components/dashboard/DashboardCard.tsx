@@ -19,9 +19,9 @@ export function DashboardCard({
 }: DashboardCardProps) {
   return (
     <div
-      className={`rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[16px] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] ${fullWidth ? "col-span-full" : ""} ${className ?? ""}`}
+      className={`rounded-[8px] bg-[#f5f5f5] p-[16px] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] ${fullWidth ? "col-span-full" : ""} ${className ?? ""}`}
     >
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-[24px] flex items-center justify-between">
         <div>
           <p className="text-[14px] font-medium leading-[1.2] text-[#0a0a0a]">
             {title}

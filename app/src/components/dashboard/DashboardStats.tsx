@@ -1,5 +1,3 @@
-import { CardGroup } from "@/components/dashboard/CardGroup";
-
 type DashboardStatsProps = {
   activeProjects: number;
   tasksDue: number;
@@ -14,8 +12,8 @@ export function DashboardStats({
   avgProgress,
 }: DashboardStatsProps) {
   return (
-    <CardGroup>
-      <div className="flex gap-[2px]">
+    <div>
+      <div className="flex gap-[8px]">
         <StatCard
           icon="/logos/dashboard/radio.svg"
           value={activeProjects.toLocaleString()}
@@ -37,7 +35,7 @@ export function DashboardStats({
           label="Avg. Process"
         />
       </div>
-    </CardGroup>
+    </div>
   );
 }
 
@@ -49,7 +47,7 @@ type StatCardProps = {
 
 function StatCard({ icon, value, label }: StatCardProps) {
   return (
-    <div className="flex flex-1 flex-col gap-[28px] rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[16px] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)]">
+    <div className="flex flex-1 flex-col gap-[28px] rounded-[8px] bg-[#f5f5f5] p-[16px] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)]">
       <img src={icon} alt="" aria-hidden="true" className="h-[18px] w-[18px]" />
       <div>
         <div className="text-[20px] font-semibold leading-[1.2] tracking-[-0.2px] text-[#0a0a0a]">

@@ -71,39 +71,30 @@ export function PipelineCard({ projects, onOpenAllProjects }: PipelineCardProps)
       className="h-full flex-1"
       title="Project Pipeline"
       subtitle="Active projects by stage"
-      action={<CardTab label="All projects" onClick={onOpenAllProjects} />}
+      action={<CardTab label="This Month" onClick={onOpenAllProjects} />}
     >
       {stages.length > 0 ? (
         <>
-          <div className="mb-5 flex flex-col gap-2.5">
-            {stages.map((stage) => {
-              const maxCount = Math.max(...stages.map((s) => s.count), 1);
-              const widthPct = Math.max((stage.count / maxCount) * 100, 8);
-
-              return (
-                <div key={stage.name} className="flex items-center gap-3">
+          <div className="flex flex-col gap-[20px]">
+            {stages.map((stage) => (
+              <div key={stage.name} className="flex flex-col gap-[10px]">
+                <div className="flex items-center gap-[8px]">
                   <span
                     className={`h-[6px] w-[6px] shrink-0 rounded-full ${stage.dotColor}`}
                   />
-                  <span className="w-[72px] shrink-0 text-[13px] text-[#737373]">
+                  <span className="text-[13px] font-medium leading-[1.2] text-[#0a0a0a]">
                     {stage.name}
                   </span>
-                  <div className="relative flex-1 overflow-hidden rounded-[6px] bg-[#f5f5f5]">
-                    <div
-                      className={`h-6 rounded-[6px] transition-[width] duration-300 ${stage.barGradient}`}
-                      style={{ width: `${widthPct}%` }}
-                    />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] font-medium text-[#737373]">
-                      {stage.count} project{stage.count !== 1 ? "s" : ""}
-                    </span>
-                  </div>
                 </div>
-              );
-            })}
+                <div
+                  className={`h-[19px] w-full rounded-[4px] ${stage.barGradient}`}
+                />
+              </div>
+            ))}
           </div>
-          <div className="text-[12px] font-normal text-[#737373]">
+          <p className="mt-[24px] text-[12px] font-normal leading-[1.5] text-[#737373]">
             {totalActive} active project{totalActive !== 1 ? "s" : ""} across all stages
-          </div>
+          </p>
         </>
       ) : (
         <p className="text-[13px] text-[#737373]">No active projects.</p>

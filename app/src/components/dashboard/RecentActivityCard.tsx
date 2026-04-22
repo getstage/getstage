@@ -21,39 +21,40 @@ export function RecentActivityCard({ entries }: RecentActivityCardProps) {
       className="h-full flex-1"
       title="Recent Activity"
       subtitle="Latest updates across your projects"
-      action={<CardTab label="This month" />}
+      action={<CardTab label="This Month" />}
     >
       {entries.length > 0 ? (
         <>
-          <div>
+          <div className="flex flex-col gap-[16px]">
             {entries.map((entry, index) => {
               const actionLabel = entry.task.isCompleted ? "Completed" : "Updated";
 
               return (
-                <div
-                  key={entry.task.id}
-                  className={`flex items-center gap-3 py-2.5 ${
-                    index > 0 ? "border-t border-[#f0f0f0]" : ""
-                  }`}
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13px] text-[#0a0a0a]">
+                <div key={entry.task.id}>
+                  {index > 0 && (
+                    <div className="mb-[16px] h-px w-full bg-[#e5e5e5]" />
+                  )}
+                  <div className="flex flex-col gap-[4px]">
+                    <p className="text-[13px] font-medium leading-[1.2] text-[#0a0a0a]">
                       {actionLabel}: {entry.task.title}
-                    </div>
-                    <div className="mt-px text-[12px] text-[#737373]">
-                      {entry.project.name}
+                    </p>
+                    <div className="flex items-center gap-[8px]">
+                      <span className="text-[12px] font-medium leading-[1.5] text-[#737373]">
+                        {entry.project.name}
+                      </span>
+                      <span className="h-[4px] w-[4px] rounded-full bg-[#d4d4d4]" />
+                      <span className="text-[12px] font-medium leading-[1.5] text-[#737373]">
+                        {getTimeAgo(entry.task.updatedAt)}
+                      </span>
                     </div>
                   </div>
-                  <span className="shrink-0 text-[11px] text-[#a3a3a3]">
-                    {getTimeAgo(entry.task.updatedAt)}
-                  </span>
                 </div>
               );
             })}
           </div>
-          <div className="mt-2.5 border-t border-[#f0f0f0] pt-2.5 text-[12px] font-normal text-[#737373]">
+          <p className="mt-[24px] text-[12px] font-normal leading-[1.5] text-[#737373]">
             {entries.length} update{entries.length !== 1 ? "s" : ""} this month
-          </div>
+          </p>
         </>
       ) : (
         <p className="text-[13px] text-[#737373]">No recent activity.</p>

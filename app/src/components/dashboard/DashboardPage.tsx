@@ -7,7 +7,6 @@ import {
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { CardGroup } from "@/components/dashboard/CardGroup";
 import { DashboardEmptyState } from "@/components/dashboard/DashboardEmptyState";
 import { AllProjectsDialog } from "@/components/dashboard/AllProjectsDialog";
 import { DashboardPreview } from "@/components/dashboard/DashboardPreview";
@@ -212,29 +211,32 @@ export function DashboardPage() {
             className="flex flex-col gap-[18px]"
           >
             {/* Header section */}
-            <div>
-              <h1 className="text-[20px] font-semibold leading-[1.2] text-[#0a0a0a]">
-                {greeting}
-              </h1>
-              <p className="mt-1 text-[13px] font-medium text-[#737373]">
-                Here's what's happening across your projects
-              </p>
-            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-[8px]">
+                <h1 className="text-[20px] font-semibold leading-[1.2] text-[#0a0a0a]">
+                  {greeting}
+                </h1>
+                <p className="text-[13px] font-medium text-[#737373]">
+                  You have {activeProjects} project{activeProjects !== 1 ? "s" : ""} that need{activeProjects === 1 ? "s" : ""} your attention.
+                </p>
+              </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <DashboardTimelineSelector
-                value={timelineHorizon}
-                onChange={setTimelineHorizon}
-              />
+              <div className="flex items-center gap-[12px]">
+                <DashboardTimelineSelector
+                  value={timelineHorizon}
+                  onChange={setTimelineHorizon}
+                />
 
-              <button
-                type="button"
-                onClick={handleNewProjectClick}
-                className="inline-flex h-[34px] shrink-0 cursor-pointer items-center gap-1.5 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] px-3 text-[13px] font-medium text-white shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90"
-              >
-                <img src="/logos/dashboard/plus.svg" alt="" aria-hidden="true" className="h-3 w-3 brightness-0 invert" />
-                Create Project
-              </button>
+                <button
+                  type="button"
+                  onClick={handleNewProjectClick}
+                  className="inline-flex h-[34px] shrink-0 cursor-pointer items-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] pl-[10px] pr-[12px] py-[6px] text-[13px] font-medium text-[#fafafa] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90"
+                  style={{ textShadow: "0px 0.5px 1.5px rgba(0,0,0,0.15)" }}
+                >
+                  <img src="/logos/dashboard/plus.svg" alt="" aria-hidden="true" className="h-3.5 w-3.5 brightness-0 invert" />
+                  Create Project
+                </button>
+              </div>
             </div>
 
             {/* Stats cards */}
@@ -259,20 +261,20 @@ export function DashboardPage() {
             <DashboardEmptyState />
           )}
 
-          {/* Dashboard cards in grouped container */}
-          <CardGroup className="flex flex-col gap-[2px]">
-            <div className="flex gap-[2px]">
+          {/* Dashboard cards */}
+          <div className="flex flex-col gap-[8px]">
+            <div className="flex gap-[8px]">
               <UpcomingTasksCard tasks={upcomingTasks} />
               <RecentActivityCard entries={recentActivity} />
             </div>
-            <div className="flex gap-[2px]">
+            <div className="flex gap-[8px]">
               <PipelineCard
                 projects={projects}
                 onOpenAllProjects={() => setProjectsOverviewOpen(true)}
               />
               <PaymentsCard paymentSummary={dashboardData?.paymentSummary ?? null} />
             </div>
-          </CardGroup>
+          </div>
 
           {/* Feedback link */}
           <a
