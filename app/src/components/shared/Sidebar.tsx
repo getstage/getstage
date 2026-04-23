@@ -22,7 +22,7 @@ function getDefaultActiveItem(path: string): string {
 
 const FEEDBACK_TALLY_URL = "https://tally.so/r/OD0gqM";
 
-export function Sidebar() {
+export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) {
   const { user, isAuthenticated } = useAuth();
   const signOut = useSignOut();
   const routerState = useRouterState();
@@ -118,7 +118,7 @@ export function Sidebar() {
                   <Link
                     key={item.name}
                     to={item.to}
-                    onClick={() => setActiveItem(item.name)}
+                    onClick={() => { setActiveItem(item.name); onMobileClose?.(); }}
                     className={`flex items-center outline-none transition-colors ${
                       collapsed
                         ? `h-[32px] w-[32px] justify-center rounded-[8px] ${
@@ -137,7 +137,8 @@ export function Sidebar() {
                       src={item.icon}
                       alt={collapsed ? item.name : ""}
                       aria-hidden={!collapsed}
-                      className={`h-[15px] w-[15px] ${collapsed && isActive ? "brightness-0 invert" : ""}`}
+                      className={`h-[15px] w-[15px] ${isActive && collapsed ? "brightness-0 invert" : ""}`}
+                      style={isActive && !collapsed ? { filter: "none" } : undefined}
                     />
                     {!collapsed && (
                       <span className="text-[13px] font-medium">

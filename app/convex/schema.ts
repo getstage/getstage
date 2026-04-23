@@ -44,14 +44,9 @@ const sheetSourceType = v.union(
 );
 
 const projectType = v.union(
-  v.literal("branding"),
   v.literal("web-design"),
-  v.literal("product-design"),
   v.literal("app-design"),
-  v.literal("packaging"),
-  v.literal("motion-design"),
-  v.literal("illustration"),
-  v.literal("other"),
+  v.literal("web-app"),
 );
 
 const projectStatus = v.union(
@@ -209,6 +204,8 @@ const aiProviderCredentialStatus = v.union(
 const aiRunModule = v.union(
   v.literal("research"),
   v.literal("strategy"),
+  v.literal("flows"),
+  v.literal("moodboard"),
   v.literal("generate"),
   v.literal("delivery"),
 );

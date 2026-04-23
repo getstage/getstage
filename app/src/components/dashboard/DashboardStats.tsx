@@ -13,7 +13,7 @@ export function DashboardStats({
 }: DashboardStatsProps) {
   return (
     <div>
-      <div className="flex gap-[8px]">
+      <div className="grid grid-cols-2 gap-[8px] sm:grid-cols-4">
         <StatCard
           icon="/logos/dashboard/radio.svg"
           value={activeProjects.toLocaleString()}

@@ -13,76 +13,20 @@ export type RoadmapTemplateItem = {
 export const FREE_PLAN_PROJECT_LIMIT = 3;
 
 export const PROJECT_TYPES: ProjectTypeOption[] = [
-  { value: "branding", label: "Branding" },
   { value: "web-design", label: "Web Design" },
-  { value: "product-design", label: "Product Design" },
   { value: "app-design", label: "App Design" },
-  { value: "packaging", label: "Packaging" },
-  { value: "motion-design", label: "Motion Design" },
-  { value: "illustration", label: "Illustration" },
-  { value: "other", label: "Other" },
+  { value: "web-app", label: "Web App" },
 ];
 
 export const PROJECT_TYPE_ICONS: Record<ProjectType, string | null> = {
-  branding: "/logos/create-project/pen.svg",
   "web-design": "/logos/create-project/globe.svg",
-  "product-design": "/logos/create-project/computer.svg",
   "app-design": "/logos/create-project/mobile.svg",
-  packaging: null,
-  "motion-design": "/logos/create-project/bounce.svg",
-  illustration: "/logos/create-project/draw.svg",
-  other: null,
+  "web-app": "/logos/create-project/computer.svg",
 };
 
 export const DEFAULT_PHASES = ["Discovery", "Strategy", "Design", "Development", "Launch"];
 
 export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
-  branding: [
-    {
-      name: "Research",
-      tasks: [
-        "Complete kickoff questionnaire",
-        "Audit the existing brand",
-        "Review competing brands",
-        "Summarize audience insights",
-      ],
-    },
-    {
-      name: "Strategy",
-      tasks: [
-        "Define positioning statement",
-        "Align on brand attributes",
-        "Draft messaging direction",
-      ],
-    },
-    {
-      name: "Identity",
-      tasks: [
-        "Create logo concepts",
-        "Choose color palette",
-        "Select typography system",
-        "Explore iconography direction",
-        "Design brand applications",
-      ],
-    },
-    {
-      name: "Guidelines",
-      tasks: [
-        "Document logo usage rules",
-        "Document color specifications",
-        "Write typography guidance",
-        "Prepare social template examples",
-      ],
-    },
-    {
-      name: "Delivery",
-      tasks: [
-        "Export final brand assets",
-        "Deliver brand guidelines deck",
-        "Run client handoff session",
-      ],
-    },
-  ],
   "web-design": [
     {
       name: "Strategy",
@@ -128,55 +72,6 @@ export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
         "Upload final content",
         "Review across devices",
         "Run performance check",
-      ],
-    },
-  ],
-  "product-design": [
-    {
-      name: "Discovery",
-      tasks: [
-        "Run stakeholder kickoff",
-        "Define success metrics",
-        "Frame the core problem",
-        "Write user stories",
-      ],
-    },
-    {
-      name: "Research",
-      tasks: [
-        "Interview target users",
-        "Map user journeys",
-        "Analyze competitors",
-        "Document requirements",
-        "Highlight opportunity areas",
-      ],
-    },
-    {
-      name: "Design",
-      tasks: [
-        "Map user flows",
-        "Create low-fidelity wireframes",
-        "Design high-fidelity screens",
-        "Build design system",
-        "Assemble clickable prototype",
-        "Review with stakeholders",
-      ],
-    },
-    {
-      name: "Prototyping",
-      tasks: [
-        "Refine interactive prototype",
-        "Write usability test script",
-        "Apply prototype refinements",
-        "Prepare handoff notes",
-      ],
-    },
-    {
-      name: "Validation",
-      tasks: [
-        "Run usability tests",
-        "Summarize findings",
-        "Apply final refinements",
       ],
     },
   ],
@@ -229,188 +124,54 @@ export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
       ],
     },
   ],
-  packaging: [
+  "web-app": [
     {
-      name: "Brief",
+      name: "Discovery",
       tasks: [
-        "Define packaging goals",
-        "Gather product requirements",
-        "Confirm market positioning",
+        "Run stakeholder kickoff",
+        "Define success metrics",
+        "Frame the core problem",
+        "Write user stories",
       ],
     },
     {
       name: "Research",
       tasks: [
-        "Review shelf competitors",
-        "Study packaging references",
-        "Research materials",
-        "Check regulatory requirements",
-      ],
-    },
-    {
-      name: "Concept",
-      tasks: [
-        "Create moodboards",
-        "Explore structural concepts",
-        "Design label directions",
-        "Present visual concepts",
-        "Collect client feedback",
-      ],
-    },
-    {
-      name: "Refinement",
-      tasks: [
-        "Refine selected concept",
-        "Build production artwork",
-        "Adjust dielines",
-        "Review proofs",
-      ],
-    },
-    {
-      name: "Production",
-      tasks: [
-        "Export print-ready files",
-        "Hand off to vendor",
-        "Support press check",
-      ],
-    },
-  ],
-  "motion-design": [
-    {
-      name: "Brief",
-      tasks: [
-        "Write creative brief",
-        "Define success criteria",
-        "Collect visual references",
-      ],
-    },
-    {
-      name: "Storyboard",
-      tasks: [
-        "Outline script",
-        "Create shot list",
-        "Design storyboards",
-        "Plan timing",
+        "Interview target users",
+        "Map user journeys",
+        "Analyze competitors",
+        "Document requirements",
+        "Highlight opportunity areas",
       ],
     },
     {
       name: "Design",
       tasks: [
-        "Create styleframes",
-        "Design motion assets",
-        "Build title cards",
-        "Explore transition concepts",
-        "Review direction with client",
-      ],
-    },
-    {
-      name: "Animation",
-      tasks: [
-        "Animate rough cut",
-        "Sync with audio",
-        "Polish animation",
-        "Apply revision round",
-        "Render finals",
-        "Export delivery formats",
-      ],
-    },
-    {
-      name: "Delivery",
-      tasks: [
-        "Package final files",
-        "Export platform versions",
-        "Share handoff notes",
-      ],
-    },
-  ],
-  illustration: [
-    {
-      name: "Brief",
-      tasks: [
-        "Write creative brief",
-        "Confirm usage requirements",
-        "Collect visual references",
-      ],
-    },
-    {
-      name: "Sketching",
-      tasks: [
-        "Create thumbnail sketches",
-        "Develop composition options",
-        "Review art direction",
-        "Clean up selected sketch",
-      ],
-    },
-    {
-      name: "Refinement",
-      tasks: [
-        "Refine linework",
-        "Explore color options",
-        "Add texture passes",
-        "Apply feedback revisions",
-        "Finalize composition",
-      ],
-    },
-    {
-      name: "Final Art",
-      tasks: [
-        "Render final illustration",
-        "Export size variants",
-        "Create delivery mockups",
-        "Clean source files",
-      ],
-    },
-    {
-      name: "Delivery",
-      tasks: [
-        "Export final assets",
-        "Write usage notes",
-        "Deliver handoff package",
-      ],
-    },
-  ],
-  other: [
-    {
-      name: "Planning",
-      tasks: [
-        "Write project brief",
-        "Outline scope",
-        "Set milestones",
-      ],
-    },
-    {
-      name: "Research",
-      tasks: [
-        "Gather context",
-        "Review requirements",
-        "List constraints",
-        "Collect references",
-      ],
-    },
-    {
-      name: "Execution",
-      tasks: [
-        "Complete core deliverable work",
-        "Run internal review",
-        "Gather client feedback",
-        "Apply iteration pass",
-        "Finalize polish",
-      ],
-    },
-    {
-      name: "Review",
-      tasks: [
-        "Run QA checklist",
+        "Map user flows",
+        "Create low-fidelity wireframes",
+        "Design high-fidelity screens",
+        "Build design system",
+        "Assemble clickable prototype",
         "Review with stakeholders",
-        "Make final adjustments",
       ],
     },
     {
-      name: "Delivery",
+      name: "Development",
       tasks: [
-        "Export final files",
-        "Share handoff notes",
-        "Close out project",
+        "Build front-end application",
+        "Implement API integration",
+        "Set up authentication",
+        "Run QA pass",
+        "Apply performance optimizations",
+      ],
+    },
+    {
+      name: "Launch",
+      tasks: [
+        "Deploy to production",
+        "Review across devices",
+        "Run performance check",
+        "Monitor post-launch metrics",
       ],
     },
   ],

@@ -211,7 +211,7 @@ export function DashboardPage() {
             className="flex flex-col gap-[18px]"
           >
             {/* Header section */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-col gap-[8px]">
                 <h1 className="text-[20px] font-semibold leading-[1.2] text-[#0a0a0a]">
                   {greeting}
@@ -263,11 +263,11 @@ export function DashboardPage() {
 
           {/* Dashboard cards */}
           <div className="flex flex-col gap-[8px]">
-            <div className="flex gap-[8px]">
+            <div className="flex flex-col gap-[8px] sm:flex-row">
               <UpcomingTasksCard tasks={upcomingTasks} />
               <RecentActivityCard entries={recentActivity} />
             </div>
-            <div className="flex gap-[8px]">
+            <div className="flex flex-col gap-[8px] sm:flex-row">
               <PipelineCard
                 projects={projects}
                 onOpenAllProjects={() => setProjectsOverviewOpen(true)}

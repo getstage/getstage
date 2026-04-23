@@ -12,6 +12,8 @@ import { attachTrackedR2Asset, deleteOldR2Asset, resolveAssetUrl } from "./r2";
 const aiModule = v.union(
   v.literal("research"),
   v.literal("strategy"),
+  v.literal("flows"),
+  v.literal("moodboard"),
   v.literal("generate"),
   v.literal("delivery"),
 );

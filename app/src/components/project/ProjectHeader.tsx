@@ -1,11 +1,8 @@
-import { useMemo } from "react";
-import { Link } from "@tanstack/react-router";
 import { DotsThreeVertical, ShareNetwork } from "@phosphor-icons/react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import type { Project } from "@/types";
-import { PROJECT_TYPE_LABELS } from "@/types";
 
-export type ProjectTab = "overview" | "research" | "strategy" | "generate" | "assets";
+export type ProjectTab = "overview" | "research" | "strategy" | "flows" | "moodboard" | "generate" | "assets";
 
 type ProjectHeaderProps = {
   project: Project;
@@ -19,12 +16,6 @@ type ProjectHeaderProps = {
   onTogglePaused: () => void;
   onDelete: () => void;
 };
-
-function formatDateShort(ms: number): string {
-  const d = new Date(ms);
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${months[d.getMonth()]} ${d.getDate()}`;
-}
 
 /* ─── Tab bar icons (matching prototype exactly) ─── */
 
@@ -65,6 +56,27 @@ function GenerateIcon({ active }: { active: boolean }) {
   );
 }
 
+function FlowsIcon({ active }: { active: boolean }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white/70" : "text-text-tertiary"}`}>
+      <path d="M4 3v4c0 1.1.9 2 2 2h4c1.1 0 2 .9 2 2v2" />
+      <circle cx="4" cy="3" r="1.5" />
+      <circle cx="12" cy="13" r="1.5" />
+    </svg>
+  );
+}
+
+function MoodboardIcon({ active }: { active: boolean }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white/70" : "text-text-tertiary"}`}>
+      <rect x="2" y="2" width="5" height="7" rx="1" />
+      <rect x="9" y="2" width="5" height="4" rx="1" />
+      <rect x="2" y="11" width="5" height="3" rx="1" />
+      <rect x="9" y="8" width="5" height="6" rx="1" />
+    </svg>
+  );
+}
+
 function AssetsIcon({ active }: { active: boolean }) {
   return (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white/70" : "text-text-tertiary"}`}>
@@ -79,6 +91,8 @@ const PAGE_TABS = [
   { key: "overview", label: "Overview", Icon: OverviewIcon },
   { key: "research", label: "Research", Icon: ResearchIcon },
   { key: "strategy", label: "Strategy", Icon: StrategyIcon },
+  { key: "flows", label: "Flows", Icon: FlowsIcon },
+  { key: "moodboard", label: "Moodboard", Icon: MoodboardIcon },
   { key: "generate", label: "Generate", Icon: GenerateIcon },
   { key: "assets", label: "Assets", Icon: AssetsIcon },
 ] as const;
@@ -97,19 +111,11 @@ export function ProjectHeader({
 }: ProjectHeaderProps) {
   const isOwner = project.accessRole !== "editor";
 
-  const totalTasks = useMemo(
-    () => project.phases.reduce((sum, ph) => sum + ph.tasks.length, 0),
-    [project.phases],
-  );
-
-  const circumference = 2 * Math.PI * 38;
-  const progressOffset = circumference - (project.progress / 100) * circumference;
-
   return (
     <section className="flex flex-col">
       {/* NAV ROW: page tabs left + Share/More right */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-6 pt-2">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-3 pb-6 pt-2">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
           {PAGE_TABS.map((tab) => {
             const isActive = tab.key === activeTab;
             return (
@@ -202,114 +208,16 @@ export function ProjectHeader({
         </div>
       </div>
 
-      {/* PROJECT HERO: ring + identity left, metadata right */}
-      <div className="flex flex-col items-center gap-6 pt-2 text-center sm:flex-row sm:items-start sm:gap-14 sm:text-left">
-        {/* Left: progress ring + identity */}
-        <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-6">
-          {/* Progress ring */}
-          <div className="relative h-[88px] w-[88px] shrink-0">
-            <svg viewBox="0 0 88 88" className="h-[88px] w-[88px] -rotate-90">
-              <circle
-                cx="44"
-                cy="44"
-                r="38"
-                fill="none"
-                stroke="var(--color-border-subtle)"
-                strokeWidth="4"
-              />
-              <circle
-                cx="44"
-                cy="44"
-                r="38"
-                fill="none"
-                stroke="var(--color-accent)"
-                strokeWidth="4"
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={progressOffset}
-                className="transition-[stroke-dashoffset] duration-500 ease-out"
-              />
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center font-heading text-[22px] font-semibold tracking-[-0.5px] text-text-primary">
-              {project.progress}
-            </span>
-          </div>
-
-          {/* Identity */}
-          <div className="pt-0 sm:pt-3">
-            <h1 className="max-w-[720px] text-balance font-heading text-[26px] font-semibold leading-[1.25] tracking-[-0.5px] text-text-primary">
-              {project.name}
-            </h1>
-            <p className="mt-1 text-[14px] text-text-secondary">
-              {project.clientName}
-            </p>
-          </div>
-        </div>
-
-        {/* Right: metadata */}
-        <div className="hidden shrink-0 flex-col gap-3.5 pt-3 sm:ml-auto sm:flex">
-          <MetaRow
-            icon={
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-text-tertiary">
-                <rect x="2" y="3" width="12" height="11" rx="1.5" />
-                <path d="M2 6.5h12" />
-                <path d="M5.5 1.5v3M10.5 1.5v3" />
-              </svg>
-            }
-            label="Timeline"
-            value={`${formatDateShort(project.startDate)} – ${formatDateShort(project.endDate)}`}
-          />
-          <MetaRow
-            icon={
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-text-tertiary">
-                <circle cx="8" cy="8" r="6" />
-                <path d="M8 5v3l2 1.5" />
-              </svg>
-            }
-            label="Type"
-            value={PROJECT_TYPE_LABELS[project.type]}
-          />
-          <MetaRow
-            icon={
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-text-tertiary">
-                <path d="M3 3h10v10H3z" />
-                <path d="M6 6h4M6 8.5h4M6 11h2.5" />
-              </svg>
-            }
-            label="Scope"
-            value={`${project.phases.length} phase${project.phases.length !== 1 ? "s" : ""} · ${totalTasks} task${totalTasks !== 1 ? "s" : ""}`}
-          />
-
-        </div>
-      </div>
-
-      {/* Mobile-only action buttons */}
-      <div className="mt-4 flex flex-col items-stretch gap-2.5 sm:hidden">
-        <Link
-          to="/project/$id/stitch"
-          params={{ id: project.id }}
-          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] border border-[rgba(59,175,218,0.24)] bg-white px-4 text-[15px] font-medium text-[#0891b2]"
-        >
-          <img src="/stitch.png" alt="" className="h-4 w-4 rounded-[3px]" />
-          Stitch
-        </Link>
+      {/* PROJECT IDENTITY */}
+      <div className="pt-2">
+        <h1 className="max-w-[720px] text-balance font-heading text-[26px] font-semibold leading-[1.25] tracking-[-0.5px] text-text-primary">
+          {project.name}
+        </h1>
+        <p className="mt-1 text-[14px] text-text-secondary">
+          {project.clientName}
+        </p>
       </div>
     </section>
   );
 }
 
-type MetaRowProps = {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-};
-
-function MetaRow({ icon, label, value }: MetaRowProps) {
-  return (
-    <div className="flex items-center gap-2.5 text-[13px]">
-      {icon}
-      <span className="min-w-[56px] text-text-tertiary">{label}</span>
-      <span className="text-text-primary">{value}</span>
-    </div>
-  );
-}

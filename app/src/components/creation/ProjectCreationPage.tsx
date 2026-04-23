@@ -5,6 +5,7 @@ import { ArrowLeft } from "@phosphor-icons/react";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { StepCard, StepDots } from "@/components/creation/CreationChrome";
 import { GeneratingState, SuccessState } from "@/components/creation/CreationStates";
+import { ClientStep } from "@/components/creation/steps/ClientStep";
 import { MethodStep } from "@/components/creation/steps/MethodStep";
 import { ProjectBasicsStep } from "@/components/creation/steps/ProjectBasicsStep";
 import { ProjectTypeStep } from "@/components/creation/steps/ProjectTypeStep";
@@ -45,10 +46,10 @@ export function ProjectCreationPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <h2 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.3px] text-text-primary">
-                      Create a new project
+                      {getStepTitle(creation.step)}
                     </h2>
                     <p className="mt-1.5 text-[14px] leading-normal text-text-secondary">
-                      Set up the basics to get started
+                      {getStepSubtitle(creation.step)}
                     </p>
                   </div>
                   <div className="pt-3 shrink-0">
@@ -73,6 +74,33 @@ export function ProjectCreationPage() {
 }
 
 type ProjectCreationState = ReturnType<typeof useProjectCreation>;
+type StepValue = ProjectCreationState["step"];
+
+function getStepTitle(step: StepValue): string {
+  switch (step) {
+    case 1:
+      return "Create New Project";
+    case 2:
+      return "Client Details";
+    case 3:
+      return "What is the primary project type?";
+    default:
+      return "Create a new project";
+  }
+}
+
+function getStepSubtitle(step: StepValue): string {
+  switch (step) {
+    case 1:
+      return "Let's set it up. This only takes a minute.";
+    case 2:
+      return "Who is this project for?";
+    case 3:
+      return "Pick the closest match for the roadmap. You can still work across multiple disciplines.";
+    default:
+      return "Set up the basics to get started";
+  }
+}
 
 function renderStepContent(creation: ProjectCreationState) {
   if (creation.isGenerating) {
@@ -89,6 +117,19 @@ function renderStepContent(creation: ProjectCreationState) {
         <ProjectBasicsStep
           projectName={creation.projectName}
           projectImage={creation.projectImage}
+          canContinue={creation.canContinue}
+          currentIndex={creation.currentIndex}
+          steps={creation.steps}
+          projectImageInputRef={creation.projectImageInputRef}
+          onProjectNameChange={creation.setProjectName}
+          onProjectImageChange={creation.setProjectImage}
+          onProjectImageFileChange={creation.handleProjectImageFileChange}
+          onContinue={creation.handleContinue}
+        />
+      );
+    case 2:
+      return (
+        <ClientStep
           clientMode={creation.clientMode}
           selectedExistingClientName={creation.selectedExistingClientName}
           clientName={creation.clientName}
@@ -99,20 +140,20 @@ function renderStepContent(creation: ProjectCreationState) {
           currentIndex={creation.currentIndex}
           steps={creation.steps}
           fileInputRef={creation.fileInputRef}
-          projectImageInputRef={creation.projectImageInputRef}
-          onProjectNameChange={creation.setProjectName}
-          onProjectImageChange={creation.setProjectImage}
-          onProjectImageFileChange={creation.handleProjectImageFileChange}
           onClientModeChange={creation.setClientMode}
-          onExistingClientSelect={creation.selectExistingClient}
+          onExistingClientSelect={(name) => {
+            const client = creation.existingClients.find((c) => c.name === name);
+            if (client) creation.selectExistingClient(client);
+          }}
           onClientNameChange={creation.setClientName}
           onClientEmailChange={creation.setClientEmail}
           onClientAvatarChange={creation.setClientAvatar}
           onAvatarFileChange={creation.handleAvatarFileChange}
           onContinue={creation.handleContinue}
+          onBack={creation.goBack}
         />
       );
-    case 2:
+    case 3:
       return (
         <ProjectTypeStep
           projectType={creation.projectType}
@@ -124,7 +165,7 @@ function renderStepContent(creation: ProjectCreationState) {
           onBack={creation.goBack}
         />
       );
-    case 3:
+    case 4:
       return (
         <MethodStep
           method={creation.method}
@@ -141,7 +182,7 @@ function renderStepContent(creation: ProjectCreationState) {
           onBack={creation.goBack}
         />
       );
-    case 4:
+    case 5:
       return (
         <TimelineStep
           canContinue={creation.canContinue}

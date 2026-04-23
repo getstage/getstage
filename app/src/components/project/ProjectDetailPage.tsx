@@ -6,21 +6,16 @@ import { ArrowLeft } from "@phosphor-icons/react";
 import { ProjectDialogs } from "@/components/project/ProjectDialogs";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import type { ProjectTab } from "@/components/project/ProjectHeader";
-import { PhaseNavigation } from "@/components/project/PhaseNavigation";
-import { TaskChecklist } from "@/components/project/TaskChecklist";
+import { KanbanBoard } from "@/components/project/KanbanBoard";
 import { ResearchTab } from "@/components/project/ResearchTab";
 import { StrategyTab } from "@/components/project/StrategyTab";
+import { FlowsTab } from "@/components/project/FlowsTab";
+import { MoodboardTab } from "@/components/project/MoodboardTab";
 import { GenerateTab } from "@/components/project/GenerateTab";
 import { AssetsTab } from "@/components/project/AssetsTab";
 import { useProjectDetail } from "@/hooks/useProjectDetail";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { Task } from "@/types";
-
-function formatDateShort(ms: number): string {
-  const d = new Date(ms);
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${months[d.getMonth()]} ${d.getDate()}`;
-}
 
 function getTimeAgo(timestamp: number): string {
   const diff = Date.now() - timestamp;
@@ -46,21 +41,6 @@ export function ProjectDetailPage() {
       setActiveTab(requestedTab);
     }
   }, []);
-
-  const upcomingTasks = useMemo(() => {
-    if (!detail.project) return [];
-    const tasks: Array<{ task: Task; phaseName: string }> = [];
-    for (const phase of detail.project.phases) {
-      for (const task of phase.tasks) {
-        if (!task.isCompleted && task.dueDate) {
-          tasks.push({ task, phaseName: phase.name });
-        }
-      }
-    }
-    return tasks
-      .sort((a, b) => (a.task.dueDate ?? 0) - (b.task.dueDate ?? 0))
-      .slice(0, 4);
-  }, [detail.project]);
 
   const recentTasks = useMemo(() => {
     if (!detail.project) return [];
@@ -120,91 +100,43 @@ export function ProjectDetailPage() {
           </div>
 
           {activeTab === "overview" && (
-            <>
-              {/* Phase timeline bar — full-bleed */}
-              <PhaseNavigation
+            <div className="mx-auto max-w-[1200px] px-4 pb-[120px] pt-6 sm:px-10 lg:px-14">
+              <KanbanBoard
                 phases={detail.project.phases}
-                activePhaseId={detail.currentPhase.id}
-                onSelect={detail.setActivePhaseId}
+                onToggleTask={(taskId) => void detail.tasks.handleToggleTask(taskId)}
               />
 
-              {/* Content grid: tasks left + sidebar right */}
-              <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
-                <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_340px]">
-                  <TaskChecklist
-                    phase={detail.currentPhase}
-                    allPhases={detail.project.phases}
-                    projectId={detail.project.id}
-                    actionError={detail.actionError}
-                    addTaskValue={detail.tasks.addTaskValue}
-                    showAddTask={detail.tasks.showAddTask}
-                    addTaskInputRef={detail.tasks.addTaskInputRef}
-                    onAddTaskValueChange={detail.tasks.setAddTaskValue}
-                    onShowAddTaskChange={detail.tasks.setShowAddTask}
-                    onSubmitAddTask={() => void detail.tasks.handleAddTaskSubmit()}
-                    onToggleTask={(taskId) => void detail.tasks.handleToggleTask(taskId)}
-                    onDeleteTask={(taskId) => void detail.tasks.handleDeleteTask(taskId)}
-                    onSelectPhase={detail.setActivePhaseId}
-                  />
-
-                  <aside className="hidden pt-6 sm:pt-8 lg:block">
-                    {upcomingTasks.length > 0 && (
-                      <div className="mb-7">
-                        <h3 className="mb-3 font-heading text-[13px] font-semibold text-text-primary">
-                          Upcoming
-                        </h3>
-                        <div className="space-y-0">
-                          {upcomingTasks.map(({ task }) => {
-                            const now = Date.now();
-                            const isSoon =
-                              task.dueDate !== undefined &&
-                              task.dueDate - now < 3 * 24 * 60 * 60 * 1000;
-                            return (
-                              <div key={task.id} className="flex items-center gap-2.5 py-2 text-[13px]">
-                                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${isSoon ? "bg-warning" : "bg-border"}`} />
-                                <span className="min-w-0 flex-1 truncate text-text-primary">{task.title}</span>
-                                {task.dueDate && (
-                                  <span className={`shrink-0 text-[12px] ${isSoon ? "text-warning" : "text-text-tertiary"}`}>
-                                    {formatDateShort(task.dueDate)}
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
+              {recentTasks.length > 0 && (
+                <div className="mt-8 rounded-[16px] border border-border-subtle bg-white p-5">
+                  <div className="mb-1 font-heading text-[16px] font-semibold text-text-primary">
+                    Recent Activity
+                  </div>
+                  <p className="mb-4 text-[13px] text-text-secondary">
+                    Latest updates with your project
+                  </p>
+                  <div className="divide-y divide-border-subtle">
+                    {recentTasks.map(({ task }) => {
+                      const action = task.isCompleted ? "Completed" : "Updated";
+                      return (
+                        <div key={task.id} className="flex items-start gap-3 py-3">
+                          <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[9px] font-semibold text-accent">
+                            {task.assignees?.[0]?.name?.charAt(0)?.toUpperCase() ?? "S"}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[13px] font-medium text-text-primary">
+                              {action}: {task.title}
+                            </div>
+                            <div className="mt-0.5 text-[12px] text-text-tertiary">
+                              {detail.project!.name} · {getTimeAgo(task.updatedAt)}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    )}
-
-                    {recentTasks.length > 0 && (
-                      <div>
-                        <h3 className="mb-3 font-heading text-[13px] font-semibold text-text-primary">
-                          Recent activity
-                        </h3>
-                        <div className="space-y-0">
-                          {recentTasks.map(({ task }) => {
-                            const action = task.isCompleted ? "Completed" : "Updated";
-                            return (
-                              <div key={task.id} className="flex items-start gap-2.5 py-2">
-                                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[9px] font-semibold text-accent">
-                                  {task.assignees?.[0]?.name?.charAt(0)?.toUpperCase() ?? "S"}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-[13px] text-text-primary">
-                                    <span className="font-medium">{task.assignees?.[0]?.name?.split(" ")[0] ?? "You"}</span>{" "}
-                                    {action.toLowerCase()} {task.title}
-                                  </div>
-                                  <div className="mt-0.5 text-[11px] text-text-tertiary">{getTimeAgo(task.updatedAt)}</div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </aside>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            </>
+              )}
+            </div>
           )}
 
           {activeTab === "research" && (
@@ -220,6 +152,18 @@ export function ProjectDetailPage() {
           {activeTab === "strategy" && (
             <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
               <StrategyTab projectId={projectId} projectName={detail.project.name} />
+            </div>
+          )}
+
+          {activeTab === "flows" && (
+            <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
+              <FlowsTab projectId={projectId} projectName={detail.project.name} />
+            </div>
+          )}
+
+          {activeTab === "moodboard" && (
+            <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
+              <MoodboardTab projectId={projectId} projectName={detail.project.name} />
             </div>
           )}
 
@@ -248,7 +192,7 @@ export function ProjectDetailPage() {
 }
 
 function isProjectTab(value: string): value is ProjectTab {
-  return value === "overview" || value === "research" || value === "strategy" || value === "generate" || value === "assets";
+  return value === "overview" || value === "research" || value === "strategy" || value === "flows" || value === "moodboard" || value === "generate" || value === "assets";
 }
 
 function ProjectDetailLoadingState() {

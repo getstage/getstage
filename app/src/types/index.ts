@@ -82,14 +82,9 @@ export type SyncPhasesInput = z.infer<typeof syncPhasesInputSchema>;
 // --- Constants ---
 
 export const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
-  branding: "Branding",
   "web-design": "Web Design",
-  "product-design": "Product Design",
   "app-design": "App Design",
-  packaging: "Packaging",
-  "motion-design": "Motion Design",
-  illustration: "Illustration",
-  other: "Other",
+  "web-app": "Web App",
 };
 
 // --- Derived Types (not in DB, frontend only) ---

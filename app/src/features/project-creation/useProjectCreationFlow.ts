@@ -5,7 +5,7 @@ import {
   projectBasicsSchema,
 } from "@/lib/validation";
 
-export type WorkflowStep = 1 | 2 | 3 | 4;
+export type WorkflowStep = 1 | 2 | 3 | 4 | 5;
 export type ProjectCreationStep = WorkflowStep | "overview" | "success";
 
 type ProjectCreationFlowInput = {
@@ -46,7 +46,7 @@ export function useProjectCreationFlow({
   const generationTimeoutRef = useRef<number | undefined>(undefined);
 
   const steps = useMemo<WorkflowStep[]>(
-    () => [1, 2, 3, 4],
+    () => [1, 2, 3, 4, 5],
     [],
   );
   const currentIndex =
@@ -54,16 +54,17 @@ export function useProjectCreationFlow({
   const canContinue = useMemo(() => {
     switch (step) {
       case 1:
+        return projectName.trim().length > 0;
+      case 2:
         return (
-          projectName.trim().length > 0 &&
           clientName.trim().length > 0 &&
           clientEmail.trim().length > 0
         );
-      case 2:
-        return projectType !== null;
       case 3:
-        return method === "manual" ? activePhasesLength >= 2 : method !== null;
+        return projectType !== null;
       case 4:
+        return method === "manual" ? activePhasesLength >= 2 : method !== null;
+      case 5:
         return Boolean(startDate && endDate);
       case "overview":
         return roadmapLength > 0 && !isCreating;
@@ -103,7 +104,7 @@ export function useProjectCreationFlow({
 
     clearError();
     if (step === "overview") {
-      setStep(4);
+      setStep(5);
       return;
     }
 
@@ -133,25 +134,29 @@ export function useProjectCreationFlow({
           onError(parsed.error.issues[0]?.message ?? "Please enter a project name.");
           return;
         }
+        setStep(2);
+        return;
+      }
+      case 2: {
         const clientParsed = clientInfoSchema.safeParse({ clientName, clientEmail });
         if (!clientParsed.success) {
           onError(clientParsed.error.issues[0]?.message ?? "Please enter the client details.");
           return;
         }
-        setStep(2);
-        return;
-      }
-      case 2:
         setStep(3);
         return;
+      }
       case 3:
+        setStep(4);
+        return;
+      case 4:
         if (method === "manual" && activePhasesLength < 2) {
           onError("Select at least two phases.");
           return;
         }
-        setStep(4);
+        setStep(5);
         return;
-      case 4: {
+      case 5: {
         const parsed = dateRangeInputSchema.safeParse({ startDate, endDate });
         if (!parsed.success) {
           onError(parsed.error.issues[0]?.message ?? "Select a valid timeline.");
