@@ -21,7 +21,7 @@ type ProjectHeaderProps = {
 
 function OverviewIcon({ active }: { active: boolean }) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white" : "text-text-tertiary"}`}>
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white/70" : "text-text-tertiary"}`}>
       <rect x="2" y="2" width="5" height="5" rx="1" />
       <rect x="9" y="2" width="5" height="5" rx="1" />
       <rect x="2" y="9" width="5" height="5" rx="1" />
@@ -32,7 +32,7 @@ function OverviewIcon({ active }: { active: boolean }) {
 
 function ResearchIcon({ active }: { active: boolean }) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white" : "text-text-tertiary"}`}>
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white/70" : "text-text-tertiary"}`}>
       <circle cx="7" cy="7" r="4.5" />
       <path d="M10.5 10.5L14 14" />
     </svg>
@@ -41,7 +41,7 @@ function ResearchIcon({ active }: { active: boolean }) {
 
 function StrategyIcon({ active }: { active: boolean }) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white" : "text-text-tertiary"}`}>
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white/70" : "text-text-tertiary"}`}>
       <path d="M3 3h10v10H3z" />
       <path d="M6 6h4M6 8.5h4M6 11h2.5" />
     </svg>
@@ -50,7 +50,7 @@ function StrategyIcon({ active }: { active: boolean }) {
 
 function GenerateIcon({ active }: { active: boolean }) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white" : "text-text-tertiary"}`}>
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white/70" : "text-text-tertiary"}`}>
       <path d="M8 2l1.5 3.5L13 7l-3 2.5L11 13l-3-2-3 2 1-3.5L3 7l3.5-1.5z" />
     </svg>
   );
@@ -58,7 +58,7 @@ function GenerateIcon({ active }: { active: boolean }) {
 
 function FlowsIcon({ active }: { active: boolean }) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white" : "text-text-tertiary"}`}>
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white/70" : "text-text-tertiary"}`}>
       <path d="M4 3v4c0 1.1.9 2 2 2h4c1.1 0 2 .9 2 2v2" />
       <circle cx="4" cy="3" r="1.5" />
       <circle cx="12" cy="13" r="1.5" />
@@ -68,7 +68,7 @@ function FlowsIcon({ active }: { active: boolean }) {
 
 function MoodboardIcon({ active }: { active: boolean }) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white" : "text-text-tertiary"}`}>
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white/70" : "text-text-tertiary"}`}>
       <rect x="2" y="2" width="5" height="7" rx="1" />
       <rect x="9" y="2" width="5" height="4" rx="1" />
       <rect x="2" y="11" width="5" height="3" rx="1" />
@@ -79,7 +79,7 @@ function MoodboardIcon({ active }: { active: boolean }) {
 
 function AssetsIcon({ active }: { active: boolean }) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white" : "text-text-tertiary"}`}>
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-white/70" : "text-text-tertiary"}`}>
       <path d="M2 4h12v8H2z" />
       <circle cx="5.5" cy="7" r="1.5" strokeWidth="1" />
       <path d="M2 11l3.5-3 2.5 2 3-3.5L14 10" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
@@ -115,7 +115,7 @@ export function ProjectHeader({
     <section className="flex flex-col">
       {/* NAV ROW: page tabs left + Share/More right */}
       <div className="flex items-center justify-between gap-3 pb-6 pt-2">
-        <div className="flex items-center gap-1 overflow-x-auto rounded-[10px] bg-[#f5f5f5] p-1 scrollbar-hide">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
           {PAGE_TABS.map((tab) => {
             const isActive = tab.key === activeTab;
             return (
@@ -123,12 +123,11 @@ export function ProjectHeader({
                 key={tab.key}
                 type="button"
                 onClick={() => onTabChange(tab.key as ProjectTab)}
-                className={`inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[8px] px-4 py-[7px] text-[13px] font-medium transition-all duration-150 ${
+                className={`inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] border px-5 py-[9px] text-[14px] font-medium transition-all duration-150 ${
                   isActive
-                    ? "bg-gradient-to-b from-[#7b76df] to-[#463fba] text-white shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)]"
-                    : "bg-transparent text-text-secondary hover:bg-[#ebebeb] hover:text-text-primary"
+                    ? "border-text-primary bg-text-primary text-white"
+                    : "border-border bg-transparent text-text-secondary hover:border-text-secondary hover:bg-border-subtle hover:text-text-primary"
                 }`}
-                style={isActive ? { textShadow: "0px 0.5px 1.5px rgba(0,0,0,0.15)" } : undefined}
               >
                 <tab.Icon active={isActive} />
                 {tab.label}
@@ -221,4 +220,3 @@ export function ProjectHeader({
     </section>
   );
 }
-

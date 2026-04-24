@@ -32,11 +32,6 @@ export type DateLabel = {
   x: number;
 };
 
-export type CurveSample = {
-  frac: number;
-  h: number;
-};
-
 export type PositionedProject = {
   key: string;
   project: Project;

@@ -30,6 +30,7 @@ export const projectTypeSchema = z.enum([
   "web-design",
   "product-design",
   "app-design",
+  "web-app",
   "packaging",
   "motion-design",
   "illustration",

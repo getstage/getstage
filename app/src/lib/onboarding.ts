@@ -118,6 +118,7 @@ const ONBOARDING_PHASES: Record<ProjectType, string[]> = {
   "web-design": ["Strategy", "Research", "Design", "Development", "Launch"],
   "product-design": ["Discovery", "Research", "Design", "Prototyping", "Validation"],
   "app-design": ["Research", "Architecture", "Design", "Development", "Testing"],
+  "web-app": ["Discovery", "Research", "Design", "Development", "Launch"],
   packaging: ["Brief", "Research", "Concept", "Refinement", "Production"],
   "motion-design": ["Brief", "Storyboard", "Design", "Animation", "Delivery"],
   illustration: ["Brief", "Sketching", "Refinement", "Final Art", "Delivery"],

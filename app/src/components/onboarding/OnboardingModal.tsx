@@ -11,7 +11,7 @@ export type { OnboardingSubmission } from "@/features/onboarding/model";
 
 const SETUP_PROGRESS_STEPS: OnboardingStepId[] = [
   "details",
-  "project-type",
+  "client",
   "method",
   "timeline",
 ];
@@ -36,7 +36,7 @@ function getStepHeader(step: OnboardingStepId): { title: string; subtitle: strin
         subtitle: "Connect Claude to power conversations, reasoning, and content generation in your workspace.",
       };
     case "details":
-    case "project-type":
+    case "client":
     case "method":
     case "timeline":
       return {

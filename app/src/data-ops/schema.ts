@@ -22,9 +22,15 @@ export const billingProviderSchema = z.enum(["stripe", "polar", "creem", "unknow
 export const paymentProviderSchema = z.enum(["stripe", "unknown"]);
 
 export const projectTypeSchema = z.enum([
+  "branding",
   "web-design",
+  "product-design",
   "app-design",
   "web-app",
+  "packaging",
+  "motion-design",
+  "illustration",
+  "other",
 ]);
 
 export const projectStatusSchema = z.enum(["active", "paused", "completed"]);

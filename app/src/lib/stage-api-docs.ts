@@ -134,7 +134,7 @@ export const stageApiEndpoints: ApiEndpointDoc[] = [
         type: "string",
         required: true,
         description:
-          'One of: "branding", "web-design", "product-design", "app-design", "packaging", "motion-design", "illustration", "other".',
+          'One of: "branding", "web-design", "product-design", "app-design", "web-app", "packaging", "motion-design", "illustration", "other".',
       },
       { name: "startDate", type: "number", required: true, description: "Start date as Unix timestamp in milliseconds." },
       { name: "endDate", type: "number", required: true, description: "End date as Unix timestamp in milliseconds." },
@@ -190,7 +190,7 @@ export const stageApiEndpoints: ApiEndpointDoc[] = [
         type: "string",
         required: true,
         description:
-          'One of: "branding", "web-design", "product-design", "app-design", "packaging", "motion-design", "illustration", "other".',
+          'One of: "branding", "web-design", "product-design", "app-design", "web-app", "packaging", "motion-design", "illustration", "other".',
       },
       { name: "startDate", type: "number", required: true, description: "Start date as Unix timestamp in milliseconds." },
       { name: "endDate", type: "number", required: true, description: "End date as Unix timestamp in milliseconds." },
@@ -725,6 +725,7 @@ export const stageApiSections: ApiSectionDoc[] = [
       "web-design — Websites, landing pages",
       "product-design — Digital product interfaces",
       "app-design — Mobile applications",
+      "web-app — Web applications and SaaS products",
       "packaging — Physical product packaging",
       "motion-design — Animation, video",
       "illustration — Custom artwork",

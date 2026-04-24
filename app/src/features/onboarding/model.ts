@@ -6,7 +6,6 @@ export type OnboardingStepId =
   | "claude"
   | "details"
   | "client"
-  | "project-type"
   | "method"
   | "phase-select"
   | "timeline"

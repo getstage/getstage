@@ -19,14 +19,42 @@ export const PROJECT_TYPES: ProjectTypeOption[] = [
 ];
 
 export const PROJECT_TYPE_ICONS: Record<ProjectType, string | null> = {
+  branding: null,
   "web-design": "/logos/create-project/globe.svg",
+  "product-design": null,
   "app-design": "/logos/create-project/mobile.svg",
   "web-app": "/logos/create-project/computer.svg",
+  packaging: null,
+  "motion-design": null,
+  illustration: null,
+  other: null,
 };
 
 export const DEFAULT_PHASES = ["Discovery", "Strategy", "Design", "Development", "Launch"];
 
 export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
+  branding: [
+    {
+      name: "Research",
+      tasks: ["Review brand context", "Audit competitors", "Collect visual references"],
+    },
+    {
+      name: "Strategy",
+      tasks: ["Define positioning", "Clarify audience", "Create messaging pillars"],
+    },
+    {
+      name: "Identity",
+      tasks: ["Explore logo directions", "Build color palette", "Define typography"],
+    },
+    {
+      name: "Guidelines",
+      tasks: ["Document usage rules", "Create asset examples", "Prepare handoff files"],
+    },
+    {
+      name: "Delivery",
+      tasks: ["Export final assets", "Review with client", "Package brand kit"],
+    },
+  ],
   "web-design": [
     {
       name: "Strategy",
@@ -73,6 +101,28 @@ export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
         "Review across devices",
         "Run performance check",
       ],
+    },
+  ],
+  "product-design": [
+    {
+      name: "Discovery",
+      tasks: ["Define product goals", "Map target users", "Clarify success metrics"],
+    },
+    {
+      name: "Research",
+      tasks: ["Interview users", "Analyze competitors", "Document requirements"],
+    },
+    {
+      name: "Design",
+      tasks: ["Map user flows", "Create wireframes", "Design high-fidelity screens"],
+    },
+    {
+      name: "Prototyping",
+      tasks: ["Build clickable prototype", "Review interactions", "Prepare design handoff"],
+    },
+    {
+      name: "Validation",
+      tasks: ["Run usability test", "Collect feedback", "Apply final revisions"],
     },
   ],
   "app-design": [
@@ -173,6 +223,94 @@ export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
         "Run performance check",
         "Monitor post-launch metrics",
       ],
+    },
+  ],
+  packaging: [
+    {
+      name: "Brief",
+      tasks: ["Confirm product details", "Define packaging requirements", "Gather constraints"],
+    },
+    {
+      name: "Research",
+      tasks: ["Audit shelf competitors", "Collect references", "Define visual direction"],
+    },
+    {
+      name: "Concept",
+      tasks: ["Sketch concepts", "Create first design routes", "Review with client"],
+    },
+    {
+      name: "Refinement",
+      tasks: ["Apply feedback", "Prepare production artwork", "Check dielines"],
+    },
+    {
+      name: "Production",
+      tasks: ["Export print files", "Run prepress review", "Package final assets"],
+    },
+  ],
+  "motion-design": [
+    {
+      name: "Brief",
+      tasks: ["Define motion goals", "Collect references", "Confirm deliverables"],
+    },
+    {
+      name: "Storyboard",
+      tasks: ["Write treatment", "Create storyboard", "Review pacing"],
+    },
+    {
+      name: "Design",
+      tasks: ["Create keyframes", "Prepare assets", "Define animation style"],
+    },
+    {
+      name: "Animation",
+      tasks: ["Animate sequence", "Add sound timing", "Review revisions"],
+    },
+    {
+      name: "Delivery",
+      tasks: ["Render final files", "Export variants", "Package sources"],
+    },
+  ],
+  illustration: [
+    {
+      name: "Brief",
+      tasks: ["Confirm subject", "Define style", "Collect references"],
+    },
+    {
+      name: "Sketching",
+      tasks: ["Create rough sketches", "Review composition", "Choose direction"],
+    },
+    {
+      name: "Refinement",
+      tasks: ["Refine line work", "Apply colors", "Review details"],
+    },
+    {
+      name: "Final Art",
+      tasks: ["Polish final artwork", "Prepare exports", "Check usage formats"],
+    },
+    {
+      name: "Delivery",
+      tasks: ["Export final files", "Share source files", "Close client review"],
+    },
+  ],
+  other: [
+    {
+      name: "Planning",
+      tasks: ["Define scope", "Confirm deliverables", "Set success criteria"],
+    },
+    {
+      name: "Research",
+      tasks: ["Collect context", "Review examples", "Identify constraints"],
+    },
+    {
+      name: "Execution",
+      tasks: ["Create first version", "Review progress", "Apply revisions"],
+    },
+    {
+      name: "Review",
+      tasks: ["Run quality check", "Collect feedback", "Prepare final updates"],
+    },
+    {
+      name: "Delivery",
+      tasks: ["Package assets", "Share final files", "Confirm completion"],
     },
   ],
 };

@@ -178,7 +178,7 @@ async function createRunRecord(
     userId: Id<"users">;
     projectId: Id<"projects">;
     connectionId?: Id<"agentConnections">;
-    module: "research" | "strategy" | "generate" | "delivery";
+    module: "research" | "strategy" | "flows" | "moodboard" | "generate" | "delivery";
     title: string;
     status: "draft" | "running" | "completed" | "failed" | "needs_input";
     trigger: "user" | "agent";
@@ -208,7 +208,7 @@ async function createArtifactRecord(
     userId: Id<"users">;
     projectId: Id<"projects">;
     runId?: Id<"projectAiRuns">;
-    module: "research" | "strategy" | "generate" | "delivery";
+    module: "research" | "strategy" | "flows" | "moodboard" | "generate" | "delivery";
     kind: string;
     title: string;
     summary?: string;

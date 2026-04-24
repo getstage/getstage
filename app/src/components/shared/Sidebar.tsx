@@ -123,7 +123,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                       collapsed
                         ? `h-[32px] w-[32px] justify-center rounded-[8px] ${
                             isActive
-                              ? "bg-[#1a1a1a]"
+                              ? "bg-[#e5e5e5]"
                               : "bg-transparent hover:bg-[#ebebeb]"
                           }`
                         : `w-full gap-[8px] rounded-[6px] px-[12px] py-[6px] ${
@@ -137,7 +137,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                       src={item.icon}
                       alt={collapsed ? item.name : ""}
                       aria-hidden={!collapsed}
-                      className={`h-[15px] w-[15px] ${isActive && collapsed ? "brightness-0 invert" : ""}`}
+                      className="h-[15px] w-[15px]"
                     />
                     {!collapsed && (
                       <span className="text-[13px] font-medium">

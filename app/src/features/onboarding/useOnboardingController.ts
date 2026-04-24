@@ -260,7 +260,7 @@ export function useOnboardingController({
   }
 
   function buildPendingSubmission(createProject: boolean): OnboardingSubmission {
-    const fallbackProjectType = draft.projectType ?? fieldOfWork[0] ?? "other";
+    const fallbackProjectType = draft.projectType ?? fieldOfWork[0] ?? "web-design";
     const fieldSelections = fieldOfWork.length > 0 ? fieldOfWork : [fallbackProjectType];
     const projectName = draft.projectName.trim();
     const clientName = draft.clientName.trim() || projectName || "Stage setup";

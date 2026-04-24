@@ -5,6 +5,7 @@ const projectTypeValues = [
   "web-design",
   "product-design",
   "app-design",
+  "web-app",
   "packaging",
   "motion-design",
   "illustration",

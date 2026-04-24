@@ -44,9 +44,15 @@ const sheetSourceType = v.union(
 );
 
 const projectType = v.union(
+  v.literal("branding"),
   v.literal("web-design"),
+  v.literal("product-design"),
   v.literal("app-design"),
   v.literal("web-app"),
+  v.literal("packaging"),
+  v.literal("motion-design"),
+  v.literal("illustration"),
+  v.literal("other"),
 );
 
 const projectStatus = v.union(

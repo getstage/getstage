@@ -7,10 +7,44 @@ import {
 import { buildTimelineLayout } from "@/components/dashboard/timeline/selectors";
 import { TimelineMarkers } from "@/components/dashboard/timeline/TimelineMarkers";
 import { TimelineOverlays } from "@/components/dashboard/timeline/TimelineOverlays";
-import type { TimelineProps } from "@/components/dashboard/timeline/types";
+import type { BarSegment, TimelineProps } from "@/components/dashboard/timeline/types";
 import { useTimelineInteraction } from "@/components/dashboard/timeline/useTimelineInteraction";
 
 export type { TimelineHorizon } from "@/components/dashboard/timeline/types";
+
+function buildSteppedAreaPath(bars: BarSegment[]) {
+  if (bars.length === 0) {
+    return "";
+  }
+
+  const baseY = BAR_MAX_HEIGHT;
+  const first = bars[0];
+  if (!first) {
+    return "";
+  }
+
+  const commands = [`M ${first.x} ${baseY}`];
+  let previousTop = baseY;
+
+  for (const bar of bars) {
+    const top = baseY - bar.height;
+    const right = bar.x + bar.width;
+
+    commands.push(`L ${bar.x} ${previousTop}`);
+    commands.push(`L ${bar.x} ${top}`);
+    commands.push(`L ${right} ${top}`);
+    previousTop = top;
+  }
+
+  const last = bars[bars.length - 1];
+  if (!last) {
+    return "";
+  }
+
+  commands.push(`L ${last.x + last.width} ${baseY}`);
+  commands.push("Z");
+  return commands.join(" ");
+}
 
 export function Timeline({
   projects,
@@ -76,6 +110,13 @@ export function Timeline({
               <stop offset="100%" stopColor="rgba(135,130,245,0.12)" />
             </linearGradient>
           </defs>
+
+          <path
+            d={buildSteppedAreaPath(layout.bars)}
+            fill={`url(#${gradientId})`}
+            opacity="0.72"
+            className="transition-all duration-300"
+          />
 
           {layout.bars.map((bar, index) => {
             if (bar.count === 0) return null;

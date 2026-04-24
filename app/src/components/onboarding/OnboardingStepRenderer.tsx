@@ -2,7 +2,6 @@ import {
   ArrowRight,
   Check,
   CopySimple,
-  Package,
   PencilSimpleLine,
   Trash,
 } from "@phosphor-icons/react";
@@ -389,8 +388,6 @@ export function OnboardingStepRenderer({
                   >
                     {iconSrc ? (
                       <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 object-contain" />
-                    ) : option.value === "packaging" ? (
-                      <Package size={16} weight="regular" className="shrink-0" />
                     ) : null}
                     <span>{option.label}</span>
                   </button>

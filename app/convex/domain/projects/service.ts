@@ -42,6 +42,7 @@ export const projectTypeValidator = v.union(
   v.literal("web-design"),
   v.literal("product-design"),
   v.literal("app-design"),
+  v.literal("web-app"),
   v.literal("packaging"),
   v.literal("motion-design"),
   v.literal("illustration"),
