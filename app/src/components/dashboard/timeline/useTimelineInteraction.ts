@@ -1,5 +1,5 @@
 import { useMemo, useState, type RefObject } from "react";
-import { CURVE_HEIGHT } from "@/components/dashboard/timeline/constants";
+import { BAR_MAX_HEIGHT } from "@/components/dashboard/timeline/constants";
 import { clamp } from "@/components/dashboard/timeline/geometry";
 import {
   buildProfileHoverDetails,
@@ -58,7 +58,7 @@ export function useTimelineInteraction({
     const markerY = clamp(
       markerBounds.top + markerBounds.height / 2 - regionBounds.top,
       0,
-      CURVE_HEIGHT,
+      BAR_MAX_HEIGHT,
     );
     const projectDuration = Math.max(project.endDate - project.startDate, 1);
     const progress = clamp((markerTimestamp - project.startDate) / projectDuration, 0, 1);

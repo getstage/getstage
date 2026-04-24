@@ -2,15 +2,12 @@ import {
   clientInfoSchema,
   dateRangeInputSchema,
   projectBasicsSchema,
-  projectTypeSchema as projectTypeValidationSchema,
 } from "@/lib/validation";
-import type { ProjectType } from "@/types";
 import type { Method } from "../../../shared/project-creation";
 import type { OnboardingStepId } from "./model";
 
 type ValidationContext = {
   step: OnboardingStepId;
-  fieldOfWork: ProjectType[];
   setProjectLater: boolean;
   method: Method;
   projectName: string;
@@ -18,7 +15,6 @@ type ValidationContext = {
   clientName: string;
   clientEmail: string;
   hasClientAvatar: boolean;
-  projectType: ProjectType | null;
   activePhasesLength: number;
   startDate: string;
   endDate: string;
@@ -37,7 +33,7 @@ export function getFlowSteps({
   return [
     "welcome",
     "details",
-    "project-type",
+    "client",
     "method",
     "timeline",
     "preview",
@@ -67,7 +63,6 @@ export function canContinue({
   projectName,
   clientName,
   clientEmail,
-  projectType,
   activePhasesLength,
 }: Omit<ValidationContext, "startDate" | "endDate">) {
   switch (step) {
@@ -76,14 +71,12 @@ export function canContinue({
     case "claude":
       return true;
     case "details":
+      return setProjectLater || projectName.trim().length > 0;
+    case "client":
       return (
-        setProjectLater ||
-        (projectName.trim().length > 0 &&
-          clientName.trim().length > 0 &&
-          clientEmail.trim().length > 0)
+        clientName.trim().length > 0 &&
+        clientEmail.trim().length > 0
       );
-    case "project-type":
-      return projectType !== null;
     case "method":
       return method === "manual" ? activePhasesLength >= 2 : method !== null;
     case "timeline":
@@ -106,7 +99,6 @@ export function getStepValidationError({
   projectName,
   clientName,
   clientEmail,
-  projectType,
   activePhasesLength,
   startDate,
   endDate,
@@ -125,6 +117,9 @@ export function getStepValidationError({
       if (!basicsParsed.success) {
         return basicsParsed.error.issues[0]?.message ?? "Please enter a project name.";
       }
+      return null;
+    }
+    case "client": {
       const clientNameParsed = clientInfoSchema.shape.clientName.safeParse(clientName);
       if (!clientNameParsed.success) {
         return clientNameParsed.error.issues[0]?.message ?? "Please enter a client name.";
@@ -136,16 +131,6 @@ export function getStepValidationError({
           : (clientEmailParsed.error.issues[0]?.message ?? "Please enter a valid email address.");
       }
       return null;
-    }
-    case "project-type": {
-      if (!projectType) {
-        return "Choose the project type to continue.";
-      }
-
-      const projectTypeParsed = projectTypeValidationSchema.safeParse(projectType);
-      return projectTypeParsed.success
-        ? null
-        : (projectTypeParsed.error.issues[0]?.message ?? "Choose the project type.");
     }
     case "method":
       if (!method) {

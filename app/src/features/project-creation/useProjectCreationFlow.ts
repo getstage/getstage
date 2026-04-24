@@ -5,7 +5,7 @@ import {
   projectBasicsSchema,
 } from "@/lib/validation";
 
-export type WorkflowStep = 1 | 2 | 3 | 4 | 5;
+export type WorkflowStep = 1 | 2 | 3 | 4;
 export type ProjectCreationStep = WorkflowStep | "overview" | "success";
 
 type ProjectCreationFlowInput = {
@@ -14,7 +14,6 @@ type ProjectCreationFlowInput = {
   clientName: string;
   clientEmail: string;
   hasClientAvatar: boolean;
-  projectType: string | null;
   method: "ai" | "manual" | null;
   startDate: string;
   endDate: string;
@@ -30,7 +29,6 @@ export function useProjectCreationFlow({
   projectName,
   clientName,
   clientEmail,
-  projectType,
   method,
   startDate,
   endDate,
@@ -46,7 +44,7 @@ export function useProjectCreationFlow({
   const generationTimeoutRef = useRef<number | undefined>(undefined);
 
   const steps = useMemo<WorkflowStep[]>(
-    () => [1, 2, 3, 4, 5],
+    () => [1, 2, 3, 4],
     [],
   );
   const currentIndex =
@@ -61,10 +59,8 @@ export function useProjectCreationFlow({
           clientEmail.trim().length > 0
         );
       case 3:
-        return projectType !== null;
-      case 4:
         return method === "manual" ? activePhasesLength >= 2 : method !== null;
-      case 5:
+      case 4:
         return Boolean(startDate && endDate);
       case "overview":
         return roadmapLength > 0 && !isCreating;
@@ -79,7 +75,6 @@ export function useProjectCreationFlow({
     isCreating,
     method,
     projectName,
-    projectType,
     roadmapLength,
     startDate,
     step,
@@ -104,7 +99,7 @@ export function useProjectCreationFlow({
 
     clearError();
     if (step === "overview") {
-      setStep(5);
+      setStep(4);
       return;
     }
 
@@ -147,16 +142,13 @@ export function useProjectCreationFlow({
         return;
       }
       case 3:
-        setStep(4);
-        return;
-      case 4:
         if (method === "manual" && activePhasesLength < 2) {
           onError("Select at least two phases.");
           return;
         }
-        setStep(5);
+        setStep(4);
         return;
-      case 5: {
+      case 4: {
         const parsed = dateRangeInputSchema.safeParse({ startDate, endDate });
         if (!parsed.success) {
           onError(parsed.error.issues[0]?.message ?? "Select a valid timeline.");

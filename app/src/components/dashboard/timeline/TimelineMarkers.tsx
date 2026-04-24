@@ -30,7 +30,7 @@ export function TimelineMarkers({
           layout.edgeInset,
           layout.width - layout.edgeInset,
         );
-        const markerTop = group.curveTop - MARKER_RADIUS;
+        const markerTop = group.barTop - MARKER_RADIUS;
         const visibleItems = group.items.slice(0, 3);
         const overflow = Math.max(group.items.length - visibleItems.length, 0);
 

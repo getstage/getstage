@@ -18,6 +18,20 @@ export type TimelineHorizon =
   | "12m"
   | "all";
 
+export type BarSegment = {
+  bucketStart: number;
+  bucketEnd: number;
+  count: number;
+  height: number;
+  x: number;
+  width: number;
+};
+
+export type DateLabel = {
+  label: string;
+  x: number;
+};
+
 export type CurveSample = {
   frac: number;
   h: number;
@@ -33,13 +47,13 @@ export type PositionedProject = {
 export type MarkerGroup = {
   key: string;
   pct: number;
-  curveTop: number;
+  barTop: number;
   items: PositionedProject[];
 };
 
 export type TimelineTrackingState = {
   x: number;
-  curveTop: number;
+  barTop: number;
   dateFull: string;
   activeProjects: Project[];
   tipLeft: number;
@@ -72,9 +86,9 @@ export type TimelineLayout = {
   start: number;
   end: number;
   rangeMs: number;
-  curve: CurveSample[];
-  curvePath: string;
-  fillPath: string;
+  bars: BarSegment[];
+  maxCount: number;
+  dateLabels: DateLabel[];
   visibleProjects: Project[];
   groups: MarkerGroup[];
   edgeInset: number;

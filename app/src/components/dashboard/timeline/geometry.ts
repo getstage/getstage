@@ -1,15 +1,14 @@
 import {
-  CURVE_BASELINE_INSET,
-  CURVE_HEIGHT,
+  BAR_GAP,
+  BAR_MAX_HEIGHT,
   DAY_MS,
-  KERNEL,
+  DATE_LABEL_FORMATTER,
   MARKER_EDGE_INSET,
   MARKER_SIZE,
-  MAX_ELEVATION,
-  SAMPLES,
 } from "@/components/dashboard/timeline/constants";
 import type {
-  CurveSample,
+  BarSegment,
+  DateLabel,
   MarkerGroup,
   PositionedProject,
   TimelineHorizon,
@@ -85,116 +84,6 @@ export function dateToPercent(dateTimestamp: number, startTimestamp: number, end
   return clamp(((dateTimestamp - startTimestamp) / range) * 100, 0, 100);
 }
 
-function smoothstep(edge0: number, edge1: number, x: number) {
-  const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
-  return t * t * (3 - 2 * t);
-}
-
-function countToHeight(count: number) {
-  const levels: Array<[number, number]> = [
-    [0, 0],
-    [1, 0.2],
-    [2, 0.45],
-    [3, 0.65],
-    [4, 0.8],
-  ];
-
-  if (count <= 0) {
-    return 0;
-  }
-
-  if (count >= 4) {
-    return levels[levels.length - 1]![1] * MAX_ELEVATION;
-  }
-
-  for (let index = 0; index < levels.length - 1; index += 1) {
-    const start = levels[index];
-    const end = levels[index + 1];
-    if (!start || !end) {
-      continue;
-    }
-
-    if (count <= end[0]) {
-      const progress = (count - start[0]) / (end[0] - start[0]);
-      return (start[1] + progress * (end[1] - start[1])) * MAX_ELEVATION;
-    }
-  }
-
-  return levels[levels.length - 1]![1] * MAX_ELEVATION;
-}
-
-function activityAt(
-  frac: number,
-  startTimestamp: number,
-  rangeMs: number,
-  projects: Project[],
-) {
-  const time = startTimestamp + frac * rangeMs;
-  const kernelMs = KERNEL * rangeMs;
-
-  let count = 0;
-  for (const project of projects) {
-    count +=
-      smoothstep(project.startDate - kernelMs, project.startDate + kernelMs, time) *
-      (1 - smoothstep(project.endDate - kernelMs, project.endDate + kernelMs, time));
-  }
-
-  return count;
-}
-
-export function generateCurve(startTimestamp: number, endTimestamp: number, projects: Project[]) {
-  const rangeMs = Math.max(endTimestamp - startTimestamp, DAY_MS);
-  const points: CurveSample[] = [];
-
-  for (let index = 0; index <= SAMPLES; index += 1) {
-    const frac = index / SAMPLES;
-    const activity = activityAt(frac, startTimestamp, rangeMs, projects);
-    points.push({ frac, h: countToHeight(activity) });
-  }
-
-  return points;
-}
-
-export function curveYAt(frac: number, points: CurveSample[]) {
-  if (points.length === 0) {
-    return 0;
-  }
-
-  const indexFloat = clamp(frac, 0, 1) * SAMPLES;
-  const index = Math.min(Math.floor(indexFloat), SAMPLES - 1);
-  const mix = indexFloat - index;
-  const first = points[index]?.h ?? 0;
-  const second = points[Math.min(index + 1, SAMPLES)]?.h ?? first;
-
-  return first + (second - first) * mix;
-}
-
-export function pointsToPath(points: CurveSample[], width: number) {
-  if (points.length === 0) {
-    return "";
-  }
-
-  const baselineY = CURVE_HEIGHT - CURVE_BASELINE_INSET;
-
-  const coordinates = points.map((point) => ({
-    x: point.frac * width,
-    y: baselineY - point.h,
-  }));
-
-  let path = `M ${coordinates[0]!.x.toFixed(1)} ${coordinates[0]!.y.toFixed(1)}`;
-
-  for (let index = 0; index < coordinates.length - 1; index += 1) {
-    const p0 = coordinates[Math.max(0, index - 1)]!;
-    const p1 = coordinates[index]!;
-    const p2 = coordinates[index + 1]!;
-    const p3 = coordinates[Math.min(coordinates.length - 1, index + 2)]!;
-
-    path += ` C ${(p1.x + (p2.x - p0.x) / 6).toFixed(1)} ${(p1.y + (p2.y - p0.y) / 6).toFixed(1)}, ${(p2.x - (p3.x - p1.x) / 6).toFixed(1)} ${(p2.y - (p3.y - p1.y) / 6).toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
-  }
-
-  return path;
-}
-
 export function getViewRange(projects: Project[], horizon: TimelineHorizon, nowTimestamp: number) {
   const today = startOfDay(nowTimestamp);
 
@@ -242,6 +131,150 @@ export function getViewRange(projects: Project[], horizon: TimelineHorizon, nowT
   }
 }
 
+function getBucketSize(horizon: TimelineHorizon): number {
+  switch (horizon) {
+    case "today":
+    case "yesterday":
+      return DAY_MS / 4;
+    case "thisWeek":
+      return DAY_MS;
+    case "thisMonth":
+    case "30d":
+      return DAY_MS;
+    case "thisYear":
+    case "6m":
+      return 7 * DAY_MS;
+    case "12m":
+    case "all":
+      return 14 * DAY_MS;
+  }
+}
+
+function countActiveProjects(projects: Project[], bucketStart: number, bucketEnd: number): number {
+  let count = 0;
+  for (const project of projects) {
+    if (project.startDate <= bucketEnd && project.endDate >= bucketStart) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+export function generateBars({
+  start,
+  end,
+  projects,
+  width,
+  horizon,
+}: {
+  start: number;
+  end: number;
+  projects: Project[];
+  width: number;
+  horizon: TimelineHorizon;
+}): { bars: BarSegment[]; maxCount: number } {
+  const bucketSize = getBucketSize(horizon);
+  const rangeMs = Math.max(end - start, DAY_MS);
+  const bars: BarSegment[] = [];
+  let maxCount = 0;
+
+  let cursor = start;
+  while (cursor < end) {
+    const bucketEnd = Math.min(cursor + bucketSize, end);
+    const count = countActiveProjects(projects, cursor, bucketEnd);
+    if (count > maxCount) {
+      maxCount = count;
+    }
+
+    const startPct = (cursor - start) / rangeMs;
+    const endPct = (bucketEnd - start) / rangeMs;
+    const x = startPct * width + BAR_GAP / 2;
+    const barWidth = Math.max((endPct - startPct) * width - BAR_GAP, 1);
+
+    bars.push({
+      bucketStart: cursor,
+      bucketEnd,
+      count,
+      height: 0,
+      x,
+      width: barWidth,
+    });
+
+    cursor = bucketEnd;
+  }
+
+  const effectiveMax = Math.max(maxCount, 1);
+  for (const bar of bars) {
+    bar.height = bar.count > 0
+      ? Math.max(BAR_MAX_HEIGHT * 0.08, (bar.count / effectiveMax) * BAR_MAX_HEIGHT)
+      : 0;
+  }
+
+  return { bars, maxCount };
+}
+
+export function generateDateLabels({
+  start,
+  end,
+  width,
+  horizon,
+}: {
+  start: number;
+  end: number;
+  width: number;
+  horizon: TimelineHorizon;
+}): DateLabel[] {
+  const rangeMs = Math.max(end - start, DAY_MS);
+  const labels: DateLabel[] = [];
+
+  let labelInterval: number;
+  switch (horizon) {
+    case "today":
+    case "yesterday":
+      labelInterval = DAY_MS / 4;
+      break;
+    case "thisWeek":
+      labelInterval = DAY_MS;
+      break;
+    case "thisMonth":
+    case "30d":
+      labelInterval = 7 * DAY_MS;
+      break;
+    case "thisYear":
+    case "6m":
+      labelInterval = 30 * DAY_MS;
+      break;
+    case "12m":
+    case "all":
+      labelInterval = 60 * DAY_MS;
+      break;
+  }
+
+  let cursor = start;
+  while (cursor <= end) {
+    const pct = (cursor - start) / rangeMs;
+    const x = pct * width;
+    labels.push({
+      label: DATE_LABEL_FORMATTER.format(new Date(cursor)),
+      x,
+    });
+    cursor += labelInterval;
+  }
+
+  return labels;
+}
+
+export function barTopAt(pct: number, bars: BarSegment[], width: number): number {
+  if (bars.length === 0) return BAR_MAX_HEIGHT;
+  const x = pct * width / 100;
+  for (const bar of bars) {
+    if (x >= bar.x && x <= bar.x + bar.width) {
+      return BAR_MAX_HEIGHT - bar.height;
+    }
+  }
+  return BAR_MAX_HEIGHT;
+}
+
 export function getGroupingThreshold(horizon: TimelineHorizon, width: number) {
   const minPctDistance = ((MARKER_SIZE + 6) / Math.max(width, 1)) * 100;
   if (horizon === "thisYear" || horizon === "12m" || horizon === "all") {
@@ -256,7 +289,8 @@ export function getGroupingThreshold(horizon: TimelineHorizon, width: number) {
 export function groupProjects(
   positioned: PositionedProject[],
   threshold: number,
-  curve: CurveSample[],
+  bars: BarSegment[],
+  width: number,
 ): MarkerGroup[] {
   const used = new Set<number>();
   const groups: MarkerGroup[] = [];
@@ -292,12 +326,12 @@ export function groupProjects(
 
     const avgPct =
       group.reduce((total, item) => total + item.pct, 0) / Math.max(group.length, 1);
-    const curveTop = 160 - curveYAt(avgPct / 100, curve);
+    const barTop = barTopAt(avgPct, bars, width);
 
     groups.push({
       key: group.map((item) => item.key).join("-"),
       pct: avgPct,
-      curveTop,
+      barTop,
       items: group,
     });
   }

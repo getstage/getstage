@@ -415,181 +415,57 @@ export function OnboardingStepRenderer({
     case "details":
       return (
         <OnboardingStepMotion motionKey="details">
-          <div className="space-y-3">
-            <StepShell label="Project Basics">
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                    Project name
-                  </label>
-                  <input
-                    type="text"
-                    value={draft.projectName}
-                    onChange={(event) => draftState.setProjectName(event.target.value)}
-                    placeholder="Baseframe"
-                    autoFocus
-                    className="w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 py-2.5 text-[13px] font-medium text-text-primary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
-                  />
-                </div>
+          <StepShell label="Project Basics">
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                  Project name
+                </label>
+                <input
+                  type="text"
+                  value={draft.projectName}
+                  onChange={(event) => draftState.setProjectName(event.target.value)}
+                  placeholder="Baseframe"
+                  autoFocus
+                  className="w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 py-2.5 text-[13px] font-medium text-text-primary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
+                />
+              </div>
 
-                <div>
-                  <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                    Cover <span className="font-normal text-text-tertiary">(Optional)</span>
-                  </label>
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                  Cover <span className="font-normal text-text-tertiary">(Optional)</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => draftState.projectImageInputRef.current?.click()}
+                  className="flex w-full cursor-pointer items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
+                >
+                  <img src={ONBOARDING_ICON_SRC.download} alt="" className="h-4 w-4 shrink-0 opacity-70" />
+                  <span className="text-[13px] font-medium text-text-secondary">
+                    {draft.projectImage ? "Replace document" : "Upload Document"}
+                  </span>
+                </button>
+                {draft.projectImage ? (
                   <button
                     type="button"
-                    onClick={() => draftState.projectImageInputRef.current?.click()}
-                    className="flex w-full cursor-pointer items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
+                    onClick={() => draftState.setProjectImage(null)}
+                    className="mt-2 cursor-pointer bg-transparent p-0 text-[12px] text-text-secondary transition-colors hover:text-destructive"
                   >
-                    <img src={ONBOARDING_ICON_SRC.download} alt="" className="h-4 w-4 shrink-0 opacity-70" />
-                    <span className="text-[13px] font-medium text-text-secondary">
-                      {draft.projectImage ? "Replace document" : "Upload Document"}
-                    </span>
+                    Remove document
                   </button>
-                  {draft.projectImage ? (
-                    <button
-                      type="button"
-                      onClick={() => draftState.setProjectImage(null)}
-                      className="mt-2 cursor-pointer bg-transparent p-0 text-[12px] text-text-secondary transition-colors hover:text-destructive"
-                    >
-                      Remove document
-                    </button>
-                  ) : null}
-                  <input
-                    ref={draftState.projectImageInputRef}
-                    type="file"
-                    accept={PROJECT_MARKER_ACCEPT}
-                    className="hidden"
-                    onChange={(event) => {
-                      void draftState.handleProjectImageFileChange(event);
-                    }}
-                  />
-                </div>
+                ) : null}
+                <input
+                  ref={draftState.projectImageInputRef}
+                  type="file"
+                  accept={PROJECT_MARKER_ACCEPT}
+                  className="hidden"
+                  onChange={(event) => {
+                    void draftState.handleProjectImageFileChange(event);
+                  }}
+                />
               </div>
-            </StepShell>
-
-            <StepShell label="Who is this for?">
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                    Client
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={
-                        draft.clientMode === "existing"
-                          ? draft.selectedExistingClientName
-                          : "__new__"
-                      }
-                      onChange={(event) => {
-                        const nextValue = event.target.value;
-                        if (nextValue === "__new__") {
-                          draftState.setClientMode("new");
-                          return;
-                        }
-
-                        const client = existingClients.find((item) => item.name === nextValue);
-                        if (!client) {
-                          draftState.setClientMode("new");
-                          return;
-                        }
-
-                        draftState.selectExistingClient(client);
-                      }}
-                      className="h-10 w-full appearance-none rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 pr-10 text-[12px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 focus:border-border focus:bg-white"
-                    >
-                      <option value="__new__">Create a new client</option>
-                      {existingClients.map((client) => (
-                        <option key={client.id} value={client.name}>
-                          {client.name}
-                        </option>
-                      ))}
-                    </select>
-                    <img
-                      src={ONBOARDING_ICON_SRC.dropdown}
-                      alt=""
-                      className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-70"
-                    />
-                  </div>
-                </div>
-
-                {draft.clientMode === "existing" && selectedClient ? (
-                  <div className="flex items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-                    <Avatar name={selectedClient.name} src={selectedClient.avatarUrl} size="md" />
-                    <div className="min-w-0">
-                      <p className="truncate text-[13px] font-medium text-text-primary">
-                        {selectedClient.name}
-                      </p>
-                      <p className="text-[12px] text-text-secondary">
-                        {selectedClient.projectCount} project{selectedClient.projectCount === 1 ? "" : "s"}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                      Client name
-                    </label>
-                    <input
-                      type="text"
-                      value={draft.clientMode === "new" ? draft.clientName : ""}
-                      onChange={(event) => draftState.setClientName(event.target.value)}
-                      placeholder="Acme Studio"
-                      className="w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 py-2.5 text-[13px] font-medium text-text-primary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                    Client email <span className="font-normal text-text-tertiary">- required</span>
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={draft.clientEmail}
-                    onChange={(event) => draftState.setClientEmail(event.target.value)}
-                    placeholder="client@example.com"
-                    className="w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 py-2.5 text-[13px] font-medium text-text-primary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                    Client photo <span className="font-normal text-text-tertiary">(Optional)</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => draftState.fileInputRef.current?.click()}
-                    className="flex w-full cursor-pointer items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
-                  >
-                    <img src={ONBOARDING_ICON_SRC.download} alt="" className="h-4 w-4 shrink-0 opacity-70" />
-                    <span className="text-[13px] font-medium text-text-secondary">
-                      {draft.clientAvatar ? "Replace photo" : "Upload Photo"}
-                    </span>
-                  </button>
-                  {draft.clientAvatar ? (
-                    <button
-                      type="button"
-                      onClick={() => draftState.setClientAvatar(null)}
-                      className="mt-2 cursor-pointer bg-transparent p-0 text-[12px] text-text-secondary transition-colors hover:text-destructive"
-                    >
-                      Remove photo
-                    </button>
-                  ) : null}
-                  <input
-                    ref={draftState.fileInputRef}
-                    type="file"
-                    accept={AVATAR_ACCEPT}
-                    className="hidden"
-                    onChange={(event) => {
-                      void draftState.handleAvatarFileChange(event);
-                    }}
-                  />
-                </div>
-              </div>
-            </StepShell>
-          </div>
+            </div>
+          </StepShell>
         </OnboardingStepMotion>
       );
     case "client":
@@ -597,167 +473,123 @@ export function OnboardingStepRenderer({
         <OnboardingStepMotion motionKey="client">
           <StepShell label="Who is this for?">
             <div className="space-y-4">
-          <div>
-            <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-              Client
-            </label>
-            <select
-              value={
-                draft.clientMode === "existing"
-                  ? draft.selectedExistingClientName
-                  : "__new__"
-              }
-              onChange={(event) => {
-                const nextValue = event.target.value;
-                if (nextValue === "__new__") {
-                  draftState.setClientMode("new");
-                  return;
-                }
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                  Client
+                </label>
+                <div className="relative">
+                  <select
+                    value={
+                      draft.clientMode === "existing"
+                        ? draft.selectedExistingClientName
+                        : "__new__"
+                    }
+                    onChange={(event) => {
+                      const nextValue = event.target.value;
+                      if (nextValue === "__new__") {
+                        draftState.setClientMode("new");
+                        return;
+                      }
 
-                const client = existingClients.find((item) => item.name === nextValue);
-                if (!client) {
-                  draftState.setClientMode("new");
-                  return;
-                }
+                      const client = existingClients.find((item) => item.name === nextValue);
+                      if (!client) {
+                        draftState.setClientMode("new");
+                        return;
+                      }
 
-                draftState.selectExistingClient(client);
-              }}
-              className="w-full rounded-[10px] border border-transparent bg-input-bg px-4 py-3 text-[15px] text-text-primary outline-none transition-all duration-200 focus:border-border focus:bg-white"
-            >
-              <option value="__new__">Create a new client</option>
-              {existingClients.map((client) => (
-                <option key={client.id} value={client.name}>
-                  {client.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {draft.clientMode === "existing" && selectedClient ? (
-            <div className="flex items-center gap-3 rounded-[10px] bg-[#F5F5F7] px-3 py-3">
-              <Avatar
-                name={selectedClient.name}
-                src={selectedClient.avatarUrl}
-                size="md"
-              />
-              <div className="min-w-0">
-                <p className="truncate text-[14px] font-medium text-text-primary">
-                  {selectedClient.name}
-                </p>
-                <p className="text-[12px] text-text-secondary">
-                  {selectedClient.projectCount} project{selectedClient.projectCount === 1 ? "" : "s"}
-                </p>
+                      draftState.selectExistingClient(client);
+                    }}
+                    className="h-10 w-full appearance-none rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 pr-10 text-[12px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 focus:border-border focus:bg-white"
+                  >
+                    <option value="__new__">Create a new client</option>
+                    {existingClients.map((client) => (
+                      <option key={client.id} value={client.name}>
+                        {client.name}
+                      </option>
+                    ))}
+                  </select>
+                  <img
+                    src={ONBOARDING_ICON_SRC.dropdown}
+                    alt=""
+                    className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-70"
+                  />
+                </div>
               </div>
-            </div>
-          ) : (
-            <div>
-              <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                Client name
-              </label>
-              <input
-                type="text"
-                value={draft.clientMode === "new" ? draft.clientName : ""}
-                onChange={(event) => draftState.setClientName(event.target.value)}
-                placeholder="Acme Studio"
-                className="w-full rounded-[10px] border border-transparent bg-[#F5F5F7] px-4 py-3 text-[15px] text-text-primary outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
-              />
-            </div>
-          )}
 
-          <div>
-            <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-              Client email <span className="font-normal text-text-tertiary">- required</span>
-            </label>
-            <input
-              type="email"
-              required
-              value={draft.clientEmail}
-              onChange={(event) => draftState.setClientEmail(event.target.value)}
-              placeholder="client@example.com"
-              className="w-full rounded-[10px] border border-transparent bg-[#F5F5F7] px-4 py-3 text-[15px] text-text-primary outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
-            />
-          </div>
+              {draft.clientMode === "existing" && selectedClient ? (
+                <div className="flex items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+                  <Avatar name={selectedClient.name} src={selectedClient.avatarUrl} size="md" />
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-medium text-text-primary">
+                      {selectedClient.name}
+                    </p>
+                    <p className="text-[12px] text-text-secondary">
+                      {selectedClient.projectCount} project{selectedClient.projectCount === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                    Client name
+                  </label>
+                  <input
+                    type="text"
+                    value={draft.clientMode === "new" ? draft.clientName : ""}
+                    onChange={(event) => draftState.setClientName(event.target.value)}
+                    placeholder="Acme Studio"
+                    className="w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 py-2.5 text-[13px] font-medium text-text-primary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
+                  />
+                </div>
+              )}
 
-          <div>
-            <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-              Client photo <span className="font-normal text-text-tertiary">(Optional)</span>
-            </label>
-
-            <div className="flex items-center gap-4 rounded-[10px] bg-[#F5F5F7] px-4 py-3">
-              <div className="shrink-0">
-                <Avatar
-                  name={
-                    draft.clientMode === "existing"
-                      ? draft.selectedExistingClientName || draft.clientName
-                      : draft.clientName || "Client"
-                  }
-                  src={draft.clientAvatar ?? undefined}
-                  size="md"
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                  Client email <span className="font-normal text-text-tertiary">- required</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={draft.clientEmail}
+                  onChange={(event) => draftState.setClientEmail(event.target.value)}
+                  placeholder="client@example.com"
+                  className="w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 py-2.5 text-[13px] font-medium text-text-primary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
                 />
               </div>
-              <div className="min-w-0 flex-1 space-x-3 text-[13px]">
+
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
+                  Client photo <span className="font-normal text-text-tertiary">(Optional)</span>
+                </label>
                 <button
                   type="button"
                   onClick={() => draftState.fileInputRef.current?.click()}
-                  className="cursor-pointer bg-transparent p-0 text-text-secondary transition-colors hover:text-accent"
+                  className="flex w-full cursor-pointer items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
                 >
-                  {draft.clientAvatar ? "Replace photo" : "Upload Photo"}
+                  <img src={ONBOARDING_ICON_SRC.download} alt="" className="h-4 w-4 shrink-0 opacity-70" />
+                  <span className="text-[13px] font-medium text-text-secondary">
+                    {draft.clientAvatar ? "Replace photo" : "Upload Photo"}
+                  </span>
                 </button>
                 {draft.clientAvatar ? (
                   <button
                     type="button"
                     onClick={() => draftState.setClientAvatar(null)}
-                    className="cursor-pointer bg-transparent p-0 text-text-secondary transition-colors hover:text-destructive"
+                    className="mt-2 cursor-pointer bg-transparent p-0 text-[12px] text-text-secondary transition-colors hover:text-destructive"
                   >
-                    Remove
+                    Remove photo
                   </button>
                 ) : null}
+                <input
+                  ref={draftState.fileInputRef}
+                  type="file"
+                  accept={AVATAR_ACCEPT}
+                  className="hidden"
+                  onChange={(event) => {
+                    void draftState.handleAvatarFileChange(event);
+                  }}
+                />
               </div>
-            </div>
-
-            <input
-              ref={draftState.fileInputRef}
-              type="file"
-              accept={AVATAR_ACCEPT}
-              className="hidden"
-              onChange={(event) => {
-                void draftState.handleAvatarFileChange(event);
-              }}
-            />
-          </div>
-            </div>
-          </StepShell>
-        </OnboardingStepMotion>
-      );
-    case "project-type":
-      return (
-        <OnboardingStepMotion motionKey="project-type">
-          <StepShell label="Project Type">
-            <div className="grid grid-cols-2 gap-2">
-              {PROJECT_TYPES.map((typeOption) => {
-                const iconSrc = PROJECT_TYPE_ICONS[typeOption.value];
-                const isSelected = draft.projectType === typeOption.value;
-                return (
-                  <button
-                    key={typeOption.value}
-                    type="button"
-                    onClick={() => draftState.setProjectType(typeOption.value)}
-                    className={cn(
-                      "flex cursor-pointer items-center justify-center gap-2 rounded-[10px] border-[1.5px] bg-[#F5F5F7] px-4 py-6 text-center text-[14px] font-medium transition-all duration-150 focus:outline-none",
-                      isSelected
-                        ? "border-accent bg-[rgba(135,130,245,0.08)] text-accent"
-                        : "border-transparent text-text-primary hover:bg-[#EFEFEF]",
-                    )}
-                  >
-                    {iconSrc ? (
-                      <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 object-contain" />
-                    ) : typeOption.value === "packaging" ? (
-                      <Package size={16} weight="regular" className="shrink-0" />
-                    ) : null}
-                    <span>{typeOption.label}</span>
-                  </button>
-                );
-              })}
             </div>
           </StepShell>
         </OnboardingStepMotion>

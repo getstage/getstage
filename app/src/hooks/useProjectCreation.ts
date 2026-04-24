@@ -37,7 +37,7 @@ export function useProjectCreation() {
   const existingClients = useMemo(() => existingClientsResult ?? [], [existingClientsResult]);
 
   async function handleCreate() {
-    if (!draft.projectType || !draft.method) {
+    if (!draft.method) {
       return;
     }
 
@@ -77,7 +77,6 @@ export function useProjectCreation() {
     clientName: draft.clientName,
     clientEmail: draft.clientEmail,
     hasClientAvatar: Boolean(draft.clientAvatar),
-    projectType: draft.projectType,
     method: draft.method,
     startDate: draft.startDate,
     endDate: draft.endDate,

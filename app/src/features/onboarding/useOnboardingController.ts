@@ -91,7 +91,6 @@ export function useOnboardingController({
   const currentIndex = flowSteps.indexOf(getCurrentStepForProgress(step));
   const continueEnabled = canContinue({
     step,
-    fieldOfWork,
     setProjectLater,
     method: draft.method,
     projectName: draft.projectName,
@@ -99,7 +98,6 @@ export function useOnboardingController({
     clientName: draft.clientName,
     clientEmail: draft.clientEmail,
     hasClientAvatar: Boolean(draft.clientAvatar),
-    projectType: draft.projectType,
     activePhasesLength: activePhases.length,
   });
 
@@ -297,7 +295,6 @@ export function useOnboardingController({
   function handleContinue() {
     const validationError = getStepValidationError({
       step,
-      fieldOfWork,
       setProjectLater,
       method: draft.method,
       projectName: draft.projectName,
@@ -305,7 +302,6 @@ export function useOnboardingController({
       clientName: draft.clientName,
       clientEmail: draft.clientEmail,
       hasClientAvatar: Boolean(draft.clientAvatar),
-      projectType: draft.projectType,
       activePhasesLength: activePhases.length,
       startDate: draft.startDate,
       endDate: draft.endDate,
@@ -335,15 +331,9 @@ export function useOnboardingController({
           setStep("paywall");
           return;
         }
-        setStep("project-type");
+        setStep("client");
         return;
       case "client":
-        setStep("project-type");
-        return;
-      case "project-type":
-        if (draft.projectType && fieldOfWork.length === 0) {
-          setFieldOfWork([draft.projectType]);
-        }
         setStep("method");
         return;
       case "method":

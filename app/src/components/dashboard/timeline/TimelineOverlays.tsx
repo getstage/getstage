@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Avatar } from "@/components/ui/Avatar";
-import { CURVE_HEIGHT } from "@/components/dashboard/timeline/constants";
+import { CHART_HEIGHT } from "@/components/dashboard/timeline/constants";
 import type {
   ProfileHoverDetails,
   ProfileHoverState,
@@ -24,7 +24,7 @@ export function TimelineOverlays({
         <>
           <div
             className="pointer-events-none absolute top-0 z-[3] w-px -translate-x-1/2 bg-accent/26 transition-opacity duration-200"
-            style={{ left: `${profileHover.x}px`, height: `${CURVE_HEIGHT}px` }}
+            style={{ left: `${profileHover.x}px`, height: `${CHART_HEIGHT}px` }}
           />
           <div
             className="pointer-events-none absolute z-[3] h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/65"
@@ -37,11 +37,11 @@ export function TimelineOverlays({
         <>
           <div
             className="pointer-events-none absolute top-0 z-[3] w-px -translate-x-1/2 bg-accent/26"
-            style={{ left: `${tracking.x}px`, height: `${CURVE_HEIGHT}px` }}
+            style={{ left: `${tracking.x}px`, height: `${CHART_HEIGHT}px` }}
           />
           <div
             className="pointer-events-none absolute z-[3] h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/72"
-            style={{ left: `${tracking.x}px`, top: `${tracking.curveTop}px` }}
+            style={{ left: `${tracking.x}px`, top: `${tracking.barTop}px` }}
           />
           {tracking.activeProjects.length > 0 ? (
             <div
@@ -120,9 +120,9 @@ export function TimelineOverlays({
                       task.isCompleted ? "text-text-secondary" : "text-text-primary"
                     }`}
                   >
-                    <span className="mr-1">{task.isCompleted ? "☑" : "☐"}</span>
+                    <span className="mr-1">{task.isCompleted ? "\u2611" : "\u2610"}</span>
                     {task.title}
-                    {task.isRecentlyAdded ? <span className="ml-1 text-accent/70">●</span> : null}
+                    {task.isRecentlyAdded ? <span className="ml-1 text-accent/70">\u25CF</span> : null}
                   </p>
                 ))
               ) : (

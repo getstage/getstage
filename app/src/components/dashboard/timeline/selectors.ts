@@ -1,5 +1,4 @@
 import {
-  CURVE_HEIGHT,
   FULL_DATE_FORMATTER,
   RECENT_TASK_WINDOW_MS,
   SHORT_DATE_FORMATTER,
@@ -8,14 +7,14 @@ import {
   TRACKING_TOOLTIP_WIDTH,
 } from "@/components/dashboard/timeline/constants";
 import {
-  curveYAt,
+  barTopAt,
   dateToPercent,
-  generateCurve,
+  generateBars,
+  generateDateLabels,
   getGroupingThreshold,
   getMarkerEdgeInset,
   getViewRange,
   groupProjects,
-  pointsToPath,
 } from "@/components/dashboard/timeline/geometry";
 import type {
   ProfileHoverDetails,
@@ -40,9 +39,21 @@ export function buildTimelineLayout({
   const width = Math.max(regionWidth, 1);
   const view = getViewRange(projects, horizon, nowTimestamp);
   const rangeMs = Math.max(view.end - view.start, 24 * 60 * 60 * 1000);
-  const curve = generateCurve(view.start, view.end, projects);
-  const curvePath = pointsToPath(curve, width);
-  const fillPath = `${curvePath} L ${width.toFixed(1)} ${CURVE_HEIGHT} L 0 ${CURVE_HEIGHT} Z`;
+
+  const { bars, maxCount } = generateBars({
+    start: view.start,
+    end: view.end,
+    projects,
+    width,
+    horizon,
+  });
+
+  const dateLabels = generateDateLabels({
+    start: view.start,
+    end: view.end,
+    width,
+    horizon,
+  });
 
   const visibleProjects = projects
     .filter((project) => project.startDate <= view.end && project.endDate >= view.start)
@@ -77,16 +88,16 @@ export function buildTimelineLayout({
   });
 
   const threshold = getGroupingThreshold(horizon, width);
-  const groups = groupProjects(positioned, threshold, curve);
+  const groups = groupProjects(positioned, threshold, bars, width);
 
   return {
     width,
     start: view.start,
     end: view.end,
     rangeMs,
-    curve,
-    curvePath,
-    fillPath,
+    bars,
+    maxCount,
+    dateLabels,
     visibleProjects,
     groups,
     edgeInset: getMarkerEdgeInset(width),
@@ -126,8 +137,8 @@ export function buildTrackingState({
   layout: TimelineLayout;
 }): TimelineTrackingState {
   const frac = layout.width <= 0 ? 0 : x / layout.width;
-  const elevation = curveYAt(frac, layout.curve);
-  const curveTop = CURVE_HEIGHT - elevation;
+  const pct = frac * 100;
+  const barTop = barTopAt(pct, layout.bars, layout.width);
   const dateTimestamp = layout.start + layout.rangeMs * frac;
   const activeProjects = layout.visibleProjects.filter(
     (project) => project.startDate <= dateTimestamp && project.endDate >= dateTimestamp,
@@ -139,11 +150,11 @@ export function buildTrackingState({
 
   return {
     x,
-    curveTop,
+    barTop,
     dateFull: FULL_DATE_FORMATTER.format(new Date(dateTimestamp)),
     activeProjects,
     tipLeft: Math.max(tipMin, Math.min(x, tipMax)),
-    tipTop: Math.max(0, curveTop - 16),
+    tipTop: Math.max(0, barTop - 16),
     tipWidth,
   };
 }

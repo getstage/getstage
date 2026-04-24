@@ -1,19 +1,14 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { gsap } from "gsap";
-import { DrawSVGPlugin } from "gsap/DrawSVGPlugin";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
-  CURVE_HEIGHT,
-  SKELETON_CURVE_PATH,
-  SKELETON_FILL_PATH,
-  SKELETON_VIEWBOX_WIDTH,
+  BAR_MAX_HEIGHT,
+  BAR_RADIUS,
+  CHART_HEIGHT,
 } from "@/components/dashboard/timeline/constants";
 import { buildTimelineLayout } from "@/components/dashboard/timeline/selectors";
 import { TimelineMarkers } from "@/components/dashboard/timeline/TimelineMarkers";
 import { TimelineOverlays } from "@/components/dashboard/timeline/TimelineOverlays";
 import type { TimelineProps } from "@/components/dashboard/timeline/types";
 import { useTimelineInteraction } from "@/components/dashboard/timeline/useTimelineInteraction";
-
-gsap.registerPlugin(DrawSVGPlugin);
 
 export type { TimelineHorizon } from "@/components/dashboard/timeline/types";
 
@@ -25,8 +20,6 @@ export function Timeline({
 }: TimelineProps) {
   const gradientId = useId().replace(/:/g, "");
   const regionRef = useRef<HTMLDivElement | null>(null);
-  const curveLineRef = useRef<SVGPathElement | null>(null);
-  const curveFillRef = useRef<SVGPathElement | null>(null);
   const [regionWidth, setRegionWidth] = useState(0);
 
   useEffect(() => {
@@ -66,78 +59,74 @@ export function Timeline({
     nowTimestamp,
   });
 
-  useLayoutEffect(() => {
-    const line = curveLineRef.current;
-    const fill = curveFillRef.current;
-    const region = regionRef.current;
-    if (!line || !fill || !region) {
-      return;
-    }
-
-    if (
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      return;
-    }
-
-    const context = gsap.context(() => {
-      const markers = gsap.utils.toArray<HTMLElement>("[data-curve-marker]");
-
-      gsap.set(line, { drawSVG: "0% 0%" });
-      gsap.set(fill, { opacity: 0 });
-
-      const timeline = gsap.timeline({ defaults: { ease: "sine.out" } });
-      timeline.to(line, { drawSVG: "0% 100%", duration: 1 });
-      timeline.to(fill, { opacity: 1, duration: 0.4 }, 0.72);
-
-      if (markers.length > 0) {
-        timeline.fromTo(
-          markers,
-          { opacity: 0.88, scale: 0.96 },
-          {
-            opacity: 1,
-            scale: 1,
-            duration: 0.45,
-            stagger: { each: 0.04, from: "center" },
-          },
-          0.35,
-        );
-      }
-    }, region);
-
-    return () => {
-      context.revert();
-    };
-  }, [layout.curvePath, layout.groups.length]);
-
   return (
     <section className="relative flex min-h-[35vh] items-center justify-center px-4 pb-[84px] pt-[50px]">
       <div
         ref={regionRef}
         className="relative w-full"
-        style={{ height: `${CURVE_HEIGHT}px` }}
+        style={{ height: `${CHART_HEIGHT}px` }}
         onMouseMove={(event) => interaction.handleMouseMove(event.clientX)}
         onMouseLeave={interaction.clearAllHover}
       >
+        {/* Bar chart */}
         <svg className="pointer-events-none absolute inset-0 z-0 h-full w-full" aria-hidden>
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgba(135,130,245,0.25)" />
-              <stop offset="100%" stopColor="rgba(135,130,245,0)" />
+              <stop offset="0%" stopColor="rgba(135,130,245,0.45)" />
+              <stop offset="100%" stopColor="rgba(135,130,245,0.12)" />
             </linearGradient>
           </defs>
 
-          <path ref={curveFillRef} d={layout.fillPath} fill={`url(#${gradientId})`} />
-          <path
-            ref={curveLineRef}
-            d={layout.curvePath}
-            fill="none"
-            stroke="#8782F5"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-          />
+          {layout.bars.map((bar, index) => {
+            if (bar.count === 0) return null;
+            const y = BAR_MAX_HEIGHT - bar.height;
+            return (
+              <rect
+                key={index}
+                x={bar.x}
+                y={y}
+                width={bar.width}
+                height={bar.height}
+                rx={BAR_RADIUS}
+                ry={BAR_RADIUS}
+                fill={`url(#${gradientId})`}
+                className="transition-all duration-300"
+              />
+            );
+          })}
+
+          {/* Top edge accent on bars */}
+          {layout.bars.map((bar, index) => {
+            if (bar.count === 0) return null;
+            const y = BAR_MAX_HEIGHT - bar.height;
+            return (
+              <rect
+                key={`stroke-${index}`}
+                x={bar.x}
+                y={y}
+                width={bar.width}
+                height={Math.min(3, bar.height)}
+                rx={BAR_RADIUS}
+                ry={BAR_RADIUS}
+                fill="#8782F5"
+                className="transition-all duration-300"
+              />
+            );
+          })}
         </svg>
+
+        {/* Date labels */}
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-[1] flex h-[24px] items-end">
+          {layout.dateLabels.map((label, index) => (
+            <span
+              key={index}
+              className="absolute -translate-x-1/2 text-[11px] text-text-tertiary"
+              style={{ left: `${label.x}px` }}
+            >
+              {label.label}
+            </span>
+          ))}
+        </div>
 
         <TimelineMarkers
           layout={layout}
@@ -158,25 +147,35 @@ export function Timeline({
 }
 
 export function TimelineSkeleton() {
+  const skeletonBars = Array.from({ length: 12 }, (_, i) => ({
+    x: i * (100 / 12),
+    width: 100 / 12 - 2,
+    height: 20 + Math.sin(i * 0.8) * 30 + Math.random() * 20,
+  }));
+
   return (
     <section
       aria-hidden
       className="relative flex min-h-[35vh] items-center justify-center px-4 pb-[84px] pt-[50px]"
     >
-      <div className="relative w-full" style={{ height: `${CURVE_HEIGHT}px` }}>
+      <div className="relative w-full" style={{ height: `${CHART_HEIGHT}px` }}>
         <svg
-          className="pointer-events-none absolute inset-0 z-0 h-[160px] w-full"
-          viewBox={`0 0 ${SKELETON_VIEWBOX_WIDTH} ${CURVE_HEIGHT}`}
+          className="pointer-events-none absolute inset-0 z-0 h-full w-full animate-pulse"
+          viewBox={`0 0 100 ${CHART_HEIGHT}`}
           preserveAspectRatio="none"
         >
-          <path d={SKELETON_FILL_PATH} fill="rgba(135,130,245,0.12)" />
-          <path
-            d={SKELETON_CURVE_PATH}
-            fill="none"
-            stroke="rgba(135,130,245,0.52)"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
+          {skeletonBars.map((bar, i) => (
+            <rect
+              key={i}
+              x={bar.x + 1}
+              y={BAR_MAX_HEIGHT - bar.height}
+              width={bar.width}
+              height={bar.height}
+              rx={1}
+              ry={1}
+              fill="rgba(135,130,245,0.12)"
+            />
+          ))}
         </svg>
       </div>
     </section>

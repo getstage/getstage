@@ -8,7 +8,6 @@ import { GeneratingState, SuccessState } from "@/components/creation/CreationSta
 import { ClientStep } from "@/components/creation/steps/ClientStep";
 import { MethodStep } from "@/components/creation/steps/MethodStep";
 import { ProjectBasicsStep } from "@/components/creation/steps/ProjectBasicsStep";
-import { ProjectTypeStep } from "@/components/creation/steps/ProjectTypeStep";
 import { RoadmapStep } from "@/components/creation/steps/RoadmapStep";
 import { TimelineStep } from "@/components/creation/steps/TimelineStep";
 import { useProjectCreation } from "@/hooks/useProjectCreation";
@@ -82,8 +81,6 @@ function getStepTitle(step: StepValue): string {
       return "Create New Project";
     case 2:
       return "Client Details";
-    case 3:
-      return "What is the primary project type?";
     default:
       return "Create a new project";
   }
@@ -95,8 +92,6 @@ function getStepSubtitle(step: StepValue): string {
       return "Let's set it up. This only takes a minute.";
     case 2:
       return "Who is this project for?";
-    case 3:
-      return "Pick the closest match for the roadmap. You can still work across multiple disciplines.";
     default:
       return "Set up the basics to get started";
   }
@@ -155,18 +150,6 @@ function renderStepContent(creation: ProjectCreationState) {
       );
     case 3:
       return (
-        <ProjectTypeStep
-          projectType={creation.projectType}
-          canContinue={creation.canContinue}
-          currentIndex={creation.currentIndex}
-          steps={creation.steps}
-          onProjectTypeChange={creation.setProjectType}
-          onContinue={creation.handleContinue}
-          onBack={creation.goBack}
-        />
-      );
-    case 4:
-      return (
         <MethodStep
           method={creation.method}
           phases={creation.phases}
@@ -182,7 +165,7 @@ function renderStepContent(creation: ProjectCreationState) {
           onBack={creation.goBack}
         />
       );
-    case 5:
+    case 4:
       return (
         <TimelineStep
           canContinue={creation.canContinue}
