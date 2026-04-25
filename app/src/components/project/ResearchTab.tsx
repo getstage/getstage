@@ -4,9 +4,11 @@ import {
   ArrowClockwise,
   ArrowRight,
   FloppyDisk,
+  Globe,
   NotePencil,
   Plus,
   ShareNetwork,
+  Sparkle,
   Trash,
   UploadSimple,
   X,
@@ -69,7 +71,7 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
   const [isSaving, setIsSaving] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [draftContent, setDraftContent] = useState("");
+  const [editingSections, setEditingSections] = useState<Array<{ title: string; body: string }>>([]);
 
   const runList: ProjectAiRun[] = runs ?? [];
   const artifactList: ProjectAiArtifact[] = artifacts ?? [];
@@ -103,8 +105,8 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
   }, [context]);
 
   useEffect(() => {
-    setDraftContent(artifactText(latestArtifact));
     setIsEditing(false);
+    setEditingSections([]);
   }, [latestArtifact?.id]);
 
   async function persistContext() {
@@ -381,7 +383,21 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
     );
   }
 
-  const sections = splitMarkdownSections(isEditing ? draftContent : artifactText(latestArtifact), "Company Overview");
+  const sections = splitMarkdownSections(artifactText(latestArtifact), "Company Overview");
+
+  function enterEditMode() {
+    setEditingSections(sections.map((s) => ({ ...s })));
+    setIsEditing(true);
+  }
+
+  function discardEdits() {
+    setEditingSections([]);
+    setIsEditing(false);
+  }
+
+  function updateEditingSection(index: number, body: string) {
+    setEditingSections((prev) => prev.map((s, i) => (i === index ? { ...s, body } : s)));
+  }
 
   return (
     <div className="pb-20">
@@ -408,19 +424,24 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
           </div>
           {isEditing ? (
             <div className="flex items-center gap-2">
-              <SecondaryButton onClick={() => {
-                setDraftContent(artifactText(latestArtifact));
-                setIsEditing(false);
-              }}>
+              <button
+                type="button"
+                onClick={discardEdits}
+                className="inline-flex h-9 items-center gap-2 rounded-[6px] px-3 text-[13px] font-medium text-destructive transition-colors hover:bg-[#FDECEC]"
+              >
                 Discard Changes
-              </SecondaryButton>
-              <PrimaryButton onClick={() => setIsEditing(false)}>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-[6px] border border-[#22C55E] bg-gradient-to-b from-[#22C55E] to-[#16A34A] px-3 text-[13px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+              >
                 <FloppyDisk size={14} />
                 Save Changes
-              </PrimaryButton>
+              </button>
             </div>
           ) : (
-            <SecondaryButton onClick={() => setIsEditing(true)}>
+            <SecondaryButton onClick={enterEditMode}>
               <NotePencil size={14} />
               Edit Research
             </SecondaryButton>
@@ -428,20 +449,155 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
         </div>
 
         {isEditing ? (
-          <div className="mt-8">
-            <FieldLabel>Research content</FieldLabel>
-            <TextArea value={draftContent} onChange={setDraftContent} className="min-h-[420px] text-[13px]" />
+          <div className="mt-8 space-y-4">
+            {editingSections.map((section, index) => (
+              <div key={index} className="rounded-[10px] bg-[#F5F5F5] p-5">
+                <h3 className="mb-3 text-[17px] font-semibold leading-none text-[#171717]">{section.title}</h3>
+                <TextArea
+                  value={section.body}
+                  onChange={(v) => updateEditingSection(index, v)}
+                  className="min-h-[120px] text-[13px]"
+                />
+                <button
+                  type="button"
+                  className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#7B76DF] transition-opacity hover:opacity-80"
+                >
+                  <Sparkle size={14} weight="fill" />
+                  Regenerate with AI
+                </button>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="mt-8 space-y-4">
-            {sections.map((section, index) => (
-              <WhiteCard key={`${section.title}-${index}`} className="p-5">
-                <h3 className="text-[17px] font-semibold leading-none text-[#171717]">{section.title}</h3>
-                <div className="mt-3 whitespace-pre-wrap text-[14px] font-medium leading-[1.7] text-[#737373]">
-                  {section.body || "No section body available yet."}
-                </div>
-              </WhiteCard>
-            ))}
+            {sections.map((section, index) => {
+              const titleLower = section.title.toLowerCase();
+
+              if (titleLower.includes("competitor")) {
+                const competitors = parseCompetitorCards(section.body);
+                if (competitors.length > 0) {
+                  return (
+                    <div key={`${section.title}-${index}`}>
+                      <h3 className="mb-4 text-[17px] font-semibold leading-none text-[#171717]">{section.title}</h3>
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        {competitors.map((comp, ci) => (
+                          <WhiteCard key={ci} className="p-5">
+                            <div className="flex items-start gap-3">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F5F5F5]">
+                                <Globe size={18} className="text-[#737373]" />
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="text-[15px] font-semibold leading-none text-[#171717]">{comp.name}</h4>
+                                {comp.domain ? (
+                                  <p className="mt-1.5 text-[12px] font-medium text-[#7B76DF]">{comp.domain}</p>
+                                ) : null}
+                                {comp.tagline ? (
+                                  <p className="mt-1 text-[13px] font-medium leading-[1.5] text-[#737373]">{comp.tagline}</p>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            {comp.strengths.length > 0 ? (
+                              <div className="mt-4">
+                                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#22C55E]">Strengths</span>
+                                <div className="mt-2 rounded-[8px] bg-[#EDFCF2] p-3">
+                                  <ul className="space-y-1.5">
+                                    {comp.strengths.map((s, si) => (
+                                      <li key={si} className="flex items-start gap-2 text-[13px] font-medium leading-[1.5] text-[#525252]">
+                                        <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-[#22C55E]" />
+                                        {s}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </div>
+                            ) : null}
+
+                            {comp.weaknesses.length > 0 ? (
+                              <div className="mt-3">
+                                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#D64545]">Weaknesses</span>
+                                <div className="mt-2 rounded-[8px] bg-[#FDECEC] p-3">
+                                  <ul className="space-y-1.5">
+                                    {comp.weaknesses.map((w, wi) => (
+                                      <li key={wi} className="flex items-start gap-2 text-[13px] font-medium leading-[1.5] text-[#525252]">
+                                        <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-[#D64545]" />
+                                        {w}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </div>
+                            ) : null}
+
+                            <button
+                              type="button"
+                              className="mt-4 text-[13px] font-medium text-[#7B76DF] transition-opacity hover:opacity-80"
+                            >
+                              See more
+                            </button>
+                          </WhiteCard>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+              }
+
+              if (titleLower.includes("opportunit")) {
+                const bullets = parseBulletPoints(section.body);
+                return (
+                  <div key={`${section.title}-${index}`} className="rounded-[10px] bg-[#F5F5F5] p-5">
+                    <h3 className="text-[17px] font-semibold leading-none text-[#171717]">{section.title}</h3>
+                    {bullets.length > 0 ? (
+                      <ul className="mt-3 space-y-2">
+                        {bullets.map((b, bi) => (
+                          <li key={bi} className="flex items-start gap-2 text-[14px] font-medium leading-[1.7] text-[#737373]">
+                            <span className="mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#737373]" />
+                            {b}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-3 whitespace-pre-wrap text-[14px] font-medium leading-[1.7] text-[#737373]">
+                        {section.body || "No content available yet."}
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+
+              if (titleLower.includes("key insight")) {
+                const bullets = parseBulletPoints(section.body);
+                return (
+                  <WhiteCard key={`${section.title}-${index}`} className="p-5">
+                    <h3 className="text-[17px] font-semibold leading-none text-[#171717]">{section.title}</h3>
+                    {bullets.length > 0 ? (
+                      <ul className="mt-3 space-y-2">
+                        {bullets.map((b, bi) => (
+                          <li key={bi} className="flex items-start gap-2 text-[14px] font-medium leading-[1.7] text-[#737373]">
+                            <span className="mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#7B76DF]" />
+                            {b}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-3 whitespace-pre-wrap text-[14px] font-medium leading-[1.7] text-[#737373]">
+                        {section.body || "No content available yet."}
+                      </p>
+                    )}
+                  </WhiteCard>
+                );
+              }
+
+              return (
+                <WhiteCard key={`${section.title}-${index}`} className="p-5">
+                  <h3 className="text-[17px] font-semibold leading-none text-[#171717]">{section.title}</h3>
+                  <p className="mt-3 whitespace-pre-wrap text-[14px] font-medium leading-[1.7] text-[#737373]">
+                    {section.body || "No content available yet."}
+                  </p>
+                </WhiteCard>
+              );
+            })}
           </div>
         )}
 
@@ -482,4 +638,93 @@ function buildResearchSummary(args: {
     `References: ${args.referenceUrls.length}`,
     `Brief file: ${args.hasBriefAttachment ? "yes" : "no"}`,
   ].join(" - ");
+}
+
+type CompetitorCardData = {
+  name: string;
+  domain: string;
+  tagline: string;
+  strengths: string[];
+  weaknesses: string[];
+};
+
+function parseCompetitorCards(body: string): CompetitorCardData[] {
+  const blocks = body.split(/(?=^#{2,4}\s+)/m).filter((b) => b.trim());
+  if (blocks.length === 0) {
+    return [];
+  }
+
+  // If no sub-headings found, try splitting by bold markers
+  if (blocks.length === 1 && !body.match(/^#{2,4}\s+/m)) {
+    const boldBlocks = body.split(/(?=^\*\*[^*]+\*\*\s*$)/m).filter((b) => b.trim());
+    if (boldBlocks.length <= 1) {
+      return [];
+    }
+    return boldBlocks.map(parseOneCompetitor).filter((c): c is CompetitorCardData => c !== null);
+  }
+
+  return blocks.map(parseOneCompetitor).filter((c): c is CompetitorCardData => c !== null);
+}
+
+function parseOneCompetitor(block: string): CompetitorCardData | null {
+  const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) {
+    return null;
+  }
+
+  const name = (lines[0] ?? "").replace(/^#{2,4}\s+/, "").replace(/\*\*/g, "").trim();
+  if (!name) {
+    return null;
+  }
+
+  let domain = "";
+  let tagline = "";
+  const strengths: string[] = [];
+  const weaknesses: string[] = [];
+  let currentList: "strengths" | "weaknesses" | null = null;
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i] ?? "";
+    const lower = line.toLowerCase();
+
+    if (lower.includes("strength")) {
+      currentList = "strengths";
+      continue;
+    }
+    if (lower.includes("weakness")) {
+      currentList = "weaknesses";
+      continue;
+    }
+
+    if (line.startsWith("- ") || line.startsWith("• ") || line.startsWith("* ")) {
+      const point = line.replace(/^[-•*]\s*/, "");
+      if (currentList === "strengths") {
+        strengths.push(point);
+      } else if (currentList === "weaknesses") {
+        weaknesses.push(point);
+      }
+      continue;
+    }
+
+    if (!currentList && !domain && (line.match(/^https?:\/\//) || line.match(/^www\./) || line.match(/^\S+\.[a-z]{2,4}$/i))) {
+      domain = line;
+      continue;
+    }
+
+    if (!currentList && !tagline && domain) {
+      tagline = line.replace(/^[>-]\s*/, "");
+    } else if (!currentList && !tagline && !domain) {
+      tagline = line.replace(/^[>-]\s*/, "");
+    }
+  }
+
+  return { name, domain, tagline, strengths, weaknesses };
+}
+
+function parseBulletPoints(body: string): string[] {
+  return body
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("- ") || line.startsWith("• ") || line.startsWith("* "))
+    .map((line) => line.replace(/^[-•*]\s*/, ""));
 }

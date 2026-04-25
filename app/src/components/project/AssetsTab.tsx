@@ -35,9 +35,9 @@ export function AssetsTab({ projectName: _projectName }: AssetsTabProps) {
     <div className="space-y-[18px] pb-20">
       <button
         type="button"
-        className="w-full rounded-[12px] bg-[#F5F5F5] p-1 text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
+        className="w-full rounded-[12px] border-2 border-dashed border-[#D4D4D4] bg-[#FAFAFA] text-left transition-colors hover:border-[#7B76DF] hover:bg-[#F5F5FF]"
       >
-        <div className="flex min-h-[164px] items-center justify-center rounded-[8px] bg-white px-6 py-11 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+        <div className="flex min-h-[164px] items-center justify-center px-6 py-11">
           <div className="flex max-w-[180px] flex-col items-center gap-3 text-center">
             <UploadSimple size={24} weight="fill" className="text-[#525252]" />
             <div className="space-y-1.5">
@@ -54,8 +54,8 @@ export function AssetsTab({ projectName: _projectName }: AssetsTabProps) {
 
       <ModulePanel
         title="Wireframes"
-        action={<span className="text-[12px] font-medium leading-[1.5] text-[#737373]">(4 Files)</span>}
-        bodyClassName="grid grid-cols-1 gap-1 p-1 md:grid-cols-2 xl:grid-cols-3"
+        action={<span className="text-[12px] font-medium leading-[1.5] text-[#737373]">({wireframeAssets.length} Files)</span>}
+        bodyClassName="grid grid-cols-1 gap-3 p-3 md:grid-cols-2 lg:grid-cols-3"
       >
         {wireframeAssets.map((asset) => (
           <WireframeAssetCard key={asset.name} asset={asset} />
@@ -64,8 +64,8 @@ export function AssetsTab({ projectName: _projectName }: AssetsTabProps) {
 
       <ModulePanel
         title="Documents"
-        action={<span className="text-[12px] font-medium leading-[1.5] text-[#737373]">(2 Files)</span>}
-        bodyClassName="grid gap-1 p-1 md:grid-cols-2"
+        action={<span className="text-[12px] font-medium leading-[1.5] text-[#737373]">({documentAssets.length} Files)</span>}
+        bodyClassName="grid gap-3 p-3 md:grid-cols-2"
       >
         {documentAssets.map((asset) => (
           <SimpleAssetCard key={asset.name} icon="document" name={asset.name} date={asset.date} />
@@ -74,8 +74,8 @@ export function AssetsTab({ projectName: _projectName }: AssetsTabProps) {
 
       <ModulePanel
         title="Uploads"
-        action={<span className="text-[12px] font-medium leading-[1.5] text-[#737373]">(2 Files)</span>}
-        bodyClassName="grid gap-1 p-1 md:grid-cols-2"
+        action={<span className="text-[12px] font-medium leading-[1.5] text-[#737373]">({uploadedAssets.length} Files)</span>}
+        bodyClassName="grid gap-3 p-3 md:grid-cols-2"
       >
         {uploadedAssets.map((asset) => (
           <SimpleAssetCard key={asset.name} icon="upload" name={asset.name} date={asset.date} />

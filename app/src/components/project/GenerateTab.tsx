@@ -113,7 +113,7 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
           icon={WarningCircle}
           title="No generated outputs yet."
           description="Launch Claude to create first wireframes or structured deliverables."
-          action={<PrimaryButton onClick={() => setConfigOpen(true)}>Create Flows</PrimaryButton>}
+          action={<PrimaryButton onClick={() => setConfigOpen(true)}>Generate Wireframes</PrimaryButton>}
         />
       </div>
     );

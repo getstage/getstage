@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowRight, Images, LinkSimple, Plus, Sparkle, Trash, UploadSimple } from "@phosphor-icons/react";
+import { ArrowRight, Images, LinkSimple, Plus, Trash, UploadSimple } from "@phosphor-icons/react";
 import { api } from "@/lib/convex";
 import {
   artifactText,
@@ -84,8 +84,8 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
         <div className="pb-20">
           <LoadingWorkflow
             title="Analyzing your Moodboard"
-            description="Claude is reading references and extracting repeatable visual patterns."
-            steps={["Collecting references", "Finding recurring patterns", "Preparing design direction"]}
+            description="Stage is reading your references and extracting structural patterns — not colors, typography or visual style."
+            steps={["Collecting references", "Extracting structural patterns", "Preparing design direction"]}
           />
         </div>
       );
@@ -108,14 +108,14 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
       <div className="pb-20">
         <ModulePanel
           title="Collect References"
-          description="Add Figma links or upload local references before Claude extracts the patterns."
+          description="Drop in screenshots or paste a figma link. Stage extracts structural patterns — not colors, typography or visual style."
           bodyClassName="p-5 sm:p-11"
         >
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-0 border-b border-[#E5E5E5]">
             <button
               type="button"
               onClick={() => setReferenceMode("figma")}
-              className={`inline-flex h-9 items-center gap-2 rounded-[6px] px-3 text-[13px] font-medium shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] ${referenceMode === "figma" ? "bg-gradient-to-b from-[#7B76DF] to-[#463FBA] text-white" : "bg-[#F5F5F5] text-[#737373]"}`}
+              className={`inline-flex items-center gap-2 border-b-2 px-4 pb-3 text-[13px] font-medium transition-colors ${referenceMode === "figma" ? "border-[#7B76DF] text-[#171717]" : "border-transparent text-[#737373] hover:text-[#525252]"}`}
             >
               <LinkSimple size={15} />
               Figma Link
@@ -123,7 +123,7 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
             <button
               type="button"
               onClick={() => setReferenceMode("upload")}
-              className={`inline-flex h-9 items-center gap-2 rounded-[6px] px-3 text-[13px] font-medium shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] ${referenceMode === "upload" ? "bg-gradient-to-b from-[#7B76DF] to-[#463FBA] text-white" : "bg-[#F5F5F5] text-[#737373]"}`}
+              className={`inline-flex items-center gap-2 border-b-2 px-4 pb-3 text-[13px] font-medium transition-colors ${referenceMode === "upload" ? "border-[#7B76DF] text-[#171717]" : "border-transparent text-[#737373] hover:text-[#525252]"}`}
             >
               <UploadSimple size={15} />
               Upload from Device
@@ -147,7 +147,7 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
                 <button
                   type="button"
                   onClick={() => setUploadedFiles((current) => [...current, `Reference ${current.length + 1}.png`])}
-                  className="flex min-h-[220px] w-full items-center justify-center rounded-[10px] bg-[#F5F5F5] p-6 text-center shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
+                  className="flex min-h-[220px] w-full items-center justify-center rounded-[10px] border-2 border-dashed border-[#D4D4D4] bg-[#FAFAFA] p-6 text-center transition-colors hover:border-[#7B76DF] hover:bg-[#F5F5FF]"
                 >
                   <div className="max-w-[190px]">
                     <UploadSimple size={24} weight="fill" className="mx-auto text-[#525252]" />
@@ -167,10 +167,15 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-[15px] font-medium leading-none text-[#171717]">
-                Existing references
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[15px] font-medium leading-none text-[#171717]">
+                  Existing references
+                </h3>
+                <span className="text-[12px] font-medium text-[#A3A3A3]">
+                  {referenceUrls.length + uploadedFiles.length} items
+                </span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {referenceUrls.map((url) => (
                   <ReferenceCard key={url} label={url} onRemove={() => setReferenceUrls((current) => current.filter((item) => item !== url))} />
                 ))}
@@ -234,17 +239,26 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
 }
 
 function ReferenceCard({ label, onRemove }: { label: string; onRemove: () => void }) {
+  const isUrl = label.startsWith("http") || label.startsWith("www.");
+  const sourceType = isUrl ? "Figma" : "Uploaded";
+  const displayName = isUrl ? label.replace(/^https?:\/\//, "").split("/").slice(0, 2).join("/") : label;
+
   return (
-    <WhiteCard className="flex items-center justify-between gap-3 p-3">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px] bg-[#F5F5F5]">
-          <Sparkle size={16} weight="fill" className="text-[#525252]" />
-        </div>
-        <p className="truncate text-[13px] font-medium text-[#525252]">{label}</p>
+    <WhiteCard className="flex flex-col overflow-hidden">
+      <div className="flex aspect-[16/10] items-center justify-center bg-[#F5F5F5]">
+        <Images size={24} className="text-[#A3A3A3]" />
       </div>
-      <button type="button" onClick={onRemove} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] text-destructive transition-colors hover:bg-[#FDECEC]" aria-label="Remove reference">
-        <Trash size={14} weight="fill" />
-      </button>
+      <div className="flex items-center justify-between gap-3 p-3">
+        <div className="min-w-0">
+          <p className="truncate text-[13px] font-medium text-[#171717]">{displayName}</p>
+          <p className="mt-1 text-[11px] font-medium text-[#A3A3A3]">
+            {sourceType}
+          </p>
+        </div>
+        <button type="button" onClick={onRemove} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] text-destructive transition-colors hover:bg-[#FDECEC]" aria-label="Remove reference">
+          <Trash size={14} weight="fill" />
+        </button>
+      </div>
     </WhiteCard>
   );
 }
