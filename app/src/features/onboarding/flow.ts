@@ -2,9 +2,11 @@ import {
   clientInfoSchema,
   dateRangeInputSchema,
   projectBasicsSchema,
+  projectTypeSchema,
 } from "@/lib/validation";
 import type { Method } from "../../../shared/project-creation";
 import type { OnboardingStepId } from "./model";
+import type { ProjectType } from "@/types";
 
 type ValidationContext = {
   step: OnboardingStepId;
@@ -15,6 +17,7 @@ type ValidationContext = {
   clientName: string;
   clientEmail: string;
   hasClientAvatar: boolean;
+  projectType: ProjectType | null;
   activePhasesLength: number;
   startDate: string;
   endDate: string;
@@ -34,6 +37,7 @@ export function getFlowSteps({
     "welcome",
     "details",
     "client",
+    "project-type",
     "method",
     "timeline",
     "preview",
@@ -63,6 +67,7 @@ export function canContinue({
   projectName,
   clientName,
   clientEmail,
+  projectType,
   activePhasesLength,
 }: Omit<ValidationContext, "startDate" | "endDate">) {
   switch (step) {
@@ -77,6 +82,8 @@ export function canContinue({
         clientName.trim().length > 0 &&
         clientEmail.trim().length > 0
       );
+    case "project-type":
+      return projectType !== null;
     case "method":
       return method === "manual" ? activePhasesLength >= 2 : method !== null;
     case "timeline":
@@ -99,6 +106,7 @@ export function getStepValidationError({
   projectName,
   clientName,
   clientEmail,
+  projectType,
   activePhasesLength,
   startDate,
   endDate,
@@ -131,6 +139,12 @@ export function getStepValidationError({
           : (clientEmailParsed.error.issues[0]?.message ?? "Please enter a valid email address.");
       }
       return null;
+    }
+    case "project-type": {
+      const parsed = projectTypeSchema.safeParse(projectType);
+      return parsed.success
+        ? null
+        : (parsed.error.issues[0]?.message ?? "Please choose a project type.");
     }
     case "method":
       if (!method) {

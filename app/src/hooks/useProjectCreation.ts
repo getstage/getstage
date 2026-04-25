@@ -77,6 +77,7 @@ export function useProjectCreation() {
     clientName: draft.clientName,
     clientEmail: draft.clientEmail,
     hasClientAvatar: Boolean(draft.clientAvatar),
+    projectType: draft.projectType,
     method: draft.method,
     startDate: draft.startDate,
     endDate: draft.endDate,

@@ -64,11 +64,11 @@ export function KanbanBoard({ phases, onToggleTask }: KanbanBoardProps) {
   }, [phases]);
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 rounded-[10px] bg-[#F5F5F5] p-4 sm:grid-cols-2 lg:grid-cols-4">
       {COLUMNS.map((col) => (
         <div key={col.key} className="flex flex-col">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-[13px] font-semibold text-text-primary">{col.label}</h3>
+            <h3 className="text-[13px] font-semibold text-[#171717]">{col.label}</h3>
             <button
               type="button"
               className="flex h-5 w-5 items-center justify-center rounded text-text-tertiary transition-colors hover:bg-bg-subtle hover:text-text-primary"
@@ -82,7 +82,7 @@ export function KanbanBoard({ phases, onToggleTask }: KanbanBoardProps) {
               return (
                 <div
                   key={task.id}
-                  className="rounded-[10px] border border-border-subtle bg-white p-3 transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                  className="rounded-[8px] bg-gradient-to-b from-white to-[#FAFAFA] p-3 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
                 >
                   <span className={`mb-2 inline-block rounded-[4px] px-1.5 py-0.5 text-[10px] font-semibold ${tagColor.bg} ${tagColor.text}`}>
                     {phaseName}
@@ -93,8 +93,8 @@ export function KanbanBoard({ phases, onToggleTask }: KanbanBoardProps) {
                       onClick={() => onToggleTask(task.id)}
                       className={`mt-0.5 flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border transition-colors ${
                         task.isCompleted
-                          ? "border-accent bg-accent text-white"
-                          : "border-border bg-white hover:border-text-secondary"
+                          ? "border-[#171717] bg-[#171717] text-white"
+                          : "border-transparent bg-[#D9D9D9] hover:border-text-secondary"
                       }`}
                     >
                       {task.isCompleted ? (
@@ -107,9 +107,9 @@ export function KanbanBoard({ phases, onToggleTask }: KanbanBoardProps) {
                       <p className={`text-[13px] font-medium leading-[1.35] ${task.isCompleted ? "text-text-tertiary line-through" : "text-text-primary"}`}>
                         {task.title}
                       </p>
-                      {task.description ? (
+                      {task.content ? (
                         <p className="mt-1 line-clamp-2 text-[12px] leading-[1.5] text-text-tertiary">
-                          {task.description}
+                          {task.content}
                         </p>
                       ) : (
                         <p className="mt-1 line-clamp-2 text-[12px] leading-[1.5] text-text-tertiary">
@@ -122,7 +122,7 @@ export function KanbanBoard({ phases, onToggleTask }: KanbanBoardProps) {
               );
             })}
             {columns[col.key].length === 0 ? (
-              <div className="rounded-[10px] border border-dashed border-border-subtle bg-white/50 p-4 text-center text-[12px] text-text-tertiary">
+              <div className="rounded-[8px] bg-white/50 p-4 text-center text-[12px] text-text-tertiary">
                 No tasks
               </div>
             ) : null}

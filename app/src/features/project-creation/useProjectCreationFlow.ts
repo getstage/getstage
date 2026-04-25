@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   clientInfoSchema,
   dateRangeInputSchema,
   projectBasicsSchema,
+  projectTypeSchema,
 } from "@/lib/validation";
+import type { ProjectType } from "@/types";
 
-export type WorkflowStep = 1 | 2 | 3 | 4;
+export type WorkflowStep = 1 | 2 | 3 | 4 | 5;
 export type ProjectCreationStep = WorkflowStep | "overview" | "success";
 
 type ProjectCreationFlowInput = {
@@ -14,6 +16,7 @@ type ProjectCreationFlowInput = {
   clientName: string;
   clientEmail: string;
   hasClientAvatar: boolean;
+  projectType: ProjectType | null;
   method: "ai" | "manual" | null;
   startDate: string;
   endDate: string;
@@ -29,6 +32,7 @@ export function useProjectCreationFlow({
   projectName,
   clientName,
   clientEmail,
+  projectType,
   method,
   startDate,
   endDate,
@@ -40,11 +44,10 @@ export function useProjectCreationFlow({
   onCreate,
 }: ProjectCreationFlowInput) {
   const [step, setStep] = useState<ProjectCreationStep>(1);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const generationTimeoutRef = useRef<number | undefined>(undefined);
+  const [isGenerating] = useState(false);
 
   const steps = useMemo<WorkflowStep[]>(
-    () => [1, 2, 3, 4],
+    () => [1, 2, 3, 4, 5],
     [],
   );
   const currentIndex =
@@ -59,9 +62,11 @@ export function useProjectCreationFlow({
           clientEmail.trim().length > 0
         );
       case 3:
-        return method === "manual" ? activePhasesLength >= 2 : method !== null;
+        return projectType !== null;
       case 4:
         return Boolean(startDate && endDate);
+      case 5:
+        return method === "manual" ? activePhasesLength >= 2 : method !== null;
       case "overview":
         return roadmapLength > 0 && !isCreating;
       default:
@@ -75,18 +80,11 @@ export function useProjectCreationFlow({
     isCreating,
     method,
     projectName,
+    projectType,
     roadmapLength,
     startDate,
     step,
   ]);
-
-  useEffect(() => {
-    return () => {
-      if (generationTimeoutRef.current !== undefined) {
-        window.clearTimeout(generationTimeoutRef.current);
-      }
-    };
-  }, []);
 
   function clearError() {
     onError(null);
@@ -141,26 +139,31 @@ export function useProjectCreationFlow({
         setStep(3);
         return;
       }
-      case 3:
-        if (method === "manual" && activePhasesLength < 2) {
-          onError("Select at least two phases.");
+      case 3: {
+        const parsed = projectTypeSchema.safeParse(projectType);
+        if (!parsed.success) {
+          onError(parsed.error.issues[0]?.message ?? "Please choose a project type.");
           return;
         }
         setStep(4);
         return;
+      }
       case 4: {
         const parsed = dateRangeInputSchema.safeParse({ startDate, endDate });
         if (!parsed.success) {
           onError(parsed.error.issues[0]?.message ?? "Select a valid timeline.");
           return;
         }
-        setIsGenerating(true);
-        generationTimeoutRef.current = window.setTimeout(() => {
-          setIsGenerating(false);
-          setStep("overview");
-        }, 1500);
+        setStep(5);
         return;
       }
+      case 5:
+        if (method === "manual" && activePhasesLength < 2) {
+          onError("Select at least two phases.");
+          return;
+        }
+        onCreate();
+        return;
       case "overview":
         onCreate();
         return;

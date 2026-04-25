@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { WarningCircle } from "@phosphor-icons/react";
 import { api } from "@/lib/convex";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { ProjectAiArtifact, ProjectAiRun } from "@/types/ai";
@@ -60,32 +61,54 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="inline-flex items-center gap-2 rounded-full bg-[#EDFCF2] px-3 py-1 text-[13px] font-medium text-[#22C55E]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
-          {latestRun?.status === "draft"
-            ? "Awaiting Claude"
-            : latestRun?.status === "running"
-              ? "Generating"
-              : latestRun?.status === "needs_input"
-                ? "Needs input"
-                : completedCount > 0
-                  ? "Generated"
-                  : "Ready"}
-        </span>
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 rounded-[10px] border border-border px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:bg-bg-subtle"
-          onClick={() => void launchGenerateRun()}
-        >
-          <span>{latestRunActive ? "Open in" : "Generate via"}</span>
-          <img src="/logos/integrations/claude-full.svg" alt="Claude" className="h-[15px]" />
-        </button>
-      </div>
+      {artifactList.length === 0 ? (
+        <div className="flex min-h-[650px] items-center justify-center rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+          <div className="flex h-full min-h-[642px] w-full items-center justify-center rounded-[8px] bg-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+            <div className="flex flex-col items-center justify-center gap-1.5 text-center">
+              <WarningCircle size={24} weight="fill" className="text-[#525252]" />
+              <p className="w-[193px] text-[15px] font-medium text-[#171717]">
+                No generated outputs yet.
+              </p>
+              <p className="w-[227px] text-[12px] font-medium leading-[1.5] text-[#737373]">
+                Launch Claude to create first wireframes or structured deliverables.
+              </p>
+              <button
+                type="button"
+                onClick={() => void launchGenerateRun()}
+                className="mt-4 inline-flex h-9 items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
+              >
+                <span>{latestRunActive ? "Open in Claude" : "Generate via Claude"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="inline-flex items-center gap-2 rounded-full bg-[#EDFCF2] px-3 py-1 text-[13px] font-medium text-[#22C55E]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
+              {latestRun?.status === "draft"
+                ? "Awaiting Claude"
+                : latestRun?.status === "running"
+                  ? "Generating"
+                  : latestRun?.status === "needs_input"
+                    ? "Needs input"
+                    : completedCount > 0
+                      ? "Generated"
+                      : "Ready"}
+            </span>
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-[10px] border border-border px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:bg-bg-subtle"
+              onClick={() => void launchGenerateRun()}
+            >
+              <span>{latestRunActive ? "Open in" : "Generate via"}</span>
+              <img src="/logos/integrations/claude-full.svg" alt="Claude" className="h-[15px]" />
+            </button>
+          </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        {artifactList.length > 0 ? (
-          artifactList.map((artifact) => (
+        {artifactList.map((artifact) => (
             <div
               key={artifact.id}
               className="overflow-hidden rounded-[12px] border border-border-subtle bg-white"
@@ -151,12 +174,7 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
                 </div>
               </div>
             </div>
-          ))
-        ) : (
-          <div className="col-span-full rounded-[16px] border border-dashed border-border-subtle bg-white p-6 text-[14px] leading-[1.7] text-text-secondary">
-            No generated outputs yet. Launch Claude to create the first wireframes or structured deliverables.
-          </div>
-        )}
+          ))}
       </div>
 
       <div className="flex flex-col items-start justify-between gap-4 rounded-[12px] bg-accent p-6 sm:flex-row sm:items-center">
@@ -192,6 +210,8 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
           </button>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

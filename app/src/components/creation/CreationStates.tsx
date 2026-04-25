@@ -17,33 +17,25 @@ type SuccessStateProps = {
 
 export function SuccessState({ onViewProject }: SuccessStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 py-10">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[rgba(135,130,245,0.08)]">
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-7 w-7 text-accent"
+    <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+      <div className="flex flex-col items-center justify-center gap-8 rounded-[8px] bg-gradient-to-b from-[rgba(158,153,248,0.16)] via-white to-white px-6 py-[72px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+        <img src="/logos/stage-logo-light.png" alt="Stage" className="h-[22px] w-auto" />
+        <div className="text-center">
+          <div className="font-heading text-[18px] font-semibold leading-[1.2] text-text-primary">
+            Project Created!
+          </div>
+          <div className="mt-2 text-[12px] font-medium leading-[1.5] text-text-secondary">
+            Your roadmap is ready to go.
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onViewProject}
+          className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-6 py-[10px] text-[13px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
         >
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
+          View Project <span>→</span>
+        </button>
       </div>
-      <div className="font-heading text-[22px] font-semibold tracking-[-0.3px] text-text-primary">
-        Project created!
-      </div>
-      <div className="mt-[-4px] text-[14px] text-text-secondary">
-        Your roadmap is ready to go.
-      </div>
-      <button
-        type="button"
-        onClick={onViewProject}
-        className="mt-3 w-full cursor-pointer rounded-[10px] bg-accent px-4 py-[13px] text-[15px] font-medium text-white transition-colors hover:bg-accent-hover"
-      >
-        View Project
-      </button>
     </div>
   );
 }

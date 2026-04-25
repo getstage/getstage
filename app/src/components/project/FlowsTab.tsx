@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { Plus } from "@phosphor-icons/react";
 import { api } from "@/lib/convex";
+import { ProjectAiSetupPanel } from "@/components/project/ProjectAiSetupPanel";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { ProjectAiArtifact, ProjectAiRun } from "@/types/ai";
 
@@ -15,11 +15,6 @@ export function FlowsTab({ projectId, projectName }: FlowsTabProps) {
   const runs = useQuery(api.projectAi.listRuns, { projectId, module: "flows" });
   const createRun = useMutation(api.projectAi.createRun);
 
-  const [clientWebsite, setClientWebsite] = useState("");
-  const [competitorUrls, setCompetitorUrls] = useState<string[]>([""]);
-  const [referenceUrls, setReferenceUrls] = useState<string[]>([""]);
-  const [notes, setNotes] = useState("");
-  const [brief, setBrief] = useState("");
   const [isLaunching, setIsLaunching] = useState(false);
 
   const artifactList: ProjectAiArtifact[] = artifacts ?? [];
@@ -34,7 +29,7 @@ export function FlowsTab({ projectId, projectName }: FlowsTabProps) {
         projectId,
         module: "flows",
         title: `${projectName} flows run`,
-        inputSummary: `Website: ${clientWebsite || "n/a"} · Competitors: ${competitorUrls.filter(Boolean).length}`,
+        inputSummary: "Started from the project flows setup panel.",
       });
       window.location.assign(`/agents/claude?source=settings&projectId=${projectId}&module=flows&runId=${result.runId}`);
     } catch {
@@ -44,68 +39,10 @@ export function FlowsTab({ projectId, projectName }: FlowsTabProps) {
     }
   }
 
-  function handleListChange(values: string[], index: number, value: string, setter: (v: string[]) => void) {
-    const next = [...values];
-    next[index] = value;
-    if (index === next.length - 1 && value.trim() !== "") next.push("");
-    setter(next);
-  }
-
   if (!hasArtifact) {
     return (
       <div className="pb-20">
-        <div className="mx-auto max-w-[940px] pt-4">
-          <div className="mb-7">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#D97757]/15 bg-[#FFF5F0] px-3 py-1.5 text-[12px] font-medium text-[#D97757]">
-              <img src="/logos/integrations/claude.svg" alt="" className="h-3.5 w-3.5" />
-              First run starts with Claude
-            </div>
-            <h2 className="mt-5 font-heading text-[34px] font-semibold tracking-[-0.04em] text-text-primary">
-              Configure Flows
-            </h2>
-            <p className="mt-2 max-w-[760px] text-[16px] leading-[1.75] text-text-secondary">
-              Provide context about the client and their market. The more you give, the better the first Claude flows run will be.
-            </p>
-          </div>
-
-          <div className="space-y-7 rounded-[24px] border border-border-subtle bg-white p-6 shadow-[0_12px_40px_rgba(17,24,39,0.04)] sm:p-8">
-            <ContextInput label="Client Website" value={clientWebsite} onChange={setClientWebsite} placeholder="ex. www.google.com" />
-
-            <div>
-              <label className="mb-3 block text-[15px] font-medium text-text-primary">Specific Competitors to include</label>
-              <div className="space-y-3">
-                {competitorUrls.map((value, index) => (
-                  <ContextInput key={`comp-${index}`} value={value} onChange={(v) => handleListChange(competitorUrls, index, v, setCompetitorUrls)} placeholder="ex. www.google.com" />
-                ))}
-              </div>
-              <button type="button" onClick={() => setCompetitorUrls([...competitorUrls, ""])} className="mt-3 inline-flex items-center gap-2 rounded-[8px] bg-text-primary px-3.5 py-2 text-[13px] font-medium text-white transition-colors hover:opacity-90">
-                <Plus size={14} weight="bold" />
-                Add
-              </button>
-            </div>
-
-            <ContextInput label="Reference links" value={referenceUrls[0] ?? ""} onChange={(v) => handleListChange(referenceUrls, 0, v, setReferenceUrls)} placeholder="ex. www.google.com" />
-
-            <ContextTextarea label="Additional notes" value={notes} onChange={setNotes} placeholder="https://Baseframe.com" />
-
-            <ContextTextarea label="Project Brief or Context" value={brief} onChange={setBrief} placeholder="Type here..." minHeight="min-h-[160px]" />
-
-            <div className="flex flex-wrap gap-3 pt-2">
-              <button
-                type="button"
-                disabled={isLaunching}
-                onClick={() => void launchFlowsRun()}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-[12px] bg-accent px-6 text-[15px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <img src="/logos/integrations/claude.svg" alt="" className="h-4 w-4" />
-                {isLaunching ? "Launching..." : "Run Research"}
-              </button>
-              <button type="button" className="inline-flex h-12 items-center justify-center rounded-[12px] border border-border bg-white px-6 text-[15px] font-medium text-text-primary transition-colors hover:bg-bg-subtle">
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <ProjectAiSetupPanel isLaunching={isLaunching} onRun={() => void launchFlowsRun()} />
       </div>
     );
   }
@@ -142,24 +79,6 @@ export function FlowsTab({ projectId, projectName }: FlowsTabProps) {
           </div>
         ) : null}
       </div>
-    </div>
-  );
-}
-
-function ContextInput({ label, value, onChange, placeholder }: { label?: string; value: string; onChange: (v: string) => void; placeholder: string }) {
-  return (
-    <div>
-      {label ? <label className="mb-3 block text-[15px] font-medium text-text-primary">{label}</label> : null}
-      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="h-14 w-full rounded-[14px] border border-border bg-white px-5 text-[15px] text-text-primary outline-none transition-colors duration-150 placeholder:text-text-tertiary focus:border-accent" />
-    </div>
-  );
-}
-
-function ContextTextarea({ label, value, onChange, placeholder, minHeight = "min-h-[110px]" }: { label: string; value: string; onChange: (v: string) => void; placeholder: string; minHeight?: string }) {
-  return (
-    <div>
-      <label className="mb-3 block text-[15px] font-medium text-text-primary">{label}</label>
-      <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={`${minHeight} w-full rounded-[14px] border border-border bg-white px-5 py-4 text-[15px] text-text-primary outline-none transition-colors duration-150 placeholder:text-text-tertiary focus:border-accent`} />
     </div>
   );
 }

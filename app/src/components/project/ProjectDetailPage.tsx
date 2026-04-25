@@ -76,13 +76,13 @@ export function ProjectDetailPage() {
           transition={{ duration: 0.3 }}
         >
           {/* Top content: back link + header */}
-          <div className="mx-auto max-w-[1200px] px-4 pt-4 sm:px-10 sm:pt-6 lg:px-14">
+          <div className="mx-auto w-full max-w-[1200px] pt-0">
             <Link
               to="/dashboard"
-              className="mb-2 inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary"
+              className="mb-6 inline-flex w-fit items-center gap-1 text-[13px] font-medium text-[#A3A3A3] transition-colors hover:text-text-primary"
             >
               <ArrowLeft size={14} />
-              Dashboard
+              Back to dashboard
             </Link>
 
             <ProjectHeader
@@ -100,14 +100,14 @@ export function ProjectDetailPage() {
           </div>
 
           {activeTab === "overview" && (
-            <div className="mx-auto max-w-[1200px] px-4 pb-[120px] pt-6 sm:px-10 lg:px-14">
+            <div className="mx-auto w-full max-w-[1200px] pb-[120px] pt-7">
               <KanbanBoard
                 phases={detail.project.phases}
-                onToggleTask={(taskId) => void detail.tasks.handleToggleTask(taskId)}
+                onToggleTask={(taskId) => void detail.tasks.handleToggleTask(taskId as Id<"tasks">)}
               />
 
               {recentTasks.length > 0 && (
-                <div className="mt-8 rounded-[16px] border border-border-subtle bg-white p-5">
+                <div className="mt-4 rounded-[8px] bg-white p-5 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
                   <div className="mb-1 font-heading text-[16px] font-semibold text-text-primary">
                     Recent Activity
                   </div>
@@ -140,7 +140,7 @@ export function ProjectDetailPage() {
           )}
 
           {activeTab === "research" && (
-            <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
+            <div className="mx-auto w-full max-w-[1200px] pb-[120px] pt-7">
               <ResearchTab
                 projectId={projectId}
                 projectName={detail.project.name}
@@ -150,31 +150,31 @@ export function ProjectDetailPage() {
           )}
 
           {activeTab === "strategy" && (
-            <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
+            <div className="mx-auto w-full max-w-[1200px] pb-[120px] pt-7">
               <StrategyTab projectId={projectId} projectName={detail.project.name} />
             </div>
           )}
 
           {activeTab === "flows" && (
-            <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
+            <div className="mx-auto w-full max-w-[1200px] pb-[120px] pt-7">
               <FlowsTab projectId={projectId} projectName={detail.project.name} />
             </div>
           )}
 
           {activeTab === "moodboard" && (
-            <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
+            <div className="mx-auto w-full max-w-[1200px] pb-[120px] pt-7">
               <MoodboardTab projectId={projectId} projectName={detail.project.name} />
             </div>
           )}
 
           {activeTab === "generate" && (
-            <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
+            <div className="mx-auto w-full max-w-[1200px] pb-[120px] pt-7">
               <GenerateTab projectId={projectId} projectName={detail.project.name} />
             </div>
           )}
 
           {activeTab === "assets" && (
-            <div className="mx-auto max-w-[1200px] px-4 pb-[120px] sm:px-10 lg:px-14">
+            <div className="mx-auto w-full max-w-[1200px] pb-[120px] pt-7">
               <AssetsTab projectName={detail.project.name} />
             </div>
           )}

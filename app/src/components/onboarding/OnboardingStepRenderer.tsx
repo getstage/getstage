@@ -591,6 +591,37 @@ export function OnboardingStepRenderer({
           </StepShell>
         </OnboardingStepMotion>
       );
+    case "project-type":
+      return (
+        <OnboardingStepMotion motionKey="project-type">
+          <StepShell label="Project Type">
+            <div className="grid overflow-hidden rounded-[8px] bg-white p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] sm:grid-cols-3">
+              {PROJECT_TYPES.map((option) => {
+                const iconSrc = PROJECT_TYPE_ICONS[option.value];
+                const isSelected = draft.projectType === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => draftState.setProjectType(option.value)}
+                    className={cn(
+                      "flex min-h-[76px] cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-white bg-[#F5F5F5] px-3 text-[13px] font-medium transition-colors focus:outline-none",
+                      isSelected
+                        ? "bg-[#EEEDFE] text-[#2F2A7D]"
+                        : "text-[#525252] hover:bg-[#EFEFEF]",
+                    )}
+                  >
+                    {iconSrc ? (
+                      <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 opacity-80" />
+                    ) : null}
+                    <span>{option.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </StepShell>
+        </OnboardingStepMotion>
+      );
     case "method": {
       const activePhases = draft.phases.filter((phase) => phase.on);
       const roadmapItems = activePhases;

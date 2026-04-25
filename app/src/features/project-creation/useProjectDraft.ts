@@ -70,7 +70,7 @@ function createInitialDraft(): ProjectDraft {
     avatarUrlOpen: false,
     avatarUrlInput: "",
     avatarFetching: false,
-    projectType: "web-design",
+    projectType: null,
     method: null,
     startDate: formatInputDate(today),
     endDate: formatInputDate(addDays(today, 30)),

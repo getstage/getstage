@@ -212,198 +212,93 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
   if (!hasResearchArtifact) {
     return (
       <div className="pb-20">
-        <div className="mx-auto max-w-[940px] pt-4">
-          <div className="mb-7">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#D97757]/15 bg-[#FFF5F0] px-3 py-1.5 text-[12px] font-medium text-[#D97757]">
-              <img src="/logos/integrations/claude.svg" alt="" className="h-3.5 w-3.5" />
-              First run starts in Claude
+        <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+          <div className="flex items-center justify-between gap-4 p-4">
+            <div>
+              <h2 className="text-[15px] font-medium text-[#171717]">Configure Research</h2>
+              <p className="mt-1 max-w-[385px] text-[12px] font-medium leading-[1.5] text-[#737373]">
+                Provide context about the client and their market. The more you give, the better the first Claude research run will be.
+              </p>
             </div>
-            <h2 className="mt-5 font-heading text-[34px] font-semibold tracking-[-0.04em] text-text-primary">
-              Configure research
-            </h2>
-            <p className="mt-2 max-w-[760px] text-[16px] leading-[1.75] text-text-secondary">
-              Provide context about the client and their market. The more you give, the better the first Claude research run will be.
-            </p>
+            <div className="inline-flex items-center gap-2 rounded-[6px] border border-[rgba(217,119,87,0.25)] bg-[rgba(217,119,87,0.05)] px-2 py-1.5 text-[12px] font-medium text-[#D97757]">
+              <img src="/logos/integrations/claude.svg" alt="" className="h-4 w-4" />
+              First run starts with Claude
+            </div>
           </div>
 
-          <div className="space-y-7 rounded-[24px] border border-border-subtle bg-white p-6 shadow-[0_12px_40px_rgba(17,24,39,0.04)] sm:p-8">
-            <ContextInput
-              label="Client website"
-              type="url"
-              value={clientWebsite}
-              onChange={setClientWebsite}
-              placeholder="https://acmestudio.com"
-            />
+          <div className="flex items-start justify-between gap-10 rounded-[8px] bg-white p-11 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+            <div className="flex min-w-0 flex-1 flex-col gap-6">
+              <CompactInput label="Client Website" type="url" value={clientWebsite} onChange={setClientWebsite} placeholder="ex. www.google.com" />
 
-            <div>
-              <ContextTextarea
-                label="Project brief or context"
-                value={brief}
-                onChange={setBrief}
-                placeholder="Describe the project goals, target audience, or any specific direction you'd like the research to focus on..."
-                minHeight="min-h-[128px]"
-              />
-              <p className="mt-2 text-[13px] text-text-tertiary">
-                Optional — helps AI focus the research
-              </p>
-            </div>
-
-            <div>
-              <label className="mb-3 block text-[15px] font-medium text-text-primary">Upload a brief</label>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={TASK_ATTACHMENT_ACCEPT}
-                className="hidden"
-                onChange={(event) => handleBriefFilePicked(event.target.files?.[0] ?? null)}
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  setIsDragActive(true);
-                }}
-                onDragLeave={() => setIsDragActive(false)}
-                onDrop={handleBriefDrop}
-                className={`flex w-full cursor-pointer items-center gap-4 rounded-[18px] border border-dashed px-5 py-5 text-left transition-all duration-150 ${
-                  isDragActive
-                    ? "border-accent bg-accent/5"
-                    : "border-border-subtle bg-white hover:border-border"
-                }`}
-              >
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] bg-bg-subtle text-text-tertiary">
-                  <UploadSimple size={24} />
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-[16px] font-medium text-accent">
-                    Click to upload
-                    <span className="text-text-secondary"> or drag a file here</span>
-                  </span>
-                  <span className="mt-1 block text-[14px] text-text-secondary">
-                    PDF, DOCX, or TXT
-                  </span>
-                </span>
-              </button>
-
-              {briefAttachment ? (
-                <div className="mt-3 flex flex-wrap items-center gap-2 rounded-[14px] border border-border-subtle bg-bg-subtle px-4 py-3">
-                  <span className="inline-flex items-center gap-2 text-[14px] text-text-primary">
-                    <img src="/logos/integrations/claude.svg" alt="" className="h-4 w-4" />
-                    {briefAttachment.name}
-                  </span>
-                  {briefAttachment.url ? (
-                    <a
-                      href={briefAttachment.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[13px] font-medium text-accent transition-colors hover:text-accent-hover"
-                    >
-                      Open
-                    </a>
-                  ) : null}
-                  {!briefAttachment.persisted ? (
-                    <span className="text-[12px] text-text-secondary">Uploads when you run research</span>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={clearBriefAttachment}
-                    className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-white text-text-secondary transition-colors hover:text-text-primary"
-                    aria-label="Remove uploaded brief"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : null}
-
-              {uploadError ? (
-                <p className="mt-2 text-[13px] text-destructive">{uploadError}</p>
-              ) : null}
-            </div>
-
-            <div>
-              <label className="mb-3 block text-[15px] font-medium text-text-primary">
-                Specific competitors to include
-              </label>
-              <div className="space-y-3">
-                {competitorUrls.map((value, index) => (
-                  <ContextInput
-                    key={`competitor-${index}`}
-                    type="url"
-                    value={value}
-                    onChange={(nextValue) =>
-                      handleListValueChange(competitorUrls, index, nextValue, setCompetitorUrls)
-                    }
-                    placeholder="https://competitor.com"
-                  />
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() => addListValue(setCompetitorUrls, competitorUrls)}
-                className="mt-3 inline-flex items-center gap-2 text-[15px] font-medium text-accent transition-colors hover:text-accent-hover"
-              >
-                <Plus size={16} weight="bold" />
-                Add another competitor
-              </button>
-              <p className="mt-2 text-[13px] text-text-tertiary">
-                Optional — AI will also discover competitors automatically
-              </p>
-            </div>
-
-            <div className="grid gap-6 lg:grid-cols-2">
               <div>
-                <label className="mb-3 block text-[15px] font-medium text-text-primary">
-                  Reference links
-                </label>
-                <div className="space-y-3">
-                  {referenceUrls.map((value, index) => (
-                    <ContextInput
-                      key={`reference-${index}`}
-                      type="url"
-                      value={value}
-                      onChange={(nextValue) =>
-                        handleListValueChange(referenceUrls, index, nextValue, setReferenceUrls)
-                      }
-                      placeholder="https://reference.com"
-                    />
+                <label className="mb-2 block text-[13px] font-medium text-[#171717]">Upload a Brief</label>
+                <input ref={fileInputRef} type="file" accept={TASK_ATTACHMENT_ACCEPT} className="hidden" onChange={(event) => handleBriefFilePicked(event.target.files?.[0] ?? null)} />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setIsDragActive(true);
+                  }}
+                  onDragLeave={() => setIsDragActive(false)}
+                  onDrop={handleBriefDrop}
+                  className={`flex w-[282px] cursor-pointer items-start gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors ${isDragActive ? "bg-[#EEEDFE]" : "hover:bg-[#EFEFEF]"}`}
+                >
+                  <UploadSimple size={16} className="mt-0.5 shrink-0 text-[#525252]" />
+                  <span>
+                    <span className="block text-[12px] font-medium text-[#262626]">
+                      {briefAttachment ? briefAttachment.name : "Upload Document"}
+                    </span>
+                    <span className="mt-1 block text-[12px] font-medium text-[#737373]">PDF, DOCX, PPT etc.</span>
+                  </span>
+                </button>
+                {briefAttachment ? (
+                  <button type="button" onClick={clearBriefAttachment} className="mt-2 inline-flex items-center gap-1 text-[12px] font-medium text-destructive">
+                    <X size={12} />
+                    Remove brief
+                  </button>
+                ) : null}
+                {uploadError ? <p className="mt-2 text-[12px] text-destructive">{uploadError}</p> : null}
+              </div>
+
+              <div>
+                <label className="mb-2 block text-[13px] font-medium text-[#171717]">Specific Competitors to include</label>
+                <div className="space-y-2">
+                  {competitorUrls.map((value, index) => (
+                    <div key={`competitor-${index}`} className="flex w-[290px] items-center overflow-hidden rounded-[8px] bg-[#F5F5F5] p-0.5 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+                      <input
+                        type="url"
+                        value={value}
+                        onChange={(event) => handleListValueChange(competitorUrls, index, event.target.value, setCompetitorUrls)}
+                        placeholder="ex. www.google.com"
+                        className="min-w-0 flex-1 bg-transparent px-2.5 text-[12px] font-medium text-[#525252] outline-none placeholder:text-[#737373]"
+                      />
+                      {index === competitorUrls.length - 1 ? (
+                        <button type="button" onClick={() => addListValue(setCompetitorUrls, competitorUrls)} className="inline-flex items-center gap-1.5 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-2.5 py-2 text-[12px] font-medium text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+                          <Plus size={14} />
+                          Add
+                        </button>
+                      ) : null}
+                    </div>
                   ))}
                 </div>
               </div>
 
-              <div>
-                <ContextTextarea
-                  label="Additional notes"
-                  value={notes}
-                  onChange={setNotes}
-                  placeholder="Extra context for the first research run"
-                  minHeight="min-h-[154px]"
-                />
-              </div>
+              <CompactInput label="Reference links" type="url" value={referenceUrls[0] ?? ""} onChange={(value) => handleListValueChange(referenceUrls, 0, value, setReferenceUrls)} placeholder="ex. www.google.com" />
+              <CompactTextarea label="Additional notes" value={notes} onChange={setNotes} placeholder="https://Baseframe.com" className="h-[92px] w-[370px]" />
+              <CompactTextarea label="Project Brief or Context" value={brief} onChange={setBrief} placeholder="Type here..." className="h-[114px] w-full" />
             </div>
 
-            <div className="flex flex-wrap gap-3 pt-2">
-              <ClaudeButton
-                label={isLaunching ? "Launching..." : "Run Research"}
-                disabled={isLaunching || isSaving}
-                onClick={() => void launchResearchRun()}
-              />
-              <button
-                type="button"
-                onClick={onReturnToOverview}
-                className="inline-flex h-12 items-center justify-center rounded-[12px] border border-border bg-white px-6 text-[15px] font-medium text-text-primary transition-colors hover:bg-bg-subtle"
-              >
+            <div className="flex shrink-0 items-start gap-3">
+              <ClaudeButton label={isLaunching ? "Launching..." : "Run Research"} disabled={isLaunching || isSaving} onClick={() => void launchResearchRun()} />
+              <button type="button" onClick={onReturnToOverview} className="inline-flex h-9 items-center justify-center rounded-[6px] bg-white px-3 text-[13px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F5F5]">
                 Cancel
               </button>
             </div>
           </div>
         </div>
 
-        {runList.length > 0 ? (
-          <div className="mx-auto mt-6 max-w-[940px]">
-            <RunHistoryCard runList={runList} />
-          </div>
-        ) : null}
+        {runList.length > 0 ? <div className="mt-6"><RunHistoryCard runList={runList} /></div> : null}
       </div>
     );
   }
@@ -558,11 +453,64 @@ function ClaudeButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex h-12 items-center justify-center gap-2 rounded-[12px] bg-accent px-6 text-[15px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+      className="inline-flex h-9 items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
     >
       <img src="/logos/integrations/claude.svg" alt="" className="h-4 w-4" />
       {label}
     </button>
+  );
+}
+
+function CompactInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  type?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-[13px] font-medium text-[#171717]">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="h-9 w-[290px] rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#737373] focus:bg-white"
+      />
+    </label>
+  );
+}
+
+function CompactTextarea({
+  label,
+  value,
+  onChange,
+  placeholder,
+  className,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  className: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-[13px] font-medium text-[#171717]">{label}</span>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className={`${className} resize-none rounded-[6px] bg-[#F5F5F5] p-3 text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#737373] focus:bg-white`}
+      />
+    </label>
   );
 }
 

@@ -6,6 +6,7 @@ import type { Method, PhaseItem, WorkflowStep } from "@/hooks/useProjectCreation
 type MethodStepProps = {
   method: Method;
   phases: PhaseItem[];
+  roadmap?: Array<{ name: string }>;
   canContinue: boolean;
   currentIndex: number;
   steps: WorkflowStep[];
@@ -14,6 +15,7 @@ type MethodStepProps = {
   onDragStart: (event: DragEvent<HTMLDivElement>, phaseId: string) => void;
   onDrop: (event: DragEvent<HTMLDivElement>, targetId: string) => void;
   onDragEnd: () => void;
+  continueLabel?: string;
   onContinue: () => void;
   onBack: () => void;
 };
@@ -21,6 +23,7 @@ type MethodStepProps = {
 export function MethodStep({
   method,
   phases,
+  roadmap = [],
   canContinue,
   currentIndex: _currentIndex,
   steps: _steps,
@@ -29,10 +32,12 @@ export function MethodStep({
   onDragStart,
   onDrop,
   onDragEnd,
+  continueLabel = "Continue",
   onContinue,
   onBack,
 }: MethodStepProps) {
   const activePhases = phases.filter((phase) => phase.on);
+  const previewPhases = roadmap.length > 0 ? roadmap : activePhases;
 
   return (
     <div>
@@ -104,7 +109,7 @@ export function MethodStep({
             ))}
           </div>
         </div>
-      ) : method === "ai" && activePhases.length > 0 ? (
+      ) : method === "ai" && previewPhases.length > 0 ? (
         <div className="mb-7 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
           <div className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
             <div className="relative py-1 pl-1">
@@ -113,8 +118,8 @@ export function MethodStep({
                 className="absolute bottom-[18px] left-[10px] top-[18px] w-px rounded-full bg-[#A3A3A3]"
               />
               <ul className="space-y-4">
-                {activePhases.map((phase) => (
-                  <li key={phase.id} className="relative flex items-center gap-3">
+                {previewPhases.map((phase, index) => (
+                  <li key={`${phase.name}-${index}`} className="relative flex items-center gap-3">
                     <span className="relative z-10 grid h-5 w-5 shrink-0 place-items-center rounded-full border-[4px] border-[#2F2B7F] bg-white" />
                     <span className="text-[15px] font-medium text-text-primary">{phase.name}</span>
                   </li>
@@ -125,7 +130,7 @@ export function MethodStep({
         </div>
       ) : null}
 
-      <PrimaryButton label="Continue" disabled={!canContinue} onClick={onContinue} />
+      <PrimaryButton label={continueLabel} disabled={!canContinue} onClick={onContinue} />
       <BackButton onClick={onBack} />
     </div>
   );

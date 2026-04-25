@@ -8,7 +8,7 @@ import { GeneratingState, SuccessState } from "@/components/creation/CreationSta
 import { ClientStep } from "@/components/creation/steps/ClientStep";
 import { MethodStep } from "@/components/creation/steps/MethodStep";
 import { ProjectBasicsStep } from "@/components/creation/steps/ProjectBasicsStep";
-import { RoadmapStep } from "@/components/creation/steps/RoadmapStep";
+import { ProjectTypeStep } from "@/components/creation/steps/ProjectTypeStep";
 import { TimelineStep } from "@/components/creation/steps/TimelineStep";
 import { useProjectCreation } from "@/hooks/useProjectCreation";
 
@@ -21,26 +21,26 @@ export function ProjectCreationPage() {
         <title>New Project — Stage</title>
       </Helmet>
 
-      <div className="relative min-h-[calc(100vh-64px)] bg-bg">
-        <div className="absolute inset-x-0 top-0 z-10 mx-auto w-full max-w-[1200px] px-4 pt-4 sm:px-10 sm:pt-6 lg:px-14">
-          <Link
-            to="/dashboard"
-            className="inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary"
-          >
-            <ArrowLeft size={14} />
-            Dashboard
-          </Link>
-        </div>
+      <div className="relative min-h-[calc(100vh-160px)] overflow-hidden rounded-[8px] bg-white">
+        <div className="pointer-events-none absolute inset-y-0 left-1/3 hidden border-l border-dashed border-[#E5E5E5] md:block" />
+        <div className="pointer-events-none absolute inset-y-0 right-1/3 hidden border-l border-dashed border-[#E5E5E5] md:block" />
 
-        <div className="flex min-h-[calc(100vh-64px)] items-start justify-center px-4 py-14 sm:px-10 sm:py-20 lg:px-14">
+        <div className="flex min-h-[calc(100vh-160px)] items-start justify-center px-4 py-14 sm:px-10 sm:py-20">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
-            className="w-full max-w-[520px]"
+            className="relative z-10 w-full max-w-[450px]"
           >
             {creation.step !== "success" && !creation.isGenerating ? (
-              <div className="mb-7">
+              <div className="mb-5">
+                <Link
+                  to="/dashboard"
+                  className="mb-20 inline-flex w-fit items-center gap-1 text-[13px] text-[#A3A3A3] transition-colors hover:text-text-primary"
+                >
+                  <ArrowLeft size={14} />
+                  Back to dashboard
+                </Link>
                 <img src={stageLogo} alt="Stage" className="mb-7 h-[22px] w-auto" />
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -81,6 +81,12 @@ function getStepTitle(step: StepValue): string {
       return "Create New Project";
     case 2:
       return "Client Details";
+    case 3:
+      return "What is the primary project type?";
+    case 4:
+      return "Project timeline";
+    case 5:
+      return "Build your roadmap";
     default:
       return "Create a new project";
   }
@@ -92,6 +98,12 @@ function getStepSubtitle(step: StepValue): string {
       return "Let's set it up. This only takes a minute.";
     case 2:
       return "Who is this project for?";
+    case 3:
+      return "Pick the closest match for the roadmap. You can still work across multiple disciplines.";
+    case 4:
+      return "When does this project start and end?";
+    case 5:
+      return "How do you want to structure this project?";
     default:
       return "Set up the basics to get started";
   }
@@ -150,17 +162,12 @@ function renderStepContent(creation: ProjectCreationState) {
       );
     case 3:
       return (
-        <MethodStep
-          method={creation.method}
-          phases={creation.phases}
+        <ProjectTypeStep
+          projectType={creation.projectType}
           canContinue={creation.canContinue}
           currentIndex={creation.currentIndex}
           steps={creation.steps}
-          onMethodChange={creation.setMethod}
-          onTogglePhase={creation.togglePhase}
-          onDragStart={creation.handleDragStart}
-          onDrop={creation.handleDrop}
-          onDragEnd={creation.handleDragEnd}
+          onProjectTypeChange={creation.setProjectType}
           onContinue={creation.handleContinue}
           onBack={creation.goBack}
         />
@@ -180,14 +187,21 @@ function renderStepContent(creation: ProjectCreationState) {
           onBack={creation.goBack}
         />
       );
-    case "overview":
+    case 5:
       return (
-        <RoadmapStep
+        <MethodStep
+          method={creation.method}
+          phases={creation.phases}
           roadmap={creation.roadmap}
           canContinue={creation.canContinue}
-          isCreating={creation.isCreating}
           currentIndex={creation.currentIndex}
           steps={creation.steps}
+          onMethodChange={creation.setMethod}
+          onTogglePhase={creation.togglePhase}
+          onDragStart={creation.handleDragStart}
+          onDrop={creation.handleDrop}
+          onDragEnd={creation.handleDragEnd}
+          continueLabel={creation.isCreating ? "Creating..." : "Create Project"}
           onContinue={creation.handleContinue}
           onBack={creation.goBack}
         />

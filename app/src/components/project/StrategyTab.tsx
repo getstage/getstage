@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/lib/convex";
+import { ProjectAiSetupPanel } from "@/components/project/ProjectAiSetupPanel";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { ProjectAiArtifact, ProjectAiRun } from "@/types/ai";
 
@@ -44,6 +45,10 @@ export function StrategyTab({ projectId, projectName }: StrategyTabProps) {
 
   return (
     <div className="pb-20">
+      {sections.length === 0 ? (
+        <ProjectAiSetupPanel onRun={() => void launchStrategyRun()} />
+      ) : (
+        <>
       <div className="mx-auto max-w-[920px] py-6">
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-[14px] font-medium text-text-primary">
@@ -67,8 +72,7 @@ export function StrategyTab({ projectId, projectName }: StrategyTabProps) {
       </div>
 
       <div className="mx-auto max-w-[920px] space-y-5">
-        {sections.length > 0 ? (
-          sections.map((section) => (
+        {sections.map((section) => (
             <section
               key={section.id}
               className="rounded-[16px] border border-border-subtle bg-white p-5"
@@ -99,12 +103,7 @@ export function StrategyTab({ projectId, projectName }: StrategyTabProps) {
                 </button>
               </div>
             </section>
-          ))
-        ) : (
-          <div className="rounded-[16px] border border-dashed border-border-subtle bg-white p-6 text-[14px] leading-[1.7] text-text-secondary">
-            No strategy sections yet. Launch Claude to generate the first strategy artifact set for this project.
-          </div>
-        )}
+          ))}
 
         {runList.length > 0 ? (
           <div className="rounded-[16px] border border-border-subtle bg-white p-5">
@@ -130,6 +129,8 @@ export function StrategyTab({ projectId, projectName }: StrategyTabProps) {
           </div>
         ) : null}
       </div>
+        </>
+      )}
     </div>
   );
 }

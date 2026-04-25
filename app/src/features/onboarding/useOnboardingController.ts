@@ -98,6 +98,7 @@ export function useOnboardingController({
     clientName: draft.clientName,
     clientEmail: draft.clientEmail,
     hasClientAvatar: Boolean(draft.clientAvatar),
+    projectType: draft.projectType,
     activePhasesLength: activePhases.length,
   });
 
@@ -302,6 +303,7 @@ export function useOnboardingController({
       clientName: draft.clientName,
       clientEmail: draft.clientEmail,
       hasClientAvatar: Boolean(draft.clientAvatar),
+      projectType: draft.projectType,
       activePhasesLength: activePhases.length,
       startDate: draft.startDate,
       endDate: draft.endDate,
@@ -334,6 +336,9 @@ export function useOnboardingController({
         setStep("client");
         return;
       case "client":
+        setStep("project-type");
+        return;
+      case "project-type":
         setStep("method");
         return;
       case "method":
