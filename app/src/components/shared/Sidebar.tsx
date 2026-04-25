@@ -137,7 +137,8 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                       src={item.icon}
                       alt={collapsed ? item.name : ""}
                       aria-hidden={!collapsed}
-                      className={`h-[15px] w-[15px] brightness-0 ${isActive ? "opacity-100" : "opacity-70"}`}
+                      className={`h-[15px] w-[15px] ${isActive ? "opacity-100" : "opacity-70"}`}
+                      style={{ filter: "brightness(0) saturate(100%)" }}
                     />
                     {!collapsed && (
                       <span className="text-[13px] font-medium">

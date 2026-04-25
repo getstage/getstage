@@ -1,7 +1,21 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { ArrowClockwise, ArrowRight, FloppyDisk, Plus, Sparkle } from "@phosphor-icons/react";
 import { api } from "@/lib/convex";
-import { ProjectAiSetupPanel } from "@/components/project/ProjectAiSetupPanel";
+import {
+  artifactText,
+  ClaudeMark,
+  formatTimestamp,
+  LoadingWorkflow,
+  ModuleEmptyState,
+  ModulePanel,
+  PrimaryButton,
+  SecondaryButton,
+  splitMarkdownSections,
+  StatusPill,
+  TextArea,
+  WhiteCard,
+} from "@/components/project/ProjectAiModulePrimitives";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { ProjectAiArtifact, ProjectAiRun } from "@/types/ai";
 
@@ -17,197 +31,211 @@ export function StrategyTab({ projectId, projectName }: StrategyTabProps) {
   const runs = useQuery(api.projectAi.listRuns, { projectId, module: "strategy" });
   const createRun = useMutation(api.projectAi.createRun);
   const setArtifactStatus = useMutation(api.projectAi.setArtifactStatus);
+  const requestArtifactDestination = useMutation(api.projectAi.requestArtifactDestination);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftSection, setDraftSection] = useState("");
+
   const artifactList: ProjectAiArtifact[] = artifacts ?? [];
   const runList: ProjectAiRun[] = runs ?? [];
-  const sections = useMemo(
-    () =>
-      artifactList.map((artifact) => ({
-        ...artifact,
-        uiStatus: toSectionStatus(artifact.status),
-      })),
-    [artifactList],
-  );
+  const latestRun = runList[0] ?? null;
+  const latestRunActive = latestRun && latestRun.status !== "completed" && latestRun.status !== "failed";
+
+  const sections = useMemo(() => {
+    if (artifactList.length === 1) {
+      const artifact = artifactList[0];
+      if (!artifact) {
+        return [];
+      }
+      return splitMarkdownSections(artifactText(artifact), artifact.title).map((section, index) => ({
+        id: `${artifact.id}-${index}`,
+        artifactId: artifact.id,
+        title: section.title,
+        body: section.body,
+        updatedAt: artifact.updatedAt,
+        uiStatus: toSectionStatus(index < 2 ? "approved" : artifact.status),
+      }));
+    }
+
+    return artifactList.map((artifact, index) => ({
+      id: artifact.id,
+      artifactId: artifact.id,
+      title: artifact.title || STRATEGY_SECTION_TITLES[index % STRATEGY_SECTION_TITLES.length],
+      body: artifactText(artifact),
+      updatedAt: artifact.updatedAt,
+      uiStatus: toSectionStatus(artifact.status),
+    }));
+  }, [artifactList]);
 
   const approvedCount = sections.filter((section) => section.uiStatus === "approved").length;
   const totalCount = sections.length;
   const progressPercent = totalCount > 0 ? (approvedCount / totalCount) * 100 : 0;
-  const latestRun = runList[0] ?? null;
 
   async function launchStrategyRun() {
     const result = await createRun({
       projectId,
       module: "strategy",
       title: `${projectName} strategy run`,
-      inputSummary: `Existing strategy artifacts: ${sections.length}`,
+      inputSummary: `Existing strategy sections: ${sections.length}`,
     });
     window.location.assign(`/agents/claude?source=settings&projectId=${projectId}&module=strategy&runId=${result.runId}`);
   }
 
-  return (
-    <div className="pb-20">
-      {sections.length === 0 ? (
-        <ProjectAiSetupPanel onRun={() => void launchStrategyRun()} />
-      ) : (
-        <>
-      <div className="mx-auto max-w-[920px] py-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-[14px] font-medium text-text-primary">
-            {approvedCount} of {totalCount} sections approved
-          </span>
-          <div className="h-2 min-w-[160px] flex-1 overflow-hidden rounded-full bg-bg-subtle">
-            <div
-              className="h-full rounded-full bg-[#22C55E] transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        <button
-          type="button"
-          onClick={() => void launchStrategyRun()}
-          className="inline-flex items-center justify-center gap-2 rounded-[10px] border border-border px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:bg-bg-subtle"
-        >
-          <span>{latestRun && latestRun.status !== "completed" ? "Open in" : "Regenerate in"}</span>
-          <img src="/logos/integrations/claude-full.svg" alt="Claude" className="h-[15px]" />
-        </button>
+  async function sendToNotion() {
+    const firstArtifact = artifactList[0];
+    if (!firstArtifact) {
+      return;
+    }
+
+    await requestArtifactDestination({
+      artifactId: firstArtifact.id as Id<"projectAiArtifacts">,
+      provider: "notion",
+      action: "export_to_notion",
+    });
+    window.location.assign(`/agents/claude?source=settings&projectId=${projectId}&artifactId=${firstArtifact.id}&provider=notion&action=export_to_notion`);
+  }
+
+  if (sections.length === 0) {
+    if (latestRunActive) {
+      return (
+        <div className="pb-20">
+          <LoadingWorkflow
+            title="Generating Strategy"
+            description="Claude is turning research into an actionable project strategy."
+            steps={["Analyzing research output", "Mapping project sections", "Preparing approval checklist"]}
+          />
         </div>
-      </div>
-
-      <div className="mx-auto max-w-[920px] space-y-5">
-        {sections.map((section) => (
-            <section
-              key={section.id}
-              className="rounded-[16px] border border-border-subtle bg-white p-5"
-            >
-              <div className="mb-3 flex flex-wrap items-center gap-2.5">
-                <h2 className="font-heading text-[17px] font-semibold text-text-primary">
-                  {section.title}
-                </h2>
-                <StatusBadge status={section.uiStatus} />
-              </div>
-              <div className="text-[14px] leading-[1.75] text-text-secondary">
-                <ArtifactContent artifact={section} />
-              </div>
-              <div className="mt-4 flex flex-wrap items-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => void setArtifactStatus({ artifactId: section.id as Id<"projectAiArtifacts">, status: "approved" })}
-                  className="inline-flex cursor-pointer items-center rounded-[8px] border border-[#22C55E] bg-transparent px-3.5 py-2 text-[13px] font-medium text-[#22C55E] transition-all duration-150 hover:bg-[#EDFCF2]"
-                >
-                  Approve
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void setArtifactStatus({ artifactId: section.id as Id<"projectAiArtifacts">, status: "superseded" })}
-                  className="inline-flex cursor-pointer items-center rounded-[8px] border border-[#D4890A] bg-transparent px-3.5 py-2 text-[13px] font-medium text-[#D4890A] transition-all duration-150 hover:bg-[#FEF9EC]"
-                >
-                  Request revision
-                </button>
-              </div>
-            </section>
-          ))}
-
-        {runList.length > 0 ? (
-          <div className="rounded-[16px] border border-border-subtle bg-white p-5">
-            <div className="font-heading text-[18px] font-semibold text-text-primary">Recent runs</div>
-            <div className="mt-4 space-y-3">
-              {runList.map((run) => (
-                <div
-                  key={run.id}
-                  className="flex items-center justify-between gap-3 rounded-[12px] border border-border-subtle px-4 py-3"
-                >
-                  <div>
-                    <div className="text-[14px] font-medium text-text-primary">{run.title}</div>
-                    <div className="mt-1 text-[12px] text-text-secondary">
-                      {formatTimestamp(run.startedAt)}
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-bg-subtle px-2.5 py-1 text-[12px] font-medium text-text-secondary">
-                    {formatRunStatus(run.status)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function StatusBadge({ status }: { status: StrategySectionStatus }) {
-  const config: Record<StrategySectionStatus, { label: string; classes: string }> = {
-    approved: {
-      label: "Approved",
-      classes: "bg-[#EDFCF2] text-[#22C55E]",
-    },
-    draft: {
-      label: "Draft",
-      classes: "bg-bg-subtle text-text-secondary",
-    },
-    needs_revision: {
-      label: "Needs Revision",
-      classes: "bg-[#FEF9EC] text-[#D4890A]",
-    },
-    failed: {
-      label: "Failed",
-      classes: "bg-[#FDECEC] text-[#D64545]",
-    },
-  };
-
-  const { label, classes } = config[status];
-  return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-medium ${classes}`}>
-      {label}
-    </span>
-  );
-}
-
-function ArtifactContent({
-  artifact,
-}: {
-  artifact: {
-    contentMarkdown: string | null;
-    contentJson: string | null;
-    summary: string | null;
-  };
-}) {
-  if (artifact.contentMarkdown) {
-    return <div className="whitespace-pre-wrap">{artifact.contentMarkdown}</div>;
-  }
-
-  if (artifact.contentJson) {
-    return <JsonStrategyContent contentJson={artifact.contentJson} />;
-  }
-
-  return <div>{artifact.summary ?? "No section content available yet."}</div>;
-}
-
-function JsonStrategyContent({ contentJson }: { contentJson: string }) {
-  try {
-    const parsed = JSON.parse(contentJson) as {
-      body?: string;
-      bullets?: string[];
-    };
+      );
+    }
 
     return (
-      <div className="space-y-3">
-        {parsed.body ? <p>{parsed.body}</p> : null}
-        {parsed.bullets?.length ? (
-          <ul className="space-y-1">
-            {parsed.bullets.map((bullet) => (
-              <li key={bullet} className="flex items-start gap-2">
-                <span className="mt-[10px] h-1.5 w-1.5 rounded-full bg-text-tertiary" />
-                <span>{bullet}</span>
-              </li>
-            ))}
-          </ul>
-        ) : null}
+      <div className="pb-20">
+        <ModuleEmptyState
+          icon={Sparkle}
+          title="No strategy generated yet."
+          description="Generate a strategy once the research foundation is ready."
+          action={
+            <PrimaryButton onClick={() => void launchStrategyRun()}>
+              <ClaudeMark />
+              Generate Strategy
+            </PrimaryButton>
+          }
+        />
       </div>
     );
-  } catch {
-    return <pre className="whitespace-pre-wrap">{contentJson}</pre>;
   }
+
+  return (
+    <div className="pb-20">
+      <ModulePanel bodyClassName="p-5 sm:p-11">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-[22px] font-semibold leading-none text-[#171717]">Strategy</h2>
+            <p className="mt-2 text-[13px] font-medium text-[#737373]">
+              Updated {formatTimestamp(sections[0]?.updatedAt)}
+            </p>
+          </div>
+          <PrimaryButton onClick={() => void launchStrategyRun()}>
+            <ClaudeMark />
+            Regenerate with AI
+          </PrimaryButton>
+        </div>
+
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <span className="text-[13px] font-medium text-[#525252]">
+            {approvedCount} of {totalCount} sections approved
+          </span>
+          <div className="h-2 min-w-[220px] flex-1 overflow-hidden rounded-full bg-[#E5E5E5]">
+            <div className="h-full rounded-full bg-[#22C55E]" style={{ width: `${progressPercent}%` }} />
+          </div>
+          <StatusPill tone={approvedCount === totalCount ? "success" : "warning"}>
+            Total {totalCount} sections
+          </StatusPill>
+        </div>
+
+        <div className="mt-8 space-y-4">
+          {sections.map((section) => {
+            const isEditing = editingId === section.id;
+            const needsAction = section.uiStatus !== "approved";
+
+            return (
+              <WhiteCard
+                key={section.id}
+                className={needsAction ? "border-transparent bg-[#F5F5F5] p-5" : "p-5"}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-[17px] font-semibold leading-none text-[#171717]">{section.title}</h3>
+                      <StatusPill tone={needsAction ? "warning" : "success"} className="h-7 text-[12px]">
+                        {needsAction ? "Action Required" : "Approved"}
+                      </StatusPill>
+                    </div>
+                    <p className="mt-2 text-[12px] font-medium text-[#737373]">
+                      Updated {formatTimestamp(section.updatedAt)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <SecondaryButton
+                      onClick={() => {
+                        setEditingId(section.id);
+                        setDraftSection(section.body);
+                      }}
+                    >
+                      Edit
+                    </SecondaryButton>
+                    {needsAction ? (
+                      <PrimaryButton onClick={() => void setArtifactStatus({ artifactId: section.artifactId as Id<"projectAiArtifacts">, status: "approved" })}>
+                        <FloppyDisk size={14} />
+                        Approve & Save
+                      </PrimaryButton>
+                    ) : null}
+                  </div>
+                </div>
+
+                {isEditing ? (
+                  <div className="mt-4">
+                    <TextArea value={draftSection} onChange={setDraftSection} className="min-h-[160px] text-[13px]" />
+                    <div className="mt-3 flex justify-end gap-2">
+                      <SecondaryButton onClick={() => setEditingId(null)}>Discard Changes</SecondaryButton>
+                      <PrimaryButton onClick={() => setEditingId(null)}>Save Changes</PrimaryButton>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 whitespace-pre-wrap text-[14px] font-medium leading-[1.7] text-[#737373]">
+                    {section.body || "No content available yet."}
+                  </div>
+                )}
+
+                {needsAction ? (
+                  <div className="mt-4 flex flex-wrap justify-end gap-2">
+                    <SecondaryButton onClick={() => void launchStrategyRun()}>
+                      <ArrowClockwise size={14} />
+                      Regenerate with AI
+                    </SecondaryButton>
+                  </div>
+                ) : null}
+              </WhiteCard>
+            );
+          })}
+        </div>
+
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+          <SecondaryButton>
+            <Plus size={14} />
+            Add Section
+          </SecondaryButton>
+          <div className="flex flex-wrap items-center gap-3">
+            <SecondaryButton onClick={() => void sendToNotion()}>Add to Notion</SecondaryButton>
+            <PrimaryButton onClick={() => window.location.assign(`/project/${projectId}?tab=moodboard`)}>
+              Continue to Moodboard
+              <ArrowRight size={14} />
+            </PrimaryButton>
+          </div>
+        </div>
+      </ModulePanel>
+    </div>
+  );
 }
 
 function toSectionStatus(status: string): StrategySectionStatus {
@@ -223,29 +251,11 @@ function toSectionStatus(status: string): StrategySectionStatus {
   }
 }
 
-function formatTimestamp(value: number | null | undefined) {
-  if (!value) {
-    return "Never";
-  }
-
-  return new Date(value).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function formatRunStatus(status: ProjectAiRun["status"]) {
-  switch (status) {
-    case "draft":
-      return "Awaiting Claude";
-    case "running":
-      return "Running";
-    case "needs_input":
-      return "Needs input";
-    case "failed":
-      return "Failed";
-    case "completed":
-      return "Complete";
-  }
-}
+const STRATEGY_SECTION_TITLES = [
+  "Goal & KPIs",
+  "User Journey",
+  "Conversion Approach",
+  "Technical Requirements",
+  "Content Strategy",
+  "Success Criteria",
+] as const;

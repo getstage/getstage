@@ -91,9 +91,9 @@ const PAGE_TABS = [
   { key: "overview", label: "Overview", Icon: OverviewIcon },
   { key: "research", label: "Research", Icon: ResearchIcon },
   { key: "strategy", label: "Strategy", Icon: StrategyIcon },
-  { key: "flows", label: "Flows", Icon: FlowsIcon },
   { key: "moodboard", label: "Moodboard", Icon: MoodboardIcon },
-  { key: "generate", label: "Generate", Icon: GenerateIcon },
+  { key: "flows", label: "Flows", Icon: FlowsIcon },
+  { key: "generate", label: "Wireframes", Icon: GenerateIcon },
   { key: "assets", label: "Assets", Icon: AssetsIcon },
 ] as const;
 
