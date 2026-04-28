@@ -308,7 +308,7 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
                   <h3 className="text-[16px] font-semibold leading-tight text-[#171717]">Existing references</h3>
                   <span className="shrink-0 text-[12px] font-medium text-[#A3A3A3]">{referenceCount} items</span>
                 </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0">
                   {referenceUrls.map((url) => (
                     <ReferenceCard
                       key={url}
@@ -432,20 +432,29 @@ function ReferenceCard({
   const sourceType = variant === "file" ? "Uploaded" : linkSourceLabel(label);
   const displayName = variant === "url" ? displayUrlTitle(label) : label;
 
+  const subtitle = variant === "file" && fileMeta ? `${sourceType} · ${fileMeta}` : sourceType;
+
   return (
-    <article className="relative flex flex-col overflow-hidden rounded-[10px] border border-[#E5E5E5] bg-white shadow-[0_0.45px_1px_rgba(10,10,10,0.08)]">
-      <div className="flex aspect-[16/10] min-h-[100px] items-center justify-center bg-[#F4F4F5]">
+    <article className="flex min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-[10px] border border-[#E5E5E5] bg-white shadow-[0_0.45px_1px_rgba(10,10,10,0.08)]">
+      <div className="flex aspect-[16/10] min-h-[100px] w-full shrink-0 items-center justify-center bg-[#F4F4F5]">
         <img src={PROJECT_LOGO.placeholder} alt="" className="h-9 w-9 brightness-0 opacity-[0.28]" />
       </div>
-      <div className="relative p-3 pr-11">
-        <p className="truncate text-[13px] font-semibold leading-snug text-[#171717]">{displayName}</p>
-        <p className="mt-1 text-[11px] font-medium leading-snug text-[#A3A3A3]">
-          {variant === "file" && fileMeta ? `${sourceType} · ${fileMeta}` : sourceType}
-        </p>
+      <div className="flex items-start gap-2 p-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[13px] font-semibold leading-snug text-[#171717]" title={displayName}>
+            {displayName}
+          </p>
+          <p
+            className="mt-1 truncate text-[11px] font-medium leading-snug text-[#A3A3A3]"
+            title={subtitle}
+          >
+            {subtitle}
+          </p>
+        </div>
         <button
           type="button"
           onClick={onRemove}
-          className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-[8px] transition-colors hover:bg-[#F4F4F5]"
+          className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] transition-colors hover:bg-[#F4F4F5]"
           aria-label="Remove reference"
         >
           <img src={PROJECT_LOGO.trash} alt="" className="h-4 w-4 brightness-0 opacity-45" />
