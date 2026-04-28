@@ -6,4 +6,8 @@ export const PROJECT_LOGO = {
   placeholder: "/logos/projects/Property 1=Placeholder.svg",
   sparkles: "/logos/projects/Property 1=Sparkles.svg",
   pdf: "/logos/projects/Property 1=PDF.svg",
+  trash: "/logos/projects/Property 1=Trash.svg",
+  add: "/logos/projects/Property 1=Add.svg",
+  /** Paste link / discover */
+  smartSearch: "/logos/projects/Property 1=smart-search.svg",
 } as const;

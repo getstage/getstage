@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type DragEvent } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowRight, Images, LinkSimple, Plus, Trash, UploadSimple } from "@phosphor-icons/react";
+import { ArrowRight, Images } from "@phosphor-icons/react";
 import { api } from "@/lib/convex";
+import { PROJECT_LOGO } from "@/components/project/assets/logoPaths";
 import { PROJECT_ASSET_ACCEPT, uploadFileToR2, validateUploadFile } from "@/lib/r2Uploads";
 import {
   artifactText,
@@ -18,6 +19,7 @@ import {
   TextInput,
   WhiteCard,
 } from "@/components/project/ProjectAiModulePrimitives";
+import { cn } from "@/lib/utils";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { ProjectAiArtifact, ProjectAiRun } from "@/types/ai";
 
@@ -29,6 +31,7 @@ type MoodboardTabProps = {
 type ReferenceMode = "figma" | "upload";
 
 type UploadedReference = {
+  id: string;
   name: string;
   size: number;
   key: string | null;
@@ -49,14 +52,15 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
   const [collecting, setCollecting] = useState(false);
   const [referenceMode, setReferenceMode] = useState<ReferenceMode>("figma");
   const [referenceUrl, setReferenceUrl] = useState("");
+  const [uploadDropActive, setUploadDropActive] = useState(false);
   const [referenceUrls, setReferenceUrls] = useState<string[]>([
     "https://figma.com/file/reference-homepage",
     "https://dribbble.com/shots/reference-flow",
     "https://example.com/brand-system",
   ]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedReference[]>([
-    { name: "Homepage inspiration.png", size: 1_200_000, key: null, status: "uploaded" },
-    { name: "Navigation ideas.jpg", size: 1_500_000, key: null, status: "uploaded" },
+    { id: "seed-1", name: "Homepage inspiration.png", size: 1_200_000, key: null, status: "uploaded" },
+    { id: "seed-2", name: "Navigation ideas.jpg", size: 1_500_000, key: null, status: "uploaded" },
   ]);
 
   const artifactList: ProjectAiArtifact[] = artifacts ?? [];
@@ -95,8 +99,10 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
 
   async function uploadReferenceFile(file: File | null) {
     if (!file) return;
+    const id = `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const validationError = validateUploadFile("project-asset", file);
     const draft: UploadedReference = {
+      id,
       name: file.name,
       size: file.size,
       key: null,
@@ -113,16 +119,25 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
         purpose: "project-asset",
         file,
       });
-      setUploadedFiles((current) => current.map((item) => (
-        item === draft ? { ...item, key, status: "uploaded" } : item
-      )));
+      setUploadedFiles((current) =>
+        current.map((item) => (item.id === id ? { ...item, key, status: "uploaded" } : item)),
+      );
     } catch (error) {
-      setUploadedFiles((current) => current.map((item) => (
-        item === draft
-          ? { ...item, status: "failed", error: error instanceof Error ? error.message : "Upload failed." }
-          : item
-      )));
+      setUploadedFiles((current) =>
+        current.map((item) =>
+          item.id === id
+            ? { ...item, status: "failed", error: error instanceof Error ? error.message : "Upload failed." }
+            : item,
+        ),
+      );
     }
+  }
+
+  function handleUploadDrop(event: DragEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    setUploadDropActive(false);
+    const file = event.dataTransfer.files?.[0];
+    void uploadReferenceFile(file ?? null);
   }
 
   if (!latestArtifact) {
@@ -131,9 +146,9 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
         <div className="pb-20">
           <LoadingWorkflow
             icon="/logos/projects/Property 1=Moodboard.svg"
-            title="Analyzing your Moodboard"
+            title="Analyzing your moodboard"
             description="Stage is reading your references and extracting structural patterns — not colors, typography or visual style."
-            steps={["Collecting references", "Extracting structural patterns", "Preparing design direction"]}
+            steps={["Scanning references", "Extracting structural patterns", "Preparing design direction"]}
             onCancel={() => {
               if (latestRun) void cancelRunMutation({ runId: latestRun.id, projectId });
             }}
@@ -155,104 +170,168 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
       );
     }
 
+    const referenceCount = referenceUrls.length + uploadedFiles.length;
+
     return (
       <div className="pb-20">
-        <ModulePanel
-          title="Collect References"
-          description="Drop in screenshots or paste a figma link. Stage extracts structural patterns — not colors, typography or visual style."
-          bodyClassName="p-5 sm:p-11"
-        >
-          <div className="flex gap-0 border-b border-[#E5E5E5]">
-            <button
-              type="button"
-              onClick={() => setReferenceMode("figma")}
-              className={`inline-flex items-center gap-2 border-b-2 px-4 pb-3 text-[13px] font-medium transition-colors ${referenceMode === "figma" ? "border-[#7B76DF] text-[#171717]" : "border-transparent text-[#737373] hover:text-[#525252]"}`}
-            >
-              <LinkSimple size={15} />
-              Figma Link
-            </button>
-            <button
-              type="button"
-              onClick={() => setReferenceMode("upload")}
-              className={`inline-flex items-center gap-2 border-b-2 px-4 pb-3 text-[13px] font-medium transition-colors ${referenceMode === "upload" ? "border-[#7B76DF] text-[#171717]" : "border-transparent text-[#737373] hover:text-[#525252]"}`}
-            >
-              <UploadSimple size={15} />
-              Upload from Device
-            </button>
-          </div>
+        <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+          <div className="rounded-[10px] bg-white p-5 shadow-[0_0.45px_1px_rgba(10,10,10,0.15)] sm:p-6">
+            <h2 className="text-[22px] font-semibold leading-tight tracking-tight text-[#171717]">
+              Collect References
+            </h2>
+            <p className="mt-2 max-w-[560px] text-[13px] font-medium leading-[1.5] text-[#737373]">
+              Drop in screenshots or paste a figma link. Stage extracts structural patterns — not colors,
+              typography or visual style.
+            </p>
 
-          <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,390px)_1fr]">
-            <div>
-              {referenceMode === "figma" ? (
-                <>
-                  <FieldLabel>Figma or Website Link</FieldLabel>
-                  <div className="flex items-center gap-2">
-                    <TextInput value={referenceUrl} onChange={setReferenceUrl} placeholder="Paste reference link" />
-                    <PrimaryButton onClick={addReferenceUrl} className="h-9">
-                      <Plus size={14} />
-                      Add
-                    </PrimaryButton>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <input
-                    ref={uploadInputRef}
-                    type="file"
-                    accept={PROJECT_ASSET_ACCEPT}
-                    className="hidden"
-                    onChange={(event) => {
-                      void uploadReferenceFile(event.target.files?.[0] ?? null);
-                      event.currentTarget.value = "";
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => uploadInputRef.current?.click()}
-                    className="flex min-h-[220px] w-full items-center justify-center rounded-[10px] border-2 border-dashed border-[#D4D4D4] bg-[#FAFAFA] p-6 text-center transition-colors hover:border-[#7B76DF] hover:bg-[#F5F5FF]"
-                  >
-                    <div className="max-w-[190px]">
-                      <UploadSimple size={24} weight="fill" className="mx-auto text-[#525252]" />
-                      <p className="mt-3 text-[15px] font-medium text-[#171717]">Upload files or drag and drop</p>
-                      <p className="mt-1 text-[12px] font-medium text-[#737373]">Images, PDFs, Fonts, Files etc.</p>
+            <div className="mt-6 flex gap-0 border-b border-[#ECECEC]">
+              <button
+                type="button"
+                onClick={() => setReferenceMode("figma")}
+                className={cn(
+                  "inline-flex items-center gap-2 border-b-2 px-4 pb-3 text-[13px] font-semibold transition-colors",
+                  referenceMode === "figma"
+                    ? "border-[#5C56D4] text-[#171717]"
+                    : "border-transparent text-[#737373] hover:text-[#525252]",
+                )}
+              >
+                <img
+                  src={PROJECT_LOGO.smartSearch}
+                  alt=""
+                  className={cn(
+                    "h-4 w-4 shrink-0 brightness-0",
+                    referenceMode === "figma" ? "opacity-[0.88]" : "opacity-40",
+                  )}
+                />
+                Figma Link
+              </button>
+              <button
+                type="button"
+                onClick={() => setReferenceMode("upload")}
+                className={cn(
+                  "inline-flex items-center gap-2 border-b-2 px-4 pb-3 text-[13px] font-semibold transition-colors",
+                  referenceMode === "upload"
+                    ? "border-[#5C56D4] text-[#171717]"
+                    : "border-transparent text-[#737373] hover:text-[#525252]",
+                )}
+              >
+                <img
+                  src={PROJECT_LOGO.upload}
+                  alt=""
+                  className={cn(
+                    "h-4 w-4 shrink-0 brightness-0",
+                    referenceMode === "upload" ? "opacity-[0.88]" : "opacity-40",
+                  )}
+                />
+                Upload from Device
+              </button>
+            </div>
+
+            <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,400px)_1fr]">
+              <div>
+                {referenceMode === "figma" ? (
+                  <>
+                    <FieldLabel>Figma or Website Link</FieldLabel>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <TextInput
+                        value={referenceUrl}
+                        onChange={setReferenceUrl}
+                        placeholder="Paste reference link"
+                        className="min-w-0 flex-1"
+                      />
+                      <PrimaryButton onClick={addReferenceUrl} className="h-9 shrink-0 gap-2 px-4">
+                        <img src={PROJECT_LOGO.add} alt="" className="h-3.5 w-3.5 brightness-0 invert" />
+                        Add
+                      </PrimaryButton>
                     </div>
-                  </button>
-                </>
-              )}
+                  </>
+                ) : (
+                  <>
+                    <input
+                      ref={uploadInputRef}
+                      type="file"
+                      accept={PROJECT_ASSET_ACCEPT}
+                      className="hidden"
+                      onChange={(event) => {
+                        void uploadReferenceFile(event.target.files?.[0] ?? null);
+                        event.currentTarget.value = "";
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => uploadInputRef.current?.click()}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        setUploadDropActive(true);
+                      }}
+                      onDragLeave={() => setUploadDropActive(false)}
+                      onDrop={handleUploadDrop}
+                      className={cn(
+                        "w-full rounded-[12px] border-2 border-dashed border-[#5C56D4]/70 bg-white text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.12)] transition-colors",
+                        "hover:border-[#5C56D4] hover:bg-[#FAFAFF]",
+                        uploadDropActive && "border-[#5C56D4] bg-[#F0EFFF]/60",
+                      )}
+                    >
+                      <div className="flex min-h-[220px] flex-col items-center justify-center px-6 py-10">
+                        <img
+                          src={PROJECT_LOGO.upload}
+                          alt=""
+                          className="h-9 w-9 brightness-0 opacity-40"
+                        />
+                        <p className="mt-4 text-[15px] font-semibold leading-tight text-[#171717]">
+                          Upload files or drag and drop
+                        </p>
+                        <p className="mt-1.5 text-center text-[12px] font-medium leading-[1.5] text-[#737373]">
+                          Images, PDFs, Fonts, Files etc.
+                        </p>
+                      </div>
+                    </button>
+                  </>
+                )}
 
-              <div className="mt-8 flex items-center gap-3">
-                <SecondaryButton onClick={() => setCollecting(false)}>Cancel</SecondaryButton>
-                <PrimaryButton onClick={() => void launchMoodboardRun()} disabled={isLaunching}>
-                  <ClaudeMark />
-                  {isLaunching ? "Creating..." : "Create Moodboard"}
-                </PrimaryButton>
+                <div className="mt-8 flex flex-wrap items-center gap-3">
+                  <SecondaryButton onClick={() => setCollecting(false)}>Cancel</SecondaryButton>
+                  <PrimaryButton onClick={() => void launchMoodboardRun()} disabled={isLaunching} className="gap-2">
+                    <ClaudeMark />
+                    {isLaunching ? "Creating…" : "Create Moodboard"}
+                  </PrimaryButton>
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-[15px] font-medium leading-none text-[#171717]">
-                  Existing references
-                </h3>
-                <span className="text-[12px] font-medium text-[#A3A3A3]">
-                  {referenceUrls.length + uploadedFiles.length} items
-                </span>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {referenceUrls.map((url) => (
-                  <ReferenceCard key={url} label={url} onRemove={() => setReferenceUrls((current) => current.filter((item) => item !== url))} />
-                ))}
-                {uploadedFiles.map((file) => (
-                  <ReferenceCard
-                    key={`${file.name}-${file.size}-${file.key ?? file.status}`}
-                    label={file.error ? `${file.name} - ${file.error}` : file.name}
-                    onRemove={() => setUploadedFiles((current) => current.filter((item) => item !== file))}
-                  />
-                ))}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-[16px] font-semibold leading-tight text-[#171717]">Existing references</h3>
+                  <span className="shrink-0 text-[12px] font-medium text-[#A3A3A3]">{referenceCount} items</span>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {referenceUrls.map((url) => (
+                    <ReferenceCard
+                      key={url}
+                      variant="url"
+                      label={url}
+                      onRemove={() => setReferenceUrls((current) => current.filter((item) => item !== url))}
+                    />
+                  ))}
+                  {uploadedFiles.map((file) => (
+                    <ReferenceCard
+                      key={file.id}
+                      variant="file"
+                      label={file.error ? `${file.name} — ${file.error}` : file.name}
+                      fileMeta={
+                        file.status === "uploading"
+                          ? "Uploading…"
+                          : file.status === "failed"
+                            ? "Upload failed"
+                            : formatBytes(file.size)
+                      }
+                      onRemove={() => setUploadedFiles((current) => current.filter((item) => item.id !== file.id))}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </ModulePanel>
+        </section>
       </div>
     );
   }
@@ -272,7 +351,10 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[0, 1, 2, 3].map((item) => (
-            <div key={item} className="flex aspect-[4/3] items-center justify-center rounded-[8px] bg-[#E5E5E5] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+            <div
+              key={item}
+              className="flex aspect-[4/3] items-center justify-center rounded-[8px] bg-[#E5E5E5] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
+            >
               <Images size={24} className="text-[#737373]" />
             </div>
           ))}
@@ -305,29 +387,72 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
   );
 }
 
-function ReferenceCard({ label, onRemove }: { label: string; onRemove: () => void }) {
-  const isUrl = label.startsWith("http") || label.startsWith("www.");
-  const sourceType = isUrl ? "Figma" : "Uploaded";
-  const displayName = isUrl ? label.replace(/^https?:\/\//, "").split("/").slice(0, 2).join("/") : label;
+function linkSourceLabel(url: string): string {
+  try {
+    const normalized = url.startsWith("http") ? url : `https://${url}`;
+    const host = new URL(normalized).hostname.toLowerCase();
+    if (host.includes("figma.com")) return "Figma";
+    if (host.includes("dribbble.com")) return "Dribbble";
+    return "Link";
+  } catch {
+    return "Link";
+  }
+}
+
+function displayUrlTitle(url: string): string {
+  try {
+    const normalized = url.startsWith("http") ? url : `https://${url}`;
+    const u = new URL(normalized);
+    const host = u.hostname.replace(/^www\./, "");
+    const path = u.pathname.replace(/\/$/, "");
+    const s = path && path !== "/" ? `${host}${path}` : host;
+    return s.length > 38 ? `${s.slice(0, 38)}…` : s;
+  } catch {
+    const s = url.replace(/^https?:\/\//, "");
+    return s.length > 38 ? `${s.slice(0, 38)}…` : s;
+  }
+}
+
+function ReferenceCard({
+  variant,
+  label,
+  fileMeta,
+  onRemove,
+}: {
+  variant: "url" | "file";
+  label: string;
+  fileMeta?: string;
+  onRemove: () => void;
+}) {
+  const sourceType = variant === "file" ? "Uploaded" : linkSourceLabel(label);
+  const displayName = variant === "url" ? displayUrlTitle(label) : label;
 
   return (
-    <WhiteCard className="flex flex-col overflow-hidden">
-      <div className="flex aspect-[16/10] items-center justify-center bg-[#F5F5F5]">
-        <Images size={24} className="text-[#A3A3A3]" />
+    <WhiteCard className="relative flex flex-col overflow-hidden rounded-[10px] border border-[#ECECEC] p-0 shadow-[0_0.45px_1px_rgba(10,10,10,0.08)]">
+      <div className="flex aspect-[16/10] items-center justify-center bg-[#F9FAFB]">
+        <img src={PROJECT_LOGO.placeholder} alt="" className="h-10 w-10 brightness-0 opacity-30" />
       </div>
-      <div className="flex items-center justify-between gap-3 p-3">
-        <div className="min-w-0">
-          <p className="truncate text-[13px] font-medium text-[#171717]">{displayName}</p>
-          <p className="mt-1 text-[11px] font-medium text-[#A3A3A3]">
-            {sourceType}
-          </p>
-        </div>
-        <button type="button" onClick={onRemove} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] text-destructive transition-colors hover:bg-[#FDECEC]" aria-label="Remove reference">
-          <Trash size={14} weight="fill" />
+      <div className="relative p-3 pr-12">
+        <p className="truncate text-[13px] font-semibold text-[#171717]">{displayName}</p>
+        <p className="mt-1 text-[11px] font-medium text-[#A3A3A3]">
+          {variant === "file" && fileMeta ? `${sourceType} · ${fileMeta}` : sourceType}
+        </p>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="absolute bottom-2.5 right-2.5 flex h-8 w-8 items-center justify-center rounded-[8px] text-[#DC2626] transition-colors hover:bg-[#FEF2F2]"
+          aria-label="Remove reference"
+        >
+          <img src={PROJECT_LOGO.trash} alt="" className="h-4 w-4 brightness-0 opacity-55" />
         </button>
       </div>
     </WhiteCard>
   );
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${Math.round((bytes / (1024 * 1024)) * 10) / 10} MB`;
 }
 
 const DEFAULT_PATTERNS = [
