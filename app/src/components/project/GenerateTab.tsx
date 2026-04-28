@@ -1,19 +1,16 @@
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowLeft, ArrowRight, CheckCircle, FileText, FigmaLogo, ImageSquare, UploadSimple } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, Check, FigmaLogo, ImageSquare, Plus, UploadSimple } from "@phosphor-icons/react";
 import { api } from "@/lib/convex";
 import { PROJECT_ASSET_ACCEPT, uploadFileToR2, validateUploadFile } from "@/lib/r2Uploads";
 import {
   AiGeneratedMeta,
   artifactText,
-  ClaudeMark,
-  FieldLabel,
   formatTimestamp,
   LoadingWorkflow,
   ModulePanel,
   PrimaryButton,
   SecondaryButton,
-  StatusPill,
   TextArea,
   WhiteCard,
 } from "@/components/project/ProjectAiModulePrimitives";
@@ -29,8 +26,9 @@ type GenerateTabProps = {
 type WireframeScreen = {
   id: string;
   name: string;
+  description: string;
   type: "Page" | "Section" | "Modal";
-  priority: "P0" | "P1";
+  priority: "P0" | "P1" | "P2" | "P3" | "P4" | "P5" | "P6";
   requirement: "Required" | "Optional";
 };
 
@@ -124,18 +122,36 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
     }
   }
 
+  function toggleScreen(screenId: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(screenId)) {
+        next.delete(screenId);
+      } else {
+        next.add(screenId);
+      }
+      return next;
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Loading state                                                      */
+  /* ------------------------------------------------------------------ */
   if (latestRunActive && artifactList.length === 0) {
     return (
       <div className="pb-20">
         <LoadingWorkflow
           title="Creating Wireframes"
           description="Claude is generating screen-level wireframes from flows and moodboard patterns."
-          steps={["Reading selected screens", "Applying moodboard patterns", "Preparing Figma outputs"]}
+          steps={["Scanned moodboard references", "Scanned approved flows", "Creating screen layouts", "Preparing Figma wireframes"]}
         />
       </div>
     );
   }
 
+  /* ------------------------------------------------------------------ */
+  /*  Empty state – wireframe type selection                             */
+  /* ------------------------------------------------------------------ */
   if (artifactList.length === 0 && !configOpen) {
     return (
       <div className="pb-20">
@@ -174,6 +190,9 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
     );
   }
 
+  /* ------------------------------------------------------------------ */
+  /*  Brand-kit upload step                                              */
+  /* ------------------------------------------------------------------ */
   if (artifactList.length === 0 && configOpen && setupStep === "brand-kit") {
     return (
       <div className="pb-20">
@@ -181,7 +200,7 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
           <div className="w-full max-w-[320px]">
             <h2 className="text-[15px] font-semibold leading-none text-[#171717]">Upload Your Brand Kit</h2>
             <p className="mt-2 text-[12px] font-medium leading-[1.5] text-[#737373]">
-              Select how you want your wireframe to look like.
+              Upload a brand guideline document for higher-fidelity wireframes.
             </p>
             <input
               ref={brandKitInputRef}
@@ -198,7 +217,7 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
             <button
               type="button"
               onClick={() => brandKitInputRef.current?.click()}
-              className="mt-4 flex h-[128px] w-full items-center justify-center rounded-[8px] bg-white p-5 text-center shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFF]"
+              className="mt-4 flex h-[128px] w-full items-center justify-center rounded-[8px] border-2 border-dashed border-[#D4D4D4] bg-[#FAFAFA] p-5 text-center transition-colors hover:border-[#7B76DF] hover:bg-[#F5F5FF]"
             >
               <div>
                 <UploadSimple size={18} weight="fill" className="mx-auto text-[#525252]" />
@@ -209,7 +228,7 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
             {brandKit ? (
               <div className="mt-1 flex h-8 items-center justify-between rounded-[6px] bg-white px-3 text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
                 <span className="inline-flex min-w-0 items-center gap-2">
-                  <FileText size={14} weight="fill" />
+                  <ImageSquare size={14} weight="fill" />
                   <span className="truncate">{brandKit.name}</span>
                 </span>
                 <span>{Math.round((brandKit.size / (1024 * 1024)) * 10) / 10}MB</span>
@@ -235,142 +254,174 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
     );
   }
 
+  /* ------------------------------------------------------------------ */
+  /*  Config screen – screen selection + layout preference               */
+  /* ------------------------------------------------------------------ */
   if (artifactList.length === 0 && configOpen) {
     return (
       <div className="pb-20">
-        <ModulePanel
-          title="Generate Wireframes"
-          description="Select the screens to generate and add any layout preference before Claude starts."
-          bodyClassName="p-5 sm:p-11"
-        >
-          <div className="flex flex-wrap items-center gap-3">
-            <StatusPill tone="purple">13 screens from Flows</StatusPill>
-            <StatusPill tone="neutral">14 patterns applied from Moodboard</StatusPill>
-            <SecondaryButton onClick={() => {
-              setSetupStep("type");
-              setConfigOpen(false);
-            }}>
-              <ArrowLeft size={14} />
-              Change Wireframe type
-            </SecondaryButton>
-            {!brandKit ? (
-              <SecondaryButton onClick={() => setSetupStep("brand-kit")}>
-                + Add Brand Kit
-              </SecondaryButton>
-            ) : null}
+        <ModulePanel bodyClassName="p-4">
+          <div className="flex flex-col gap-[10px] p-4">
+            <p className="text-[15px] font-medium leading-none text-[#0A0A0A]">
+              Generate Wireframes
+            </p>
+            <p className="max-w-[354px] text-[12px] font-medium leading-[1.5] text-[#525252]">
+              AI will produce low-fidelity block layouts for every screen.
+              You'll take them into Figma for the High-fidelity design pass.
+            </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-[13px] font-medium text-[#171717]">
+                  {DEFAULT_SCREENS.length} screens from Flows
+                </span>
+                <span className="h-1 w-1 rounded-full bg-[#A3A3A3]" />
+                <span className="text-[13px] font-medium text-[#737373]">
+                  14 patterns applied from Moodboard
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <SecondaryButton onClick={() => {
+                  setSetupStep("type");
+                  setConfigOpen(false);
+                }}>
+                  <ArrowLeft size={14} />
+                  Change Wireframe type
+                </SecondaryButton>
+                {!brandKit ? (
+                  <button
+                    type="button"
+                    onClick={() => setSetupStep("brand-kit")}
+                    className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#7C3AED] transition-opacity hover:opacity-80"
+                  >
+                    <Plus size={14} />
+                    Add Brand Kit
+                  </button>
+                ) : null}
+              </div>
+            </div>
           </div>
 
-          <div className="mt-8">
-            <h3 className="text-[17px] font-semibold leading-none text-[#171717]">Screens To Generate</h3>
-            <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          <WhiteCard className="p-11">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[15px] font-medium leading-none text-[#171717]">Screens To Generate</h3>
+              <span className="text-[13px] font-medium text-[#525252]">
+                {selectedScreens.length} of {DEFAULT_SCREENS.length} selected
+              </span>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-1">
               {DEFAULT_SCREENS.map((screen) => {
                 const selected = selectedIds.has(screen.id);
                 return (
                   <button
                     key={screen.id}
                     type="button"
-                    onClick={() => {
-                      setSelectedIds((current) => {
-                        const next = new Set(current);
-                        if (next.has(screen.id)) {
-                          next.delete(screen.id);
-                        } else {
-                          next.add(screen.id);
-                        }
-                        return next;
-                      });
-                    }}
-                    className={cn(
-                      "rounded-[10px] border bg-white p-4 text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.12)] transition-colors",
-                      selected ? "border-[#8D87FF]" : "border-[#E5E5E5] hover:bg-[#FAFAFA]",
-                    )}
+                    onClick={() => toggleScreen(screen.id)}
+                    className="rounded-[8px] bg-[#FAFAFA] p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)] transition-colors hover:bg-[#F0F0F0]"
                   >
-                    <div className="flex items-start gap-3">
-                      <span className={cn("mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border", selected ? "border-[#7B76DF] bg-[#7B76DF] text-white" : "border-[#D4D4D4] bg-white text-transparent")}>
-                        <CheckCircle size={13} weight="fill" />
-                      </span>
-                      <div className="min-w-0">
-                        <h4 className="text-[14px] font-semibold leading-none text-[#171717]">{screen.name}</h4>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <StatusPill tone="neutral" className="h-7 text-[12px]">{screen.type}</StatusPill>
-                          <StatusPill tone="purple" className="h-7 text-[12px]">{screen.priority}</StatusPill>
-                          <StatusPill tone={screen.requirement === "Required" ? "warning" : "neutral"} className="h-7 text-[12px]">
-                            {screen.requirement}
-                          </StatusPill>
+                    <div className="flex items-end justify-between p-4">
+                      <div className="flex min-w-0 flex-1 flex-col gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className={cn(
+                            "flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px]",
+                            selected ? "bg-[#0A0A0A] text-white" : "border border-[#D4D4D4] bg-white",
+                          )}>
+                            {selected ? <Check size={12} weight="bold" /> : null}
+                          </span>
+                          <span className="text-[13px] font-medium text-[#171717]">{screen.name}</span>
                         </div>
+                        <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">{screen.description}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <span className="rounded-[2px] bg-[#DBEAFE] px-1.5 py-0.5 text-[12px] font-normal text-[#172554]">
+                          {screen.type}
+                        </span>
+                        <span className="rounded-[2px] bg-[#FFE4E6] px-1.5 py-0.5 text-[12px] font-normal text-[#4C0519]">
+                          {screen.priority}
+                        </span>
+                        <span className="rounded-[2px] bg-[#E7E5E4] px-1.5 py-0.5 text-[12px] font-normal text-[#57534E]">
+                          {screen.requirement}
+                        </span>
                       </div>
                     </div>
                   </button>
                 );
               })}
             </div>
-          </div>
 
-          <div className="mt-8 max-w-[760px]">
-            <FieldLabel>Layout preference</FieldLabel>
-            <TextArea
-              value={layoutPreference}
-              onChange={setLayoutPreference}
-              placeholder="Add layout notes, density preferences, or constraints for Claude."
-              className="h-[116px]"
-            />
-          </div>
+            <div className="mt-6 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-[13px] font-medium">
+                <span className="text-[#171717]">Layout Preference</span>
+                <span className="text-[#737373]">(Optional)</span>
+              </div>
+              <TextArea
+                value={layoutPreference}
+                onChange={setLayoutPreference}
+                placeholder="ex. sticky header with primary CTA, wide hero, keep forms short, mobile-first density..."
+                className="h-[84px]"
+              />
+            </div>
 
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-            <SecondaryButton onClick={() => window.location.assign(`/project/${projectId}?tab=flows`)}>
-              Back to Flows
-            </SecondaryButton>
-            <PrimaryButton onClick={() => void launchGenerateRun()} disabled={selectedScreens.length === 0}>
-              <ClaudeMark />
-              Generate {selectedScreens.length} Wireframes
-            </PrimaryButton>
-          </div>
+            <div className="mt-6 flex items-center justify-end">
+              <PrimaryButton onClick={() => void launchGenerateRun()} disabled={selectedScreens.length === 0}>
+                Generate {selectedScreens.length} Wireframes
+                <ArrowRight size={14} />
+              </PrimaryButton>
+            </div>
+          </WhiteCard>
         </ModulePanel>
       </div>
     );
   }
 
+  /* ------------------------------------------------------------------ */
+  /*  Results – generated wireframe cards                                */
+  /* ------------------------------------------------------------------ */
+  const typeLabel = wireframeType === "hi-fi" ? "Hi-Fi" : "Lo-Fi";
+
   return (
     <div className="pb-20">
-      <ModulePanel bodyClassName="p-5 sm:p-11">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-[22px] font-semibold leading-none text-[#171717]">Wireframes</h2>
-            <p className="mt-2 text-[13px] font-medium text-[#737373]">
-              {cards.length} generated outputs available
-            </p>
-          </div>
-          <PrimaryButton onClick={() => setConfigOpen(true)}>
-            <ClaudeMark />
-            Regenerate Wireframes
-          </PrimaryButton>
+      <ModulePanel bodyClassName="p-1">
+        <div className="flex items-center justify-between p-4">
+          <p className="text-[15px] font-medium leading-none text-[#171717]">
+            {typeLabel} Wireframes
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setWireframeType(wireframeType === "lo-fi" ? "hi-fi" : "lo-fi");
+              setConfigOpen(true);
+              setSetupStep("config");
+            }}
+            className="inline-flex items-center gap-2 text-[13px] font-medium text-[#7C3AED] transition-opacity hover:opacity-80"
+          >
+            Convert to {wireframeType === "lo-fi" ? "High-fi" : "Lo-fi"}
+            <ArrowRight size={14} />
+          </button>
         </div>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((card, index) => (
             <WhiteCard key={card.id} className="overflow-hidden">
-              <div className="flex aspect-[1.28] items-center justify-center bg-[#E5E5E5]">
-                <ImageSquare size={28} className="text-[#737373]" />
+              <div className="flex aspect-[1.4] items-center justify-center bg-[#E5E5E5] rounded-[6px] m-[2px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+                <ImageSquare size={24} className="text-[#737373]" />
               </div>
               <div className="p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="truncate text-[15px] font-medium leading-none text-[#171717]">{card.title}</h3>
-                    <div className="mt-2">
-                      <AiGeneratedMeta />
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-[15px] font-medium leading-none text-[#171717]">{card.title}</h3>
+                      <span className="rounded-[2px] bg-[#F3E8FF] px-1 py-0.5 text-[12px] font-normal text-[#3B0764]">
+                        {index < 4 ? "P0" : "P1"}
+                      </span>
                     </div>
+                    <AiGeneratedMeta />
+                    <span className="text-[12px] font-medium leading-[1.5] text-[#737373]">
+                      {formatTimestamp(card.updatedAt)}
+                    </span>
                   </div>
-                  <span className="shrink-0 text-[12px] font-medium text-[#737373]">
-                    {formatTimestamp(card.updatedAt)}
-                  </span>
-                </div>
-                <p className="mt-3 line-clamp-2 text-[12px] font-medium leading-[1.5] text-[#737373]">
-                  {card.summary || getDefaultOutput(index).summary}
-                </p>
-                <div className="mt-4 flex items-center justify-between gap-2">
-                  <StatusPill tone="purple" className="h-7 text-[12px]">{index < 4 ? "P0" : "P1"}</StatusPill>
-                  <PrimaryButton
-                    className="h-8"
+                  <button
+                    type="button"
                     onClick={() => {
                       if (card.externalUrl) {
                         window.open(card.externalUrl, "_blank", "noopener,noreferrer");
@@ -378,10 +429,11 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
                       }
                       void handleDestination(card.artifactId, "open_in_figma");
                     }}
+                    className="inline-flex shrink-0 items-center gap-2 rounded-[4px] bg-[#F5F5F5] px-3 py-1.5 text-[12px] font-medium text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
                   >
-                    <FigmaLogo size={14} />
+                    <FigmaLogo size={15} />
                     Open in Figma
-                  </PrimaryButton>
+                  </button>
                 </div>
               </div>
             </WhiteCard>
@@ -417,28 +469,22 @@ function WireframeTypeCard({
 }
 
 const DEFAULT_SCREENS: WireframeScreen[] = [
-  { id: "overview", name: "Project Overview", type: "Page", priority: "P0", requirement: "Required" },
-  { id: "research-inputs", name: "Research Inputs", type: "Page", priority: "P0", requirement: "Required" },
-  { id: "research-output", name: "Research Output", type: "Page", priority: "P0", requirement: "Required" },
-  { id: "strategy-review", name: "Strategy Review", type: "Page", priority: "P0", requirement: "Required" },
-  { id: "moodboard-empty", name: "Moodboard Empty", type: "Page", priority: "P1", requirement: "Optional" },
-  { id: "moodboard-patterns", name: "Moodboard Patterns", type: "Page", priority: "P0", requirement: "Required" },
-  { id: "flows-list", name: "Flows List", type: "Page", priority: "P0", requirement: "Required" },
-  { id: "screens-grid", name: "Screens Grid", type: "Page", priority: "P0", requirement: "Required" },
-  { id: "manual-flow", name: "Manual Flow Modal", type: "Modal", priority: "P1", requirement: "Optional" },
-  { id: "generate-config", name: "Generate Config", type: "Page", priority: "P0", requirement: "Required" },
-  { id: "wireframe-grid", name: "Wireframe Grid", type: "Page", priority: "P0", requirement: "Required" },
-  { id: "assets-grid", name: "Assets Grid", type: "Page", priority: "P1", requirement: "Optional" },
-  { id: "share-modal", name: "Share Modal", type: "Modal", priority: "P1", requirement: "Optional" },
+  { id: "homepage", name: "Homepage", description: "Primary Landing - communicates value, drives demo conversion", type: "Page", priority: "P0", requirement: "Required" },
+  { id: "about-us", name: "About Us", description: "Describes company mission and vision", type: "Section", priority: "P1", requirement: "Optional" },
+  { id: "features", name: "Features", description: "Highlights key functionalities, engages users", type: "Page", priority: "P2", requirement: "Required" },
+  { id: "pricing", name: "Pricing", description: "Details pricing tiers, promotes sign-up", type: "Page", priority: "P3", requirement: "Required" },
+  { id: "testimonials", name: "Testimonials", description: "Showcases user feedback, builds trust", type: "Section", priority: "P4", requirement: "Optional" },
+  { id: "blog", name: "Blog", description: "Provides insights, fosters community engagement", type: "Page", priority: "P5", requirement: "Optional" },
+  { id: "contact-us", name: "Contact Us", description: "Facilitates inquiries, supports user needs", type: "Section", priority: "P6", requirement: "Required" },
 ];
 
 const DEFAULT_OUTPUTS = [
   { title: "Homepage Wireframe", summary: "Primary page layout generated from the approved flow set." },
-  { title: "Research Screen Wireframe", summary: "Research configuration and output states translated into wireframe structure." },
-  { title: "Moodboard Wireframe", summary: "Reference collection and pattern review states prepared for Figma." },
-  { title: "Flows Wireframe", summary: "Flow list and screens views generated as editable Figma frames." },
-  { title: "Generate Wireframe", summary: "Wireframe generation setup and output grid prepared for review." },
-  { title: "Assets Wireframe", summary: "Asset upload and generated file library structure." },
+  { title: "About Us Wireframe", summary: "Company mission and vision page structure." },
+  { title: "Features Wireframe", summary: "Key functionalities layout with feature cards and CTAs." },
+  { title: "Pricing Wireframe", summary: "Pricing tiers comparison layout with sign-up flows." },
+  { title: "Testimonials Wireframe", summary: "User feedback showcase with social proof elements." },
+  { title: "Blog Wireframe", summary: "Content listing and article detail page structure." },
 ] as const;
 
 function getDefaultOutput(index: number) {
