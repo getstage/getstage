@@ -6,7 +6,6 @@ import { PROJECT_LOGO } from "@/components/project/assets/logoPaths";
 import { PROJECT_ASSET_ACCEPT, uploadFileToR2, validateUploadFile } from "@/lib/r2Uploads";
 import {
   artifactText,
-  ClaudeMark,
   FieldLabel,
   formatTimestamp,
   LoadingWorkflow,
@@ -227,18 +226,20 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
               </button>
             </div>
 
-            <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,400px)_1fr]">
-              <div>
+            <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(280px,420px)_minmax(0,1fr)] lg:gap-10">
+              <div className="min-w-0">
                 {referenceMode === "figma" ? (
                   <>
                     <FieldLabel>Figma or Website Link</FieldLabel>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                      <TextInput
-                        value={referenceUrl}
-                        onChange={setReferenceUrl}
-                        placeholder="Paste reference link"
-                        className="min-w-0 flex-1"
-                      />
+                    <div className="flex flex-row items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <TextInput
+                          value={referenceUrl}
+                          onChange={setReferenceUrl}
+                          placeholder="Paste reference link"
+                          className="w-full"
+                        />
+                      </div>
                       <PrimaryButton onClick={addReferenceUrl} className="h-9 shrink-0 gap-2 px-4">
                         <img src={PROJECT_LOGO.add} alt="" className="h-3.5 w-3.5 brightness-0 invert" />
                         Add
@@ -289,21 +290,25 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
                   </>
                 )}
 
-                <div className="mt-8 flex flex-wrap items-center gap-3">
+                <div className="mt-10 flex flex-wrap items-center gap-3">
                   <SecondaryButton onClick={() => setCollecting(false)}>Cancel</SecondaryButton>
                   <PrimaryButton onClick={() => void launchMoodboardRun()} disabled={isLaunching} className="gap-2">
-                    <ClaudeMark />
+                    <img
+                      src={PROJECT_LOGO.sparkles}
+                      alt=""
+                      className="h-4 w-4 shrink-0 brightness-0 invert"
+                    />
                     {isLaunching ? "Creating…" : "Create Moodboard"}
                   </PrimaryButton>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="min-w-0 space-y-4">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-[16px] font-semibold leading-tight text-[#171717]">Existing references</h3>
                   <span className="shrink-0 text-[12px] font-medium text-[#A3A3A3]">{referenceCount} items</span>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {referenceUrls.map((url) => (
                     <ReferenceCard
                       key={url}
@@ -428,25 +433,25 @@ function ReferenceCard({
   const displayName = variant === "url" ? displayUrlTitle(label) : label;
 
   return (
-    <WhiteCard className="relative flex flex-col overflow-hidden rounded-[10px] border border-[#ECECEC] p-0 shadow-[0_0.45px_1px_rgba(10,10,10,0.08)]">
-      <div className="flex aspect-[16/10] items-center justify-center bg-[#F9FAFB]">
-        <img src={PROJECT_LOGO.placeholder} alt="" className="h-10 w-10 brightness-0 opacity-30" />
+    <article className="relative flex flex-col overflow-hidden rounded-[10px] border border-[#E5E5E5] bg-white shadow-[0_0.45px_1px_rgba(10,10,10,0.08)]">
+      <div className="flex aspect-[16/10] min-h-[100px] items-center justify-center bg-[#F4F4F5]">
+        <img src={PROJECT_LOGO.placeholder} alt="" className="h-9 w-9 brightness-0 opacity-[0.28]" />
       </div>
-      <div className="relative p-3 pr-12">
-        <p className="truncate text-[13px] font-semibold text-[#171717]">{displayName}</p>
-        <p className="mt-1 text-[11px] font-medium text-[#A3A3A3]">
+      <div className="relative p-3 pr-11">
+        <p className="truncate text-[13px] font-semibold leading-snug text-[#171717]">{displayName}</p>
+        <p className="mt-1 text-[11px] font-medium leading-snug text-[#A3A3A3]">
           {variant === "file" && fileMeta ? `${sourceType} · ${fileMeta}` : sourceType}
         </p>
         <button
           type="button"
           onClick={onRemove}
-          className="absolute bottom-2.5 right-2.5 flex h-8 w-8 items-center justify-center rounded-[8px] text-[#DC2626] transition-colors hover:bg-[#FEF2F2]"
+          className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-[8px] transition-colors hover:bg-[#F4F4F5]"
           aria-label="Remove reference"
         >
-          <img src={PROJECT_LOGO.trash} alt="" className="h-4 w-4 brightness-0 opacity-55" />
+          <img src={PROJECT_LOGO.trash} alt="" className="h-4 w-4 brightness-0 opacity-45" />
         </button>
       </div>
-    </WhiteCard>
+    </article>
   );
 }
 
