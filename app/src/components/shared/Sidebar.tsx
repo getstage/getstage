@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useAuth, useSignOut } from "@/lib/auth";
 import { useQuery as useConvexQuery } from "convex/react";
@@ -17,6 +17,7 @@ const NAV_ITEMS = [
 
 function getDefaultActiveItem(path: string): string {
   if (path.startsWith("/settings")) return "Settings";
+  if (path.startsWith("/project") || path.startsWith("/new-project")) return "Projects";
   return "Dashboard";
 }
 
@@ -30,6 +31,10 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [activeItem, setActiveItem] = useState(() => getDefaultActiveItem(currentPath));
+
+  useEffect(() => {
+    setActiveItem(getDefaultActiveItem(currentPath));
+  }, [currentPath]);
 
   const projects = useConvexQuery(
     api.projects.getDockProjects,
@@ -133,13 +138,16 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                           }`
                     }`}
                   >
-                    <img
-                      src={item.icon}
-                      alt={collapsed ? item.name : ""}
-                      aria-hidden={!collapsed}
-                      className={`h-[15px] w-[15px] ${isActive ? "opacity-100" : "opacity-70"}`}
-                      style={{ filter: "brightness(0) saturate(100%)" }}
+                    <span
+                      aria-hidden="true"
+                      className={`h-[15px] w-[15px] shrink-0 ${isActive ? "opacity-100" : "opacity-70"}`}
+                      style={{
+                        backgroundColor: "currentColor",
+                        WebkitMask: `url("${item.icon}") center / contain no-repeat`,
+                        mask: `url("${item.icon}") center / contain no-repeat`,
+                      }}
                     />
+                    {collapsed ? <span className="sr-only">{item.name}</span> : null}
                     {!collapsed && (
                       <span className="text-[13px] font-medium">
                         {item.name}

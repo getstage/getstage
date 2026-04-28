@@ -4,6 +4,7 @@ import { getUploadValidationError, type UploadPurpose } from "../../shared/uploa
 import { readFileAsDataUrl } from "@/lib/utils";
 
 export const TASK_ATTACHMENT_ACCEPT = ".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.txt";
+export const PROJECT_ASSET_ACCEPT = ".jpg,.jpeg,.png,.webp,.svg,.gif,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.ttf,.otf,.woff,.woff2,.fig,.sketch,.zip";
 export const CSV_ACCEPT = ".csv,text/csv";
 export const AVATAR_ACCEPT = ".jpg,.jpeg,.png,.webp";
 export const PROJECT_MARKER_ACCEPT = ".jpg,.jpeg,.png,.webp";
@@ -27,6 +28,7 @@ function extensionToMimeType(fileName: string) {
   if (lowerFileName.endsWith(".png")) return "image/png";
   if (lowerFileName.endsWith(".webp")) return "image/webp";
   if (lowerFileName.endsWith(".svg")) return "image/svg+xml";
+  if (lowerFileName.endsWith(".gif")) return "image/gif";
   if (lowerFileName.endsWith(".pdf")) return "application/pdf";
   if (lowerFileName.endsWith(".doc")) return "application/msword";
   if (lowerFileName.endsWith(".docx")) {
@@ -34,6 +36,19 @@ function extensionToMimeType(fileName: string) {
   }
   if (lowerFileName.endsWith(".txt")) return "text/plain";
   if (lowerFileName.endsWith(".csv")) return "text/csv";
+  if (lowerFileName.endsWith(".xls")) return "application/vnd.ms-excel";
+  if (lowerFileName.endsWith(".xlsx")) {
+    return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  }
+  if (lowerFileName.endsWith(".ppt")) return "application/vnd.ms-powerpoint";
+  if (lowerFileName.endsWith(".pptx")) {
+    return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+  }
+  if (lowerFileName.endsWith(".ttf")) return "font/ttf";
+  if (lowerFileName.endsWith(".otf")) return "font/otf";
+  if (lowerFileName.endsWith(".woff")) return "font/woff";
+  if (lowerFileName.endsWith(".woff2")) return "font/woff2";
+  if (lowerFileName.endsWith(".fig")) return "application/vnd.figma";
   return "application/octet-stream";
 }
 

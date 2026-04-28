@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowRight, CheckCircle, FigmaLogo, ImageSquare, WarningCircle } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, CheckCircle, FileText, FigmaLogo, ImageSquare, UploadSimple } from "@phosphor-icons/react";
 import { api } from "@/lib/convex";
+import { PROJECT_ASSET_ACCEPT, uploadFileToR2, validateUploadFile } from "@/lib/r2Uploads";
 import {
   AiGeneratedMeta,
   artifactText,
@@ -9,7 +10,6 @@ import {
   FieldLabel,
   formatTimestamp,
   LoadingWorkflow,
-  ModuleEmptyState,
   ModulePanel,
   PrimaryButton,
   SecondaryButton,
@@ -39,8 +39,15 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
   const runs = useQuery(api.projectAi.listRuns, { projectId, module: "generate" });
   const createRun = useMutation(api.projectAi.createRun);
   const requestArtifactDestination = useMutation(api.projectAi.requestArtifactDestination);
+  const r2GenerateUploadUrl = useMutation(api.r2.generateUploadUrl);
+  const r2SyncMetadata = useMutation(api.r2.syncMetadata);
 
+  const brandKitInputRef = useRef<HTMLInputElement | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
+  const [setupStep, setSetupStep] = useState<"type" | "brand-kit" | "config">("type");
+  const [wireframeType, setWireframeType] = useState<"lo-fi" | "hi-fi" | null>(null);
+  const [brandKit, setBrandKit] = useState<{ name: string; size: number; key: string | null } | null>(null);
+  const [brandKitError, setBrandKitError] = useState<string | null>(null);
   const [layoutPreference, setLayoutPreference] = useState("");
   const [selectedIds, setSelectedIds] = useState(() => new Set(DEFAULT_SCREENS.map((screen) => screen.id)));
 
@@ -77,7 +84,7 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
       projectId,
       module: "generate",
       title: `${projectName} wireframe generation`,
-      inputSummary: `Generate ${selectedScreens.length} wireframes. Preference: ${layoutPreference || "none"}`,
+      inputSummary: `Generate ${selectedScreens.length} ${wireframeType ?? "lo-fi"} wireframes. Brand kit: ${brandKit?.name ?? "none"}. Preference: ${layoutPreference || "none"}`,
     });
     window.location.assign(`/agents/claude?source=settings&projectId=${projectId}&module=generate&runId=${result.runId}`);
   }
@@ -92,6 +99,29 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
       action,
     });
     window.location.assign(`/agents/claude?source=settings&projectId=${projectId}&artifactId=${artifactId}&provider=figma&action=${encodeURIComponent(action)}`);
+  }
+
+  async function uploadBrandKit(file: File) {
+    const validationError = validateUploadFile("project-asset", file);
+    if (validationError) {
+      setBrandKitError(validationError);
+      return;
+    }
+
+    setBrandKit({ name: file.name, size: file.size, key: null });
+    setBrandKitError(null);
+
+    try {
+      const key = await uploadFileToR2({
+        generateUploadUrl: r2GenerateUploadUrl,
+        syncMetadata: r2SyncMetadata,
+        purpose: "project-asset",
+        file,
+      });
+      setBrandKit({ name: file.name, size: file.size, key });
+    } catch (error) {
+      setBrandKitError(error instanceof Error ? error.message : "Could not upload this brand kit.");
+    }
   }
 
   if (latestRunActive && artifactList.length === 0) {
@@ -109,12 +139,98 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
   if (artifactList.length === 0 && !configOpen) {
     return (
       <div className="pb-20">
-        <ModuleEmptyState
-          icon={WarningCircle}
-          title="No generated outputs yet."
-          description="Launch Claude to create first wireframes or structured deliverables."
-          action={<PrimaryButton onClick={() => setConfigOpen(true)}>Generate Wireframes</PrimaryButton>}
-        />
+        <ModulePanel bodyClassName="flex min-h-[642px] items-center justify-center px-6">
+          <div className="w-full max-w-[320px]">
+            <h2 className="text-[15px] font-semibold leading-none text-[#171717]">Create Wireframe</h2>
+            <p className="mt-2 text-[12px] font-medium leading-[1.5] text-[#737373]">
+              Select how you want your wireframe to look like.
+            </p>
+            <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-[8px] bg-white p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+              <WireframeTypeCard
+                active={wireframeType === "lo-fi"}
+                label="Lo-Fi Wireframe"
+                onClick={() => setWireframeType("lo-fi")}
+              />
+              <WireframeTypeCard
+                active={wireframeType === "hi-fi"}
+                label="Hi-Fi Wireframe"
+                onClick={() => setWireframeType("hi-fi")}
+              />
+            </div>
+            <PrimaryButton
+              className="mt-2 w-full"
+              disabled={!wireframeType}
+              onClick={() => {
+                setSetupStep("brand-kit");
+                setConfigOpen(true);
+              }}
+            >
+              Continue
+              <ArrowRight size={14} />
+            </PrimaryButton>
+          </div>
+        </ModulePanel>
+      </div>
+    );
+  }
+
+  if (artifactList.length === 0 && configOpen && setupStep === "brand-kit") {
+    return (
+      <div className="pb-20">
+        <ModulePanel bodyClassName="flex min-h-[642px] items-center justify-center px-6">
+          <div className="w-full max-w-[320px]">
+            <h2 className="text-[15px] font-semibold leading-none text-[#171717]">Upload Your Brand Kit</h2>
+            <p className="mt-2 text-[12px] font-medium leading-[1.5] text-[#737373]">
+              Select how you want your wireframe to look like.
+            </p>
+            <input
+              ref={brandKitInputRef}
+              type="file"
+              accept={PROJECT_ASSET_ACCEPT}
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                if (!file) return;
+                void uploadBrandKit(file);
+                event.currentTarget.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => brandKitInputRef.current?.click()}
+              className="mt-4 flex h-[128px] w-full items-center justify-center rounded-[8px] bg-white p-5 text-center shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFF]"
+            >
+              <div>
+                <UploadSimple size={18} weight="fill" className="mx-auto text-[#525252]" />
+                <p className="mt-3 text-[13px] font-medium leading-none text-[#171717]">Upload files or drag and drop</p>
+                <p className="mt-1 text-[12px] font-medium text-[#737373]">Images, PDFs, Fonts, Files etc.</p>
+              </div>
+            </button>
+            {brandKit ? (
+              <div className="mt-1 flex h-8 items-center justify-between rounded-[6px] bg-white px-3 text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+                <span className="inline-flex min-w-0 items-center gap-2">
+                  <FileText size={14} weight="fill" />
+                  <span className="truncate">{brandKit.name}</span>
+                </span>
+                <span>{Math.round((brandKit.size / (1024 * 1024)) * 10) / 10}MB</span>
+              </div>
+            ) : null}
+            {brandKitError ? <p className="mt-2 text-[12px] text-destructive">{brandKitError}</p> : null}
+            <div className="mt-2 grid grid-cols-[64px_1fr] gap-1">
+              <SecondaryButton onClick={() => {
+                setConfigOpen(false);
+                setSetupStep("type");
+              }}>
+                <ArrowLeft size={14} />
+                Back
+              </SecondaryButton>
+              <PrimaryButton onClick={() => setSetupStep("config")}>
+                Continue
+                <ArrowRight size={14} />
+              </PrimaryButton>
+            </div>
+          </div>
+        </ModulePanel>
       </div>
     );
   }
@@ -130,10 +246,18 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
           <div className="flex flex-wrap items-center gap-3">
             <StatusPill tone="purple">13 screens from Flows</StatusPill>
             <StatusPill tone="neutral">14 patterns applied from Moodboard</StatusPill>
-            <SecondaryButton onClick={() => window.location.assign(`/project/${projectId}?tab=moodboard`)}>
-              Review moodboard
-              <ArrowRight size={14} />
+            <SecondaryButton onClick={() => {
+              setSetupStep("type");
+              setConfigOpen(false);
+            }}>
+              <ArrowLeft size={14} />
+              Change Wireframe type
             </SecondaryButton>
+            {!brandKit ? (
+              <SecondaryButton onClick={() => setSetupStep("brand-kit")}>
+                + Add Brand Kit
+              </SecondaryButton>
+            ) : null}
           </div>
 
           <div className="mt-8">
@@ -265,6 +389,30 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
         </div>
       </ModulePanel>
     </div>
+  );
+}
+
+function WireframeTypeCard({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex h-[92px] items-center justify-center gap-2 rounded-[6px] text-[12px] font-medium transition-colors",
+        active ? "bg-[#EEEDFE] text-[#2F277C] shadow-[0_0_0_1px_#C9C5FF_inset]" : "bg-white text-[#525252] hover:bg-[#F5F5F5]",
+      )}
+    >
+      <ImageSquare size={14} weight={active ? "fill" : "regular"} />
+      {label}
+    </button>
   );
 }
 

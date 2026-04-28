@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { ArrowRight, Images, LinkSimple, Plus, Trash, UploadSimple } from "@phosphor-icons/react";
 import { api } from "@/lib/convex";
+import { PROJECT_ASSET_ACCEPT, uploadFileToR2, validateUploadFile } from "@/lib/r2Uploads";
 import {
   artifactText,
   ClaudeMark,
@@ -27,11 +28,22 @@ type MoodboardTabProps = {
 
 type ReferenceMode = "figma" | "upload";
 
+type UploadedReference = {
+  name: string;
+  size: number;
+  key: string | null;
+  status: "uploading" | "uploaded" | "failed";
+  error?: string;
+};
+
 export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
   const artifacts = useQuery(api.projectAi.listArtifacts, { projectId, module: "moodboard" });
   const runs = useQuery(api.projectAi.listRuns, { projectId, module: "moodboard" });
   const createRun = useMutation(api.projectAi.createRun);
+  const r2GenerateUploadUrl = useMutation(api.r2.generateUploadUrl);
+  const r2SyncMetadata = useMutation(api.r2.syncMetadata);
 
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const [isLaunching, setIsLaunching] = useState(false);
   const [collecting, setCollecting] = useState(false);
   const [referenceMode, setReferenceMode] = useState<ReferenceMode>("figma");
@@ -41,7 +53,10 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
     "https://dribbble.com/shots/reference-flow",
     "https://example.com/brand-system",
   ]);
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>(["Homepage inspiration.png", "Navigation ideas.jpg"]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedReference[]>([
+    { name: "Homepage inspiration.png", size: 1_200_000, key: null, status: "uploaded" },
+    { name: "Navigation ideas.jpg", size: 1_500_000, key: null, status: "uploaded" },
+  ]);
 
   const artifactList: ProjectAiArtifact[] = artifacts ?? [];
   const runList: ProjectAiRun[] = runs ?? [];
@@ -76,6 +91,38 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
     }
     setReferenceUrls((current) => [...current, value]);
     setReferenceUrl("");
+  }
+
+  async function uploadReferenceFile(file: File | null) {
+    if (!file) return;
+    const validationError = validateUploadFile("project-asset", file);
+    const draft: UploadedReference = {
+      name: file.name,
+      size: file.size,
+      key: null,
+      status: validationError ? "failed" : "uploading",
+      error: validationError ?? undefined,
+    };
+    setUploadedFiles((current) => [draft, ...current]);
+    if (validationError) return;
+
+    try {
+      const key = await uploadFileToR2({
+        generateUploadUrl: r2GenerateUploadUrl,
+        syncMetadata: r2SyncMetadata,
+        purpose: "project-asset",
+        file,
+      });
+      setUploadedFiles((current) => current.map((item) => (
+        item === draft ? { ...item, key, status: "uploaded" } : item
+      )));
+    } catch (error) {
+      setUploadedFiles((current) => current.map((item) => (
+        item === draft
+          ? { ...item, status: "failed", error: error instanceof Error ? error.message : "Upload failed." }
+          : item
+      )));
+    }
   }
 
   if (!latestArtifact) {
@@ -144,17 +191,29 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
                   </div>
                 </>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setUploadedFiles((current) => [...current, `Reference ${current.length + 1}.png`])}
-                  className="flex min-h-[220px] w-full items-center justify-center rounded-[10px] border-2 border-dashed border-[#D4D4D4] bg-[#FAFAFA] p-6 text-center transition-colors hover:border-[#7B76DF] hover:bg-[#F5F5FF]"
-                >
-                  <div className="max-w-[190px]">
-                    <UploadSimple size={24} weight="fill" className="mx-auto text-[#525252]" />
-                    <p className="mt-3 text-[15px] font-medium text-[#171717]">Upload files or drag and drop</p>
-                    <p className="mt-1 text-[12px] font-medium text-[#737373]">Images, PDFs, screenshots etc.</p>
-                  </div>
-                </button>
+                <>
+                  <input
+                    ref={uploadInputRef}
+                    type="file"
+                    accept={PROJECT_ASSET_ACCEPT}
+                    className="hidden"
+                    onChange={(event) => {
+                      void uploadReferenceFile(event.target.files?.[0] ?? null);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => uploadInputRef.current?.click()}
+                    className="flex min-h-[220px] w-full items-center justify-center rounded-[10px] border-2 border-dashed border-[#D4D4D4] bg-[#FAFAFA] p-6 text-center transition-colors hover:border-[#7B76DF] hover:bg-[#F5F5FF]"
+                  >
+                    <div className="max-w-[190px]">
+                      <UploadSimple size={24} weight="fill" className="mx-auto text-[#525252]" />
+                      <p className="mt-3 text-[15px] font-medium text-[#171717]">Upload files or drag and drop</p>
+                      <p className="mt-1 text-[12px] font-medium text-[#737373]">Images, PDFs, Fonts, Files etc.</p>
+                    </div>
+                  </button>
+                </>
               )}
 
               <div className="mt-8 flex items-center gap-3">
@@ -180,7 +239,11 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
                   <ReferenceCard key={url} label={url} onRemove={() => setReferenceUrls((current) => current.filter((item) => item !== url))} />
                 ))}
                 {uploadedFiles.map((file) => (
-                  <ReferenceCard key={file} label={file} onRemove={() => setUploadedFiles((current) => current.filter((item) => item !== file))} />
+                  <ReferenceCard
+                    key={`${file.name}-${file.size}-${file.key ?? file.status}`}
+                    label={file.error ? `${file.name} - ${file.error}` : file.name}
+                    onRemove={() => setUploadedFiles((current) => current.filter((item) => item !== file))}
+                  />
                 ))}
               </div>
             </div>

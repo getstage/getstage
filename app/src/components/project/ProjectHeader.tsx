@@ -7,6 +7,7 @@ export type ProjectTab = "overview" | "research" | "strategy" | "flows" | "moodb
 type ProjectHeaderProps = {
   project: Project;
   activeTab: ProjectTab;
+  hasWireframes: boolean;
   onTabChange: (tab: ProjectTab) => void;
   onShare: () => void;
   onEditName: () => void;
@@ -100,6 +101,7 @@ const PAGE_TABS = [
 export function ProjectHeader({
   project,
   activeTab,
+  hasWireframes,
   onTabChange,
   onShare,
   onEditName,
@@ -110,6 +112,9 @@ export function ProjectHeader({
   onDelete,
 }: ProjectHeaderProps) {
   const isOwner = project.accessRole !== "editor";
+  const tabs = PAGE_TABS.map((tab) => (
+    tab.key === "generate" ? { ...tab, label: hasWireframes ? "Wireframes" : "Generate" } : tab
+  ));
 
   return (
     <section className="flex flex-col gap-4">
@@ -124,7 +129,7 @@ export function ProjectHeader({
 
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-start gap-2 overflow-x-auto rounded-[8px] bg-[#F5F5F5] p-[2px] scrollbar-hide">
-          {PAGE_TABS.map((tab) => {
+          {tabs.map((tab) => {
             const isActive = tab.key === activeTab;
             return (
               <button

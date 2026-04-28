@@ -17,6 +17,7 @@ const uploadPurposeValidator = v.union(
   v.literal("project-marker"),
   v.literal("portal-logo"),
   v.literal("generated-design"),
+  v.literal("project-asset"),
 );
 
 export const { syncMetadata } = r2.clientApi<DataModel>({
@@ -35,6 +36,8 @@ function getExtensionFromMimeType(mimeType: string, fileName: string) {
       return "webp";
     case "image/svg+xml":
       return "svg";
+    case "image/gif":
+      return "gif";
     case "application/pdf":
       return "pdf";
     case "application/msword":
@@ -47,6 +50,23 @@ function getExtensionFromMimeType(mimeType: string, fileName: string) {
     case "application/csv":
     case "application/vnd.ms-excel":
       return "csv";
+    case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+      return "xlsx";
+    case "application/vnd.ms-powerpoint":
+      return "ppt";
+    case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+      return "pptx";
+    case "font/ttf":
+    case "application/font-sfnt":
+      return "ttf";
+    case "font/otf":
+      return "otf";
+    case "font/woff":
+      return "woff";
+    case "font/woff2":
+      return "woff2";
+    case "application/vnd.figma":
+      return "fig";
     default: {
       const match = fileName.toLowerCase().match(/\.([a-z0-9]+)$/);
       return match?.[1] ?? "bin";
@@ -73,6 +93,8 @@ function buildObjectKey(userId: string, purpose: UploadPurpose, fileName: string
       return `users/${userId}/portal/logo-${uuid}.${extension}`;
     case "generated-design":
       return `users/${userId}/generated-designs/${uuid}.${extension}`;
+    case "project-asset":
+      return `users/${userId}/project-assets/${uuid}.${extension}`;
   }
 }
 

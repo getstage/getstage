@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
+import { useQuery } from "convex/react";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { ProjectDialogs } from "@/components/project/ProjectDialogs";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
@@ -14,6 +15,7 @@ import { MoodboardTab } from "@/components/project/MoodboardTab";
 import { GenerateTab } from "@/components/project/GenerateTab";
 import { AssetsTab } from "@/components/project/AssetsTab";
 import { useProjectDetail } from "@/hooks/useProjectDetail";
+import { api } from "@/lib/convex";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { Task } from "@/types";
 
@@ -32,7 +34,9 @@ export function ProjectDetailPage() {
   const { id } = useParams({ from: "/_authed/project/$id" });
   const projectId = id as Id<"projects">;
   const detail = useProjectDetail(projectId);
+  const generateArtifacts = useQuery(api.projectAi.listArtifacts, { projectId, module: "generate" });
   const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
+  const hasWireframes = (generateArtifacts?.length ?? 0) > 0;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -88,6 +92,7 @@ export function ProjectDetailPage() {
             <ProjectHeader
               project={detail.project}
               activeTab={activeTab}
+              hasWireframes={hasWireframes}
               onTabChange={setActiveTab}
               onShare={() => detail.share.setOpen(true)}
               onEditName={detail.dialogs.openEditNameDialog}
@@ -175,7 +180,7 @@ export function ProjectDetailPage() {
 
           {activeTab === "assets" && (
             <div className="mx-auto w-full max-w-[1200px] pb-[120px] pt-7">
-              <AssetsTab projectName={detail.project.name} />
+              <AssetsTab projectId={projectId} projectName={detail.project.name} />
             </div>
           )}
         </motion.div>

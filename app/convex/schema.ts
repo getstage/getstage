@@ -114,6 +114,7 @@ const uploadPurpose = v.union(
   v.literal("project-marker"),
   v.literal("portal-logo"),
   v.literal("generated-design"),
+  v.literal("project-asset"),
 );
 
 const subscriptionStatus = v.union(

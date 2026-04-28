@@ -5,7 +5,8 @@ export type UploadPurpose =
   | "client-avatar"
   | "project-marker"
   | "portal-logo"
-  | "generated-design";
+  | "generated-design"
+  | "project-asset";
 
 type UploadRule = {
   allowedMimeTypes: string[];
@@ -56,6 +57,56 @@ export const UPLOAD_RULES: Record<UploadPurpose, UploadRule> = {
     allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
     allowedExtensions: [".jpg", ".jpeg", ".png", ".webp"],
     maxBytes: 10 * 1024 * 1024,
+  },
+  "project-asset": {
+    allowedMimeTypes: [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/svg+xml",
+      "image/gif",
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "text/plain",
+      "text/csv",
+      "font/ttf",
+      "font/otf",
+      "font/woff",
+      "font/woff2",
+      "application/font-sfnt",
+      "application/vnd.figma",
+      "application/octet-stream",
+    ],
+    allowedExtensions: [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".webp",
+      ".svg",
+      ".gif",
+      ".pdf",
+      ".doc",
+      ".docx",
+      ".xls",
+      ".xlsx",
+      ".ppt",
+      ".pptx",
+      ".txt",
+      ".csv",
+      ".ttf",
+      ".otf",
+      ".woff",
+      ".woff2",
+      ".fig",
+      ".sketch",
+      ".zip",
+    ],
+    maxBytes: 50 * 1024 * 1024,
   },
 };
 
