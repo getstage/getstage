@@ -40,6 +40,7 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
   const artifacts = useQuery(api.projectAi.listArtifacts, { projectId, module: "moodboard" });
   const runs = useQuery(api.projectAi.listRuns, { projectId, module: "moodboard" });
   const createRun = useMutation(api.projectAi.createRun);
+  const cancelRunMutation = useMutation(api.projectAi.cancelRun);
   const r2GenerateUploadUrl = useMutation(api.r2.generateUploadUrl);
   const r2SyncMetadata = useMutation(api.r2.syncMetadata);
 
@@ -72,13 +73,12 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
   async function launchMoodboardRun() {
     setIsLaunching(true);
     try {
-      const result = await createRun({
+      await createRun({
         projectId,
         module: "moodboard",
         title: `${projectName} moodboard run`,
         inputSummary: `References: ${referenceUrls.length + uploadedFiles.length}`,
       });
-      window.location.assign(`/agents/claude?source=settings&projectId=${projectId}&module=moodboard&runId=${result.runId}`);
     } finally {
       setIsLaunching(false);
     }
@@ -130,9 +130,13 @@ export function MoodboardTab({ projectId, projectName }: MoodboardTabProps) {
       return (
         <div className="pb-20">
           <LoadingWorkflow
+            icon="/logos/projects/Property 1=Moodboard.svg"
             title="Analyzing your Moodboard"
             description="Stage is reading your references and extracting structural patterns — not colors, typography or visual style."
             steps={["Collecting references", "Extracting structural patterns", "Preparing design direction"]}
+            onCancel={() => {
+              if (latestRun) void cancelRunMutation({ runId: latestRun.id, projectId });
+            }}
           />
         </div>
       );

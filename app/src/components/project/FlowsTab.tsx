@@ -59,6 +59,7 @@ export function FlowsTab({ projectId, projectName }: FlowsTabProps) {
   const artifacts = useQuery(api.projectAi.listArtifacts, { projectId, module: "flows" });
   const runs = useQuery(api.projectAi.listRuns, { projectId, module: "flows" });
   const createRun = useMutation(api.projectAi.createRun);
+  const cancelRunMutation = useMutation(api.projectAi.cancelRun);
   const requestArtifactDestination = useMutation(api.projectAi.requestArtifactDestination);
 
   const [isLaunching, setIsLaunching] = useState(false);
@@ -88,13 +89,12 @@ export function FlowsTab({ projectId, projectName }: FlowsTabProps) {
   async function launchFlowsRun() {
     setIsLaunching(true);
     try {
-      const result = await createRun({
+      await createRun({
         projectId,
         module: "flows",
         title: `${projectName} flows run`,
         inputSummary: `Existing flows: ${flows.length}`,
       });
-      window.location.assign(`/agents/claude?source=settings&projectId=${projectId}&module=flows&runId=${result.runId}`);
     } finally {
       setIsLaunching(false);
     }
@@ -110,7 +110,6 @@ export function FlowsTab({ projectId, projectName }: FlowsTabProps) {
       provider: "figma",
       action: "send_to_figjam",
     });
-    window.location.assign(`/agents/claude?source=settings&projectId=${projectId}&artifactId=${firstArtifact.id}&provider=figma&action=send_to_figjam`);
   }
 
   function saveManualFlow() {
@@ -143,9 +142,13 @@ export function FlowsTab({ projectId, projectName }: FlowsTabProps) {
       return (
         <div className="pb-20">
           <LoadingWorkflow
+            icon="/logos/projects/Property 1=Flows.svg"
             title="Generating Flows"
             description="Claude is identifying user journeys, steps, and required screens."
             steps={["Reading strategy", "Mapping key flows", "Identifying unique screens"]}
+            onCancel={() => {
+              if (latestRun) void cancelRunMutation({ runId: latestRun.id, projectId });
+            }}
           />
         </div>
       );

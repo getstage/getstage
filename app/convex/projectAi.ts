@@ -364,6 +364,30 @@ export const createRun = mutation({
   },
 });
 
+export const cancelRun = mutation({
+  args: {
+    runId: v.string(),
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    await requireProjectAccess(ctx, args.projectId);
+    const runId = args.runId as Id<"projectAiRuns">;
+    const run = await ctx.db.get(runId);
+    if (!run) {
+      throw new Error("Run not found");
+    }
+    if (run.status === "completed" || run.status === "failed") {
+      return;
+    }
+    await ctx.db.patch(runId, {
+      status: "failed",
+      errorMessage: "Cancelled by user",
+      completedAt: now(),
+      updatedAt: now(),
+    });
+  },
+});
+
 export const listArtifacts = query({
   args: {
     projectId: v.id("projects"),

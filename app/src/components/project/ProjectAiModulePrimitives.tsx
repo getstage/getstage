@@ -195,29 +195,46 @@ export function LoadingWorkflow({
   title,
   description,
   steps,
+  icon,
+  onCancel,
 }: {
   title: string;
   description: string;
   steps: string[];
+  icon?: string;
+  onCancel?: () => void;
 }) {
   return (
     <ModulePanel bodyClassName="flex min-h-[642px] items-center justify-center px-6">
       <div className="flex w-full max-w-[360px] flex-col items-center text-center">
-        <CircleNotch size={34} className="animate-spin text-[#7B76DF]" />
-        <h2 className="mt-4 text-[20px] font-semibold leading-none text-[#171717]">{title}</h2>
-        <p className="mt-2 text-[13px] font-medium leading-[1.5] text-[#737373]">{description}</p>
-        <div className="mt-8 w-full rounded-[10px] bg-[#F5F5F5] p-2 text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+        {icon ? (
+          <img src={icon} alt="" className="h-11 w-11" />
+        ) : (
+          <CircleNotch size={34} className="animate-spin text-[#7B76DF]" />
+        )}
+        <h2 className="mt-4 text-[16px] font-semibold leading-none text-[#171717]">{title}</h2>
+        <p className="mt-2 max-w-[282px] text-[13px] font-medium leading-[1.5] text-[#525252]">{description}</p>
+        <div className="mt-6 flex flex-col gap-2 text-left">
           {steps.map((step, index) => (
-            <div key={step} className="flex items-center gap-2 rounded-[8px] bg-white px-3 py-2 text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.12)] [&+&]:mt-1">
+            <div key={step} className="flex items-center gap-2 text-[13px] font-medium leading-[1.5] text-[#525252]">
               {index === 0 ? (
-                <CircleNotch size={14} className="animate-spin text-[#7B76DF]" />
+                <CircleNotch size={18} className="shrink-0 animate-spin text-[#7B76DF]" />
               ) : (
-                <CheckCircle size={14} weight="fill" className="text-[#22C55E]" />
+                <CheckCircle size={18} weight="fill" className="shrink-0 text-[#22C55E]" />
               )}
               {step}
             </div>
           ))}
         </div>
+        {onCancel ? (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="mt-8 text-[13px] font-medium text-[#737373] transition-colors hover:text-destructive"
+          >
+            Cancel
+          </button>
+        ) : null}
       </div>
     </ModulePanel>
   );

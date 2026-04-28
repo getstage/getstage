@@ -160,7 +160,7 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
     setIsLaunching(true);
     try {
       await persistContext();
-      const result = await createRun({
+      await createRun({
         projectId,
         module: "research",
         title: `${projectName} research run`,
@@ -171,7 +171,6 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
           hasBriefAttachment: Boolean(briefAttachment || pendingBriefFile),
         }),
       });
-      window.location.assign(`/agents/claude?source=settings&projectId=${projectId}&module=research&runId=${result.runId}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not launch the Claude research run.";
       setUploadError(message);
@@ -190,7 +189,6 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
       provider: "notion",
       action: "export_to_notion",
     });
-    window.location.assign(`/agents/claude?source=settings&projectId=${projectId}&artifactId=${latestArtifact.id}&provider=notion&action=export_to_notion`);
   }
 
   function handleListValueChange(

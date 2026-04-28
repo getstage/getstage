@@ -30,6 +30,7 @@ export function StrategyTab({ projectId, projectName }: StrategyTabProps) {
   const artifacts = useQuery(api.projectAi.listArtifacts, { projectId, module: "strategy" });
   const runs = useQuery(api.projectAi.listRuns, { projectId, module: "strategy" });
   const createRun = useMutation(api.projectAi.createRun);
+  const cancelRunMutation = useMutation(api.projectAi.cancelRun);
   const setArtifactStatus = useMutation(api.projectAi.setArtifactStatus);
   const requestArtifactDestination = useMutation(api.projectAi.requestArtifactDestination);
 
@@ -72,13 +73,12 @@ export function StrategyTab({ projectId, projectName }: StrategyTabProps) {
   const progressPercent = totalCount > 0 ? (approvedCount / totalCount) * 100 : 0;
 
   async function launchStrategyRun() {
-    const result = await createRun({
+    await createRun({
       projectId,
       module: "strategy",
       title: `${projectName} strategy run`,
       inputSummary: `Existing strategy sections: ${sections.length}`,
     });
-    window.location.assign(`/agents/claude?source=settings&projectId=${projectId}&module=strategy&runId=${result.runId}`);
   }
 
   async function sendToNotion() {
@@ -92,7 +92,6 @@ export function StrategyTab({ projectId, projectName }: StrategyTabProps) {
       provider: "notion",
       action: "export_to_notion",
     });
-    window.location.assign(`/agents/claude?source=settings&projectId=${projectId}&artifactId=${firstArtifact.id}&provider=notion&action=export_to_notion`);
   }
 
   if (sections.length === 0) {
@@ -100,9 +99,13 @@ export function StrategyTab({ projectId, projectName }: StrategyTabProps) {
       return (
         <div className="pb-20">
           <LoadingWorkflow
+            icon="/logos/projects/Property 1=Strategy.svg"
             title="Generating Strategy"
             description="Claude is turning research into an actionable project strategy."
             steps={["Analyzing research output", "Mapping project sections", "Preparing approval checklist"]}
+            onCancel={() => {
+              if (latestRun) void cancelRunMutation({ runId: latestRun.id, projectId });
+            }}
           />
         </div>
       );

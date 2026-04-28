@@ -77,14 +77,20 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
     }));
   }, [artifactList]);
 
+  const cancelRun = useMutation(api.projectAi.cancelRun);
+
   async function launchGenerateRun() {
-    const result = await createRun({
+    await createRun({
       projectId,
       module: "generate",
       title: `${projectName} wireframe generation`,
       inputSummary: `Generate ${selectedScreens.length} ${wireframeType ?? "lo-fi"} wireframes. Brand kit: ${brandKit?.name ?? "none"}. Preference: ${layoutPreference || "none"}`,
     });
-    window.location.assign(`/agents/claude?source=settings&projectId=${projectId}&module=generate&runId=${result.runId}`);
+  }
+
+  async function handleCancelRun() {
+    if (!latestRun) return;
+    await cancelRun({ runId: latestRun.id, projectId });
   }
 
   async function handleDestination(artifactId: string | null, action: string) {
@@ -96,7 +102,6 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
       provider: "figma",
       action,
     });
-    window.location.assign(`/agents/claude?source=settings&projectId=${projectId}&artifactId=${artifactId}&provider=figma&action=${encodeURIComponent(action)}`);
   }
 
   async function uploadBrandKit(file: File) {
@@ -141,9 +146,11 @@ export function GenerateTab({ projectId, projectName }: GenerateTabProps) {
     return (
       <div className="pb-20">
         <LoadingWorkflow
-          title="Creating Wireframes"
-          description="Claude is generating screen-level wireframes from flows and moodboard patterns."
-          steps={["Scanned moodboard references", "Scanned approved flows", "Creating screen layouts", "Preparing Figma wireframes"]}
+          icon="/logos/projects/Property 1=Wireframe.svg"
+          title="Creating Wireframe"
+          description="Hold tight, we're building your wireframes based on the moodboard and flows."
+          steps={["Scanned Moodboard", "Scanned Flows", "Creating Layouts", "Create Wireframes"]}
+          onCancel={() => void handleCancelRun()}
         />
       </div>
     );
