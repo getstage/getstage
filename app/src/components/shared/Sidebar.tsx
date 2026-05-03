@@ -5,18 +5,34 @@ import { useQuery as useConvexQuery } from "convex/react";
 import { api } from "@/lib/convex";
 import { Avatar } from "@/components/ui/Avatar";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
+import type { SettingsTab } from "@/types/settings";
 
 const NAV_ITEMS = [
   { name: "Dashboard", to: "/dashboard" as const, icon: "/logos/dashboard/dashboard.svg" },
   { name: "Projects", to: "/dashboard" as const, icon: "/logos/dashboard/projects.svg" },
   { name: "Tasks", to: "/dashboard" as const, icon: "/logos/dashboard/task.svg" },
-  { name: "Integrations", to: "/settings" as const, icon: "/logos/dashboard/integrations.svg" },
+  {
+    name: "Integrations",
+    to: "/settings" as const,
+    tab: "integrations" as SettingsTab,
+    icon: "/logos/dashboard/integrations.svg",
+  },
   { name: "Settings", to: "/settings" as const, icon: "/logos/dashboard/settings.svg" },
-  { name: "Client Portal", to: "/settings" as const, icon: "/logos/dashboard/clientportal.svg" },
+  {
+    name: "Client Portal",
+    to: "/settings" as const,
+    tab: "portal" as SettingsTab,
+    icon: "/logos/dashboard/clientportal.svg",
+  },
 ];
 
-function getDefaultActiveItem(path: string): string {
-  if (path.startsWith("/settings")) return "Settings";
+function getDefaultActiveItem(path: string, search = ""): string {
+  if (path.startsWith("/settings")) {
+    const tab = new URLSearchParams(search).get("tab");
+    if (tab === "integrations") return "Integrations";
+    if (tab === "portal") return "Client Portal";
+    return "Settings";
+  }
   if (path.startsWith("/project") || path.startsWith("/new-project")) return "Projects";
   return "Dashboard";
 }
@@ -28,13 +44,15 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const signOut = useSignOut();
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
+  const currentSearch =
+    typeof window !== "undefined" ? window.location.search : "";
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [activeItem, setActiveItem] = useState(() => getDefaultActiveItem(currentPath));
+  const [activeItem, setActiveItem] = useState(() => getDefaultActiveItem(currentPath, currentSearch));
 
   useEffect(() => {
-    setActiveItem(getDefaultActiveItem(currentPath));
-  }, [currentPath]);
+    setActiveItem(getDefaultActiveItem(currentPath, currentSearch));
+  }, [currentPath, currentSearch]);
 
   const projects = useConvexQuery(
     api.projects.getDockProjects,
@@ -123,6 +141,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                   <Link
                     key={item.name}
                     to={item.to}
+                    search={item.tab ? { tab: item.tab } : undefined}
                     onClick={() => { setActiveItem(item.name); onMobileClose?.(); }}
                     className={`flex items-center outline-none transition-colors ${
                       collapsed

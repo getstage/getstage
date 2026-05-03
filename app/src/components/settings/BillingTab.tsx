@@ -32,19 +32,49 @@ export function BillingTab({
   onOpenUpgradePricing,
   onOpenPortal,
 }: BillingTabProps) {
+  const billingCycle = planCycle.split("·")[0]?.trim() || planCycle;
+  const renewsOn = hasActiveSubscription ? "24/05/2026" : "Not scheduled";
+  const primaryActionLabel = hasActiveSubscription
+    ? isPortalLoading
+      ? "Opening..."
+      : "Manage billing"
+    : isCheckoutLoading
+      ? "Opening..."
+      : "Upgrade to Team Plan";
+
   return (
     <div className={`tab-content ${active ? "active" : ""}`}>
-      <div className="settings-card">
-        <div className="card-body">
-          <div className="card-heading sf">Current plan</div>
-          <div className="card-desc">Your Stage subscription, checkout, and customer portal.</div>
-          <div className="plan-row">
-            <span className="plan-name sf">{planName}</span>
-            <span className="plan-badge">{planStatus}</span>
+      <div className="settings-stack">
+        <div className="settings-section-card">
+          <div className="settings-section-title">Current plan</div>
+          <div className="settings-section-description">
+            Your Stage subscription, checkout, and customer portal.
           </div>
-          <div className="plan-cycle">{planCycle}</div>
-        </div>
-        <div className="card-footer">
+          <div className="settings-row-card settings-plan-card">
+            <div className="settings-plan-copy">
+              <span className="settings-muted-label">Your current plan</span>
+              <span className="plan-name sf">{planName}</span>
+              <span className="plan-badge">{planStatus}</span>
+            </div>
+            <div className="settings-plan-meta">
+              <div>
+                <span className="settings-muted-label">Billing Cycle</span>
+                <strong>{billingCycle}</strong>
+              </div>
+              <div>
+                <span className="settings-muted-label">Renews on</span>
+                <strong>{renewsOn}</strong>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn-primary-gradient settings-plan-action"
+              disabled={isCheckoutLoading || isPortalLoading || isPro}
+              onClick={hasActiveSubscription ? onOpenPortal : onOpenUpgradePricing}
+            >
+              {isPro && !hasActiveSubscription ? "Pro active" : primaryActionLabel}
+            </button>
+          </div>
           <FeedbackText
             feedback={billingFeedback}
             fallback={
@@ -52,60 +82,31 @@ export function BillingTab({
                 ? "Manage your subscription in Stripe Customer Portal"
                 : isPro
                   ? "This workspace already has Pro access."
-                  : "Upgrade to Stage Pro to unlock the live dashboard and API access."
+                : "Upgrade to Stage Pro to unlock the live dashboard and API access."
             }
           />
-          <div className="flex items-center gap-2">
-            {hasActiveSubscription ? (
-              <button
-                type="button"
-                className="btn-outline"
-                disabled={isPortalLoading}
-                onClick={onOpenPortal}
-              >
-                {isPortalLoading ? "Opening..." : "Manage billing"}
-              </button>
-            ) : isPro ? (
-              <button
-                type="button"
-                className="btn-outline"
-                disabled
-              >
-                Pro active
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="btn-outline"
-                disabled={isCheckoutLoading}
-                onClick={onOpenUpgradePricing}
-              >
-                Upgrade
-              </button>
-            )}
-          </div>
         </div>
-      </div>
 
-      <div className="settings-card">
-        <div className="card-body">
-          <div className="card-heading sf">Payment method</div>
-          <div className="card-desc">Card details come from your active Stage subscription.</div>
-          <div className="payment-row">
-            <div className="visa-icon">VISA</div>
-            <span className="payment-text">{paymentText}</span>
+        <div className="settings-section-card">
+          <div className="settings-section-title">Payment method</div>
+          <div className="settings-section-description">
+            Card details come from your active Stage subscription.
           </div>
-        </div>
-        <div className="card-footer">
+          <div className="settings-row-card settings-payment-row">
+            <div className="payment-row">
+              <div className="visa-icon">VISA</div>
+              <span className="payment-text">{paymentText}</span>
+            </div>
+            <button
+              type="button"
+              className="btn-outline"
+              disabled={!hasActiveSubscription || isPortalLoading}
+              onClick={onOpenPortal}
+            >
+              {isPortalLoading ? "Opening..." : "Update Payment Method"}
+            </button>
+          </div>
           <span className="card-footer-text">{paymentProviderText}</span>
-          <button
-            type="button"
-            className="btn-outline"
-            disabled={!hasActiveSubscription || isPortalLoading}
-            onClick={onOpenPortal}
-          >
-            {isPortalLoading ? "Opening..." : "Update"}
-          </button>
         </div>
       </div>
     </div>

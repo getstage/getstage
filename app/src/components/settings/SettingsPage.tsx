@@ -2,6 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { ArrowLeft } from "@phosphor-icons/react";
+import type { ComponentType } from "react";
 import { UpgradePricingModal } from "@/components/billing/UpgradePricingModal";
 import { BillingTab } from "@/components/settings/BillingTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
@@ -11,7 +12,6 @@ import {
   BillingIcon,
   ClientsIcon,
   DeveloperIcon,
-  IntegrationsLinkIcon,
   ProfileIcon,
 } from "@/components/settings/SettingsIcons";
 import { AccountTab } from "@/components/settings/AccountTab";
@@ -29,8 +29,21 @@ import { useSettingsTabs } from "@/features/settings/useSettingsTabs";
 import { useSettingsClients } from "@/hooks/useSettingsClients";
 import { useSettingsOverview } from "@/hooks/useSettingsOverview";
 import "@/styles/settings.css";
+import type { SettingsTab } from "@/types/settings";
 
 const PREVIEW_PORTAL_URL = "/portal/share_acme_2026?preview=1";
+
+const SETTINGS_TABS: Array<{
+  id: Exclude<SettingsTab, "integrations" | "portal">;
+  label: string;
+  icon: ComponentType;
+}> = [
+  { id: "general", label: "Profile", icon: ProfileIcon },
+  { id: "billing", label: "Plans & Billing", icon: BillingIcon },
+  { id: "clients", label: "Clients", icon: ClientsIcon },
+  { id: "developer", label: "Developer", icon: DeveloperIcon },
+  { id: "account", label: "Account", icon: AccountIcon },
+];
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -60,6 +73,18 @@ export function SettingsPage() {
     portalAccentColor: settingsData?.portalBranding.accentColor ?? undefined,
   });
   const previewPortalUrl = PREVIEW_PORTAL_URL;
+  const isIntegrationsPage = activeTab === "integrations";
+  const isPortalPage = activeTab === "portal";
+  const pageTitle = isIntegrationsPage
+    ? "Integrations"
+    : isPortalPage
+      ? "Client Portal"
+      : "Settings";
+  const pageSubtitle = isIntegrationsPage
+    ? "Manage all your integrations and tool connections here"
+    : isPortalPage
+      ? "Manage your shared client workspace"
+      : "Manage your account";
 
   return (
     <>
@@ -71,72 +96,42 @@ export function SettingsPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="settings-page mx-auto flex w-full max-w-[1200px] flex-col px-4 pb-[120px] pt-4 sm:px-10 sm:pt-6 lg:px-14"
+        className={`settings-page settings-page-shell ${
+          isIntegrationsPage ? "settings-page-shell--integrations" : ""
+        } ${isPortalPage ? "settings-page-shell--portal" : ""}`}
       >
         <Link
           to="/dashboard"
-          className="mb-2 ml-1 inline-flex w-fit items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary sm:ml-0"
+          className="settings-back-link"
         >
           <ArrowLeft size={14} />
-          Dashboard
+          Back to dashboard
         </Link>
 
         <div className="settings-page-header">
-          <h1 className="page-title sf">Settings</h1>
-          <p className="page-subtitle">Manage your account</p>
+          <h1 className="page-title sf">{pageTitle}</h1>
+          <p className="page-subtitle">{pageSubtitle}</p>
         </div>
 
         <div className="settings-layout">
-          <aside className="settings-sidebar" aria-label="Settings sections">
-            <button
-              type="button"
-              className={`sidebar-item ${activeTab === "general" ? "active" : ""}`}
-              onClick={() => setActiveTab("general")}
-            >
-              <ProfileIcon />
-              Profile
-            </button>
-            <button
-              type="button"
-              className={`sidebar-item ${activeTab === "integrations" ? "active" : ""}`}
-              onClick={() => setActiveTab("integrations")}
-            >
-              <IntegrationsLinkIcon />
-              Integrations
-            </button>
-            <button
-              type="button"
-              className={`sidebar-item ${activeTab === "billing" ? "active" : ""}`}
-              onClick={() => setActiveTab("billing")}
-            >
-              <BillingIcon />
-              Plan &amp; Billing
-            </button>
-            <button
-              type="button"
-              className={`sidebar-item ${activeTab === "clients" ? "active" : ""}`}
-              onClick={() => setActiveTab("clients")}
-            >
-              <ClientsIcon />
-              Clients
-            </button>
-            <button
-              type="button"
-              className={`sidebar-item ${activeTab === "developer" ? "active" : ""}`}
-              onClick={() => setActiveTab("developer")}
-            >
-              <DeveloperIcon />
-              Developer
-            </button>
-            <button
-              type="button"
-              className={`sidebar-item ${activeTab === "account" ? "active" : ""}`}
-              onClick={() => setActiveTab("account")}
-            >
-              <AccountIcon />
-              Account
-            </button>
-          </aside>
+          {!isIntegrationsPage && !isPortalPage ? (
+            <div className="settings-tabbar" aria-label="Settings sections">
+              {SETTINGS_TABS.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    className={`settings-tab-button ${activeTab === tab.id ? "active" : ""}`}
+                    onClick={() => setActiveTab(tab.id)}
+                  >
+                    <Icon />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
 
           <div className="settings-content">
             <GeneralTab

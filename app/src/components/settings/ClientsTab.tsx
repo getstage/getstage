@@ -14,42 +14,29 @@ export function ClientsTab({ active, clients, isLoading }: ClientsTabProps) {
 
   return (
     <div className={`tab-content ${active ? "active" : ""}`}>
-      <div className="settings-card">
-        <div className="card-body">
-          <div className="card-heading sf">Your clients</div>
-          <div className="card-desc">Manage clients across all your projects.</div>
-
-          <div className="clients-summary-grid">
-            <div className="client-summary-pill">
-              <span className="client-summary-value">{clients.length}</span>
-              <span className="client-summary-label">Clients</span>
-            </div>
-            <div className="client-summary-pill">
-              <span className="client-summary-value">{totalProjects}</span>
-              <span className="client-summary-label">Projects</span>
-            </div>
-          </div>
+      <div className="settings-section-card">
+        <div className="settings-section-title">Your clients</div>
+        <div className="settings-section-description">Manage clients across all your projects.</div>
 
           {isLoading ? (
-            <div className="client-grid">
+            <div className="settings-client-list">
               {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="client-card client-card-skeleton" aria-hidden="true">
-                  <div className="client-card-header">
+                <div key={index} className="settings-client-row client-card-skeleton" aria-hidden="true">
+                  <div className="settings-client-main">
                     <div className="h-10 w-10 rounded-full bg-border-subtle" />
                     <div className="flex-1">
                       <div className="h-3.5 w-24 rounded-full bg-border-subtle" />
                       <div className="mt-2 h-3 w-32 rounded-full bg-border-subtle" />
                     </div>
                   </div>
-                  <div className="mt-5 h-8 rounded-[12px] bg-border-subtle" />
                 </div>
               ))}
             </div>
           ) : clients.length > 0 ? (
-            <div className="client-grid">
+            <div className="settings-client-list">
               {clients.map((client) => (
-                <article key={client.id} className="client-card">
-                  <div className="client-card-header">
+                <article key={client.id} className="settings-client-row">
+                  <div className="settings-client-main">
                     <Avatar
                       name={client.name}
                       src={client.avatarUrl}
@@ -58,31 +45,28 @@ export function ClientsTab({ active, clients, isLoading }: ClientsTabProps) {
                     />
 
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate text-[14px] font-medium text-text-primary">
+                      <div className="settings-client-title-row">
+                        <h3 className="truncate text-[13px] font-medium text-text-primary">
                           {client.name}
                         </h3>
-                        <Badge
-                          variant={client.projectCount > 0 ? "accent" : "default"}
-                          className="shrink-0"
-                        >
-                          {client.projectCount} project{client.projectCount !== 1 ? "s" : ""}
-                        </Badge>
                       </div>
 
                       <p className="mt-1 truncate text-[12px] text-text-secondary">
                         {client.email ?? "No email on file"}
                       </p>
+                      <p className="mt-3 text-[12px] text-text-tertiary">
+                        {client.projectCount > 0
+                          ? "Already linked to active workspace history."
+                          : "Client exists but is not linked to a project yet."}
+                      </p>
                     </div>
                   </div>
-
-                  <div className="client-card-footer">
-                    <span className="text-[12px] text-text-tertiary">
-                      {client.projectCount > 0
-                        ? "Already linked to active workspace history."
-                        : "Client exists but is not linked to a project yet."}
-                    </span>
-                  </div>
+                  <Badge
+                    variant={client.projectCount > 0 ? "accent" : "default"}
+                    className="settings-client-project-badge"
+                  >
+                    {client.projectCount} Project{client.projectCount !== 1 ? "s" : ""}
+                  </Badge>
                 </article>
               ))}
             </div>
@@ -96,6 +80,10 @@ export function ClientsTab({ active, clients, isLoading }: ClientsTabProps) {
               </Link>
             </div>
           )}
+        <div className="settings-client-footer">
+          <span>{totalProjects} Projects</span>
+          <span>•</span>
+          <span>{clients.length} Clients</span>
         </div>
       </div>
     </div>

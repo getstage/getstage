@@ -1,9 +1,15 @@
 import { useState } from "react";
 import type { ChangeEvent, RefObject } from "react";
+import { Briefcase, House, PaintBrushBroad, UploadSimple, UsersThree } from "@phosphor-icons/react";
 import type { SaveFeedback } from "@/hooks/useFeedback";
 import { FeedbackText } from "@/components/settings/FeedbackText";
 
-const ROLE_OPTIONS = ["Freelancer", "Studio", "In-house", "Agency"] as const;
+const ROLE_OPTIONS = [
+  { label: "Freelancer", icon: PaintBrushBroad },
+  { label: "Studio", icon: Briefcase },
+  { label: "In-house", icon: UsersThree },
+  { label: "Agency", icon: House },
+] as const;
 
 type GeneralTabProps = {
   active: boolean;
@@ -36,37 +42,40 @@ export function GeneralTab({
   onSaveName,
   onSaveAvatar,
 }: GeneralTabProps) {
-  const [selectedRole, setSelectedRole] = useState<string>("Freelancer");
+  const [selectedRole, setSelectedRole] = useState<string>("In-house");
 
   return (
     <div className={`tab-content ${active ? "active" : ""}`}>
-      <div className="settings-card">
-        <div className="card-body">
-          <div className="card-heading sf">Full name</div>
-          <div className="card-desc">
-            This is your name as it will be displayed on the platform.
-          </div>
-          <label className="settings-label">Name</label>
-          <input
-            className="settings-input"
-            type="text"
-            value={name}
-            onChange={(event) => onNameChange(event.target.value)}
-          />
-        </div>
-        <div className="card-footer">
-          <FeedbackText feedback={nameFeedback} />
-          <button type="button" className="btn-save" onClick={onSaveName} disabled={isSavingName}>
-            Save
-          </button>
-        </div>
-      </div>
+      <div className="settings-section-card">
+        <div className="settings-section-title">Profile Details</div>
 
-      <div className="settings-card">
-        <div className="card-body">
-          <div className="card-heading sf">Avatar</div>
-          <div className="card-desc">This is what you will look like on the platform.</div>
-          <div className="avatar-row">
+        <div className="settings-row-card">
+          <div className="settings-row-copy">
+            <div className="settings-row-title">Full Name</div>
+            <div className="settings-row-description">
+              This is your name as it will be displayed on the platform.
+            </div>
+          </div>
+          <div className="settings-inline-control">
+            <input
+              className="settings-input settings-input-compact"
+              type="text"
+              value={name}
+              onChange={(event) => onNameChange(event.target.value)}
+            />
+            <button type="button" className="btn-save" onClick={onSaveName} disabled={isSavingName}>
+              Save
+            </button>
+          </div>
+          <FeedbackText feedback={nameFeedback} />
+        </div>
+
+        <div className="settings-row-card">
+          <div className="settings-row-copy">
+            <div className="settings-row-title">Avatar</div>
+            <div className="settings-row-description">This is what you will look like on the platform.</div>
+          </div>
+          <div className="settings-avatar-control">
             <div className="avatar-circle">
               {avatarDataUrl ? <img src={avatarDataUrl} alt="Avatar preview" /> : avatarInitial}
             </div>
@@ -75,7 +84,20 @@ export function GeneralTab({
               className="avatar-browse"
               onClick={() => avatarInputRef.current?.click()}
             >
-              Browse
+              <UploadSimple size={16} />
+              Reupload
+            </button>
+            <span className="settings-spacer" />
+            <button type="button" className="settings-danger-link">
+              Remove
+            </button>
+            <button
+              type="button"
+              className="btn-save"
+              onClick={onSaveAvatar}
+              disabled={isSavingAvatar || !avatarDataUrl}
+            >
+              Save
             </button>
             <input
               ref={avatarInputRef}
@@ -85,48 +107,37 @@ export function GeneralTab({
               className="hidden-file-input"
             />
           </div>
-        </div>
-        <div className="card-footer">
           <FeedbackText feedback={avatarFeedback} fallback="Square image recommended" />
-          <button
-            type="button"
-            className="btn-save"
-            onClick={onSaveAvatar}
-            disabled={isSavingAvatar || !avatarDataUrl}
-          >
-            Save
-          </button>
         </div>
-      </div>
 
-      <div className="settings-card">
-        <div className="card-body">
-          <div className="card-heading sf">Role</div>
-          <div className="card-desc">
-            This helps Stage tailor the experience for you.
+        <div className="settings-row-card">
+          <div className="settings-row-header">
+            <div className="settings-row-copy">
+              <div className="settings-row-title">Role</div>
+              <div className="settings-row-description">
+                This helps Stage tailor the experience for you.
+              </div>
+            </div>
+            <button type="button" className="btn-save">
+              Save
+            </button>
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {ROLE_OPTIONS.map((role) => (
+          <div className="settings-role-grid">
+            {ROLE_OPTIONS.map((role) => {
+              const Icon = role.icon;
+              return (
               <button
-                key={role}
+                key={role.label}
                 type="button"
-                className={`rounded-full border px-4 py-1.5 text-[13px] font-medium transition-colors ${
-                  selectedRole === role
-                    ? "border-accent bg-accent/5 text-accent"
-                    : "border-border-subtle bg-white text-text-secondary hover:border-border-default hover:text-text-primary"
-                }`}
-                onClick={() => setSelectedRole(role)}
+                className={`settings-role-option ${selectedRole === role.label ? "active" : ""}`}
+                onClick={() => setSelectedRole(role.label)}
               >
-                {role}
+                <Icon size={16} weight="fill" />
+                {role.label}
               </button>
-            ))}
+              );
+            })}
           </div>
-        </div>
-        <div className="card-footer">
-          <span />
-          <button type="button" className="btn-save">
-            Save
-          </button>
         </div>
       </div>
     </div>

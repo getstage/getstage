@@ -36,16 +36,13 @@ export function AccountTab({
 
   return (
     <div className={`tab-content ${active ? "active" : ""}`}>
-      <div className="settings-card">
-        <div className="card-body">
-          <div className="card-heading sf">Delete account</div>
-          <div className="card-desc">
+      <div className="settings-section-card">
+        <div className="settings-row-card settings-account-delete">
+          <div className="settings-row-title">Delete account</div>
+          <div className="settings-row-description">
             Permanently delete your account and all associated projects, research, strategies, and
             generated assets. This action is immediate and cannot be undone.
           </div>
-        </div>
-        <div className="card-footer">
-          <span className="card-footer-text">Proceed with caution</span>
           <Dialog.Root
             open={deleteDialogOpen}
             onOpenChange={(open) => {
@@ -56,19 +53,19 @@ export function AccountTab({
             }}
           >
             <button type="button" className="btn-delete" onClick={handleDeleteIntent}>
-              Delete account
+              Delete Account
             </button>
             <Dialog.Portal>
-              <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
-              <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-24px)] max-w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-5 shadow-xl sm:w-[calc(100%-32px)] sm:p-7">
-                <Dialog.Title className="font-heading text-[20px] font-semibold text-text-primary">
+              <Dialog.Overlay className="settings-modal-overlay" />
+              <Dialog.Content className="settings-modal-card settings-account-modal">
+                <Dialog.Title className="settings-modal-title">
                   Delete account
                 </Dialog.Title>
-                <p className="mt-3 text-[14px] leading-[1.6] text-text-secondary">
+                <p className="settings-modal-copy">
                   This deletes your account, projects, uploads, billing state, Stripe connections,
                   Google Sheets connections, and active sessions.
                 </p>
-                <p className="mt-3 text-[14px] leading-[1.6] text-text-secondary">
+                <p className="settings-modal-copy">
                   We also opened a short cancellation form in a new tab. If it did not open,{" "}
                   <a
                     href={DELETE_TALLY_URL}
@@ -80,21 +77,21 @@ export function AccountTab({
                   </a>
                   .
                 </p>
-                <p className="mt-3 text-[14px] leading-[1.6] text-text-secondary">
+                <p className="settings-modal-copy">
                   Type <span className="font-medium text-text-primary">DELETE</span> to confirm.
                 </p>
                 <input
-                  className="settings-input mt-4"
+                  className="settings-input settings-modal-input"
                   type="text"
                   value={deleteConfirmation}
                   onChange={(event) => setDeleteConfirmation(event.target.value)}
                   placeholder="DELETE"
                   autoFocus
                 />
-                <div className="mt-3">
+                <div className="settings-modal-feedback">
                   <FeedbackText feedback={deleteAccountFeedback} />
                 </div>
-                <div className="mt-6 flex items-center justify-end gap-3">
+                <div className="settings-modal-actions">
                   <Dialog.Close asChild>
                     <button type="button" className="btn-outline" disabled={isDeletingAccount}>
                       Cancel
@@ -109,7 +106,7 @@ export function AccountTab({
                       deleteConfirmation.trim().toUpperCase() !== "DELETE"
                     }
                   >
-                    {isDeletingAccount ? "Deleting..." : "Delete account"}
+                    {isDeletingAccount ? "Deleting..." : "Delete Account"}
                   </button>
                 </div>
               </Dialog.Content>

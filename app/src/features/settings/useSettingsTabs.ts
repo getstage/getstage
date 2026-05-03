@@ -24,18 +24,18 @@ export function useSettingsTabs() {
 
   const setActiveTab = useCallback((tab: SettingsTab) => {
     setActiveTabState(tab);
-  }, []);
-
-  const setTabInUrl = useCallback((tab: Exclude<SettingsTab, "general">) => {
-    setActiveTabState(tab);
     const url = new URL(window.location.href);
-    url.searchParams.set("tab", tab);
+    if (tab === "general") {
+      url.searchParams.delete("tab");
+    } else {
+      url.searchParams.set("tab", tab);
+    }
     window.history.pushState({}, "", url.toString());
   }, []);
 
   return {
     activeTab,
     setActiveTab,
-    openBillingTab: () => setTabInUrl("billing"),
+    openBillingTab: () => setActiveTab("billing"),
   };
 }

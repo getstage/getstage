@@ -1,4 +1,11 @@
-export type SettingsTab = "general" | "billing" | "integrations" | "portal" | "developer" | "clients" | "account";
+export type SettingsTab =
+  | "general"
+  | "billing"
+  | "integrations"
+  | "portal"
+  | "developer"
+  | "clients"
+  | "account";
 
 export type ClaudeToolAvailability = "unknown" | "claimed";
 
