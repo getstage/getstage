@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { DesktopShell } from "./app/DesktopShell";
 import { DashboardContextView } from "./app/DashboardContextView";
+import { CreateProjectView } from "./project/components/CreateProjectView";
 import { ProjectDetailView } from "./project/components/ProjectDetailView";
 import { ProjectsOverviewView } from "./project/components/ProjectsOverviewView";
 import { SettingsPageView } from "./settings/components/SettingsPageView";
@@ -34,6 +35,12 @@ const projectsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/projects",
   component: ProjectsOverviewView,
+});
+
+const createProjectRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/projects/create",
+  component: CreateProjectView,
 });
 
 const settingsRoute = createRoute({
@@ -81,6 +88,7 @@ const integrationsRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   projectsRoute,
+  createProjectRoute,
   projectRoute,
   settingsRoute,
   billingRoute,

@@ -75,6 +75,14 @@ button:focus-visible,
   box-shadow: none !important;
 }
 
+button:not(:disabled),
+a[href],
+select:not(:disabled),
+summary,
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
 /* ============================================================
    SCROLLBAR (subtle, premium feel)
    ============================================================ */

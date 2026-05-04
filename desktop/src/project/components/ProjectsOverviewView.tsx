@@ -64,6 +64,7 @@ export function ProjectsOverviewView() {
 
               <button
                 type="button"
+                onClick={() => void navigate({ to: "/projects/create" })}
                 className="flex items-center justify-center gap-[6px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]"
               >
                 <img
