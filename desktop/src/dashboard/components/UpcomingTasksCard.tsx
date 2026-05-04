@@ -24,7 +24,7 @@ export function UpcomingTasksCard({ tasks }: { tasks: DashboardTask[] }) {
     >
       {tasks.length > 0 ? (
         <>
-          <div className="flex flex-col gap-[16px]">
+          <div className="flex w-full flex-col gap-[16px]">
             {tasks.map((task, index) => {
               const urgency = getDueUrgency(task.dueDate);
 
@@ -45,12 +45,12 @@ export function UpcomingTasksCard({ tasks }: { tasks: DashboardTask[] }) {
                         {task.projectName.charAt(0).toUpperCase()}
                       </div>
                     )}
-                    <div className="flex flex-col gap-[4px]">
-                      <p className="text-[13px] font-medium leading-[1.2] text-[#0a0a0a]">
+                    <div className="flex min-w-0 flex-col gap-[4px]">
+                      <p className="truncate text-[13px] font-medium leading-[1.2] text-[#0a0a0a]">
                         {task.title}
                       </p>
-                      <div className="flex items-center gap-[8px]">
-                        <span className="text-[12px] font-medium leading-[1.5] text-[#737373]">
+                      <div className="flex min-w-0 items-center gap-[8px]">
+                        <span className="truncate text-[12px] font-medium leading-[1.5] text-[#737373]">
                           {task.projectName}
                         </span>
                         {urgency.label && (
@@ -68,7 +68,7 @@ export function UpcomingTasksCard({ tasks }: { tasks: DashboardTask[] }) {
               );
             })}
           </div>
-          <p className="mt-[24px] text-[12px] font-normal leading-[1.5] text-[#737373]">
+          <p className="text-[12px] font-normal leading-[1.5] text-[#737373]">
             {tasks.length} task{tasks.length !== 1 ? "s" : ""} due soon
           </p>
         </>

@@ -30,6 +30,19 @@ export const dashboardChartPointSchema = z.object({
   value: z.number().min(0),
 });
 
+export const dashboardPipelineStageSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  accentColor: z.string(),
+  barColor: z.string(),
+});
+
+export const dashboardRevenueSchema = z.object({
+  outstanding: z.string(),
+  received: z.string(),
+  note: z.string(),
+});
+
 export const dashboardSnapshotSchema = z.object({
   greeting: z.string(),
   subheading: z.string(),
@@ -38,10 +51,14 @@ export const dashboardSnapshotSchema = z.object({
   chart: z.array(dashboardChartPointSchema),
   upcomingTasks: z.array(dashboardTaskSchema),
   recentActivity: z.array(dashboardTaskSchema),
+  pipeline: z.array(dashboardPipelineStageSchema),
+  revenue: dashboardRevenueSchema,
 });
 
 export type DashboardMetric = z.infer<typeof dashboardMetricSchema>;
 export type DashboardProject = z.infer<typeof dashboardProjectSchema>;
 export type DashboardTask = z.infer<typeof dashboardTaskSchema>;
 export type DashboardChartPoint = z.infer<typeof dashboardChartPointSchema>;
+export type DashboardPipelineStage = z.infer<typeof dashboardPipelineStageSchema>;
+export type DashboardRevenue = z.infer<typeof dashboardRevenueSchema>;
 export type DashboardSnapshot = z.infer<typeof dashboardSnapshotSchema>;

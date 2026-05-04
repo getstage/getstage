@@ -2,7 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { ActivityTimelineChart } from "../dashboard/components/ActivityTimelineChart";
 import { DashboardHeader } from "../dashboard/components/DashboardHeader";
 import { MetricGrid } from "../dashboard/components/MetricGrid";
+import { ProjectPipelineCard } from "../dashboard/components/ProjectPipelineCard";
 import { RecentActivityCard } from "../dashboard/components/RecentActivityCard";
+import { RevenueOverviewCard } from "../dashboard/components/RevenueOverviewCard";
 import { UpcomingTasksCard } from "../dashboard/components/UpcomingTasksCard";
 import { dashboardSnapshot } from "../dashboard/data/dashboardSnapshot";
 import { useDesktopBridge } from "../hooks/useDesktopBridge";
@@ -29,10 +31,12 @@ export function DashboardContextView() {
 
           <ActivityTimelineChart points={dashboardSnapshot.chart} />
 
-          <div className="flex flex-col gap-[8px]">
-            <div className="flex flex-col gap-[8px] sm:flex-row">
+          <div className="overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[2px]">
+            <div className="grid grid-cols-1 gap-[2px] lg:grid-cols-2">
               <UpcomingTasksCard tasks={dashboardSnapshot.upcomingTasks} />
               <RecentActivityCard entries={dashboardSnapshot.recentActivity} />
+              <ProjectPipelineCard stages={dashboardSnapshot.pipeline} />
+              <RevenueOverviewCard revenue={dashboardSnapshot.revenue} />
             </div>
           </div>
         </div>

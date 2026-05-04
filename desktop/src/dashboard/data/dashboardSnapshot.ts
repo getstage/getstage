@@ -76,4 +76,23 @@ export const dashboardSnapshot = dashboardSnapshotSchema.parse({
       isCompleted: true,
     },
   ],
+  pipeline: [
+    {
+      id: "brief",
+      label: "Brief",
+      accentColor: "#9e99f8",
+      barColor: "linear-gradient(90deg, #9e99f8 0%, rgba(158, 153, 248, 0.75) 50%, #9e99f8 100%)",
+    },
+    {
+      id: "discovery",
+      label: "Discovery",
+      accentColor: "#d4d4d4",
+      barColor: "linear-gradient(90deg, #d6d3d1 0%, rgba(214, 211, 209, 0.75) 50%, #d6d3d1 100%)",
+    },
+  ],
+  revenue: {
+    outstanding: "$0",
+    received: "$0",
+    note: "No payments yet.",
+  },
 });

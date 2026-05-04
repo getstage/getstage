@@ -12,7 +12,7 @@ export function RecentActivityCard({ entries }: { entries: DashboardTask[] }) {
     >
       {entries.length > 0 ? (
         <>
-          <div className="flex flex-col gap-[16px]">
+          <div className="flex w-full flex-col gap-[16px]">
             {entries.map((entry, index) => {
               const actionLabel = entry.isCompleted ? "Completed" : "Updated";
 
@@ -21,12 +21,12 @@ export function RecentActivityCard({ entries }: { entries: DashboardTask[] }) {
                   {index > 0 && (
                     <div className="mb-[16px] h-px w-full bg-[#e5e5e5]" />
                   )}
-                  <div className="flex flex-col gap-[4px]">
-                    <p className="text-[13px] font-medium leading-[1.2] text-[#0a0a0a]">
+                  <div className="flex min-w-0 flex-col gap-[4px]">
+                    <p className="truncate text-[13px] font-medium leading-[1.2] text-[#0a0a0a]">
                       {actionLabel}: {entry.title}
                     </p>
-                    <div className="flex items-center gap-[8px]">
-                      <span className="text-[12px] font-medium leading-[1.5] text-[#737373]">
+                    <div className="flex min-w-0 items-center gap-[8px]">
+                      <span className="truncate text-[12px] font-medium leading-[1.5] text-[#737373]">
                         {entry.projectName}
                       </span>
                       <span className="h-[4px] w-[4px] rounded-full bg-[#d4d4d4]" />
@@ -39,7 +39,7 @@ export function RecentActivityCard({ entries }: { entries: DashboardTask[] }) {
               );
             })}
           </div>
-          <p className="mt-[24px] text-[12px] font-normal leading-[1.5] text-[#737373]">
+          <p className="text-[12px] font-normal leading-[1.5] text-[#737373]">
             {entries.length} update{entries.length !== 1 ? "s" : ""} this month
           </p>
         </>
