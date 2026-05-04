@@ -27,7 +27,7 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
     if (routeKey === "integrations") return pathname === "/integrations";
     if (routeKey === "settings") return pathname.startsWith("/settings") && pathname !== "/settings/portal";
     if (routeKey === "portal") return pathname === "/settings/portal";
-    if (routeKey === "project") return pathname.startsWith("/project/");
+    if (routeKey === "project") return pathname === "/projects" || pathname.startsWith("/project/");
     if (routeKey === "tasks") return false;
     return false;
   }
@@ -38,7 +38,7 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
     if (routeKey === "settings") void navigate({ to: "/settings" });
     if (routeKey === "portal") void navigate({ to: "/settings/portal" });
     if (routeKey === "project") {
-      void navigate({ to: "/project/$projectId", params: { projectId: "test" } });
+      void navigate({ to: "/projects" });
     }
   }
 
