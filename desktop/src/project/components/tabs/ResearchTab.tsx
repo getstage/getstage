@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Project } from "../../models/project";
 
 const mobbinMark = "https://www.figma.com/api/mcp/asset/800c9df1-6961-4e6b-829e-b5ba505589c7";
@@ -125,40 +125,58 @@ export function ResearchTab({ project: _project }: { project: Project }) {
   const [isEditing, setIsEditing] = useState(false);
   const [openPatternGroup, setOpenPatternGroup] = useState<string | null>(null);
   const [competitiveView, setCompetitiveView] = useState<"card" | "matrix">("card");
+  const [openPhoto, setOpenPhoto] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!openPhoto) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpenPhoto(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [openPhoto]);
 
   return (
-    <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <div className="rounded-[8px] bg-white px-[clamp(24px,3.8vw,44px)] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        <div className="flex w-full flex-col gap-[44px]">
-          <ResearchSummary
-            isEditing={isEditing}
-            onEdit={() => setIsEditing(true)}
-            onDiscard={() => setIsEditing(false)}
-            onSave={() => setIsEditing(false)}
-          />
-          <Divider />
-          <CompanySnapshot isEditing={isEditing} />
-          <Divider />
-          <CompetitiveAnalysis
-            isEditing={isEditing}
-            view={competitiveView}
-            onViewChange={setCompetitiveView}
-          />
-          <Divider />
-          <UiPatterns
-            isEditing={isEditing}
-            openGroupId={openPatternGroup}
-            onToggleGroup={(groupId) => setOpenPatternGroup((current) => (current === groupId ? null : groupId))}
-          />
-          <Divider />
-          <TargetUsers isEditing={isEditing} />
-          <Divider />
-          <Opportunities isEditing={isEditing} />
-          <Divider />
-          <ResearchActions />
+    <>
+      <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="rounded-[8px] bg-white px-[clamp(24px,3.8vw,44px)] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <div className="flex w-full flex-col gap-[44px]">
+            <ResearchSummary
+              isEditing={isEditing}
+              onEdit={() => setIsEditing(true)}
+              onDiscard={() => setIsEditing(false)}
+              onSave={() => setIsEditing(false)}
+            />
+            <Divider />
+            <CompanySnapshot isEditing={isEditing} />
+            <Divider />
+            <CompetitiveAnalysis
+              isEditing={isEditing}
+              view={competitiveView}
+              onViewChange={setCompetitiveView}
+            />
+            <Divider />
+            <UiPatterns
+              isEditing={isEditing}
+              openGroupId={openPatternGroup}
+              onToggleGroup={(groupId) => setOpenPatternGroup((current) => (current === groupId ? null : groupId))}
+              onOpenPhoto={setOpenPhoto}
+            />
+            <Divider />
+            <TargetUsers isEditing={isEditing} />
+            <Divider />
+            <Opportunities isEditing={isEditing} />
+            <Divider />
+            <ResearchActions />
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+      {openPhoto ? <PhotoLightbox src={openPhoto} onClose={() => setOpenPhoto(null)} /> : null}
+    </>
   );
 }
 
@@ -444,10 +462,12 @@ function UiPatterns({
   isEditing,
   openGroupId,
   onToggleGroup,
+  onOpenPhoto,
 }: {
   isEditing: boolean;
   openGroupId: string | null;
   onToggleGroup: (groupId: string) => void;
+  onOpenPhoto: (src: string) => void;
 }) {
   return (
     <section className="flex flex-col gap-3">
@@ -470,6 +490,7 @@ function UiPatterns({
             isEditing={isEditing}
             isOpen={openGroupId === group.id}
             onToggle={() => onToggleGroup(group.id)}
+            onOpenPhoto={onOpenPhoto}
           />
         ))}
       </div>
@@ -482,11 +503,13 @@ function UiPatternGroup({
   isEditing,
   isOpen,
   onToggle,
+  onOpenPhoto,
 }: {
   group: typeof uiPatternGroups[number];
   isEditing: boolean;
   isOpen: boolean;
   onToggle: () => void;
+  onOpenPhoto: (src: string) => void;
 }) {
   return (
     <article className="rounded-[10px] bg-[#FAFAFA] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -504,11 +527,17 @@ function UiPatternGroup({
 
       <div className="grid grid-cols-1 gap-1 md:grid-cols-3">
         {group.images.map((src, index) => (
-          <div key={`${group.id}-${src}-${index}`} className="rounded-[8px] bg-white p-2 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <button
+            key={`${group.id}-${src}-${index}`}
+            type="button"
+            onClick={() => onOpenPhoto(src)}
+            className="group rounded-[8px] bg-white p-2 text-left shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-transform hover:-translate-y-px"
+            aria-label={`Open ${group.title} reference ${index + 1}`}
+          >
             <div className="aspect-[1920/1325] overflow-hidden rounded-[4px]">
-              <img src={src} alt="" className="h-full w-full object-cover" />
+              <img src={src} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-[1.01]" />
             </div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -658,6 +687,31 @@ function ResearchActions() {
           Generate Strategy
           <ArrowRightIcon />
         </button>
+      </div>
+    </div>
+  );
+}
+
+function PhotoLightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 p-6 backdrop-blur-[5px]"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Research reference preview"
+    >
+      <button
+        type="button"
+        className="absolute inset-0 cursor-zoom-out"
+        aria-label="Close photo preview"
+        onClick={onClose}
+      />
+      <div className="relative h-[min(828px,calc(100vh-48px))] w-[min(1200px,calc(100vw-48px))] rounded-[4px] shadow-[0_20px_80px_rgba(0,0,0,0.22)]">
+        <img
+          src={src}
+          alt=""
+          className="h-full w-full rounded-[4px] object-cover"
+        />
       </div>
     </div>
   );
