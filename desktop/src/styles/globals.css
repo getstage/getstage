@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   STAGE DESIGN SYSTEM (Desktop)
+   Ported from app/src/styles/globals.css
+   DM Sans (body) + SF Pro Display (headings)
+   Light mode only. Lavender purple accent.
+   ============================================================ */
+
+@theme {
+  /* ---- Base ---- */
+  --color-bg: #FFFFFF;
+  --color-bg-subtle: #FAFAF9;
+  --color-surface: #FFFFFF;
+  --color-text-primary: #1A1A2E;
+  --color-text-secondary: #8C8C8C;
+  --color-text-tertiary: #BFBFBF;
+  --color-border: #E8E8E8;
+  --color-border-subtle: #F0F0F0;
+  --color-input-bg: #F5F5F5;
+
+  /* ---- Accent — Lavender Purple ---- */
+  --color-accent: #8782F5;
+  --color-accent-hover: #7670E0;
+  --color-accent-light: #EEEDFE;
+
+  /* ---- Accent — Cyan (secondary, sparingly) ---- */
+  --color-cyan: #3BAFDA;
+
+  /* ---- Functional ---- */
+  --color-success: #6BC9A0;
+  --color-destructive: #E07070;
+  --color-destructive-hover: #D45A5A;
+  --color-warning: #E5A84B;
+
+  /* ---- Typography ---- */
+  --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+  --font-body: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Override Tailwind default font to use DM Sans */
+  --default-font-family: var(--font-body);
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  line-height: 1.5;
+  font-size: 15px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+button:focus,
+button:focus-visible,
+[role="button"]:focus,
+[role="button"]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* ============================================================
+   SCROLLBAR (subtle, premium feel)
+   ============================================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}
+
+/* ============================================================
+   SELECTION
+   ============================================================ */
+
+::selection {
+  background: var(--color-accent-light);
+  color: var(--color-text-primary);
+}
