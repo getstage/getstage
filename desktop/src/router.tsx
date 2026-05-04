@@ -6,6 +6,8 @@ import {
 } from "@tanstack/react-router";
 import { DesktopShell } from "./app/DesktopShell";
 import { DashboardContextView } from "./app/DashboardContextView";
+import { ProjectDetailView } from "./project/components/ProjectDetailView";
+import { SettingsPageView } from "./settings/components/SettingsPageView";
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -21,7 +23,65 @@ const indexRoute = createRoute({
   component: DashboardContextView,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute]);
+const projectRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/project/$projectId",
+  component: ProjectDetailView,
+});
+
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings",
+  component: () => <SettingsPageView initialTab="profile" />,
+});
+
+const billingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings/billing",
+  component: () => <SettingsPageView initialTab="billing" />,
+});
+
+const clientsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings/clients",
+  component: () => <SettingsPageView initialTab="clients" />,
+});
+
+const developerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings/developer",
+  component: () => <SettingsPageView initialTab="developer" />,
+});
+
+const accountRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings/account",
+  component: () => <SettingsPageView initialTab="account" />,
+});
+
+const portalRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings/portal",
+  component: () => <SettingsPageView initialTab="portal" />,
+});
+
+const integrationsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/integrations",
+  component: () => <SettingsPageView initialTab="integrations" />,
+});
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  projectRoute,
+  settingsRoute,
+  billingRoute,
+  clientsRoute,
+  developerRoute,
+  accountRoute,
+  portalRoute,
+  integrationsRoute,
+]);
 
 export const router = createRouter({ routeTree });
 

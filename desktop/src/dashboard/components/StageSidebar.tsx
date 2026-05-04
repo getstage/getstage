@@ -1,19 +1,40 @@
 import { useState } from "react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import type { DashboardProject } from "../models/dashboard";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 
 const NAV_ITEMS = [
-  { name: "Dashboard", icon: "/logos/dashboard/dashboard.svg" },
-  { name: "Projects", icon: "/logos/dashboard/projects.svg" },
-  { name: "Tasks", icon: "/logos/dashboard/task.svg" },
-  { name: "Integrations", icon: "/logos/dashboard/integrations.svg" },
-  { name: "Settings", icon: "/logos/dashboard/settings.svg" },
-  { name: "Client Portal", icon: "/logos/dashboard/clientportal.svg" },
+  { name: "Dashboard", icon: "/logos/dashboard/dashboard.svg", routeKey: "dashboard" },
+  { name: "Projects", icon: "/logos/dashboard/projects.svg", routeKey: "project" },
+  { name: "Tasks", icon: "/logos/dashboard/task.svg", routeKey: "tasks" },
+  { name: "Integrations", icon: "/logos/dashboard/integrations.svg", routeKey: "integrations" },
+  { name: "Settings", icon: "/logos/dashboard/settings.svg", routeKey: "settings" },
+  { name: "Client Portal", icon: "/logos/dashboard/clientportal.svg", routeKey: "portal" },
 ];
 
 export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [activeItem, setActiveItem] = useState("Dashboard");
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+
+  function getActiveItem(routeKey: string) {
+    if (routeKey === "dashboard") return pathname === "/";
+    if (routeKey === "integrations") return pathname === "/integrations";
+    if (routeKey === "settings") return pathname.startsWith("/settings") && pathname !== "/settings/portal";
+    if (routeKey === "portal") return pathname === "/settings/portal";
+    if (routeKey === "project" || routeKey === "tasks") return pathname.startsWith("/project/");
+    return false;
+  }
+
+  function navigateTo(routeKey: string) {
+    if (routeKey === "dashboard") void navigate({ to: "/" });
+    if (routeKey === "integrations") void navigate({ to: "/integrations" });
+    if (routeKey === "settings") void navigate({ to: "/settings" });
+    if (routeKey === "portal") void navigate({ to: "/settings/portal" });
+    if (routeKey === "project" || routeKey === "tasks") {
+      void navigate({ to: "/project/$projectId", params: { projectId: "test" } });
+    }
+  }
 
   return (
     <nav
@@ -90,13 +111,13 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
             {/* Navigation items */}
             <div className={`flex flex-col gap-[8px] ${collapsed ? "items-center w-full" : ""}`}>
               {NAV_ITEMS.map((item) => {
-                const isActive = activeItem === item.name;
+                const isActive = getActiveItem(item.routeKey);
 
                 return (
                   <button
                     key={item.name}
                     type="button"
-                    onClick={() => setActiveItem(item.name)}
+                    onClick={() => navigateTo(item.routeKey)}
                     className={`flex items-center outline-none transition-colors ${
                       collapsed
                         ? `h-[32px] w-[32px] justify-center rounded-[8px] ${
@@ -166,6 +187,7 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
                 <button
                   key={project.id}
                   type="button"
+                  onClick={() => void navigate({ to: "/project/$projectId", params: { projectId: project.id } })}
                   className={`flex items-center outline-none transition-colors hover:bg-[#ebebeb] ${
                     collapsed
                       ? "h-[32px] w-[32px] justify-center rounded-[8px]"

@@ -4,6 +4,13 @@ Date: 2026-05-04
 Author: Claude Opus 4.6
 Status: **Dashboard redesign COMPLETE — Phases 0-5 done**
 
+Current follow-up scope, added 2026-05-04:
+
+- Continue visual migration from `app/` to `desktop/` with mock data only.
+- Do not wire Convex/backend/native features during this UI pass.
+- Do not move onboarding into desktop.
+- Add project, settings, integrations, and companion-related desktop screens so the design surface exists before architecture decisions.
+
 Reference: `desktop/03-05-desktop-app-plan.md` (original desktop plan)
 Tracker: `desktop/03-05-desktop-build-tracker.md` (existing build progress)
 
@@ -181,9 +188,32 @@ Reference: `app/src/components/shared/AppLayout.tsx`
 
 ## Future Work (NOT in this redesign)
 
-- Project detail pages (`app/src/components/project/`) → desktop
-- Settings pages (`app/src/components/settings/`) → desktop
+- Project detail pages (`app/src/components/project/`) → desktop with mock data first
+- Settings pages (`app/src/components/settings/`) → desktop with mock data first
+- Integrations page (`app/src/components/settings/IntegrationsTab.tsx`) → desktop with mock data first
 - Real Convex data integration (replacing mock `dashboardSnapshot`)
 - Interactive timeline with hover/project markers
 - PipelineCard + PaymentsCard (bottom row dashboard cards)
 - DashboardTimelineSelector dropdown (full implementation)
+
+## Current Mock UI Migration Notes
+
+This is separate from the completed dashboard redesign.
+
+Started:
+
+- `desktop/src/app/WorkspaceFrame.tsx`
+- `desktop/src/settings/models/settings.ts`
+- `desktop/src/settings/data/settingsSnapshot.ts`
+- `desktop/src/settings/components/SettingsIcons.tsx`
+- `desktop/src/settings/components/SettingsPrimitives.tsx`
+- `desktop/src/settings/components/SettingsPageView.tsx`
+- `desktop/src/project/models/project.ts` converted to Zod-backed models
+- `desktop/src/project/data/projectSnapshot.ts` expanded with mock research, moodboard, flows, and assets
+
+Next:
+
+- Add desktop routes.
+- Wire sidebar navigation.
+- Finish project tab mock screens.
+- Verify with `pnpm run typecheck` and `pnpm run build`.

@@ -15,9 +15,9 @@ Electron skill installed:
 - [x] 1. Set up `desktop/` Electron + Vite + React + TypeScript + TanStack skeleton.
 - [x] 2. Add secure Electron foundation: `main.ts`, `preload.ts`, typed IPC bridge, safe BrowserWindow defaults.
 - [x] 3. Copy/adapt current dashboard UI baseline from existing `.tsx` app screens.
-- [ ] 4. Add desktop companion UI: voice/audio bar, companion orb, draggable critique/chat panel, thinking/response states. First pass added.
-- [ ] 5. Add native proof-of-concepts: global shortcut, active app detection, screen capture, permission status.
-- [ ] 6. Prepare website login + `stage://auth` deep-link handler placeholder.
+- [~] 4. Continue mock-only UI migration from `app/` to `desktop/`: project pages, settings pages, integrations, and desktop-only chat/companion polish.
+- [ ] 5. Add native proof-of-concepts later: global shortcut, active app detection, screen capture, permission status.
+- [ ] 6. Prepare website login + `stage://auth` deep-link handler placeholder later.
 - [x] 7. Verify: typecheck/build and confirm Electron dev app starts.
 
 ## Current Status
@@ -49,9 +49,87 @@ Completed:
 - Electron dev smoke starts successfully. The smoke command exits with `143` only because the process is intentionally killed after startup.
 - Desktop scripts explicitly unset `ELECTRON_RUN_AS_NODE` before launching Electron, because this shell can otherwise force Electron into Node mode.
 
+Current active scope:
+
+- **Mock design migration only.**
+- No Convex wiring.
+- No backend work.
+- No real auth.
+- No DB choice yet.
+- No Rust/Swift/native implementation yet.
+- Onboarding is not being moved into desktop; onboarding remains a web flow for now.
+
 Next step:
 
-- Continue Step 4: polish the companion UI states against the Figma audio/chat/critique screens.
+- Continue Step 4 as a UI migration pass: project pages, settings pages, integrations, and project tab mock screens.
+
+---
+
+## Mock UI Migration Pass (2026-05-04, in progress)
+
+Decision from Wessel:
+
+- The desktop app should first copy the existing web app designs as closely as possible.
+- The desktop app should use mock data only during this phase.
+- The partner can later polish/convert extra Figma-specific desktop screens.
+- The current web dashboard design is already the target direction, so desktop should reuse that visual language.
+- Architecture decisions around Convex/Postgres/SQLite/Rust/Swift stay out of this pass.
+
+### Completed in this pass
+
+- Added shared desktop workspace frame:
+  - `desktop/src/app/WorkspaceFrame.tsx`
+  - This keeps the sidebar/content shell reusable across dashboard, project, settings, and integrations screens.
+- Updated dashboard to use `WorkspaceFrame` instead of duplicating shell markup:
+  - `desktop/src/app/DashboardContextView.tsx`
+- Started settings mock structure with Zod models:
+  - `desktop/src/settings/models/settings.ts`
+  - `desktop/src/settings/data/settingsSnapshot.ts`
+- Started settings UI primitives:
+  - `desktop/src/settings/components/SettingsIcons.tsx`
+  - `desktop/src/settings/components/SettingsPrimitives.tsx`
+  - `desktop/src/settings/components/SettingsPageView.tsx`
+- Converted project mock models from plain TypeScript types to Zod-backed schemas:
+  - `desktop/src/project/models/project.ts`
+- Expanded the mock project snapshot for later project tabs:
+  - `desktop/src/project/data/projectSnapshot.ts`
+
+### Completed after this note
+
+- Add TanStack routes for:
+  - `/project/$projectId`
+  - `/settings`
+  - `/settings/billing`
+  - `/settings/clients`
+  - `/settings/developer`
+  - `/settings/account`
+  - `/integrations`
+  - `/settings/portal`
+- Wired `StageSidebar` navigation to the mock routes instead of local-only active state.
+- Added project tab mock screens:
+  - `desktop/src/project/components/tabs/ResearchTab.tsx`
+  - `desktop/src/project/components/tabs/StrategyTab.tsx`
+  - `desktop/src/project/components/tabs/MoodboardTab.tsx`
+  - `desktop/src/project/components/tabs/FlowsTab.tsx`
+  - `desktop/src/project/components/tabs/GenerateTab.tsx`
+  - `desktop/src/project/components/tabs/AssetsTab.tsx`
+- Updated `ProjectDetailView` to use the shared desktop frame and show tab-specific mock screens.
+- Added the Assets tab to `ProjectHeader`.
+- Added route-aware sidebar state using TanStack Router.
+- Added a developer handoff/start guide:
+  - `desktop/05-04-desktop-start-guide.md`
+
+### Verification
+
+- `pnpm run typecheck` passes.
+- `pnpm run build` passes.
+
+### Still to finish in this mock UI migration pass
+
+- Visual review in the running Electron app.
+- Optional: polish exact spacing of project/settings screens against Figma/web screenshots.
+- Optional: add separate mock screen for any missing web-only pages the partner wants inside desktop.
+- Native/Convex/backend work stays paused until architecture is decided.
 
 ---
 
