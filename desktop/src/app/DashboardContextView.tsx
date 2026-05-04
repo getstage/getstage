@@ -19,7 +19,7 @@ export function DashboardContextView() {
 
   return (
     <WorkspaceFrame>
-      <div className="flex-1 p-[44px]">
+      <div className="flex-1 px-[100px] py-[44px]">
         <div className="flex flex-col gap-[44px]">
           <div className="flex flex-col gap-[18px]">
             <DashboardHeader

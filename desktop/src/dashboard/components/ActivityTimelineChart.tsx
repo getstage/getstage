@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 import type { DashboardChartPoint } from "../models/dashboard";
 
 const PLOT_TOP = 89;
@@ -8,7 +9,20 @@ const CHART_HEIGHT = 394;
 const LABEL_TOP = 304;
 const BAR_GAP = 2;
 const STEP_RADIUS = 6;
-const GRID_BLEED_X = 44;
+const GRID_BLEED_X = 100;
+const INDICATOR_TOP = 68;
+const INDICATOR_AVATARS = [
+  { label: "B", variant: "dark" as const },
+  { label: "T", variant: "blue" as const },
+];
+const AVATAR_SIZE = 24;
+const AVATAR_OVERLAP = 13;
+const AVATAR_BUBBLE_PADDING = 4;
+
+function getAvatarBubbleWidth(count: number) {
+  if (count <= 0) return AVATAR_BUBBLE_PADDING * 2;
+  return AVATAR_SIZE * count - AVATAR_OVERLAP * (count - 1) + AVATAR_BUBBLE_PADDING * 2;
+}
 
 function buildRoundedSteppedAreaPath(
   bars: { x: number; width: number; height: number }[],
@@ -87,6 +101,7 @@ export function ActivityTimelineChart({ points }: { points: DashboardChartPoint[
   const gradientId = useId().replace(/:/g, "");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [width, setWidth] = useState(0);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -115,9 +130,15 @@ export function ActivityTimelineChart({ points }: { points: DashboardChartPoint[
   }, [width, barCount, points, max]);
 
   const areaPath = useMemo(() => buildRoundedSteppedAreaPath(bars), [bars]);
+  const activeBar = activeIndex === null ? undefined : bars[activeIndex];
 
   return (
-    <div ref={containerRef} className="relative" style={{ height: CHART_HEIGHT }}>
+    <div
+      ref={containerRef}
+      className="relative"
+      style={{ height: CHART_HEIGHT }}
+      onPointerLeave={() => setActiveIndex(null)}
+    >
       {width > 0 && (
         <svg
           width={width}
@@ -185,7 +206,72 @@ export function ActivityTimelineChart({ points }: { points: DashboardChartPoint[
               strokeLinejoin="round"
             />
           )}
+
+          {activeBar && activeBar.height > 0 && (
+            <g pointerEvents="none">
+              <line
+                x1={activeBar.x + activeBar.width / 2}
+                y1={INDICATOR_TOP}
+                x2={activeBar.x + activeBar.width / 2}
+                y2={PLOT_BASE_Y}
+                stroke="#3b368e"
+                strokeWidth="1"
+                strokeDasharray="2 3"
+              />
+              <circle
+                cx={activeBar.x + activeBar.width / 2}
+                cy={PLOT_BASE_Y - activeBar.height}
+                r="3"
+                fill="#3b368e"
+              />
+            </g>
+          )}
         </svg>
+      )}
+
+      {activeBar && activeBar.height > 0 && (
+        <div
+          className="pointer-events-none absolute flex items-center rounded-full bg-[#e7e6fd] p-[4px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.35)]"
+          style={{
+            left: Math.min(
+              activeBar.x + activeBar.width / 2 + 10,
+              Math.max(0, width - getAvatarBubbleWidth(INDICATOR_AVATARS.length)),
+            ),
+            top: Math.max(0, PLOT_BASE_Y - activeBar.height - 12),
+          }}
+          aria-hidden="true"
+        >
+          <div className="flex items-center">
+            {INDICATOR_AVATARS.map((avatar, index) => (
+              <ProjectBadge
+                key={avatar.label}
+                label={avatar.label}
+                variant={avatar.variant}
+                className={cn(index > 0 && "-ml-[13px]", index === 0 ? "z-[2]" : "z-[1]")}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {width > 0 && (
+        <div className="absolute left-0 top-0 h-full w-full">
+          {bars.map((bar, index) => (
+            <button
+              key={points[index]?.label ?? index}
+              type="button"
+              className="absolute top-0 h-full cursor-crosshair outline-none"
+              style={{
+                left: bar.x,
+                width: bar.width,
+              }}
+              onPointerEnter={() => setActiveIndex(index)}
+              onFocus={() => setActiveIndex(index)}
+              onBlur={() => setActiveIndex(null)}
+              aria-label={`${points[index]?.label ?? "Point"}: ${points[index]?.value ?? 0}`}
+            />
+          ))}
+        </div>
       )}
 
       <div
@@ -196,12 +282,42 @@ export function ActivityTimelineChart({ points }: { points: DashboardChartPoint[
         {points.map((point, i) => (
           <span
             key={point.label}
-            className={i === 0 ? "text-left" : i === points.length - 1 ? "text-right" : "text-center"}
+            className={
+              i === activeIndex
+                ? "text-center text-[#737373]"
+                : i === 0
+                  ? "text-left"
+                  : i === points.length - 1
+                    ? "text-right"
+                    : "text-center"
+            }
           >
             {point.label}
           </span>
         ))}
       </div>
+    </div>
+  );
+}
+
+function ProjectBadge({
+  label,
+  className,
+  variant = "dark",
+}: {
+  label: string;
+  className?: string;
+  variant?: "dark" | "blue";
+}) {
+  return (
+    <div
+      className={cn(
+        "relative flex h-[24px] w-[24px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#fafafa] text-[9px] font-semibold text-white",
+        variant === "blue" ? "bg-[#1687ff]" : "bg-[#171717]",
+        className,
+      )}
+    >
+      {label}
     </div>
   );
 }

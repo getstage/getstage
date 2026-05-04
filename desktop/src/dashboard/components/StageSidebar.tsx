@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import type { DashboardProject } from "../models/dashboard";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
+import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { name: "Dashboard", icon: "/logos/dashboard/dashboard.svg", routeKey: "dashboard" },
@@ -14,15 +15,20 @@ const NAV_ITEMS = [
 
 export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const activeProjectId = pathname.startsWith("/project/")
+    ? decodeURIComponent(pathname.split("/")[2] ?? "")
+    : "";
 
   function getActiveItem(routeKey: string) {
     if (routeKey === "dashboard") return pathname === "/";
     if (routeKey === "integrations") return pathname === "/integrations";
     if (routeKey === "settings") return pathname.startsWith("/settings") && pathname !== "/settings/portal";
     if (routeKey === "portal") return pathname === "/settings/portal";
-    if (routeKey === "project" || routeKey === "tasks") return pathname.startsWith("/project/");
+    if (routeKey === "project") return pathname.startsWith("/project/");
+    if (routeKey === "tasks") return false;
     return false;
   }
 
@@ -31,31 +37,45 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
     if (routeKey === "integrations") void navigate({ to: "/integrations" });
     if (routeKey === "settings") void navigate({ to: "/settings" });
     if (routeKey === "portal") void navigate({ to: "/settings/portal" });
-    if (routeKey === "project" || routeKey === "tasks") {
+    if (routeKey === "project") {
       void navigate({ to: "/project/$projectId", params: { projectId: "test" } });
     }
   }
 
+  const labelClassName = cn(
+    "min-w-0 overflow-hidden truncate whitespace-nowrap text-[13px] font-medium transition-[max-width,opacity] duration-200 ease-out",
+    collapsed ? "max-w-0 opacity-0" : "max-w-[150px] opacity-100",
+  );
+
   return (
     <nav
-      className={`flex h-full shrink-0 flex-col justify-between overflow-hidden rounded-[6px] bg-[#f5f5f5] py-[16px] transition-all duration-200 ${
-        collapsed ? "w-[60px] items-center px-[8px]" : "w-[240px] px-[12px]"
-      }`}
+      className={cn(
+        "flex h-full shrink-0 flex-col justify-between overflow-hidden rounded-[8px] bg-[#f5f5f5] pb-[16px] pt-[58px] transition-[width,padding] duration-200 ease-out",
+        collapsed ? "w-[48px] items-center px-[8px]" : "w-[240px] px-[12px]",
+      )}
     >
       {/* Top section */}
-      <div className={`flex flex-col gap-[28px] ${collapsed ? "items-center w-full" : ""}`}>
+      <div className={cn("flex w-full flex-col gap-[28px]", collapsed && "items-center")}>
         {/* Logo + sidebar toggle */}
-        <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
+        <div className={cn("flex w-full items-center", collapsed ? "justify-center" : "justify-between")}>
           {collapsed ? (
             <button
               type="button"
               onClick={() => setCollapsed(false)}
-              className="cursor-pointer outline-none"
+              className="group relative flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[6px] outline-none transition-colors hover:bg-[#ebebeb]"
+              aria-label="Expand sidebar"
             >
               <img
                 src="/apple-touch-icon.png"
-                alt="Stage"
-                className="h-[24px] w-[24px]"
+                alt=""
+                aria-hidden="true"
+                className="h-[22px] w-[22px] transition-opacity duration-150 group-hover:opacity-0"
+              />
+              <img
+                src="/logos/dashboard/close.svg"
+                alt=""
+                aria-hidden="true"
+                className="absolute h-[20px] w-[20px] rotate-180 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
               />
             </button>
           ) : (
@@ -79,37 +99,57 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
         </div>
 
         {/* Search + nav */}
-        <div className={`flex flex-col gap-[28px] ${collapsed ? "w-full items-center" : ""}`}>
-          <div className={`flex flex-col gap-[16px] ${collapsed ? "w-full items-center" : ""}`}>
+        <div className={cn("flex w-full flex-col gap-[28px]", collapsed && "items-center")}>
+          <div className={cn("flex w-full flex-col gap-[16px]", collapsed && "items-center")}>
             {/* Search box */}
-            {collapsed ? (
+            <div
+              onClick={() => collapsed && setCollapsed(false)}
+              className={cn(
+                "flex h-[32px] items-center overflow-hidden rounded-[6px] bg-white text-[#525252] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.15)] transition-[width,padding,gap] duration-200 ease-out",
+                collapsed
+                  ? "w-[32px] justify-center gap-0 px-0"
+                  : "w-full justify-start gap-[8px] px-[12px]",
+              )}
+            >
+              <img
+                src="/logos/dashboard/search.svg"
+                alt=""
+                aria-hidden="true"
+                className="h-[15px] w-[15px] shrink-0"
+              />
+              <input
+                type="text"
+                role="searchbox"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                aria-label="Search"
+                tabIndex={collapsed ? -1 : 0}
+                className={cn(
+                  labelClassName,
+                  "bg-transparent p-0 text-[#525252] outline-none placeholder:text-[#525252]",
+                )}
+                placeholder="Search here..."
+              />
               <button
                 type="button"
-                onClick={() => setCollapsed(false)}
-                className="flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[6px] bg-white shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.15)]"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setSearchQuery("");
+                }}
+                aria-label="Clear search"
+                className={cn(
+                  "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[4px] text-[#a3a3a3] transition-[opacity,width] duration-150 hover:text-[#525252]",
+                  collapsed || searchQuery.length === 0 ? "w-0 opacity-0" : "opacity-100",
+                )}
               >
-                <img
-                  src="/logos/dashboard/search.svg"
-                  alt="Search"
-                  className="h-[15px] w-[15px]"
-                />
-              </button>
-            ) : (
-              <div className="flex w-full items-center gap-[8px] rounded-[6px] bg-white px-[12px] py-[6px] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.15)]">
-                <img
-                  src="/logos/dashboard/search.svg"
-                  alt=""
-                  aria-hidden="true"
-                  className="h-[15px] w-[15px]"
-                />
-                <span className="text-[13px] font-medium text-[#525252]">
-                  Search here...
+                <span aria-hidden="true" className="text-[17px] leading-none">
+                  ×
                 </span>
-              </div>
-            )}
+              </button>
+            </div>
 
             {/* Navigation items */}
-            <div className={`flex flex-col gap-[8px] ${collapsed ? "items-center w-full" : ""}`}>
+            <div className={cn("flex w-full flex-col gap-[8px]", collapsed && "items-center")}>
               {NAV_ITEMS.map((item) => {
                 const isActive = getActiveItem(item.routeKey);
 
@@ -118,35 +158,43 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
                     key={item.name}
                     type="button"
                     onClick={() => navigateTo(item.routeKey)}
-                    className={`flex items-center outline-none transition-colors ${
+                    aria-label={item.name}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cn(
+                      "flex h-[32px] items-center overflow-hidden outline-none transition-[width,padding,gap,background-color,color,box-shadow,border-color] duration-200 ease-out",
                       collapsed
-                        ? `h-[32px] w-[32px] justify-center rounded-[8px] ${
-                            isActive
-                              ? "bg-[#e5e5e5]"
-                              : "bg-transparent hover:bg-[#ebebeb]"
-                          }`
-                        : `w-full gap-[8px] rounded-[6px] px-[12px] py-[6px] ${
-                            isActive
-                              ? "bg-[#e5e5e5] text-[#0a0a0a]"
-                              : "bg-transparent text-[#525252] hover:bg-[#ebebeb]"
-                          }`
-                    }`}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={`h-[15px] w-[15px] shrink-0 ${isActive ? "opacity-100" : "opacity-70"}`}
-                      style={{
-                        backgroundColor: "currentColor",
-                        WebkitMask: `url("${item.icon}") center / contain no-repeat`,
-                        mask: `url("${item.icon}") center / contain no-repeat`,
-                      }}
-                    />
-                    {collapsed ? <span className="sr-only">{item.name}</span> : null}
-                    {!collapsed && (
-                      <span className="text-[13px] font-medium">
-                        {item.name}
-                      </span>
+                        ? "w-[32px] justify-center gap-0 rounded-[6px] px-0"
+                        : "w-full justify-start gap-[8px] rounded-[6px] px-[12px]",
+                      isActive
+                        ? "border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0a0a0a] text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]"
+                        : "bg-[#f5f5f5] text-[#525252] hover:bg-[#ebebeb]",
                     )}
+                  >
+                    {item.routeKey === "dashboard" ? (
+                      <span
+                        aria-hidden="true"
+                        className="h-[15px] w-[15px] shrink-0 bg-current"
+                        style={{
+                          WebkitMask: `url("${item.icon}") center / contain no-repeat`,
+                          mask: `url("${item.icon}") center / contain no-repeat`,
+                        }}
+                      />
+                    ) : (
+                      <img
+                        src={item.icon}
+                        alt=""
+                        aria-hidden="true"
+                        className={cn(
+                          "h-[15px] w-[15px] shrink-0",
+                          isActive
+                            ? "brightness-0 invert"
+                            : "[filter:brightness(0)_saturate(100%)_invert(32%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(93%)_contrast(90%)]",
+                        )}
+                      />
+                    )}
+                    <span aria-hidden={collapsed} className={labelClassName}>
+                      {item.name}
+                    </span>
                   </button>
                 );
               })}
@@ -154,82 +202,97 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
           </div>
 
           {/* Projects section */}
-          <div className={`flex flex-col gap-[12px] ${collapsed ? "w-full items-center" : ""}`}>
-            {!collapsed && (
-              <div className="flex items-center justify-between px-[12px]">
-                <div className="flex items-center gap-[8px]">
-                  <img
-                    src="/logos/dashboard/folder.svg"
-                    alt=""
-                    aria-hidden="true"
-                    className="h-[15px] w-[15px]"
-                  />
-                  <span className="text-[13px] font-medium text-[#525252]">
-                    Projects
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="flex items-center rounded-[4px] bg-white p-[4px] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] outline-none transition-colors hover:bg-[#fafafa]"
-                >
-                  <img
-                    src="/logos/dashboard/plus.svg"
-                    alt="New project"
-                    className="h-[12px] w-[12px]"
-                  />
-                </button>
+          <div className={cn("flex w-full flex-col gap-[12px]", collapsed && "items-center")}>
+            <div
+              aria-hidden={collapsed}
+              className={cn(
+                "flex items-center justify-between px-[12px] transition-[max-height,opacity,margin] duration-200 ease-out",
+                collapsed ? "max-h-0 overflow-hidden opacity-0" : "max-h-[28px] overflow-visible opacity-100",
+              )}
+            >
+              <div className="flex items-center gap-[8px]">
+                <img
+                  src="/logos/dashboard/folder.svg"
+                  alt=""
+                  aria-hidden="true"
+                  className="h-[15px] w-[15px]"
+                />
+                <span className="whitespace-nowrap text-[13px] font-medium text-[#525252]">
+                  Projects
+                </span>
               </div>
-            )}
+              <button
+                type="button"
+                className="flex h-[20px] w-[20px] items-center justify-center rounded-[4px] bg-white shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] outline-none transition-colors hover:bg-[#fafafa]"
+              >
+                <img
+                  src="/logos/dashboard/plus.svg"
+                  alt="New project"
+                  className="h-[12px] w-[12px]"
+                />
+              </button>
+            </div>
 
             {/* Project list */}
-            <div className={`flex flex-col gap-[8px] ${collapsed ? "items-center w-full" : ""}`}>
-              {projects.map((project) => (
-                <button
-                  key={project.id}
-                  type="button"
-                  onClick={() => void navigate({ to: "/project/$projectId", params: { projectId: project.id } })}
-                  className={`flex items-center outline-none transition-colors hover:bg-[#ebebeb] ${
-                    collapsed
-                      ? "h-[32px] w-[32px] justify-center rounded-[8px]"
-                      : "w-full gap-[8px] rounded-[6px] px-[12px] py-[6px]"
-                  }`}
-                >
-                  {project.projectImageUrl ? (
-                    <img
-                      src={project.projectImageUrl}
-                      alt={collapsed ? project.name : ""}
-                      className="h-[24px] w-[24px] shrink-0 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div
-                      className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full text-[10px] font-medium text-white"
-                      style={{ background: project.accentColor }}
+            <div className={cn("flex w-full flex-col gap-[8px]", collapsed && "items-center")}>
+              {projects.map((project) => {
+                const isActive = activeProjectId === project.id;
+
+                return (
+                  <button
+                    key={project.id}
+                    type="button"
+                    onClick={() => void navigate({ to: "/project/$projectId", params: { projectId: project.id } })}
+                    aria-label={project.name}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cn(
+                      "flex h-[36px] items-center overflow-hidden outline-none transition-[width,padding,gap,background-color,box-shadow] duration-200 ease-out",
+                      collapsed
+                        ? "w-[32px] justify-center gap-0 rounded-[6px] px-0"
+                        : "w-full justify-start gap-[8px] rounded-[6px] px-[12px]",
+                      isActive ? "bg-white shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.15)]" : "bg-[#f5f5f5] hover:bg-[#ebebeb]",
+                    )}
+                  >
+                    {project.projectImageUrl ? (
+                      <img
+                        src={project.projectImageUrl}
+                        alt={collapsed ? project.name : ""}
+                        className="h-[24px] w-[24px] shrink-0 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full text-[10px] font-medium text-white"
+                        style={{ background: project.accentColor }}
+                      >
+                        {project.logoLabel}
+                      </div>
+                    )}
+                    <span
+                      aria-hidden={collapsed}
+                      className={cn(labelClassName, isActive ? "text-[#0a0a0a]" : "text-[#525252]")}
                     >
-                      {project.logoLabel}
-                    </div>
-                  )}
-                  {!collapsed && (
-                    <span className="truncate text-[13px] font-medium text-[#525252]">
                       {project.name}
                     </span>
-                  )}
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
 
       {/* Bottom section */}
-      <div className={`flex flex-col gap-[8px] ${collapsed ? "items-center w-full" : ""}`}>
+      <div className={cn("flex w-full flex-col gap-[8px]", collapsed && "items-center")}>
         {/* Help & Feedback */}
         <button
           type="button"
-          className={`flex items-center transition-colors hover:bg-[#ebebeb] ${
+          aria-label="Help & Feedback"
+          className={cn(
+            "flex h-[32px] items-center overflow-hidden bg-[#f5f5f5] text-[#525252] transition-[width,padding,gap,background-color] duration-200 ease-out hover:bg-[#ebebeb]",
             collapsed
-              ? "h-[32px] w-[32px] justify-center rounded-[8px]"
-              : "gap-[8px] rounded-[6px] px-[12px] py-[6px] text-[#525252]"
-          }`}
+              ? "w-[32px] justify-center gap-0 rounded-[6px] px-0"
+              : "w-full justify-start gap-[8px] rounded-[6px] px-[12px]",
+          )}
         >
           <img
             src="/logos/dashboard/question.svg"
@@ -237,40 +300,39 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
             aria-hidden={!collapsed}
             className="h-[15px] w-[15px]"
           />
-          {!collapsed && (
-            <span className="text-[13px] font-medium">
-              Help & Feedback
-            </span>
-          )}
+          <span aria-hidden={collapsed} className={labelClassName}>
+            Help & Feedback
+          </span>
         </button>
 
         {/* User profile */}
         <button
           type="button"
-          className={`flex cursor-pointer items-center outline-none transition-colors hover:bg-[#ebebeb] ${
+          aria-label="Pratik Singh"
+          className={cn(
+            "flex h-[36px] cursor-pointer items-center overflow-hidden bg-[#f5f5f5] outline-none transition-[width,padding,background-color] duration-200 ease-out hover:bg-[#ebebeb]",
             collapsed
-              ? "h-[32px] w-[32px] justify-center rounded-[8px]"
-              : "w-full justify-between rounded-[6px] px-[12px] py-[6px]"
-          }`}
+              ? "w-[32px] justify-center rounded-[6px] px-0"
+              : "w-full justify-between rounded-[6px] px-[12px]",
+          )}
         >
-          <div className="flex items-center gap-[8px]">
+          <div className={cn("flex items-center", collapsed ? "gap-0" : "gap-[8px]")}>
             <div className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-[#e5e5e5] text-[10px] font-medium text-[#525252]">
               PS
             </div>
-            {!collapsed && (
-              <span className="text-[13px] font-medium text-[#0a0a0a]">
-                Pratik Singh
-              </span>
-            )}
+            <span aria-hidden={collapsed} className={cn(labelClassName, "text-[#0a0a0a]")}>
+              Pratik Singh
+            </span>
           </div>
-          {!collapsed && (
-            <img
-              src="/logos/dashboard/dots.svg"
-              alt=""
-              aria-hidden="true"
-              className="h-[15px] w-[15px]"
-            />
-          )}
+          <img
+            src="/logos/dashboard/dots.svg"
+            alt=""
+            aria-hidden="true"
+            className={cn(
+              "h-[15px] shrink-0 transition-[width,opacity] duration-150",
+              collapsed ? "w-0 opacity-0" : "w-[15px] opacity-100",
+            )}
+          />
         </button>
       </div>
     </nav>
