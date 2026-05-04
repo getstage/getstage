@@ -1,29 +1,78 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { DashboardChartPoint } from "../models/dashboard";
 
-const BAR_MAX_HEIGHT = 200;
-const CHART_HEIGHT = 240;
+const PLOT_TOP = 89;
+const PLOT_BASE_Y = 297;
+const BAR_MAX_HEIGHT = 208;
+const CHART_HEIGHT = 394;
+const LABEL_TOP = 304;
 const BAR_GAP = 2;
+const STEP_RADIUS = 6;
+const GRID_BLEED_X = 44;
 
-function buildSteppedAreaPath(
+function buildRoundedSteppedAreaPath(
   bars: { x: number; width: number; height: number }[],
 ) {
   if (bars.length === 0) return "";
 
-  const baseY = BAR_MAX_HEIGHT;
+  const baseY = PLOT_BASE_Y;
   const first = bars[0];
   if (!first) return "";
 
+  const firstTop = baseY - first.height;
   const commands = [`M ${first.x} ${baseY}`];
-  let previousTop = baseY;
+  let currentTop = firstTop;
 
-  for (const bar of bars) {
+  if (first.height > 0) {
+    commands.push(`L ${first.x} ${firstTop + STEP_RADIUS}`);
+    commands.push(`Q ${first.x} ${firstTop} ${first.x + STEP_RADIUS} ${firstTop}`);
+  } else {
+    commands.push(`L ${first.x} ${firstTop}`);
+  }
+
+  for (let index = 0; index < bars.length; index += 1) {
+    const bar = bars[index];
+    const nextBar = bars[index + 1];
+    if (!bar) continue;
+
     const top = baseY - bar.height;
     const right = bar.x + bar.width;
-    commands.push(`L ${bar.x} ${previousTop}`);
-    commands.push(`L ${bar.x} ${top}`);
-    commands.push(`L ${right} ${top}`);
-    previousTop = top;
+
+    if (top !== currentTop) {
+      commands.push(`L ${bar.x} ${currentTop}`);
+      if (bar.height > 0) {
+        commands.push(`L ${bar.x} ${top + STEP_RADIUS}`);
+        commands.push(`Q ${bar.x} ${top} ${bar.x + STEP_RADIUS} ${top}`);
+      } else {
+        commands.push(`L ${bar.x} ${top}`);
+      }
+      currentTop = top;
+    }
+
+    if (nextBar) {
+      const nextTop = baseY - nextBar.height;
+      const radius = Math.min(
+        STEP_RADIUS,
+        bar.width / 2,
+        Math.abs(nextTop - top) / 2 || STEP_RADIUS,
+      );
+
+      if (nextTop === top) {
+        commands.push(`L ${right} ${top}`);
+      } else {
+        commands.push(`L ${right - radius} ${top}`);
+        commands.push(`Q ${right} ${top} ${right} ${top + Math.sign(nextTop - top) * radius}`);
+        commands.push(`L ${right} ${nextTop - Math.sign(nextTop - top) * radius}`);
+        commands.push(`Q ${right} ${nextTop} ${right + radius} ${nextTop}`);
+      }
+
+      currentTop = nextTop;
+    } else if (bar.height > 0) {
+      commands.push(`L ${right - STEP_RADIUS} ${top}`);
+      commands.push(`Q ${right} ${top} ${right} ${top + STEP_RADIUS}`);
+    } else {
+      commands.push(`L ${right} ${top}`);
+    }
   }
 
   const last = bars[bars.length - 1];
@@ -61,11 +110,11 @@ export function ActivityTimelineChart({ points }: { points: DashboardChartPoint[
     return points.map((point, i) => ({
       x: i * (barWidth + BAR_GAP),
       width: barWidth,
-      height: Math.max(4, (point.value / max) * BAR_MAX_HEIGHT),
+      height: point.value <= 0 ? 0 : Math.max(4, (point.value / max) * BAR_MAX_HEIGHT),
     }));
   }, [width, barCount, points, max]);
 
-  const areaPath = useMemo(() => buildSteppedAreaPath(bars), [bars]);
+  const areaPath = useMemo(() => buildRoundedSteppedAreaPath(bars), [bars]);
 
   return (
     <div ref={containerRef} className="relative" style={{ height: CHART_HEIGHT }}>
@@ -74,55 +123,80 @@ export function ActivityTimelineChart({ points }: { points: DashboardChartPoint[
           width={width}
           height={CHART_HEIGHT}
           viewBox={`0 0 ${width} ${CHART_HEIGHT}`}
-          className="absolute inset-0"
+          className="absolute inset-0 overflow-visible"
         >
           <defs>
-            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgba(135,130,245,0.45)" />
-              <stop offset="100%" stopColor="rgba(135,130,245,0.12)" />
+            <linearGradient
+              id={gradientId}
+              x1="0"
+              y1={PLOT_TOP}
+              x2="0"
+              y2={PLOT_BASE_Y}
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0%" stopColor="#9e99f8" />
+              <stop offset="100%" stopColor="#6b63d8" />
             </linearGradient>
           </defs>
 
-          {/* Dashed grid lines */}
-          <line x1="0" y1={BAR_MAX_HEIGHT * 0.33} x2={width} y2={BAR_MAX_HEIGHT * 0.33}
-            stroke="#e4e4e4" strokeWidth="1" strokeDasharray="4 4" />
-          <line x1="0" y1={BAR_MAX_HEIGHT * 0.66} x2={width} y2={BAR_MAX_HEIGHT * 0.66}
-            stroke="#e4e4e4" strokeWidth="1" strokeDasharray="4 4" />
-          <line x1="0" y1={BAR_MAX_HEIGHT} x2={width} y2={BAR_MAX_HEIGHT}
-            stroke="#d8d8d8" strokeWidth="1" strokeDasharray="4 4" />
+          <line
+            x1={-GRID_BLEED_X}
+            y1="172"
+            x2={width + GRID_BLEED_X}
+            y2="172"
+            stroke="#e5e5e5"
+            strokeWidth="1"
+            strokeDasharray="6 8"
+          />
+          <line
+            x1={-GRID_BLEED_X}
+            y1="216"
+            x2={width + GRID_BLEED_X}
+            y2="216"
+            stroke="#e5e5e5"
+            strokeWidth="1"
+            strokeDasharray="6 8"
+          />
+          <line
+            x1={-GRID_BLEED_X}
+            y1="253"
+            x2={width + GRID_BLEED_X}
+            y2="253"
+            stroke="#e5e5e5"
+            strokeWidth="1"
+            strokeDasharray="6 8"
+          />
+          <line
+            x1={-GRID_BLEED_X}
+            y1={PLOT_BASE_Y}
+            x2={width + GRID_BLEED_X}
+            y2={PLOT_BASE_Y}
+            stroke="#d4d4d4"
+            strokeWidth="1"
+            strokeDasharray="6 8"
+          />
 
-          {/* Stepped area fill */}
           {areaPath && (
-            <path d={areaPath} fill={`url(#${gradientId})`} />
-          )}
-
-          {/* Bar outlines */}
-          {bars.map((bar, i) => (
-            <rect
-              key={points[i]?.label}
-              x={bar.x}
-              y={BAR_MAX_HEIGHT - bar.height}
-              width={bar.width}
-              height={bar.height}
-              rx={4}
-              fill="transparent"
-              stroke="rgba(135,130,245,0.3)"
+            <path
+              d={areaPath}
+              fill={`url(#${gradientId})`}
+              stroke="#5f58cf"
               strokeWidth="1"
+              strokeLinejoin="round"
             />
-          ))}
+          )}
         </svg>
       )}
 
-      {/* Date labels */}
       <div
-        className="absolute bottom-0 left-0 right-0 flex text-[11px] text-[#9a9a9a]"
+        className="absolute left-0 right-0 flex justify-between text-[12px] font-medium leading-[1.5] text-[#a3a3a3]"
+        style={{ top: LABEL_TOP }}
         aria-hidden
       >
         {points.map((point, i) => (
           <span
             key={point.label}
-            className="flex-1 text-center"
-            style={{ paddingLeft: i === 0 ? 0 : BAR_GAP / 2 }}
+            className={i === 0 ? "text-left" : i === points.length - 1 ? "text-right" : "text-center"}
           >
             {point.label}
           </span>
