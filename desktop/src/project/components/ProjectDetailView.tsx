@@ -26,18 +26,18 @@ export function ProjectDetailView() {
         tasks.push({ task, phaseName: phase.name });
       }
     }
-    return tasks.sort((a, b) => b.task.updatedAt - a.task.updatedAt).slice(0, 4);
+    return tasks.sort((a, b) => b.task.updatedAt - a.task.updatedAt).slice(0, 3);
   }, [project]);
 
   return (
-    <WorkspaceFrame>
-      <div className="flex-1 px-[44px] py-[44px]">
+    <WorkspaceFrame defaultSidebarCollapsed>
+      <div className="flex-1 px-[clamp(24px,7vw,100px)] py-[44px]">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="mx-auto w-full max-w-[1200px] pt-0">
+          <div className="w-full pt-0">
             <button
               type="button"
               onClick={() => void navigate({ to: "/" })}
@@ -57,36 +57,47 @@ export function ProjectDetailView() {
           </div>
 
           {activeTab === "overview" && (
-            <div className="mx-auto w-full max-w-[1200px] pb-[120px] pt-7">
+            <div className="w-full pb-[120px] pt-7">
               <KanbanBoard phases={project.phases} />
 
               {recentTasks.length > 0 && (
-                <div className="mt-4 rounded-[8px] bg-white p-5 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-                  <div className="mb-1 font-heading text-[16px] font-semibold text-text-primary">
-                    Recent Activity
-                  </div>
-                  <p className="mb-4 text-[13px] text-text-secondary">
-                    Latest updates with your project
-                  </p>
-                  <div className="divide-y divide-border-subtle">
-                    {recentTasks.map(({ task }) => {
-                      const action = task.isCompleted ? "Completed" : "Updated";
-                      return (
-                        <div key={task.id} className="flex items-start gap-3 py-3">
-                          <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[9px] font-semibold text-accent">
-                            {task.assignees?.[0]?.name?.charAt(0)?.toUpperCase() ?? "S"}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[13px] font-medium text-text-primary">
-                              {action}: {task.title}
+                <div className="mt-3 overflow-hidden rounded-[12px] bg-[#F5F5F5] p-1">
+                  <div className="flex flex-col gap-6 rounded-[8px] bg-gradient-to-b from-white to-[#FAFAFA] p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+                    <div>
+                      <div className="font-heading text-[14px] font-medium leading-[1.2] text-[#0A0A0A]">
+                        Recent Activity
+                      </div>
+                      <p className="mt-1 text-[12px] font-medium leading-[1.5] text-[#737373]">
+                        Latest updates with your project
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-4">
+                      {recentTasks.map(({ task }, index) => {
+                        const action = task.isCompleted ? "Completed" : "Updated";
+                        const showDivider = index < recentTasks.length - 1;
+                        return (
+                          <div key={task.id} className="flex flex-col gap-4">
+                            <div className="flex items-start gap-[10px]">
+                              <div className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-[#E5E5E5] px-2 py-[3px] text-[12px] font-medium leading-[1.5] text-[#221E6C]">
+                                {task.assignees?.[0]?.name?.charAt(0)?.toUpperCase() ?? "S"}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-[13px] font-medium leading-[1.2] text-[#0A0A0A]">
+                                  {action}: {task.title}
+                                </div>
+                                <div className="mt-1 text-[12px] font-medium leading-[1.5] text-[#737373]">
+                                  {formatRelativeTime(task.updatedAt)}
+                                </div>
+                              </div>
                             </div>
-                            <div className="mt-0.5 text-[12px] text-text-tertiary">
-                              {project.name} · {formatRelativeTime(task.updatedAt)}
-                            </div>
+                            {showDivider ? <div className="h-px w-full bg-[#E5E5E5]" /> : null}
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
+                    <p className="text-[12px] font-normal leading-[1.5] text-[#737373]">
+                      {recentTasks.length} Activities today
+                    </p>
                   </div>
                 </div>
               )}
@@ -94,7 +105,7 @@ export function ProjectDetailView() {
           )}
 
           {activeTab !== "overview" && (
-            <div className="mx-auto w-full max-w-[1200px] pb-[120px] pt-7">
+            <div className="w-full pb-[120px] pt-7">
               {activeTab === "research" ? <ResearchTab project={project} /> : null}
               {activeTab === "strategy" ? <StrategyTab /> : null}
               {activeTab === "moodboard" ? <MoodboardTab project={project} /> : null}

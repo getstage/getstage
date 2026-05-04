@@ -13,8 +13,15 @@ const NAV_ITEMS = [
   { name: "Client Portal", icon: "/logos/dashboard/clientportal.svg", routeKey: "portal" },
 ];
 
-export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
-  const [collapsed, setCollapsed] = useState(false);
+export function StageSidebar({
+  projects,
+  collapsed,
+  onCollapsedChange,
+}: {
+  projects: DashboardProject[];
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
+}) {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -61,7 +68,7 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
           {collapsed ? (
             <button
               type="button"
-              onClick={() => setCollapsed(false)}
+              onClick={() => onCollapsedChange(false)}
               className="group relative flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[6px] outline-none transition-colors hover:bg-[#ebebeb]"
               aria-label="Expand sidebar"
             >
@@ -86,7 +93,7 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
           {!collapsed && (
             <button
               type="button"
-              onClick={() => setCollapsed(true)}
+              onClick={() => onCollapsedChange(true)}
               className="cursor-pointer rounded-[4px] outline-none transition-colors hover:bg-[#e5e5e5]"
             >
               <img
@@ -103,7 +110,7 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
           <div className={cn("flex w-full flex-col gap-[16px]", collapsed && "items-center")}>
             {/* Search box */}
             <div
-              onClick={() => collapsed && setCollapsed(false)}
+              onClick={() => collapsed && onCollapsedChange(false)}
               className={cn(
                 "flex h-[32px] items-center overflow-hidden rounded-[6px] bg-white text-[#525252] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.15)] transition-[width,padding,gap] duration-200 ease-out",
                 collapsed
@@ -130,22 +137,6 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
                 )}
                 placeholder="Search here..."
               />
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setSearchQuery("");
-                }}
-                aria-label="Clear search"
-                className={cn(
-                  "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[4px] text-[#a3a3a3] transition-[opacity,width] duration-150 hover:text-[#525252]",
-                  collapsed || searchQuery.length === 0 ? "w-0 opacity-0" : "opacity-100",
-                )}
-              >
-                <span aria-hidden="true" className="text-[17px] leading-none">
-                  ×
-                </span>
-              </button>
             </div>
 
             {/* Navigation items */}
@@ -162,6 +153,7 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
                     aria-current={isActive ? "page" : undefined}
                     className={cn(
                       "flex h-[32px] items-center overflow-hidden outline-none transition-[width,padding,gap,background-color,color,box-shadow,border-color] duration-200 ease-out",
+                      "cursor-pointer",
                       collapsed
                         ? "w-[32px] justify-center gap-0 rounded-[6px] px-0"
                         : "w-full justify-start gap-[8px] rounded-[6px] px-[12px]",
@@ -223,7 +215,7 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
               </div>
               <button
                 type="button"
-                className="flex h-[20px] w-[20px] items-center justify-center rounded-[4px] bg-white shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] outline-none transition-colors hover:bg-[#fafafa]"
+                className="flex h-[20px] w-[20px] cursor-pointer items-center justify-center rounded-[4px] bg-white shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] outline-none transition-colors hover:bg-[#fafafa]"
               >
                 <img
                   src="/logos/dashboard/plus.svg"
@@ -247,6 +239,7 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
                     aria-current={isActive ? "page" : undefined}
                     className={cn(
                       "flex h-[36px] items-center overflow-hidden outline-none transition-[width,padding,gap,background-color,box-shadow] duration-200 ease-out",
+                      "cursor-pointer",
                       collapsed
                         ? "w-[32px] justify-center gap-0 rounded-[6px] px-0"
                         : "w-full justify-start gap-[8px] rounded-[6px] px-[12px]",
@@ -289,6 +282,7 @@ export function StageSidebar({ projects }: { projects: DashboardProject[] }) {
           aria-label="Help & Feedback"
           className={cn(
             "flex h-[32px] items-center overflow-hidden bg-[#f5f5f5] text-[#525252] transition-[width,padding,gap,background-color] duration-200 ease-out hover:bg-[#ebebeb]",
+            "cursor-pointer",
             collapsed
               ? "w-[32px] justify-center gap-0 rounded-[6px] px-0"
               : "w-full justify-start gap-[8px] rounded-[6px] px-[12px]",

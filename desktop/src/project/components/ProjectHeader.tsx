@@ -88,17 +88,46 @@ export function ProjectHeader({
 }) {
   return (
     <section className="flex flex-col gap-4">
-      <div>
-        <h1 className="max-w-[720px] font-heading text-[20px] font-semibold leading-[1.2] text-[#0A0A0A]">
-          {project.name}
-        </h1>
-        <p className="mt-2 text-[13px] font-medium leading-[1.2] text-[#737373]">
-          {project.clientName}
-        </p>
+      <div className="flex items-start justify-between gap-6">
+        <div className="min-w-0">
+          <h1 className="max-w-[720px] truncate font-heading text-[20px] font-semibold leading-[1.2] text-[#0A0A0A]">
+            {project.name}
+          </h1>
+          <p className="mt-2 truncate text-[13px] font-medium leading-[1.2] text-[#737373]">
+            {project.clientName}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-[6px]">
+          <button
+            type="button"
+            className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[6px] bg-[#F5F5F5] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#262626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
+          >
+            Share
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[15px] w-[15px]">
+              <circle cx="5" cy="8" r="1.8" />
+              <circle cx="11.5" cy="4.5" r="1.8" />
+              <circle cx="11.5" cy="11.5" r="1.8" />
+              <path d="M6.6 7.1 9.9 5.3M6.6 8.9l3.3 1.8" />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            className="flex h-[27px] w-[27px] cursor-pointer items-center justify-center rounded-[6px] text-[#525252] transition-colors hover:bg-[#F5F5F5]"
+            aria-label="Project actions"
+          >
+            <svg viewBox="0 0 16 16" fill="currentColor" className="h-[15px] w-[15px]">
+              <circle cx="8" cy="3.5" r="1.15" />
+              <circle cx="8" cy="8" r="1.15" />
+              <circle cx="8" cy="12.5" r="1.15" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-start gap-2 overflow-x-auto rounded-[8px] bg-[#F5F5F5] p-[2px]">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 max-w-full flex-wrap items-start gap-2 overflow-visible rounded-[8px] bg-[#F5F5F5] p-[2px]">
           {PAGE_TABS.map((tab) => {
             const isActive = tab.key === activeTab;
             return (
@@ -106,7 +135,7 @@ export function ProjectHeader({
                 key={tab.key}
                 type="button"
                 onClick={() => onTabChange(tab.key)}
-                className={`inline-flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-[6px] px-[10px] py-[6px] text-[13px] font-medium leading-none transition-all duration-150 ${
+                className={`inline-flex h-[27px] cursor-pointer items-center gap-2 whitespace-nowrap rounded-[6px] px-[10px] py-[6px] text-[13px] font-medium leading-none transition-all duration-150 ${
                   isActive
                     ? "bg-gradient-to-b from-[#8D87FF] to-[#7B76DF] text-[#F3F2FE] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
                     : "text-[#737373] hover:bg-white"
@@ -119,24 +148,15 @@ export function ProjectHeader({
           })}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
-            className="inline-flex cursor-pointer items-center gap-[6px] rounded-[6px] bg-[#F5F5F5] px-[10px] py-[6px] text-[13px] font-medium text-[#262626] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
+            className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[6px] px-[10px] py-[6px] text-[13px] font-medium leading-none text-[#525252] transition-colors hover:bg-[#F5F5F5]"
           >
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-[13px] w-[13px]">
-              <path d="M6 3L10 8L6 13" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M2 8h8" strokeLinecap="round" />
-              <path d="M13 3v10" strokeLinecap="round" />
-            </svg>
-            Share
-          </button>
-
-          <button className="flex h-[27px] w-[27px] cursor-pointer items-center justify-center rounded-[6px] text-[#525252] transition-colors hover:bg-[#F5F5F5]">
-            <svg viewBox="0 0 16 16" fill="currentColor" className="h-[16px] w-[16px]">
-              <circle cx="8" cy="3" r="1.5" />
-              <circle cx="8" cy="8" r="1.5" />
-              <circle cx="8" cy="13" r="1.5" />
+            Client Portal
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[15px] w-[15px]">
+              <path d="M6.5 4H4.75A1.75 1.75 0 0 0 3 5.75v5.5C3 12.2 3.8 13 4.75 13h5.5A1.75 1.75 0 0 0 12 11.25V9.5" />
+              <path d="M9 3h4v4M8 8l5-5" />
             </svg>
           </button>
         </div>
