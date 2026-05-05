@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type PointerEvent } from "react";
 import { mockProject } from "@/project/data/projectSnapshot";
 import type { Phase, Task } from "@/project/models/project";
+import { WorkspaceFrame } from "@/app/WorkspaceFrame";
 
 type PreviewStatus = "backlog" | "todo" | "in-progress" | "done" | "revision";
 type PreviewTask = Omit<Task, "status"> & { status?: PreviewStatus };
@@ -37,7 +38,8 @@ export function ClientPortalPreviewView() {
   const phases = useMemo(() => addRevisionTasks(project.phases), [project.phases]);
 
   return (
-    <div className="min-h-screen bg-white px-[50px] py-[44px] text-[#0a0a0a]">
+    <WorkspaceFrame>
+      <div className="min-h-screen bg-white px-[50px] py-[44px] text-[#0a0a0a]">
       <div className="flex flex-col gap-[44px]">
         <div className="flex flex-col gap-[44px]">
           <header className="flex items-start justify-between">
@@ -79,6 +81,7 @@ export function ClientPortalPreviewView() {
         <PreviewBoard phases={phases} />
       </div>
     </div>
+    </WorkspaceFrame>
   );
 }
 
@@ -244,15 +247,15 @@ function PreviewBoard({ phases }: { phases: PreviewPhase[] }) {
             <div className="flex flex-col gap-[4px]">
               {columns[column.key].map(({ task, phaseName }) => {
                 const isDragging = activeDrag?.id === task.id;
-                if (isDragging) return dragOverColumn ? null : <TaskSkeleton key={task.id} />;
+                if (isDragging) return dragOverColumn ? null : <TaskSkeleton key={task.id} height={activeDrag?.height} />;
                 return (
                   <div key={task.id} data-preview-task-id={task.id}>
-                    {activeDrag && dragOverColumn === column.key && dropBeforeTaskId === task.id ? <TaskSkeleton /> : null}
+                    {activeDrag && dragOverColumn === column.key && dropBeforeTaskId === task.id ? <TaskSkeleton height={activeDrag?.height} /> : null}
                     <PreviewTaskCard task={task} phaseName={phaseName} onPointerDown={(event) => startDragging(event, task.id)} />
                   </div>
                 );
               })}
-              {activeDrag && dragOverColumn === column.key && dropBeforeTaskId === null ? <TaskSkeleton /> : null}
+              {activeDrag && dragOverColumn === column.key && dropBeforeTaskId === null ? <TaskSkeleton height={activeDrag?.height} /> : null}
             </div>
           </section>
         ))}
@@ -288,9 +291,14 @@ function PreviewTaskCard({ task, phaseName, dragging = false, onPointerDown }: {
         <div className="flex flex-col gap-[4px]">
           <div className="flex items-start gap-[6px]">
             {!isRevision ? (
-              <span className={`mt-[1px] flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[4px] ${task.isCompleted ? "bg-[#0a0a0a] text-white" : "bg-[#d4d4d4] text-transparent"}`}>
+              <button
+                type="button"
+                className={`mt-[1px] flex h-[16px] w-[16px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] border-none outline-none ${
+                  task.isCompleted ? "bg-[#0a0a0a] text-white" : "bg-[#d4d4d4] text-transparent"
+                }`}
+              >
                 {task.isCompleted ? <CheckIcon /> : null}
-              </span>
+              </button>
             ) : null}
             <p className="min-w-0 flex-1 text-[13px] font-medium leading-none text-[#171717]">{task.title}</p>
           </div>
@@ -304,8 +312,8 @@ function PreviewTaskCard({ task, phaseName, dragging = false, onPointerDown }: {
   );
 }
 
-function TaskSkeleton() {
-  return <div className="h-[118px] rounded-[8px] border border-dashed border-[#afa9ff] bg-white/60" />;
+function TaskSkeleton({ height }: { height?: number }) {
+  return <div className="rounded-[8px] border border-dashed border-[#afa9ff] bg-white/60" style={{ height: height ?? 118 }} />;
 }
 
 function CheckIcon() {

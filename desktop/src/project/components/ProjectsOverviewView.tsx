@@ -210,20 +210,12 @@ function ProjectTableRow({
           aria-label={`See details for ${project.name}`}
         >
           <span className="whitespace-nowrap">See Details</span>
-          <svg
-            viewBox="0 0 15 15"
-            fill="none"
+          <img
+            src="/logos/dashboard/redirect.svg"
+            alt=""
             aria-hidden="true"
             className="h-[15px] w-[15px] shrink-0"
-          >
-            <path
-              d="M5.625 4.375h5v5M10.625 4.375 4.375 10.625"
-              stroke="currentColor"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          />
         </button>
       </div>
       <div className="h-[16px]" />

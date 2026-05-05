@@ -355,7 +355,7 @@ function PriorityTaskCard({
             }}
             onPointerDown={(e) => e.stopPropagation()}
             className={cn(
-              "flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-[4px] p-[2px] transition-colors",
+              "flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-[4px] p-[2px] transition-colors",
               item.task.isCompleted ? "bg-[#0A0A0A] text-white" : "bg-[#D4D4D4] text-transparent hover:bg-[#A3A3A3]",
             )}
           >

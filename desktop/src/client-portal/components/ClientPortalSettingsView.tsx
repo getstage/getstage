@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
+import { ClientPortalTabBar } from "./ClientPortalTabBar";
+
 const BRAND_COLOR = "#ea580c";
 
 export function ClientPortalSettingsView() {
@@ -28,9 +30,11 @@ export function ClientPortalSettingsView() {
             className="flex h-[32px] items-center gap-[8px] rounded-[6px] px-[10px] py-[6px] text-[13px] font-medium text-[#525252] transition-colors hover:bg-[#f5f5f5]"
           >
             Preview Portal
-            <ExternalLinkIcon className="h-[15px] w-[15px]" />
+            <RedirectIcon />
           </button>
         </header>
+
+        <ClientPortalTabBar activeTab="brand" />
 
         <section className="relative overflow-hidden rounded-[12px] bg-[#f5f5f5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
           <div className="px-[12px] pb-[12px] pt-[8px] leading-[1.5] text-[#0a0a0a]">
@@ -71,7 +75,7 @@ function LogoCard() {
               ST
             </div>
             <button className="flex items-center gap-[6px] px-[12px] py-[6px] text-[12px] font-medium text-[#525252]" type="button">
-              <UploadIcon className="h-[16px] w-[16px]" />
+              <img src="/logos/dashboard/upload.svg" alt="" aria-hidden="true" className="h-[16px] w-[16px] shrink-0" />
               Reupload
             </button>
             <button className="text-[12px] font-medium text-[#ef4444]" type="button">Remove</button>
@@ -200,17 +204,17 @@ function SecondaryButton({ children }: { children: string }) {
   );
 }
 
-function ExternalLinkIcon({ className }: { className?: string }) {
-  return <svg className={className} viewBox="0 0 16 16" fill="none"><path d="M6 4h6v6M12 4l-7 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+function RedirectIcon() {
+  return (
+    <img src="/logos/dashboard/redirect.svg" alt="" aria-hidden="true" className="h-[15px] w-[15px] shrink-0" />
+  );
 }
 
 function ArrowRightIcon({ className }: { className?: string }) {
   return <svg className={className} viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-function UploadIcon({ className }: { className?: string }) {
-  return <svg className={className} viewBox="0 0 16 16" fill="none"><path d="M8 11V4M5.5 6.5 8 4l2.5 2.5M4 12h8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
-}
+
 
 function ChevronDownIcon({ className }: { className?: string }) {
   return <svg className={className} viewBox="0 0 16 16" fill="none"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>;

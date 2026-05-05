@@ -249,6 +249,25 @@ export function KanbanBoard({ phases }: { phases: Phase[] }) {
     setAssignSearch("");
   }
 
+  function toggleTaskCompletion(taskId: string) {
+    setColumns((current) => {
+      const next = { ...current };
+      for (const columnKey in next) {
+        const key = columnKey as KanbanStatus;
+        next[key] = next[key].map((item) => {
+          if (item.task.id === taskId) {
+            return {
+              ...item,
+              task: { ...item.task, isCompleted: !item.task.isCompleted },
+            };
+          }
+          return item;
+        });
+      }
+      return next;
+    });
+  }
+
   return (
     <div className="relative">
       {assignTaskId ? (
@@ -303,6 +322,7 @@ export function KanbanBoard({ phases }: { phases: Phase[] }) {
                         setAssignTaskId((current) => current === task.id ? null : task.id);
                         setAssignSearch("");
                       }}
+                      onToggle={() => toggleTaskCompletion(task.id)}
                     />
                     {assignTaskId === task.id ? (
                       <AssignTaskCard
@@ -354,6 +374,7 @@ function TaskCard({
   dragging = false,
   onPointerDown,
   onAssign,
+  onToggle,
 }: {
   task: Task;
   phaseName: string;
@@ -361,6 +382,7 @@ function TaskCard({
   dragging?: boolean;
   onPointerDown?: (event: PointerEvent<HTMLDivElement>) => void;
   onAssign?: () => void;
+  onToggle?: () => void;
 }) {
   const tagColor = PHASE_TAG_COLORS[phaseName] ?? DEFAULT_TAG_COLOR;
 
@@ -398,9 +420,15 @@ function TaskCard({
       </div>
       <div className="mt-3 flex flex-col gap-1">
         <div className="flex items-center gap-[6px]">
-          <div
-            className={`flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-[4px] p-[2px] ${
-              task.isCompleted ? "bg-[#0A0A0A] text-white" : "bg-[#D4D4D4] text-transparent"
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggle?.();
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+            className={`flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-[4px] p-[2px] transition-colors ${
+              task.isCompleted ? "bg-[#0A0A0A] text-white" : "bg-[#D4D4D4] text-transparent hover:bg-[#A3A3A3]"
             }`}
           >
             {task.isCompleted ? (
@@ -408,7 +436,7 @@ function TaskCard({
                 <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             ) : null}
-          </div>
+          </button>
           <p className="min-w-0 flex-1 truncate text-[13px] font-medium leading-none text-[#171717]">
             {task.title}
           </p>

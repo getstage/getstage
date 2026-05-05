@@ -1,6 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
 import { WorkspaceFrame } from "@/app/WorkspaceFrame";
 import { projectOverviewRows, type ProjectOverviewRow } from "@/project/data/projectOverviewSnapshot";
+import { ClientPortalTabBar } from "./ClientPortalTabBar";
+import { cn } from "@/lib/utils";
 
 const TABLE_COLUMNS = ["Project Name", "Status", "Project Type", "Created", "Actions"];
 
@@ -29,12 +31,21 @@ export function ClientPortalProjectsView() {
               className="flex h-[32px] items-center gap-[8px] rounded-[6px] px-[10px] py-[6px] text-[13px] font-medium text-[#525252] transition-colors hover:bg-[#f5f5f5]"
             >
               Preview Portal
-              <ExternalLinkIcon />
+              <RedirectIcon />
             </button>
           </header>
+
+          <ClientPortalTabBar activeTab="projects" />
+
           <PortalProjectsTable
             projects={projectOverviewRows}
-            onOpen={(projectId) =>
+            onOpenProject={(projectId) =>
+              void navigate({
+                to: "/project/$projectId",
+                params: { projectId },
+              })
+            }
+            onOpenPortal={(projectId) =>
               void navigate({
                 to: "/client-portal/$projectId/preview",
                 params: { projectId },
@@ -49,10 +60,12 @@ export function ClientPortalProjectsView() {
 
 function PortalProjectsTable({
   projects,
-  onOpen,
+  onOpenProject,
+  onOpenPortal,
 }: {
   projects: ProjectOverviewRow[];
-  onOpen: (projectId: string) => void;
+  onOpenProject: (projectId: string) => void;
+  onOpenPortal: (projectId: string) => void;
 }) {
   return (
     <div className="overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[4px]">
@@ -66,12 +79,23 @@ function PortalProjectsTable({
       <div className="flex flex-col gap-[24px] rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] px-[16px] pb-[20px] pt-[16px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         {projects.map((project, index) => (
           <div key={project.id} className="flex flex-col gap-[20px]">
-            <div className="grid grid-cols-5 items-center gap-[24px]">
+            <div 
+              role="button"
+              tabIndex={0}
+              onClick={() => onOpenProject(project.id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onOpenProject(project.id);
+                }
+              }}
+              className="group grid cursor-pointer grid-cols-5 items-center gap-[24px] outline-none"
+            >
               <div className="flex min-w-0 items-center gap-[8px]">
                 <div className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full border border-[#fafafa] bg-[#171717] text-[8px] font-semibold text-white">
                   {project.logoLabel}
                 </div>
-                <p className="min-w-0 truncate text-[13px] font-medium leading-none text-[#171717]">{project.name}</p>
+                <p className="min-w-0 truncate text-[13px] font-medium leading-none text-[#171717] group-hover:underline group-focus-visible:underline">{project.name}</p>
               </div>
               <div>
                 <span className="rounded-[2px] bg-[#dcfce7] px-[6px] py-[2px] text-[12px] font-normal leading-none text-[#052e16]">
@@ -82,11 +106,17 @@ function PortalProjectsTable({
               <p className="text-[13px] font-medium leading-none text-[#525252]">{project.created}</p>
               <button
                 type="button"
-                onClick={() => onOpen(project.id)}
-                className="flex w-fit items-center gap-[8px] text-[13px] font-medium leading-none text-[#171717] transition-colors hover:text-[#463fba]"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onOpenPortal(project.id);
+                }}
+                className={cn(
+                  "flex w-fit items-center gap-[8px] text-[13px] font-medium leading-none text-[#171717]",
+                  "transition-colors hover:text-[#463fba]"
+                )}
               >
                 Client Portal
-                <ExternalLinkIcon />
+                <RedirectIcon />
               </button>
             </div>
             {index < projects.length - 1 ? <div className="h-px w-full bg-[#e5e5e5]" /> : null}
@@ -97,10 +127,8 @@ function PortalProjectsTable({
   );
 }
 
-function ExternalLinkIcon() {
+function RedirectIcon() {
   return (
-    <svg className="h-[15px] w-[15px] shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M6 4h6v6M12 4l-7 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <img src="/logos/dashboard/redirect.svg" alt="" aria-hidden="true" className="h-[15px] w-[15px] shrink-0" />
   );
 }

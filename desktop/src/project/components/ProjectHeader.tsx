@@ -157,12 +157,14 @@ export function ProjectHeader({
             type="button"
             className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[6px] px-[10px] py-[6px] text-[13px] font-medium leading-none text-[#525252] transition-colors hover:bg-[#F5F5F5]"
           >
-            Client Portal
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[15px] w-[15px]">
-              <path d="M6.5 4H4.75A1.75 1.75 0 0 0 3 5.75v5.5C3 12.2 3.8 13 4.75 13h5.5A1.75 1.75 0 0 0 12 11.25V9.5" />
-              <path d="M9 3h4v4M8 8l5-5" />
-            </svg>
-          </button>
+          <span className="whitespace-nowrap">Client Portal</span>
+          <img
+            src="/logos/dashboard/redirect.svg"
+            alt=""
+            aria-hidden="true"
+            className="h-[15px] w-[15px] shrink-0"
+          />
+        </button>
         </div>
       </div>
     </section>
