@@ -35,7 +35,7 @@ export function StageSidebar({
     if (routeKey === "settings") return pathname.startsWith("/settings") && pathname !== "/settings/portal";
     if (routeKey === "portal") return pathname === "/settings/portal";
     if (routeKey === "project") return pathname === "/projects" || pathname.startsWith("/project/");
-    if (routeKey === "tasks") return false;
+    if (routeKey === "tasks") return pathname === "/tasks";
     return false;
   }
 
@@ -44,6 +44,7 @@ export function StageSidebar({
     if (routeKey === "integrations") void navigate({ to: "/integrations" });
     if (routeKey === "settings") void navigate({ to: "/settings" });
     if (routeKey === "portal") void navigate({ to: "/settings/portal" });
+    if (routeKey === "tasks") void navigate({ to: "/tasks" });
     if (routeKey === "project") {
       void navigate({ to: "/projects" });
     }

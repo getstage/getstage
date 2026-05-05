@@ -82,10 +82,12 @@ export function ProjectHeader({
   project,
   activeTab,
   onTabChange,
+  onShare,
 }: {
   project: Project;
   activeTab: ProjectTab;
   onTabChange: (tab: ProjectTab) => void;
+  onShare: () => void;
 }) {
   return (
     <section className="flex flex-col gap-4">
@@ -102,6 +104,7 @@ export function ProjectHeader({
         <div className="flex shrink-0 items-center gap-[6px]">
           <button
             type="button"
+            onClick={onShare}
             className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[6px] bg-[#F5F5F5] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#262626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
           >
             Share

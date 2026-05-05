@@ -11,6 +11,7 @@ import { ProjectDetailView } from "./project/components/ProjectDetailView";
 import { ProjectDetailsView } from "./project/components/ProjectDetailsView";
 import { ProjectsOverviewView } from "./project/components/ProjectsOverviewView";
 import { SettingsPageView } from "./settings/components/SettingsPageView";
+import { TasksPageView } from "./tasks/components/TasksPageView";
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -42,6 +43,12 @@ const projectsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/projects",
   component: ProjectsOverviewView,
+});
+
+const tasksRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/tasks",
+  component: TasksPageView,
 });
 
 const createProjectRoute = createRoute({
@@ -95,6 +102,7 @@ const integrationsRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   projectsRoute,
+  tasksRoute,
   createProjectRoute,
   projectDetailsRoute,
   projectRoute,

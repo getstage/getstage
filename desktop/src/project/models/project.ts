@@ -44,6 +44,14 @@ export const projectFlowSchema = z.object({
   steps: z.array(z.string()).optional(),
 });
 
+export const projectScreenSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  flowCount: z.number(),
+  keyElements: z.array(z.string()),
+});
+
 export const projectAssetSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -68,6 +76,7 @@ export const projectSchema = z.object({
     references: z.array(projectReferenceSchema),
   }),
   flows: z.array(projectFlowSchema),
+  screens: z.array(projectScreenSchema).optional(),
   assets: z.array(projectAssetSchema),
 });
 
@@ -76,5 +85,6 @@ export type Task = z.infer<typeof taskSchema>;
 export type Phase = z.infer<typeof phaseSchema>;
 export type ProjectReference = z.infer<typeof projectReferenceSchema>;
 export type ProjectFlow = z.infer<typeof projectFlowSchema>;
+export type ProjectScreen = z.infer<typeof projectScreenSchema>;
 export type ProjectAsset = z.infer<typeof projectAssetSchema>;
 export type Project = z.infer<typeof projectSchema>;
