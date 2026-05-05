@@ -3,11 +3,12 @@ import { useNavigate } from "@tanstack/react-router";
 
 import { ClientPortalTabBar } from "./ClientPortalTabBar";
 
-const BRAND_COLOR = "#ea580c";
+const DEFAULT_BRAND_COLOR = "#030303";
 
 export function ClientPortalSettingsView() {
   const navigate = useNavigate();
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
 
   return (
     <div className="flex-1 px-[100px] py-[44px]">
@@ -44,7 +45,7 @@ export function ClientPortalSettingsView() {
 
           <div className={isSubscribed ? "flex flex-col gap-[4px]" : "pointer-events-none flex flex-col gap-[4px] blur-[10px]"}>
             <LogoCard />
-            <BrandColorCard />
+            <BrandColorCard brandColor={brandColor} onBrandColorChange={setBrandColor} />
             <DomainCard />
             <div className="flex gap-[12px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
               <button className="rounded-[6px] bg-[#fafafa] px-[24px] py-[8px] text-[13px] font-medium text-[#dc2626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]" type="button">
@@ -87,17 +88,47 @@ function LogoCard() {
   );
 }
 
-function BrandColorCard() {
+function BrandColorCard({
+  brandColor,
+  onBrandColorChange,
+}: {
+  brandColor: string;
+  onBrandColorChange: (color: string) => void;
+}) {
+  const formattedBrandColor = brandColor.toUpperCase();
+  const pickerId = "client-portal-brand-color";
+
   return (
     <div className="flex flex-col gap-[12px] rounded-[8px] bg-white py-[12px] pl-[12px] pr-[clamp(24px,35vw,400px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex flex-col gap-[16px]">
         <h3 className="text-[13px] font-medium text-[#171717]">Select your brand color</h3>
         <div className="flex items-center gap-[16px]">
-          <div className="h-[36px] w-[36px] rounded-full bg-[conic-gradient(from_180deg,#ff3b30,#ffcc00,#34c759,#00c7be,#5856d6,#ff2d55,#ff3b30)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]" />
-          <button className="flex items-center gap-[12px] rounded-[6px] bg-[#f5f5f5] px-[12px] py-[8px] text-[12px] font-medium text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]" type="button">
-            #030303
+          <label
+            htmlFor={pickerId}
+            className="relative h-[36px] w-[36px] shrink-0 overflow-hidden rounded-full bg-[conic-gradient(from_180deg,#ff3b30,#ffcc00,#34c759,#00c7be,#5856d6,#ff2d55,#ff3b30)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]"
+            aria-label="Choose brand color"
+          >
+            <span
+              className="absolute inset-[9px] rounded-full border border-white/80 shadow-[0_0_0_1px_rgba(0,0,0,0.12)]"
+              style={{ backgroundColor: brandColor }}
+              aria-hidden="true"
+            />
+            <input
+              id={pickerId}
+              type="color"
+              value={brandColor}
+              onChange={(event) => onBrandColorChange(event.target.value)}
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              aria-label="Brand color"
+            />
+          </label>
+          <label
+            htmlFor={pickerId}
+            className="flex cursor-pointer items-center gap-[12px] rounded-[6px] bg-[#f5f5f5] px-[12px] py-[8px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
+          >
+            {formattedBrandColor}
             <ChevronDownIcon className="h-[16px] w-[16px]" />
-          </button>
+          </label>
         </div>
       </div>
       <div className="flex flex-col gap-[8px]">
@@ -105,18 +136,18 @@ function BrandColorCard() {
         <div className="rounded-[12px] bg-[#f5f5f5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
           <div className="flex flex-col gap-[20px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
             <div className="h-[6px] overflow-hidden rounded-full bg-[#e5e5e5]">
-              <div className="h-full w-[70%] rounded-full" style={{ backgroundColor: BRAND_COLOR }} />
+              <div className="h-full w-[70%] rounded-full" style={{ backgroundColor: brandColor }} />
             </div>
             <div>
               <div className="flex items-start gap-[8px]">
-                <span className="flex h-[16px] w-[16px] items-center justify-center rounded-[4px] text-white" style={{ backgroundColor: BRAND_COLOR }}>
+                <span className="flex h-[16px] w-[16px] items-center justify-center rounded-[4px] text-white" style={{ backgroundColor: brandColor }}>
                   <CheckIcon className="h-[12px] w-[12px]" />
                 </span>
                 <p className="text-[13px] font-medium text-[#171717]">Project Milestone Completed</p>
               </div>
               <p className="mt-[4px] text-[12px] text-[#525252]">Here comes a simple description</p>
             </div>
-            <button className="flex items-center gap-[8px] text-[13px] font-medium" style={{ color: BRAND_COLOR }} type="button">
+            <button className="flex items-center gap-[8px] text-[13px] font-medium" style={{ color: brandColor }} type="button">
               View Deliverables
               <ArrowRightIcon className="h-[16px] w-[16px]" />
             </button>
