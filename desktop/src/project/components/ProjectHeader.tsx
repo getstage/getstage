@@ -57,11 +57,12 @@ const PAGE_TABS: { key: ProjectTab; label: string; icon: (active: boolean) => Re
     ),
   },
   {
-    key: "generate",
-    label: "Generate",
+    key: "wireframes",
+    label: "Wireframes",
     icon: (active) => (
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`h-[15px] w-[15px] shrink-0 transition-colors ${active ? "text-[#F3F2FE]" : "text-[#737373]"}`}>
-        <path d="M8 2l1.5 3.5L13 7l-3 2.5L11 13l-3-2-3 2 1-3.5L3 7l3.5-1.5z" />
+        <path d="M4 3.5h8M4 6h8M4 8.5h4.5M4 11h6.5" />
+        <path d="m10.5 8.5 2 2-2 2" />
       </svg>
     ),
   },

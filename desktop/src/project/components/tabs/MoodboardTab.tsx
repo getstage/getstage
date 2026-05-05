@@ -11,18 +11,54 @@ const moodboardImages = [
 ];
 
 type MoodboardMode = "upload" | "figma";
+type MoodboardItem = {
+  id: string;
+  image: string;
+  folder: string | null;
+  isInMoodboard: boolean;
+};
 
 export function MoodboardTab({ project: _project }: { project: Project }) {
   const [mode, setMode] = useState<MoodboardMode>("upload");
   const [hasUploadedFiles, setHasUploadedFiles] = useState(false);
-  const [hasMoodboard, setHasMoodboard] = useState(false);
-  const [selectedCount, setSelectedCount] = useState(0);
-  const [folderState, setFolderState] = useState<"none" | "naming" | "named">("none");
+  const [items, setItems] = useState<MoodboardItem[]>(
+    moodboardImages.map((image, index) => ({
+      id: `reference-${index + 1}`,
+      image,
+      folder: null,
+      isInMoodboard: false,
+    })),
+  );
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () => new Set(["reference-1", "reference-2"]),
+  );
+  const [folders, setFolders] = useState<string[]>([]);
+  const [activeFolder, setActiveFolder] = useState<string | null>(null);
+  const [draftFolderName, setDraftFolderName] = useState("");
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [isFolderMenuOpen, setIsFolderMenuOpen] = useState(false);
+  const [figmaLink, setFigmaLink] = useState("");
 
-  const canAddToMoodboard = mode === "figma" || hasUploadedFiles;
-  const showGrid = hasMoodboard;
-  const showSelectionActions = selectedCount > 0;
+  const selectedItems = items.filter((item) => selectedIds.has(item.id));
+  const hasMoodboard = items.some((item) => item.isInMoodboard);
+  const showFigmaImportGrid = mode === "figma";
+  const showMoodboardGrid = hasMoodboard && !showFigmaImportGrid;
+  const showGrid = showFigmaImportGrid || showMoodboardGrid;
+  const visibleItems = items.filter((item) => {
+    if (showFigmaImportGrid) return true;
+    if (!item.isInMoodboard) return false;
+    return activeFolder ? item.folder === activeFolder : true;
+  });
+  const canAddToMoodboard = mode === "figma" ? selectedItems.length > 0 : hasUploadedFiles;
+  const showSelectionActions = hasMoodboard && selectedItems.length > 0;
+
+  const commitFolder = () => {
+    const name = draftFolderName.trim() || `Direction ${folders.length + 1}`;
+    setFolders((current) => current.includes(name) ? current : [...current, name]);
+    setActiveFolder(name);
+    setDraftFolderName("");
+    setIsCreatingFolder(false);
+  };
 
   return (
     <section className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -38,7 +74,12 @@ export function MoodboardTab({ project: _project }: { project: Project }) {
                 {hasUploadedFiles ? <UploadedFilesList /> : null}
               </div>
             ) : (
-              <FigmaLinkPanel compact={false} />
+              <FigmaLinkPanel
+                compact={false}
+                value={figmaLink}
+                onChange={setFigmaLink}
+                onSubmit={() => setSelectedIds(new Set(["reference-1", "reference-2"]))}
+              />
             )}
           </div>
         </div>
@@ -47,15 +88,32 @@ export function MoodboardTab({ project: _project }: { project: Project }) {
           <div className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
             <div className="flex flex-col gap-6">
               <ModeToggle mode={mode} onModeChange={setMode} />
-              <FigmaLinkPanel compact />
+              <FigmaLinkPanel
+                compact
+                value={figmaLink}
+                onChange={setFigmaLink}
+                onSubmit={() => setSelectedIds(new Set(["reference-1", "reference-2"]))}
+              />
             </div>
           </div>
 
-          <div className="relative flex flex-col gap-2 rounded-[10px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <div className={`relative flex flex-col rounded-[10px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${
+            showFigmaImportGrid ? "gap-1 p-1" : "gap-2 p-4"
+          }`}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <FolderTabs
-                folderState={folderState}
-                onCreateFolder={() => setFolderState("naming")}
+                folders={folders}
+                activeFolder={activeFolder}
+                isCreatingFolder={isCreatingFolder}
+                draftFolderName={draftFolderName}
+                onAll={() => setActiveFolder(null)}
+                onFolderChange={setActiveFolder}
+                onCreateFolder={() => {
+                  setIsCreatingFolder(true);
+                  setIsFolderMenuOpen(false);
+                }}
+                onDraftFolderNameChange={setDraftFolderName}
+                onCommitFolder={commitFolder}
               />
 
               {showSelectionActions ? (
@@ -63,7 +121,12 @@ export function MoodboardTab({ project: _project }: { project: Project }) {
                   <button
                     type="button"
                     className="inline-flex h-8 cursor-pointer items-center justify-center rounded-[6px] bg-[#FAFAFA] px-3 text-[12px] font-medium leading-none text-[#EF4444] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FEE2E2]"
-                    onClick={() => setSelectedCount(0)}
+                    onClick={() => {
+                      setItems((current) => current.map((item) =>
+                        selectedIds.has(item.id) ? { ...item, isInMoodboard: false, folder: null } : item,
+                      ));
+                      setSelectedIds(new Set());
+                    }}
                   >
                     Delete from Moodboard
                   </button>
@@ -72,7 +135,9 @@ export function MoodboardTab({ project: _project }: { project: Project }) {
                     className="inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] py-2 pl-3 pr-[10px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
                     onClick={() => {
                       setIsFolderMenuOpen((current) => !current);
-                      setFolderState((current) => current === "none" ? "named" : current);
+                      if (folders.length === 0) {
+                        setFolders(["Direction 1", "Direction 2", "Direction 3"]);
+                      }
                     }}
                   >
                     Add to Folder
@@ -83,13 +148,31 @@ export function MoodboardTab({ project: _project }: { project: Project }) {
             </div>
 
             <MoodboardGrid
-              selectedCount={selectedCount}
-              onToggleSelect={(isSelected) =>
-                setSelectedCount((current) => Math.max(0, current + (isSelected ? -1 : 1)))
-              }
+              items={visibleItems}
+              selectedIds={selectedIds}
+              onToggleSelect={(itemId) => {
+                setSelectedIds((current) => {
+                  const next = new Set(current);
+                  if (next.has(itemId)) next.delete(itemId);
+                  else next.add(itemId);
+                  return next;
+                });
+              }}
             />
 
-            {isFolderMenuOpen ? <FolderMenu /> : null}
+            {isFolderMenuOpen ? (
+              <FolderMenu
+                folders={folders.length > 0 ? folders : ["Direction 1", "Direction 2", "Direction 3"]}
+                onSelectFolder={(folder) => {
+                  setFolders((current) => current.includes(folder) ? current : [...current, folder]);
+                  setItems((current) => current.map((item) =>
+                    selectedIds.has(item.id) ? { ...item, folder, isInMoodboard: true } : item,
+                  ));
+                  setActiveFolder(folder);
+                  setIsFolderMenuOpen(false);
+                }}
+              />
+            ) : null}
           </div>
         </div>
       )}
@@ -99,9 +182,13 @@ export function MoodboardTab({ project: _project }: { project: Project }) {
         canAddToMoodboard={canAddToMoodboard}
         onAddToMoodboard={() => {
           if (!canAddToMoodboard) return;
-          setHasMoodboard(true);
-          setMode("figma");
-          setSelectedCount(2);
+          if (mode === "upload") {
+            setMode("figma");
+            setSelectedIds(new Set(["reference-1", "reference-2"]));
+          }
+          setItems((current) => current.map((item) =>
+            selectedIds.has(item.id) || mode === "upload" ? { ...item, isInMoodboard: true } : item,
+          ));
         }}
       />
     </section>
@@ -158,18 +245,45 @@ function ModeToggle({
   );
 }
 
-function FigmaLinkPanel({ compact }: { compact: boolean }) {
+function FigmaLinkPanel({
+  compact,
+  value,
+  onChange,
+  onSubmit,
+}: {
+  compact: boolean;
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+}) {
   return (
-    <label className={`flex flex-col gap-2 ${compact ? "w-[290px]" : "w-full max-w-[290px]"}`}>
-      <span className="text-[13px] font-medium leading-none text-[#171717]">
+    <div className={`flex flex-col gap-2 ${compact ? "w-[290px]" : "w-full max-w-[360px]"}`}>
+      <label className="text-[13px] font-medium leading-none text-[#171717]" htmlFor="moodboard-figma-link">
         Paste Figma Link
-      </span>
-      <input
-        type="url"
-        placeholder="ex. www.google.com"
-        className="h-[38px] w-full rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium leading-none text-[#262626] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#525252] focus:ring-2 focus:ring-[#8D87FF]/30"
-      />
-    </label>
+      </label>
+      <div className="flex items-center gap-2">
+        <input
+          id="moodboard-figma-link"
+          type="url"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") onSubmit();
+          }}
+          placeholder="ex. www.google.com"
+          className="h-[38px] min-w-0 flex-1 rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium leading-none text-[#262626] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#525252] focus:ring-2 focus:ring-[#8D87FF]/30"
+        />
+        {!compact ? (
+          <button
+            type="button"
+            className="inline-flex h-[38px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+            onClick={onSubmit}
+          >
+            Import
+          </button>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -232,21 +346,62 @@ function UploadedFilesList() {
 }
 
 function FolderTabs({
-  folderState,
+  folders,
+  activeFolder,
+  isCreatingFolder,
+  draftFolderName,
+  onAll,
+  onFolderChange,
   onCreateFolder,
+  onDraftFolderNameChange,
+  onCommitFolder,
 }: {
-  folderState: "none" | "naming" | "named";
+  folders: string[];
+  activeFolder: string | null;
+  isCreatingFolder: boolean;
+  draftFolderName: string;
+  onAll: () => void;
+  onFolderChange: (folder: string) => void;
   onCreateFolder: () => void;
+  onDraftFolderNameChange: (value: string) => void;
+  onCommitFolder: () => void;
 }) {
   return (
     <div className="inline-flex rounded-[8px] bg-[#F5F5F5] p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <button
         type="button"
-        className="inline-flex h-[27px] cursor-pointer items-center rounded-[6px] bg-white px-4 text-[13px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+        className={`inline-flex h-[27px] cursor-pointer items-center rounded-[6px] px-4 text-[13px] font-medium leading-none text-[#171717] ${
+          activeFolder === null ? "bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]" : ""
+        }`}
+        onClick={onAll}
       >
         All
       </button>
-      {folderState === "none" ? (
+      {folders.map((folder) => (
+        <button
+          key={folder}
+          type="button"
+          className={`inline-flex h-[27px] cursor-pointer items-center rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#0A0A0A] ${
+            activeFolder === folder ? "bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]" : ""
+          }`}
+          onClick={() => onFolderChange(folder)}
+        >
+          {folder}
+        </button>
+      ))}
+      {isCreatingFolder ? (
+        <input
+          value={draftFolderName}
+          onChange={(event) => onDraftFolderNameChange(event.target.value)}
+          onBlur={onCommitFolder}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") onCommitFolder();
+          }}
+          autoFocus
+          placeholder="Name your folder"
+          className="h-[27px] w-[132px] rounded-[6px] bg-[#D4D4D4] px-[10px] text-[13px] font-medium leading-none text-[#0A0A0A] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#0A0A0A]"
+        />
+      ) : (
         <button
           type="button"
           className="inline-flex h-[27px] cursor-pointer items-center gap-[6px] rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] transition-colors hover:bg-white"
@@ -255,41 +410,34 @@ function FolderTabs({
           <PlusIcon className="h-[15px] w-[15px]" />
           Create Folder
         </button>
-      ) : (
-        <button
-          type="button"
-          className={`inline-flex h-[27px] cursor-pointer items-center rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#0A0A0A] ${
-            folderState === "naming" ? "bg-[#D4D4D4] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]" : ""
-          }`}
-        >
-          {folderState === "naming" ? "Name your folder" : "Direction 1"}
-        </button>
       )}
     </div>
   );
 }
 
 function MoodboardGrid({
-  selectedCount,
+  items,
+  selectedIds,
   onToggleSelect,
 }: {
-  selectedCount: number;
-  onToggleSelect: (isSelected: boolean) => void;
+  items: MoodboardItem[];
+  selectedIds: Set<string>;
+  onToggleSelect: (itemId: string) => void;
 }) {
   return (
     <div className="grid w-full grid-cols-1 gap-1 md:grid-cols-3">
-      {moodboardImages.map((image, index) => {
-        const isSelected = selectedCount > index && index < 2;
+      {items.map((item) => {
+        const isSelected = selectedIds.has(item.id);
         return (
           <button
-            key={`${image}-${index}`}
+            key={item.id}
             type="button"
             className="relative min-w-0 cursor-pointer rounded-[8px] bg-[#FAFAFA] p-2 text-left shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-transform hover:-translate-y-px"
-            onClick={() => onToggleSelect(isSelected)}
+            onClick={() => onToggleSelect(item.id)}
           >
             <div className="relative aspect-[1920/1325] w-full overflow-hidden rounded-[4px]">
               <img
-                src={image}
+                src={item.image}
                 alt=""
                 className="h-full w-full rounded-[4px] object-cover"
               />
@@ -307,7 +455,13 @@ function MoodboardGrid({
   );
 }
 
-function FolderMenu() {
+function FolderMenu({
+  folders,
+  onSelectFolder,
+}: {
+  folders: string[];
+  onSelectFolder: (folder: string) => void;
+}) {
   return (
     <div className="absolute right-3 top-[52px] z-10 w-[212px] rounded-[8px] border-2 border-black/5 bg-gradient-to-b from-white to-[#FAFAFA] p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="text-[12px] font-medium leading-[1.5] text-[#0A0A0A]">
@@ -315,11 +469,12 @@ function FolderMenu() {
       </div>
       <div className="my-[6px] h-px w-full bg-[#E5E5E5]" />
       <div className="flex flex-col">
-        {["Direction 1", "Direction 2", "Direction 3"].map((folder) => (
+        {folders.map((folder) => (
           <button
             key={folder}
             type="button"
             className="inline-flex h-7 cursor-pointer items-center gap-2 rounded-[6px] px-2 py-[6px] text-[12px] font-medium leading-none text-[#262626] transition-colors hover:bg-[#F5F5F5]"
+            onClick={() => onSelectFolder(folder)}
           >
             <FolderIcon />
             {folder}

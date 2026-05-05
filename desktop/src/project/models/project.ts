@@ -6,7 +6,7 @@ export const projectTabSchema = z.enum([
   "strategy",
   "flows",
   "moodboard",
-  "generate",
+  "wireframes",
   "assets",
 ]);
 
@@ -39,6 +39,9 @@ export const projectFlowSchema = z.object({
   title: z.string(),
   description: z.string(),
   status: z.string(),
+  screenCount: z.number().optional(),
+  category: z.string().optional(),
+  steps: z.array(z.string()).optional(),
 });
 
 export const projectAssetSchema = z.object({

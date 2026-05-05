@@ -6,10 +6,10 @@ import { ProjectHeader } from "./ProjectHeader";
 import { KanbanBoard } from "./KanbanBoard";
 import { AssetsTab } from "./tabs/AssetsTab";
 import { FlowsTab } from "./tabs/FlowsTab";
-import { GenerateTab } from "./tabs/GenerateTab";
 import { MoodboardTab } from "./tabs/MoodboardTab";
 import { ResearchTab } from "./tabs/ResearchTab";
 import { StrategyTab } from "./tabs/StrategyTab";
+import { WireframesTab } from "./tabs/WireframesTab";
 import { formatRelativeTime } from "@/lib/utils";
 import type { ProjectTab } from "../models/project";
 import { mockProject } from "../data/projectSnapshot";
@@ -108,7 +108,7 @@ export function ProjectDetailView() {
               {activeTab === "strategy" ? <StrategyTab /> : null}
               {activeTab === "moodboard" ? <MoodboardTab project={project} /> : null}
               {activeTab === "flows" ? <FlowsTab project={project} /> : null}
-              {activeTab === "generate" ? <GenerateTab /> : null}
+              {activeTab === "wireframes" ? <WireframesTab /> : null}
               {activeTab === "assets" ? <AssetsTab project={project} /> : null}
             </div>
           )}
