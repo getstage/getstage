@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { WorkspaceFrame } from "@/app/WorkspaceFrame";
+import { ClientPortalSettingsView } from "@/client-portal/components/ClientPortalSettingsView";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { settingsSnapshot } from "../data/settingsSnapshot";
@@ -59,6 +60,14 @@ export function SettingsPageView({
     );
   }
 
+  if (activeTab === "portal") {
+    return (
+      <WorkspaceFrame>
+        <ClientPortalSettingsView />
+      </WorkspaceFrame>
+    );
+  }
+
   return (
     <WorkspaceFrame>
       <div className="flex-1 px-[32px] py-[44px]">
@@ -93,7 +102,6 @@ export function SettingsPageView({
             {activeTab === "clients" ? <ClientsPanel /> : null}
             {activeTab === "developer" ? <DeveloperPanel /> : null}
             {activeTab === "account" ? <AccountPanel /> : null}
-            {activeTab === "portal" ? <ClientPortalPanel /> : null}
           </div>
         </div>
       </div>
@@ -595,18 +603,5 @@ function DisconnectIntegrationDialog({
         </div>
       </div>
     </div>
-  );
-}
-
-function ClientPortalPanel() {
-  return (
-    <SettingsCard title="Client Portal" className="max-w-[760px]">
-      <SettingsRow>
-        <h2 className="text-[18px] font-medium text-[#0A0A0A]">Portal preview</h2>
-        <p className="mt-[6px] text-[14px] text-[#737373]">
-          Mock-only placeholder for the desktop design pass. Real portal wiring stays on the web/backend track.
-        </p>
-      </SettingsRow>
-    </SettingsCard>
   );
 }

@@ -6,6 +6,8 @@ import {
 } from "@tanstack/react-router";
 import { DesktopShell } from "./app/DesktopShell";
 import { DashboardContextView } from "./app/DashboardContextView";
+import { ClientPortalPreviewView } from "./client-portal/components/ClientPortalPreviewView";
+import { ClientPortalProjectsView } from "./client-portal/components/ClientPortalProjectsView";
 import { CreateProjectView } from "./project/components/CreateProjectView";
 import { ProjectDetailView } from "./project/components/ProjectDetailView";
 import { ProjectDetailsView } from "./project/components/ProjectDetailsView";
@@ -93,6 +95,18 @@ const portalRoute = createRoute({
   component: () => <SettingsPageView initialTab="portal" />,
 });
 
+const clientPortalRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/client-portal",
+  component: ClientPortalProjectsView,
+});
+
+const clientPortalPreviewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/client-portal/$projectId/preview",
+  component: ClientPortalPreviewView,
+});
+
 const integrationsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/integrations",
@@ -112,6 +126,8 @@ const routeTree = rootRoute.addChildren([
   developerRoute,
   accountRoute,
   portalRoute,
+  clientPortalRoute,
+  clientPortalPreviewRoute,
   integrationsRoute,
 ]);
 
