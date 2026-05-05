@@ -10,7 +10,7 @@ export function ClientPortalSettingsView() {
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   return (
-    <div className="flex-1 px-[clamp(32px,12vw,200px)] py-[44px]">
+    <div className="flex-1 px-[100px] py-[44px]">
       <div className="flex w-full flex-col gap-[28px]">
         <header className="flex items-end justify-between gap-[24px]">
           <div>
