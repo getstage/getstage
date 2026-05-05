@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type PointerEvent } from "react";
+import { Avatar } from "@/components/ui/Avatar";
 import type { Phase, Task } from "../models/project";
 
 type KanbanStatus = "backlog" | "todo" | "in-progress" | "done";
@@ -37,9 +38,9 @@ type ActiveDrag = BoardTask & {
 };
 
 const ASSIGNEES = [
-  { name: "Pratik Singh", initials: "P", bg: "#E5E5E5", color: "#221E6C" },
-  { name: "John Doe", initials: "J", bg: "#DCFCE7", color: "#052E16" },
-  { name: "Mark Zuck", initials: "M", bg: "#F3E8FF", color: "#3B0764" },
+  { name: "Pratik Singh", initials: "P", bg: "#E5E5E5", color: "#221E6C", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" },
+  { name: "John Doe", initials: "J", bg: "#DCFCE7", color: "#052E16", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop" },
+  { name: "Mark Zuck", initials: "M", bg: "#F3E8FF", color: "#3B0764", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop" },
 ];
 
 function getTaskStatus(task: Task, phaseStatus: string): KanbanStatus {
@@ -403,6 +404,7 @@ function TaskCard({
           type="button"
           draggable={false}
           onMouseDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => {
             event.stopPropagation();
             onAssign?.();
@@ -410,11 +412,19 @@ function TaskCard({
           className="flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#E5E5E5] text-[10px] font-medium text-[#221E6C]"
           aria-label="Assign task"
         >
-          {task.assignees?.[0]?.name?.charAt(0)?.toUpperCase() ?? (
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-[14px] w-[14px] text-[#737373]">
-              <path d="M8 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3.5 13.5c.55-2.3 2-3.5 4.5-3.5s3.95 1.2 4.5 3.5" />
-              <path d="M12.5 5.5v3M11 7h3" />
-            </svg>
+          {task.assignees?.[0] ? (
+            <Avatar 
+              name={task.assignees[0].name} 
+              src={ASSIGNEES.find(a => a.name.includes(task.assignees![0].name))?.avatar}
+              className="h-full w-full"
+            />
+          ) : (
+            <img
+              src="/logos/dashboard/assign.svg"
+              alt=""
+              aria-hidden="true"
+              className="h-[14px] w-[14px]"
+            />
           )}
         </button>
       </div>
@@ -471,10 +481,12 @@ function AssignTaskCard({
     >
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-[14px] w-[14px] text-[#525252]">
-            <path d="M8 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3.5 13.5c.55-2.3 2-3.5 4.5-3.5s3.95 1.2 4.5 3.5" />
-            <path d="M12.5 5.5v3M11 7h3" />
-          </svg>
+          <img
+            src="/logos/dashboard/assign.svg"
+            alt=""
+            aria-hidden="true"
+            className="h-[14px] w-[14px]"
+          />
           <p className="min-w-0 flex-1 text-[12px] font-medium leading-[1.5] text-[#0A0A0A]">
             Assign Task
           </p>
@@ -501,12 +513,11 @@ function AssignTaskCard({
               onClick={() => onAssign(assignee)}
               className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-2 py-[6px] text-left transition-colors hover:bg-[#F5F5F5]"
             >
-              <span
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-medium"
-                style={{ backgroundColor: assignee.bg, color: assignee.color }}
-              >
-                {assignee.initials}
-              </span>
+              <Avatar 
+                name={assignee.name} 
+                src={assignee.avatar}
+                className="h-5 w-5"
+              />
               <span className="text-[12px] font-medium leading-none text-[#262626]">
                 {assignee.name}
               </span>
