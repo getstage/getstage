@@ -62,7 +62,7 @@ export function ProjectDetailsView() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   return (
-    <WorkspaceFrame defaultSidebarCollapsed>
+    <WorkspaceFrame>
       <div className="flex-1 px-[clamp(32px,7vw,100px)] py-[44px]">
         <motion.div
           initial={{ opacity: 0, y: 8 }}

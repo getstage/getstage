@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { settingsSnapshot } from "../data/settingsSnapshot";
 import type { Integration, SettingsTab } from "../models/settings";
 import { SettingsIcon } from "./SettingsIcons";
-import { SaveButton, SettingsCard, SettingsRow } from "./SettingsPrimitives";
+import { SaveButton, SettingsCard, SettingsRow, CopyButton } from "./SettingsPrimitives";
 
 const SETTINGS_TABS: Array<{ key: SettingsTab; label: string; icon: string }> = [
   { key: "profile", label: "Profile", icon: "profile" },
@@ -53,7 +53,7 @@ export function SettingsPageView({
 
   if (isIntegrationsPage) {
     return (
-      <WorkspaceFrame defaultSidebarCollapsed>
+      <WorkspaceFrame>
         <IntegrationsPage />
       </WorkspaceFrame>
     );
@@ -153,6 +153,8 @@ function SettingsTabBar({
 
 function ProfilePanel() {
   const { profile } = settingsSnapshot;
+  const [fullName, setFullName] = useState(profile.fullName);
+  const [selectedRole, setSelectedRole] = useState(profile.selectedRole);
 
   return (
     <SettingsCard title="Profile Details">
@@ -165,9 +167,12 @@ function ProfilePanel() {
             </p>
           </div>
           <div className="flex gap-[8px]">
-            <div className="flex min-h-[30px] flex-1 items-center rounded-[6px] bg-[#F5F5F5] px-[12px] py-[8px] text-[12px] font-medium leading-none text-[#0A0A0A] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-              {profile.fullName}
-            </div>
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="flex min-h-[30px] flex-1 items-center rounded-[6px] bg-[#F5F5F5] px-[12px] py-[8px] text-[12px] font-medium leading-none text-[#0A0A0A] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none"
+            />
             <SaveButton />
           </div>
         </SettingsRow>
@@ -180,17 +185,19 @@ function ProfilePanel() {
             </p>
           </div>
           <div className="flex items-center gap-[8px]">
-            <Avatar name={profile.fullName} size="lg" className="h-[56px] w-[56px]" />
-            <button type="button" className="inline-flex items-center gap-[6px] pl-[12px] text-[12px] font-medium leading-none text-[#525252]">
-              <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-[16px] w-[16px]">
-                <path d="M9 13V4" />
-                <path d="M5.5 7.5L9 4l3.5 3.5" />
-                <path d="M4 14.5h10" />
-              </svg>
+            <Avatar name={fullName} size="lg" className="h-[56px] w-[56px]" />
+            <button
+              type="button"
+              className="inline-flex cursor-pointer items-center gap-[6px] pl-[12px] text-[12px] font-medium leading-none text-[#525252] transition-colors hover:text-[#171717]"
+            >
+              <SettingsIcon name="upload" className="h-[16px] w-[16px]" />
               Reupload
             </button>
             <span className="flex-1" />
-            <button type="button" className="text-[12px] font-medium leading-none text-[#EF4444]">
+            <button
+              type="button"
+              className="cursor-pointer text-[12px] font-medium leading-none text-[#EF4444] transition-colors hover:text-[#DC2626]"
+            >
               Remove
             </button>
             <SaveButton />
@@ -209,14 +216,15 @@ function ProfilePanel() {
           </div>
           <div className="grid grid-cols-4 gap-[4px]">
             {profile.roles.map((role) => {
-              const active = role.id === profile.selectedRole;
+              const active = role.id === selectedRole;
               return (
                 <button
                   key={role.id}
                   type="button"
-                  className={`flex min-h-[64px] items-center justify-center gap-[8px] rounded-[6px] px-[12px] py-[24px] text-[12px] font-medium leading-none transition-colors ${
+                  onClick={() => setSelectedRole(role.id)}
+                  className={`flex min-h-[64px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] px-[12px] py-[24px] text-[12px] font-medium leading-none transition-colors outline-none ${
                     active
-                      ? "bg-[#E8E6FF] text-[#14113F] shadow-[inset_0_0_0_1px_rgba(135,130,245,0.25)]"
+                      ? "bg-[#E8E6FF] text-[#14113F] ring-1 ring-inset ring-[#8782F5]/25"
                       : "bg-[#F5F5F5] text-[#525252] hover:bg-[#EFEFEF]"
                   }`}
                 >
@@ -273,7 +281,7 @@ function BillingPanel() {
         <SettingsRow>
           <div className="flex items-center justify-between gap-[20px]">
             <div className="flex items-center gap-[12px]">
-              <span className="text-[14px] font-black italic text-[#1434CB]">VISA</span>
+              <SettingsIcon name="visa" className="h-[12px] w-auto shrink-0" />
               <span className="text-[13px] font-medium leading-[1.5] text-[#0A0A0A]">{billing.paymentMethod}</span>
             </div>
             <SaveButton>Update Payment Method</SaveButton>
@@ -338,16 +346,24 @@ function DeveloperPanel() {
           <label className="mb-[8px] block text-[12px] font-medium leading-none text-[#262626]">API Key</label>
           <div className="flex min-h-[30px] items-center justify-between rounded-[6px] bg-[#F5F5F5] px-[12px] py-[6px] text-[12px] font-medium leading-none text-[#262626] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
             {developer.apiKey}
-            <SettingsIcon name="copy" className="h-[18px] w-[18px] text-[#737373]" />
+            <CopyButton
+              text={developer.apiKey}
+              icon={<SettingsIcon name="copy" className="h-[18px] w-[18px] text-[#737373]" />}
+            />
           </div>
         </SettingsRow>
         <SettingsRow>
-          <label className="mb-[8px] block text-[12px] font-medium leading-none text-[#262626]">Generated Promp</label>
+          <label className="mb-[8px] block text-[12px] font-medium leading-none text-[#262626]">Generated Prompt</label>
           <div className="flex items-start justify-between gap-[16px] rounded-[6px] bg-[#F5F5F5] px-[12px] py-[10px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
             <pre className="min-h-[288px] whitespace-pre-wrap font-sans text-[12px] font-medium leading-[1.5] text-[#525252]">
               {developer.generatedPrompt}
             </pre>
-            <SettingsIcon name="copy" className="h-[18px] w-[18px] shrink-0 text-[#737373]" />
+            <div className="pt-1">
+              <CopyButton
+                text={developer.generatedPrompt}
+                icon={<SettingsIcon name="copy" className="h-[18px] w-[18px] text-[#737373]" />}
+              />
+            </div>
           </div>
         </SettingsRow>
       </div>

@@ -93,6 +93,24 @@ export function SettingsIcon({ name, className = "h-[18px] w-[18px]" }: IconProp
     copy: (
       <img src="/logos/dashboard/copy.svg" alt="" aria-hidden="true" className={className} />
     ),
+    visa: (
+      <img src="/logos/visa_inc_logo.svg.svg" alt="Visa" aria-hidden="true" className={className} />
+    ),
+    upload: (
+      <img src="/logos/dashboard/upload.svg" alt="" aria-hidden="true" className={className} />
+    ),
+    freelancer: (
+      <img src="/logos/dashboard/freelancer.svg" alt="" aria-hidden="true" className={className} />
+    ),
+    studio: (
+      <img src="/logos/dashboard/studio.svg" alt="" aria-hidden="true" className={className} />
+    ),
+    "in-house": (
+      <img src="/logos/dashboard/in-house.svg" alt="" aria-hidden="true" className={className} />
+    ),
+    agency: (
+      <img src="/logos/dashboard/agency.svg" alt="" aria-hidden="true" className={className} />
+    ),
   };
 
   return icons[name] ?? icons.profile;

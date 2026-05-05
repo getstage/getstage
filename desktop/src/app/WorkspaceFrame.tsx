@@ -1,15 +1,14 @@
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { StageSidebar } from "@/dashboard/components/StageSidebar";
 import { dashboardSnapshot } from "@/dashboard/data/dashboardSnapshot";
+import { useSidebarState } from "@/hooks/useSidebarState";
 
 export function WorkspaceFrame({
   children,
-  defaultSidebarCollapsed = false,
 }: {
   children: ReactNode;
-  defaultSidebarCollapsed?: boolean;
 }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(defaultSidebarCollapsed);
+  const [sidebarCollapsed, setSidebarCollapsed] = useSidebarState(false);
 
   return (
     <div className="flex h-screen items-start gap-[8px] bg-[#f5f5f5] p-[4px]">

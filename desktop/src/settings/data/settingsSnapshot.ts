@@ -6,10 +6,10 @@ export const settingsSnapshot = settingsSnapshotSchema.parse({
     avatarInitials: "WD",
     selectedRole: "in-house",
     roles: [
-      { id: "freelancer", label: "Freelancer", icon: "paint" },
-      { id: "studio", label: "Studio", icon: "briefcase" },
-      { id: "in-house", label: "In-house", icon: "users" },
-      { id: "agency", label: "Agency", icon: "home" },
+      { id: "freelancer", label: "Freelancer", icon: "freelancer" },
+      { id: "studio", label: "Studio", icon: "studio" },
+      { id: "in-house", label: "In-house", icon: "in-house" },
+      { id: "agency", label: "Agency", icon: "agency" },
     ],
   },
   billing: {

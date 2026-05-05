@@ -31,7 +31,7 @@ export function ProjectDetailView() {
   }, [project]);
 
   return (
-    <WorkspaceFrame defaultSidebarCollapsed>
+    <WorkspaceFrame>
       <div className="flex-1 px-[clamp(24px,7vw,100px)] py-[44px]">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
