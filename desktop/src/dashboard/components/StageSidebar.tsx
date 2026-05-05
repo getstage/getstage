@@ -216,6 +216,7 @@ export function StageSidebar({
               </div>
               <button
                 type="button"
+                onClick={() => void navigate({ to: "/projects/create" })}
                 className="flex h-[20px] w-[20px] cursor-pointer items-center justify-center rounded-[4px] bg-white shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] outline-none transition-colors hover:bg-[#fafafa]"
               >
                 <img
