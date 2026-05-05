@@ -338,7 +338,7 @@ function DeveloperPanel() {
           <label className="mb-[8px] block text-[12px] font-medium leading-none text-[#262626]">API Key</label>
           <div className="flex min-h-[30px] items-center justify-between rounded-[6px] bg-[#F5F5F5] px-[12px] py-[6px] text-[12px] font-medium leading-none text-[#262626] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
             {developer.apiKey}
-            <SettingsIcon name="document" className="h-[18px] w-[18px] text-[#737373]" />
+            <SettingsIcon name="copy" className="h-[18px] w-[18px] text-[#737373]" />
           </div>
         </SettingsRow>
         <SettingsRow>
@@ -347,7 +347,7 @@ function DeveloperPanel() {
             <pre className="min-h-[288px] whitespace-pre-wrap font-sans text-[12px] font-medium leading-[1.5] text-[#525252]">
               {developer.generatedPrompt}
             </pre>
-            <SettingsIcon name="document" className="h-[18px] w-[18px] shrink-0 text-[#737373]" />
+            <SettingsIcon name="copy" className="h-[18px] w-[18px] shrink-0 text-[#737373]" />
           </div>
         </SettingsRow>
       </div>

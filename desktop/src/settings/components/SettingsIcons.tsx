@@ -90,6 +90,9 @@ export function SettingsIcon({ name, className = "h-[18px] w-[18px]" }: IconProp
     sheet: (
       <img src="/logos/integrations/google-sheets.svg" alt="" aria-hidden="true" className={className} />
     ),
+    copy: (
+      <img src="/logos/dashboard/copy.svg" alt="" aria-hidden="true" className={className} />
+    ),
   };
 
   return icons[name] ?? icons.profile;
