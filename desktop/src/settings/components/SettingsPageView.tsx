@@ -58,11 +58,9 @@ export function SettingsPageView({
           <button
             type="button"
             onClick={() => void navigate({ to: "/" })}
-            className="mb-[42px] inline-flex items-center gap-[8px] text-[20px] font-medium text-[#A3A3A3] transition-colors hover:text-[#737373]"
+            className="mb-[42px] inline-flex cursor-pointer items-center gap-[8px] text-[20px] font-medium text-[#A3A3A3] transition-colors hover:text-[#737373]"
           >
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[20px] w-[20px]">
-              <path d="M12.5 4.5L7 10l5.5 5.5" />
-            </svg>
+            <ArrowLeftIcon />
             Back to dashboard
           </button>
 
@@ -91,6 +89,25 @@ export function SettingsPageView({
         </div>
       </div>
     </WorkspaceFrame>
+  );
+}
+
+function ArrowLeftIcon() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+      className="h-[16px] w-[16px] shrink-0"
+    >
+      <path
+        d="M10 4 6 8l4 4M6.5 8H13"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 

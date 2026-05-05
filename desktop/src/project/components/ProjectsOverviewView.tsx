@@ -65,7 +65,7 @@ export function ProjectsOverviewView() {
               <button
                 type="button"
                 onClick={() => void navigate({ to: "/projects/create" })}
-                className="flex items-center justify-center gap-[6px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]"
+                className="flex cursor-pointer items-center justify-center gap-[6px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]"
               >
                 <img
                   src="/logos/dashboard/plus.svg"
@@ -87,6 +87,12 @@ export function ProjectsOverviewView() {
                   params: { projectId },
                 })
               }
+              onOpenProjectDetails={(projectId) =>
+                void navigate({
+                  to: "/project/$projectId/details",
+                  params: { projectId },
+                })
+              }
             />
           </div>
         </div>
@@ -98,9 +104,11 @@ export function ProjectsOverviewView() {
 function ProjectsTable({
   projects,
   onOpenProject,
+  onOpenProjectDetails,
 }: {
   projects: ProjectOverviewRow[];
   onOpenProject: (projectId: string) => void;
+  onOpenProjectDetails: (projectId: string) => void;
 }) {
   return (
     <div className="overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[4px]">
@@ -123,6 +131,7 @@ function ProjectsTable({
               project={project}
               showDivider={index > 0}
               onOpenProject={onOpenProject}
+              onOpenProjectDetails={onOpenProjectDetails}
             />
           ))
         ) : (
@@ -139,18 +148,28 @@ function ProjectTableRow({
   project,
   showDivider,
   onOpenProject,
+  onOpenProjectDetails,
 }: {
   project: ProjectOverviewRow;
   showDivider: boolean;
   onOpenProject: (projectId: string) => void;
+  onOpenProjectDetails: (projectId: string) => void;
 }) {
   return (
     <div>
       {showDivider ? <div className="mb-[16px] h-px w-full bg-[#e5e5e5]" /> : null}
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => onOpenProject(project.id)}
-        className="group grid w-full grid-cols-5 items-center gap-[24px] text-left outline-none"
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onOpenProject(project.id);
+          }
+        }}
+        className="group grid w-full cursor-pointer grid-cols-5 items-center gap-[24px] text-left outline-none"
+        aria-label={`Open ${project.name}`}
       >
         <div className="flex min-w-0 items-center gap-[8px]">
           <div
@@ -178,11 +197,17 @@ function ProjectTableRow({
           {project.created}
         </p>
 
-        <span
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpenProjectDetails(project.id);
+          }}
           className={cn(
-            "flex min-w-0 items-center gap-[8px] text-left text-[13px] font-medium leading-none text-[#171717]",
+            "flex min-w-0 cursor-pointer items-center gap-[8px] text-left text-[13px] font-medium leading-none text-[#171717]",
             "transition-colors hover:text-[#463fba]",
           )}
+          aria-label={`See details for ${project.name}`}
         >
           <span className="whitespace-nowrap">See Details</span>
           <svg
@@ -199,8 +224,8 @@ function ProjectTableRow({
               strokeLinejoin="round"
             />
           </svg>
-        </span>
-      </button>
+        </button>
+      </div>
       <div className="h-[16px]" />
     </div>
   );

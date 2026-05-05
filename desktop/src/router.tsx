@@ -8,6 +8,7 @@ import { DesktopShell } from "./app/DesktopShell";
 import { DashboardContextView } from "./app/DashboardContextView";
 import { CreateProjectView } from "./project/components/CreateProjectView";
 import { ProjectDetailView } from "./project/components/ProjectDetailView";
+import { ProjectDetailsView } from "./project/components/ProjectDetailsView";
 import { ProjectsOverviewView } from "./project/components/ProjectsOverviewView";
 import { SettingsPageView } from "./settings/components/SettingsPageView";
 
@@ -29,6 +30,12 @@ const projectRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/project/$projectId",
   component: ProjectDetailView,
+});
+
+const projectDetailsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/project/$projectId/details",
+  component: ProjectDetailsView,
 });
 
 const projectsRoute = createRoute({
@@ -89,6 +96,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   projectsRoute,
   createProjectRoute,
+  projectDetailsRoute,
   projectRoute,
   settingsRoute,
   billingRoute,

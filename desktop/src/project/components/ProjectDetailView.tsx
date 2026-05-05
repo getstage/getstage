@@ -41,11 +41,9 @@ export function ProjectDetailView() {
             <button
               type="button"
               onClick={() => void navigate({ to: "/" })}
-              className="mb-6 inline-flex w-fit items-center gap-1 text-[13px] font-medium text-[#A3A3A3] transition-colors hover:text-text-primary"
+              className="mb-6 inline-flex w-fit cursor-pointer items-center gap-[8px] text-[13px] font-medium text-[#A3A3A3] transition-colors hover:text-[#525252]"
             >
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-[14px] w-[14px]">
-                <path d="M10 3L5 8l5 5" />
-              </svg>
+              <ArrowLeftIcon />
               Back to dashboard
             </button>
 
@@ -117,5 +115,24 @@ export function ProjectDetailView() {
         </motion.div>
       </div>
     </WorkspaceFrame>
+  );
+}
+
+function ArrowLeftIcon() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+      className="h-[16px] w-[16px] shrink-0"
+    >
+      <path
+        d="M10 4 6 8l4 4M6.5 8H13"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
