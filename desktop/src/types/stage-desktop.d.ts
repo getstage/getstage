@@ -17,6 +17,9 @@ export type StageDesktopApi = {
     hide: () => Promise<void>;
     setState: (state: CompanionState) => Promise<void>;
   };
+  window: {
+    toggleMaximize: () => Promise<void>;
+  };
   screen: {
     getActiveApp: () => Promise<ActiveAppInfo>;
     captureActiveWindow: () => Promise<CaptureResult>;

@@ -3,6 +3,36 @@
    Companion components: CompanionOrb, VoiceControlBar, CritiquePanel
    ============================================================ */
 
+.stage-desktop-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.stage-window-chrome,
+.stage-sidebar,
+button,
+input,
+select,
+textarea,
+a,
+[role="button"],
+.chat-panel,
+.critique-panel,
+.companion-orb,
+.voice-control-bar {
+  -webkit-app-region: no-drag;
+}
+
+.stage-window-chrome {
+  -webkit-app-region: drag;
+}
+
+.stage-sidebar {
+  -webkit-app-region: drag;
+}
+
 .companion-orb {
   position: fixed;
   right: 54px;

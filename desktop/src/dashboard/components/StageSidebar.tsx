@@ -58,7 +58,7 @@ export function StageSidebar({
   return (
     <nav
       className={cn(
-        "flex h-full shrink-0 flex-col justify-between overflow-hidden rounded-[8px] bg-[#f5f5f5] pb-[16px] pt-[58px] transition-[width,padding] duration-200 ease-out",
+        "stage-sidebar flex h-full shrink-0 flex-col justify-between overflow-hidden rounded-[8px] bg-[#f5f5f5] pb-[16px] pt-[14px] transition-[width,padding] duration-200 ease-out",
         collapsed ? "w-[48px] items-center px-[8px]" : "w-[240px] px-[12px]",
       )}
     >

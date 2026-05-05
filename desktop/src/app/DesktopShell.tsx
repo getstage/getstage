@@ -12,7 +12,7 @@ export function DesktopShell({ children }: DesktopShellProps) {
   const companion = useCompanionState();
 
   return (
-    <div className="min-h-screen">
+    <div className="stage-desktop-shell min-h-dvh">
       {children}
       <CompanionOrb state={companion.state} />
       <VoiceControlBar state={companion.state} onStateChange={companion.setState} />

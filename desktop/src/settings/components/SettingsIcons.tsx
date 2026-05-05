@@ -18,35 +18,19 @@ export function SettingsIcon({ name, className = "h-[18px] w-[18px]" }: IconProp
 
   const icons: Record<string, ReactNode> = {
     profile: (
-      <svg {...common}>
-        <circle cx="10" cy="6.5" r="3" />
-        <path d="M4.5 17c.8-3.1 2.6-4.6 5.5-4.6s4.7 1.5 5.5 4.6" />
-      </svg>
+      <img src="/logos/dashboard/profile.svg" alt="" aria-hidden="true" className={className} />
     ),
     billing: (
-      <svg {...common}>
-        <rect x="3" y="5" width="14" height="10" rx="2" />
-        <path d="M3 8h14" />
-      </svg>
+      <img src="/logos/dashboard/billing.svg" alt="" aria-hidden="true" className={className} />
     ),
     clients: (
-      <svg {...common}>
-        <circle cx="7" cy="7" r="2.5" />
-        <circle cx="13.5" cy="8" r="2" />
-        <path d="M3 16c.6-2.5 2-3.7 4-3.7s3.4 1.2 4 3.7" />
-        <path d="M10.5 16c.5-1.8 1.6-2.7 3.2-2.7 1.5 0 2.6.9 3.1 2.7" />
-      </svg>
+      <img src="/logos/dashboard/clients.svg" alt="" aria-hidden="true" className={className} />
     ),
     developer: (
-      <svg {...common}>
-        <path d="M7.5 6L4 10l3.5 4" />
-        <path d="M12.5 6L16 10l-3.5 4" />
-      </svg>
+      <img src="/logos/dashboard/developer.svg" alt="" aria-hidden="true" className={className} />
     ),
     account: (
-      <svg {...common}>
-        <path d="M10 3l6 2.6v4.6c0 3.1-2.2 5.4-6 6.8-3.8-1.4-6-3.7-6-6.8V5.6L10 3z" />
-      </svg>
+      <img src="/logos/dashboard/account.svg" alt="" aria-hidden="true" className={className} />
     ),
     paint: (
       <svg {...common}>

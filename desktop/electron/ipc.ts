@@ -1,4 +1,4 @@
-import { app, ipcMain, shell } from "electron";
+import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import {
   companionStateSchema,
@@ -35,6 +35,22 @@ export function registerIpcHandlers() {
 
   ipcMain.handle(IPC_CHANNELS.companionSetState, (_event, state: unknown) => {
     companionStateSchema.parse(state);
+    return { ok: true };
+  });
+
+  ipcMain.handle(IPC_CHANNELS.windowToggleMaximize, (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    if (!window) {
+      return { ok: false };
+    }
+
+    if (window.isMaximized()) {
+      window.unmaximize();
+    } else {
+      window.maximize();
+    }
+
     return { ok: true };
   });
 

@@ -17,6 +17,14 @@ const SETTINGS_TABS: Array<{ key: SettingsTab; label: string; icon: string }> = 
   { key: "account", label: "Account", icon: "account" },
 ];
 
+const SETTINGS_TAB_ICON_PATHS: Record<string, string> = {
+  profile: "/logos/dashboard/profile.svg",
+  billing: "/logos/dashboard/billing.svg",
+  clients: "/logos/dashboard/clients.svg",
+  developer: "/logos/dashboard/developer.svg",
+  account: "/logos/dashboard/account.svg",
+};
+
 export function SettingsPageView({
   initialTab = "profile",
 }: {
@@ -150,12 +158,27 @@ function SettingsTabBar({
                 : "text-[#737373] hover:bg-white"
             }`}
           >
-            <SettingsIcon name={tab.icon} className="h-[15px] w-[15px]" />
+            <SettingsTabIcon name={tab.icon} />
             {tab.label}
           </button>
         );
       })}
     </div>
+  );
+}
+
+function SettingsTabIcon({ name }: { name: string }) {
+  const iconPath = SETTINGS_TAB_ICON_PATHS[name] ?? SETTINGS_TAB_ICON_PATHS.profile;
+
+  return (
+    <span
+      aria-hidden="true"
+      className="h-[15px] w-[15px] shrink-0 bg-current"
+      style={{
+        WebkitMask: `url("${iconPath}") center / contain no-repeat`,
+        mask: `url("${iconPath}") center / contain no-repeat`,
+      }}
+    />
   );
 }
 

@@ -13,6 +13,9 @@ const stageDesktop = {
     setState: (state: CompanionState) =>
       ipcRenderer.invoke(IPC_CHANNELS.companionSetState, state),
   },
+  window: {
+    toggleMaximize: () => ipcRenderer.invoke(IPC_CHANNELS.windowToggleMaximize),
+  },
   screen: {
     getActiveApp: () => ipcRenderer.invoke(IPC_CHANNELS.screenGetActiveApp),
     captureActiveWindow: () =>
