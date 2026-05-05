@@ -783,12 +783,6 @@ function SparkleIcon() {
 
 function FigmaIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[15px] w-[10px] shrink-0">
-      <path d="M5.5 1.5H8v4H5.5a2 2 0 1 1 0-4Z" fill="#F24E1E" />
-      <path d="M8 1.5h2.5a2 2 0 0 1 0 4H8v-4Z" fill="#FF7262" />
-      <path d="M8 5.5h2.5a2 2 0 1 1 0 4H8v-4Z" fill="#1ABCFE" />
-      <path d="M5.5 5.5H8v4H5.5a2 2 0 1 1 0-4Z" fill="#A259FF" />
-      <path d="M5.5 9.5H8v2a2 2 0 1 1-2.5-2Z" fill="#0ACF83" />
-    </svg>
+    <img src="/logos/integrations/figma.svg" alt="" aria-hidden="true" className="h-[15px] w-[10px] shrink-0" />
   );
 }

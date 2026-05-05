@@ -513,13 +513,7 @@ function Footer({
 
 function FigmaIcon() {
   return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" className="h-[15px] w-[10px] shrink-0">
-      <path fill="#F24E1E" d="M5.5 8A2.5 2.5 0 0 1 8 5.5h2.5v5H8A2.5 2.5 0 0 1 5.5 8Z" />
-      <path fill="#A259FF" d="M5.5 3A2.5 2.5 0 0 1 8 .5h2.5v5H8A2.5 2.5 0 0 1 5.5 3Z" />
-      <path fill="#1ABCFE" d="M10.5 5.5H13A2.5 2.5 0 1 1 10.5 8V5.5Z" />
-      <path fill="#0ACF83" d="M5.5 13A2.5 2.5 0 0 1 8 10.5h2.5V13A2.5 2.5 0 1 1 5.5 13Z" />
-      <path fill="#FF7262" d="M10.5.5H13a2.5 2.5 0 0 1 0 5h-2.5v-5Z" />
-    </svg>
+    <img src="/logos/integrations/figma.svg" alt="" aria-hidden="true" className="h-[15px] w-[10px] shrink-0" />
   );
 }
 

@@ -11,11 +11,13 @@ export function SettingsCard({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-[8px] bg-[#F5F5F5] p-[8px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]", className)}>
+    <section className={cn("rounded-[12px] bg-[#F5F5F5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]", className)}>
       {title ? (
-        <h2 className="px-[12px] py-[8px] font-heading text-[13px] font-semibold text-[#0A0A0A]">
-          {title}
-        </h2>
+        <div className="px-[12px] pb-[12px] pt-[8px]">
+          <h2 className="text-[13px] font-medium leading-[1.5] text-[#0A0A0A]">
+            {title}
+          </h2>
+        </div>
       ) : null}
       {children}
     </section>
@@ -30,7 +32,7 @@ export function SettingsRow({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-[6px] bg-white p-[16px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]", className)}>
+    <div className={cn("rounded-[8px] bg-white p-[20px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]", className)}>
       {children}
     </div>
   );
@@ -40,7 +42,7 @@ export function SaveButton({ children = "Save" }: { children?: ReactNode }) {
   return (
     <button
       type="button"
-      className="inline-flex h-[34px] min-w-[64px] items-center justify-center rounded-[6px] bg-white px-[14px] text-[13px] font-medium text-[#0A0A0A] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA]"
+      className="inline-flex min-h-[30px] min-w-[64px] items-center justify-center rounded-[6px] bg-[#F5F5F5] px-[16px] py-[8px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EBEBEB]"
     >
       {children}
     </button>

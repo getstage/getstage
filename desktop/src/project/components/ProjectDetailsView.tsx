@@ -335,13 +335,7 @@ function UploadFileModal({ onClose }: { onClose: () => void }) {
 
 function FigmaIcon() {
   return (
-    <svg viewBox="0 0 15 15" className="h-[15px] w-[10px] shrink-0" aria-hidden="true">
-      <circle cx="4.5" cy="3" r="2.1" fill="#F24E1E" />
-      <circle cx="8.7" cy="3" r="2.1" fill="#FF7262" />
-      <circle cx="4.5" cy="7.2" r="2.1" fill="#A259FF" />
-      <circle cx="8.7" cy="7.2" r="2.1" fill="#1ABCFE" />
-      <circle cx="4.5" cy="11.4" r="2.1" fill="#0ACF83" />
-    </svg>
+    <img src="/logos/integrations/figma.svg" alt="" aria-hidden="true" className="h-[15px] w-[10px] shrink-0" />
   );
 }
 

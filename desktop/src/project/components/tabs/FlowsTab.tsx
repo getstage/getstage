@@ -816,13 +816,7 @@ function PlusIcon({ className = "h-[15px] w-[15px] shrink-0 text-[#737373]" }: {
 
 function FigmaIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[15px] w-[15px] shrink-0">
-      <path d="M5.25 2h2.5v4h-2.5a2 2 0 1 1 0-4Z" fill="#F24E1E" />
-      <path d="M7.75 2h2.5a2 2 0 0 1 0 4h-2.5V2Z" fill="#FF7262" />
-      <path d="M7.75 6h2.5a2 2 0 1 1 0 4h-2.5V6Z" fill="#1ABCFE" />
-      <path d="M5.25 6h2.5v4h-2.5a2 2 0 1 1 0-4Z" fill="#A259FF" />
-      <path d="M5.25 10h2.5v2a2 2 0 1 1-2-2Z" fill="#0ACF83" />
-    </svg>
+    <img src="/logos/integrations/figma.svg" alt="" aria-hidden="true" className="h-[15px] w-[15px] shrink-0" />
   );
 }
 

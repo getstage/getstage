@@ -76,39 +76,19 @@ export function SettingsIcon({ name, className = "h-[18px] w-[18px]" }: IconProp
       </svg>
     ),
     spark: (
-      <svg viewBox="0 0 20 20" fill="currentColor" className={className}>
-        <path d="M10 1.8l1.2 5.3 4.3-3.3-3.3 4.3 5.3 1.2-5.3 1.2 3.3 4.3-4.3-3.3L10 16.8l-1.2-5.3-4.3 3.3 3.3-4.3-5.3-1.2 5.3-1.2-3.3-4.3 4.3 3.3L10 1.8z" />
-      </svg>
+      <img src="/logos/integrations/claude.svg" alt="" aria-hidden="true" className={className} />
     ),
     code: (
-      <svg {...common}>
-        <path d="M7.5 5L4 10l3.5 5" />
-        <path d="M12.5 5L16 10l-3.5 5" />
-        <path d="M11 4L9 16" />
-      </svg>
+      <img src="/logos/integrations/codex.svg" alt="" aria-hidden="true" className={className} />
     ),
     figma: (
-      <svg viewBox="0 0 20 20" className={className} aria-hidden="true">
-        <circle cx="7" cy="5" r="3" fill="#F24E1E" />
-        <circle cx="13" cy="5" r="3" fill="#FF7262" />
-        <circle cx="7" cy="10" r="3" fill="#A259FF" />
-        <circle cx="13" cy="10" r="3" fill="#1ABCFE" />
-        <circle cx="7" cy="15" r="3" fill="#0ACF83" />
-      </svg>
+      <img src="/logos/integrations/figma.svg" alt="" aria-hidden="true" className={className} />
     ),
     document: (
-      <svg {...common}>
-        <path d="M5 3h7l3 3v11H5z" />
-        <path d="M12 3v4h3" />
-        <path d="M7.5 10h5M7.5 13h5" />
-      </svg>
+      <img src="/logos/integrations/notion.svg" alt="" aria-hidden="true" className={className} />
     ),
     sheet: (
-      <svg viewBox="0 0 20 20" fill="currentColor" className={className}>
-        <path d="M5 2.5h7l3 3V17.5H5V2.5z" fill="#2CAA67" />
-        <path d="M12 2.5v3h3" fill="#72D49A" />
-        <path d="M7 8h6v1.2H7V8zm0 2.5h6v1.2H7v-1.2zm0 2.5h6v1.2H7V13z" fill="white" opacity=".9" />
-      </svg>
+      <img src="/logos/integrations/google-sheets.svg" alt="" aria-hidden="true" className={className} />
     ),
   };
 
