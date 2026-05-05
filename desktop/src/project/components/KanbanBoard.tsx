@@ -492,10 +492,12 @@ function AssignTaskCard({
           </p>
         </div>
         <label className="flex h-[31px] w-full cursor-text items-center gap-2 rounded-[6px] bg-[#F5F5F5] px-2 py-[6px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)]">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="h-[15px] w-[15px] text-[#737373]">
-            <circle cx="7" cy="7" r="4" />
-            <path d="m10 10 3 3" />
-          </svg>
+          <img
+            src="/logos/dashboard/search.svg"
+            alt=""
+            aria-hidden="true"
+            className="h-[15px] w-[15px] shrink-0"
+          />
           <input
             type="text"
             value={search}
