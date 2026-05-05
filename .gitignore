@@ -30,6 +30,10 @@ yarn-error.log*
 # Local Claude tooling
 .claude/settings.local.json
 .claude/worktrees/
+.claude/skills/
+
+# Generated local skill symlinks. The source skill files live in .agents/skills/.
+/skills/
 
 # Local sibling repo used outside the app deploy
 agent-mode/

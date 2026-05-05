@@ -1,0 +1,1303 @@
+# Stage Desktop Monorepo Architecture
+
+Date: May 5, 2026  
+Status: Architecture planning document  
+Scope: Desktop architecture, Rust local engine, local Codex/Claude execution, design critique, voice input, and monorepo migration
+
+## 1. Executive Summary
+
+Stage Desktop should become a native macOS-first desktop application with:
+
+- Electron + React for the desktop user interface.
+- A Rust sidecar process for local heavy work.
+- Convex as the cloud source of truth for Stage project data.
+- Local Codex and Claude CLI execution as the first AI execution path.
+- Deep local file search and `.codex` / `.claude` discovery.
+- Design critique based on screen context + Stage project context.
+- Voice input using a cloud-based transcription / LLM model.
+
+The strategic model is:
+
+```txt
+T3 Code is a generic GUI for local coding agents.
+Stage is a project-aware design companion that runs local Codex/Claude agents,
+understands local files, sees the screen, and injects Stage project context.
+```
+
+This is close to the Codex/T3 Code strategy, but Stage adds design-specific context:
+
+- Client brief
+- Brand strategy
+- Approved visual direction
+- Project assets
+- Screen or Figma context
+- Voice-triggered design critique
+
+## 2. Current Repository State
+
+The repository is not yet in the final monorepo shape.
+
+Current important folders:
+
+```txt
+stage_mvp/
+├── app/          # Current web/cloud app with Convex
+├── desktop/      # Current Electron desktop mock/design app
+├── .agents/      # Installed agent skills
+├── .claude/      # Local Claude config/worktrees
+└── skills/       # Installed skills symlinks/copies
+```
+
+Current desktop facts:
+
+- `desktop/` already contains Electron + React + Vite.
+- `desktop/electron/main.ts` owns the Electron lifecycle.
+- `desktop/electron/windows.ts` owns `BrowserWindow` creation.
+- `desktop/electron/preload.ts` exposes the safe renderer bridge.
+- `desktop/electron/ipc.ts` owns IPC handlers.
+- `desktop/shared/models/desktop.ts` already uses Zod.
+- `desktop/shared/ipc/channels.ts` centralizes IPC channel names.
+- `desktop/src/` contains mock UI for dashboard, projects, settings, companion, and critique panel.
+
+Current Electron security baseline is good and should be preserved:
+
+```txt
+contextIsolation: true
+nodeIntegration: false
+sandbox: true
+preload bridge only
+```
+
+## 3. Core Architecture Decision
+
+Use this architecture:
+
+```txt
+Electron + React = UI, routing, windows, user interaction
+Rust sidecar = local engine, file search, agent execution, queues, native work
+Convex = cloud source of truth for Stage project data
+Codex/Claude CLI = first AI execution route
+Cloud transcription/LLM = first voice conversion route
+```
+
+Do not make Rust the UI.
+
+Do not let React directly touch Node, filesystem, shell commands, Codex, Claude, or native macOS APIs.
+
+The safe flow is:
+
+```txt
+React Renderer
+  -> preload bridge
+  -> Electron main process
+  -> Rust sidecar
+  -> local provider process / filesystem / native APIs
+  -> Rust sidecar events
+  -> Electron main process
+  -> preload-safe renderer events
+  -> React UI
+```
+
+## 4. Target Monorepo Shape
+
+Final target:
+
+```txt
+stage_mvp/
+├── apps/
+│   ├── user-application/
+│   │   ├── electron/
+│   │   ├── src/
+│   │   ├── shared/
+│   │   └── package.json
+│   │
+│   └── data-service/
+│       ├── Cargo.toml
+│       └── src/
+│
+├── packages/
+│   └── data-ops/
+│       ├── convex/
+│       ├── contracts/
+│       ├── domain/
+│       └── package.json
+│
+└── docs/
+    └── architecture/
+```
+
+Important: do not do a big-bang migration yet.
+
+Recommended migration path:
+
+```txt
+Phase 0: Keep current desktop/ and app/ working.
+Phase 1: Write architecture docs.
+Phase 2: Add Rust sidecar beside desktop/.
+Phase 3: Add typed contracts between Electron and Rust.
+Phase 4: Move folders into apps/ and packages/ only after the runtime works.
+```
+
+## 5. Data-Ops Clarification
+
+`data-ops` should not be a simple `shared-types` folder.
+
+Better mental model:
+
+```txt
+data-ops = cloud/domain package
+contracts = typed communication layer
+Rust models = serde mirror of contracts
+```
+
+Recommended future structure:
+
+```txt
+packages/data-ops/
+├── convex/
+│   ├── schema.ts
+│   ├── auth.ts
+│   ├── projects.ts
+│   ├── projectAi.ts
+│   ├── r2.ts
+│   └── _generated/
+│
+├── contracts/
+│   ├── engine-commands.ts
+│   ├── engine-events.ts
+│   ├── agent-provider.ts
+│   ├── file-context.ts
+│   ├── screen-context.ts
+│   └── voice.ts
+│
+├── domain/
+│   ├── project-context.ts
+│   ├── design-critique.ts
+│   └── agent-session.ts
+│
+└── package.json
+```
+
+Phase 1 contract strategy:
+
+- TypeScript uses Zod schemas.
+- Rust manually mirrors these with `serde` structs.
+- Keep this simple and understandable first.
+
+Phase 2 contract strategy:
+
+- Add schema/code generation once contracts stabilize.
+- Possible future options:
+  - TypeScript Zod to JSON Schema to Rust
+  - Rust structs to TypeScript
+  - OpenAPI/JSON Schema as a neutral contract layer
+
+Do not introduce codegen on day one.
+
+## 6. First Product Scope
+
+In scope now:
+
+- Desktop UI mock/design migration
+- Full desktop monorepo migration before production V1 release
+- Companion chat UI
+- Voice input for companion commands/chat
+- Cloud-based voice transcription / LLM conversion
+- Local Codex CLI execution
+- Local Claude CLI execution
+- Provider switching
+- Deep local file search
+- `.codex` discovery
+- `.claude` discovery
+- `AGENTS.md` / `CLAUDE.md` discovery
+- Project context injection from Convex
+- Design critique from screen capture + project context
+- Streaming responses
+- Job cancellation
+- Provider process supervision
+- Permission status display
+- Basic Figma integration for production V1
+- Basic Notion integration for production V1
+
+Out of scope for the first architecture build:
+
+- SQLite-first local database
+- Local AI inference
+- Ambient research mode
+- Focus sessions
+- Full offline-first sync
+- `napi-rs` native module
+- Embedded Rust concepts like RTOS, `no_std`, `embedded-hal`, `probe-rs`, `heapless`, `embassy`
+- Desktop billing/account/business flows
+- Desktop onboarding flows
+- Advanced Figma automation beyond the production V1 integration
+- Advanced Notion handoff automation beyond the production V1 integration
+
+Billing, account, business flows, and onboarding remain website responsibilities unless explicitly moved later.
+
+## 7. Electron Responsibilities
+
+Electron main process owns:
+
+```txt
+desktop/electron/
+├── main.ts
+├── windows.ts
+├── ipc.ts
+├── preload.ts
+├── tray.ts
+├── shortcuts.ts
+├── deep-links.ts
+├── permissions.ts
+├── sidecar/
+│   ├── process.ts
+│   ├── health.ts
+│   ├── restart.ts
+│   └── websocket.ts
+└── helpers/
+    ├── logger.ts
+    └── env.ts
+```
+
+Electron must handle:
+
+- App lifecycle
+- Single instance lock
+- Main window
+- Companion window
+- Floating overlay window
+- Global shortcuts
+- Tray/menu
+- Deep links
+- Opening browser auth
+- Spawning Rust sidecar
+- Restarting Rust sidecar
+- Validating IPC requests
+- Forwarding safe events to renderer
+
+Electron must not:
+
+- Run heavy file indexing itself
+- Run Codex/Claude directly from React
+- Expose unrestricted `ipcRenderer`
+- Expose filesystem access directly to renderer
+- Store long-lived OAuth/provider secrets in renderer
+
+## 8. React Renderer Responsibilities
+
+React owns:
+
+```txt
+desktop/src/
+├── app/
+├── companion/
+├── dashboard/
+├── project/
+├── settings/
+├── integrations/
+├── agent-chat/
+├── design-critique/
+├── hooks/
+├── models/
+├── data/
+├── lib/
+└── styles/
+```
+
+React must handle:
+
+- UI rendering
+- TanStack Router routes
+- TanStack Query client state
+- Convex hooks for cloud project data
+- Chat thread display
+- Streaming token display
+- Voice state UI
+- Critique panel
+- Provider selector
+- Permission status UI
+- Mock data until backend choices are stable
+
+React must not:
+
+- Call local CLIs directly
+- Read files directly
+- Access Node APIs
+- Access raw IPC
+- Own provider process lifecycle
+
+## 9. Rust Sidecar Responsibilities
+
+Rust sidecar owns:
+
+```txt
+apps/data-service/
+├── Cargo.toml
+└── src/
+    ├── main.rs
+    ├── app.rs
+    ├── config/
+    │   └── mod.rs
+    ├── models/
+    │   ├── mod.rs
+    │   ├── commands.rs
+    │   ├── events.rs
+    │   ├── jobs.rs
+    │   ├── providers.rs
+    │   ├── file_context.rs
+    │   ├── screen_context.rs
+    │   ├── voice.rs
+    │   └── errors.rs
+    ├── server/
+    │   ├── mod.rs
+    │   ├── health.rs
+    │   └── websocket.rs
+    ├── runtime/
+    │   ├── mod.rs
+    │   ├── queue.rs
+    │   ├── supervisor.rs
+    │   ├── cancellation.rs
+    │   └── backpressure.rs
+    ├── providers/
+    │   ├── mod.rs
+    │   ├── codex.rs
+    │   ├── claude.rs
+    │   ├── process.rs
+    │   └── parser.rs
+    ├── context/
+    │   ├── mod.rs
+    │   ├── scanner.rs
+    │   ├── ignore_rules.rs
+    │   ├── project_detector.rs
+    │   ├── codex_config.rs
+    │   ├── claude_config.rs
+    │   ├── ranking.rs
+    │   └── budget.rs
+    ├── critique/
+    │   ├── mod.rs
+    │   ├── job.rs
+    │   ├── prompt.rs
+    │   └── payload.rs
+    ├── voice/
+    │   ├── mod.rs
+    │   ├── input.rs
+    │   ├── transcription.rs
+    │   └── events.rs
+    ├── macos/
+    │   ├── mod.rs
+    │   ├── permissions.rs
+    │   ├── screen_capture.rs
+    │   ├── active_app.rs
+    │   ├── accessibility.rs
+    │   └── audio.rs
+    ├── convex/
+    │   ├── mod.rs
+    │   ├── client.rs
+    │   └── project_context.rs
+    ├── observability/
+    │   ├── mod.rs
+    │   ├── tracing.rs
+    │   └── logs.rs
+    └── helpers/
+        ├── mod.rs
+        ├── paths.rs
+        └── ids.rs
+```
+
+Rust must handle:
+
+- Local WebSocket server
+- Health endpoint
+- Typed command parsing
+- Typed event streaming
+- Tokio runtime
+- mpsc job queues
+- Provider process lifecycle
+- Streaming stdout/stderr from Codex/Claude
+- Killing/canceling provider jobs
+- Deep file search
+- `.codex` and `.claude` discovery
+- Context ranking and token budgeting
+- Cloud transcription request orchestration when needed
+- Screen capture later
+- Audio capture later
+- Structured tracing logs
+- Crash-resistant error handling
+
+## 10. Electron To Rust Communication
+
+Recommended first transport:
+
+```txt
+Rust sidecar + local WebSocket
+```
+
+Why:
+
+- Better for streaming than stdio
+- Better for multiple parallel jobs
+- Better for progress events
+- Better for cancellation
+- Better for health checks
+- Rust crash does not kill Electron
+- Electron can restart Rust
+
+Startup flow:
+
+```txt
+Electron starts.
+Electron generates random sidecar auth token.
+Electron spawns Rust binary.
+Rust binds to 127.0.0.1 on a random or configured local port.
+Electron waits for /health.
+Electron opens WebSocket.
+React UI becomes engine-ready.
+```
+
+Security rule:
+
+```txt
+Never expose the sidecar publicly.
+Bind only to 127.0.0.1.
+Require a random per-session auth token.
+Reject unauthenticated messages.
+```
+
+## 11. API And Release Versioning Strategy
+
+Versioning in this architecture means public/release/API versioning, not a tiny internal prototype.
+
+When we say V1, we mean the first production release contract. It should be reflected in local engine routes and message contracts.
+
+Use this rule:
+
+```txt
+V1 = first production release and stable local engine API contract
+V1.1 = additive improvements that do not break V1 clients
+V2 = breaking architecture/API changes or major capability expansion
+```
+
+The local Rust service should expose versioned routes from the start:
+
+```txt
+GET  /v1/health
+GET  /v1/version
+WS   /v1/events
+POST /v1/commands       # optional if we use HTTP commands beside WebSocket
+```
+
+The WebSocket message envelope should also include an API version:
+
+```ts
+type EngineEnvelope = {
+  apiVersion: "v1";
+  id: string;
+  type: string;
+  payload: unknown;
+  createdAt: number;
+};
+```
+
+### Production V1 Scope
+
+Production V1 should include:
+
+- Rust sidecar process
+- Axum local server
+- `/v1/health` endpoint
+- `/v1/version` endpoint
+- local WebSocket endpoint
+- per-session auth token
+- typed command/event messages
+- Tokio runtime
+- mpsc job queue
+- structured tracing logs
+- fake provider runner
+- Codex provider detection
+- Claude provider detection
+- local provider process spawning
+- stdout/stderr streaming
+- cancellation
+- timeout handling
+- simple deep file scanner
+- `.claude` and `.codex` discovery
+- `AGENTS.md` and `CLAUDE.md` discovery
+- real Rust file scanner
+- design critique pipeline
+- simple screen capture path first
+- cloud-based voice transcription/conversion
+- full desktop monorepo migration
+- basic Figma integration
+- basic Notion integration
+- release-ready Electron desktop app structure
+
+Production V1 should not include:
+
+- SQLite
+- local AI inference
+- production-grade native ScreenCaptureKit bridge
+- native AVFoundation audio pipeline
+- advanced Figma plugin automation
+- advanced Notion handoff automation
+- overly complex ranking algorithms
+- code generation between TypeScript and Rust
+- `napi-rs`
+- offline-first sync
+- local model/GPU workers
+- desktop billing/account/onboarding flows
+
+Production V1 success means:
+
+```txt
+Electron can start Rust.
+Electron can recover if Rust crashes.
+React can send a command.
+Rust can run a local provider.
+Rust can stream tokens back.
+Rust can scan a project folder.
+Rust can discover .claude/.codex context.
+The desktop app can run the production V1 chat/design critique flow.
+The desktop app can use cloud voice transcription.
+The desktop app has the final monorepo folder shape for release.
+Basic Figma/Notion integrations are available.
+```
+
+### V1.1 Scope
+
+V1.1 should only add capabilities without breaking V1 commands/events/routes.
+
+V1.1 may include:
+
+- better project context ranking
+- token budgeting
+- provider-specific output parsers
+- improved screen capture integration
+- permission status integration
+- better cancellation and backpressure
+- persistent job logs
+- more complete error taxonomy
+- optional local cache
+- better Figma/Notion automation
+
+### V2 Scope
+
+V2 is for breaking or deeper architectural changes.
+
+V2 may introduce:
+
+- SQLite for local job persistence or local-first behavior
+- generated contracts between TypeScript and Rust
+- deeper macOS APIs
+- first Swift/Objective-C bridge experiments
+- local AI inference
+- model process isolation
+- GPU/Metal acceleration
+- local vector/index storage
+- SQLite-first or hybrid local-first data
+- ScreenCaptureKit production bridge
+- AVFoundation production audio bridge
+- Accessibility API context extraction
+- more advanced macOS window/app awareness
+
+### Why Versioning Matters
+
+Without API/release versioning, the desktop app and Rust sidecar will become difficult to evolve safely.
+
+The first production goal is to create a stable V1 local engine boundary that feels like Codex/T3 Code:
+
+```txt
+local GUI
+local provider execution
+deep project context
+streaming output
+clear failures
+restartable engine
+```
+
+Once production V1 is stable, we can add V1.1 improvements without breaking the app, and reserve V2 for larger changes.
+
+## 12. Command And Event Model
+
+All commands must have:
+
+```ts
+type EngineCommand = {
+  apiVersion: "v1";
+  id: string;
+  type: string;
+  payload: unknown;
+  createdAt: number;
+};
+```
+
+All events must have:
+
+```ts
+type EngineEvent = {
+  apiVersion: "v1";
+  id: string;
+  commandId?: string;
+  jobId?: string;
+  type: string;
+  payload: unknown;
+  createdAt: number;
+};
+```
+
+Core commands:
+
+```txt
+engine.ping
+provider.detect
+provider.startChat
+provider.cancelJob
+context.scanProject
+context.getProjectSummary
+critique.start
+voice.startListening
+voice.stopListening
+voice.transcribeCloud
+permissions.getStatus
+```
+
+Core events:
+
+```txt
+engine.ready
+engine.error
+provider.detected
+provider.unavailable
+job.accepted
+job.progress
+job.token
+job.completed
+job.failed
+job.cancelled
+context.scanStarted
+context.fileDiscovered
+context.scanCompleted
+critique.started
+critique.completed
+voice.listening
+voice.transcriptPartial
+voice.transcriptFinal
+```
+
+## 13. Local Provider Execution
+
+All AI execution should initially happen through local Codex/Claude CLI providers.
+
+Provider detection should check:
+
+```txt
+codex binary available
+claude binary available
+provider version
+provider auth state if detectable
+workspace config
+.codex folder
+.claude folder
+AGENTS.md
+CLAUDE.md
+```
+
+Provider runner responsibilities:
+
+- Spawn provider process
+- Pass prompt/context safely
+- Stream output
+- Parse provider events if available
+- Capture stderr
+- Enforce cancellation
+- Enforce timeout
+- Report exit code
+- Preserve logs for debugging
+
+Do not build direct OpenAI/Anthropic API execution first.
+
+Direct API calls can become a fallback later.
+
+## 14. Deep File Research
+
+The local context engine should support:
+
+```txt
+Selected project root
+Workspace folders
+Git root detection
+Ignore rules
+File size limits
+Binary file detection
+Safe text extraction
+.codex discovery
+.claude discovery
+AGENTS.md discovery
+CLAUDE.md discovery
+README discovery
+package.json discovery
+Cargo.toml discovery
+tsconfig/vite/electron config discovery
+```
+
+Scanner rules:
+
+- Never scan `node_modules`.
+- Never scan `.git`.
+- Never scan build output by default.
+- Never read huge files without explicit limits.
+- Respect `.gitignore` where possible.
+- Support cancellation.
+- Stream progress to UI.
+- Return summarized project context, not raw everything.
+
+Recommended first file context output:
+
+```txt
+ProjectRootSummary
+ProviderConfigSummary
+ImportantFiles
+DetectedFrameworks
+PotentialEntryPoints
+ArchitectureHints
+Warnings
+```
+
+## 15. Design Critique Flow
+
+First design critique flow:
+
+```txt
+User opens companion.
+User says or types: "Critique this layout."
+Electron/Rust captures screen or active window.
+Rust creates critique job.
+Rust gathers active Stage project context from Convex or Electron.
+Rust packages screenshot + context.
+Rust sends task to local Codex/Claude provider.
+Provider streams critique response.
+UI shows response in chat panel.
+```
+
+MVP can start with mocked screenshot/capture if native capture is not ready.
+
+The important architecture is the job pipeline.
+
+## 16. Voice Flow
+
+Voice is in scope.
+
+Voice conversion/transcription should use a cloud-based LLM/transcription model for now.
+
+First voice architecture:
+
+```txt
+Voice UI starts listening.
+Audio is captured by Electron or Rust.
+Audio is sent to a cloud transcription / LLM model.
+Transcript returns to Stage.
+Transcript becomes a normal chat command.
+Command enters the same engine pipeline as typed input.
+```
+
+Recommended first implementation:
+
+- Keep voice UI state in React.
+- Use Electron/Rust only as the permission/native bridge.
+- Send audio/transcription requests through a controlled backend or engine command.
+- Convert final transcript into a normal `provider.startChat` command.
+- Do not build complex continuous audio pipelines first.
+
+Later implementation:
+
+- Rust handles microphone/audio stream.
+- Tokio channel streams audio chunks.
+- Backpressure prevents memory growth.
+- Partial transcripts stream to UI.
+
+## 17. Rust Concepts We Will Actually Use
+
+Use now:
+
+```txt
+Tokio
+mpsc channels
+serde
+thiserror
+anyhow
+tracing
+Axum
+WebSocket
+child process management
+filesystem walking
+cancellation tokens
+bounded queues
+Result-based error handling
+```
+
+Use later:
+
+```txt
+macOS FFI
+unsafe Rust
+ScreenCaptureKit bridge
+AVFoundation bridge
+Accessibility API bridge
+local model inference
+GPU/model process isolation
+SQLite
+```
+
+Do not use now:
+
+```txt
+Actix
+Diesel
+SeaORM
+sqlx
+RTOS
+no_std
+embedded-hal
+probe-rs
+heapless
+embassy
+memory-mapped IO
+```
+
+Reason:
+
+```txt
+Stage is a local desktop backend service, not embedded firmware.
+```
+
+## 18. Feature To Rust Concept Mapping
+
+| Feature | Rust Concepts | Why |
+|---|---|---|
+| Codex/Claude chat | process spawning, stdout/stderr streaming, cancellation, tracing | Runs local providers like a professional agent GUI |
+| Deep file search | filesystem walking, ignore rules, bounded queues, cancellation | Finds project context safely |
+| `.codex`/`.claude` discovery | deterministic scanner, config parsers, serde models | Detects local provider configuration |
+| Design critique | job queue, screen context, provider process, streaming events | Converts screen/project context into critique |
+| Voice input | audio permissions, cloud transcription command, transcript events | Turns spoken commands into normal chat commands |
+| Provider switching | provider registry, process supervisor, typed commands | Lets user switch between Codex and Claude |
+| Long-running jobs | Tokio tasks, job IDs, cancellation tokens | Prevents UI freezing |
+| Debugging | tracing spans, structured logs | Makes failures understandable |
+| Future native capture | unsafe Rust, FFI, ScreenCaptureKit | Required for high-quality macOS capture |
+
+## 19. Permissions
+
+Permissions that must be represented in the UI and engine:
+
+```txt
+screen-recording
+microphone
+accessibility
+notifications
+files
+```
+
+Permission model should exist in TypeScript and Rust.
+
+Electron can open System Settings.
+
+Rust/macOS layer can later detect true permission states.
+
+Do not block the whole app if one permission is missing. Instead:
+
+```txt
+Feature unavailable
+Clear explanation
+Open settings button
+Retry button
+```
+
+## 20. Failure Modes
+
+| Failure | Expected behavior |
+|---|---|
+| Rust sidecar fails to start | UI shows engine unavailable and retry |
+| Rust sidecar crashes | Electron restarts it and shows toast/status |
+| Codex CLI missing | Provider marked unavailable |
+| Claude CLI missing | Provider marked unavailable |
+| Provider not authenticated | UI says provider needs local login |
+| File scan too large | Scanner stops and reports limit |
+| User cancels job | Rust kills provider process and emits `job.cancelled` |
+| Provider hangs | Timeout and kill process |
+| WebSocket disconnects | Electron reconnects or restarts engine |
+| Screen permission missing | Critique uses explanation state, not crash |
+| Voice permission missing | Voice button disabled with permission CTA |
+| Cloud transcription fails | UI shows retry and keeps raw voice state if possible |
+
+## 21. Testing Plan
+
+Electron tests:
+
+- preload exposes only approved APIs
+- IPC validates invalid payloads
+- main process starts sidecar
+- main process handles sidecar crash
+- main process opens auth URL externally
+- renderer never has Node access
+
+Rust tests:
+
+- command JSON parses correctly
+- invalid command returns structured error
+- provider detector handles missing binaries
+- scanner ignores `node_modules` and `.git`
+- scanner finds `.codex`
+- scanner finds `.claude`
+- job cancellation emits correct event
+- provider process timeout kills child process
+- tracing initializes without panic
+
+Integration tests:
+
+- Electron starts Rust
+- `/health` returns ok
+- WebSocket connects
+- `engine.ping` returns `engine.ready`
+- fake provider streams tokens
+- fake provider failure emits `job.failed`
+- file scan streams progress
+- cancel scan emits `job.cancelled`
+
+Manual acceptance scenarios:
+
+- Open desktop app
+- See mock dashboard
+- Open companion chat
+- Select provider: Codex or Claude
+- Scan current project
+- See `.claude` detected in this repo
+- Send prompt to provider
+- See streaming response
+- Cancel response mid-stream
+- Trigger design critique flow with mocked capture
+- Start voice input UI and convert transcript into chat command
+
+## 22. Implementation Phases
+
+### Phase 0: Documentation And Decisions
+
+- Write this architecture document.
+- Keep current `desktop/` and `app/` unchanged.
+- Decide first sidecar transport: local WebSocket.
+- Decide first data source: Convex first.
+- Decide first AI route: local Codex/Claude CLI first.
+- Decide voice conversion: cloud-based transcription / LLM model.
+
+### Phase 1: Rust Sidecar POC
+
+Create Rust app beside current desktop app.
+
+Minimum behavior:
+
+```txt
+cargo run starts local server
+GET /health returns ok
+WebSocket accepts connection
+engine.ping returns engine.ready
+```
+
+No AI yet.
+
+### Phase 2: Electron Sidecar Supervisor
+
+Add Electron main-process sidecar manager.
+
+Minimum behavior:
+
+```txt
+Electron spawns Rust
+Electron waits for health
+Electron connects WebSocket
+Electron forwards engine status to renderer
+Electron restarts Rust after crash
+```
+
+### Phase 3: Typed Contracts
+
+Add command/event contracts.
+
+TypeScript:
+
+```txt
+desktop/shared/contracts/
+```
+
+Rust:
+
+```txt
+apps/data-service/src/models/
+```
+
+Start with manual Zod + serde mirror.
+
+### Phase 4: Local Provider Runner
+
+Add fake provider first.
+
+Then add:
+
+```txt
+Codex provider
+Claude provider
+provider detection
+streaming output
+cancellation
+timeouts
+stderr capture
+```
+
+### Phase 5: Deep File Context
+
+Add project scanner.
+
+First scan:
+
+```txt
+root files
+package.json
+Cargo.toml
+README
+.claude
+.codex
+AGENTS.md
+CLAUDE.md
+```
+
+Then add:
+
+```txt
+ignore rules
+file size limits
+ranking
+summaries
+token budget
+```
+
+### Phase 6: Agent Chat UI Integration
+
+Connect current companion/chat UI to engine events.
+
+Minimum UI:
+
+```txt
+provider selector
+scan status
+thread messages
+streaming response
+cancel button
+error state
+```
+
+### Phase 7: Design Critique Pipeline
+
+First with mocked capture.
+
+Then:
+
+```txt
+active app context
+screen/window capture
+project context
+critique prompt
+streamed critique response
+```
+
+### Phase 8: Voice Input
+
+First:
+
+```txt
+voice UI state
+cloud transcript request
+transcript enters chat pipeline
+```
+
+Later:
+
+```txt
+microphone permission
+audio capture
+partial transcript streaming
+voice-to-command routing
+```
+
+### Phase 9: Monorepo Restructure
+
+This is required before the production V1 release.
+
+Do it after the sidecar works, but do not postpone it beyond V1.
+
+Move toward:
+
+```txt
+desktop/ -> apps/user-application/
+app/convex -> packages/data-ops/convex/
+apps/data-service/ stays Rust engine
+```
+
+Do this with minimal behavior changes.
+
+## 23. Public Interfaces And Types
+
+Initial TypeScript contract files:
+
+```txt
+desktop/shared/contracts/engine-command.ts
+desktop/shared/contracts/engine-event.ts
+desktop/shared/contracts/provider.ts
+desktop/shared/contracts/file-context.ts
+desktop/shared/contracts/critique.ts
+desktop/shared/contracts/voice.ts
+```
+
+Initial Rust model files:
+
+```txt
+apps/data-service/src/models/commands.rs
+apps/data-service/src/models/events.rs
+apps/data-service/src/models/providers.rs
+apps/data-service/src/models/file_context.rs
+apps/data-service/src/models/critique.rs
+apps/data-service/src/models/voice.rs
+```
+
+Initial IPC additions:
+
+```txt
+engine:get-status
+engine:send-command
+engine:subscribe-events
+engine:restart
+provider:detect
+context:scan
+```
+
+Renderer API should look like:
+
+```ts
+window.stageDesktop.engine.getStatus()
+window.stageDesktop.engine.sendCommand(command)
+window.stageDesktop.engine.onEvent(callback)
+window.stageDesktop.engine.restart()
+```
+
+## 24. Explicit Defaults
+
+Chosen defaults:
+
+- Language in documentation: English
+- Conversation language with Werner: Dutch
+- UI framework: Electron + React + Vite
+- Router: TanStack Router
+- Server state: Convex first
+- Local engine: Rust sidecar
+- Rust transport: local WebSocket
+- AI execution: local Codex/Claude CLI first
+- Voice transcription/conversion: cloud-based LLM/transcription model
+- Direct API execution: later fallback
+- SQLite: later, not first
+- `napi-rs`: later, not first
+- Native macOS FFI: later, behind Rust modules
+- Embedded Rust concepts: not relevant for current Stage architecture
+- Existing UI mock/design work: accepted as good baseline
+
+## 25. Important Risks
+
+- Local provider CLIs may change output formats.
+- Provider auth state may be hard to detect reliably.
+- Screen capture permissions can be confusing on macOS.
+- Long file scans can become expensive without limits.
+- WebSocket sidecar must be secured to localhost + session token.
+- Cloud voice conversion adds latency and requires network access.
+- `rust-mcp-server-generator` skill was installed but showed a critical risk warning during installation; review before using it deeply.
+- Big-bang repo migration is risky and should wait until sidecar fundamentals work.
+
+## 26. Branch And Collaboration Workflow
+
+Current planned workflow:
+
+```txt
+1. Finish current design/mock branch.
+2. Push and merge into development.
+3. Restart T3 Code / agent environment so new skills are picked up.
+4. Create a new branch from development:
+   monorepo
+5. Use this architecture document as source of truth.
+6. Start with Rust sidecar POC.
+```
+
+Suggested commands after the current work is merged:
+
+```bash
+git checkout development
+git pull origin development
+git checkout -b monorepo
+```
+
+Do not start monorepo restructuring on the current design branch.
+
+## 27. Next Implementation Plan For Codex
+
+When work starts on the `monorepo` branch, follow this order:
+
+1. Verify repo status and branch.
+2. Confirm the current `desktop/` app still builds.
+3. Create a minimal Rust sidecar skeleton.
+4. Add `Cargo.toml` and Rust module layout.
+5. Add Axum `/health`.
+6. Add WebSocket `/v1/events`.
+7. Add typed `engine.ping` command and `engine.ready` event.
+8. Add Electron sidecar supervisor.
+9. Add renderer engine status UI.
+10. Add fake provider runner.
+11. Add provider detection for Codex and Claude.
+12. Add deep file scanner.
+13. Add `.claude` and `.codex` discovery.
+14. Add streaming chat integration.
+15. Add design critique job pipeline.
+16. Add cloud voice transcription flow.
+
+Every step should be validated before moving to the next.
+
+## 28. Installed Skills
+
+Installed local skills:
+
+```txt
+.agents/skills/electron
+.agents/skills/rust-engineer
+.agents/skills/rust-best-practices
+.agents/skills/rust-async-patterns
+.agents/skills/rust-mcp-server-generator
+.agents/skills/m15-anti-pattern
+```
+
+Important note:
+
+```txt
+Restart T3 Code / Codex after this document is committed so the new skills are picked up cleanly.
+```
+
+Security note:
+
+```txt
+The rust-mcp-server-generator skill showed a critical risk warning during installation.
+Review before using it for implementation.
+```
+
+## 29. Success Criteria
+
+This architecture is successful when:
+
+- The current desktop UI still works.
+- Electron can start and supervise Rust.
+- Rust can stream typed events to Electron.
+- The UI can run a local Codex/Claude-style chat.
+- The engine can scan a local project.
+- The engine can find `.claude` and `.codex` style context.
+- A design critique can be triggered from chat.
+- Voice input can enter the same chat pipeline through cloud transcription.
+- Failures are visible, recoverable, and do not crash the UI.
