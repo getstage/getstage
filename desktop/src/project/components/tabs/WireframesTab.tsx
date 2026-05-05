@@ -259,7 +259,7 @@ function TypeOption({
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-[92px] items-center justify-center gap-2 rounded-[6px] border px-3 text-[12px] font-medium leading-none transition-colors ${
+      className={`flex min-h-[92px] items-center justify-center gap-2 rounded-[6px] border px-3 text-[12px] font-medium leading-[1.25] transition-colors ${
         active
           ? "border-[#DBD9FC] bg-[#E7E6FD] text-[#16115A]"
           : "border-transparent bg-white text-[#525252] hover:bg-[#FAFAFA]"
@@ -298,10 +298,10 @@ function BrandKitStep({
         >
           <FolderIcon />
           <span className="flex flex-col gap-[6px]">
-            <span className="text-[13px] font-medium leading-none text-[#171717]">
+            <span className="text-[13px] font-medium leading-[1.25] text-[#171717]">
               Upload files or drag and drop
             </span>
-            <span className="text-[12px] font-medium leading-none text-[#737373]">
+            <span className="text-[12px] font-medium leading-[1.25] text-[#737373]">
               Images, PDFs, Fonts, Files etc.
             </span>
           </span>
@@ -365,7 +365,7 @@ function ConfigureStep({
     <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex flex-col gap-[10px] p-4">
         <div>
-          <h2 className="text-[15px] font-medium leading-none text-[#0A0A0A]">
+          <h2 className="text-[15px] font-medium leading-[1.25] text-[#0A0A0A]">
             Generate Wireframes
           </h2>
           <p className="mt-[10px] max-w-[354px] text-[12px] font-medium leading-[1.5] text-[#525252]">
@@ -373,7 +373,7 @@ function ConfigureStep({
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3 text-[13px] font-medium leading-none">
+          <div className="flex flex-wrap items-center gap-3 text-[13px] font-medium leading-[1.25]">
             <span className="text-[#171717]">13 screens from Flows</span>
             <span className="h-1 w-1 rounded-full bg-[#D4D4D4]" />
             <span className="text-[#737373]">14 patterns applied from Moodboard</span>
@@ -394,7 +394,7 @@ function ConfigureStep({
       </div>
 
       <div className="rounded-[8px] bg-white p-11 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        <div className="mb-6 flex items-center justify-between text-[15px] font-medium leading-none text-[#171717]">
+        <div className="mb-6 flex items-center justify-between text-[15px] font-medium leading-[1.25] text-[#171717]">
           <span>Screens To Generate</span>
           <span className="text-[13px] text-[#525252]">{selectedCount} of 13 selected</span>
         </div>
@@ -404,12 +404,12 @@ function ConfigureStep({
           ))}
         </div>
         <label className="mt-6 block">
-          <span className="mb-2 flex gap-2 text-[13px] font-medium leading-none">
+          <span className="mb-2 flex gap-2 text-[13px] font-medium leading-[1.25]">
             <span className="text-[#171717]">Layout Preference</span>
             <span className="text-[#737373]">(Optional)</span>
           </span>
           <textarea
-            className="h-[84px] w-full resize-none rounded-[6px] bg-[#F5F5F5] px-3 py-[10px] text-[12px] font-medium leading-none text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-shadow placeholder:text-[#737373] focus:shadow-[0_0_0_1px_#8D87FF]"
+            className="h-[84px] w-full resize-none rounded-[6px] bg-[#F5F5F5] px-3 py-[10px] text-[12px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-shadow placeholder:text-[#737373] focus:shadow-[0_0_0_1px_#8D87FF]"
             placeholder="ex. sticky header with primary CTA, wide hero, keep forms short, mobile-first density..."
           />
         </label>
@@ -442,7 +442,7 @@ function ScreenRow({ screen, onToggle }: { screen: ScreenItem; onToggle: () => v
             <CheckIcon />
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-[13px] font-medium leading-none text-[#171717]">
+            <span className="block truncate text-[13px] font-medium leading-[1.25] text-[#171717]">
               {screen.title}
             </span>
             <span className="mt-[7px] block truncate text-[12px] font-normal leading-[1.5] text-[#525252]">
@@ -467,7 +467,7 @@ function GeneratingStep() {
         <WindowIcon />
       </div>
       <div className="flex w-full flex-col items-center gap-2">
-        <h2 className="text-[16px] font-semibold leading-none text-[#171717]">Creating Wireframe</h2>
+        <h2 className="text-[16px] font-semibold leading-[1.25] text-[#171717]">Creating Wireframe</h2>
         <p className="w-[282px] text-[13px] font-medium leading-[1.5] text-[#525252]">
           Hold tight, we&apos;re building your wireframes based on the moodboard and
         </p>
@@ -515,7 +515,7 @@ function ResultsGrid({
   return (
     <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex items-end justify-between gap-4 p-4">
-        <h2 className="text-[15px] font-medium leading-none text-[#171717]">{title}</h2>
+        <h2 className="text-[15px] font-medium leading-[1.25] text-[#171717]">{title}</h2>
         {wireframeKind === "lofi" ? (
           <SecondaryButton purple onClick={onConvert}>
             Convert to High-fi
@@ -557,7 +557,7 @@ function WireframeCard({ card }: { card: ScreenItem & { date: string } }) {
           </div>
           <button
             type="button"
-            className="inline-flex min-h-[27px] w-[125px] shrink-0 items-center justify-center gap-2 rounded-[4px] bg-[#F5F5F5] px-3 py-[6px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EDEDED]"
+            className="inline-flex min-h-[27px] w-[125px] shrink-0 items-center justify-center gap-2 rounded-[4px] bg-[#F5F5F5] px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EDEDED]"
           >
             <img
               src={FIGMA_SYMBOL_URL}
@@ -598,7 +598,7 @@ function PrimaryButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex h-[38px] items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`inline-flex h-[38px] items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {children}
     </button>
@@ -622,7 +622,7 @@ function SecondaryButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex ${heightClass} items-center justify-center gap-2 rounded-[6px] bg-white pl-[10px] pr-3 text-[13px] font-medium leading-none shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA] ${
+      className={`inline-flex ${heightClass} items-center justify-center gap-2 rounded-[6px] bg-white pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA] ${
         purple ? "text-[#7C3AED]" : "text-[#525252]"
       }`}
     >
@@ -646,7 +646,7 @@ function Badge({
   };
 
   return (
-    <span className={`inline-flex h-[18px] items-center rounded-[2px] px-[6px] text-[12px] font-normal leading-none ${classes[tone]}`}>
+    <span className={`inline-flex h-[18px] items-center rounded-[2px] px-[6px] text-[12px] font-normal leading-[1.25] ${classes[tone]}`}>
       {children}
     </span>
   );
@@ -775,9 +775,7 @@ function ImageIcon() {
 
 function SparkleIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-4 w-4 shrink-0 text-[#737373]">
-      <path d="M8 2.5 9.1 6 12.5 7 9.1 8 8 11.5 6.9 8 3.5 7l3.4-1L8 2.5ZM12 10l.5 1.5L14 12l-1.5.5L12 14l-.5-1.5L10 12l1.5-.5L12 10Z" fill="currentColor" />
-    </svg>
+    <img src="/logos/dashboard/ai-generated.svg" alt="" aria-hidden="true" className="h-4 w-4 shrink-0" />
   );
 }
 

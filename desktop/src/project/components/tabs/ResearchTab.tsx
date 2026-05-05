@@ -194,20 +194,20 @@ function ResearchSummary({
   return (
     <section className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-[15px] font-medium leading-none text-[#171717]">Research Summary</h2>
+        <h2 className="text-[15px] font-medium leading-[1.25] text-[#171717]">Research Summary</h2>
         {isEditing ? (
           <div className="flex shrink-0 items-start gap-2">
             <button
               type="button"
               onClick={onDiscard}
-              className="inline-flex h-[31px] items-center justify-center rounded-[6px] bg-[#F5F5F5] px-[10px] text-[12px] font-medium leading-none text-[#EF4444] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FEE2E2]"
+              className="inline-flex h-[31px] items-center justify-center rounded-[6px] bg-[#F5F5F5] px-[10px] text-[12px] font-medium leading-[1.25] text-[#EF4444] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FEE2E2]"
             >
               Discard Changes
             </button>
             <button
               type="button"
               onClick={onSave}
-              className="inline-flex h-[31px] items-center justify-center gap-2 rounded-[6px] border border-[#34D399] bg-gradient-to-b from-[#10B981] to-[#059669] px-3 text-[12px] font-medium leading-none text-[#ECFDF5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+              className="inline-flex h-[31px] items-center justify-center gap-2 rounded-[6px] border border-[#34D399] bg-gradient-to-b from-[#10B981] to-[#059669] px-3 text-[12px] font-medium leading-[1.25] text-[#ECFDF5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
             >
               <SaveIcon />
               Save Changes
@@ -217,9 +217,9 @@ function ResearchSummary({
           <button
             type="button"
             onClick={onEdit}
-            className="inline-flex h-8 shrink-0 items-center justify-center gap-2 rounded-[6px] bg-[#F5F5F5] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
+            className="inline-flex h-[34px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-[#F5F5F5] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
           >
-            <PencilIcon />
+            <EditIcon />
             Edit Research
           </button>
         )}
@@ -257,7 +257,7 @@ function CompanySnapshot({ isEditing }: { isEditing: boolean }) {
                   <input
                     defaultValue={value}
                     aria-label={label}
-                    className="h-[25px] w-full rounded-[5px] bg-[#F5F5F5] px-2 text-[14px] font-medium leading-none text-[#0A0A0A] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.18)]"
+                    className="h-[25px] w-full rounded-[5px] bg-[#F5F5F5] px-2 text-[14px] font-medium leading-[1.25] text-[#0A0A0A] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.18)]"
                   />
                 </div>
               ) : (
@@ -290,7 +290,7 @@ function CompetitiveAnalysis({
           <button
             type="button"
             onClick={() => onViewChange("card")}
-            className={`inline-flex h-7 items-center gap-2 rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-none ${
+            className={`inline-flex h-7 cursor-pointer items-center gap-2 rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] ${
               view === "card"
                 ? "bg-white text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
                 : "text-[#737373]"
@@ -302,7 +302,7 @@ function CompetitiveAnalysis({
           <button
             type="button"
             onClick={() => onViewChange("matrix")}
-            className={`inline-flex h-7 items-center gap-2 rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-none ${
+            className={`inline-flex h-7 cursor-pointer items-center gap-2 rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] ${
               view === "matrix"
                 ? "bg-white text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
                 : "text-[#737373]"
@@ -335,7 +335,7 @@ function CompetitiveMatrix() {
           {competitors.map((competitor) => (
             <div key={competitor.name} className="flex items-center gap-2 border-r border-[#D9D9D9] bg-[#FBFBFB] px-4 py-3 last:border-r-0">
               <LogoMark competitor={competitor} compact />
-              <span className="text-[13px] font-semibold leading-none text-[#171717]">{competitor.name}</span>
+              <span className="text-[13px] font-semibold leading-[1.25] text-[#171717]">{competitor.name}</span>
             </div>
           ))}
         </div>
@@ -344,7 +344,7 @@ function CompetitiveMatrix() {
             key={row.label}
             className={`grid grid-cols-[220px_repeat(4,minmax(130px,1fr))] ${rowIndex < competitiveMatrixRows.length - 1 ? "border-b border-[#E8E8E8]" : ""}`}
           >
-            <div className="border-r border-[#E8E8E8] bg-[#FBFBFB] px-4 py-3 text-[12px] font-medium leading-none text-[#171717]">
+            <div className="border-r border-[#E8E8E8] bg-[#FBFBFB] px-4 py-3 text-[12px] font-medium leading-[1.25] text-[#171717]">
               {row.label}
             </div>
             {row.values.map((value, index) => (
@@ -362,7 +362,7 @@ function CompetitiveMatrix() {
 function MatrixScore({ value }: { value: string }) {
   const color = value === "Strong" ? "#16A34A" : value === "Weak" ? "#EF4444" : "#F97316";
   return (
-    <span className="text-[12px] font-medium leading-none" style={{ color }}>
+    <span className="text-[12px] font-medium leading-[1.25]" style={{ color }}>
       {value}
     </span>
   );
@@ -376,12 +376,12 @@ function CompetitorCard({ competitor, isEditing }: { competitor: typeof competit
           <LogoMark competitor={competitor} />
           {isEditing ? (
             <div className="grid min-w-0 flex-1 gap-[6px]">
-              <input defaultValue={competitor.name} aria-label={`${competitor.name} name`} className="h-[25px] rounded-[5px] bg-[#F5F5F5] px-2 text-[13px] font-semibold leading-none text-[#171717]" />
-              <input defaultValue={competitor.url} aria-label={`${competitor.name} url`} className="h-[25px] rounded-[5px] bg-[#F5F5F5] px-2 text-[12px] font-medium leading-none text-[#737373]" />
+              <input defaultValue={competitor.name} aria-label={`${competitor.name} name`} className="h-[25px] rounded-[5px] bg-[#F5F5F5] px-2 text-[13px] font-semibold leading-[1.25] text-[#171717]" />
+              <input defaultValue={competitor.url} aria-label={`${competitor.name} url`} className="h-[25px] rounded-[5px] bg-[#F5F5F5] px-2 text-[12px] font-medium leading-[1.25] text-[#737373]" />
             </div>
           ) : (
             <div>
-              <h3 className="text-[13px] font-semibold leading-none text-[#171717]">{competitor.name}</h3>
+              <h3 className="text-[13px] font-semibold leading-[1.25] text-[#171717]">{competitor.name}</h3>
               <p className="mt-[2px] text-[12px] font-medium leading-[1.5] text-[#737373]">{competitor.url}</p>
             </div>
           )}
@@ -390,10 +390,10 @@ function CompetitorCard({ competitor, isEditing }: { competitor: typeof competit
           <input
             defaultValue={`"${competitor.tagline}" - ${competitor.note}`}
             aria-label={`${competitor.name} positioning`}
-            className="h-[31px] w-full rounded-[6px] bg-[#F5F5F5] px-3 text-[13px] font-medium leading-none text-[#404040] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)]"
+            className="h-[31px] w-full rounded-[6px] bg-[#F5F5F5] px-3 text-[13px] font-medium leading-[1.25] text-[#404040] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)]"
           />
         ) : (
-          <p className="text-[13px] font-medium leading-none text-[#404040]">
+          <p className="text-[13px] font-medium leading-[1.25] text-[#404040]">
             "{competitor.tagline}" - {competitor.note}
           </p>
         )}
@@ -417,7 +417,7 @@ function LogoMark({ competitor, compact = false }: { competitor: typeof competit
 
   return (
     <div
-      className={`flex items-center justify-center text-[10px] font-semibold leading-none text-white ${sizeClass}`}
+      className={`flex items-center justify-center text-[10px] font-semibold leading-[1.25] text-white ${sizeClass}`}
       style={{ background: competitor.color }}
     >
       <span className={compact ? "scale-[0.7]" : ""}>{competitor.mark}</span>
@@ -438,7 +438,7 @@ function FindingList({
 }) {
   return (
     <div>
-      <p className={`px-[10px] pt-[6px] text-[12px] font-semibold uppercase leading-none ${tone === "good" ? "text-[#16A34A]" : "text-[#DC2626]"}`}>
+      <p className={`px-[10px] pt-[6px] text-[12px] font-semibold uppercase leading-[1.25] ${tone === "good" ? "text-[#16A34A]" : "text-[#DC2626]"}`}>
         {title}
       </p>
       {isEditing ? (
@@ -448,7 +448,7 @@ function FindingList({
           className="mt-[7px] min-h-[78px] w-full resize-y rounded-[6px] bg-[#F5F5F5] px-3 py-2 text-[12px] font-medium leading-[1.45] text-[#262626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)]"
         />
       ) : (
-        <ul className="list-disc space-y-[7px] pl-[28px] pr-3 pt-[7px] text-[12px] font-medium leading-none text-[#262626]">
+        <ul className="list-disc space-y-[7px] pl-[28px] pr-3 pt-[7px] text-[12px] font-medium leading-[1.25] text-[#262626]">
           {items.map((item) => (
             <li key={item}>{item}</li>
           ))}
@@ -473,11 +473,11 @@ function UiPatterns({
     <section className="flex flex-col gap-3">
       <div className="flex items-end">
         <div className="flex items-center gap-3">
-          <h2 className="text-[15px] font-medium leading-none text-[#171717]">UI Patterns</h2>
+          <h2 className="text-[15px] font-medium leading-[1.25] text-[#171717]">UI Patterns</h2>
           <div className="h-1 w-1 rounded-full bg-[#A3A3A3]" />
           <div className="flex items-center gap-2">
             <img src={mobbinMark} alt="" className="h-[10px] w-[22px]" />
-            <p className="text-[12px] font-medium leading-none text-[#525252]">Analysed with Mobbin</p>
+            <p className="text-[12px] font-medium leading-[1.25] text-[#525252]">Analysed with Mobbin</p>
           </div>
         </div>
       </div>
@@ -514,7 +514,7 @@ function UiPatternGroup({
   return (
     <article className="rounded-[10px] bg-[#FAFAFA] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex items-center justify-between p-3">
-        <h3 className="text-[13px] font-medium leading-none text-[#171717]">{group.title}</h3>
+        <h3 className="text-[13px] font-medium leading-[1.25] text-[#171717]">{group.title}</h3>
         <div className="flex h-[22px] items-start gap-[2px] rounded-[6px] bg-[#F4F4F5] p-[2px]">
           <button type="button" className="flex h-full items-center justify-center rounded-[4px] px-2 text-[#71717A] shadow-[0_0.5px_0.5px_rgba(0,0,0,0.07)]" aria-label={`Previous ${group.title} patterns`}>
             <ArrowLeftMiniIcon />
@@ -548,7 +548,7 @@ function UiPatternGroup({
           className="flex w-full items-center justify-between p-4 text-left"
           aria-expanded={isOpen}
         >
-          <span className="text-[13px] font-semibold leading-none text-[#171717]">Patterns Recognised</span>
+          <span className="text-[13px] font-semibold leading-[1.25] text-[#171717]">Patterns Recognised</span>
           {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
         </button>
 
@@ -561,8 +561,8 @@ function UiPatternGroup({
             </div>
 
             {isEditing ? (
-              <button type="button" className="inline-flex h-[27px] w-fit items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-none text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F3FF]">
-                <SparkleIcon />
+              <button type="button" className="inline-flex h-[27px] w-fit cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F3FF]">
+                <RegenerateIcon />
                 Regenerate with AI
               </button>
             ) : null}
@@ -582,12 +582,12 @@ function PatternCard({ title, body, isEditing }: { title: string; body: string; 
         </div>
         {isEditing ? (
           <div className="grid min-w-0 flex-1 gap-[6px]">
-            <input defaultValue={title} aria-label={`${title} title`} className="h-[25px] rounded-[5px] bg-[#F5F5F5] px-2 text-[13px] font-semibold leading-none text-[#171717]" />
+            <input defaultValue={title} aria-label={`${title} title`} className="h-[25px] rounded-[5px] bg-[#F5F5F5] px-2 text-[13px] font-semibold leading-[1.25] text-[#171717]" />
             <textarea defaultValue={body} aria-label={`${title} body`} className="min-h-[54px] resize-y rounded-[6px] bg-[#F5F5F5] px-2 py-[7px] text-[12px] font-medium leading-[1.5] text-[#737373]" />
           </div>
         ) : (
           <div className="min-w-0">
-            <h3 className="text-[13px] font-semibold leading-none text-[#171717]">{title}</h3>
+            <h3 className="text-[13px] font-semibold leading-[1.25] text-[#171717]">{title}</h3>
             <p className="mt-1 text-[12px] font-medium leading-[1.5] text-[#737373]">{body}</p>
           </div>
         )}
@@ -610,12 +610,12 @@ function TargetUsers({ isEditing }: { isEditing: boolean }) {
               <div>
                 {isEditing ? (
                   <div className="grid gap-[6px]">
-                    <input defaultValue={user.name} aria-label={`${user.name} name`} className="h-[25px] rounded-[5px] bg-white px-2 text-[13px] font-semibold leading-none text-[#171717]" />
-                    <input defaultValue={user.role} aria-label={`${user.name} role`} className="h-[25px] rounded-[5px] bg-white px-2 text-[12px] font-medium leading-none text-[#737373]" />
+                    <input defaultValue={user.name} aria-label={`${user.name} name`} className="h-[25px] rounded-[5px] bg-white px-2 text-[13px] font-semibold leading-[1.25] text-[#171717]" />
+                    <input defaultValue={user.role} aria-label={`${user.name} role`} className="h-[25px] rounded-[5px] bg-white px-2 text-[12px] font-medium leading-[1.25] text-[#737373]" />
                   </div>
                 ) : (
                   <>
-                    <h3 className="text-[13px] font-semibold leading-none text-[#171717]">{user.name}</h3>
+                    <h3 className="text-[13px] font-semibold leading-[1.25] text-[#171717]">{user.name}</h3>
                     <p className="mt-[2px] text-[12px] font-medium leading-[1.5] text-[#737373]">{user.role}</p>
                   </>
                 )}
@@ -657,8 +657,8 @@ function Opportunities({ isEditing }: { isEditing: boolean }) {
             aria-label="Opportunities"
             className="min-h-[80px] w-full resize-y bg-transparent text-[13px] font-medium leading-[1.5] text-[#525252]"
           />
-          <button type="button" className="mt-4 inline-flex h-[27px] items-center gap-2 rounded-[6px] bg-[#F5F5F5] py-[6px] pl-3 pr-[10px] text-[12px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]">
-            <SparkleIcon />
+          <button type="button" className="mt-4 inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F3FF]">
+            <RegenerateIcon />
             Regenerate with AI
           </button>
         </div>
@@ -674,16 +674,16 @@ function Opportunities({ isEditing }: { isEditing: boolean }) {
 function ResearchActions() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
-      <button type="button" className="inline-flex h-8 items-center gap-2 rounded-[6px] text-[13px] font-medium leading-none text-[#525252] transition-colors hover:text-[#171717]">
+      <button type="button" className="inline-flex h-8 items-center gap-2 rounded-[6px] text-[13px] font-medium leading-[1.25] text-[#525252] transition-colors hover:text-[#171717]">
         <PlusIcon />
         Add Section
       </button>
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className="inline-flex h-[31px] items-center gap-[6px] rounded-[6px] bg-[#F5F5F5] px-2 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]">
+        <button type="button" className="inline-flex h-[31px] items-center gap-[6px] rounded-[6px] bg-[#F5F5F5] px-2 text-[13px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]">
           <NotionIcon />
           Export to Notion
         </button>
-        <button type="button" className="inline-flex h-8 items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95">
+        <button type="button" className="inline-flex h-8 items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95">
           Generate Strategy
           <ArrowRightIcon />
         </button>
@@ -718,40 +718,40 @@ function PhotoLightbox({ src, onClose }: { src: string; onClose: () => void }) {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-[15px] font-medium leading-none text-[#171717]">{children}</h2>;
+  return <h2 className="text-[15px] font-medium leading-[1.25] text-[#171717]">{children}</h2>;
 }
 
 function Divider() {
   return <div className="h-px w-full bg-[#E5E5E5]" />;
 }
 
-function PencilIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[14px] w-[14px]">
-      <path d="M9.8 3.2 12.8 6.2M2.75 13.25l3.15-.7 7.05-7.05a1.45 1.45 0 0 0-2.05-2.05L3.85 10.5l-1.1 2.75Z" />
-    </svg>
-  );
+function EditIcon() {
+  return <img src="/logos/dashboard/edit.svg" alt="" aria-hidden="true" className="h-[14px] w-[14px] shrink-0" />;
 }
 
 function CardIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
-      <rect x="2.5" y="3" width="4.5" height="4.5" rx="1" />
-      <rect x="9" y="3" width="4.5" height="4.5" rx="1" />
-      <rect x="2.5" y="9" width="4.5" height="4.5" rx="1" />
-      <rect x="9" y="9" width="4.5" height="4.5" rx="1" />
-    </svg>
+    <span
+      aria-hidden="true"
+      className="h-[15px] w-[15px] shrink-0 bg-current"
+      style={{
+        WebkitMask: 'url("/logos/dashboard/card-view.svg") center / contain no-repeat',
+        mask: 'url("/logos/dashboard/card-view.svg") center / contain no-repeat',
+      }}
+    />
   );
 }
 
 function MatrixIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="currentColor" className="h-[15px] w-[15px]">
-      <rect x="3" y="3" width="4" height="4" rx="0.8" />
-      <rect x="9" y="3" width="4" height="4" rx="0.8" />
-      <rect x="3" y="9" width="4" height="4" rx="0.8" />
-      <rect x="9" y="9" width="4" height="4" rx="0.8" />
-    </svg>
+    <span
+      aria-hidden="true"
+      className="h-[15px] w-[15px] shrink-0 bg-current"
+      style={{
+        WebkitMask: 'url("/logos/dashboard/matrix-view.svg") center / contain no-repeat',
+        mask: 'url("/logos/dashboard/matrix-view.svg") center / contain no-repeat',
+      }}
+    />
   );
 }
 
@@ -763,19 +763,13 @@ function PatternIcon() {
   );
 }
 
-function SparkleIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
-      <path d="M7.35 2.45a.65.65 0 0 1 1.3 0l.26 2.04a2.35 2.35 0 0 0 2 2l2.04.26a.65.65 0 0 1 0 1.3l-2.04.26a2.35 2.35 0 0 0-2 2l-.26 2.04a.65.65 0 0 1-1.3 0l-.26-2.04a2.35 2.35 0 0 0-2-2l-2.04-.26a.65.65 0 0 1 0-1.3l2.04-.26a2.35 2.35 0 0 0 2-2l.26-2.04Z" />
-    </svg>
-  );
+function RegenerateIcon() {
+  return <img src="/logos/dashboard/regenerate.svg" alt="" aria-hidden="true" className="h-3 w-3 shrink-0" />;
 }
 
 function SaveIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
-      <path d="M3.25 2.5A1.25 1.25 0 0 0 2 3.75v8.5c0 .69.56 1.25 1.25 1.25h9.5c.69 0 1.25-.56 1.25-1.25V5.56c0-.33-.13-.65-.37-.88l-1.81-1.81a1.25 1.25 0 0 0-.88-.37H3.25Zm1.25 1.25h5.25v3.5H4.5v-3.5Zm1 6.25h5a.75.75 0 0 1 .75.75v1.5h-6.5v-1.5A.75.75 0 0 1 5.5 10Z" />
-    </svg>
+    <img src="/logos/dashboard/save-changes.svg" alt="" aria-hidden="true" className="h-4 w-4 shrink-0" />
   );
 }
 

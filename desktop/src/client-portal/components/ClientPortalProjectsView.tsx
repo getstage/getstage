@@ -95,15 +95,15 @@ function PortalProjectsTable({
                 <div className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full border border-[#fafafa] bg-[#171717] text-[8px] font-semibold text-white">
                   {project.logoLabel}
                 </div>
-                <p className="min-w-0 truncate text-[13px] font-medium leading-none text-[#171717] group-hover:underline group-focus-visible:underline">{project.name}</p>
+                <p className="min-w-0 truncate text-[13px] font-medium leading-[1.25] text-[#171717] group-hover:underline group-focus-visible:underline">{project.name}</p>
               </div>
               <div>
-                <span className="rounded-[2px] bg-[#dcfce7] px-[6px] py-[2px] text-[12px] font-normal leading-none text-[#052e16]">
+                <span className="rounded-[2px] bg-[#dcfce7] px-[6px] py-[2px] text-[12px] font-normal leading-[1.25] text-[#052e16]">
                   {project.status}
                 </span>
               </div>
-              <p className="text-[13px] font-medium leading-none text-[#525252]">{project.type}</p>
-              <p className="text-[13px] font-medium leading-none text-[#525252]">{project.created}</p>
+              <p className="text-[13px] font-medium leading-[1.25] text-[#525252]">{project.type}</p>
+              <p className="text-[13px] font-medium leading-[1.25] text-[#525252]">{project.created}</p>
               <button
                 type="button"
                 onClick={(event) => {
@@ -111,7 +111,7 @@ function PortalProjectsTable({
                   onOpenPortal(project.id);
                 }}
                 className={cn(
-                  "flex w-fit items-center gap-[8px] text-[13px] font-medium leading-none text-[#171717]",
+                  "flex w-fit items-center gap-[8px] text-[13px] font-medium leading-[1.25] text-[#171717]",
                   "transition-colors hover:text-[#463fba]"
                 )}
               >

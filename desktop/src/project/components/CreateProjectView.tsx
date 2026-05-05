@@ -348,7 +348,7 @@ function ClientDetailsStep({
                   <button
                     type="button"
                     onClick={onPickClientPhoto}
-                    className="flex min-w-0 cursor-pointer items-center gap-[6px] text-[12px] font-medium leading-none text-[#525252] transition-colors hover:text-[#171717]"
+                    className="flex min-w-0 cursor-pointer items-center gap-[6px] text-[12px] font-medium leading-[1.25] text-[#525252] transition-colors hover:text-[#171717]"
                   >
                     <UploadIcon />
                     <span className="min-w-0 truncate">Reupload</span>
@@ -356,7 +356,7 @@ function ClientDetailsStep({
                   <button
                     type="button"
                     onClick={() => onClientPhotoChange(null)}
-                    className="cursor-pointer text-[12px] font-medium leading-none text-[#ef4444] transition-colors hover:text-[#b91c1c]"
+                    className="cursor-pointer text-[12px] font-medium leading-[1.25] text-[#ef4444] transition-colors hover:text-[#b91c1c]"
                   >
                     Remove
                   </button>
@@ -418,7 +418,7 @@ function ProjectTypeStep({
                   onClick={() => onProjectTypeChange(option.id)}
                   aria-pressed={selected}
                   className={cn(
-                    "flex min-h-[104px] min-w-0 flex-1 cursor-pointer items-center justify-center gap-[8px] overflow-hidden rounded-[6px] border px-[12px] py-[44px] text-[12px] font-medium leading-none transition-colors",
+                    "flex min-h-[104px] min-w-0 flex-1 cursor-pointer items-center justify-center gap-[8px] overflow-hidden rounded-[6px] border px-[12px] py-[44px] text-[12px] font-medium leading-[1.25] transition-colors",
                     selected
                       ? "border-[#dbd9fc] bg-[#e7e6fd] text-[#16115a]"
                       : "border-transparent bg-[#f5f5f5] text-[#525252] hover:bg-[#eeeeee] hover:text-[#171717]",
@@ -608,7 +608,7 @@ function ProjectCreatedStep({ onViewProject }: { onViewProject: () => void }) {
                 <button
                   type="button"
                   onClick={onViewProject}
-                  className="flex shrink-0 cursor-pointer items-center justify-center gap-[8px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[10px] pl-[24px] pr-[22px] text-[13px] font-medium leading-none text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+                  className="flex shrink-0 cursor-pointer items-center justify-center gap-[8px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[10px] pl-[24px] pr-[22px] text-[13px] font-medium leading-[1.25] text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
                 >
                   <span className="[text-shadow:0px_0.5px_1.5px_rgba(0,0,0,0.15)]">
                     View Project
@@ -637,7 +637,7 @@ function RadioOption({
     <button
       type="button"
       onClick={onSelect}
-      className="flex cursor-pointer items-center gap-[8px] text-[13px] font-medium leading-none text-[#171717]"
+      className="flex cursor-pointer items-center gap-[8px] text-[13px] font-medium leading-[1.25] text-[#171717]"
       aria-pressed={selected}
     >
       <span
@@ -700,7 +700,7 @@ function ManualRoadmapEditor({
     <div className="flex w-full flex-col items-start rounded-[8px] bg-white p-[12px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]">
       <div className="flex w-full flex-col items-start justify-center">
         <div className="flex w-full flex-col items-start gap-[8px]">
-          <p className="whitespace-nowrap text-[13px] font-medium leading-none text-[#171717]">
+          <p className="whitespace-nowrap text-[13px] font-medium leading-[1.25] text-[#171717]">
             Select Phases
           </p>
 
@@ -713,7 +713,7 @@ function ManualRoadmapEditor({
                 >
                   <div className="flex items-center gap-[6px]">
                     <DragHandleIcon />
-                    <p className="whitespace-nowrap text-[12px] font-medium leading-none text-[#0a0a0a]">
+                    <p className="whitespace-nowrap text-[12px] font-medium leading-[1.25] text-[#0a0a0a]">
                       {phase}
                     </p>
                   </div>
@@ -739,12 +739,12 @@ function ManualRoadmapEditor({
                   autoFocus
                   placeholder="Testing"
                   aria-label="New phase name"
-                  className="min-w-0 flex-1 bg-transparent text-[12px] font-medium leading-none text-[#262626] outline-none placeholder:text-[#525252]"
+                  className="min-w-0 flex-1 bg-transparent text-[12px] font-medium leading-[1.25] text-[#262626] outline-none placeholder:text-[#525252]"
                 />
                 <button
                   type="button"
                   onClick={onAddPhase}
-                  className="flex shrink-0 cursor-pointer items-center gap-[6px] rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0a0a0a] py-[8px] pl-[10px] pr-[12px] text-[12px] font-medium leading-none text-[#fafafa] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)]"
+                  className="flex shrink-0 cursor-pointer items-center gap-[6px] rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0a0a0a] py-[8px] pl-[10px] pr-[12px] text-[12px] font-medium leading-[1.25] text-[#fafafa] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)]"
                 >
                   <PlusIcon />
                   <span>Add</span>
@@ -754,7 +754,7 @@ function ManualRoadmapEditor({
               <button
                 type="button"
                 onClick={onAddPhaseStart}
-                className="flex w-full cursor-pointer items-center justify-center gap-[6px] overflow-hidden rounded-[6px] bg-[#f5f5f5] px-[12px] py-[10px] text-[12px] font-medium leading-none text-[#0a0a0a] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#eeeeee]"
+                className="flex w-full cursor-pointer items-center justify-center gap-[6px] overflow-hidden rounded-[6px] bg-[#f5f5f5] px-[12px] py-[10px] text-[12px] font-medium leading-[1.25] text-[#0a0a0a] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#eeeeee]"
               >
                 <PlusIcon />
                 <span>Add Phase</span>
@@ -793,7 +793,7 @@ function CreateProjectButton() {
   return (
     <button
       type="submit"
-      className="flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[10px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+      className="flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[10px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
     >
       <span className="[text-shadow:0px_0.5px_1.5px_rgba(0,0,0,0.15)]">
         Create Project
@@ -923,7 +923,7 @@ function Field({
 }) {
   return (
     <div className="flex w-full flex-col items-start gap-[8px]">
-      <span className="flex items-start gap-[6px] whitespace-nowrap text-[13px] font-medium leading-none">
+      <span className="flex items-start gap-[6px] whitespace-nowrap text-[13px] font-medium leading-[1.25]">
         <span className="text-[#171717]">{label}</span>
         {secondaryLabel ? <span className="text-[#737373]">{secondaryLabel}</span> : null}
       </span>
@@ -938,7 +938,7 @@ function ContinueButton({ disabled = false }: { disabled?: boolean }) {
       type="submit"
       disabled={disabled}
       className={cn(
-        "flex w-full items-center justify-center gap-[8px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[10px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] transition-opacity",
+        "flex w-full items-center justify-center gap-[8px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[10px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] transition-opacity",
         disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:opacity-95",
       )}
     >
@@ -1158,7 +1158,7 @@ function ChevronDownIcon() {
 }
 
 const inputSurfaceClassName =
-  "h-[34px] w-full rounded-[6px] bg-[#f5f5f5] px-[12px] py-[10px] text-[12px] font-medium leading-none text-[#171717] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] outline-none transition-colors placeholder:text-[#525252] hover:bg-[#eeeeee] focus:bg-white focus:ring-1 focus:ring-[#8d87ff]";
+  "h-[34px] w-full rounded-[6px] bg-[#f5f5f5] px-[12px] py-[10px] text-[12px] font-medium leading-[1.25] text-[#171717] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] outline-none transition-colors placeholder:text-[#525252] hover:bg-[#eeeeee] focus:bg-white focus:ring-1 focus:ring-[#8d87ff]";
 
 const uploadButtonClassName =
-  "flex h-[34px] w-full cursor-pointer items-center gap-[12px] overflow-hidden rounded-[6px] bg-[#f5f5f5] px-[12px] py-[10px] text-left text-[12px] font-medium leading-none text-[#525252] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#eeeeee] hover:text-[#171717]";
+  "flex h-[34px] w-full cursor-pointer items-center gap-[12px] overflow-hidden rounded-[6px] bg-[#f5f5f5] px-[12px] py-[10px] text-left text-[12px] font-medium leading-[1.25] text-[#525252] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#eeeeee] hover:text-[#171717]";

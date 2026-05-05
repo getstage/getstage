@@ -33,7 +33,7 @@ export function AssetsTab({ project }: { project: Project }) {
         <div className="flex flex-col gap-1">
           <div className="flex items-end justify-between p-4">
             <div className="flex min-w-0 flex-1 flex-col gap-4">
-              <h2 className="font-heading text-[15px] font-medium leading-none text-[#171717]">
+              <h2 className="font-heading text-[15px] font-medium leading-[1.25] text-[#171717]">
                 {sectionTitle}
               </h2>
               <AssetCategoryTabs
@@ -78,7 +78,7 @@ function AssetCategoryTabs({
             key={category.id}
             type="button"
             onClick={() => onChange(category.id)}
-            className={`inline-flex h-[32px] cursor-pointer items-center gap-2 rounded-[6px] px-3 text-[13px] font-medium leading-none transition-colors ${
+            className={`inline-flex h-[32px] cursor-pointer items-center gap-2 rounded-[6px] px-3 text-[13px] font-medium leading-[1.25] transition-colors ${
               isActive
                 ? "bg-[#E5E5E5] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
                 : "text-[#737373] hover:bg-[#F5F5F5]"
@@ -104,7 +104,7 @@ function UploadDropzone() {
         <div className="flex w-[160px] flex-col items-center gap-3">
           <UploadFolderIcon />
           <div className="flex flex-col items-center gap-[6px]">
-            <p className="w-[127px] text-[15px] font-medium leading-none text-[#171717]">
+            <p className="w-[127px] text-[15px] font-medium leading-[1.25] text-[#171717]">
               Upload files or drag and drop
             </p>
             <p className="whitespace-nowrap text-[12px] font-medium leading-[1.5] text-[#737373]">
@@ -151,17 +151,17 @@ function DocumentsGrid() {
 
             <div className="min-w-0">
               <div className="flex min-w-0 flex-wrap items-center gap-1">
-                <h3 className="truncate text-[13px] font-medium leading-none text-[#171717]">
+                <h3 className="truncate text-[13px] font-medium leading-[1.25] text-[#171717]">
                   {document.title}
                 </h3>
-                <span className={`rounded-[2px] px-[6px] py-[2px] text-[12px] font-normal leading-none ${document.statusClass}`}>
+                <span className={`rounded-[2px] px-[6px] py-[2px] text-[12px] font-normal leading-[1.25] ${document.statusClass}`}>
                   {document.status}
                 </span>
               </div>
-              <p className="mt-1 truncate text-[12px] font-normal leading-none text-[#525252]">
+              <p className="mt-1 truncate text-[12px] font-normal leading-[1.25] text-[#525252]">
                 {document.description}
               </p>
-              <div className="mt-2 flex items-center gap-2 text-[12px] font-medium leading-none text-[#737373]">
+              <div className="mt-2 flex items-center gap-2 text-[12px] font-medium leading-[1.25] text-[#737373]">
                 <CalendarIcon />
                 <span>{document.date}</span>
               </div>
@@ -193,14 +193,14 @@ function UploadedGrid() {
 
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-2">
-                <h3 className="truncate text-[13px] font-medium leading-none text-[#171717]">
+                <h3 className="truncate text-[13px] font-medium leading-[1.25] text-[#171717]">
                   {upload.title}
                 </h3>
-                <span className="shrink-0 rounded-[2px] bg-[rgba(163,163,163,0.25)] px-[6px] py-[2px] text-[12px] font-normal leading-none text-[#525252]">
+                <span className="shrink-0 rounded-[2px] bg-[rgba(163,163,163,0.25)] px-[6px] py-[2px] text-[12px] font-normal leading-[1.25] text-[#525252]">
                   Uploaded
                 </span>
               </div>
-              <div className="mt-2 flex items-center gap-2 text-[12px] font-medium leading-none text-[#737373]">
+              <div className="mt-2 flex items-center gap-2 text-[12px] font-medium leading-[1.25] text-[#737373]">
                 <CalendarIcon />
                 <span>{upload.date}</span>
               </div>
@@ -223,10 +223,10 @@ function AssetCard({ asset }: { asset: ProjectAsset & { date: string; source: st
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-2">
-              <h3 className="truncate text-[15px] font-medium leading-none text-[#171717]">
+              <h3 className="truncate text-[15px] font-medium leading-[1.25] text-[#171717]">
                 {asset.title}
               </h3>
-              <span className="shrink-0 rounded-[2px] bg-[#F3E8FF] px-1 py-[2px] text-[12px] font-normal leading-none text-[#3B0764]">
+              <span className="shrink-0 rounded-[2px] bg-[#F3E8FF] px-1 py-[2px] text-[12px] font-normal leading-[1.25] text-[#3B0764]">
                 {asset.priority}
               </span>
             </div>
@@ -241,7 +241,7 @@ function AssetCard({ asset }: { asset: ProjectAsset & { date: string; source: st
 
           <button
             type="button"
-            className="inline-flex h-[27px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[4px] bg-[#F5F5F5] px-3 text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
+            className="inline-flex h-[27px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[4px] bg-[#F5F5F5] px-3 text-[12px] font-medium leading-[1.25] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
           >
             <img src={FIGMA_SYMBOL_URL} alt="" className="h-[15px] w-[10px]" />
             Open in Figma
@@ -347,9 +347,6 @@ function PdfIcon() {
 
 function SparkleIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-4 w-4 shrink-0 text-[#737373]">
-      <path d="M7 2.5 8.1 5.9 11.5 7 8.1 8.1 7 11.5 5.9 8.1 2.5 7l3.4-1.1L7 2.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-      <path d="M12.25 10.5 12.8 12l1.45.5-1.45.5-.55 1.5-.55-1.5-1.45-.5 1.45-.5.55-1.5Z" fill="currentColor" />
-    </svg>
+    <img src="/logos/dashboard/ai-generated.svg" alt="" aria-hidden="true" className="h-4 w-4 shrink-0" />
   );
 }

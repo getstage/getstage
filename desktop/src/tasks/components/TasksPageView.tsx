@@ -371,7 +371,7 @@ function PriorityTaskCard({
               </svg>
             ) : null}
           </button>
-          <p className="min-w-0 flex-1 truncate text-[13px] font-medium leading-none text-[#171717]">
+          <p className="min-w-0 flex-1 truncate text-[13px] font-medium leading-[1.25] text-[#171717]">
             {item.task.title}
           </p>
         </div>
@@ -387,7 +387,7 @@ function PriorityTaskCard({
           aria-hidden="true"
           className="h-[18px] w-[18px] shrink-0 rounded-full object-cover"
         />
-        <p className="min-w-0 flex-1 truncate text-[12px] font-medium leading-none text-[#171717]">
+        <p className="min-w-0 flex-1 truncate text-[12px] font-medium leading-[1.25] text-[#171717]">
           {item.projectName}
         </p>
       </div>

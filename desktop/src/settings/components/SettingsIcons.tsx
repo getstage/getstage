@@ -60,6 +60,9 @@ export function SettingsIcon({ name, className = "h-[18px] w-[18px]" }: IconProp
       </svg>
     ),
     spark: (
+      <img src="/logos/dashboard/ai-generated.svg" alt="" aria-hidden="true" className={className} />
+    ),
+    claude: (
       <img src="/logos/integrations/claude.svg" alt="" aria-hidden="true" className={className} />
     ),
     code: (

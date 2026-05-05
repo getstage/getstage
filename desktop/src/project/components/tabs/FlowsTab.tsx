@@ -121,10 +121,10 @@ export function FlowsTab({ project }: { project: Project }) {
         <div className="flex flex-col gap-4 p-4">
           <div className="flex flex-wrap items-end justify-between gap-5">
             <div className="min-w-0">
-              <h2 className="font-heading text-[15px] font-medium leading-none text-[#171717]">
+              <h2 className="font-heading text-[15px] font-medium leading-[1.25] text-[#171717]">
                 Flows
               </h2>
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-[13px] font-medium leading-none text-[#171717]">
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-[13px] font-medium leading-[1.25] text-[#171717]">
                 <div className="h-[10px] w-[65px] overflow-hidden rounded-full bg-[#E5E5E5]">
                   <div
                     className="h-full rounded-full bg-[#16A34A]"
@@ -145,7 +145,7 @@ export function FlowsTab({ project }: { project: Project }) {
               <button
                 type="button"
                 onClick={() => setActivePanelTab("flows")}
-                className={`inline-flex h-[32px] items-center gap-2 rounded-[6px] px-3 text-[13px] font-medium leading-none transition-colors ${
+                className={`inline-flex h-[32px] items-center gap-2 rounded-[6px] px-3 text-[13px] font-medium leading-[1.25] transition-colors ${
                   activePanelTab === "flows"
                     ? "bg-[#E5E5E5] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
                     : "text-[#737373] hover:bg-[#F5F5F5]"
@@ -161,7 +161,7 @@ export function FlowsTab({ project }: { project: Project }) {
                   setActivePanelTab("screens");
                   setEditingFlowId(null);
                 }}
-                className={`inline-flex h-[32px] items-center gap-2 rounded-[6px] px-3 text-[13px] font-medium leading-none transition-colors ${
+                className={`inline-flex h-[32px] items-center gap-2 rounded-[6px] px-3 text-[13px] font-medium leading-[1.25] transition-colors ${
                   activePanelTab === "screens"
                     ? "bg-[#E5E5E5] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
                     : "text-[#737373] hover:bg-[#F5F5F5]"
@@ -264,14 +264,14 @@ function FlowHeaderActions({ onAddFlow }: { onAddFlow: () => void }) {
       <button
         type="button"
         onClick={onAddFlow}
-        className="inline-flex h-[32px] items-center gap-2 rounded-[6px] bg-white px-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA]"
+        className="inline-flex h-[32px] items-center gap-2 rounded-[6px] bg-white px-3 text-[13px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA]"
       >
         <PlusIcon />
         Add a flow manually
       </button>
       <button
         type="button"
-        className="inline-flex h-[32px] items-center gap-2 rounded-[6px] bg-gradient-to-b from-[#262626] to-[#0A0A0A] px-3 text-[13px] font-medium leading-none text-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90"
+        className="inline-flex h-[32px] items-center gap-2 rounded-[6px] bg-gradient-to-b from-[#262626] to-[#0A0A0A] px-3 text-[13px] font-medium leading-[1.25] text-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90"
       >
         <FigmaIcon />
         Send to FigJam
@@ -284,7 +284,7 @@ function ScreenFilter({ screenTotal }: { screenTotal: number }) {
   return (
     <button
       type="button"
-      className="inline-flex h-[32px] items-center gap-1 rounded-[6px] bg-white py-2 pl-3 pr-[14px] text-[13px] font-medium leading-none text-[#404040] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA]"
+      className="inline-flex h-[32px] items-center gap-1 rounded-[6px] bg-white py-2 pl-3 pr-[14px] text-[13px] font-medium leading-[1.25] text-[#404040] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA]"
     >
       <span>All</span>
       <span className="opacity-50">({screenTotal})</span>
@@ -376,7 +376,7 @@ function AddFlowModal({
                 type="button"
                 disabled={!canContinue}
                 onClick={onNext}
-                className="inline-flex h-[36px] w-full items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity disabled:opacity-50"
+                className="inline-flex h-[36px] w-full items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity disabled:opacity-50"
               >
                 Add Steps
                 <ArrowRightIcon />
@@ -395,8 +395,8 @@ function AddFlowModal({
               <div className={`flex flex-col rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${draft.steps.length > 0 ? "gap-6" : "gap-4"}`}>
                 {draft.steps.map((savedStep, index) => (
                   <div key={`${index}-${savedStep}`} className="flex flex-col gap-2">
-                    <label className="text-[13px] font-medium leading-none text-[#171717]">Step {index + 1}</label>
-                    <div className="rounded-[6px] bg-[#F5F5F5] px-3 py-[10px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+                    <label className="text-[13px] font-medium leading-[1.25] text-[#171717]">Step {index + 1}</label>
+                    <div className="rounded-[6px] bg-[#F5F5F5] px-3 py-[10px] text-[12px] font-medium leading-[1.25] text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
                       {savedStep}
                     </div>
                     <div className="mt-3 h-px w-full bg-[#E5E5E5]" />
@@ -417,7 +417,7 @@ function AddFlowModal({
                   type="button"
                   onClick={onAddStep}
                   disabled={!newStepDraft.trim()}
-                  className="inline-flex h-[30px] w-fit items-center gap-[6px] rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 text-[12px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity disabled:opacity-50"
+                  className="inline-flex h-[30px] w-fit items-center gap-[6px] rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 text-[12px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity disabled:opacity-50"
                 >
                   <PlusIcon className="h-[15px] w-[15px] shrink-0 text-white" />
                   Add Step
@@ -427,7 +427,7 @@ function AddFlowModal({
                 type="button"
                 disabled={!canSave}
                 onClick={onSave}
-                className="inline-flex h-[36px] w-full items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity disabled:opacity-50"
+                className="inline-flex h-[36px] w-full items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity disabled:opacity-50"
               >
                 Save & Continue
                 <ArrowRightIcon />
@@ -441,12 +441,12 @@ function AddFlowModal({
 }
 
 const fieldClassName =
-  "w-full rounded-[6px] bg-[#F5F5F5] px-3 py-[10px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#525252]";
+  "w-full rounded-[6px] bg-[#F5F5F5] px-3 py-[10px] text-[12px] font-medium leading-[1.25] text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#525252]";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="flex w-full flex-col gap-2">
-      <span className="text-[13px] font-medium leading-none text-[#171717]">{label}</span>
+      <span className="text-[13px] font-medium leading-[1.25] text-[#171717]">{label}</span>
       {children}
     </label>
   );
@@ -517,19 +517,19 @@ function ScreenCard({
           </div>
           <div className="min-w-0 pt-[1px]">
             <div className="flex flex-wrap items-center gap-1">
-              <h3 className="text-[13px] font-medium leading-none text-[#171717]">{screen.title}</h3>
-              <span className="inline-flex h-[19px] items-center rounded-[2px] bg-[#F5F5F4] px-[6px] text-[12px] font-normal leading-none text-[#44403C]">
+              <h3 className="text-[13px] font-medium leading-[1.25] text-[#171717]">{screen.title}</h3>
+              <span className="inline-flex h-[19px] items-center rounded-[2px] bg-[#F5F5F4] px-[6px] text-[12px] font-normal leading-[1.25] text-[#44403C]">
                 Appears in {screen.flowCount} flows
               </span>
             </div>
-            <p className="mt-2 text-[12px] font-normal leading-none text-[#525252]">
+            <p className="mt-2 text-[12px] font-normal leading-[1.25] text-[#525252]">
               {screen.description}
             </p>
           </div>
         </div>
 
         <div className="flex flex-col">
-          <div className="pb-0 pl-[10px] pr-3 pt-[6px] text-[12px] font-medium uppercase leading-none text-[#737373]">
+          <div className="pb-0 pl-[10px] pr-3 pt-[6px] text-[12px] font-medium uppercase leading-[1.25] text-[#737373]">
             Key Elements
           </div>
           {editing ? (
@@ -537,7 +537,7 @@ function ScreenCard({
               <ScreenElementList elements={elements} editing onDraftElementChange={onDraftElementChange} />
               <button
                 type="button"
-                className="inline-flex h-[30px] w-fit items-center gap-2 rounded-[4px] bg-white px-3 text-[12px] font-medium leading-none text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F3FF]"
+                className="inline-flex h-[30px] w-fit items-center gap-2 rounded-[4px] bg-white px-3 text-[12px] font-medium leading-[1.25] text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F3FF]"
               >
                 <SparkleIcon />
                 Regenerate with AI
@@ -555,7 +555,7 @@ function ScreenCard({
         <button
           type="button"
           onClick={onBeginEdit}
-          className="inline-flex h-[32px] w-fit items-center gap-2 rounded-[6px] border border-[#E5E5E5] bg-[#FAFAFA] px-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)] transition-colors hover:bg-white"
+          className="inline-flex h-[32px] w-fit items-center gap-2 rounded-[6px] border border-[#E5E5E5] bg-[#FAFAFA] px-3 text-[13px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)] transition-colors hover:bg-white"
         >
           <EditIcon />
           Edit Elements
@@ -575,17 +575,17 @@ function ScreenElementList({
   onDraftElementChange?: (elementIndex: number, value: string) => void;
 }) {
   return (
-    <ul className="m-0 flex list-disc flex-col gap-0 pl-[28px] text-[12px] font-medium leading-none text-[#262626]">
+    <ul className="m-0 flex list-disc flex-col gap-0 pl-[28px] text-[12px] font-medium leading-[1.25] text-[#262626]">
       {elements.map((element, elementIndex) => (
         <li key={`${elementIndex}-${element}`} className="py-[6px] pr-3 marker:text-[#262626]">
           {editing ? (
             <input
               value={element}
               onChange={(event) => onDraftElementChange?.(elementIndex, event.target.value)}
-              className="block h-[12px] w-full min-w-0 appearance-none border-0 bg-transparent p-0 text-[12px] font-medium leading-none text-[#262626] outline-none placeholder:text-[#737373] focus:text-[#171717]"
+              className="block h-[12px] w-full min-w-0 appearance-none border-0 bg-transparent p-0 text-[12px] font-medium leading-[1.25] text-[#262626] outline-none placeholder:text-[#737373] focus:text-[#171717]"
             />
           ) : (
-            <span className="leading-none">{element}</span>
+            <span className="leading-[1.25]">{element}</span>
           )}
         </li>
       ))}
@@ -599,14 +599,14 @@ function ScreenEditActions({ onDiscard, onSave }: { onDiscard: () => void; onSav
       <button
         type="button"
         onClick={onDiscard}
-        className="inline-flex h-[32px] items-center justify-center rounded-[6px] bg-[#FAFAFA] pl-[10px] pr-3 text-[12px] font-medium leading-none text-[#EF4444] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-white"
+        className="inline-flex h-[32px] items-center justify-center rounded-[6px] bg-[#FAFAFA] pl-[10px] pr-3 text-[12px] font-medium leading-[1.25] text-[#EF4444] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-white"
       >
         Discard Changes
       </button>
       <button
         type="button"
         onClick={onSave}
-        className="inline-flex h-[32px] items-center justify-center gap-2 rounded-[6px] border border-[#34D399] bg-gradient-to-b from-[#10B981] to-[#059669] px-3 text-[12px] font-medium leading-none text-[#ECFDF5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90"
+        className="inline-flex h-[32px] items-center justify-center gap-2 rounded-[6px] border border-[#34D399] bg-gradient-to-b from-[#10B981] to-[#059669] px-3 text-[12px] font-medium leading-[1.25] text-[#ECFDF5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90"
       >
         <SaveIcon className="h-4 w-4 shrink-0" />
         Save Changes
@@ -663,7 +663,7 @@ function FlowRow({
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        className="inline-flex h-[36px] items-center gap-[6px] px-4 text-[12px] font-medium leading-none text-[#525252] transition-colors hover:text-[#171717]"
+        className="inline-flex h-[36px] items-center gap-[6px] px-4 text-[12px] font-medium leading-[1.25] text-[#525252] transition-colors hover:text-[#171717]"
       >
         {expanded ? "See Less" : "See Details"}
         <ChevronDownIcon expanded={expanded} />
@@ -689,14 +689,14 @@ function FlowActions({
         <button
           type="button"
           onClick={onDiscard}
-          className="inline-flex h-[32px] items-center rounded-[6px] border border-[#E5E5E5] bg-[#FAFAFA] px-3 text-[13px] font-medium leading-none text-[#DC2626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)] transition-colors hover:bg-white"
+          className="inline-flex h-[32px] items-center rounded-[6px] border border-[#E5E5E5] bg-[#FAFAFA] px-3 text-[13px] font-medium leading-[1.25] text-[#DC2626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)] transition-colors hover:bg-white"
         >
           Discard Changes
         </button>
         <button
           type="button"
           onClick={onSave}
-          className="inline-flex h-[32px] items-center gap-2 rounded-[6px] bg-[#059669] px-3 text-[13px] font-medium leading-none text-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#047857]"
+          className="inline-flex h-[32px] items-center gap-2 rounded-[6px] bg-[#059669] px-3 text-[13px] font-medium leading-[1.25] text-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#047857]"
         >
           <SaveIcon />
           Save Changes
@@ -709,7 +709,7 @@ function FlowActions({
     <button
       type="button"
       onClick={onBeginEdit}
-      className="inline-flex h-[32px] items-center gap-2 rounded-[6px] border border-[#E5E5E5] bg-[#FAFAFA] px-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)] transition-colors hover:bg-white"
+      className="inline-flex h-[32px] items-center gap-2 rounded-[6px] border border-[#E5E5E5] bg-[#FAFAFA] px-3 text-[13px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)] transition-colors hover:bg-white"
     >
       <EditIcon />
       Edit Steps
@@ -728,24 +728,24 @@ function FlowSummary({
 }) {
   return (
     <>
-      <span className="flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#E5E5E5] px-2 py-1 text-[12px] font-medium leading-none text-[#171717]">
+      <span className="flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#E5E5E5] px-2 py-1 text-[12px] font-medium leading-[1.25] text-[#171717]">
         {index}
       </span>
       <div className="min-w-0">
         <div className="flex min-w-0 flex-wrap items-center gap-1">
-          <h3 className="truncate text-[13px] font-medium leading-none text-[#171717]">
+          <h3 className="truncate text-[13px] font-medium leading-[1.25] text-[#171717]">
             {flow.title}
           </h3>
-          <span className="inline-flex h-[20px] items-center rounded-[2px] bg-[#F0FDF4] px-[6px] text-[12px] font-normal leading-none text-[#022C22]">
+          <span className="inline-flex h-[20px] items-center rounded-[2px] bg-[#F0FDF4] px-[6px] text-[12px] font-normal leading-[1.25] text-[#022C22]">
             {flow.status}
           </span>
         </div>
-        <p className="mt-2 text-[12px] font-normal leading-none text-[#525252]">
+        <p className="mt-2 text-[12px] font-normal leading-[1.25] text-[#525252]">
           {flow.description}
         </p>
 
         {expanded ? (
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-[12px] font-medium leading-none text-[#737373]">
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-[12px] font-medium leading-[1.25] text-[#737373]">
             {flow.category ? (
               <span className="inline-flex h-[20px] items-center rounded-[2px] bg-[#F3E8FF] px-[6px] text-[#581C87]">
                 {flow.category}
@@ -775,7 +775,7 @@ function StepsPanel({
   return (
     <div className="min-w-[360px] flex-1 rounded-[6px] bg-[#F5F5F5] p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2 pr-3 py-[6px] text-[13px] font-medium leading-none text-[#171717]">
+        <div className="flex items-center gap-2 pr-3 py-[6px] text-[13px] font-medium leading-[1.25] text-[#171717]">
           <StepsIcon />
           Steps
         </div>
@@ -783,15 +783,15 @@ function StepsPanel({
       </div>
       <div className="flex flex-col gap-3 pt-3">
         {steps.map((step, stepIndex) => (
-          <div key={`${stepIndex}-${step}`} className="flex items-center gap-3 text-[13px] font-medium leading-none text-[#171717]">
-            <span className="flex min-w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#E5E5E5] px-2 py-1 text-[12px] font-medium leading-none text-[#171717]">
+          <div key={`${stepIndex}-${step}`} className="flex items-center gap-3 text-[13px] font-medium leading-[1.25] text-[#171717]">
+            <span className="flex min-w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#E5E5E5] px-2 py-1 text-[12px] font-medium leading-[1.25] text-[#171717]">
               {stepIndex + 1}
             </span>
             {editing ? (
               <input
                 value={step}
                 onChange={(event) => onDraftStepChange(stepIndex, event.target.value)}
-                className="block h-[13px] min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-[13px] font-medium leading-none text-[#171717] outline-none placeholder:text-[#737373]"
+                className="block h-[13px] min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-[13px] font-medium leading-[1.25] text-[#171717] outline-none placeholder:text-[#737373]"
               />
             ) : (
               <span className="min-w-0 truncate">{step}</span>
@@ -889,26 +889,13 @@ function EditIcon() {
 
 function SaveIcon({ className = "h-[14px] w-[14px] shrink-0" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className={className}>
-      <path d="M4.66667 2H3.83333C2.82081 2 2 2.82081 2 3.83333V12.1667C2 13.1792 2.82081 14 3.83333 14H4.66667V8.5C4.66667 8.22387 4.89053 8 5.16667 8H10.8333C11.1095 8 11.3333 8.22387 11.3333 8.5V14H12.1667C13.1792 14 14 13.1792 14 12.1667V5.05229C14 4.56605 13.8069 4.09974 13.463 3.75592L12.2441 2.53697C11.9927 2.28553 11.6757 2.11467 11.3333 2.04101V5.5C11.3333 5.77614 11.1095 6 10.8333 6H5.16667C4.89053 6 4.66667 5.77614 4.66667 5.5V2Z" fill="currentColor" />
-      <path d="M10.3333 2H5.66663V5H10.3333V2Z" fill="currentColor" />
-      <path d="M10.3333 14V9H5.66663V14H10.3333Z" fill="currentColor" />
-    </svg>
+    <img src="/logos/dashboard/save-changes.svg" alt="" aria-hidden="true" className={className} />
   );
 }
 
 function SparkleIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-3 w-3 shrink-0">
-      <path
-        d="M9.83333 0.666667C9.83333 0.390527 9.60947 0.166667 9.33333 0.166667C9.0572 0.166667 8.83333 0.390527 8.83333 0.666667C8.83333 2.28387 8.47607 3.3342 7.8218 3.98847C7.16753 4.64274 6.1172 5 4.5 5C4.22386 5 4 5.22387 4 5.5C4 5.77614 4.22386 6 4.5 6C6.1172 6 7.16753 6.35727 7.8218 7.01154C8.47607 7.6658 8.83333 8.71614 8.83333 10.3333C8.83333 10.6095 9.0572 10.8333 9.33333 10.8333C9.60947 10.8333 9.83333 10.6095 9.83333 10.3333C9.83333 8.71614 10.1906 7.6658 10.8449 7.01154C11.4991 6.35727 12.5495 6 14.1667 6C14.4428 6 14.6667 5.77614 14.6667 5.5C14.6667 5.22387 14.4428 5 14.1667 5C12.5495 5 11.4991 4.64274 10.8449 3.98847C10.1906 3.3342 9.83333 2.28387 9.83333 0.666667Z"
-        fill="currentColor"
-      />
-      <path
-        d="M4.16667 8.5C4.16667 8.22386 3.94281 8 3.66667 8C3.39053 8 3.16667 8.22386 3.16667 8.5C3.16667 9.5385 2.93673 10.1721 2.55443 10.5544C2.17214 10.9367 1.5385 11.1667 0.5 11.1667C0.22386 11.1667 0 11.3905 0 11.6667C0 11.9428 0.22386 12.1667 0.5 12.1667C1.5385 12.1667 2.17214 12.3966 2.55443 12.7789C2.93673 13.1612 3.16667 13.7948 3.16667 14.8333C3.16667 15.1095 3.39053 15.3333 3.66667 15.3333C3.94281 15.3333 4.16667 15.1095 4.16667 14.8333C4.16667 13.7948 4.39661 13.1612 4.7789 12.7789C5.16119 12.3966 5.79483 12.1667 6.83333 12.1667C7.10947 12.1667 7.33333 11.9428 7.33333 11.6667C7.33333 11.3905 7.10947 11.1667 6.83333 11.1667C5.79483 11.1667 5.16119 10.9367 4.7789 10.5544C4.39661 10.1721 4.16667 9.5385 4.16667 8.5Z"
-        fill="currentColor"
-      />
-    </svg>
+    <img src="/logos/dashboard/ai-generated.svg" alt="" aria-hidden="true" className="h-3 w-3 shrink-0" />
   );
 }
 

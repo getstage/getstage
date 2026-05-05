@@ -45,7 +45,7 @@ export function ClientPortalPreviewView() {
           <header className="flex items-start justify-between">
             <div className="flex items-center gap-[2px]">
               <img src="/apple-touch-icon.png" alt="" className="h-[22px] w-[22px]" />
-              <span className="font-heading text-[19px] font-semibold leading-none text-black">Stage</span>
+              <span className="font-heading text-[19px] font-semibold leading-[1.25] text-black">Stage</span>
             </div>
             <span className="rounded-[8px] bg-[#fff7ed] px-[8px] py-[4px] text-[12px] font-medium leading-[1.5] text-[#ea580c]">
               You're in Preview Mode
@@ -285,7 +285,7 @@ function PreviewTaskCard({ task, phaseName, dragging = false, onPointerDown }: {
       className={`select-none rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[16px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${dragging ? "cursor-grabbing shadow-[0_8px_22px_rgba(10,10,10,0.14)]" : "cursor-grab active:cursor-grabbing"}`}
     >
       <div className="flex flex-col gap-[12px]">
-        <span className={`w-fit rounded-[2px] px-[6px] py-[2px] text-[12px] font-normal leading-none ${TAG_COLORS[phaseName] ?? TAG_COLORS.Submitted}`}>
+        <span className={`w-fit rounded-[2px] px-[6px] py-[2px] text-[12px] font-normal leading-[1.25] ${TAG_COLORS[phaseName] ?? TAG_COLORS.Submitted}`}>
           {phaseName}
         </span>
         <div className="flex flex-col gap-[4px]">
@@ -300,7 +300,7 @@ function PreviewTaskCard({ task, phaseName, dragging = false, onPointerDown }: {
                 {task.isCompleted ? <CheckIcon /> : null}
               </button>
             ) : null}
-            <p className="min-w-0 flex-1 text-[13px] font-medium leading-none text-[#171717]">{task.title}</p>
+            <p className="min-w-0 flex-1 text-[13px] font-medium leading-[1.25] text-[#171717]">{task.title}</p>
           </div>
           <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">
             {task.content || "Here comes the project/task description, can contain 2-3 lines at max."}

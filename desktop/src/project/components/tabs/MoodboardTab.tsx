@@ -120,7 +120,7 @@ export function MoodboardTab({ project: _project }: { project: Project }) {
                 <div className="flex items-center justify-end gap-2">
                   <button
                     type="button"
-                    className="inline-flex h-8 cursor-pointer items-center justify-center rounded-[6px] bg-[#FAFAFA] px-3 text-[12px] font-medium leading-none text-[#EF4444] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FEE2E2]"
+                    className="inline-flex h-8 cursor-pointer items-center justify-center rounded-[6px] bg-[#FAFAFA] px-3 text-[12px] font-medium leading-[1.25] text-[#EF4444] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FEE2E2]"
                     onClick={() => {
                       setItems((current) => current.map((item) =>
                         selectedIds.has(item.id) ? { ...item, isInMoodboard: false, folder: null } : item,
@@ -132,7 +132,7 @@ export function MoodboardTab({ project: _project }: { project: Project }) {
                   </button>
                   <button
                     type="button"
-                    className="inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] py-2 pl-3 pr-[10px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+                    className="inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] py-2 pl-3 pr-[10px] text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
                     onClick={() => {
                       setIsFolderMenuOpen((current) => !current);
                       if (folders.length === 0) {
@@ -199,7 +199,7 @@ function Header() {
   return (
     <div className="flex shrink-0 items-center justify-between p-4">
       <div className="min-w-0">
-        <h2 className="text-[15px] font-medium leading-none text-[#0A0A0A]">Moodboard</h2>
+        <h2 className="text-[15px] font-medium leading-[1.25] text-[#0A0A0A]">Moodboard</h2>
         <p className="mt-1 max-w-[471px] text-[12px] font-medium leading-[1.5] text-[#525252]">
           Drop in screenshots or paste a figma link.
         </p>
@@ -219,7 +219,7 @@ function ModeToggle({
     <div className="inline-flex w-fit rounded-[8px] bg-[#F5F5F5] p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <button
         type="button"
-        className={`inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-none transition-colors ${
+        className={`inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] transition-colors ${
           mode === "figma"
             ? "bg-white text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
             : "text-[#737373] hover:bg-white"
@@ -231,7 +231,7 @@ function ModeToggle({
       </button>
       <button
         type="button"
-        className={`inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-none transition-colors ${
+        className={`inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] transition-colors ${
           mode === "upload"
             ? "bg-white text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
             : "text-[#737373] hover:bg-white"
@@ -258,7 +258,7 @@ function FigmaLinkPanel({
 }) {
   return (
     <div className={`flex flex-col gap-2 ${compact ? "w-[290px]" : "w-full max-w-[360px]"}`}>
-      <label className="text-[13px] font-medium leading-none text-[#171717]" htmlFor="moodboard-figma-link">
+      <label className="text-[13px] font-medium leading-[1.25] text-[#171717]" htmlFor="moodboard-figma-link">
         Paste Figma Link
       </label>
       <div className="flex items-center gap-2">
@@ -271,12 +271,12 @@ function FigmaLinkPanel({
             if (event.key === "Enter") onSubmit();
           }}
           placeholder="ex. www.google.com"
-          className="h-[38px] min-w-0 flex-1 rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium leading-none text-[#262626] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#525252] focus:ring-2 focus:ring-[#8D87FF]/30"
+          className="h-[38px] min-w-0 flex-1 rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium leading-[1.25] text-[#262626] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#525252] focus:ring-2 focus:ring-[#8D87FF]/30"
         />
         {!compact ? (
           <button
             type="button"
-            className="inline-flex h-[38px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+            className="inline-flex h-[38px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
             onClick={onSubmit}
           >
             Import
@@ -301,10 +301,10 @@ function UploadDropzone({ onUpload }: { onUpload: () => void }) {
         <span className="flex min-w-0 flex-1 flex-col items-center justify-center gap-3">
           <FolderUploadIcon />
           <span className="flex flex-col items-center gap-[6px]">
-            <span className="text-[13px] font-medium leading-none text-[#171717]">
+            <span className="text-[13px] font-medium leading-[1.25] text-[#171717]">
               Upload files or drag and drop
             </span>
-            <span className="text-[12px] font-medium leading-none text-[#737373]">
+            <span className="text-[12px] font-medium leading-[1.25] text-[#737373]">
               Images, PDFs, Fonts, Files etc.
             </span>
           </span>
@@ -317,7 +317,7 @@ function UploadDropzone({ onUpload }: { onUpload: () => void }) {
 function UploadedFilesList() {
   return (
     <div className="w-full rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <div className="px-2 py-2 text-[13px] font-medium leading-none text-[#0A0A0A]">
+      <div className="px-2 py-2 text-[13px] font-medium leading-[1.25] text-[#0A0A0A]">
         Uploaded Files
       </div>
       <div className="flex flex-col gap-1">
@@ -328,12 +328,12 @@ function UploadedFilesList() {
           >
             <div className="flex min-w-0 items-center gap-2">
               <FolderUploadIcon />
-              <span className="truncate text-[13px] font-medium leading-none text-[#171717]">
+              <span className="truncate text-[13px] font-medium leading-[1.25] text-[#171717]">
                 Example.fig
               </span>
             </div>
             <div className="flex shrink-0 items-center gap-3">
-              <span className="text-[12px] font-medium leading-none text-[#737373]">
+              <span className="text-[12px] font-medium leading-[1.25] text-[#737373]">
                 2.3MB
               </span>
               <TrashIcon />
@@ -370,7 +370,7 @@ function FolderTabs({
     <div className="inline-flex rounded-[8px] bg-[#F5F5F5] p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <button
         type="button"
-        className={`inline-flex h-[27px] cursor-pointer items-center rounded-[6px] px-4 text-[13px] font-medium leading-none text-[#171717] ${
+        className={`inline-flex h-[27px] cursor-pointer items-center rounded-[6px] px-4 text-[13px] font-medium leading-[1.25] text-[#171717] ${
           activeFolder === null ? "bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]" : ""
         }`}
         onClick={onAll}
@@ -381,7 +381,7 @@ function FolderTabs({
         <button
           key={folder}
           type="button"
-          className={`inline-flex h-[27px] cursor-pointer items-center rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#0A0A0A] ${
+          className={`inline-flex h-[27px] cursor-pointer items-center rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] text-[#0A0A0A] ${
             activeFolder === folder ? "bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]" : ""
           }`}
           onClick={() => onFolderChange(folder)}
@@ -399,12 +399,12 @@ function FolderTabs({
           }}
           autoFocus
           placeholder="Name your folder"
-          className="h-[27px] w-[132px] rounded-[6px] bg-[#D4D4D4] px-[10px] text-[13px] font-medium leading-none text-[#0A0A0A] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#0A0A0A]"
+          className="h-[27px] w-[132px] rounded-[6px] bg-[#D4D4D4] px-[10px] text-[13px] font-medium leading-[1.25] text-[#0A0A0A] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#0A0A0A]"
         />
       ) : (
         <button
           type="button"
-          className="inline-flex h-[27px] cursor-pointer items-center gap-[6px] rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] transition-colors hover:bg-white"
+          className="inline-flex h-[27px] cursor-pointer items-center gap-[6px] rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] text-[#525252] transition-colors hover:bg-white"
           onClick={onCreateFolder}
         >
           <PlusIcon className="h-[15px] w-[15px]" />
@@ -473,7 +473,7 @@ function FolderMenu({
           <button
             key={folder}
             type="button"
-            className="inline-flex h-7 cursor-pointer items-center gap-2 rounded-[6px] px-2 py-[6px] text-[12px] font-medium leading-none text-[#262626] transition-colors hover:bg-[#F5F5F5]"
+            className="inline-flex h-7 cursor-pointer items-center gap-2 rounded-[6px] px-2 py-[6px] text-[12px] font-medium leading-[1.25] text-[#262626] transition-colors hover:bg-[#F5F5F5]"
             onClick={() => onSelectFolder(folder)}
           >
             <FolderIcon />
@@ -499,7 +499,7 @@ function Footer({
       <button
         type="button"
         disabled={!canAddToMoodboard && !hasMoodboard}
-        className={`inline-flex h-8 items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity ${
+        className={`inline-flex h-8 items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity ${
           canAddToMoodboard || hasMoodboard ? "cursor-pointer hover:opacity-95" : "cursor-not-allowed opacity-50"
         }`}
         onClick={hasMoodboard ? undefined : onAddToMoodboard}

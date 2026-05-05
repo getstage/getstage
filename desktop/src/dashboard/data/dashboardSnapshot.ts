@@ -9,7 +9,7 @@ export const dashboardSnapshot = dashboardSnapshotSchema.parse({
   subheading: "You have 4 projects that need your attention.",
   metrics: [
     { id: "active", icon: "/logos/dashboard/radio.svg", value: "2", label: "Active Projects" },
-    { id: "due", icon: "/logos/dashboard/flag.svg", value: "21", label: "Tasks Due" },
+    { id: "due", icon: "/logos/dashboard/bell.svg", value: "21", label: "Tasks Due" },
     { id: "done", icon: "/logos/dashboard/check.svg", value: "0", label: "Completed" },
     { id: "process", icon: "/logos/dashboard/calculator.svg", value: "0%", label: "Avg. Process" },
   ],

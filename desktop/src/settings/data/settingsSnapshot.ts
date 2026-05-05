@@ -43,7 +43,7 @@ export const settingsSnapshot = settingsSnapshotSchema.parse({
         id: "claude",
         name: "Claude",
         description: "Research, strategy, and generation",
-        icon: "spark",
+        icon: "claude",
         connected: true,
         accentColor: "#DD7B5F",
       },

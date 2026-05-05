@@ -58,14 +58,14 @@ export function ProjectsOverviewView() {
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search Project"
                   aria-label="Search project"
-                  className="min-w-0 flex-1 bg-transparent p-0 text-[12px] font-medium leading-none text-[#525252] outline-none placeholder:text-[#525252]"
+                  className="min-w-0 flex-1 bg-transparent p-0 text-[12px] font-medium leading-[1.25] text-[#525252] outline-none placeholder:text-[#525252]"
                 />
               </label>
 
               <button
                 type="button"
                 onClick={() => void navigate({ to: "/projects/create" })}
-                className="flex cursor-pointer items-center justify-center gap-[6px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]"
+                className="flex cursor-pointer items-center justify-center gap-[6px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]"
               >
                 <img
                   src="/logos/dashboard/plus.svg"
@@ -178,22 +178,22 @@ function ProjectTableRow({
           >
             {project.logoLabel}
           </div>
-          <p className="min-w-0 truncate text-[13px] font-medium leading-none text-[#171717] decoration-solid group-hover:underline group-focus-visible:underline">
+          <p className="min-w-0 truncate text-[13px] font-medium leading-[1.25] text-[#171717] decoration-solid group-hover:underline group-focus-visible:underline">
             {project.name}
           </p>
         </div>
 
         <div className="flex min-w-0 items-center">
-          <span className="rounded-[2px] bg-[#dcfce7] px-[6px] py-[2px] text-[12px] font-normal leading-none text-[#052e16]">
+          <span className="rounded-[2px] bg-[#dcfce7] px-[6px] py-[2px] text-[12px] font-normal leading-[1.25] text-[#052e16]">
             {project.status}
           </span>
         </div>
 
-        <p className="min-w-0 text-[13px] font-medium leading-none text-[#525252]">
+        <p className="min-w-0 text-[13px] font-medium leading-[1.25] text-[#525252]">
           {project.type}
         </p>
 
-        <p className="min-w-0 text-[13px] font-medium leading-none text-[#525252]">
+        <p className="min-w-0 text-[13px] font-medium leading-[1.25] text-[#525252]">
           {project.created}
         </p>
 
@@ -204,7 +204,7 @@ function ProjectTableRow({
             onOpenProjectDetails(project.id);
           }}
           className={cn(
-            "flex min-w-0 cursor-pointer items-center gap-[8px] text-left text-[13px] font-medium leading-none text-[#171717]",
+            "flex min-w-0 cursor-pointer items-center gap-[8px] text-left text-[13px] font-medium leading-[1.25] text-[#171717]",
             "transition-colors hover:text-[#463fba]",
           )}
           aria-label={`See details for ${project.name}`}

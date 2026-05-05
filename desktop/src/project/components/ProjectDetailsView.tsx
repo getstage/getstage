@@ -102,7 +102,7 @@ export function ProjectDetailsView() {
                   </span>
                 </div>
                 <MetaDot />
-                <span className="rounded-[4px] bg-[#FEE2E2] px-[6px] py-[2px] text-[12px] font-normal leading-none text-[#DC2626]">
+                <span className="rounded-[4px] bg-[#FEE2E2] px-[6px] py-[2px] text-[12px] font-normal leading-[1.25] text-[#DC2626]">
                   {mockProjectDetails.status}
                 </span>
               </div>
@@ -129,7 +129,7 @@ export function ProjectDetailsView() {
                 <button
                   type="button"
                   onClick={() => setIsUploadModalOpen(true)}
-                  className="inline-flex h-[32px] w-fit cursor-pointer items-center gap-[8px] rounded-[6px] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none text-[#525252] transition-colors hover:bg-[#F5F5F5]"
+                  className="inline-flex h-[32px] w-fit cursor-pointer items-center gap-[8px] rounded-[6px] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#525252] transition-colors hover:bg-[#F5F5F5]"
                 >
                   <PlusIcon />
                   Attach File
@@ -162,7 +162,7 @@ function DetailSection({
 }) {
   return (
     <section className="flex flex-col gap-[8px]">
-      <h2 className="text-[15px] font-medium leading-none text-[#171717]">{title}</h2>
+      <h2 className="text-[15px] font-medium leading-[1.25] text-[#171717]">{title}</h2>
       <p className="text-[13px] font-normal leading-[1.5] text-[#262626]">{body}</p>
 
       {bullets ? (
@@ -267,7 +267,7 @@ function UploadFileModal({ onClose }: { onClose: () => void }) {
               <button
                 type="button"
                 onClick={() => setSource("figma")}
-                className={`flex cursor-pointer items-center gap-[8px] rounded-[6px] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none transition-colors ${
+                className={`flex cursor-pointer items-center gap-[8px] rounded-[6px] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] transition-colors ${
                   source === "figma" ? "bg-white text-[#171717]" : "text-[#737373] hover:text-[#171717]"
                 }`}
               >
@@ -277,7 +277,7 @@ function UploadFileModal({ onClose }: { onClose: () => void }) {
               <button
                 type="button"
                 onClick={() => setSource("device")}
-                className={`flex cursor-pointer items-center gap-[8px] rounded-[6px] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none transition-colors ${
+                className={`flex cursor-pointer items-center gap-[8px] rounded-[6px] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] transition-colors ${
                   source === "device" ? "bg-white text-[#171717]" : "text-[#737373] hover:text-[#171717]"
                 }`}
               >
@@ -290,18 +290,18 @@ function UploadFileModal({ onClose }: { onClose: () => void }) {
               <div className="flex h-[245px] w-full items-center justify-center rounded-[8px] bg-[#F5F5F5] p-[44px]">
                 <div className="flex w-full max-w-[360px] flex-col gap-[12px]">
                   <label className="flex flex-col gap-[6px] text-left">
-                    <span className="text-[13px] font-medium leading-none text-[#171717]">
+                    <span className="text-[13px] font-medium leading-[1.25] text-[#171717]">
                       Figma file link
                     </span>
                     <input
                       type="url"
                       placeholder="https://figma.com/design/..."
-                      className="h-[36px] w-full rounded-[6px] bg-white px-[12px] text-[13px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#A3A3A3]"
+                      className="h-[36px] w-full rounded-[6px] bg-white px-[12px] text-[13px] font-medium leading-[1.25] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#A3A3A3]"
                     />
                   </label>
                   <button
                     type="button"
-                    className="flex h-[34px] w-fit cursor-pointer items-center gap-[8px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+                    className="flex h-[34px] w-fit cursor-pointer items-center gap-[8px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
                   >
                     <FigmaIcon />
                     Attach Figma Link
@@ -316,10 +316,10 @@ function UploadFileModal({ onClose }: { onClose: () => void }) {
                 <div className="flex min-w-0 flex-col items-center justify-center gap-[12px]">
                   <FolderIcon />
                   <div className="flex flex-col items-center gap-[6px]">
-                    <p className="text-[13px] font-medium leading-none text-[#171717]">
+                    <p className="text-[13px] font-medium leading-[1.25] text-[#171717]">
                       Upload files or drag and drop
                     </p>
-                    <p className="text-[12px] font-medium leading-none text-[#737373]">
+                    <p className="text-[12px] font-medium leading-[1.25] text-[#737373]">
                       Images, PDFs, Fonts, Files etc.
                     </p>
                   </div>

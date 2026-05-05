@@ -147,25 +147,25 @@ function ShareModal({ onClose }: { onClose: () => void }) {
 
         <div className="flex flex-col gap-6 rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
           <label className="flex flex-col gap-2">
-            <span className="text-[13px] font-medium leading-none text-[#171717]">
+            <span className="text-[13px] font-medium leading-[1.25] text-[#171717]">
               Client portal link
             </span>
             <input
               readOnly
               value={portalLink}
-              className="h-[34px] rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium leading-none text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none"
+              className="h-[34px] rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none"
             />
           </label>
 
           <div className="flex flex-col gap-2">
             <div>
               <div className="flex items-center gap-[6px]">
-                <p className="text-[13px] font-medium leading-none text-[#171717]">
+                <p className="text-[13px] font-medium leading-[1.25] text-[#171717]">
                   Team members
                 </p>
                 <button
                   type="button"
-                  className="inline-flex h-[22px] cursor-pointer items-center gap-[6px] rounded-[4px] bg-[rgba(70,63,186,0.1)] px-[6px] text-[12px] font-medium leading-none text-[#463FBA] transition-colors hover:bg-[rgba(70,63,186,0.16)]"
+                  className="inline-flex h-[22px] cursor-pointer items-center gap-[6px] rounded-[4px] bg-[rgba(70,63,186,0.1)] px-[6px] text-[12px] font-medium leading-[1.25] text-[#463FBA] transition-colors hover:bg-[rgba(70,63,186,0.16)]"
                 >
                   <LockIcon />
                   Upgrade plan
@@ -180,12 +180,12 @@ function ShareModal({ onClose }: { onClose: () => void }) {
                 type="url"
                 placeholder="ex. www.google.com"
                 disabled
-                className="min-w-0 flex-1 bg-transparent text-[12px] font-medium leading-none text-[#525252] outline-none placeholder:text-[#525252]"
+                className="min-w-0 flex-1 bg-transparent text-[12px] font-medium leading-[1.25] text-[#525252] outline-none placeholder:text-[#525252]"
               />
               <button
                 type="button"
                 disabled
-                className="inline-flex h-[34px] shrink-0 items-center gap-[6px] rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 text-[12px] font-medium leading-none text-[#FAFAFA] opacity-50 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
+                className="inline-flex h-[34px] shrink-0 items-center gap-[6px] rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 text-[12px] font-medium leading-[1.25] text-[#FAFAFA] opacity-50 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
               >
                 <PlusIcon />
                 Add Member
@@ -205,7 +205,7 @@ function ShareModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-[27px] cursor-pointer items-center justify-center gap-[6px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[12px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90"
+              className="inline-flex h-[27px] cursor-pointer items-center justify-center gap-[6px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[12px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90"
             >
               Upgrade Plan
               <ArrowRightIconSmall />
@@ -237,10 +237,7 @@ function PlusIcon() {
 
 function SparkleIcon() {
   return (
-    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" className="h-[18px] w-[18px] shrink-0 text-[#463FBA]">
-      <path d="M7.5 2.75 8.8 6.7l3.95 1.3-3.95 1.3-1.3 3.95L6.2 9.3 2.25 8l3.95-1.3 1.3-3.95Z" fill="currentColor" />
-      <path d="m13.4 10.75.55 1.55 1.55.55-1.55.55-.55 1.55-.55-1.55-1.55-.55 1.55-.55.55-1.55Z" fill="currentColor" opacity="0.72" />
-    </svg>
+    <img src="/logos/dashboard/ai-generated.svg" alt="" aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
   );
 }
 

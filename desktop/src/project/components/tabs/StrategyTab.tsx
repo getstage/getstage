@@ -229,27 +229,27 @@ export function StrategyTab() {
                   style={{ width: `${Math.max(8, (approvedCount / visibleSections.length) * 100)}%` }}
                 />
               </div>
-              <p className="text-[13px] font-medium leading-none text-[#171717]">
+              <p className="text-[13px] font-medium leading-[1.25] text-[#171717]">
                 {approvedCount} of {visibleSections.length} sections approved
               </p>
               <MetaDot />
-              <p className="text-[13px] font-medium leading-none text-[#737373]">Total {visibleSections.length} sections</p>
+              <p className="text-[13px] font-medium leading-[1.25] text-[#737373]">Total {visibleSections.length} sections</p>
               <MetaDot />
-              <p className="text-[13px] font-medium leading-none text-[#737373]">Based on Research</p>
+              <p className="text-[13px] font-medium leading-[1.25] text-[#737373]">Based on Research</p>
             </div>
             {isEditing ? (
               <div className="flex items-start gap-2">
                 <button
                   type="button"
                   onClick={discardEditing}
-                  className="inline-flex h-8 cursor-pointer items-center rounded-[6px] bg-[#F5F5F5] px-3 py-2 text-[12px] font-medium leading-none text-[#EF4444] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#FEF2F2]"
+                  className="inline-flex h-8 cursor-pointer items-center rounded-[6px] bg-[#F5F5F5] px-3 py-2 text-[12px] font-medium leading-[1.25] text-[#EF4444] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#FEF2F2]"
                 >
                   Discard Changes
                 </button>
                 <button
                   type="button"
                   onClick={saveEditing}
-                  className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-[6px] border border-[#34D399] bg-gradient-to-b from-[#10B981] to-[#059669] px-3 py-[6px] text-[12px] font-medium leading-none text-[#ECFDF5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:opacity-95"
+                  className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-[6px] border border-[#34D399] bg-gradient-to-b from-[#10B981] to-[#059669] px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#ECFDF5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:opacity-95"
                 >
                   <SaveIcon />
                   Save Changes
@@ -259,9 +259,9 @@ export function StrategyTab() {
               <button
                 type="button"
                 onClick={startEditing}
-                className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#F5F5F5]"
+                className="inline-flex h-[34px] cursor-pointer items-center gap-2 rounded-[6px] bg-[#F5F5F5] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#ECECEC]"
               >
-                <StrategyIcon />
+                <EditIcon />
                 Edit Strategy
               </button>
             )}
@@ -302,16 +302,16 @@ export function StrategyTab() {
             <button
               type="button"
               onClick={() => setIsAdding(true)}
-              className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-[6px] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#F5F5F5]"
+              className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-[6px] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#F5F5F5]"
             >
               <PlusIcon />
               Add Section
             </button>
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" className="inline-flex h-[29px] cursor-pointer items-center gap-[6px] rounded-[4px] bg-[#F5F5F5] p-2 text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#ECECEC]">
+              <button type="button" className="inline-flex h-[29px] cursor-pointer items-center gap-[6px] rounded-[4px] bg-[#F5F5F5] p-2 text-[12px] font-medium leading-[1.25] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#ECECEC]">
                 Add to notion
               </button>
-              <button type="button" disabled className="inline-flex h-8 cursor-not-allowed items-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] py-2 pl-3 pr-[10px] text-[13px] font-medium leading-none text-[#FAFAFA] opacity-50 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+              <button type="button" disabled className="inline-flex h-8 cursor-not-allowed items-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] py-2 pl-3 pr-[10px] text-[13px] font-medium leading-[1.25] text-[#FAFAFA] opacity-50 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
                 Continue to Flows
                 <ArrowRightIcon />
               </button>
@@ -343,7 +343,7 @@ function StrategySectionCard({
       {showDivider ? <div className="h-px w-full bg-[#E5E5E5]" /> : null}
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-[15px] font-medium leading-none text-[#171717]">{section.title}</h2>
+          <h2 className="text-[15px] font-medium leading-[1.25] text-[#171717]">{section.title}</h2>
           <StatusPill status={section.status} />
         </div>
         {isEditing ? (
@@ -360,7 +360,7 @@ function StrategySectionCard({
             <button
               type="button"
               onClick={onApprove}
-              className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[4px] border border-[#34D399] bg-gradient-to-b from-[#10B981] to-[#059669] px-3 py-[6px] text-[12px] font-medium leading-none text-[#ECFDF5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:opacity-95"
+              className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[4px] border border-[#34D399] bg-gradient-to-b from-[#10B981] to-[#059669] px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#ECFDF5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:opacity-95"
             >
               <CheckIcon />
               Approve & Save
@@ -368,9 +368,9 @@ function StrategySectionCard({
             <button
               type="button"
               onClick={onRegenerate}
-              className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-none text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#F5F3FF]"
+              className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#F5F3FF]"
             >
-              <SparkleIcon />
+              <RegenerateIcon />
               Regenerate with AI
             </button>
           </div>
@@ -395,9 +395,9 @@ function EditableStrategyContent({
       <button
         type="button"
         onClick={onRegenerate}
-        className="inline-flex h-[27px] w-fit cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-none text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#F5F3FF]"
+        className="inline-flex h-[27px] w-fit cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#F5F3FF]"
       >
-        <SparkleIcon />
+        <RegenerateIcon />
         Regenerate with AI
       </button>
     </div>
@@ -507,7 +507,7 @@ function EditableStrategyFields({
                   onChange({ ...section, cards });
                 }}
                 aria-label={`${section.title} card ${index + 1} title`}
-                className="w-full bg-transparent text-[13px] font-semibold leading-none text-[#171717] outline-none"
+                className="w-full bg-transparent text-[13px] font-semibold leading-[1.25] text-[#171717] outline-none"
               />
               <CardField label="Objective" value={card.objective} onChange={(value) => {
                 const cards = section.cards!.map((item, itemIndex) => itemIndex === index ? { ...item, objective: value } : item);
@@ -540,7 +540,7 @@ function EditableStrategyFields({
                 onChange({ ...section, boxes });
               }}
               aria-label={`${section.title} box ${index + 1} title`}
-              className="w-full bg-transparent text-[13px] font-semibold leading-none text-[#171717] outline-none"
+              className="w-full bg-transparent text-[13px] font-semibold leading-[1.25] text-[#171717] outline-none"
             />
             <textarea
               value={box.bullets.join("\n")}
@@ -648,9 +648,9 @@ function StrategyContent({
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
                   <StrategyIcon />
                 </div>
-                <h3 className="text-[13px] font-semibold leading-none text-[#171717]">{card.title}</h3>
+                <h3 className="text-[13px] font-semibold leading-[1.25] text-[#171717]">{card.title}</h3>
               </div>
-              <div className="mt-4 flex flex-col gap-[10px] text-[13px] font-medium leading-none text-[#404040]">
+              <div className="mt-4 flex flex-col gap-[10px] text-[13px] font-medium leading-[1.25] text-[#404040]">
                 <p><span className="font-semibold text-[#0A0A0A]">Objective:</span> {card.objective}</p>
                 <p><span className="font-semibold text-[#0A0A0A]">KPI:</span> {card.kpi}</p>
                 <p><span className="font-semibold text-[#0A0A0A]">Key element:</span> {card.keyElement}</p>
@@ -667,7 +667,7 @@ function StrategyContent({
       <div className="grid grid-cols-1 gap-2">
         {section.boxes.map((box) => (
           <article key={box.title} className="rounded-[8px] border border-[#E5E5E5] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.18)]">
-            <h3 className="text-[13px] font-semibold leading-none text-[#171717]">{box.title}</h3>
+            <h3 className="text-[13px] font-semibold leading-[1.25] text-[#171717]">{box.title}</h3>
             <ul className="mt-3 list-disc space-y-1 pl-[19.5px] text-[12px] font-medium leading-[1.5] text-[#525252]">
               {box.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}
             </ul>
@@ -706,7 +706,7 @@ function AddSectionEditor({
           value={title}
           onChange={(event) => onTitleChange(event.target.value)}
           aria-label="New strategy section title"
-          className="h-[31px] w-[145px] rounded-[4px] bg-[#F5F5F5] px-3 text-[15px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] outline-none"
+          className="h-[31px] w-[145px] rounded-[4px] bg-[#F5F5F5] px-3 text-[15px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] outline-none"
         />
       </div>
       <div className="flex min-h-[164px] flex-col justify-between rounded-[8px] bg-[#F5F5F5] p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -718,11 +718,11 @@ function AddSectionEditor({
           className="min-h-[96px] resize-none bg-transparent text-[13px] font-medium leading-[1.4] text-[#525252] outline-none placeholder:text-[#525252]"
         />
         <div className="flex gap-1">
-          <button type="button" onClick={onSave} className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[4px] border border-[#34D399] bg-gradient-to-b from-[#10B981] to-[#059669] px-3 py-[6px] text-[12px] font-medium leading-none text-[#ECFDF5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:opacity-95">
+          <button type="button" onClick={onSave} className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[4px] border border-[#34D399] bg-gradient-to-b from-[#10B981] to-[#059669] px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#ECFDF5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:opacity-95">
             <CheckIcon />
             Approve & Save
           </button>
-          <button type="button" onClick={onCancel} className="inline-flex h-[27px] cursor-pointer items-center rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-none text-[#EF4444] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.18)] hover:bg-[#FEF2F2]">
+          <button type="button" onClick={onCancel} className="inline-flex h-[27px] cursor-pointer items-center rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#EF4444] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.18)] hover:bg-[#FEF2F2]">
             Cancel
           </button>
         </div>
@@ -733,9 +733,9 @@ function AddSectionEditor({
 
 function StatusPill({ status }: { status: SectionStatus }) {
   return status === "approved" ? (
-    <span className="rounded-[4px] bg-[#DCFCE7] px-[6px] py-1 text-[12px] font-normal leading-none text-[#052E16]">Approved</span>
+    <span className="rounded-[4px] bg-[#DCFCE7] px-[6px] py-1 text-[12px] font-normal leading-[1.25] text-[#052E16]">Approved</span>
   ) : (
-    <span className="rounded-[4px] bg-[#FEE2E2] px-[6px] py-1 text-[12px] font-normal leading-none text-[#450A0A]">Action Required</span>
+    <span className="rounded-[4px] bg-[#FEE2E2] px-[6px] py-1 text-[12px] font-normal leading-[1.25] text-[#450A0A]">Action Required</span>
   );
 }
 
@@ -748,11 +748,15 @@ function CheckIcon() {
 }
 
 function SaveIcon() {
-  return <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3.5 3.5h7.25L12.5 5.25v7.25h-9v-9Z" /><path d="M5.25 3.5v3h5" /><path d="M5.25 12.5V9h5.5v3.5" /></svg>;
+  return <img src="/logos/dashboard/save-changes.svg" alt="" aria-hidden="true" className="h-4 w-4 shrink-0" />;
 }
 
-function SparkleIcon() {
-  return <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3"><path d="M6 1.5 7.1 4.9 10.5 6 7.1 7.1 6 10.5 4.9 7.1 1.5 6 4.9 4.9 6 1.5Z" /></svg>;
+function RegenerateIcon() {
+  return <img src="/logos/dashboard/regenerate.svg" alt="" aria-hidden="true" className="h-3 w-3 shrink-0" />;
+}
+
+function EditIcon() {
+  return <img src="/logos/dashboard/edit.svg" alt="" aria-hidden="true" className="h-[14px] w-[14px] shrink-0" />;
 }
 
 function PlusIcon() {

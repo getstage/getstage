@@ -397,7 +397,7 @@ function TaskCard({
       } ${dimmed ? "opacity-50" : ""}`}
     >
       <div className="flex items-center justify-between gap-3">
-        <span className={`inline-flex rounded-[2px] px-[6px] py-[2px] text-[12px] font-normal leading-none ${tagColor.bg} ${tagColor.text}`}>
+        <span className={`inline-flex rounded-[2px] px-[6px] py-[2px] text-[12px] font-normal leading-[1.25] ${tagColor.bg} ${tagColor.text}`}>
           {phaseName}
         </span>
         <button
@@ -447,7 +447,7 @@ function TaskCard({
               </svg>
             ) : null}
           </button>
-          <p className="min-w-0 flex-1 truncate text-[13px] font-medium leading-none text-[#171717]">
+          <p className="min-w-0 flex-1 truncate text-[13px] font-medium leading-[1.25] text-[#171717]">
             {task.title}
           </p>
         </div>
@@ -504,7 +504,7 @@ function AssignTaskCard({
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="Search by name..."
             autoFocus
-            className="min-w-0 flex-1 bg-transparent p-0 text-[13px] font-normal leading-none text-[#525252] outline-none placeholder:text-[#525252]"
+            className="min-w-0 flex-1 bg-transparent p-0 text-[13px] font-normal leading-[1.25] text-[#525252] outline-none placeholder:text-[#525252]"
           />
         </label>
         <div className="flex flex-col">
@@ -520,13 +520,13 @@ function AssignTaskCard({
                 src={assignee.avatar}
                 className="h-5 w-5"
               />
-              <span className="text-[12px] font-medium leading-none text-[#262626]">
+              <span className="text-[12px] font-medium leading-[1.25] text-[#262626]">
                 {assignee.name}
               </span>
             </button>
           ))}
           {filteredAssignees.length === 0 ? (
-            <div className="px-2 py-[6px] text-[12px] font-medium leading-none text-[#737373]">
+            <div className="px-2 py-[6px] text-[12px] font-medium leading-[1.25] text-[#737373]">
               No matches
             </div>
           ) : null}

@@ -124,7 +124,7 @@ function BrandColorCard({
           </label>
           <label
             htmlFor={pickerId}
-            className="flex cursor-pointer items-center gap-[12px] rounded-[6px] bg-[#f5f5f5] px-[12px] py-[8px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
+            className="flex cursor-pointer items-center gap-[12px] rounded-[6px] bg-[#f5f5f5] px-[12px] py-[8px] text-[12px] font-medium leading-[1.25] text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
           >
             {formattedBrandColor}
             <ChevronDownIcon className="h-[16px] w-[16px]" />
@@ -191,8 +191,8 @@ function PortalPaywall({ onStartTrial }: { onStartTrial: () => void }) {
           <div className="flex flex-col gap-[24px] rounded-[8px] bg-gradient-to-b from-white to-[rgba(158,153,248,0.05)] p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
             <p className="bg-gradient-to-r from-[#463fba] via-[rgba(70,63,186,0.75)] to-[#463fba] bg-clip-text text-[13px] font-medium text-transparent">Pro</p>
             <div>
-              <p className="text-[19px] font-semibold leading-none text-[#171717]">$29</p>
-              <p className="mt-[2px] text-[13px] font-medium leading-none text-[#525252]">/month</p>
+              <p className="text-[19px] font-semibold leading-[1.25] text-[#171717]">$29</p>
+              <p className="mt-[2px] text-[13px] font-medium leading-[1.25] text-[#525252]">/month</p>
             </div>
             <div className="flex flex-col gap-[12px] text-[13px] font-medium text-[#525252]">
               <p>Everything in Start</p>
