@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils";
 
 const progressSteps = [0, 1, 2, 3, 4];
 const projectTypeOptions = [
-  { id: "web-design", label: "Web Design", icon: "globe" },
-  { id: "app-design", label: "App Design", icon: "phone" },
-  { id: "web-app", label: "Web App", icon: "monitor" },
+  { id: "web-design", label: "Web Design", iconSrc: "/logos/dashboard/web-design.svg" },
+  { id: "app-design", label: "App Design", iconSrc: "/logos/dashboard/app-design.svg" },
+  { id: "web-app", label: "Web App", iconSrc: "/logos/dashboard/web-app.svg" },
 ] as const;
 const smartRoadmapPhases = ["Research", "Architecture", "Design", "Development", "Testing"];
 const defaultManualPhases = ["Discovery", "Strategy", "Design", "Development", "Launch"];
@@ -65,9 +65,9 @@ export function CreateProjectView() {
 
   return (
     <main className="flex h-screen items-start overflow-hidden bg-white p-[8px]">
-      <section className="flex h-full flex-1 flex-col items-center overflow-hidden rounded-[12px] bg-white shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]">
-        <div className="flex h-full w-full max-w-[460px] flex-col items-start justify-between py-[100px]">
-          <div className="flex min-h-0 w-full flex-1 items-start">
+      <section className="flex h-full flex-1 flex-col items-center overflow-y-auto rounded-[12px] bg-white shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]">
+        <div className="flex min-h-full w-full max-w-[460px] flex-col items-start justify-between py-[100px]">
+          <div className="flex w-full shrink-0 items-start">
             <button
               type="button"
               onClick={() => void navigate({ to: "/" })}
@@ -162,7 +162,7 @@ export function CreateProjectView() {
             )}
           </div>
 
-          <div className="flex min-h-0 w-full flex-1 items-center justify-center opacity-0">
+          <div className="flex w-full shrink-0 items-center justify-center opacity-0">
             <p className="w-[261px] text-[13px] font-medium leading-[1.5] text-[#525252]">
               A better way to organize your creative work starts here.
             </p>
@@ -424,7 +424,7 @@ function ProjectTypeStep({
                       : "border-transparent bg-[#f5f5f5] text-[#525252] hover:bg-[#eeeeee] hover:text-[#171717]",
                   )}
                 >
-                  <ProjectTypeIcon type={option.icon} />
+                  <ProjectTypeIcon src={option.iconSrc} />
                   <span className="whitespace-nowrap">{option.label}</span>
                 </button>
               );
@@ -584,7 +584,7 @@ function ProjectCreatedStep({ onViewProject }: { onViewProject: () => void }) {
       <section className="flex h-full flex-1 flex-col items-center justify-center overflow-hidden rounded-[12px] bg-white shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]">
         <div className="w-full max-w-[460px] py-[22px]">
           <div className="flex w-full flex-col items-start rounded-[12px] bg-[#f5f5f5] p-[4px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]">
-            <div className="flex w-full flex-col items-start rounded-[8px] bg-gradient-to-b from-[rgba(158,153,248,0.05)] to-white px-[12px] py-[72px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]">
+            <div className="flex w-full flex-col items-start rounded-[8px] bg-[linear-gradient(180deg,rgba(158,153,248,0.18)_0%,rgba(158,153,248,0.07)_34%,#ffffff_72%)] px-[12px] py-[72px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]">
               <div className="flex w-full flex-col items-center justify-center gap-[32px]">
                 <img
                   src={stageLogoLight}
@@ -990,115 +990,43 @@ function ArrowRightIcon() {
 
 function UploadIcon() {
   return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
+    <span
       aria-hidden="true"
-      className="h-[16px] w-[16px] shrink-0"
-    >
-      <path
-        d="M8 3.5v6M5.5 6 8 3.5 10.5 6M4 10.5v1.25c0 .414.336.75.75.75h6.5a.75.75 0 0 0 .75-.75V10.5"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+      className="h-[16px] w-[16px] shrink-0 bg-current"
+      style={{
+        WebkitMask:
+          'url("/logos/dashboard/upload.svg") center / contain no-repeat',
+        mask: 'url("/logos/dashboard/upload.svg") center / contain no-repeat',
+      }}
+    />
   );
 }
 
-function ProjectTypeIcon({
-  type,
-}: {
-  type: (typeof projectTypeOptions)[number]["icon"];
-}) {
-  if (type === "globe") {
-    return (
-      <svg
-        viewBox="0 0 16 16"
-        fill="none"
-        aria-hidden="true"
-        className="h-[16px] w-[16px] shrink-0"
-      >
-        <circle cx="8" cy="8" r="4.6" stroke="currentColor" strokeWidth="1.2" />
-        <path
-          d="M3.6 8h8.8M8 3.4c1.35 1.24 2 2.77 2 4.6s-.65 3.36-2 4.6c-1.35-1.24-2-2.77-2-4.6s.65-3.36 2-4.6Z"
-          stroke="currentColor"
-          strokeWidth="1.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  }
-
-  if (type === "phone") {
-    return (
-      <svg
-        viewBox="0 0 16 16"
-        fill="none"
-        aria-hidden="true"
-        className="h-[16px] w-[16px] shrink-0"
-      >
-        <rect
-          x="5.5"
-          y="3"
-          width="5"
-          height="10"
-          rx="1"
-          stroke="currentColor"
-          strokeWidth="1.2"
-        />
-        <path d="M7.4 11.1h1.2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      </svg>
-    );
-  }
-
+function ProjectTypeIcon({ src }: { src: string }) {
   return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
+    <span
       aria-hidden="true"
-      className="h-[16px] w-[16px] shrink-0"
-    >
-      <rect
-        x="3.5"
-        y="4"
-        width="9"
-        height="6.5"
-        rx="1"
-        stroke="currentColor"
-        strokeWidth="1.2"
-      />
-      <path d="M6.5 13h3M8 10.5V13" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
+      className="h-[16px] w-[16px] shrink-0 bg-current"
+      style={{
+        WebkitMask: `url("${src}") center / contain no-repeat`,
+        mask: `url("${src}") center / contain no-repeat`,
+      }}
+    />
   );
 }
 
 function CalendarIcon() {
   return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
+    <span
       aria-hidden="true"
       className="pointer-events-none absolute left-[12px] top-1/2 h-[16px] w-[16px] -translate-y-1/2 text-[#525252]"
-    >
-      <rect
-        x="3.5"
-        y="4.5"
-        width="9"
-        height="8"
-        rx="1"
-        stroke="currentColor"
-        strokeWidth="1.2"
-      />
-      <path
-        d="M5.5 3v3M10.5 3v3M3.8 7h8.4"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-    </svg>
+      style={{
+        WebkitMask:
+          'url("/logos/dashboard/calendar.svg") center / contain no-repeat',
+        mask: 'url("/logos/dashboard/calendar.svg") center / contain no-repeat',
+        backgroundColor: "currentColor",
+      }}
+    />
   );
 }
 
