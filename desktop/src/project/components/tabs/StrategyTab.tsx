@@ -130,15 +130,37 @@ const initialSections: StrategySection[] = [
   },
 ];
 
+function cloneSections(sections: StrategySection[]) {
+  return sections.map((section) => ({
+    ...section,
+    body: section.body ? [...section.body] : undefined,
+    principles: section.principles ? section.principles.map((principle) => ({ ...principle })) : undefined,
+    table: section.table ? section.table.map(([label, value]) => [label, value] as [string, string]) : undefined,
+    cards: section.cards ? section.cards.map((card) => ({ ...card })) : undefined,
+    boxes: section.boxes ? section.boxes.map((box) => ({ ...box, bullets: [...box.bullets] })) : undefined,
+  }));
+}
+
+function appendRegeneratedText(section: StrategySection): StrategySection {
+  if (section.body) {
+    return { ...section, body: [...section.body, "Regenerated mock update."] };
+  }
+
+  return { ...section, body: ["Regenerated mock update."] };
+}
+
 export function StrategyTab() {
   const [sections, setSections] = useState(initialSections);
   const [isAdding, setIsAdding] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editSections, setEditSections] = useState<StrategySection[]>([]);
   const [draftTitle, setDraftTitle] = useState("Enter Title Here");
   const [draftBody, setDraftBody] = useState("");
+  const visibleSections = isEditing ? editSections : sections;
 
   const approvedCount = useMemo(
-    () => sections.filter((section) => section.status === "approved").length,
-    [sections],
+    () => visibleSections.filter((section) => section.status === "approved").length,
+    [visibleSections],
   );
 
   function approveSection(sectionId: string) {
@@ -152,6 +174,28 @@ export function StrategyTab() {
       section.id === sectionId
         ? { ...section, status: "action", body: section.body?.map((line) => `${line} Regenerated mock update.`) }
         : section
+    )));
+  }
+
+  function startEditing() {
+    setEditSections(cloneSections(sections));
+    setIsEditing(true);
+  }
+
+  function discardEditing() {
+    setEditSections([]);
+    setIsEditing(false);
+  }
+
+  function saveEditing() {
+    setSections(cloneSections(editSections));
+    setEditSections([]);
+    setIsEditing(false);
+  }
+
+  function updateEditSection(sectionId: string, nextSection: StrategySection) {
+    setEditSections((current) => current.map((section) => (
+      section.id === sectionId ? nextSection : section
     )));
   }
 
@@ -182,31 +226,63 @@ export function StrategyTab() {
               <div className="h-[10px] w-[65px] overflow-hidden rounded-full bg-[#E5E5E5]">
                 <div
                   className="h-full rounded-full bg-[#16A34A] transition-[width]"
-                  style={{ width: `${Math.max(8, (approvedCount / sections.length) * 100)}%` }}
+                  style={{ width: `${Math.max(8, (approvedCount / visibleSections.length) * 100)}%` }}
                 />
               </div>
               <p className="text-[13px] font-medium leading-none text-[#171717]">
-                {approvedCount} of {sections.length} sections approved
+                {approvedCount} of {visibleSections.length} sections approved
               </p>
               <MetaDot />
-              <p className="text-[13px] font-medium leading-none text-[#737373]">Total {sections.length} sections</p>
+              <p className="text-[13px] font-medium leading-none text-[#737373]">Total {visibleSections.length} sections</p>
               <MetaDot />
               <p className="text-[13px] font-medium leading-none text-[#737373]">Based on Research</p>
             </div>
-            <button type="button" className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#F5F5F5]">
-              <StrategyIcon />
-              Edit Strategy
-            </button>
+            {isEditing ? (
+              <div className="flex items-start gap-2">
+                <button
+                  type="button"
+                  onClick={discardEditing}
+                  className="inline-flex h-8 cursor-pointer items-center rounded-[6px] bg-[#F5F5F5] px-3 py-2 text-[12px] font-medium leading-none text-[#EF4444] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#FEF2F2]"
+                >
+                  Discard Changes
+                </button>
+                <button
+                  type="button"
+                  onClick={saveEditing}
+                  className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-[6px] border border-[#34D399] bg-gradient-to-b from-[#10B981] to-[#059669] px-3 py-[6px] text-[12px] font-medium leading-none text-[#ECFDF5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:opacity-95"
+                >
+                  <SaveIcon />
+                  Save Changes
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={startEditing}
+                className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#F5F5F5]"
+              >
+                <StrategyIcon />
+                Edit Strategy
+              </button>
+            )}
           </div>
 
           <div className="flex flex-col gap-6">
-            {sections.map((section, index) => (
+            {visibleSections.map((section, index) => (
               <StrategySectionCard
                 key={section.id}
                 section={section}
                 showDivider={index > 0}
+                isEditing={isEditing}
+                onSectionChange={(nextSection) => updateEditSection(section.id, nextSection)}
                 onApprove={() => approveSection(section.id)}
-                onRegenerate={() => regenerateSection(section.id)}
+                onRegenerate={() => {
+                  if (isEditing) {
+                    updateEditSection(section.id, appendRegeneratedText(section));
+                    return;
+                  }
+                  regenerateSection(section.id);
+                }}
               />
             ))}
           </div>
@@ -222,7 +298,7 @@ export function StrategyTab() {
             />
           ) : null}
 
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className={cn("flex flex-wrap items-center justify-between gap-4", isEditing && "opacity-50")}>
             <button
               type="button"
               onClick={() => setIsAdding(true)}
@@ -250,11 +326,15 @@ export function StrategyTab() {
 function StrategySectionCard({
   section,
   showDivider,
+  isEditing,
+  onSectionChange,
   onApprove,
   onRegenerate,
 }: {
   section: StrategySection;
   showDivider: boolean;
+  isEditing: boolean;
+  onSectionChange: (section: StrategySection) => void;
   onApprove: () => void;
   onRegenerate: () => void;
 }) {
@@ -266,8 +346,16 @@ function StrategySectionCard({
           <h2 className="text-[15px] font-medium leading-none text-[#171717]">{section.title}</h2>
           <StatusPill status={section.status} />
         </div>
-        <StrategyContent section={section} />
-        {section.status === "action" ? (
+        {isEditing ? (
+          <EditableStrategyContent
+            section={section}
+            onChange={onSectionChange}
+            onRegenerate={onRegenerate}
+          />
+        ) : (
+          <StrategyContent section={section} />
+        )}
+        {!isEditing && section.status === "action" ? (
           <div className="flex flex-wrap items-center gap-1">
             <button
               type="button"
@@ -292,10 +380,224 @@ function StrategySectionCard({
   );
 }
 
-function StrategyContent({ section }: { section: StrategySection }) {
+function EditableStrategyContent({
+  section,
+  onChange,
+  onRegenerate,
+}: {
+  section: StrategySection;
+  onChange: (section: StrategySection) => void;
+  onRegenerate: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-6 rounded-[8px] bg-[#F5F5F5] p-3 text-[13px] font-medium leading-[1.5] text-[#404040] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+      <EditableStrategyFields section={section} onChange={onChange} />
+      <button
+        type="button"
+        onClick={onRegenerate}
+        className="inline-flex h-[27px] w-fit cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-none text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#F5F3FF]"
+      >
+        <SparkleIcon />
+        Regenerate with AI
+      </button>
+    </div>
+  );
+}
+
+function EditableStrategyFields({
+  section,
+  onChange,
+}: {
+  section: StrategySection;
+  onChange: (section: StrategySection) => void;
+}) {
+  if (section.kind === "principles" && section.principles) {
+    return (
+      <div className="flex flex-col gap-4">
+        {section.principles.map((principle, index) => (
+          <div key={`${principle.title}-${index}`} className="flex flex-col gap-[6px]">
+            <div className="flex items-center gap-2">
+              <span className="w-[18px] text-[13px] font-medium text-[#0A0A0A]">{index + 1}.</span>
+              <input
+                value={principle.title}
+                onChange={(event) => {
+                  const principles = section.principles!.map((item, itemIndex) => (
+                    itemIndex === index ? { ...item, title: event.target.value } : item
+                  ));
+                  onChange({ ...section, principles });
+                }}
+                aria-label={`${section.title} principle ${index + 1} title`}
+                className="min-w-0 flex-1 bg-transparent text-[13px] font-medium leading-[1.5] text-[#0A0A0A] outline-none"
+              />
+            </div>
+            <textarea
+              value={principle.body}
+              onChange={(event) => {
+                const principles = section.principles!.map((item, itemIndex) => (
+                  itemIndex === index ? { ...item, body: event.target.value } : item
+                ));
+                onChange({ ...section, principles });
+              }}
+              aria-label={`${section.title} principle ${index + 1} body`}
+              className="min-h-[28px] resize-y bg-transparent text-[13px] font-medium leading-[1.5] text-[#525252] outline-none"
+            />
+            <input
+              value={principle.research ?? ""}
+              onChange={(event) => {
+                const principles = section.principles!.map((item, itemIndex) => (
+                  itemIndex === index ? { ...item, research: event.target.value } : item
+                ));
+                onChange({ ...section, principles });
+              }}
+              placeholder="Research note"
+              aria-label={`${section.title} principle ${index + 1} research`}
+              className="bg-transparent text-[13px] font-medium italic leading-[1.5] text-[#737373] opacity-90 outline-none placeholder:text-[#A3A3A3]"
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (section.kind === "table" && section.table) {
+    return (
+      <div className="overflow-hidden rounded-[8px] border border-[#D9D9D9] bg-white">
+        {section.table.map(([label, value], index) => (
+          <div key={`${label}-${index}`} className={cn("grid grid-cols-2", index < section.table!.length - 1 && "border-b border-[#E5E5E5]")}>
+            <input
+              value={label}
+              onChange={(event) => {
+                const table = section.table!.map((row, rowIndex) => (
+                  rowIndex === index ? [event.target.value, row[1]] as [string, string] : row
+                ));
+                onChange({ ...section, table });
+              }}
+              aria-label={`${section.title} row ${index + 1} label`}
+              className="border-r border-[#E5E5E5] bg-[rgba(217,217,217,0.1)] px-4 py-3 text-[14px] font-medium leading-[1.2] text-[#0A0A0A] outline-none"
+            />
+            <input
+              value={value}
+              onChange={(event) => {
+                const table = section.table!.map((row, rowIndex) => (
+                  rowIndex === index ? [row[0], event.target.value] as [string, string] : row
+                ));
+                onChange({ ...section, table });
+              }}
+              aria-label={`${section.title} row ${index + 1} value`}
+              className="bg-white px-4 py-3 text-[14px] font-medium leading-[1.4] text-[#0A0A0A] outline-none"
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (section.kind === "cards" && section.cards) {
+    return (
+      <div className="grid grid-cols-1 gap-2 lg:grid-cols-3">
+        {section.cards.map((card, index) => (
+          <article key={`${card.title}-${index}`} className="rounded-[10px] bg-[#FAFAFA] p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+            <div className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+              <input
+                value={card.title}
+                onChange={(event) => {
+                  const cards = section.cards!.map((item, itemIndex) => (
+                    itemIndex === index ? { ...item, title: event.target.value } : item
+                  ));
+                  onChange({ ...section, cards });
+                }}
+                aria-label={`${section.title} card ${index + 1} title`}
+                className="w-full bg-transparent text-[13px] font-semibold leading-none text-[#171717] outline-none"
+              />
+              <CardField label="Objective" value={card.objective} onChange={(value) => {
+                const cards = section.cards!.map((item, itemIndex) => itemIndex === index ? { ...item, objective: value } : item);
+                onChange({ ...section, cards });
+              }} />
+              <CardField label="KPI" value={card.kpi} onChange={(value) => {
+                const cards = section.cards!.map((item, itemIndex) => itemIndex === index ? { ...item, kpi: value } : item);
+                onChange({ ...section, cards });
+              }} />
+              <CardField label="Key element" value={card.keyElement} onChange={(value) => {
+                const cards = section.cards!.map((item, itemIndex) => itemIndex === index ? { ...item, keyElement: value } : item);
+                onChange({ ...section, cards });
+              }} />
+            </div>
+          </article>
+        ))}
+      </div>
+    );
+  }
+
+  if (section.kind === "boxes" && section.boxes) {
+    return (
+      <div className="grid grid-cols-1 gap-2">
+        {section.boxes.map((box, index) => (
+          <article key={`${box.title}-${index}`} className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.18)]">
+            <input
+              value={box.title}
+              onChange={(event) => {
+                const boxes = section.boxes!.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item);
+                onChange({ ...section, boxes });
+              }}
+              aria-label={`${section.title} box ${index + 1} title`}
+              className="w-full bg-transparent text-[13px] font-semibold leading-none text-[#171717] outline-none"
+            />
+            <textarea
+              value={box.bullets.join("\n")}
+              onChange={(event) => {
+                const boxes = section.boxes!.map((item, itemIndex) => itemIndex === index ? { ...item, bullets: event.target.value.split("\n") } : item);
+                onChange({ ...section, boxes });
+              }}
+              aria-label={`${section.title} box ${index + 1} bullets`}
+              className="mt-3 min-h-[72px] w-full resize-y bg-transparent text-[12px] font-medium leading-[1.5] text-[#525252] outline-none"
+            />
+          </article>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <textarea
+      value={section.body?.join("\n\n") ?? ""}
+      onChange={(event) => onChange({ ...section, body: event.target.value.split(/\n{2,}/) })}
+      aria-label={`${section.title} content`}
+      className="min-h-[96px] w-full resize-y bg-transparent text-[13px] font-medium leading-[1.5] text-[#404040] outline-none"
+    />
+  );
+}
+
+function CardField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="mt-[10px] flex flex-col gap-[4px] text-[13px] font-medium text-[#404040]">
+      <span className="font-semibold text-[#0A0A0A]">{label}:</span>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="min-h-[24px] resize-y bg-transparent leading-[1.25] outline-none"
+      />
+    </label>
+  );
+}
+
+function StrategyContent({
+  section,
+  variant = "default",
+}: {
+  section: StrategySection;
+  variant?: "default" | "edit";
+}) {
   if (section.kind === "plain") {
     return (
-      <div className="text-[13px] font-medium leading-[1.5] text-[#525252]">
+      <div className={cn("text-[13px] font-medium leading-[1.5]", variant === "edit" ? "text-[#404040]" : "text-[#525252]")}>
         {section.body?.map((line) => <p key={line}>{line}</p>)}
       </div>
     );
@@ -376,7 +678,7 @@ function StrategyContent({ section }: { section: StrategySection }) {
   }
 
   return (
-    <div className="rounded-[8px] bg-[#F5F5F5] p-4 text-[13px] font-medium leading-[1.55] text-[#262626]">
+    <div className={cn("text-[13px] font-medium leading-[1.55] text-[#262626]", variant === "default" && "rounded-[8px] bg-[#F5F5F5] p-4")}>
       {section.body?.map((line) => <p key={line} className="mb-2 last:mb-0">{line}</p>)}
     </div>
   );
@@ -443,6 +745,10 @@ function MetaDot() {
 
 function CheckIcon() {
   return <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3"><path d="M2.5 6.25 5 8.5l4.5-5" /></svg>;
+}
+
+function SaveIcon() {
+  return <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3.5 3.5h7.25L12.5 5.25v7.25h-9v-9Z" /><path d="M5.25 3.5v3h5" /><path d="M5.25 12.5V9h5.5v3.5" /></svg>;
 }
 
 function SparkleIcon() {
