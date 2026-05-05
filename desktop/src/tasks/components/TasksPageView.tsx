@@ -115,6 +115,25 @@ export function TasksPageView() {
     };
   }, [activeDrag]);
 
+  function toggleTaskCompletion(taskId: string) {
+    setColumns((current) => {
+      const next = { ...current };
+      for (const columnKey in next) {
+        const key = columnKey as TaskPriority;
+        next[key] = next[key].map((item) => {
+          if (item.task.id === taskId) {
+            return {
+              ...item,
+              task: { ...item.task, isCompleted: !item.task.isCompleted },
+            };
+          }
+          return item;
+        });
+      }
+      return next;
+    });
+  }
+
   function moveTask(taskId: string, targetColumn: TaskPriority, beforeTaskId?: string | null) {
     if (taskId === beforeTaskId) return;
 
@@ -261,20 +280,25 @@ export function TasksPageView() {
                       const isDragging = activeDrag?.id === item.task.id;
 
                       if (isDragging) {
-                        return dragOverColumn ? null : <TaskSkeleton key={item.task.id} />;
+                        return dragOverColumn ? null : <TaskSkeleton key={item.task.id} height={activeDrag.height} />;
                       }
 
                       return (
                         <div key={item.task.id} className="relative" data-priority-task-id={item.task.id}>
-                          {activeDrag && dragOverColumn === column.key && dropBeforeTaskId === item.task.id ? <TaskSkeleton /> : null}
+                          {activeDrag && dragOverColumn === column.key && dropBeforeTaskId === item.task.id ? (
+                            <TaskSkeleton height={activeDrag.height} />
+                          ) : null}
                           <PriorityTaskCard
                             item={item}
                             onPointerDown={(event) => startDragging(event, item.task.id)}
+                            onToggle={() => toggleTaskCompletion(item.task.id)}
                           />
                         </div>
                       );
                     })}
-                    {activeDrag && dragOverColumn === column.key && dropBeforeTaskId === null ? <TaskSkeleton /> : null}
+                    {activeDrag && dragOverColumn === column.key && dropBeforeTaskId === null ? (
+                      <TaskSkeleton height={activeDrag.height} />
+                    ) : null}
                   </div>
                 </section>
               ))}
@@ -304,10 +328,12 @@ function PriorityTaskCard({
   item,
   dragging = false,
   onPointerDown,
+  onToggle,
 }: {
   item: PriorityTask;
   dragging?: boolean;
   onPointerDown?: (event: PointerEvent<HTMLDivElement>) => void;
+  onToggle?: () => void;
 }) {
   return (
     <div
@@ -321,18 +347,30 @@ function PriorityTaskCard({
     >
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-[6px]">
-          <div
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle?.();
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
             className={cn(
-              "flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-[4px] p-[2px]",
-              item.task.isCompleted ? "bg-[#0A0A0A] text-white" : "bg-[#D4D4D4] text-transparent",
+              "flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-[4px] p-[2px] transition-colors",
+              item.task.isCompleted ? "bg-[#0A0A0A] text-white" : "bg-[#D4D4D4] text-transparent hover:bg-[#A3A3A3]",
             )}
           >
             {item.task.isCompleted ? (
               <svg viewBox="0 0 12 12" fill="none" className="h-3 w-3" aria-hidden="true">
-                <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M2.5 6L5 8.5L9.5 3.5"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             ) : null}
-          </div>
+          </button>
           <p className="min-w-0 flex-1 truncate text-[13px] font-medium leading-none text-[#171717]">
             {item.task.title}
           </p>
@@ -357,9 +395,15 @@ function PriorityTaskCard({
   );
 }
 
-function TaskSkeleton() {
+function TaskSkeleton({ height }: { height?: number }) {
   return (
-    <div className="h-[88px] rounded-[8px] border border-dashed border-[#AFA9FF] bg-gradient-to-b from-white to-[#FAFAFA] opacity-60 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]" />
+    <div
+      style={{ height }}
+      className={cn(
+        "rounded-[8px] border border-dashed border-[#AFA9FF] bg-gradient-to-b from-white to-[#FAFAFA] opacity-60 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]",
+        !height && "h-[88px]",
+      )}
+    />
   );
 }
 
