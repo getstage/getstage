@@ -9,6 +9,8 @@ import type { Integration, SettingsTab } from "../models/settings";
 import { SettingsIcon } from "./SettingsIcons";
 import { SaveButton, SettingsCard, SettingsRow, CopyButton } from "./SettingsPrimitives";
 
+const CANCELLATION_FORM_URL = "https://tally.so/r/D4eYOE";
+
 const SETTINGS_TABS: Array<{ key: SettingsTab; label: string; icon: string }> = [
   { key: "profile", label: "Profile", icon: "profile" },
   { key: "billing", label: "Plans & Billing", icon: "billing" },
@@ -403,19 +405,133 @@ function DeveloperPanel() {
 }
 
 function AccountPanel() {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  function openCancellationForm() {
+    void openExternalLink(CANCELLATION_FORM_URL);
+  }
+
+  function openDeleteDialog() {
+    setIsDeleteDialogOpen(true);
+    openCancellationForm();
+  }
+
   return (
-    <SettingsCard>
-      <SettingsRow>
-        <h2 className="text-[15px] font-semibold leading-none text-[#171717]">Delete account</h2>
-        <p className="mt-[4px] max-w-[471px] text-[12px] font-normal leading-[1.5] text-[#171717]">
-          Permanently delete your account and all associated projects, research, strategies,
-          and generated assets. This action is immediate and cannot be undone.
-        </p>
-        <button type="button" className="mt-[24px] rounded-[6px] border border-[#F87171] bg-gradient-to-b from-[#EF4444] to-[#DC2626] px-[12px] py-[8px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)]">
-          Delete Account
-        </button>
-      </SettingsRow>
-    </SettingsCard>
+    <>
+      <SettingsCard>
+        <SettingsRow>
+          <h2 className="text-[15px] font-semibold leading-none text-[#171717]">Delete account</h2>
+          <p className="mt-[4px] max-w-[471px] text-[12px] font-normal leading-[1.5] text-[#171717]">
+            Permanently delete your account and all associated projects, research, strategies,
+            and generated assets. This action is immediate and cannot be undone.
+          </p>
+          <button
+            type="button"
+            onClick={openDeleteDialog}
+            className="mt-[24px] rounded-[6px] border border-[#F87171] bg-gradient-to-b from-[#EF4444] to-[#DC2626] px-[12px] py-[8px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)]"
+          >
+            Delete Account
+          </button>
+        </SettingsRow>
+      </SettingsCard>
+
+      {isDeleteDialogOpen ? (
+        <DeleteAccountDialog
+          onCancel={() => setIsDeleteDialogOpen(false)}
+          onOpenCancellationForm={openCancellationForm}
+        />
+      ) : null}
+    </>
+  );
+}
+
+async function openExternalLink(url: string) {
+  if (window.stageDesktop?.shell?.openExternal) {
+    await window.stageDesktop.shell.openExternal(url);
+    return;
+  }
+
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function DeleteAccountDialog({
+  onCancel,
+  onOpenCancellationForm,
+}: {
+  onCancel: () => void;
+  onOpenCancellationForm: () => void;
+}) {
+  const [confirmationText, setConfirmationText] = useState("");
+  const canDelete = confirmationText === "DELETE";
+
+  function confirmDelete() {
+    if (!canDelete) return;
+    onCancel();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 p-[24px] backdrop-blur-[5px]"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-account-title"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-[516px] rounded-[12px] bg-[#F5F5F5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="rounded-[8px] bg-white p-[20px] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <h2 id="delete-account-title" className="text-[15px] font-semibold leading-none">
+            Delete account
+          </h2>
+          <p className="mt-[8px] text-[12px] font-normal leading-[1.5] text-[#404040]">
+            This deletes your account, projects, uploads, billing state, Stripe connections,
+            Google Sheets connections, and active sessions.
+          </p>
+          <p className="mt-[16px] text-[12px] font-normal leading-[1.5] text-[#404040]">
+            We also opened a short cancellation form in a new tab. If it did not open,{" "}
+            <button
+              type="button"
+              onClick={onOpenCancellationForm}
+              className="text-[#8D87FF] underline underline-offset-[3px] transition-colors hover:text-[#7B76DF]"
+            >
+              open it here.
+            </button>
+          </p>
+          <label className="mt-[16px] block">
+            <span className="text-[12px] font-normal leading-[1.5] text-[#404040]">
+              Type <span className="font-medium">DELETE</span> to confirm.
+            </span>
+            <input
+              value={confirmationText}
+              onChange={(event) => setConfirmationText(event.target.value)}
+              autoFocus
+              placeholder="DELETE"
+              className="mt-[8px] h-[38px] w-full rounded-[6px] border border-[#D4D4D4] bg-[#F5F5F5] px-[12px] text-[13px] font-medium leading-none text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#A3A3A3] focus:border-[#D4D4D4] focus:bg-white"
+            />
+          </label>
+
+          <div className="mt-[24px] flex items-center gap-[8px]">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-[6px] bg-[#F5F5F5] px-[16px] py-[8px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={!canDelete}
+              onClick={confirmDelete}
+              className="rounded-[6px] border border-[#F87171] bg-gradient-to-b from-[#EF4444] to-[#DC2626] px-[12px] py-[8px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40 [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)]"
+            >
+              Delete Account
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
