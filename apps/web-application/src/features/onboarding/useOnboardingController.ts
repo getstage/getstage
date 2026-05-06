@@ -364,10 +364,10 @@ export function useOnboardingController({
     setCheckoutError(null);
 
     try {
-      await completeOnboarding({ workCategory: pendingSubmission.fieldOfWork });
+      await completeOnboarding({ workCategory: submission.fieldOfWork });
       trackDatafastGoalOnce("onboarding_completed", "onboarding_completed", {
         source: "onboarding_paywall",
-        work_category: pendingSubmission.fieldOfWork,
+        work_category: submission.fieldOfWork,
       });
     } catch {
       // Best-effort persist; checkout redirect takes priority.

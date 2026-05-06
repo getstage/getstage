@@ -130,7 +130,19 @@ export function OnboardingPaywall({
 
         <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
           <div className="flex items-center gap-2 px-3 py-3">
-            <img src="/logos/pricing/connect.svg" alt="" className="h-4 w-4" />
+            <div 
+              className="h-4 w-4 bg-gradient-to-r from-[#463FBA] to-[#7B76DF]" 
+              style={{
+                WebkitMaskImage: 'url(/logos/ai-generated.svg)',
+                WebkitMaskSize: 'contain',
+                WebkitMaskRepeat: 'no-repeat',
+                WebkitMaskPosition: 'center',
+                maskImage: 'url(/logos/ai-generated.svg)',
+                maskSize: 'contain',
+                maskRepeat: 'no-repeat',
+                maskPosition: 'center'
+              }}
+            />
             <p className="bg-gradient-to-r from-[#463FBA] to-[#7B76DF] bg-clip-text text-[13px] font-medium text-transparent">
               Unlock more with Pro
             </p>
@@ -208,7 +220,19 @@ export function OnboardingPaywall({
 
       <div className="mx-auto w-full max-w-[520px] rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
         <div className="flex items-center gap-2 px-3 py-3">
-          <img src="/logos/pricing/connect.svg" alt="" className="h-4 w-4" />
+          <div 
+            className="h-4 w-4 bg-gradient-to-r from-[#463FBA] to-[#7B76DF]" 
+            style={{
+              WebkitMaskImage: 'url(/logos/ai-generated.svg)',
+              WebkitMaskSize: 'contain',
+              WebkitMaskRepeat: 'no-repeat',
+              WebkitMaskPosition: 'center',
+              maskImage: 'url(/logos/ai-generated.svg)',
+              maskSize: 'contain',
+              maskRepeat: 'no-repeat',
+              maskPosition: 'center'
+            }}
+          />
           <p className="bg-gradient-to-r from-[#463FBA] to-[#7B76DF] bg-clip-text text-[13px] font-medium text-transparent">
             Unlock more with Pro
           </p>

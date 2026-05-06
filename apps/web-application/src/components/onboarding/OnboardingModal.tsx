@@ -21,7 +21,6 @@ type OnboardingModalProps = {
   open: boolean;
   userName?: string;
   onComplete: (submission: OnboardingSubmission) => void;
-  googleSheetsGuideHref?: string | null;
 };
 
 function getStepHeader(step: OnboardingStepId): { title: string; subtitle: string } {
@@ -58,7 +57,6 @@ export function OnboardingModal({
   open,
   userName,
   onComplete,
-  googleSheetsGuideHref,
 }: OnboardingModalProps) {
   const controller = useOnboardingController({
     open,
@@ -158,15 +156,10 @@ export function OnboardingModal({
                   <OnboardingStepRenderer
                     step={controller.step}
                     userName={userName}
-                    googleSheetsGuideHref={googleSheetsGuideHref}
                     fieldOfWork={controller.fieldOfWork}
                     onSelectField={controller.handleSelectField}
                     draftState={controller.draftState}
                     stepError={controller.stepError}
-                    sheetUrl={controller.sheetUrl}
-                    csvConnected={controller.csvConnected}
-                    csvImported={controller.csvImported}
-                    csvImporting={controller.csvImporting}
                     creationReady={controller.creationReady}
                     isCheckoutLoading={controller.isCheckoutLoading}
                     checkoutError={controller.checkoutError}
@@ -176,9 +169,6 @@ export function OnboardingModal({
                     claudeInstallCommand={controller.claudeInstallCommand}
                     claudeConnectionId={controller.claudeConnectionId}
                     onClaudeActivated={controller.handleContinue}
-                    onSheetUrlChange={controller.setSheetUrl}
-                    onToggleCsvConnection={controller.handleToggleCsvConnection}
-                    onLinkSheetUrl={controller.handleLinkSheetUrl}
                     onContinue={controller.handleContinue}
                     onCreationDone={() => controller.setStep("paywall")}
                     onContinueFree={() => controller.setStep("celebrating")}

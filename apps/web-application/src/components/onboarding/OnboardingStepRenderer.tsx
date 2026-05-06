@@ -16,12 +16,7 @@ import type { OnboardingStepId } from "@/features/onboarding/model";
 import type { ProjectType } from "@/types";
 import type { ClaudeConnectionSummary } from "@/types/settings";
 import { WelcomeSlide } from "./OnboardingAnimations";
-import { GuideLink, OnboardingStepMotion, StepShell } from "./OnboardingPrimitives";
-
-const GOOGLE_SHEETS_ICON_SRC = new URL("../../assets/icons/google-sheets.svg", import.meta.url).href;
-const STRIPE_ICON_SRC = new URL("../../assets/icons/stripe.svg", import.meta.url).href;
-const GOOGLE_SHEETS_TEMPLATE_HREF =
-  "https://docs.google.com/spreadsheets/d/1vtsJxrdv0LBbLgKAjnEbkFc89NlrPAMrWmnEcqGjvB0/edit?gid=246791924#gid=246791924";
+import { OnboardingStepMotion, StepShell } from "./OnboardingPrimitives";
 const ONBOARDING_ICON_SRC = {
   add: "/logos/add.svg",
   calendar: "/logos/calendar.svg",
@@ -419,15 +414,10 @@ function TimelineDateField({
 type OnboardingStepRendererProps = {
   step: OnboardingStepId;
   userName?: string;
-  googleSheetsGuideHref?: string | null;
   fieldOfWork: ProjectType[];
   onSelectField: (value: ProjectType) => void;
   draftState: UseProjectDraftResult;
   stepError: string | null;
-  sheetUrl: string;
-  csvConnected: boolean;
-  csvImported: boolean;
-  csvImporting: boolean;
   creationReady: boolean;
   isCheckoutLoading: boolean;
   checkoutError: string | null;
@@ -442,9 +432,6 @@ type OnboardingStepRendererProps = {
   claudeSetupHref: string;
   claudeInstallCommand: string;
   claudeConnectionId: string | null;
-  onSheetUrlChange: (value: string) => void;
-  onToggleCsvConnection: () => void;
-  onLinkSheetUrl: () => void;
   onContinue: () => void;
   onCreationDone: () => void;
   onContinueFree: () => void;
@@ -454,22 +441,14 @@ type OnboardingStepRendererProps = {
 export function OnboardingStepRenderer({
   step,
   userName,
-  googleSheetsGuideHref,
   fieldOfWork,
   onSelectField,
   draftState,
   stepError,
-  sheetUrl,
-  csvConnected,
-  csvImported,
-  csvImporting,
   isCheckoutLoading,
   checkoutError,
   existingClients,
   claudeConnection,
-  onSheetUrlChange,
-  onToggleCsvConnection,
-  onLinkSheetUrl,
   onContinue,
   onContinueFree,
   onClaudeActivated,
