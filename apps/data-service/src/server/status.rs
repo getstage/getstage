@@ -23,7 +23,7 @@ pub async fn readiness(State(state): State<AppState>) -> Json<ReadinessResponse>
         checks: ReadinessChecks {
             server_started: state.started_at_ms > 0,
             provider_runtime_ready: false,
-            websocket_ready: false,
+            websocket_ready: true,
         },
         timestamp_ms: now_millis(),
     })

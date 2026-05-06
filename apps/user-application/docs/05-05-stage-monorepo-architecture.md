@@ -561,6 +561,26 @@ WS   /v1/events
 POST /v1/commands       # optional if we use HTTP commands beside WebSocket
 ```
 
+Current implementation note, May 6:
+
+```txt
+Implemented:
+  GET /v1/health
+  GET /v1/readiness
+  GET /v1/version
+  WS  /v1/events
+  engine.ping -> engine.ready
+
+Not implemented yet:
+  sidecar auth token
+  Electron sidecar supervisor
+  renderer engine bridge
+  provider runner
+  file scanner
+```
+
+This means the Rust transport boundary exists, but Electron should still treat the engine as not integrated until the sidecar supervisor is added.
+
 The WebSocket message envelope should also include an API version:
 
 ```ts

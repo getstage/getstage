@@ -34,8 +34,8 @@ No local AI inference.
 - [x] 10. Install/verify local Rust toolchain.
 - [x] 11. Run `cargo fmt`.
 - [x] 12. Run `cargo check`.
-- [ ] 13. Add WebSocket `/v1/events`.
-- [ ] 14. Add typed `engine.ping -> engine.ready`.
+- [x] 13. Add WebSocket `/v1/events`.
+- [x] 14. Add typed `engine.ping -> engine.ready`.
 - [ ] 15. Add Electron sidecar supervisor.
 - [ ] 16. Add renderer engine status bridge.
 - [ ] 17. Add fake provider runner.
@@ -57,9 +57,12 @@ apps/data-service/src/app.rs
 apps/data-service/src/config/mod.rs
 apps/data-service/src/helpers/mod.rs
 apps/data-service/src/helpers/time.rs
+apps/data-service/src/models/commands.rs
+apps/data-service/src/models/events.rs
 apps/data-service/src/models/mod.rs
 apps/data-service/src/models/status.rs
 apps/data-service/src/observability/mod.rs
+apps/data-service/src/server/events.rs
 apps/data-service/src/server/mod.rs
 apps/data-service/src/server/status.rs
 ```
@@ -133,6 +136,38 @@ cargo run --manifest-path apps/data-service/Cargo.toml
 GET /v1/health
 GET /v1/readiness
 GET /v1/version
+WS  /v1/events
+```
+
+Current first WebSocket command:
+
+```json
+{
+  "apiVersion": "v1",
+  "id": "smoke-ping",
+  "type": "engine.ping",
+  "payload": {},
+  "createdAt": 1778066547538
+}
+```
+
+Expected response:
+
+```json
+{
+  "apiVersion": "v1",
+  "id": "smoke-ping:ready",
+  "commandId": "smoke-ping",
+  "jobId": null,
+  "type": "engine.ready",
+  "payload": {
+    "kind": "ready",
+    "service": "stage-data-service",
+    "ready": true,
+    "timestampMs": 1778066547538
+  },
+  "createdAt": 1778066547538
+}
 ```
 
 Current Rust sidecar verification:
@@ -160,11 +195,17 @@ curl http://127.0.0.1:48221/v1/version
 - `curl http://127.0.0.1:48221/v1/health` returns `status: "ok"`.
 - `curl http://127.0.0.1:48221/v1/readiness` returns `ready: true` with provider/WebSocket checks intentionally `false`.
 - `curl http://127.0.0.1:48221/v1/version` returns `version: "0.1.0"` and `rustEdition: "2024"`.
+- Added Axum WebSocket support for `GET /v1/events`.
+- Added typed Rust command/event models for `engine.ping` and `engine.ready`.
+- `cargo fmt --manifest-path apps/data-service/Cargo.toml` passes after WebSocket changes.
+- `cargo check --manifest-path apps/data-service/Cargo.toml` passes after WebSocket changes.
+- Local smoke test on port `48222` returned HTTP health/readiness/version responses and a WebSocket `engine.ready` event for `engine.ping`.
 
 ## Notes
 
 - This is intentionally not connected to Electron yet.
-- The next safe implementation step is WebSocket + typed ping.
+- The Rust WebSocket boundary now exists, but it is intentionally minimal.
+- The next safe implementation step is Electron sidecar supervision.
 - Figma and Notion remain production V1 scope, but they should come after the sidecar/chat/file-search foundation.
 
 ## Current Status Summary
@@ -178,11 +219,11 @@ Done:
 - Rust installs and runs locally.
 - `cargo fmt`, `cargo check`, and `cargo run` pass for `apps/data-service/Cargo.toml`.
 - `/v1/health`, `/v1/readiness`, and `/v1/version` respond locally.
+- `/v1/events` accepts WebSocket connections.
+- `engine.ping` returns `engine.ready`.
 
 Not done yet:
 
-- WebSocket `/v1/events`.
-- Typed `engine.ping -> engine.ready`.
 - Electron sidecar supervisor.
 - Renderer engine status bridge.
 - Provider detection, file scanner, design critique, voice, Figma, and Notion layers.
@@ -190,5 +231,5 @@ Not done yet:
 Next safe step:
 
 ```txt
-Add WebSocket /v1/events, then add typed engine.ping -> engine.ready.
+Add Electron sidecar supervisor: spawn Rust, wait for health, connect WebSocket, expose engine status to renderer later.
 ```
