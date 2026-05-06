@@ -169,7 +169,7 @@ export function useOnboardingController({
   ]);
 
   useEffect(() => {
-    if (step !== "creating" || !pendingSubmission) {
+    if (!pendingSubmission || !pendingSubmission.createProject || creationReady) {
       return;
     }
 
@@ -331,10 +331,7 @@ export function useOnboardingController({
         setStep("preview");
         return;
       case "preview": {
-        const submission = buildPendingSubmission(!setProjectLater);
-        setPendingSubmission(submission);
-        setCreationReady(false);
-        setStep("creating");
+        setStep("paywall");
         return;
       }
       case "celebrating":
@@ -350,12 +347,17 @@ export function useOnboardingController({
   }
 
   function handleContinueFree() {
-    completeWithSubmission(pendingSubmission);
+    const submission = pendingSubmission ?? buildPendingSubmission(!setProjectLater);
+    if (!pendingSubmission) {
+      setPendingSubmission(submission);
+    }
+    completeWithSubmission(submission);
   }
 
   async function handlePaywallUpgrade(billingCycle: "monthly" | "yearly") {
+    const submission = pendingSubmission ?? buildPendingSubmission(!setProjectLater);
     if (!pendingSubmission) {
-      return;
+      setPendingSubmission(submission);
     }
 
     setIsCheckoutLoading(true);

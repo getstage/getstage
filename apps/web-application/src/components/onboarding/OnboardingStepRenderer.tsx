@@ -3,6 +3,7 @@ import {
   Check,
   PencilSimpleLine,
   Trash,
+  Plus,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { OnboardingPaywall } from "@/components/onboarding/OnboardingPaywall";
@@ -14,7 +15,7 @@ import type { UseProjectDraftResult } from "@/features/project-creation/useProje
 import type { OnboardingStepId } from "@/features/onboarding/model";
 import type { ProjectType } from "@/types";
 import type { ClaudeConnectionSummary } from "@/types/settings";
-import { CreatingDashboardText, WelcomeSlide } from "./OnboardingAnimations";
+import { WelcomeSlide } from "./OnboardingAnimations";
 import { GuideLink, OnboardingStepMotion, StepShell } from "./OnboardingPrimitives";
 
 const GOOGLE_SHEETS_ICON_SRC = new URL("../../assets/icons/google-sheets.svg", import.meta.url).href;
@@ -81,7 +82,7 @@ function FigmaOnboardingFrame({
   className?: string;
 }) {
   return (
-    <div className={cn("w-[min(516px,calc(100vw-40px))] py-[22px]", className)}>
+    <div className={cn("w-[min(516px,calc(100vw-40px))]", className)}>
       {children}
     </div>
   );
@@ -145,21 +146,25 @@ function FigmaStepHeader({
 function FigmaSection({
   label,
   children,
+  className,
   innerClassName,
 }: {
-  label: string;
+  label?: string;
   children: ReactNode;
+  className?: string;
   innerClassName?: string;
 }) {
   return (
-    <section className="w-full rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <div className="px-3 pt-2 pb-3 text-[13px] leading-[1.5] font-semibold text-[#0A0A0A]">
-        {label}
-      </div>
-      <div className={cn("rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]", innerClassName)}>
+    <div className={cn("rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]", className)}>
+      {label ? (
+        <div className="px-3 pb-2.5 pt-2.5 text-[13px] font-bold text-[#0A0A0A]">
+          {label}
+        </div>
+      ) : null}
+      <div className={cn("rounded-[8px] bg-white p-4 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]", innerClassName)}>
         {children}
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -329,7 +334,7 @@ function TimelineDateField({
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-full z-50 mt-2 w-[280px] rounded-[14px] border border-border bg-white p-3 shadow-[0_16px_36px_rgba(26,26,46,0.16)]">
+        <div className="absolute left-0 top-full z-[100] mt-2 w-[280px] rounded-[14px] border border-border bg-white p-3 shadow-[0_16px_36px_rgba(26,26,46,0.16)]">
           <div className="mb-2 flex items-center justify-between">
             <button
               type="button"
@@ -458,7 +463,6 @@ export function OnboardingStepRenderer({
   csvConnected,
   csvImported,
   csvImporting,
-  creationReady,
   isCheckoutLoading,
   checkoutError,
   existingClients,
@@ -467,7 +471,6 @@ export function OnboardingStepRenderer({
   onToggleCsvConnection,
   onLinkSheetUrl,
   onContinue,
-  onCreationDone,
   onContinueFree,
   onClaudeActivated,
 }: OnboardingStepRendererProps) {
@@ -699,7 +702,7 @@ export function OnboardingStepRenderer({
                           "flex h-[74px] min-w-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] border px-3 text-[12px] font-medium transition-colors focus:outline-none sm:h-[74px] md:h-[74px] lg:h-[74px]",
                           isSelected
                             ? "border-[#DBD9FC] bg-[#E7E6FD] text-[#16115A]"
-                            : "border-transparent bg-[#F5F5F5] text-[#525252] hover:bg-[#EFEFEF]",
+                            : "border-transparent bg-[#F5F5F5] text-[#525252]",
                         )}
                       >
                         {iconSrc ? (
@@ -729,7 +732,7 @@ export function OnboardingStepRenderer({
                 <button
                   type="button"
                   onClick={() => draftState.setMethod("ai")}
-                  className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] bg-transparent px-1 py-2 text-left transition-colors hover:bg-[#F5F5F5] focus:outline-none"
+                  className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] bg-transparent px-1 py-2 text-left focus:outline-none"
                 >
                   <span
                     className={cn(
@@ -746,7 +749,7 @@ export function OnboardingStepRenderer({
                 <button
                   type="button"
                   onClick={() => draftState.setMethod("manual")}
-                  className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] bg-transparent px-1 py-2 text-left transition-colors hover:bg-[#F5F5F5] focus:outline-none"
+                  className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] bg-transparent px-1 py-2 text-left focus:outline-none"
                 >
                   <span
                     className={cn(
@@ -837,7 +840,7 @@ export function OnboardingStepRenderer({
                         disabled={!newPhaseName.trim()}
                         className="inline-flex h-7 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[4px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] pl-2.5 pr-3 text-[12px] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
                       >
-                        <img src={ONBOARDING_ICON_SRC.add} alt="" className="h-3.5 w-3.5 invert" />
+                        <Plus size={14} weight="bold" />
                         <span>Add</span>
                       </button>
                     </div>
@@ -850,7 +853,7 @@ export function OnboardingStepRenderer({
                       }}
                       className="mt-4 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium text-[#0A0A0A] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF] focus:outline-none"
                     >
-                      <img src={ONBOARDING_ICON_SRC.add} alt="" className="h-3.5 w-3.5 opacity-80" />
+                      <Plus size={14} weight="bold" />
                       <span>Add Phase</span>
                     </button>
                   )}
@@ -982,7 +985,8 @@ export function OnboardingStepRenderer({
               onClick={() => draftState.addPhase()}
               className="mt-2 inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-accent transition-colors hover:text-accent-hover"
             >
-              + Add phase
+              <Plus size={14} weight="bold" />
+              Add phase
             </button>
           </StepShell>
         </OnboardingStepMotion>
@@ -1013,7 +1017,7 @@ export function OnboardingStepRenderer({
       );
     case "preview":
       return (
-        <OnboardingStepMotion motionKey="preview" className="flex w-full justify-center">
+        <OnboardingStepMotion motionKey="preview" className="flex h-full w-full justify-center">
           <AlmostSetupPreview onContinue={onContinue} errorMessage={stepError} />
         </OnboardingStepMotion>
       );
@@ -1027,147 +1031,53 @@ export function OnboardingStepRenderer({
               subtitle="Connect your tools to sync files, tasks, and updates"
               showProgress={false}
             />
-            <div className="mt-6 space-y-3">
+            <div className="mt-8">
               <FigmaSection label="Select tools you want to integrate">
                 <ul className="space-y-4">
-                  <li className="flex items-center gap-2">
+                  <li className="flex items-center gap-3">
                     <img
                       src="/logos/integrations/claude.svg"
                       alt=""
-                      className="h-4 w-4 shrink-0 object-contain"
+                      className="h-5 w-5 shrink-0 object-contain"
                     />
-                    <span className="min-w-0 flex-1 text-[13px] font-medium text-[#171717]">
+                    <span className="text-[13px] font-medium text-[#0A0A0A]">
                       Claude
                     </span>
                   </li>
-                  <li className="flex items-center gap-2">
-                  <img
-                    src="/logos/integrations/codex.svg"
-                    alt=""
-                    className="h-4 w-4 shrink-0 object-contain"
-                    onError={(event) => {
-                      event.currentTarget.style.display = "none";
-                    }}
-                  />
-                  <span className="min-w-0 flex-1 text-[13px] font-medium text-[#171717]">
-                    Codex
-                  </span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <img
-                    src="/logos/integrations/figma.svg"
-                    alt=""
-                    className="h-4 w-4 shrink-0 object-contain"
-                  />
-                  <span className="min-w-0 flex-1 text-[13px] font-medium text-[#171717]">
-                    Figma
-                  </span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <img
-                    src="/logos/integrations/notion.svg"
-                    alt=""
-                    className="h-4 w-4 shrink-0 object-contain"
-                  />
-                  <span className="min-w-0 flex-1 text-[13px] font-medium text-[#171717]">
-                    Notion
-                  </span>
-                </li>
-              </ul>
+                  <li className="flex items-center gap-3">
+                    <img
+                      src="/logos/integrations/codex.svg"
+                      alt=""
+                      className="h-5 w-5 shrink-0 object-contain"
+                    />
+                    <span className="text-[13px] font-medium text-[#0A0A0A]">
+                      Codex
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <img
+                      src="/logos/integrations/figma.svg"
+                      alt=""
+                      className="h-5 w-5 shrink-0 object-contain"
+                    />
+                    <span className="text-[13px] font-medium text-[#0A0A0A]">
+                      Figma
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <img
+                      src="/logos/integrations/notion.svg"
+                      alt=""
+                      className="h-5 w-5 shrink-0 object-contain"
+                    />
+                    <span className="text-[13px] font-medium text-[#0A0A0A]">
+                      Notion
+                    </span>
+                  </li>
+                </ul>
               </FigmaSection>
-
-            <details className="rounded-[12px] bg-[#F5F5F7] px-4 py-3 text-[13px] text-text-secondary">
-              <summary className="cursor-pointer text-[13px] font-medium text-text-primary">
-                Advanced: Google Sheets &amp; Stripe
-              </summary>
-              <div className="mt-3 space-y-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2.5">
-                      <img src={GOOGLE_SHEETS_ICON_SRC} alt="Google Sheets" className="h-4 w-4" />
-                      <p className="text-[14px] font-medium text-text-primary">Google Sheets import</p>
-                    </div>
-                    <GuideLink
-                      href={googleSheetsGuideHref}
-                      openInNewTab
-                      className="mt-1 text-[12px] font-medium text-accent underline decoration-[rgba(135,130,245,0.35)] underline-offset-4 hover:text-accent-hover hover:decoration-[rgba(118,112,224,0.55)]"
-                    >
-                      View import guide
-                    </GuideLink>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={onToggleCsvConnection}
-                    className="cursor-pointer text-[13px] font-medium text-accent transition-colors hover:text-accent-hover focus:outline-none"
-                  >
-                    {csvConnected ? "Unlink" : "Link Google Sheets"}
-                  </button>
-                </div>
-                {csvConnected ? (
-                  <>
-                    <div className="flex flex-col gap-2 md:flex-row">
-                      <input
-                        value={sheetUrl}
-                        onChange={(event) => onSheetUrlChange(event.target.value)}
-                        placeholder="Paste your Google Sheets link"
-                        className="h-[40px] flex-1 rounded-[10px] border border-transparent bg-white px-3.5 text-[13px] text-text-primary transition-all outline-none placeholder:text-text-tertiary focus:border-border"
-                      />
-                      <button
-                        type="button"
-                        onClick={onLinkSheetUrl}
-                        disabled={!sheetUrl.trim() || csvImporting}
-                        className="h-[40px] cursor-pointer rounded-[10px] bg-accent px-4 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-default disabled:opacity-45 focus:outline-none"
-                      >
-                        {csvImporting ? "Linking..." : "Link"}
-                      </button>
-                    </div>
-                    {csvImported ? (
-                      <div className="text-[12px] text-accent">
-                        Imported. We&apos;ll use this data in your dashboard.
-                      </div>
-                    ) : null}
-                  </>
-                ) : (
-                  <p className="text-[12px] leading-[1.45] text-text-secondary">
-                    Optional. Copy our{" "}
-                    <a
-                      href={GOOGLE_SHEETS_TEMPLATE_HREF}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="font-medium text-accent underline decoration-[rgba(135,130,245,0.35)] underline-offset-4 hover:text-accent-hover"
-                    >
-                      Stage template
-                    </a>
-                    , fill in your invoices and expenses, then click Link Google Sheets.
-                  </p>
-                )}
-
-                <div className="flex items-start gap-2.5 border-t border-[#EFEFF2] pt-3">
-                  <img src={STRIPE_ICON_SRC} alt="Stripe" className="mt-0.5 h-4 w-4 shrink-0" />
-                  <div>
-                    <p className="text-[14px] font-medium text-text-primary">Stripe</p>
-                    <p className="mt-1 text-[12px] leading-[1.45] text-text-secondary">
-                      Stripe will be ready right after onboarding.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </details>
             </div>
           </FigmaOnboardingFrame>
-        </OnboardingStepMotion>
-      );
-    case "creating":
-      return (
-        <OnboardingStepMotion
-          motionKey="creating"
-          className="flex min-h-[220px] flex-col items-center justify-center text-center sm:min-h-[300px]"
-        >
-          <CreatingDashboardText
-            userName={userName}
-            isReady={creationReady}
-            onDone={onCreationDone}
-          />
         </OnboardingStepMotion>
       );
     case "celebrating":
@@ -1203,10 +1113,10 @@ function AlmostSetupPreview({
   errorMessage: string | null;
 }) {
   return (
-    <div className="w-[min(1432px,calc(100vw-16px),calc((100dvh-16px)*1.40945))]">
-      <div className="grid aspect-[1432/1016] overflow-hidden rounded-[8px] border border-[#F5F5F5] bg-white p-2 md:grid-cols-[570fr_846fr]">
-        <div className="flex min-h-0 items-center overflow-hidden rounded-[12px] px-[clamp(24px,5.03vw,72px)]">
-          <div className="flex w-full flex-col items-start gap-8">
+    <div className="h-full w-full">
+      <div className="grid h-full w-full overflow-hidden bg-white md:grid-cols-[570fr_846fr]">
+        <div className="flex min-h-0 items-center overflow-hidden px-[clamp(24px,5.03vw,72px)]">
+          <div className="flex w-full flex-col items-start gap-4 sm:gap-8">
             <img src={stageLogo} alt="Stage" className="h-[23px] w-auto" />
             <div>
               <h3 className="text-[21px] leading-[1.2] font-semibold text-[#0A0A0A]">
@@ -1226,11 +1136,11 @@ function AlmostSetupPreview({
             </button>
           </div>
         </div>
-        <div className="hidden min-h-0 overflow-hidden rounded-[12px] bg-gradient-to-b from-[#FAFAFA] to-[#F5F5F5] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] md:block">
+        <div className="hidden min-h-0 bg-white py-2 pr-2 md:block">
           <img
             src="/onboarding/onboarding-setup.webp"
             alt=""
-            className="h-full w-full object-cover object-center"
+            className="h-full w-full object-contain object-right"
           />
         </div>
       </div>
@@ -1272,7 +1182,7 @@ function ConnectButton({ children, onClick }: { children: string; onClick?: () =
     <button
       type="button"
       onClick={onClick}
-      className="h-8 rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
+      className="h-8 cursor-pointer rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
     >
       {children}
     </button>
@@ -1490,6 +1400,20 @@ UI Guidelines:
 
 Always return complete, usable code.`;
 
+  const [copiedKey, setCopiedKey] = useState(false);
+  const [copiedSetup, setCopiedSetup] = useState(false);
+
+  function handleCopy(text: string, type: "key" | "setup") {
+    void navigator.clipboard.writeText(text);
+    if (type === "key") {
+      setCopiedKey(true);
+      window.setTimeout(() => setCopiedKey(false), 2000);
+    } else {
+      setCopiedSetup(true);
+      window.setTimeout(() => setCopiedSetup(false), 2000);
+    }
+  }
+
   return (
     <FigmaOnboardingFrame>
       <FigmaStepHeader
@@ -1527,16 +1451,24 @@ Always return complete, usable code.`;
               {apiKey ? (
                 <button
                   type="button"
-                  className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[4px] hover:bg-white"
+                  onClick={() => handleCopy(apiKey, "key")}
+                  className={cn(
+                    "grid h-[18px] w-[18px] shrink-0 cursor-pointer place-items-center rounded-[4px] transition-colors",
+                    copiedKey ? "bg-green-50" : "hover:bg-white",
+                  )}
                   aria-label={`Copy ${providerLabel} API key`}
                 >
-                  <img src={ONBOARDING_ICON_SRC.copy} alt="" className="h-[18px] w-[18px]" />
+                  {copiedKey ? (
+                    <Check size={12} weight="bold" className="text-green-600" />
+                  ) : (
+                    <img src={ONBOARDING_ICON_SRC.copy} alt="" className="h-[18px] w-[18px]" />
+                  )}
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={onGenerateKey}
-                  className="h-[23px] shrink-0 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-2.5 text-[12px] font-medium text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
+                  className="h-[23px] shrink-0 cursor-pointer rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-2.5 text-[12px] font-medium text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
                 >
                   Generate Key
                 </button>
@@ -1546,17 +1478,25 @@ Always return complete, usable code.`;
 
           <div className="mt-1 rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
             <p className="text-[13px] font-medium text-[#171717]">Auto-generated Setup</p>
-            <div className="mt-2 flex h-[308px] items-start gap-3 overflow-hidden rounded-[6px] bg-[#F5F5F5] py-2.5 pl-3 pr-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+            <div className="mt-2 flex h-[308px] items-start gap-3 overflow-y-auto rounded-[6px] bg-[#F5F5F5] py-2.5 pl-3 pr-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
               <pre className="min-w-0 flex-1 whitespace-pre-wrap text-[12px] leading-[1.5] font-medium text-[#525252]">
                 {setupText}
               </pre>
               {apiKey ? (
                 <button
                   type="button"
-                  className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[4px] hover:bg-white"
+                  onClick={() => handleCopy(setupText, "setup")}
+                  className={cn(
+                    "sticky top-0 grid h-[18px] w-[18px] shrink-0 cursor-pointer place-items-center rounded-[4px] transition-colors",
+                    copiedSetup ? "bg-green-50" : "hover:bg-white",
+                  )}
                   aria-label={`Copy ${providerLabel} setup`}
                 >
-                  <img src={ONBOARDING_ICON_SRC.copy} alt="" className="h-[18px] w-[18px]" />
+                  {copiedSetup ? (
+                    <Check size={12} weight="bold" className="text-green-600" />
+                  ) : (
+                    <img src={ONBOARDING_ICON_SRC.copy} alt="" className="h-[18px] w-[18px]" />
+                  )}
                 </button>
               ) : null}
             </div>
