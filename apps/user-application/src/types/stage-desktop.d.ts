@@ -4,6 +4,7 @@ import type {
   CompanionState,
   DesktopPermissionStatus,
   DesktopSession,
+  EngineStatus,
   PermissionKind,
 } from "@shared/models/desktop";
 
@@ -11,6 +12,9 @@ export type StageDesktopApi = {
   auth: {
     openLogin: () => Promise<void>;
     getSession: () => Promise<DesktopSession | null>;
+  };
+  engine: {
+    getStatus: () => Promise<EngineStatus>;
   };
   companion: {
     show: () => Promise<void>;

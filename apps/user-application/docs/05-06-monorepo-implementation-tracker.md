@@ -3,7 +3,7 @@
 Date: May 6, 2026  
 Branch: `monorepo`  
 Status: In progress
-Latest pushed checkpoint: `ce6aba9 created data ops`
+Latest pushed checkpoint: `5644066 dasbhoard + deep linking in auth`
 
 ## Scope
 
@@ -40,8 +40,8 @@ No local AI inference.
 - [x] 15. Create `packages/data-ops` with shared Zod contracts/domain models.
 - [x] 16. Add shared `ProjectContext`, `EngineCommand`, and `EngineEvent` contracts in `packages/data-ops`.
 - [x] 17. Wire desktop to consume selected project context through `data-ops` contracts.
-- [ ] 18. Add Electron sidecar supervisor.
-- [ ] 19. Add renderer engine status bridge.
+- [x] 18. Add Electron sidecar supervisor.
+- [x] 19. Add renderer engine status bridge.
 - [ ] 20. Add desktop auth launcher and `stage://auth` deep-link callback plan/implementation.
 - [ ] 21. Add secure desktop session storage and authenticated boot state.
 - [ ] 22. Wire live Convex-backed selected project context after desktop auth works.
@@ -85,6 +85,8 @@ apps/user-application/src/project-context/convexProjectContext.ts
 apps/user-application/src/project-context/data/selectedProjectContext.ts
 apps/user-application/src/project-context/index.ts
 apps/user-application/docs/05-06-desktop-auth-deep-link-plan.md
+apps/user-application/electron/sidecar.ts
+apps/user-application/src/hooks/useEngineStatus.ts
 ```
 
 ## Current App Layout
@@ -240,13 +242,27 @@ curl http://127.0.0.1:48221/v1/version
 - `pnpm run typecheck` in `packages/data-ops/` passes after the desktop project-context bridge.
 - `pnpm run typecheck` in `apps/user-application/` passes after the desktop project-context bridge.
 - `pnpm run build` in `apps/user-application/` passes after the desktop project-context bridge.
+- Added Electron main-process `SidecarSupervisor` in `apps/user-application/electron/sidecar.ts`.
+- Electron now starts the Rust sidecar on app ready, reuses an existing ready service on the same port, polls `/v1/readiness`, and stops only the child process it owns on app quit.
+- Sidecar startup failure is logged without crashing the desktop window.
+- `pnpm run typecheck` in `apps/user-application/` passes after the Electron sidecar supervisor.
+- `pnpm run build` in `apps/user-application/` passes after the Electron sidecar supervisor.
+- `cargo check --manifest-path apps/data-service/Cargo.toml` passes after the Electron sidecar supervisor.
+- `pnpm run typecheck` in `packages/data-ops/` passes after the Electron sidecar supervisor.
+- Added typed `EngineStatus` Zod model in `apps/user-application/shared/models/desktop.ts`.
+- Added `engine:get-status` IPC and `window.stageDesktop.engine.getStatus()`.
+- Added `useEngineStatus()` in the renderer.
+- Dashboard header now shows a small engine readiness status from the supervised sidecar.
+- `pnpm run typecheck` in `apps/user-application/` passes after the renderer engine status bridge.
+- `pnpm run build` in `apps/user-application/` passes after the renderer engine status bridge.
 
 ## Notes
 
-- This is intentionally not connected to Electron yet.
+- Electron now supervises the Rust sidecar lifecycle, but no provider execution or file scanning is connected yet.
 - The Rust WebSocket boundary now exists, but it is intentionally minimal.
 - The desktop now consumes selected project context through `packages/data-ops`; the live Convex subscription path is still deferred.
-- Electron sidecar supervision should come after the first `data-ops` contracts exist, so engine commands already have the right project-context shape.
+- Renderer can read engine status through the preload bridge.
+- WebSocket event forwarding is still pending.
 - Figma and Notion remain production V1 scope, but they should come after the sidecar/chat/file-search foundation.
 
 ## Current Status Summary
@@ -268,20 +284,20 @@ Done:
 - Desktop selected project context is shaped through `projectContextSchema`.
 - Dashboard and critique mocks consume the validated selected `ProjectContext`.
 - Desktop auth/deep-link plan is documented in `apps/user-application/docs/05-06-desktop-auth-deep-link-plan.md`.
+- Electron main starts, readiness-checks, and shuts down the Rust sidecar.
+- Renderer reads engine status through a typed IPC/preload bridge.
 
 Not done yet:
 
 - Desktop auth launcher and `stage://auth` callback implementation.
 - Secure desktop session storage.
 - Live Convex-backed project context subscription in the desktop app.
-- Electron sidecar supervisor.
-- Renderer engine status bridge.
 - Provider detection, file scanner, design critique, voice, Figma, and Notion layers.
 
 Next safe step:
 
 ```txt
-Add Electron sidecar supervisor before provider/deep-integration work.
+Add desktop auth launcher and stage://auth deep-link callback before live Convex wiring.
 ```
 
 ## Next Agent Task
@@ -289,20 +305,21 @@ Add Electron sidecar supervisor before provider/deep-integration work.
 Goal:
 
 ```txt
-Add the Electron sidecar supervisor for apps/data-service, without starting provider execution yet.
+Add desktop auth launcher and stage://auth deep-link callback, without moving auth/onboarding/billing out of apps/web-application.
 ```
 
 Recommended order:
 
 1. Read `apps/user-application/docs/05-05-stage-monorepo-architecture.md`.
 2. Read this tracker.
-3. Inspect `apps/user-application/electron/main.ts`, `windows.ts`, `ipc.ts`, and `preload.ts`.
-4. Inspect `apps/data-service/README.md` and `apps/data-service/src/config/mod.rs`.
-5. Add an Electron main-process sidecar manager with start, readiness polling, and shutdown.
-6. Keep the renderer behind the preload bridge; do not expose shell/process access.
-7. Do not mix desktop auth/deep-link implementation into the sidecar supervisor change.
-8. Add the smallest IPC/status surface needed for the renderer bridge in Step 19.
-9. Run:
+3. Read `apps/user-application/docs/05-06-desktop-auth-deep-link-plan.md`.
+4. Inspect existing `auth.openLogin` and `auth.getSession` placeholders in `electron/ipc.ts` and `electron/preload.ts`.
+5. Register the `stage://` custom protocol in Electron main.
+6. Add single-instance deep-link callback handling.
+7. Update `auth.openLogin` to launch the desktop website auth route with state/nonce.
+8. Add typed placeholder session exchange/storage boundaries in Electron main only.
+9. Do not move onboarding, billing, payments, or website login UI into desktop.
+10. Run:
 
 ```bash
 cd packages/data-ops && pnpm run typecheck

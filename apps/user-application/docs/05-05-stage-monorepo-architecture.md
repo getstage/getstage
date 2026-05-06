@@ -1220,6 +1220,26 @@ Electron forwards engine status to renderer
 Electron restarts Rust after crash
 ```
 
+Current Phase 3 status:
+
+```txt
+Done:
+  Electron main has SidecarSupervisor
+  supervisor reuses an already-running ready service
+  supervisor spawns cargo run for apps/data-service when needed
+  supervisor polls /v1/readiness
+  supervisor shuts down owned child process on app quit
+  renderer-safe engine status bridge exists
+  dashboard displays engine readiness status
+  desktop typecheck/build passed
+  cargo check passed
+
+Next:
+  connect WebSocket from Electron main
+  forward engine events to renderer
+  decide restart policy after crash
+```
+
 ### Phase 4: Typed Rust Mirrors
 
 Mirror the stable TypeScript contracts in Rust.

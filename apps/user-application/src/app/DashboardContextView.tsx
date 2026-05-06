@@ -8,16 +8,29 @@ import { RevenueOverviewCard } from "../dashboard/components/RevenueOverviewCard
 import { UpcomingTasksCard } from "../dashboard/components/UpcomingTasksCard";
 import { dashboardSnapshot } from "../dashboard/data/dashboardSnapshot";
 import { useDesktopBridge } from "../hooks/useDesktopBridge";
+import { useEngineStatus } from "../hooks/useEngineStatus";
 import { selectedProjectContext } from "../project-context";
 import { WorkspaceFrame } from "./WorkspaceFrame";
 
 export function DashboardContextView() {
   const desktop = useDesktopBridge();
+  const engineStatus = useEngineStatus();
   const openContextTasks = selectedProjectContext.tasks.filter(
     (task) => task.status !== "done",
   ).length;
   const currentPhaseLabel = selectedProjectContext.currentPhase ?? "active work";
   const dashboardSubheading = `${selectedProjectContext.projectName} is in ${currentPhaseLabel} with ${openContextTasks} open decisions ready for review.`;
+  const engineState = engineStatus.data?.state ?? "starting";
+  const engineStatusLabel =
+    engineState === "ready"
+      ? "Engine ready"
+      : engineState === "failed"
+        ? "Engine offline"
+        : engineState === "starting"
+          ? "Engine starting"
+          : "Engine paused";
+  const engineStatusTone =
+    engineState === "ready" ? "ready" : engineState === "failed" ? "warning" : "neutral";
 
   useQuery({
     queryKey: ["desktop", "active-app"],
@@ -30,6 +43,8 @@ export function DashboardContextView() {
         <div className="flex flex-col gap-[44px]">
           <div className="flex flex-col gap-[18px]">
             <DashboardHeader
+              engineStatusLabel={engineStatusLabel}
+              engineStatusTone={engineStatusTone}
               greeting={dashboardSnapshot.greeting}
               subheading={dashboardSubheading}
             />

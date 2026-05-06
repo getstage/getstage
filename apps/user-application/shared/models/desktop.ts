@@ -49,6 +49,23 @@ export const companionStateSchema = z.enum([
   "error",
 ]);
 
+export const engineStatusStateSchema = z.enum([
+  "idle",
+  "starting",
+  "ready",
+  "failed",
+  "stopping",
+  "stopped",
+]);
+
+export const engineStatusSchema = z.object({
+  adopted: z.boolean(),
+  error: z.string().optional(),
+  pid: z.number().nullable(),
+  port: z.number().int().positive(),
+  state: engineStatusStateSchema,
+});
+
 export type DesktopSession = z.infer<typeof desktopSessionSchema>;
 export type ActiveAppInfo = z.infer<typeof activeAppInfoSchema>;
 export type CaptureResult = z.infer<typeof captureResultSchema>;
@@ -56,3 +73,5 @@ export type PermissionKind = z.infer<typeof permissionKindSchema>;
 export type PermissionState = z.infer<typeof permissionStateSchema>;
 export type DesktopPermissionStatus = z.infer<typeof desktopPermissionStatusSchema>;
 export type CompanionState = z.infer<typeof companionStateSchema>;
+export type EngineStatusState = z.infer<typeof engineStatusStateSchema>;
+export type EngineStatus = z.infer<typeof engineStatusSchema>;

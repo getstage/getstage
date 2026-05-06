@@ -1,13 +1,23 @@
 import { useNavigate } from "@tanstack/react-router";
 
 export function DashboardHeader({
+  engineStatusLabel,
+  engineStatusTone = "neutral",
   greeting,
   subheading,
 }: {
+  engineStatusLabel?: string;
+  engineStatusTone?: "neutral" | "ready" | "warning";
   greeting: string;
   subheading: string;
 }) {
   const navigate = useNavigate();
+  const engineDotClassName =
+    engineStatusTone === "ready"
+      ? "bg-[#22c55e]"
+      : engineStatusTone === "warning"
+        ? "bg-[#ef4444]"
+        : "bg-[#a3a3a3]";
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -21,6 +31,16 @@ export function DashboardHeader({
       </div>
 
       <div className="flex items-center gap-[12px]">
+        {engineStatusLabel ? (
+          <div className="inline-flex h-[34px] items-center gap-2 rounded-[6px] bg-[#fafafa] px-[10px] text-[13px] font-medium text-[#737373] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)]">
+            <span
+              className={`h-2 w-2 rounded-full ${engineDotClassName}`}
+              aria-hidden="true"
+            />
+            <span>{engineStatusLabel}</span>
+          </div>
+        ) : null}
+
         <button
           type="button"
           className="rounded-[6px] bg-[#fafafa] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium text-[#737373] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] transition-all duration-150 hover:text-[#0a0a0a]"

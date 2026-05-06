@@ -1,8 +1,11 @@
 import { app, Menu } from "electron";
 import { registerIpcHandlers } from "./ipc";
+import { createSidecarSupervisor } from "./sidecar";
 import { createMainWindow } from "./windows";
 
 app.setName("Stage");
+const sidecarSupervisor = createSidecarSupervisor();
+let sidecarStoppedForQuit = false;
 
 function installApplicationMenu() {
   const isMac = process.platform === "darwin";
@@ -74,11 +77,29 @@ if (!app.requestSingleInstanceLock()) {
 
 app.whenReady().then(() => {
   installApplicationMenu();
-  registerIpcHandlers();
-  createMainWindow();
+  registerIpcHandlers({ sidecarSupervisor });
+
+  sidecarSupervisor.start().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : "Unknown sidecar startup error.";
+    console.warn(`[stage-data-service] ${message}`);
+  }).finally(() => {
+    createMainWindow();
+  });
 
   app.on("activate", () => {
     createMainWindow();
+  });
+});
+
+app.on("before-quit", (event) => {
+  if (sidecarStoppedForQuit) {
+    return;
+  }
+
+  event.preventDefault();
+  sidecarSupervisor.stop().finally(() => {
+    sidecarStoppedForQuit = true;
+    app.quit();
   });
 });
 

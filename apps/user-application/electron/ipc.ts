@@ -2,11 +2,13 @@ import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import {
   companionStateSchema,
+  engineStatusSchema,
   permissionKindSchema,
   type ActiveAppInfo,
   type DesktopPermissionStatus,
   type DesktopSession,
 } from "@shared/models/desktop";
+import type { SidecarSupervisor } from "./sidecar";
 
 const defaultPermissionStatus: DesktopPermissionStatus = {
   "screen-recording": "unknown",
@@ -16,13 +18,21 @@ const defaultPermissionStatus: DesktopPermissionStatus = {
   files: "unknown",
 };
 
-export function registerIpcHandlers() {
+type RegisterIpcHandlersOptions = {
+  sidecarSupervisor: SidecarSupervisor;
+};
+
+export function registerIpcHandlers({ sidecarSupervisor }: RegisterIpcHandlersOptions) {
   ipcMain.handle(IPC_CHANNELS.authOpenLogin, async () => {
     await shell.openExternal("https://getstage.co/auth");
   });
 
   ipcMain.handle(IPC_CHANNELS.authGetSession, (): DesktopSession | null => {
     return null;
+  });
+
+  ipcMain.handle(IPC_CHANNELS.engineGetStatus, () => {
+    return engineStatusSchema.parse(sidecarSupervisor.getStatus());
   });
 
   ipcMain.handle(IPC_CHANNELS.companionShow, () => {
