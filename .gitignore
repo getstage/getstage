@@ -8,7 +8,8 @@ node_modules/
 # Build outputs
 dist/
 **/dist/
-desktop/out/
+apps/user-application/out/
+**/target/
 .tanstack/
 *.tsbuildinfo
 

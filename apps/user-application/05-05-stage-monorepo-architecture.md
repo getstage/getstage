@@ -35,14 +35,18 @@ This is close to the Codex/T3 Code strategy, but Stage adds design-specific cont
 
 ## 2. Current Repository State
 
-The repository is not yet in the final monorepo shape.
+The repository now uses the first clean `apps/` monorepo layout. This keeps the
+existing web application separate from the new desktop application and the Rust
+local engine.
 
 Current important folders:
 
 ```txt
 stage_mvp/
-├── app/          # Current web/cloud app with Convex
-├── desktop/      # Current Electron desktop mock/design app
+├── apps/
+│   ├── web-application/   # Current web/cloud app with Convex
+│   ├── user-application/  # Electron desktop UI app
+│   └── data-service/      # Rust local engine sidecar
 ├── .agents/      # Installed agent skills
 ├── .claude/      # Local Claude config/worktrees
 └── skills/       # Installed skills symlinks/copies
@@ -50,14 +54,14 @@ stage_mvp/
 
 Current desktop facts:
 
-- `desktop/` already contains Electron + React + Vite.
-- `desktop/electron/main.ts` owns the Electron lifecycle.
-- `desktop/electron/windows.ts` owns `BrowserWindow` creation.
-- `desktop/electron/preload.ts` exposes the safe renderer bridge.
-- `desktop/electron/ipc.ts` owns IPC handlers.
-- `desktop/shared/models/desktop.ts` already uses Zod.
-- `desktop/shared/ipc/channels.ts` centralizes IPC channel names.
-- `desktop/src/` contains mock UI for dashboard, projects, settings, companion, and critique panel.
+- `apps/user-application/` contains Electron + React + Vite.
+- `apps/user-application/electron/main.ts` owns the Electron lifecycle.
+- `apps/user-application/electron/windows.ts` owns `BrowserWindow` creation.
+- `apps/user-application/electron/preload.ts` exposes the safe renderer bridge.
+- `apps/user-application/electron/ipc.ts` owns IPC handlers.
+- `apps/user-application/shared/models/desktop.ts` already uses Zod.
+- `apps/user-application/shared/ipc/channels.ts` centralizes IPC channel names.
+- `apps/user-application/src/` contains mock UI for dashboard, projects, settings, companion, and critique panel.
 
 Current Electron security baseline is good and should be preserved:
 
@@ -194,16 +198,18 @@ stage_mvp/
     └── architecture/
 ```
 
-Important: do not do a big-bang migration yet.
+Important: avoid another big-bang migration after this app-level move. The app
+folders are now separated; the remaining migration work should happen in smaller
+package-level steps.
 
-Recommended migration path:
+Recommended migration path from here:
 
 ```txt
-Phase 0: Keep current desktop/ and app/ working.
+Phase 0: Keep apps/user-application/ and apps/web-application/ working.
 Phase 1: Write architecture docs.
-Phase 2: Add Rust sidecar beside desktop/.
+Phase 2: Add Rust sidecar as apps/data-service/.
 Phase 3: Add typed contracts between Electron and Rust.
-Phase 4: Move folders into apps/ and packages/ only after the runtime works.
+Phase 4: Extract packages/data-ops only after the runtime boundary is proven.
 ```
 
 ## 6. Data-Ops Clarification
@@ -308,7 +314,7 @@ Billing, account, business flows, and onboarding remain website responsibilities
 Electron main process owns:
 
 ```txt
-desktop/electron/
+apps/user-application/electron/
 ├── main.ts
 ├── windows.ts
 ├── ipc.ts
@@ -356,7 +362,7 @@ Electron must not:
 React owns:
 
 ```txt
-desktop/src/
+apps/user-application/src/
 ├── app/
 ├── companion/
 ├── dashboard/
@@ -1050,7 +1056,8 @@ Manual acceptance scenarios:
 ### Phase 0: Documentation And Decisions
 
 - Write this architecture document.
-- Keep current `desktop/` and `app/` unchanged.
+- Keep the existing web app behavior unchanged while moving it to `apps/web-application/`.
+- Keep the desktop mock/design behavior unchanged while moving it to `apps/user-application/`.
 - Decide first sidecar transport: local WebSocket.
 - Decide first data source: Convex first.
 - Decide first AI route: local Codex/Claude CLI first.
@@ -1058,7 +1065,7 @@ Manual acceptance scenarios:
 
 ### Phase 1: Rust Sidecar POC
 
-Create Rust app beside current desktop app.
+Create the Rust local engine beside the web and desktop apps.
 
 Minimum behavior:
 
@@ -1092,7 +1099,7 @@ Add command/event contracts.
 TypeScript:
 
 ```txt
-desktop/shared/contracts/
+apps/user-application/shared/contracts/
 ```
 
 Rust:
@@ -1196,31 +1203,34 @@ voice-to-command routing
 
 ### Phase 9: Monorepo Restructure
 
-This is required before the production V1 release.
-
-Do it after the sidecar works, but do not postpone it beyond V1.
-
-Move toward:
+The first app-level monorepo restructure is now done:
 
 ```txt
-desktop/ -> apps/user-application/
-app/convex -> packages/data-ops/convex/
+apps/web-application/ stays current Stage web/cloud app
+apps/user-application/ stays Electron desktop UI
 apps/data-service/ stays Rust engine
 ```
 
-Do this with minimal behavior changes.
+The later package-level extraction is still future work:
+
+```txt
+apps/web-application/convex -> packages/data-ops/convex/
+shared TypeScript contracts -> package or app-local contract folders once boundaries settle
+```
+
+Do future package extraction with minimal behavior changes.
 
 ## 24. Public Interfaces And Types
 
 Initial TypeScript contract files:
 
 ```txt
-desktop/shared/contracts/engine-command.ts
-desktop/shared/contracts/engine-event.ts
-desktop/shared/contracts/provider.ts
-desktop/shared/contracts/file-context.ts
-desktop/shared/contracts/critique.ts
-desktop/shared/contracts/voice.ts
+apps/user-application/shared/contracts/engine-command.ts
+apps/user-application/shared/contracts/engine-event.ts
+apps/user-application/shared/contracts/provider.ts
+apps/user-application/shared/contracts/file-context.ts
+apps/user-application/shared/contracts/critique.ts
+apps/user-application/shared/contracts/voice.ts
 ```
 
 Initial Rust model files:
@@ -1311,7 +1321,7 @@ Do not continue architecture work on the pure design/mock branch.
 When work starts on the `monorepo` branch, follow this order:
 
 1. Verify repo status and branch.
-2. Confirm the current `desktop/` app still builds.
+2. Confirm `apps/user-application/` still typechecks and builds.
 3. Create a minimal Rust sidecar skeleton.
 4. Add `Cargo.toml` and Rust module layout.
 5. Add Axum `/health`.
