@@ -14,7 +14,7 @@ export function RevenueOverviewCard({
       action={<CardTab label="This Month" />}
     >
       <div className="flex min-h-0 w-full flex-1 flex-col items-start">
-        <div className="flex w-full items-start gap-[16px]">
+        <div className="grid w-full grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-[16px]">
           <RevenueMetric
             value={revenue.outstanding}
             label="Outstanding"

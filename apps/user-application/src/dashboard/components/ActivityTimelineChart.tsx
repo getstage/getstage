@@ -155,7 +155,7 @@ export function ActivityTimelineChart({ points }: { points: DashboardChartPoint[
   return (
     <div
       ref={containerRef}
-      className="relative"
+      className="relative min-w-[360px]"
       style={{ height: CHART_HEIGHT }}
       onPointerLeave={() => {
         setActiveIndex(null);
@@ -313,15 +313,16 @@ export function ActivityTimelineChart({ points }: { points: DashboardChartPoint[
         {points.map((point, i) => (
           <span
             key={point.label}
-            className={
+            className={cn(
+              i !== 0 && i !== points.length - 1 && "max-[560px]:hidden",
               i === activeIndex
                 ? "text-center text-[#737373]"
                 : i === 0
                   ? "text-left"
                   : i === points.length - 1
                     ? "text-right"
-                    : "text-center"
-            }
+                    : "text-center",
+            )}
           >
             {point.label}
           </span>

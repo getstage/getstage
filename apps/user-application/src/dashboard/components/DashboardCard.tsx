@@ -19,9 +19,9 @@ export function DashboardCard({
 }: DashboardCardProps) {
   return (
     <div
-      className={`flex flex-col items-start gap-[24px] rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[16px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] ${fullWidth ? "col-span-full" : ""} ${className ?? ""}`}
+      className={`flex flex-col items-start gap-[clamp(18px,3vw,24px)] rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[16px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] ${fullWidth ? "col-span-full" : ""} ${className ?? ""}`}
     >
-      <div className="flex w-full items-center justify-between gap-[16px]">
+      <div className="flex w-full flex-wrap items-center justify-between gap-[12px]">
         <div className="flex min-w-0 flex-col gap-[4px]">
           <p className="text-[14px] font-medium leading-[1.2] text-[#0a0a0a]">
             {title}
