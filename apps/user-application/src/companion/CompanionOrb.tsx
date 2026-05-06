@@ -7,7 +7,9 @@ type CompanionOrbProps = {
 export function CompanionOrb({ state }: CompanionOrbProps) {
   return (
     <button className="companion-orb" aria-label={`Stage companion is ${state}`}>
-      <span />
+      <span className="companion-orb-mark">
+        <img src="/logos/stage.svg" alt="" aria-hidden="true" />
+      </span>
     </button>
   );
 }

@@ -35,22 +35,38 @@ a,
 
 .companion-orb {
   position: fixed;
-  right: 54px;
-  bottom: 58px;
-  width: 72px;
-  height: 72px;
-  border: 9px solid #0f8f57;
+  right: 24px;
+  bottom: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 2px solid #292853;
   border-radius: 50%;
-  background: #f3f3f3;
-  box-shadow: 0 16px 36px rgb(0 0 0 / 28%);
+  background: #111121;
+  box-shadow:
+    0 20px 42px rgb(17 17 33 / 18%),
+    0 0 0 1px rgb(255 255 255 / 18%) inset;
+  cursor: pointer;
 }
 
-.companion-orb span {
-  display: block;
-  width: 100%;
-  height: 100%;
+.companion-orb-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 39px;
+  height: 39px;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 42%, #ffffff 0 28%, #d8d8e8 29% 100%);
+  background: #ffffff;
+}
+
+.companion-orb-mark img {
+  display: block;
+  width: 21px;
+  height: 26px;
+  filter: invert(1);
 }
 
 .voice-control-bar {
