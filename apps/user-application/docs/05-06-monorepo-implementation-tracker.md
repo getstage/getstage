@@ -36,16 +36,19 @@ No local AI inference.
 - [x] 12. Run `cargo check`.
 - [x] 13. Add WebSocket `/v1/events`.
 - [x] 14. Add typed `engine.ping -> engine.ready`.
-- [ ] 15. Add Electron sidecar supervisor.
-- [ ] 16. Add renderer engine status bridge.
-- [ ] 17. Add fake provider runner.
-- [ ] 18. Add Codex/Claude provider detection.
-- [ ] 19. Add deep file scanner.
-- [ ] 20. Add `.codex` / `.claude` discovery.
-- [ ] 21. Add design critique job pipeline.
-- [ ] 22. Add cloud voice transcription flow.
-- [ ] 23. Add basic Figma integration layer.
-- [ ] 24. Add basic Notion integration layer.
+- [x] 15. Create `packages/data-ops` with shared Zod contracts/domain models.
+- [x] 16. Add shared `ProjectContext`, `EngineCommand`, and `EngineEvent` contracts in `packages/data-ops`.
+- [ ] 17. Wire desktop to consume Convex-backed project context through `data-ops` contracts.
+- [ ] 18. Add Electron sidecar supervisor.
+- [ ] 19. Add renderer engine status bridge.
+- [ ] 20. Add fake provider runner that receives typed project context.
+- [ ] 21. Add Codex/Claude provider detection.
+- [ ] 22. Add deep file scanner.
+- [ ] 23. Add `.codex` / `.claude` discovery.
+- [ ] 24. Add design critique job pipeline.
+- [ ] 25. Add cloud voice transcription flow.
+- [ ] 26. Add basic Figma integration layer.
+- [ ] 27. Add basic Notion integration layer.
 
 ## Current Files Added
 
@@ -65,6 +68,15 @@ apps/data-service/src/observability/mod.rs
 apps/data-service/src/server/events.rs
 apps/data-service/src/server/mod.rs
 apps/data-service/src/server/status.rs
+packages/data-ops/README.md
+packages/data-ops/package.json
+packages/data-ops/tsconfig.json
+packages/data-ops/src/contracts/engine-command.ts
+packages/data-ops/src/contracts/engine-event.ts
+packages/data-ops/src/contracts/project-context.ts
+packages/data-ops/src/domain/design-critique.ts
+packages/data-ops/src/domain/project-context.ts
+packages/data-ops/src/index.ts
 ```
 
 ## Current App Layout
@@ -75,6 +87,14 @@ apps/
 ├── user-application/  # Electron + React desktop UI
 └── data-service/      # Rust local engine sidecar
 ```
+
+Planned shared package:
+
+```txt
+packages/data-ops/      # Shared Stage cloud/domain/contracts layer; not created yet
+```
+
+Important: `data-ops` is the intended clean layer for shared Zod contracts and project context. Do not duplicate project-context schemas randomly across desktop and Rust.
 
 Use these paths for local commands, GitHub Actions, and Cloudflare settings:
 
@@ -205,7 +225,8 @@ curl http://127.0.0.1:48221/v1/version
 
 - This is intentionally not connected to Electron yet.
 - The Rust WebSocket boundary now exists, but it is intentionally minimal.
-- The next safe implementation step is Electron sidecar supervision.
+- The next safe implementation step is `packages/data-ops` contracts/domain setup, so Convex-backed project context has a clean typed path before provider work.
+- Electron sidecar supervision should come after the first `data-ops` contracts exist, so engine commands already have the right project-context shape.
 - Figma and Notion remain production V1 scope, but they should come after the sidecar/chat/file-search foundation.
 
 ## Current Status Summary
@@ -216,14 +237,17 @@ Done:
 
 - Electron desktop UI path is `apps/user-application/`.
 - Rust local engine path is `apps/data-service/`.
+- Shared domain/contracts package path is `packages/data-ops/`.
 - Rust installs and runs locally.
 - `cargo fmt`, `cargo check`, and `cargo run` pass for `apps/data-service/Cargo.toml`.
 - `/v1/health`, `/v1/readiness`, and `/v1/version` respond locally.
 - `/v1/events` accepts WebSocket connections.
 - `engine.ping` returns `engine.ready`.
+- `packages/data-ops` now contains first Zod contracts for `EngineCommand`, `EngineEvent`, and `ProjectContext`.
 
 Not done yet:
 
+- Convex-backed project context consumed through `data-ops`.
 - Electron sidecar supervisor.
 - Renderer engine status bridge.
 - Provider detection, file scanner, design critique, voice, Figma, and Notion layers.
@@ -231,5 +255,5 @@ Not done yet:
 Next safe step:
 
 ```txt
-Add Electron sidecar supervisor: spawn Rust, wait for health, connect WebSocket, expose engine status to renderer later.
+Wire desktop Convex project context through packages/data-ops before provider/deep-integration work.
 ```

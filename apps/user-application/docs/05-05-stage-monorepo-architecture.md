@@ -208,8 +208,10 @@ Recommended migration path from here:
 Phase 0: Keep apps/user-application/ and apps/web-application/ working.
 Phase 1: Write architecture docs.
 Phase 2: Add Rust sidecar as apps/data-service/.
-Phase 3: Add typed contracts between Electron and Rust.
-Phase 4: Extract packages/data-ops only after the runtime boundary is proven.
+Phase 3: Prove the first runtime boundary: health/readiness/version, WebSocket, engine.ping -> engine.ready.
+Phase 4: Create packages/data-ops for shared Zod contracts and domain models. # started
+Phase 5: Wire Convex-backed project context through data-ops into the desktop app.
+Phase 6: Add Electron sidecar supervisor using the established contracts.
 ```
 
 ## 6. Data-Ops Clarification
@@ -223,6 +225,30 @@ data-ops = cloud/domain package
 contracts = typed communication layer
 Rust models = serde mirror of contracts
 ```
+
+Current decision:
+
+```txt
+Convex remains the cloud source of truth.
+packages/data-ops becomes the clean shared TypeScript layer for domain models and Zod contracts.
+apps/user-application consumes project context through data-ops.
+apps/data-service mirrors only the stable command/event/context shapes with serde.
+```
+
+Current implementation note, May 6:
+
+```txt
+packages/data-ops now exists with:
+  contracts/engine-command.ts
+  contracts/engine-event.ts
+  contracts/project-context.ts
+  domain/project-context.ts
+  domain/design-critique.ts
+
+It is intentionally not yet wired into apps/user-application or apps/web-application.
+```
+
+This keeps Convex, desktop, and Rust aligned without letting React or Rust invent separate project-context models.
 
 Recommended future structure:
 
@@ -267,6 +293,42 @@ Phase 2 contract strategy:
   - OpenAPI/JSON Schema as a neutral contract layer
 
 Do not introduce codegen on day one.
+
+### Data-Ops Extraction Order
+
+Create `packages/data-ops` before deep provider, file-search, Figma, or Notion work.
+
+First extraction should be intentionally small:
+
+```txt
+packages/data-ops/
+├── contracts/
+│   ├── engine-command.ts
+│   ├── engine-event.ts
+│   └── project-context.ts
+├── domain/
+│   ├── project-context.ts
+│   └── design-critique.ts
+└── package.json
+```
+
+Do not move the full Convex backend immediately. Keep deployed Convex functions in `apps/web-application/convex` until the package boundaries are stable.
+
+Later, move Convex code in smaller pieces:
+
+```txt
+apps/web-application/convex -> packages/data-ops/convex
+```
+
+The first useful goal is:
+
+```txt
+Convex project data
+  -> data-ops ProjectContext Zod schema
+  -> desktop selected project context
+  -> engine command payload
+  -> Rust serde mirror
+```
 
 ## 7. First Product Scope
 
@@ -1098,7 +1160,23 @@ engine.ping returns engine.ready
 
 No AI yet.
 
-### Phase 2: Electron Sidecar Supervisor
+### Phase 2: Data-Ops Contracts And Convex Project Context
+
+Add the shared TypeScript domain/contract package before deeper provider work.
+
+Minimum behavior:
+
+```txt
+packages/data-ops exists
+ProjectContext Zod schema exists
+EngineCommand / EngineEvent Zod schemas exist
+Desktop can import these contracts
+Convex-backed selected project context can be shaped through ProjectContext
+```
+
+Keep full Convex backend files in `apps/web-application/convex` for now. Move them into `packages/data-ops/convex` later, after contract boundaries are stable.
+
+### Phase 3: Electron Sidecar Supervisor
 
 Add Electron main-process sidecar manager.
 
@@ -1112,14 +1190,14 @@ Electron forwards engine status to renderer
 Electron restarts Rust after crash
 ```
 
-### Phase 3: Typed Contracts
+### Phase 4: Typed Rust Mirrors
 
-Add command/event contracts.
+Mirror the stable TypeScript contracts in Rust.
 
 TypeScript:
 
 ```txt
-apps/user-application/shared/contracts/
+packages/data-ops/contracts/
 ```
 
 Rust:
@@ -1130,7 +1208,7 @@ apps/data-service/src/models/
 
 Start with manual Zod + serde mirror.
 
-### Phase 4: Local Provider Runner
+### Phase 5: Local Provider Runner
 
 Add fake provider first.
 
@@ -1146,7 +1224,7 @@ timeouts
 stderr capture
 ```
 
-### Phase 5: Deep File Context
+### Phase 6: Deep File Context
 
 Add project scanner.
 
@@ -1173,7 +1251,7 @@ summaries
 token budget
 ```
 
-### Phase 6: Agent Chat UI Integration
+### Phase 7: Agent Chat UI Integration
 
 Connect current companion/chat UI to engine events.
 
@@ -1188,7 +1266,7 @@ cancel button
 error state
 ```
 
-### Phase 7: Design Critique Pipeline
+### Phase 8: Design Critique Pipeline
 
 First with mocked capture.
 
@@ -1202,7 +1280,7 @@ critique prompt
 streamed critique response
 ```
 
-### Phase 8: Voice Input
+### Phase 9: Voice Input
 
 First:
 
@@ -1221,7 +1299,7 @@ partial transcript streaming
 voice-to-command routing
 ```
 
-### Phase 9: Monorepo Restructure
+### Phase 10: Package-Level Extraction
 
 The first app-level monorepo restructure is now done:
 
