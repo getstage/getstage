@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stage - The AI workspace for designers</title>
+  <meta name="description" content="Stage is the only tool where designers manage clients, run research, and generate designs in one place. Powered by your AI, not ours." />
+  <link rel="icon" type="image/svg+xml" href="assets/logo-mark.svg" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ─── NAV ──────────────────────────────────────────────── -->
+  <header class="nav-wrap">
+    <nav class="nav" aria-label="Primary">
+      <a class="nav-brand" href="#top" aria-label="Stage home">
+        <img src="assets/logo-mark.svg" alt="" width="22" height="22" />
+        <span class="wordmark">Stage</span>
+      </a>
+      <ul class="nav-links" role="list">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#login">Login</a></li>
+      </ul>
+      <a class="btn btn-primary btn-sm" href="#start">Start for free</a>
+    </nav>
+  </header>
+
+  <main id="top">
+
+    <!-- ─── HERO ───────────────────────────────────────────── -->
+    <section class="hero">
+      <div class="hero-grad" aria-hidden="true"></div>
+      <div class="container hero-inner">
+        <div class="hero-copy reveal">
+          <h1 class="hero-title">The AI workspace for<br/>product &amp; web designers.</h1>
+          <p class="hero-sub">It takes care of the process so you can focus on the pixels.</p>
+        </div>
+
+        <!-- Interactive Stage Dashboard mockup (recreated from the Figma source). -->
+        <div class="hero-visual reveal">
+          <img class="happ-mobile" src="assets/hero-kanban.png" alt="Stage project view — Apple Website Redesign Kanban" />
+          <div class="happ">
+            <!-- Sidebar (icon rail) -->
+            <aside class="happ-rail">
+              <div class="happ-rail-top">
+                <a class="happ-logo" href="#top" aria-label="Stage"><img src="assets/hero/stage-logo.svg" alt="Stage" width="19" height="23"/></a>
+                <button class="happ-pill happ-pill-search" tabindex="-1" aria-label="Search"><img src="assets/hero/nav-search.svg" alt="" width="15" height="15"/></button>
+                <nav class="happ-nav" aria-label="Sections">
+                  <button class="happ-pill" tabindex="-1" aria-label="Home"><img src="assets/hero/nav-home.svg" alt="" width="15" height="15"/></button>
+                  <button class="happ-pill is-active" tabindex="-1" aria-label="Projects"><img src="assets/hero/nav-projects.svg" alt="" width="15" height="15"/></button>
+                  <button class="happ-pill" tabindex="-1" aria-label="Tasks"><img src="assets/hero/nav-tasks.svg" alt="" width="15" height="15"/></button>
+                  <button class="happ-pill" tabindex="-1" aria-label="Eye"><img src="assets/hero/nav-eye.svg" alt="" width="15" height="15"/></button>
+                  <button class="happ-pill" tabindex="-1" aria-label="Integrations"><img src="assets/hero/nav-integrations.svg" alt="" width="15" height="15"/></button>
+                  <button class="happ-pill" tabindex="-1" aria-label="Profile"><img src="assets/hero/nav-profile.svg" alt="" width="15" height="15"/></button>
+                </nav>
+                <ul class="happ-projects" role="list">
+                  <li><img class="happ-pava" src="assets/hero/proj-baseframe.svg" alt="BaseFrame" width="20" height="20"/></li>
+                  <li><img class="happ-pava" src="assets/hero/proj-test.svg" alt="Test Project" width="20" height="20"/></li>
+                </ul>
+              </div>
+              <div class="happ-rail-bottom">
+                <button class="happ-pill" tabindex="-1" aria-label="Help"><img src="assets/hero/nav-help.svg" alt="" width="15" height="15"/></button>
+                <button class="happ-pill happ-pill-user" tabindex="-1" aria-label="Account"><img class="happ-uava" src="assets/hero/user-pratik.png" alt="" width="24" height="24"/></button>
+              </div>
+            </aside>
+
+            <!-- Main panel -->
+            <section class="happ-main">
+              <header class="happ-head">
+                <div class="happ-title-row">
+                  <h2 class="happ-title">Apple Website Redesign</h2>
+                  <div class="happ-title-actions">
+                    <button class="happ-share" tabindex="-1">Share <img src="assets/hero/ic-share.svg" alt="" width="13" height="13"/></button>
+                    <button class="happ-more" tabindex="-1" aria-label="More"><img src="assets/hero/ic-more.svg" alt="" width="15" height="15"/></button>
+                  </div>
+                </div>
+                <p class="happ-sub">Buy Stage</p>
+
+                <div class="happ-tabs" role="tablist">
+                  <button class="htab is-active" role="tab" tabindex="-1"><img src="assets/hero/tab-overview.svg" alt="" width="13" height="13"/> Overview</button>
+                  <button class="htab" role="tab" tabindex="-1"><img src="assets/hero/tab-research.svg" alt="" width="13" height="13"/> Research</button>
+                  <button class="htab" role="tab" tabindex="-1"><img src="assets/hero/tab-strategy.svg" alt="" width="13" height="13"/> Strategy</button>
+                  <button class="htab" role="tab" tabindex="-1"><img src="assets/hero/tab-moodboard.svg" alt="" width="13" height="13"/> Moodboard</button>
+                  <button class="htab" role="tab" tabindex="-1"><img src="assets/hero/tab-flows.svg" alt="" width="13" height="13"/> Flows</button>
+                  <button class="htab" role="tab" tabindex="-1"><img src="assets/hero/tab-generate.svg" alt="" width="13" height="13"/> Generate</button>
+                  <button class="htab" role="tab" tabindex="-1"><img src="assets/hero/tab-assets.svg" alt="" width="13" height="13"/> Assets</button>
+                </div>
+              </header>
+
+              <div class="kban">
+                <div class="kban-grid">
+                  <!-- Backlog -->
+                  <div class="kcol" data-col="backlog">
+                    <div class="kcol-h"><span>Backlog</span><button class="kadd" tabindex="-1" aria-label="Add"><img src="assets/hero/ic-plus.svg" alt="" width="12" height="12"/></button></div>
+                    <article class="kcard" draggable="true"><header><span class="ktag ktag-research">Research</span><img class="kava" src="assets/hero/ava-card.png" alt="" width="20" height="20"/></header><div class="krow"><img class="kchk" src="assets/hero/ic-uncheck.svg" alt="" width="16" height="16"/><b>Audit current site IA</b></div><p class="kdesc">Map every page, surface dead-ends, and list outdated copy.</p></article>
+                    <article class="kcard" draggable="true"><header><span class="ktag ktag-strategy">Strategy</span><img class="kava" src="assets/hero/ava-card.png" alt="" width="20" height="20"/></header><div class="krow"><img class="kchk" src="assets/hero/ic-uncheck.svg" alt="" width="16" height="16"/><b>Draft positioning angles</b></div><p class="kdesc">Three POVs: utility, lifestyle, prosumer. Pick one to validate.</p></article>
+                    <article class="kcard" draggable="true"><header><span class="ktag ktag-identity">Identity</span></header><div class="krow"><img class="kchk" src="assets/hero/ic-uncheck.svg" alt="" width="16" height="16"/><b>Wordmark exploration</b></div><p class="kdesc">Six directions, low-fi. Mix custom and modified type.</p></article>
+                  </div>
+
+                  <!-- To-do -->
+                  <div class="kcol" data-col="todo">
+                    <div class="kcol-h"><span>To-do</span><button class="kadd" tabindex="-1" aria-label="Add"><img src="assets/hero/ic-plus.svg" alt="" width="12" height="12"/></button></div>
+                    <article class="kcard" draggable="true"><header><span class="ktag ktag-guidelines">Guidelines</span></header><div class="krow"><img class="kchk" src="assets/hero/ic-uncheck.svg" alt="" width="16" height="16"/><b>Define color tokens</b></div><p class="kdesc">Pull from product UI, name semantically, document contrast.</p></article>
+                    <article class="kcard" draggable="true"><header><span class="ktag ktag-strategy">Strategy</span><img class="kava" src="assets/hero/ava-card.png" alt="" width="20" height="20"/></header><div class="krow"><img class="kchk" src="assets/hero/ic-uncheck.svg" alt="" width="16" height="16"/><b>Approve research findings</b></div><p class="kdesc">Walk stakeholders through, capture objections, finalize.</p></article>
+                    <article class="kcard" draggable="true"><header><span class="ktag ktag-identity">Identity</span></header><div class="krow"><img class="kchk" src="assets/hero/ic-uncheck.svg" alt="" width="16" height="16"/><b>Mark grid system</b></div><p class="kdesc">Lock construction grid, optical adjustments, clear-space rules.</p></article>
+                    <article class="kcard" draggable="true"><header><span class="ktag ktag-guidelines">Guidelines</span></header><div class="krow"><img class="kchk" src="assets/hero/ic-uncheck.svg" alt="" width="16" height="16"/><b>Type ramp &amp; spacing</b></div><p class="kdesc">Five sizes, vertical rhythm, hard limits at 13/15/20/32/56.</p></article>
+                  </div>
+
+                  <!-- In-progress -->
+                  <div class="kcol" data-col="inprogress">
+                    <div class="kcol-h"><span>In-progress</span><button class="kadd" tabindex="-1" aria-label="Add"><img src="assets/hero/ic-plus.svg" alt="" width="12" height="12"/></button></div>
+                    <article class="kcard" draggable="true"><header><span class="ktag ktag-identity">Identity</span></header><div class="krow"><img class="kchk" src="assets/hero/ic-uncheck.svg" alt="" width="16" height="16"/><b>Hero composition v2</b></div><p class="kdesc">Tighter type, breathing room, one focal product cell.</p></article>
+                    <article class="kcard" draggable="true"><header><span class="ktag ktag-research">Research</span></header><div class="krow"><img class="kchk" src="assets/hero/ic-uncheck.svg" alt="" width="16" height="16"/><b>Competitor scan — 8 brands</b></div><p class="kdesc">Tear down hero, CTA, and pricing patterns. Tag the unusual.</p></article>
+                  </div>
+
+                  <!-- Done (dimmed) -->
+                  <div class="kcol kcol-done" data-col="done">
+                    <div class="kcol-h"><span>Done</span></div>
+                    <article class="kcard" draggable="true"><header><span class="ktag ktag-research">Research</span></header><div class="krow"><img class="kchk kchk-on" src="assets/hero/ic-check.svg" alt="" width="16" height="16"/><b>Stakeholder interviews</b></div><p class="kdesc">Six conversations, themes captured, quotes archived in Notion.</p></article>
+                    <article class="kcard" draggable="true"><header><span class="ktag ktag-strategy">Strategy</span></header><div class="krow"><img class="kchk kchk-on" src="assets/hero/ic-check.svg" alt="" width="16" height="16"/><b>Kickoff alignment</b></div><p class="kdesc">Scope, timeline, comms. Signed off in Slack on Monday.</p></article>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── LOGO BAR ───────────────────────────────────────── -->
+    <section class="logobar">
+      <div class="container">
+        <p class="logobar-label">Trusted by designers using</p>
+        <ul class="logobar-list" role="list">
+          <li><img src="https://unpkg.com/simple-icons@v13/icons/anthropic.svg" alt="Claude" /><span>Claude</span></li>
+          <li><img src="https://unpkg.com/simple-icons@v13/icons/openai.svg" alt="Codex" /><span>Codex</span></li>
+          <li><img src="https://unpkg.com/simple-icons@v13/icons/figma.svg" alt="Figma" /><span>Figma</span></li>
+          <li><img src="https://unpkg.com/simple-icons@v13/icons/notion.svg" alt="Notion" /><span>Notion</span></li>
+          <li><img src="assets/icons/stitch.svg" alt="Stitch" /><span>Stitch</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ─── FEATURES ───────────────────────────────────────── -->
+    <section id="features" class="features">
+      <div class="container features-stack">
+
+        <!-- Feature 1 -->
+        <article class="feature reveal">
+          <header class="feature-head">
+            <h2 class="feature-title">Every project, one place.</h2>
+            <p class="feature-sub">Track phases, tasks, and timelines the way designers actually work. See every project at a glance and know what's next.</p>
+          </header>
+          <div class="feature-visual">
+            <div class="bezel">
+              <div class="bezel-core demo-placeholder"></div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Feature 2 -->
+        <article class="feature reveal feature-flip">
+          <header class="feature-head">
+            <h2 class="feature-title">Research, then strategy.</h2>
+            <p class="feature-sub">Drop a URL and Stage analyzes competitors, positioning, and patterns - then turns it into a strategy you can approve.</p>
+          </header>
+          <div class="feature-visual">
+            <div class="bezel">
+              <div class="bezel-core demo-placeholder"></div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Feature 3 -->
+        <article class="feature reveal">
+          <header class="feature-head">
+            <h2 class="feature-title">From strategy to screens.</h2>
+            <p class="feature-sub">Turn your approved strategy into brand concepts and wireframes, then push it straight to Figma when you're ready.</p>
+          </header>
+          <div class="feature-visual">
+            <div class="bezel">
+              <div class="bezel-core demo-placeholder"></div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Feature 4 -->
+        <article class="feature reveal feature-flip">
+          <header class="feature-head">
+            <h2 class="feature-title">Share work your way.</h2>
+            <p class="feature-sub">Give clients a clean, branded space to see progress, leave feedback, and approve deliverables - no more status emails.</p>
+          </header>
+          <div class="feature-visual">
+            <div class="bezel">
+              <div class="bezel-core demo-placeholder"></div>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ─── PRICING ────────────────────────────────────────── -->
+    <section id="pricing" class="pricing">
+      <div class="container">
+        <header class="pricing-head reveal">
+          <h2 class="section-title">Simple pricing.<br/>Scales with your studio.</h2>
+          <div class="billing-toggle" role="tablist" aria-label="Billing period">
+            <button class="bt-opt is-active" role="tab" aria-selected="true" data-period="monthly">Monthly</button>
+            <button class="bt-opt" role="tab" aria-selected="false" data-period="yearly">Yearly <span class="bt-save">Save 17%</span></button>
+          </div>
+        </header>
+
+        <div class="price-grid reveal">
+          <!-- Start -->
+          <article class="price-card">
+            <header class="price-head">
+              <h3 class="price-name">Start</h3>
+            </header>
+            <div class="price-body">
+              <div class="price-amount">
+                <span class="price-num" data-monthly="$9" data-yearly="$7">$9</span>
+                <span class="price-per">/month</span>
+              </div>
+              <p class="price-desc">For solo designers getting started.</p>
+            </div>
+            <ul class="price-feats" role="list">
+              <li><img src="assets/icons/projects.svg" alt="" />3 active projects</li>
+              <li><img src="assets/icons/connect.svg" alt="" />Connect claude, figma, notion &amp; more</li>
+              <li><img src="assets/icons/portal.svg" alt="" />Client portal (Stage branding)</li>
+              <li><img src="assets/icons/storage.svg" alt="" />Unlimited file storage</li>
+              <li><img src="assets/icons/ai.svg" alt="" />Full AI workflow access</li>
+              <li><img src="assets/icons/support.svg" alt="" />Standard support</li>
+            </ul>
+            <a class="btn btn-secondary btn-block" href="#start">Get Started</a>
+          </article>
+
+          <!-- Pro -->
+          <article class="price-card price-card-featured">
+            <header class="price-head">
+              <h3 class="price-name price-name-brand">Pro</h3>
+              <span class="price-tag price-tag-brand">Most Popular</span>
+            </header>
+            <div class="price-body">
+              <div class="price-amount">
+                <span class="price-num" data-monthly="$19" data-yearly="$16">$19</span>
+                <span class="price-per">/month</span>
+              </div>
+              <p class="price-desc">For freelancers who need full control.</p>
+            </div>
+            <ul class="price-feats" role="list">
+              <li><img src="assets/icons/projects.svg" alt="" />Unlimited projects</li>
+              <li><img src="assets/icons/connect.svg" alt="" />Connect claude, figma, notion &amp; more</li>
+              <li><img src="assets/icons/portal.svg" alt="" />Custom client portal</li>
+              <li><img src="assets/icons/storage.svg" alt="" />Unlimited file storage</li>
+              <li><img src="assets/icons/ai.svg" alt="" />Full AI workflow access</li>
+              <li><img src="assets/icons/support.svg" alt="" />Priority support</li>
+            </ul>
+            <a class="btn btn-primary btn-block" href="#start">Start 7-Day Trial</a>
+          </article>
+
+          <!-- Studio -->
+          <article class="price-card">
+            <header class="price-head">
+              <h3 class="price-name">Studio</h3>
+              <span class="price-tag">Team Plan</span>
+            </header>
+            <div class="price-body">
+              <div class="price-row">
+                <div class="price-amount">
+                  <span class="price-num is-studio-price">$49</span>
+                  <span class="price-per">/month</span>
+                </div>
+                <div class="seat-stepper" role="group" aria-label="Seats"
+                     data-min="3" data-seats="3"
+                     data-base-monthly="49" data-base-yearly="41"
+                     data-extra-monthly="15" data-extra-yearly="12">
+                  <button type="button" class="seat-btn seat-dec" aria-label="Remove seat" disabled>−</button>
+                  <span class="seat-count">3</span>
+                  <button type="button" class="seat-btn seat-inc" aria-label="Add seat">+</button>
+                </div>
+              </div>
+              <p class="price-desc">For design teams and studios.</p>
+            </div>
+            <ul class="price-feats" role="list">
+              <li><img src="assets/icons/seats.svg" alt="" />3 seats included</li>
+              <li><img src="assets/icons/projects.svg" alt="" />Unlimited projects</li>
+              <li><img src="assets/icons/portal.svg" alt="" />Custom client portal</li>
+              <li><img src="assets/icons/connect.svg" alt="" />Shared workspace &amp; integrations</li>
+              <li><img src="assets/icons/roles.svg" alt="" />Role permissions (owner, designer, viewer)</li>
+              <li><img src="assets/icons/support.svg" alt="" />Priority support</li>
+            </ul>
+            <a class="btn btn-secondary btn-block" href="#sales">Start 7-Day Trial</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ─── FOOTER ───────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-cta reveal">
+        <h2 class="footer-headline">Your workflow.<br/>Your AI. Your rules.</h2>
+        <a class="btn btn-primary" href="#start">Start for free</a>
+      </div>
+
+      <div class="footer-cols">
+        <a class="footer-brand" href="#top" aria-label="Stage home">
+          <img src="assets/logo-mark.svg" alt="" width="22" height="22" />
+        </a>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <ul role="list">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="#login">Login</a></li>
+            <li><a href="#start">Sign up</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Workflow</h4>
+          <ul role="list">
+            <li><a href="#features">Projects</a></li>
+            <li><a href="#features">Research</a></li>
+            <li><a href="#features">Strategy</a></li>
+            <li><a href="#features">Client portal</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Resources</h4>
+          <ul role="list">
+            <li><a href="#examples">Examples</a></li>
+            <li><a href="#templates">Templates</a></li>
+            <li><a href="#changelog">Changelog</a></li>
+            <li><a href="#faq">FAQ</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <ul role="list">
+            <li><a href="#contact">Contact</a></li>
+            <li><a href="#privacy">Privacy</a></li>
+            <li><a href="#terms">Terms</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../Downloads/stage-design-system"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "Stage V2 LP",
+		"liveServer.settings.port": 5501
+	}
+}

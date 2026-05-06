@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stage for macOS — The AI workspace for designers</title>
+  <meta name="description" content="Stage is the only tool where designers manage clients, run research, and generate designs in one place. Powered by your AI, not ours." />
+  <link rel="icon" type="image/svg+xml" href="assets/logo-mark.svg" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ─── NAV ──────────────────────────────────────────────── -->
+  <header class="nav-wrap">
+    <nav class="nav" aria-label="Primary">
+      <a class="nav-brand" href="#top" aria-label="Stage home">
+        <img src="assets/logo-mark.svg" alt="" width="22" height="22" />
+        <span class="wordmark">Stage</span>
+      </a>
+      <ul class="nav-links" role="list">
+        <li><a href="#features">Stage</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#login">Login</a></li>
+      </ul>
+      <a class="btn btn-primary btn-sm" href="#start">Start for free</a>
+    </nav>
+  </header>
+
+  <main id="top">
+
+    <!-- ─── HERO ───────────────────────────────────────────── -->
+    <section class="hero hero-left">
+      <div class="container">
+        <div class="hero-copy reveal">
+          <h1 class="hero-title">The AI workspace<br/>for designers.</h1>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="#download">
+              Download for macOS
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                <path d="M8 2v9m0 0 3.5-3.5M8 11 4.5 7.5M2.5 13.5h11"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Product visual: faux Stage app window -->
+        <div class="hero-visual reveal" aria-hidden="true">
+          <div class="app-frame">
+            <div class="app-rail">
+              <div class="rail-logo"><img src="assets/logo-mark.svg" alt="" width="18" height="18"/></div>
+              <div class="rail-tile is-active"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h3l1.5 1.5h4.5A1.5 1.5 0 0 1 14 6v6.5A1.5 1.5 0 0 1 12.5 14h-9A1.5 1.5 0 0 1 2 12.5z"/></svg></div>
+              <div class="rail-tile"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8 8 2l6 6v5.5A1.5 1.5 0 0 1 12.5 15h-9A1.5 1.5 0 0 1 2 13.5z"/><path d="M6 15v-4h4v4"/></svg></div>
+              <div class="rail-tile"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m13 13-2.6-2.6"/></svg></div>
+              <div class="rail-tile"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M3 8h10M3 12h6"/></svg></div>
+              <div class="rail-tile"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2a8 8 0 0 1 0 12 8 8 0 0 1 0-12"/></svg></div>
+              <div class="rail-spacer"></div>
+              <div class="rail-avatar">AN</div>
+            </div>
+            <div class="app-body">
+              <div class="app-topbar">
+                <div class="crumb">
+                  <span class="crumb-muted">Projects</span>
+                  <span class="crumb-sep">/</span>
+                  <span>Northbeam — Identity refresh</span>
+                </div>
+                <div class="topbar-actions">
+                  <button class="chip">Share</button>
+                  <button class="chip chip-icon" aria-label="More">⋯</button>
+                </div>
+              </div>
+
+              <div class="app-tabs">
+                <span class="tab is-active">Overview</span>
+                <span class="tab">Research</span>
+                <span class="tab">Strategy</span>
+                <span class="tab">Moodboard</span>
+                <span class="tab">Flows</span>
+                <span class="tab">Generate</span>
+                <span class="tab">Assets</span>
+              </div>
+
+              <div class="app-grid">
+                <div class="card project-meta">
+                  <div class="card-h">Project</div>
+                  <div class="meta-row"><span class="meta-k">Client</span><span class="meta-v">Northbeam Inc.</span></div>
+                  <div class="meta-row"><span class="meta-k">Phase</span><span class="pill pill-research">Research</span></div>
+                  <div class="meta-row"><span class="meta-k">Owner</span><span class="meta-v">You</span></div>
+                  <div class="meta-row"><span class="meta-k">Due</span><span class="meta-v">May 21</span></div>
+                </div>
+
+                <div class="card task-list">
+                  <div class="card-h">
+                    <span>Tasks</span>
+                    <span class="meta-ghost">4 of 9</span>
+                  </div>
+                  <ul class="tasks" role="list">
+                    <li class="task is-done"><span class="check"></span><span class="task-name">Audit current site &amp; positioning</span><span class="pill pill-strategy">Strategy</span></li>
+                    <li class="task is-done"><span class="check"></span><span class="task-name">Competitor scan — 8 brands</span><span class="pill pill-research">Research</span></li>
+                    <li class="task is-prog"><span class="check"></span><span class="task-name">Draft strategy doc v1</span><span class="pill pill-strategy">Strategy</span></li>
+                    <li class="task"><span class="check"></span><span class="task-name">Wireframes — homepage</span><span class="pill pill-guidelines">Guidelines</span></li>
+                    <li class="task"><span class="check"></span><span class="task-name">Brand concept directions</span><span class="pill pill-identity">Identity</span></li>
+                  </ul>
+                </div>
+
+                <div class="card activity">
+                  <div class="card-h">
+                    <span>Recent activity</span>
+                    <span class="pill pill-active">Active</span>
+                  </div>
+                  <ul class="activity-list" role="list">
+                    <li><span class="ava">EM</span><div class="act-body"><div><b>Eli</b> approved <em>Strategy v0.3</em></div><div class="act-time">12 min ago</div></div></li>
+                    <li><span class="ava">JK</span><div class="act-body"><div><b>Jules</b> uploaded <em>moodboard-02.fig</em></div><div class="act-time">1 hr ago</div></div></li>
+                    <li><span class="ava">AN</span><div class="act-body"><div><b>You</b> ran research on <em>9 competitors</em></div><div class="act-time">Yesterday</div></div></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── LOGO BAR ───────────────────────────────────────── -->
+    <section class="logobar">
+      <div class="container">
+        <p class="logobar-label">Trusted by designers using</p>
+        <ul class="logobar-list" role="list">
+          <li><img src="https://cdn.simpleicons.org/claude/9A9A93" alt="Claude" /><span>Claude</span></li>
+          <li><img src="https://cdn.simpleicons.org/openai/9A9A93" alt="Codex" /><span>Codex</span></li>
+          <li><img src="https://cdn.simpleicons.org/figma/9A9A93" alt="Figma" /><span>Figma</span></li>
+          <li><img src="https://cdn.simpleicons.org/notion/9A9A93" alt="Notion" /><span>Notion</span></li>
+          <li><img src="https://cdn.simpleicons.org/googlegemini/9A9A93" alt="Stitch" /><span>Stitch</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ─── FEATURES ───────────────────────────────────────── -->
+    <section id="features" class="features">
+      <div class="container features-stack">
+
+        <!-- Feature 1 -->
+        <article class="feature reveal">
+          <header class="feature-head">
+            <h2 class="feature-title">Every project, one place.</h2>
+            <p class="feature-sub">Track phases, tasks, and timelines the way designers actually work — not with a Notion template you built yourself. See every project at a glance and know what's next.</p>
+          </header>
+          <div class="feature-visual">
+            <div class="bezel">
+              <div class="bezel-core demo-placeholder"></div>
+            </div>
+            <div class="demo-meta"><span class="demo-dot"></span>Demo · 0:48</div>
+          </div>
+        </article>
+
+        <!-- Feature 2 -->
+        <article class="feature reveal feature-flip">
+          <header class="feature-head">
+            <h2 class="feature-title">Research any market.<br/>Strategy in minutes.</h2>
+            <p class="feature-sub">Drop a URL and let Stage analyze competitors, positioning, and patterns using your own AI. Then turn that research into a strategy document you can review, approve, and build from.</p>
+          </header>
+          <div class="feature-visual">
+            <div class="bezel">
+              <div class="bezel-core demo-placeholder"></div>
+            </div>
+            <div class="demo-meta"><span class="demo-dot"></span>Demo · 1:12</div>
+          </div>
+        </article>
+
+        <!-- Feature 3 -->
+        <article class="feature reveal">
+          <header class="feature-head">
+            <h2 class="feature-title">From strategy to screens.</h2>
+            <p class="feature-sub">Turn your approved strategy into brand concepts and wireframes without starting from scratch. When you're happy, push it straight to Figma and keep moving.</p>
+          </header>
+          <div class="feature-visual">
+            <div class="bezel">
+              <div class="bezel-core demo-placeholder"></div>
+            </div>
+            <div class="demo-meta"><span class="demo-dot"></span>Demo · 1:30</div>
+          </div>
+        </article>
+
+        <!-- Feature 4 -->
+        <article class="feature reveal feature-flip">
+          <header class="feature-head">
+            <span class="eyebrow">Client portal</span>
+            <h2 class="feature-title">Share work your way.</h2>
+            <p class="feature-sub">Give your clients a clean, branded space to see progress, leave feedback, and approve deliverables. No more screenshots in WhatsApp or status emails nobody reads.</p>
+          </header>
+          <div class="feature-visual">
+            <div class="bezel">
+              <div class="bezel-core demo-portal">
+                <div class="portal-head">
+                  <div class="portal-brand">
+                    <span class="portal-mark">N</span>
+                    <div>
+                      <div class="portal-title">Northbeam × Studio</div>
+                      <div class="portal-sub">northbeam.stage.design</div>
+                    </div>
+                  </div>
+                  <span class="pill pill-active">Live</span>
+                </div>
+                <div class="portal-grid">
+                  <div class="portal-card">
+                    <div class="portal-k">Phase 02 of 04</div>
+                    <div class="portal-v">Strategy</div>
+                    <div class="portal-bar"><span style="width:48%"></span></div>
+                  </div>
+                  <div class="portal-card">
+                    <div class="portal-k">Awaiting approval</div>
+                    <div class="portal-v">Strategy v0.3</div>
+                    <div class="portal-actions">
+                      <button class="chip chip-dark">Approve</button>
+                      <button class="chip">Comment</button>
+                    </div>
+                  </div>
+                  <div class="portal-card">
+                    <div class="portal-k">Next milestone</div>
+                    <div class="portal-v">Brand concepts</div>
+                    <div class="meta-ghost">Delivers May 30</div>
+                  </div>
+                </div>
+                <div class="portal-feed">
+                  <div class="card-h">Latest delivery</div>
+                  <ul class="activity-list" role="list">
+                    <li><span class="ava">AN</span><div class="act-body"><div><b>Adrien</b> shared <em>Strategy v0.3</em> for review</div><div class="act-time">Today, 09:14</div></div></li>
+                    <li><span class="ava">EM</span><div class="act-body"><div><b>Eli (client)</b> left 3 comments on <em>Positioning</em></div><div class="act-time">Yesterday</div></div></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="demo-meta"><span class="demo-dot"></span>Demo · 0:55</div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ─── PRICING ────────────────────────────────────────── -->
+    <section id="pricing" class="pricing">
+      <div class="container">
+        <header class="pricing-head reveal">
+          <h2 class="section-title">Simple pricing.<br/>Scales with your studio.</h2>
+          <p class="section-sub">One subscription. Bring your own AI. Cancel anytime — Stage doesn't lock you in.</p>
+          <div class="billing-toggle" role="tablist" aria-label="Billing period">
+            <button class="bt-opt is-active" role="tab" aria-selected="true" data-period="monthly">Monthly</button>
+            <button class="bt-opt" role="tab" aria-selected="false" data-period="yearly">Yearly <span class="bt-save">Save 17%</span></button>
+          </div>
+        </header>
+
+        <div class="price-grid reveal">
+          <!-- Start -->
+          <article class="price-card">
+            <header>
+              <h3 class="price-name">Start</h3>
+              <p class="price-desc">For solo designers getting their first projects off the ground.</p>
+            </header>
+            <div class="price-amount">
+              <span class="price-cur">$</span>
+              <span class="price-num" data-monthly="9" data-yearly="7">9</span>
+              <span class="price-per">/ month</span>
+            </div>
+            <p class="price-fine">Billed monthly. Cancel anytime.</p>
+            <a class="btn btn-secondary btn-block" href="#start">Start for free</a>
+            <ul class="price-feats" role="list">
+              <li>Up to 3 active projects</li>
+              <li>Bring your own AI key</li>
+              <li>Tasks, moodboards, flows</li>
+              <li>Figma export</li>
+            </ul>
+          </article>
+
+          <!-- Pro -->
+          <article class="price-card price-card-featured">
+            <span class="price-badge">Most popular</span>
+            <header>
+              <h3 class="price-name">Pro</h3>
+              <p class="price-desc">For freelance designers running a full client pipeline.</p>
+            </header>
+            <div class="price-amount">
+              <span class="price-cur">$</span>
+              <span class="price-num" data-monthly="19" data-yearly="16">19</span>
+              <span class="price-per">/ month</span>
+            </div>
+            <p class="price-fine">Everything in Start, plus —</p>
+            <a class="btn btn-primary btn-block" href="#start">Start free trial</a>
+            <ul class="price-feats" role="list">
+              <li>Unlimited projects</li>
+              <li>Research &amp; strategy generation</li>
+              <li>Branded client portal</li>
+              <li>Custom domain</li>
+              <li>Priority support</li>
+            </ul>
+          </article>
+
+          <!-- Studio -->
+          <article class="price-card">
+            <header>
+              <h3 class="price-name">Studio</h3>
+              <p class="price-desc">For small design studios collaborating with multiple seats.</p>
+            </header>
+            <div class="price-amount">
+              <span class="price-cur">$</span>
+              <span class="price-num" data-monthly="49" data-yearly="41">49</span>
+              <span class="price-per">/ month</span>
+            </div>
+            <p class="price-fine">Includes 3 seats. $15 per additional seat.</p>
+            <div class="seat-row">
+              <span class="meta-k">Seats</span>
+              <span class="meta-v">3 included</span>
+              <span class="meta-ghost">· $0 extra</span>
+            </div>
+            <a class="btn btn-secondary btn-block" href="#sales">Talk to sales</a>
+            <ul class="price-feats" role="list">
+              <li>Everything in Pro</li>
+              <li>Shared asset library</li>
+              <li>Roles &amp; permissions</li>
+              <li>SSO &amp; audit log</li>
+              <li>Dedicated success manager</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── FINAL CTA ──────────────────────────────────────── -->
+    <section class="final-cta">
+      <div class="container">
+        <div class="final-card reveal">
+          <h2 class="final-title">Your workflow.<br/>Your AI. Your rules.</h2>
+          <p class="final-sub">Connect your tools, run your process, own your output. Stage never touches your data or your credits.</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="#start">Start for free</a>
+            <a class="btn btn-secondary" href="#pricing">See pricing</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ─── FOOTER ───────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="container footer-row">
+      <a class="nav-brand" href="#top" aria-label="Stage home">
+        <img src="assets/logo-mark.svg" alt="" width="20" height="20" />
+        <span class="wordmark">Stage</span>
+      </a>
+      <ul class="footer-links" role="list">
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#login">Login</a></li>
+        <li><a href="#terms">Terms</a></li>
+        <li><a href="#privacy">Privacy</a></li>
+      </ul>
+      <p class="footer-copy">© 2026 Stage Design Inc. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
