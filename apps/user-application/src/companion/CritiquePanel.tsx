@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import type { CompanionState } from "@shared/models/desktop";
+import { selectedProjectContext, selectedProjectContextSummary } from "../project-context";
 import { critiqueThread } from "./data/critiqueThread";
 import { useDraggablePanel } from "./hooks/useDraggablePanel";
 
@@ -27,11 +28,13 @@ const initialStageReply: ChatMessage = {
   id: "initial-stage",
   role: "stage",
   content: [
-    "The spacing between sections is 16px. Your brand strategy specifies 32px minimum for the airy direction.",
-    "The CTA color #FF4444 doesn’t match the approved palette. Primary actions should be #8782F5",
-    "Headline hierarchy looks good. Matches the typography scale.",
+    `${selectedProjectContext.projectName} is currently in ${selectedProjectContext.currentPhase ?? "active work"}, so I would judge this pass against brief clarity first.`,
+    selectedProjectContext.visualDirection
+      ? `Visual direction: ${selectedProjectContext.visualDirection}`
+      : "Visual direction is not set for this project yet.",
+    "The CTA color #FF4444 does not match the approved palette. Primary actions should use #8782F5.",
   ],
-  source: "Brief",
+  source: "Project Context",
 };
 
 function createMockReply(prompt: string): ChatMessage {
@@ -39,10 +42,10 @@ function createMockReply(prompt: string): ChatMessage {
     id: `stage-${Date.now()}`,
     role: "stage",
     content: [
-      `I’d treat “${prompt}” as a follow-up critique pass and compare it against the brief, palette, spacing, and hierarchy.`,
-      "Mock note: this frontend path is wired now, so the next step can swap this response generator for a real agent stream.",
+      `I would treat "${prompt}" as a follow-up critique pass against ${selectedProjectContext.projectName}.`,
+      selectedProjectContextSummary,
     ],
-    source: "Brief",
+    source: "Project Context",
   };
 }
 

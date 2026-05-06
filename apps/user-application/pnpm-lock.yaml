@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@stage/data-ops':
+        specifier: file:../../packages/data-ops
+        version: file:../../packages/data-ops
       '@tanstack/react-query':
         specifier: ^5.66.0
         version: 5.100.9(react@19.2.5)
@@ -462,6 +465,9 @@ packages:
   '@sindresorhus/is@4.6.0':
     resolution: {integrity: sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw==}
     engines: {node: '>=10'}
+
+  '@stage/data-ops@file:../../packages/data-ops':
+    resolution: {directory: ../../packages/data-ops, type: directory}
 
   '@szmarczak/http-timer@4.0.6':
     resolution: {integrity: sha512-4BAffykYOgO+5nzBWYwE3W90sBgLJoUPRWWcL8wlyiM8IB8ipJz3UMJ9KXQd1RKQXpKp8Tutn80HZtWsu2u76w==}
@@ -1516,6 +1522,10 @@ snapshots:
     optional: true
 
   '@sindresorhus/is@4.6.0': {}
+
+  '@stage/data-ops@file:../../packages/data-ops':
+    dependencies:
+      zod: 4.4.2
 
   '@szmarczak/http-timer@4.0.6':
     dependencies:

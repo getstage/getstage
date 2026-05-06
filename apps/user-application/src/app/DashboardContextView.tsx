@@ -8,10 +8,17 @@ import { RevenueOverviewCard } from "../dashboard/components/RevenueOverviewCard
 import { UpcomingTasksCard } from "../dashboard/components/UpcomingTasksCard";
 import { dashboardSnapshot } from "../dashboard/data/dashboardSnapshot";
 import { useDesktopBridge } from "../hooks/useDesktopBridge";
+import { selectedProjectContext } from "../project-context";
 import { WorkspaceFrame } from "./WorkspaceFrame";
 
 export function DashboardContextView() {
   const desktop = useDesktopBridge();
+  const openContextTasks = selectedProjectContext.tasks.filter(
+    (task) => task.status !== "done",
+  ).length;
+  const currentPhaseLabel = selectedProjectContext.currentPhase ?? "active work";
+  const dashboardSubheading = `${selectedProjectContext.projectName} is in ${currentPhaseLabel} with ${openContextTasks} open decisions ready for review.`;
+
   useQuery({
     queryKey: ["desktop", "active-app"],
     queryFn: () => desktop.screen.getActiveApp(),
@@ -24,7 +31,7 @@ export function DashboardContextView() {
           <div className="flex flex-col gap-[18px]">
             <DashboardHeader
               greeting={dashboardSnapshot.greeting}
-              subheading={dashboardSnapshot.subheading}
+              subheading={dashboardSubheading}
             />
             <MetricGrid metrics={dashboardSnapshot.metrics} />
           </div>

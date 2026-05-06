@@ -246,6 +246,7 @@ packages/data-ops now exists with:
   domain/design-critique.ts
 
 It is intentionally not yet wired into apps/user-application or apps/web-application.
+It was pushed on monorepo in commit ce6aba9.
 ```
 
 This keeps Convex, desktop, and Rust aligned without letting React or Rust invent separate project-context models.
@@ -1175,6 +1176,35 @@ Convex-backed selected project context can be shaped through ProjectContext
 ```
 
 Keep full Convex backend files in `apps/web-application/convex` for now. Move them into `packages/data-ops/convex` later, after contract boundaries are stable.
+
+Current Phase 2 status:
+
+```txt
+Done:
+  packages/data-ops exists
+  ProjectContext Zod schema exists
+  EngineCommand / EngineEvent Zod schemas exist
+  data-ops typecheck passed locally
+  apps/user-application typecheck/build passed after package creation
+  link apps/user-application to packages/data-ops
+  map selected Convex project/read-model data into ProjectContext
+  validate the selected context with projectContextSchema
+  dashboard and critique mocks consume validated ProjectContext
+
+Next:
+  add Electron sidecar supervisor
+  keep live Convex desktop subscription deferred until after the runtime bridge
+```
+
+The first connection should be read-oriented. Do not move mutations or the full Convex backend into `packages/data-ops` yet.
+
+Live Convex-backed desktop data requires desktop auth first. The auth plan lives in:
+
+```txt
+apps/user-application/docs/05-06-desktop-auth-deep-link-plan.md
+```
+
+Website login, onboarding, billing, payments, and account flows stay in `apps/web-application`. Desktop should launch the website login flow, receive a `stage://auth` callback, store the desktop session securely through Electron main, and initialize Convex only after that session exists.
 
 ### Phase 3: Electron Sidecar Supervisor
 

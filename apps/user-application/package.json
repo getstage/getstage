@@ -11,6 +11,7 @@
     "preview": "env -u ELECTRON_RUN_AS_NODE electron-vite preview"
   },
   "dependencies": {
+    "@stage/data-ops": "file:../../packages/data-ops",
     "@tanstack/react-query": "^5.66.0",
     "@tanstack/react-router": "^1.112.0",
     "clsx": "^2.1.1",

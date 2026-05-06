@@ -3,6 +3,7 @@
 Date: May 6, 2026  
 Branch: `monorepo`  
 Status: In progress
+Latest pushed checkpoint: `ce6aba9 created data ops`
 
 ## Scope
 
@@ -38,17 +39,20 @@ No local AI inference.
 - [x] 14. Add typed `engine.ping -> engine.ready`.
 - [x] 15. Create `packages/data-ops` with shared Zod contracts/domain models.
 - [x] 16. Add shared `ProjectContext`, `EngineCommand`, and `EngineEvent` contracts in `packages/data-ops`.
-- [ ] 17. Wire desktop to consume Convex-backed project context through `data-ops` contracts.
+- [x] 17. Wire desktop to consume selected project context through `data-ops` contracts.
 - [ ] 18. Add Electron sidecar supervisor.
 - [ ] 19. Add renderer engine status bridge.
-- [ ] 20. Add fake provider runner that receives typed project context.
-- [ ] 21. Add Codex/Claude provider detection.
-- [ ] 22. Add deep file scanner.
-- [ ] 23. Add `.codex` / `.claude` discovery.
-- [ ] 24. Add design critique job pipeline.
-- [ ] 25. Add cloud voice transcription flow.
-- [ ] 26. Add basic Figma integration layer.
-- [ ] 27. Add basic Notion integration layer.
+- [ ] 20. Add desktop auth launcher and `stage://auth` deep-link callback plan/implementation.
+- [ ] 21. Add secure desktop session storage and authenticated boot state.
+- [ ] 22. Wire live Convex-backed selected project context after desktop auth works.
+- [ ] 23. Add fake provider runner that receives typed project context.
+- [ ] 24. Add Codex/Claude provider detection.
+- [ ] 25. Add deep file scanner.
+- [ ] 26. Add `.codex` / `.claude` discovery.
+- [ ] 27. Add design critique job pipeline.
+- [ ] 28. Add cloud voice transcription flow.
+- [ ] 29. Add basic Figma integration layer.
+- [ ] 30. Add basic Notion integration layer.
 
 ## Current Files Added
 
@@ -77,6 +81,10 @@ packages/data-ops/src/contracts/project-context.ts
 packages/data-ops/src/domain/design-critique.ts
 packages/data-ops/src/domain/project-context.ts
 packages/data-ops/src/index.ts
+apps/user-application/src/project-context/convexProjectContext.ts
+apps/user-application/src/project-context/data/selectedProjectContext.ts
+apps/user-application/src/project-context/index.ts
+apps/user-application/docs/05-06-desktop-auth-deep-link-plan.md
 ```
 
 ## Current App Layout
@@ -88,10 +96,10 @@ apps/
 └── data-service/      # Rust local engine sidecar
 ```
 
-Planned shared package:
+Shared package:
 
 ```txt
-packages/data-ops/      # Shared Stage cloud/domain/contracts layer; not created yet
+packages/data-ops/      # Shared Stage cloud/domain/contracts layer
 ```
 
 Important: `data-ops` is the intended clean layer for shared Zod contracts and project context. Do not duplicate project-context schemas randomly across desktop and Rust.
@@ -220,12 +228,24 @@ curl http://127.0.0.1:48221/v1/version
 - `cargo fmt --manifest-path apps/data-service/Cargo.toml` passes after WebSocket changes.
 - `cargo check --manifest-path apps/data-service/Cargo.toml` passes after WebSocket changes.
 - Local smoke test on port `48222` returned HTTP health/readiness/version responses and a WebSocket `engine.ready` event for `engine.ping`.
+- Created `packages/data-ops` and pushed it in commit `ce6aba9`.
+- `packages/data-ops` dependencies were installed locally.
+- `packages/data-ops` typecheck passed locally.
+- `pnpm run typecheck` in `apps/user-application/` passes after data-ops was created.
+- `pnpm run build` in `apps/user-application/` passes after data-ops was created.
+- Added `@stage/data-ops` as a local `file:../../packages/data-ops` dependency in `apps/user-application`.
+- Added a desktop read adapter that maps a Convex-like selected project/read-model shape into `ProjectContext`.
+- The selected desktop project context is validated by `projectContextSchema` before the dashboard or critique panel consumes it.
+- The dashboard header and critique mock now read from the shared `ProjectContext` path instead of isolated local copy.
+- `pnpm run typecheck` in `packages/data-ops/` passes after the desktop project-context bridge.
+- `pnpm run typecheck` in `apps/user-application/` passes after the desktop project-context bridge.
+- `pnpm run build` in `apps/user-application/` passes after the desktop project-context bridge.
 
 ## Notes
 
 - This is intentionally not connected to Electron yet.
 - The Rust WebSocket boundary now exists, but it is intentionally minimal.
-- The next safe implementation step is `packages/data-ops` contracts/domain setup, so Convex-backed project context has a clean typed path before provider work.
+- The desktop now consumes selected project context through `packages/data-ops`; the live Convex subscription path is still deferred.
 - Electron sidecar supervision should come after the first `data-ops` contracts exist, so engine commands already have the right project-context shape.
 - Figma and Notion remain production V1 scope, but they should come after the sidecar/chat/file-search foundation.
 
@@ -244,10 +264,16 @@ Done:
 - `/v1/events` accepts WebSocket connections.
 - `engine.ping` returns `engine.ready`.
 - `packages/data-ops` now contains first Zod contracts for `EngineCommand`, `EngineEvent`, and `ProjectContext`.
+- `apps/user-application` now imports `@stage/data-ops`.
+- Desktop selected project context is shaped through `projectContextSchema`.
+- Dashboard and critique mocks consume the validated selected `ProjectContext`.
+- Desktop auth/deep-link plan is documented in `apps/user-application/docs/05-06-desktop-auth-deep-link-plan.md`.
 
 Not done yet:
 
-- Convex-backed project context consumed through `data-ops`.
+- Desktop auth launcher and `stage://auth` callback implementation.
+- Secure desktop session storage.
+- Live Convex-backed project context subscription in the desktop app.
 - Electron sidecar supervisor.
 - Renderer engine status bridge.
 - Provider detection, file scanner, design critique, voice, Figma, and Notion layers.
@@ -255,5 +281,40 @@ Not done yet:
 Next safe step:
 
 ```txt
-Wire desktop Convex project context through packages/data-ops before provider/deep-integration work.
+Add Electron sidecar supervisor before provider/deep-integration work.
+```
+
+## Next Agent Task
+
+Goal:
+
+```txt
+Add the Electron sidecar supervisor for apps/data-service, without starting provider execution yet.
+```
+
+Recommended order:
+
+1. Read `apps/user-application/docs/05-05-stage-monorepo-architecture.md`.
+2. Read this tracker.
+3. Inspect `apps/user-application/electron/main.ts`, `windows.ts`, `ipc.ts`, and `preload.ts`.
+4. Inspect `apps/data-service/README.md` and `apps/data-service/src/config/mod.rs`.
+5. Add an Electron main-process sidecar manager with start, readiness polling, and shutdown.
+6. Keep the renderer behind the preload bridge; do not expose shell/process access.
+7. Do not mix desktop auth/deep-link implementation into the sidecar supervisor change.
+8. Add the smallest IPC/status surface needed for the renderer bridge in Step 19.
+9. Run:
+
+```bash
+cd packages/data-ops && pnpm run typecheck
+cd ../../apps/user-application && pnpm run typecheck && pnpm run build
+```
+
+Do not start provider execution, file scanner, Figma, or Notion work until the sidecar lifecycle is stable.
+
+Auth note:
+
+```txt
+Live Convex data in the desktop app requires desktop auth first.
+Website auth/onboarding/billing/payments remain in apps/web-application.
+Desktop auth should use browser login + stage://auth callback, not an embedded webview.
 ```
