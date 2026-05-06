@@ -1,17 +1,12 @@
 import {
   ArrowRight,
   Check,
-  CopySimple,
   PencilSimpleLine,
   Trash,
 } from "@phosphor-icons/react";
-import { useEffect, useRef, useState } from "react";
-import { useMutation } from "convex/react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { OnboardingPaywall } from "@/components/onboarding/OnboardingPaywall";
-import { api } from "@/lib/convex";
-import { Avatar } from "@/components/ui/Avatar";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
-import timelineOverviewImage from "@/assets/landing-images/timeline-overview.webp";
 import { PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
 import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@/lib/r2Uploads";
 import { cn } from "@/lib/utils";
@@ -19,7 +14,7 @@ import type { UseProjectDraftResult } from "@/features/project-creation/useProje
 import type { OnboardingStepId } from "@/features/onboarding/model";
 import type { ProjectType } from "@/types";
 import type { ClaudeConnectionSummary } from "@/types/settings";
-import { CreatingDashboardText, LoadingStage, WelcomeSlide } from "./OnboardingAnimations";
+import { CreatingDashboardText, WelcomeSlide } from "./OnboardingAnimations";
 import { GuideLink, OnboardingStepMotion, StepShell } from "./OnboardingPrimitives";
 
 const GOOGLE_SHEETS_ICON_SRC = new URL("../../assets/icons/google-sheets.svg", import.meta.url).href;
@@ -29,9 +24,16 @@ const GOOGLE_SHEETS_TEMPLATE_HREF =
 const ONBOARDING_ICON_SRC = {
   add: "/logos/add.svg",
   calendar: "/logos/calendar.svg",
+  copy: "/logos/copy.svg",
   dots: "/logos/dots.svg",
   download: "/logos/download.svg",
   dropdown: "/logos/dropdown.svg",
+};
+const INTEGRATION_ICON_SRC = {
+  claude: "/logos/integrations/claude.svg",
+  codex: "/logos/integrations/codex.svg",
+  figma: "/logos/integrations/figma.svg",
+  notion: "/logos/integrations/notion.svg",
 };
 const CALENDAR_DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 const CALENDAR_MONTHS = [
@@ -48,6 +50,125 @@ const CALENDAR_MONTHS = [
   "November",
   "December",
 ];
+
+const SETUP_PROGRESS_STEPS = ["details", "project-type", "method", "timeline"] as const;
+const FIGMA_PROJECT_TYPE_VALUES: ProjectType[] = [
+  "branding",
+  "web-design",
+  "product-design",
+  "app-design",
+  "packaging",
+  "motion-design",
+  "illustration",
+  "other",
+];
+
+function getProgressIndex(step: OnboardingStepId) {
+  if (step === "phase-select") {
+    return 2;
+  }
+  if (step === "preview" || step === "creating") {
+    return 3;
+  }
+  return SETUP_PROGRESS_STEPS.indexOf(step as (typeof SETUP_PROGRESS_STEPS)[number]);
+}
+
+function FigmaOnboardingFrame({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("w-[min(516px,calc(100vw-40px))] py-[22px]", className)}>
+      {children}
+    </div>
+  );
+}
+
+function FigmaOnboardingLogo({ centered = false }: { centered?: boolean }) {
+  return (
+    <img
+      src={stageLogo}
+      alt="Stage"
+      className={cn("h-[23px] w-auto", centered && "mx-auto")}
+    />
+  );
+}
+
+function FigmaStepHeader({
+  step,
+  title = "Create a new project",
+  subtitle = "Set up the basics to get started",
+  showProgress = true,
+}: {
+  step: OnboardingStepId;
+  title?: string;
+  subtitle?: string;
+  showProgress?: boolean;
+}) {
+  const progressIndex = getProgressIndex(step);
+
+  return (
+    <>
+      <FigmaOnboardingLogo />
+      <div className="mt-8 flex w-full items-end justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-[21px] leading-[1.2] font-semibold text-[#0A0A0A]">
+            {title}
+          </h3>
+          <p className="mt-2.5 text-[13px] leading-[1.5] font-medium text-[#525252]">
+            {subtitle}
+          </p>
+        </div>
+        {showProgress && progressIndex >= 0 ? (
+          <div className="mb-1 flex shrink-0 items-center gap-1">
+            {SETUP_PROGRESS_STEPS.map((item, index) => (
+              <span
+                key={item}
+                className={cn(
+                  "h-[6px] w-8 rounded-[2px]",
+                  index <= progressIndex
+                    ? "bg-gradient-to-r from-[#8D87FF] via-[rgba(141,135,255,0.75)] to-[#8D87FF]"
+                    : "bg-[#E7E6FD]",
+                )}
+              />
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </>
+  );
+}
+
+function FigmaSection({
+  label,
+  children,
+  innerClassName,
+}: {
+  label: string;
+  children: ReactNode;
+  innerClassName?: string;
+}) {
+  return (
+    <section className="w-full rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+      <div className="px-3 pt-2 pb-3 text-[13px] leading-[1.5] font-semibold text-[#0A0A0A]">
+        {label}
+      </div>
+      <div className={cn("rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]", innerClassName)}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function FigmaLabel({ children }: { children: ReactNode }) {
+  return <label className="mb-2 block text-[13px] font-medium text-[#171717]">{children}</label>;
+}
+
+const figmaFieldClass =
+  "h-10 w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-colors placeholder:text-[#737373] focus:border-[#E5E5E5] focus:bg-white";
 
 function formatTimelineDate(value: string) {
   const [year, month, day] = value.split("-");
@@ -342,9 +463,6 @@ export function OnboardingStepRenderer({
   checkoutError,
   existingClients,
   claudeConnection,
-  claudeSetupHref,
-  claudeInstallCommand,
-  claudeConnectionId,
   onSheetUrlChange,
   onToggleCsvConnection,
   onLinkSheetUrl,
@@ -354,10 +472,23 @@ export function OnboardingStepRenderer({
   onClaudeActivated,
 }: OnboardingStepRendererProps) {
   const { draft } = draftState;
+  const [isAddingPhase, setIsAddingPhase] = useState(false);
+  const [newPhaseName, setNewPhaseName] = useState("");
   const selectedClient =
     draft.clientMode === "existing"
       ? existingClients.find((client) => client.name === draft.selectedExistingClientName) ?? null
       : null;
+
+  function submitNewPhase() {
+    const phaseName = newPhaseName.trim();
+    if (!phaseName) {
+      return;
+    }
+
+    draftState.addPhase(phaseName);
+    setNewPhaseName("");
+    setIsAddingPhase(false);
+  }
 
   switch (step) {
     case "welcome":
@@ -400,11 +531,8 @@ export function OnboardingStepRenderer({
     case "claude":
       return (
         <OnboardingStepMotion motionKey="claude">
-          <ClaudeOnboardingStep
+          <FigmaIntegrationConfig
             claudeConnection={claudeConnection}
-            claudeSetupHref={claudeSetupHref}
-            claudeInstallCommand={claudeInstallCommand}
-            claudeConnectionId={claudeConnectionId}
             onActivate={onClaudeActivated}
           />
         </OnboardingStepMotion>
@@ -412,214 +540,179 @@ export function OnboardingStepRenderer({
     case "details":
       return (
         <OnboardingStepMotion motionKey="details">
-          <StepShell label="Project Basics">
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                  Project name
-                </label>
-                <input
-                  type="text"
-                  value={draft.projectName}
-                  onChange={(event) => draftState.setProjectName(event.target.value)}
-                  placeholder="Baseframe"
-                  autoFocus
-                  className="w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 py-2.5 text-[13px] font-medium text-text-primary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
-                />
-              </div>
+          <FigmaOnboardingFrame>
+            <FigmaStepHeader step={step} />
+            <div className="mt-6 space-y-3">
+              <FigmaSection label="Project Basics">
+                <div className="space-y-4">
+                  <div>
+                    <FigmaLabel>Project name</FigmaLabel>
+                    <input
+                      type="text"
+                      value={draft.projectName}
+                      onChange={(event) => draftState.setProjectName(event.target.value)}
+                      placeholder="Baseframe"
+                      autoFocus
+                      className={figmaFieldClass}
+                    />
+                  </div>
 
-              <div>
-                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                  Cover <span className="font-normal text-text-tertiary">(Optional)</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => draftState.projectImageInputRef.current?.click()}
-                  className="flex w-full cursor-pointer items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
-                >
-                  <img src={ONBOARDING_ICON_SRC.download} alt="" className="h-4 w-4 shrink-0 opacity-70" />
-                  <span className="text-[13px] font-medium text-text-secondary">
-                    {draft.projectImage ? "Replace document" : "Upload Document"}
-                  </span>
-                </button>
-                {draft.projectImage ? (
-                  <button
-                    type="button"
-                    onClick={() => draftState.setProjectImage(null)}
-                    className="mt-2 cursor-pointer bg-transparent p-0 text-[12px] text-text-secondary transition-colors hover:text-destructive"
-                  >
-                    Remove document
-                  </button>
-                ) : null}
-                <input
-                  ref={draftState.projectImageInputRef}
-                  type="file"
-                  accept={PROJECT_MARKER_ACCEPT}
-                  className="hidden"
-                  onChange={(event) => {
-                    void draftState.handleProjectImageFileChange(event);
-                  }}
-                />
-              </div>
-            </div>
-          </StepShell>
-        </OnboardingStepMotion>
-      );
-    case "client":
-      return (
-        <OnboardingStepMotion motionKey="client">
-          <StepShell label="Who is this for?">
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                  Client
-                </label>
-                <div className="relative">
-                  <select
-                    value={
-                      draft.clientMode === "existing"
-                        ? draft.selectedExistingClientName
-                        : "__new__"
-                    }
-                    onChange={(event) => {
-                      const nextValue = event.target.value;
-                      if (nextValue === "__new__") {
-                        draftState.setClientMode("new");
-                        return;
-                      }
-
-                      const client = existingClients.find((item) => item.name === nextValue);
-                      if (!client) {
-                        draftState.setClientMode("new");
-                        return;
-                      }
-
-                      draftState.selectExistingClient(client);
-                    }}
-                    className="h-10 w-full appearance-none rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 pr-10 text-[12px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 focus:border-border focus:bg-white"
-                  >
-                    <option value="__new__">Create a new client</option>
-                    {existingClients.map((client) => (
-                      <option key={client.id} value={client.name}>
-                        {client.name}
-                      </option>
-                    ))}
-                  </select>
-                  <img
-                    src={ONBOARDING_ICON_SRC.dropdown}
-                    alt=""
-                    className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-70"
-                  />
-                </div>
-              </div>
-
-              {draft.clientMode === "existing" && selectedClient ? (
-                <div className="flex items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-                  <Avatar name={selectedClient.name} src={selectedClient.avatarUrl} size="md" />
-                  <div className="min-w-0">
-                    <p className="truncate text-[13px] font-medium text-text-primary">
-                      {selectedClient.name}
-                    </p>
-                    <p className="text-[12px] text-text-secondary">
-                      {selectedClient.projectCount} project{selectedClient.projectCount === 1 ? "" : "s"}
-                    </p>
+                  <div>
+                    <FigmaLabel>
+                      Cover <span className="text-[#737373]">(Optional)</span>
+                    </FigmaLabel>
+                    <button
+                      type="button"
+                      onClick={() => draftState.projectImageInputRef.current?.click()}
+                      className="flex h-10 w-full cursor-pointer items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 text-left text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
+                    >
+                      <img src={ONBOARDING_ICON_SRC.download} alt="" className="h-4 w-4 shrink-0 opacity-70" />
+                      <span>{draft.projectImage ? "Replace document" : "Upload Document"}</span>
+                    </button>
+                    <input
+                      ref={draftState.projectImageInputRef}
+                      type="file"
+                      accept={PROJECT_MARKER_ACCEPT}
+                      className="hidden"
+                      onChange={(event) => {
+                        void draftState.handleProjectImageFileChange(event);
+                      }}
+                    />
                   </div>
                 </div>
-              ) : (
-                <div>
-                  <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                    Client name
-                  </label>
-                  <input
-                    type="text"
-                    value={draft.clientMode === "new" ? draft.clientName : ""}
-                    onChange={(event) => draftState.setClientName(event.target.value)}
-                    placeholder="Acme Studio"
-                    className="w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 py-2.5 text-[13px] font-medium text-text-primary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
-                  />
+              </FigmaSection>
+
+              <FigmaSection label="Client Details">
+                <div className="space-y-4">
+                  <div>
+                    <FigmaLabel>Who is this for?</FigmaLabel>
+                    <div className="relative">
+                      <select
+                        value={
+                          draft.clientMode === "existing"
+                            ? draft.selectedExistingClientName
+                            : "__new__"
+                        }
+                        onChange={(event) => {
+                          const nextValue = event.target.value;
+                          if (nextValue === "__new__") {
+                            draftState.setClientMode("new");
+                            return;
+                          }
+
+                          const client = existingClients.find((item) => item.name === nextValue);
+                          if (!client) {
+                            draftState.setClientMode("new");
+                            return;
+                          }
+
+                          draftState.selectExistingClient(client);
+                        }}
+                        className={cn(figmaFieldClass, "appearance-none pr-10")}
+                      >
+                        <option value="__new__">Select Client</option>
+                        {existingClients.map((client) => (
+                          <option key={client.id} value={client.name}>
+                            {client.name}
+                          </option>
+                        ))}
+                      </select>
+                      <img
+                        src={ONBOARDING_ICON_SRC.dropdown}
+                        alt=""
+                        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-70"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <FigmaLabel>Client Name</FigmaLabel>
+                    <input
+                      type="text"
+                      value={draft.clientMode === "new" ? draft.clientName : selectedClient?.name ?? ""}
+                      onChange={(event) => draftState.setClientName(event.target.value)}
+                      placeholder="Baseframe"
+                      className={figmaFieldClass}
+                    />
+                  </div>
+
+                  <div>
+                    <FigmaLabel>
+                      Client email <span className="text-[#737373]">(Optional)</span>
+                    </FigmaLabel>
+                    <input
+                      type="email"
+                      value={draft.clientEmail}
+                      onChange={(event) => draftState.setClientEmail(event.target.value)}
+                      placeholder="client@example.com"
+                      className={figmaFieldClass}
+                    />
+                  </div>
+
+                  <div>
+                    <FigmaLabel>
+                      Photo <span className="text-[#737373]">(Optional)</span>
+                    </FigmaLabel>
+                    <button
+                      type="button"
+                      onClick={() => draftState.fileInputRef.current?.click()}
+                      className="flex h-10 w-full cursor-pointer items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 text-left text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
+                    >
+                      <img src={ONBOARDING_ICON_SRC.download} alt="" className="h-4 w-4 shrink-0 opacity-70" />
+                      <span>{draft.clientAvatar ? "Replace photo" : "Upload Photo"}</span>
+                    </button>
+                    <input
+                      ref={draftState.fileInputRef}
+                      type="file"
+                      accept={AVATAR_ACCEPT}
+                      className="hidden"
+                      onChange={(event) => {
+                        void draftState.handleAvatarFileChange(event);
+                      }}
+                    />
+                  </div>
                 </div>
-              )}
-
-              <div>
-                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                  Client email <span className="font-normal text-text-tertiary">- required</span>
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={draft.clientEmail}
-                  onChange={(event) => draftState.setClientEmail(event.target.value)}
-                  placeholder="client@example.com"
-                  className="w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 py-2.5 text-[13px] font-medium text-text-primary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-border focus:bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-[13px] font-medium text-text-primary">
-                  Client photo <span className="font-normal text-text-tertiary">(Optional)</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => draftState.fileInputRef.current?.click()}
-                  className="flex w-full cursor-pointer items-center gap-3 rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
-                >
-                  <img src={ONBOARDING_ICON_SRC.download} alt="" className="h-4 w-4 shrink-0 opacity-70" />
-                  <span className="text-[13px] font-medium text-text-secondary">
-                    {draft.clientAvatar ? "Replace photo" : "Upload Photo"}
-                  </span>
-                </button>
-                {draft.clientAvatar ? (
-                  <button
-                    type="button"
-                    onClick={() => draftState.setClientAvatar(null)}
-                    className="mt-2 cursor-pointer bg-transparent p-0 text-[12px] text-text-secondary transition-colors hover:text-destructive"
-                  >
-                    Remove photo
-                  </button>
-                ) : null}
-                <input
-                  ref={draftState.fileInputRef}
-                  type="file"
-                  accept={AVATAR_ACCEPT}
-                  className="hidden"
-                  onChange={(event) => {
-                    void draftState.handleAvatarFileChange(event);
-                  }}
-                />
-              </div>
+              </FigmaSection>
             </div>
-          </StepShell>
+          </FigmaOnboardingFrame>
         </OnboardingStepMotion>
       );
     case "project-type":
       return (
         <OnboardingStepMotion motionKey="project-type">
-          <StepShell label="Project Type">
-            <div className="grid overflow-hidden rounded-[8px] bg-white p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] sm:grid-cols-3">
-              {PROJECT_TYPES.map((option) => {
-                const iconSrc = PROJECT_TYPE_ICONS[option.value];
-                const isSelected = draft.projectType === option.value;
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => draftState.setProjectType(option.value)}
-                    className={cn(
-                      "flex min-h-[76px] cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-white bg-[#F5F5F5] px-3 text-[13px] font-medium transition-colors focus:outline-none",
-                      isSelected
-                        ? "bg-[#EEEDFE] text-[#2F2A7D]"
-                        : "text-[#525252] hover:bg-[#EFEFEF]",
-                    )}
-                  >
-                    {iconSrc ? (
-                      <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 opacity-80" />
-                    ) : null}
-                    <span>{option.label}</span>
-                  </button>
-                );
-              })}
+          <FigmaOnboardingFrame>
+            <FigmaStepHeader step={step} />
+            <div className="mt-6">
+              <FigmaSection label="Project Type" innerClassName="p-1">
+                <div className="grid grid-cols-2 gap-1">
+                  {PROJECT_TYPES.filter((option) =>
+                    FIGMA_PROJECT_TYPE_VALUES.includes(option.value),
+                  ).map((option) => {
+                    const iconSrc = PROJECT_TYPE_ICONS[option.value];
+                    const isSelected = draft.projectType === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => draftState.setProjectType(option.value)}
+                        className={cn(
+                          "flex h-[74px] min-w-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] border px-3 text-[12px] font-medium transition-colors focus:outline-none sm:h-[74px] md:h-[74px] lg:h-[74px]",
+                          isSelected
+                            ? "border-[#DBD9FC] bg-[#E7E6FD] text-[#16115A]"
+                            : "border-transparent bg-[#F5F5F5] text-[#525252] hover:bg-[#EFEFEF]",
+                        )}
+                      >
+                        {iconSrc ? (
+                          <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 opacity-80" />
+                        ) : null}
+                        <span className="min-w-0 truncate">{option.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </FigmaSection>
             </div>
-          </StepShell>
+          </FigmaOnboardingFrame>
         </OnboardingStepMotion>
       );
     case "method": {
@@ -627,42 +720,45 @@ export function OnboardingStepRenderer({
       const roadmapItems = activePhases;
       return (
         <OnboardingStepMotion motionKey="method">
-          <StepShell label="How do you want to structure this project?">
-            <div className="space-y-2">
-              <div className="rounded-[8px] bg-white p-3 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+          <FigmaOnboardingFrame>
+            <FigmaStepHeader step={step} />
+            <div className="mt-6">
+              <FigmaSection label="How do you want to structure this project?">
+                <div className="space-y-1">
+                  <div className="rounded-[8px] bg-white p-3 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
                 <button
                   type="button"
                   onClick={() => draftState.setMethod("ai")}
-                  className="flex w-full cursor-pointer items-center gap-3 rounded-[6px] bg-transparent px-1 py-2 text-left transition-colors hover:bg-[#F5F5F5] focus:outline-none"
+                  className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] bg-transparent px-1 py-2 text-left transition-colors hover:bg-[#F5F5F5] focus:outline-none"
                 >
                   <span
                     className={cn(
-                      "grid h-5 w-5 shrink-0 place-items-center rounded-full",
+                      "grid h-[14px] w-[14px] shrink-0 place-items-center rounded-full",
                       draft.method === "ai" ? "bg-[#171717]" : "bg-[#E5E5E5]",
                     )}
                   >
                     {draft.method === "ai" ? (
-                      <span className="h-2 w-2 rounded-full bg-white" />
+                      <span className="h-[6px] w-[6px] rounded-full bg-white" />
                     ) : null}
                   </span>
-                  <span className="text-[15px] font-medium text-text-primary">Smart Setup</span>
+                  <span className="text-[13px] font-medium text-[#171717]">Smart Setup</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => draftState.setMethod("manual")}
-                  className="flex w-full cursor-pointer items-center gap-3 rounded-[6px] bg-transparent px-1 py-2 text-left transition-colors hover:bg-[#F5F5F5] focus:outline-none"
+                  className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] bg-transparent px-1 py-2 text-left transition-colors hover:bg-[#F5F5F5] focus:outline-none"
                 >
                   <span
                     className={cn(
-                      "grid h-5 w-5 shrink-0 place-items-center rounded-full",
+                      "grid h-[14px] w-[14px] shrink-0 place-items-center rounded-full",
                       draft.method === "manual" ? "bg-[#171717]" : "bg-[#E5E5E5]",
                     )}
                   >
                     {draft.method === "manual" ? (
-                      <span className="h-2 w-2 rounded-full bg-white" />
+                      <span className="h-[6px] w-[6px] rounded-full bg-white" />
                     ) : null}
                   </span>
-                  <span className="text-[15px] font-medium text-text-primary">Manual Setup</span>
+                  <span className="text-[13px] font-medium text-[#171717]">Manual Setup</span>
                 </button>
               </div>
 
@@ -679,7 +775,7 @@ export function OnboardingStepRenderer({
                         onDrop={(event) => draftState.handleDrop(event, phase.id)}
                         onDragEnd={draftState.handleDragEnd}
                         className={cn(
-                          "flex items-center gap-3 py-2.5",
+                          "flex min-h-[42px] items-center gap-3 py-2.5",
                           index < draft.phases.length - 1 ? "border-b border-[#EFEFF2]" : "",
                         )}
                       >
@@ -715,6 +811,49 @@ export function OnboardingStepRenderer({
                       </div>
                     ))}
                   </div>
+                  {isAddingPhase ? (
+                    <div className="mt-4 flex h-9 w-full items-center rounded-[6px] bg-[#F5F5F5] py-1 pl-3 pr-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+                      <input
+                        type="text"
+                        value={newPhaseName}
+                        onChange={(event) => setNewPhaseName(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            submitNewPhase();
+                          }
+                          if (event.key === "Escape") {
+                            setNewPhaseName("");
+                            setIsAddingPhase(false);
+                          }
+                        }}
+                        placeholder="Testing"
+                        autoFocus
+                        className="min-w-0 flex-1 bg-transparent text-[12px] font-medium text-[#262626] outline-none placeholder:text-[#737373]"
+                      />
+                      <button
+                        type="button"
+                        onClick={submitNewPhase}
+                        disabled={!newPhaseName.trim()}
+                        className="inline-flex h-7 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[4px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] pl-2.5 pr-3 text-[12px] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
+                      >
+                        <img src={ONBOARDING_ICON_SRC.add} alt="" className="h-3.5 w-3.5 invert" />
+                        <span>Add</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewPhaseName("");
+                        setIsAddingPhase(true);
+                      }}
+                      className="mt-4 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium text-[#0A0A0A] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF] focus:outline-none"
+                    >
+                      <img src={ONBOARDING_ICON_SRC.add} alt="" className="h-3.5 w-3.5 opacity-80" />
+                      <span>Add Phase</span>
+                    </button>
+                  )}
                 </div>
               ) : draft.method === "ai" && roadmapItems.length > 0 ? (
                 <div className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
@@ -738,8 +877,10 @@ export function OnboardingStepRenderer({
                   </div>
                 </div>
               ) : null}
+                </div>
+              </FigmaSection>
             </div>
-          </StepShell>
+          </FigmaOnboardingFrame>
         </OnboardingStepMotion>
       );
     }
@@ -849,124 +990,91 @@ export function OnboardingStepRenderer({
     case "timeline":
       return (
         <OnboardingStepMotion motionKey="timeline">
-          <StepShell label="Timeline">
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <TimelineDateField
-                label="Start"
-                value={draft.startDate}
-                onChange={draftState.setStartDate}
-              />
-              <TimelineDateField
-                label="End"
-                value={draft.endDate}
-                onChange={draftState.setEndDate}
-              />
+          <FigmaOnboardingFrame>
+            <FigmaStepHeader step={step} />
+            <div className="mt-6">
+              <FigmaSection label="Timeline">
+                <div className="flex gap-4">
+                  <TimelineDateField
+                    label="Start"
+                    value={draft.startDate}
+                    onChange={draftState.setStartDate}
+                  />
+                  <TimelineDateField
+                    label="End"
+                    value={draft.endDate}
+                    onChange={draftState.setEndDate}
+                  />
+                </div>
+              </FigmaSection>
             </div>
-          </StepShell>
+          </FigmaOnboardingFrame>
         </OnboardingStepMotion>
       );
     case "preview":
       return (
-        <OnboardingStepMotion motionKey="preview">
+        <OnboardingStepMotion motionKey="preview" className="flex w-full justify-center">
           <AlmostSetupPreview onContinue={onContinue} errorMessage={stepError} />
-        </OnboardingStepMotion>
-      );
-    case "generating-roadmap":
-      return (
-        <OnboardingStepMotion
-          motionKey="generating-roadmap"
-          className="flex min-h-[220px] flex-col items-center justify-center text-center sm:min-h-[300px]"
-        >
-          <LoadingStage
-            title="Stage is generating your roadmap..."
-            subtitle="We are shaping the phases and tasks for your project."
-          />
         </OnboardingStepMotion>
       );
     case "integrations":
       return (
         <OnboardingStepMotion motionKey="integrations">
-          <div className="space-y-3">
-            <StepShell label="Select your AI model">
-              <ul className="divide-y divide-[#EFEFF2]">
-                <li className="flex items-center gap-3 py-3">
+          <FigmaOnboardingFrame>
+            <FigmaStepHeader
+              step={step}
+              title="Bring your project to life"
+              subtitle="Connect your tools to sync files, tasks, and updates"
+              showProgress={false}
+            />
+            <div className="mt-6 space-y-3">
+              <FigmaSection label="Select tools you want to integrate">
+                <ul className="space-y-4">
+                  <li className="flex items-center gap-2">
+                    <img
+                      src="/logos/integrations/claude.svg"
+                      alt=""
+                      className="h-4 w-4 shrink-0 object-contain"
+                    />
+                    <span className="min-w-0 flex-1 text-[13px] font-medium text-[#171717]">
+                      Claude
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-2">
                   <img
                     src="/logos/integrations/codex.svg"
                     alt=""
-                    className="h-5 w-5 shrink-0 object-contain"
+                    className="h-4 w-4 shrink-0 object-contain"
                     onError={(event) => {
                       event.currentTarget.style.display = "none";
                     }}
                   />
-                  <span className="min-w-0 flex-1 text-[15px] font-medium text-text-primary">
+                  <span className="min-w-0 flex-1 text-[13px] font-medium text-[#171717]">
                     Codex
                   </span>
-	                  <button
-	                    type="button"
-	                    onClick={onClaudeActivated}
-	                    className="rounded-[6px] bg-[#F5F5F5] px-3 py-1.5 text-[12px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
-	                  >
-                    Connect Codex
-                  </button>
                 </li>
-                <li className="flex items-center gap-3 py-3">
-                  <img
-                    src="/logos/integrations/claude.svg"
-                    alt=""
-                    className="h-5 w-5 shrink-0 object-contain"
-                  />
-                  <span className="min-w-0 flex-1 text-[15px] font-medium text-text-primary">
-                    Claude
-                  </span>
-	                  <button
-	                    type="button"
-	                    onClick={onClaudeActivated}
-	                    className="rounded-[6px] bg-[#F5F5F5] px-3 py-1.5 text-[12px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
-	                  >
-                    {claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
-                      ? "Connected"
-                      : "Connect Claude"}
-                  </button>
-                </li>
-              </ul>
-            </StepShell>
-
-            <StepShell label="Select tools you want to integrate">
-              <ul className="divide-y divide-[#EFEFF2]">
-                <li className="flex items-center gap-3 py-3">
+                <li className="flex items-center gap-2">
                   <img
                     src="/logos/integrations/figma.svg"
                     alt=""
-                    className="h-5 w-5 shrink-0 object-contain"
+                    className="h-4 w-4 shrink-0 object-contain"
                   />
-                  <span className="min-w-0 flex-1 text-[15px] font-medium text-text-primary">
+                  <span className="min-w-0 flex-1 text-[13px] font-medium text-[#171717]">
                     Figma
                   </span>
-                  <button
-                    type="button"
-                    className="rounded-[6px] bg-[#F5F5F5] px-3 py-1.5 text-[12px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
-                  >
-                    Connect Figma
-                  </button>
                 </li>
-                <li className="flex items-center gap-3 py-3">
+                <li className="flex items-center gap-2">
                   <img
                     src="/logos/integrations/notion.svg"
                     alt=""
-                    className="h-5 w-5 shrink-0 object-contain"
+                    className="h-4 w-4 shrink-0 object-contain"
                   />
-                  <span className="min-w-0 flex-1 text-[15px] font-medium text-text-primary">
+                  <span className="min-w-0 flex-1 text-[13px] font-medium text-[#171717]">
                     Notion
                   </span>
-                  <button
-                    type="button"
-                    className="rounded-[6px] bg-[#F5F5F5] px-3 py-1.5 text-[12px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
-                  >
-                    Connect Notion
-                  </button>
                 </li>
               </ul>
-            </StepShell>
+              </FigmaSection>
 
             <details className="rounded-[12px] bg-[#F5F5F7] px-4 py-3 text-[13px] text-text-secondary">
               <summary className="cursor-pointer text-[13px] font-medium text-text-primary">
@@ -1045,7 +1153,8 @@ export function OnboardingStepRenderer({
                 </div>
               </div>
             </details>
-          </div>
+            </div>
+          </FigmaOnboardingFrame>
         </OnboardingStepMotion>
       );
     case "creating":
@@ -1064,17 +1173,21 @@ export function OnboardingStepRenderer({
     case "celebrating":
       return (
         <OnboardingStepMotion motionKey="celebrating">
-          <ProSuccessCard />
+          <FigmaOnboardingFrame>
+            <ProSuccessCard />
+          </FigmaOnboardingFrame>
         </OnboardingStepMotion>
       );
     case "paywall":
       return (
         <OnboardingStepMotion motionKey="paywall">
+          <FigmaOnboardingFrame>
 	          <OnboardingPaywall
 	            onContinueFree={onContinueFree}
 	            isUpgradeLoading={isCheckoutLoading}
 	            upgradeError={checkoutError}
 	          />
+          </FigmaOnboardingFrame>
         </OnboardingStepMotion>
       );
     default:
@@ -1090,43 +1203,40 @@ function AlmostSetupPreview({
   errorMessage: string | null;
 }) {
   return (
-    <div>
-      <img src={stageLogo} alt="Stage" className="mb-7 h-[22px] w-auto" />
-      <div className="grid min-h-[360px] overflow-hidden rounded-[12px] bg-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] md:grid-cols-[0.42fr_0.58fr]">
-        <div className="flex flex-col justify-center px-7 py-10">
-          <h3 className="font-heading text-[24px] font-semibold leading-[1.15] tracking-[-0.4px] text-text-primary">
-            You&apos;re almost setup.
-          </h3>
-          <p className="mt-3 text-[14px] font-medium leading-[1.5] text-text-secondary">
-            Here&apos;s your workspace, set up and ready to go
-          </p>
-        </div>
-        <div className="relative min-h-[280px] overflow-hidden">
-          <img
-            src="/onboarding/almost-setup-gradient.png"
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-          <div className="absolute left-[15%] top-[18%] w-[108%] overflow-hidden rounded-[12px] bg-white shadow-[0_24px_70px_rgba(20,20,45,0.25)]">
-            <img
-              src={timelineOverviewImage}
-              alt=""
-              className="h-full max-h-[360px] w-full object-cover object-left-top opacity-95"
-            />
+    <div className="w-[min(1432px,calc(100vw-16px),calc((100dvh-16px)*1.40945))]">
+      <div className="grid aspect-[1432/1016] overflow-hidden rounded-[8px] border border-[#F5F5F5] bg-white p-2 md:grid-cols-[570fr_846fr]">
+        <div className="flex min-h-0 items-center overflow-hidden rounded-[12px] px-[clamp(24px,5.03vw,72px)]">
+          <div className="flex w-full flex-col items-start gap-8">
+            <img src={stageLogo} alt="Stage" className="h-[23px] w-auto" />
+            <div>
+              <h3 className="text-[21px] leading-[1.2] font-semibold text-[#0A0A0A]">
+                You&apos;re almost setup.
+              </h3>
+              <p className="mt-2.5 text-[13px] leading-[1.5] font-medium text-[#525252]">
+                Here&apos;s your workspace, set up and ready to go
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onContinue}
+              className="flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] pl-2.5 pr-3 text-[13px] font-medium text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25),0_0.5px_1.5px_rgba(0,0,0,0.15)] transition-opacity hover:opacity-95 focus:outline-none"
+            >
+              <span>Continue</span>
+              <ArrowRight size={16} weight="bold" />
+            </button>
           </div>
+        </div>
+        <div className="hidden min-h-0 overflow-hidden rounded-[12px] bg-gradient-to-b from-[#FAFAFA] to-[#F5F5F5] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] md:block">
+          <img
+            src="/onboarding/onboarding-setup.webp"
+            alt=""
+            className="h-full w-full object-cover object-center"
+          />
         </div>
       </div>
       {errorMessage ? (
         <p className="mt-4 text-[13px] leading-normal text-destructive">{errorMessage}</p>
       ) : null}
-      <button
-        type="button"
-        onClick={onContinue}
-        className="mt-6 inline-flex h-[48px] w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-5 text-[13px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 focus:outline-none"
-      >
-        Continue
-        <ArrowRight size={16} weight="bold" />
-      </button>
     </div>
   );
 }
@@ -1148,207 +1258,321 @@ function ProSuccessCard() {
   );
 }
 
-function ClaudeOnboardingStep({
+function ConnectedBadge() {
+  return (
+    <span className="inline-flex h-8 items-center gap-1.5 rounded-[6px] bg-[#F0FDF4] px-3 text-[12px] font-medium text-[#00A63E]">
+      <Check size={16} weight="bold" />
+      Connected
+    </span>
+  );
+}
+
+function ConnectButton({ children, onClick }: { children: string; onClick?: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="h-8 rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFEF]"
+    >
+      {children}
+    </button>
+  );
+}
+
+function IntegrationRow({
+  iconSrc,
+  label,
+  connected = false,
+  actionLabel,
+  onAction,
+}: {
+  iconSrc: string;
+  label: string;
+  connected?: boolean;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <li className="flex items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-2">
+        <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 object-contain" />
+        <span className="truncate text-[13px] font-medium text-[#171717]">{label}</span>
+      </div>
+      {connected ? <ConnectedBadge /> : actionLabel ? <ConnectButton onClick={onAction}>{actionLabel}</ConnectButton> : null}
+    </li>
+  );
+}
+
+function FigmaIntegrationConfig({
   claudeConnection,
-  claudeSetupHref,
-  claudeInstallCommand,
-  claudeConnectionId,
   onActivate,
 }: {
   claudeConnection: ClaudeConnectionSummary;
-  claudeSetupHref: string;
-  claudeInstallCommand: string;
-  claudeConnectionId: string | null;
   onActivate: () => void;
 }) {
-  const [copied, setCopied] = useState<string | null>(null);
-  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
-  const [isGeneratingKey, setIsGeneratingKey] = useState(false);
-  const generateKeyMutation = useMutation(api.developer.apiKeys.generate);
+  const [view, setView] = useState<"list" | "codex" | "claude" | "connecting-figma" | "connecting-notion">("list");
+  const [codexKey, setCodexKey] = useState("");
+  const [claudeKey, setClaudeKey] = useState("");
+  const [connectedTools, setConnectedTools] = useState({
+    codex: false,
+    figma: false,
+    notion: false,
+  });
+  const codexConnected = connectedTools.codex;
+  const figmaConnected = connectedTools.figma;
+  const notionConnected = connectedTools.notion;
+  const claudeConnected =
+    Boolean(claudeKey) ||
+    (claudeConnection?.status === "connected" && claudeConnection.stageApiVerified);
 
-  const verificationStep = claudeConnectionId
-    ? [
-        "Use the installed Stage skill and verify Stage connectivity.",
-        `Handshake connectionId "${claudeConnectionId}" with client "claude_code".`,
-        "If Notion MCP is available set notionMcp=true.",
-        "If Figma MCP is available set figmaMcp=true.",
-        "Return a short success summary.",
-      ].join(" ")
-    : null;
+  function generateKey(kind: "codex" | "claude") {
+    const nextKey = kind === "codex" ? "sk_live_x7f3k92hdk28s9dk3h" : "sk_live_x7f3k92hdk28s9dk3h";
+    if (kind === "codex") {
+      setCodexKey(nextKey);
+      return;
+    }
+    setClaudeKey(nextKey);
+  }
 
-  const parts = [
-    "Set up the Stage agent skill so you can operate Stage on my behalf.",
-    "Stage is an AI-powered project management tool. The skill file teaches you the full API, action policy, and the research → strategy → generate → delivery workflow.",
-    "",
-    "## Step 1 — Install the skill",
-    "",
-    "Run this command to install the Stage skill into your workspace:",
-    "",
-    "```",
-    claudeInstallCommand,
-    "```",
-    "",
-    "This downloads the SKILL.md file which contains every endpoint, action classification, and workflow rule you need.",
-    "",
-    "## Step 2 — Authenticate",
-    "",
-    "You need a Stage API key to authenticate. Create one in Stage under Settings → Developer.",
-    "Once you have the key, set it as an environment variable:",
-    "",
-    "```",
-    "export STAGE_API_KEY=stg_your_key_here",
-    "```",
-    "",
-    "The key uses Bearer auth: `Authorization: Bearer stg_...`",
-  ];
+  function showConnecting(tool: "figma" | "notion") {
+    setView(tool === "figma" ? "connecting-figma" : "connecting-notion");
+    window.setTimeout(() => {
+      setConnectedTools((current) => ({ ...current, [tool]: true }));
+      setView("list");
+    }, 900);
+  }
 
-  if (verificationStep) {
-    parts.push(
-      "",
-      "## Step 3 — Verify the connection",
-      "",
-      verificationStep,
-      "",
-      "This confirms Stage can receive calls from Claude and registers your MCP capabilities (Notion, Figma).",
+  if (view === "connecting-figma" || view === "connecting-notion") {
+    return (
+      <IntegrationConnectingState
+        tool={view === "connecting-figma" ? "figma" : "notion"}
+      />
     );
   }
 
-  parts.push(
-    "",
-    "## What you can do after setup",
-    "",
-    "- Read projects, phases, and tasks from Stage",
-    "- Create new projects using `POST /api/v1/projects/import-plan` with structured phases and tasks",
-    "- Run research, strategy, and content generation workflows",
-    "- Write artifacts back to Stage and export to Notion or Figma",
-    "- Toggle task completion and update project state",
-    "",
-    "Always create the project in Stage first before doing research or design work. Stage is the source of truth.",
-  );
+  if (view === "codex") {
+    return (
+      <IntegrationSetupState
+        provider="codex"
+        apiKey={codexKey}
+        onGenerateKey={() => generateKey("codex")}
+        onActivate={() => {
+          setConnectedTools((current) => ({ ...current, codex: true }));
+          setView("list");
+        }}
+      />
+    );
+  }
 
-  const fullPrompt = parts.join("\n");
-  const visibleSetup = [
-    "# Claude Setup",
-    "1. Install Stage agent mode:",
-    claudeInstallCommand,
-    "",
-    "2. Add your Stage API key:",
-    "export STAGE_API_KEY=stg_...",
-    "",
-    "3. Paste the copied setup prompt in Claude.",
-  ].join("\n");
-
-  async function handleActivate() {
-    await navigator.clipboard.writeText(fullPrompt);
-    setCopied("full");
-    window.setTimeout(() => {
-      window.open("https://claude.ai/new", "_blank");
-    }, 500);
-    window.setTimeout(onActivate, 900);
-    window.setTimeout(() => setCopied(null), 4000);
+  if (view === "claude") {
+    return (
+      <IntegrationSetupState
+        provider="claude"
+        apiKey={claudeKey}
+        onGenerateKey={() => generateKey("claude")}
+        onActivate={() => setView("list")}
+      />
+    );
   }
 
   return (
-    <div className="space-y-3">
-      <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-        <div className="space-y-1">
-          <div className="flex items-center justify-between rounded-[8px] bg-white p-3 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-            <div className="flex items-center gap-2">
-              <img src="/logos/integrations/claude.svg" alt="" className="h-4 w-4" />
-              <span className="text-[13px] font-medium text-text-primary">Claude</span>
-            </div>
-            <span className="flex h-[18px] w-[30px] items-center justify-end rounded-full bg-[#DBD9FC] p-0.5">
-              <span className="h-[14px] w-[14px] rounded-full bg-[#221E6C]" />
-            </span>
-          </div>
-
-          <div className="rounded-[8px] bg-white p-3 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-            <label className="mb-2 block text-[13px] font-medium text-text-primary">
-              API Key
-            </label>
-            <div className="flex items-center justify-between gap-3 rounded-[6px] bg-[#F5F5F5] py-1 pl-3 pr-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-              <span className="min-w-0 truncate text-[12px] font-medium text-text-secondary">
-                {generatedKey ? generatedKey : "*******************"}
-              </span>
-              <button
-                type="button"
-                disabled={isGeneratingKey}
-                onClick={async () => {
-                  setIsGeneratingKey(true);
-                  try {
-                    const result = await generateKeyMutation({ name: "Claude Onboarding" });
-                    setGeneratedKey(result.key);
-                    await navigator.clipboard.writeText(result.key);
-                    setCopied("key");
-                    window.setTimeout(() => setCopied(null), 3000);
-                  } catch {
-                    // silently fail
-                  } finally {
-                    setIsGeneratingKey(false);
-                  }
-                }}
-                className="shrink-0 cursor-pointer rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 py-1 text-[12px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] disabled:opacity-50"
-              >
-                {isGeneratingKey ? "Generating..." : copied === "key" ? "Copied!" : generatedKey ? "Regenerate" : "Generate Key"}
-              </button>
-            </div>
-          </div>
-
-          <div className="rounded-[8px] bg-white p-3 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <p className="text-[13px] font-medium text-text-primary">Auto-generated Setup</p>
-              <button
-                type="button"
-                onClick={() => {
-                  void navigator.clipboard.writeText(fullPrompt);
-                  setCopied("prompt");
-                  window.setTimeout(() => setCopied(null), 2500);
-                }}
-                className="inline-flex cursor-pointer items-center gap-1 text-[12px] font-medium text-text-tertiary transition-colors hover:text-text-primary"
-              >
-                {copied === "prompt" ? <Check size={12} weight="bold" /> : <CopySimple size={12} />}
-                {copied === "prompt" ? "Copied" : "Copy full prompt"}
-              </button>
-            </div>
-            <pre className="max-h-[172px] w-full overflow-auto whitespace-pre-wrap rounded-[6px] bg-[#F5F5F5] px-3 py-2.5 font-body text-[12px] font-medium leading-[1.5] text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-              {visibleSetup}
-            </pre>
-          </div>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => void handleActivate()}
-        className="inline-flex h-[40px] w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-5 text-[13px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 focus:outline-none"
-      >
-        {copied === "full" ? "Copied - opening Claude" : "Activate Claude"}
-        <ArrowRight size={16} weight="bold" />
-      </button>
-
-      <div className="flex items-center justify-between pt-1">
-        <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              "h-[7px] w-[7px] shrink-0 rounded-full",
-              claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
-                ? "bg-success"
-                : "bg-border",
-            )}
-          />
-          <span className="text-[13px] text-text-secondary">
-            {claudeConnection?.status === "connected" && claudeConnection.stageApiVerified
-              ? "Connected"
-              : "Not connected yet"}
-          </span>
-        </div>
-        <a
-          href={claudeSetupHref}
-          className="text-[13px] font-medium text-accent transition-colors duration-150 hover:text-accent-hover"
+    <FigmaOnboardingFrame>
+      <FigmaStepHeader
+        step="claude"
+        title="Configure your integration"
+        subtitle="Connect your tools to sync files, tasks, and updates"
+        showProgress={false}
+      />
+      <div className="mt-6 space-y-3">
+        <FigmaSection label="Select one model">
+          <ul className="space-y-4">
+            <IntegrationRow
+              iconSrc={INTEGRATION_ICON_SRC.codex}
+              label="Codex"
+              connected={codexConnected}
+              actionLabel="Connect Codex"
+              onAction={() => setView("codex")}
+            />
+            <IntegrationRow
+              iconSrc={INTEGRATION_ICON_SRC.claude}
+              label="Claude"
+              connected={claudeConnected}
+              actionLabel="Connect Claude"
+              onAction={() => setView("claude")}
+            />
+          </ul>
+        </FigmaSection>
+        <FigmaSection label="Select tools you want to integrate">
+          <ul className="space-y-4">
+            <IntegrationRow
+              iconSrc={INTEGRATION_ICON_SRC.figma}
+              label="Figma"
+              connected={figmaConnected}
+              actionLabel="Connect Figma"
+              onAction={() => showConnecting("figma")}
+            />
+            <IntegrationRow
+              iconSrc={INTEGRATION_ICON_SRC.notion}
+              label="Notion"
+              connected={notionConnected}
+              actionLabel="Connect Notion"
+              onAction={() => showConnecting("notion")}
+            />
+          </ul>
+        </FigmaSection>
+        <button
+          type="button"
+          onClick={onActivate}
+          className="inline-flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-5 text-[13px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 focus:outline-none"
         >
-          Setup guide &rarr;
-        </a>
+          Get Started
+          <ArrowRight size={16} weight="bold" />
+        </button>
       </div>
-    </div>
+    </FigmaOnboardingFrame>
+  );
+}
+
+function IntegrationConnectingState({ tool }: { tool: "figma" | "notion" }) {
+  const label = tool === "figma" ? "Figma" : "Notion";
+  const iconSrc = tool === "figma" ? INTEGRATION_ICON_SRC.figma : INTEGRATION_ICON_SRC.notion;
+
+  return (
+    <FigmaOnboardingFrame className="py-[22px]">
+      <div className="flex w-full flex-col items-center justify-center py-[22px] text-center">
+        <div className="flex flex-col items-center gap-3">
+          <img
+            src={iconSrc}
+            alt=""
+            className={cn(tool === "figma" ? "h-7 w-[19px]" : "h-6 w-[23px]", "object-contain")}
+          />
+          <h3 className="text-[21px] leading-[1.2] font-semibold text-[#0A0A0A]">
+            Connecting {label}
+          </h3>
+        </div>
+        <p className="mt-2 text-[13px] leading-[1.5] font-medium text-[#525252]">
+          You&apos;ll be redirected to {label} to securely authorize access.
+        </p>
+      </div>
+    </FigmaOnboardingFrame>
+  );
+}
+
+function IntegrationSetupState({
+  provider,
+  apiKey,
+  onGenerateKey,
+  onActivate,
+}: {
+  provider: "codex" | "claude";
+  apiKey: string;
+  onGenerateKey: () => void;
+  onActivate: () => void;
+}) {
+  const isClaude = provider === "claude";
+  const providerLabel = isClaude ? "Claude" : "Codex";
+  const maskedKey = "*******************";
+  const displayKey = apiKey || maskedKey;
+  const setupText = `# ${providerLabel} Configuration
+
+API_KEY=${apiKey || "[Your API key here]"}
+
+You are an expert product engineer working on a modern SaaS application.
+
+- Write clean, production-ready code
+- Maintain consistent structure and naming
+- Optimize for readability and scalability
+- Avoid breaking existing functionality
+
+UI Guidelines:
+- Use modern, minimal design patterns
+- Ensure spacing, hierarchy, and responsiveness
+
+Always return complete, usable code.`;
+
+  return (
+    <FigmaOnboardingFrame>
+      <FigmaStepHeader
+        step="claude"
+        title={`Set up ${providerLabel}`}
+        subtitle={
+          isClaude
+            ? "Connect Claude to power conversations, reasoning, and content generation in your workspace."
+            : "Give Stage access to generate, update, and manage your code seamlessly."
+        }
+        showProgress={false}
+      />
+      <div className="mt-6 space-y-3">
+        <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <div className="rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <img
+                  src={isClaude ? INTEGRATION_ICON_SRC.claude : INTEGRATION_ICON_SRC.codex}
+                  alt=""
+                  className="h-4 w-4 object-contain"
+                />
+                <span className="text-[13px] font-medium text-[#171717]">{providerLabel}</span>
+              </div>
+              <span className="flex h-4 w-[30px] items-center justify-end rounded-full bg-[#DBD9FC] p-0.5">
+                <span className="h-3 w-3 rounded-full bg-[#221E6C]" />
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-1 rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+            <p className="text-[13px] font-medium text-[#171717]">API Key</p>
+            <div className="mt-2 flex h-[31px] items-center justify-between gap-3 rounded-[6px] bg-[#F5F5F5] py-1 pl-3 pr-1 text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+              <span className="min-w-0 truncate">{displayKey}</span>
+              {apiKey ? (
+                <button
+                  type="button"
+                  className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[4px] hover:bg-white"
+                  aria-label={`Copy ${providerLabel} API key`}
+                >
+                  <img src={ONBOARDING_ICON_SRC.copy} alt="" className="h-[18px] w-[18px]" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onGenerateKey}
+                  className="h-[23px] shrink-0 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-2.5 text-[12px] font-medium text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
+                >
+                  Generate Key
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-1 rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+            <p className="text-[13px] font-medium text-[#171717]">Auto-generated Setup</p>
+            <div className="mt-2 flex h-[308px] items-start gap-3 overflow-hidden rounded-[6px] bg-[#F5F5F5] py-2.5 pl-3 pr-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+              <pre className="min-w-0 flex-1 whitespace-pre-wrap text-[12px] leading-[1.5] font-medium text-[#525252]">
+                {setupText}
+              </pre>
+              {apiKey ? (
+                <button
+                  type="button"
+                  className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[4px] hover:bg-white"
+                  aria-label={`Copy ${providerLabel} setup`}
+                >
+                  <img src={ONBOARDING_ICON_SRC.copy} alt="" className="h-[18px] w-[18px]" />
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onActivate}
+          disabled={!apiKey}
+          className="inline-flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-5 text-[13px] font-medium text-white opacity-50 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:hover:opacity-50 enabled:opacity-100 focus:outline-none"
+        >
+          Activate {providerLabel}
+          <ArrowRight size={16} weight="bold" />
+        </button>
+      </div>
+    </FigmaOnboardingFrame>
   );
 }

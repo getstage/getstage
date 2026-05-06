@@ -10,7 +10,6 @@ export type OnboardingStepId =
   | "method"
   | "phase-select"
   | "timeline"
-  | "generating-roadmap"
   | "preview"
   | "integrations"
   | "creating"

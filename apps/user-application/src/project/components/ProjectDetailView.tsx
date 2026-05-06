@@ -32,7 +32,7 @@ export function ProjectDetailView() {
 
   return (
     <WorkspaceFrame>
-      <div className="flex-1 px-[clamp(24px,7vw,100px)] py-[44px]">
+      <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}

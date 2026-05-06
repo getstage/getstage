@@ -52,7 +52,6 @@ export function useOnboardingController({
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [creationReady, setCreationReady] = useState(false);
   const completionTimeoutRef = useRef<number | null>(null);
-  const roadmapTimeoutRef = useRef<number | null>(null);
   const resetDraftRef = useRef<(() => void) | null>(null);
   const stripeConnected = false;
   const draftState = useProjectDraft({
@@ -136,27 +135,8 @@ export function useOnboardingController({
       if (completionTimeoutRef.current !== null) {
         window.clearTimeout(completionTimeoutRef.current);
       }
-      if (roadmapTimeoutRef.current !== null) {
-        window.clearTimeout(roadmapTimeoutRef.current);
-      }
     };
   }, []);
-
-  useEffect(() => {
-    if (step !== "generating-roadmap") {
-      return;
-    }
-
-    roadmapTimeoutRef.current = window.setTimeout(() => {
-      setStep("preview");
-    }, 1400);
-
-    return () => {
-      if (roadmapTimeoutRef.current !== null) {
-        window.clearTimeout(roadmapTimeoutRef.current);
-      }
-    };
-  }, [step]);
 
   // Create a pending Claude connection when the user reaches the claude step
   useEffect(() => {
@@ -333,7 +313,7 @@ export function useOnboardingController({
           setStep("paywall");
           return;
         }
-        setStep("client");
+        setStep("project-type");
         return;
       case "client":
         setStep("project-type");
@@ -348,7 +328,7 @@ export function useOnboardingController({
         setStep("timeline");
         return;
       case "timeline":
-        setStep("generating-roadmap");
+        setStep("preview");
         return;
       case "preview": {
         const submission = buildPendingSubmission(!setProjectLater);

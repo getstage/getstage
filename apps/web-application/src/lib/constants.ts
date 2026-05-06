@@ -13,20 +13,26 @@ export type RoadmapTemplateItem = {
 export const FREE_PLAN_PROJECT_LIMIT = 3;
 
 export const PROJECT_TYPES: ProjectTypeOption[] = [
+  { value: "branding", label: "Branding" },
   { value: "web-design", label: "Web Design" },
+  { value: "product-design", label: "Product Design" },
   { value: "app-design", label: "App Design" },
   { value: "web-app", label: "Web App" },
+  { value: "packaging", label: "Packaging" },
+  { value: "motion-design", label: "Motion Design" },
+  { value: "illustration", label: "Illustration" },
+  { value: "other", label: "Other" },
 ];
 
 export const PROJECT_TYPE_ICONS: Record<ProjectType, string | null> = {
-  branding: null,
+  branding: "/logos/create-project/pen.svg",
   "web-design": "/logos/create-project/globe.svg",
-  "product-design": null,
+  "product-design": "/logos/create-project/computer.svg",
   "app-design": "/logos/create-project/mobile.svg",
   "web-app": "/logos/create-project/computer.svg",
-  packaging: null,
-  "motion-design": null,
-  illustration: null,
+  packaging: "/logos/create-project/calendar.svg",
+  "motion-design": "/logos/create-project/bounce.svg",
+  illustration: "/logos/create-project/draw.svg",
   other: null,
 };
 

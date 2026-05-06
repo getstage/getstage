@@ -6,6 +6,7 @@ import { OnboardingStepRenderer } from "@/components/onboarding/OnboardingStepRe
 import { StepDots } from "@/components/onboarding/OnboardingPrimitives";
 import type { OnboardingStepId, OnboardingSubmission } from "@/features/onboarding/model";
 import { useOnboardingController } from "@/features/onboarding/useOnboardingController";
+import { cn } from "@/lib/utils";
 
 export type { OnboardingSubmission } from "@/features/onboarding/model";
 
@@ -65,20 +66,15 @@ export function OnboardingModal({
   });
 
   const { title: headerTitle, subtitle: headerSubtitle } = getStepHeader(controller.step);
-  const showChrome =
-    controller.step !== "creating" &&
-    controller.step !== "celebrating" &&
-    controller.step !== "generating-roadmap" &&
-    controller.step !== "preview" &&
-    controller.step !== "paywall";
+  const showChrome = false;
   const setupProgressIndex = SETUP_PROGRESS_STEPS.indexOf(controller.step);
   const showStepDots = setupProgressIndex >= 0;
   const showContinueBar =
     controller.step !== "creating" &&
-    controller.step !== "generating-roadmap" &&
     controller.step !== "preview" &&
     controller.step !== "claude" &&
     controller.step !== "paywall";
+  const isFullscreenStep = true;
 
   return (
     <Dialog.Root open={open} onOpenChange={() => undefined}>
@@ -99,7 +95,12 @@ export function OnboardingModal({
           onPointerDownOutside={(event) => event.preventDefault()}
         >
           <motion.div
-            className="project-creation-page onboarding-modal timeline-scrollbar-hidden fixed inset-x-0 bottom-0 z-50 max-h-[92svh] w-full overflow-y-auto overscroll-contain rounded-t-[22px] bg-white px-5 pt-6 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-[0_28px_90px_rgba(10,12,22,0.26)] outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0 sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[calc(100svh-40px)] sm:w-[calc(100%-32px)] sm:max-w-[844px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[22px] sm:px-9 sm:pt-9 sm:pb-8"
+            className={cn(
+              "project-creation-page onboarding-modal timeline-scrollbar-hidden fixed z-50 overflow-y-auto overscroll-contain bg-white outline-none ring-0 focus:outline-none focus-visible:outline-none focus:ring-0",
+              isFullscreenStep
+                ? "inset-0 h-dvh max-h-none w-screen border border-[#F5F5F5] p-2 shadow-none"
+                : "inset-x-0 bottom-0 max-h-[92svh] w-full rounded-t-[22px] px-5 pt-6 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-[0_28px_90px_rgba(10,12,22,0.26)] sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[calc(100svh-40px)] sm:w-[calc(100%-32px)] sm:max-w-[844px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[22px] sm:px-9 sm:pt-9 sm:pb-8",
+            )}
             initial={{ opacity: 0, y: 18, scale: 0.985, filter: "blur(10px)" }}
             animate={
               controller.isClosing
@@ -140,86 +141,96 @@ export function OnboardingModal({
               </div>
             ) : null}
 
-            <AnimatePresence mode="wait" initial={false}>
-              <OnboardingStepRenderer
-                step={controller.step}
-                userName={userName}
-                googleSheetsGuideHref={googleSheetsGuideHref}
-                fieldOfWork={controller.fieldOfWork}
-                onSelectField={controller.handleSelectField}
-                draftState={controller.draftState}
-                stepError={controller.stepError}
-                sheetUrl={controller.sheetUrl}
-                csvConnected={controller.csvConnected}
-                csvImported={controller.csvImported}
-                csvImporting={controller.csvImporting}
-                creationReady={controller.creationReady}
-                isCheckoutLoading={controller.isCheckoutLoading}
-                checkoutError={controller.checkoutError}
-                existingClients={controller.existingClients}
-                claudeConnection={controller.claudeConnection}
-                claudeSetupHref={controller.claudeSetupHref}
-                claudeInstallCommand={controller.claudeInstallCommand}
-                claudeConnectionId={controller.claudeConnectionId}
-                onClaudeActivated={controller.handleContinue}
-                onSheetUrlChange={controller.setSheetUrl}
-                onToggleCsvConnection={controller.handleToggleCsvConnection}
-                onLinkSheetUrl={controller.handleLinkSheetUrl}
-                onContinue={controller.handleContinue}
-                onCreationDone={() => controller.setStep("paywall")}
-                onContinueFree={() => controller.setStep("celebrating")}
-              />
-            </AnimatePresence>
+            <div
+              className={cn(
+                isFullscreenStep &&
+                  "mx-auto flex min-h-[calc(100dvh-16px)] w-full flex-col items-center justify-center overflow-visible px-4 py-10 sm:py-[72px]",
+              )}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                <OnboardingStepRenderer
+                  step={controller.step}
+                  userName={userName}
+                  googleSheetsGuideHref={googleSheetsGuideHref}
+                  fieldOfWork={controller.fieldOfWork}
+                  onSelectField={controller.handleSelectField}
+                  draftState={controller.draftState}
+                  stepError={controller.stepError}
+                  sheetUrl={controller.sheetUrl}
+                  csvConnected={controller.csvConnected}
+                  csvImported={controller.csvImported}
+                  csvImporting={controller.csvImporting}
+                  creationReady={controller.creationReady}
+                  isCheckoutLoading={controller.isCheckoutLoading}
+                  checkoutError={controller.checkoutError}
+                  existingClients={controller.existingClients}
+                  claudeConnection={controller.claudeConnection}
+                  claudeSetupHref={controller.claudeSetupHref}
+                  claudeInstallCommand={controller.claudeInstallCommand}
+                  claudeConnectionId={controller.claudeConnectionId}
+                  onClaudeActivated={controller.handleContinue}
+                  onSheetUrlChange={controller.setSheetUrl}
+                  onToggleCsvConnection={controller.handleToggleCsvConnection}
+                  onLinkSheetUrl={controller.handleLinkSheetUrl}
+                  onContinue={controller.handleContinue}
+                  onCreationDone={() => controller.setStep("paywall")}
+                  onContinueFree={() => controller.setStep("celebrating")}
+                />
+              </AnimatePresence>
 
-            {showContinueBar ? (
-              <div className="mt-6">
-                {controller.stepError ? (
-                  <p className="mb-3 text-[13px] leading-normal text-destructive">
-                    {controller.stepError}
-                  </p>
-                ) : null}
+              {showContinueBar ? (
+                <div className="mt-3 w-[min(516px,calc(100vw-40px))]">
+                  {controller.stepError ? (
+                    <p className="mb-3 text-[13px] leading-normal text-destructive">
+                      {controller.stepError}
+                    </p>
+                  ) : null}
 
-                <button
-                  type="button"
-                  className="inline-flex h-[48px] w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-5 text-[13px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-default disabled:opacity-45 focus:outline-none"
-                  disabled={!controller.continueEnabled}
-                  onClick={controller.handleContinue}
-                >
-                  <span>
-                    {controller.step === "welcome"
-                      ? "Start Setup"
-                      : controller.step === "celebrating"
-                        ? "Continue"
-                      : controller.step === "integrations"
-                        ? "Get Started"
-                        : "Continue"}
-                  </span>
-                  <ArrowRight size={16} weight="bold" />
-                </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      "inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-5 text-[13px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-default disabled:opacity-45 focus:outline-none",
+                      "h-9",
+                    )}
+                    disabled={!controller.continueEnabled}
+                    onClick={controller.handleContinue}
+                  >
+                    <span>
+                      {controller.step === "welcome"
+                        ? "Start Setup"
+                        : controller.step === "celebrating"
+                          ? "Continue"
+                          : controller.step === "integrations"
+                            ? "Get Started"
+                            : "Continue"}
+                    </span>
+                    <ArrowRight size={16} weight="bold" />
+                  </button>
 
-                {controller.step !== "welcome" && controller.step !== "personalise" ? (
-                  <div className="mt-4 flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={controller.goBack}
-                      className="inline-flex cursor-pointer items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary focus:outline-none"
-                    >
-                      Back
-                    </button>
-
-                    {controller.step === "details" ? (
+                  {controller.step !== "welcome" && controller.step !== "personalise" ? (
+                    <div className="mt-4 flex items-center justify-between">
                       <button
                         type="button"
-                        onClick={controller.handleDoLater}
+                        onClick={controller.goBack}
                         className="inline-flex cursor-pointer items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary focus:outline-none"
                       >
-                        I&apos;ll do this later
+                        Back
                       </button>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
+
+                      {controller.step === "details" ? (
+                        <button
+                          type="button"
+                          onClick={controller.handleDoLater}
+                          className="inline-flex cursor-pointer items-center gap-1 text-[13px] text-text-secondary transition-colors hover:text-text-primary focus:outline-none"
+                        >
+                          I&apos;ll do this later
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </motion.div>
         </Dialog.Content>
       </Dialog.Portal>
