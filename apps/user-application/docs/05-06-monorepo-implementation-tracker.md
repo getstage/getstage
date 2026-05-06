@@ -73,6 +73,38 @@ apps/
 └── data-service/      # Rust local engine sidecar
 ```
 
+Use these paths for local commands, GitHub Actions, and Cloudflare settings:
+
+```txt
+apps/user-application/  # Electron desktop UI package path
+apps/data-service/      # Rust sidecar Cargo manifest path
+apps/web-application/   # Web/cloud app path with package.json and wrangler.jsonc
+```
+
+Important current note: this branch currently exposes the desktop UI package and the Rust sidecar. If a GitHub or Cloudflare setting still points at old `desktop/` or `app/` paths, update it to the matching `apps/...` path above.
+
+Cloudflare/Wrangler commands should run from `apps/web-application/`, because `wrangler.jsonc` uses paths relative to that folder:
+
+```bash
+cd apps/web-application
+pnpm run build:testing
+npx wrangler deploy -e testing
+```
+
+Equivalent package script:
+
+```bash
+cd apps/web-application
+pnpm run testing:deploy
+```
+
+Rust CI checks can run from the repository root:
+
+```bash
+cargo fmt --manifest-path apps/data-service/Cargo.toml --check
+cargo check --manifest-path apps/data-service/Cargo.toml
+```
+
 ## Rust Toolchain Status
 
 Rust is now available locally:
@@ -103,10 +135,10 @@ GET /v1/readiness
 GET /v1/version
 ```
 
-After Rust is available:
+Current Rust sidecar verification:
 
 ```bash
-cargo fmt --manifest-path apps/data-service/Cargo.toml
+cargo fmt --manifest-path apps/data-service/Cargo.toml --check
 cargo check --manifest-path apps/data-service/Cargo.toml
 cargo run --manifest-path apps/data-service/Cargo.toml
 curl http://127.0.0.1:48221/v1/health
@@ -134,3 +166,29 @@ curl http://127.0.0.1:48221/v1/version
 - This is intentionally not connected to Electron yet.
 - The next safe implementation step is WebSocket + typed ping.
 - Figma and Notion remain production V1 scope, but they should come after the sidecar/chat/file-search foundation.
+
+## Current Status Summary
+
+We are through the monorepo move and the first Rust sidecar skeleton.
+
+Done:
+
+- Electron desktop UI path is `apps/user-application/`.
+- Rust local engine path is `apps/data-service/`.
+- Rust installs and runs locally.
+- `cargo fmt`, `cargo check`, and `cargo run` pass for `apps/data-service/Cargo.toml`.
+- `/v1/health`, `/v1/readiness`, and `/v1/version` respond locally.
+
+Not done yet:
+
+- WebSocket `/v1/events`.
+- Typed `engine.ping -> engine.ready`.
+- Electron sidecar supervisor.
+- Renderer engine status bridge.
+- Provider detection, file scanner, design critique, voice, Figma, and Notion layers.
+
+Next safe step:
+
+```txt
+Add WebSocket /v1/events, then add typed engine.ping -> engine.ready.
+```

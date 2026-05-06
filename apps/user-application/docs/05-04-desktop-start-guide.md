@@ -4,6 +4,12 @@ Date: 2026-05-04
 
 This document explains the most important desktop files and how to run the Electron app locally.
 
+Current app path:
+
+```txt
+apps/user-application/
+```
+
 ## Current Scope
 
 The current desktop work is a mock UI migration pass.
@@ -12,7 +18,7 @@ What this means:
 
 - The desktop app uses mock data.
 - No Convex data is wired yet.
-- No backend or local Rust service is wired yet.
+- The Rust sidecar exists in `apps/data-service/`, but it is not wired into Electron yet.
 - No native screen capture, shortcuts, auth, or deep-linking is implemented yet.
 - The goal is visual parity with the current web `.tsx` screens before choosing the final data/native architecture.
 
@@ -21,7 +27,7 @@ What this means:
 From the repository root:
 
 ```bash
-cd desktop
+cd apps/user-application
 pnpm install
 pnpm run dev
 ```
@@ -30,7 +36,7 @@ The dev script already unsets `ELECTRON_RUN_AS_NODE`, because some shells can ac
 
 ## Checks
 
-Run these from `desktop/`:
+Run these from `apps/user-application/`:
 
 ```bash
 pnpm run typecheck
@@ -128,3 +134,32 @@ The likely future architecture is:
 - Rust mirrors critical contracts with `serde` structs.
 
 That architecture is not implemented in this UI migration pass.
+
+## Rust Sidecar
+
+The local Rust engine lives separately from the Electron UI:
+
+```txt
+apps/data-service/
+```
+
+Run Rust checks from the repository root:
+
+```bash
+cargo fmt --manifest-path apps/data-service/Cargo.toml --check
+cargo check --manifest-path apps/data-service/Cargo.toml
+```
+
+Run the local sidecar from the repository root:
+
+```bash
+cargo run --manifest-path apps/data-service/Cargo.toml
+```
+
+Then test:
+
+```bash
+curl http://127.0.0.1:48221/v1/health
+curl http://127.0.0.1:48221/v1/readiness
+curl http://127.0.0.1:48221/v1/version
+```
