@@ -52,6 +52,33 @@ a,
   cursor: pointer;
 }
 
+.companion-orb-tooltip {
+  position: absolute;
+  right: calc(100% + 12px);
+  top: 50%;
+  width: max-content;
+  padding: 7px 10px;
+  border: 1px solid #262626;
+  border-radius: 6px;
+  background: #111121;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(4px, -50%);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.companion-orb:hover .companion-orb-tooltip,
+.companion-orb:focus-visible .companion-orb-tooltip {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
 .companion-orb-mark {
   display: inline-flex;
   align-items: center;
