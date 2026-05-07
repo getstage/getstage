@@ -13,7 +13,7 @@ export function ClientPortalSettingsView() {
   return (
     <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
       <div className="flex w-full flex-col gap-[28px]">
-        <header className="grid gap-[14px] lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <header className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-[14px]">
           <div className="min-w-0">
             <h1 className="text-[20px] font-semibold leading-[1.2] text-[#0a0a0a]">Client Portal</h1>
             <p className="mt-[8px] max-w-[360px] text-[13px] font-medium leading-[1.35] text-[#737373]">
@@ -28,7 +28,7 @@ export function ClientPortalSettingsView() {
                 params: { projectId: "baseframe" },
               })
             }
-            className="flex h-[32px] items-center gap-[8px] rounded-[6px] px-[10px] py-[6px] text-[13px] font-medium text-[#525252] transition-colors hover:bg-[#f5f5f5]"
+            className="flex h-[32px] shrink-0 items-center gap-[8px] rounded-[6px] px-[10px] py-[6px] text-[13px] font-medium text-[#525252] transition-colors hover:bg-[#f5f5f5]"
           >
             Preview Portal
             <RedirectIcon />
