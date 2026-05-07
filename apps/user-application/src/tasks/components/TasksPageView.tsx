@@ -234,7 +234,7 @@ export function TasksPageView() {
 
   return (
     <WorkspaceFrame>
-      <div className="flex-1 px-[clamp(24px,7vw,100px)] py-[44px]">
+      <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -254,13 +254,13 @@ export function TasksPageView() {
             <h1 className="font-heading text-[20px] font-semibold leading-[1.2] text-[#0A0A0A]">
               Tasks
             </h1>
-            <p className="text-[13px] font-medium leading-[1.2] text-[#737373]">
+            <p className="max-w-[360px] text-[13px] font-medium leading-[1.35] text-[#737373]">
               See All your pending tasks in one view
             </p>
           </header>
 
           <div className="relative">
-            <div className="grid grid-cols-1 gap-1 overflow-visible rounded-[10px] bg-[#F5F5F5] p-1 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-1 overflow-visible rounded-[10px] bg-[#F5F5F5] p-1 md:grid-cols-2 xl:grid-cols-4">
               {PRIORITY_COLUMNS.map((column) => (
                 <section
                   key={column.key}
@@ -270,10 +270,13 @@ export function TasksPageView() {
                     activeDrag && dragOverColumn === column.key && "bg-white/35",
                   )}
                 >
-                  <div className="flex items-center rounded-[8px] px-4 py-3">
-                    <h2 className="text-[14px] font-medium leading-[1.2] text-[#0A0A0A]">
+                  <div className="flex min-w-0 items-center justify-between gap-[10px] rounded-[8px] px-[clamp(12px,2vw,16px)] py-3">
+                    <h2 className="min-w-0 truncate text-[14px] font-medium leading-[1.2] text-[#0A0A0A]">
                       {column.label}
                     </h2>
+                    <span className="shrink-0 text-[12px] font-medium leading-none text-[#A3A3A3]">
+                      {columns[column.key].length}
+                    </span>
                   </div>
                   <div className="flex min-h-[84px] flex-col gap-1">
                     {columns[column.key].map((item) => {
@@ -339,7 +342,7 @@ function PriorityTaskCard({
     <div
       onPointerDown={onPointerDown}
       className={cn(
-        "select-none rounded-[8px] bg-gradient-to-b from-white to-[#FAFAFA] p-4 transition-[opacity,transform,box-shadow]",
+        "select-none rounded-[8px] bg-gradient-to-b from-white to-[#FAFAFA] p-[clamp(12px,2vw,16px)] transition-[opacity,transform,box-shadow]",
         dragging
           ? "cursor-grabbing shadow-[0_8px_22px_rgba(10,10,10,0.14)]"
           : "cursor-grab shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:shadow-[0_2px_8px_rgba(10,10,10,0.08)] active:cursor-grabbing",
