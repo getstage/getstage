@@ -39,31 +39,31 @@ export function ClientPortalPreviewView() {
 
   return (
     <WorkspaceFrame>
-      <div className="min-h-full bg-white px-[clamp(16px,5vw,50px)] py-[clamp(20px,4vw,44px)] text-[#0a0a0a]">
-      <div className="flex flex-col gap-[clamp(28px,4vw,44px)]">
-        <div className="flex flex-col gap-[clamp(28px,4vw,44px)]">
-          <header className="flex flex-wrap items-start justify-between gap-[12px]">
+      <div className="flex-1 bg-white px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)] text-[#0a0a0a]">
+      <div className="flex min-w-0 flex-col gap-[28px]">
+        <div className="flex min-w-0 flex-col gap-[28px]">
+          <header className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-[12px]">
             <div className="flex items-center gap-[2px]">
               <img src="/apple-touch-icon.png" alt="" className="h-[22px] w-[22px]" />
               <span className="font-heading text-[19px] font-semibold leading-[1.25] text-black">Stage</span>
             </div>
-            <span className="rounded-[8px] bg-[#fff7ed] px-[8px] py-[4px] text-[12px] font-medium leading-[1.5] text-[#ea580c]">
+            <span className="justify-self-end whitespace-nowrap rounded-[8px] bg-[#fff7ed] px-[8px] py-[4px] text-[12px] font-medium leading-[1.5] text-[#ea580c]">
               You're in Preview Mode
             </span>
           </header>
 
-          <div className="grid gap-[18px] xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+          <div className="grid min-w-0 gap-[18px] xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
             <div className="min-w-0">
               <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0a0a0a]">Website Revamp</h1>
               <p className="mt-[6px] text-[13px] font-medium leading-[1.5] text-[#525252]">Baseframe Design Studio</p>
             </div>
-            <div className="flex flex-wrap items-center gap-[16px] xl:gap-[24px]">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-[16px] gap-y-[10px] xl:justify-end xl:gap-x-[24px]">
               <div className="flex min-w-0 items-center gap-[12px]">
-                <span className="text-[11px] font-medium leading-[1.5] text-[#525252]">12 completed%</span>
-                <div className="flex gap-[4px]">
-                  <span className="h-[6px] w-[32px] rounded-[2px] bg-gradient-to-r from-[#8d87ff] to-[rgba(141,135,255,0.75)]" />
+                <span className="shrink-0 text-[11px] font-medium leading-[1.5] text-[#525252]">12 completed%</span>
+                <div className="grid min-w-[96px] flex-1 grid-cols-5 gap-[4px] sm:w-[176px] sm:flex-none">
+                  <span className="h-[6px] rounded-[2px] bg-gradient-to-r from-[#8d87ff] to-[rgba(141,135,255,0.75)]" />
                   {Array.from({ length: 4 }).map((_, index) => (
-                    <span key={index} className="h-[6px] w-[32px] rounded-[2px] bg-[#e7e6fd]" />
+                    <span key={index} className="h-[6px] rounded-[2px] bg-[#e7e6fd]" />
                   ))}
                 </div>
               </div>
@@ -239,12 +239,17 @@ function PreviewBoard({ phases }: { phases: PreviewPhase[] }) {
   }
 
   return (
-    <div className="relative rounded-[10px] bg-[#f5f5f5] p-[4px]">
-      <div className="grid grid-cols-1 gap-[4px] md:grid-cols-2 xl:grid-cols-5">
+    <div className="relative min-w-0 rounded-[10px] bg-[#f5f5f5] p-[4px]">
+      <div className="grid grid-cols-1 gap-[4px] overflow-visible md:grid-cols-2 xl:grid-cols-5">
         {COLUMNS.map((column) => (
-          <section key={column.key} data-preview-column={column.key} className={dragOverColumn === column.key && activeDrag ? "rounded-[8px] bg-white/40" : ""}>
-            <h2 className="px-[clamp(12px,2vw,16px)] py-[12px] text-[14px] font-medium leading-[1.2] text-[#0a0a0a]">{column.label}</h2>
-            <div className="flex flex-col gap-[4px]">
+          <section key={column.key} data-preview-column={column.key} className={`min-w-0 ${dragOverColumn === column.key && activeDrag ? "rounded-[8px] bg-white/40" : ""}`}>
+            <div className="flex min-w-0 items-center justify-between gap-[10px] rounded-[8px] px-[clamp(12px,2vw,16px)] py-[12px]">
+              <h2 className="min-w-0 truncate text-[14px] font-medium leading-[1.2] text-[#0a0a0a]">{column.label}</h2>
+              <span className="shrink-0 text-[12px] font-medium leading-none text-[#a3a3a3]">
+                {columns[column.key].length}
+              </span>
+            </div>
+            <div className="flex min-h-[84px] flex-col gap-[4px]">
               {columns[column.key].map(({ task, phaseName }) => {
                 const isDragging = activeDrag?.id === task.id;
                 if (isDragging) return dragOverColumn ? null : <TaskSkeleton key={task.id} height={activeDrag?.height} />;
