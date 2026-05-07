@@ -33,6 +33,39 @@ a,
   -webkit-app-region: drag;
 }
 
+.sidebar-scroll-area {
+  -webkit-app-region: no-drag;
+  scroll-behavior: auto;
+}
+
+.sidebar-scroll-area::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scroll-area::-webkit-scrollbar-thumb {
+  background: #d4d4d4;
+}
+
+.project-tab-menu {
+  -webkit-app-region: no-drag;
+  overscroll-behavior-inline: contain;
+  scrollbar-color: #d4d4d4 transparent;
+  scrollbar-width: thin;
+}
+
+.project-tab-menu::-webkit-scrollbar {
+  height: 2px;
+}
+
+.project-tab-menu::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #d4d4d4;
+}
+
+.project-tab-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .companion-orb {
   position: fixed;
   right: 24px;

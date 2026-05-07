@@ -39,35 +39,35 @@ export function ClientPortalPreviewView() {
 
   return (
     <WorkspaceFrame>
-      <div className="min-h-screen bg-white px-[50px] py-[44px] text-[#0a0a0a]">
-      <div className="flex flex-col gap-[44px]">
-        <div className="flex flex-col gap-[44px]">
-          <header className="flex items-start justify-between">
+      <div className="flex-1 bg-white px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)] text-[#0a0a0a]">
+      <div className="flex min-w-0 flex-col gap-[28px]">
+        <div className="flex min-w-0 flex-col gap-[28px]">
+          <header className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-[12px]">
             <div className="flex items-center gap-[2px]">
               <img src="/apple-touch-icon.png" alt="" className="h-[22px] w-[22px]" />
               <span className="font-heading text-[19px] font-semibold leading-[1.25] text-black">Stage</span>
             </div>
-            <span className="rounded-[8px] bg-[#fff7ed] px-[8px] py-[4px] text-[12px] font-medium leading-[1.5] text-[#ea580c]">
+            <span className="justify-self-end whitespace-nowrap rounded-[8px] bg-[#fff7ed] px-[8px] py-[4px] text-[12px] font-medium leading-[1.5] text-[#ea580c]">
               You're in Preview Mode
             </span>
           </header>
 
-          <div className="flex items-end justify-between gap-[32px]">
-            <div>
+          <div className="grid min-w-0 gap-[18px] xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+            <div className="min-w-0">
               <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0a0a0a]">Website Revamp</h1>
               <p className="mt-[6px] text-[13px] font-medium leading-[1.5] text-[#525252]">Baseframe Design Studio</p>
             </div>
-            <div className="flex items-center gap-[24px]">
-              <div className="flex items-center gap-[12px]">
-                <span className="text-[11px] font-medium leading-[1.5] text-[#525252]">12 completed%</span>
-                <div className="flex gap-[4px]">
-                  <span className="h-[6px] w-[32px] rounded-[2px] bg-gradient-to-r from-[#8d87ff] to-[rgba(141,135,255,0.75)]" />
+            <div className="flex min-w-0 flex-wrap items-center gap-x-[16px] gap-y-[10px] xl:justify-end xl:gap-x-[24px]">
+              <div className="flex min-w-0 items-center gap-[12px]">
+                <span className="shrink-0 text-[11px] font-medium leading-[1.5] text-[#525252]">12 completed%</span>
+                <div className="grid min-w-[96px] flex-1 grid-cols-5 gap-[4px] sm:w-[176px] sm:flex-none">
+                  <span className="h-[6px] rounded-[2px] bg-gradient-to-r from-[#8d87ff] to-[rgba(141,135,255,0.75)]" />
                   {Array.from({ length: 4 }).map((_, index) => (
-                    <span key={index} className="h-[6px] w-[32px] rounded-[2px] bg-[#e7e6fd]" />
+                    <span key={index} className="h-[6px] rounded-[2px] bg-[#e7e6fd]" />
                   ))}
                 </div>
               </div>
-              <div className="h-[24px] w-px bg-[#e5e5e5]" />
+              <div className="hidden h-[24px] w-px bg-[#e5e5e5] sm:block" />
               <div className="flex items-center gap-[6px]">
                 <span className="flex h-[22px] w-[22px] items-center justify-center rounded-[6px] bg-white text-[#8d87ff] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
                   <RefreshIcon />
@@ -239,12 +239,17 @@ function PreviewBoard({ phases }: { phases: PreviewPhase[] }) {
   }
 
   return (
-    <div className="relative rounded-[10px] bg-[#f5f5f5] p-[4px]">
-      <div className="grid grid-cols-5 gap-[4px]">
+    <div className="relative min-w-0 rounded-[10px] bg-[#f5f5f5] p-[4px]">
+      <div className="grid grid-cols-1 gap-[4px] overflow-visible md:grid-cols-2 xl:grid-cols-5">
         {COLUMNS.map((column) => (
-          <section key={column.key} data-preview-column={column.key} className={dragOverColumn === column.key && activeDrag ? "rounded-[8px] bg-white/40" : ""}>
-            <h2 className="px-[16px] py-[12px] text-[14px] font-medium leading-[1.2] text-[#0a0a0a]">{column.label}</h2>
-            <div className="flex flex-col gap-[4px]">
+          <section key={column.key} data-preview-column={column.key} className={`min-w-0 ${dragOverColumn === column.key && activeDrag ? "rounded-[8px] bg-white/40" : ""}`}>
+            <div className="flex min-w-0 items-center justify-between gap-[10px] rounded-[8px] px-[clamp(12px,2vw,16px)] py-[12px]">
+              <h2 className="min-w-0 truncate text-[14px] font-medium leading-[1.2] text-[#0a0a0a]">{column.label}</h2>
+              <span className="shrink-0 text-[12px] font-medium leading-none text-[#a3a3a3]">
+                {columns[column.key].length}
+              </span>
+            </div>
+            <div className="flex min-h-[84px] flex-col gap-[4px]">
               {columns[column.key].map(({ task, phaseName }) => {
                 const isDragging = activeDrag?.id === task.id;
                 if (isDragging) return dragOverColumn ? null : <TaskSkeleton key={task.id} height={activeDrag?.height} />;
@@ -282,7 +287,7 @@ function PreviewTaskCard({ task, phaseName, dragging = false, onPointerDown }: {
   return (
     <div
       onPointerDown={onPointerDown}
-      className={`select-none rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[16px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${dragging ? "cursor-grabbing shadow-[0_8px_22px_rgba(10,10,10,0.14)]" : "cursor-grab active:cursor-grabbing"}`}
+      className={`select-none rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[clamp(12px,2vw,16px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${dragging ? "cursor-grabbing shadow-[0_8px_22px_rgba(10,10,10,0.14)]" : "cursor-grab active:cursor-grabbing"}`}
     >
       <div className="flex flex-col gap-[12px]">
         <span className={`w-fit rounded-[2px] px-[6px] py-[2px] text-[12px] font-normal leading-[1.25] ${TAG_COLORS[phaseName] ?? TAG_COLORS.Submitted}`}>

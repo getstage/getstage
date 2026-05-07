@@ -39,13 +39,14 @@ export function WorkspaceFrame({
       >
         <span className="select-none text-[13px] font-medium text-[#737373]">Stage</span>
       </div>
-      <div className="flex min-h-0 flex-1 items-start gap-[8px] overflow-hidden p-[4px] pt-0">
+      <div className="flex min-h-0 flex-1 items-start gap-[8px] overflow-hidden pb-[4px] pl-[8px] pr-[4px] pt-0">
         <StageSidebar
           accountInitials={accountInitials}
           accountLabel={accountLabel}
           accountMeta={accountMeta}
           projects={sidebarProjects}
           collapsed={effectiveSidebarCollapsed}
+          canExpand={!isCompact}
           onCollapsedChange={setSidebarCollapsed}
         />
         <main

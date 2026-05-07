@@ -19,6 +19,7 @@ export function StageSidebar({
   accountMeta,
   projects,
   collapsed,
+  canExpand = true,
   onCollapsedChange,
 }: {
   accountInitials: string;
@@ -26,6 +27,7 @@ export function StageSidebar({
   accountMeta: string;
   projects: DashboardProject[];
   collapsed: boolean;
+  canExpand?: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -99,33 +101,39 @@ export function StageSidebar({
   return (
     <nav
       className={cn(
-        "stage-sidebar relative flex h-full shrink-0 flex-col justify-between rounded-[8px] bg-[#f5f5f5] pb-[16px] pt-[14px] transition-[width,padding] duration-200 ease-out",
-        collapsed ? "w-[48px] items-center px-[8px]" : "w-[240px] px-[12px]",
+        "stage-sidebar relative flex h-full min-h-0 shrink-0 flex-col rounded-[8px] bg-[#f5f5f5] pb-[clamp(8px,2vh,16px)] pt-[clamp(8px,2vh,14px)] transition-[width,padding] duration-200 ease-out",
+        collapsed ? "w-[60px] items-center px-[14px]" : "w-[240px] px-[12px]",
       )}
     >
       {/* Top section */}
-      <div className={cn("flex w-full flex-col gap-[28px]", collapsed && "items-center")}>
+      <div className={cn("flex min-h-0 w-full flex-1 flex-col gap-[clamp(14px,4vh,28px)]", collapsed && "items-center")}>
         {/* Logo + sidebar toggle */}
-        <div className={cn("flex w-full items-center", collapsed ? "justify-center" : "justify-between")}>
+        <div className={cn("flex w-full shrink-0 items-center", collapsed ? "justify-center" : "justify-between")}>
           {collapsed ? (
             <button
               type="button"
-              onClick={() => onCollapsedChange(false)}
-              className="group relative flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[6px] outline-none transition-colors hover:bg-[#ebebeb]"
-              aria-label="Expand sidebar"
+              onClick={() => canExpand && onCollapsedChange(false)}
+              className={cn(
+                "group relative flex h-[32px] w-[32px] items-center justify-center rounded-[6px] outline-none transition-colors",
+                canExpand ? "cursor-pointer hover:bg-[#ebebeb]" : "cursor-default",
+              )}
+              aria-label={canExpand ? "Expand sidebar" : "Stage"}
+              aria-disabled={!canExpand}
             >
               <img
                 src="/apple-touch-icon.png"
                 alt=""
                 aria-hidden="true"
-                className="h-[22px] w-[22px] transition-opacity duration-150 group-hover:opacity-0"
+                className={cn("h-[22px] w-[22px] transition-opacity duration-150", canExpand && "group-hover:opacity-0")}
               />
-              <img
-                src="/logos/dashboard/close.svg"
-                alt=""
-                aria-hidden="true"
-                className="absolute h-[20px] w-[20px] rotate-180 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
-              />
+              {canExpand ? (
+                <img
+                  src="/logos/dashboard/close.svg"
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute h-[20px] w-[20px] rotate-180 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+                />
+              ) : null}
             </button>
           ) : (
             <div className="flex items-center gap-[2px]">
@@ -148,8 +156,8 @@ export function StageSidebar({
         </div>
 
         {/* Search + nav */}
-        <div className={cn("flex w-full flex-col gap-[28px]", collapsed && "items-center")}>
-          <div className={cn("flex w-full flex-col gap-[16px]", collapsed && "items-center")}>
+        <div className={cn("sidebar-scroll-area flex min-h-0 w-full flex-1 flex-col gap-[clamp(14px,4vh,28px)] overflow-y-auto overflow-x-hidden overscroll-contain pr-[2px] [-webkit-overflow-scrolling:touch]", collapsed && "w-[40px] items-center px-[4px] pr-[4px]")}>
+          <div className={cn("flex w-full shrink-0 flex-col gap-[clamp(10px,2.5vh,16px)]", collapsed && "items-center")}>
             {/* Search box */}
             <div
               onClick={() => collapsed && onCollapsedChange(false)}
@@ -182,7 +190,7 @@ export function StageSidebar({
             </div>
 
             {/* Navigation items */}
-            <div className={cn("flex w-full flex-col gap-[8px]", collapsed && "items-center")}>
+            <div className={cn("flex w-full flex-col gap-[clamp(4px,1.5vh,8px)]", collapsed && "items-center")}>
               {NAV_ITEMS.map((item) => {
                 const isActive = getActiveItem(item.routeKey);
 
@@ -236,7 +244,7 @@ export function StageSidebar({
           </div>
 
           {/* Projects section */}
-          <div className={cn("flex w-full flex-col gap-[12px]", collapsed && "items-center")}>
+          <div className={cn("flex min-h-0 w-full flex-col gap-[clamp(8px,2vh,12px)]", collapsed && "items-center")}>
             <div
               aria-hidden={collapsed}
               className={cn(
@@ -269,7 +277,7 @@ export function StageSidebar({
             </div>
 
             {/* Project list */}
-            <div className={cn("flex w-full flex-col gap-[8px]", collapsed && "items-center")}>
+            <div className={cn("flex w-full flex-col gap-[clamp(4px,1.5vh,8px)]", collapsed && "items-center")}>
               {projects.map((project) => {
                 const isActive = activeProjectId === project.id;
 
@@ -320,7 +328,7 @@ export function StageSidebar({
       {/* Bottom section */}
       <div
         ref={userMenuRef}
-        className={cn("relative flex w-full flex-col gap-[8px]", collapsed && "items-center")}
+        className={cn("relative mt-[clamp(8px,2vh,16px)] flex w-full shrink-0 flex-col gap-[clamp(4px,1.5vh,8px)]", collapsed && "items-center")}
       >
         {/* Help & Feedback */}
         <button
@@ -390,10 +398,11 @@ export function StageSidebar({
             aria-haspopup="menu"
             aria-expanded={isUserMenuOpen}
             onClick={() => {
-              if (collapsed) {
+              if (collapsed && canExpand) {
                 onCollapsedChange(false);
                 return;
               }
+              if (collapsed) return;
 
               setIsUserMenuOpen((current) => !current);
             }}

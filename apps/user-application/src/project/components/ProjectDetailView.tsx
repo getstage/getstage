@@ -11,14 +11,44 @@ import { ResearchTab } from "./tabs/ResearchTab";
 import { StrategyTab } from "./tabs/StrategyTab";
 import { WireframesTab } from "./tabs/WireframesTab";
 import { formatRelativeTime } from "@/lib/utils";
-import type { ProjectTab } from "../models/project";
+import type { Phase, Project, ProjectTab } from "../models/project";
 import { mockProject } from "../data/projectSnapshot";
+
+type ProjectTimeline = {
+  start: string;
+  end: string;
+};
 
 export function ProjectDetailView() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const project = mockProject;
+  const [project, setProject] = useState<Project>(mockProject);
+  const [timeline, setTimeline] = useState<ProjectTimeline>({ start: "", end: "" });
+
+  function updateProjectName(name: string) {
+    setProject((current) => ({ ...current, name }));
+  }
+
+  function updateClientName(clientName: string) {
+    setProject((current) => ({ ...current, clientName }));
+  }
+
+  function updateTimeline(nextTimeline: ProjectTimeline) {
+    setTimeline(nextTimeline);
+  }
+
+  function updatePhases(phases: Phase[]) {
+    setProject((current) => ({ ...current, phases }));
+  }
+
+  function pauseProject() {
+    setProject((current) => ({ ...current, status: "paused" }));
+  }
+
+  function deleteProject() {
+    void navigate({ to: "/projects" });
+  }
 
   const recentTasks = useMemo(() => {
     const tasks: Array<{ task: typeof project.phases[0]["tasks"][0]; phaseName: string }> = [];
@@ -50,9 +80,16 @@ export function ProjectDetailView() {
 
             <ProjectHeader
               project={project}
+              timeline={timeline}
               activeTab={activeTab}
               onTabChange={setActiveTab}
               onShare={() => setIsShareModalOpen(true)}
+              onProjectNameSave={updateProjectName}
+              onClientNameSave={updateClientName}
+              onTimelineSave={updateTimeline}
+              onPhasesSave={updatePhases}
+              onPauseProject={pauseProject}
+              onDeleteProject={deleteProject}
             />
           </div>
 
@@ -136,42 +173,47 @@ function ShareModal({ onClose }: { onClose: () => void }) {
         className="w-full max-w-[516px] rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex flex-col justify-center p-3 font-medium leading-[1.5]">
-          <h2 id="share-modal-title" className="text-[15px] text-[#0A0A0A]">
+        <div className="flex flex-col justify-center p-[12px] font-medium leading-[1.5]">
+          <h2 id="share-modal-title" className="text-[15px] leading-[1.5] text-[#0A0A0A]">
             Share with client
           </h2>
-          <p className="text-[13px] text-[#525252]">
+          <p className="text-[13px] leading-[1.5] text-[#525252]">
             Clients can view progress, phases and tasks. They cannot edit anything.
           </p>
         </div>
 
-        <div className="flex flex-col gap-6 rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-          <label className="flex flex-col gap-2">
-            <span className="text-[13px] font-medium leading-[1.25] text-[#171717]">
+        <div className="flex flex-col gap-[24px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <label className="flex flex-col gap-[8px]">
+            <span className="text-[13px] font-medium leading-none text-[#171717]">
               Client portal link
             </span>
             <input
               readOnly
               value={portalLink}
-              className="h-[34px] rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none"
+              className="h-[34px] rounded-[6px] bg-[#F5F5F5] px-[12px] text-[12px] font-medium leading-none text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none"
             />
           </label>
 
-          <div className="flex flex-col gap-2">
-            <div>
+          <div className="flex flex-col gap-[8px]">
+            <div className="flex flex-col gap-[4px]">
               <div className="flex items-center gap-[6px]">
-                <p className="text-[13px] font-medium leading-[1.25] text-[#171717]">
+                <p className="text-[13px] font-medium leading-none text-[#171717]">
                   Team members
                 </p>
                 <button
                   type="button"
-                  className="inline-flex h-[22px] cursor-pointer items-center gap-[6px] rounded-[4px] bg-[rgba(70,63,186,0.1)] px-[6px] text-[12px] font-medium leading-[1.25] text-[#463FBA] transition-colors hover:bg-[rgba(70,63,186,0.16)]"
+                  className="inline-flex cursor-pointer items-center justify-center gap-[6px] rounded-[4px] bg-[rgba(70,63,186,0.1)] px-[6px] py-[4px] text-[12px] font-medium leading-none text-[#463FBA] transition-colors hover:bg-[rgba(70,63,186,0.16)]"
                 >
-                  <LockIcon />
+                  <img
+                    src="/logos/dashboard/lock.svg"
+                    alt=""
+                    aria-hidden="true"
+                    className="h-[14px] w-[14px] shrink-0"
+                  />
                   Upgrade plan
                 </button>
               </div>
-              <p className="mt-[2px] text-[12px] font-normal leading-[1.5] text-[#525252]">
+              <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">
                 Team members with an active subscription can open this project in the stage workspace and collaborate there.
               </p>
             </div>
@@ -185,17 +227,24 @@ function ShareModal({ onClose }: { onClose: () => void }) {
               <button
                 type="button"
                 disabled
-                className="inline-flex h-[34px] shrink-0 items-center gap-[6px] rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 text-[12px] font-medium leading-[1.25] text-[#FAFAFA] opacity-50 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
+                className="inline-flex h-[30px] shrink-0 items-center gap-[6px] rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] pl-[10px] pr-[12px] text-[12px] font-medium leading-none text-[#FAFAFA] opacity-50 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
               >
-                <PlusIcon />
+                <span
+                  aria-hidden="true"
+                  className="h-[12px] w-[12px] shrink-0 bg-current"
+                  style={{
+                    WebkitMask: 'url("/logos/dashboard/plus.svg") center / contain no-repeat',
+                    mask: 'url("/logos/dashboard/plus.svg") center / contain no-repeat',
+                  }}
+                />
                 Add Member
               </button>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-4 p-3">
-          <div className="flex min-w-0 items-center gap-2">
+        <div className="flex items-center justify-between gap-4 p-[12px]">
+          <div className="flex min-w-0 items-center gap-[8px]">
             <SparkleIcon />
             <p className="truncate text-[13px] font-medium leading-[1.5] text-[#0A0A0A]">
               Invite your team members with PRO
@@ -205,7 +254,7 @@ function ShareModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-[27px] cursor-pointer items-center justify-center gap-[6px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[12px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90"
+              className="inline-flex cursor-pointer items-center justify-center gap-[6px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] py-[6px] pl-[10px] pr-[12px] text-[12px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90"
             >
               Upgrade Plan
               <ArrowRightIconSmall />
@@ -217,27 +266,16 @@ function ShareModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function LockIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[14px] w-[14px]">
-      <rect x="4" y="7" width="8" height="6" rx="1.4" fill="currentColor" opacity="0.18" />
-      <rect x="4" y="7" width="8" height="6" rx="1.4" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M5.75 7V5.75a2.25 2.25 0 0 1 4.5 0V7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[14px] w-[14px]">
-      <path d="M8 3.5v9M3.5 8h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function SparkleIcon() {
   return (
-    <img src="/logos/dashboard/ai-generated.svg" alt="" aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
+    <span
+      aria-hidden="true"
+      className="h-[18px] w-[18px] shrink-0 bg-[#7B76DF]"
+      style={{
+        WebkitMask: 'url("/logos/dashboard/ai-generated.svg") center / contain no-repeat',
+        mask: 'url("/logos/dashboard/ai-generated.svg") center / contain no-repeat',
+      }}
+    />
   );
 }
 

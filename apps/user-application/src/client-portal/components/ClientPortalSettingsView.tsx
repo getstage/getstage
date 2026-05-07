@@ -11,12 +11,12 @@ export function ClientPortalSettingsView() {
   const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
 
   return (
-    <div className="flex-1 px-[100px] py-[44px]">
+    <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
       <div className="flex w-full flex-col gap-[28px]">
-        <header className="flex items-end justify-between gap-[24px]">
-          <div>
+        <header className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-[14px]">
+          <div className="min-w-0">
             <h1 className="text-[20px] font-semibold leading-[1.2] text-[#0a0a0a]">Client Portal</h1>
-            <p className="mt-[8px] text-[13px] font-medium leading-[1.2] text-[#737373]">
+            <p className="mt-[8px] max-w-[360px] text-[13px] font-medium leading-[1.35] text-[#737373]">
               Create Portals for your clients to track progress
             </p>
           </div>
@@ -28,7 +28,7 @@ export function ClientPortalSettingsView() {
                 params: { projectId: "baseframe" },
               })
             }
-            className="flex h-[32px] items-center gap-[8px] rounded-[6px] px-[10px] py-[6px] text-[13px] font-medium text-[#525252] transition-colors hover:bg-[#f5f5f5]"
+            className="flex h-[32px] shrink-0 items-center gap-[8px] rounded-[6px] px-[10px] py-[6px] text-[13px] font-medium text-[#525252] transition-colors hover:bg-[#f5f5f5]"
           >
             Preview Portal
             <RedirectIcon />
@@ -47,7 +47,7 @@ export function ClientPortalSettingsView() {
             <LogoCard />
             <BrandColorCard brandColor={brandColor} onBrandColorChange={setBrandColor} />
             <DomainCard />
-            <div className="flex gap-[12px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+            <div className="flex flex-col gap-[10px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] sm:flex-row sm:gap-[12px]">
               <button className="rounded-[6px] bg-[#fafafa] px-[24px] py-[8px] text-[13px] font-medium text-[#dc2626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]" type="button">
                 Clear All
               </button>
@@ -68,10 +68,10 @@ export function ClientPortalSettingsView() {
 function LogoCard() {
   return (
     <div className="flex items-end justify-between rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <div className="flex flex-col gap-[24px]">
+      <div className="flex min-w-0 flex-col gap-[24px]">
         <div className="flex flex-col gap-[16px]">
           <h3 className="text-[13px] font-medium text-[#171717]">Upload Your Logo</h3>
-          <div className="flex items-center gap-[8px]">
+          <div className="flex flex-wrap items-center gap-[8px]">
             <div className="flex h-[36px] w-[36px] items-center justify-center overflow-hidden rounded-full border border-[#e5e5e5] bg-[#171717] text-[10px] font-semibold text-white">
               ST
             </div>
@@ -99,10 +99,10 @@ function BrandColorCard({
   const pickerId = "client-portal-brand-color";
 
   return (
-    <div className="flex flex-col gap-[12px] rounded-[8px] bg-white py-[12px] pl-[12px] pr-[clamp(24px,35vw,400px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+    <div className="flex flex-col gap-[12px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex flex-col gap-[16px]">
         <h3 className="text-[13px] font-medium text-[#171717]">Select your brand color</h3>
-        <div className="flex items-center gap-[16px]">
+        <div className="flex flex-wrap items-center gap-[16px]">
           <label
             htmlFor={pickerId}
             className="relative h-[36px] w-[36px] shrink-0 overflow-hidden rounded-full bg-[conic-gradient(from_180deg,#ff3b30,#ffcc00,#34c759,#00c7be,#5856d6,#ff2d55,#ff3b30)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]"
@@ -161,7 +161,7 @@ function BrandColorCard({
 
 function DomainCard() {
   return (
-    <div className="flex flex-col gap-[12px] rounded-[8px] bg-white py-[12px] pl-[12px] pr-[clamp(24px,35vw,400px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+    <div className="flex flex-col gap-[12px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex flex-col gap-[28px]">
         <div>
           <h3 className="text-[13px] font-medium text-[#171717]">Custom Domains</h3>
@@ -169,7 +169,7 @@ function DomainCard() {
         </div>
         <label className="flex flex-col gap-[8px]">
           <span className="text-[13px] font-medium text-[#171717]">Domain</span>
-          <input className="h-[34px] w-[290px] rounded-[6px] bg-[#f5f5f5] px-[12px] text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none" placeholder="ex. www.google.com" />
+          <input className="h-[34px] w-full max-w-[290px] rounded-[6px] bg-[#f5f5f5] px-[12px] text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none" placeholder="ex. www.google.com" />
         </label>
       </div>
       <SecondaryButton>Save</SecondaryButton>
@@ -179,7 +179,7 @@ function DomainCard() {
 
 function PortalPaywall({ onStartTrial }: { onStartTrial: () => void }) {
   return (
-    <div className="absolute inset-x-[4px] top-[64px] flex min-h-[calc(100%-68px)] items-start justify-center rounded-[8px] bg-white/25 px-[24px] pt-[112px] backdrop-blur-[12.5px]">
+    <div className="absolute inset-x-[4px] top-[64px] flex min-h-[calc(100%-68px)] items-start justify-center rounded-[8px] bg-white/25 px-[clamp(14px,4vw,24px)] pt-[clamp(56px,10vw,112px)] backdrop-blur-[12.5px]">
       <div className="flex w-full max-w-[516px] flex-col gap-[24px]">
         <div>
           <h2 className="text-[21px] font-semibold leading-[1.2] text-[#0a0a0a]">Configure your portal link with PRO</h2>
