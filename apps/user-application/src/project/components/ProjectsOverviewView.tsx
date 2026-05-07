@@ -123,13 +123,13 @@ function ProjectsTable({
         ))}
       </div>
 
-      <div className="flex w-full flex-col rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] px-[12px] py-[12px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] xl:px-[16px] xl:py-[16px]">
+      <div className="flex w-full flex-col gap-[18px] rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] px-[12px] pb-[16px] pt-[12px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] xl:gap-[24px] xl:px-[16px] xl:pb-[20px] xl:pt-[16px]">
         {projects.length > 0 ? (
           projects.map((project, index) => (
             <ProjectTableRow
               key={project.id}
               project={project}
-              showDivider={index > 0}
+              showDivider={index < projects.length - 1}
               onOpenProject={onOpenProject}
               onOpenProjectDetails={onOpenProjectDetails}
             />
@@ -156,8 +156,7 @@ function ProjectTableRow({
   onOpenProjectDetails: (projectId: string) => void;
 }) {
   return (
-    <div>
-      {showDivider ? <div className="mb-[16px] h-px w-full bg-[#e5e5e5]" /> : null}
+    <div className="flex flex-col gap-[20px]">
       <div
         role="button"
         tabIndex={0}
@@ -220,7 +219,7 @@ function ProjectTableRow({
           />
         </button>
       </div>
-      <div className="h-[16px]" />
+      {showDivider ? <div className="h-px w-full bg-[#e5e5e5]" /> : null}
     </div>
   );
 }
