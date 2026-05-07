@@ -14,6 +14,6 @@
     "sourceMap": true,
     "outDir": "./dist"
   },
-  "include": ["emails/**/*.tsx"],
+  "include": ["emails/**/*.tsx", "components/**/*.ts", "components/**/*.tsx"],
   "exclude": ["node_modules", "dist", "out"]
 }
