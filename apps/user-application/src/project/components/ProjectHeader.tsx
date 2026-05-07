@@ -14,7 +14,7 @@ const PAGE_TABS: { key: ProjectTab; label: string; iconSrc: string }[] = [
   { key: "strategy", label: "Strategy", iconSrc: "/logos/dashboard/strategy.svg" },
   { key: "moodboard", label: "Moodboard", iconSrc: "/logos/dashboard/moodboard.svg" },
   { key: "flows", label: "Flows", iconSrc: "/logos/dashboard/flows.svg" },
-  { key: "wireframes", label: "Generate", iconSrc: "/logos/dashboard/generate.svg" },
+  { key: "wireframes", label: "Wireframes", iconSrc: "/logos/dashboard/generate.svg" },
   { key: "assets", label: "Assets", iconSrc: "/logos/dashboard/assets.svg" },
 ];
 

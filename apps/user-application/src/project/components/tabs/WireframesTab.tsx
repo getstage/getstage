@@ -220,17 +220,17 @@ function TypeChooser({
         title="Create Wireframe"
         description="Select how you want your wireframe to look like."
       />
-      <div className="rounded-[8px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        <div className="grid grid-cols-2 gap-1">
+      <div className="rounded-[8px] bg-[#F5F5F5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="grid grid-cols-2 gap-[4px]">
           <TypeOption
             active={selectedKind === "lofi"}
-            icon={<BlocksIcon />}
+            iconSrc="/logos/dashboard/lofi-wireframe.svg"
             label="Lo-Fi Wireframe"
             onClick={() => onSelect("lofi")}
           />
           <TypeOption
             active={selectedKind === "hifi"}
-            icon={<StackIcon />}
+            iconSrc="/logos/dashboard/hifi-wireframe.svg"
             label="Hi-Fi Wireframe"
             onClick={() => onSelect("hifi")}
           />
@@ -246,12 +246,12 @@ function TypeChooser({
 
 function TypeOption({
   active,
-  icon,
+  iconSrc,
   label,
   onClick,
 }: {
   active: boolean;
-  icon: React.ReactNode;
+  iconSrc: string;
   label: string;
   onClick: () => void;
 }) {
@@ -259,13 +259,13 @@ function TypeOption({
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-[92px] items-center justify-center gap-2 rounded-[6px] border px-3 text-[12px] font-medium leading-[1.25] transition-colors ${
+      className={`flex min-h-[104px] items-center justify-center gap-[8px] overflow-hidden rounded-[6px] px-[12px] py-[44px] text-[12px] font-medium leading-none transition-colors ${
         active
-          ? "border-[#DBD9FC] bg-[#E7E6FD] text-[#16115A]"
-          : "border-transparent bg-white text-[#525252] hover:bg-[#FAFAFA]"
+          ? "bg-[#E7E6FD] text-[#16115A] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+          : "bg-white text-[#525252] hover:bg-[#FAFAFA]"
       }`}
     >
-      <span className={active ? "text-[#16115A]" : "text-[#525252]"}>{icon}</span>
+      <img src={iconSrc} alt="" aria-hidden="true" className="h-4 w-4 shrink-0" />
       {label}
     </button>
   );
@@ -296,7 +296,7 @@ function BrandKitStep({
           onClick={onUpload}
           className="flex h-[172px] w-full flex-col items-center justify-center gap-3 rounded-[8px] bg-white p-11 text-center shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA]"
         >
-          <FolderIcon />
+          <UploadFromDeviceIcon className="h-5 w-5" />
           <span className="flex flex-col gap-[6px]">
             <span className="text-[13px] font-medium leading-[1.25] text-[#171717]">
               Upload files or drag and drop
@@ -311,7 +311,7 @@ function BrandKitStep({
         <div className="w-[348px] max-w-full rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
           <div className="flex min-h-9 items-center justify-between rounded-[8px] bg-white p-2 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
             <div className="flex min-w-0 items-center gap-2">
-              <FolderIcon size={20} />
+              <UploadFromDeviceIcon className="h-5 w-5" />
               <span className="truncate pb-px text-[13px] font-medium leading-[1.2] text-[#171717]">
                 Brand_guideline.pdf
               </span>
@@ -464,7 +464,12 @@ function GeneratingStep() {
   return (
     <div className="flex w-[330px] flex-col items-center gap-6 text-center">
       <div className="flex h-11 w-11 items-center justify-center text-[#5B4FE0]">
-        <WindowIcon />
+        <img
+          src="/logos/dashboard/creating-wireframe.svg"
+          alt=""
+          aria-hidden="true"
+          className="h-11 w-11 shrink-0"
+        />
       </div>
       <div className="flex w-full flex-col items-center gap-2">
         <h2 className="text-[16px] font-semibold leading-[1.25] text-[#171717]">Creating Wireframe</h2>
@@ -668,32 +673,29 @@ function ArrowLeftIcon() {
   );
 }
 
-function BlocksIcon() {
+function WireframeAssetIcon({ src, className }: { src: string; className: string }) {
   return (
-    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" className="h-4 w-4 shrink-0">
-      <rect x="3" y="3" width="4" height="4" rx="1" />
-      <rect x="9" y="3" width="4" height="4" rx="1" />
-      <rect x="3" y="9" width="4" height="4" rx="1" />
-      <rect x="9" y="9" width="4" height="4" rx="1" />
-    </svg>
+    <span
+      aria-hidden="true"
+      className={`${className} shrink-0 bg-current`}
+      style={{
+        WebkitMask: `url("${src}") center / contain no-repeat`,
+        mask: `url("${src}") center / contain no-repeat`,
+      }}
+    />
   );
 }
 
-function StackIcon() {
+function UploadFromDeviceIcon({ className }: { className: string }) {
   return (
-    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" className="h-4 w-4 shrink-0">
-      <rect x="3" y="4" width="10" height="2.5" rx="0.8" />
-      <rect x="3" y="7" width="10" height="2.5" rx="0.8" />
-      <rect x="3" y="10" width="10" height="2.5" rx="0.8" />
-    </svg>
-  );
-}
-
-function FolderIcon({ size = 20 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style={{ width: size, height: size }} className="shrink-0 text-[#525252]">
-      <path d="M3.5 5.5A1.5 1.5 0 0 1 5 4h3l1.4 1.5H15A1.5 1.5 0 0 1 16.5 7v6A1.5 1.5 0 0 1 15 14.5H5A1.5 1.5 0 0 1 3.5 13V5.5Z" />
-    </svg>
+    <span
+      aria-hidden="true"
+      className={`${className} shrink-0 bg-[#525252]`}
+      style={{
+        WebkitMask: 'url("/logos/dashboard/upload-from-device.svg") center / contain no-repeat',
+        mask: 'url("/logos/dashboard/upload-from-device.svg") center / contain no-repeat',
+      }}
+    />
   );
 }
 
@@ -721,45 +723,21 @@ function CheckIcon() {
   );
 }
 
-function WindowIcon() {
-  return (
-    <svg viewBox="0 0 44 44" fill="none" aria-hidden="true" className="h-11 w-11">
-      <rect x="8" y="10" width="28" height="24" rx="4" fill="url(#wireframe-window)" />
-      <path d="M8 16h28" stroke="#F3F2FE" strokeWidth="2" />
-      <circle cx="13" cy="13" r="1.2" fill="#F3F2FE" />
-      <circle cx="17" cy="13" r="1.2" fill="#F3F2FE" />
-      <defs>
-        <linearGradient id="wireframe-window" x1="22" y1="10" x2="22" y2="34" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#7B76DF" />
-          <stop offset="1" stopColor="#463FBA" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
-
 function DoneCircleIcon() {
   return (
-    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" className="h-[18px] w-[18px] text-[#16A34A]">
-      <circle cx="9" cy="9" r="6" fill="currentColor" />
-      <path d="m6.5 9 1.6 1.6 3.4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <img src="/logos/dashboard/created-check.svg" alt="" aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
   );
 }
 
 function SpinnerIcon() {
   return (
-    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" className="h-[18px] w-[18px] animate-spin text-[#6B5AE7]">
-      <path d="M15 9a6 6 0 1 1-3-5.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
+    <img src="/logos/dashboard/loading.svg" alt="" aria-hidden="true" className="h-4 w-4 shrink-0 animate-spin" />
   );
 }
 
 function PendingIcon() {
   return (
-    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" className="h-[18px] w-[18px] text-[#A3A3A3]">
-      <circle cx="9" cy="9" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="2 2" />
-    </svg>
+    <img src="/logos/dashboard/pending-check.svg" alt="" aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
   );
 }
 
@@ -775,7 +753,14 @@ function ImageIcon() {
 
 function SparkleIcon() {
   return (
-    <img src="/logos/dashboard/ai-generated.svg" alt="" aria-hidden="true" className="h-4 w-4 shrink-0" />
+    <span
+      aria-hidden="true"
+      className="h-4 w-4 shrink-0 bg-[#737373]"
+      style={{
+        WebkitMask: 'url("/logos/dashboard/ai-generated.svg") center / contain no-repeat',
+        mask: 'url("/logos/dashboard/ai-generated.svg") center / contain no-repeat',
+      }}
+    />
   );
 }
 
