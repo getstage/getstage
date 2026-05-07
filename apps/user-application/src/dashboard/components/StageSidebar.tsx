@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import type { DashboardProject } from "../models/dashboard";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
@@ -23,6 +23,8 @@ export function StageSidebar({
   onCollapsedChange: (collapsed: boolean) => void;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const activeProjectId = pathname.startsWith("/project/")
@@ -50,6 +52,39 @@ export function StageSidebar({
     }
   }
 
+  function openSettings() {
+    setIsUserMenuOpen(false);
+    void navigate({ to: "/settings" });
+  }
+
+  function logOut() {
+    setIsUserMenuOpen(false);
+  }
+
+  useEffect(() => {
+    if (!isUserMenuOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!userMenuRef.current?.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsUserMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isUserMenuOpen]);
+
   const labelClassName = cn(
     "min-w-0 overflow-hidden truncate whitespace-nowrap text-[13px] font-medium transition-[max-width,opacity] duration-200 ease-out",
     collapsed ? "max-w-0 opacity-0" : "max-w-[150px] opacity-100",
@@ -58,7 +93,7 @@ export function StageSidebar({
   return (
     <nav
       className={cn(
-        "stage-sidebar flex h-full shrink-0 flex-col justify-between overflow-hidden rounded-[8px] bg-[#f5f5f5] pb-[16px] pt-[14px] transition-[width,padding] duration-200 ease-out",
+        "stage-sidebar relative flex h-full shrink-0 flex-col justify-between rounded-[8px] bg-[#f5f5f5] pb-[16px] pt-[14px] transition-[width,padding] duration-200 ease-out",
         collapsed ? "w-[48px] items-center px-[8px]" : "w-[240px] px-[12px]",
       )}
     >
@@ -277,7 +312,10 @@ export function StageSidebar({
       </div>
 
       {/* Bottom section */}
-      <div className={cn("flex w-full flex-col gap-[8px]", collapsed && "items-center")}>
+      <div
+        ref={userMenuRef}
+        className={cn("relative flex w-full flex-col gap-[8px]", collapsed && "items-center")}
+      >
         {/* Help & Feedback */}
         <button
           type="button"
@@ -302,34 +340,83 @@ export function StageSidebar({
         </button>
 
         {/* User profile */}
-        <button
-          type="button"
-          aria-label="Pratik Singh"
-          className={cn(
-            "flex h-[36px] cursor-pointer items-center overflow-hidden bg-[#f5f5f5] outline-none transition-[width,padding,background-color] duration-200 ease-out hover:bg-[#ebebeb]",
-            collapsed
-              ? "w-[32px] justify-center rounded-[6px] px-0"
-              : "w-full justify-between rounded-[6px] px-[12px]",
-          )}
-        >
-          <div className={cn("flex items-center", collapsed ? "gap-0" : "gap-[8px]")}>
-            <div className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-[#e5e5e5] text-[10px] font-medium text-[#525252]">
-              PS
+        <div className="relative w-full">
+          {isUserMenuOpen && !collapsed ? (
+            <div
+              className="absolute bottom-[44px] left-0 z-50 w-full rounded-[8px] bg-[#F5F5F5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+              role="menu"
+              aria-label="Account menu"
+            >
+              <div className="rounded-[6px] bg-white p-[8px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+                <div className="px-[4px] pb-[8px] pt-[2px]">
+                  <p className="truncate text-[13px] font-semibold leading-[1.25] text-[#0A0A0A]">
+                    Pratik Singh
+                  </p>
+                  <p className="mt-[3px] truncate text-[12px] font-medium leading-[1.25] text-[#737373]">
+                    pratik@stage.tools
+                  </p>
+                </div>
+                <div className="h-px bg-[#E5E5E5]" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={openSettings}
+                  className="mt-[4px] flex h-[32px] w-full cursor-pointer items-center rounded-[6px] px-[8px] text-left text-[13px] font-medium leading-none text-[#171717] outline-none transition-colors hover:bg-[#F5F5F5]"
+                >
+                  Settings
+                </button>
+                <div className="my-[4px] h-px bg-[#E5E5E5]" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={logOut}
+                  className="flex h-[32px] w-full cursor-pointer items-center rounded-[6px] px-[8px] text-left text-[13px] font-medium leading-none text-[#171717] outline-none transition-colors hover:bg-[#F5F5F5]"
+                >
+                  Log out
+                </button>
+              </div>
             </div>
-            <span aria-hidden={collapsed} className={cn(labelClassName, "text-[#0a0a0a]")}>
-              Pratik Singh
-            </span>
-          </div>
-          <img
-            src="/logos/dashboard/dots.svg"
-            alt=""
-            aria-hidden="true"
+          ) : null}
+
+          <button
+            type="button"
+            aria-label="Pratik Singh"
+            aria-haspopup="menu"
+            aria-expanded={isUserMenuOpen}
+            onClick={() => {
+              if (collapsed) {
+                onCollapsedChange(false);
+                return;
+              }
+
+              setIsUserMenuOpen((current) => !current);
+            }}
             className={cn(
-              "h-[15px] shrink-0 transition-[width,opacity] duration-150",
-              collapsed ? "w-0 opacity-0" : "w-[15px] opacity-100",
+              "flex h-[36px] cursor-pointer items-center overflow-hidden bg-[#f5f5f5] outline-none transition-[width,padding,background-color] duration-200 ease-out hover:bg-[#ebebeb]",
+              collapsed
+                ? "w-[32px] justify-center rounded-[6px] px-0"
+                : "w-full justify-between rounded-[6px] px-[12px]",
             )}
-          />
-        </button>
+          >
+            <div className={cn("flex items-center", collapsed ? "gap-0" : "gap-[8px]")}>
+              <div className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-[#e5e5e5] text-[10px] font-medium text-[#525252]">
+                PS
+              </div>
+              <span aria-hidden={collapsed} className={cn(labelClassName, "text-[#0a0a0a]")}>
+                Pratik Singh
+              </span>
+            </div>
+            <img
+              src="/logos/dashboard/dots.svg"
+              alt=""
+              aria-hidden="true"
+              className={cn(
+                "h-[15px] shrink-0 transition-[width,opacity] duration-150",
+                collapsed ? "w-0 opacity-0" : "w-[15px] opacity-100",
+              )}
+            />
+          </button>
+        </div>
       </div>
     </nav>
   );

@@ -11,6 +11,7 @@ export const IPC_CHANNELS = {
   screenCaptureActiveWindow: "screen:capture-active-window",
   permissionsGetStatus: "permissions:get-status",
   permissionsOpenSystemSettings: "permissions:open-system-settings",
+  shellOpenExternal: "shell:open-external",
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];

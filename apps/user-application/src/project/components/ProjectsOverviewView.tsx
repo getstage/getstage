@@ -31,7 +31,7 @@ export function ProjectsOverviewView() {
 
   return (
     <WorkspaceFrame>
-      <div className="flex-1 px-[100px] py-[44px]">
+      <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
         <div className="flex w-full flex-col gap-[28px]">
           <header className="flex w-full items-end justify-between">
             <div className="flex min-w-0 flex-1 flex-col gap-[8px]">
@@ -45,8 +45,8 @@ export function ProjectsOverviewView() {
           </header>
 
           <div className="flex w-full flex-col gap-[12px]">
-            <div className="flex w-full items-center justify-between gap-[16px]">
-              <label className="flex h-[35px] w-[290px] items-center gap-[8px] overflow-hidden rounded-[6px] bg-[#f5f5f5] px-[12px] text-[#525252] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)]">
+            <div className="flex w-full flex-col gap-[10px] md:flex-row md:items-center md:justify-between">
+              <label className="flex h-[35px] w-full items-center gap-[8px] overflow-hidden rounded-[6px] bg-[#f5f5f5] px-[12px] text-[#525252] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] md:max-w-[320px]">
                 <img
                   src="/logos/dashboard/search.svg"
                   alt=""
@@ -65,7 +65,7 @@ export function ProjectsOverviewView() {
               <button
                 type="button"
                 onClick={() => void navigate({ to: "/projects/create" })}
-                className="flex cursor-pointer items-center justify-center gap-[6px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]"
+                className="flex h-[35px] shrink-0 cursor-pointer items-center justify-center gap-[6px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]"
               >
                 <img
                   src="/logos/dashboard/plus.svg"
@@ -112,7 +112,7 @@ function ProjectsTable({
 }) {
   return (
     <div className="overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[4px]">
-      <div className="grid grid-cols-5 gap-[24px] px-[16px] py-[12px]">
+      <div className="hidden grid-cols-[minmax(190px,1.4fr)_minmax(92px,0.7fr)_minmax(120px,0.9fr)_minmax(98px,0.75fr)_minmax(104px,0.65fr)] gap-[20px] px-[16px] py-[12px] xl:grid">
         {TABLE_COLUMNS.map((column) => (
           <p
             key={column}
@@ -123,7 +123,7 @@ function ProjectsTable({
         ))}
       </div>
 
-      <div className="flex w-full flex-col rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] px-[16px] py-[16px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]">
+      <div className="flex w-full flex-col rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] px-[12px] py-[12px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] xl:px-[16px] xl:py-[16px]">
         {projects.length > 0 ? (
           projects.map((project, index) => (
             <ProjectTableRow
@@ -168,10 +168,10 @@ function ProjectTableRow({
             onOpenProject(project.id);
           }
         }}
-        className="group grid w-full cursor-pointer grid-cols-5 items-center gap-[24px] text-left outline-none"
+        className="group grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-[10px] gap-y-[10px] text-left outline-none xl:grid-cols-[minmax(190px,1.4fr)_minmax(92px,0.7fr)_minmax(120px,0.9fr)_minmax(98px,0.75fr)_minmax(104px,0.65fr)] xl:gap-[20px]"
         aria-label={`Open ${project.name}`}
       >
-        <div className="flex min-w-0 items-center gap-[8px]">
+        <div className="col-span-2 flex min-w-0 items-center gap-[8px] xl:col-span-1">
           <div
             className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full border border-[#fafafa] text-[8px] font-semibold text-white"
             style={{ background: project.accentColor }}
@@ -183,17 +183,19 @@ function ProjectTableRow({
           </p>
         </div>
 
-        <div className="flex min-w-0 items-center">
+        <div className="col-start-3 row-start-1 flex min-w-0 items-center justify-end xl:col-auto xl:row-auto xl:justify-start">
           <span className="rounded-[2px] bg-[#dcfce7] px-[6px] py-[2px] text-[12px] font-normal leading-[1.25] text-[#052e16]">
             {project.status}
           </span>
         </div>
 
-        <p className="min-w-0 text-[13px] font-medium leading-[1.25] text-[#525252]">
+        <p className="col-span-2 min-w-0 text-[12px] font-medium leading-[1.25] text-[#737373] xl:col-auto xl:text-[13px] xl:text-[#525252]">
+          <span className="xl:hidden">Type: </span>
           {project.type}
         </p>
 
-        <p className="min-w-0 text-[13px] font-medium leading-[1.25] text-[#525252]">
+        <p className="min-w-0 text-right text-[12px] font-medium leading-[1.25] text-[#737373] xl:text-left xl:text-[13px] xl:text-[#525252]">
+          <span className="xl:hidden">Created: </span>
           {project.created}
         </p>
 
@@ -204,7 +206,7 @@ function ProjectTableRow({
             onOpenProjectDetails(project.id);
           }}
           className={cn(
-            "flex min-w-0 cursor-pointer items-center gap-[8px] text-left text-[13px] font-medium leading-[1.25] text-[#171717]",
+            "col-span-3 flex min-w-0 cursor-pointer items-center gap-[8px] text-left text-[13px] font-medium leading-[1.25] text-[#171717] xl:col-auto",
             "transition-colors hover:text-[#463fba]",
           )}
           aria-label={`See details for ${project.name}`}

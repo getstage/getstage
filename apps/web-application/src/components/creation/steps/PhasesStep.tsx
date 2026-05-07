@@ -1,4 +1,5 @@
 import type { DragEvent } from "react";
+import { Plus } from "@phosphor-icons/react";
 import { BackButton, PrimaryButton } from "@/components/creation/CreationChrome";
 import { cn } from "@/lib/utils";
 import type { PhaseItem, WorkflowStep } from "@/hooks/useProjectCreation";
@@ -133,7 +134,8 @@ export function PhasesStep({
         onClick={onAddPhase}
         className="mb-7 inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-accent transition-colors hover:text-accent-hover"
       >
-        + Add phase
+        <Plus size={14} weight="bold" />
+        Add phase
       </button>
 
       <PrimaryButton label="Continue" disabled={!canContinue} onClick={onContinue} />

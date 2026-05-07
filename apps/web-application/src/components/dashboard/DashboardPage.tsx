@@ -38,7 +38,6 @@ import {
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { getGreeting } from "@/lib/utils";
 
-const GOOGLE_SHEETS_GUIDE_HREF = "/help/import-transactions-via-google-sheets";
 const FEEDBACK_TALLY_URL = "https://tally.so/r/OD0gqM";
 
 export function DashboardPage() {
@@ -189,7 +188,6 @@ export function DashboardPage() {
             onComplete={(submission) => {
               void handleOnboardingComplete(submission);
             }}
-            googleSheetsGuideHref={GOOGLE_SHEETS_GUIDE_HREF}
           />
 
           <UpgradePaywallModal

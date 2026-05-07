@@ -36,7 +36,6 @@ export function getFlowSteps({
   return [
     "welcome",
     "details",
-    "client",
     "project-type",
     "method",
     "timeline",
@@ -49,10 +48,6 @@ export function getFlowSteps({
 }
 
 export function getCurrentStepForProgress(step: OnboardingStepId) {
-  if (step === "generating-roadmap") {
-    return "preview";
-  }
-
   if (step === "creating" || step === "celebrating") {
     return "preview";
   }
@@ -76,7 +71,7 @@ export function canContinue({
     case "claude":
       return true;
     case "details":
-      return setProjectLater || projectName.trim().length > 0;
+      return setProjectLater || (projectName.trim().length > 0 && clientName.trim().length > 0);
     case "client":
       return (
         clientName.trim().length > 0 &&
@@ -91,7 +86,6 @@ export function canContinue({
     case "integrations":
     case "celebrating":
       return true;
-    case "generating-roadmap":
     case "creating":
       return false;
     default:
@@ -124,6 +118,10 @@ export function getStepValidationError({
       const basicsParsed = projectBasicsSchema.safeParse({ projectName });
       if (!basicsParsed.success) {
         return basicsParsed.error.issues[0]?.message ?? "Please enter a project name.";
+      }
+      const clientNameParsed = clientInfoSchema.shape.clientName.safeParse(clientName);
+      if (!clientNameParsed.success) {
+        return clientNameParsed.error.issues[0]?.message ?? "Please enter a client name.";
       }
       return null;
     }
@@ -161,7 +159,6 @@ export function getStepValidationError({
     }
     case "preview":
     case "integrations":
-    case "generating-roadmap":
     case "creating":
     case "celebrating":
     default:

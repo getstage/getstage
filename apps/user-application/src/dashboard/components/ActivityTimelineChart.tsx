@@ -12,12 +12,31 @@ const STEP_RADIUS = 6;
 const GRID_BLEED_X = 100;
 const INDICATOR_TOP = 68;
 const INDICATOR_AVATARS = [
-  { label: "B", variant: "dark" as const },
-  { label: "T", variant: "blue" as const },
+  {
+    id: "baseframe",
+    label: "B",
+    variant: "dark" as const,
+    dateRange: "May 6 - Jun 5, 2026",
+    projectName: "BaseFrame",
+    clientName: "baseframe.design",
+    phaseName: "Discovery",
+    taskSummary: "2 tasks due this week.",
+  },
+  {
+    id: "tefosmus",
+    label: "T",
+    variant: "blue" as const,
+    dateRange: "May 6 - Jun 5, 2026",
+    projectName: "Tefosmus",
+    clientName: "Tefsm.co",
+    phaseName: "Discovery",
+    taskSummary: "No tasks in this phase.",
+  },
 ];
 const AVATAR_SIZE = 24;
 const AVATAR_OVERLAP = 13;
 const AVATAR_BUBBLE_PADDING = 4;
+const PROJECT_CARD_WIDTH = 286;
 
 function getAvatarBubbleWidth(count: number) {
   if (count <= 0) return AVATAR_BUBBLE_PADDING * 2;
@@ -102,6 +121,7 @@ export function ActivityTimelineChart({ points }: { points: DashboardChartPoint[
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [width, setWidth] = useState(0);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -135,9 +155,12 @@ export function ActivityTimelineChart({ points }: { points: DashboardChartPoint[
   return (
     <div
       ref={containerRef}
-      className="relative"
+      className="relative min-w-[360px]"
       style={{ height: CHART_HEIGHT }}
-      onPointerLeave={() => setActiveIndex(null)}
+      onPointerLeave={() => {
+        setActiveIndex(null);
+        setActiveProjectId(null);
+      }}
     >
       {width > 0 && (
         <svg
@@ -231,7 +254,7 @@ export function ActivityTimelineChart({ points }: { points: DashboardChartPoint[
 
       {activeBar && activeBar.height > 0 && (
         <div
-          className="pointer-events-none absolute flex items-center rounded-full bg-[#e7e6fd] p-[4px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.35)]"
+          className="absolute z-20 flex items-center rounded-full bg-[#e7e6fd] p-[4px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.35)]"
           style={{
             left: Math.min(
               activeBar.x + activeBar.width / 2 + 10,
@@ -239,23 +262,31 @@ export function ActivityTimelineChart({ points }: { points: DashboardChartPoint[
             ),
             top: Math.max(0, PLOT_BASE_Y - activeBar.height - 12),
           }}
-          aria-hidden="true"
         >
           <div className="flex items-center">
             {INDICATOR_AVATARS.map((avatar, index) => (
-              <ProjectBadge
-                key={avatar.label}
-                label={avatar.label}
-                variant={avatar.variant}
-                className={cn(index > 0 && "-ml-[13px]", index === 0 ? "z-[2]" : "z-[1]")}
-              />
+              <div
+                key={avatar.id}
+                className={cn("relative", index > 0 && "-ml-[13px]", index === 0 ? "z-[2]" : "z-[1]")}
+                onPointerEnter={() => setActiveProjectId(avatar.id)}
+                onPointerLeave={() => setActiveProjectId(null)}
+                onFocus={() => setActiveProjectId(avatar.id)}
+                onBlur={() => setActiveProjectId(null)}
+              >
+                <ProjectBadge
+                  label={avatar.label}
+                  variant={avatar.variant}
+                  className="focus-visible:ring-2 focus-visible:ring-[#3b368e] focus-visible:ring-offset-2"
+                />
+                {activeProjectId === avatar.id ? <ProjectHoverCard project={avatar} /> : null}
+              </div>
             ))}
           </div>
         </div>
       )}
 
       {width > 0 && (
-        <div className="absolute left-0 top-0 h-full w-full">
+        <div className="absolute left-0 top-0 z-10 h-full w-full">
           {bars.map((bar, index) => (
             <button
               key={points[index]?.label ?? index}
@@ -282,15 +313,16 @@ export function ActivityTimelineChart({ points }: { points: DashboardChartPoint[
         {points.map((point, i) => (
           <span
             key={point.label}
-            className={
+            className={cn(
+              i !== 0 && i !== points.length - 1 && "max-[560px]:hidden",
               i === activeIndex
                 ? "text-center text-[#737373]"
                 : i === 0
                   ? "text-left"
                   : i === points.length - 1
                     ? "text-right"
-                    : "text-center"
-            }
+                    : "text-center",
+            )}
           >
             {point.label}
           </span>
@@ -310,14 +342,33 @@ function ProjectBadge({
   variant?: "dark" | "blue";
 }) {
   return (
-    <div
+    <button
+      type="button"
       className={cn(
-        "relative flex h-[24px] w-[24px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#fafafa] text-[9px] font-semibold text-white",
+        "relative flex h-[24px] w-[24px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#fafafa] text-[9px] font-semibold text-white outline-none",
         variant === "blue" ? "bg-[#1687ff]" : "bg-[#171717]",
         className,
       )}
     >
       {label}
+    </button>
+  );
+}
+
+function ProjectHoverCard({ project }: { project: (typeof INDICATOR_AVATARS)[number] }) {
+  return (
+    <div
+      className="absolute bottom-[calc(100%+20px)] left-1/2 w-[286px] -translate-x-1/2 rounded-[8px] border border-[#e5e5e5] bg-white px-[16px] py-[14px] text-left shadow-[0px_18px_45px_rgba(10,10,10,0.12)]"
+      style={{ width: PROJECT_CARD_WIDTH }}
+    >
+      <div className="text-[13px] font-medium leading-[1.35] text-[#8a8a8a]">{project.dateRange}</div>
+      <div className="mt-[8px] text-[16px] font-semibold leading-[1.25] text-[#111121]">{project.projectName}</div>
+      <div className="mt-[8px] text-[13px] font-medium leading-[1.35] text-[#8a8a8a]">{project.clientName}</div>
+      <div className="mt-[8px] text-[13px] font-medium leading-[1.35] text-[#8a8a8a]">{project.phaseName}</div>
+      <div className="mt-[14px] border-t border-[#e5e5e5] pt-[12px] text-[13px] font-medium leading-[1.35] text-[#8a8a8a]">
+        {project.taskSummary}
+      </div>
+      <span className="absolute bottom-[-8px] left-1/2 h-[16px] w-[16px] -translate-x-1/2 rotate-45 border-b border-r border-[#e5e5e5] bg-white" />
     </div>
   );
 }

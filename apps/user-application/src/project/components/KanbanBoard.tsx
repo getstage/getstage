@@ -282,7 +282,7 @@ export function KanbanBoard({ phases }: { phases: Phase[] }) {
           }}
         />
       ) : null}
-      <div className="grid grid-cols-1 gap-1 overflow-visible rounded-[10px] bg-[#F5F5F5] p-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-1 overflow-visible rounded-[10px] bg-[#F5F5F5] p-1 md:grid-cols-2 xl:grid-cols-4">
         {COLUMNS.map((col) => (
           <section
             key={col.key}

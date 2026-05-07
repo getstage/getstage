@@ -90,4 +90,17 @@ export function registerIpcHandlers({
     permissionKindSchema.parse(permission);
     await shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy");
   });
+
+  ipcMain.handle(IPC_CHANNELS.shellOpenExternal, async (_event, url: unknown) => {
+    if (typeof url !== "string") {
+      throw new Error("External URL must be a string.");
+    }
+
+    const parsedUrl = new URL(url);
+    if (parsedUrl.protocol !== "https:") {
+      throw new Error("Only HTTPS external URLs are allowed.");
+    }
+
+    await shell.openExternal(parsedUrl.toString());
+  });
 }

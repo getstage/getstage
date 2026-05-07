@@ -41,9 +41,9 @@ export function DashboardContextView() {
 
   return (
     <WorkspaceFrame>
-      <div className="flex-1 px-[100px] py-[44px]">
-        <div className="flex flex-col gap-[44px]">
-          <div className="flex flex-col gap-[18px]">
+      <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
+        <div className="flex flex-col gap-[clamp(24px,4vw,44px)]">
+          <div className="flex flex-col gap-[clamp(14px,2vw,18px)]">
             <DashboardHeader
               engineStatusLabel={engineStatusLabel}
               engineStatusTone={engineStatusTone}
@@ -56,7 +56,7 @@ export function DashboardContextView() {
           <ActivityTimelineChart points={dashboardSnapshot.chart} />
 
           <div className="overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[2px]">
-            <div className="grid grid-cols-1 gap-[2px] lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-[2px] xl:grid-cols-2">
               <UpcomingTasksCard tasks={dashboardSnapshot.upcomingTasks} />
               <RecentActivityCard entries={dashboardSnapshot.recentActivity} />
               <ProjectPipelineCard stages={dashboardSnapshot.pipeline} />

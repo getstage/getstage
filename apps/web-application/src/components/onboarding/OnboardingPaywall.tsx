@@ -11,7 +11,7 @@ export const FREE_FEATURES = [
 
 export const PRO_FEATURES = [
   { iconSrc: "/logos/pricing/folder.svg", label: "Unlimited projects" },
-  { iconSrc: "/logos/pricing/connect.svg", label: "Connect claude, figma, notion & more" },
+  { iconSrc: "/logos/pricing/connect.svg", label: "Connect Claude, Figma, Notion & more" },
   { iconSrc: "/logos/pricing/storage.svg", label: "Unlimited file storage" },
   { iconSrc: "/logos/pricing/portal.svg", label: "Customizable client portal (your brand, your domain)" },
   { iconSrc: "/logos/pricing/priority.svg", label: "Priority support" },
@@ -19,7 +19,7 @@ export const PRO_FEATURES = [
 
 const START_FEATURES = [
   { iconSrc: "/logos/pricing/folder.svg", label: "3 active projects" },
-  { iconSrc: "/logos/pricing/connect.svg", label: "Connect claude, figma, notion & more" },
+  { iconSrc: "/logos/pricing/connect.svg", label: "Connect Claude, Figma, Notion & more" },
   { iconSrc: "/logos/pricing/portal.svg", label: "Client portal (standard)" },
   { iconSrc: "/logos/pricing/storage.svg", label: "Unlimited file storage" },
 ];
@@ -121,7 +121,7 @@ export function OnboardingPaywall({
         <img src={stageLogo} alt="Stage" className="mb-8 h-[22px] w-auto" />
         <div className="mb-6">
           <h2 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.3px] text-text-primary">
-            Want to connect claude, figma &amp; notion?
+            Want to connect Claude, Figma &amp; Notion?
           </h2>
           <p className="mt-1.5 text-[14px] leading-normal text-text-secondary">
             Upgrade your workspace plan to unlock integrations.
@@ -130,7 +130,19 @@ export function OnboardingPaywall({
 
         <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
           <div className="flex items-center gap-2 px-3 py-3">
-            <img src="/logos/pricing/connect.svg" alt="" className="h-4 w-4" />
+            <div 
+              className="h-4 w-4 bg-gradient-to-r from-[#463FBA] to-[#7B76DF]" 
+              style={{
+                WebkitMaskImage: 'url(/logos/ai-generated.svg)',
+                WebkitMaskSize: 'contain',
+                WebkitMaskRepeat: 'no-repeat',
+                WebkitMaskPosition: 'center',
+                maskImage: 'url(/logos/ai-generated.svg)',
+                maskSize: 'contain',
+                maskRepeat: 'no-repeat',
+                maskPosition: 'center'
+              }}
+            />
             <p className="bg-gradient-to-r from-[#463FBA] to-[#7B76DF] bg-clip-text text-[13px] font-medium text-transparent">
               Unlock more with Pro
             </p>
@@ -199,7 +211,7 @@ export function OnboardingPaywall({
       <img src={stageLogo} alt="Stage" className="mb-8 h-[22px] w-auto" />
       <div className="mb-6">
         <h2 className="font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.3px] text-text-primary">
-          Want to connect claude, figma &amp; notion?
+          Want to connect Claude, Figma &amp; Notion?
         </h2>
         <p className="mt-1.5 text-[14px] leading-normal text-text-secondary">
           Upgrade your workspace plan to unlock integrations.
@@ -208,7 +220,19 @@ export function OnboardingPaywall({
 
       <div className="mx-auto w-full max-w-[520px] rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
         <div className="flex items-center gap-2 px-3 py-3">
-          <img src="/logos/pricing/connect.svg" alt="" className="h-4 w-4" />
+          <div 
+            className="h-4 w-4 bg-gradient-to-r from-[#463FBA] to-[#7B76DF]" 
+            style={{
+              WebkitMaskImage: 'url(/logos/ai-generated.svg)',
+              WebkitMaskSize: 'contain',
+              WebkitMaskRepeat: 'no-repeat',
+              WebkitMaskPosition: 'center',
+              maskImage: 'url(/logos/ai-generated.svg)',
+              maskSize: 'contain',
+              maskRepeat: 'no-repeat',
+              maskPosition: 'center'
+            }}
+          />
           <p className="bg-gradient-to-r from-[#463FBA] to-[#7B76DF] bg-clip-text text-[13px] font-medium text-transparent">
             Unlock more with Pro
           </p>

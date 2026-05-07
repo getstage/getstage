@@ -32,6 +32,10 @@ const stageDesktop = {
     openSystemSettings: (permission: PermissionKind) =>
       ipcRenderer.invoke(IPC_CHANNELS.permissionsOpenSystemSettings, permission),
   },
+  shell: {
+    openExternal: (url: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.shellOpenExternal, url),
+  },
 };
 
 contextBridge.exposeInMainWorld("stageDesktop", stageDesktop);

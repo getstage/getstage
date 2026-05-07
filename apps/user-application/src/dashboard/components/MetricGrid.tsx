@@ -3,7 +3,7 @@ import type { DashboardMetric } from "../models/dashboard";
 export function MetricGrid({ metrics }: { metrics: DashboardMetric[] }) {
   return (
     <div className="overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[2px]">
-      <div className="grid grid-cols-2 gap-[2px] sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-[2px] xl:grid-cols-4">
         {metrics.map((metric) => (
           <StatCard
             key={metric.id}
@@ -27,7 +27,7 @@ function StatCard({
   label: string;
 }) {
   return (
-    <div className="flex min-w-0 flex-col items-start gap-[28px] rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[16px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]">
+    <div className="flex min-w-0 flex-col items-start gap-[clamp(16px,3vw,28px)] rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[16px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]">
       <img src={icon} alt="" aria-hidden="true" className="h-[18px] w-[18px]" />
       <div className="flex min-w-0 flex-col items-start gap-[4px]">
         <div className="text-[20px] font-semibold leading-[1.2] tracking-[-0.2px] text-[#0a0a0a]">

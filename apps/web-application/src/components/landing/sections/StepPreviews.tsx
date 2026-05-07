@@ -4,7 +4,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Check } from "@phosphor-icons/react";
+import { Check, Plus } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/Checkbox";
 import type { Phase, Task } from "@/types";
@@ -267,7 +267,8 @@ export function ProjectDetailPhaseRailPreview({ phaseAdded }: { phaseAdded: bool
       <div className="mt-2 flex items-center justify-center">
         <button type="button" tabIndex={-1}
           className={`inline-flex items-center gap-2 text-[13px] transition-colors ${phaseAdded ? "text-accent" : "text-text-tertiary"}`}>
-          <span>+</span>{phaseAdded ? "QA phase added" : "Add phase"}
+          <Plus size={14} weight="bold" />
+          {phaseAdded ? "QA phase added" : "Add phase"}
         </button>
       </div>
     </div>

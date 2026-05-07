@@ -36,6 +36,9 @@ export type StageDesktopApi = {
     getStatus: () => Promise<DesktopPermissionStatus>;
     openSystemSettings: (permission: PermissionKind) => Promise<void>;
   };
+  shell: {
+    openExternal: (url: string) => Promise<void>;
+  };
 };
 
 declare global {

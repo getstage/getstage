@@ -3,6 +3,7 @@ import confetti from "canvas-confetti";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
+import stageLogo from "@/assets/logos/stage-logo-light.png";
 import onboardingImage from "@/assets/onboarding/onboarding.webp";
 import { cn } from "@/lib/utils";
 
@@ -83,18 +84,19 @@ export function WelcomeSlide({ userName }: { userName?: string }) {
   );
 
   return (
-    <div ref={containerRef} className="pb-1">
+    <div ref={containerRef} className="w-[min(516px,calc(100vw-40px))] py-[22px]">
+      <img src={stageLogo} alt="Stage" className="mb-8 h-[23px] w-auto" />
       <h3
         ref={titleRef}
-        className="mt-2 font-heading text-[24px] leading-[1.15] font-semibold tracking-[-0.4px] text-text-primary"
+        className="font-body text-[21px] leading-[1.2] font-semibold text-[#0A0A0A]"
       >
-        Welcome to Stage{userName ? `, ${userName}` : ""}. You&apos;re in.
+        Welcome to Stage{userName ? `, ${userName}` : ""}.
       </h3>
-      <p ref={subtitleRef} className="mt-2 max-w-[620px] text-[15px] leading-normal text-text-secondary">
-        We&apos;ll personalize your setup and launch a dashboard that feels useful from day one.
+      <p ref={subtitleRef} className="mt-2.5 w-full max-w-[261px] text-[13px] leading-[1.5] font-medium text-[#525252]">
+        A better way to organize your creative work starts here.
       </p>
 
-      <div data-welcome-preview className="mt-6">
+      <div data-welcome-preview className="mt-4">
         <WelcomeOnboardingImageTour />
       </div>
     </div>
@@ -173,7 +175,7 @@ function WelcomeOnboardingImageTour() {
   );
 
   return (
-    <div ref={scopeRef} className="relative overflow-hidden rounded-[12px]">
+    <div ref={scopeRef} className="relative overflow-hidden rounded-[6px] bg-[#E5E5E5]">
       <img
         data-tour-image
         src={onboardingImage}
