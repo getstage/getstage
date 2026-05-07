@@ -566,8 +566,8 @@ function IntegrationsPage() {
   }
 
   return (
-    <div className="relative flex min-h-full flex-1 justify-center overflow-hidden bg-white">
-      <div className="flex min-h-full w-full max-w-[674px] flex-col justify-center gap-[24px]">
+    <div className="relative flex min-h-full flex-1 justify-center overflow-x-hidden bg-white px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
+      <div className="flex w-full max-w-[674px] flex-col gap-[24px]">
         <header>
           <h1 className="text-[20px] font-semibold leading-[1.2] text-[#0A0A0A]">
             Integrations
@@ -579,7 +579,7 @@ function IntegrationsPage() {
 
         <div className="flex flex-col gap-[12px]">
           <IntegrationGroup title="Connected">
-            <div className="flex flex-col gap-[16px] rounded-[8px] bg-white p-[20px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+            <div className="flex flex-col gap-[16px] rounded-[8px] bg-white p-[clamp(14px,3vw,20px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
               {connectedIntegrations.length > 0 ? (
                 connectedIntegrations.map((integration) => (
                   <IntegrationListRow
@@ -599,7 +599,7 @@ function IntegrationsPage() {
           </IntegrationGroup>
 
           <IntegrationGroup title="Available Tools">
-            <div className="flex flex-col gap-[16px] rounded-[8px] bg-white p-[20px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+            <div className="flex flex-col gap-[16px] rounded-[8px] bg-white p-[clamp(14px,3vw,20px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
               {availableIntegrations.map((integration) => (
                 <IntegrationListRow
                   key={integration.id}
@@ -656,9 +656,9 @@ function IntegrationListRow({
       role="switch"
       aria-checked={integration.connected}
       onClick={onToggle}
-      className="flex w-full items-start justify-between gap-[18px] rounded-[6px] bg-white text-left"
+      className="flex w-full items-start justify-between gap-[12px] rounded-[6px] bg-white text-left"
     >
-      <span className="flex min-w-0 items-start gap-[8px]">
+      <span className="flex min-w-0 items-start gap-[10px]">
         <span className="flex h-[18px] w-[16px] shrink-0 items-center justify-center pt-[1px]">
           <SettingsIcon
             name={integration.icon}
@@ -669,7 +669,7 @@ function IntegrationListRow({
           <span className="block truncate text-[13px] font-medium leading-[1.2] text-[#171717]">
             {integration.name}
           </span>
-          <span className="mt-[2px] block truncate text-[12px] font-normal leading-[1.25] text-[#525252]">
+          <span className="mt-[2px] block text-[12px] font-normal leading-[1.35] text-[#525252]">
             {integration.description}
           </span>
         </span>
@@ -705,9 +705,9 @@ function DisconnectIntegrationDialog({
   onDisconnect: () => void;
 }) {
   return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/10 backdrop-blur-[5px]">
-      <div className="w-[516px] rounded-[12px] bg-[#F5F5F5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        <div className="rounded-[8px] bg-white p-[20px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/10 p-[16px] backdrop-blur-[5px]">
+      <div className="w-full max-w-[516px] rounded-[12px] bg-[#F5F5F5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="rounded-[8px] bg-white p-[clamp(14px,3vw,20px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
           <div className="flex flex-col gap-[24px]">
             <SettingsIcon name={integration.icon} className="h-[32px] w-[32px]" />
             <div className="text-[#171717]">
@@ -723,7 +723,7 @@ function DisconnectIntegrationDialog({
             </div>
           </div>
 
-          <div className="mt-[24px] flex items-center gap-[8px]">
+          <div className="mt-[24px] flex flex-col-reverse gap-[8px] sm:flex-row sm:items-center">
             <button
               type="button"
               onClick={onCancel}
