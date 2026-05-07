@@ -19,9 +19,9 @@ export function AssetsTab({ project }: { project: Project }) {
   const assetCards = buildAssetCards(project.assets);
   const uploadedCount = Math.max(project.assets.length, 3);
   const categories: AssetCategory[] = [
-    { id: "wireframes", label: "Wireframes", count: 5, icon: <StackIcon /> },
-    { id: "documents", label: "Documents", count: 2, icon: <DocumentIcon /> },
-    { id: "uploaded", label: "Uploaded", count: uploadedCount, icon: <FolderIcon /> },
+    { id: "wireframes", label: "Wireframes", count: 5, icon: <AssetMenuIcon src="/logos/dashboard/wireframes.svg" /> },
+    { id: "documents", label: "Documents", count: 2, icon: <AssetMenuIcon src="/logos/dashboard/documents.svg" /> },
+    { id: "uploaded", label: "Uploaded", count: uploadedCount, icon: <AssetMenuIcon src="/logos/dashboard/upload-from-device.svg" /> },
   ];
   const sectionTitle = categories.find((category) => category.id === activeView)?.label ?? "Documents";
 
@@ -146,7 +146,7 @@ function DocumentsGrid() {
         >
           <div className="flex min-w-0 items-start gap-3">
             <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px] bg-[#DBEAFE] p-1 text-[#1D4ED8]">
-              <DocumentFilledIcon />
+              <ResearchReportIcon />
             </div>
 
             <div className="min-w-0">
@@ -270,11 +270,14 @@ function buildAssetCards(assets: ProjectAsset[]) {
 
 function UploadFolderIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-6 w-6 text-[#525252]">
-      <path d="M4 7.5h6l1.5 2H20v7.25A2.25 2.25 0 0 1 17.75 19H6.25A2.25 2.25 0 0 1 4 16.75V7.5Z" fill="currentColor" opacity="0.18" />
-      <path d="M4 7.5h6l1.5 2H20v7.25A2.25 2.25 0 0 1 17.75 19H6.25A2.25 2.25 0 0 1 4 16.75V7.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M12 15v-4M10 13l2-2 2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <span
+      aria-hidden="true"
+      className="h-6 w-6 shrink-0 bg-[#525252]"
+      style={{
+        WebkitMask: 'url("/logos/dashboard/upload-from-device.svg") center / contain no-repeat',
+        mask: 'url("/logos/dashboard/upload-from-device.svg") center / contain no-repeat',
+      }}
+    />
   );
 }
 
@@ -288,65 +291,53 @@ function ImagePlaceholderIcon() {
   );
 }
 
-function StackIcon() {
+function AssetMenuIcon({ src }: { src: string }) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[15px] w-[15px] text-[#171717]">
-      <rect x="3" y="4" width="10" height="2" rx="0.6" fill="currentColor" />
-      <rect x="3" y="7" width="10" height="2" rx="0.6" fill="currentColor" opacity="0.78" />
-      <rect x="3" y="10" width="10" height="2" rx="0.6" fill="currentColor" opacity="0.56" />
-    </svg>
+    <span
+      aria-hidden="true"
+      className="h-[15px] w-[15px] shrink-0 bg-current"
+      style={{
+        WebkitMask: `url("${src}") center / contain no-repeat`,
+        mask: `url("${src}") center / contain no-repeat`,
+      }}
+    />
   );
 }
 
-function DocumentIcon() {
+function ResearchReportIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[15px] w-[15px] text-current">
-      <path d="M4.5 2.5h4.25L12 5.75v7.75H4.5v-11Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-      <path d="M8.75 2.75V6H12" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function FolderIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[15px] w-[15px] text-current">
-      <path d="M2.5 5h4l1 1.25h6v5.25a1.5 1.5 0 0 1-1.5 1.5H4a1.5 1.5 0 0 1-1.5-1.5V5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function DocumentFilledIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-4 w-4">
-      <path d="M4 2.5h5l3 3v8H4v-11Z" fill="currentColor" opacity="0.18" />
-      <path d="M4 2.5h5l3 3v8H4v-11Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-      <path d="M9 2.75V5.5h2.75M6 8h4M6 10.5h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <img src="/logos/dashboard/research-report.svg" alt="" aria-hidden="true" className="h-4 w-4 shrink-0" />
   );
 }
 
 function CalendarIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[13px] w-[13px] shrink-0">
-      <rect x="3" y="3.75" width="10" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M5.5 2.5v2M10.5 2.5v2M3.25 6.25h9.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
+    <span
+      aria-hidden="true"
+      className="h-[13px] w-[13px] shrink-0 bg-current"
+      style={{
+        WebkitMask: 'url("/logos/dashboard/calendar-2.svg") center / contain no-repeat',
+        mask: 'url("/logos/dashboard/calendar-2.svg") center / contain no-repeat',
+      }}
+    />
   );
 }
 
 function PdfIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-4 w-4">
-      <path d="M4 2.5h5l3 3v8H4v-11Z" fill="currentColor" opacity="0.18" />
-      <path d="M4 2.5h5l3 3v8H4v-11Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-      <path d="M9 2.75V5.5h2.75" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-      <path d="M5.6 9.8h.9c.5 0 .85-.32.85-.78s-.35-.77-.85-.77h-.9v3M8.25 8.25v3h.78c.88 0 1.42-.58 1.42-1.5s-.54-1.5-1.42-1.5h-.78M11.35 11.25v-3h1.7M11.35 9.65h1.35" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <img src="/logos/dashboard/pdf.svg" alt="" aria-hidden="true" className="h-4 w-4 shrink-0" />
   );
 }
 
 function SparkleIcon() {
   return (
-    <img src="/logos/dashboard/ai-generated.svg" alt="" aria-hidden="true" className="h-4 w-4 shrink-0" />
+    <span
+      aria-hidden="true"
+      className="h-4 w-4 shrink-0 bg-[#737373]"
+      style={{
+        WebkitMask: 'url("/logos/dashboard/ai-generated.svg") center / contain no-repeat',
+        mask: 'url("/logos/dashboard/ai-generated.svg") center / contain no-repeat',
+      }}
+    />
   );
 }

@@ -238,7 +238,7 @@ function ModeToggle({
         }`}
         onClick={() => onModeChange("upload")}
       >
-        <FolderIcon />
+        <UploadFromDeviceIcon className="h-[15px] w-[15px]" />
         Upload from Device
       </button>
     </div>
@@ -517,38 +517,33 @@ function FigmaIcon() {
   );
 }
 
+function FolderUploadIcon() {
+  return <UploadFromDeviceIcon className="h-5 w-5" />;
+}
+
 function FolderIcon() {
   return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+    <span
       aria-hidden="true"
-      className="h-[15px] w-[15px] shrink-0 text-[#525252]"
-    >
-      <path d="M2.5 5.2c0-.9.7-1.6 1.6-1.6h2l1.2 1.3h4.6c.9 0 1.6.7 1.6 1.6v4.4c0 .9-.7 1.6-1.6 1.6H4.1c-.9 0-1.6-.7-1.6-1.6V5.2Z" />
-    </svg>
+      className="h-[15px] w-[15px] shrink-0 bg-current"
+      style={{
+        WebkitMask: 'url("/logos/dashboard/folder.svg") center / contain no-repeat',
+        mask: 'url("/logos/dashboard/folder.svg") center / contain no-repeat',
+      }}
+    />
   );
 }
 
-function FolderUploadIcon() {
+function UploadFromDeviceIcon({ className }: { className: string }) {
   return (
-    <svg
-      viewBox="0 0 20 20"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+    <span
       aria-hidden="true"
-      className="h-5 w-5 shrink-0 text-[#525252]"
-    >
-      <path d="M3.3 7.1c0-1 .8-1.8 1.8-1.8h2.7L9.1 7h5.8c1 0 1.8.8 1.8 1.8v4.8c0 1-.8 1.8-1.8 1.8H5.1c-1 0-1.8-.8-1.8-1.8V7.1Z" />
-      <path d="M10 13V9.5M8.4 11.1 10 9.5l1.6 1.6" />
-    </svg>
+      className={`${className} shrink-0 bg-current`}
+      style={{
+        WebkitMask: 'url("/logos/dashboard/upload-from-device.svg") center / contain no-repeat',
+        mask: 'url("/logos/dashboard/upload-from-device.svg") center / contain no-repeat',
+      }}
+    />
   );
 }
 
