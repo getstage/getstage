@@ -11,14 +11,44 @@ import { ResearchTab } from "./tabs/ResearchTab";
 import { StrategyTab } from "./tabs/StrategyTab";
 import { WireframesTab } from "./tabs/WireframesTab";
 import { formatRelativeTime } from "@/lib/utils";
-import type { ProjectTab } from "../models/project";
+import type { Phase, Project, ProjectTab } from "../models/project";
 import { mockProject } from "../data/projectSnapshot";
+
+type ProjectTimeline = {
+  start: string;
+  end: string;
+};
 
 export function ProjectDetailView() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const project = mockProject;
+  const [project, setProject] = useState<Project>(mockProject);
+  const [timeline, setTimeline] = useState<ProjectTimeline>({ start: "", end: "" });
+
+  function updateProjectName(name: string) {
+    setProject((current) => ({ ...current, name }));
+  }
+
+  function updateClientName(clientName: string) {
+    setProject((current) => ({ ...current, clientName }));
+  }
+
+  function updateTimeline(nextTimeline: ProjectTimeline) {
+    setTimeline(nextTimeline);
+  }
+
+  function updatePhases(phases: Phase[]) {
+    setProject((current) => ({ ...current, phases }));
+  }
+
+  function pauseProject() {
+    setProject((current) => ({ ...current, status: "paused" }));
+  }
+
+  function deleteProject() {
+    void navigate({ to: "/projects" });
+  }
 
   const recentTasks = useMemo(() => {
     const tasks: Array<{ task: typeof project.phases[0]["tasks"][0]; phaseName: string }> = [];
@@ -50,9 +80,16 @@ export function ProjectDetailView() {
 
             <ProjectHeader
               project={project}
+              timeline={timeline}
               activeTab={activeTab}
               onTabChange={setActiveTab}
               onShare={() => setIsShareModalOpen(true)}
+              onProjectNameSave={updateProjectName}
+              onClientNameSave={updateClientName}
+              onTimelineSave={updateTimeline}
+              onPhasesSave={updatePhases}
+              onPauseProject={pauseProject}
+              onDeleteProject={deleteProject}
             />
           </div>
 

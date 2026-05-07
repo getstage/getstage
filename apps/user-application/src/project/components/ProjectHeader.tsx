@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import type { Project, ProjectTab } from "../models/project";
+import { useNavigate } from "@tanstack/react-router";
+import type { Phase, Project, ProjectTab } from "../models/project";
 
 type ProjectModal = "name" | "client" | "timeline" | "phases" | "pause" | "delete";
+type ProjectTimeline = {
+  start: string;
+  end: string;
+};
 
 const PAGE_TABS: { key: ProjectTab; label: string; iconSrc: string }[] = [
   { key: "overview", label: "Overview", iconSrc: "/logos/dashboard/overview.svg" },
@@ -15,15 +20,30 @@ const PAGE_TABS: { key: ProjectTab; label: string; iconSrc: string }[] = [
 
 export function ProjectHeader({
   project,
+  timeline,
   activeTab,
   onTabChange,
   onShare,
+  onProjectNameSave,
+  onClientNameSave,
+  onTimelineSave,
+  onPhasesSave,
+  onPauseProject,
+  onDeleteProject,
 }: {
   project: Project;
+  timeline: ProjectTimeline;
   activeTab: ProjectTab;
   onTabChange: (tab: ProjectTab) => void;
   onShare: () => void;
+  onProjectNameSave: (name: string) => void;
+  onClientNameSave: (clientName: string) => void;
+  onTimelineSave: (timeline: ProjectTimeline) => void;
+  onPhasesSave: (phases: Phase[]) => void;
+  onPauseProject: () => void;
+  onDeleteProject: () => void;
 }) {
+  const navigate = useNavigate();
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<ProjectModal | null>(null);
   const projectMenuRef = useRef<HTMLDivElement | null>(null);
@@ -138,6 +158,12 @@ export function ProjectHeader({
         <div className="flex min-w-0 items-center justify-end gap-2">
           <button
             type="button"
+            onClick={() =>
+              void navigate({
+                to: "/client-portal/$projectId/preview",
+                params: { projectId: project.id },
+              })
+            }
             className="inline-flex h-[27px] shrink-0 cursor-pointer items-center gap-2 rounded-[6px] px-[10px] py-[6px] text-[13px] font-medium leading-[1.25] text-[#525252] transition-colors hover:bg-[#F5F5F5]"
           >
           <span className="whitespace-nowrap">Client Portal</span>
@@ -155,6 +181,13 @@ export function ProjectHeader({
         <ProjectActionModal
           modal={activeModal}
           project={project}
+          timeline={timeline}
+          onProjectNameSave={onProjectNameSave}
+          onClientNameSave={onClientNameSave}
+          onTimelineSave={onTimelineSave}
+          onPhasesSave={onPhasesSave}
+          onPauseProject={onPauseProject}
+          onDeleteProject={onDeleteProject}
           onClose={() => setActiveModal(null)}
         />
       ) : null}
@@ -219,10 +252,24 @@ function ProjectActionItem({
 function ProjectActionModal({
   modal,
   project,
+  timeline,
+  onProjectNameSave,
+  onClientNameSave,
+  onTimelineSave,
+  onPhasesSave,
+  onPauseProject,
+  onDeleteProject,
   onClose,
 }: {
   modal: ProjectModal;
   project: Project;
+  timeline: ProjectTimeline;
+  onProjectNameSave: (name: string) => void;
+  onClientNameSave: (clientName: string) => void;
+  onTimelineSave: (timeline: ProjectTimeline) => void;
+  onPhasesSave: (phases: Phase[]) => void;
+  onPauseProject: () => void;
+  onDeleteProject: () => void;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -248,6 +295,7 @@ function ProjectActionModal({
             fieldLabel="Project Name"
             fieldValue={project.name}
             photoLabel="Project Photo"
+            onSave={onProjectNameSave}
             onClose={onClose}
           />
         ) : null}
@@ -257,16 +305,22 @@ function ProjectActionModal({
             fieldLabel="Client Name"
             fieldValue={project.clientName}
             photoLabel="Client Photo"
+            onSave={onClientNameSave}
             onClose={onClose}
           />
         ) : null}
-        {modal === "timeline" ? <TimelineModal onClose={onClose} /> : null}
-        {modal === "phases" ? <PhasesModal project={project} onClose={onClose} /> : null}
+        {modal === "timeline" ? (
+          <TimelineModal timeline={timeline} onSave={onTimelineSave} onClose={onClose} />
+        ) : null}
+        {modal === "phases" ? (
+          <PhasesModal project={project} onSave={onPhasesSave} onClose={onClose} />
+        ) : null}
         {modal === "pause" ? (
           <ConfirmModal
             title="Are you sure you want to pause Project?"
             description="Pausing the project will stop active progress updates until you resume it. You can come back and continue work whenever you're ready."
             confirmLabel="Pause Project"
+            onConfirm={onPauseProject}
             onClose={onClose}
           />
         ) : null}
@@ -276,6 +330,7 @@ function ProjectActionModal({
             title="Are you sure you want to delete Project?"
             description="Deleting the project is a permanent action, and once it's gone, you won't be able to retrieve it. Please double-check that you truly want to continue with this decision."
             confirmLabel="Delete Project"
+            onConfirm={onDeleteProject}
             onClose={onClose}
           />
         ) : null}
@@ -289,12 +344,14 @@ function ModalShell({
   children,
   action,
   disabled = false,
+  onAction,
   onClose,
 }: {
   title: string;
   children: React.ReactNode;
   action: string;
   disabled?: boolean;
+  onAction: () => void;
   onClose: () => void;
 }) {
   return (
@@ -316,7 +373,7 @@ function ModalShell({
         {children}
         <button
           type="button"
-          onClick={onClose}
+          onClick={onAction}
           disabled={disabled}
           className="flex w-full cursor-pointer items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] py-[10px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] disabled:cursor-default disabled:opacity-50"
         >
@@ -332,20 +389,32 @@ function ProfileEditModal({
   fieldLabel,
   fieldValue,
   photoLabel,
+  onSave,
   onClose,
 }: {
   title: string;
   fieldLabel: string;
   fieldValue: string;
   photoLabel: string;
+  onSave: (value: string) => void;
   onClose: () => void;
 }) {
+  const [value, setValue] = useState(fieldValue);
+  const canSave = value.trim().length > 0;
+
+  function save() {
+    if (!canSave) return;
+    onSave(value.trim());
+    onClose();
+  }
+
   return (
-    <ModalShell title={title} action="Save" onClose={onClose}>
+    <ModalShell title={title} action="Save" disabled={!canSave} onAction={save} onClose={onClose}>
       <div className="flex w-full flex-col gap-[24px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <FieldBlock label={fieldLabel}>
           <input
-            defaultValue={fieldValue}
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
             className="w-full rounded-[6px] bg-[#F5F5F5] px-[12px] py-[10px] text-[12px] font-medium leading-none text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none"
           />
         </FieldBlock>
@@ -374,16 +443,32 @@ function ProfileEditModal({
   );
 }
 
-function TimelineModal({ onClose }: { onClose: () => void }) {
+function TimelineModal({
+  timeline,
+  onSave,
+  onClose,
+}: {
+  timeline: ProjectTimeline;
+  onSave: (timeline: ProjectTimeline) => void;
+  onClose: () => void;
+}) {
+  const [start, setStart] = useState(timeline.start);
+  const [end, setEnd] = useState(timeline.end);
+
+  function save() {
+    onSave({ start, end });
+    onClose();
+  }
+
   return (
-    <ModalShell title="Edit Timeline Details" action="Save" onClose={onClose}>
+    <ModalShell title="Edit Timeline Details" action="Save" onAction={save} onClose={onClose}>
       <div className="flex w-full flex-col rounded-[8px] bg-white p-[16px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="flex w-full flex-col gap-[24px]">
           <FieldBlock label="Start">
-            <DateInput />
+            <DateInput value={start} onChange={setStart} />
           </FieldBlock>
           <FieldBlock label="End">
-            <DateInput />
+            <DateInput value={end} onChange={setEnd} />
           </FieldBlock>
         </div>
       </div>
@@ -391,22 +476,58 @@ function TimelineModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function PhasesModal({ project, onClose }: { project: Project; onClose: () => void }) {
+function PhasesModal({
+  project,
+  onSave,
+  onClose,
+}: {
+  project: Project;
+  onSave: (phases: Phase[]) => void;
+  onClose: () => void;
+}) {
   const [isAddingPhase, setIsAddingPhase] = useState(false);
-  const visiblePhases = project.phases.slice(0, 4);
+  const [phaseName, setPhaseName] = useState("");
+  const [phases, setPhases] = useState<Phase[]>(project.phases);
+  const canSave = !isAddingPhase || phaseName.trim().length > 0;
+
+  function removePhase(phaseId: string) {
+    setPhases((current) => current.filter((phase) => phase.id !== phaseId));
+  }
+
+  function save() {
+    const nextPhases = phaseName.trim()
+      ? [
+          ...phases,
+          {
+            id: `phase-${Date.now()}`,
+            name: phaseName.trim(),
+            status: "upcoming" as const,
+            tasks: [],
+          },
+        ]
+      : phases;
+
+    onSave(nextPhases);
+    onClose();
+  }
 
   return (
-    <ModalShell title="Add or Remove Phases" action="Save" disabled={isAddingPhase} onClose={onClose}>
+    <ModalShell title="Add or Remove Phases" action="Save" disabled={!canSave} onAction={save} onClose={onClose}>
       <div className="flex w-full flex-col rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="flex w-full flex-col gap-[8px]">
           <div className="flex w-full flex-col gap-[4px]">
-            {visiblePhases.map((phase) => (
+            {phases.map((phase) => (
               <div
                 key={phase.id}
                 className="flex w-full items-center justify-between rounded-[4px] bg-[#F5F5F5] px-[12px] py-[10px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
               >
                 <p className="text-[13px] font-medium leading-none text-[#171717]">{phase.name}</p>
-                <button type="button" aria-label={`Remove ${phase.name}`} className="text-[#EF4444]">
+                <button
+                  type="button"
+                  aria-label={`Remove ${phase.name}`}
+                  onClick={() => removePhase(phase.id)}
+                  className="text-[#EF4444]"
+                >
                   <TrashIcon />
                 </button>
               </div>
@@ -414,7 +535,9 @@ function PhasesModal({ project, onClose }: { project: Project; onClose: () => vo
             {isAddingPhase ? (
               <input
                 autoFocus
-                defaultValue="Enter Phase name"
+                value={phaseName}
+                onChange={(event) => setPhaseName(event.target.value)}
+                placeholder="Enter Phase name"
                 className="w-full rounded-[4px] bg-[#F5F5F5] px-[12px] py-[10px] text-[13px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] outline-none"
               />
             ) : null}
@@ -439,14 +562,21 @@ function ConfirmModal({
   description,
   confirmLabel,
   destructive = false,
+  onConfirm,
   onClose,
 }: {
   title: string;
   description: string;
   confirmLabel: string;
   destructive?: boolean;
+  onConfirm: () => void;
   onClose: () => void;
 }) {
+  function confirm() {
+    onConfirm();
+    onClose();
+  }
+
   return (
     <div className="flex w-[min(509px,calc(100vw-48px))] flex-col gap-[44px] rounded-[8px] bg-white p-[20px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex w-full flex-col gap-[20px]">
@@ -466,7 +596,7 @@ function ConfirmModal({
         </button>
         <button
           type="button"
-          onClick={onClose}
+          onClick={confirm}
           className={`rounded-[6px] border py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${
             destructive
               ? "border-[#F87171] bg-gradient-to-b from-[#EF4444] to-[#DC2626]"
@@ -489,10 +619,12 @@ function FieldBlock({ label, children }: { label: string; children: React.ReactN
   );
 }
 
-function DateInput() {
+function DateInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   return (
     <div className="flex w-full items-center justify-between overflow-hidden rounded-[6px] bg-[#F5F5F5] px-[12px] py-[10px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
       <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
         placeholder="DD/MM/YYYY"
         className="min-w-0 flex-1 bg-transparent text-[12px] font-medium leading-none text-[#525252] outline-none placeholder:text-[#525252]"
       />
