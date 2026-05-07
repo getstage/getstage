@@ -9,12 +9,14 @@ import { UpcomingTasksCard } from "../dashboard/components/UpcomingTasksCard";
 import { dashboardSnapshot } from "../dashboard/data/dashboardSnapshot";
 import { useDesktopBridge } from "../hooks/useDesktopBridge";
 import { useEngineStatus } from "../hooks/useEngineStatus";
-import { selectedProjectContext } from "../project-context";
+import { useSelectedProjectContext } from "../hooks/useSelectedProjectContext";
 import { WorkspaceFrame } from "./WorkspaceFrame";
 
 export function DashboardContextView() {
   const desktop = useDesktopBridge();
   const engineStatus = useEngineStatus();
+  const selectedProject = useSelectedProjectContext();
+  const selectedProjectContext = selectedProject.context;
   const openContextTasks = selectedProjectContext.tasks.filter(
     (task) => task.status !== "done",
   ).length;

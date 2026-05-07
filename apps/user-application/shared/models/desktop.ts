@@ -1,9 +1,15 @@
 import { z } from "zod";
 
 export const desktopSessionSchema = z.object({
+  hasAccessToken: z.boolean(),
   userId: z.string(),
-  accessToken: z.string().optional(),
   expiresAt: z.number().optional(),
+});
+
+export const desktopStoredSessionSchema = z.object({
+  accessToken: z.string().min(1),
+  expiresAt: z.number().optional(),
+  userId: z.string(),
 });
 
 export const activeAppInfoSchema = z.object({
@@ -67,6 +73,7 @@ export const engineStatusSchema = z.object({
 });
 
 export type DesktopSession = z.infer<typeof desktopSessionSchema>;
+export type DesktopStoredSession = z.infer<typeof desktopStoredSessionSchema>;
 export type ActiveAppInfo = z.infer<typeof activeAppInfoSchema>;
 export type CaptureResult = z.infer<typeof captureResultSchema>;
 export type PermissionKind = z.infer<typeof permissionKindSchema>;

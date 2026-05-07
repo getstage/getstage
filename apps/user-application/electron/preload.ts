@@ -7,6 +7,9 @@ const stageDesktop = {
     openLogin: () => ipcRenderer.invoke(IPC_CHANNELS.authOpenLogin),
     getSession: () => ipcRenderer.invoke(IPC_CHANNELS.authGetSession),
   },
+  projectContext: {
+    getSelected: () => ipcRenderer.invoke(IPC_CHANNELS.projectContextGetSelected),
+  },
   engine: {
     getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.engineGetStatus),
   },

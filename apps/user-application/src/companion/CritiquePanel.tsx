@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import type { CompanionState } from "@shared/models/desktop";
-import { selectedProjectContext, selectedProjectContextSummary } from "../project-context";
+import { useSelectedProjectContext } from "../hooks/useSelectedProjectContext";
 import { critiqueThread } from "./data/critiqueThread";
 import { useDraggablePanel } from "./hooks/useDraggablePanel";
 
@@ -24,32 +24,23 @@ const initialMessages: ChatMessage[] = [
   },
 ];
 
-const initialStageReply: ChatMessage = {
-  id: "initial-stage",
-  role: "stage",
-  content: [
-    `${selectedProjectContext.projectName} is currently in ${selectedProjectContext.currentPhase ?? "active work"}, so I would judge this pass against brief clarity first.`,
-    selectedProjectContext.visualDirection
-      ? `Visual direction: ${selectedProjectContext.visualDirection}`
-      : "Visual direction is not set for this project yet.",
-    "The CTA color #FF4444 does not match the approved palette. Primary actions should use #8782F5.",
-  ],
-  source: "Project Context",
-};
-
-function createMockReply(prompt: string): ChatMessage {
+function createInitialStageReply(projectContext: ReturnType<typeof useSelectedProjectContext>["context"]): ChatMessage {
   return {
-    id: `stage-${Date.now()}`,
+    id: "initial-stage",
     role: "stage",
     content: [
-      `I would treat "${prompt}" as a follow-up critique pass against ${selectedProjectContext.projectName}.`,
-      selectedProjectContextSummary,
+      `${projectContext.projectName} is currently in ${projectContext.currentPhase ?? "active work"}, so I would judge this pass against brief clarity first.`,
+      projectContext.visualDirection
+        ? `Visual direction: ${projectContext.visualDirection}`
+        : "Visual direction is not set for this project yet.",
+      "The CTA color #FF4444 does not match the approved palette. Primary actions should use #8782F5.",
     ],
     source: "Project Context",
   };
 }
 
 export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
+  const selectedProject = useSelectedProjectContext();
   const visible = state === "thinking" || state === "response";
   const panelWidth = 432;
   const panelHeight = 504;
@@ -70,18 +61,18 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     setIsThinking(true);
     const timeoutId = window.setTimeout(() => {
       setMessages((currentMessages) => {
-        if (currentMessages.some((message) => message.id === initialStageReply.id)) {
+        if (currentMessages.some((message) => message.id === "initial-stage")) {
           return currentMessages;
         }
 
-        return [...currentMessages, initialStageReply];
+        return [...currentMessages, createInitialStageReply(selectedProject.context)];
       });
       setIsThinking(false);
       void onStateChange("response");
     }, 900);
 
     return () => window.clearTimeout(timeoutId);
-  }, [onStateChange, state, visible]);
+  }, [onStateChange, selectedProject.context, state, visible]);
 
   useEffect(() => {
     threadRef.current?.scrollTo({
@@ -110,7 +101,18 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     setIsThinking(true);
 
     window.setTimeout(() => {
-      setMessages((currentMessages) => [...currentMessages, createMockReply(nextPrompt)]);
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        {
+          id: `stage-${Date.now()}`,
+          role: "stage",
+          content: [
+            `I would treat "${nextPrompt}" as a follow-up critique pass against ${selectedProject.context.projectName}.`,
+            selectedProject.summary,
+          ],
+          source: "Project Context",
+        },
+      ]);
       setIsThinking(false);
       void onStateChange("response");
     }, 700);

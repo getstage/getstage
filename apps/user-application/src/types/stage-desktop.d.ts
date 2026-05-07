@@ -7,11 +7,15 @@ import type {
   EngineStatus,
   PermissionKind,
 } from "@shared/models/desktop";
+import type { ProjectContext } from "@stage/data-ops";
 
 export type StageDesktopApi = {
   auth: {
     openLogin: () => Promise<void>;
     getSession: () => Promise<DesktopSession | null>;
+  };
+  projectContext: {
+    getSelected: () => Promise<ProjectContext | null>;
   };
   engine: {
     getStatus: () => Promise<EngineStatus>;

@@ -4,6 +4,7 @@ import { WorkspaceFrame } from "@/app/WorkspaceFrame";
 import { ClientPortalSettingsView } from "@/client-portal/components/ClientPortalSettingsView";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
+import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { settingsSnapshot } from "../data/settingsSnapshot";
 import type { Integration, SettingsTab } from "../models/settings";
 import { SettingsIcon } from "./SettingsIcons";
@@ -403,19 +404,79 @@ function DeveloperPanel() {
 }
 
 function AccountPanel() {
+  const desktop = useDesktopBridge();
+  const [authStatus, setAuthStatus] = useState<
+    "checking" | "connected" | "idle" | "opening" | "opened" | "error"
+  >("checking");
+
+  useEffect(() => {
+    desktop.auth.getSession()
+      .then((session) => {
+        setAuthStatus(session?.hasAccessToken ? "connected" : "idle");
+      })
+      .catch(() => setAuthStatus("idle"));
+  }, [desktop.auth]);
+
+  async function openDesktopLogin() {
+    setAuthStatus("opening");
+
+    try {
+      await desktop.auth.openLogin();
+      setAuthStatus("opened");
+    } catch {
+      setAuthStatus("error");
+    }
+  }
+
+  const authStatusLabel =
+    authStatus === "opening"
+      ? "Opening browser"
+      : authStatus === "checking"
+        ? "Checking session"
+        : authStatus === "connected"
+          ? "Connected to Stage web"
+          : authStatus === "opened"
+            ? "Browser opened"
+            : authStatus === "error"
+              ? "Could not open browser"
+              : "Not connected";
+
   return (
-    <SettingsCard>
-      <SettingsRow>
-        <h2 className="text-[15px] font-semibold leading-none text-[#171717]">Delete account</h2>
-        <p className="mt-[4px] max-w-[471px] text-[12px] font-normal leading-[1.5] text-[#171717]">
-          Permanently delete your account and all associated projects, research, strategies,
-          and generated assets. This action is immediate and cannot be undone.
-        </p>
-        <button type="button" className="mt-[24px] rounded-[6px] border border-[#F87171] bg-gradient-to-b from-[#EF4444] to-[#DC2626] px-[12px] py-[8px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)]">
-          Delete Account
-        </button>
-      </SettingsRow>
-    </SettingsCard>
+    <div className="flex flex-col gap-[22px]">
+      <SettingsCard title="Desktop session">
+        <SettingsRow>
+          <div className="flex items-center justify-between gap-[20px]">
+            <div>
+              <h2 className="text-[15px] font-semibold leading-none text-[#171717]">Stage web session</h2>
+              <p className="mt-[4px] max-w-[471px] text-[12px] font-normal leading-[1.5] text-[#171717]">
+                {authStatusLabel}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void openDesktopLogin()}
+              disabled={authStatus === "opening" || authStatus === "checking"}
+              className="rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-[12px] py-[8px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Log in with Stage
+            </button>
+          </div>
+        </SettingsRow>
+      </SettingsCard>
+
+      <SettingsCard>
+        <SettingsRow>
+          <h2 className="text-[15px] font-semibold leading-none text-[#171717]">Delete account</h2>
+          <p className="mt-[4px] max-w-[471px] text-[12px] font-normal leading-[1.5] text-[#171717]">
+            Permanently delete your account and all associated projects, research, strategies,
+            and generated assets. This action is immediate and cannot be undone.
+          </p>
+          <button type="button" className="mt-[24px] rounded-[6px] border border-[#F87171] bg-gradient-to-b from-[#EF4444] to-[#DC2626] px-[12px] py-[8px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)]">
+            Delete Account
+          </button>
+        </SettingsRow>
+      </SettingsCard>
+    </div>
   );
 }
 

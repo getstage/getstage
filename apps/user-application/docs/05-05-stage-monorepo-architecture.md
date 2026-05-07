@@ -170,6 +170,21 @@ Do not let the transport become the protocol.
 Do not let provider-specific parsing leak into the app-wide command model.
 ```
 
+## 4.1 Rust Clean Architecture References
+
+These repositories are useful Rust/Axum clean-architecture references while the Stage Rust sidecar grows:
+
+- https://github.com/Thodin/axum-clean-architecture/
+- https://github.com/kigawas/clean-axum
+- https://github.com/codemountains/axum-ddd-explicit-architecture
+
+How Stage should apply them:
+
+- Keep the current sidecar small while it only owns health, readiness, WebSocket skeletons, and process supervision.
+- Add clearer `domain`, `application`, `adapters`, and `infra` folders once the sidecar owns real engine behavior such as provider execution, file search, project-context ingestion, and critique jobs.
+- Do not introduce repository/database-style layers until there is real persistence or external storage behind them.
+- Keep HTTP/WebSocket transport separate from engine logic so future tests can exercise the engine without Axum.
+
 ## 5. Target Monorepo Shape
 
 Final target:
@@ -1206,6 +1221,23 @@ apps/user-application/docs/05-06-desktop-auth-deep-link-plan.md
 
 Website login, onboarding, billing, payments, and account flows stay in `apps/web-application`. Desktop should launch the website login flow, receive a `stage://auth` callback, store the desktop session securely through Electron main, and initialize Convex only after that session exists.
 
+Current auth status:
+
+```txt
+Done:
+  stage:// protocol registration
+  website desktop auth launcher
+  state nonce generation and validation
+  running-app and queued startup callback handling
+  visible account settings login launcher
+  Electron auth helpers extracted to electron/helpers/
+
+Next:
+  replace placeholder in-memory session with secure Electron-main-owned storage
+  add authenticated renderer boot state
+  wire live Convex selected project context after session behavior is stable
+```
+
 ### Phase 3: Electron Sidecar Supervisor
 
 Add Electron main-process sidecar manager.
@@ -1229,6 +1261,7 @@ Done:
   supervisor spawns cargo run for apps/data-service when needed
   supervisor polls /v1/readiness
   supervisor shuts down owned child process on app quit
+  sidecar helpers extracted to electron/helpers/
   renderer-safe engine status bridge exists
   dashboard displays engine readiness status
   desktop typecheck/build passed

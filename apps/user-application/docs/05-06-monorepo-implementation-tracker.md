@@ -3,7 +3,7 @@
 Date: May 6, 2026  
 Branch: `monorepo`  
 Status: In progress
-Latest pushed checkpoint: `5644066 dasbhoard + deep linking in auth`
+Latest pushed checkpoint: `c838765 add electron sidecar supervisor`
 
 ## Scope
 
@@ -42,9 +42,10 @@ No local AI inference.
 - [x] 17. Wire desktop to consume selected project context through `data-ops` contracts.
 - [x] 18. Add Electron sidecar supervisor.
 - [x] 19. Add renderer engine status bridge.
-- [ ] 20. Add desktop auth launcher and `stage://auth` deep-link callback plan/implementation.
-- [ ] 21. Add secure desktop session storage and authenticated boot state.
-- [ ] 22. Wire live Convex-backed selected project context after desktop auth works.
+- [x] 20. Add desktop auth launcher and `stage://auth` deep-link callback plan/implementation.
+- [x] 21. Add secure desktop session storage and authenticated boot state.
+- [x] 22. Wire live Convex-backed selected project context after desktop auth works.
+Stop and test, wait for onboarding to be finished
 - [ ] 23. Add fake provider runner that receives typed project context.
 - [ ] 24. Add Codex/Claude provider detection.
 - [ ] 25. Add deep file scanner.
@@ -87,6 +88,16 @@ apps/user-application/src/project-context/index.ts
 apps/user-application/docs/05-06-desktop-auth-deep-link-plan.md
 apps/user-application/electron/sidecar.ts
 apps/user-application/src/hooks/useEngineStatus.ts
+apps/user-application/electron/auth.ts
+apps/user-application/electron/helpers/auth.ts
+apps/user-application/electron/helpers/desktop-api.ts
+apps/user-application/electron/helpers/permissions.ts
+apps/user-application/electron/helpers/session-storage.ts
+apps/user-application/electron/helpers/sidecar.ts
+apps/user-application/electron/helpers/time.ts
+apps/user-application/electron/project-context.ts
+apps/user-application/src/hooks/useSelectedProjectContext.ts
+apps/web-application/src/routes/auth.desktop.tsx
 ```
 
 ## Current App Layout
@@ -255,6 +266,21 @@ curl http://127.0.0.1:48221/v1/version
 - Dashboard header now shows a small engine readiness status from the supervised sidecar.
 - `pnpm run typecheck` in `apps/user-application/` passes after the renderer engine status bridge.
 - `pnpm run build` in `apps/user-application/` passes after the renderer engine status bridge.
+- Added Electron main-process desktop auth controller in `apps/user-application/electron/auth.ts`.
+- Registered the `stage://` custom protocol from Electron main.
+- Added running-app and queued/cold-start callback handling for `stage://auth`.
+- Updated `auth.openLogin` to launch the desktop auth route with a state nonce and `stage://auth` redirect URI.
+- Local dev defaults to `https://testing.getstage.co/auth/desktop`; packaged production defaults to `https://getstage.co/auth/desktop`; `STAGE_DESKTOP_AUTH_URL` can override either.
+- Persisted only the short-lived auth state nonce in Electron user data so callback validation can survive cold-start.
+- Added a visible Account settings login launcher that calls `window.stageDesktop.auth.openLogin()`.
+- Added placeholder in-memory session exchange for the callback path; secure session storage remains next.
+- `pnpm run typecheck` in `apps/user-application/` passes after desktop auth launcher/deep-link implementation.
+- Added `apps/user-application/electron/helpers/` to keep Electron constants, types, URL helpers, timing helpers, sidecar helpers, and default permission state out of orchestration files.
+- `pnpm run typecheck` in `apps/user-application/` passes after the Electron helper refactor.
+- `pnpm run build` in `apps/user-application/` passes after the Electron helper refactor.
+- `pnpm run typecheck` in `packages/data-ops/` passes after the Electron helper refactor.
+- `cargo check --manifest-path apps/data-service/Cargo.toml` passes after the Electron helper refactor.
+- `git diff --check` passes after the Electron helper refactor.
 
 ## Notes
 
@@ -263,6 +289,14 @@ curl http://127.0.0.1:48221/v1/version
 - The desktop now consumes selected project context through `packages/data-ops`; the live Convex subscription path is still deferred.
 - Renderer can read engine status through the preload bridge.
 - WebSocket event forwarding is still pending.
+- Desktop auth can launch the website desktop auth route and accept validated `stage://auth` callbacks.
+- Secure desktop session storage is still pending; current callback exchange uses an in-memory placeholder session.
+- Electron helper functions and constants now live under `apps/user-application/electron/helpers/` instead of the main controller files.
+- Rust/Axum clean-architecture references are recorded in `05-05-stage-monorepo-architecture.md`; use them as guidance when the sidecar grows real domains, not as a reason to over-layer the current skeleton.
+- Desktop session storage now uses Electron main plus `safeStorage` encrypted `userData`; renderer receives redacted session status only.
+- Desktop selected project context now goes through Electron main and the Stage website `/api/v1` routes with the stored desktop token.
+- The testing website route `/auth/desktop` can generate an existing Stage API credential after normal website login and return to `stage://auth`.
+- Important hardening note: the current website handoff is testable for dynamic data, but the next auth hardening pass should replace API-key-in-callback with a true one-time desktop code exchange.
 - Figma and Notion remain production V1 scope, but they should come after the sidecar/chat/file-search foundation.
 
 ## Current Status Summary
@@ -286,18 +320,21 @@ Done:
 - Desktop auth/deep-link plan is documented in `apps/user-application/docs/05-06-desktop-auth-deep-link-plan.md`.
 - Electron main starts, readiness-checks, and shuts down the Rust sidecar.
 - Renderer reads engine status through a typed IPC/preload bridge.
+- Desktop auth launcher and `stage://auth` callback handling exist.
+- Secure desktop session storage exists.
+- Desktop can fetch selected project context dynamically through the website API when a session token exists.
 
 Not done yet:
 
-- Desktop auth launcher and `stage://auth` callback implementation.
-- Secure desktop session storage.
-- Live Convex-backed project context subscription in the desktop app.
+- Final one-time desktop auth code exchange.
+- Token refresh/logout.
+- Direct Convex subscription in the desktop app.
 - Provider detection, file scanner, design critique, voice, Figma, and Notion layers.
 
 Next safe step:
 
 ```txt
-Add desktop auth launcher and stage://auth deep-link callback before live Convex wiring.
+Test the testing.getstage.co desktop auth handoff and dynamic selected project context, then harden the auth exchange.
 ```
 
 ## Next Agent Task
@@ -305,7 +342,7 @@ Add desktop auth launcher and stage://auth deep-link callback before live Convex
 Goal:
 
 ```txt
-Add desktop auth launcher and stage://auth deep-link callback, without moving auth/onboarding/billing out of apps/web-application.
+Test and harden the desktop auth exchange, without moving auth/onboarding/billing out of apps/web-application.
 ```
 
 Recommended order:
@@ -313,12 +350,12 @@ Recommended order:
 1. Read `apps/user-application/docs/05-05-stage-monorepo-architecture.md`.
 2. Read this tracker.
 3. Read `apps/user-application/docs/05-06-desktop-auth-deep-link-plan.md`.
-4. Inspect existing `auth.openLogin` and `auth.getSession` placeholders in `electron/ipc.ts` and `electron/preload.ts`.
-5. Register the `stage://` custom protocol in Electron main.
-6. Add single-instance deep-link callback handling.
-7. Update `auth.openLogin` to launch the desktop website auth route with state/nonce.
-8. Add typed placeholder session exchange/storage boundaries in Electron main only.
-9. Do not move onboarding, billing, payments, or website login UI into desktop.
+4. Open the desktop app and go to Account settings.
+5. Click `Log in with Stage`.
+6. Complete website login on `testing.getstage.co`.
+7. Confirm the `stage://auth` callback returns to desktop.
+8. Confirm Account settings shows the desktop session as connected.
+9. Confirm the dashboard subheading changes when real website API project data exists.
 10. Run:
 
 ```bash

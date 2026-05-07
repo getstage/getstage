@@ -4,6 +4,27 @@ Date: May 6, 2026
 Status: Planning document  
 Scope: Desktop login launcher, `stage://auth` callback, secure session storage, and authenticated Convex access
 
+Current implementation note:
+
+```txt
+Done:
+  Electron registers stage://
+  auth.openLogin opens testing.getstage.co in local dev and getstage.co in packaged builds
+  STAGE_DESKTOP_AUTH_URL can override the desktop auth URL
+  Electron handles stage://auth callbacks for running and queued startup paths
+  short-lived state nonce is persisted in Electron user data
+  Account settings has a visible Log in with Stage launcher
+  desktop session is stored through Electron main using safeStorage encrypted userData file
+  renderer receives redacted session status only, not the stored access token
+  desktop project context is fetched through Electron main against the website /api/v1 routes
+  testing website route /auth/desktop can hand the desktop back through stage://auth
+
+Not done:
+  final one-time backend code exchange table/endpoint
+  token refresh and logout
+  direct Convex websocket subscription inside desktop
+```
+
 ## Summary
 
 The desktop app needs an authenticated Stage session before it can consume live Convex data. Auth, onboarding, billing, account management, and payments remain owned by `apps/web-application`.
@@ -44,8 +65,16 @@ The renderer must never receive raw Node, shell, or keychain access.
 2. Electron main opens the default browser to:
 
 ```txt
+https://testing.getstage.co/auth/desktop?state=...&redirect_uri=stage://auth
+```
+
+For packaged production builds, the default host changes to:
+
+```txt
 https://getstage.co/auth/desktop?state=...&redirect_uri=stage://auth
 ```
+
+`STAGE_DESKTOP_AUTH_URL` can override the host for local or staging tests.
 
 3. The website handles normal Stage login.
 4. The website redirects to:
@@ -59,7 +88,20 @@ stage://auth?code=...&state=...
 7. Electron exchanges the short-lived `code` with the Stage backend / Convex-backed endpoint.
 8. Electron stores the desktop session securely.
 9. Renderer calls `window.stageDesktop.auth.getSession()`.
-10. Renderer initializes authenticated Convex access and project context queries.
+10. Renderer asks Electron main for selected project context.
+11. Electron main queries the Stage website API with the stored token and returns sanitized project context.
+
+Current implementation note:
+
+```txt
+The first testable website handoff uses the existing Stage API key system as the desktop
+access credential. The website route generates the credential after normal Convex Auth
+login and sends it back to Electron through stage://auth.
+
+This is enough to test dynamic project data against testing.getstage.co and Convex-backed
+/api/v1 routes. The next hardening pass should replace that with a true one-time desktop
+code exchange so raw credentials are never present in the callback URL.
+```
 
 ## Fallback Flow
 
@@ -110,12 +152,12 @@ The current `DesktopSession` model is intentionally small:
 ```ts
 type DesktopSession = {
   userId: string;
-  accessToken?: string;
+  hasAccessToken: boolean;
   expiresAt?: number;
 };
 ```
 
-Before implementation, decide whether the desktop renderer should ever receive `accessToken`. Preferred direction:
+The renderer should not receive `accessToken`. Current direction:
 
 ```txt
 Renderer receives auth status and user identity.
@@ -123,7 +165,7 @@ Main process or a constrained auth provider supplies tokens to the Convex client
 Long-lived or refresh-capable secrets stay outside renderer storage.
 ```
 
-If Convex requires a token in renderer memory, keep it short-lived, never persist it in web storage, and refresh it through Electron main.
+If Convex later requires a token in renderer memory, keep it short-lived, never persist it in web storage, and refresh it through Electron main.
 
 ## Implementation Steps
 
@@ -134,9 +176,9 @@ If Convex requires a token in renderer memory, keep it short-lived, never persis
 5. Add protocol URL parsing and validation in Electron main.
 6. Add a placeholder session exchange function with a typed interface.
 7. Add secure local session storage.
-8. Add `auth.getSession` implementation.
+8. Add `auth.getSession` implementation with redacted renderer session.
 9. Add renderer authenticated boot state.
-10. Add live Convex selected project context after session works.
+10. Add live Stage API selected project context after session works.
 
 ## Development Notes
 
@@ -151,9 +193,8 @@ The app should log sanitized auth state transitions in development, but never lo
 ## Open Questions
 
 - What exact website route should own desktop login: `/auth/desktop`, `/desktop/login`, or another route?
-- Which backend endpoint exchanges the desktop code for a session?
-- Should the desktop use a Convex auth token directly in renderer memory, or proxy token refresh through Electron main?
-- Which storage API should be used first: Electron `safeStorage`, macOS Keychain wrapper, or a small encrypted file owned by Electron main?
+- Which backend endpoint/table should replace the current API-key callback with a true one-time desktop code exchange?
+- Should the desktop eventually use a Convex auth token directly in renderer memory, or keep all cloud reads behind Electron main?
 - What is the production custom protocol name: `stage://` only, or environment-specific schemes such as `stage-dev://`?
 
 ## Done Criteria

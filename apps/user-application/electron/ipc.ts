@@ -2,33 +2,39 @@ import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import {
   companionStateSchema,
+  desktopSessionSchema,
   engineStatusSchema,
   permissionKindSchema,
   type ActiveAppInfo,
   type DesktopPermissionStatus,
   type DesktopSession,
 } from "@shared/models/desktop";
+import { defaultPermissionStatus } from "./helpers/permissions";
+import { getSelectedProjectContext } from "./project-context";
 import type { SidecarSupervisor } from "./sidecar";
-
-const defaultPermissionStatus: DesktopPermissionStatus = {
-  "screen-recording": "unknown",
-  microphone: "unknown",
-  accessibility: "unknown",
-  notifications: "unknown",
-  files: "unknown",
-};
+import type { DesktopAuthController } from "./auth";
 
 type RegisterIpcHandlersOptions = {
+  authController: DesktopAuthController;
   sidecarSupervisor: SidecarSupervisor;
 };
 
-export function registerIpcHandlers({ sidecarSupervisor }: RegisterIpcHandlersOptions) {
+export function registerIpcHandlers({
+  authController,
+  sidecarSupervisor,
+}: RegisterIpcHandlersOptions) {
   ipcMain.handle(IPC_CHANNELS.authOpenLogin, async () => {
-    await shell.openExternal("https://getstage.co/auth");
+    await authController.openLogin();
   });
 
-  ipcMain.handle(IPC_CHANNELS.authGetSession, (): DesktopSession | null => {
-    return null;
+  ipcMain.handle(IPC_CHANNELS.authGetSession, async (): Promise<DesktopSession | null> => {
+    const session = await authController.getSession();
+
+    return session ? desktopSessionSchema.parse(session) : null;
+  });
+
+  ipcMain.handle(IPC_CHANNELS.projectContextGetSelected, async () => {
+    return getSelectedProjectContext(authController);
   });
 
   ipcMain.handle(IPC_CHANNELS.engineGetStatus, () => {

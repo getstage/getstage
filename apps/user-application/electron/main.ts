@@ -1,9 +1,13 @@
 import { app, Menu } from "electron";
+import { createDesktopAuthController } from "./auth";
+import { findStageAuthUrl, registerStageProtocol } from "./helpers/auth";
 import { registerIpcHandlers } from "./ipc";
 import { createSidecarSupervisor } from "./sidecar";
 import { createMainWindow } from "./windows";
 
 app.setName("Stage");
+registerStageProtocol();
+const authController = createDesktopAuthController();
 const sidecarSupervisor = createSidecarSupervisor();
 let sidecarStoppedForQuit = false;
 
@@ -71,13 +75,59 @@ function installApplicationMenu() {
   ]));
 }
 
+function handleAuthCallbackUrl(url: string) {
+  if (!app.isReady()) {
+    authController.queueCallbackUrl(url);
+    return;
+  }
+
+  authController.handleCallbackUrl(url).then((result) => {
+    if (result && !result.ok) {
+      console.warn(`[stage-auth] ${result.error}`);
+    }
+  }).catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : "Unknown desktop auth callback error.";
+    console.warn(`[stage-auth] ${message}`);
+  });
+}
+
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 }
 
+const launchAuthUrl = findStageAuthUrl(process.argv);
+
+if (launchAuthUrl) {
+  authController.queueCallbackUrl(launchAuthUrl);
+}
+
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  handleAuthCallbackUrl(url);
+});
+
+app.on("second-instance", (_event, argv) => {
+  const authUrl = findStageAuthUrl(argv);
+
+  if (!authUrl) {
+    createMainWindow();
+    return;
+  }
+
+  handleAuthCallbackUrl(authUrl);
+});
+
 app.whenReady().then(() => {
   installApplicationMenu();
-  registerIpcHandlers({ sidecarSupervisor });
+  registerIpcHandlers({ authController, sidecarSupervisor });
+  authController.consumeQueuedCallback().then((result) => {
+    if (result && !result.ok) {
+      console.warn(`[stage-auth] ${result.error}`);
+    }
+  }).catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : "Unknown queued desktop auth callback error.";
+    console.warn(`[stage-auth] ${message}`);
+  });
 
   sidecarSupervisor.start().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : "Unknown sidecar startup error.";

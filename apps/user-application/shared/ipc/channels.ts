@@ -1,6 +1,7 @@
 export const IPC_CHANNELS = {
   authOpenLogin: "auth:open-login",
   authGetSession: "auth:get-session",
+  projectContextGetSelected: "project-context:get-selected",
   engineGetStatus: "engine:get-status",
   companionShow: "companion:show",
   companionHide: "companion:hide",
