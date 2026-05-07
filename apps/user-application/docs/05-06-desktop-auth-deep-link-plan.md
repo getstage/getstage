@@ -22,7 +22,9 @@ Done:
 Not done:
   final one-time backend code exchange table/endpoint
   token refresh and logout
+  session changed renderer event
   direct Convex websocket subscription inside desktop
+  full replacement of dashboard/sidebar mock data with live ProjectContext/API data
 ```
 
 ## Summary
@@ -54,10 +56,52 @@ apps/user-application
   protocol callback handling
   desktop session read/write through Electron main
   authenticated renderer boot state
-  Convex client initialization after session exists
+  authenticated project-context reads through Electron main
+  optional future Convex client initialization only after the token model is safe
 ```
 
 The renderer must never receive raw Node, shell, or keychain access.
+
+## Convex Integration Reality Check
+
+There are two different meanings of "Convex integration":
+
+```txt
+1. Cloud source connected:
+   Website Convex data is available to desktop through authenticated /api/v1 routes.
+   This is the current target for Step 22.
+
+2. Realtime desktop Convex client:
+   Desktop renderer subscribes directly to Convex.
+   This is not done and should not be added until token handling is settled.
+```
+
+Current preferred path:
+
+```txt
+Convex
+  -> apps/web-application /api/v1
+  -> Electron main fetch with stored credential
+  -> packages/data-ops ProjectContext validation
+  -> preload-safe renderer data
+```
+
+This keeps Electron aligned with security best practices:
+
+```txt
+contextIsolation stays on
+nodeIntegration stays off
+raw tokens stay out of React state/localStorage/sessionStorage
+all privileged token use remains in Electron main
+```
+
+Desktop UI rule:
+
+```txt
+If live ProjectContext is unavailable, the UI should show loading, not connected,
+or empty states. It should not present static demo projects or fixed metrics as if
+they were live Convex data.
+```
 
 ## Primary Flow
 
@@ -101,6 +145,10 @@ login and sends it back to Electron through stage://auth.
 This is enough to test dynamic project data against testing.getstage.co and Convex-backed
 /api/v1 routes. The next hardening pass should replace that with a true one-time desktop
 code exchange so raw credentials are never present in the callback URL.
+
+Known risk:
+  api.developer.apiKeys.generate currently requires Stage Pro.
+  A non-Pro testing account can fail the desktop handoff before desktop receives a credential.
 ```
 
 ## Fallback Flow
@@ -161,24 +209,36 @@ The renderer should not receive `accessToken`. Current direction:
 
 ```txt
 Renderer receives auth status and user identity.
-Main process or a constrained auth provider supplies tokens to the Convex client.
+Electron main uses the stored credential for /api/v1 calls.
 Long-lived or refresh-capable secrets stay outside renderer storage.
 ```
 
-If Convex later requires a token in renderer memory, keep it short-lived, never persist it in web storage, and refresh it through Electron main.
+If direct Convex subscriptions later require a token in renderer memory, keep it short-lived,
+never persist it in web storage, and refresh it through Electron main.
 
 ## Implementation Steps
+
+Done:
 
 1. Add Electron custom protocol registration for `stage://`.
 2. Add single-instance callback handling so deep links focus the running app.
 3. Add auth attempt state/nonce generation in Electron main.
 4. Change `auth.openLogin` from `https://getstage.co/auth` to the desktop login URL.
 5. Add protocol URL parsing and validation in Electron main.
-6. Add a placeholder session exchange function with a typed interface.
-7. Add secure local session storage.
-8. Add `auth.getSession` implementation with redacted renderer session.
-9. Add renderer authenticated boot state.
-10. Add live Stage API selected project context after session works.
+6. Add secure local session storage.
+7. Add `auth.getSession` implementation with redacted renderer session.
+8. Add website `/auth/desktop` route for the first test handoff.
+9. Add Electron-main selected ProjectContext fetch through website `/api/v1`.
+
+Next:
+
+1. Test `testing.getstage.co/auth/desktop` with a real testing account.
+2. Confirm whether API key generation is blocked by the account plan.
+3. Replace visible desktop dashboard mock data with live/empty/loading states.
+4. Add logout and token expiry handling.
+5. Add `auth.onSessionChanged` through preload-safe IPC.
+6. Replace API-key handoff with a true one-time desktop auth code exchange.
+7. Decide whether direct Convex subscriptions belong in desktop V1 or stay behind the website API.
 
 ## Development Notes
 
@@ -205,4 +265,6 @@ The app should log sanitized auth state transitions in development, but never lo
 - Invalid or mismatched `state` values are rejected.
 - A desktop session can be read through `auth.getSession()`.
 - Live Convex project context can initialize after session exists.
+- Dashboard/sidebar visible data no longer presents static demo values as live data.
+- Logged-out users see an explicit connect/loading/empty state.
 - No tokens are stored in renderer web storage.

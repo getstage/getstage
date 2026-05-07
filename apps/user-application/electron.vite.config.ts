@@ -9,7 +9,7 @@ const __dirname = dirname(__filename);
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: ["@stage/data-ops"] })],
     resolve: {
       alias: {
         "@shared": resolve(__dirname, "shared"),
@@ -24,7 +24,7 @@ export default defineConfig({
     },
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: ["@stage/data-ops"] })],
     resolve: {
       alias: {
         "@shared": resolve(__dirname, "shared"),

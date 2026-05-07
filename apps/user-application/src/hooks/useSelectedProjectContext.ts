@@ -12,7 +12,9 @@ import {
 
 type SelectedProjectContextResult = {
   context: ProjectContext;
+  error: unknown;
   isFallback: boolean;
+  isLoading: boolean;
   summary: string;
 };
 
@@ -31,7 +33,9 @@ export function useSelectedProjectContext(): SelectedProjectContextResult {
 
   return {
     context,
+    error: query.error,
     isFallback,
+    isLoading: query.isLoading,
     summary: isFallback ? selectedProjectContextSummary : summarizeProjectContext(context),
   };
 }

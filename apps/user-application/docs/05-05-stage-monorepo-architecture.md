@@ -260,11 +260,65 @@ packages/data-ops now exists with:
   domain/project-context.ts
   domain/design-critique.ts
 
-It is intentionally not yet wired into apps/user-application or apps/web-application.
+It is now wired into apps/user-application as the desktop ProjectContext contract.
+apps/web-application remains the owner of deployed Convex functions and HTTP API routes.
 It was pushed on monorepo in commit ce6aba9.
 ```
 
 This keeps Convex, desktop, and Rust aligned without letting React or Rust invent separate project-context models.
+
+### Convex Integration Boundary
+
+Convex is the cloud source of truth, but the desktop integration must be precise:
+
+```txt
+apps/web-application
+  owns Convex Auth
+  owns onboarding/payments/account state
+  owns deployed Convex functions
+  owns /auth/desktop
+  owns /api/v1 routes backed by Convex
+
+apps/user-application Electron main
+  owns stage:// callback handling
+  owns secure desktop session storage
+  owns API-token usage
+  fetches selected ProjectContext through website /api/v1 routes
+
+apps/user-application renderer
+  owns UI rendering
+  receives only redacted auth status and sanitized ProjectContext
+  must not store raw tokens or call privileged APIs
+
+apps/data-service Rust
+  owns local engine work
+  receives stable ProjectContext payloads when jobs need cloud context
+```
+
+Current desktop Convex status:
+
+```txt
+Done:
+  website route /auth/desktop exists
+  Electron stage:// callback path exists
+  Electron safeStorage session path exists
+  Electron main can request selected ProjectContext through /api/v1
+  ProjectContext is validated through packages/data-ops
+
+Not done:
+  final one-time desktop auth code exchange
+  token refresh/logout/session changed events
+  direct realtime Convex subscriptions in desktop
+  full dashboard/sidebar/tasks/activity replacement from live data
+```
+
+Important wording rule:
+
+```txt
+"Convex connected" means the desktop has a working cloud data path through
+Electron main and the website API. It does not yet mean that every desktop UI
+panel is realtime or free of fallback data.
+```
 
 Recommended future structure:
 
@@ -341,7 +395,9 @@ The first useful goal is:
 ```txt
 Convex project data
   -> data-ops ProjectContext Zod schema
-  -> desktop selected project context
+  -> website /api/v1 selected project-context reads
+  -> Electron main authenticated fetch
+  -> desktop selected ProjectContext
   -> engine command payload
   -> Rust serde mirror
 ```
@@ -461,14 +517,14 @@ React must handle:
 - UI rendering
 - TanStack Router routes
 - TanStack Query client state
-- Convex hooks for cloud project data
+- Desktop cloud state derived from preload-safe IPC calls
 - Chat thread display
 - Streaming token display
 - Voice state UI
 - Critique panel
 - Provider selector
 - Permission status UI
-- Mock data until backend choices are stable
+- Explicit empty/loading/fallback states while live desktop data is unavailable
 
 React must not:
 
@@ -476,7 +532,12 @@ React must not:
 - Read files directly
 - Access Node APIs
 - Access raw IPC
+- Store raw Stage/API/Convex tokens
 - Own provider process lifecycle
+
+Direct Convex React hooks are allowed in `apps/web-application`. In the desktop
+renderer they should only be introduced later if the token model is short-lived,
+well-scoped, and still respects the Electron security boundary.
 
 ## 10. Rust Sidecar Responsibilities
 

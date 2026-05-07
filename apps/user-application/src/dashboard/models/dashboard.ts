@@ -43,22 +43,9 @@ export const dashboardRevenueSchema = z.object({
   note: z.string(),
 });
 
-export const dashboardSnapshotSchema = z.object({
-  greeting: z.string(),
-  subheading: z.string(),
-  metrics: z.array(dashboardMetricSchema),
-  projects: z.array(dashboardProjectSchema),
-  chart: z.array(dashboardChartPointSchema),
-  upcomingTasks: z.array(dashboardTaskSchema),
-  recentActivity: z.array(dashboardTaskSchema),
-  pipeline: z.array(dashboardPipelineStageSchema),
-  revenue: dashboardRevenueSchema,
-});
-
 export type DashboardMetric = z.infer<typeof dashboardMetricSchema>;
 export type DashboardProject = z.infer<typeof dashboardProjectSchema>;
 export type DashboardTask = z.infer<typeof dashboardTaskSchema>;
 export type DashboardChartPoint = z.infer<typeof dashboardChartPointSchema>;
 export type DashboardPipelineStage = z.infer<typeof dashboardPipelineStageSchema>;
 export type DashboardRevenue = z.infer<typeof dashboardRevenueSchema>;
-export type DashboardSnapshot = z.infer<typeof dashboardSnapshotSchema>;

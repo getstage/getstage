@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import type { DashboardChartPoint } from "../models/dashboard";
+import type { DashboardChartPoint, DashboardProject } from "../models/dashboard";
 
 const PLOT_TOP = 89;
 const PLOT_BASE_Y = 297;
@@ -11,36 +11,12 @@ const BAR_GAP = 2;
 const STEP_RADIUS = 6;
 const GRID_BLEED_X = 100;
 const INDICATOR_TOP = 68;
-const INDICATOR_AVATARS = [
-  {
-    id: "baseframe",
-    label: "B",
-    variant: "dark" as const,
-    dateRange: "May 6 - Jun 5, 2026",
-    projectName: "BaseFrame",
-    clientName: "baseframe.design",
-    phaseName: "Discovery",
-    taskSummary: "2 tasks due this week.",
-  },
-  {
-    id: "tefosmus",
-    label: "T",
-    variant: "blue" as const,
-    dateRange: "May 6 - Jun 5, 2026",
-    projectName: "Tefosmus",
-    clientName: "Tefsm.co",
-    phaseName: "Discovery",
-    taskSummary: "No tasks in this phase.",
-  },
-];
 const AVATAR_SIZE = 24;
-const AVATAR_OVERLAP = 13;
 const AVATAR_BUBBLE_PADDING = 4;
 const PROJECT_CARD_WIDTH = 286;
 
-function getAvatarBubbleWidth(count: number) {
-  if (count <= 0) return AVATAR_BUBBLE_PADDING * 2;
-  return AVATAR_SIZE * count - AVATAR_OVERLAP * (count - 1) + AVATAR_BUBBLE_PADDING * 2;
+function getAvatarBubbleWidth() {
+  return AVATAR_SIZE + AVATAR_BUBBLE_PADDING * 2;
 }
 
 function buildRoundedSteppedAreaPath(
@@ -116,7 +92,13 @@ function buildRoundedSteppedAreaPath(
   return commands.join(" ");
 }
 
-export function ActivityTimelineChart({ points }: { points: DashboardChartPoint[] }) {
+export function ActivityTimelineChart({
+  points,
+  project,
+}: {
+  points: DashboardChartPoint[];
+  project?: DashboardProject;
+}) {
   const gradientId = useId().replace(/:/g, "");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [width, setWidth] = useState(0);
@@ -252,35 +234,32 @@ export function ActivityTimelineChart({ points }: { points: DashboardChartPoint[
         </svg>
       )}
 
-      {activeBar && activeBar.height > 0 && (
+      {activeBar && activeBar.height > 0 && project && (
         <div
           className="absolute z-20 flex items-center rounded-full bg-[#e7e6fd] p-[4px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.35)]"
           style={{
             left: Math.min(
               activeBar.x + activeBar.width / 2 + 10,
-              Math.max(0, width - getAvatarBubbleWidth(INDICATOR_AVATARS.length)),
+              Math.max(0, width - getAvatarBubbleWidth()),
             ),
             top: Math.max(0, PLOT_BASE_Y - activeBar.height - 12),
           }}
         >
           <div className="flex items-center">
-            {INDICATOR_AVATARS.map((avatar, index) => (
-              <div
-                key={avatar.id}
-                className={cn("relative", index > 0 && "-ml-[13px]", index === 0 ? "z-[2]" : "z-[1]")}
-                onPointerEnter={() => setActiveProjectId(avatar.id)}
-                onPointerLeave={() => setActiveProjectId(null)}
-                onFocus={() => setActiveProjectId(avatar.id)}
-                onBlur={() => setActiveProjectId(null)}
-              >
-                <ProjectBadge
-                  label={avatar.label}
-                  variant={avatar.variant}
-                  className="focus-visible:ring-2 focus-visible:ring-[#3b368e] focus-visible:ring-offset-2"
-                />
-                {activeProjectId === avatar.id ? <ProjectHoverCard project={avatar} /> : null}
-              </div>
-            ))}
+            <div
+              className="relative"
+              onPointerEnter={() => setActiveProjectId(project.id)}
+              onPointerLeave={() => setActiveProjectId(null)}
+              onFocus={() => setActiveProjectId(project.id)}
+              onBlur={() => setActiveProjectId(null)}
+            >
+              <ProjectBadge
+                accentColor={project.accentColor}
+                label={project.logoLabel}
+                className="focus-visible:ring-2 focus-visible:ring-[#3b368e] focus-visible:ring-offset-2"
+              />
+              {activeProjectId === project.id ? <ProjectHoverCard project={project} /> : null}
+            </div>
           </div>
         </div>
       )}
@@ -333,40 +312,38 @@ export function ActivityTimelineChart({ points }: { points: DashboardChartPoint[
 }
 
 function ProjectBadge({
+  accentColor,
   label,
   className,
-  variant = "dark",
 }: {
+  accentColor: string;
   label: string;
   className?: string;
-  variant?: "dark" | "blue";
 }) {
   return (
     <button
       type="button"
       className={cn(
         "relative flex h-[24px] w-[24px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#fafafa] text-[9px] font-semibold text-white outline-none",
-        variant === "blue" ? "bg-[#1687ff]" : "bg-[#171717]",
         className,
       )}
+      style={{ background: accentColor }}
     >
       {label}
     </button>
   );
 }
 
-function ProjectHoverCard({ project }: { project: (typeof INDICATOR_AVATARS)[number] }) {
+function ProjectHoverCard({ project }: { project: DashboardProject }) {
   return (
     <div
       className="absolute bottom-[calc(100%+20px)] left-1/2 w-[286px] -translate-x-1/2 rounded-[8px] border border-[#e5e5e5] bg-white px-[16px] py-[14px] text-left shadow-[0px_18px_45px_rgba(10,10,10,0.12)]"
       style={{ width: PROJECT_CARD_WIDTH }}
     >
-      <div className="text-[13px] font-medium leading-[1.35] text-[#8a8a8a]">{project.dateRange}</div>
-      <div className="mt-[8px] text-[16px] font-semibold leading-[1.25] text-[#111121]">{project.projectName}</div>
-      <div className="mt-[8px] text-[13px] font-medium leading-[1.35] text-[#8a8a8a]">{project.clientName}</div>
-      <div className="mt-[8px] text-[13px] font-medium leading-[1.35] text-[#8a8a8a]">{project.phaseName}</div>
+      <div className="text-[13px] font-medium leading-[1.35] text-[#8a8a8a]">Live project</div>
+      <div className="mt-[8px] text-[16px] font-semibold leading-[1.25] text-[#111121]">{project.name}</div>
       <div className="mt-[14px] border-t border-[#e5e5e5] pt-[12px] text-[13px] font-medium leading-[1.35] text-[#8a8a8a]">
-        {project.taskSummary}
+        Activity is derived from synced project tasks.
       </div>
       <span className="absolute bottom-[-8px] left-1/2 h-[16px] w-[16px] -translate-x-1/2 rotate-45 border-b border-r border-[#e5e5e5] bg-white" />
     </div>

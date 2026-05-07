@@ -6,7 +6,14 @@ import { ProjectPipelineCard } from "../dashboard/components/ProjectPipelineCard
 import { RecentActivityCard } from "../dashboard/components/RecentActivityCard";
 import { RevenueOverviewCard } from "../dashboard/components/RevenueOverviewCard";
 import { UpcomingTasksCard } from "../dashboard/components/UpcomingTasksCard";
-import { dashboardSnapshot } from "../dashboard/data/dashboardSnapshot";
+import {
+  buildDashboardChart,
+  buildDashboardMetrics,
+  buildDashboardPipeline,
+  buildDashboardRevenue,
+  buildDashboardTasks,
+  buildSidebarProjectsFromProjectContext,
+} from "../dashboard/helpers/projectContextDashboard";
 import { useDesktopBridge } from "../hooks/useDesktopBridge";
 import { useEngineStatus } from "../hooks/useEngineStatus";
 import { useSelectedProjectContext } from "../hooks/useSelectedProjectContext";
@@ -16,12 +23,22 @@ export function DashboardContextView() {
   const desktop = useDesktopBridge();
   const engineStatus = useEngineStatus();
   const selectedProject = useSelectedProjectContext();
-  const selectedProjectContext = selectedProject.context;
-  const openContextTasks = selectedProjectContext.tasks.filter(
+  const selectedProjectContext = selectedProject.isFallback ? null : selectedProject.context;
+  const openContextTasks = selectedProjectContext?.tasks.filter(
     (task) => task.status !== "done",
-  ).length;
-  const currentPhaseLabel = selectedProjectContext.currentPhase ?? "active work";
-  const dashboardSubheading = `${selectedProjectContext.projectName} is in ${currentPhaseLabel} with ${openContextTasks} open decisions ready for review.`;
+  ).length ?? 0;
+  const currentPhaseLabel = selectedProjectContext?.currentPhase ?? "active work";
+  const dashboardSubheading = selectedProjectContext
+    ? `${selectedProjectContext.projectName} is in ${currentPhaseLabel} with ${openContextTasks} open decisions ready for review.`
+    : selectedProject.isLoading
+      ? "Loading live project data."
+      : "Connect Stage to load live project data.";
+  const dashboardMetrics = buildDashboardMetrics(selectedProjectContext);
+  const dashboardChart = buildDashboardChart(selectedProjectContext);
+  const dashboardTasks = buildDashboardTasks(selectedProjectContext);
+  const dashboardPipeline = buildDashboardPipeline(selectedProjectContext);
+  const dashboardRevenue = buildDashboardRevenue(selectedProjectContext);
+  const timelineProject = buildSidebarProjectsFromProjectContext(selectedProjectContext)[0];
   const engineState = engineStatus.data?.state ?? "starting";
   const engineStatusLabel =
     engineState === "ready"
@@ -47,20 +64,20 @@ export function DashboardContextView() {
             <DashboardHeader
               engineStatusLabel={engineStatusLabel}
               engineStatusTone={engineStatusTone}
-              greeting={dashboardSnapshot.greeting}
+              greeting="Good Morning."
               subheading={dashboardSubheading}
             />
-            <MetricGrid metrics={dashboardSnapshot.metrics} />
+            <MetricGrid metrics={dashboardMetrics} />
           </div>
 
-          <ActivityTimelineChart points={dashboardSnapshot.chart} />
+          <ActivityTimelineChart points={dashboardChart} project={timelineProject} />
 
           <div className="overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[2px]">
             <div className="grid grid-cols-1 gap-[2px] xl:grid-cols-2">
-              <UpcomingTasksCard tasks={dashboardSnapshot.upcomingTasks} />
-              <RecentActivityCard entries={dashboardSnapshot.recentActivity} />
-              <ProjectPipelineCard stages={dashboardSnapshot.pipeline} />
-              <RevenueOverviewCard revenue={dashboardSnapshot.revenue} />
+              <UpcomingTasksCard tasks={dashboardTasks.upcomingTasks} />
+              <RecentActivityCard entries={dashboardTasks.recentActivity} />
+              <ProjectPipelineCard stages={dashboardPipeline} />
+              <RevenueOverviewCard revenue={dashboardRevenue} />
             </div>
           </div>
         </div>

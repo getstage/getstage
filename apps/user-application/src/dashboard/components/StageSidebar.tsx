@@ -14,10 +14,16 @@ const NAV_ITEMS = [
 ];
 
 export function StageSidebar({
+  accountInitials,
+  accountLabel,
+  accountMeta,
   projects,
   collapsed,
   onCollapsedChange,
 }: {
+  accountInitials: string;
+  accountLabel: string;
+  accountMeta: string;
   projects: DashboardProject[];
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
@@ -350,10 +356,10 @@ export function StageSidebar({
               <div className="rounded-[6px] bg-white p-[8px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
                 <div className="px-[4px] pb-[8px] pt-[2px]">
                   <p className="truncate text-[13px] font-semibold leading-[1.25] text-[#0A0A0A]">
-                    Pratik Singh
+                    {accountLabel}
                   </p>
                   <p className="mt-[3px] truncate text-[12px] font-medium leading-[1.25] text-[#737373]">
-                    pratik@stage.tools
+                    {accountMeta}
                   </p>
                 </div>
                 <div className="h-px bg-[#E5E5E5]" />
@@ -380,7 +386,7 @@ export function StageSidebar({
 
           <button
             type="button"
-            aria-label="Pratik Singh"
+            aria-label={accountLabel}
             aria-haspopup="menu"
             aria-expanded={isUserMenuOpen}
             onClick={() => {
@@ -400,10 +406,10 @@ export function StageSidebar({
           >
             <div className={cn("flex items-center", collapsed ? "gap-0" : "gap-[8px]")}>
               <div className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-[#e5e5e5] text-[10px] font-medium text-[#525252]">
-                PS
+                {accountInitials}
               </div>
               <span aria-hidden={collapsed} className={cn(labelClassName, "text-[#0a0a0a]")}>
-                Pratik Singh
+                {accountLabel}
               </span>
             </div>
             <img
