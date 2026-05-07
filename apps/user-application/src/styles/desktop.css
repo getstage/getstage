@@ -33,6 +33,19 @@ a,
   -webkit-app-region: drag;
 }
 
+.sidebar-scroll-area {
+  -webkit-app-region: no-drag;
+  scroll-behavior: auto;
+}
+
+.sidebar-scroll-area::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scroll-area::-webkit-scrollbar-thumb {
+  background: #d4d4d4;
+}
+
 .companion-orb {
   position: fixed;
   right: 24px;
