@@ -46,6 +46,7 @@ export class DesktopAuthController {
     loginUrl.searchParams.set("state", state);
     loginUrl.searchParams.set("redirect_uri", getDesktopAuthRedirectUri());
 
+    console.info(`[stage-auth] opening desktop login at ${loginUrl.origin}${loginUrl.pathname}`);
     await shell.openExternal(loginUrl.toString());
   }
 
@@ -97,12 +98,24 @@ export class DesktopAuthController {
 
     const code = callbackUrl.searchParams.get("code");
     const state = callbackUrl.searchParams.get("state");
+    const source = callbackUrl.searchParams.get("source");
+
+    console.info("[stage-auth] received desktop auth callback");
 
     if (!code) {
       return { error: "Desktop auth callback is missing a code.", ok: false };
     }
 
-    const stateError = await this.validateState(state);
+    const isWebInitiatedTestingCallback =
+      code.startsWith("stg_") && state === "web-session" && source === "web-settings";
+
+    if (isWebInitiatedTestingCallback) {
+      console.info("[stage-auth] accepting web-initiated desktop callback");
+    }
+
+    const stateError = isWebInitiatedTestingCallback
+      ? null
+      : await this.validateState(state);
 
     if (stateError) {
       return { error: stateError, ok: false };
@@ -148,12 +161,14 @@ export class DesktopAuthController {
 
   private async exchangeCodeForSession(code: string): Promise<DesktopStoredSession> {
     if (code.startsWith("stg_")) {
+      console.info("[stage-auth] accepting desktop API-key credential");
       return {
         accessToken: code,
         userId: DEV_USER_ID,
       };
     }
 
+    console.info("[stage-auth] exchanging desktop auth code");
     const response = await fetch(getDesktopAuthExchangeUrl(), {
       body: JSON.stringify({ code }),
       headers: {

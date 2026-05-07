@@ -1,7 +1,9 @@
 import { Navigate, createFileRoute, Outlet } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
+import { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { AppLayout } from "@/components/shared/AppLayout";
+import { getPendingDesktopAuthRedirect } from "@/lib/desktopAuthRedirect";
 
 export const Route = createFileRoute("/_authed")({
   component: AuthedLayout,
@@ -9,6 +11,18 @@ export const Route = createFileRoute("/_authed")({
 
 function AuthedLayout() {
   const { isLoading, isAuthenticated } = useConvexAuth();
+  const pendingDesktopAuthRedirect = isAuthenticated
+    ? getPendingDesktopAuthRedirect()
+    : null;
+
+  useEffect(() => {
+    if (!pendingDesktopAuthRedirect) {
+      return;
+    }
+
+    console.info("[stage-desktop-auth] resuming pending desktop auth redirect");
+    window.location.assign(pendingDesktopAuthRedirect);
+  }, [pendingDesktopAuthRedirect]);
 
   if (isLoading) {
     return (
@@ -28,6 +42,14 @@ function AuthedLayout() {
       <Navigate to="/auth" search={{ redirect }} replace />
     ) : (
       <Navigate to="/auth" replace />
+    );
+  }
+
+  if (pendingDesktopAuthRedirect) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bg">
+        <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+      </div>
     );
   }
 

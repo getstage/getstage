@@ -326,6 +326,28 @@ Recommended test checklist:
 9. Record whether API key generation is blocked by account plan.
 ```
 
+If the OAuth/OTP redirect path lands on `/dashboard` instead of returning to Electron,
+use the explicit website shortcut while debugging the redirect:
+
+```txt
+testing.getstage.co/settings
+-> Account
+-> Stage Desktop
+-> Open Stage Desktop
+```
+
+Expected local Electron logs:
+
+```txt
+[stage-auth] received desktop auth callback
+[stage-auth] accepting web-initiated desktop callback
+[stage-auth] accepting desktop API-key credential
+[stage-auth] desktop auth callback accepted
+```
+
+If `apps/web-application/convex/auth.ts` changes, deploy the Convex functions for the
+testing deployment as well as the Cloudflare Worker assets.
+
 Suggested commands:
 
 ```bash

@@ -300,6 +300,8 @@ Current desktop Convex status:
 ```txt
 Done:
   website route /auth/desktop exists
+  website Settings -> Account can explicitly open Stage Desktop for testing
+  Convex Auth redirect callback is explicit in apps/web-application/convex/auth.ts
   Electron stage:// callback path exists
   Electron safeStorage session path exists
   Electron main can request selected ProjectContext through /api/v1
@@ -318,6 +320,10 @@ Important wording rule:
 "Convex connected" means the desktop has a working cloud data path through
 Electron main and the website API. It does not yet mean that every desktop UI
 panel is realtime or free of fallback data.
+
+For the current testing bridge, the website may open Electron directly from Account settings
+with a temporary API-key callback. That is only for local Electron plus testing.getstage.co.
+The final production path remains a one-time desktop auth code exchange.
 ```
 
 Recommended future structure:

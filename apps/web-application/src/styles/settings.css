@@ -274,6 +274,20 @@
   line-height: 1.5;
 }
 
+.settings-desktop-connect {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-desktop-feedback {
+  margin-top: 10px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .settings-inline-control {
   margin-top: 12px;
 }

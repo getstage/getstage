@@ -23,6 +23,37 @@ function getEnv(name: string) {
   ];
 }
 
+function getSiteUrl() {
+  return (getEnv("SITE_URL") ?? getEnv("CONVEX_SITE_URL") ?? "").replace(/\/$/, "");
+}
+
+function isSameSiteRedirect(siteUrl: string, redirectTo: string) {
+  if (!redirectTo.startsWith(siteUrl)) {
+    return false;
+  }
+
+  const nextChar = redirectTo[siteUrl.length];
+  return nextChar === undefined || nextChar === "/" || nextChar === "?";
+}
+
+async function redirectAfterSignIn({ redirectTo }: { redirectTo: string }) {
+  const siteUrl = getSiteUrl();
+
+  if (!siteUrl) {
+    return redirectTo.startsWith("/") || redirectTo.startsWith("?") ? redirectTo : "/dashboard";
+  }
+
+  if (redirectTo.startsWith("/") || redirectTo.startsWith("?")) {
+    return `${siteUrl}${redirectTo}`;
+  }
+
+  if (isSameSiteRedirect(siteUrl, redirectTo)) {
+    return redirectTo;
+  }
+
+  return `${siteUrl}/dashboard`;
+}
+
 function isDemoAuthEnabled() {
   const explicitSetting = getEnv("ENABLE_DEMO_AUTH");
   if (explicitSetting !== undefined) {
@@ -249,6 +280,7 @@ const Demo = ConvexCredentials({
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: DEMO_AUTH_ENABLED ? [Google, LoopsOTP, Demo] : [Google, LoopsOTP],
   callbacks: {
+    redirect: redirectAfterSignIn,
     async createOrUpdateUser(ctx, { existingUserId, profile, provider }) {
       const timestamp = now();
       const normalizedProfile = getAuthProfile(profile);

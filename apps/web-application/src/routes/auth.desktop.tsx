@@ -4,6 +4,10 @@ import { useMutation } from "convex/react";
 import { Helmet } from "react-helmet-async";
 import { api } from "@/lib/convex";
 import { useAuth } from "@/lib/auth";
+import {
+  clearPendingDesktopAuthRedirect,
+  storePendingDesktopAuthRedirect,
+} from "@/lib/desktopAuthRedirect";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 
 type DesktopAuthSearch = {
@@ -20,12 +24,15 @@ export const Route = createFileRoute("/auth/desktop")({
   }),
 });
 
-function getRedirectTarget() {
+function getDesktopAuthTarget() {
   if (typeof window === "undefined") {
     return "/auth/desktop";
   }
 
-  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const target = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  storePendingDesktopAuthRedirect(target);
+  console.info("[stage-desktop-auth] stored pending desktop auth redirect");
+  return target;
 }
 
 function getValidatedRedirectUri(value?: string) {
@@ -56,7 +63,9 @@ function DesktopAuthPage() {
     }
 
     didStartRef.current = true;
+    clearPendingDesktopAuthRedirect();
     setStatus("Creating a desktop access key...");
+    console.info("[stage-desktop-auth] creating desktop access key");
 
     generateApiKey({ name: `Stage Desktop ${new Date().toISOString().slice(0, 10)}` })
       .then((result) => {
@@ -69,6 +78,7 @@ function DesktopAuthPage() {
         redirectUri.searchParams.set("code", key);
         redirectUri.searchParams.set("state", state);
         setStatus("Opening Stage Desktop...");
+        console.info("[stage-desktop-auth] opening stage protocol callback");
         window.location.assign(redirectUri.toString());
       })
       .catch((error) => {
@@ -86,7 +96,17 @@ function DesktopAuthPage() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth" search={{ redirect: getRedirectTarget() }} replace />;
+    storePendingDesktopAuthRedirect(getDesktopAuthTarget());
+    return (
+      <Navigate
+        to="/auth"
+        search={{
+          desktop_redirect_uri: redirect_uri,
+          desktop_state: state,
+        }}
+        replace
+      />
+    );
   }
 
   if (!redirectUri || !state) {

@@ -6,6 +6,11 @@ import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useSignIn } from "@/lib/auth";
+import {
+  getPendingDesktopAuthRedirect,
+  isDesktopAuthRedirect,
+  storePendingDesktopAuthRedirect,
+} from "@/lib/desktopAuthRedirect";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { signInEmailSchema, verificationCodeSchema } from "@/lib/validation";
 import { isDemoAuthEnabledForHostname } from "../../../shared/demoAuth";
@@ -15,8 +20,13 @@ type Step = "email" | "code";
 
 export function AuthPage() {
   const navigate = useNavigate();
-  const { redirect } = useSearch({ from: "/auth" });
-  const redirectTo = redirect ?? "/dashboard";
+  const { desktop_redirect_uri, desktop_state, redirect } = useSearch({ from: "/auth" });
+  const pendingDesktopRedirect = getPendingDesktopAuthRedirect();
+  const desktopAuthRedirect = getDesktopAuthRedirect({
+    redirectUri: desktop_redirect_uri,
+    state: desktop_state,
+  });
+  const redirectTo = desktopAuthRedirect ?? redirect ?? pendingDesktopRedirect ?? "/dashboard";
   const { isAuthenticated } = useConvexAuth();
   const signIn = useSignIn();
   const [step, setStep] = useState<Step>("email");
@@ -32,6 +42,12 @@ export function AuthPage() {
     if (isAuthenticated) {
       activeAuthFlowRef.current = null;
       setLoading(false);
+      if (isDesktopAuthRedirect(redirectTo)) {
+        storePendingDesktopAuthRedirect(redirectTo);
+        console.info("[stage-desktop-auth] resuming desktop auth after existing session");
+        window.location.assign(redirectTo);
+        return;
+      }
       navigate({ to: redirectTo, replace: true });
     }
   }, [isAuthenticated, navigate, redirectTo]);
@@ -155,6 +171,12 @@ export function AuthPage() {
       formData.set("email", email);
       formData.set("code", parsed.data.code);
       await signIn("loops-otp", formData);
+      if (isDesktopAuthRedirect(redirectTo)) {
+        storePendingDesktopAuthRedirect(redirectTo);
+        window.location.assign(redirectTo);
+        return;
+      }
+
       navigate({ to: redirectTo, replace: true });
     } catch (error) {
       setError(
@@ -183,6 +205,11 @@ export function AuthPage() {
     setLoading(true);
     let redirected = false;
     try {
+      if (isDesktopAuthRedirect(redirectTo)) {
+        storePendingDesktopAuthRedirect(redirectTo);
+        console.info("[stage-desktop-auth] starting google sign-in for desktop auth");
+      }
+
       const result = await signIn("google", { redirectTo });
       redirected = result.redirect !== undefined;
     } catch (error) {
@@ -379,4 +406,30 @@ export function AuthPage() {
       </div>
     </>
   );
+}
+
+function getDesktopAuthRedirect(args: {
+  redirectUri?: string;
+  state?: string;
+}) {
+  if (!args.redirectUri || !args.state) {
+    return null;
+  }
+
+  try {
+    const redirectUri = new URL(args.redirectUri);
+
+    if (redirectUri.protocol !== "stage:" || redirectUri.hostname !== "auth") {
+      return null;
+    }
+
+    const search = new URLSearchParams({
+      redirect_uri: redirectUri.toString(),
+      state: args.state,
+    });
+
+    return `/auth/desktop?${search.toString()}`;
+  } catch {
+    return null;
+  }
 }

@@ -1,7 +1,10 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
+import { useMutation } from "convex/react";
 import { FeedbackText } from "@/components/settings/FeedbackText";
 import type { SaveFeedback } from "@/hooks/useFeedback";
+import { api } from "@/lib/convex";
+import { buildWebDesktopAuthCallbackUrl } from "@/lib/desktopAuthRedirect";
 
 const DELETE_TALLY_URL = "https://tally.so/r/D4eYOE";
 
@@ -20,6 +23,35 @@ export function AccountTab({
 }: AccountTabProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [desktopStatus, setDesktopStatus] = useState<"idle" | "opening" | "opened" | "error">(
+    "idle",
+  );
+  const [desktopError, setDesktopError] = useState<string | null>(null);
+  const generateApiKey = useMutation(api.developer.apiKeys.generate);
+
+  async function handleOpenDesktop() {
+    setDesktopStatus("opening");
+    setDesktopError(null);
+
+    try {
+      const result = await generateApiKey({
+        name: `Stage Desktop Web ${new Date().toISOString().slice(0, 10)}`,
+      });
+      const key = (result as { key?: string }).key;
+
+      if (!key) {
+        throw new Error("No desktop access key was returned.");
+      }
+
+      window.location.assign(buildWebDesktopAuthCallbackUrl(key));
+      setDesktopStatus("opened");
+    } catch (error) {
+      setDesktopStatus("error");
+      setDesktopError(
+        error instanceof Error ? error.message : "Could not open Stage Desktop.",
+      );
+    }
+  }
 
   function handleDeleteIntent() {
     setDeleteDialogOpen(true);
@@ -37,6 +69,29 @@ export function AccountTab({
   return (
     <div className={`tab-content ${active ? "active" : ""}`}>
       <div className="settings-section-card">
+        <div className="settings-row-card settings-desktop-connect">
+          <div>
+            <div className="settings-row-title">Stage Desktop</div>
+            <div className="settings-row-description">
+              Open the local Stage app with this signed-in web account for desktop testing.
+            </div>
+            <div className="settings-desktop-feedback">
+              {desktopError ??
+                (desktopStatus === "opened"
+                  ? "Desktop handoff started. Check the Stage app window."
+                  : "Uses a temporary desktop access key for the local app.")}
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn-save"
+            onClick={() => void handleOpenDesktop()}
+            disabled={desktopStatus === "opening"}
+          >
+            {desktopStatus === "opening" ? "Opening..." : "Open Stage Desktop"}
+          </button>
+        </div>
+
         <div className="settings-row-card settings-account-delete">
           <div className="settings-row-title">Delete account</div>
           <div className="settings-row-description">

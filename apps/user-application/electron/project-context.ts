@@ -76,9 +76,11 @@ export async function getSelectedProjectContext(
   const accessToken = await authController.getAccessToken();
 
   if (!accessToken) {
+    console.info("[stage-project-context] no desktop session token; returning fallback");
     return null;
   }
 
+  console.info("[stage-project-context] fetching projects from Stage API");
   const { projects } = await fetchDesktopApiJson<ProjectsResponse>({
     accessToken,
     path: "/projects",
@@ -86,9 +88,11 @@ export async function getSelectedProjectContext(
   const project = chooseSelectedProject(projects);
 
   if (!project) {
+    console.info("[stage-project-context] no projects returned from Stage API");
     return null;
   }
 
+  console.info(`[stage-project-context] selected project ${project.id}`);
   const { phases } = await fetchDesktopApiJson<PhasesResponse>({
     accessToken,
     path: `/projects/${encodeURIComponent(project.id)}/phases`,
@@ -105,5 +109,6 @@ export async function getSelectedProjectContext(
     }),
   );
 
+  console.info(`[stage-project-context] built ProjectContext with ${phases.length} phases`);
   return buildProjectContext({ phases, project, tasksByPhaseId });
 }

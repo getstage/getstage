@@ -151,6 +151,34 @@ Known risk:
   A non-Pro testing account can fail the desktop handoff before desktop receives a credential.
 ```
 
+## Testing Shortcut From Website
+
+For local Electron testing while `apps/web-application` is deployed to testing, the website
+also exposes an explicit shortcut in:
+
+```txt
+Settings -> Account -> Stage Desktop -> Open Stage Desktop
+```
+
+This button is intentionally a temporary test bridge:
+
+```txt
+1. User is already logged into testing.getstage.co through Convex Auth.
+2. Website calls api.developer.apiKeys.generate.
+3. Website opens stage://auth?code=<stg_key>&state=web-session&source=web-settings.
+4. Electron accepts this only when the callback contains:
+   code starting with stg_
+   state=web-session
+   source=web-settings
+5. Electron stores the desktop session and can fetch selected ProjectContext.
+```
+
+This shortcut bypasses the Electron-started nonce flow on purpose so testing is not blocked
+by OAuth/OTP redirect behavior. It is not the production desktop auth model.
+
+Because `convex/auth.ts` owns the Convex Auth redirect callback, changes there require a
+Convex deployment to the testing deployment, not only a Cloudflare Worker upload.
+
 ## Fallback Flow
 
 If custom protocol handling fails in development or on first-run installs:
