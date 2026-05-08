@@ -85,6 +85,12 @@ h1, h2, h3, h4, h5, h6 {
   outline-offset: 0 !important;
 }
 
+.auth-page input:focus,
+.auth-page input:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+
 .onboarding-modal:focus,
 .onboarding-modal:focus-visible,
 .onboarding-modal input:focus,

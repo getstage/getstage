@@ -16,6 +16,7 @@ import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { cn } from "@/lib/utils";
 
 type Step = "email" | "code";
+type AuthMode = "signup" | "login";
 
 export function AuthPage() {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ export function AuthPage() {
   const { isAuthenticated } = useConvexAuth();
   const signIn = useSignIn();
   const [step, setStep] = useState<Step>("email");
+  const [authMode, setAuthMode] = useState<AuthMode>("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState(["", "", "", "", "", ""]);
@@ -99,6 +101,41 @@ export function AuthPage() {
     }
   }
 
+  async function handleResendCode() {
+    if (activeAuthFlowRef.current) {
+      return;
+    }
+
+    const parsed = signInEmailSchema.safeParse({ email });
+    if (!parsed.success) {
+      setStep("email");
+      setError(parsed.error.issues[0]?.message ?? "Please enter a valid email address.");
+      return;
+    }
+
+    setError("");
+    activeAuthFlowRef.current = "email";
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.set("email", parsed.data.email);
+      await signIn("loops-otp", formData);
+      setEmail(parsed.data.email);
+    } catch (error) {
+      setError(
+        toUserFacingErrorMessage(
+          error,
+          "We could not send a new code. Please try again.",
+        ),
+      );
+    } finally {
+      if (activeAuthFlowRef.current === "email") {
+        activeAuthFlowRef.current = null;
+      }
+      setLoading(false);
+    }
+  }
+
   function handleCodeChange(index: number, value: string) {
     if (value.length > 1) value = value.slice(-1);
     if (value && !/^\d$/.test(value)) return;
@@ -106,6 +143,9 @@ export function AuthPage() {
     const newCode = [...code];
     newCode[index] = value;
     setCode(newCode);
+    if (error) {
+      setError("");
+    }
 
     // Auto-advance to next input
     if (value && index < 5) {
@@ -185,7 +225,6 @@ export function AuthPage() {
           "That code didn't work. Enter the latest 6-digit code from your email and try again.",
         ),
       );
-      setCode(["", "", "", "", "", ""]);
       focusCodeInput(0);
     } finally {
       if (activeAuthFlowRef.current === "code") {
@@ -194,6 +233,11 @@ export function AuthPage() {
       setLoading(false);
     }
   }
+
+  const isLoginOtp = step === "code" && authMode === "login";
+  const codeComplete = code.every((digit) => digit);
+  const activeCodeIndex = code.findIndex((digit) => !digit);
+  const otpActionLabel = authMode === "login" ? "Login" : "Sign up";
 
   async function handleGoogleSignIn() {
     if (activeAuthFlowRef.current) {
@@ -259,11 +303,16 @@ export function AuthPage() {
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
-      <div className="min-h-dvh bg-white p-2 lg:h-dvh lg:overflow-hidden lg:bg-[#F5F5F5] lg:p-1">
+      <div className="auth-page min-h-dvh bg-white p-2 lg:h-dvh lg:overflow-hidden lg:bg-[#F5F5F5] lg:p-1">
         <div className="min-h-[calc(100dvh-16px)] bg-white lg:h-[calc(100dvh-8px)] lg:min-h-0 lg:overflow-hidden lg:rounded-[8px] lg:border lg:border-[#F5F5F5] lg:p-2">
           <div className="grid min-h-[calc(100dvh-16px)] rounded-[12px] lg:flex lg:h-full lg:min-h-0 lg:overflow-hidden">
-            <section className="flex min-h-0 flex-col items-center px-3 pt-3 lg:flex-1 lg:flex-row lg:justify-center lg:overflow-hidden lg:px-[74px] lg:py-0">
-              <div className="relative flex h-[min(400px,40dvh)] w-full shrink-0 items-center justify-center overflow-hidden rounded-[8px] lg:hidden">
+            <section
+              className={cn(
+                "flex min-h-0 flex-col items-center px-3 pt-3 lg:flex-1 lg:flex-row lg:justify-center lg:overflow-hidden lg:px-[74px] lg:py-0",
+                isLoginOtp && "lg:px-0",
+              )}
+            >
+              <div className={cn("relative flex h-[min(400px,40dvh)] w-full shrink-0 items-center justify-center overflow-hidden rounded-[8px] lg:hidden", step === "code" && "hidden")}>
                 <img
                   src="/auth/auth-mobile.webp"
                   alt=""
@@ -271,7 +320,11 @@ export function AuthPage() {
                 />
               </div>
 
-              <div className="flex min-h-0 w-full max-w-[508px] flex-1 flex-col justify-between py-[44px] lg:h-full lg:flex-none lg:py-[100px]">
+              <div
+                className={cn(
+                  "flex min-h-0 w-full max-w-[508px] flex-1 flex-col justify-between py-[44px] lg:h-full lg:flex-none lg:py-[100px]",
+                )}
+              >
                 <div>
                   <img src={stageLogo} alt="Stage" className="mb-8 h-[23px] w-auto" />
 
@@ -286,7 +339,7 @@ export function AuthPage() {
                       >
                         <div className="mb-6">
                           <h1 className="text-[21px] leading-[1.2] font-semibold text-[#0A0A0A]">
-                            Sign up with Stage
+                            {authMode === "login" ? "Login with Stage" : "Sign up with Stage"}
                           </h1>
                           <p className="mt-1.5 text-[14px] leading-[1.5] font-medium text-[#525252] lg:mt-2.5 lg:text-[13px]">
                             Enter your basic details to get started with Stage
@@ -311,9 +364,8 @@ export function AuthPage() {
                                   placeholder="heypratik@baseframe.design"
                                   autoFocus
                                   className={cn(
-                                    "h-[38px] w-full rounded-[6px] bg-[#F5F5F5] px-3 text-[13px] font-normal text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-colors placeholder:text-[#737373] lg:text-[12px] lg:font-medium",
-                                    "focus:bg-white focus:ring-1 focus:ring-[#6D67D3]/35",
-                                    error && step === "email" && "ring-1 ring-destructive/50",
+                                    "h-[38px] w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 text-[13px] font-normal text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none ring-0 transition-colors placeholder:text-[#737373] focus:border-[#D4D4D4] focus:bg-white focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 lg:text-[12px] lg:font-medium",
+                                    error && step === "email" && "border-destructive/50",
                                   )}
                                 />
                               </div>
@@ -331,7 +383,7 @@ export function AuthPage() {
                                   value={password}
                                   onChange={(event) => setPassword(event.target.value)}
                                   placeholder="heypr@tik15t0-1"
-                                  className="h-[38px] w-full rounded-[6px] bg-[#F5F5F5] px-3 text-[13px] font-normal text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-colors placeholder:text-[#737373] focus:bg-white focus:ring-1 focus:ring-[#6D67D3]/35 lg:text-[12px] lg:font-medium"
+                                  className="h-[38px] w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 text-[13px] font-normal text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none ring-0 transition-colors placeholder:text-[#737373] focus:border-[#D4D4D4] focus:bg-white focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 lg:text-[12px] lg:font-medium"
                                 />
                               </div>
                             </div>
@@ -349,7 +401,7 @@ export function AuthPage() {
                             {loading && activeAuthFlowRef.current === "email" ? (
                               <span className="mr-2 inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                             ) : null}
-                            Sign up
+                            {authMode === "login" ? "Login" : "Sign up"}
                           </button>
                         </form>
 
@@ -395,76 +447,136 @@ export function AuthPage() {
                             Check your email
                           </h1>
                           <p className="mt-2.5 text-[13px] leading-[1.5] font-medium text-[#525252]">
-                            We sent a code to <span className="text-[#0A0A0A]">{email}</span>
+                            Please enter the code we sent you on{" "}
+                            <span className="font-semibold text-[#0A0A0A]">{email}</span>
                           </p>
                         </div>
 
-                        <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-                          <div className="rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-                            <label className="mb-2 block text-[13px] leading-none font-medium text-[#171717]">
-                              Verification Code
-                            </label>
-                            <div className="grid grid-cols-6 gap-2">
-                              {code.map((digit, i) => (
-                                <input
-                                  key={i}
-                                  id={`code-${i}`}
-                                  type="text"
-                                  inputMode="numeric"
-                                  maxLength={1}
-                                  value={digit}
-                                  onChange={(event) => handleCodeChange(i, event.target.value)}
-                                  onPaste={(event) => handleCodePaste(i, event)}
-                                  onKeyDown={(event) => handleCodeKeyDown(i, event)}
-                                  autoFocus={i === 0}
-                                  className="h-11 min-w-0 rounded-[6px] bg-[#F5F5F5] text-center text-[18px] font-semibold text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-colors focus:bg-white focus:ring-1 focus:ring-[#6D67D3]/35"
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        {error ? (
-                          <p className="mt-3 text-[13px] leading-normal text-destructive">{error}</p>
-                        ) : null}
-
-                        {loading ? (
-                          <div className="mt-4 flex justify-center">
-                            <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-[#6D67D3] border-t-transparent" />
-                          </div>
-                        ) : null}
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setStep("email");
-                            setCode(["", "", "", "", "", ""]);
-                            setError("");
+                        <form
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            void handleCodeSubmit(code.join(""));
                           }}
-                          className="mt-6 cursor-pointer text-[13px] font-medium text-[#525252] underline underline-offset-2 transition-colors hover:text-[#0A0A0A]"
                         >
-                          Use a different email
-                        </button>
+                          <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+                            <div className="rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+                              <div className="grid grid-cols-6 gap-2">
+                              {code.map((digit, i) => (
+                                <div key={i} className="relative min-w-0">
+                                  <input
+                                    id={`code-${i}`}
+                                    type="text"
+                                    inputMode="numeric"
+                                    maxLength={1}
+                                    value={digit}
+                                    aria-label={`Verification code digit ${i + 1}`}
+                                    onChange={(event) => handleCodeChange(i, event.target.value)}
+                                    onPaste={(event) => handleCodePaste(i, event)}
+                                    onKeyDown={(event) => handleCodeKeyDown(i, event)}
+                                    autoFocus={i === 0}
+                                    className={cn(
+                                      "peer h-16 w-full min-w-0 rounded-[6px] border border-transparent bg-[#F5F5F5] px-2 text-center text-[16px] font-medium leading-[0.9] text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none ring-0 transition-colors focus:border-[#D4D4D4] focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0",
+                                      i === activeCodeIndex && "border-[#D4D4D4] bg-[rgba(231,230,253,0.5)] shadow-[0_0.45px_1px_rgba(231,230,253,0.25)]",
+                                    )}
+                                  />
+                                  {!digit ? (
+                                    <span
+                                      className={cn(
+                                        "pointer-events-none absolute left-1/2 top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#D4D4D4] peer-focus:hidden",
+                                        i === activeCodeIndex && "hidden",
+                                      )}
+                                    />
+                                  ) : null}
+                                </div>
+                              ))}
+                              </div>
+                            </div>
+
+                            {error || authMode === "login" ? (
+                              <div
+                                className={cn(
+                                  "flex items-center px-3 py-1.5 text-[11px] font-medium leading-[1.5]",
+                                  error ? "justify-between" : "justify-end",
+                                )}
+                              >
+                                {error ? (
+                                  <p className="min-w-0 text-[#EF4444]">
+                                    Incorrect OTP, please try again.
+                                  </p>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  onClick={handleResendCode}
+                                  disabled={loading}
+                                  className={cn(
+                                    "cursor-pointer text-[#525252] underline underline-offset-2 disabled:cursor-default disabled:opacity-50",
+                                    authMode === "login" && !error && "ml-auto",
+                                    authMode === "login" && error && "sr-only",
+                                  )}
+                                >
+                                  Resend OTP
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={!codeComplete || loading}
+                            className="mt-3 inline-flex h-9 w-full cursor-pointer items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-4 text-[13px] font-medium text-[#FAFAFA] opacity-50 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity enabled:hover:opacity-80 disabled:cursor-default"
+                          >
+                            {loading && activeAuthFlowRef.current === "code" ? (
+                              <span className="mr-2 inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            ) : null}
+                            {otpActionLabel}
+                          </button>
+                        </form>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
 
-                <div className="mt-4 flex justify-center gap-1 text-[14px] leading-[1.5] font-medium lg:mt-12 lg:text-[13px]">
-                  <span className="text-[#525252]">Already have a account?</span>
+                {step === "email" ? (
+                  <div className="mt-4 flex justify-center gap-1 text-[14px] leading-[1.5] font-medium lg:mt-12 lg:text-[13px]">
+                    <span className="text-[#525252]">
+                      {authMode === "login" ? "Need an account?" : "Already have a account?"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode(authMode === "login" ? "signup" : "login");
+                        setError("");
+                        setPassword("");
+                      }}
+                      disabled={loading}
+                      className="cursor-pointer text-[#0A0A0A] underline underline-offset-2 disabled:cursor-default disabled:opacity-50"
+                    >
+                      {authMode === "login" ? "Sign up" : "Login"}
+                    </button>
+                  </div>
+                ) : (
                   <button
                     type="button"
-                    onClick={handleGoogleSignIn}
-                    disabled={loading}
-                    className="cursor-pointer text-[#0A0A0A] underline underline-offset-2 disabled:cursor-default disabled:opacity-50"
+                    onClick={() => {
+                      setStep("email");
+                      setCode(["", "", "", "", "", ""]);
+                      setError("");
+                    }}
+                    className="mx-auto mt-4 flex cursor-pointer items-center justify-center gap-1.5 text-[13px] font-medium leading-[1.5] text-[#737373] transition-colors hover:text-[#0A0A0A] lg:mt-12"
                   >
-                    Login
+                    <span aria-hidden="true">←</span>
+                    Use different email
                   </button>
-                </div>
+                )}
               </div>
             </section>
 
-            <section className="hidden min-h-0 py-1 pr-1 lg:flex lg:w-[calc((100dvh-32px)*0.76+4px)] lg:flex-none lg:items-center lg:justify-end">
+            <section
+              className={cn(
+                "hidden min-h-0 py-1 pr-1 lg:flex lg:w-[calc((100dvh-32px)*0.76+4px)] lg:flex-none lg:items-center lg:justify-end",
+                isLoginOtp && "lg:hidden",
+              )}
+            >
               <div className="relative flex h-full w-full items-center justify-end overflow-hidden rounded-[8px]">
                 <img
                   src="/auth/auth.webp"
