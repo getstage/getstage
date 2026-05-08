@@ -3,8 +3,6 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
 import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence } from "motion/react";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { useSignIn } from "@/lib/auth";
 import {
   getPendingDesktopAuthRedirect,
@@ -15,6 +13,7 @@ import { toUserFacingErrorMessage } from "@/lib/errors";
 import { signInEmailSchema, verificationCodeSchema } from "@/lib/validation";
 import { isDemoAuthEnabledForHostname } from "../../../shared/demoAuth";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
+import { cn } from "@/lib/utils";
 
 type Step = "email" | "code";
 
@@ -31,6 +30,7 @@ export function AuthPage() {
   const signIn = useSignIn();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -259,152 +259,247 @@ export function AuthPage() {
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
-      <div className="flex min-h-screen items-center justify-center bg-bg px-4">
-        <div className="w-full max-w-[400px]">
-          {/* Logo */}
-          <div className="mb-8 text-center">
-            <img src={stageLogo} alt="Stage" className="mx-auto h-6 w-auto" />
-          </div>
+      <div className="min-h-dvh bg-white p-2 lg:h-dvh lg:overflow-hidden lg:bg-[#F5F5F5] lg:p-1">
+        <div className="min-h-[calc(100dvh-16px)] bg-white lg:h-[calc(100dvh-8px)] lg:min-h-0 lg:overflow-hidden lg:rounded-[8px] lg:border lg:border-[#F5F5F5] lg:p-2">
+          <div className="grid min-h-[calc(100dvh-16px)] rounded-[12px] lg:flex lg:h-full lg:min-h-0 lg:overflow-hidden">
+            <section className="flex min-h-0 flex-col items-center px-3 pt-3 lg:flex-1 lg:flex-row lg:justify-center lg:overflow-hidden lg:px-[74px] lg:py-0">
+              <div className="relative flex h-[min(400px,40dvh)] w-full shrink-0 items-center justify-center overflow-hidden rounded-[8px] lg:hidden">
+                <img
+                  src="/auth/auth-mobile.webp"
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              </div>
 
-          <AnimatePresence mode="wait">
-            {step === "email" ? (
-              <motion.div
-                key="email"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.25 }}
-              >
-                <p className="mb-9 text-center text-[16px] text-text-secondary">
-                  Track your creative projects with clarity
-                </p>
+              <div className="flex min-h-0 w-full max-w-[508px] flex-1 flex-col justify-between py-[44px] lg:h-full lg:flex-none lg:py-[100px]">
+                <div>
+                  <img src={stageLogo} alt="Stage" className="mb-8 h-[23px] w-auto" />
 
-                <form onSubmit={handleEmailSubmit} className="space-y-4">
-                  <Input
-                    type="email"
-                    className="border-transparent bg-input-bg focus:border-border focus:bg-white"
-                    placeholder="Your email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    error={error && step === "email" ? error : undefined}
-                    autoFocus
-                  />
-                  <Button
-                    type="submit"
-                    className="w-full bg-text-primary hover:bg-text-primary/90"
-                    isLoading={loading}
-                  >
-                    Continue with email
-                  </Button>
-                </form>
+                  <AnimatePresence mode="wait">
+                    {step === "email" ? (
+                      <motion.div
+                        key="email"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{ duration: 0.25 }}
+                      >
+                        <div className="mb-6">
+                          <h1 className="text-[21px] leading-[1.2] font-semibold text-[#0A0A0A]">
+                            Sign up with Stage
+                          </h1>
+                          <p className="mt-1.5 text-[14px] leading-[1.5] font-medium text-[#525252] lg:mt-2.5 lg:text-[13px]">
+                            Enter your basic details to get started with Stage
+                          </p>
+                        </div>
 
-                <div className="my-5 flex items-center gap-3">
-                  <div className="h-px flex-1 bg-border-subtle" />
-                  <span className="text-[13px] text-text-secondary">or</span>
-                  <div className="h-px flex-1 bg-border-subtle" />
+                        <form onSubmit={handleEmailSubmit}>
+                          <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+                            <div className="flex flex-col gap-4 rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+                              <div className="flex flex-col gap-2">
+                                <label
+                                  htmlFor="auth-email"
+                                  className="block text-[14px] leading-none font-medium text-[#171717] lg:text-[13px]"
+                                >
+                                  Email Address
+                                </label>
+                                <input
+                                  id="auth-email"
+                                  type="email"
+                                  value={email}
+                                  onChange={(event) => setEmail(event.target.value)}
+                                  placeholder="heypratik@baseframe.design"
+                                  autoFocus
+                                  className={cn(
+                                    "h-[38px] w-full rounded-[6px] bg-[#F5F5F5] px-3 text-[13px] font-normal text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-colors placeholder:text-[#737373] lg:text-[12px] lg:font-medium",
+                                    "focus:bg-white focus:ring-1 focus:ring-[#6D67D3]/35",
+                                    error && step === "email" && "ring-1 ring-destructive/50",
+                                  )}
+                                />
+                              </div>
+
+                              <div className="flex flex-col gap-2">
+                                <label
+                                  htmlFor="auth-password"
+                                  className="block text-[14px] leading-none font-medium text-[#171717] lg:text-[13px]"
+                                >
+                                  Enter Password
+                                </label>
+                                <input
+                                  id="auth-password"
+                                  type="password"
+                                  value={password}
+                                  onChange={(event) => setPassword(event.target.value)}
+                                  placeholder="heypr@tik15t0-1"
+                                  className="h-[38px] w-full rounded-[6px] bg-[#F5F5F5] px-3 text-[13px] font-normal text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-colors placeholder:text-[#737373] focus:bg-white focus:ring-1 focus:ring-[#6D67D3]/35 lg:text-[12px] lg:font-medium"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {error && step === "email" ? (
+                            <p className="mt-3 text-[13px] leading-normal text-destructive">{error}</p>
+                          ) : null}
+
+                          <button
+                            type="submit"
+                            disabled={loading}
+                            className="mt-3 inline-flex h-[38px] w-full cursor-pointer items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-4 text-[14px] font-medium text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-default disabled:opacity-50 lg:h-9 lg:text-[13px]"
+                          >
+                            {loading && activeAuthFlowRef.current === "email" ? (
+                              <span className="mr-2 inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            ) : null}
+                            Sign up
+                          </button>
+                        </form>
+
+                        <div className="my-3 flex items-center gap-2">
+                          <div className="h-px flex-1 bg-[#E5E5E5]" />
+                          <span className="text-[13px] leading-[1.5] font-medium text-[#737373]">OR</span>
+                          <div className="h-px flex-1 bg-[#E5E5E5]" />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleGoogleSignIn}
+                          disabled={loading}
+                          className="flex h-10 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[6px] bg-white px-3 text-[14px] font-medium text-[#262626] shadow-[0_0.45px_1px_rgba(10,10,10,0.3)] transition-colors hover:bg-[#FAFAFA] disabled:cursor-default disabled:opacity-50 lg:text-[13px]"
+                        >
+                          <GoogleIcon />
+                          Continue with Google
+                        </button>
+
+                        {showDemoSignIn ? (
+                          <button
+                            type="button"
+                            onClick={handleDemoSignIn}
+                            disabled={loading}
+                            className="sr-only"
+                            aria-hidden="true"
+                            tabIndex={-1}
+                          >
+                            Continue with demo
+                          </button>
+                        ) : null}
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="code"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{ duration: 0.25 }}
+                      >
+                        <div className="mb-6">
+                          <h1 className="text-[21px] leading-[1.2] font-semibold text-[#0A0A0A]">
+                            Check your email
+                          </h1>
+                          <p className="mt-2.5 text-[13px] leading-[1.5] font-medium text-[#525252]">
+                            We sent a code to <span className="text-[#0A0A0A]">{email}</span>
+                          </p>
+                        </div>
+
+                        <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+                          <div className="rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+                            <label className="mb-2 block text-[13px] leading-none font-medium text-[#171717]">
+                              Verification Code
+                            </label>
+                            <div className="grid grid-cols-6 gap-2">
+                              {code.map((digit, i) => (
+                                <input
+                                  key={i}
+                                  id={`code-${i}`}
+                                  type="text"
+                                  inputMode="numeric"
+                                  maxLength={1}
+                                  value={digit}
+                                  onChange={(event) => handleCodeChange(i, event.target.value)}
+                                  onPaste={(event) => handleCodePaste(i, event)}
+                                  onKeyDown={(event) => handleCodeKeyDown(i, event)}
+                                  autoFocus={i === 0}
+                                  className="h-11 min-w-0 rounded-[6px] bg-[#F5F5F5] text-center text-[18px] font-semibold text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-colors focus:bg-white focus:ring-1 focus:ring-[#6D67D3]/35"
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {error ? (
+                          <p className="mt-3 text-[13px] leading-normal text-destructive">{error}</p>
+                        ) : null}
+
+                        {loading ? (
+                          <div className="mt-4 flex justify-center">
+                            <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-[#6D67D3] border-t-transparent" />
+                          </div>
+                        ) : null}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStep("email");
+                            setCode(["", "", "", "", "", ""]);
+                            setError("");
+                          }}
+                          className="mt-6 cursor-pointer text-[13px] font-medium text-[#525252] underline underline-offset-2 transition-colors hover:text-[#0A0A0A]"
+                        >
+                          Use a different email
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  disabled={loading}
-                  className="flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-[10px] border border-border bg-white px-4 py-2.5 text-[14px] font-medium text-text-primary transition-colors hover:bg-bg-subtle disabled:opacity-50"
-                >
-                  <svg width="18" height="18" viewBox="0 0 18 18">
-                    <path
-                      d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"
-                      fill="#4285F4"
-                    />
-                    <path
-                      d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"
-                      fill="#34A853"
-                    />
-                    <path
-                      d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"
-                      fill="#FBBC05"
-                    />
-                    <path
-                      d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
-                      fill="#EA4335"
-                    />
-                  </svg>
-                  Continue with Google
-                </button>
-
-                {showDemoSignIn ? (
+                <div className="mt-4 flex justify-center gap-1 text-[14px] leading-[1.5] font-medium lg:mt-12 lg:text-[13px]">
+                  <span className="text-[#525252]">Already have a account?</span>
                   <button
                     type="button"
-                    onClick={handleDemoSignIn}
+                    onClick={handleGoogleSignIn}
                     disabled={loading}
-                    className="mt-3 flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-[10px] border border-border bg-bg-subtle px-4 py-2.5 text-[14px] font-medium text-text-primary transition-colors hover:bg-white disabled:opacity-50"
+                    className="cursor-pointer text-[#0A0A0A] underline underline-offset-2 disabled:cursor-default disabled:opacity-50"
                   >
-                    Continue with demo
-                  </button>
-                ) : null}
-              </motion.div>
-            ) : (
-              <motion.div
-                key="code"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.25 }}
-              >
-                <h1 className="mb-2 text-center font-heading text-[24px] font-semibold text-text-primary">
-                  Check your email
-                </h1>
-                <p className="mb-8 text-center text-[15px] text-text-secondary">
-                  We sent a code to{" "}
-                  <span className="font-medium text-text-primary">{email}</span>
-                </p>
-
-                <div className="mb-4 flex justify-center gap-3">
-                  {code.map((digit, i) => (
-                    <input
-                      key={i}
-                      id={`code-${i}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleCodeChange(i, e.target.value)}
-                      onPaste={(e) => handleCodePaste(i, e)}
-                      onKeyDown={(e) => handleCodeKeyDown(i, e)}
-                      autoFocus={i === 0}
-                      className="h-[60px] w-[52px] rounded-[10px] border border-transparent bg-input-bg text-center font-heading text-[24px] font-semibold text-text-primary transition-colors focus:border-accent focus:bg-white focus:outline-none"
-                    />
-                  ))}
-                </div>
-
-                {error && (
-                  <p className="mb-4 text-center text-[13px] text-destructive">{error}</p>
-                )}
-
-                {loading && (
-                  <div className="mb-4 flex justify-center">
-                    <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-                  </div>
-                )}
-
-                <div className="mt-6 text-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep("email");
-                      setCode(["", "", "", "", "", ""]);
-                      setError("");
-                    }}
-                    className="cursor-pointer text-[13px] text-text-secondary transition-colors hover:text-text-primary"
-                  >
-                    ← Use a different email
+                    Login
                   </button>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+            </section>
+
+            <section className="hidden min-h-0 py-1 pr-1 lg:flex lg:w-[calc((100dvh-32px)*0.76+4px)] lg:flex-none lg:items-center lg:justify-end">
+              <div className="relative flex h-full w-full items-center justify-end overflow-hidden rounded-[8px]">
+                <img
+                  src="/auth/auth.webp"
+                  alt=""
+                  className="h-full max-h-full w-auto object-contain object-right"
+                />
+              </div>
+            </section>
+          </div>
         </div>
       </div>
     </>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 18 18" aria-hidden="true" className="shrink-0">
+      <path
+        d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"
+        fill="#4285F4"
+      />
+      <path
+        d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"
+        fill="#34A853"
+      />
+      <path
+        d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+        fill="#EA4335"
+      />
+    </svg>
   );
 }
 
