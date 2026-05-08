@@ -339,11 +339,17 @@ testing.getstage.co/settings
 Expected local Electron logs:
 
 ```txt
+[stage-auth] registered stage:// protocol for dev app: ok
 [stage-auth] received desktop auth callback
 [stage-auth] accepting web-initiated desktop callback
 [stage-auth] accepting desktop API-key credential
 [stage-auth] desktop auth callback accepted
 ```
+
+If clicking the website button opens the generic Electron welcome screen, macOS has
+registered `stage://` to the Electron binary instead of the Stage dev app. Stop the dev
+app and restart `pnpm run dev` from `apps/user-application`; startup should re-register
+the protocol with the local app path.
 
 If `apps/web-application/convex/auth.ts` changes, deploy the Convex functions for the
 testing deployment as well as the Cloudflare Worker assets.

@@ -77,10 +77,21 @@ export function findStageAuthUrl(argv: string[]) {
 }
 
 export function registerStageProtocol() {
-  if (process.defaultApp && process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient(STAGE_PROTOCOL, process.execPath, [process.argv[1]]);
+  if (!app.isPackaged) {
+    const appPath = app.getAppPath();
+    const registered = app.setAsDefaultProtocolClient(STAGE_PROTOCOL, process.execPath, [appPath]);
+    console.info(
+      `[stage-auth] registered ${STAGE_PROTOCOL}:// protocol for dev app: ${
+        registered ? "ok" : "failed"
+      }`,
+    );
     return;
   }
 
-  app.setAsDefaultProtocolClient(STAGE_PROTOCOL);
+  const registered = app.setAsDefaultProtocolClient(STAGE_PROTOCOL);
+  console.info(
+    `[stage-auth] registered ${STAGE_PROTOCOL}:// protocol for packaged app: ${
+      registered ? "ok" : "failed"
+    }`,
+  );
 }
