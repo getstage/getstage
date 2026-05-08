@@ -1,17 +1,20 @@
 import { CardTab, DashboardCard } from "./DashboardCard";
+import type { DashboardPeriod } from "./DashboardHeader";
 import type { DashboardRevenue } from "../models/dashboard";
 
 export function RevenueOverviewCard({
   revenue,
+  period,
 }: {
   revenue: DashboardRevenue;
+  period: DashboardPeriod;
 }) {
   return (
     <DashboardCard
       className="h-full flex-1 self-stretch"
       title="Revenue Overview"
       subtitle="Track outstanding and received payments"
-      action={<CardTab label="This Month" />}
+      action={<CardTab label={period} />}
     >
       <div className="flex min-h-0 w-full flex-1 flex-col items-start">
         <div className="grid w-full grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-[16px]">

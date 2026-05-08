@@ -1,4 +1,5 @@
 import { DashboardCard, CardTab } from "./DashboardCard";
+import type { DashboardPeriod } from "./DashboardHeader";
 import type { DashboardTask } from "../models/dashboard";
 
 function getDueUrgency(dueDate: number | undefined): { color: string; label: string } {
@@ -14,13 +15,19 @@ function getDueUrgency(dueDate: number | undefined): { color: string; label: str
   return { color: "text-[#16a34a]", label: `Due in ${days} days` };
 }
 
-export function UpcomingTasksCard({ tasks }: { tasks: DashboardTask[] }) {
+export function UpcomingTasksCard({
+  tasks,
+  period,
+}: {
+  tasks: DashboardTask[];
+  period: DashboardPeriod;
+}) {
   return (
     <DashboardCard
       className="h-full flex-1"
       title="Upcoming Deadlines"
       subtitle="Tasks requiring your attention soon"
-      action={<CardTab label="This Month" />}
+      action={<CardTab label={period} />}
     >
       {tasks.length > 0 ? (
         <>
@@ -73,7 +80,7 @@ export function UpcomingTasksCard({ tasks }: { tasks: DashboardTask[] }) {
           </p>
         </>
       ) : (
-        <p className="text-[13px] text-[#737373]">No upcoming tasks.</p>
+        <p className="text-[13px] text-[#737373]">No upcoming tasks for {period.toLowerCase()}.</p>
       )}
     </DashboardCard>
   );

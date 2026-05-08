@@ -1,14 +1,21 @@
 import { DashboardCard, CardTab } from "./DashboardCard";
+import type { DashboardPeriod } from "./DashboardHeader";
 import { formatRelativeTime } from "@/lib/utils";
 import type { DashboardTask } from "../models/dashboard";
 
-export function RecentActivityCard({ entries }: { entries: DashboardTask[] }) {
+export function RecentActivityCard({
+  entries,
+  period,
+}: {
+  entries: DashboardTask[];
+  period: DashboardPeriod;
+}) {
   return (
     <DashboardCard
       className="h-full flex-1"
       title="Recent Activity"
       subtitle="Latest updates across your projects"
-      action={<CardTab label="This Month" />}
+      action={<CardTab label={period} />}
     >
       {entries.length > 0 ? (
         <>
@@ -40,11 +47,11 @@ export function RecentActivityCard({ entries }: { entries: DashboardTask[] }) {
             })}
           </div>
           <p className="text-[12px] font-normal leading-[1.5] text-[#737373]">
-            {entries.length} update{entries.length !== 1 ? "s" : ""} this month
+            {entries.length} update{entries.length !== 1 ? "s" : ""} in {period.toLowerCase()}
           </p>
         </>
       ) : (
-        <p className="text-[13px] text-[#737373]">No recent activity.</p>
+        <p className="text-[13px] text-[#737373]">No recent activity for {period.toLowerCase()}.</p>
       )}
     </DashboardCard>
   );

@@ -1,17 +1,20 @@
 import { CardTab, DashboardCard } from "./DashboardCard";
+import type { DashboardPeriod } from "./DashboardHeader";
 import type { DashboardPipelineStage } from "../models/dashboard";
 
 export function ProjectPipelineCard({
   stages,
+  period,
 }: {
   stages: DashboardPipelineStage[];
+  period: DashboardPeriod;
 }) {
   return (
     <DashboardCard
       className="h-full flex-1"
       title="Project Pipeline"
       subtitle="Active projects by stage"
-      action={<CardTab label="This Month" />}
+      action={<CardTab label={period} />}
     >
       {stages.length > 0 ? (
         <div className="flex w-full flex-col gap-[20px]">

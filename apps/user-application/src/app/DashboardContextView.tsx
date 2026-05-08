@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { ActivityTimelineChart } from "../dashboard/components/ActivityTimelineChart";
-import { DashboardHeader } from "../dashboard/components/DashboardHeader";
+import { DashboardHeader, type DashboardPeriod } from "../dashboard/components/DashboardHeader";
 import { MetricGrid } from "../dashboard/components/MetricGrid";
 import { ProjectPipelineCard } from "../dashboard/components/ProjectPipelineCard";
 import { RecentActivityCard } from "../dashboard/components/RecentActivityCard";
@@ -19,10 +20,56 @@ import { useEngineStatus } from "../hooks/useEngineStatus";
 import { useSelectedProjectContext } from "../hooks/useSelectedProjectContext";
 import { WorkspaceFrame } from "./WorkspaceFrame";
 
+const DEFAULT_DASHBOARD_PERIOD: DashboardPeriod = "This month";
+
+function getPeriodRange(period: DashboardPeriod, now = Date.now()) {
+  const date = new Date(now);
+  const startOfToday = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  switch (period) {
+    case "Today":
+      return { start: startOfToday, end: startOfToday + dayMs };
+    case "Yesterday":
+      return { start: startOfToday - dayMs, end: startOfToday };
+    case "This week": {
+      const day = date.getDay();
+      const mondayOffset = day === 0 ? -6 : 1 - day;
+      const start = startOfToday + mondayOffset * dayMs;
+      return { start, end: start + 7 * dayMs };
+    }
+    case "This month":
+      return {
+        start: new Date(date.getFullYear(), date.getMonth(), 1).getTime(),
+        end: new Date(date.getFullYear(), date.getMonth() + 1, 1).getTime(),
+      };
+    case "This year":
+      return {
+        start: new Date(date.getFullYear(), 0, 1).getTime(),
+        end: new Date(date.getFullYear() + 1, 0, 1).getTime(),
+      };
+    case "30 days":
+      return { start: now - 30 * dayMs, end: now + dayMs };
+    case "6 months":
+      return { start: new Date(date.getFullYear(), date.getMonth() - 6, date.getDate()).getTime(), end: now + dayMs };
+    case "12 months":
+      return { start: new Date(date.getFullYear() - 1, date.getMonth(), date.getDate()).getTime(), end: now + dayMs };
+    case "All time":
+      return null;
+  }
+}
+
+function isInPeriod(timestamp: number | undefined, period: DashboardPeriod) {
+  if (!timestamp) return false;
+  const range = getPeriodRange(period);
+  return !range || (timestamp >= range.start && timestamp < range.end);
+}
+
 export function DashboardContextView() {
   const desktop = useDesktopBridge();
   const engineStatus = useEngineStatus();
   const selectedProject = useSelectedProjectContext();
+  const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>(DEFAULT_DASHBOARD_PERIOD);
   const selectedProjectContext = selectedProject.isFallback ? null : selectedProject.context;
   const openContextTasks = selectedProjectContext?.tasks.filter(
     (task) => task.status !== "done",
@@ -36,6 +83,10 @@ export function DashboardContextView() {
   const dashboardMetrics = buildDashboardMetrics(selectedProjectContext);
   const dashboardChart = buildDashboardChart(selectedProjectContext);
   const dashboardTasks = buildDashboardTasks(selectedProjectContext);
+  const periodDashboardTasks = useMemo(() => ({
+    upcomingTasks: dashboardTasks.upcomingTasks.filter((task) => isInPeriod(task.dueDate ?? task.updatedAt, selectedPeriod)),
+    recentActivity: dashboardTasks.recentActivity.filter((task) => isInPeriod(task.updatedAt, selectedPeriod)),
+  }), [dashboardTasks.recentActivity, dashboardTasks.upcomingTasks, selectedPeriod]);
   const dashboardPipeline = buildDashboardPipeline(selectedProjectContext);
   const dashboardRevenue = buildDashboardRevenue(selectedProjectContext);
   const timelineProject = buildSidebarProjectsFromProjectContext(selectedProjectContext)[0];
@@ -66,6 +117,8 @@ export function DashboardContextView() {
               engineStatusTone={engineStatusTone}
               greeting="Good Morning."
               subheading={dashboardSubheading}
+              selectedPeriod={selectedPeriod}
+              onPeriodChange={setSelectedPeriod}
             />
             <MetricGrid metrics={dashboardMetrics} />
           </div>
@@ -74,10 +127,10 @@ export function DashboardContextView() {
 
           <div className="overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[2px]">
             <div className="grid grid-cols-1 gap-[2px] xl:grid-cols-2">
-              <UpcomingTasksCard tasks={dashboardTasks.upcomingTasks} />
-              <RecentActivityCard entries={dashboardTasks.recentActivity} />
-              <ProjectPipelineCard stages={dashboardPipeline} />
-              <RevenueOverviewCard revenue={dashboardRevenue} />
+              <UpcomingTasksCard tasks={periodDashboardTasks.upcomingTasks} period={selectedPeriod} />
+              <RecentActivityCard entries={periodDashboardTasks.recentActivity} period={selectedPeriod} />
+              <ProjectPipelineCard stages={dashboardPipeline} period={selectedPeriod} />
+              <RevenueOverviewCard revenue={dashboardRevenue} period={selectedPeriod} />
             </div>
           </div>
         </div>

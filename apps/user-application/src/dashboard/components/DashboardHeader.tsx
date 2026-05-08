@@ -1,23 +1,68 @@
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+
+const PERIOD_OPTIONS = [
+  { label: "Today", group: 0 },
+  { label: "Yesterday", group: 0 },
+  { label: "This week", group: 0 },
+  { label: "This month", group: 0 },
+  { label: "This year", group: 0 },
+  { label: "30 days", group: 1 },
+  { label: "6 months", group: 1 },
+  { label: "12 months", group: 1 },
+  { label: "All time", group: 2 },
+] as const;
+
+export type DashboardPeriod = typeof PERIOD_OPTIONS[number]["label"];
 
 export function DashboardHeader({
   engineStatusLabel,
   engineStatusTone = "neutral",
   greeting,
   subheading,
+  selectedPeriod,
+  onPeriodChange,
 }: {
   engineStatusLabel?: string;
   engineStatusTone?: "neutral" | "ready" | "warning";
   greeting: string;
   subheading: string;
+  selectedPeriod: DashboardPeriod;
+  onPeriodChange: (period: DashboardPeriod) => void;
 }) {
   const navigate = useNavigate();
+  const [isPeriodMenuOpen, setIsPeriodMenuOpen] = useState(false);
+  const periodMenuRef = useRef<HTMLDivElement | null>(null);
   const engineDotClassName =
     engineStatusTone === "ready"
       ? "bg-[#22c55e]"
       : engineStatusTone === "warning"
         ? "bg-[#ef4444]"
         : "bg-[#a3a3a3]";
+
+  useEffect(() => {
+    if (!isPeriodMenuOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!periodMenuRef.current?.contains(event.target as Node)) {
+        setIsPeriodMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsPeriodMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isPeriodMenuOpen]);
 
   return (
     <div className="grid gap-[14px] lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
@@ -41,12 +86,33 @@ export function DashboardHeader({
           </div>
         ) : null}
 
-        <button
-          type="button"
-          className="shrink-0 rounded-[6px] bg-[#fafafa] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium text-[#737373] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] transition-all duration-150 hover:text-[#0a0a0a]"
-        >
-          This Month
-        </button>
+        <div ref={periodMenuRef} className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsPeriodMenuOpen((current) => !current)}
+            className="inline-flex h-[34px] cursor-pointer items-center gap-[8px] rounded-[6px] bg-[#f5f5f5] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium text-[#262626] shadow-[0px_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#eeeeee]"
+            aria-haspopup="menu"
+            aria-expanded={isPeriodMenuOpen}
+          >
+            {selectedPeriod}
+            <img
+              src="/logos/dashboard/dropdown.svg"
+              alt=""
+              aria-hidden="true"
+              className="h-[15px] w-[15px] shrink-0"
+            />
+          </button>
+
+          {isPeriodMenuOpen ? (
+            <PeriodMenu
+              selectedPeriod={selectedPeriod}
+              onSelect={(period) => {
+                onPeriodChange(period);
+                setIsPeriodMenuOpen(false);
+              }}
+            />
+          ) : null}
+        </div>
 
         <button
           type="button"
@@ -57,6 +123,46 @@ export function DashboardHeader({
           <img src="/logos/dashboard/plus.svg" alt="" aria-hidden="true" className="h-3.5 w-3.5 brightness-0 invert" />
           Create Project
         </button>
+      </div>
+    </div>
+  );
+}
+
+function PeriodMenu({
+  selectedPeriod,
+  onSelect,
+}: {
+  selectedPeriod: DashboardPeriod;
+  onSelect: (period: DashboardPeriod) => void;
+}) {
+  return (
+    <div
+      role="menu"
+      aria-label="Period"
+      className="absolute right-0 top-[42px] z-50 flex w-[min(220px,calc(100vw-48px))] flex-col rounded-[12px] border border-[#e5e5e5] bg-white px-[10px] pb-[10px] pt-[14px] shadow-[0_18px_42px_rgba(10,10,10,0.12),0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+    >
+      <p className="px-[18px] pb-[8px] text-[13px] font-medium leading-[1.25] text-[#8a8a8a]">Period</p>
+      <div className="flex flex-col gap-[6px]">
+        {PERIOD_OPTIONS.map((option, index) => {
+          const previous = PERIOD_OPTIONS[index - 1];
+          const showDivider = previous && previous.group !== option.group;
+          const isSelected = option.label === selectedPeriod;
+
+          return (
+            <div key={option.label} className={showDivider ? "border-t border-[#e5e5e5] pt-[6px]" : undefined}>
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={isSelected}
+                onClick={() => onSelect(option.label)}
+                className="grid h-[28px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-[14px] rounded-[6px] px-[18px] text-left text-[13px] font-medium leading-[1.25] text-[#1d1d31] outline-none transition-colors hover:bg-[#f5f5f5] focus-visible:bg-[#f5f5f5]"
+              >
+                <span className="truncate">{option.label}</span>
+                {isSelected ? <span className="h-[6px] w-[6px] rounded-full bg-[#8d87ff]" aria-hidden="true" /> : null}
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
