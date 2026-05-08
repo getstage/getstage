@@ -36,6 +36,7 @@ export function AuthPage() {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [googleRedirecting, setGoogleRedirecting] = useState(false);
   const activeAuthFlowRef = useRef<null | "email" | "code" | "google" | "demo">(null);
   const showDemoSignIn =
     typeof window !== "undefined" ? isDemoAuthEnabledForHostname(window.location.hostname) : true;
@@ -240,11 +241,12 @@ export function AuthPage() {
   const otpActionLabel = authMode === "login" ? "Login" : "Sign up";
 
   async function handleGoogleSignIn() {
-    if (activeAuthFlowRef.current) {
+    if (activeAuthFlowRef.current && activeAuthFlowRef.current !== "google") {
       return;
     }
 
     setError("");
+    setGoogleRedirecting(true);
     activeAuthFlowRef.current = "google";
     setLoading(true);
     let redirected = false;
@@ -263,10 +265,12 @@ export function AuthPage() {
           "Google sign-in is temporarily unavailable. Please try again.",
         ),
       );
+      setGoogleRedirecting(false);
     } finally {
       if (!redirected && activeAuthFlowRef.current === "google") {
         activeAuthFlowRef.current = null;
         setLoading(false);
+        setGoogleRedirecting(false);
       }
     }
   }
@@ -294,6 +298,54 @@ export function AuthPage() {
       }
       setLoading(false);
     }
+  }
+
+  if (googleRedirecting) {
+    return (
+      <>
+        <Helmet>
+          <title>Redirecting to Google — Stage</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+
+        <div className="auth-page min-h-dvh bg-[#F5F5F5] p-1">
+          <div className="flex min-h-[calc(100dvh-8px)] items-start overflow-hidden rounded-[8px] border border-[#F5F5F5] bg-white p-2">
+            <div className="flex min-h-[calc(100dvh-24px)] w-full items-center justify-center rounded-[12px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+              <div className="flex min-h-[calc(100dvh-24px)] w-full max-w-[516px] flex-col items-center justify-center px-8 py-[100px]">
+                <div className="flex w-full flex-1 flex-col items-center justify-center gap-8 py-[100px]">
+                  <div className="flex w-full flex-col items-center justify-center gap-6">
+                    <img src={stageLogo} alt="Stage" className="h-[23px] w-auto" />
+                    <div className="flex w-full flex-col items-center justify-end gap-2.5">
+                      <h1 className="text-center text-[21px] font-semibold leading-[1.2] text-[#0A0A0A]">
+                        Redirecting to Google
+                      </h1>
+                      <p className="w-[236px] text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
+                        You&apos;re being redirected to Google OAuth to login securely with Google
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="w-[233px] text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
+                    If your browser does not redirect you back, please{" "}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        activeAuthFlowRef.current = null;
+                        void handleGoogleSignIn();
+                      }}
+                      className="cursor-pointer text-[#0A0A0A] underline underline-offset-2"
+                    >
+                      click here
+                    </button>{" "}
+                    to try again.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
   }
 
   return (
