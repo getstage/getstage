@@ -312,7 +312,7 @@ export function AuthPage() {
                 isLoginOtp && "lg:px-0",
               )}
             >
-              <div className={cn("relative flex h-[min(400px,40dvh)] w-full shrink-0 items-center justify-center overflow-hidden rounded-[8px] lg:hidden", step === "code" && "hidden")}>
+              <div className="relative flex h-[400px] w-full shrink-0 items-center justify-center overflow-hidden rounded-[8px] lg:hidden">
                 <img
                   src="/auth/auth-mobile.webp"
                   alt=""
@@ -323,6 +323,7 @@ export function AuthPage() {
               <div
                 className={cn(
                   "flex min-h-0 w-full max-w-[508px] flex-1 flex-col justify-between py-[44px] lg:h-full lg:flex-none lg:py-[100px]",
+                  step === "code" && "flex-none justify-start lg:h-full lg:justify-between",
                 )}
               >
                 <div>
@@ -446,7 +447,7 @@ export function AuthPage() {
                           <h1 className="text-[21px] leading-[1.2] font-semibold text-[#0A0A0A]">
                             Check your email
                           </h1>
-                          <p className="mt-2.5 text-[13px] leading-[1.5] font-medium text-[#525252]">
+                          <p className="mt-1.5 text-[14px] leading-[1.5] font-medium text-[#525252] lg:mt-2.5 lg:text-[13px]">
                             Please enter the code we sent you on{" "}
                             <span className="font-semibold text-[#0A0A0A]">{email}</span>
                           </p>
@@ -523,7 +524,7 @@ export function AuthPage() {
                           <button
                             type="submit"
                             disabled={!codeComplete || loading}
-                            className="mt-3 inline-flex h-9 w-full cursor-pointer items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-4 text-[13px] font-medium text-[#FAFAFA] opacity-50 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity enabled:hover:opacity-80 disabled:cursor-default"
+                            className="mt-3 inline-flex h-[38px] w-full cursor-pointer items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-4 text-[14px] font-medium text-[#FAFAFA] opacity-50 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity enabled:hover:opacity-80 disabled:cursor-default lg:h-9 lg:text-[13px]"
                           >
                             {loading && activeAuthFlowRef.current === "code" ? (
                               <span className="mr-2 inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -562,7 +563,7 @@ export function AuthPage() {
                       setCode(["", "", "", "", "", ""]);
                       setError("");
                     }}
-                    className="mx-auto mt-4 flex cursor-pointer items-center justify-center gap-1.5 text-[13px] font-medium leading-[1.5] text-[#737373] transition-colors hover:text-[#0A0A0A] lg:mt-12"
+                    className="mx-auto mt-8 flex cursor-pointer items-center justify-center gap-1.5 text-[14px] font-medium leading-[1.5] text-[#737373] transition-colors hover:text-[#0A0A0A] lg:mt-12 lg:text-[13px]"
                   >
                     <span aria-hidden="true">←</span>
                     Use different email
