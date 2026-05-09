@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
 import { AuthPage } from "@/components/auth/AuthPage";
 
 type AuthSearch = {
@@ -8,7 +8,7 @@ type AuthSearch = {
 };
 
 export const Route = createFileRoute("/auth")({
-  component: AuthPage,
+  component: AuthRoute,
   validateSearch: (search: Record<string, unknown>): AuthSearch => ({
     desktop_redirect_uri:
       typeof search.desktop_redirect_uri === "string" ? search.desktop_redirect_uri : undefined,
@@ -18,3 +18,13 @@ export const Route = createFileRoute("/auth")({
       typeof search.redirect === "string" ? search.redirect : undefined,
   }),
 });
+
+function AuthRoute() {
+  const location = useLocation();
+
+  if (location.pathname !== "/auth") {
+    return <Outlet />;
+  }
+
+  return <AuthPage />;
+}

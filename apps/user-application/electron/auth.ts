@@ -1,19 +1,19 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { shell } from "electron";
+import { BrowserWindow, shell } from "electron";
+import { IPC_CHANNELS } from "@shared/ipc/channels";
 import {
+  desktopAuthIdentitySchema,
   desktopStoredSessionSchema,
   type DesktopSession,
   type DesktopStoredSession,
 } from "@shared/models/desktop";
 import {
   AUTH_STATE_TTL_MS,
-  DEV_USER_ID,
   DESKTOP_AUTH_PATH,
   STAGE_PROTOCOL,
   authStatePath,
-  getDesktopAuthExchangeUrl,
   getDesktopAuthRedirectUri,
   getDesktopAuthUrl,
   isStageAuthUrl,
@@ -21,6 +21,7 @@ import {
   type AuthCallbackResult,
   type PendingAuthAttempt,
 } from "./helpers/auth";
+import { getDesktopApiBaseUrl } from "./helpers/desktop-api";
 import {
   clearStoredSession,
   loadStoredSession,
@@ -98,7 +99,6 @@ export class DesktopAuthController {
 
     const code = callbackUrl.searchParams.get("code");
     const state = callbackUrl.searchParams.get("state");
-    const source = callbackUrl.searchParams.get("source");
 
     console.info("[stage-auth] received desktop auth callback");
 
@@ -106,16 +106,7 @@ export class DesktopAuthController {
       return { error: "Desktop auth callback is missing a code.", ok: false };
     }
 
-    const isWebInitiatedTestingCallback =
-      code.startsWith("stg_") && state === "web-session" && source === "web-settings";
-
-    if (isWebInitiatedTestingCallback) {
-      console.info("[stage-auth] accepting web-initiated desktop callback");
-    }
-
-    const stateError = isWebInitiatedTestingCallback
-      ? null
-      : await this.validateState(state);
+    const stateError = await this.validateState(state);
 
     if (stateError) {
       return { error: stateError, ok: false };
@@ -126,10 +117,14 @@ export class DesktopAuthController {
     await this.clearPendingAuthAttempt();
     this.storedSession = desktopStoredSessionSchema.parse(session);
     await saveStoredSession(this.storedSession);
+    const publicSession = toPublicSession(this.storedSession);
     createMainWindow();
+    BrowserWindow.getAllWindows().forEach((window) => {
+      window.webContents.send(IPC_CHANNELS.authSessionChanged, publicSession);
+    });
     console.info("[stage-auth] desktop auth callback accepted");
 
-    return { ok: true, session: toPublicSession(this.storedSession) };
+    return { ok: true, session: publicSession };
   }
 
   private async validateState(state: string | null) {
@@ -161,28 +156,31 @@ export class DesktopAuthController {
 
   private async exchangeCodeForSession(code: string): Promise<DesktopStoredSession> {
     if (code.startsWith("stg_")) {
-      console.info("[stage-auth] accepting desktop API-key credential");
-      return {
-        accessToken: code,
-        userId: DEV_USER_ID,
-      };
+      throw new Error("Developer API keys cannot be used for desktop login.");
     }
 
-    console.info("[stage-auth] exchanging desktop auth code");
-    const response = await fetch(getDesktopAuthExchangeUrl(), {
-      body: JSON.stringify({ code }),
+    console.info("[stage-auth] verifying Convex Auth desktop token");
+    const response = await fetch(`${getDesktopApiBaseUrl()}/me`, {
       headers: {
-        "Content-Type": "application/json",
+        Authorization: `Bearer ${code}`,
       },
-      method: "POST",
     });
 
     if (!response.ok) {
-      throw new Error(`Desktop auth exchange failed with ${response.status}.`);
+      throw new Error(`Desktop auth token verification failed with ${response.status}.`);
     }
 
-    const body = await response.json() as { session?: unknown };
-    return desktopStoredSessionSchema.parse(body.session);
+    const identity = desktopAuthIdentitySchema.parse(await response.json());
+    console.info(
+      `[stage-auth] verified desktop user ${identity.user.name ?? identity.user.email ?? identity.user.id}`,
+    );
+    return desktopStoredSessionSchema.parse({
+      accessToken: code,
+      avatarUrl: identity.user.avatarUrl,
+      email: identity.user.email,
+      name: identity.user.name,
+      userId: identity.user.id,
+    });
   }
 
   private async getStoredSession() {

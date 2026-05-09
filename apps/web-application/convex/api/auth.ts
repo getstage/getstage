@@ -1,7 +1,9 @@
 import { internal } from "../_generated/api";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { enforceApiRequestRateLimit } from "../platform/rateLimits";
 import { ApiError } from "./errors";
 import type { ApiAuthContext, ApiContext } from "./types";
+import type { Id } from "../_generated/dataModel";
 
 function getBearerToken(authorizationHeader: string | undefined) {
   if (!authorizationHeader) {
@@ -41,12 +43,27 @@ export async function authenticateApiKey(c: ApiContext): Promise<ApiAuthContext>
     hashedKey,
   });
 
-  if (!auth) {
-    throw new ApiError(401, "Invalid API key.", "invalid_api_key");
+  if (auth) {
+    try {
+      await enforceApiRequestRateLimit(c.env, String(auth.apiKeyId));
+    } catch (error) {
+      const message = asRateLimitMessage(error);
+      if (message) {
+        throw new ApiError(429, message, "rate_limited");
+      }
+      throw error;
+    }
+
+    return auth;
+  }
+
+  const authUserId = await getAuthUserId(c.env);
+  if (!authUserId) {
+    throw new ApiError(401, "Invalid API key or auth token.", "invalid_authorization");
   }
 
   try {
-    await enforceApiRequestRateLimit(c.env, String(auth.apiKeyId));
+    await enforceApiRequestRateLimit(c.env, String(authUserId));
   } catch (error) {
     const message = asRateLimitMessage(error);
     if (message) {
@@ -55,5 +72,5 @@ export async function authenticateApiKey(c: ApiContext): Promise<ApiAuthContext>
     throw error;
   }
 
-  return auth;
+  return { userId: authUserId as Id<"users"> };
 }

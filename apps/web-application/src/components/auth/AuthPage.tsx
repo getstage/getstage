@@ -9,6 +9,7 @@ import { useSignIn } from "@/lib/auth";
 import {
   getPendingDesktopAuthRedirect,
   isDesktopAuthRedirect,
+  isValidDesktopCallbackUrl,
   storePendingDesktopAuthRedirect,
 } from "@/lib/desktopAuthRedirect";
 import { toUserFacingErrorMessage } from "@/lib/errors";
@@ -419,7 +420,7 @@ function getDesktopAuthRedirect(args: {
   try {
     const redirectUri = new URL(args.redirectUri);
 
-    if (redirectUri.protocol !== "stage:" || redirectUri.hostname !== "auth") {
+    if (!isValidDesktopCallbackUrl(redirectUri.toString())) {
       return null;
     }
 

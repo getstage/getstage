@@ -2,7 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { internal } from "../../_generated/api";
 import { authenticateApiKey } from "../auth";
-import { validationHook } from "../errors";
+import { ApiError, validationHook } from "../errors";
 import { claudeHandshakeBodySchema } from "../models";
 import type { ApiBindings } from "../types";
 import type { Id } from "../../_generated/dataModel";
@@ -17,6 +17,10 @@ export function createAgentRoutes() {
     zValidator("json", claudeHandshakeBodySchema, validationHook),
     async (c) => {
       const auth = await authenticateApiKey(c);
+      if (!auth.apiKeyId) {
+        throw new ApiError(401, "Claude handshake requires a developer API key.", "api_key_required");
+      }
+
       const body = c.req.valid("json");
       const result = await c.env.runMutation(internal.agentConnections.handshakeClaudeConnectionForApi, {
         userId: auth.userId,

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
-import { useMutation } from "convex/react";
+import { useAuthToken } from "@convex-dev/auth/react";
 import { Helmet } from "react-helmet-async";
-import { api } from "@/lib/convex";
 import { useAuth } from "@/lib/auth";
+import { desktopAuthWebHandoffSchema } from "@/lib/desktopAuthHandoff";
 import {
   clearPendingDesktopAuthRedirect,
+  isLocalDesktopCallbackUrl,
   isValidDesktopCallbackUrl,
   storePendingDesktopAuthRedirect,
 } from "@/lib/desktopAuthRedirect";
@@ -49,48 +50,74 @@ function getValidatedRedirectUri(value?: string) {
   }
 }
 
+async function sendDesktopAuthHandoff(args: {
+  redirectUri: URL;
+  state: string;
+  token: string;
+}) {
+  const handoff = desktopAuthWebHandoffSchema.parse(args);
+
+  if (isLocalDesktopCallbackUrl(handoff.redirectUri)) {
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = handoff.redirectUri.toString();
+    form.style.display = "none";
+
+    for (const [name, value] of [
+      ["code", handoff.token],
+      ["state", handoff.state],
+    ] as const) {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+    return;
+  }
+
+  const callbackUrl = new URL(handoff.redirectUri);
+  callbackUrl.searchParams.set("code", handoff.token);
+  callbackUrl.searchParams.set("state", handoff.state);
+  window.location.assign(callbackUrl.toString());
+}
+
 function DesktopAuthPage() {
   const { redirect_uri, state } = Route.useSearch();
   const { isAuthenticated, isLoading } = useAuth();
-  const generateApiKey = useMutation(api.developer.apiKeys.generate);
+  const authToken = useAuthToken();
   const [status, setStatus] = useState("Preparing desktop sign-in...");
   const [error, setError] = useState<string | null>(null);
   const didStartRef = useRef(false);
   const redirectUri = useMemo(() => getValidatedRedirectUri(redirect_uri), [redirect_uri]);
 
   useEffect(() => {
-    if (!isAuthenticated || !redirectUri || !state || didStartRef.current) {
+    if (!isAuthenticated || !authToken || !redirectUri || !state || didStartRef.current) {
       return;
     }
 
     didStartRef.current = true;
     clearPendingDesktopAuthRedirect();
-    setStatus("Creating a desktop access key...");
-    console.info("[stage-desktop-auth] creating desktop access key");
+    setStatus("Connecting Stage Desktop...");
+    console.info("[stage-desktop-auth] handing off Convex Auth session");
 
-    generateApiKey({ name: `Stage Desktop ${new Date().toISOString().slice(0, 10)}` })
-      .then((result) => {
-        const key = (result as { key?: string }).key;
-
-        if (!key) {
-          throw new Error("No desktop access key was returned.");
-        }
-
-        redirectUri.searchParams.set("code", key);
-        redirectUri.searchParams.set("state", state);
+    sendDesktopAuthHandoff({ redirectUri, state, token: authToken })
+      .then(() => {
         setStatus("Opening Stage Desktop...");
-        console.info("[stage-desktop-auth] opening desktop auth callback");
-        window.location.assign(redirectUri.toString());
+        console.info("[stage-desktop-auth] desktop auth callback accepted");
       })
       .catch((error) => {
         didStartRef.current = false;
         setError(
           error instanceof Error
             ? error.message
-            : "Could not create a desktop access key.",
+            : "Could not connect Stage Desktop.",
         );
       });
-  }, [generateApiKey, isAuthenticated, redirectUri, state]);
+  }, [authToken, isAuthenticated, redirectUri, state]);
 
   if (isLoading) {
     return <DesktopAuthStatus label="Checking your Stage session..." />;

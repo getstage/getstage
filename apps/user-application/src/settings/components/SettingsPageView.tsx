@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { settingsSnapshot } from "../data/settingsSnapshot";
 import type { Integration, SettingsTab } from "../models/settings";
+import type { DesktopSession } from "@shared/models/desktop";
 import { SettingsIcon } from "./SettingsIcons";
 import { SaveButton, SettingsCard, SettingsRow, CopyButton } from "./SettingsPrimitives";
 
@@ -410,14 +411,21 @@ function AccountPanel() {
   const [authStatus, setAuthStatus] = useState<
     "checking" | "connected" | "idle" | "opening" | "opened" | "error"
   >("checking");
+  const [desktopSession, setDesktopSession] = useState<DesktopSession | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     desktop.auth.getSession()
       .then((session) => {
+        setDesktopSession(session);
         setAuthStatus(session?.hasAccessToken ? "connected" : "idle");
       })
       .catch(() => setAuthStatus("idle"));
+
+    return desktop.auth.onSessionChanged((session) => {
+      setDesktopSession(session);
+      setAuthStatus(session?.hasAccessToken ? "connected" : "idle");
+    });
   }, [desktop.auth]);
 
   async function openDesktopLogin() {
@@ -461,7 +469,7 @@ function AccountPanel() {
             <div>
               <h2 className="text-[15px] font-semibold leading-none text-[#171717]">Stage web session</h2>
               <p className="mt-[4px] max-w-[471px] text-[12px] font-normal leading-[1.5] text-[#171717]">
-                {authStatusLabel}
+                {desktopSession?.name ?? desktopSession?.email ?? authStatusLabel}
               </p>
             </div>
             <button

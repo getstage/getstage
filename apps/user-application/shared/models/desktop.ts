@@ -1,15 +1,41 @@
 import { z } from "zod";
 
 export const desktopSessionSchema = z.object({
+  avatarUrl: z.string().optional(),
+  email: z.string().optional(),
   hasAccessToken: z.boolean(),
+  name: z.string().optional(),
   userId: z.string(),
   expiresAt: z.number().optional(),
 });
 
 export const desktopStoredSessionSchema = z.object({
   accessToken: z.string().min(1),
+  avatarUrl: z.string().optional(),
+  email: z.string().optional(),
   expiresAt: z.number().optional(),
+  name: z.string().optional(),
   userId: z.string(),
+});
+
+export const desktopAuthHandoffSchema = z.object({
+  code: z.string().min(1),
+  state: z.string().min(1),
+});
+
+export const desktopAuthWebHandoffSchema = z.object({
+  redirectUri: z.instanceof(URL),
+  state: z.string().min(1),
+  token: z.string().min(1),
+});
+
+export const desktopAuthIdentitySchema = z.object({
+  user: z.object({
+    avatarUrl: z.string().optional(),
+    email: z.string().optional(),
+    id: z.string().min(1),
+    name: z.string().optional(),
+  }),
 });
 
 export const activeAppInfoSchema = z.object({
@@ -74,6 +100,9 @@ export const engineStatusSchema = z.object({
 
 export type DesktopSession = z.infer<typeof desktopSessionSchema>;
 export type DesktopStoredSession = z.infer<typeof desktopStoredSessionSchema>;
+export type DesktopAuthHandoff = z.infer<typeof desktopAuthHandoffSchema>;
+export type DesktopAuthWebHandoff = z.infer<typeof desktopAuthWebHandoffSchema>;
+export type DesktopAuthIdentity = z.infer<typeof desktopAuthIdentitySchema>;
 export type ActiveAppInfo = z.infer<typeof activeAppInfoSchema>;
 export type CaptureResult = z.infer<typeof captureResultSchema>;
 export type PermissionKind = z.infer<typeof permissionKindSchema>;

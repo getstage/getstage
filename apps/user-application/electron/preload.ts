@@ -1,11 +1,21 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
-import type { CompanionState, PermissionKind } from "@shared/models/desktop";
+import type { CompanionState, DesktopSession, PermissionKind } from "@shared/models/desktop";
 
 const stageDesktop = {
   auth: {
     openLogin: () => ipcRenderer.invoke(IPC_CHANNELS.authOpenLogin),
     getSession: () => ipcRenderer.invoke(IPC_CHANNELS.authGetSession),
+    onSessionChanged: (callback: (session: DesktopSession | null) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, session: DesktopSession | null) => {
+        callback(session);
+      };
+
+      ipcRenderer.on(IPC_CHANNELS.authSessionChanged, listener);
+      return () => {
+        ipcRenderer.off(IPC_CHANNELS.authSessionChanged, listener);
+      };
+    },
   },
   projectContext: {
     getSelected: () => ipcRenderer.invoke(IPC_CHANNELS.projectContextGetSelected),

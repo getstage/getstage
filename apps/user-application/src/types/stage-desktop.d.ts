@@ -13,6 +13,7 @@ export type StageDesktopApi = {
   auth: {
     openLogin: () => Promise<void>;
     getSession: () => Promise<DesktopSession | null>;
+    onSessionChanged: (callback: (session: DesktopSession | null) => void) => () => void;
   };
   projectContext: {
     getSelected: () => Promise<ProjectContext | null>;

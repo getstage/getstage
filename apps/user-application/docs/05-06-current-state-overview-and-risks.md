@@ -21,11 +21,13 @@ The desktop app now has the core architecture needed for dynamic data:
 - A shared `packages/data-ops` contract layer for `ProjectContext`, `EngineCommand`, and `EngineEvent`.
 - Electron main-process supervision of the Rust sidecar.
 - Renderer-safe engine status via preload/IPC.
-- Desktop auth launcher and `stage://auth` callback handling.
+- Desktop auth launcher and local dev / `stage://auth` callback handling.
 - Secure Electron-main session storage using `safeStorage`.
 - A main-process path for fetching selected project context from the Stage website API.
+- A tested Convex Auth JWT handoff from `testing.getstage.co` into local Electron.
+- A preload-safe session-changed event so desktop auth state and project context refresh without manual reload.
 
-This means the app can become dynamic once the website handoff is deployed and tested. If auth or API data is unavailable, the desktop app still falls back to validated mock project context so the UI does not break.
+This means the app can now become dynamic through the website API once a desktop session exists. If auth or API data is unavailable, the desktop app still falls back to validated mock project context so the UI does not break.
 
 ## Current Completed Steps
 
@@ -38,12 +40,13 @@ From the monorepo implementation tracker:
 19    Renderer can read engine status
 20    Desktop auth launcher and stage://auth callback exist
 21    Secure Electron-main session storage exists
-22    Live selected project context can be fetched through the website API when a session token exists
+22    Desktop API-key login bridge has been replaced with Convex Auth JWT handoff
+23    Live selected project context can be fetched through the website API when a session token exists
 ```
 
 ## What Is Dynamic Now
 
-The desktop app is dynamic at the architecture level, but it still needs end-to-end testing against `testing.getstage.co`.
+The desktop app is dynamic at the architecture level and the desktop auth handoff has now been tested against `testing.getstage.co`.
 
 The dynamic flow is:
 
@@ -52,10 +55,14 @@ User opens desktop Account settings
   -> clicks "Log in with Stage"
   -> Electron opens testing.getstage.co/auth/desktop
   -> website handles normal auth/onboarding/account state
-  -> website redirects to stage://auth?code=...&state=...
+  -> website reads the Convex Auth JWT from the signed-in session
+  -> local dev website submits { code, state } to http://127.0.0.1:48224/auth
+  -> packaged builds use stage://auth?code=...&state=...
   -> Electron validates state
+  -> Electron verifies the token with GET /api/v1/me
   -> Electron stores credential in safeStorage encrypted userData
   -> renderer receives only redacted session status
+  -> renderer refreshes after auth:session-changed
   -> Electron main calls website /api/v1 routes with stored token
   -> response is shaped through packages/data-ops ProjectContext
   -> dashboard/critique UI can use live context
@@ -99,10 +106,10 @@ Desktop:
 
 These are still open:
 
-- Final one-time desktop auth code exchange.
 - Token refresh and logout.
 - Direct Convex subscription in the desktop renderer.
 - WebSocket event forwarding from Rust through Electron to renderer.
+- Replace remaining visible demo-only desktop UI with live/loading/empty/fallback states.
 - Fake provider runner.
 - Codex/Claude provider detection.
 - Deep file scanner.
@@ -114,26 +121,34 @@ These are still open:
 
 ## Main Doubts And Risks
 
-### 1. Current Desktop Auth Uses API Key Handoff
+### 1. Current Desktop Auth Uses Convex Auth JWT Handoff
 
-The current testable website handoff appears to use the existing Stage API key generation path.
+The desktop login no longer uses developer API keys. The website route `/auth/desktop`
+uses the signed-in Convex Auth session token and hands it to Electron main.
 
-Risk:
+Current state:
 
 ```txt
-API key generation may be Pro-gated.
-Testing accounts without API key access may not be able to complete desktop login.
-The raw credential is present in the stage://auth callback URL during the temporary test flow.
+Works:
+  testing.getstage.co -> local Electron callback
+  Electron validates state
+  Electron verifies token through /api/v1/me
+  Electron stores only the main-process session
+  renderer receives redacted session status
+
+Still not production-final:
+  the callback carries a bearer token during handoff
+  token refresh/expiry/logout are not finished
 ```
 
 Recommendation:
 
 ```txt
-Accept this temporarily on the test branch only.
-Before production, replace it with a true one-time desktop auth code exchange.
+Use this for the current testing bridge.
+Before production, evaluate a true one-time desktop auth code exchange.
 ```
 
-### 2. True Desktop Auth Exchange Is Not Final
+### 2. True One-Time Desktop Auth Exchange Is Not Final
 
 The desired production flow is:
 
@@ -161,14 +176,13 @@ Missing:
 logout
 token expiry handling
 refresh behavior
-session changed renderer event
 expired credential UX
 ```
 
 Risk:
 
 ```txt
-Desktop can get stuck with a stale token until storage is manually cleared.
+Desktop can still get stuck with a stale token until storage is manually cleared or logout/refresh UX is added.
 ```
 
 ### 4. Live Convex Path Is Through Website API, Not Direct Convex

@@ -1,10 +1,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
-import { useMutation } from "convex/react";
 import { FeedbackText } from "@/components/settings/FeedbackText";
 import type { SaveFeedback } from "@/hooks/useFeedback";
-import { api } from "@/lib/convex";
-import { buildWebDesktopAuthCallbackUrl } from "@/lib/desktopAuthRedirect";
+import { getLocalDesktopAuthLoginUrl } from "@/lib/desktopAuthRedirect";
 
 const DELETE_TALLY_URL = "https://tally.so/r/D4eYOE";
 
@@ -27,23 +25,13 @@ export function AccountTab({
     "idle",
   );
   const [desktopError, setDesktopError] = useState<string | null>(null);
-  const generateApiKey = useMutation(api.developer.apiKeys.generate);
 
   async function handleOpenDesktop() {
     setDesktopStatus("opening");
     setDesktopError(null);
 
     try {
-      const result = await generateApiKey({
-        name: `Stage Desktop Web ${new Date().toISOString().slice(0, 10)}`,
-      });
-      const key = (result as { key?: string }).key;
-
-      if (!key) {
-        throw new Error("No desktop access key was returned.");
-      }
-
-      window.location.assign(buildWebDesktopAuthCallbackUrl(key));
+      window.location.assign(getLocalDesktopAuthLoginUrl());
       setDesktopStatus("opened");
     } catch (error) {
       setDesktopStatus("error");
@@ -78,8 +66,8 @@ export function AccountTab({
             <div className="settings-desktop-feedback">
               {desktopError ??
                 (desktopStatus === "opened"
-                  ? "Desktop handoff started. Check the Stage app window."
-                  : "Uses a temporary desktop access key for the local app.")}
+                  ? "Desktop login started. Follow the browser prompt."
+                  : "Starts the secure desktop login from the local Stage app.")}
             </div>
           </div>
           <button

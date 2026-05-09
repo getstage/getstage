@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { internal } from "../_generated/api";
 import type { ActionCtx } from "../_generated/server";
+import { authenticateApiKey } from "./auth";
 import { createAgentRoutes } from "./routes/agent";
 import { createAiRoutes } from "./routes/ai";
 import { handleApiError, jsonError } from "./errors";
@@ -32,6 +34,15 @@ export function createApiApp() {
       version: "v1",
     }),
   );
+
+  app.get("/api/v1/me", async (c) => {
+    const auth = await authenticateApiKey(c);
+    const user = await c.env.runQuery(internal.viewer.getIdentityForApi, {
+      userId: auth.userId,
+    });
+
+    return c.json({ user });
+  });
 
   app.route("/api/v1/agent", createAgentRoutes());
   app.route("/api/v1/ai", createAiRoutes());

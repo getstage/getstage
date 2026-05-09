@@ -304,12 +304,16 @@ Done:
   Convex Auth redirect callback is explicit in apps/web-application/convex/auth.ts
   Electron stage:// callback path exists
   Electron safeStorage session path exists
+  desktop API-key bridge has been replaced with Convex Auth JWT handoff
+  Electron verifies the token through GET /api/v1/me before storing a session
+  local dev handoff works through http://127.0.0.1:48224/auth form POST
+  auth:session-changed updates renderer session/project-context queries without manual reload
   Electron main can request selected ProjectContext through /api/v1
   ProjectContext is validated through packages/data-ops
 
 Not done:
-  final one-time desktop auth code exchange
-  token refresh/logout/session changed events
+  optional final one-time desktop auth code exchange for production hardening
+  token refresh/logout
   direct realtime Convex subscriptions in desktop
   full dashboard/sidebar/tasks/activity replacement from live data
 ```
@@ -322,8 +326,9 @@ Electron main and the website API. It does not yet mean that every desktop UI
 panel is realtime or free of fallback data.
 
 For the current testing bridge, the website may open Electron directly from Account settings
-with a temporary API-key callback. That is only for local Electron plus testing.getstage.co.
-The final production path remains a one-time desktop auth code exchange.
+or from the desktop login launcher. The bridge uses the signed-in Convex Auth JWT, not
+developer API keys. The final production path may still become a one-time desktop auth
+code exchange if we want the callback to avoid carrying a bearer token.
 ```
 
 Recommended future structure:
@@ -1272,18 +1277,21 @@ Done:
   map selected Convex project/read-model data into ProjectContext
   validate the selected context with projectContextSchema
   dashboard and critique mocks consume validated ProjectContext
+  desktop auth handoff works with testing.getstage.co
+  Electron main fetches live selected ProjectContext through website /api/v1 after session exists
 
 Next:
-  add Electron sidecar supervisor
-  keep live Convex desktop subscription deferred until after the runtime bridge
+  replace remaining visible demo-only areas with live/loading/empty/fallback states
+  add token refresh/logout behavior
+  keep direct realtime Convex desktop subscriptions deferred
 ```
 
 The first connection should be read-oriented. Do not move mutations or the full Convex backend into `packages/data-ops` yet.
 
-Live Convex-backed desktop data requires desktop auth first. The auth plan lives in:
+Live Convex-backed desktop data requires desktop auth first. The current auth plan lives in:
 
 ```txt
-apps/user-application/docs/05-06-desktop-auth-deep-link-plan.md
+apps/user-application/docs/05-09/05-09-desktop-auth-deep-link-plan.md
 ```
 
 Website login, onboarding, billing, payments, and account flows stay in `apps/web-application`. Desktop should launch the website login flow, receive a `stage://auth` callback, store the desktop session securely through Electron main, and initialize Convex only after that session exists.
@@ -1298,11 +1306,17 @@ Done:
   running-app and queued startup callback handling
   visible account settings login launcher
   Electron auth helpers extracted to electron/helpers/
+  secure Electron-main-owned storage
+  authenticated renderer boot/session state
+  Convex Auth JWT handoff from website to Electron main
+  local dev form POST callback server
+  /api/v1/me token verification
+  auth:session-changed renderer refresh
+  live selected ProjectContext fetch after session exists
 
 Next:
-  replace placeholder in-memory session with secure Electron-main-owned storage
-  add authenticated renderer boot state
-  wire live Convex selected project context after session behavior is stable
+  add logout/token expiry handling
+  replace remaining visible fallback/mock UI with honest live/loading/empty states
 ```
 
 ### Phase 3: Electron Sidecar Supervisor

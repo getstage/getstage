@@ -10,7 +10,6 @@ export const DEV_DESKTOP_AUTH_CALLBACK_PATH = "/auth";
 export const PRODUCTION_DESKTOP_AUTH_URL = "https://getstage.co/auth/desktop";
 export const TESTING_DESKTOP_AUTH_URL = "https://testing.getstage.co/auth/desktop";
 export const AUTH_STATE_TTL_MS = 10 * 60 * 1000;
-export const DEV_USER_ID = "desktop-dev-user";
 export const DESKTOP_SESSION_FILE_NAME = "desktop-auth-session.json";
 export const DESKTOP_SESSION_STORAGE_VERSION = 1;
 
@@ -45,19 +44,13 @@ export function getDesktopAuthUrl() {
   return app.isPackaged ? PRODUCTION_DESKTOP_AUTH_URL : TESTING_DESKTOP_AUTH_URL;
 }
 
-export function getDesktopAuthExchangeUrl() {
-  if (process.env.STAGE_DESKTOP_AUTH_EXCHANGE_URL) {
-    return process.env.STAGE_DESKTOP_AUTH_EXCHANGE_URL;
-  }
-
-  const authUrl = new URL(getDesktopAuthUrl());
-  return new URL("/api/v1/desktop/auth/exchange", authUrl.origin).toString();
-}
-
 export function toPublicSession(session: DesktopStoredSession): DesktopSession {
   return {
+    avatarUrl: session.avatarUrl,
+    email: session.email,
     expiresAt: session.expiresAt,
     hasAccessToken: Boolean(session.accessToken),
+    name: session.name,
     userId: session.userId,
   };
 }

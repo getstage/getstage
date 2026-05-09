@@ -9,6 +9,6 @@ export type ApiContext = Context<{
 }>;
 
 export type ApiAuthContext = {
-  apiKeyId: Id<"apiKeys">;
+  apiKeyId?: Id<"apiKeys">;
   userId: Id<"users">;
 };

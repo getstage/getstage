@@ -1,4 +1,5 @@
 import { createServer, type Server } from "node:http";
+import { desktopAuthHandoffSchema } from "@shared/models/desktop";
 import {
   DEV_DESKTOP_AUTH_CALLBACK_HOST,
   DEV_DESKTOP_AUTH_CALLBACK_PATH,
@@ -6,6 +7,15 @@ import {
   getStageAuthUrlFromLocalCallback,
 } from "./auth";
 import type { DesktopAuthController } from "../auth";
+
+const DEV_DESKTOP_AUTH_LOGIN_PATH = "/login";
+const HTML_HEADERS = {
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Private-Network": "true",
+  "Content-Type": "text/html; charset=utf-8",
+};
 
 function htmlResponse(title: string, body: string) {
   return `<!doctype html>
@@ -29,6 +39,18 @@ function htmlResponse(title: string, body: string) {
 </html>`;
 }
 
+function parseDesktopAuthPayload(raw: string, contentType: string | undefined) {
+  if (contentType?.includes("application/json")) {
+    return JSON.parse(raw);
+  }
+
+  const params = new URLSearchParams(raw);
+  return {
+    code: params.get("code"),
+    state: params.get("state"),
+  };
+}
+
 export function createDesktopAuthCallbackServer(authController: DesktopAuthController) {
   let server: Server | null = null;
 
@@ -44,30 +66,84 @@ export function createDesktopAuthCallbackServer(authController: DesktopAuthContr
           `http://${DEV_DESKTOP_AUTH_CALLBACK_HOST}:${DEV_DESKTOP_AUTH_CALLBACK_PORT}`,
         );
 
+        if (request.method === "OPTIONS") {
+          response.writeHead(204, HTML_HEADERS);
+          response.end();
+          return;
+        }
+
+        if (requestUrl.pathname === DEV_DESKTOP_AUTH_LOGIN_PATH) {
+          authController.openLogin()
+            .then(() => {
+              response.writeHead(200, HTML_HEADERS);
+              response.end(htmlResponse("Stage Desktop login started", "Follow the browser sign-in flow."));
+            })
+            .catch((error: unknown) => {
+              const message = error instanceof Error ? error.message : "Could not start desktop login.";
+              response.writeHead(500, HTML_HEADERS);
+              response.end(htmlResponse("Stage Desktop login failed", message));
+            });
+          return;
+        }
+
         if (requestUrl.pathname !== DEV_DESKTOP_AUTH_CALLBACK_PATH) {
           response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
           response.end("Not found");
           return;
         }
 
-        authController.handleCallbackUrl(getStageAuthUrlFromLocalCallback(requestUrl.toString()))
+        if (request.method === "POST") {
+          const chunks: Buffer[] = [];
+
+          request.on("data", (chunk: Buffer) => {
+            chunks.push(chunk);
+          });
+
+          request.on("end", () => {
+            try {
+              const payload = desktopAuthHandoffSchema.parse(
+                parseDesktopAuthPayload(
+                  Buffer.concat(chunks).toString("utf8"),
+                  request.headers["content-type"],
+                ),
+              );
+              const stageUrl = getStageAuthUrlFromLocalCallback(requestUrl.toString());
+              const callbackUrl = new URL(stageUrl);
+
+              callbackUrl.searchParams.set("code", payload.code);
+              callbackUrl.searchParams.set("state", payload.state);
+              handleAuthCallback(callbackUrl.toString(), response);
+            } catch (error) {
+              const message = error instanceof Error ? error.message : "Invalid desktop auth payload.";
+              response.writeHead(400, HTML_HEADERS);
+              response.end(htmlResponse("Stage Desktop sign-in failed", message));
+            }
+          });
+          return;
+        }
+
+        handleAuthCallback(getStageAuthUrlFromLocalCallback(requestUrl.toString()), response);
+      });
+
+      function handleAuthCallback(url: string, response: import("node:http").ServerResponse) {
+        authController.handleCallbackUrl(url)
           .then((result) => {
             if (result.ok) {
-              response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+              response.writeHead(200, HTML_HEADERS);
               response.end(htmlResponse("Stage Desktop connected", "You can return to the Stage app."));
               return;
             }
 
-            response.writeHead(400, { "Content-Type": "text/html; charset=utf-8" });
+            response.writeHead(400, HTML_HEADERS);
             response.end(htmlResponse("Stage Desktop sign-in failed", result.error));
           })
           .catch((error: unknown) => {
             const message = error instanceof Error ? error.message : "Unknown desktop auth callback error.";
             console.warn(`[stage-auth] ${message}`);
-            response.writeHead(500, { "Content-Type": "text/html; charset=utf-8" });
+            response.writeHead(500, HTML_HEADERS);
             response.end(htmlResponse("Stage Desktop sign-in failed", message));
           });
-      });
+      }
 
       server.listen(
         DEV_DESKTOP_AUTH_CALLBACK_PORT,

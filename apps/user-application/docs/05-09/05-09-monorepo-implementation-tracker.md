@@ -1,9 +1,10 @@
 # Stage Monorepo Implementation Tracker
 
-Date: May 6, 2026  
+Date: May 9, 2026  
 Branch: `monorepo`  
-Status: In progress
-Latest pushed checkpoint: `c838765 add electron sidecar supervisor`
+Status: Auth and live project-context bridge working locally
+Latest pushed checkpoint: `28f292d fix desktop auth callback in local dev`
+Latest local checkpoint: desktop auth handoff + Step 23 stabilization, not committed yet
 
 ## Scope
 
@@ -15,7 +16,7 @@ Current goal:
 Electron remains stable in `apps/user-application/`.
 Rust sidecar boundary starts small.
 No UI redesign work.
-No Convex wiring.
+Convex wiring is limited to website-owned auth/API routes and Electron-main reads.
 No Figma/Notion implementation yet.
 No SQLite.
 No local AI inference.
@@ -44,17 +45,26 @@ No local AI inference.
 - [x] 19. Add renderer engine status bridge.
 - [x] 20. Add desktop auth launcher and `stage://auth` deep-link callback plan/implementation.
 - [x] 21. Add secure desktop session storage and authenticated boot state.
-- [x] 22. Wire live Convex-backed selected project context after desktop auth works.
-Stop and test, wait for onboarding to be finished
-- [ ] 23. Add fake provider runner that receives typed project context.
-- [ ] 24. Add Codex/Claude provider detection.
-- [ ] 25. Add deep file scanner.
-- [ ] 26. Add `.codex` / `.claude` discovery.
-- [ ] 27. Add design critique job pipeline.
-- [ ] 28. Add cloud voice transcription flow.
-- [ ] 29. Add basic Figma integration layer.
-- [ ] 30. Add basic Notion integration layer.
-- [ ] 31. Add web lifecycle event tracking for Resend flows.
+- [x] 22. Replace desktop API-key bridge with Convex Auth JWT handoff.
+- [ ] 23. Wire live Convex-backed selected project context after desktop auth works.
+
+Stop and test. Wait for onboarding to be finished before deeper provider execution work.
+
+Remaining Step 23 hardening before Step 24:
+
+- [ ] Replace remaining visible demo-only dashboard/sidebar areas with live, loading, empty, or clearly marked fallback states.
+- [ ] Add token expiry/logout UX.
+- [ ] Decide whether direct Convex subscriptions belong in desktop V1 or remain behind Electron main + website API.
+
+- [ ] 24. Add fake provider runner that receives typed project context.
+- [ ] 25. Add Codex/Claude provider detection.
+- [ ] 26. Add deep file scanner.
+- [ ] 27. Add `.codex` / `.claude` discovery.
+- [ ] 28. Add design critique job pipeline.
+- [ ] 29. Add cloud voice transcription flow.
+- [ ] 30. Add basic Figma integration layer.
+- [ ] 31. Add basic Notion integration layer.
+- [ ] 32. Add web lifecycle event tracking for Resend flows.
 
 ## Current Files Added
 
@@ -86,7 +96,7 @@ packages/data-ops/src/index.ts
 apps/user-application/src/project-context/convexProjectContext.ts
 apps/user-application/src/project-context/data/selectedProjectContext.ts
 apps/user-application/src/project-context/index.ts
-apps/user-application/docs/05-06-desktop-auth-deep-link-plan.md
+apps/user-application/docs/05-09/05-09-desktop-auth-deep-link-plan.md
 apps/user-application/electron/sidecar.ts
 apps/user-application/src/hooks/useEngineStatus.ts
 apps/user-application/electron/auth.ts
@@ -282,6 +292,17 @@ curl http://127.0.0.1:48221/v1/version
 - `pnpm run typecheck` in `packages/data-ops/` passes after the Electron helper refactor.
 - `cargo check --manifest-path apps/data-service/Cargo.toml` passes after the Electron helper refactor.
 - `git diff --check` passes after the Electron helper refactor.
+- Replaced desktop login API-key bridge with Convex Auth JWT handoff from the signed-in website session.
+- Added `GET /api/v1/me` so Electron can verify a bearer token before storing a desktop session.
+- Fixed `/auth/desktop` routing so the desktop handoff child route is not swallowed by the normal `/auth` page.
+- Changed local development handoff from browser `fetch()` to a form POST to `http://127.0.0.1:48224/auth`, avoiding localhost CORS/private-network fetch failures.
+- Local Electron callback server accepts both JSON and form-encoded desktop auth payloads.
+- Desktop now displays `name` or `email` before falling back to `userId`.
+- Added `auth:session-changed` IPC so the renderer refreshes session and selected project context after successful login without a manual reload.
+- `pnpm run typecheck` in `apps/web-application/` passes after auth route fixes.
+- `pnpm run build:testing` in `apps/web-application/` passes after auth route fixes.
+- `pnpm run typecheck` in `apps/user-application/` passes after session refresh/display fixes.
+- `pnpm run build` in `apps/user-application/` passes after session refresh/display fixes.
 
 ## Notes
 
@@ -290,15 +311,16 @@ curl http://127.0.0.1:48221/v1/version
 - The desktop now consumes selected project context through `packages/data-ops`; the live Convex subscription path is still deferred.
 - Renderer can read engine status through the preload bridge.
 - WebSocket event forwarding is still pending.
-- Desktop auth can launch the website desktop auth route and accept validated `stage://auth` callbacks.
-- Secure desktop session storage is still pending; current callback exchange uses an in-memory placeholder session.
+- Desktop auth can launch the website desktop auth route and accept validated local dev callback / packaged `stage://auth` callbacks.
+- Secure desktop session storage is implemented through Electron main and `safeStorage`.
 - Electron helper functions and constants now live under `apps/user-application/electron/helpers/` instead of the main controller files.
 - Local dev desktop auth uses a localhost Electron callback server instead of relying on macOS `stage://` protocol registration, because macOS can route un-packaged dev links to the generic Electron app.
 - Rust/Axum clean-architecture references are recorded in `05-05-stage-monorepo-architecture.md`; use them as guidance when the sidecar grows real domains, not as a reason to over-layer the current skeleton.
 - Desktop session storage now uses Electron main plus `safeStorage` encrypted `userData`; renderer receives redacted session status only.
 - Desktop selected project context now goes through Electron main and the Stage website `/api/v1` routes with the stored desktop token.
-- The testing website route `/auth/desktop` can generate an existing Stage API credential after normal website login and return to `stage://auth`.
-- Important hardening note: the current website handoff is testable for dynamic data, but the next auth hardening pass should replace API-key-in-callback with a true one-time desktop code exchange.
+- The testing website route `/auth/desktop` now hands off the existing Convex Auth JWT instead of generating a developer API key.
+- The desktop renderer refreshes after login through `auth:session-changed`; manual reload is no longer required for the account label/project-context query refresh.
+- May 9 auth correction: no Convex desktop auth tables were added. The API-key bridge was removed from desktop login because it caused `desktop-dev-user` fallback and active API-key limit errors. See `05-09-desktop-auth-deep-link-plan.md`.
 - Email lifecycle note: we can track per-user download intent after login/onboarding by firing a Convex mutation when the logged-in user clicks the macOS download CTA. Store that event on the user or a lifecycle-events table, for example `user.app_download_clicked` with `downloadClickedAt`. This is reliable for "clicked download"; use first desktop auth/open as the stronger proof that the app was actually opened.
 - Figma and Notion remain production V1 scope, but they should come after the sidecar/chat/file-search foundation.
 
@@ -320,25 +342,111 @@ Done:
 - `apps/user-application` now imports `@stage/data-ops`.
 - Desktop selected project context is shaped through `projectContextSchema`.
 - Dashboard and critique mocks consume the validated selected `ProjectContext`.
-- Desktop auth/deep-link plan is documented in `apps/user-application/docs/05-06-desktop-auth-deep-link-plan.md`.
+- Desktop auth/deep-link plan is documented in `apps/user-application/docs/05-09/05-09-desktop-auth-deep-link-plan.md`.
 - Electron main starts, readiness-checks, and shuts down the Rust sidecar.
 - Renderer reads engine status through a typed IPC/preload bridge.
-- Desktop auth launcher and `stage://auth` callback handling exist.
+- Desktop auth launcher and local dev / `stage://auth` callback handling exist.
 - Secure desktop session storage exists.
 - Desktop can fetch selected project context dynamically through the website API when a session token exists.
+- Desktop auth was tested successfully with a real testing user and now shows the real user display identity instead of `desktop-dev-user` or only the raw user id.
 
 Not done yet:
 
-- Final one-time desktop auth code exchange.
 - Token refresh/logout.
 - Direct Convex subscription in the desktop app.
+- Replace remaining visible demo-only dashboard/sidebar data with live, loading, empty, or clearly marked fallback states.
 - Web lifecycle events for Resend Automations: `user.signed_up`, `user.app_download_clicked`, `user.app_opened`, `user.onboarding_complete`, and `user.payment_confirmed`.
 - Provider detection, file scanner, design critique, voice, Figma, and Notion layers.
 
 Next safe step:
 
 ```txt
-Test the testing.getstage.co desktop auth handoff and dynamic selected project context, then harden the auth exchange.
+Auth and the core live selected-project-context bridge are now working.
+Before Step 24, replace remaining visible demo-only UI with live/loading/empty/fallback states.
+Do not start provider execution until this stabilization pass is committed and tested.
+```
+
+## 09-05 Clean Auth Work Log
+
+What changed in code:
+
+```txt
+apps/web-application/src/routes/auth.desktop.tsx
+  now reads the existing Convex Auth token with useAuthToken()
+  no longer calls developer.apiKeys.generate for desktop login
+  uses form POST for local dev handoff instead of browser fetch to localhost
+
+apps/web-application/src/components/settings/AccountTab.tsx
+  local testing shortcut now starts the local Electron callback server flow
+
+apps/web-application/src/routes/auth.tsx
+  renders /auth normally but lets /auth/desktop render as its own child route
+  fixes the bug where authenticated users were sent to /dashboard before handoff ran
+
+apps/web-application/convex/api/index.ts
+  adds GET /api/v1/me for desktop token verification
+
+apps/web-application/convex/api/auth.ts
+  accepts either a developer API key or a Convex Auth bearer token
+  keeps API-key auth for developer/API routes
+
+apps/user-application/electron/auth.ts
+  rejects developer API keys for desktop login
+  verifies the Convex Auth token against /api/v1/me before storing it
+  emits auth:session-changed after storing a verified desktop session
+  logs the verified display identity without logging the raw token
+
+apps/user-application/electron/helpers/auth-callback-server.ts
+  accepts local POST handoff from the website
+  validates the callback payload with Zod
+  allows browser private-network CORS preflight for testing.getstage.co -> 127.0.0.1
+  accepts application/x-www-form-urlencoded form payloads for the local dev callback
+
+apps/user-application/electron/preload.ts
+  exposes auth.onSessionChanged(callback) as a preload-safe subscription
+
+apps/user-application/src/app/WorkspaceFrame.tsx
+  displays session name/email before user id
+  invalidates session and selected project context queries after auth:session-changed
+
+apps/user-application/src/settings/components/SettingsPageView.tsx
+  updates Account settings automatically when the desktop session changes
+
+apps/web-application/src/components/auth/AuthPage.tsx
+  preserves local desktop redirect_uri values through /auth without relying only on storage
+
+apps/user-application/shared/models/desktop.ts
+  adds Zod schemas for desktop auth handoff and verified user identity
+```
+
+Verification run on May 9:
+
+```txt
+packages/data-ops: pnpm run typecheck passed
+apps/user-application: pnpm run typecheck passed
+apps/user-application: pnpm run build passed
+apps/web-application: pnpm run typecheck passed
+apps/web-application: pnpm run build:testing passed
+git diff --check passed
+manual testing.getstage.co -> local Electron login passed after route and form-post fixes
+```
+
+What is intentionally not changed:
+
+```txt
+No new Convex desktop auth tables.
+No API-key based desktop login.
+No auth/onboarding/billing moved into Electron.
+No raw token stored in renderer.
+No direct Convex subscriptions in desktop yet.
+```
+
+Current risk:
+
+```txt
+Current auth works locally against testing.getstage.co, but token refresh/logout is still missing.
+Visible desktop UI still has fallback/mock areas that must be made honest before provider work.
+The desktop must be restarted after Electron main-process auth changes during local development.
 ```
 
 ## Next Agent Task
@@ -346,21 +454,18 @@ Test the testing.getstage.co desktop auth handoff and dynamic selected project c
 Goal:
 
 ```txt
-Test and harden the desktop auth exchange, without moving auth/onboarding/billing out of apps/web-application.
+Finish Step 23 stabilization, without moving auth/onboarding/billing out of apps/web-application.
 ```
 
 Recommended order:
 
 1. Read `apps/user-application/docs/05-05-stage-monorepo-architecture.md`.
 2. Read this tracker.
-3. Read `apps/user-application/docs/05-06-desktop-auth-deep-link-plan.md`.
-4. Open the desktop app and go to Account settings.
-5. Click `Log in with Stage`.
-6. Complete website login on `testing.getstage.co`.
-7. Confirm the `stage://auth` callback returns to desktop.
-8. Confirm Account settings shows the desktop session as connected.
-9. Confirm the dashboard subheading changes when real website API project data exists.
-10. Run:
+3. Read `apps/user-application/docs/05-09/05-09-desktop-auth-deep-link-plan.md`.
+4. Audit visible desktop dashboard/sidebar/settings areas for demo-only data.
+5. Replace remaining demo-only values with live ProjectContext, loading, empty, or clearly marked fallback states.
+6. Add logout/token-expiry UX before relying on this for broader testing.
+7. Run:
 
 ```bash
 cd packages/data-ops && pnpm run typecheck

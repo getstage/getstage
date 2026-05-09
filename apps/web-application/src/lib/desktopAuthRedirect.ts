@@ -1,8 +1,7 @@
 const DESKTOP_AUTH_REDIRECT_KEY = "stage.desktopAuth.redirect";
 const DESKTOP_AUTH_REDIRECT_TTL_MS = 10 * 60 * 1000;
 const LOCAL_DESKTOP_AUTH_CALLBACK_URL = "http://127.0.0.1:48224/auth";
-export const WEB_DESKTOP_AUTH_STATE = "web-session";
-export const WEB_DESKTOP_AUTH_SOURCE = "web-settings";
+const LOCAL_DESKTOP_AUTH_LOGIN_URL = "http://127.0.0.1:48224/login";
 
 type StoredDesktopAuthRedirect = {
   createdAt: number;
@@ -56,6 +55,15 @@ export function isValidDesktopCallbackUrl(value: string | null | undefined) {
   } catch {
     return false;
   }
+}
+
+export function isLocalDesktopCallbackUrl(value: URL) {
+  return (
+    value.protocol === "http:" &&
+    value.hostname === "127.0.0.1" &&
+    value.port === "48224" &&
+    value.pathname === "/auth"
+  );
 }
 
 export function storePendingDesktopAuthRedirect(value: string) {
@@ -115,10 +123,10 @@ export function clearPendingDesktopAuthRedirect() {
   window.sessionStorage.removeItem(DESKTOP_AUTH_REDIRECT_KEY);
 }
 
-export function buildWebDesktopAuthCallbackUrl(key: string) {
-  const callbackUrl = new URL(LOCAL_DESKTOP_AUTH_CALLBACK_URL);
-  callbackUrl.searchParams.set("code", key);
-  callbackUrl.searchParams.set("state", WEB_DESKTOP_AUTH_STATE);
-  callbackUrl.searchParams.set("source", WEB_DESKTOP_AUTH_SOURCE);
-  return callbackUrl.toString();
+export function getLocalDesktopAuthCallbackUrl() {
+  return LOCAL_DESKTOP_AUTH_CALLBACK_URL;
+}
+
+export function getLocalDesktopAuthLoginUrl() {
+  return LOCAL_DESKTOP_AUTH_LOGIN_URL;
 }
