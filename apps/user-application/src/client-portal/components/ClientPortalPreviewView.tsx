@@ -7,6 +7,11 @@ type PreviewStatus = "backlog" | "todo" | "in-progress" | "done" | "revision";
 type PreviewTask = Omit<Task, "status"> & { status?: PreviewStatus };
 type PreviewPhase = Omit<Phase, "tasks"> & { tasks: PreviewTask[] };
 type BoardTask = { task: PreviewTask; phaseName: string };
+type PendingRevisionMove = {
+  taskId: string;
+  targetColumn: PreviewStatus;
+  beforeTaskId?: string | null;
+} | null;
 type ActiveDrag = BoardTask & {
   id: string;
   width: number;
@@ -69,8 +74,8 @@ export function ClientPortalPreviewView() {
               </div>
               <div className="hidden h-[24px] w-px bg-[#e5e5e5] sm:block" />
               <div className="flex items-center gap-[6px]">
-                <span className="flex h-[22px] w-[22px] items-center justify-center rounded-[6px] bg-white text-[#8d87ff] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-                  <RefreshIcon />
+                <span className="flex h-[22px] w-[22px] items-center justify-center rounded-[6px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+                  <MaskedIcon src="/logos/dashboard/number-of-revisions.svg" className="h-[14px] w-[14px] bg-[#8d87ff]" />
                 </span>
                 <span className="text-[11px] font-medium leading-[1.5] text-[#525252]">3 Revisions remaining</span>
               </div>
@@ -139,6 +144,8 @@ function PreviewBoard({ phases }: { phases: PreviewPhase[] }) {
   const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<PreviewStatus | null>(null);
   const [dropBeforeTaskId, setDropBeforeTaskId] = useState<string | null>(null);
+  const [pendingRevisionMove, setPendingRevisionMove] = useState<PendingRevisionMove>(null);
+  const [isRevisionDetailsOpen, setIsRevisionDetailsOpen] = useState(false);
 
   useEffect(() => setColumns(initialColumns), [initialColumns]);
 
@@ -155,7 +162,11 @@ function PreviewBoard({ phases }: { phases: PreviewPhase[] }) {
 
     function handlePointerUp(event: globalThis.PointerEvent) {
       const target = getDropTargetFromPoint(event.clientX, event.clientY, draggedId);
-      if (target) moveTask(draggedId, target.column, target.beforeTaskId);
+      if (target?.column === "revision") {
+        setPendingRevisionMove({ taskId: draggedId, targetColumn: target.column, beforeTaskId: target.beforeTaskId });
+      } else if (target) {
+        moveTask(draggedId, target.column, target.beforeTaskId);
+      }
       setActiveDrag(null);
       setDragOverColumn(null);
       setDropBeforeTaskId(null);
@@ -256,7 +267,12 @@ function PreviewBoard({ phases }: { phases: PreviewPhase[] }) {
                 return (
                   <div key={task.id} data-preview-task-id={task.id}>
                     {activeDrag && dragOverColumn === column.key && dropBeforeTaskId === task.id ? <TaskSkeleton height={activeDrag?.height} /> : null}
-                    <PreviewTaskCard task={task} phaseName={phaseName} onPointerDown={(event) => startDragging(event, task.id)} />
+                    <PreviewTaskCard
+                      task={task}
+                      phaseName={phaseName}
+                      onPointerDown={(event) => startDragging(event, task.id)}
+                      onRevisionDetails={() => setIsRevisionDetailsOpen(true)}
+                    />
                   </div>
                 );
               })}
@@ -278,11 +294,33 @@ function PreviewBoard({ phases }: { phases: PreviewPhase[] }) {
           <PreviewTaskCard task={activeDrag.task} phaseName={activeDrag.phaseName} dragging />
         </div>
       ) : null}
+      {pendingRevisionMove ? (
+        <RequestRevisionModal
+          onClose={() => setPendingRevisionMove(null)}
+          onRequest={() => {
+            moveTask(pendingRevisionMove.taskId, pendingRevisionMove.targetColumn, pendingRevisionMove.beforeTaskId);
+            setPendingRevisionMove(null);
+          }}
+        />
+      ) : null}
+      {isRevisionDetailsOpen ? <RevisionDetailsModal onClose={() => setIsRevisionDetailsOpen(false)} /> : null}
     </div>
   );
 }
 
-function PreviewTaskCard({ task, phaseName, dragging = false, onPointerDown }: { task: PreviewTask; phaseName: string; dragging?: boolean; onPointerDown?: (event: PointerEvent<HTMLDivElement>) => void }) {
+function PreviewTaskCard({
+  task,
+  phaseName,
+  dragging = false,
+  onPointerDown,
+  onRevisionDetails,
+}: {
+  task: PreviewTask;
+  phaseName: string;
+  dragging?: boolean;
+  onPointerDown?: (event: PointerEvent<HTMLDivElement>) => void;
+  onRevisionDetails?: () => void;
+}) {
   const isRevision = task.status === "revision";
   return (
     <div
@@ -290,8 +328,8 @@ function PreviewTaskCard({ task, phaseName, dragging = false, onPointerDown }: {
       className={`select-none rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[clamp(12px,2vw,16px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${dragging ? "cursor-grabbing shadow-[0_8px_22px_rgba(10,10,10,0.14)]" : "cursor-grab active:cursor-grabbing"}`}
     >
       <div className="flex flex-col gap-[12px]">
-        <span className={`w-fit rounded-[2px] px-[6px] py-[2px] text-[12px] font-normal leading-[1.25] ${TAG_COLORS[phaseName] ?? TAG_COLORS.Submitted}`}>
-          {phaseName}
+        <span className={`w-fit rounded-[2px] px-[6px] py-[2px] text-[12px] font-normal leading-[1.25] ${isRevision ? TAG_COLORS.Submitted : TAG_COLORS[phaseName] ?? TAG_COLORS.Submitted}`}>
+          {isRevision ? "Submitted" : phaseName}
         </span>
         <div className="flex flex-col gap-[4px]">
           <div className="flex items-start gap-[6px]">
@@ -311,7 +349,20 @@ function PreviewTaskCard({ task, phaseName, dragging = false, onPointerDown }: {
             {task.content || "Here comes the project/task description, can contain 2-3 lines at max."}
           </p>
         </div>
-        {isRevision ? <MessageIcon /> : null}
+        {isRevision ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onRevisionDetails?.();
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+            className="flex h-[22px] w-[22px] cursor-pointer items-center justify-center rounded-[6px] bg-[#f5f5f5] transition-colors hover:bg-[#eeeeee]"
+            aria-label="View revision details"
+          >
+            <MaskedIcon src="/logos/dashboard/revision.svg" className="h-[16px] w-[16px] bg-[#737373]" />
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -325,10 +376,120 @@ function CheckIcon() {
   return <svg className="h-[12px] w-[12px]" viewBox="0 0 12 12" fill="none"><path d="M2.5 6 5 8.5 9.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-function RefreshIcon() {
-  return <svg className="h-[14px] w-[14px]" viewBox="0 0 16 16" fill="none"><path d="M12.5 8a4.5 4.5 0 1 1-1.32-3.18M12.5 3.5v3h-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+function RequestRevisionModal({ onClose, onRequest }: { onClose: () => void; onRequest: () => void }) {
+  return (
+    <RevisionOverlay onClose={onClose}>
+      <section role="dialog" aria-modal="true" aria-labelledby="request-revision-title" className="relative z-[91] flex w-full max-w-[516px] flex-col rounded-[12px] bg-[#f5f5f5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="px-[12px] pb-[12px] pt-[8px]">
+          <h2 id="request-revision-title" className="text-[13px] font-medium leading-[1.5] text-[#0a0a0a]">Request Revision</h2>
+        </div>
+        <div className="flex flex-col gap-[4px]">
+          <div className="flex flex-col gap-[16px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+            <RevisionTextArea label="Describe Revision Changes" />
+            <RevisionTextArea label="Additional Notes" />
+            <div className="flex flex-col gap-[8px]">
+              <p className="text-[13px] font-medium leading-none text-[#171717]">Upload Resources/Documents</p>
+              <button type="button" className="flex w-[282px] max-w-full items-start gap-[12px] rounded-[6px] bg-[#f5f5f5] py-[10px] pl-[12px] pr-[44px] text-left shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+                <MaskedIcon src="/logos/dashboard/upload-from-device.svg" className="h-[16px] w-[16px] shrink-0 bg-[#525252]" />
+                <span className="flex flex-col gap-[6px] text-[12px] font-medium leading-none">
+                  <span className="text-[#262626]">Upload Document</span>
+                  <span className="text-[#737373]">PDF, DOCX, PPT etc.</span>
+                </span>
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onRequest}
+            className="flex w-full items-center justify-center gap-[8px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[10px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none text-[#fafafa] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+            style={{ textShadow: "0px 0.5px 1.5px rgba(0,0,0,0.15)" }}
+          >
+            Request Revision
+            <ArrowRightIcon />
+          </button>
+        </div>
+      </section>
+    </RevisionOverlay>
+  );
 }
 
-function MessageIcon() {
-  return <svg className="h-[16px] w-[16px] text-[#737373]" viewBox="0 0 16 16" fill="none"><path d="M4 4.5h8v6H7l-3 2v-8Z" fill="currentColor" /></svg>;
+function RevisionDetailsModal({ onClose }: { onClose: () => void }) {
+  return (
+    <RevisionOverlay onClose={onClose}>
+      <section role="dialog" aria-modal="true" aria-labelledby="revision-details-title" className="relative z-[91] flex w-full max-w-[516px] flex-col rounded-[12px] bg-[#f5f5f5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="px-[12px] pb-[12px] pt-[8px]">
+          <h2 id="revision-details-title" className="text-[13px] font-medium leading-[1.5] text-[#0a0a0a]">Revision Details</h2>
+        </div>
+        <div className="flex flex-col gap-[32px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <RevisionInfo label="Describe Revision Changes">
+            Can you please update the content on this page? It’s still the old version.
+          </RevisionInfo>
+          <RevisionInfo label="Additional Notes">N/A</RevisionInfo>
+          <div className="flex flex-col gap-[8px]">
+            <p className="text-[13px] font-medium leading-none text-[#171717]">Upload Resources/Documents</p>
+            <div className="flex flex-col gap-[4px]">
+              <RevisionFileRow />
+              <RevisionFileRow />
+            </div>
+          </div>
+        </div>
+      </section>
+    </RevisionOverlay>
+  );
+}
+
+function RevisionOverlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/10 px-[16px] py-[20px] backdrop-blur-[2px]">
+      <button type="button" aria-label="Close revision modal" className="absolute inset-0 cursor-default" onClick={onClose} />
+      {children}
+    </div>
+  );
+}
+
+function RevisionTextArea({ label }: { label: string }) {
+  return (
+    <label className="flex flex-col gap-[8px]">
+      <span className="text-[13px] font-medium leading-none text-[#171717]">{label}</span>
+      <textarea placeholder="Type here..." className="h-[67px] w-full resize-none rounded-[6px] bg-[#f5f5f5] px-[12px] py-[10px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#525252]" />
+    </label>
+  );
+}
+
+function RevisionInfo({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-[8px] text-[13px] font-medium leading-none">
+      <p className="text-[#171717]">{label}</p>
+      <p className="text-[#525252]">{children}</p>
+    </div>
+  );
+}
+
+function RevisionFileRow() {
+  return (
+    <div className="flex items-center justify-between rounded-[8px] bg-[#f5f5f5] p-[8px]">
+      <div className="flex min-w-0 items-center gap-[8px]">
+        <MaskedIcon src="/logos/dashboard/upload-from-device.svg" className="h-[20px] w-[20px] shrink-0 bg-[#525252]" />
+        <p className="truncate text-[13px] font-medium leading-none text-[#171717]">Example.fig</p>
+      </div>
+      <p className="shrink-0 text-[12px] font-medium leading-none text-[#737373]">2.3MB</p>
+    </div>
+  );
+}
+
+function ArrowRightIcon() {
+  return <svg className="h-[16px] w-[16px]" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 8h9M9 4.5 12.5 8 9 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+function MaskedIcon({ src, className }: { src: string; className: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={className}
+      style={{
+        mask: `url(${src}) center / contain no-repeat`,
+        WebkitMask: `url(${src}) center / contain no-repeat`,
+      }}
+    />
+  );
 }
