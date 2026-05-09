@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import type { CompanionState } from "@shared/models/desktop";
 import { useSelectedProjectContext } from "../hooks/useSelectedProjectContext";
 import { critiqueThread } from "./data/critiqueThread";
@@ -24,6 +24,12 @@ const initialMessages: ChatMessage[] = [
   },
 ];
 
+const PANEL_WIDTH = 432;
+const PANEL_HEIGHT = 504;
+const ACTIVE_COMPANION_BAR_HEIGHT = 42;
+const MAIN_WINDOW_BAR_BOTTOM = 12;
+const COMPANION_WINDOW_BAR_BOTTOM = 32;
+
 function createInitialStageReply(projectContext: ReturnType<typeof useSelectedProjectContext>["context"]): ChatMessage {
   return {
     id: "initial-stage",
@@ -42,22 +48,29 @@ function createInitialStageReply(projectContext: ReturnType<typeof useSelectedPr
 export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const selectedProject = useSelectedProjectContext();
   const visible = state === "thinking" || state === "response";
-  const panelWidth = 432;
-  const panelHeight = 504;
+  const isCompanionWindow = new URLSearchParams(window.location.search).get("stageWindow") === "companion";
+  const companionBarBottom = isCompanionWindow
+    ? COMPANION_WINDOW_BAR_BOTTOM
+    : MAIN_WINDOW_BAR_BOTTOM;
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
   const [isThinking, setIsThinking] = useState(state === "thinking");
   const threadRef = useRef<HTMLDivElement>(null);
-  const { position, dragHandlers } = useDraggablePanel({
-    x: Math.max(16, Math.round((window.innerWidth - panelWidth) / 2)),
-    y: Math.max(16, window.innerHeight - panelHeight - 12),
-  });
+  const getOpeningPosition = useCallback(() => ({
+    x: Math.max(16, Math.round((window.innerWidth - PANEL_WIDTH) / 2)),
+    y: Math.max(
+      16,
+      window.innerHeight - companionBarBottom - ACTIVE_COMPANION_BAR_HEIGHT - PANEL_HEIGHT,
+    ),
+  }), [companionBarBottom]);
+  const { position, resetPosition, dragHandlers } = useDraggablePanel(getOpeningPosition());
 
   useEffect(() => {
     if (!visible || state !== "thinking") {
       return;
     }
 
+    resetPosition(getOpeningPosition());
     setIsThinking(true);
     const timeoutId = window.setTimeout(() => {
       setMessages((currentMessages) => {
@@ -72,7 +85,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     }, 900);
 
     return () => window.clearTimeout(timeoutId);
-  }, [onStateChange, selectedProject.context, state, visible]);
+  }, [getOpeningPosition, onStateChange, resetPosition, selectedProject.context, state, visible]);
 
   useEffect(() => {
     threadRef.current?.scrollTo({
@@ -130,7 +143,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     >
       <header className="chat-panel-header">
         <div className="chat-panel-title">
-          <span className="stage-mark" aria-hidden="true">S</span>
+          <img className="stage-mark" src="/logos/stage.svg" alt="" aria-hidden="true" />
           <strong>{critiqueThread.title}</strong>
         </div>
         <div className="chat-panel-actions">
@@ -168,7 +181,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
               <span>You</span>
             ) : (
               <div className="chat-message-label">
-                <span className="stage-mark stage-mark-small" aria-hidden="true">S</span>
+                <img className="stage-mark stage-mark-small" src="/logos/stage.svg" alt="" aria-hidden="true" />
               </div>
             )}
             {message.content.map((paragraph) => (
@@ -184,7 +197,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
         {isThinking ? (
           <div className="chat-message chat-message-stage">
             <div className="chat-message-label">
-              <span className="stage-mark stage-mark-small" aria-hidden="true">S</span>
+              <img className="stage-mark stage-mark-small" src="/logos/stage.svg" alt="" aria-hidden="true" />
               <strong>Stage</strong>
             </div>
             <p className="chat-thinking">Thinking...</p>

@@ -45,7 +45,7 @@ export function StageSidebar({
     if (routeKey === "settings") return pathname.startsWith("/settings") && pathname !== "/settings/portal";
     if (routeKey === "portal") return pathname === "/settings/portal" || pathname.startsWith("/client-portal");
     if (routeKey === "project") return pathname === "/projects" || pathname.startsWith("/project/");
-    if (routeKey === "tasks") return pathname === "/tasks";
+    if (routeKey === "tasks") return pathname.startsWith("/tasks");
     return false;
   }
 

@@ -10,6 +10,24 @@
   overflow: hidden;
 }
 
+.stage-companion-document,
+.stage-companion-body,
+.stage-companion-body #root {
+  background: transparent;
+}
+
+.stage-companion-window {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: transparent;
+}
+
+.stage-companion-window .voice-control-bar {
+  bottom: 32px;
+}
+
 .stage-window-chrome,
 .stage-sidebar,
 button,
@@ -143,6 +161,10 @@ a,
     0 0.45px 1px rgb(10 10 10 / 25%),
     0 1px 1px rgb(0 0 0 / 25%);
   transform: translateX(-50%);
+  transition:
+    width 180ms ease,
+    height 180ms ease,
+    padding 180ms ease;
   z-index: 40;
 }
 
@@ -270,29 +292,21 @@ a,
 }
 
 .stage-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   flex: 0 0 auto;
   width: 14px;
   height: 17px;
-  color: #0a0a0a;
-  font-family: var(--font-heading);
-  font-size: 17px;
-  font-style: italic;
-  font-weight: 800;
-  line-height: 1;
-  transform: skew(-10deg);
+  filter: invert(1);
+  object-fit: contain;
 }
 
 .stage-mark-light {
-  color: #ffffff;
+  filter: none;
 }
 
 .stage-mark-small {
   width: 10px;
   height: 12px;
-  font-size: 13px;
 }
 
 .chat-panel {

@@ -28,6 +28,8 @@ const stageDesktop = {
     hide: () => ipcRenderer.invoke(IPC_CHANNELS.companionHide),
     setState: (state: CompanionState) =>
       ipcRenderer.invoke(IPC_CHANNELS.companionSetState, state),
+    setInteractive: (interactive: boolean) =>
+      ipcRenderer.invoke(IPC_CHANNELS.companionSetInteractive, interactive),
   },
   window: {
     toggleMaximize: () => ipcRenderer.invoke(IPC_CHANNELS.windowToggleMaximize),

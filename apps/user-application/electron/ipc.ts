@@ -11,6 +11,7 @@ import {
 } from "@shared/models/desktop";
 import { defaultPermissionStatus } from "./helpers/permissions";
 import { getSelectedProjectContext } from "./project-context";
+import { closeCompanionWindow, setCompanionWindowInteractive } from "./windows";
 import type { SidecarSupervisor } from "./sidecar";
 import type { DesktopAuthController } from "./auth";
 
@@ -46,11 +47,21 @@ export function registerIpcHandlers({
   });
 
   ipcMain.handle(IPC_CHANNELS.companionHide, () => {
+    closeCompanionWindow();
     return { ok: true };
   });
 
   ipcMain.handle(IPC_CHANNELS.companionSetState, (_event, state: unknown) => {
     companionStateSchema.parse(state);
+    return { ok: true };
+  });
+
+  ipcMain.handle(IPC_CHANNELS.companionSetInteractive, (_event, interactive: unknown) => {
+    if (typeof interactive !== "boolean") {
+      throw new Error("Companion interactivity must be a boolean.");
+    }
+
+    setCompanionWindowInteractive(interactive);
     return { ok: true };
   });
 
