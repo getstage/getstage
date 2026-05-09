@@ -112,41 +112,6 @@ export function AuthPage() {
     }
   }
 
-  async function handleResendCode() {
-    if (activeAuthFlowRef.current) {
-      return;
-    }
-
-    const parsed = signInEmailSchema.safeParse({ email });
-    if (!parsed.success) {
-      setStep("email");
-      setError(parsed.error.issues[0]?.message ?? "Please enter a valid email address.");
-      return;
-    }
-
-    setError("");
-    activeAuthFlowRef.current = "email";
-    setLoading(true);
-    try {
-      const formData = new FormData();
-      formData.set("email", parsed.data.email);
-      await signIn("loops-otp", formData);
-      setEmail(parsed.data.email);
-    } catch (error) {
-      setError(
-        toUserFacingErrorMessage(
-          error,
-          "We could not send a new code. Please try again.",
-        ),
-      );
-    } finally {
-      if (activeAuthFlowRef.current === "email") {
-        activeAuthFlowRef.current = null;
-      }
-      setLoading(false);
-    }
-  }
-
   function handleCodeChange(index: number, value: string) {
     if (value.length > 1) value = value.slice(-1);
     if (value && !/^\d$/.test(value)) return;
@@ -568,30 +533,11 @@ export function AuthPage() {
                               </div>
                             </div>
 
-                            {error || authMode === "login" ? (
-                              <div
-                                className={cn(
-                                  "flex items-center px-3 py-1.5 text-[11px] font-medium leading-[1.5]",
-                                  error ? "justify-between" : "justify-end",
-                                )}
-                              >
-                                {error ? (
-                                  <p className="min-w-0 text-[#EF4444]">
-                                    Incorrect OTP, please try again.
-                                  </p>
-                                ) : null}
-                                <button
-                                  type="button"
-                                  onClick={handleResendCode}
-                                  disabled={loading}
-                                  className={cn(
-                                    "cursor-pointer text-[#525252] underline underline-offset-2 disabled:cursor-default disabled:opacity-50",
-                                    authMode === "login" && !error && "ml-auto",
-                                    authMode === "login" && error && "sr-only",
-                                  )}
-                                >
-                                  Resend OTP
-                                </button>
+                            {error ? (
+                              <div className="flex items-center px-3 py-1.5 text-[11px] font-medium leading-[1.5]">
+                                <p className="min-w-0 text-[#EF4444]">
+                                  The code you entered isn&apos;t correct. Please try again.
+                                </p>
                               </div>
                             ) : null}
                           </div>
