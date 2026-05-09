@@ -10,21 +10,71 @@ type DesktopShellProps = {
 };
 
 export function DesktopShell({ children }: DesktopShellProps) {
-  const companion = useCompanionState();
+  const isCompanionWindow = new URLSearchParams(window.location.search).get("stageWindow") === "companion";
+  const companion = useCompanionState(isCompanionWindow ? "listening" : "idle");
 
   useEffect(() => {
-    function handleCompanionState(event: Event) {
-      const nextState = (event as CustomEvent<CompanionState>).detail;
+    let isInteractive = false;
 
-      void companion.setState(nextState);
+    function setInteractive(nextInteractive: boolean) {
+      if (!isCompanionWindow) {
+        return;
+      }
+
+      if (nextInteractive === isInteractive) {
+        return;
+      }
+
+      isInteractive = nextInteractive;
+      void window.stageDesktop.companion.setInteractive(nextInteractive);
     }
 
-    window.addEventListener("stage-companion-state", handleCompanionState);
+    function handlePointerMove(event: PointerEvent) {
+      const target = document.elementFromPoint(event.clientX, event.clientY);
+
+      setInteractive(Boolean(target?.closest(".voice-control-bar, .chat-panel")));
+    }
+
+    function handleCompanionOpen() {
+      void companion.setState("listening");
+    }
+
+    if (isCompanionWindow) {
+      setInteractive(false);
+      window.addEventListener("pointermove", handlePointerMove);
+    }
+
+    window.addEventListener("stage-companion-open", handleCompanionOpen);
 
     return () => {
-      window.removeEventListener("stage-companion-state", handleCompanionState);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("stage-companion-open", handleCompanionOpen);
+      if (isCompanionWindow) {
+        void window.stageDesktop.companion.setInteractive(true);
+      }
     };
-  }, [companion.setState]);
+  }, [companion.setState, isCompanionWindow]);
+
+  if (isCompanionWindow) {
+    async function setCompanionPanelState(nextState: CompanionState) {
+      await companion.setState(nextState);
+
+      if (nextState === "idle") {
+        await window.stageDesktop.companion.hide();
+      }
+    }
+
+    async function setCompanionChatState(nextState: CompanionState) {
+      await companion.setState(nextState === "idle" ? "listening" : nextState);
+    }
+
+    return (
+      <div className="stage-companion-window">
+        <VoiceControlBar state={companion.state} onStateChange={setCompanionPanelState} />
+        <CritiquePanel state={companion.state} onStateChange={setCompanionChatState} />
+      </div>
+    );
+  }
 
   return (
     <div className="stage-desktop-shell min-h-dvh">

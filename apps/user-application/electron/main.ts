@@ -6,6 +6,9 @@ import { createSidecarSupervisor } from "./sidecar";
 import { createMainWindow } from "./windows";
 
 app.setName("Stage");
+if (process.platform === "darwin") {
+  app.dock?.show();
+}
 registerStageProtocol();
 const authController = createDesktopAuthController();
 const sidecarSupervisor = createSidecarSupervisor();

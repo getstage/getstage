@@ -6,6 +6,7 @@ export const IPC_CHANNELS = {
   companionShow: "companion:show",
   companionHide: "companion:hide",
   companionSetState: "companion:set-state",
+  companionSetInteractive: "companion:set-interactive",
   windowToggleMaximize: "window:toggle-maximize",
   screenGetActiveApp: "screen:get-active-app",
   screenCaptureActiveWindow: "screen:capture-active-window",

@@ -24,6 +24,7 @@ export type StageDesktopApi = {
     show: () => Promise<void>;
     hide: () => Promise<void>;
     setState: (state: CompanionState) => Promise<void>;
+    setInteractive: (interactive: boolean) => Promise<void>;
   };
   window: {
     toggleMaximize: () => Promise<void>;

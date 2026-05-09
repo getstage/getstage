@@ -1,8 +1,7 @@
-import { Menu, Tray, app, nativeImage, type NativeImage } from "electron";
+import { Tray, app, nativeImage, type NativeImage } from "electron";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import type { CompanionState } from "@shared/models/desktop";
-import { createMainWindow } from "./windows";
+import { openCompanionFromTray } from "./windows";
 
 let stageTray: Tray | null = null;
 
@@ -32,30 +31,6 @@ function getTrayIcon(): NativeImage | null {
   return image.resize({ width: 18, height: 18 });
 }
 
-function sendCompanionState(state: CompanionState) {
-  const window = createMainWindow();
-
-  if (window.isMinimized()) {
-    window.restore();
-  }
-
-  window.show();
-  window.focus();
-
-  const sendState = () => {
-    void window.webContents.executeJavaScript(
-      `window.dispatchEvent(new CustomEvent("stage-companion-state", { detail: ${JSON.stringify(state)} }))`,
-    );
-  };
-
-  if (window.webContents.isLoading()) {
-    window.webContents.once("did-finish-load", sendState);
-    return;
-  }
-
-  sendState();
-}
-
 export function installStageTray() {
   if (stageTray) {
     return stageTray;
@@ -75,22 +50,8 @@ export function installStageTray() {
   }
 
   stageTray.setToolTip("Stage");
-  stageTray.setContextMenu(Menu.buildFromTemplate([
-    {
-      label: "Open Stage Chat",
-      click: () => sendCompanionState("thinking"),
-    },
-    { type: "separator" },
-    {
-      label: "Show Stage",
-      click: () => createMainWindow(),
-    },
-    {
-      label: "Quit Stage",
-      role: "quit",
-    },
-  ]));
-  stageTray.on("click", () => sendCompanionState("thinking"));
+  stageTray.on("click", () => openCompanionFromTray());
+  stageTray.on("right-click", () => openCompanionFromTray());
 
   return stageTray;
 }

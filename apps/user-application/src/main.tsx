@@ -6,6 +6,11 @@ import { router } from "./router";
 import "./styles/globals.css";
 import "./styles/desktop.css";
 
+if (new URLSearchParams(window.location.search).get("stageWindow") === "companion") {
+  document.documentElement.classList.add("stage-companion-document");
+  document.body.classList.add("stage-companion-body");
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

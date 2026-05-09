@@ -131,7 +131,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     >
       <header className="chat-panel-header">
         <div className="chat-panel-title">
-          <span className="stage-mark" aria-hidden="true">S</span>
+          <img className="stage-mark" src="/logos/stage.svg" alt="" aria-hidden="true" />
           <strong>{critiqueThread.title}</strong>
         </div>
         <div className="chat-panel-actions">
@@ -169,7 +169,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
               <span>You</span>
             ) : (
               <div className="chat-message-label">
-                <span className="stage-mark stage-mark-small" aria-hidden="true">S</span>
+                <img className="stage-mark stage-mark-small" src="/logos/stage.svg" alt="" aria-hidden="true" />
               </div>
             )}
             {message.content.map((paragraph) => (
@@ -185,7 +185,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
         {isThinking ? (
           <div className="chat-message chat-message-stage">
             <div className="chat-message-label">
-              <span className="stage-mark stage-mark-small" aria-hidden="true">S</span>
+              <img className="stage-mark stage-mark-small" src="/logos/stage.svg" alt="" aria-hidden="true" />
               <strong>Stage</strong>
             </div>
             <p className="chat-thinking">Thinking...</p>
