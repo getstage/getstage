@@ -8,6 +8,7 @@ type VoiceControlBarProps = {
 export function VoiceControlBar({ state, onStateChange }: VoiceControlBarProps) {
   const isListening = state === "listening";
   const isChatOpen = state === "thinking" || state === "response";
+  const isCompanionWindow = new URLSearchParams(window.location.search).get("stageWindow") === "companion";
 
   if (isChatOpen) {
     return null;
@@ -18,13 +19,13 @@ export function VoiceControlBar({ state, onStateChange }: VoiceControlBarProps) 
       className={`voice-control-bar ${state === "idle" ? "voice-control-bar-idle" : "voice-control-bar-active"}`}
       data-state={state}
       onMouseEnter={() => {
-        if (state === "idle") void onStateChange("listening");
+        if (!isCompanionWindow && state === "idle") void onStateChange("listening");
       }}
       onMouseLeave={() => {
-        if (state === "listening") void onStateChange("idle");
+        if (!isCompanionWindow && state === "listening") void onStateChange("idle");
       }}
       onFocus={() => {
-        if (state === "idle") void onStateChange("listening");
+        if (!isCompanionWindow && state === "idle") void onStateChange("listening");
       }}
     >
       {state === "idle" ? (
