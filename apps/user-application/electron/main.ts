@@ -1,5 +1,6 @@
 import { app, Menu } from "electron";
 import { createDesktopAuthController } from "./auth";
+import { createDesktopAuthCallbackServer } from "./helpers/auth-callback-server";
 import { findStageAuthUrl, registerStageProtocol } from "./helpers/auth";
 import { registerIpcHandlers } from "./ipc";
 import { createSidecarSupervisor } from "./sidecar";
@@ -8,6 +9,7 @@ import { createMainWindow } from "./windows";
 app.setName("Stage");
 registerStageProtocol();
 const authController = createDesktopAuthController();
+const authCallbackServer = createDesktopAuthCallbackServer(authController);
 const sidecarSupervisor = createSidecarSupervisor();
 let sidecarStoppedForQuit = false;
 
@@ -119,6 +121,7 @@ app.on("second-instance", (_event, argv) => {
 
 app.whenReady().then(() => {
   installApplicationMenu();
+  authCallbackServer.start();
   registerIpcHandlers({ authController, sidecarSupervisor });
   authController.consumeQueuedCallback().then((result) => {
     if (result && !result.ok) {
@@ -147,6 +150,7 @@ app.on("before-quit", (event) => {
   }
 
   event.preventDefault();
+  authCallbackServer.stop();
   sidecarSupervisor.stop().finally(() => {
     sidecarStoppedForQuit = true;
     app.quit();

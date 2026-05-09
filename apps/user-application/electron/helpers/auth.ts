@@ -4,6 +4,9 @@ import type { DesktopSession, DesktopStoredSession } from "@shared/models/deskto
 
 export const STAGE_PROTOCOL = "stage";
 export const DESKTOP_AUTH_PATH = "auth";
+export const DEV_DESKTOP_AUTH_CALLBACK_HOST = "127.0.0.1";
+export const DEV_DESKTOP_AUTH_CALLBACK_PORT = 48224;
+export const DEV_DESKTOP_AUTH_CALLBACK_PATH = "/auth";
 export const PRODUCTION_DESKTOP_AUTH_URL = "https://getstage.co/auth/desktop";
 export const TESTING_DESKTOP_AUTH_URL = "https://testing.getstage.co/auth/desktop";
 export const AUTH_STATE_TTL_MS = 10 * 60 * 1000;
@@ -60,7 +63,22 @@ export function toPublicSession(session: DesktopStoredSession): DesktopSession {
 }
 
 export function getDesktopAuthRedirectUri() {
+  if (!app.isPackaged) {
+    return `http://${DEV_DESKTOP_AUTH_CALLBACK_HOST}:${DEV_DESKTOP_AUTH_CALLBACK_PORT}${DEV_DESKTOP_AUTH_CALLBACK_PATH}`;
+  }
+
   return `${STAGE_PROTOCOL}://${DESKTOP_AUTH_PATH}`;
+}
+
+export function getStageAuthUrlFromLocalCallback(value: string) {
+  const localUrl = new URL(value);
+  const stageUrl = new URL(`${STAGE_PROTOCOL}://${DESKTOP_AUTH_PATH}`);
+
+  for (const [key, paramValue] of localUrl.searchParams.entries()) {
+    stageUrl.searchParams.set(key, paramValue);
+  }
+
+  return stageUrl.toString();
 }
 
 export function isStageAuthUrl(value: string) {

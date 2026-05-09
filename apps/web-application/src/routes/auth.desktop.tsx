@@ -6,6 +6,7 @@ import { api } from "@/lib/convex";
 import { useAuth } from "@/lib/auth";
 import {
   clearPendingDesktopAuthRedirect,
+  isValidDesktopCallbackUrl,
   storePendingDesktopAuthRedirect,
 } from "@/lib/desktopAuthRedirect";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
@@ -42,7 +43,7 @@ function getValidatedRedirectUri(value?: string) {
 
   try {
     const url = new URL(value);
-    return url.protocol === "stage:" && url.hostname === "auth" ? url : null;
+    return isValidDesktopCallbackUrl(value) ? url : null;
   } catch {
     return null;
   }
@@ -78,7 +79,7 @@ function DesktopAuthPage() {
         redirectUri.searchParams.set("code", key);
         redirectUri.searchParams.set("state", state);
         setStatus("Opening Stage Desktop...");
-        console.info("[stage-desktop-auth] opening stage protocol callback");
+        console.info("[stage-desktop-auth] opening desktop auth callback");
         window.location.assign(redirectUri.toString());
       })
       .catch((error) => {
@@ -112,7 +113,7 @@ function DesktopAuthPage() {
   if (!redirectUri || !state) {
     return (
       <DesktopAuthStatus
-        error="This desktop sign-in link is missing a valid state or stage://auth redirect URI."
+        error="This desktop sign-in link is missing a valid state or desktop redirect URI."
         label="Desktop sign-in cannot continue."
       />
     );

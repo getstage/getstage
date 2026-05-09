@@ -1,5 +1,6 @@
 const DESKTOP_AUTH_REDIRECT_KEY = "stage.desktopAuth.redirect";
 const DESKTOP_AUTH_REDIRECT_TTL_MS = 10 * 60 * 1000;
+const LOCAL_DESKTOP_AUTH_CALLBACK_URL = "http://127.0.0.1:48224/auth";
 export const WEB_DESKTOP_AUTH_STATE = "web-session";
 export const WEB_DESKTOP_AUTH_SOURCE = "web-settings";
 
@@ -29,7 +30,28 @@ export function isDesktopAuthRedirect(value: string | null | undefined) {
       url.origin === window.location.origin &&
       url.pathname === "/auth/desktop" &&
       Boolean(url.searchParams.get("state")) &&
-      redirectUri === "stage://auth"
+      isValidDesktopCallbackUrl(redirectUri)
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function isValidDesktopCallbackUrl(value: string | null | undefined) {
+  if (!value) {
+    return false;
+  }
+
+  try {
+    const url = new URL(value);
+    return (
+      (url.protocol === "stage:" && url.hostname === "auth") ||
+      (
+        url.protocol === "http:" &&
+        url.hostname === "127.0.0.1" &&
+        url.port === "48224" &&
+        url.pathname === "/auth"
+      )
     );
   } catch {
     return false;
@@ -94,7 +116,7 @@ export function clearPendingDesktopAuthRedirect() {
 }
 
 export function buildWebDesktopAuthCallbackUrl(key: string) {
-  const callbackUrl = new URL("stage://auth");
+  const callbackUrl = new URL(LOCAL_DESKTOP_AUTH_CALLBACK_URL);
   callbackUrl.searchParams.set("code", key);
   callbackUrl.searchParams.set("state", WEB_DESKTOP_AUTH_STATE);
   callbackUrl.searchParams.set("source", WEB_DESKTOP_AUTH_SOURCE);

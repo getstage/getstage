@@ -54,6 +54,7 @@ Stop and test, wait for onboarding to be finished
 - [ ] 28. Add cloud voice transcription flow.
 - [ ] 29. Add basic Figma integration layer.
 - [ ] 30. Add basic Notion integration layer.
+- [ ] 31. Add web lifecycle event tracking for Resend flows.
 
 ## Current Files Added
 
@@ -292,11 +293,13 @@ curl http://127.0.0.1:48221/v1/version
 - Desktop auth can launch the website desktop auth route and accept validated `stage://auth` callbacks.
 - Secure desktop session storage is still pending; current callback exchange uses an in-memory placeholder session.
 - Electron helper functions and constants now live under `apps/user-application/electron/helpers/` instead of the main controller files.
+- Local dev desktop auth uses a localhost Electron callback server instead of relying on macOS `stage://` protocol registration, because macOS can route un-packaged dev links to the generic Electron app.
 - Rust/Axum clean-architecture references are recorded in `05-05-stage-monorepo-architecture.md`; use them as guidance when the sidecar grows real domains, not as a reason to over-layer the current skeleton.
 - Desktop session storage now uses Electron main plus `safeStorage` encrypted `userData`; renderer receives redacted session status only.
 - Desktop selected project context now goes through Electron main and the Stage website `/api/v1` routes with the stored desktop token.
 - The testing website route `/auth/desktop` can generate an existing Stage API credential after normal website login and return to `stage://auth`.
 - Important hardening note: the current website handoff is testable for dynamic data, but the next auth hardening pass should replace API-key-in-callback with a true one-time desktop code exchange.
+- Email lifecycle note: we can track per-user download intent after login/onboarding by firing a Convex mutation when the logged-in user clicks the macOS download CTA. Store that event on the user or a lifecycle-events table, for example `user.app_download_clicked` with `downloadClickedAt`. This is reliable for "clicked download"; use first desktop auth/open as the stronger proof that the app was actually opened.
 - Figma and Notion remain production V1 scope, but they should come after the sidecar/chat/file-search foundation.
 
 ## Current Status Summary
@@ -329,6 +332,7 @@ Not done yet:
 - Final one-time desktop auth code exchange.
 - Token refresh/logout.
 - Direct Convex subscription in the desktop app.
+- Web lifecycle events for Resend Automations: `user.signed_up`, `user.app_download_clicked`, `user.app_opened`, `user.onboarding_complete`, and `user.payment_confirmed`.
 - Provider detection, file scanner, design critique, voice, Figma, and Notion layers.
 
 Next safe step:
