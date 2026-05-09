@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import type { CompanionState } from "@shared/models/desktop";
 import { useSelectedProjectContext } from "../hooks/useSelectedProjectContext";
 import { critiqueThread } from "./data/critiqueThread";
@@ -26,8 +26,9 @@ const initialMessages: ChatMessage[] = [
 
 const PANEL_WIDTH = 432;
 const PANEL_HEIGHT = 504;
-const MAIN_WINDOW_BOTTOM_OFFSET = 64;
-const COMPANION_WINDOW_BOTTOM_OFFSET = 84;
+const ACTIVE_COMPANION_BAR_HEIGHT = 42;
+const MAIN_WINDOW_BAR_BOTTOM = 12;
+const COMPANION_WINDOW_BAR_BOTTOM = 32;
 
 function createInitialStageReply(projectContext: ReturnType<typeof useSelectedProjectContext>["context"]): ChatMessage {
   return {
@@ -48,25 +49,28 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const selectedProject = useSelectedProjectContext();
   const visible = state === "thinking" || state === "response";
   const isCompanionWindow = new URLSearchParams(window.location.search).get("stageWindow") === "companion";
-  const panelBottomOffset = isCompanionWindow
-    ? COMPANION_WINDOW_BOTTOM_OFFSET
-    : MAIN_WINDOW_BOTTOM_OFFSET;
+  const companionBarBottom = isCompanionWindow
+    ? COMPANION_WINDOW_BAR_BOTTOM
+    : MAIN_WINDOW_BAR_BOTTOM;
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
   const [isThinking, setIsThinking] = useState(state === "thinking");
   const threadRef = useRef<HTMLDivElement>(null);
-  const openingPosition = useMemo(() => ({
+  const getOpeningPosition = useCallback(() => ({
     x: Math.max(16, Math.round((window.innerWidth - PANEL_WIDTH) / 2)),
-    y: Math.max(16, window.innerHeight - PANEL_HEIGHT - panelBottomOffset),
-  }), [panelBottomOffset]);
-  const { position, resetPosition, dragHandlers } = useDraggablePanel(openingPosition);
+    y: Math.max(
+      16,
+      window.innerHeight - companionBarBottom - ACTIVE_COMPANION_BAR_HEIGHT - PANEL_HEIGHT,
+    ),
+  }), [companionBarBottom]);
+  const { position, resetPosition, dragHandlers } = useDraggablePanel(getOpeningPosition());
 
   useEffect(() => {
     if (!visible || state !== "thinking") {
       return;
     }
 
-    resetPosition(openingPosition);
+    resetPosition(getOpeningPosition());
     setIsThinking(true);
     const timeoutId = window.setTimeout(() => {
       setMessages((currentMessages) => {
@@ -81,7 +85,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     }, 900);
 
     return () => window.clearTimeout(timeoutId);
-  }, [onStateChange, openingPosition, resetPosition, selectedProject.context, state, visible]);
+  }, [getOpeningPosition, onStateChange, resetPosition, selectedProject.context, state, visible]);
 
   useEffect(() => {
     threadRef.current?.scrollTo({
