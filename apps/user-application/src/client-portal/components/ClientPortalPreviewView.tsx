@@ -277,7 +277,7 @@ function PreviewBoard({ phases }: { phases: PreviewPhase[] }) {
                         void navigate({
                           to: "/tasks/$taskId",
                           params: { taskId: task.id },
-                          search: { from: "tasks", projectId: undefined },
+                          search: { from: "client-portal", projectId: "baseframe" },
                         })
                       }
                       onRevisionDetails={() => setIsRevisionDetailsOpen(true)}

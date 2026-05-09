@@ -45,11 +45,21 @@ export function TaskDetailsView() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const backLabel = search.from === "project" ? "Back to Project" : "Back to Tasks";
+  const backLabel =
+    search.from === "project"
+      ? "Back to Project"
+      : search.from === "client-portal"
+        ? "Back to Client Portal"
+        : "Back to Tasks";
 
   function goBack() {
     if (search.from === "project" && search.projectId) {
       void navigate({ to: "/project/$projectId", params: { projectId: search.projectId } });
+      return;
+    }
+
+    if (search.from === "client-portal" && search.projectId) {
+      void navigate({ to: "/client-portal/$projectId/preview", params: { projectId: search.projectId } });
       return;
     }
 

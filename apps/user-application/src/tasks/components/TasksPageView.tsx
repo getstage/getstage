@@ -30,12 +30,12 @@ type ActiveDrag = PriorityTask & {
   y: number;
 };
 
-type TaskAssignee = {
+export type TaskAssignee = {
   name: string;
   avatarUrl: string;
 };
 
-type TaskProject = {
+export type TaskProject = {
   name: string;
   logoUrl: string;
 };
@@ -422,9 +422,11 @@ export function TasksPageView() {
   );
 }
 
-function CreateTaskModal({
+export function CreateTaskModal({
   onClose,
   onCreateTask,
+  initialProject,
+  lockProject = false,
 }: {
   onClose: () => void;
   onCreateTask: (task: {
@@ -433,11 +435,13 @@ function CreateTaskModal({
     assignee: TaskAssignee;
     project: TaskProject;
   }) => void;
+  initialProject?: TaskProject;
+  lockProject?: boolean;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedAssignee, setSelectedAssignee] = useState<TaskAssignee>(TASK_ASSIGNEES[0]);
-  const [selectedProject, setSelectedProject] = useState<TaskProject>(TASK_PROJECTS[0]);
+  const [selectedProject, setSelectedProject] = useState<TaskProject>(initialProject ?? TASK_PROJECTS[0]);
   const [activePicker, setActivePicker] = useState<TaskPicker>(null);
   const trimmedTitle = title.trim();
   const trimmedDescription = description.trim();
@@ -535,9 +539,13 @@ function CreateTaskModal({
                   <TaskMetaButton
                     icon="/logos/dashboard/project.svg"
                     label={selectedProject.name || "Project"}
-                    onClick={() => setActivePicker((current) => current === "project" ? null : "project")}
+                    disabled={lockProject}
+                    onClick={() => {
+                      if (lockProject) return;
+                      setActivePicker((current) => current === "project" ? null : "project");
+                    }}
                   />
-                  {activePicker === "project" ? (
+                  {activePicker === "project" && !lockProject ? (
                     <ProjectPicker
                       selectedProject={selectedProject}
                       onSelect={(project) => {
@@ -575,17 +583,20 @@ function CreateTaskModal({
 function TaskMetaButton({
   icon,
   label,
+  disabled = false,
   onClick,
 }: {
   icon: string;
   label: string;
+  disabled?: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={onClick}
-      className="flex h-[31px] cursor-pointer items-center gap-[6px] rounded-[6px] bg-[#f5f5f5] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#262626]/80 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#eeeeee]"
+      className="flex h-[31px] cursor-pointer items-center gap-[6px] rounded-[6px] bg-[#f5f5f5] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#262626]/80 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#eeeeee] disabled:cursor-default disabled:hover:bg-[#f5f5f5]"
     >
       <span
         aria-hidden="true"

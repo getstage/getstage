@@ -58,7 +58,7 @@ const taskDetailsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/tasks/$taskId",
   validateSearch: (search: Record<string, unknown>) => ({
-    from: search.from === "project" ? "project" : "tasks",
+    from: search.from === "project" || search.from === "client-portal" ? search.from : "tasks",
     projectId: typeof search.projectId === "string" ? search.projectId : undefined,
   }),
   component: TaskDetailsView,
