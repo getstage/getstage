@@ -322,6 +322,41 @@ function PreviewTaskCard({
   onRevisionDetails?: () => void;
 }) {
   const isRevision = task.status === "revision";
+  if (isRevision) {
+    return (
+      <div
+        onPointerDown={onPointerDown}
+        className={`select-none rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[16px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${dragging ? "cursor-grabbing shadow-[0_8px_22px_rgba(10,10,10,0.14)]" : "cursor-grab active:cursor-grabbing"}`}
+      >
+        <div className="flex flex-col gap-[12px]">
+          <span className="w-fit rounded-[2px] bg-[#f5f5f5] px-[6px] py-[2px] text-[12px] font-normal leading-none text-[#525252]">
+            Submitted
+          </span>
+          <div className="flex flex-col gap-[12px]">
+            <div className="flex flex-col gap-[4px]">
+              <p className="min-w-0 text-[13px] font-medium leading-none text-[#171717]">{task.title}</p>
+              <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">
+                {task.content || "Here comes the project/task description, can contain 2-3 lines at max."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onRevisionDetails?.();
+              }}
+              onPointerDown={(event) => event.stopPropagation()}
+              className="flex h-[16px] w-[16px] cursor-pointer items-center justify-center"
+              aria-label="View revision details"
+            >
+              <MaskedIcon src="/logos/dashboard/revision.svg" className="h-[16px] w-[16px] bg-[#737373]" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       onPointerDown={onPointerDown}
@@ -349,20 +384,6 @@ function PreviewTaskCard({
             {task.content || "Here comes the project/task description, can contain 2-3 lines at max."}
           </p>
         </div>
-        {isRevision ? (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onRevisionDetails?.();
-            }}
-            onPointerDown={(event) => event.stopPropagation()}
-            className="flex h-[22px] w-[22px] cursor-pointer items-center justify-center rounded-[6px] bg-[#f5f5f5] transition-colors hover:bg-[#eeeeee]"
-            aria-label="View revision details"
-          >
-            <MaskedIcon src="/logos/dashboard/revision.svg" className="h-[16px] w-[16px] bg-[#737373]" />
-          </button>
-        ) : null}
       </div>
     </div>
   );
