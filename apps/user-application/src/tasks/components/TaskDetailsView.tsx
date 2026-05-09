@@ -273,5 +273,5 @@ function CheckIcon() {
 }
 
 function WarningIcon() {
-  return <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" className="h-[32px] w-[32px]"><path d="M14.15 5.35c.82-1.42 2.88-1.42 3.7 0l10.07 17.45c.82 1.42-.21 3.2-1.85 3.2H5.93c-1.64 0-2.67-1.78-1.85-3.2L14.15 5.35Z" fill="#ef4444" /><path d="M16 11v7" stroke="#fff" strokeWidth="2" strokeLinecap="round" /><circle cx="16" cy="22" r="1.3" fill="#fff" /></svg>;
+  return <MaskedIcon src="/logos/dashboard/warning.svg" className="h-[32px] w-[32px] bg-[#ef4444]" />;
 }

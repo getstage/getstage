@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type PointerEvent } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { mockProject } from "@/project/data/projectSnapshot";
 import type { Phase, Task } from "@/project/models/project";
 import { WorkspaceFrame } from "@/app/WorkspaceFrame";
@@ -139,6 +140,7 @@ function buildColumns(phases: PreviewPhase[]): Record<PreviewStatus, BoardTask[]
 }
 
 function PreviewBoard({ phases }: { phases: PreviewPhase[] }) {
+  const navigate = useNavigate();
   const initialColumns = useMemo(() => buildColumns(phases), [phases]);
   const [columns, setColumns] = useState(initialColumns);
   const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
@@ -271,6 +273,13 @@ function PreviewBoard({ phases }: { phases: PreviewPhase[] }) {
                       task={task}
                       phaseName={phaseName}
                       onPointerDown={(event) => startDragging(event, task.id)}
+                      onOpen={() =>
+                        void navigate({
+                          to: "/tasks/$taskId",
+                          params: { taskId: task.id },
+                          search: { from: "tasks", projectId: undefined },
+                        })
+                      }
                       onRevisionDetails={() => setIsRevisionDetailsOpen(true)}
                     />
                   </div>
@@ -313,12 +322,14 @@ function PreviewTaskCard({
   phaseName,
   dragging = false,
   onPointerDown,
+  onOpen,
   onRevisionDetails,
 }: {
   task: PreviewTask;
   phaseName: string;
   dragging?: boolean;
   onPointerDown?: (event: PointerEvent<HTMLDivElement>) => void;
+  onOpen?: () => void;
   onRevisionDetails?: () => void;
 }) {
   const isRevision = task.status === "revision";
@@ -334,7 +345,17 @@ function PreviewTaskCard({
           </span>
           <div className="flex flex-col gap-[12px]">
             <div className="flex flex-col gap-[4px]">
-              <p className="min-w-0 text-[13px] font-medium leading-none text-[#171717]">{task.title}</p>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onOpen?.();
+                }}
+                onPointerDown={(event) => event.stopPropagation()}
+                className="min-w-0 cursor-pointer text-left text-[13px] font-medium leading-none text-[#171717] outline-none hover:underline focus-visible:underline"
+              >
+                {task.title}
+              </button>
               <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">
                 {task.content || "Here comes the project/task description, can contain 2-3 lines at max."}
               </p>
@@ -378,7 +399,17 @@ function PreviewTaskCard({
                 {task.isCompleted ? <CheckIcon /> : null}
               </button>
             ) : null}
-            <p className="min-w-0 flex-1 text-[13px] font-medium leading-[1.25] text-[#171717]">{task.title}</p>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpen?.();
+              }}
+              onPointerDown={(event) => event.stopPropagation()}
+              className="min-w-0 flex-1 cursor-pointer text-left text-[13px] font-medium leading-[1.25] text-[#171717] outline-none hover:underline focus-visible:underline"
+            >
+              {task.title}
+            </button>
           </div>
           <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">
             {task.content || "Here comes the project/task description, can contain 2-3 lines at max."}
