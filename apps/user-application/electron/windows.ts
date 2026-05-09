@@ -10,6 +10,8 @@ import { join } from "node:path";
 
 let mainWindow: BrowserWindowType | null = null;
 let companionWindow: BrowserWindowType | null = null;
+const MAIN_WINDOW_ACTIVATION_SUPPRESSION_MS = 1_500;
+let suppressMainWindowActivationUntil = 0;
 
 function denyWindowOpen(window: BrowserWindowType) {
   window.webContents.setWindowOpenHandler((details: HandlerDetails) => {
@@ -161,9 +163,18 @@ export function createCompanionWindow() {
 
 export function closeCompanionWindow() {
   if (companionWindow && !companionWindow.isDestroyed()) {
+    suppressMainWindowActivationUntil = Date.now() + MAIN_WINDOW_ACTIVATION_SUPPRESSION_MS;
     companionWindow.hide();
     companionWindow.setIgnoreMouseEvents(true, { forward: true });
   }
+}
+
+function isCompanionWindowVisible() {
+  return Boolean(companionWindow && !companionWindow.isDestroyed() && companionWindow.isVisible());
+}
+
+export function shouldSuppressMainWindowActivation() {
+  return isCompanionWindowVisible() || Date.now() < suppressMainWindowActivationUntil;
 }
 
 export function setCompanionWindowInteractive(interactive: boolean) {

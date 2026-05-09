@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { CompanionState } from "@shared/models/desktop";
 import { useSelectedProjectContext } from "../hooks/useSelectedProjectContext";
 import { critiqueThread } from "./data/critiqueThread";
@@ -24,6 +24,11 @@ const initialMessages: ChatMessage[] = [
   },
 ];
 
+const PANEL_WIDTH = 432;
+const PANEL_HEIGHT = 504;
+const MAIN_WINDOW_BOTTOM_OFFSET = 64;
+const COMPANION_WINDOW_BOTTOM_OFFSET = 84;
+
 function createInitialStageReply(projectContext: ReturnType<typeof useSelectedProjectContext>["context"]): ChatMessage {
   return {
     id: "initial-stage",
@@ -42,23 +47,26 @@ function createInitialStageReply(projectContext: ReturnType<typeof useSelectedPr
 export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const selectedProject = useSelectedProjectContext();
   const visible = state === "thinking" || state === "response";
-  const panelWidth = 432;
-  const panelHeight = 504;
-  const panelBottomOffset = 96;
+  const isCompanionWindow = new URLSearchParams(window.location.search).get("stageWindow") === "companion";
+  const panelBottomOffset = isCompanionWindow
+    ? COMPANION_WINDOW_BOTTOM_OFFSET
+    : MAIN_WINDOW_BOTTOM_OFFSET;
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
   const [isThinking, setIsThinking] = useState(state === "thinking");
   const threadRef = useRef<HTMLDivElement>(null);
-  const { position, dragHandlers } = useDraggablePanel({
-    x: Math.max(16, Math.round((window.innerWidth - panelWidth) / 2)),
-    y: Math.max(16, window.innerHeight - panelHeight - panelBottomOffset),
-  });
+  const openingPosition = useMemo(() => ({
+    x: Math.max(16, Math.round((window.innerWidth - PANEL_WIDTH) / 2)),
+    y: Math.max(16, window.innerHeight - PANEL_HEIGHT - panelBottomOffset),
+  }), [panelBottomOffset]);
+  const { position, resetPosition, dragHandlers } = useDraggablePanel(openingPosition);
 
   useEffect(() => {
     if (!visible || state !== "thinking") {
       return;
     }
 
+    resetPosition(openingPosition);
     setIsThinking(true);
     const timeoutId = window.setTimeout(() => {
       setMessages((currentMessages) => {
@@ -73,7 +81,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     }, 900);
 
     return () => window.clearTimeout(timeoutId);
-  }, [onStateChange, selectedProject.context, state, visible]);
+  }, [onStateChange, openingPosition, resetPosition, selectedProject.context, state, visible]);
 
   useEffect(() => {
     threadRef.current?.scrollTo({

@@ -3,7 +3,7 @@ import { createDesktopAuthController } from "./auth";
 import { findStageAuthUrl, registerStageProtocol } from "./helpers/auth";
 import { registerIpcHandlers } from "./ipc";
 import { createSidecarSupervisor } from "./sidecar";
-import { createMainWindow } from "./windows";
+import { createMainWindow, shouldSuppressMainWindowActivation } from "./windows";
 
 app.setName("Stage");
 if (process.platform === "darwin") {
@@ -160,6 +160,10 @@ app.whenReady().then(() => {
   });
 
   app.on("activate", () => {
+    if (shouldSuppressMainWindowActivation()) {
+      return;
+    }
+
     createMainWindow();
   });
 });

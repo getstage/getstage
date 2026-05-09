@@ -10,6 +10,11 @@ export function useDraggablePanel(initialPosition: Position) {
   const [position, setPosition] = useState(initialPosition);
   const [dragOffset, setDragOffset] = useState<Position | null>(null);
 
+  const resetPosition = useCallback((nextPosition: Position) => {
+    setDragOffset(null);
+    setPosition(nextPosition);
+  }, []);
+
   const startDrag = useCallback((event: PointerEvent<HTMLElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
     setDragOffset({
@@ -35,6 +40,7 @@ export function useDraggablePanel(initialPosition: Position) {
 
   return {
     position,
+    resetPosition,
     dragHandlers: {
       onPointerDown: startDrag,
       onPointerMove: drag,
