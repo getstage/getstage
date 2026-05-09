@@ -44,13 +44,14 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const visible = state === "thinking" || state === "response";
   const panelWidth = 432;
   const panelHeight = 504;
+  const panelBottomOffset = 96;
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
   const [isThinking, setIsThinking] = useState(state === "thinking");
   const threadRef = useRef<HTMLDivElement>(null);
   const { position, dragHandlers } = useDraggablePanel({
     x: Math.max(16, Math.round((window.innerWidth - panelWidth) / 2)),
-    y: Math.max(16, window.innerHeight - panelHeight - 12),
+    y: Math.max(16, window.innerHeight - panelHeight - panelBottomOffset),
   });
 
   useEffect(() => {

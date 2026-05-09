@@ -9,6 +9,7 @@ app.setName("Stage");
 registerStageProtocol();
 const authController = createDesktopAuthController();
 const sidecarSupervisor = createSidecarSupervisor();
+const isDevelopment = !app.isPackaged;
 let sidecarStoppedForQuit = false;
 
 function installApplicationMenu() {
@@ -91,7 +92,7 @@ function handleAuthCallbackUrl(url: string) {
   });
 }
 
-if (!app.requestSingleInstanceLock()) {
+if (!isDevelopment && !app.requestSingleInstanceLock()) {
   app.quit();
 }
 
@@ -99,6 +100,24 @@ const launchAuthUrl = findStageAuthUrl(process.argv);
 
 if (launchAuthUrl) {
   authController.queueCallbackUrl(launchAuthUrl);
+}
+
+function shouldInstallStageTray() {
+  return process.env.STAGE_DISABLE_TRAY !== "1";
+}
+
+async function installStageTrayIfEnabled() {
+  if (!shouldInstallStageTray()) {
+    return;
+  }
+
+  try {
+    const { installStageTray } = await import("./tray");
+    installStageTray();
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown tray setup error.";
+    console.warn(`[stage-tray] ${message}`);
+  }
 }
 
 app.on("open-url", (event, url) => {
@@ -134,6 +153,7 @@ app.whenReady().then(() => {
     console.warn(`[stage-data-service] ${message}`);
   }).finally(() => {
     createMainWindow();
+    void installStageTrayIfEnabled();
   });
 
   app.on("activate", () => {
@@ -154,7 +174,7 @@ app.on("before-quit", (event) => {
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
+  if (isDevelopment || process.platform !== "darwin") {
     app.quit();
   }
 });
