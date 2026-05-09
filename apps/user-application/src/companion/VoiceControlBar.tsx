@@ -17,12 +17,20 @@ export function VoiceControlBar({ state, onStateChange }: VoiceControlBarProps) 
     <div
       className={`voice-control-bar ${state === "idle" ? "voice-control-bar-idle" : "voice-control-bar-active"}`}
       data-state={state}
+      onMouseEnter={() => {
+        if (state === "idle") void onStateChange("listening");
+      }}
+      onMouseLeave={() => {
+        if (state === "listening") void onStateChange("idle");
+      }}
+      onFocus={() => {
+        if (state === "idle") void onStateChange("listening");
+      }}
     >
       {state === "idle" ? (
         <button
           className="voice-idle-hit-area"
           type="button"
-          onClick={() => void onStateChange("listening")}
           aria-label="Open Stage voice control"
         />
       ) : (
