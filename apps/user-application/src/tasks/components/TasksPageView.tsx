@@ -378,6 +378,7 @@ export function TasksPageView() {
                               void navigate({
                                 to: "/tasks/$taskId",
                                 params: { taskId: item.task.id },
+                                search: { from: "tasks", projectId: undefined },
                               });
                             }}
                             onPointerDown={(event) => startDragging(event, item.task.id)}
@@ -515,7 +516,7 @@ function CreateTaskModal({
               <div className="flex min-w-0 flex-wrap items-center gap-[8px]">
                 <div className="relative">
                   <TaskMetaButton
-                    icon="/logos/dashboard/assign.svg"
+                    icon="/logos/dashboard/clientportal.svg"
                     label={selectedAssignee.name || "Assignee"}
                     onClick={() => setActivePicker((current) => current === "assignee" ? null : "assignee")}
                   />
@@ -532,7 +533,7 @@ function CreateTaskModal({
 
                 <div className="relative">
                   <TaskMetaButton
-                    icon="/logos/dashboard/folder.svg"
+                    icon="/logos/dashboard/project.svg"
                     label={selectedProject.name || "Project"}
                     onClick={() => setActivePicker((current) => current === "project" ? null : "project")}
                   />
@@ -586,7 +587,14 @@ function TaskMetaButton({
       onClick={onClick}
       className="flex h-[31px] cursor-pointer items-center gap-[6px] rounded-[6px] bg-[#f5f5f5] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#262626]/80 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#eeeeee]"
     >
-      <img src={icon} alt="" aria-hidden="true" className="h-[14px] w-[14px] shrink-0" />
+      <span
+        aria-hidden="true"
+        className="h-[14px] w-[14px] shrink-0 bg-[#525252]"
+        style={{
+          mask: `url(${icon}) center / contain no-repeat`,
+          WebkitMask: `url(${icon}) center / contain no-repeat`,
+        }}
+      />
       <span className="max-w-[132px] truncate">{label}</span>
     </button>
   );
@@ -746,7 +754,7 @@ function PriorityTaskCard({
               onOpen?.();
             }}
             onPointerDown={(event) => event.stopPropagation()}
-            className="min-w-0 flex-1 cursor-pointer truncate text-left text-[13px] font-medium leading-[1.25] text-[#171717] outline-none transition-colors hover:text-[#463fba] focus-visible:text-[#463fba]"
+            className="min-w-0 flex-1 cursor-pointer truncate text-left text-[13px] font-medium leading-[1.25] text-[#171717] outline-none hover:underline focus-visible:underline"
           >
             {item.task.title}
           </button>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { WorkspaceFrame } from "@/app/WorkspaceFrame";
 
 const TASK_SECTIONS = [
@@ -41,9 +41,20 @@ const TASK_SECTIONS = [
 
 export function TaskDetailsView() {
   const navigate = useNavigate();
+  const search = useSearch({ from: "/tasks/$taskId" });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const backLabel = search.from === "project" ? "Back to Project" : "Back to Tasks";
+
+  function goBack() {
+    if (search.from === "project" && search.projectId) {
+      void navigate({ to: "/project/$projectId", params: { projectId: search.projectId } });
+      return;
+    }
+
+    void navigate({ to: "/tasks" });
+  }
 
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -70,11 +81,11 @@ export function TaskDetailsView() {
         <div className="flex w-full flex-col gap-[44px]">
           <button
             type="button"
-            onClick={() => void navigate({ to: "/tasks" })}
+            onClick={goBack}
             className="inline-flex w-fit items-center gap-[8px] text-[13px] font-medium leading-[1.5] text-[#a3a3a3] transition-colors hover:text-[#525252]"
           >
             <ArrowLeftIcon />
-            Back to Projects
+            {backLabel}
           </button>
 
           <header className="flex min-w-0 items-end justify-between gap-[12px]">
@@ -89,7 +100,7 @@ export function TaskDetailsView() {
                 </MetaItem>
                 <Dot />
                 <MetaItem>
-                  <CalendarIcon />
+                  <MaskedIcon src="/logos/dashboard/deadline.svg" className="h-[18px] w-[18px] bg-[#525252]" />
                   28/03/2026
                 </MetaItem>
                 <Dot />
@@ -150,7 +161,7 @@ export function TaskDetailsView() {
       {isDeleteModalOpen ? (
         <DeleteTaskModal
           onCancel={() => setIsDeleteModalOpen(false)}
-          onDelete={() => void navigate({ to: "/tasks" })}
+          onDelete={goBack}
         />
       ) : null}
     </WorkspaceFrame>
@@ -218,7 +229,7 @@ function AttachmentCard() {
     <div className="mt-[8px] w-full max-w-[348px] rounded-[12px] bg-[#f5f5f5] p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)]">
       <div className="flex items-center justify-between rounded-[10px] bg-white px-[16px] py-[8px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="flex min-w-0 items-start gap-[8px]">
-          <img src="/logos/dashboard/folder.svg" alt="" aria-hidden="true" className="h-[20px] w-[20px] shrink-0" />
+          <MaskedIcon src="/logos/dashboard/upload-from-device.svg" className="h-[20px] w-[20px] shrink-0 bg-[#525252]" />
           <div className="flex min-w-0 flex-col gap-[4px]">
             <p className="truncate text-[13px] font-medium leading-none text-[#171717]">Example.fig</p>
             <div className="flex items-center gap-[12px] text-[12px] font-medium leading-none text-[#737373]">
@@ -230,7 +241,7 @@ function AttachmentCard() {
             </div>
           </div>
         </div>
-        <img src="/logos/dashboard/upload.svg" alt="" aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
+        <MaskedIcon src="/logos/dashboard/upload-from-device.svg" className="h-[18px] w-[18px] shrink-0 bg-[#737373]" />
       </div>
     </div>
   );
@@ -240,12 +251,21 @@ function ArrowLeftIcon() {
   return <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[16px] w-[16px]"><path d="M10 3.5 5.5 8l4.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M6 8h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>;
 }
 
-function CalendarIcon() {
-  return <img src="/logos/dashboard/calendar-2.svg" alt="" aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />;
-}
-
 function DotsIcon() {
   return <img src="/logos/dashboard/dots.svg" alt="" aria-hidden="true" className="h-[16px] w-[16px]" />;
+}
+
+function MaskedIcon({ src, className }: { src: string; className: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={className}
+      style={{
+        mask: `url(${src}) center / contain no-repeat`,
+        WebkitMask: `url(${src}) center / contain no-repeat`,
+      }}
+    />
+  );
 }
 
 function CheckIcon() {

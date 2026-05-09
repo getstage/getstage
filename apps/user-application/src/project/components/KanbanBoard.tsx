@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type PointerEvent } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Avatar } from "@/components/ui/Avatar";
 import type { Phase, Task } from "../models/project";
 
@@ -69,7 +70,8 @@ function buildColumns(phases: Phase[]): Record<KanbanStatus, BoardTask[]> {
   return grouped;
 }
 
-export function KanbanBoard({ phases }: { phases: Phase[] }) {
+export function KanbanBoard({ phases, projectId }: { phases: Phase[]; projectId?: string }) {
+  const navigate = useNavigate();
   const initialColumns = useMemo(() => buildColumns(phases), [phases]);
   const [columns, setColumns] = useState(initialColumns);
   const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
@@ -324,6 +326,13 @@ export function KanbanBoard({ phases }: { phases: Phase[] }) {
                         setAssignSearch("");
                       }}
                       onToggle={() => toggleTaskCompletion(task.id)}
+                      onOpen={() =>
+                        void navigate({
+                          to: "/tasks/$taskId",
+                          params: { taskId: task.id },
+                          search: { from: "project", projectId },
+                        })
+                      }
                     />
                     {assignTaskId === task.id ? (
                       <AssignTaskCard
@@ -376,6 +385,7 @@ function TaskCard({
   onPointerDown,
   onAssign,
   onToggle,
+  onOpen,
 }: {
   task: Task;
   phaseName: string;
@@ -384,6 +394,7 @@ function TaskCard({
   onPointerDown?: (event: PointerEvent<HTMLDivElement>) => void;
   onAssign?: () => void;
   onToggle?: () => void;
+  onOpen?: () => void;
 }) {
   const tagColor = PHASE_TAG_COLORS[phaseName] ?? DEFAULT_TAG_COLOR;
 
@@ -447,9 +458,17 @@ function TaskCard({
               </svg>
             ) : null}
           </button>
-          <p className="min-w-0 flex-1 truncate text-[13px] font-medium leading-[1.25] text-[#171717]">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpen?.();
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+            className="min-w-0 flex-1 cursor-pointer truncate text-left text-[13px] font-medium leading-[1.25] text-[#171717] outline-none hover:underline focus-visible:underline"
+          >
             {task.title}
-          </p>
+          </button>
         </div>
         <p className="line-clamp-2 text-[12px] font-normal leading-[1.5] text-[#525252]">
           {task.content || "Here comes the project/task description, can contain 2-3 lines at max."}
