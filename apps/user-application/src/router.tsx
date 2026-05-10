@@ -171,6 +171,12 @@ const integrationsRoute = createRoute({
   component: () => <SettingsPageView initialTab="integrations" />,
 });
 
+const claudeSetupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/agents/claude",
+  component: () => <SettingsPageView initialTab="integrations" />,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   authRoute,
@@ -189,6 +195,7 @@ const routeTree = rootRoute.addChildren([
   clientPortalRoute,
   clientPortalPreviewRoute,
   integrationsRoute,
+  claudeSetupRoute,
 ]);
 
 export const router = createRouter({ routeTree });

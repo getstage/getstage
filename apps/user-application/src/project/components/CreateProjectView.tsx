@@ -5,19 +5,26 @@ import { useMutation } from "convex/react";
 import { projectDetailSchema } from "@stage/data-ops";
 import stageLogoLight from "@/assets/logos/stage-logo-light.png";
 import { api } from "@/lib/convexApi";
+import { PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import type { ProjectType } from "@/types";
 
 const progressSteps = [0, 1, 2, 3, 4];
-const projectTypeOptions = [
-  { id: "web-design", label: "Web Design", iconSrc: "/logos/dashboard/web-design.svg" },
-  { id: "app-design", label: "App Design", iconSrc: "/logos/dashboard/app-design.svg" },
-  { id: "web-app", label: "Web App", iconSrc: "/logos/dashboard/web-app.svg" },
-] as const;
+const projectTypeValues: ProjectType[] = [
+  "branding",
+  "web-design",
+  "product-design",
+  "app-design",
+  "packaging",
+  "motion-design",
+  "illustration",
+  "other",
+];
 const smartRoadmapPhases = ["Research", "Architecture", "Design", "Development", "Testing"];
 const defaultManualPhases = ["Discovery", "Strategy", "Design", "Development", "Launch"];
 
 type CreateProjectStep = "basic" | "client" | "type" | "timeline" | "roadmap" | "success";
-type ProjectTypeId = (typeof projectTypeOptions)[number]["id"];
+type ProjectTypeId = ProjectType;
 type RoadmapMode = "smart" | "manual";
 
 export function CreateProjectView() {
@@ -219,18 +226,6 @@ export function CreateProjectView() {
       </section>
     </main>
   );
-}
-
-/** Strips non-digits, caps at 8, inserts slashes for DD/MM/YYYY (typing or paste). */
-function formatDdMmYyyyInput(raw: string): string {
-  const digits = raw.replace(/\D/g, "").slice(0, 8);
-  if (digits.length <= 2) {
-    return digits;
-  }
-  if (digits.length <= 4) {
-    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  }
-  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
 }
 
 function parseDateInput(value: string) {
@@ -491,25 +486,28 @@ function ProjectTypeStep({
         }}
       >
         <FormCard title="Project Type" titleWeight="semibold" bodyPaddingClassName="p-[4px]">
-          <div className="flex w-full items-start gap-[4px]">
-            {projectTypeOptions.map((option) => {
-              const selected = option.id === selectedProjectType;
+          <div className="grid w-full grid-cols-2 gap-[4px]">
+            {PROJECT_TYPES.filter((option) => projectTypeValues.includes(option.value)).map((option) => {
+              const selected = option.value === selectedProjectType;
+              const iconSrc = PROJECT_TYPE_ICONS[option.value];
 
               return (
                 <button
-                  key={option.id}
+                  key={option.value}
                   type="button"
-                  onClick={() => onProjectTypeChange(option.id)}
+                  onClick={() => onProjectTypeChange(option.value)}
                   aria-pressed={selected}
                   className={cn(
-                    "flex min-h-[104px] min-w-0 flex-1 cursor-pointer items-center justify-center gap-[8px] overflow-hidden rounded-[6px] border px-[12px] py-[44px] text-[12px] font-medium leading-[1.25] transition-colors",
+                    "flex min-h-[74px] min-w-0 cursor-pointer items-center justify-center gap-[8px] overflow-hidden rounded-[6px] border px-[12px] py-[22px] text-[12px] font-medium leading-[1.25] transition-colors",
                     selected
                       ? "border-[#dbd9fc] bg-[#e7e6fd] text-[#16115a]"
                       : "border-transparent bg-[#f5f5f5] text-[#525252] hover:bg-[#eeeeee] hover:text-[#171717]",
                   )}
                 >
-                  <ProjectTypeIcon src={option.iconSrc} />
-                  <span className="whitespace-nowrap">{option.label}</span>
+                  {iconSrc ? (
+                    <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 opacity-80" />
+                  ) : null}
+                  <span className="min-w-0 truncate">{option.label}</span>
                 </button>
               );
             })}
@@ -902,21 +900,51 @@ function DateInput({
   onChange: (value: string) => void;
   ariaLabel: string;
 }) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const displayValue = formatDateInputDisplay(value);
+
+  function openPicker() {
+    const input = inputRef.current;
+    if (!input) return;
+
+    try {
+      input.showPicker?.();
+    } catch {
+      input.focus();
+    }
+  }
+
   return (
     <div className="relative w-full">
       <CalendarIcon />
       <input
-        value={value}
-        onChange={(event) => onChange(formatDdMmYyyyInput(event.target.value))}
+        readOnly
+        value={displayValue}
+        onClick={openPicker}
         placeholder="DD/MM/YYYY"
         aria-label={ariaLabel}
-        inputMode="numeric"
-        autoComplete="off"
-        maxLength={10}
-        className={cn(inputSurfaceClassName, "pl-[40px]")}
+        className={cn(
+          inputSurfaceClassName,
+          "cursor-pointer pl-[40px]",
+        )}
+      />
+      <input
+        ref={inputRef}
+        type="date"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        tabIndex={-1}
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
       />
     </div>
   );
+}
+
+function formatDateInputDisplay(value: string) {
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) return "";
+  return `${day}/${month}/${year}`;
 }
 
 function CreateProjectStepShell({
@@ -1089,19 +1117,6 @@ function UploadIcon() {
         WebkitMask:
           'url("/logos/dashboard/upload.svg") center / contain no-repeat',
         mask: 'url("/logos/dashboard/upload.svg") center / contain no-repeat',
-      }}
-    />
-  );
-}
-
-function ProjectTypeIcon({ src }: { src: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="h-[16px] w-[16px] shrink-0 bg-current"
-      style={{
-        WebkitMask: `url("${src}") center / contain no-repeat`,
-        mask: `url("${src}") center / contain no-repeat`,
       }}
     />
   );

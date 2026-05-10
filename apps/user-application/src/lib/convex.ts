@@ -1,4 +1,5 @@
 import { ConvexReactClient } from "convex/react";
+import { anyApi } from "convex/server";
 
 const DEFAULT_TESTING_CONVEX_URL = "https://reliable-bullfrog-917.convex.cloud";
 
@@ -11,3 +12,4 @@ if (!convexUrl) {
 }
 
 export const convex = new ConvexReactClient(convexUrl);
+export const api = anyApi;

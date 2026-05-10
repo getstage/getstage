@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { OnboardingModal, type OnboardingSubmission } from "../components/onboarding/OnboardingModal";
 import { ActivityTimelineChart } from "../dashboard/components/ActivityTimelineChart";
 import { DashboardHeader, type DashboardPeriod } from "../dashboard/components/DashboardHeader";
 import { MetricGrid } from "../dashboard/components/MetricGrid";
@@ -22,6 +23,7 @@ import { useSelectedProjectContext } from "../hooks/useSelectedProjectContext";
 import { WorkspaceFrame } from "./WorkspaceFrame";
 
 const DEFAULT_DASHBOARD_PERIOD: DashboardPeriod = "This month";
+const DESKTOP_ONBOARDING_STORAGE_KEY = "stage:desktop-onboarding-completed";
 
 function getPeriodRange(period: DashboardPeriod, now = Date.now()) {
   const date = new Date(now);
@@ -72,6 +74,7 @@ export function DashboardContextView() {
   const selectedProject = useSelectedProjectContext();
   const projectsQuery = useProjectsQuery();
   const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>(DEFAULT_DASHBOARD_PERIOD);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const selectedProjectContext = selectedProject.isFallback ? null : selectedProject.context;
   const openContextTasks = selectedProjectContext?.tasks.filter(
     (task) => task.status !== "done",
@@ -116,34 +119,61 @@ export function DashboardContextView() {
     queryFn: () => desktop.screen.getActiveApp(),
   });
 
+  const session = useQuery({
+    queryKey: ["desktop", "auth", "session", "dashboard-onboarding"],
+    queryFn: () => desktop.auth.getSession(),
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (!session.data?.hasAccessToken) {
+      return;
+    }
+
+    setOnboardingOpen(localStorage.getItem(DESKTOP_ONBOARDING_STORAGE_KEY) !== "true");
+  }, [session.data?.hasAccessToken]);
+
+  function handleOnboardingComplete(_submission: OnboardingSubmission) {
+    localStorage.setItem(DESKTOP_ONBOARDING_STORAGE_KEY, "true");
+    setOnboardingOpen(false);
+  }
+
   return (
-    <WorkspaceFrame>
-      <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
-        <div className="flex flex-col gap-[clamp(24px,4vw,44px)]">
-          <div className="flex flex-col gap-[clamp(14px,2vw,18px)]">
-            <DashboardHeader
-              engineStatusLabel={engineStatusLabel}
-              engineStatusTone={engineStatusTone}
-              greeting="Good Morning."
-              subheading={dashboardSubheading}
-              selectedPeriod={selectedPeriod}
-              onPeriodChange={setSelectedPeriod}
-            />
-            <MetricGrid metrics={dashboardMetrics} />
-          </div>
+    <>
+      <WorkspaceFrame>
+        <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
+          <div className="flex flex-col gap-[clamp(24px,4vw,44px)]">
+            <div className="flex flex-col gap-[clamp(14px,2vw,18px)]">
+              <DashboardHeader
+                engineStatusLabel={engineStatusLabel}
+                engineStatusTone={engineStatusTone}
+                greeting="Good Morning."
+                subheading={dashboardSubheading}
+                selectedPeriod={selectedPeriod}
+                onPeriodChange={setSelectedPeriod}
+              />
+              <MetricGrid metrics={dashboardMetrics} />
+            </div>
 
-          <ActivityTimelineChart points={dashboardChart} project={timelineProject} />
+            <ActivityTimelineChart points={dashboardChart} project={timelineProject} />
 
-          <div className="overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[2px]">
-            <div className="grid grid-cols-1 gap-[2px] xl:grid-cols-2">
-              <UpcomingTasksCard tasks={periodDashboardTasks.upcomingTasks} period={selectedPeriod} />
-              <RecentActivityCard entries={periodDashboardTasks.recentActivity} period={selectedPeriod} />
-              <ProjectPipelineCard stages={dashboardPipeline} period={selectedPeriod} />
-              <RevenueOverviewCard revenue={dashboardRevenue} period={selectedPeriod} />
+            <div className="overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[2px]">
+              <div className="grid grid-cols-1 gap-[2px] xl:grid-cols-2">
+                <UpcomingTasksCard tasks={periodDashboardTasks.upcomingTasks} period={selectedPeriod} />
+                <RecentActivityCard entries={periodDashboardTasks.recentActivity} period={selectedPeriod} />
+                <ProjectPipelineCard stages={dashboardPipeline} period={selectedPeriod} />
+                <RevenueOverviewCard revenue={dashboardRevenue} period={selectedPeriod} />
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </WorkspaceFrame>
+      </WorkspaceFrame>
+
+      <OnboardingModal
+        open={onboardingOpen}
+        userName={session.data?.name?.split(" ")[0]}
+        onComplete={handleOnboardingComplete}
+      />
+    </>
   );
 }

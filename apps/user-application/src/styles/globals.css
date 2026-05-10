@@ -86,6 +86,20 @@ button:focus-visible,
   box-shadow: none !important;
 }
 
+.project-creation-page :focus-visible,
+.onboarding-modal:focus,
+.onboarding-modal:focus-visible,
+.onboarding-modal input:focus,
+.onboarding-modal input:focus-visible,
+.onboarding-modal textarea:focus,
+.onboarding-modal textarea:focus-visible,
+.onboarding-modal select:focus,
+.onboarding-modal select:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
 button:not(:disabled),
 a[href],
 select:not(:disabled),
