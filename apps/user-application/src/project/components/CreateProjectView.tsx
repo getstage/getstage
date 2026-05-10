@@ -812,19 +812,51 @@ function DateInput({
   onChange: (value: string) => void;
   ariaLabel: string;
 }) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const displayValue = formatDateInputDisplay(value);
+
+  function openPicker() {
+    const input = inputRef.current;
+    if (!input) return;
+
+    try {
+      input.showPicker?.();
+    } catch {
+      input.focus();
+    }
+  }
+
   return (
     <div className="relative w-full">
       <CalendarIcon />
       <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
+        readOnly
+        value={displayValue}
+        onClick={openPicker}
         placeholder="DD/MM/YYYY"
         aria-label={ariaLabel}
-        inputMode="numeric"
-        className={cn(inputSurfaceClassName, "pl-[40px]")}
+        className={cn(
+          inputSurfaceClassName,
+          "cursor-pointer pl-[40px]",
+        )}
+      />
+      <input
+        ref={inputRef}
+        type="date"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        tabIndex={-1}
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
       />
     </div>
   );
+}
+
+function formatDateInputDisplay(value: string) {
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) return "";
+  return `${day}/${month}/${year}`;
 }
 
 function CreateProjectStepShell({
