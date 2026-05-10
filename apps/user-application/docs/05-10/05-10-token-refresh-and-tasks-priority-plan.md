@@ -3,7 +3,9 @@
 Date: May 10, 2026
 Branch: `monorepo`
 Scope: Three changes that came out of the 05-09 dynamic-pages pass.
-Status: Planning document. Nothing implemented yet. Waiting for user "go".
+Status: Implemented through the launch stopgap. Option A chosen on 2026-05-10:
+ship with a 30-day JWT and monthly re-login; true refresh-token rotation is
+deferred.
 
 ## Context
 
@@ -35,8 +37,10 @@ will be done in a separate pass after sign-off.
 ## Hard rules carried from 05-09 (do not violate)
 
 ```txt
-1. No direct Convex client in the desktop renderer.
-2. No tokens in renderer storage (only Electron main + safeStorage).
+1. No raw tokens in renderer storage (only Electron main + safeStorage for the
+   current desktop handoff path).
+2. Direct Convex in the desktop renderer is allowed only through the approved
+   desktop-first migration plan and must still respect token boundaries.
 3. No new Convex tables (adding a field to an existing table IS allowed
    when explicitly approved - this is the case for tasks.priority).
 4. No silent fallback to mock data when live data is expected.
@@ -47,6 +51,16 @@ will be done in a separate pass after sign-off.
 ---
 
 ## Part 1 - Token expiry: stopgap + refresh tokens
+
+2026-05-10 decision:
+
+```txt
+Launch uses Option A:
+  30-day JWT + manual monthly re-login.
+
+True refresh-token rotation remains the long-term hardening path, but it is
+not required before the next testing break.
+```
 
 ### Why both, not just refresh tokens
 
@@ -790,8 +804,9 @@ apps/user-application/src/tasks/components/TasksPageView.tsx
   - Calls useUserTasksQuery({ limit: 100 }) and useProjectsQuery().
   - liveColumns memoised on the query data; setColumns synced via
     useEffect so the existing drag-and-drop state still functions
-    locally. Persisting drag results requires a future
-    POST /api/v1/tasks/:id/priority mutation; that is out of scope.
+    locally.
+  - Later pass added persistent drag results through set-priority IPC
+    and the Convex-backed API route.
   - Empty state: when both queries finish with no tasks the kanban
     renders empty columns. Loading/error UX is handled by the queries
     being idle until WorkspaceFrame's auth flow sets a session;
@@ -1093,7 +1108,7 @@ After deploy, restart the desktop dev server (Electron main changes
 do not hot-reload).
 ```
 
-### What still ships separately (next pass)
+### What still ships separately (later hardening pass)
 
 ```txt
 1. Refresh-token rotation (Layer 2 of Part 1):
@@ -1106,10 +1121,8 @@ do not hot-reload).
    __convexAuthRefreshToken in localStorage, but want a public hook
    if available). Plus the Electron side wants careful test coverage.
 
-2. POST /api/v1/tasks/:id/priority mutation so drag-and-drop persists.
-   Currently the kanban moves are local-only after a drop.
-
-3. Logout button (Step 23 stabilization). 10-minute add, but not
-   needed to make the 30-day stopgap usable.
+2. Longer-term token UX polish:
+   verify exact expired-token copy, add metrics if needed, and decide whether
+   monthly re-login is still acceptable after launch usage.
 ```
 

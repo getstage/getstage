@@ -14,10 +14,13 @@
     "preview": "env -u ELECTRON_RUN_AS_NODE electron-vite preview"
   },
   "dependencies": {
+    "@auth/core": "0.37.0",
+    "@convex-dev/auth": "^0.0.91",
     "@stage/data-ops": "file:../../packages/data-ops",
     "@tanstack/react-query": "^5.66.0",
     "@tanstack/react-router": "^1.112.0",
     "clsx": "^2.1.1",
+    "convex": "1.32.0",
     "motion": "^12.38.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

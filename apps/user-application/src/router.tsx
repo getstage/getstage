@@ -3,9 +3,14 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  useRouterState,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
 import { DesktopShell } from "./app/DesktopShell";
 import { DashboardContextView } from "./app/DashboardContextView";
+import { DesktopAuthView } from "./auth/DesktopAuthView";
 import { ClientPortalPreviewView } from "./client-portal/components/ClientPortalPreviewView";
 import { ClientPortalProjectsView } from "./client-portal/components/ClientPortalProjectsView";
 import { CreateProjectView } from "./project/components/CreateProjectView";
@@ -15,19 +20,54 @@ import { ProjectsOverviewView } from "./project/components/ProjectsOverviewView"
 import { SettingsPageView } from "./settings/components/SettingsPageView";
 import { TaskDetailsView } from "./tasks/components/TaskDetailsView";
 import { TasksPageView } from "./tasks/components/TasksPageView";
+import { useDesktopBridge } from "./hooks/useDesktopBridge";
+
+const desktopSessionQueryKey = ["desktop", "auth", "session"];
+const taskDetailsSearchSchema = z.object({
+  from: z.union([z.literal("project"), z.literal("client-portal")]).optional(),
+  projectId: z.string().optional(),
+});
 
 const rootRoute = createRootRoute({
-  component: () => (
-    <DesktopShell>
-      <Outlet />
-    </DesktopShell>
-  ),
+  component: RootRoute,
 });
+
+function RootRoute() {
+  const desktop = useDesktopBridge();
+  const queryClient = useQueryClient();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const session = useQuery({
+    queryKey: desktopSessionQueryKey,
+    queryFn: () => desktop.auth.getSession(),
+    retry: false,
+  });
+
+  useEffect(() => {
+    return desktop.auth.onSessionChanged(() => {
+      void queryClient.invalidateQueries({ queryKey: desktopSessionQueryKey });
+    });
+  }, [desktop.auth, queryClient]);
+
+  const isAuthRoute = pathname === "/auth";
+  const shouldShowAuth = !isAuthRoute && (session.isLoading || !session.data?.hasAccessToken);
+
+  return (
+    <DesktopShell>
+      {shouldShowAuth ? <DesktopAuthView /> : <Outlet />}
+    </DesktopShell>
+  );
+}
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: DashboardContextView,
+});
+
+const authRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/auth",
+  component: DesktopAuthView,
 });
 
 const projectRoute = createRoute({
@@ -57,10 +97,17 @@ const tasksRoute = createRoute({
 const taskDetailsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/tasks/$taskId",
-  validateSearch: (search: Record<string, unknown>) => ({
-    from: search.from === "project" || search.from === "client-portal" ? search.from : "tasks",
-    projectId: typeof search.projectId === "string" ? search.projectId : undefined,
-  }),
+  validateSearch: (search: unknown) => {
+    const parsedSearch = taskDetailsSearchSchema.safeParse(search);
+    if (!parsedSearch.success) {
+      return { from: "tasks", projectId: undefined };
+    }
+
+    return {
+      from: parsedSearch.data.from ?? "tasks",
+      projectId: parsedSearch.data.projectId,
+    };
+  },
   component: TaskDetailsView,
 });
 
@@ -126,6 +173,7 @@ const integrationsRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
+  authRoute,
   projectsRoute,
   taskDetailsRoute,
   tasksRoute,

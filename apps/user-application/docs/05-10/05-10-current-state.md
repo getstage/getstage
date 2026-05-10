@@ -12,10 +12,14 @@ Steps 1-23 of the monorepo tracker are done. The desktop renders live
 data on every page that has a backing API (Sidebar, Projects, Project
 detail, Dashboard metrics, Client Portal, Tasks kanban). Tasks support
 create / delete / drag-to-change-priority and they persist to Convex.
-Logout works. The Convex Auth JWT now lives 30 days instead of 1 hour
-(stopgap; full refresh-token rotation is queued). A strict-typing rule
-+ skill is in place so future agents do not add `any` or `as` casts at
-process boundaries. Next big step is Step 24: fake provider runner.
+Logout works. If no valid desktop session exists, the desktop now shows
+a real sign-in screen that opens the web-owned auth/signup/onboarding/
+billing flow and resumes automatically after the browser returns. The
+Convex Auth JWT now lives 30 days instead of 1 hour; this is the launch
+choice for now, with monthly re-login instead of true refresh-token
+rotation. A strict-typing rule + skill is in place so future agents do
+not add `any` or `as` casts at process boundaries. Next big step is Step
+24: fake provider runner, after verification.
 
 ## What is live (live = Convex via /api/v1)
 
@@ -29,6 +33,7 @@ Settings -> Account session display
 Tasks kanban: list, create, delete, set-priority (drag persists)
 Logout button in sidebar account menu
 401 / 403 -> auto-clear session -> UI drops to "Sign in"
+Desktop route guard -> no session shows desktop sign-in screen
 ```
 
 ## What is still mock (intentionally deferred)
@@ -97,10 +102,10 @@ work into the sidecar.
    See: 05-10/05-10-data-ops-build-pattern.md.
 
 2. Refresh-token rotation.
-   The 30-day JWT stopgap is in place. Full Layer-2 refresh-token
-   handoff is planned but not built. With the stopgap, the user
-   manually re-logs once a month. Without Layer 2, this is what ships
-   for the launch unless you want to prioritise it.
+   Resolved for launch on 2026-05-10: ship Option A.
+   The 30-day JWT stopgap is the chosen launch path, and users manually
+   re-log once a month. Full Layer-2 refresh-token rotation remains
+   queued for a later hardening pass, not before this launch test cycle.
    See: 05-10/05-10-token-refresh-and-tasks-priority-plan.md, Part 1.
 
 3. Direct Convex subscriptions on the desktop.
@@ -156,10 +161,10 @@ apps/web-application       pnpm run build:testing  PASS
    step status.
 3. Continue direct desktop Convex migration from:
    05-10/05-10-desktop-first-convex-data-ops-plan.md.
-4. Decide with the user: build refresh-token Layer 2 YES/NO before
-   launch. If yes, follow 05-10/05-10-token-refresh-and-tasks-priority-plan.md
-   Part 1 Layer 2.
-5. Otherwise begin Step 24 (fake provider runner). Use:
+4. Verify the desktop logged-out/login screen:
+   no stored session -> sign-in screen -> browser auth -> automatic
+   return to desktop after `auth:session-changed`.
+5. Then begin Step 24 (fake provider runner). Use:
    - .agents/skills/rust-engineer
    - .agents/skills/rust-async-patterns
    - .agents/skills/rust-best-practices

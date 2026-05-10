@@ -166,10 +166,14 @@ No product behavior should change in this first step.
   - `apps/user-application pnpm install` passed.
   - `apps/user-application pnpm run typecheck` passed.
   - `apps/user-application pnpm run build` passed.
+- 2026-05-10: Launch auth decision made: Option A ships with 30-day JWT
+  and monthly re-login; true refresh-token rotation is deferred.
+- 2026-05-10: Desktop logged-out route guard/sign-in launcher added so
+  no-session boot opens the web-owned auth/signup/onboarding/billing flow.
 
 ## Next Step
 
-Start the direct desktop Convex migration:
+After auth verification, continue the direct desktop Convex migration:
 
 ```txt
 1. Add Convex runtime dependencies to apps/user-application.

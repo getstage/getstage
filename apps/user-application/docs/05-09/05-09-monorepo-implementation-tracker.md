@@ -16,7 +16,9 @@ Current goal:
 Electron remains stable in `apps/user-application/`.
 Rust sidecar boundary starts small.
 No UI redesign work.
-Convex wiring is limited to website-owned auth/API routes and Electron-main reads.
+Stage is desktop-first: desktop product UI may use direct Convex reads/writes,
+while Electron/Rust own native/local/agent work. Website remains auth,
+payment, onboarding, download, and return-to-desktop.
 No Figma/Notion implementation yet.
 No SQLite.
 No local AI inference.
@@ -58,17 +60,25 @@ Step 23 sub-items (2026-05-10 update):
   See same doc; requires Convex deploy on testing.
 - [x] Logout button wired (sidebar account menu -> auth.logout IPC -> session-changed broadcast).
   See `05-10/05-10-token-refresh-and-tasks-priority-plan.md` (pass 2).
+- [x] Logged-out desktop route guard/login screen.
+  No valid desktop session now renders `DesktopAuthView`, which opens the
+  web-owned login/signup/onboarding/billing flow and resumes after
+  `auth:session-changed`.
 - [x] Tasks page: priority enum field, GET /api/v1/me/tasks, kanban grouping by priority.
   See same doc (Part 2, pass 1).
 - [x] Tasks page: create/delete/setPriority mutations, persist drag-and-drop.
   See same doc (pass 3).
 - [x] Strict-typing rule documented + skill created.
   See `05-10/05-10-strict-typing-rule.md` and `.claude/skills/strict-typing/SKILL.md`.
-- [ ] Refresh-token rotation (true Layer 2). Stopgap above buys 30 days; full
-  refresh-token retry is queued. Plan in `05-10/05-10-token-refresh-and-tasks-priority-plan.md`.
-- [ ] Decide whether direct Convex subscriptions belong in desktop V1 or remain behind Electron main + website API. Currently still behind /api/v1.
-- [ ] Migrate `packages/data-ops` from "point to src" to "build to dist" pattern.
-  Plan in `05-10/05-10-data-ops-build-pattern.md`. Removes a recurring TS-server-cache footgun.
+- [ ] Refresh-token rotation (true Layer 2).
+  Deferred by launch decision on 2026-05-10. Option A ships with 30-day JWT
+  and monthly re-login. Plan remains in
+  `05-10/05-10-token-refresh-and-tasks-priority-plan.md`.
+- [x] Decide whether direct Convex subscriptions belong in desktop V1 or remain behind Electron main + website API.
+  Decision: desktop-first. Desktop should use direct Convex for cloud
+  product data once the migration is verified; IPC remains for native/Rust.
+- [x] Migrate `packages/data-ops` from "point to src" to "build to dist" pattern.
+  Completed on 2026-05-10. See `05-10/05-10-data-ops-build-pattern.md`.
 
 - [ ] 24. Add fake provider runner that receives typed project context.
 - [ ] 25. Add Codex/Claude provider detection.
@@ -458,8 +468,9 @@ No direct Convex subscriptions in desktop yet.
 Current risk:
 
 ```txt
-Current auth works locally against testing.getstage.co, but token refresh/logout is still missing.
-Visible desktop UI still has fallback/mock areas that must be made honest before provider work.
+Current auth works locally against testing.getstage.co. True refresh-token
+rotation is intentionally deferred for launch; monthly re-login is accepted.
+Visible desktop UI still has some deferred fallback/mock areas before provider work.
 The desktop must be restarted after Electron main-process auth changes during local development.
 ```
 
@@ -468,7 +479,7 @@ The desktop must be restarted after Electron main-process auth changes during lo
 Goal:
 
 ```txt
-Finish Step 23 stabilization, without moving auth/onboarding/billing out of apps/web-application.
+Verify Step 23 stabilization, without moving auth/onboarding/billing out of apps/web-application.
 ```
 
 Recommended order:
@@ -476,9 +487,9 @@ Recommended order:
 1. Read `apps/user-application/docs/05-05-stage-monorepo-architecture.md`.
 2. Read this tracker.
 3. Read `apps/user-application/docs/05-09/05-09-desktop-auth-deep-link-plan.md`.
-4. Audit visible desktop dashboard/sidebar/settings areas for demo-only data.
-5. Replace remaining demo-only values with live ProjectContext, loading, empty, or clearly marked fallback states.
-6. Add logout/token-expiry UX before relying on this for broader testing.
+4. Verify no-session desktop boot shows the sign-in screen.
+5. Verify browser login returns to desktop and refreshes without manual reload.
+6. Verify logout returns to the same sign-in screen.
 7. Run:
 
 ```bash

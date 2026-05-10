@@ -18,6 +18,7 @@ Electron verifies the token through GET /api/v1/me
 Electron stores the session through safeStorage
 Renderer receives only redacted user/session data
 Electron main fetches selected project context through /api/v1
+No desktop session renders a desktop sign-in screen that opens web auth
 ```
 
 Important fixes made during stabilization:
@@ -48,6 +49,13 @@ apps/user-application/electron/auth.ts
 apps/user-application/src/app/WorkspaceFrame.tsx
   shows name/email before falling back to user id
   refreshes auth/project-context queries after login
+
+apps/user-application/src/auth/DesktopAuthView.tsx
+  provides the desktop logged-out screen
+  opens the web-owned login/signup/onboarding/billing flow
+
+apps/user-application/src/router.tsx
+  guards desktop product routes when no desktop session exists
 ```
 
 ## Current Step Status
@@ -62,13 +70,13 @@ Electron main can fetch live selected project context through website /api/v1
 ProjectContext still flows through packages/data-ops
 ```
 
-Step 23 still has stabilization work before Step 24:
+Step 23 still needs verification before Step 24:
 
 ```txt
-Replace remaining visible demo-only UI with live/loading/empty/fallback states
-Add logout and token-expiry handling
-Decide whether direct Convex subscriptions are needed for desktop V1
-Commit the auth stabilization work after final verification
+No-session desktop boot shows the sign-in screen
+Browser login returns to desktop without manual reload
+Logout returns to the sign-in screen
+Direct Convex subscriptions are a desktop-first migration, not a blocker for the auth test
 ```
 
 ## What Not To Start Yet

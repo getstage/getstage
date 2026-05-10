@@ -109,11 +109,12 @@ Done:
   local dev uses form POST to http://127.0.0.1:48224/auth instead of browser fetch
   Electron local callback accepts JSON and form-encoded handoff payloads
   auth:session-changed refreshes renderer session/project-context queries after login
+  desktop logged-out route guard shows a sign-in screen when no session exists
+  the desktop sign-in screen opens the web-owned auth/signup/onboarding/billing flow
 
 Not done:
-  token refresh and logout
+  true refresh-token rotation (deferred by Option A launch decision)
   direct Convex websocket subscription inside desktop
-  full replacement of dashboard/sidebar mock data with live ProjectContext/API data or honest fallback/empty states
 ```
 
 Current clean status, 09-05:
@@ -135,14 +136,14 @@ Changed in this pass:
 
 Still needs proof before this is called finished:
   confirm desktop project context uses live data or honest empty/loading states
-  add logout/token-expiry behavior
+  verify no-session boot -> desktop sign-in screen -> browser login -> auto-return
 ```
 
 ## Summary
 
 The desktop app needs an authenticated Stage session before it can consume live Convex data. Auth, onboarding, billing, account management, and payments remain owned by `apps/web-application`.
 
-The desktop app should not embed login screens or duplicate website-only flows. It should open the website login flow in the user's default browser, receive a short-lived callback through a custom protocol, exchange that callback for a desktop session, and store the resulting session securely outside renderer state.
+The desktop app may show a native sign-in launcher screen when the user is not connected, but it must not duplicate website-owned auth/payment/onboarding logic. The button opens the website login flow in the user's default browser, receives a callback through the local callback/deep-link path, exchanges that callback for a desktop session, and stores the resulting session securely outside renderer state.
 
 ## Ownership Boundary
 

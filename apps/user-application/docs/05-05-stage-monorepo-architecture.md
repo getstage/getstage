@@ -287,7 +287,10 @@ apps/user-application Electron main
 
 apps/user-application renderer
   owns UI rendering
-  receives only redacted auth status and sanitized ProjectContext
+  receives only redacted auth status and sanitized ProjectContext on the
+  Electron-main API path
+  may use direct Convex for product data after the desktop-first migration is
+  verified
   must not store raw tokens or call privileged APIs
 
 apps/data-service Rust
@@ -310,12 +313,14 @@ Done:
   auth:session-changed updates renderer session/project-context queries without manual reload
   Electron main can request selected ProjectContext through /api/v1
   ProjectContext is validated through packages/data-ops
+  logout clears safeStorage and broadcasts auth:session-changed
+  no-session desktop boot shows a native sign-in launcher screen
+  30-day JWT stopgap is the chosen launch path
 
 Not done:
   optional final one-time desktop auth code exchange for production hardening
-  token refresh/logout
-  direct realtime Convex subscriptions in desktop
-  full dashboard/sidebar/tasks/activity replacement from live data
+  true refresh-token rotation (deferred beyond launch test cycle)
+  full direct desktop Convex migration for all cloud product data
 ```
 
 Important wording rule:
@@ -1294,7 +1299,7 @@ Live Convex-backed desktop data requires desktop auth first. The current auth pl
 apps/user-application/docs/05-09/05-09-desktop-auth-deep-link-plan.md
 ```
 
-Website login, onboarding, billing, payments, and account flows stay in `apps/web-application`. Desktop should launch the website login flow, receive a `stage://auth` callback, store the desktop session securely through Electron main, and initialize Convex only after that session exists.
+Website login, onboarding, billing, payments, and account flows stay in `apps/web-application`. Desktop should show only a native sign-in launcher when disconnected, launch the website login flow, receive the callback, store the desktop session securely through Electron main, and then continue product work in the desktop UI.
 
 Current auth status:
 
@@ -1313,10 +1318,13 @@ Done:
   /api/v1/me token verification
   auth:session-changed renderer refresh
   live selected ProjectContext fetch after session exists
+  logout/token-expiry session clear
+  logged-out route guard + desktop sign-in launcher
+  30-day JWT launch stopgap accepted
 
 Next:
-  add logout/token expiry handling
-  replace remaining visible fallback/mock UI with honest live/loading/empty states
+  verify auth/session behavior end-to-end after deploy/restart/re-login
+  continue desktop-first direct Convex migration for cloud data
 ```
 
 ### Phase 3: Electron Sidecar Supervisor

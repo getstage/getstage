@@ -1,7 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
+import { DesktopAuthProvider } from "./lib/auth";
+import { convex } from "./lib/convex";
 import { router } from "./router";
 import "./styles/globals.css";
 import "./styles/desktop.css";
@@ -28,8 +31,12 @@ if (!rootEl) {
 
 ReactDOM.createRoot(rootEl).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
+    <ConvexAuthProvider client={convex}>
+      <QueryClientProvider client={queryClient}>
+        <DesktopAuthProvider>
+          <RouterProvider router={router} />
+        </DesktopAuthProvider>
+      </QueryClientProvider>
+    </ConvexAuthProvider>
   </React.StrictMode>,
 );
