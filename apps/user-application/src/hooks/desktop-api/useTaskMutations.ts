@@ -1,18 +1,16 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation } from "convex/react";
 import {
   taskSummarySchema,
   type TaskPriority,
-  type TaskSummary,
 } from "@stage/data-ops";
-import { useDesktopBridge } from "../useDesktopBridge";
+import { useDesktopAuth } from "@/lib/auth";
+import { api } from "@/lib/convexApi";
 
-const TASKS_API_KEY = ["desktop", "api"] as const;
-
-function invalidateTasks(queryClient: ReturnType<typeof useQueryClient>) {
-  // The user-tasks list is the kanban source. The per-phase tasks list and
-  // project-detail aggregate query also surface task data, so invalidate the
-  // entire desktop API namespace; matches the pattern used elsewhere in the app.
-  void queryClient.invalidateQueries({ queryKey: TASKS_API_KEY });
+function requireDesktopAuth(isAuthenticated: boolean) {
+  if (!isAuthenticated) {
+    throw new Error("Sign in to Stage before changing tasks.");
+  }
 }
 
 export type CreateTaskInput = {
@@ -23,24 +21,52 @@ export type CreateTaskInput = {
 };
 
 export function useCreateTaskMutation() {
-  const desktop = useDesktopBridge();
-  const queryClient = useQueryClient();
+  const createTask = useMutation(api.desktop.createTask);
+  const { isAuthenticated } = useDesktopAuth();
+  const [isPending, setIsPending] = useState(false);
 
-  return useMutation<TaskSummary, Error, CreateTaskInput>({
-    mutationFn: async (input) =>
-      taskSummarySchema.parse(await desktop.api.createTask(input)),
-    onSuccess: () => invalidateTasks(queryClient),
-  });
+  async function mutateAsync(input: CreateTaskInput) {
+    requireDesktopAuth(isAuthenticated);
+    setIsPending(true);
+    try {
+      return taskSummarySchema.parse(await createTask(input));
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  return {
+    isPending,
+    mutateAsync,
+    mutate: (input: CreateTaskInput, options?: { onError?: () => void }) => {
+      void mutateAsync(input)
+        .catch(() => options?.onError?.());
+    },
+  };
 }
 
 export function useDeleteTaskMutation() {
-  const desktop = useDesktopBridge();
-  const queryClient = useQueryClient();
+  const deleteTask = useMutation(api.desktop.deleteTask);
+  const { isAuthenticated } = useDesktopAuth();
+  const [isPending, setIsPending] = useState(false);
 
-  return useMutation<{ ok: true }, Error, string>({
-    mutationFn: (taskId) => desktop.api.deleteTask(taskId),
-    onSuccess: () => invalidateTasks(queryClient),
-  });
+  async function mutateAsync(taskId: string) {
+    requireDesktopAuth(isAuthenticated);
+    setIsPending(true);
+    try {
+      return deleteTask({ taskId });
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  return {
+    isPending,
+    mutateAsync,
+    mutate: (taskId: string, options?: { onError?: () => void }) => {
+      void mutateAsync(taskId).catch(() => options?.onError?.());
+    },
+  };
 }
 
 export type SetTaskPriorityInput = {
@@ -49,12 +75,26 @@ export type SetTaskPriorityInput = {
 };
 
 export function useSetTaskPriorityMutation() {
-  const desktop = useDesktopBridge();
-  const queryClient = useQueryClient();
+  const setTaskPriority = useMutation(api.desktop.setTaskPriority);
+  const { isAuthenticated } = useDesktopAuth();
+  const [isPending, setIsPending] = useState(false);
 
-  return useMutation<TaskSummary, Error, SetTaskPriorityInput>({
-    mutationFn: async (input) =>
-      taskSummarySchema.parse(await desktop.api.setTaskPriority(input)),
-    onSuccess: () => invalidateTasks(queryClient),
-  });
+  async function mutateAsync(input: SetTaskPriorityInput) {
+    requireDesktopAuth(isAuthenticated);
+    setIsPending(true);
+    try {
+      return taskSummarySchema.parse(await setTaskPriority(input));
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  return {
+    isPending,
+    mutateAsync,
+    mutate: (input: SetTaskPriorityInput, options?: { onError?: () => void }) => {
+      void mutateAsync(input)
+        .catch(() => options?.onError?.());
+    },
+  };
 }

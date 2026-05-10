@@ -21,6 +21,7 @@ export type StageDesktopApi = {
     openLogin: () => Promise<void>;
     logout: () => Promise<void>;
     getSession: () => Promise<DesktopSession | null>;
+    getAccessToken: () => Promise<string | null>;
     onSessionChanged: (callback: (session: DesktopSession | null) => void) => () => void;
   };
   projectContext: {

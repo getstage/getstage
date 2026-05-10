@@ -7,6 +7,7 @@ const stageDesktop = {
     openLogin: () => ipcRenderer.invoke(IPC_CHANNELS.authOpenLogin),
     logout: () => ipcRenderer.invoke(IPC_CHANNELS.authLogout),
     getSession: () => ipcRenderer.invoke(IPC_CHANNELS.authGetSession),
+    getAccessToken: () => ipcRenderer.invoke(IPC_CHANNELS.authGetAccessToken),
     onSessionChanged: (callback: (session: DesktopSession | null) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, session: DesktopSession | null) => {
         callback(session);

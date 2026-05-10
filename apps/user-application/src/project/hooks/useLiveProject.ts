@@ -1,27 +1,32 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "convex/react";
 import {
   phaseSummarySchema,
+  projectDetailSchema,
   taskSummarySchema,
   type PhaseSummary,
   type ProjectDetail,
   type TaskSummary,
 } from "@stage/data-ops";
 import { z } from "zod";
-import { useDesktopBridge } from "@/hooks/useDesktopBridge";
-import { useProjectQuery } from "@/hooks/desktop-api";
+import { api } from "@/lib/convexApi";
 import type { Phase, Project, Task } from "../models/project";
 
 const EMPTY_PHASES: PhaseSummary[] = [];
-const EMPTY_TASKS_BY_PHASE: Record<string, TaskSummary[]> = {};
+const EMPTY_TASKS_BY_PHASE: { [phaseId: string]: TaskSummary[] } = {};
 
 const phaseListSchema = z.array(phaseSummarySchema);
 const taskListSchema = z.array(taskSummarySchema);
+const liveProjectDataSchema = z.object({
+  project: projectDetailSchema,
+  phases: phaseListSchema,
+  tasks: taskListSchema,
+});
 
 type LiveProjectData = {
   project: ProjectDetail;
   phases: PhaseSummary[];
-  tasksByPhaseId: Record<string, TaskSummary[]>;
+  tasksByPhaseId: { [phaseId: string]: TaskSummary[] };
 };
 
 function mapTask(task: TaskSummary): Task {
@@ -77,64 +82,47 @@ export type UseLiveProjectResult = {
   project: Project | null;
   detail: ProjectDetail | null;
   phases: PhaseSummary[];
-  tasksByPhaseId: Record<string, TaskSummary[]>;
+  tasksByPhaseId: { [phaseId: string]: TaskSummary[] };
   isLoading: boolean;
   error: unknown;
 };
 
 export function useLiveProject(projectId: string | undefined): UseLiveProjectResult {
-  const desktop = useDesktopBridge();
-  const projectQuery = useProjectQuery(projectId);
-
-  const phasesAndTasksQuery = useQuery<{
-    phases: PhaseSummary[];
-    tasksByPhaseId: Record<string, TaskSummary[]>;
-  }>({
-    queryKey: ["desktop", "api", "project", projectId, "phases-with-tasks"],
-    enabled: Boolean(projectId),
-    queryFn: async () => {
-      if (!projectId) {
-        throw new Error("Missing project id.");
-      }
-      const phases = phaseListSchema.parse(
-        await desktop.api.listProjectPhases(projectId),
-      );
-      const taskEntries = await Promise.all(
-        phases.map(async (phase) => {
-          const tasks = taskListSchema.parse(
-            await desktop.api.listPhaseTasks(phase.id),
-          );
-          return [phase.id, tasks] as const;
-        }),
-      );
-      const tasksByPhaseId: Record<string, TaskSummary[]> = {};
-      for (const [phaseId, tasks] of taskEntries) {
-        tasksByPhaseId[phaseId] = tasks;
-      }
-      return { phases, tasksByPhaseId };
-    },
-    retry: 1,
-  });
-
-  const isLoading = projectQuery.isLoading || phasesAndTasksQuery.isLoading;
-  const error = projectQuery.error ?? phasesAndTasksQuery.error;
-
-  const project = useMemo<Project | null>(() => {
-    if (!projectQuery.data || !phasesAndTasksQuery.data) {
+  const rawProjectData = useQuery(
+    api.desktop.getProjectData,
+    projectId ? { projectId } : "skip",
+  );
+  const liveData = useMemo(() => {
+    if (!rawProjectData) {
       return null;
     }
-    return mapProject({
-      project: projectQuery.data,
-      phases: phasesAndTasksQuery.data.phases,
-      tasksByPhaseId: phasesAndTasksQuery.data.tasksByPhaseId,
-    });
-  }, [projectQuery.data, phasesAndTasksQuery.data]);
+    const parsed = liveProjectDataSchema.parse(rawProjectData);
+    const tasksByPhaseId: { [phaseId: string]: TaskSummary[] } = {};
+    for (const task of parsed.tasks) {
+      tasksByPhaseId[task.phaseId] = [...(tasksByPhaseId[task.phaseId] ?? []), task];
+    }
+    return {
+      project: parsed.project,
+      phases: parsed.phases,
+      tasksByPhaseId,
+    };
+  }, [rawProjectData]);
+
+  const isLoading = Boolean(projectId) && rawProjectData === undefined;
+  const error = null;
+
+  const project = useMemo<Project | null>(() => {
+    if (!liveData) {
+      return null;
+    }
+    return mapProject(liveData);
+  }, [liveData]);
 
   return {
     project,
-    detail: projectQuery.data ?? null,
-    phases: phasesAndTasksQuery.data?.phases ?? EMPTY_PHASES,
-    tasksByPhaseId: phasesAndTasksQuery.data?.tasksByPhaseId ?? EMPTY_TASKS_BY_PHASE,
+    detail: liveData?.project ?? null,
+    phases: liveData?.phases ?? EMPTY_PHASES,
+    tasksByPhaseId: liveData?.tasksByPhaseId ?? EMPTY_TASKS_BY_PHASE,
     isLoading,
     error,
   };

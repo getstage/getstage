@@ -2,6 +2,7 @@ export const IPC_CHANNELS = {
   authOpenLogin: "auth:open-login",
   authLogout: "auth:logout",
   authGetSession: "auth:get-session",
+  authGetAccessToken: "auth:get-access-token",
   authSessionChanged: "auth:session-changed",
   projectContextGetSelected: "project-context:get-selected",
   desktopApiListProjects: "desktop-api:list-projects",

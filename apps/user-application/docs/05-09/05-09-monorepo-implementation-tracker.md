@@ -2,9 +2,9 @@
 
 Date: May 9, 2026  
 Branch: `monorepo`  
-Status: Auth and live project-context bridge working locally
+Status: Desktop product data migrated to direct Convex; ready for manual testing
 Latest pushed checkpoint: `28f292d fix desktop auth callback in local dev`
-Latest local checkpoint: desktop auth handoff + Step 23 stabilization, not committed yet
+Latest local checkpoint: direct desktop Convex migration + create project/delete account fixes, not committed yet
 
 ## Scope
 
@@ -64,6 +64,10 @@ Step 23 sub-items (2026-05-10 update):
   No valid desktop session now renders `DesktopAuthView`, which opens the
   web-owned login/signup/onboarding/billing flow and resumes after
   `auth:session-changed`.
+- [x] Direct Convex queries are gated behind desktop auth.
+  The companion/critique panel and product-data hooks now pass `"skip"` to
+  Convex while there is no desktop session, so signed-out startup shows the
+  login screen instead of a customer-visible `Not authenticated` error.
 - [x] Tasks page: priority enum field, GET /api/v1/me/tasks, kanban grouping by priority.
   See same doc (Part 2, pass 1).
 - [x] Tasks page: create/delete/setPriority mutations, persist drag-and-drop.
@@ -77,6 +81,14 @@ Step 23 sub-items (2026-05-10 update):
 - [x] Decide whether direct Convex subscriptions belong in desktop V1 or remain behind Electron main + website API.
   Decision: desktop-first. Desktop should use direct Convex for cloud
   product data once the migration is verified; IPC remains for native/Rust.
+- [x] Migrate desktop product data off the `/api/v1` IPC bridge.
+  Sidebar/projects/project detail/tasks now use direct Convex
+  `useQuery`/`useMutation` through the desktop renderer. Electron IPC remains
+  for auth handoff, session storage, shell/native, and Rust sidecar work.
+- [x] Fix create project and delete account.
+  Create project now calls direct Convex and navigates with the real created
+  project id. Delete account now calls the existing Convex account deletion
+  action and then clears the local desktop session.
 - [x] Migrate `packages/data-ops` from "point to src" to "build to dist" pattern.
   Completed on 2026-05-10. See `05-10/05-10-data-ops-build-pattern.md`.
 

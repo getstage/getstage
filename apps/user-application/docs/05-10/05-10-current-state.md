@@ -8,20 +8,22 @@ diving into any other doc. The detailed implementation logs live in
 
 ## Status in one paragraph
 
-Steps 1-23 of the monorepo tracker are done. The desktop renders live
-data on every page that has a backing API (Sidebar, Projects, Project
-detail, Dashboard metrics, Client Portal, Tasks kanban). Tasks support
-create / delete / drag-to-change-priority and they persist to Convex.
-Logout works. If no valid desktop session exists, the desktop now shows
-a real sign-in screen that opens the web-owned auth/signup/onboarding/
-billing flow and resumes automatically after the browser returns. The
-Convex Auth JWT now lives 30 days instead of 1 hour; this is the launch
-choice for now, with monthly re-login instead of true refresh-token
-rotation. A strict-typing rule + skill is in place so future agents do
-not add `any` or `as` casts at process boundaries. Next big step is Step
-24: fake provider runner, after verification.
+Steps 1-23 of the monorepo tracker are done. Desktop product data now
+uses direct Convex from the renderer for projects, project detail,
+phases, tasks, create project, task mutations, and delete account.
+Electron IPC remains for auth handoff/session storage, shell/native, and
+Rust sidecar work. Logout works. If no valid desktop session exists, the
+desktop shows a real sign-in screen that opens the web-owned auth/signup/
+onboarding/billing flow and resumes automatically after the browser
+returns. Direct Convex product queries are skipped while signed out, so the
+desktop no longer calls authenticated Convex functions before the login
+screen is shown. The Convex Auth JWT now lives 30 days instead of 1 hour; this is
+the launch choice for now, with monthly re-login instead of true
+refresh-token rotation. A strict-typing rule + skill is in place so
+future agents do not add `any` or `as` casts at process boundaries. Next
+big step is Step 24: fake provider runner, after manual testing.
 
-## What is live (live = Convex via /api/v1)
+## What is live (live = direct Convex in desktop renderer)
 
 ```txt
 Sidebar projects list
@@ -31,9 +33,12 @@ Dashboard "Active Projects" metric + subheading
 Client Portal projects table
 Settings -> Account session display
 Tasks kanban: list, create, delete, set-priority (drag persists)
+Create project: direct Convex mutation, real created project id
+Delete account: direct Convex action, then local desktop logout
 Logout button in sidebar account menu
 401 / 403 -> auto-clear session -> UI drops to "Sign in"
 Desktop route guard -> no session shows desktop sign-in screen
+Signed-out direct Convex query guard -> no customer-visible server error
 ```
 
 ## What is still mock (intentionally deferred)
@@ -78,10 +83,9 @@ work into the sidecar.
 ## What you need to do BEFORE the next agent runs
 
 1. Convex testing deploy.
-   The new mutations (`createProjectTaskForApi`,
-   `setTaskPriorityForApi`, `deleteTaskForApi`) and the JWT
-   `durationMs: 30 days` change in `convex/auth.ts` are not live on
-   testing until you deploy:
+   The direct desktop functions in `convex/desktop.ts`, the account
+   deletion action path, task mutations, create-project mutation, and the
+   JWT `durationMs: 30 days` change are not live on testing until you deploy:
    ```bash
    cd apps/web-application
    pnpm run testing:deploy
@@ -146,11 +150,12 @@ Build-to-dist migration plan for data-ops
 ## Verification on 2026-05-10 (latest)
 
 ```txt
-packages/data-ops          pnpm run typecheck      PASS
+packages/data-ops          pnpm run build          PASS
 apps/user-application      pnpm run typecheck      PASS
-apps/user-application      pnpm run build          PASS  (725 modules)
+apps/user-application      pnpm run build          PASS  (812 modules)
 apps/web-application       pnpm run typecheck      PASS
 apps/web-application       pnpm run build:testing  PASS
+git diff --check                                    PASS
 ```
 
 ## Next agent's job (in this exact order)
@@ -159,8 +164,9 @@ apps/web-application       pnpm run build:testing  PASS
 1. Read this file (current-state) first.
 2. Read 05-09/05-09-monorepo-implementation-tracker.md to confirm
    step status.
-3. Continue direct desktop Convex migration from:
-   05-10/05-10-desktop-first-convex-data-ops-plan.md.
+3. Manual test the direct desktop Convex paths:
+   projects list, project detail, tasks kanban, create project, delete
+   account, logout, and login return.
 4. Verify the desktop logged-out/login screen:
    no stored session -> sign-in screen -> browser auth -> automatic
    return to desktop after `auth:session-changed`.

@@ -1,6 +1,5 @@
-import { createContext, useContext, type ReactNode } from "react";
-import { useConvexAuth } from "convex/react";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import type { DesktopSession } from "@shared/models/desktop";
 
 type DesktopAuthState = {
   isAuthenticated: boolean;
@@ -10,7 +9,7 @@ type DesktopAuthState = {
 const DesktopAuthContext = createContext<DesktopAuthState | null>(null);
 
 export function DesktopAuthProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated, isLoading } = useConvexAuth();
+  const { isAuthenticated, isLoading } = useElectronAuthForConvex();
 
   return (
     <DesktopAuthContext.Provider value={{ isAuthenticated, isLoading }}>
@@ -27,12 +26,45 @@ export function useDesktopAuth() {
   return value;
 }
 
-export function useDesktopSignIn() {
-  const { signIn } = useAuthActions();
-  return signIn;
-}
+export function useElectronAuthForConvex() {
+  const [session, setSession] = useState<DesktopSession | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-export function useDesktopSignOut() {
-  const { signOut } = useAuthActions();
-  return signOut;
+  useEffect(() => {
+    let isMounted = true;
+
+    window.stageDesktop.auth.getSession()
+      .then((storedSession) => {
+        if (!isMounted) {
+          return;
+        }
+        setSession(storedSession);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        if (!isMounted) {
+          return;
+        }
+        setSession(null);
+        setIsLoading(false);
+      });
+
+    const unsubscribe = window.stageDesktop.auth.onSessionChanged((nextSession) => {
+      setSession(nextSession);
+      setIsLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const fetchAccessToken = useCallback(() => window.stageDesktop.auth.getAccessToken(), []);
+
+  return {
+    isLoading,
+    isAuthenticated: Boolean(session?.hasAccessToken),
+    fetchAccessToken,
+  };
 }

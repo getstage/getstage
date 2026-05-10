@@ -29,6 +29,7 @@ import type * as clients from "../clients.js";
 import type * as collaborators from "../collaborators.js";
 import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
+import type * as desktop from "../desktop.js";
 import type * as developer_apiKeys from "../developer/apiKeys.js";
 import type * as developer_testingFixtures from "../developer/testingFixtures.js";
 import type * as domain_accountCleanup from "../domain/accountCleanup.js";
@@ -88,6 +89,7 @@ declare const fullApi: ApiFromModules<{
   collaborators: typeof collaborators;
   crons: typeof crons;
   dashboard: typeof dashboard;
+  desktop: typeof desktop;
   "developer/apiKeys": typeof developer_apiKeys;
   "developer/testingFixtures": typeof developer_testingFixtures;
   "domain/accountCleanup": typeof domain_accountCleanup;

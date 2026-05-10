@@ -1,18 +1,23 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useQuery } from "convex/react";
 import { projectDetailSchema, type ProjectDetail } from "@stage/data-ops";
-import { useDesktopBridge } from "../useDesktopBridge";
+import { useDesktopAuth } from "@/lib/auth";
+import { api } from "@/lib/convexApi";
 
 export function useProjectQuery(projectId: string | undefined) {
-  const desktop = useDesktopBridge();
-  return useQuery<ProjectDetail>({
-    queryKey: ["desktop", "api", "project", projectId],
-    enabled: Boolean(projectId),
-    queryFn: async () => {
-      if (!projectId) {
-        throw new Error("Missing project id.");
-      }
-      return projectDetailSchema.parse(await desktop.api.getProject(projectId));
-    },
-    retry: 1,
-  });
+  const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
+  const project = useQuery(
+    api.desktop.getProject,
+    isAuthenticated && projectId ? { projectId } : "skip",
+  );
+  const data = useMemo<ProjectDetail | undefined>(
+    () => project === undefined || project === null ? undefined : projectDetailSchema.parse(project),
+    [project],
+  );
+
+  return {
+    data,
+    isLoading: isAuthLoading || (isAuthenticated && Boolean(projectId) && project === undefined),
+    error: null,
+  };
 }

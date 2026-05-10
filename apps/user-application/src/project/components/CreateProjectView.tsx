@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode, RefObject } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useMutation } from "convex/react";
+import { projectDetailSchema } from "@stage/data-ops";
 import stageLogoLight from "@/assets/logos/stage-logo-light.png";
+import { api } from "@/lib/convexApi";
 import { cn } from "@/lib/utils";
 
 const progressSteps = [0, 1, 2, 3, 4];
@@ -38,6 +41,10 @@ export function CreateProjectView() {
   );
   const [addingPhase, setAddingPhase] = useState(false);
   const [newPhaseName, setNewPhaseName] = useState("");
+  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const createProject = useMutation(api.desktop.createProject);
 
   const clientPhotoUrl = useMemo(() => {
     if (!clientPhoto) return "";
@@ -56,11 +63,50 @@ export function CreateProjectView() {
         onViewProject={() =>
           void navigate({
             to: "/project/$projectId",
-            params: { projectId: "baseframe" },
+            params: { projectId: createdProjectId ?? "" },
           })
         }
       />
     );
+  }
+
+  async function handleCreateProject() {
+    if (!projectType) {
+      setCreateError("Choose a project type first.");
+      return;
+    }
+
+    const parsedStartDate = parseDateInput(startDate);
+    const parsedEndDate = parseDateInput(endDate);
+    if (!parsedStartDate || !parsedEndDate) {
+      setCreateError("Enter a valid start and end date.");
+      return;
+    }
+
+    setIsCreatingProject(true);
+    setCreateError(null);
+    try {
+      const selectedPhases =
+        roadmapMode === "smart"
+          ? smartRoadmapPhases
+          : manualPhases.filter((phase) => enabledPhases.has(phase));
+      const createdProject = projectDetailSchema.parse(await createProject({
+        name: projectName.trim(),
+        clientName: clientName.trim() || projectName.trim(),
+        clientEmail: clientEmail.trim() || undefined,
+        type: projectType,
+        method: roadmapMode === "smart" ? "ai" : "manual",
+        startDate: parsedStartDate,
+        endDate: parsedEndDate,
+        phases: selectedPhases.map((phase) => ({ name: phase })),
+      }));
+      setCreatedProjectId(createdProject.id);
+      setStep("success");
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : "Could not create project.");
+    } finally {
+      setIsCreatingProject(false);
+    }
   }
 
   return (
@@ -155,7 +201,9 @@ export function CreateProjectView() {
                       setNewPhaseName("");
                       setAddingPhase(false);
                     }}
-                    onCreateProject={() => setStep("success")}
+                    onCreateProject={() => void handleCreateProject()}
+                    isCreating={isCreatingProject}
+                    error={createError}
                   />
                 )
               )
@@ -171,6 +219,42 @@ export function CreateProjectView() {
       </section>
     </main>
   );
+}
+
+/** Strips non-digits, caps at 8, inserts slashes for DD/MM/YYYY (typing or paste). */
+function formatDdMmYyyyInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) {
+    return digits;
+  }
+  if (digits.length <= 4) {
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  }
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function parseDateInput(value: string) {
+  const trimmed = value.trim();
+  const slashMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed);
+  if (slashMatch) {
+    const day = Number(slashMatch[1]);
+    const month = Number(slashMatch[2]) - 1;
+    const year = Number(slashMatch[3]);
+    const date = new Date(year, month, day);
+    return date.getTime();
+  }
+
+  const compact = /^(\d{2})(\d{2})(\d{4})$/.exec(trimmed);
+  if (compact) {
+    const day = Number(compact[1]);
+    const month = Number(compact[2]) - 1;
+    const year = Number(compact[3]);
+    const date = new Date(year, month, day);
+    return date.getTime();
+  }
+
+  const timestamp = new Date(trimmed).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
 }
 
 function BasicDetailsStep({
@@ -504,6 +588,8 @@ function RoadmapStep({
   onNewPhaseNameChange,
   onAddPhase,
   onCreateProject,
+  isCreating,
+  error,
 }: {
   mode: RoadmapMode;
   manualPhases: string[];
@@ -516,6 +602,8 @@ function RoadmapStep({
   onNewPhaseNameChange: (name: string) => void;
   onAddPhase: () => void;
   onCreateProject: () => void;
+  isCreating: boolean;
+  error: string | null;
 }) {
   return (
     <CreateProjectStepShell
@@ -572,7 +660,8 @@ function RoadmapStep({
           </div>
         </div>
 
-        <CreateProjectButton />
+        {error ? <p className="text-[12px] font-medium text-[#b91c1c]">{error}</p> : null}
+        <CreateProjectButton isCreating={isCreating} />
       </form>
     </CreateProjectStepShell>
   );
@@ -789,14 +878,15 @@ function ToggleSwitch({
   );
 }
 
-function CreateProjectButton() {
+function CreateProjectButton({ isCreating }: { isCreating: boolean }) {
   return (
     <button
       type="submit"
-      className="flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[10px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+      disabled={isCreating}
+      className="flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[10px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
     >
       <span className="[text-shadow:0px_0.5px_1.5px_rgba(0,0,0,0.15)]">
-        Create Project
+        {isCreating ? "Creating..." : "Create Project"}
       </span>
       <ArrowRightIcon />
     </button>
@@ -817,10 +907,12 @@ function DateInput({
       <CalendarIcon />
       <input
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => onChange(formatDdMmYyyyInput(event.target.value))}
         placeholder="DD/MM/YYYY"
         aria-label={ariaLabel}
         inputMode="numeric"
+        autoComplete="off"
+        maxLength={10}
         className={cn(inputSurfaceClassName, "pl-[40px]")}
       />
     </div>

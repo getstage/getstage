@@ -1,7 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useQuery } from "convex/react";
 import { taskSummarySchema, type TaskSummary } from "@stage/data-ops";
 import { z } from "zod";
-import { useDesktopBridge } from "../useDesktopBridge";
+import { useDesktopAuth } from "@/lib/auth";
+import { api } from "@/lib/convexApi";
 
 const taskListSchema = z.array(taskSummarySchema);
 
@@ -10,13 +12,17 @@ export type UseUserTasksQueryArgs = {
 };
 
 export function useUserTasksQuery(args: UseUserTasksQueryArgs = {}) {
-  const desktop = useDesktopBridge();
   const { limit } = args;
+  const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
+  const tasks = useQuery(api.desktop.listUserTasks, isAuthenticated ? (limit ? { limit } : {}) : "skip");
+  const data = useMemo<TaskSummary[] | undefined>(
+    () => tasks === undefined ? undefined : taskListSchema.parse(tasks),
+    [tasks],
+  );
 
-  return useQuery<TaskSummary[]>({
-    queryKey: ["desktop", "api", "me", "tasks", { limit: limit ?? null }],
-    queryFn: async () =>
-      taskListSchema.parse(await desktop.api.listUserTasks(limit ? { limit } : undefined)),
-    retry: 1,
-  });
+  return {
+    data,
+    isLoading: isAuthLoading || (isAuthenticated && tasks === undefined),
+    error: null,
+  };
 }

@@ -170,16 +170,29 @@ No product behavior should change in this first step.
   and monthly re-login; true refresh-token rotation is deferred.
 - 2026-05-10: Desktop logged-out route guard/sign-in launcher added so
   no-session boot opens the web-owned auth/signup/onboarding/billing flow.
+- 2026-05-10: Direct desktop Convex migration implemented for product data:
+  projects, project detail, phases, tasks, create project, task mutations,
+  and delete account now use Convex from the desktop renderer. IPC remains
+  for auth/session/native/Rust.
+- 2026-05-10 verification:
+  - `apps/web-application pnpm run typecheck` passed.
+  - `packages/data-ops pnpm run build` passed.
+  - `apps/user-application pnpm run typecheck` passed.
+  - `apps/user-application pnpm run build` passed.
+  - `apps/web-application pnpm run build:testing` passed.
+  - `git diff --check` passed.
 
 ## Next Step
 
-After auth verification, continue the direct desktop Convex migration:
+Manual testing:
 
 ```txt
-1. Add Convex runtime dependencies to apps/user-application.
-2. Add desktop Convex client/Auth provider.
-3. Keep web auth/payment as redirect flows.
-4. Replace desktop project/task/dashboard IPC API hooks with direct
-   Convex useQuery/useMutation hooks.
-5. Keep IPC for Rust/native only.
+1. Deploy testing Convex/web.
+2. Restart desktop dev server.
+3. Sign out and back in once.
+4. Test Projects list.
+5. Test Project detail + phases/tasks.
+6. Test Tasks kanban create/delete/drag priority.
+7. Test Create Project.
+8. Test Delete Account only on a disposable account.
 ```

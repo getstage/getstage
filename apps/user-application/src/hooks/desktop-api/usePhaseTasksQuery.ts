@@ -1,21 +1,26 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useQuery } from "convex/react";
 import { taskSummarySchema, type TaskSummary } from "@stage/data-ops";
 import { z } from "zod";
-import { useDesktopBridge } from "../useDesktopBridge";
+import { useDesktopAuth } from "@/lib/auth";
+import { api } from "@/lib/convexApi";
 
 const taskListSchema = z.array(taskSummarySchema);
 
 export function usePhaseTasksQuery(phaseId: string | undefined) {
-  const desktop = useDesktopBridge();
-  return useQuery<TaskSummary[]>({
-    queryKey: ["desktop", "api", "phase", phaseId, "tasks"],
-    enabled: Boolean(phaseId),
-    queryFn: async () => {
-      if (!phaseId) {
-        throw new Error("Missing phase id.");
-      }
-      return taskListSchema.parse(await desktop.api.listPhaseTasks(phaseId));
-    },
-    retry: 1,
-  });
+  const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
+  const tasks = useQuery(
+    api.desktop.listPhaseTasks,
+    isAuthenticated && phaseId ? { phaseId } : "skip",
+  );
+  const data = useMemo<TaskSummary[] | undefined>(
+    () => tasks === undefined ? undefined : taskListSchema.parse(tasks),
+    [tasks],
+  );
+
+  return {
+    data,
+    isLoading: isAuthLoading || (isAuthenticated && Boolean(phaseId) && tasks === undefined),
+    error: null,
+  };
 }

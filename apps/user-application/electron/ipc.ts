@@ -48,6 +48,10 @@ export function registerIpcHandlers({
     return session ? desktopSessionSchema.parse(session) : null;
   });
 
+  ipcMain.handle(IPC_CHANNELS.authGetAccessToken, async (): Promise<string | null> => {
+    return authController.getAccessToken();
+  });
+
   ipcMain.handle(IPC_CHANNELS.projectContextGetSelected, async () => {
     return getSelectedProjectContext(authController);
   });
