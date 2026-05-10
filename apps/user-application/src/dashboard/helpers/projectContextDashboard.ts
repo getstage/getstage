@@ -1,4 +1,8 @@
-import type { ProjectContext, ProjectContextTask } from "@stage/data-ops";
+import type {
+  ProjectContext,
+  ProjectContextTask,
+  ProjectSummary,
+} from "@stage/data-ops";
 import type {
   DashboardChartPoint,
   DashboardMetric,
@@ -60,18 +64,35 @@ export function buildSidebarProjectsFromProjectContext(
   ];
 }
 
-export function buildDashboardMetrics(context: ProjectContext | null): DashboardMetric[] {
+export function buildSidebarProjectsFromSummaries(
+  summaries: ProjectSummary[],
+): DashboardProject[] {
+  return summaries.map((project) => ({
+    id: project.id,
+    name: project.name,
+    logoLabel: getInitials(project.name),
+    accentColor: PRIMARY_ACCENT,
+    projectImageUrl: project.projectImageUrl,
+  }));
+}
+
+export function buildDashboardMetrics(
+  context: ProjectContext | null,
+  options?: { activeProjectCount?: number },
+): DashboardMetric[] {
   const tasks = context?.tasks ?? [];
   const openTasks = tasks.filter((task) => task.status !== "done").length;
   const completedTasks = tasks.filter((task) => task.status === "done").length;
   const totalTasks = tasks.length;
   const progress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+  const activeProjectCount =
+    options?.activeProjectCount ?? (context ? 1 : 0);
 
   return [
     {
       id: "active",
       icon: "/logos/dashboard/radio.svg",
-      value: context ? "1" : "0",
+      value: String(activeProjectCount),
       label: "Active Projects",
     },
     {

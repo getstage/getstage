@@ -67,6 +67,12 @@ const phaseStatus = v.union(
   v.literal("upcoming"),
 );
 
+const taskPriority = v.union(
+  v.literal("low"),
+  v.literal("medium"),
+  v.literal("high"),
+);
+
 const attachmentType = v.union(
   v.literal("image"),
   v.literal("pdf"),
@@ -355,6 +361,7 @@ export default defineSchema({
     content: v.optional(v.string()),
     dueDate: v.optional(v.number()),
     assigneeIds: v.optional(v.array(v.string())),
+    priority: v.optional(taskPriority),
     order: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),

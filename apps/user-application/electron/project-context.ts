@@ -1,6 +1,7 @@
 import { projectContextSchema, type ProjectContext } from "@stage/data-ops";
-import { fetchDesktopApiJson } from "./helpers/desktop-api";
 import type { DesktopAuthController } from "./auth";
+import { DesktopSessionExpiredError } from "./desktop-api/auth-failure";
+import { fetchDesktopApiJson } from "./helpers/desktop-api";
 
 type ApiProjectSummary = {
   id: string;
@@ -80,35 +81,43 @@ export async function getSelectedProjectContext(
     return null;
   }
 
-  console.info("[stage-project-context] fetching projects from Stage API");
-  const { projects } = await fetchDesktopApiJson<ProjectsResponse>({
-    accessToken,
-    path: "/projects",
-  });
-  const project = chooseSelectedProject(projects);
+  try {
+    console.info("[stage-project-context] fetching projects from Stage API");
+    const { projects } = await fetchDesktopApiJson<ProjectsResponse>({
+      authController,
+      path: "/projects",
+    });
+    const project = chooseSelectedProject(projects);
 
-  if (!project) {
-    console.info("[stage-project-context] no projects returned from Stage API");
-    return null;
+    if (!project) {
+      console.info("[stage-project-context] no projects returned from Stage API");
+      return null;
+    }
+
+    console.info(`[stage-project-context] selected project ${project.id}`);
+    const { phases } = await fetchDesktopApiJson<PhasesResponse>({
+      authController,
+      path: `/projects/${encodeURIComponent(project.id)}/phases`,
+    });
+    const tasksByPhaseId = new Map<string, ApiTaskSummary[]>();
+
+    await Promise.all(
+      phases.map(async (phase) => {
+        const { tasks } = await fetchDesktopApiJson<TasksResponse>({
+          authController,
+          path: `/phases/${encodeURIComponent(phase.id)}/tasks`,
+        });
+        tasksByPhaseId.set(phase.id, tasks);
+      }),
+    );
+
+    console.info(`[stage-project-context] built ProjectContext with ${phases.length} phases`);
+    return buildProjectContext({ phases, project, tasksByPhaseId });
+  } catch (error) {
+    if (error instanceof DesktopSessionExpiredError) {
+      console.info("[stage-project-context] desktop session expired; returning fallback");
+      return null;
+    }
+    throw error;
   }
-
-  console.info(`[stage-project-context] selected project ${project.id}`);
-  const { phases } = await fetchDesktopApiJson<PhasesResponse>({
-    accessToken,
-    path: `/projects/${encodeURIComponent(project.id)}/phases`,
-  });
-  const tasksByPhaseId = new Map<string, ApiTaskSummary[]>();
-
-  await Promise.all(
-    phases.map(async (phase) => {
-      const { tasks } = await fetchDesktopApiJson<TasksResponse>({
-        accessToken,
-        path: `/phases/${encodeURIComponent(phase.id)}/tasks`,
-      });
-      tasksByPhaseId.set(phase.id, tasks);
-    }),
-  );
-
-  console.info(`[stage-project-context] built ProjectContext with ${phases.length} phases`);
-  return buildProjectContext({ phases, project, tasksByPhaseId });
 }

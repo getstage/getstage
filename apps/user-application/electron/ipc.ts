@@ -10,6 +10,16 @@ import {
   type DesktopSession,
 } from "@shared/models/desktop";
 import { defaultPermissionStatus } from "./helpers/permissions";
+import {
+  createTask as desktopApiCreateTask,
+  deleteTask as desktopApiDeleteTask,
+  getProject as desktopApiGetProject,
+  listPhaseTasks as desktopApiListPhaseTasks,
+  listProjectPhases as desktopApiListProjectPhases,
+  listProjects as desktopApiListProjects,
+  listUserTasks as desktopApiListUserTasks,
+  setTaskPriority as desktopApiSetTaskPriority,
+} from "./desktop-api";
 import { getSelectedProjectContext } from "./project-context";
 import { closeCompanionWindow, setCompanionWindowInteractive } from "./windows";
 import type { SidecarSupervisor } from "./sidecar";
@@ -28,6 +38,10 @@ export function registerIpcHandlers({
     await authController.openLogin();
   });
 
+  ipcMain.handle(IPC_CHANNELS.authLogout, async () => {
+    await authController.signOut();
+  });
+
   ipcMain.handle(IPC_CHANNELS.authGetSession, async (): Promise<DesktopSession | null> => {
     const session = await authController.getSession();
 
@@ -36,6 +50,42 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IPC_CHANNELS.projectContextGetSelected, async () => {
     return getSelectedProjectContext(authController);
+  });
+
+  // Every desktop-api fetcher accepts `unknown` and Zod-parses internally.
+  // The IPC handlers below pass through without casting or hand-rolled
+  // narrowing - bad input throws a typed Zod error at the boundary.
+
+  ipcMain.handle(IPC_CHANNELS.desktopApiListProjects, async () => {
+    return desktopApiListProjects(authController);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.desktopApiGetProject, async (_event, projectId: unknown) => {
+    return desktopApiGetProject(authController, projectId);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.desktopApiListProjectPhases, async (_event, projectId: unknown) => {
+    return desktopApiListProjectPhases(authController, projectId);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.desktopApiListPhaseTasks, async (_event, phaseId: unknown) => {
+    return desktopApiListPhaseTasks(authController, phaseId);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.desktopApiListUserTasks, async (_event, args: unknown) => {
+    return desktopApiListUserTasks(authController, args);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.desktopApiCreateTask, async (_event, args: unknown) => {
+    return desktopApiCreateTask(authController, args);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.desktopApiDeleteTask, async (_event, taskId: unknown) => {
+    return desktopApiDeleteTask(authController, taskId);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.desktopApiSetTaskPriority, async (_event, args: unknown) => {
+    return desktopApiSetTaskPriority(authController, args);
   });
 
   ipcMain.handle(IPC_CHANNELS.engineGetStatus, () => {

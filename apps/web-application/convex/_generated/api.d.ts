@@ -17,6 +17,7 @@ import type * as api_index from "../api/index.js";
 import type * as api_models from "../api/models.js";
 import type * as api_routes_agent from "../api/routes/agent.js";
 import type * as api_routes_ai from "../api/routes/ai.js";
+import type * as api_routes_me from "../api/routes/me.js";
 import type * as api_routes_phases from "../api/routes/phases.js";
 import type * as api_routes_projects from "../api/routes/projects.js";
 import type * as api_routes_tasks from "../api/routes/tasks.js";
@@ -75,6 +76,7 @@ declare const fullApi: ApiFromModules<{
   "api/models": typeof api_models;
   "api/routes/agent": typeof api_routes_agent;
   "api/routes/ai": typeof api_routes_ai;
+  "api/routes/me": typeof api_routes_me;
   "api/routes/phases": typeof api_routes_phases;
   "api/routes/projects": typeof api_routes_projects;
   "api/routes/tasks": typeof api_routes_tasks;

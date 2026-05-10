@@ -2,23 +2,27 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { WorkspaceFrame } from "@/app/WorkspaceFrame";
-import { mockProject } from "@/project/data/projectSnapshot";
+import {
+  useDeleteTaskMutation,
+  useProjectsQuery,
+  useSetTaskPriorityMutation,
+  useUserTasksQuery,
+} from "@/hooks/desktop-api";
 import type { Task } from "@/project/models/project";
+import { CreateTaskDialog } from "@/tasks/components/CreateTaskDialog";
+import {
+  PRIORITY_COLUMNS,
+  buildPriorityColumns,
+  emptyPriorityColumns,
+  indexProjectsById,
+  type PriorityColumns,
+  type PriorityTask,
+  type TaskPriority,
+  type TaskPriorityColumn,
+} from "@/tasks/helpers/priorityColumns";
 import { cn } from "@/lib/utils";
 
-type TaskPriority = "high" | "medium" | "low" | "backlog";
 type TaskPicker = "assignee" | "project" | null;
-
-type TaskPriorityColumn = {
-  key: TaskPriority;
-  label: string;
-};
-
-type PriorityTask = {
-  task: Task;
-  projectName: string;
-  projectLogoUrl?: string;
-};
 
 type ActiveDrag = PriorityTask & {
   id: string;
@@ -40,27 +44,6 @@ export type TaskProject = {
   logoUrl: string;
 };
 
-const PRIORITY_COLUMNS: TaskPriorityColumn[] = [
-  { key: "high", label: "High Priority" },
-  { key: "medium", label: "Medium Priority" },
-  { key: "low", label: "Low Priority" },
-  { key: "backlog", label: "Backlog" },
-];
-
-const PRIORITY_SEQUENCE: TaskPriority[] = [
-  "high",
-  "medium",
-  "low",
-  "backlog",
-  "high",
-  "medium",
-  "low",
-  "backlog",
-  "high",
-  "low",
-  "high",
-];
-
 const TASK_ASSIGNEES: TaskAssignee[] = [
   { name: "Pratik Singh", avatarUrl: "/logos/dashboard/task-assignee-pratik.png" },
   { name: "John Doe", avatarUrl: "/logos/dashboard/task-assignee-john.png" },
@@ -75,37 +58,30 @@ const TASK_PROJECTS: TaskProject[] = [
   { name: "Klime Studio", logoUrl: "/logos/dashboard/task-project-logo.png" },
 ];
 
-function buildTaskColumns(): Record<TaskPriority, PriorityTask[]> {
-  const grouped: Record<TaskPriority, PriorityTask[]> = {
-    high: [],
-    medium: [],
-    low: [],
-    backlog: [],
-  };
-
-  const allTasks = mockProject.phases.flatMap((phase) => phase.tasks);
-
-  allTasks.forEach((task, index) => {
-    const priority = PRIORITY_SEQUENCE[index % PRIORITY_SEQUENCE.length];
-    grouped[priority].push({
-      task: {
-        ...task,
-        title: "Complete kickoff questionnaire",
-        content: task.content || "Here comes the project/task description, can contain 2-3 lines at max.",
-        isCompleted: priority === "high" && grouped.high.length === 0,
-      },
-      projectName: "BaseFrame Product Design",
-      projectLogoUrl: "/apple-touch-icon.png",
-    });
-  });
-
-  return grouped;
+function priorityForColumn(column: TaskPriority): "low" | "medium" | "high" | null {
+  return column === "backlog" ? null : column;
 }
 
 export function TasksPageView() {
   const navigate = useNavigate();
-  const initialColumns = useMemo(() => buildTaskColumns(), []);
-  const [columns, setColumns] = useState(initialColumns);
+  const tasksQuery = useUserTasksQuery({ limit: 100 });
+  const projectsQuery = useProjectsQuery();
+  const setPriority = useSetTaskPriorityMutation();
+  const deleteTask = useDeleteTaskMutation();
+
+  const liveColumns = useMemo<PriorityColumns>(() => {
+    if (!tasksQuery.data) {
+      return emptyPriorityColumns();
+    }
+    const projectsById = indexProjectsById(projectsQuery.data ?? []);
+    return buildPriorityColumns(tasksQuery.data, projectsById);
+  }, [tasksQuery.data, projectsQuery.data]);
+
+  const [columns, setColumns] = useState<PriorityColumns>(liveColumns);
+
+  useEffect(() => {
+    setColumns(liveColumns);
+  }, [liveColumns]);
   const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<TaskPriority | null>(null);
   const [dropBeforeTaskId, setDropBeforeTaskId] = useState<string | null>(null);
@@ -154,8 +130,7 @@ export function TasksPageView() {
   function toggleTaskCompletion(taskId: string) {
     setColumns((current) => {
       const next = { ...current };
-      for (const columnKey in next) {
-        const key = columnKey as TaskPriority;
+      for (const { key } of PRIORITY_COLUMNS) {
         next[key] = next[key].map((item) => {
           if (item.task.id === taskId) {
             return {
@@ -170,8 +145,18 @@ export function TasksPageView() {
     });
   }
 
+  function findCurrentColumn(taskId: string): TaskPriority | null {
+    for (const column of PRIORITY_COLUMNS) {
+      if (columns[column.key].some((item) => item.task.id === taskId)) {
+        return column.key;
+      }
+    }
+    return null;
+  }
+
   function moveTask(taskId: string, targetColumn: TaskPriority, beforeTaskId?: string | null) {
     if (taskId === beforeTaskId) return;
+    const previousColumn = findCurrentColumn(taskId);
 
     setColumns((current) => {
       let movingTask: PriorityTask | undefined;
@@ -190,13 +175,7 @@ export function TasksPageView() {
       if (!movingTask) return current;
 
       const targetItems = [...next[targetColumn]];
-      const updatedTask = {
-        ...movingTask,
-        task: {
-          ...movingTask.task,
-          isCompleted: targetColumn === "high" && targetItems.length === 0,
-        },
-      };
+      const updatedTask = movingTask;
       const insertionIndex = beforeTaskId
         ? targetItems.findIndex((item) => item.task.id === beforeTaskId)
         : -1;
@@ -210,6 +189,35 @@ export function TasksPageView() {
       next[targetColumn] = targetItems;
       return next;
     });
+
+    if (previousColumn !== targetColumn) {
+      setPriority.mutate(
+        { taskId, priority: priorityForColumn(targetColumn) },
+        {
+          onError: () => {
+            // revert local move; the live query will replay the truth on the
+            // next refetch, but reverting now keeps the UI honest immediately.
+            setColumns(liveColumns);
+          },
+        },
+      );
+    }
+  }
+
+  function handleDeleteTask(taskId: string) {
+    const previous = columns;
+    setColumns((current) => {
+      const next = { ...current };
+      for (const column of PRIORITY_COLUMNS) {
+        next[column.key] = current[column.key].filter((item) => item.task.id !== taskId);
+      }
+      return next;
+    });
+    deleteTask.mutate(taskId, {
+      onError: () => {
+        setColumns(previous);
+      },
+    });
   }
 
   function findTask(taskId: string) {
@@ -220,11 +228,12 @@ export function TasksPageView() {
     return undefined;
   }
 
-  function getColumnFromPoint(x: number, y: number) {
+  function getColumnFromPoint(x: number, y: number): TaskPriority | null {
     const element = document.elementFromPoint(x, y);
     const columnElement = element?.closest<HTMLElement>("[data-task-priority-column]");
-    const priority = columnElement?.dataset.taskPriorityColumn;
-    return PRIORITY_COLUMNS.some((column) => column.key === priority) ? priority as TaskPriority : null;
+    const candidate = columnElement?.dataset.taskPriorityColumn;
+    const match = PRIORITY_COLUMNS.find((column) => column.key === candidate);
+    return match?.key ?? null;
   }
 
   function getDropTargetFromPoint(x: number, y: number, draggedId: string) {
@@ -268,38 +277,6 @@ export function TasksPageView() {
       y: event.clientY,
     });
     setDropBeforeTaskId(null);
-  }
-
-  function createTask({
-    title,
-    description,
-    assignee,
-    project,
-  }: {
-    title: string;
-    description: string;
-    assignee: TaskAssignee;
-    project: TaskProject;
-  }) {
-    const createdTask: PriorityTask = {
-      task: {
-        id: `task-${Date.now()}`,
-        title,
-        content: description,
-        status: "todo",
-        isCompleted: false,
-        updatedAt: Date.now(),
-        assignees: [{ name: assignee.name }],
-      },
-      projectName: project.name,
-      projectLogoUrl: project.logoUrl,
-    };
-
-    setColumns((current) => ({
-      ...current,
-      backlog: [createdTask, ...current.backlog],
-    }));
-    setIsCreateTaskOpen(false);
   }
 
   return (
@@ -383,6 +360,7 @@ export function TasksPageView() {
                             }}
                             onPointerDown={(event) => startDragging(event, item.task.id)}
                             onToggle={() => toggleTaskCompletion(item.task.id)}
+                            onDelete={() => handleDeleteTask(item.task.id)}
                           />
                         </div>
                       );
@@ -411,9 +389,9 @@ export function TasksPageView() {
           </div>
 
           {isCreateTaskOpen ? (
-            <CreateTaskModal
+            <CreateTaskDialog
+              projects={projectsQuery.data ?? []}
               onClose={() => setIsCreateTaskOpen(false)}
-              onCreateTask={createTask}
             />
           ) : null}
         </motion.div>
@@ -715,25 +693,48 @@ function PriorityTaskCard({
   onOpen,
   onPointerDown,
   onToggle,
+  onDelete,
 }: {
   item: PriorityTask;
   dragging?: boolean;
   onOpen?: () => void;
   onPointerDown?: (event: PointerEvent<HTMLDivElement>) => void;
   onToggle?: () => void;
+  onDelete?: () => void;
 }) {
   return (
     <div
       onPointerDown={onPointerDown}
       className={cn(
-        "select-none rounded-[8px] bg-gradient-to-b from-white to-[#FAFAFA] p-[clamp(12px,2vw,16px)] transition-[opacity,transform,box-shadow]",
+        "group/task relative select-none rounded-[8px] bg-gradient-to-b from-white to-[#FAFAFA] p-[clamp(12px,2vw,16px)] transition-[opacity,transform,box-shadow]",
         dragging
           ? "cursor-grabbing shadow-[0_8px_22px_rgba(10,10,10,0.14)]"
           : "cursor-grab shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:shadow-[0_2px_8px_rgba(10,10,10,0.08)] active:cursor-grabbing",
       )}
     >
+      {onDelete ? (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onDelete();
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          aria-label={`Delete task ${item.task.title}`}
+          className="absolute right-[8px] top-[8px] flex h-[20px] w-[20px] cursor-pointer items-center justify-center rounded-[4px] text-[#A3A3A3] opacity-0 transition-opacity hover:bg-[#F5F5F5] hover:text-[#0a0a0a] group-hover/task:opacity-100 focus-visible:opacity-100"
+        >
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[14px] w-[14px]">
+            <path
+              d="M4 4L12 12M12 4L4 12"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+      ) : null}
       <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-[6px]">
+        <div className="flex items-center gap-[6px] pr-[24px]">
           <button
             type="button"
             onClick={(e) => {

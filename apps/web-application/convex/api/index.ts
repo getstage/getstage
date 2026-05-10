@@ -6,6 +6,7 @@ import { authenticateApiKey } from "./auth";
 import { createAgentRoutes } from "./routes/agent";
 import { createAiRoutes } from "./routes/ai";
 import { handleApiError, jsonError } from "./errors";
+import { createMeRoutes } from "./routes/me";
 import { createPhaseRoutes } from "./routes/phases";
 import { createProjectRoutes } from "./routes/projects";
 import { createTaskRoutes } from "./routes/tasks";
@@ -49,6 +50,7 @@ export function createApiApp() {
   app.route("/api/v1/projects", createProjectRoutes());
   app.route("/api/v1/phases", createPhaseRoutes());
   app.route("/api/v1/tasks", createTaskRoutes());
+  app.route("/api/v1/me", createMeRoutes());
 
   return app;
 }

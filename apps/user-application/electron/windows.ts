@@ -68,7 +68,29 @@ export function createMainWindow() {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow?.show();
+    if (!app.isPackaged) {
+      mainWindow?.webContents.openDevTools({ mode: "detach" });
+    }
   });
+
+  if (!app.isPackaged) {
+    mainWindow.webContents.on("render-process-gone", (_event, details) => {
+      console.error("[stage-renderer] render-process-gone:", details);
+    });
+    mainWindow.webContents.on("did-fail-load", (_event, code, description, url) => {
+      console.error(
+        `[stage-renderer] did-fail-load: ${code} ${description} at ${url}`,
+      );
+    });
+    mainWindow.webContents.on(
+      "console-message",
+      (_event, level, message, line, sourceId) => {
+        const prefix =
+          level === 3 ? "[renderer error]" : level === 2 ? "[renderer warn]" : "[renderer]";
+        console.log(`${prefix} ${message} (${sourceId}:${line})`);
+      },
+    );
+  }
 
   denyWindowOpen(mainWindow);
   loadRenderer(mainWindow);

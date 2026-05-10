@@ -145,17 +145,23 @@ export async function buildApiTaskSummary(
   task: Doc<"tasks">,
 ) {
   const assigneeIds = task.assigneeIds ?? [];
-  const [assignees, attachments] = await Promise.all([
+  const [assignees, attachments, phase] = await Promise.all([
     buildAssigneeSummaries(ctx, assigneeIds),
     ctx.db
       .query("attachments")
       .withIndex("by_task", (q) => q.eq("taskId", task._id))
       .collect(),
+    ctx.db.get(task.phaseId),
   ]);
+
+  if (!phase) {
+    throw new Error(`Task ${task._id} references missing phase ${task.phaseId}.`);
+  }
 
   return {
     id: String(task._id),
     phaseId: String(task.phaseId),
+    projectId: String(phase.projectId),
     title: task.title,
     isCompleted: task.isCompleted,
     dueDate: task.dueDate,
@@ -163,6 +169,7 @@ export async function buildApiTaskSummary(
     assignees,
     attachmentCount: attachments.length,
     hasContent: (task.content ?? "").trim().length > 0,
+    priority: task.priority ?? null,
     order: task.order,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,

@@ -46,15 +46,29 @@ No local AI inference.
 - [x] 20. Add desktop auth launcher and `stage://auth` deep-link callback plan/implementation.
 - [x] 21. Add secure desktop session storage and authenticated boot state.
 - [x] 22. Replace desktop API-key bridge with Convex Auth JWT handoff.
-- [ ] 23. Wire live Convex-backed selected project context after desktop auth works.
+- [x] 23. Wire live Convex-backed selected project context after desktop auth works.
 
-Stop and test. Wait for onboarding to be finished before deeper provider execution work.
+Step 23 sub-items (2026-05-10 update):
 
-Remaining Step 23 hardening before Step 24:
-
-- [ ] Replace remaining visible demo-only dashboard/sidebar areas with live, loading, empty, or clearly marked fallback states.
-- [ ] Add token expiry/logout UX.
-- [ ] Decide whether direct Convex subscriptions belong in desktop V1 or remain behind Electron main + website API.
+- [x] Replace visible demo-only dashboard/sidebar/projects/project-detail/client-portal with live, loading, empty, or clearly marked fallback states.
+  See `05-09/05-09-dynamic-pages-plan.md` (passes 1-3).
+- [x] Token-expiry UX: 401/403 detector clears session and surfaces "Sign in" empty state.
+  See `05-10/05-10-token-refresh-and-tasks-priority-plan.md` (Part 1, Layer 1 + Layer 2 stopgap).
+- [x] JWT lifetime stopgap (30 days) so dev/test sessions do not expire hourly.
+  See same doc; requires Convex deploy on testing.
+- [x] Logout button wired (sidebar account menu -> auth.logout IPC -> session-changed broadcast).
+  See `05-10/05-10-token-refresh-and-tasks-priority-plan.md` (pass 2).
+- [x] Tasks page: priority enum field, GET /api/v1/me/tasks, kanban grouping by priority.
+  See same doc (Part 2, pass 1).
+- [x] Tasks page: create/delete/setPriority mutations, persist drag-and-drop.
+  See same doc (pass 3).
+- [x] Strict-typing rule documented + skill created.
+  See `05-10/05-10-strict-typing-rule.md` and `.claude/skills/strict-typing/SKILL.md`.
+- [ ] Refresh-token rotation (true Layer 2). Stopgap above buys 30 days; full
+  refresh-token retry is queued. Plan in `05-10/05-10-token-refresh-and-tasks-priority-plan.md`.
+- [ ] Decide whether direct Convex subscriptions belong in desktop V1 or remain behind Electron main + website API. Currently still behind /api/v1.
+- [ ] Migrate `packages/data-ops` from "point to src" to "build to dist" pattern.
+  Plan in `05-10/05-10-data-ops-build-pattern.md`. Removes a recurring TS-server-cache footgun.
 
 - [ ] 24. Add fake provider runner that receives typed project context.
 - [ ] 25. Add Codex/Claude provider detection.

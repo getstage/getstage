@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { WorkspaceFrame } from "@/app/WorkspaceFrame";
 import { ProjectHeader } from "./ProjectHeader";
@@ -10,28 +10,53 @@ import { MoodboardTab } from "./tabs/MoodboardTab";
 import { ResearchTab } from "./tabs/ResearchTab";
 import { StrategyTab } from "./tabs/StrategyTab";
 import { WireframesTab } from "./tabs/WireframesTab";
+import { useLiveProject } from "@/project/hooks";
 import { formatRelativeTime } from "@/lib/utils";
 import type { Phase, Project, ProjectTab } from "../models/project";
-import { mockProject } from "../data/projectSnapshot";
 
 type ProjectTimeline = {
   start: string;
   end: string;
 };
 
+function formatTimelineDate(timestamp: number) {
+  return new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(timestamp));
+}
+
 export function ProjectDetailView() {
   const navigate = useNavigate();
+  const { projectId } = useParams({ from: "/project/$projectId" });
+  const live = useLiveProject(projectId);
   const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [project, setProject] = useState<Project>(mockProject);
+  const [project, setProject] = useState<Project | null>(null);
   const [timeline, setTimeline] = useState<ProjectTimeline>({ start: "", end: "" });
 
+  useEffect(() => {
+    if (live.project) {
+      setProject(live.project);
+    }
+  }, [live.project]);
+
+  useEffect(() => {
+    if (live.detail) {
+      setTimeline({
+        start: formatTimelineDate(live.detail.startDate),
+        end: formatTimelineDate(live.detail.endDate),
+      });
+    }
+  }, [live.detail]);
+
   function updateProjectName(name: string) {
-    setProject((current) => ({ ...current, name }));
+    setProject((current) => (current ? { ...current, name } : current));
   }
 
   function updateClientName(clientName: string) {
-    setProject((current) => ({ ...current, clientName }));
+    setProject((current) => (current ? { ...current, clientName } : current));
   }
 
   function updateTimeline(nextTimeline: ProjectTimeline) {
@@ -39,11 +64,11 @@ export function ProjectDetailView() {
   }
 
   function updatePhases(phases: Phase[]) {
-    setProject((current) => ({ ...current, phases }));
+    setProject((current) => (current ? { ...current, phases } : current));
   }
 
   function pauseProject() {
-    setProject((current) => ({ ...current, status: "paused" }));
+    setProject((current) => (current ? { ...current, status: "paused" } : current));
   }
 
   function deleteProject() {
@@ -51,7 +76,8 @@ export function ProjectDetailView() {
   }
 
   const recentTasks = useMemo(() => {
-    const tasks: Array<{ task: typeof project.phases[0]["tasks"][0]; phaseName: string }> = [];
+    if (!project) return [];
+    const tasks: Array<{ task: Project["phases"][0]["tasks"][0]; phaseName: string }> = [];
     for (const phase of project.phases) {
       for (const task of phase.tasks) {
         tasks.push({ task, phaseName: phase.name });
@@ -59,6 +85,33 @@ export function ProjectDetailView() {
     }
     return tasks.sort((a, b) => b.task.updatedAt - a.task.updatedAt).slice(0, 3);
   }, [project]);
+
+  if (!project) {
+    return (
+      <WorkspaceFrame>
+        <div className="flex flex-1 items-center justify-center px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
+          {live.error ? (
+            <div className="flex flex-col items-center gap-[8px] text-center">
+              <p className="text-[14px] font-medium text-[#b91c1c]">
+                Could not load this project.
+              </p>
+              <button
+                type="button"
+                onClick={() => void navigate({ to: "/projects" })}
+                className="text-[13px] font-medium text-[#525252] underline"
+              >
+                Back to projects
+              </button>
+            </div>
+          ) : (
+            <p className="text-[13px] font-medium text-[#737373]">
+              Loading project…
+            </p>
+          )}
+        </div>
+      </WorkspaceFrame>
+    );
+  }
 
   return (
     <WorkspaceFrame>

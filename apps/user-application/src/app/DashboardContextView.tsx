@@ -15,6 +15,7 @@ import {
   buildDashboardTasks,
   buildSidebarProjectsFromProjectContext,
 } from "../dashboard/helpers/projectContextDashboard";
+import { useProjectsQuery } from "../hooks/desktop-api";
 import { useDesktopBridge } from "../hooks/useDesktopBridge";
 import { useEngineStatus } from "../hooks/useEngineStatus";
 import { useSelectedProjectContext } from "../hooks/useSelectedProjectContext";
@@ -69,18 +70,26 @@ export function DashboardContextView() {
   const desktop = useDesktopBridge();
   const engineStatus = useEngineStatus();
   const selectedProject = useSelectedProjectContext();
+  const projectsQuery = useProjectsQuery();
   const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>(DEFAULT_DASHBOARD_PERIOD);
   const selectedProjectContext = selectedProject.isFallback ? null : selectedProject.context;
   const openContextTasks = selectedProjectContext?.tasks.filter(
     (task) => task.status !== "done",
   ).length ?? 0;
   const currentPhaseLabel = selectedProjectContext?.currentPhase ?? "active work";
+  const activeProjectCount = (projectsQuery.data ?? []).filter(
+    (project) => project.status === "active",
+  ).length;
   const dashboardSubheading = selectedProjectContext
     ? `${selectedProjectContext.projectName} is in ${currentPhaseLabel} with ${openContextTasks} open decisions ready for review.`
-    : selectedProject.isLoading
+    : selectedProject.isLoading || projectsQuery.isLoading
       ? "Loading live project data."
-      : "Connect Stage to load live project data.";
-  const dashboardMetrics = buildDashboardMetrics(selectedProjectContext);
+      : activeProjectCount > 0
+        ? `You have ${activeProjectCount} active ${activeProjectCount === 1 ? "project" : "projects"}. Open one to load live context.`
+        : "Connect Stage to load live project data.";
+  const dashboardMetrics = buildDashboardMetrics(selectedProjectContext, {
+    activeProjectCount,
+  });
   const dashboardChart = buildDashboardChart(selectedProjectContext);
   const dashboardTasks = buildDashboardTasks(selectedProjectContext);
   const periodDashboardTasks = useMemo(() => ({

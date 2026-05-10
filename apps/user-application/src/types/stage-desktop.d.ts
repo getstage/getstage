@@ -7,16 +7,42 @@ import type {
   EngineStatus,
   PermissionKind,
 } from "@shared/models/desktop";
-import type { ProjectContext } from "@stage/data-ops";
+import type {
+  PhaseSummary,
+  ProjectContext,
+  ProjectDetail,
+  ProjectSummary,
+  TaskPriority,
+  TaskSummary,
+} from "@stage/data-ops";
 
 export type StageDesktopApi = {
   auth: {
     openLogin: () => Promise<void>;
+    logout: () => Promise<void>;
     getSession: () => Promise<DesktopSession | null>;
     onSessionChanged: (callback: (session: DesktopSession | null) => void) => () => void;
   };
   projectContext: {
     getSelected: () => Promise<ProjectContext | null>;
+  };
+  api: {
+    listProjects: () => Promise<ProjectSummary[]>;
+    getProject: (projectId: string) => Promise<ProjectDetail>;
+    listProjectPhases: (projectId: string) => Promise<PhaseSummary[]>;
+    listPhaseTasks: (phaseId: string) => Promise<TaskSummary[]>;
+    listUserTasks: (args?: { limit?: number }) => Promise<TaskSummary[]>;
+    createTask: (args: {
+      projectId: string;
+      title: string;
+      priority?: TaskPriority;
+      content?: string;
+    }) => Promise<TaskSummary>;
+    deleteTask: (taskId: string) => Promise<{ ok: true }>;
+    setTaskPriority: (args: {
+      taskId: string;
+      priority: TaskPriority | null;
+    }) => Promise<TaskSummary>;
   };
   engine: {
     getStatus: () => Promise<EngineStatus>;

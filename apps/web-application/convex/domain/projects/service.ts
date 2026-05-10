@@ -14,7 +14,7 @@ import {
   syncClientAvatarAcrossProjects,
   upsertClient,
 } from "../../_helpers";
-import { attachTrackedR2Asset } from "../../r2";
+import { attachTrackedR2Asset, deleteOldR2Asset } from "../../r2";
 import {
   buildApiPhaseSummary,
   buildApiProjectDetail,
@@ -552,6 +552,83 @@ export async function toggleTaskForUser(
   };
 }
 
+export async function setTaskPriorityForUser(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    taskId: Id<"tasks">;
+    priority: "low" | "medium" | "high" | null;
+  },
+) {
+  const { task } = await requireTaskAccessForUserId(ctx, {
+    userId: args.userId,
+    taskId: args.taskId,
+  });
+
+  // Convex `db.patch` accepts a typed Partial of the document. Setting a
+  // field to `undefined` clears it server-side; explicit `null` is not a
+  // valid task.priority value, so we map the API's `null` (= Backlog)
+  // to `undefined` here.
+  const patch: Partial<Doc<"tasks">> = {
+    updatedAt: now(),
+    priority: args.priority ?? undefined,
+  };
+
+  await ctx.db.patch(task._id, patch);
+
+  const updated = await ctx.db.get(task._id);
+  if (!updated) {
+    throw new Error("Task not found after priority update.");
+  }
+  return updated;
+}
+
+export async function deleteTaskForUser(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    taskId: Id<"tasks">;
+  },
+) {
+  const { task, project } = await requireTaskAccessForUserId(ctx, {
+    userId: args.userId,
+    taskId: args.taskId,
+  });
+
+  const attachments = await ctx.db
+    .query("attachments")
+    .withIndex("by_task", (q) => q.eq("taskId", task._id))
+    .collect();
+
+  for (const attachment of attachments) {
+    if (attachment.storageId) {
+      await ctx.storage.delete(attachment.storageId);
+    }
+    if (attachment.r2ObjectKey) {
+      await deleteOldR2Asset(ctx, attachment.r2ObjectKey);
+    }
+    await ctx.db.delete(attachment._id);
+  }
+
+  await ctx.db.delete(task._id);
+
+  const remaining = await ctx.db
+    .query("tasks")
+    .withIndex("by_phase_order", (q) => q.eq("phaseId", task.phaseId))
+    .collect();
+
+  const timestamp = now();
+  await Promise.all(
+    remaining.map((remainingTask, index) =>
+      remainingTask.order === index
+        ? Promise.resolve()
+        : ctx.db.patch(remainingTask._id, { order: index, updatedAt: timestamp }),
+    ),
+  );
+
+  await recomputeProjectState(ctx, project._id);
+}
+
 async function normalizeProjectId(ctx: ReaderCtx, projectId: string) {
   const normalized = await ctx.db.normalizeId("projects", projectId);
   if (!normalized) {
@@ -714,6 +791,111 @@ export const addTaskForApi = internalMutation({
   },
 });
 
+/**
+ * Create a task scoped to a project (no need to know phase IDs from the
+ * desktop). Picks the active phase, falling back to the lowest-order phase.
+ * Returns the created task summary so the caller can update its cache
+ * without an extra round-trip.
+ */
+export const createProjectTaskForApi = internalMutation({
+  args: {
+    userId: v.id("users"),
+    projectId: v.string(),
+    title: v.string(),
+    priority: v.optional(
+      v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+    ),
+    content: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const projectId = await normalizeProjectId(ctx, args.projectId);
+    await requireProjectAccessForUserId(ctx, {
+      userId: args.userId,
+      projectId,
+    });
+
+    const trimmedTitle = args.title.trim();
+    if (!trimmedTitle) {
+      throw new Error("Task title is required.");
+    }
+
+    const phases = await ctx.db
+      .query("phases")
+      .withIndex("by_project_order", (q) => q.eq("projectId", projectId))
+      .collect();
+
+    if (phases.length === 0) {
+      throw new Error("Project has no phases yet; create a phase first.");
+    }
+
+    const targetPhase =
+      phases.find((phase) => phase.status === "active") ??
+      [...phases].sort((a, b) => a.order - b.order)[0]!;
+
+    const existing = await ctx.db
+      .query("tasks")
+      .withIndex("by_phase_order", (q) => q.eq("phaseId", targetPhase._id))
+      .collect();
+
+    const timestamp = now();
+    const taskId = await ctx.db.insert("tasks", {
+      phaseId: targetPhase._id,
+      title: trimmedTitle,
+      isCompleted: false,
+      content: args.content?.trim() || "",
+      priority: args.priority,
+      order: existing.length,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+
+    await recomputeProjectState(ctx, projectId);
+
+    const task = await ctx.db.get(taskId);
+    if (!task) {
+      throw new Error("Failed to load created task.");
+    }
+    return buildApiTaskSummary(ctx, task);
+  },
+});
+
+export const setTaskPriorityForApi = internalMutation({
+  args: {
+    userId: v.id("users"),
+    taskId: v.string(),
+    priority: v.union(
+      v.literal("low"),
+      v.literal("medium"),
+      v.literal("high"),
+      v.null(),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const taskId = await normalizeTaskId(ctx, args.taskId);
+    const updated = await setTaskPriorityForUser(ctx, {
+      userId: args.userId,
+      taskId,
+      priority: args.priority,
+    });
+    return buildApiTaskSummary(ctx, updated);
+  },
+});
+
+export const deleteTaskForApi = internalMutation({
+  args: {
+    userId: v.id("users"),
+    taskId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const taskId = await normalizeTaskId(ctx, args.taskId);
+    await deleteTaskForUser(ctx, {
+      userId: args.userId,
+      taskId,
+    });
+    return { ok: true as const };
+  },
+});
+
 export const toggleTaskForApi = internalMutation({
   args: {
     userId: v.id("users"),
@@ -749,5 +931,64 @@ export const getTaskForApi = internalQuery({
     });
 
     return buildApiTaskDetail(ctx, task);
+  },
+});
+
+const DEFAULT_USER_TASKS_LIMIT = 100;
+const MAX_USER_TASKS_LIMIT = 200;
+
+/**
+ * Tasks across all of a user's owned projects, sorted by `updatedAt` desc.
+ *
+ * Scope is intentionally "owned" only for v1. Collaborator-shared projects
+ * are out of scope here until the desktop UX surfaces team tasks separately.
+ *
+ * Implementation walks projects -> phases -> tasks. This is fine while the
+ * per-user task count is bounded; if it gets slow we can add a denormalised
+ * `tasks.by_user` index later.
+ */
+export const listUserTasksForApi = internalQuery({
+  args: {
+    userId: v.id("users"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = Math.max(
+      1,
+      Math.min(args.limit ?? DEFAULT_USER_TASKS_LIMIT, MAX_USER_TASKS_LIMIT),
+    );
+
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    const phases = (
+      await Promise.all(
+        projects.map((project) =>
+          ctx.db
+            .query("phases")
+            .withIndex("by_project", (q) => q.eq("projectId", project._id))
+            .collect(),
+        ),
+      )
+    ).flat();
+
+    const tasks = (
+      await Promise.all(
+        phases.map((phase) =>
+          ctx.db
+            .query("tasks")
+            .withIndex("by_phase", (q) => q.eq("phaseId", phase._id))
+            .collect(),
+        ),
+      )
+    ).flat();
+
+    const ordered = [...tasks]
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, limit);
+
+    return Promise.all(ordered.map((task) => buildApiTaskSummary(ctx, task)));
   },
 });

@@ -66,6 +66,22 @@ export class DesktopAuthController {
     await clearStoredSession();
   }
 
+  /**
+   * Explicit user-initiated sign-out.
+   *
+   * Clears the stored desktop session AND broadcasts `auth:session-changed`
+   * with `null` to every renderer window so the UI immediately drops to
+   * the signed-out state. Reused by both the manual Log out button and
+   * the automatic clear path that fires when a 401 / 403 is observed.
+   */
+  async signOut() {
+    await this.clearSession();
+    BrowserWindow.getAllWindows().forEach((window) => {
+      window.webContents.send(IPC_CHANNELS.authSessionChanged, null);
+    });
+    console.info("[stage-auth] desktop session signed out");
+  }
+
   queueCallbackUrl(url: string) {
     if (!isStageAuthUrl(url)) {
       return;

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import type { DashboardProject } from "../models/dashboard";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
+import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -32,8 +33,10 @@ export function StageSidebar({
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
+  const desktop = useDesktopBridge();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const activeProjectId = pathname.startsWith("/project/")
     ? decodeURIComponent(pathname.split("/")[2] ?? "")
@@ -65,8 +68,18 @@ export function StageSidebar({
     void navigate({ to: "/settings" });
   }
 
-  function logOut() {
-    setIsUserMenuOpen(false);
+  async function logOut() {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await desktop.auth.logout();
+      setIsUserMenuOpen(false);
+      void navigate({ to: "/" });
+    } catch (error) {
+      console.error("[stage-sidebar] log out failed", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
   }
 
   useEffect(() => {
@@ -383,10 +396,11 @@ export function StageSidebar({
                 <button
                   type="button"
                   role="menuitem"
-                  onClick={logOut}
-                  className="flex h-[32px] w-full cursor-pointer items-center rounded-[6px] px-[8px] text-left text-[13px] font-medium leading-none text-[#171717] outline-none transition-colors hover:bg-[#F5F5F5]"
+                  onClick={() => void logOut()}
+                  disabled={isLoggingOut}
+                  className="flex h-[32px] w-full cursor-pointer items-center rounded-[6px] px-[8px] text-left text-[13px] font-medium leading-none text-[#171717] outline-none transition-colors hover:bg-[#F5F5F5] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Log out
+                  {isLoggingOut ? "Logging out…" : "Log out"}
                 </button>
               </div>
             </div>

@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import type { ProjectSummary } from "@stage/data-ops";
 import { WorkspaceFrame } from "@/app/WorkspaceFrame";
+import { useProjectsQuery } from "@/hooks/desktop-api";
 import { cn } from "@/lib/utils";
-import { projectOverviewRows } from "../data/projectOverviewSnapshot";
-import type { ProjectOverviewRow } from "../data/projectOverviewSnapshot";
 
 const TABLE_COLUMNS = [
   "Project Name",
@@ -13,21 +13,59 @@ const TABLE_COLUMNS = [
   "Actions",
 ];
 
+const PROJECT_TYPE_LABEL: Record<ProjectSummary["type"], string> = {
+  branding: "Branding",
+  "web-design": "Web Design",
+  "product-design": "Product Design",
+  "app-design": "App Design",
+  "web-app": "Web-App Design",
+  packaging: "Packaging",
+  "motion-design": "Motion Design",
+  illustration: "Illustration",
+  other: "Other",
+};
+
+const PROJECT_STATUS_LABEL: Record<ProjectSummary["status"], string> = {
+  active: "Active",
+  paused: "Paused",
+  completed: "Completed",
+};
+
+function getInitial(name: string) {
+  const trimmed = name.trim();
+  return trimmed.length > 0 ? trimmed[0]!.toUpperCase() : "S";
+}
+
+function formatCreatedAt(timestamp: number) {
+  return new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(timestamp));
+}
+
 export function ProjectsOverviewView() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const projectsQuery = useProjectsQuery();
+  const projects = projectsQuery.data ?? [];
 
   const filteredProjects = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return projectOverviewRows;
+    if (!normalizedQuery) return projects;
 
-    return projectOverviewRows.filter((project) =>
-      [project.name, project.type, project.status, project.created]
+    return projects.filter((project) =>
+      [
+        project.name,
+        project.clientName,
+        PROJECT_TYPE_LABEL[project.type],
+        PROJECT_STATUS_LABEL[project.status],
+      ]
         .join(" ")
         .toLowerCase()
         .includes(normalizedQuery),
     );
-  }, [query]);
+  }, [projects, query]);
 
   return (
     <WorkspaceFrame>
@@ -81,6 +119,9 @@ export function ProjectsOverviewView() {
 
             <ProjectsTable
               projects={filteredProjects}
+              isLoading={projectsQuery.isLoading}
+              error={projectsQuery.error}
+              hasQuery={query.trim().length > 0}
               onOpenProject={(projectId) =>
                 void navigate({
                   to: "/project/$projectId",
@@ -103,10 +144,16 @@ export function ProjectsOverviewView() {
 
 function ProjectsTable({
   projects,
+  isLoading,
+  error,
+  hasQuery,
   onOpenProject,
   onOpenProjectDetails,
 }: {
-  projects: ProjectOverviewRow[];
+  projects: ProjectSummary[];
+  isLoading: boolean;
+  error: unknown;
+  hasQuery: boolean;
   onOpenProject: (projectId: string) => void;
   onOpenProjectDetails: (projectId: string) => void;
 }) {
@@ -124,7 +171,15 @@ function ProjectsTable({
       </div>
 
       <div className="flex w-full flex-col gap-[18px] rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] px-[12px] pb-[16px] pt-[12px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] xl:gap-[24px] xl:px-[16px] xl:pb-[20px] xl:pt-[16px]">
-        {projects.length > 0 ? (
+        {error ? (
+          <p className="py-[4px] text-[13px] font-medium text-[#b91c1c]">
+            Could not load projects. Sign in to Stage from Settings to see live projects.
+          </p>
+        ) : isLoading ? (
+          <p className="py-[4px] text-[13px] font-medium text-[#737373]">
+            Loading projects…
+          </p>
+        ) : projects.length > 0 ? (
           projects.map((project, index) => (
             <ProjectTableRow
               key={project.id}
@@ -136,7 +191,7 @@ function ProjectsTable({
           ))
         ) : (
           <p className="py-[4px] text-[13px] font-medium text-[#737373]">
-            No projects found.
+            {hasQuery ? "No projects match your search." : "No projects yet."}
           </p>
         )}
       </div>
@@ -150,11 +205,16 @@ function ProjectTableRow({
   onOpenProject,
   onOpenProjectDetails,
 }: {
-  project: ProjectOverviewRow;
+  project: ProjectSummary;
   showDivider: boolean;
   onOpenProject: (projectId: string) => void;
   onOpenProjectDetails: (projectId: string) => void;
 }) {
+  const statusLabel = PROJECT_STATUS_LABEL[project.status];
+  const typeLabel = PROJECT_TYPE_LABEL[project.type];
+  const createdLabel = formatCreatedAt(project.startDate);
+  const initial = getInitial(project.name);
+
   return (
     <div className="flex flex-col gap-[20px]">
       <div
@@ -171,12 +231,17 @@ function ProjectTableRow({
         aria-label={`Open ${project.name}`}
       >
         <div className="col-span-2 flex min-w-0 items-center gap-[8px] xl:col-span-1">
-          <div
-            className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full border border-[#fafafa] text-[8px] font-semibold text-white"
-            style={{ background: project.accentColor }}
-          >
-            {project.logoLabel}
-          </div>
+          {project.projectImageUrl ? (
+            <img
+              src={project.projectImageUrl}
+              alt=""
+              className="h-[20px] w-[20px] shrink-0 rounded-full border border-[#fafafa] object-cover"
+            />
+          ) : (
+            <div className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full border border-[#fafafa] bg-[#171717] text-[8px] font-semibold text-white">
+              {initial}
+            </div>
+          )}
           <p className="min-w-0 truncate text-[13px] font-medium leading-[1.25] text-[#171717] decoration-solid group-hover:underline group-focus-visible:underline">
             {project.name}
           </p>
@@ -184,18 +249,18 @@ function ProjectTableRow({
 
         <div className="col-start-3 row-start-1 flex min-w-0 items-center justify-end xl:col-auto xl:row-auto xl:justify-start">
           <span className="rounded-[2px] bg-[#dcfce7] px-[6px] py-[2px] text-[12px] font-normal leading-[1.25] text-[#052e16]">
-            {project.status}
+            {statusLabel}
           </span>
         </div>
 
         <p className="col-span-2 min-w-0 text-[12px] font-medium leading-[1.25] text-[#737373] xl:col-auto xl:text-[13px] xl:text-[#525252]">
           <span className="xl:hidden">Type: </span>
-          {project.type}
+          {typeLabel}
         </p>
 
         <p className="min-w-0 text-right text-[12px] font-medium leading-[1.25] text-[#737373] xl:text-left xl:text-[13px] xl:text-[#525252]">
           <span className="xl:hidden">Created: </span>
-          {project.created}
+          {createdLabel}
         </p>
 
         <button
