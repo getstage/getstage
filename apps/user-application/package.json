@@ -5,8 +5,11 @@
   "type": "commonjs",
   "main": "out/main/index.js",
   "scripts": {
+    "predev": "pnpm --dir ../../packages/data-ops run build",
     "dev": "env -u ELECTRON_RUN_AS_NODE electron-vite dev",
+    "prebuild": "pnpm --dir ../../packages/data-ops run build",
     "build": "tsc --noEmit && electron-vite build",
+    "pretypecheck": "pnpm --dir ../../packages/data-ops run build",
     "typecheck": "tsc --noEmit",
     "preview": "env -u ELECTRON_RUN_AS_NODE electron-vite preview"
   },

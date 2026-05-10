@@ -1,13 +1,14 @@
 # `packages/data-ops` Build Pattern - Explainer + Migration Plan
 
 Date: 2026-05-10
-Status: Decision document. No code change yet. Waiting for Werner.
+Status: Approved. Implementation starts with build-to-dist before direct desktop Convex work.
 
 ## What this is about (in plain words)
 
 `packages/data-ops` is the shared TypeScript package that holds the
-contracts (Zod schemas + types) used by the desktop app, the web
-app, and eventually the Rust sidecar.
+contracts (Zod schemas + types) used by the desktop app and the Rust
+sidecar. It is also the target home for Convex backend code as Stage
+moves to the desktop-first architecture.
 
 Right now, when the desktop imports from `@stage/data-ops`, it
 imports straight from the `.ts` source files of the package.
@@ -228,22 +229,22 @@ So nobody forgets the build step:
 // apps/user-application/package.json
 {
   "scripts": {
-+   "predev":   "pnpm --filter @stage/data-ops run build",
-+   "prebuild": "pnpm --filter @stage/data-ops run build",
++   "predev":   "pnpm --dir ../../packages/data-ops run build",
++   "prebuild": "pnpm --dir ../../packages/data-ops run build",
     "dev":      "env -u ELECTRON_RUN_AS_NODE electron-vite dev",
     "build":    "tsc --noEmit && electron-vite build"
   }
 }
 ```
 
-Same for `apps/web-application/package.json` if needed.
+Do not wire this into `apps/web-application` yet. The desktop app is the
+first consumer we are stabilising.
 
 ### Step 4: build, install, verify
 
 ```bash
 cd packages/data-ops && pnpm run build
 cd ../../apps/user-application && pnpm install && pnpm run typecheck && pnpm run build
-cd ../web-application && pnpm install && pnpm run typecheck && pnpm run build:testing
 ```
 
 ### Step 5: add `dist/` to `.gitignore`
@@ -254,8 +255,8 @@ cd ../web-application && pnpm install && pnpm run typecheck && pnpm run build:te
 
 ### Step 6: update CI / pre-commit
 
-Make sure CI runs `pnpm --filter @stage/data-ops run build` before
-the consumer typechecks.
+Make sure CI runs `pnpm --dir packages/data-ops run build` before the
+desktop typecheck/build.
 
 ### Total work
 
@@ -301,9 +302,20 @@ Acceptable, but with these caveats:
 
 Tick one when you decide:
 
-- [ ] Migrate now. Follow Steps 1-6 above. I will execute and update
+- [x] Migrate now. Follow Steps 1-6 above. I will execute and update
       this doc with an "Implementation log" section.
 - [ ] Skip for launch. Add a clear comment in `data-ops/package.json`
       explaining the cache footgun and the workaround
       ("Restart TS Server" / "Reload Window" after editing the
       package).
+
+## Implementation Log
+
+- 2026-05-10: Direction changed to desktop-first. `packages/data-ops`
+  remains the shared contract/domain package and becomes the future home
+  for Convex backend code. First implementation step is build-to-dist,
+  with no product behavior change.
+- 2026-05-10: Build-to-dist implemented and verified:
+  `packages/data-ops pnpm run build`, `packages/data-ops pnpm run typecheck`,
+  `apps/user-application pnpm install`, `apps/user-application pnpm run typecheck`,
+  and `apps/user-application pnpm run build` all passed.

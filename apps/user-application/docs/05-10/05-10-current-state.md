@@ -92,14 +92,9 @@ work into the sidecar.
 
 ```txt
 1. data-ops build pattern.
-   Today data-ops "main" points at ./src/index.ts (raw TS source).
-   This causes recurring "VS Code says the export does not exist"
-   friction whenever you edit a contract file.
-   Your other project compiles to ./dist and exports from there.
-   That pattern is more honest, mirrors Rust (artifact = contract),
-   and would eliminate the friction.
+   Resolved on 2026-05-10. data-ops now builds to ./dist, and
+   apps/user-application builds it before dev/typecheck/build.
    See: 05-10/05-10-data-ops-build-pattern.md.
-   Decision needed: stay on point-to-src, or migrate before launch.
 
 2. Refresh-token rotation.
    The 30-day JWT stopgap is in place. Full Layer-2 refresh-token
@@ -109,10 +104,11 @@ work into the sidecar.
    See: 05-10/05-10-token-refresh-and-tasks-priority-plan.md, Part 1.
 
 3. Direct Convex subscriptions on the desktop.
-   Today every desktop API call goes through Electron main -> /api/v1.
-   Realtime would mean direct Convex client in the renderer (with the
-   token-handling caveats). Default: keep through /api/v1 until after
-   launch.
+   Direction changed on 2026-05-10: Stage is desktop-first. The desktop
+   should use direct Convex useQuery/useMutation for cloud data, while
+   Electron/Rust stay responsible for local/native/agent work. Web remains
+   auth/payment/download/return-to-desktop. See:
+   05-10/05-10-desktop-first-convex-data-ops-plan.md.
 ```
 
 ## Where each topic lives in the docs
@@ -158,8 +154,8 @@ apps/web-application       pnpm run build:testing  PASS
 1. Read this file (current-state) first.
 2. Read 05-09/05-09-monorepo-implementation-tracker.md to confirm
    step status.
-3. Decide with the user: migrate data-ops to build-to-dist YES/NO.
-   If yes, follow 05-10/05-10-data-ops-build-pattern.md.
+3. Continue direct desktop Convex migration from:
+   05-10/05-10-desktop-first-convex-data-ops-plan.md.
 4. Decide with the user: build refresh-token Layer 2 YES/NO before
    launch. If yes, follow 05-10/05-10-token-refresh-and-tasks-priority-plan.md
    Part 1 Layer 2.
