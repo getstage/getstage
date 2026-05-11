@@ -107,6 +107,21 @@ commands, verify generated files and complete the post-init wiring steps the
 provider reference calls out. Initialization commands rarely finish the entire
 integration.
 
+## Client routing vs Convex auth
+
+Convex answers **“who is this caller?”** in functions via
+`ctx.auth.getUserIdentity()`. The SPA/Electron shell still needs a **navigation
+policy**: unauthenticated users should not mount protected routes.
+
+For TanStack Router apps in this monorepo, prefer **`beforeLoad` + `redirect`**
+for session/access gates instead of scattering redirects across screens. See:
+
+- `.agents/skills/tanstack-router-best-practices/SKILL.md`
+- `apps/user-application/docs/05-11/05-11-tanstack-router-auth-en-data.md`
+
+TanStack Query effects (e.g. invalidating a session query on `onSessionChanged`)
+are **cache hygiene**, not a substitute for route guards.
+
 ## Core Pattern: Protecting Backend Functions
 
 The most common auth task is checking identity in Convex functions.
