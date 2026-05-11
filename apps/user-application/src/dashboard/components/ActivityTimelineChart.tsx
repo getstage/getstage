@@ -148,6 +148,17 @@ export function ActivityTimelineChart({
 
   const max = Math.max(...chartPoints.map((p) => p.value), 1);
   const barCount = chartPoints.length;
+  const projectGridLines = useMemo(
+    () =>
+      Array.from({ length: max }, (_, index) => {
+        const value = index + 1;
+        return {
+          value,
+          y: PLOT_BASE_Y - (value / max) * BAR_MAX_HEIGHT,
+        };
+      }),
+    [max],
+  );
 
   const bars = useMemo(() => {
     if (width === 0 || barCount === 0) return [];
@@ -215,33 +226,18 @@ export function ActivityTimelineChart({
             </linearGradient>
           </defs>
 
-          <line
-            x1={-GRID_BLEED_X}
-            y1="172"
-            x2={width + GRID_BLEED_X}
-            y2="172"
-            stroke="#e5e5e5"
-            strokeWidth="1"
-            strokeDasharray="6 8"
-          />
-          <line
-            x1={-GRID_BLEED_X}
-            y1="216"
-            x2={width + GRID_BLEED_X}
-            y2="216"
-            stroke="#e5e5e5"
-            strokeWidth="1"
-            strokeDasharray="6 8"
-          />
-          <line
-            x1={-GRID_BLEED_X}
-            y1="253"
-            x2={width + GRID_BLEED_X}
-            y2="253"
-            stroke="#e5e5e5"
-            strokeWidth="1"
-            strokeDasharray="6 8"
-          />
+          {projectGridLines.map((line) => (
+            <line
+              key={line.value}
+              x1={-GRID_BLEED_X}
+              y1={line.y}
+              x2={width + GRID_BLEED_X}
+              y2={line.y}
+              stroke="#e5e5e5"
+              strokeWidth="1"
+              strokeDasharray="6 8"
+            />
+          ))}
           <line
             x1={-GRID_BLEED_X}
             y1={PLOT_BASE_Y}
