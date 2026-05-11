@@ -30,8 +30,8 @@ export function UpgradePaywallModal({
           features: [
             {
               icon: <TrendUp size={18} weight="fill" />,
-              title: "More projects",
-              description: "Move beyond the free limit and keep growing your workspace.",
+              title: "Projects unlocked",
+              description: "Create and manage live client projects in your paid workspace.",
             },
             {
               icon: <LockKeyOpen size={18} weight="fill" />,

@@ -171,7 +171,7 @@ export function OnboardingModal({
                     onClaudeActivated={controller.handleContinue}
                     onContinue={controller.handleContinue}
                     onCreationDone={() => controller.setStep("paywall")}
-                    onContinueFree={() => controller.setStep("celebrating")}
+                    onPaywallUpgrade={controller.handlePaywallUpgrade}
                   />
                 </AnimatePresence>
               </div>

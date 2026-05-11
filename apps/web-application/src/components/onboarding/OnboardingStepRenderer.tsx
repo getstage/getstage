@@ -434,7 +434,7 @@ type OnboardingStepRendererProps = {
   claudeConnectionId: string | null;
   onContinue: () => void;
   onCreationDone: () => void;
-  onContinueFree: () => void;
+  onPaywallUpgrade: (billingCycle: "monthly" | "yearly") => void;
   onClaudeActivated: () => void;
 };
 
@@ -450,7 +450,7 @@ export function OnboardingStepRenderer({
   existingClients,
   claudeConnection,
   onContinue,
-  onContinueFree,
+  onPaywallUpgrade,
   onClaudeActivated,
 }: OnboardingStepRendererProps) {
   const { draft } = draftState;
@@ -1072,7 +1072,7 @@ export function OnboardingStepRenderer({
         <OnboardingStepMotion motionKey="paywall">
           <FigmaOnboardingFrame>
 	          <OnboardingPaywall
-	            onContinueFree={onContinueFree}
+	            onUpgrade={onPaywallUpgrade}
 	            isUpgradeLoading={isCheckoutLoading}
 	            upgradeError={checkoutError}
 	          />

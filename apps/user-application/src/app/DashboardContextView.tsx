@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import type { OnboardingStepId } from "@/features/onboarding/model";
 import { OnboardingModal, type OnboardingSubmission } from "../components/onboarding/OnboardingModal";
 import { ActivityTimelineChart } from "../dashboard/components/ActivityTimelineChart";
 import { DashboardHeader, type DashboardPeriod } from "../dashboard/components/DashboardHeader";
@@ -16,14 +17,13 @@ import {
   buildDashboardTasks,
   buildSidebarProjectsFromProjectContext,
 } from "../dashboard/helpers/projectContextDashboard";
-import { useProjectsQuery } from "../hooks/desktop-api";
+import { useProjectsQuery, useSettingsOverviewQuery } from "../hooks/desktop-api";
 import { useDesktopBridge } from "../hooks/useDesktopBridge";
 import { useEngineStatus } from "../hooks/useEngineStatus";
 import { useSelectedProjectContext } from "../hooks/useSelectedProjectContext";
 import { WorkspaceFrame } from "./WorkspaceFrame";
 
 const DEFAULT_DASHBOARD_PERIOD: DashboardPeriod = "This month";
-const DESKTOP_ONBOARDING_STORAGE_KEY = "stage:desktop-onboarding-completed";
 
 function getPeriodRange(period: DashboardPeriod, now = Date.now()) {
   const date = new Date(now);
@@ -73,8 +73,10 @@ export function DashboardContextView() {
   const engineStatus = useEngineStatus();
   const selectedProject = useSelectedProjectContext();
   const projectsQuery = useProjectsQuery();
+  const settingsOverviewQuery = useSettingsOverviewQuery();
   const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>(DEFAULT_DASHBOARD_PERIOD);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [onboardingInitialStep, setOnboardingInitialStep] = useState<OnboardingStepId>("welcome");
   const selectedProjectContext = selectedProject.isFallback ? null : selectedProject.context;
   const openContextTasks = selectedProjectContext?.tasks.filter(
     (task) => task.status !== "done",
@@ -126,15 +128,35 @@ export function DashboardContextView() {
   });
 
   useEffect(() => {
-    if (!session.data?.hasAccessToken) {
+    if (session.isLoading || !session.data?.hasAccessToken) {
+      setOnboardingOpen(false);
       return;
     }
 
-    setOnboardingOpen(localStorage.getItem(DESKTOP_ONBOARDING_STORAGE_KEY) !== "true");
-  }, [session.data?.hasAccessToken]);
+    if (projectsQuery.isLoading || settingsOverviewQuery.isLoading) {
+      return;
+    }
+
+    const hasProjects = (projectsQuery.data?.length ?? 0) > 0;
+    const isPro = settingsOverviewQuery.data?.profile.plan === "pro";
+
+    if (isPro) {
+      setOnboardingOpen(false);
+      return;
+    }
+
+    setOnboardingInitialStep(hasProjects ? "paywall" : "welcome");
+    setOnboardingOpen(true);
+  }, [
+    session.isLoading,
+    session.data?.hasAccessToken,
+    projectsQuery.isLoading,
+    projectsQuery.data,
+    settingsOverviewQuery.isLoading,
+    settingsOverviewQuery.data,
+  ]);
 
   function handleOnboardingComplete(_submission: OnboardingSubmission) {
-    localStorage.setItem(DESKTOP_ONBOARDING_STORAGE_KEY, "true");
     setOnboardingOpen(false);
   }
 
@@ -172,6 +194,7 @@ export function DashboardContextView() {
       <OnboardingModal
         open={onboardingOpen}
         userName={session.data?.name?.split(" ")[0]}
+        initialStep={onboardingInitialStep}
         onComplete={handleOnboardingComplete}
       />
     </>

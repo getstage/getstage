@@ -77,5 +77,5 @@ export function capitalize(value: string) {
 }
 
 export function formatPlanPrice(plan: "free" | "pro") {
-  return plan === "pro" ? "Yearly plan" : "Free plan";
+  return plan === "pro" ? "Yearly plan" : "Unpaid";
 }

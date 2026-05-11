@@ -3,24 +3,24 @@ import { parseInputDate } from "@/lib/format";
 import { uploadFileToR2 } from "@/lib/r2Uploads";
 import type { ProjectType } from "@/types";
 import { buildPreparedProjectPayload, type ProjectDraft } from "../../../shared/project-creation";
+import type { z } from "zod";
 
 type MutationFn<TArgs, TResult> = (args: TArgs) => Promise<TResult>;
+export type CreateProjectInput = z.infer<typeof createProjectInputSchema>;
 
-export async function createProjectFromDraft<TResult>({
+export async function buildProjectPayloadFromDraft({
   draft,
   activePhases,
-  createProject,
   generateUploadUrl,
   syncMetadata,
   aiRoadmaps,
 }: {
   draft: ProjectDraft;
   activePhases: typeof draft.phases;
-  createProject: MutationFn<ReturnType<typeof buildPreparedProjectPayload>, TResult>;
   generateUploadUrl: Parameters<typeof uploadFileToR2>[0]["generateUploadUrl"];
   syncMetadata: Parameters<typeof uploadFileToR2>[0]["syncMetadata"];
   aiRoadmaps: Record<ProjectType, Array<{ name: string; tasks: string[] }>>;
-}) {
+}): Promise<CreateProjectInput> {
   if (!draft.projectType || !draft.method) {
     throw new Error("Project details are incomplete.");
   }
@@ -62,5 +62,31 @@ export async function createProjectFromDraft<TResult>({
     throw new Error(parsedInput.error.issues[0]?.message ?? "Could not create the project.");
   }
 
-  return createProject(parsedInput.data);
+  return parsedInput.data;
+}
+
+export async function createProjectFromDraft<TResult>({
+  draft,
+  activePhases,
+  createProject,
+  generateUploadUrl,
+  syncMetadata,
+  aiRoadmaps,
+}: {
+  draft: ProjectDraft;
+  activePhases: typeof draft.phases;
+  createProject: MutationFn<CreateProjectInput, TResult>;
+  generateUploadUrl: Parameters<typeof uploadFileToR2>[0]["generateUploadUrl"];
+  syncMetadata: Parameters<typeof uploadFileToR2>[0]["syncMetadata"];
+  aiRoadmaps: Record<ProjectType, Array<{ name: string; tasks: string[] }>>;
+}) {
+  const payload = await buildProjectPayloadFromDraft({
+    draft,
+    activePhases,
+    generateUploadUrl,
+    syncMetadata,
+    aiRoadmaps,
+  });
+
+  return createProject(payload);
 }

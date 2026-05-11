@@ -23,7 +23,7 @@ export function useDashboardPreviewState({
     const savedStage = window.localStorage.getItem(previewStorageKey);
     const defaultStage: PreviewStage = onboardingCompleted ? "paywall" : "onboarding";
     if (savedStage === "onboarding" || savedStage === "paywall" || savedStage === "preview") {
-      setPreviewStage(onboardingCompleted && savedStage === "onboarding" ? "paywall" : savedStage);
+      setPreviewStage(onboardingCompleted ? "paywall" : savedStage);
       return;
     }
 

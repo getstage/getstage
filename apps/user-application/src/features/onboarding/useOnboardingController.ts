@@ -32,11 +32,13 @@ const CLAUDE_INSTALL_COMMAND = "npx skills add getstage/agent-mode";
 
 type UseOnboardingControllerInput = {
   open: boolean;
+  initialStep?: OnboardingStepId;
   onComplete: (submission: OnboardingSubmission) => void;
 };
 
 export function useOnboardingController({
   open,
+  initialStep,
   onComplete,
 }: UseOnboardingControllerInput) {
   const queryClient = useQueryClient();
@@ -114,7 +116,8 @@ export function useOnboardingController({
       return;
     }
 
-    setStep("welcome");
+    const startingStep = initialStep ?? "welcome";
+    setStep(startingStep);
     setIsClosing(false);
     setPendingSubmission(null);
     setFieldOfWork([]);
@@ -129,10 +132,12 @@ export function useOnboardingController({
     setCreationReady(false);
     resetDraftRef.current?.();
 
-    trackDatafastGoalOnce("onboarding_started", "onboarding_started", {
-      source: "onboarding_modal",
-    });
-  }, [open]);
+    if (startingStep === "welcome") {
+      trackDatafastGoalOnce("onboarding_started", "onboarding_started", {
+        source: "onboarding_modal",
+      });
+    }
+  }, [open, initialStep]);
 
   useEffect(() => {
     return () => {

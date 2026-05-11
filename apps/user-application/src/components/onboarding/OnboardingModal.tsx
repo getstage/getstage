@@ -20,6 +20,7 @@ const SETUP_PROGRESS_STEPS: OnboardingStepId[] = [
 type OnboardingModalProps = {
   open: boolean;
   userName?: string;
+  initialStep?: OnboardingStepId;
   onComplete: (submission: OnboardingSubmission) => void;
 };
 
@@ -56,10 +57,12 @@ function getStepHeader(step: OnboardingStepId): { title: string; subtitle: strin
 export function OnboardingModal({
   open,
   userName,
+  initialStep,
   onComplete,
 }: OnboardingModalProps) {
   const controller = useOnboardingController({
     open,
+    initialStep,
     onComplete,
   });
 

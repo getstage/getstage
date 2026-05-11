@@ -4,9 +4,9 @@ import stageLogo from "@/assets/logos/stage-logo-light.png";
 export type BillingCycle = "monthly" | "yearly";
 
 export const FREE_FEATURES = [
-  "Up to 3 projects",
-  "Task management",
-  "Client portal (Stage branding)",
+  "Account setup",
+  "Project preview",
+  "Stripe checkout required",
 ];
 
 export const PRO_FEATURES = [
@@ -18,7 +18,7 @@ export const PRO_FEATURES = [
 ];
 
 const START_FEATURES = [
-  { iconSrc: "/logos/pricing/folder.svg", label: "3 active projects" },
+  { iconSrc: "/logos/pricing/folder.svg", label: "Paid workspace access" },
   { iconSrc: "/logos/pricing/connect.svg", label: "Connect Claude, Figma, Notion & more" },
   { iconSrc: "/logos/pricing/portal.svg", label: "Client portal (standard)" },
   { iconSrc: "/logos/pricing/storage.svg", label: "Unlimited file storage" },
@@ -48,7 +48,7 @@ export const PRO_PRICING: Record<
     period: "/month",
     note: "",
     subnote: "",
-    cta: "Start 14-Day Trial",
+    cta: "Start checkout",
     badge: null,
   },
   yearly: {
@@ -57,13 +57,13 @@ export const PRO_PRICING: Record<
     period: "/year",
     note: "",
     subnote: "Save ~71% with yearly billing.",
-    cta: "Start 14-Day Trial",
+    cta: "Start checkout",
     badge: "Best value",
   },
 };
 
 type OnboardingPaywallProps = {
-  onContinueFree: () => void;
+  onUpgrade: (billingCycle: BillingCycle) => void;
   isUpgradeLoading: boolean;
   upgradeError: string | null;
 };
@@ -109,7 +109,7 @@ function PlanButton({
 }
 
 export function OnboardingPaywall({
-  onContinueFree,
+  onUpgrade,
   isUpgradeLoading,
   upgradeError,
 }: OnboardingPaywallProps) {
@@ -159,8 +159,8 @@ export function OnboardingPaywall({
               <p className="mt-4 text-[13px] font-medium text-text-secondary">
                 Billed $99/year when paid annually
               </p>
-              <PlanButton onClick={onContinueFree} disabled={isUpgradeLoading}>
-                Continue with Start Plan
+              <PlanButton onClick={() => onUpgrade("yearly")} disabled={isUpgradeLoading}>
+                Start checkout
               </PlanButton>
             </div>
 
@@ -179,13 +179,13 @@ export function OnboardingPaywall({
               </div>
               <p className="mt-6 text-[13px] font-medium text-text-secondary">Everything in Start</p>
               <FeatureList features={PRO_FEATURES} />
-              <PlanButton onClick={onContinueFree} primary disabled={isUpgradeLoading}>
-                Start 14-Day Trial
+              <PlanButton onClick={() => onUpgrade("yearly")} primary disabled={isUpgradeLoading}>
+                Start checkout
               </PlanButton>
               <p className="mt-3 text-center text-[13px] font-medium leading-[1.35] text-text-secondary">
-                Start 14-Day Free Trial
+                Paid access required.
                 <br />
-                No credit card required.
+                Secure checkout powered by Stripe.
               </p>
             </div>
 
@@ -196,8 +196,8 @@ export function OnboardingPaywall({
                 <span className="block text-[13px] font-medium text-text-secondary">/seat/month</span>
               </div>
               <FeatureList features={TEAM_FEATURES} />
-              <PlanButton onClick={onContinueFree} disabled={isUpgradeLoading}>
-                Start 14-Day Trial
+              <PlanButton onClick={() => onUpgrade("yearly")} disabled={isUpgradeLoading}>
+                Contact us after checkout
               </PlanButton>
             </div>
           </div>
@@ -257,8 +257,8 @@ export function OnboardingPaywall({
 
           {upgradeError ? <p className="mt-4 text-[13px] text-destructive">{upgradeError}</p> : null}
 
-          <PlanButton onClick={onContinueFree} primary disabled={isUpgradeLoading}>
-            Start 14-Day Trial
+          <PlanButton onClick={() => onUpgrade("yearly")} primary disabled={isUpgradeLoading}>
+            Start checkout
           </PlanButton>
         </div>
 

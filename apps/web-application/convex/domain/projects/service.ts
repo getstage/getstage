@@ -27,7 +27,6 @@ import { buildProject, recomputeProjectState } from "./readModel";
 
 type ReaderCtx = QueryCtx | MutationCtx;
 
-const FREE_PLAN_PROJECT_LIMIT = 3;
 const DEFAULT_PROJECT_PHASES = [
   "Discovery",
   "Strategy",
@@ -262,15 +261,8 @@ export async function createProjectForUser(
     throw new Error("End date must be on or after the start date.");
   }
 
-  if (plan === "free") {
-    const existingProjects = await ctx.db
-      .query("projects")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
-
-    if (existingProjects.length >= FREE_PLAN_PROJECT_LIMIT) {
-      throw new Error("Free plan includes up to 3 projects. Upgrade to Pro to create another.");
-    }
+  if (plan !== "pro") {
+    throw new Error("Upgrade to Pro to create projects.");
   }
 
   const existingClient = await getClientByUserAndName(ctx, {
@@ -579,6 +571,41 @@ export async function setTaskPriorityForUser(
   const updated = await ctx.db.get(task._id);
   if (!updated) {
     throw new Error("Task not found after priority update.");
+  }
+  return updated;
+}
+
+export async function setTaskBoardStateForUser(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    taskId: Id<"tasks">;
+    priority: "low" | "medium" | "high" | null;
+    isCompleted: boolean;
+  },
+) {
+  const { task, project } = await requireTaskAccessForUserId(ctx, {
+    userId: args.userId,
+    taskId: args.taskId,
+  });
+
+  const updatedAt = now();
+  const patch: Partial<Doc<"tasks">> = {
+    updatedAt,
+    isCompleted: args.isCompleted,
+  };
+  if (args.isCompleted) {
+    patch.priority = undefined;
+  } else {
+    patch.priority = args.priority === null ? undefined : args.priority;
+  }
+
+  await ctx.db.patch(task._id, patch);
+  await recomputeProjectState(ctx, project._id);
+
+  const updated = await ctx.db.get(task._id);
+  if (!updated) {
+    throw new Error("Task not found after board update.");
   }
   return updated;
 }
