@@ -61,20 +61,12 @@ export function DesktopAuthView() {
   const isConnected = authStatus === "connected" && session?.hasAccessToken;
 
   return (
-    <div className="relative min-h-dvh bg-white p-2 md:h-dvh md:overflow-hidden md:bg-[#F5F5F5] md:p-1">
-      <div className="stage-auth-drag-region absolute inset-x-0 top-0 z-50 hidden h-11 md:block" />
-      <div className="min-h-[calc(100dvh-16px)] overflow-hidden rounded-[12px] bg-[#F5F5F5] px-3 pt-3 md:h-[calc(100dvh-8px)] md:min-h-0 md:rounded-[8px] md:border md:border-[#F5F5F5] md:bg-white md:p-2">
-        <div className="grid min-h-[calc(100dvh-40px)] md:flex md:h-full md:min-h-0 md:overflow-hidden md:rounded-[12px]">
-          <section className="flex min-h-0 flex-col items-center md:flex-1 md:flex-row md:justify-center md:overflow-hidden md:px-[74px] md:py-0">
-            <div className="relative -mr-3 flex h-[320px] w-[calc(100%+12px)] shrink-0 items-center justify-start self-end overflow-hidden rounded-l-[8px] md:hidden">
-              <img
-                src="/onboarding/onboarding-setup.webp"
-                alt=""
-                className="absolute right-0 top-0 h-auto min-h-full w-full max-w-none object-cover object-right"
-              />
-            </div>
-
-            <div className="flex min-h-0 w-full max-w-[508px] flex-1 flex-col items-center justify-center py-[44px] text-center md:h-full md:flex-none md:items-start md:py-[100px] md:text-left">
+    <div className="relative min-h-dvh bg-white p-2 xl:h-dvh xl:overflow-hidden xl:bg-[#F5F5F5] xl:p-1">
+      <div className="stage-auth-drag-region absolute inset-x-0 top-0 z-50 h-11" />
+      <div className="min-h-[calc(100dvh-16px)] overflow-hidden rounded-[12px] bg-[#F5F5F5] px-3 pt-3 xl:h-[calc(100dvh-8px)] xl:min-h-0 xl:rounded-[8px] xl:border xl:border-[#F5F5F5] xl:bg-white xl:p-2">
+        <div className="grid min-h-[calc(100dvh-40px)] xl:flex xl:h-full xl:min-h-0 xl:overflow-hidden xl:rounded-[12px]">
+          <section className="flex min-h-0 flex-col items-center justify-center px-5 xl:min-w-[430px] xl:flex-1 xl:flex-row xl:overflow-hidden xl:px-[74px] xl:py-0">
+            <div className="flex min-h-0 w-full max-w-[420px] flex-1 flex-col items-center justify-center py-[56px] text-center xl:h-full xl:max-w-[508px] xl:flex-none xl:items-start xl:py-[100px] xl:text-left">
               <img src={stageLogo} alt="Stage" className="mb-5 h-[23px] w-auto" />
               <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0A0A0A]">
                 Sign in to Stage
@@ -120,7 +112,7 @@ export function DesktopAuthView() {
             </div>
           </section>
 
-          <section className="hidden min-h-0 md:flex md:w-[calc((100dvh-16px)*0.76+4px)] md:flex-none md:items-stretch md:justify-end">
+          <section className="hidden min-h-0 xl:flex xl:w-[min(58vw,calc((100dvh-16px)*0.76+4px))] xl:flex-none xl:items-stretch xl:justify-end">
             <div className="relative flex h-full w-full items-stretch justify-end overflow-hidden rounded-[8px] bg-white">
               <img
                 src="/onboarding/onboarding-setup.webp"
