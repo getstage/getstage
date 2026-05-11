@@ -1,14 +1,47 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useMutation } from "convex/react";
+import { z } from "zod";
 
+import { useSettingsOverviewQuery } from "@/hooks/desktop-api";
+import { api } from "@/lib/convexApi";
 import { ClientPortalTabBar } from "./ClientPortalTabBar";
 
 const DEFAULT_BRAND_COLOR = "#030303";
+const portalBrandingResultSchema = z.object({
+  logoUrl: z.string().nullable(),
+  accentColor: z.string(),
+});
 
 export function ClientPortalSettingsView() {
   const navigate = useNavigate();
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const overview = useSettingsOverviewQuery();
+  const updatePortalBranding = useMutation(api.settings.updatePortalBranding);
   const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const hasPortalAccess = overview.data?.profile.plan === "pro";
+
+  useEffect(() => {
+    if (overview.data?.portalBranding.accentColor) {
+      setBrandColor(overview.data.portalBranding.accentColor);
+    }
+  }, [overview.data?.portalBranding.accentColor]);
+
+  async function saveBranding() {
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const result = portalBrandingResultSchema.parse(
+        await updatePortalBranding({ accentColor: brandColor }),
+      );
+      setBrandColor(result.accentColor);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Could not save portal branding.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   return (
     <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
@@ -43,22 +76,34 @@ export function ClientPortalSettingsView() {
             <p className="text-[12px] font-normal">Your branding will be reflected on the portal link.</p>
           </div>
 
-          <div className={isSubscribed ? "flex flex-col gap-[4px]" : "pointer-events-none flex flex-col gap-[4px] blur-[10px]"}>
+          <div className={hasPortalAccess ? "flex flex-col gap-[4px]" : "pointer-events-none flex flex-col gap-[4px] blur-[10px]"}>
             <LogoCard />
             <BrandColorCard brandColor={brandColor} onBrandColorChange={setBrandColor} />
             <DomainCard />
             <div className="flex flex-col gap-[10px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] sm:flex-row sm:gap-[12px]">
-              <button className="rounded-[6px] bg-[#fafafa] px-[24px] py-[8px] text-[13px] font-medium text-[#dc2626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]" type="button">
+              <button
+                className="rounded-[6px] bg-[#fafafa] px-[24px] py-[8px] text-[13px] font-medium text-[#dc2626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+                type="button"
+                onClick={() => setBrandColor(DEFAULT_BRAND_COLOR)}
+              >
                 Clear All
               </button>
-              <button className="flex items-center gap-[8px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium text-[#fafafa] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)]" type="button">
-                Save Information
+              <button
+                className="flex items-center gap-[8px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium text-[#fafafa] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)] disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                disabled={isSaving}
+                onClick={() => void saveBranding()}
+              >
+                {isSaving ? "Saving..." : "Save Information"}
                 <ArrowRightIcon className="h-[16px] w-[16px]" />
               </button>
             </div>
+            {saveError ? <p className="px-[12px] py-[8px] text-[12px] font-medium text-[#b91c1c]">{saveError}</p> : null}
           </div>
 
-          {!isSubscribed ? <PortalPaywall onStartTrial={() => setIsSubscribed(true)} /> : null}
+          {!overview.isLoading && !hasPortalAccess ? (
+            <PortalPaywall onStartTrial={() => void navigate({ to: "/settings/billing" })} />
+          ) : null}
         </section>
       </div>
     </div>

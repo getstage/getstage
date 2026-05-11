@@ -1,6 +1,6 @@
 # Stage Desktop - Where We Are Now
 
-Date: 2026-05-10
+Last updated: 2026-05-11 (see also `05-11/05-11-session-summary.md` for that day’s delta).
 Read this first if you want a 60-second snapshot of the project before
 diving into any other doc. The detailed implementation logs live in
 `05-09/` and `05-10/`. The full step list lives in
@@ -10,7 +10,10 @@ diving into any other doc. The detailed implementation logs live in
 
 Steps 1-23 of the monorepo tracker are done. Desktop product data now
 uses direct Convex from the renderer for projects, project detail,
-phases, tasks, create project, task mutations, and delete account.
+phases, tasks, create project, task mutations, delete account, settings
+clients list, profile name/avatar (R2 + `settings.updateProfile`), client
+portal branding visibility by plan (`settings.getOverview`), and project-detail
+kanban task creation (same Convex path as the Tasks page).
 Electron IPC remains for auth handoff/session storage, shell/native, and
 Rust sidecar work. Logout works. If no valid desktop session exists, the
 desktop shows a real sign-in screen that opens the web-owned auth/signup/
@@ -31,7 +34,10 @@ Projects page table
 Project detail page header + kanban (phases + tasks)
 Dashboard "Active Projects" metric + subheading
 Client Portal projects table
-Settings -> Account session display
+Client Portal brand settings (Pro unlock from live plan; accent save to Convex)
+Settings -> Clients (live Convex, not snapshot dummy data)
+Settings -> Profile (avatar upload + save to Convex)
+Settings -> Account session display ("Refresh session" when already signed in)
 Tasks kanban: list, create, delete, set-priority (drag persists)
 Create project: direct Convex mutation, real created project id
 Delete account: direct Convex action, then local desktop logout
@@ -50,9 +56,6 @@ Project detail tabs: Research / Strategy / Moodboard / Flows /
      apps/web-application/convex/api/routes/projects.ts already)
 Project detail "task details" subroute (/project/:id/details)
   -> still uses mockProjectDetails; replace with /api/v1/tasks/:id
-KanbanBoard (project-detail page) create-task modal
-  -> still local mock state; the standalone Tasks page DOES persist.
-     Will migrate when project-detail kanban edits are in scope.
 Dashboard chart / pipeline / revenue cards
   -> derived from selectedProjectContext only; revenue is intentionally
      "Not synced" until billing data is wired
@@ -145,18 +148,22 @@ Strict typing rule (no any, no as casts on boundary data)
 
 Build-to-dist migration plan for data-ops
   apps/user-application/docs/05-10/05-10-data-ops-build-pattern.md
+
+2026-05-11 session delta (settings, portal, kanban create)
+  apps/user-application/docs/05-11/05-11-session-summary.md
 ```
 
-## Verification on 2026-05-10 (latest)
+## Verification (latest: 2026-05-11)
 
 ```txt
 packages/data-ops          pnpm run build          PASS
 apps/user-application      pnpm run typecheck      PASS
-apps/user-application      pnpm run build          PASS  (812 modules)
-apps/web-application       pnpm run typecheck      PASS
-apps/web-application       pnpm run build:testing  PASS
+apps/user-application      pnpm run build          PASS  (renderer bundle ~5k modules; varies)
 git diff --check                                    PASS
 ```
+
+Prior full stack check on 2026-05-10 also included `apps/web-application`
+typecheck and `build:testing` PASS.
 
 ## Next agent's job (in this exact order)
 

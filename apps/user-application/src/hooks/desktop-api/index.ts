@@ -1,8 +1,10 @@
 export { useDesktopApiInvalidation } from "./invalidation";
+export { useClientsQuery, type ClientSummary } from "./useClientsQuery";
 export { usePhaseTasksQuery } from "./usePhaseTasksQuery";
 export { useProjectPhasesQuery } from "./useProjectPhasesQuery";
 export { useProjectQuery } from "./useProjectQuery";
 export { useProjectsQuery } from "./useProjectsQuery";
+export { useSettingsOverviewQuery, type SettingsOverview } from "./useSettingsOverviewQuery";
 export { useUserTasksQuery, type UseUserTasksQueryArgs } from "./useUserTasksQuery";
 export {
   useCreateTaskMutation,

@@ -4,6 +4,11 @@ Date: May 5, 2026
 Status: Architecture planning document  
 Scope: Desktop architecture, Rust local engine, local Codex/Claude execution, design critique, voice input, and monorepo migration
 
+**Current product UI facts (Convex wiring, auth, deploy):** use
+`apps/user-application/docs/05-10/05-10-current-state.md` and
+`apps/user-application/docs/05-11/05-11-session-summary.md` — section 2 below
+described the repo at migration time and is not the live checklist.
+
 ## 1. Executive Summary
 
 Stage Desktop should become a native macOS-first desktop application with:

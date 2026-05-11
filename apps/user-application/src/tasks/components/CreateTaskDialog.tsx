@@ -14,12 +14,14 @@ type Picker = "project" | "priority" | null;
 export function CreateTaskDialog({
   projects,
   initialProjectId,
+  projectLabel,
   lockProject = false,
   onClose,
   onCreated,
 }: {
   projects: ProjectSummary[];
   initialProjectId?: string;
+  projectLabel?: string;
   lockProject?: boolean;
   onClose: () => void;
   onCreated?: (task: TaskSummary) => void;
@@ -134,7 +136,7 @@ export function CreateTaskDialog({
 
           <div className="flex flex-wrap items-center gap-[8px]">
             <PickerButton
-              label={selectedProject?.name ?? "Pick a project"}
+              label={selectedProject?.name ?? projectLabel ?? "Pick a project"}
               disabled={lockProject || projects.length === 0}
               onClick={() =>
                 setPicker((current) => (current === "project" ? null : "project"))

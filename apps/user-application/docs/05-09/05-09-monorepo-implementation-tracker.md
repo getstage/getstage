@@ -3,8 +3,7 @@
 Date: May 9, 2026  
 Branch: `monorepo`  
 Status: Desktop product data migrated to direct Convex; ready for manual testing
-Latest pushed checkpoint: `28f292d fix desktop auth callback in local dev`
-Latest local checkpoint: direct desktop Convex migration + create project/delete account fixes, not committed yet
+Latest doc handoff: 2026-05-11 — `apps/user-application/docs/05-11/05-11-session-summary.md`
 
 ## Scope
 
@@ -91,6 +90,15 @@ Step 23 sub-items (2026-05-10 update):
   action and then clears the local desktop session.
 - [x] Migrate `packages/data-ops` from "point to src" to "build to dist" pattern.
   Completed on 2026-05-10. See `05-10/05-10-data-ops-build-pattern.md`.
+
+Step 23 sub-items (2026-05-11 update):
+
+- [x] Settings -> Clients: live `clients.listForCurrentUser`, Zod at IPC boundary.
+- [x] Settings -> Profile: R2 avatar upload + `settings.updateProfile`.
+- [x] Client Portal branding: plan from `settings.getOverview` (Pro unlock);
+  `settings.updatePortalBranding` for accent.
+- [x] Project-detail Kanban: real task create via Convex (no mock local ids).
+- [x] `useLiveProject`: skip `getProjectData` until desktop session exists.
 
 - [ ] 24. Add fake provider runner that receives typed project context.
 - [ ] 25. Add Codex/Claude provider detection.
