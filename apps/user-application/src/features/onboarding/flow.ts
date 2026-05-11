@@ -64,24 +64,30 @@ export function canContinue({
   clientEmail,
   projectType,
   activePhasesLength,
-}: Omit<ValidationContext, "startDate" | "endDate">) {
+  startDate,
+  endDate,
+}: ValidationContext) {
   switch (step) {
     case "welcome":
       return true;
     case "claude":
       return true;
     case "details":
-      return setProjectLater || (projectName.trim().length > 0 && clientName.trim().length > 0);
-    case "client":
       return (
-        clientName.trim().length > 0 &&
-        clientEmail.trim().length > 0
+        setProjectLater ||
+        (projectBasicsSchema.safeParse({ projectName }).success &&
+          clientInfoSchema.safeParse({ clientName, clientEmail }).success)
       );
+    case "client":
+      return clientInfoSchema.safeParse({ clientName, clientEmail }).success;
     case "project-type":
-      return projectType !== null;
+      return projectTypeSchema.safeParse(projectType).success;
     case "method":
       return method === "manual" ? activePhasesLength >= 2 : method !== null;
-    case "timeline":
+    case "timeline": {
+      const parsed = dateRangeInputSchema.safeParse({ startDate, endDate });
+      return parsed.success;
+    }
     case "preview":
     case "integrations":
     case "celebrating":

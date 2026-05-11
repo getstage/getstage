@@ -168,7 +168,6 @@ export function OnboardingModal({
                     creationReady={controller.creationReady}
                     isCheckoutLoading={controller.isCheckoutLoading}
                     checkoutError={controller.checkoutError}
-                    existingClients={controller.existingClients}
                     claudeConnection={controller.claudeConnection}
                     claudeSetupHref={controller.claudeSetupHref}
                     claudeInstallCommand={controller.claudeInstallCommand}

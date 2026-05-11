@@ -280,13 +280,6 @@ type OnboardingStepRendererProps = {
   creationReady: boolean;
   isCheckoutLoading: boolean;
   checkoutError: string | null;
-  existingClients: Array<{
-    id: string;
-    name: string;
-    email?: string;
-    avatarUrl?: string;
-    projectCount: number;
-  }>;
   claudeConnection: ClaudeConnectionSummary;
   claudeSetupHref: string;
   claudeInstallCommand: string;
@@ -306,7 +299,6 @@ export function OnboardingStepRenderer({
   stepError,
   isCheckoutLoading,
   checkoutError,
-  existingClients,
   claudeConnection,
   onContinue,
   onContinueFree,
@@ -315,10 +307,6 @@ export function OnboardingStepRenderer({
   const { draft } = draftState;
   const [isAddingPhase, setIsAddingPhase] = useState(false);
   const [newPhaseName, setNewPhaseName] = useState("");
-  const selectedClient =
-    draft.clientMode === "existing"
-      ? existingClients.find((client) => client.name === draft.selectedExistingClientName) ?? null
-      : null;
 
   function submitNewPhase() {
     const phaseName = newPhaseName.trim();
@@ -426,51 +414,10 @@ export function OnboardingStepRenderer({
               <FigmaSection label="Client Details">
                 <div className="space-y-4">
                   <div>
-                    <FigmaLabel>Who is this for?</FigmaLabel>
-                    <div className="relative">
-                      <select
-                        value={
-                          draft.clientMode === "existing"
-                            ? draft.selectedExistingClientName
-                            : "__new__"
-                        }
-                        onChange={(event) => {
-                          const nextValue = event.target.value;
-                          if (nextValue === "__new__") {
-                            draftState.setClientMode("new");
-                            return;
-                          }
-
-                          const client = existingClients.find((item) => item.name === nextValue);
-                          if (!client) {
-                            draftState.setClientMode("new");
-                            return;
-                          }
-
-                          draftState.selectExistingClient(client);
-                        }}
-                        className={cn(figmaFieldClass, "appearance-none pr-10")}
-                      >
-                        <option value="__new__">Select Client</option>
-                        {existingClients.map((client) => (
-                          <option key={client.id} value={client.name}>
-                            {client.name}
-                          </option>
-                        ))}
-                      </select>
-                      <img
-                        src={ONBOARDING_ICON_SRC.dropdown}
-                        alt=""
-                        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-70"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
                     <FigmaLabel>Client Name</FigmaLabel>
                     <input
                       type="text"
-                      value={draft.clientMode === "new" ? draft.clientName : selectedClient?.name ?? ""}
+                      value={draft.clientName}
                       onChange={(event) => draftState.setClientName(event.target.value)}
                       placeholder="Baseframe"
                       className={figmaFieldClass}

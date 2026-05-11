@@ -64,17 +64,12 @@ export function useOnboardingController({
   });
   const { draft, activePhases } = draftState;
   const shouldUseAuthenticatedConvex = open && isConvexAuthenticated;
-  const existingClientsResult = useConvexQuery(
-    api.clients.listForCurrentUser,
-    shouldUseAuthenticatedConvex ? {} : "skip",
-  );
   const claudeState = useConvexQuery(api.agentConnections.getClaudeConnectionSummary, shouldUseAuthenticatedConvex ? {} : "skip") as
     | {
         connection: ClaudeConnectionSummary;
       }
     | undefined;
   const createPendingConnection = useConvexMutation(api.agentConnections.createPendingClaudeConnection);
-  const existingClients = useMemo(() => existingClientsResult ?? [], [existingClientsResult]);
   const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
   const markProjectCreated = useConvexMutation(api.onboarding.markProjectCreated);
   const createProject = useConvexMutation(api.projects.create);
@@ -103,6 +98,8 @@ export function useOnboardingController({
     hasClientAvatar: Boolean(draft.clientAvatar),
     projectType: draft.projectType,
     activePhasesLength: activePhases.length,
+    startDate: draft.startDate,
+    endDate: draft.endDate,
   });
 
   useEffect(() => {
@@ -500,7 +497,6 @@ export function useOnboardingController({
     creationReady,
     isCheckoutLoading,
     checkoutError,
-    existingClients,
     claudeConnection: claudeState?.connection ?? null,
     claudeSetupHref: "/agents/claude?source=onboarding",
     claudeInstallCommand: CLAUDE_INSTALL_COMMAND,
