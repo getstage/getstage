@@ -15,6 +15,7 @@ import {
   buildDashboardRevenue,
   buildDashboardTasks,
   buildSidebarProjectsFromProjectContext,
+  buildSidebarProjectsFromSummaries,
 } from "../dashboard/helpers/projectContextDashboard";
 import { useProjectsQuery } from "../hooks/desktop-api";
 import { useDesktopBridge } from "../hooks/useDesktopBridge";
@@ -93,7 +94,7 @@ export function DashboardContextView() {
   const dashboardMetrics = buildDashboardMetrics(selectedProjectContext, {
     activeProjectCount,
   });
-  const dashboardChart = buildDashboardChart(selectedProjectContext);
+  const dashboardChart = buildDashboardChart(selectedProjectContext, selectedPeriod);
   const dashboardTasks = buildDashboardTasks(selectedProjectContext);
   const periodDashboardTasks = useMemo(() => ({
     upcomingTasks: dashboardTasks.upcomingTasks.filter((task) => isInPeriod(task.dueDate ?? task.updatedAt, selectedPeriod)),
@@ -101,7 +102,9 @@ export function DashboardContextView() {
   }), [dashboardTasks.recentActivity, dashboardTasks.upcomingTasks, selectedPeriod]);
   const dashboardPipeline = buildDashboardPipeline(selectedProjectContext);
   const dashboardRevenue = buildDashboardRevenue(selectedProjectContext);
-  const timelineProject = buildSidebarProjectsFromProjectContext(selectedProjectContext)[0];
+  const timelineProjects = projectsQuery.data?.length
+    ? buildSidebarProjectsFromSummaries(projectsQuery.data)
+    : buildSidebarProjectsFromProjectContext(selectedProjectContext);
   const engineState = engineStatus.data?.state ?? "starting";
   const engineStatusLabel =
     engineState === "ready"
@@ -155,7 +158,12 @@ export function DashboardContextView() {
               <MetricGrid metrics={dashboardMetrics} />
             </div>
 
-            <ActivityTimelineChart points={dashboardChart} project={timelineProject} />
+            <ActivityTimelineChart
+              points={dashboardChart}
+              projects={timelineProjects}
+              tasks={[...periodDashboardTasks.upcomingTasks, ...periodDashboardTasks.recentActivity]}
+              period={selectedPeriod}
+            />
 
             <div className="overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[2px]">
               <div className="grid grid-cols-1 gap-[2px] xl:grid-cols-2">

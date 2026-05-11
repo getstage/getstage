@@ -13,6 +13,10 @@ export const dashboardProjectSchema = z.object({
   logoLabel: z.string(),
   accentColor: z.string(),
   projectImageUrl: z.string().optional(),
+  clientName: z.string().optional(),
+  phaseName: z.string().optional(),
+  startDate: z.number().optional(),
+  endDate: z.number().optional(),
 });
 
 export const dashboardTaskSchema = z.object({
@@ -28,6 +32,9 @@ export const dashboardTaskSchema = z.object({
 export const dashboardChartPointSchema = z.object({
   label: z.string(),
   value: z.number().min(0),
+  timestamp: z.number().optional(),
+  isToday: z.boolean().optional(),
+  showLabel: z.boolean().optional(),
 });
 
 export const dashboardPipelineStageSchema = z.object({

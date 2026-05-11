@@ -11,9 +11,9 @@ import type {
   DashboardRevenue,
   DashboardTask,
 } from "../models/dashboard";
+import type { DashboardPeriod } from "../components/DashboardHeader";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const EMPTY_CHART_DAYS = 8;
 const PRIMARY_ACCENT = "#8782F5";
 const MUTED_ACCENT = "#d6d3d1";
 
@@ -28,13 +28,78 @@ function getInitials(value: string) {
 
 function formatChartLabel(timestamp: number) {
   return new Intl.DateTimeFormat("en-US", {
-    day: "2-digit",
+    day: "numeric",
     month: "short",
   }).format(timestamp).toUpperCase();
 }
 
+function startOfDay(timestamp: number) {
+  return new Date(timestamp).setHours(0, 0, 0, 0);
+}
+
+function addDays(timestamp: number, days: number) {
+  return startOfDay(timestamp) + days * DAY_MS;
+}
+
+function addMonths(date: Date, months: number) {
+  return new Date(date.getFullYear(), date.getMonth() + months, date.getDate()).getTime();
+}
+
+function getChartWindow(period: DashboardPeriod, now = Date.now()) {
+  const date = new Date(now);
+  const today = startOfDay(now);
+
+  switch (period) {
+    case "Today":
+      return { start: today, end: addDays(today, 1), mode: "day" as const };
+    case "Yesterday":
+      return { start: addDays(today, -1), end: today, mode: "day" as const };
+    case "This week": {
+      const day = date.getDay();
+      const mondayOffset = day === 0 ? -6 : 1 - day;
+      const start = addDays(today, mondayOffset);
+      return { start, end: addDays(start, 7), mode: "week" as const };
+    }
+    case "This month":
+      return {
+        start: new Date(date.getFullYear(), date.getMonth(), 1).getTime(),
+        end: new Date(date.getFullYear(), date.getMonth() + 1, 1).getTime(),
+        mode: "month" as const,
+      };
+    case "This year":
+      return {
+        start: new Date(date.getFullYear(), 0, 1).getTime(),
+        end: new Date(date.getFullYear() + 1, 0, 1).getTime(),
+        mode: "year" as const,
+      };
+    case "30 days":
+      return { start: today, end: addDays(today, 30), mode: "rolling" as const };
+    case "6 months":
+      return { start: today, end: addMonths(date, 6), mode: "rolling" as const };
+    case "12 months":
+      return { start: today, end: addMonths(date, 12), mode: "rolling" as const };
+    case "All time":
+      return { start: addDays(today, -30), end: addDays(today, 1), mode: "all-time" as const };
+  }
+}
+
+function shouldShowChartLabel(index: number, total: number, timestamp: number, period: DashboardPeriod, isToday: boolean) {
+  if (index === 0 || index === total - 1 || isToday) return true;
+  const date = new Date(timestamp);
+
+  if (period === "This year" || period === "6 months" || period === "12 months" || period === "All time") {
+    return date.getDate() === 1;
+  }
+
+  if (period === "This month" || period === "30 days") {
+    return index % 7 === 0;
+  }
+
+  return true;
+}
+
 function getTaskTimestamp(task: ProjectContextTask, fallback: number) {
-  return task.updatedAt ?? fallback;
+  return (task as ProjectContextTask & { dueDate?: number }).dueDate ?? task.updatedAt ?? fallback;
 }
 
 function toDashboardTask(context: ProjectContext, task: ProjectContextTask): DashboardTask {
@@ -42,6 +107,7 @@ function toDashboardTask(context: ProjectContext, task: ProjectContextTask): Das
     id: task.id,
     title: task.title,
     projectName: context.projectName,
+    dueDate: (task as ProjectContextTask & { dueDate?: number }).dueDate,
     updatedAt: task.updatedAt ?? context.updatedAt,
     isCompleted: task.status === "done",
   };
@@ -60,6 +126,9 @@ export function buildSidebarProjectsFromProjectContext(
       name: context.projectName,
       logoLabel: getInitials(context.projectName),
       accentColor: PRIMARY_ACCENT,
+      phaseName: context.currentPhase,
+      startDate: context.updatedAt,
+      endDate: context.updatedAt,
     },
   ];
 }
@@ -73,6 +142,13 @@ export function buildSidebarProjectsFromSummaries(
     logoLabel: getInitials(project.name),
     accentColor: PRIMARY_ACCENT,
     projectImageUrl: project.projectImageUrl,
+    clientName: project.clientName,
+    phaseName: project.type
+      .split("-")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" "),
+    startDate: project.startDate,
+    endDate: project.endDate,
   }));
 }
 
@@ -116,20 +192,29 @@ export function buildDashboardMetrics(
   ];
 }
 
-export function buildDashboardChart(context: ProjectContext | null): DashboardChartPoint[] {
+export function buildDashboardChart(
+  context: ProjectContext | null,
+  period: DashboardPeriod = "This month",
+): DashboardChartPoint[] {
   const now = Date.now();
-  const start = now - (EMPTY_CHART_DAYS - 1) * DAY_MS;
-  const points = Array.from({ length: EMPTY_CHART_DAYS }, (_, index) => {
-    const timestamp = start + index * DAY_MS;
+  const today = startOfDay(now);
+  const window = getChartWindow(period, now);
+  const pointCount = Math.max(1, Math.ceil((window.end - window.start) / DAY_MS));
+  const points = Array.from({ length: pointCount }, (_, index) => {
+    const timestamp = addDays(window.start, index);
+    const isToday = timestamp === today;
     return {
-      dayStart: new Date(timestamp).setHours(0, 0, 0, 0),
+      dayStart: timestamp,
       label: formatChartLabel(timestamp),
       value: 0,
+      timestamp,
+      isToday,
+      showLabel: shouldShowChartLabel(index, pointCount, timestamp, period, isToday),
     };
   });
 
   if (!context) {
-    return points.map(({ label, value }) => ({ label, value }));
+    return points.map(({ label, value, timestamp, isToday, showLabel }) => ({ label, value, timestamp, isToday, showLabel }));
   }
 
   for (const task of context.tasks) {
@@ -142,7 +227,7 @@ export function buildDashboardChart(context: ProjectContext | null): DashboardCh
     }
   }
 
-  return points.map(({ label, value }) => ({ label, value }));
+  return points.map(({ label, value, timestamp, isToday, showLabel }) => ({ label, value, timestamp, isToday, showLabel }));
 }
 
 export function buildDashboardTasks(context: ProjectContext | null) {
