@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
 import { OnboardingModal, type OnboardingSubmission } from "../components/onboarding/OnboardingModal";
 import { ActivityTimelineChart } from "../dashboard/components/ActivityTimelineChart";
@@ -21,10 +22,11 @@ import { useProjectsQuery } from "../hooks/desktop-api";
 import { useDesktopBridge } from "../hooks/useDesktopBridge";
 import { useEngineStatus } from "../hooks/useEngineStatus";
 import { useSelectedProjectContext } from "../hooks/useSelectedProjectContext";
+import { useDesktopAuth } from "../lib/auth";
+import { api } from "../lib/convexApi";
 import { WorkspaceFrame } from "./WorkspaceFrame";
 
 const DEFAULT_DASHBOARD_PERIOD: DashboardPeriod = "This month";
-const DESKTOP_ONBOARDING_STORAGE_KEY = "stage:desktop-onboarding-completed";
 
 function getPeriodRange(period: DashboardPeriod, now = Date.now()) {
   const date = new Date(now);
@@ -71,11 +73,17 @@ function isInPeriod(timestamp: number | undefined, period: DashboardPeriod) {
 
 export function DashboardContextView() {
   const desktop = useDesktopBridge();
+  const desktopAuth = useDesktopAuth();
   const engineStatus = useEngineStatus();
   const selectedProject = useSelectedProjectContext();
   const projectsQuery = useProjectsQuery();
   const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>(DEFAULT_DASHBOARD_PERIOD);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const onboardingState = useConvexQuery(
+    api.onboarding.getState,
+    desktopAuth.isAuthenticated ? {} : "skip",
+  );
+  const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
   const selectedProjectContext = selectedProject.isFallback ? null : selectedProject.context;
   const openContextTasks = selectedProjectContext?.tasks.filter(
     (task) => task.status !== "done",
@@ -129,16 +137,25 @@ export function DashboardContextView() {
   });
 
   useEffect(() => {
-    if (!session.data?.hasAccessToken) {
+    if (!desktopAuth.isAuthenticated) {
+      setOnboardingOpen(false);
       return;
     }
 
-    setOnboardingOpen(localStorage.getItem(DESKTOP_ONBOARDING_STORAGE_KEY) !== "true");
-  }, [session.data?.hasAccessToken]);
+    if (onboardingState === undefined) {
+      return;
+    }
 
-  function handleOnboardingComplete(_submission: OnboardingSubmission) {
-    localStorage.setItem(DESKTOP_ONBOARDING_STORAGE_KEY, "true");
+    setOnboardingOpen(!onboardingState.isCompleted);
+  }, [desktopAuth.isAuthenticated, onboardingState]);
+
+  function handleOnboardingComplete(submission: OnboardingSubmission) {
     setOnboardingOpen(false);
+    void completeOnboarding({
+      workCategory: submission.fieldOfWork,
+    }).catch((error) => {
+      console.error("Could not persist desktop onboarding state", error);
+    });
   }
 
   return (
