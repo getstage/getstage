@@ -72,11 +72,7 @@ export function OnboardingModal({
     controller.step !== "preview" &&
     controller.step !== "claude" &&
     controller.step !== "paywall";
-  const showCreateProjectLater =
-    controller.step === "details" ||
-    controller.step === "project-type" ||
-    controller.step === "method" ||
-    controller.step === "timeline";
+  const showCreateProjectLater = controller.step === "details";
   const isFullscreenStep = true;
 
   return (

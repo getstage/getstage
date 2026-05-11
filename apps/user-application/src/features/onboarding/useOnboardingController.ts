@@ -417,7 +417,7 @@ export function useOnboardingController({
   }
 
   function handleDoLater() {
-    if (!["details", "project-type", "method", "timeline"].includes(step)) {
+    if (step !== "details") {
       return;
     }
 
