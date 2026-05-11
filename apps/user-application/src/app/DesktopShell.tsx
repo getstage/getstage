@@ -7,9 +7,10 @@ import { useCompanionState } from "../hooks/useCompanionState";
 
 type DesktopShellProps = {
   children: ReactNode;
+  hideCompanion?: boolean;
 };
 
-export function DesktopShell({ children }: DesktopShellProps) {
+export function DesktopShell({ children, hideCompanion = false }: DesktopShellProps) {
   const isCompanionWindow = new URLSearchParams(window.location.search).get("stageWindow") === "companion";
   const companion = useCompanionState(isCompanionWindow ? "listening" : "idle");
 
@@ -79,9 +80,13 @@ export function DesktopShell({ children }: DesktopShellProps) {
   return (
     <div className="stage-desktop-shell min-h-dvh">
       {children}
-      <CompanionOrb state={companion.state} />
-      <VoiceControlBar state={companion.state} onStateChange={companion.setState} />
-      <CritiquePanel state={companion.state} onStateChange={companion.setState} />
+      {!hideCompanion ? (
+        <>
+          <CompanionOrb state={companion.state} />
+          <VoiceControlBar state={companion.state} onStateChange={companion.setState} />
+          <CritiquePanel state={companion.state} onStateChange={companion.setState} />
+        </>
+      ) : null}
     </div>
   );
 }

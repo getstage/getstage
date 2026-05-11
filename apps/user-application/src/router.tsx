@@ -50,9 +50,10 @@ function RootRoute() {
 
   const isAuthRoute = pathname === "/auth";
   const shouldShowAuth = !isAuthRoute && (session.isLoading || !session.data?.hasAccessToken);
+  const isAuthSurface = isAuthRoute || shouldShowAuth;
 
   return (
-    <DesktopShell>
+    <DesktopShell hideCompanion={isAuthSurface}>
       {shouldShowAuth ? <DesktopAuthView /> : <Outlet />}
     </DesktopShell>
   );

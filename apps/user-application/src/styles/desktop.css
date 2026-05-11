@@ -47,6 +47,10 @@ a,
   -webkit-app-region: drag;
 }
 
+.stage-auth-drag-region {
+  -webkit-app-region: drag;
+}
+
 .stage-sidebar {
   -webkit-app-region: drag;
 }
