@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode, RefObject } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
+import { z } from "zod";
 import { projectDetailSchema } from "@stage/data-ops";
 import stageLogoLight from "@/assets/logos/stage-logo-light.png";
+import { createProjectInputSchema } from "@/data-ops/schema";
 import { api } from "@/lib/convexApi";
 import { PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
 import { toUserFacingErrorMessage } from "@/lib/errors";
@@ -28,6 +30,62 @@ type CreateProjectStep = "basic" | "client" | "type" | "timeline" | "roadmap" | 
 type ProjectTypeId = ProjectType;
 type RoadmapMode = "smart" | "manual";
 
+const basicDetailsFormSchema = z.object({
+  projectName: z.string().trim().min(1, "Project name is required."),
+});
+
+const clientDetailsFormSchema = z.object({
+  clientName: z.string().trim().min(1, "Client name is required."),
+  clientEmail: z.string().trim().min(1, "Client email is required.").email("Enter a valid client email."),
+});
+
+const timelineFormSchema = z
+  .object({
+    startDate: z.string().trim().min(1, "Choose a start date."),
+    endDate: z.string().trim().min(1, "Choose an end date."),
+  })
+  .superRefine((value, context) => {
+    const startDate = parseDateInput(value.startDate);
+    const endDate = parseDateInput(value.endDate);
+
+    if (!startDate) {
+      context.addIssue({
+        code: "custom",
+        path: ["startDate"],
+        message: "Choose a valid start date.",
+      });
+    }
+
+    if (!endDate) {
+      context.addIssue({
+        code: "custom",
+        path: ["endDate"],
+        message: "Choose a valid end date.",
+      });
+    }
+
+    if (startDate && endDate && endDate < startDate) {
+      context.addIssue({
+        code: "custom",
+        path: ["endDate"],
+        message: "End date must be the same as or later than the start date.",
+      });
+    }
+  });
+
+const createProjectPayloadSchema = createProjectInputSchema.refine(
+  (project) => project.endDate >= project.startDate,
+  {
+    path: ["endDate"],
+    message: "End date must be the same as or later than the start date.",
+  },
+);
+
+function getFirstZodError(result: { success: true } | { success: false; error: z.ZodError }) {
+  if (result.success) return null;
+  return result.error.issues[0]?.message ?? "Please check the highlighted fields.";
+}
+
 export function CreateProjectView() {
   const navigate = useNavigate();
   const projectImageInputRef = useRef<HTMLInputElement>(null);
@@ -50,6 +108,9 @@ export function CreateProjectView() {
   const [addingPhase, setAddingPhase] = useState(false);
   const [newPhaseName, setNewPhaseName] = useState("");
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
+  const [basicDetailsError, setBasicDetailsError] = useState<string | null>(null);
+  const [clientDetailsError, setClientDetailsError] = useState<string | null>(null);
+  const [timelineError, setTimelineError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const createProject = useMutation(api.desktop.createProject);
@@ -78,6 +139,30 @@ export function CreateProjectView() {
     );
   }
 
+  function continueFromBasicDetails() {
+    const result = basicDetailsFormSchema.safeParse({ projectName });
+    const error = getFirstZodError(result);
+    setBasicDetailsError(error);
+    if (error) return;
+    setStep("client");
+  }
+
+  function continueFromClientDetails() {
+    const result = clientDetailsFormSchema.safeParse({ clientName, clientEmail });
+    const error = getFirstZodError(result);
+    setClientDetailsError(error);
+    if (error) return;
+    setStep("type");
+  }
+
+  function continueFromTimeline() {
+    const result = timelineFormSchema.safeParse({ startDate, endDate });
+    const error = getFirstZodError(result);
+    setTimelineError(error);
+    if (error) return;
+    setStep("roadmap");
+  }
+
   async function handleCreateProject() {
     if (!projectType) {
       setCreateError("Choose a project type first.");
@@ -91,23 +176,29 @@ export function CreateProjectView() {
       return;
     }
 
+    const selectedPhases =
+      roadmapMode === "smart"
+        ? smartRoadmapPhases
+        : manualPhases.filter((phase) => enabledPhases.has(phase));
+    const payloadResult = createProjectPayloadSchema.safeParse({
+      name: projectName.trim(),
+      clientName: clientName.trim(),
+      clientEmail: clientEmail.trim(),
+      type: projectType,
+      method: roadmapMode === "smart" ? "ai" : "manual",
+      startDate: parsedStartDate,
+      endDate: parsedEndDate,
+      phases: selectedPhases.map((phase) => ({ name: phase })),
+    });
+    if (!payloadResult.success) {
+      setCreateError(getFirstZodError(payloadResult));
+      return;
+    }
+
     setIsCreatingProject(true);
     setCreateError(null);
     try {
-      const selectedPhases =
-        roadmapMode === "smart"
-          ? smartRoadmapPhases
-          : manualPhases.filter((phase) => enabledPhases.has(phase));
-      const createdProject = projectDetailSchema.parse(await createProject({
-        name: projectName.trim(),
-        clientName: clientName.trim() || projectName.trim(),
-        clientEmail: clientEmail.trim() || undefined,
-        type: projectType,
-        method: roadmapMode === "smart" ? "ai" : "manual",
-        startDate: parsedStartDate,
-        endDate: parsedEndDate,
-        phases: selectedPhases.map((phase) => ({ name: phase })),
-      }));
+      const createdProject = projectDetailSchema.parse(await createProject(payloadResult.data));
       setCreatedProjectId(createdProject.id);
       setStep("success");
     } catch (error) {
@@ -143,10 +234,14 @@ export function CreateProjectView() {
               <BasicDetailsStep
                 projectName={projectName}
                 projectImage={projectImage}
-                onProjectNameChange={setProjectName}
+                error={basicDetailsError}
+                onProjectNameChange={(value) => {
+                  setProjectName(value);
+                  setBasicDetailsError(null);
+                }}
                 onProjectImageChange={setProjectImage}
                 onPickProjectImage={() => projectImageInputRef.current?.click()}
-                onContinue={() => setStep("client")}
+                onContinue={continueFromBasicDetails}
                 inputRef={projectImageInputRef}
               />
             ) : step === "client" ? (
@@ -156,12 +251,19 @@ export function CreateProjectView() {
                 clientEmail={clientEmail}
                 clientPhoto={clientPhoto}
                 clientPhotoUrl={clientPhotoUrl}
+                error={clientDetailsError}
                 onClientModeChange={setClientMode}
-                onClientNameChange={setClientName}
-                onClientEmailChange={setClientEmail}
+                onClientNameChange={(value) => {
+                  setClientName(value);
+                  setClientDetailsError(null);
+                }}
+                onClientEmailChange={(value) => {
+                  setClientEmail(value);
+                  setClientDetailsError(null);
+                }}
                 onClientPhotoChange={setClientPhoto}
                 onPickClientPhoto={() => clientPhotoInputRef.current?.click()}
-                onContinue={() => setStep("type")}
+                onContinue={continueFromClientDetails}
                 inputRef={clientPhotoInputRef}
               />
             ) : (
@@ -176,9 +278,16 @@ export function CreateProjectView() {
                   <TimelineStep
                     startDate={startDate}
                     endDate={endDate}
-                    onStartDateChange={setStartDate}
-                    onEndDateChange={setEndDate}
-                    onContinue={() => setStep("roadmap")}
+                    error={timelineError}
+                    onStartDateChange={(value) => {
+                      setStartDate(value);
+                      setTimelineError(null);
+                    }}
+                    onEndDateChange={(value) => {
+                      setEndDate(value);
+                      setTimelineError(null);
+                    }}
+                    onContinue={continueFromTimeline}
                   />
                 ) : (
                   <RoadmapStep
@@ -231,31 +340,51 @@ export function CreateProjectView() {
 
 function parseDateInput(value: string) {
   const trimmed = value.trim();
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (isoMatch) {
+    return parseLocalDateParts(Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3]));
+  }
+
   const slashMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed);
   if (slashMatch) {
     const day = Number(slashMatch[1]);
-    const month = Number(slashMatch[2]) - 1;
+    const month = Number(slashMatch[2]);
     const year = Number(slashMatch[3]);
-    const date = new Date(year, month, day);
-    return date.getTime();
+    return parseLocalDateParts(year, month, day);
   }
 
   const compact = /^(\d{2})(\d{2})(\d{4})$/.exec(trimmed);
   if (compact) {
     const day = Number(compact[1]);
-    const month = Number(compact[2]) - 1;
+    const month = Number(compact[2]);
     const year = Number(compact[3]);
-    const date = new Date(year, month, day);
-    return date.getTime();
+    return parseLocalDateParts(year, month, day);
   }
 
-  const timestamp = new Date(trimmed).getTime();
-  return Number.isFinite(timestamp) ? timestamp : null;
+  return null;
+}
+
+function parseLocalDateParts(year: number, month: number, day: number) {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return null;
+  }
+
+  const date = new Date(year, month - 1, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date.getTime();
 }
 
 function BasicDetailsStep({
   projectName,
   projectImage,
+  error,
   onProjectNameChange,
   onProjectImageChange,
   onPickProjectImage,
@@ -264,12 +393,15 @@ function BasicDetailsStep({
 }: {
   projectName: string;
   projectImage: File | null;
+  error: string | null;
   onProjectNameChange: (value: string) => void;
   onProjectImageChange: (file: File | null) => void;
   onPickProjectImage: () => void;
   onContinue: () => void;
   inputRef: RefObject<HTMLInputElement | null>;
 }) {
+  const canContinue = basicDetailsFormSchema.safeParse({ projectName }).success;
+
   return (
     <CreateProjectStepShell
       title="Create New Project"
@@ -323,7 +455,8 @@ function BasicDetailsStep({
           </Field>
         </FormCard>
 
-        <ContinueButton />
+        {error ? <FormError>{error}</FormError> : null}
+        <ContinueButton disabled={!canContinue} />
       </form>
     </CreateProjectStepShell>
   );
@@ -335,6 +468,7 @@ function ClientDetailsStep({
   clientEmail,
   clientPhoto,
   clientPhotoUrl,
+  error,
   onClientModeChange,
   onClientNameChange,
   onClientEmailChange,
@@ -348,6 +482,7 @@ function ClientDetailsStep({
   clientEmail: string;
   clientPhoto: File | null;
   clientPhotoUrl: string;
+  error: string | null;
   onClientModeChange: (value: string) => void;
   onClientNameChange: (value: string) => void;
   onClientEmailChange: (value: string) => void;
@@ -356,6 +491,8 @@ function ClientDetailsStep({
   onContinue: () => void;
   inputRef: RefObject<HTMLInputElement | null>;
 }) {
+  const canContinue = clientDetailsFormSchema.safeParse({ clientName, clientEmail }).success;
+
   return (
     <CreateProjectStepShell
       title="Client Details"
@@ -455,7 +592,8 @@ function ClientDetailsStep({
           </Field>
         </FormCard>
 
-        <ContinueButton />
+        {error ? <FormError>{error}</FormError> : null}
+        <ContinueButton disabled={!canContinue} />
       </form>
     </CreateProjectStepShell>
   );
@@ -524,16 +662,20 @@ function ProjectTypeStep({
 function TimelineStep({
   startDate,
   endDate,
+  error,
   onStartDateChange,
   onEndDateChange,
   onContinue,
 }: {
   startDate: string;
   endDate: string;
+  error: string | null;
   onStartDateChange: (value: string) => void;
   onEndDateChange: (value: string) => void;
   onContinue: () => void;
 }) {
+  const canContinue = timelineFormSchema.safeParse({ startDate, endDate }).success;
+
   return (
     <CreateProjectStepShell
       title="Project timeline"
@@ -569,7 +711,8 @@ function TimelineStep({
           </div>
         </FormCard>
 
-        <ContinueButton />
+        {error ? <FormError>{error}</FormError> : null}
+        <ContinueButton disabled={!canContinue} />
       </form>
     </CreateProjectStepShell>
   );
@@ -604,6 +747,12 @@ function RoadmapStep({
   isCreating: boolean;
   error: string | null;
 }) {
+  const selectedPhaseCount =
+    mode === "smart"
+      ? smartRoadmapPhases.length
+      : manualPhases.filter((phase) => enabledPhases.has(phase)).length;
+  const canCreate = selectedPhaseCount >= 2 && !isCreating;
+
   return (
     <CreateProjectStepShell
       title="Build your roadmap"
@@ -660,7 +809,7 @@ function RoadmapStep({
         </div>
 
         {error ? <p className="text-[12px] font-medium text-[#b91c1c]">{error}</p> : null}
-        <CreateProjectButton isCreating={isCreating} />
+        <CreateProjectButton isCreating={isCreating} disabled={!canCreate} />
       </form>
     </CreateProjectStepShell>
   );
@@ -877,11 +1026,17 @@ function ToggleSwitch({
   );
 }
 
-function CreateProjectButton({ isCreating }: { isCreating: boolean }) {
+function CreateProjectButton({
+  isCreating,
+  disabled,
+}: {
+  isCreating: boolean;
+  disabled: boolean;
+}) {
   return (
     <button
       type="submit"
-      disabled={isCreating}
+      disabled={disabled}
       className="flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[10px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
     >
       <span className="[text-shadow:0px_0.5px_1.5px_rgba(0,0,0,0.15)]">
@@ -1050,6 +1205,14 @@ function Field({
       </span>
       {children}
     </div>
+  );
+}
+
+function FormError({ children }: { children: ReactNode }) {
+  return (
+    <p className="text-[12px] font-medium leading-[1.5] text-[#b91c1c]">
+      {children}
+    </p>
   );
 }
 
