@@ -16,6 +16,19 @@ type CritiquePanelProps = {
   onStateChange: (state: CompanionState) => Promise<void>;
 };
 
+type ChatModel = {
+  id: string;
+  label: string;
+  provider: "openai" | "claude";
+};
+
+const chatModels: ChatModel[] = [
+  { id: "gpt-5.5", label: "GPT-5.5", provider: "openai" },
+  { id: "gpt-5.4", label: "GPT-5.4", provider: "openai" },
+  { id: "claude-opus-4.1", label: "Claude Opus 4.1", provider: "claude" },
+  { id: "claude-sonnet-4.5", label: "Claude Sonnet 4.5", provider: "claude" },
+];
+
 const initialMessages: ChatMessage[] = [
   {
     id: "initial-user",
@@ -55,7 +68,10 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
   const [isThinking, setIsThinking] = useState(state === "thinking");
+  const [selectedModel, setSelectedModel] = useState<ChatModel>(chatModels[0]!);
+  const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const getOpeningPosition = useCallback(() => ({
     x: Math.max(16, Math.round((window.innerWidth - PANEL_WIDTH) / 2)),
     y: Math.max(
@@ -93,6 +109,14 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       behavior: "smooth",
     });
   }, [messages, isThinking]);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 82)}px`;
+  }, [draft]);
 
   function submitMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -206,21 +230,77 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       </div>
 
       <form className="chat-input-bar" onSubmit={submitMessage}>
-        <input
+        <textarea
+          ref={textareaRef}
           aria-label="Message Stage"
           placeholder={isThinking ? "Type here..." : "Ask a follow-up"}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
+          rows={1}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" || event.shiftKey) {
+              return;
+            }
+
+            event.preventDefault();
+            event.currentTarget.form?.requestSubmit();
+          }}
         />
-        <button
-          className="chat-send-button"
-          type="submit"
-          aria-label="Send message"
-          disabled={!draft.trim() || isThinking}
-        >
-          <span aria-hidden="true">↑</span>
-        </button>
+        <div className="chat-input-controls">
+          <div className="chat-model-picker">
+            <button
+              className="chat-model-button"
+              type="button"
+              aria-label="Change model"
+              aria-expanded={modelMenuOpen}
+              onClick={() => setModelMenuOpen((open) => !open)}
+            >
+              <ProviderMark provider={selectedModel.provider} />
+              <span>{selectedModel.label}</span>
+              <span className="chat-model-chevron" aria-hidden="true" />
+            </button>
+            {modelMenuOpen ? (
+              <div className="chat-model-menu" role="listbox" aria-label="Model">
+                {chatModels.map((model) => (
+                  <button
+                    key={model.id}
+                    className={`chat-model-option ${model.id === selectedModel.id ? "chat-model-option-active" : ""}`}
+                    type="button"
+                    role="option"
+                    aria-selected={model.id === selectedModel.id}
+                    onClick={() => {
+                      setSelectedModel(model);
+                      setModelMenuOpen(false);
+                    }}
+                  >
+                    <ProviderMark provider={model.provider} />
+                    <span>{model.label}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          <button
+            className="chat-send-button"
+            type="submit"
+            aria-label="Send message"
+            disabled={!draft.trim() || isThinking}
+          >
+            <span aria-hidden="true">↑</span>
+          </button>
+        </div>
       </form>
     </aside>
+  );
+}
+
+function ProviderMark({ provider }: { provider: ChatModel["provider"] }) {
+  return (
+    <img
+      className="chat-provider-mark"
+      src={`/logos/integrations/${provider}.svg`}
+      alt=""
+      aria-hidden="true"
+    />
   );
 }
