@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode, RefObject } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useMutation } from "convex/react";
+import {
+  useConvexAuth,
+  useMutation,
+  useQuery as useConvexQuery,
+} from "convex/react";
 import { z } from "zod";
 import { projectDetailSchema } from "@stage/data-ops";
 import stageLogoLight from "@/assets/logos/stage-logo-light.png";
@@ -10,6 +14,7 @@ import { api } from "@/lib/convexApi";
 import { PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
+import { settingsSnapshot } from "@/settings/data/settingsSnapshot";
 import type { ProjectType } from "@/types";
 
 const progressSteps = [0, 1, 2, 3, 4];
@@ -29,6 +34,11 @@ const defaultManualPhases = ["Discovery", "Strategy", "Design", "Development", "
 type CreateProjectStep = "basic" | "client" | "type" | "timeline" | "roadmap" | "success";
 type ProjectTypeId = ProjectType;
 type RoadmapMode = "smart" | "manual";
+type ExistingClientOption = {
+  id: string;
+  name: string;
+  email?: string;
+};
 
 const basicDetailsFormSchema = z.object({
   projectName: z.string().trim().min(1, "Project name is required."),
@@ -94,6 +104,7 @@ export function CreateProjectView() {
   const [projectName, setProjectName] = useState("");
   const [projectImage, setProjectImage] = useState<File | null>(null);
   const [clientMode, setClientMode] = useState("new");
+  const [selectedExistingClientId, setSelectedExistingClientId] = useState("");
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [clientPhoto, setClientPhoto] = useState<File | null>(null);
@@ -113,7 +124,23 @@ export function CreateProjectView() {
   const [timelineError, setTimelineError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
+  const existingClientsResult = useConvexQuery(
+    api.clients.listForCurrentUser,
+    isConvexAuthenticated ? {} : "skip",
+  );
   const createProject = useMutation(api.desktop.createProject);
+  const existingClients = useMemo<ExistingClientOption[]>(() => {
+    const clients = existingClientsResult?.length
+      ? existingClientsResult
+      : settingsSnapshot.clients;
+
+    return clients.map((client) => ({
+      id: String(client.id),
+      name: client.name,
+      email: client.email,
+    }));
+  }, [existingClientsResult]);
 
   const clientPhotoUrl = useMemo(() => {
     if (!clientPhoto) return "";
@@ -153,6 +180,29 @@ export function CreateProjectView() {
     setClientDetailsError(error);
     if (error) return;
     setStep("type");
+  }
+
+  function selectClientMode(mode: "new" | "existing") {
+    setClientMode(mode);
+    setClientDetailsError(null);
+
+    if (mode === "new") {
+      setSelectedExistingClientId("");
+      return;
+    }
+
+    const firstClient = existingClients[0];
+    if (firstClient) {
+      selectExistingClient(firstClient);
+    }
+  }
+
+  function selectExistingClient(client: ExistingClientOption) {
+    setClientMode("existing");
+    setSelectedExistingClientId(client.id);
+    setClientName(client.name);
+    setClientEmail(client.email ?? "");
+    setClientDetailsError(null);
   }
 
   function continueFromTimeline() {
@@ -247,18 +297,25 @@ export function CreateProjectView() {
             ) : step === "client" ? (
               <ClientDetailsStep
                 clientMode={clientMode}
+                selectedExistingClientId={selectedExistingClientId}
+                existingClients={existingClients}
                 clientName={clientName}
                 clientEmail={clientEmail}
                 clientPhoto={clientPhoto}
                 clientPhotoUrl={clientPhotoUrl}
                 error={clientDetailsError}
-                onClientModeChange={setClientMode}
+                onClientModeChange={selectClientMode}
+                onExistingClientSelect={selectExistingClient}
                 onClientNameChange={(value) => {
                   setClientName(value);
+                  setSelectedExistingClientId("");
+                  setClientMode("new");
                   setClientDetailsError(null);
                 }}
                 onClientEmailChange={(value) => {
                   setClientEmail(value);
+                  setSelectedExistingClientId("");
+                  setClientMode("new");
                   setClientDetailsError(null);
                 }}
                 onClientPhotoChange={setClientPhoto}
@@ -464,12 +521,15 @@ function BasicDetailsStep({
 
 function ClientDetailsStep({
   clientMode,
+  selectedExistingClientId,
+  existingClients,
   clientName,
   clientEmail,
   clientPhoto,
   clientPhotoUrl,
   error,
   onClientModeChange,
+  onExistingClientSelect,
   onClientNameChange,
   onClientEmailChange,
   onClientPhotoChange,
@@ -478,12 +538,15 @@ function ClientDetailsStep({
   inputRef,
 }: {
   clientMode: string;
+  selectedExistingClientId: string;
+  existingClients: ExistingClientOption[];
   clientName: string;
   clientEmail: string;
   clientPhoto: File | null;
   clientPhotoUrl: string;
   error: string | null;
-  onClientModeChange: (value: string) => void;
+  onClientModeChange: (value: "new" | "existing") => void;
+  onExistingClientSelect: (client: ExistingClientOption) => void;
   onClientNameChange: (value: string) => void;
   onClientEmailChange: (value: string) => void;
   onClientPhotoChange: (file: File | null) => void;
@@ -508,18 +571,13 @@ function ClientDetailsStep({
       >
         <FormCard title="Client Details" titleWeight="semibold">
           <Field label="Who is this for?">
-            <div className="relative w-full">
-              <select
-                value={clientMode}
-                onChange={(event) => onClientModeChange(event.target.value)}
-                aria-label="Who is this project for?"
-                className={cn(inputSurfaceClassName, "cursor-pointer appearance-none pr-[36px]")}
-              >
-                <option value="new">Create new client</option>
-                <option value="existing">Select existing client</option>
-              </select>
-              <ChevronDownIcon />
-            </div>
+            <ClientPickerDropdown
+              clientMode={clientMode}
+              selectedExistingClientId={selectedExistingClientId}
+              existingClients={existingClients}
+              onClientModeChange={onClientModeChange}
+              onExistingClientSelect={onExistingClientSelect}
+            />
           </Field>
 
           <Field label="Client Name">
@@ -596,6 +654,147 @@ function ClientDetailsStep({
         <ContinueButton disabled={!canContinue} />
       </form>
     </CreateProjectStepShell>
+  );
+}
+
+function ClientPickerDropdown({
+  clientMode,
+  selectedExistingClientId,
+  existingClients,
+  onClientModeChange,
+  onExistingClientSelect,
+}: {
+  clientMode: string;
+  selectedExistingClientId: string;
+  existingClients: ExistingClientOption[];
+  onClientModeChange: (value: "new" | "existing") => void;
+  onExistingClientSelect: (client: ExistingClientOption) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const selectedClient = existingClients.find((client) => client.id === selectedExistingClientId);
+  const label =
+    clientMode === "existing" && selectedClient
+      ? selectedClient.name
+      : clientMode === "existing"
+        ? "Select existing client"
+        : "Create new client";
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!dropdownRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  function chooseNewClient() {
+    onClientModeChange("new");
+    setOpen(false);
+  }
+
+  function chooseExistingClient(client: ExistingClientOption) {
+    onExistingClientSelect(client);
+    setOpen(false);
+  }
+
+  return (
+    <div ref={dropdownRef} className="relative w-full">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className={cn(inputSurfaceClassName, "flex items-center cursor-pointer justify-between pr-[36px] text-left")}
+      >
+        <span className={cn("min-w-0 truncate", selectedClient || clientMode === "new" ? "text-[#171717]" : "text-[#525252]")}>
+          {label}
+        </span>
+      </button>
+      <ChevronDownIcon />
+
+      {open ? (
+        <div
+          role="listbox"
+          aria-label="Client options"
+          className="absolute left-0 top-[42px] z-30 w-full rounded-[8px] bg-[#F5F5F5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+        >
+          <div className="rounded-[6px] bg-white p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+            <ClientPickerOption
+              selected={clientMode === "new"}
+              label="Create new client"
+              onSelect={chooseNewClient}
+            />
+            <div className="my-[4px] h-px bg-[#E5E5E5]" />
+            {existingClients.length > 0 ? (
+              existingClients.map((client) => (
+                <ClientPickerOption
+                  key={client.id}
+                  selected={clientMode === "existing" && selectedExistingClientId === client.id}
+                  label={client.name}
+                  description={client.email}
+                  onSelect={() => chooseExistingClient(client)}
+                />
+              ))
+            ) : (
+              <p className="px-[8px] py-[8px] text-[12px] font-medium leading-[1.5] text-[#737373]">
+                No existing clients yet.
+              </p>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ClientPickerOption({
+  selected,
+  label,
+  description,
+  onSelect,
+}: {
+  selected: boolean;
+  label: string;
+  description?: string;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="option"
+      aria-selected={selected}
+      onClick={onSelect}
+      className={cn(
+        "flex min-h-[34px] w-full cursor-pointer flex-col justify-center rounded-[6px] px-[8px] py-[6px] text-left outline-none transition-colors",
+        selected ? "bg-[#F5F5F5]" : "hover:bg-[#F5F5F5]",
+      )}
+    >
+      <span className="truncate text-[13px] font-medium leading-[1.25] text-[#171717]">
+        {label}
+      </span>
+      {description ? (
+        <span className="mt-[2px] truncate text-[12px] font-medium leading-[1.25] text-[#737373]">
+          {description}
+        </span>
+      ) : null}
+    </button>
   );
 }
 
