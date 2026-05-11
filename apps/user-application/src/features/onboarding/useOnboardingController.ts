@@ -420,7 +420,7 @@ export function useOnboardingController({
   }
 
   function handleDoLater() {
-    if (step !== "details") {
+    if (!["details", "project-type", "method", "timeline"].includes(step)) {
       return;
     }
 

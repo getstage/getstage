@@ -72,6 +72,11 @@ export function OnboardingModal({
     controller.step !== "preview" &&
     controller.step !== "claude" &&
     controller.step !== "paywall";
+  const showCreateProjectLater =
+    controller.step === "details" ||
+    controller.step === "project-type" ||
+    controller.step === "method" ||
+    controller.step === "timeline";
   const isFullscreenStep = true;
 
   return (
@@ -205,6 +210,15 @@ export function OnboardingModal({
                     <ArrowRight size={16} weight="bold" />
                   </button>
 
+                  {showCreateProjectLater ? (
+                    <button
+                      type="button"
+                      className="mt-2 inline-flex h-9 w-full cursor-pointer items-center justify-center rounded-[6px] border border-[#E5E5E5] bg-white px-5 text-[13px] font-medium text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F5F5] focus:outline-none"
+                      onClick={controller.handleDoLater}
+                    >
+                      Create project later
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
             </div>
