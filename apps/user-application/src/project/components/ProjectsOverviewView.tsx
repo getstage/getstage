@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import type { ProjectSummary } from "@stage/data-ops";
-import { WorkspaceFrame } from "@/app/WorkspaceFrame";
 import { useProjectsQuery } from "@/hooks/desktop-api";
 import { cn } from "@/lib/utils";
 
@@ -68,77 +67,75 @@ export function ProjectsOverviewView() {
   }, [projects, query]);
 
   return (
-    <WorkspaceFrame>
-      <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
-        <div className="flex w-full flex-col gap-[28px]">
-          <header className="flex w-full items-end justify-between">
-            <div className="flex min-w-0 flex-1 flex-col gap-[8px]">
-              <h1 className="text-[20px] font-semibold leading-[1.2] text-[#0a0a0a]">
-                Projects
-              </h1>
-              <p className="text-[13px] font-medium leading-[1.2] text-[#737373]">
-                See all your live projects here
-              </p>
-            </div>
-          </header>
-
-          <div className="flex w-full flex-col gap-[12px]">
-            <div className="flex w-full flex-col gap-[10px] md:flex-row md:items-center md:justify-between">
-              <label className="flex h-[35px] w-full items-center gap-[8px] overflow-hidden rounded-[6px] bg-[#f5f5f5] px-[12px] text-[#525252] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] md:max-w-[320px]">
-                <img
-                  src="/logos/dashboard/search.svg"
-                  alt=""
-                  aria-hidden="true"
-                  className="h-[15px] w-[15px] shrink-0"
-                />
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search Project"
-                  aria-label="Search project"
-                  className="min-w-0 flex-1 bg-transparent p-0 text-[12px] font-medium leading-[1.25] text-[#525252] outline-none placeholder:text-[#525252]"
-                />
-              </label>
-
-              <button
-                type="button"
-                onClick={() => void navigate({ to: "/projects/create" })}
-                className="flex h-[35px] shrink-0 cursor-pointer items-center justify-center gap-[6px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]"
-              >
-                <img
-                  src="/logos/dashboard/plus.svg"
-                  alt=""
-                  aria-hidden="true"
-                  className="h-[14px] w-[14px] brightness-0 invert"
-                />
-                <span className="whitespace-nowrap [text-shadow:0px_0.5px_1.5px_rgba(0,0,0,0.15)]">
-                  Create Project
-                </span>
-              </button>
-            </div>
-
-            <ProjectsTable
-              projects={filteredProjects}
-              isLoading={projectsQuery.isLoading}
-              error={projectsQuery.error}
-              hasQuery={query.trim().length > 0}
-              onOpenProject={(projectId) =>
-                void navigate({
-                  to: "/project/$projectId",
-                  params: { projectId },
-                })
-              }
-              onOpenProjectDetails={(projectId) =>
-                void navigate({
-                  to: "/project/$projectId/details",
-                  params: { projectId },
-                })
-              }
-            />
+    <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
+      <div className="flex w-full flex-col gap-[28px]">
+        <header className="flex w-full items-end justify-between">
+          <div className="flex min-w-0 flex-1 flex-col gap-[8px]">
+            <h1 className="text-[20px] font-semibold leading-[1.2] text-[#0a0a0a]">
+              Projects
+            </h1>
+            <p className="text-[13px] font-medium leading-[1.2] text-[#737373]">
+              See all your live projects here
+            </p>
           </div>
+        </header>
+
+        <div className="flex w-full flex-col gap-[12px]">
+          <div className="flex w-full flex-col gap-[10px] md:flex-row md:items-center md:justify-between">
+            <label className="flex h-[35px] w-full items-center gap-[8px] overflow-hidden rounded-[6px] bg-[#f5f5f5] px-[12px] text-[#525252] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] md:max-w-[320px]">
+              <img
+                src="/logos/dashboard/search.svg"
+                alt=""
+                aria-hidden="true"
+                className="h-[15px] w-[15px] shrink-0"
+              />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search Project"
+                aria-label="Search project"
+                className="min-w-0 flex-1 bg-transparent p-0 text-[12px] font-medium leading-[1.25] text-[#525252] outline-none placeholder:text-[#525252]"
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={() => void navigate({ to: "/projects/create" })}
+              className="flex h-[35px] shrink-0 cursor-pointer items-center justify-center gap-[6px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#fafafa] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]"
+            >
+              <img
+                src="/logos/dashboard/plus.svg"
+                alt=""
+                aria-hidden="true"
+                className="h-[14px] w-[14px] brightness-0 invert"
+              />
+              <span className="whitespace-nowrap [text-shadow:0px_0.5px_1.5px_rgba(0,0,0,0.15)]">
+                Create Project
+              </span>
+            </button>
+          </div>
+
+          <ProjectsTable
+            projects={filteredProjects}
+            isLoading={projectsQuery.isLoading}
+            error={projectsQuery.error}
+            hasQuery={query.trim().length > 0}
+            onOpenProject={(projectId) =>
+              void navigate({
+                to: "/project/$projectId",
+                params: { projectId },
+              })
+            }
+            onOpenProjectDetails={(projectId) =>
+              void navigate({
+                to: "/project/$projectId/details",
+                params: { projectId },
+              })
+            }
+          />
         </div>
       </div>
-    </WorkspaceFrame>
+    </div>
   );
 }
 

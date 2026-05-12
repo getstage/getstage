@@ -1,6 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
 import type { ProjectSummary } from "@stage/data-ops";
-import { WorkspaceFrame } from "@/app/WorkspaceFrame";
 import { useProjectsQuery } from "@/hooks/desktop-api";
 import { ClientPortalTabBar } from "./ClientPortalTabBar";
 import { cn } from "@/lib/utils";
@@ -45,9 +44,8 @@ export function ClientPortalProjectsView() {
   const previewProjectId = projects[0]?.id;
 
   return (
-    <WorkspaceFrame>
-      <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
-        <div className="flex w-full flex-col gap-[28px]">
+    <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
+      <div className="flex w-full flex-col gap-[28px]">
           <header className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-[14px]">
             <div className="min-w-0">
               <h1 className="text-[20px] font-semibold leading-[1.2] text-[#0a0a0a]">Client Portal</h1>
@@ -91,9 +89,8 @@ export function ClientPortalProjectsView() {
               })
             }
           />
-        </div>
       </div>
-    </WorkspaceFrame>
+    </div>
   );
 }
 

@@ -5,6 +5,7 @@ import { useMutation } from "convex/react";
 import { projectDetailSchema } from "@stage/data-ops";
 import stageLogoLight from "@/assets/logos/stage-logo-light.png";
 import { api } from "@/lib/convexApi";
+import { isProjectUpgradeRequiredError } from "@/lib/errors";
 import { PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { ProjectType } from "@/types";
@@ -110,6 +111,12 @@ export function CreateProjectView() {
       setCreatedProjectId(createdProject.id);
       setStep("success");
     } catch (error) {
+      if (isProjectUpgradeRequiredError(error)) {
+        setCreateError(null);
+        void navigate({ to: "/" });
+        return;
+      }
+
       setCreateError(error instanceof Error ? error.message : "Could not create project.");
     } finally {
       setIsCreatingProject(false);

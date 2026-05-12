@@ -11,6 +11,7 @@ const AUTH_INVALID_EMAIL_PATTERN = /valid email|email address/i;
 const AUTH_UNAVAILABLE_PATTERN = /auth|oauth|loops-otp|google|sign in|signin/i;
 const PERMISSION_PATTERN = /unauthenticated|not authenticated|not authorized|forbidden|access denied/i;
 const NETWORK_PATTERN = /failed to fetch|network ?error|load failed|network request failed/i;
+const PROJECT_UPGRADE_REQUIRED_PATTERN = /upgrade to pro to create (projects|more projects|another project)/i;
 
 function extractErrorMessage(error: unknown): string | null {
   if (typeof error === "string") {
@@ -103,4 +104,9 @@ export function toUserFacingErrorMessage(error: unknown, fallback: string): stri
   }
 
   return message;
+}
+
+export function isProjectUpgradeRequiredError(error: unknown): boolean {
+  const message = extractErrorMessage(error);
+  return message ? PROJECT_UPGRADE_REQUIRED_PATTERN.test(message) : false;
 }

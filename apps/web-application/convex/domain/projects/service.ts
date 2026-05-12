@@ -261,8 +261,13 @@ export async function createProjectForUser(
     throw new Error("End date must be on or after the start date.");
   }
 
-  if (plan !== "pro") {
-    throw new Error("Upgrade to Pro to create projects.");
+  const existingProjects = await ctx.db
+    .query("projects")
+    .withIndex("by_user", (q) => q.eq("userId", user._id))
+    .collect();
+
+  if (plan !== "pro" && existingProjects.length > 0) {
+    throw new Error("Upgrade to Pro to create more projects.");
   }
 
   const existingClient = await getClientByUserAndName(ctx, {

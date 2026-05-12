@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { DesktopSession } from "@shared/models/desktop";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
+import { getSafeAuthRedirect } from "@/lib/authRedirect";
 
 type AuthStatus = "checking" | "idle" | "opening" | "opened" | "connected" | "error";
 
@@ -24,9 +25,11 @@ function getAuthStatusCopy(status: AuthStatus) {
 
 export function DesktopAuthView() {
   const navigate = useNavigate();
+  const search = useSearch({ from: "/auth" });
   const desktop = useDesktopBridge();
   const [session, setSession] = useState<DesktopSession | null>(null);
   const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
+  const redirectTarget = getSafeAuthRedirect(search.redirect);
 
   useEffect(() => {
     desktop.auth.getSession()
@@ -40,10 +43,10 @@ export function DesktopAuthView() {
       setSession(nextSession);
       setAuthStatus(nextSession?.hasAccessToken ? "connected" : "idle");
       if (nextSession?.hasAccessToken) {
-        void navigate({ to: "/" });
+        void navigate(redirectTarget ? { href: redirectTarget } : { to: "/" });
       }
     });
-  }, [desktop.auth, navigate]);
+  }, [desktop.auth, navigate, redirectTarget]);
 
   async function openLogin() {
     setAuthStatus("opening");
@@ -82,7 +85,9 @@ export function DesktopAuthView() {
             <button
               type="button"
               className="h-11 w-full rounded-[6px] bg-[#111] text-[14px] font-medium text-white"
-              onClick={() => void navigate({ to: "/" })}
+              onClick={() =>
+                void navigate(redirectTarget ? { href: redirectTarget } : { to: "/" })
+              }
             >
               Continue
             </button>

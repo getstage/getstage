@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAction, useMutation } from "convex/react";
 import { z } from "zod";
-import { WorkspaceFrame } from "@/app/WorkspaceFrame";
 import { ClientPortalSettingsView } from "@/client-portal/components/ClientPortalSettingsView";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -80,35 +79,25 @@ export function SettingsPageView({
   }
 
   if (isIntegrationsPage) {
-    return (
-      <WorkspaceFrame>
-        <IntegrationsPage />
-      </WorkspaceFrame>
-    );
+    return <IntegrationsPage />;
   }
 
   if (activeTab === "portal") {
-    return (
-      <WorkspaceFrame>
-        <ClientPortalSettingsView />
-      </WorkspaceFrame>
-    );
+    return <ClientPortalSettingsView />;
   }
 
   return (
-    <WorkspaceFrame>
-      <div className="flex-1 px-[32px] py-[44px]">
-        <div className="mx-auto flex w-full max-w-[674px] flex-col gap-[44px]">
-          <div>
-            <button
-              type="button"
-              onClick={() => void navigate({ to: "/" })}
-              className="mb-[24px] inline-flex cursor-pointer items-center gap-[8px] text-[13px] font-medium leading-[1.5] text-[#A3A3A3] transition-colors hover:text-[#737373]"
-            >
-              <ArrowLeftIcon />
-              Back to dashboard
-            </button>
-
+    <div className="flex-1 px-[32px] py-[44px]">
+      <div className="mx-auto flex w-full max-w-[674px] flex-col gap-[44px]">
+        <div>
+          <button
+            type="button"
+            onClick={() => void navigate({ to: "/" })}
+            className="mb-[24px] inline-flex cursor-pointer items-center gap-[8px] text-[13px] font-medium leading-[1.5] text-[#A3A3A3] transition-colors hover:text-[#737373]"
+          >
+            <ArrowLeftIcon />
+            Back to dashboard
+          </button>
           <header className="mb-[24px]">
             <h1 className="text-[20px] font-semibold leading-[1.2] text-[#0A0A0A]">
               {title}
@@ -121,18 +110,17 @@ export function SettingsPageView({
           {!isIntegrationsPage ? (
             <SettingsTabBar activeTab={activeTab} onSelect={selectTab} />
           ) : null}
-          </div>
+        </div>
 
-          <div>
-            {activeTab === "profile" ? <ProfilePanel /> : null}
-            {activeTab === "billing" ? <BillingPanel /> : null}
-            {activeTab === "clients" ? <ClientsPanel /> : null}
-            {activeTab === "developer" ? <DeveloperPanel /> : null}
-            {activeTab === "account" ? <AccountPanel /> : null}
-          </div>
+        <div>
+          {activeTab === "profile" ? <ProfilePanel /> : null}
+          {activeTab === "billing" ? <BillingPanel /> : null}
+          {activeTab === "clients" ? <ClientsPanel /> : null}
+          {activeTab === "developer" ? <DeveloperPanel /> : null}
+          {activeTab === "account" ? <AccountPanel /> : null}
         </div>
       </div>
-    </WorkspaceFrame>
+    </div>
   );
 }
 

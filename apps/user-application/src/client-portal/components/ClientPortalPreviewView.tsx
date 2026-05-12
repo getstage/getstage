@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type PointerEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { mockProject } from "@/project/data/projectSnapshot";
 import type { Phase, Task } from "@/project/models/project";
-import { WorkspaceFrame } from "@/app/WorkspaceFrame";
 
 type PreviewStatus = "backlog" | "todo" | "in-progress" | "done" | "revision";
 type PreviewTask = Omit<Task, "status"> & { status?: PreviewStatus };
@@ -44,8 +43,7 @@ export function ClientPortalPreviewView() {
   const phases = useMemo(() => addRevisionTasks(project.phases), [project.phases]);
 
   return (
-    <WorkspaceFrame>
-      <div className="flex-1 bg-white px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)] text-[#0a0a0a]">
+    <div className="flex-1 bg-white px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)] text-[#0a0a0a]">
       <div className="flex min-w-0 flex-col gap-[28px]">
         <div className="flex min-w-0 flex-col gap-[28px]">
           <header className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-[12px]">
@@ -87,7 +85,6 @@ export function ClientPortalPreviewView() {
         <PreviewBoard phases={phases} />
       </div>
     </div>
-    </WorkspaceFrame>
   );
 }
 

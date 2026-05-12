@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { WorkspaceFrame } from "@/app/WorkspaceFrame";
 
 const mockProjectDetails = {
   name: "BaseFrame Product Design",
@@ -62,7 +61,7 @@ export function ProjectDetailsView() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   return (
-    <WorkspaceFrame>
+    <>
       <div className="flex-1 px-[clamp(32px,7vw,100px)] py-[44px]">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -140,7 +139,7 @@ export function ProjectDetailsView() {
         </motion.div>
       </div>
       {isUploadModalOpen ? <UploadFileModal onClose={() => setIsUploadModalOpen(false)} /> : null}
-    </WorkspaceFrame>
+    </>
   );
 }
 

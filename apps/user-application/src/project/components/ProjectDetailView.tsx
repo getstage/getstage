@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { WorkspaceFrame } from "@/app/WorkspaceFrame";
 import { ProjectHeader } from "./ProjectHeader";
 import { KanbanBoard } from "./KanbanBoard";
 import { AssetsTab } from "./tabs/AssetsTab";
@@ -29,7 +28,7 @@ function formatTimelineDate(timestamp: number) {
 
 export function ProjectDetailView() {
   const navigate = useNavigate();
-  const { projectId } = useParams({ from: "/project/$projectId" });
+  const { projectId } = useParams({ from: "/_authed/project/$projectId" });
   const live = useLiveProject(projectId);
   const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -88,33 +87,31 @@ export function ProjectDetailView() {
 
   if (!project) {
     return (
-      <WorkspaceFrame>
-        <div className="flex flex-1 items-center justify-center px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
-          {live.error ? (
-            <div className="flex flex-col items-center gap-[8px] text-center">
-              <p className="text-[14px] font-medium text-[#b91c1c]">
-                Could not load this project.
-              </p>
-              <button
-                type="button"
-                onClick={() => void navigate({ to: "/projects" })}
-                className="text-[13px] font-medium text-[#525252] underline"
-              >
-                Back to projects
-              </button>
-            </div>
-          ) : (
-            <p className="text-[13px] font-medium text-[#737373]">
-              Loading project…
+      <div className="flex flex-1 items-center justify-center px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
+        {live.error ? (
+          <div className="flex flex-col items-center gap-[8px] text-center">
+            <p className="text-[14px] font-medium text-[#b91c1c]">
+              Could not load this project.
             </p>
-          )}
-        </div>
-      </WorkspaceFrame>
+            <button
+              type="button"
+              onClick={() => void navigate({ to: "/projects" })}
+              className="text-[13px] font-medium text-[#525252] underline"
+            >
+              Back to projects
+            </button>
+          </div>
+        ) : (
+          <p className="text-[13px] font-medium text-[#737373]">
+            Loading project…
+          </p>
+        )}
+      </div>
     );
   }
 
   return (
-    <WorkspaceFrame>
+    <>
       <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -207,7 +204,7 @@ export function ProjectDetailView() {
         </motion.div>
       </div>
       {isShareModalOpen ? <ShareModal onClose={() => setIsShareModalOpen(false)} /> : null}
-    </WorkspaceFrame>
+    </>
   );
 }
 

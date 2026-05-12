@@ -22,7 +22,7 @@ import {
   trackDatafastGoal,
   trackDatafastGoalOnce,
 } from "@/lib/datafast";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { isProjectUpgradeRequiredError, toUserFacingErrorMessage } from "@/lib/errors";
 import { convexQueryKeys } from "@/lib/queryKeys";
 import { googleSheetsUrlSchema } from "@/lib/validation";
 import type { ClaudeConnectionSummary } from "@/types/settings";
@@ -214,6 +214,12 @@ export function useOnboardingController({
         setCreationReady(true);
       } catch (error) {
         if (cancelled) {
+          return;
+        }
+
+        if (isProjectUpgradeRequiredError(error)) {
+          setStepError(null);
+          setStep("paywall");
           return;
         }
 

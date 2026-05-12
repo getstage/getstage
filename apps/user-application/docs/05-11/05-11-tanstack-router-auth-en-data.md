@@ -30,11 +30,15 @@ This matches the pattern elsewhere: **fetch/constraints in routes**, **mutations
 
 **File:** `apps/user-application/src/router.tsx`
 
-1. **`RootRoute`** wraps everything in `DesktopShell`, runs TanStack Query `useQuery` for `desktop.auth.getSession()`, and **replaces `<Outlet />` with `<DesktopAuthView />`** when `!isAuthRoute && (!hasAccessToken || loading)`. That is an implicit guard implemented in JSX, not `beforeLoad`.
-2. **`/auth`** duplicates `DesktopAuthView` as its own route while the root layout may also render it — same UX, two paths into the same screen.
-3. **`DashboardContextView`** duplicates a session query (`queryKey` …`dashboard-onboarding`) and uses **`useEffect`** to open `OnboardingModal` based on Convex-backed `useProjectsQuery` + `useSettingsOverviewQuery` (plan). That is **product/onboarding UX**, not pure auth, but it sits next to dashboard rendering.
+1. **`RootRoute`** renders `DesktopShell` + `<Outlet />` only. Session churn is handled by **`onSessionChanged` → invalidate** `desktopSessionQueryKey` from `src/lib/desktopSession.ts`.
+2. **Pathless `_authed` layout** (`id: '_authed'`) wraps every authenticated route. Its **`beforeLoad`** calls `getDesktopSession()` and **`throw redirect({ to: '/auth' })`** when there is no `hasAccessToken`.
+3. **`/auth`** uses **`beforeLoad`** to **`redirect({ to: '/' })`** when already signed in (no duplicate root-level auth swap).
+4. **Tier 2 (non‑Pro onboarding/paywall):** **`AuthedWorkspaceLayout`** (`src/app/AuthedWorkspaceLayout.tsx`) wraps `<Outlet />` + **`OnboardingModal`**. Logic lives in **`useNonProOnboardingGate`** (`src/features/onboarding/useNonProOnboardingGate.ts`): Convex **`useProjectsQuery`** / **`useSettingsOverviewQuery`** for plan + project count, React Query + **`desktopSessionQueryKey`** for display name — aligned with **Convex auth in functions** + **TanStack Query key discipline** (see agent skills).
+5. **`DashboardContextView`** is dashboard UI only (no onboarding `useEffect`).
 
-**Desktop session source:** `useDesktopBridge()` → `window.stageDesktop.auth.getSession()` is available **outside React** in the Electron renderer (same `window`), so `beforeLoad` can call it without hooks.
+**Typed routes:** Layout nesting exposes internal IDs like `/_authed/project/$projectId` for `useParams` / `useSearch` `from` — URLs in the browser remain `/project/...`.
+
+**Desktop session source:** `getDesktopSession()` in `src/lib/desktopSession.ts` wraps `window.stageDesktop.auth.getSession()` for use in `beforeLoad`.
 
 ---
 
@@ -49,7 +53,7 @@ root (DesktopShell only — thin shell + global subscriptions)
 ├── /auth                    → DesktopAuthView (public)
 └── _authed (pathless layout)
     ├── beforeLoad           → session (+ optional “logged-in user must not see /auth” inversion on auth route only)
-    ├── component            → <Outlet /> (or shared chrome later)
+    ├── component            → AuthedWorkspaceLayout (`<Outlet />` + global onboarding modal)
     ├── /
     ├── /projects, /tasks, … → all current app routes move here
 ```
@@ -70,34 +74,28 @@ root (DesktopShell only — thin shell + global subscriptions)
 
 ## Implementation plan (phased)
 
-### Phase A — Session guard only (ship first)
+### Phase A — Session guard only ✅ (implemented)
 
-1. Add **`lib/desktopSession.ts`** (or similar) exporting:
-   - `getDesktopSession()` → `Promise` wrapping `window.stageDesktop.auth.getSession()` with a narrow type / null handling.
-   - Optional: `throw redirect` helpers that preserve `redirect` search param if you add deep-link return URLs later.
-2. Introduce **`authedLayoutRoute`** (`id: '_authed'`) with `beforeLoad`:
-   - Await `getDesktopSession()`.
-   - If no `hasAccessToken` (or whatever field equals “logged in” today), `throw redirect({ to: '/auth' })`.
-3. Reparent **all routes except `/auth`** from `rootRoute` to **`authedLayoutRoute`** (same path strings as today).
-4. Slim **`RootRoute`** to:
-   - `DesktopShell` + `<Outlet />` **always**.
-   - Keep **only** the `useEffect` **`onSessionChanged` → invalidate** `["desktop","auth","session"]` (and any aliased keys — consolidate keys so dashboard does not define a second session key).
-5. **`/auth` route:** optional `beforeLoad`: if session already valid → `redirect({ to: '/' })` (stops double-mount weirdness).
+1. **`src/lib/desktopSession.ts`** — `desktopSessionQueryKey`, `getDesktopSession()`.
+2. **`authedLayoutRoute`** (`id: '_authed'`) — `beforeLoad` → redirect to `/auth` if no `hasAccessToken`.
+3. **All app routes** reparented under `_authed`; **`/auth`** stays on root.
+4. **`RootRoute`** — `DesktopShell` + `<Outlet />`; **only** `onSessionChanged` invalidation (no session `useQuery` in root).
+5. **`/auth`** — `beforeLoad` redirects to `/` when already authenticated.
 
-**Acceptance:** No route under `_authed` mounts without passing `beforeLoad`; no session query duplication for “can render app shell”.
+**Acceptance:** Met — `_authed` children never mount without passing session `beforeLoad`; dashboard uses shared `desktopSessionQueryKey`.
 
-### Phase B — Query key hygiene
+### Phase B — Query key hygiene ✅ (partial)
 
-1. Single **`desktopSessionQueryKey`** exported from one module; router prefetch (if any) and dashboard use the same key.
-2. Remove `DashboardContextView`’s duplicate session query **unless** it needs different stale policy — if so, document why; default is **one key**.
+1. **`desktopSessionQueryKey`** in **`src/lib/desktopSession.ts`** — **`WorkspaceFrame`**, **`useNonProOnboardingGate`** ( **`DashboardContextView`** no longer duplicates session for onboarding).
+2. Optionally audit **`SettingsPageView`** and other files for inline session keys if any remain.
 
-### Phase C — Onboarding / paywall (tier 2)
+### Phase C — Onboarding / paywall (tier 2) ✅ (implemented — modal path)
 
-1. Extract current `useEffect` logic from **`DashboardContextView`** into either:
-   - **`useDashboardOnboardingGate()`** hook used only by dashboard (minimal move), or
-   - **`OnboardingGate`** layout component under `_authed` that wraps `<Outlet />` and only handles modal + navigation to `/upgrade` — better if multiple screens should share the same rules later.
-2. Decide explicitly: **modal-only** vs **route `/upgrade`**. Document the decision in a one-line ADR in this file’s changelog section when chosen.
-3. If you add **`loader`** + `queryClient.ensureQueryData` for Convex-backed overview query, follow `.agents/skills/tanstack-query-best-practices/` for keys and invalidation.
+1. **`useNonProOnboardingGate`** — single hook for Convex-derived plan/projects + React Query session; **`useEffect`** only here (tier‑2 is not a router redirect — Convex **`ctx.auth`** still backs mutations/queries per **`convex-setup-auth`**).
+2. **`AuthedWorkspaceLayout`** — `_authed` route component: **`<Outlet />`** + **`OnboardingModal`** so paywall/welcome applies on **any** authed screen, not only `/`.
+3. **Decision:** **Modal-first** for non‑Pro; optional future **`/upgrade`** route + navigate from modal remains compatible without removing the hook.
+
+Optional later: **`loader`** + **`ensureQueryData`** for overview prefetch per **`tanstack-query-best-practices`** when you want less “flash before Convex resolves”.
 
 ### Phase D (optional) — File-based routing
 
@@ -109,12 +107,14 @@ If you want parity with `apps/web-application/src/routes`, migrate to **`@tansta
 
 A **`useEffect` that listens to `desktop.auth.onSessionChanged` and invalidates query caches** is **not** a substitute for routing guards; it is a **subscription** to fix staleness. Keep it at **root** after Phase A.
 
+**Tier 2:** A **`useEffect`** that opens onboarding when Convex says “not Pro” belongs in **one hook** (`useNonProOnboardingGate`), not in every screen — still not a router `beforeLoad` (Convex React hooks do not run there without extra plumbing).
+
 ---
 
 ## Pitfalls
 
 - **`beforeLoad` must not import React hooks** — only plain async + `redirect`.
-- **Loading state:** Today root blocks UI by swapping `DesktopAuthView`. With `beforeLoad`, TanStack Router shows transition/pending — confirm default pending UI is acceptable or set **`pendingMs` / `pendingComponent`** on the router or `_authed` route.
+- **Loading state:** Session checks run in **`beforeLoad`** (async). Confirm default **pending** UX or set **`pendingComponent`** on **`createRouter`** / `_authed` if needed.
 - **`DesktopShell`** should wrap **both** public and authed trees unless you intentionally remove chrome on `/auth`.
 
 ---
@@ -123,14 +123,15 @@ A **`useEffect` that listens to `desktop.auth.onSessionChanged` and invalidates 
 
 | Step | Files |
 |------|--------|
-| Phase A | `src/router.tsx`, new `src/lib/desktopSession.ts` (or `auth/desktopSession.ts`), possibly `src/main.tsx` / router creation if pending UI is configured globally |
-| Phase B | `src/app/DashboardContextView.tsx`, session key module |
-| Phase C | `DashboardContextView` or new `src/app/AuthedWorkspaceLayout.tsx`, onboarding hooks/components |
+| Phase A | ✅ `src/router.tsx`, `src/lib/desktopSession.ts` |
+| Phase B | ✅ `WorkspaceFrame.tsx`, `useNonProOnboardingGate.ts`; grep for stray session key literals |
+| Phase C | ✅ `src/app/AuthedWorkspaceLayout.tsx`, `src/features/onboarding/useNonProOnboardingGate.ts`; slim `DashboardContextView.tsx` |
 
 ---
 
 ## References in this repo
 
 - Router implementation: `apps/user-application/src/router.tsx`
-- Dashboard onboarding logic today: `apps/user-application/src/app/DashboardContextView.tsx` (`useEffect` ~lines 124–157)
+- Authed layout + modal shell: `apps/user-application/src/app/AuthedWorkspaceLayout.tsx`
+- Non‑Pro gate hook: `apps/user-application/src/features/onboarding/useNonProOnboardingGate.ts`
 - Web app comparison (file routes): `apps/web-application/src/routes/_authed.tsx` — still hook-heavy; desktop **target** remains **`beforeLoad`** for tier‑1 session.

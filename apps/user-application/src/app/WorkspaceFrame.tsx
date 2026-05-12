@@ -5,6 +5,7 @@ import { buildSidebarProjectsFromSummaries } from "@/dashboard/helpers/projectCo
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useDesktopApiInvalidation, useProjectsQuery } from "@/hooks/desktop-api";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
+import { desktopSessionQueryKey } from "@/lib/desktopSession";
 import { useSidebarState } from "@/hooks/useSidebarState";
 
 export function WorkspaceFrame({
@@ -21,13 +22,13 @@ export function WorkspaceFrame({
   const effectiveSidebarCollapsed = isCompact || sidebarCollapsed;
   const sidebarProjects = buildSidebarProjectsFromSummaries(projectsQuery.data ?? []);
   const session = useQuery({
-    queryKey: ["desktop", "auth", "session"],
+    queryKey: desktopSessionQueryKey,
     queryFn: () => desktop.auth.getSession(),
     retry: false,
   });
   useEffect(() => {
     return desktop.auth.onSessionChanged(() => {
-      void queryClient.invalidateQueries({ queryKey: ["desktop", "auth", "session"] });
+      void queryClient.invalidateQueries({ queryKey: [...desktopSessionQueryKey] });
       void queryClient.invalidateQueries({ queryKey: ["desktop", "project-context", "selected"] });
     });
   }, [desktop.auth, queryClient]);
