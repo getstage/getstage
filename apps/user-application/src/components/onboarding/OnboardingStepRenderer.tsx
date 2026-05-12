@@ -7,6 +7,7 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { OnboardingPaywall } from "@/components/onboarding/OnboardingPaywall";
+import { StageDatePicker } from "@/components/ui/StageDatePicker";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
 import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@/lib/r2Uploads";
@@ -170,15 +171,6 @@ function FigmaLabel({ children }: { children: ReactNode }) {
 const figmaFieldClass =
   "h-10 w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none transition-colors placeholder:text-[#737373] focus:border-[#E5E5E5] focus:bg-white";
 
-function formatTimelineDate(value: string) {
-  const [year, month, day] = value.split("-");
-  if (!year || !month || !day) {
-    return "DD/MM/YYYY";
-  }
-
-  return `${day}-${month}-${year}`;
-}
-
 function formatDateInputValue(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -222,50 +214,14 @@ function TimelineDateField({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const displayValue = formatTimelineDate(value);
-
-  function openPicker() {
-    const input = inputRef.current;
-    if (!input) return;
-
-    try {
-      input.showPicker?.();
-    } catch {
-      input.focus();
-    }
-  }
-
   return (
     <div className="relative flex-1">
       <label className="mb-2 block text-[13px] font-semibold text-text-primary">{label}</label>
-      <div className="relative w-full">
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute left-[12px] top-1/2 h-[16px] w-[16px] -translate-y-1/2 bg-current text-[#525252]"
-          style={{
-            WebkitMask: 'url("/logos/dashboard/calendar.svg") center / contain no-repeat',
-            mask: 'url("/logos/dashboard/calendar.svg") center / contain no-repeat',
-          }}
-        />
-        <input
-          readOnly
-          value={displayValue}
-          onClick={openPicker}
-          placeholder="DD/MM/YYYY"
-          aria-label={`Project ${label.toLowerCase()} date`}
-          className="h-[34px] w-full cursor-pointer rounded-[6px] bg-[#f5f5f5] px-[12px] py-[10px] pl-[40px] text-[12px] font-medium leading-[1.25] text-[#171717] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] outline-none transition-colors placeholder:text-[#525252] hover:bg-[#eeeeee] focus:bg-white focus:ring-1 focus:ring-[#8d87ff]"
-        />
-        <input
-          ref={inputRef}
-          type="date"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          tabIndex={-1}
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
-        />
-      </div>
+      <StageDatePicker
+        value={value}
+        onChange={onChange}
+        ariaLabel={`Project ${label.toLowerCase()} date`}
+      />
     </div>
   );
 }

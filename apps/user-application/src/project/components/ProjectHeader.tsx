@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { StageDatePicker } from "@/components/ui/StageDatePicker";
 import type { Phase, Project, ProjectTab } from "../models/project";
 
 type ProjectModal = "name" | "client" | "timeline" | "phases" | "pause" | "delete";
@@ -621,15 +622,11 @@ function FieldBlock({ label, children }: { label: string; children: React.ReactN
 
 function DateInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   return (
-    <div className="flex w-full items-center justify-between overflow-hidden rounded-[6px] bg-[#F5F5F5] px-[12px] py-[10px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder="DD/MM/YYYY"
-        className="min-w-0 flex-1 bg-transparent text-[12px] font-medium leading-none text-[#525252] outline-none placeholder:text-[#525252]"
-      />
-      <img src="/logos/dashboard/calendar.svg" alt="" aria-hidden="true" className="h-[16px] w-[16px] shrink-0" />
-    </div>
+    <StageDatePicker
+      value={value}
+      onChange={onChange}
+      ariaLabel="Project timeline date"
+    />
   );
 }
 

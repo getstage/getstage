@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 import { projectDetailSchema } from "@stage/data-ops";
 import stageLogoLight from "@/assets/logos/stage-logo-light.png";
+import { StageDatePicker } from "@/components/ui/StageDatePicker";
 import { createProjectInputSchema } from "@/data-ops/schema";
 import { api } from "@/lib/convexApi";
 import { PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
@@ -1261,51 +1262,13 @@ function DateInput({
   onChange: (value: string) => void;
   ariaLabel: string;
 }) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const displayValue = formatDateInputDisplay(value);
-
-  function openPicker() {
-    const input = inputRef.current;
-    if (!input) return;
-
-    try {
-      input.showPicker?.();
-    } catch {
-      input.focus();
-    }
-  }
-
   return (
-    <div className="relative w-full">
-      <CalendarIcon />
-      <input
-        readOnly
-        value={displayValue}
-        onClick={openPicker}
-        placeholder="DD/MM/YYYY"
-        aria-label={ariaLabel}
-        className={cn(
-          inputSurfaceClassName,
-          "cursor-pointer pl-[40px]",
-        )}
-      />
-      <input
-        ref={inputRef}
-        type="date"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        tabIndex={-1}
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
-      />
-    </div>
+    <StageDatePicker
+      value={value}
+      onChange={onChange}
+      ariaLabel={ariaLabel}
+    />
   );
-}
-
-function formatDateInputDisplay(value: string) {
-  const [year, month, day] = value.split("-");
-  if (!year || !month || !day) return "";
-  return `${day}/${month}/${year}`;
 }
 
 function CreateProjectStepShell({
@@ -1486,21 +1449,6 @@ function UploadIcon() {
         WebkitMask:
           'url("/logos/dashboard/upload.svg") center / contain no-repeat',
         mask: 'url("/logos/dashboard/upload.svg") center / contain no-repeat',
-      }}
-    />
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <span
-      aria-hidden="true"
-      className="pointer-events-none absolute left-[12px] top-1/2 h-[16px] w-[16px] -translate-y-1/2 text-[#525252]"
-      style={{
-        WebkitMask:
-          'url("/logos/dashboard/calendar.svg") center / contain no-repeat',
-        mask: 'url("/logos/dashboard/calendar.svg") center / contain no-repeat',
-        backgroundColor: "currentColor",
       }}
     />
   );
