@@ -242,6 +242,20 @@ matching quickstart guide:
 - [Remix](https://docs.convex.dev/quickstart/remix)
 - [Node.js (no frontend)](https://docs.convex.dev/quickstart/nodejs)
 
+#### TanStack Router + TanStack Query in this repo
+
+For **Stage desktop** (`apps/user-application`) and other React clients that use
+TanStack stack alongside Convex:
+
+- **TanStack Query:** `.agents/skills/tanstack-query-best-practices/SKILL.md`
+  (keys, caching, mutations, invalidation).
+- **TanStack Router:** `.agents/skills/tanstack-router-best-practices/SKILL.md`
+  (route organization, loaders, `beforeLoad`, search params).
+
+Convex still provides the backend and `ConvexProvider`; router/query skills
+describe how to structure **client** routing and server-state — not a
+replacement for Convex function auth (see `convex-setup-auth`).
+
 ### Environment variables
 
 The env var name depends on the framework:

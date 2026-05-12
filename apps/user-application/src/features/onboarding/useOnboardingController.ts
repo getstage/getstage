@@ -22,7 +22,7 @@ import {
   trackDatafastGoal,
   trackDatafastGoalOnce,
 } from "@/lib/datafast";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { isProjectUpgradeRequiredError, toUserFacingErrorMessage } from "@/lib/errors";
 import { convexQueryKeys } from "@/lib/queryKeys";
 import { googleSheetsUrlSchema } from "@/lib/validation";
 import type { ClaudeConnectionSummary } from "@/types/settings";
@@ -32,11 +32,13 @@ const CLAUDE_INSTALL_COMMAND = "npx skills add getstage/agent-mode";
 
 type UseOnboardingControllerInput = {
   open: boolean;
+  initialStep?: OnboardingStepId;
   onComplete: (submission: OnboardingSubmission) => void;
 };
 
 export function useOnboardingController({
   open,
+  initialStep,
   onComplete,
 }: UseOnboardingControllerInput) {
   const queryClient = useQueryClient();
@@ -111,7 +113,8 @@ export function useOnboardingController({
       return;
     }
 
-    setStep("welcome");
+    const startingStep = initialStep ?? "welcome";
+    setStep(startingStep);
     setIsClosing(false);
     setPendingSubmission(null);
     setFieldOfWork([]);
@@ -126,10 +129,12 @@ export function useOnboardingController({
     setCreationReady(false);
     resetDraftRef.current?.();
 
-    trackDatafastGoalOnce("onboarding_started", "onboarding_started", {
-      source: "onboarding_modal",
-    });
-  }, [open]);
+    if (startingStep === "welcome") {
+      trackDatafastGoalOnce("onboarding_started", "onboarding_started", {
+        source: "onboarding_modal",
+      });
+    }
+  }, [open, initialStep]);
 
   useEffect(() => {
     return () => {
@@ -206,6 +211,12 @@ export function useOnboardingController({
         setCreationReady(true);
       } catch (error) {
         if (cancelled) {
+          return;
+        }
+
+        if (isProjectUpgradeRequiredError(error)) {
+          setStepError(null);
+          setStep("paywall");
           return;
         }
 

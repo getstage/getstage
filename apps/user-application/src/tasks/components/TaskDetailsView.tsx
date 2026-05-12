@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { WorkspaceFrame } from "@/app/WorkspaceFrame";
 
 const TASK_SECTIONS = [
   {
@@ -41,7 +40,7 @@ const TASK_SECTIONS = [
 
 export function TaskDetailsView() {
   const navigate = useNavigate();
-  const search = useSearch({ from: "/tasks/$taskId" });
+  const search = useSearch({ from: "/_authed/tasks/$taskId" });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -86,7 +85,7 @@ export function TaskDetailsView() {
   }, [isMenuOpen]);
 
   return (
-    <WorkspaceFrame>
+    <>
       <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
         <div className="flex w-full flex-col gap-[44px]">
           <button
@@ -174,7 +173,7 @@ export function TaskDetailsView() {
           onDelete={goBack}
         />
       ) : null}
-    </WorkspaceFrame>
+    </>
   );
 }
 

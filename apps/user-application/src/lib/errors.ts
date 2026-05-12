@@ -11,8 +11,8 @@ const AUTH_INVALID_EMAIL_PATTERN = /valid email|email address/i;
 const AUTH_UNAVAILABLE_PATTERN = /auth|oauth|loops-otp|google|sign in|signin/i;
 const PERMISSION_PATTERN = /unauthenticated|not authenticated|not authorized|forbidden|access denied/i;
 const NETWORK_PATTERN = /failed to fetch|network ?error|load failed|network request failed/i;
-const FREE_PROJECT_LIMIT_PATTERN =
-  /free plan includes up to \d+ projects|upgrade to pro to create another|project limit/i;
+const PROJECT_UPGRADE_REQUIRED_PATTERN =
+  /free plan includes up to \d+ projects|upgrade to pro to create (another project|more projects?|projects)|project limit/i;
 
 function extractErrorMessage(error: unknown): string | null {
   if (typeof error === "string") {
@@ -96,7 +96,7 @@ export function toUserFacingErrorMessage(error: unknown, fallback: string): stri
     return "We could not reach the server. Please check your connection and try again.";
   }
 
-  if (FREE_PROJECT_LIMIT_PATTERN.test(message)) {
+  if (PROJECT_UPGRADE_REQUIRED_PATTERN.test(message)) {
     return "You've reached the 3-project limit on the Free plan. Upgrade to Pro to create another project.";
   }
 
@@ -109,4 +109,9 @@ export function toUserFacingErrorMessage(error: unknown, fallback: string): stri
   }
 
   return message;
+}
+
+export function isProjectUpgradeRequiredError(error: unknown): boolean {
+  const message = extractErrorMessage(error);
+  return message ? PROJECT_UPGRADE_REQUIRED_PATTERN.test(message) : false;
 }

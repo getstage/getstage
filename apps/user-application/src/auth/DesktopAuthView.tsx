@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { DesktopSession } from "@shared/models/desktop";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
+import { getSafeAuthRedirect } from "@/lib/authRedirect";
 
 type AuthStatus = "checking" | "idle" | "opening" | "opened" | "connected" | "error";
 
@@ -25,9 +26,11 @@ function getAuthStatusCopy(status: AuthStatus) {
 
 export function DesktopAuthView() {
   const navigate = useNavigate();
+  const search = useSearch({ from: "/auth" });
   const desktop = useDesktopBridge();
   const [session, setSession] = useState<DesktopSession | null>(null);
   const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
+  const redirectTarget = getSafeAuthRedirect(search.redirect);
 
   useEffect(() => {
     desktop.auth.getSession()
@@ -41,10 +44,10 @@ export function DesktopAuthView() {
       setSession(nextSession);
       setAuthStatus(nextSession?.hasAccessToken ? "connected" : "idle");
       if (nextSession?.hasAccessToken) {
-        void navigate({ to: "/" });
+        continueAfterAuth();
       }
     });
-  }, [desktop.auth, navigate]);
+  }, [desktop.auth, navigate, redirectTarget]);
 
   async function openLogin() {
     setAuthStatus("opening");
@@ -59,6 +62,15 @@ export function DesktopAuthView() {
   const accountLabel = session?.name ?? session?.email ?? "Stage account";
   const isBusy = authStatus === "checking" || authStatus === "opening";
   const isConnected = authStatus === "connected" && session?.hasAccessToken;
+
+  function continueAfterAuth() {
+    if (redirectTarget) {
+      window.location.assign(redirectTarget);
+      return;
+    }
+
+    void navigate({ to: "/" });
+  }
 
   return (
     <div className="relative min-h-dvh bg-white p-2 xl:h-dvh xl:overflow-hidden xl:bg-[#F5F5F5] xl:p-1">
@@ -89,7 +101,7 @@ export function DesktopAuthView() {
                   <button
                     type="button"
                     className="mt-4 flex h-[38px] w-full cursor-pointer items-center justify-center rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 text-[12px] font-semibold text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8782f5]"
-                    onClick={() => void navigate({ to: "/" })}
+                    onClick={continueAfterAuth}
                   >
                     Continue
                   </button>

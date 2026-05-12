@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   useAction as useConvexAction,
   useMutation as useConvexMutation,
   useQuery as useConvexQuery,
 } from "convex/react";
-import { createProjectFromDraft } from "@/features/project-creation/createProjectFromDraft";
+import { buildProjectPayloadFromDraft } from "@/features/project-creation/createProjectFromDraft";
+import { savePendingOnboardingProject } from "@/features/onboarding/pendingOnboardingProject";
 import { useProjectDraft } from "@/features/project-creation/useProjectDraft";
 import {
   canContinue,
@@ -22,7 +22,6 @@ import {
   trackDatafastGoalOnce,
 } from "@/lib/datafast";
 import { toUserFacingErrorMessage } from "@/lib/errors";
-import { convexQueryKeys } from "@/lib/queryKeys";
 import { googleSheetsUrlSchema } from "@/lib/validation";
 import type { ClaudeConnectionSummary } from "@/types/settings";
 import type { ProjectType } from "@/types";
@@ -37,7 +36,6 @@ export function useOnboardingController({
   open,
   onComplete,
 }: UseOnboardingControllerInput) {
-  const queryClient = useQueryClient();
   const [step, setStep] = useState<OnboardingStepId>("welcome");
   const [isClosing, setIsClosing] = useState(false);
   const [pendingSubmission, setPendingSubmission] = useState<OnboardingSubmission | null>(null);
@@ -50,7 +48,7 @@ export function useOnboardingController({
   const [stepError, setStepError] = useState<string | null>(null);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const [creationReady, setCreationReady] = useState(false);
+  const creationReady = false;
   const completionTimeoutRef = useRef<number | null>(null);
   const resetDraftRef = useRef<(() => void) | null>(null);
   const stripeConnected = false;
@@ -72,8 +70,6 @@ export function useOnboardingController({
   const createPendingConnection = useConvexMutation(api.agentConnections.createPendingClaudeConnection);
   const existingClients = useMemo(() => existingClientsResult ?? [], [existingClientsResult]);
   const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
-  const markProjectCreated = useConvexMutation(api.onboarding.markProjectCreated);
-  const createProject = useConvexMutation(api.projects.create);
   const createCheckoutSession = useConvexAction(api.billing.createCheckoutSession);
   const connectSheet = useConvexMutation(api.integrations.googleSheets.connectSheet);
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
@@ -122,7 +118,6 @@ export function useOnboardingController({
     setStepError(null);
     setIsCheckoutLoading(false);
     setCheckoutError(null);
-    setCreationReady(false);
     resetDraftRef.current?.();
 
     trackDatafastGoalOnce("onboarding_started", "onboarding_started", {
@@ -166,67 +161,6 @@ export function useOnboardingController({
     fieldOfWork,
     setProjectLater,
     sheetUrl,
-  ]);
-
-  useEffect(() => {
-    if (!pendingSubmission || !pendingSubmission.createProject || creationReady) {
-      return;
-    }
-
-    const submission = pendingSubmission;
-    let cancelled = false;
-
-    async function runCreation() {
-      try {
-        if (submission.createProject) {
-          await createProjectFromDraft({
-            draft,
-            activePhases,
-            createProject,
-            generateUploadUrl: r2GenerateUploadUrl,
-            syncMetadata: r2SyncMetadata,
-            aiRoadmaps: AI_ROADMAPS,
-          });
-          void queryClient.invalidateQueries({ queryKey: convexQueryKeys.dockProjects });
-          await markProjectCreated({});
-          trackDatafastGoalOnce("first_project_created", "first_project_created", {
-            source: "onboarding_creation",
-            project_type: draft.projectType ?? submission.fieldOfWork,
-            method: draft.method,
-          });
-        } else {
-          await new Promise((resolve) => window.setTimeout(resolve, 500));
-        }
-
-        if (cancelled) {
-          return;
-        }
-
-        setCreationReady(true);
-      } catch (error) {
-        if (cancelled) {
-          return;
-        }
-
-        setStepError(toUserFacingErrorMessage(error, "Could not create the project."));
-        setStep("preview");
-      }
-    }
-
-    void runCreation();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    activePhases,
-    createProject,
-    draft,
-    markProjectCreated,
-    pendingSubmission,
-    r2GenerateUploadUrl,
-    r2SyncMetadata,
-    step,
   ]);
 
   function handleSelectField(value: ProjectType) {
@@ -346,14 +280,6 @@ export function useOnboardingController({
     }
   }
 
-  function handleContinueFree() {
-    const submission = pendingSubmission ?? buildPendingSubmission(!setProjectLater);
-    if (!pendingSubmission) {
-      setPendingSubmission(submission);
-    }
-    completeWithSubmission(submission);
-  }
-
   async function handlePaywallUpgrade(billingCycle: "monthly" | "yearly") {
     const submission = pendingSubmission ?? buildPendingSubmission(!setProjectLater);
     if (!pendingSubmission) {
@@ -362,6 +288,25 @@ export function useOnboardingController({
 
     setIsCheckoutLoading(true);
     setCheckoutError(null);
+
+    try {
+      if (submission.createProject) {
+        const pendingProject = await buildProjectPayloadFromDraft({
+          draft,
+          activePhases,
+          generateUploadUrl: r2GenerateUploadUrl,
+          syncMetadata: r2SyncMetadata,
+          aiRoadmaps: AI_ROADMAPS,
+        });
+        savePendingOnboardingProject(pendingProject);
+      }
+    } catch (error) {
+      setCheckoutError(
+        toUserFacingErrorMessage(error, "Could not prepare this project for checkout."),
+      );
+      setIsCheckoutLoading(false);
+      return;
+    }
 
     try {
       await completeOnboarding({ workCategory: submission.fieldOfWork });
@@ -487,7 +432,6 @@ export function useOnboardingController({
     draftState,
     handleSelectField,
     handleContinue,
-    handleContinueFree,
     handlePaywallUpgrade,
     goBack,
     handleDoLater,

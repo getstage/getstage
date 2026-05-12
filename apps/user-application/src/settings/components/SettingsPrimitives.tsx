@@ -40,31 +40,33 @@ export function SettingsRow({
 
 export function SaveButton({
   children = "Save",
+  disabled = false,
   onClick,
 }: {
   children?: ReactNode;
-  onClick?: () => void;
+  disabled?: boolean;
+  onClick?: () => void | Promise<void>;
 }) {
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
 
-  const handleSave = () => {
-    if (status !== "idle") return;
+  async function handleSave() {
+    if (disabled || status !== "idle") return;
     setStatus("saving");
-    onClick?.();
-    setTimeout(() => {
+    await onClick?.();
+    window.setTimeout(() => {
       setStatus("saved");
-      setTimeout(() => setStatus("idle"), 2000);
+      window.setTimeout(() => setStatus("idle"), 2000);
     }, 800);
-  };
+  }
 
   return (
     <button
       type="button"
-      onClick={handleSave}
-      disabled={status !== "idle"}
+      onClick={() => void handleSave()}
+      disabled={disabled || status !== "idle"}
       className={cn(
         "inline-flex min-h-[30px] min-w-[64px] items-center justify-center rounded-[6px] bg-[#F5F5F5] px-[16px] py-[8px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EBEBEB]",
-        status !== "idle" && "opacity-70 cursor-default",
+        (disabled || status !== "idle") && "opacity-70 cursor-default",
       )}
     >
       {status === "idle" && children}

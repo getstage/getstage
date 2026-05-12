@@ -19,13 +19,13 @@ export function FinalCtaSection() {
                 Run your next project with more clarity
               </h2>
               <p className="landing-section-subtitle landing-final-description">
-                Start free, set up in minutes, and give clients a cleaner view of the work.
+                Create your account, unlock the workspace, and give clients a cleaner view of the work.
               </p>
             </div>
 
             <div className="landing-final-buttons">
               <Link to="/auth" className="landing-btn landing-btn-cta landing-final-primary-cta">
-                Start free
+                Create account
               </Link>
 
               <a

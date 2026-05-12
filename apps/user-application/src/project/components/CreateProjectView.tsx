@@ -12,7 +12,7 @@ import stageLogoLight from "@/assets/logos/stage-logo-light.png";
 import { createProjectInputSchema } from "@/data-ops/schema";
 import { api } from "@/lib/convexApi";
 import { PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { isProjectUpgradeRequiredError, toUserFacingErrorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 import { settingsSnapshot } from "@/settings/data/settingsSnapshot";
 import type { ProjectType } from "@/types";
@@ -252,6 +252,12 @@ export function CreateProjectView() {
       setCreatedProjectId(createdProject.id);
       setStep("success");
     } catch (error) {
+      if (isProjectUpgradeRequiredError(error)) {
+        setCreateError(null);
+        void navigate({ to: "/" });
+        return;
+      }
+
       setCreateError(toUserFacingErrorMessage(error, "Could not create project."));
     } finally {
       setIsCreatingProject(false);

@@ -1,4 +1,3 @@
-import { FREE_PLAN_PROJECT_LIMIT } from "@/lib/constants";
 import type { DashboardTaskEntry } from "@/components/dashboard/dashboardTypes";
 import type { Phase, Project, Task } from "@/types";
 
@@ -210,15 +209,15 @@ export function getPreviewFlags({
   projectsLength: number;
   previewStage: PreviewStage;
 }) {
-  const previewFlowActive = !isLoading && userPlan !== "pro" && onboardingCompleted !== true;
-  const previewEligible = previewFlowActive && projectsLength === 0;
+  const previewFlowActive = !isLoading && userPlan !== "pro";
+  const previewEligible = previewFlowActive;
 
   return {
     previewFlowActive,
     previewEligible,
     shouldShowPreviewExperience:
-      previewFlowActive && (projectsLength === 0 || previewStage !== "preview"),
-    hasReachedFreeProjectLimit:
-      userPlan !== "pro" && projectsLength >= FREE_PLAN_PROJECT_LIMIT,
+      previewFlowActive &&
+      (onboardingCompleted === true || projectsLength === 0 || previewStage !== "preview"),
+    hasReachedFreeProjectLimit: previewFlowActive,
   };
 }

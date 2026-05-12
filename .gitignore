@@ -5,6 +5,9 @@
 node_modules/
 **/node_modules/
 
+# pnpm store must never live inside the repo (misconfigured store-dir)
+.pnpm-store/
+
 # Build outputs
 dist/
 **/dist/
@@ -12,6 +15,9 @@ apps/user-application/out/
 **/target/
 .tanstack/
 *.tsbuildinfo
+
+# Accidental Vite/output at repo root (apps live under apps/, not ./app/)
+/app/
 
 # Logs
 *.log

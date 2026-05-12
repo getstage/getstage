@@ -1,7 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
-import { useEffect, useMemo, useState } from "react";
-import { OnboardingModal, type OnboardingSubmission } from "../components/onboarding/OnboardingModal";
+import { useMemo, useState } from "react";
 import { ActivityTimelineChart } from "../dashboard/components/ActivityTimelineChart";
 import { DashboardHeader, type DashboardPeriod } from "../dashboard/components/DashboardHeader";
 import { MetricGrid } from "../dashboard/components/MetricGrid";
@@ -22,9 +20,6 @@ import { useProjectsQuery } from "../hooks/desktop-api";
 import { useDesktopBridge } from "../hooks/useDesktopBridge";
 import { useEngineStatus } from "../hooks/useEngineStatus";
 import { useSelectedProjectContext } from "../hooks/useSelectedProjectContext";
-import { useDesktopAuth } from "../lib/auth";
-import { api } from "../lib/convexApi";
-import { WorkspaceFrame } from "./WorkspaceFrame";
 
 const DEFAULT_DASHBOARD_PERIOD: DashboardPeriod = "This month";
 
@@ -73,17 +68,10 @@ function isInPeriod(timestamp: number | undefined, period: DashboardPeriod) {
 
 export function DashboardContextView() {
   const desktop = useDesktopBridge();
-  const desktopAuth = useDesktopAuth();
   const engineStatus = useEngineStatus();
   const selectedProject = useSelectedProjectContext();
   const projectsQuery = useProjectsQuery();
   const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>(DEFAULT_DASHBOARD_PERIOD);
-  const [onboardingOpen, setOnboardingOpen] = useState(false);
-  const onboardingState = useConvexQuery(
-    api.onboarding.getState,
-    desktopAuth.isAuthenticated ? {} : "skip",
-  );
-  const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
   const selectedProjectContext = selectedProject.isFallback ? null : selectedProject.context;
   const openContextTasks = selectedProjectContext?.tasks.filter(
     (task) => task.status !== "done",
@@ -129,76 +117,36 @@ export function DashboardContextView() {
     queryKey: ["desktop", "active-app"],
     queryFn: () => desktop.screen.getActiveApp(),
   });
-
-  const session = useQuery({
-    queryKey: ["desktop", "auth", "session", "dashboard-onboarding"],
-    queryFn: () => desktop.auth.getSession(),
-    retry: false,
-  });
-
-  useEffect(() => {
-    if (!desktopAuth.isAuthenticated) {
-      setOnboardingOpen(false);
-      return;
-    }
-
-    if (onboardingState === undefined) {
-      return;
-    }
-
-    setOnboardingOpen(!onboardingState.isCompleted);
-  }, [desktopAuth.isAuthenticated, onboardingState]);
-
-  function handleOnboardingComplete(submission: OnboardingSubmission) {
-    setOnboardingOpen(false);
-    void completeOnboarding({
-      workCategory: submission.fieldOfWork,
-    }).catch((error) => {
-      console.error("Could not persist desktop onboarding state", error);
-    });
-  }
-
   return (
-    <>
-      <WorkspaceFrame>
-        <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
-          <div className="flex flex-col gap-[clamp(24px,4vw,44px)]">
-            <div className="flex flex-col gap-[clamp(14px,2vw,18px)]">
-              <DashboardHeader
-                engineStatusLabel={engineStatusLabel}
-                engineStatusTone={engineStatusTone}
-                greeting="Good Morning."
-                subheading={dashboardSubheading}
-                selectedPeriod={selectedPeriod}
-                onPeriodChange={setSelectedPeriod}
-              />
-              <MetricGrid metrics={dashboardMetrics} />
-            </div>
+    <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
+      <div className="flex flex-col gap-[clamp(24px,4vw,44px)]">
+        <div className="flex flex-col gap-[clamp(14px,2vw,18px)]">
+          <DashboardHeader
+            engineStatusLabel={engineStatusLabel}
+            engineStatusTone={engineStatusTone}
+            greeting="Good Morning."
+            subheading={dashboardSubheading}
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={setSelectedPeriod}
+          />
+          <MetricGrid metrics={dashboardMetrics} />
+        </div>
+        <ActivityTimelineChart
+          points={dashboardChart}
+          projects={timelineProjects}
+          tasks={[...periodDashboardTasks.upcomingTasks, ...periodDashboardTasks.recentActivity]}
+          period={selectedPeriod}
+        />
 
-            <ActivityTimelineChart
-              points={dashboardChart}
-              projects={timelineProjects}
-              tasks={[...periodDashboardTasks.upcomingTasks, ...periodDashboardTasks.recentActivity]}
-              period={selectedPeriod}
-            />
-
-            <div className="overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[2px]">
-              <div className="grid grid-cols-1 gap-[2px] xl:grid-cols-2">
-                <UpcomingTasksCard tasks={periodDashboardTasks.upcomingTasks} period={selectedPeriod} />
-                <RecentActivityCard entries={periodDashboardTasks.recentActivity} period={selectedPeriod} />
-                <ProjectPipelineCard stages={dashboardPipeline} period={selectedPeriod} />
-                <RevenueOverviewCard revenue={dashboardRevenue} period={selectedPeriod} />
-              </div>
-            </div>
+        <div className="overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[2px]">
+          <div className="grid grid-cols-1 gap-[2px] xl:grid-cols-2">
+            <UpcomingTasksCard tasks={periodDashboardTasks.upcomingTasks} period={selectedPeriod} />
+            <RecentActivityCard entries={periodDashboardTasks.recentActivity} period={selectedPeriod} />
+            <ProjectPipelineCard stages={dashboardPipeline} period={selectedPeriod} />
+            <RevenueOverviewCard revenue={dashboardRevenue} period={selectedPeriod} />
           </div>
         </div>
-      </WorkspaceFrame>
-
-      <OnboardingModal
-        open={onboardingOpen}
-        userName={session.data?.name?.split(" ")[0]}
-        onComplete={handleOnboardingComplete}
-      />
-    </>
+      </div>
+    </div>
   );
 }

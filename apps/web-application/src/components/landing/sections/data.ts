@@ -1,23 +1,23 @@
 export const FAQ_ITEMS = [
   {
-    question: "Is it really free to get started?",
+    question: "Can I create an account before paying?",
     answer:
-      "Yes. The free plan lets you manage up to 3 projects and use the core workflow before you pay anything. No credit card and no trial countdown.",
+      "Yes. You can create an account and complete setup first. A paid plan is required before creating and managing projects.",
   },
   {
     question: "Do I need a credit card to sign up?",
     answer:
-      "No. You can create an account with just your email. Payment details only matter if you choose to upgrade to Pro.",
+      "No. You can create an account with just your email. Payment is required when you unlock the workspace.",
   },
   {
     question: "What happens if I cancel my plan?",
     answer:
-      "Your work stays with you. If you cancel, you drop back to the free plan and keep access to your projects. You only lose Pro features like unlimited projects, custom portal branding, and advanced integrations.",
+      "Your work stays with you, but project creation and paid workspace features are locked until the subscription is active again.",
   },
   {
     question: "Do you have a free trial?",
     answer:
-      "We skip the trial because the free plan already lets you use Stage on real client work. Upgrade only when you outgrow the free limit.",
+      "Not right now. Stage is a paid workspace after account setup.",
   },
   {
     question: "How does Stripe integration work?",
@@ -37,7 +37,7 @@ export const FAQ_ITEMS = [
   {
     question: "How many projects can I have?",
     answer:
-      "Free includes up to 3 projects. Pro removes the cap so you can run unlimited client work.",
+      "Paid workspaces can run unlimited client projects.",
   },
 ] as const;
 

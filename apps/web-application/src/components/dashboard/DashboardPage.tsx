@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   useAction as useConvexAction,
   useMutation as useConvexMutation,
@@ -28,6 +28,10 @@ import {
 } from "@/features/dashboard/selectors";
 import { useBillingSuccessEvent } from "@/features/dashboard/useBillingSuccessEvent";
 import { useDashboardPreviewState } from "@/features/dashboard/useDashboardPreviewState";
+import {
+  clearPendingOnboardingProject,
+  loadPendingOnboardingProject,
+} from "@/features/onboarding/pendingOnboardingProject";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/convex";
 import {
@@ -59,6 +63,8 @@ export function DashboardPage() {
     shouldLoadOnboardingState ? {} : "skip",
   );
   const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
+  const markProjectCreated = useConvexMutation(api.onboarding.markProjectCreated);
+  const createProject = useConvexMutation(api.projects.create);
   const createCheckoutSession = useConvexAction(api.billing.createCheckoutSession);
   const handleSuccessfulPaymentEvent = useConvexAction(api.billing.handleSuccessfulPaymentEvent);
   const isLoading =
@@ -66,24 +72,25 @@ export function DashboardPage() {
     dashboardData === undefined ||
     (shouldLoadOnboardingState && onboardingState === undefined);
   const projects = dashboardData?.projects ?? [];
+  const effectiveOnboardingCompleted = onboardingState?.isCompleted === true || projects.length > 0;
   const greetingName = user?.name?.split(" ")[0] ?? "there";
   const greeting = getGreeting(greetingName);
   const previewBaseFlags = getPreviewFlags({
     isLoading,
     userPlan: user?.plan,
-    onboardingCompleted: onboardingState?.isCompleted,
+    onboardingCompleted: effectiveOnboardingCompleted,
     projectsLength: projects.length,
     previewStage: "onboarding",
   });
   const { previewStage, setPreviewStage } = useDashboardPreviewState({
     userId: user?.id,
     previewEligible: previewBaseFlags.previewEligible,
-    onboardingCompleted: onboardingState?.isCompleted,
+    onboardingCompleted: effectiveOnboardingCompleted,
   });
   const previewFlags = getPreviewFlags({
     isLoading,
     userPlan: user?.plan,
-    onboardingCompleted: onboardingState?.isCompleted,
+    onboardingCompleted: effectiveOnboardingCompleted,
     projectsLength: projects.length,
     previewStage,
   });
@@ -100,6 +107,45 @@ export function DashboardPage() {
     enabled: Boolean(user),
     onSuccess: handleSuccessfulPaymentEvent,
   });
+
+  useEffect(() => {
+    if (user?.plan !== "pro") {
+      return;
+    }
+
+    const pendingProject = loadPendingOnboardingProject();
+    if (!pendingProject) {
+      return;
+    }
+    const projectToCreate = pendingProject;
+
+    let cancelled = false;
+
+    async function createPendingProject() {
+      try {
+        await createProject(projectToCreate.project);
+        if (cancelled) {
+          return;
+        }
+
+        clearPendingOnboardingProject();
+        await markProjectCreated({});
+        trackDatafastGoalOnce("first_project_created", "first_project_created", {
+          source: projectToCreate.source,
+          project_type: projectToCreate.project.type,
+          method: projectToCreate.project.method,
+        });
+      } catch (error) {
+        console.error("Could not create pending onboarding project", error);
+      }
+    }
+
+    void createPendingProject();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [createProject, markProjectCreated, user?.plan]);
 
   const handlePreviewPrimaryAction = () => {
     setPaywallError(null);
@@ -118,7 +164,7 @@ export function DashboardPage() {
     } catch (error) {
       console.error("Could not persist onboarding state", error);
     } finally {
-      setPreviewStage("preview");
+      setPreviewStage("paywall");
     }
   };
 

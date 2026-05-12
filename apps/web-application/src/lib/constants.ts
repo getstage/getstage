@@ -10,8 +10,6 @@ export type RoadmapTemplateItem = {
   tasks: string[];
 };
 
-export const FREE_PLAN_PROJECT_LIMIT = 3;
-
 export const PROJECT_TYPES: ProjectTypeOption[] = [
   { value: "branding", label: "Branding" },
   { value: "web-design", label: "Web Design" },
@@ -323,24 +321,24 @@ export const AI_ROADMAPS: Record<ProjectType, RoadmapTemplateItem[]> = {
 
 export const FAQ_ITEMS = [
   {
-    question: "Is it really free to get started?",
+    question: "Can I create an account before paying?",
     answer:
-      "Yes! Stage offers a generous free tier that lets you manage up to 3 projects with all core features included. No credit card required, no time limits.",
+      "Yes. You can create an account and complete setup first. A paid plan is required before creating and managing projects.",
   },
   {
     question: "Do I need a credit card to sign up?",
     answer:
-      "No. You can sign up and start using Stage immediately with just your email address. We only ask for payment information if you choose to upgrade to Pro.",
+      "No. You can sign up with just your email address. Payment is required when you unlock the workspace.",
   },
   {
     question: "What happens if I cancel my plan?",
     answer:
-      "Your projects and data remain accessible on the free tier. You won't lose any work - you'll just lose access to Pro features like AI roadmaps and Stripe integration.",
+      "Your projects and data remain yours, but project creation and paid workspace features are locked until your subscription is active again.",
   },
   {
     question: "Do you have a free trial?",
     answer:
-      "We don't have a traditional trial because our free tier is already generous. You can use Stage for free with up to 3 projects, forever. Upgrade to Pro when you need more.",
+      "Not right now. Stage is a paid workspace after account setup.",
   },
   {
     question: "How does Stripe integration work?",
@@ -360,7 +358,7 @@ export const FAQ_ITEMS = [
   {
     question: "How many projects can I have?",
     answer:
-      "Free tier: up to 3 active projects. Pro plan: unlimited projects with no restrictions.",
+      "Paid workspaces can run unlimited client projects.",
   },
   {
     question: "Can I export my data?",
@@ -379,11 +377,9 @@ export const PRICING_FEATURES = [
 ];
 
 export const FREE_PRICING_FEATURES = [
-  "Up to 3 active projects",
-  "Phase and task tracking",
-  "Timeline overview",
-  "Basic project analytics",
-  "Project data export",
+  "Account setup",
+  "Project preview",
+  "Stripe checkout required",
 ] as const;
 
 export const DEFAULT_PORTAL_COLOR = "#E8734A";

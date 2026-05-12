@@ -18,7 +18,7 @@ export function HeroSection() {
         </p>
         <div className="landing-hero-buttons">
           <Link to="/auth" className="landing-btn landing-btn-cta">
-            Start free
+            Create account
           </Link>
           <a href="#demo" className="landing-btn landing-btn-ghost landing-btn-secondary">
             See demo

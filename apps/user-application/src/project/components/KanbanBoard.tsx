@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type PointerEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Avatar } from "@/components/ui/Avatar";
-import { CreateTaskModal, type TaskAssignee, type TaskProject } from "@/tasks/components/TasksPageView";
+import { CreateTaskDialog } from "@/tasks/components/CreateTaskDialog";
 import type { Phase, Task } from "../models/project";
 
 type KanbanStatus = "backlog" | "todo" | "in-progress" | "done";
@@ -89,10 +89,6 @@ export function KanbanBoard({
   const [dragOverColumn, setDragOverColumn] = useState<KanbanStatus | null>(null);
   const [dropBeforeTaskId, setDropBeforeTaskId] = useState<string | null>(null);
   const [createTaskColumn, setCreateTaskColumn] = useState<KanbanStatus | null>(null);
-  const projectForNewTask: TaskProject = {
-    name: projectName,
-    logoUrl: "/logos/dashboard/task-project-logo.png",
-  };
 
   useEffect(() => {
     setColumns(initialColumns);
@@ -197,7 +193,8 @@ export function KanbanBoard({
     const element = document.elementFromPoint(x, y);
     const columnElement = element?.closest<HTMLElement>("[data-kanban-column]");
     const status = columnElement?.dataset.kanbanColumn;
-    return COLUMNS.some((column) => column.key === status) ? status as KanbanStatus : null;
+    const match = COLUMNS.find((column) => column.key === status);
+    return match?.key ?? null;
   }
 
   function getDropTargetFromPoint(x: number, y: number, draggedId: string) {
@@ -269,8 +266,7 @@ export function KanbanBoard({
   function toggleTaskCompletion(taskId: string) {
     setColumns((current) => {
       const next = { ...current };
-      for (const columnKey in next) {
-        const key = columnKey as KanbanStatus;
+      for (const { key } of COLUMNS) {
         next[key] = next[key].map((item) => {
           if (item.task.id === taskId) {
             return {
@@ -283,38 +279,6 @@ export function KanbanBoard({
       }
       return next;
     });
-  }
-
-  function createTaskInColumn({
-    title,
-    description,
-    assignee,
-  }: {
-    title: string;
-    description: string;
-    assignee: TaskAssignee;
-    project: TaskProject;
-  }) {
-    if (!createTaskColumn) return;
-
-    const newTask: BoardTask = {
-      phaseName: phases[0]?.name ?? "Research",
-      task: {
-        id: `project-task-${Date.now()}`,
-        title,
-        content: description,
-        status: createTaskColumn,
-        isCompleted: createTaskColumn === "done",
-        updatedAt: Date.now(),
-        assignees: [{ name: assignee.name }],
-      },
-    };
-
-    setColumns((current) => ({
-      ...current,
-      [createTaskColumn]: [newTask, ...current[createTaskColumn]],
-    }));
-    setCreateTaskColumn(null);
   }
 
   return (
@@ -401,12 +365,13 @@ export function KanbanBoard({
           </section>
         ))}
       </div>
-      {createTaskColumn ? (
-        <CreateTaskModal
-          initialProject={projectForNewTask}
+      {createTaskColumn && projectId ? (
+        <CreateTaskDialog
+          projects={[]}
+          initialProjectId={projectId}
+          projectLabel={projectName}
           lockProject
           onClose={() => setCreateTaskColumn(null)}
-          onCreateTask={createTaskInColumn}
         />
       ) : null}
       {activeDrag ? (

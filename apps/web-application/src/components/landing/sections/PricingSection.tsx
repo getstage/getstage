@@ -31,7 +31,7 @@ export function PricingSection() {
           <div className="landing-pricing-heading">
             <h2 className="landing-section-title">Simple pricing for growing client work</h2>
             <p className="landing-section-subtitle">
-              Use Stage free for up to 3 projects. Upgrade when you need unlimited work, custom portals, and integrations.
+              Create your account for setup. A paid plan unlocks projects, custom portals, and integrations.
             </p>
           </div>
           <div className="landing-pricing-lattice-cell" aria-hidden="true" />
@@ -71,10 +71,10 @@ export function PricingSection() {
               <section className="landing-pricing-split-pane landing-pricing-split-pane-free">
                 <div className="landing-pricing-plan-head">
                   <div className="landing-pricing-plan-row">
-                    <h3 className="landing-feature-cell-title landing-pricing-plan-title">Free</h3>
+                    <h3 className="landing-feature-cell-title landing-pricing-plan-title">Setup</h3>
                   </div>
                   <p className="landing-feature-cell-desc landing-pricing-plan-description">
-                    Best for trying Stage on real client work.
+                    Best for setting up your account before checkout.
                   </p>
                 </div>
 
@@ -82,8 +82,8 @@ export function PricingSection() {
                   <div className="landing-pricing-price-line">
                     <span className="landing-pricing-price-amount">$0</span>
                   </div>
-                  <p className="landing-pricing-price-period">/forever</p>
-                  <p className="landing-pricing-price-note">No credit card. No time limit.</p>
+                  <p className="landing-pricing-price-period">account setup</p>
+                  <p className="landing-pricing-price-note">Payment required before creating projects.</p>
                 </div>
 
                 <ul className="landing-pricing-feature-list is-single-column is-free">
@@ -101,7 +101,7 @@ export function PricingSection() {
                   to="/auth"
                   className="landing-btn landing-btn-ghost landing-btn-secondary landing-pricing-grid-cta"
                 >
-                  Start free
+                  Create account
                 </Link>
               </section>
 

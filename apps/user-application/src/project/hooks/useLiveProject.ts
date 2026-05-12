@@ -9,6 +9,7 @@ import {
   type TaskSummary,
 } from "@stage/data-ops";
 import { z } from "zod";
+import { useDesktopAuth } from "@/lib/auth";
 import { api } from "@/lib/convexApi";
 import type { Phase, Project, Task } from "../models/project";
 
@@ -88,9 +89,10 @@ export type UseLiveProjectResult = {
 };
 
 export function useLiveProject(projectId: string | undefined): UseLiveProjectResult {
+  const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
   const rawProjectData = useQuery(
     api.desktop.getProjectData,
-    projectId ? { projectId } : "skip",
+    isAuthenticated && projectId ? { projectId } : "skip",
   );
   const liveData = useMemo(() => {
     if (!rawProjectData) {
@@ -108,7 +110,7 @@ export function useLiveProject(projectId: string | undefined): UseLiveProjectRes
     };
   }, [rawProjectData]);
 
-  const isLoading = Boolean(projectId) && rawProjectData === undefined;
+  const isLoading = isAuthLoading || (isAuthenticated && Boolean(projectId) && rawProjectData === undefined);
   const error = null;
 
   const project = useMemo<Project | null>(() => {

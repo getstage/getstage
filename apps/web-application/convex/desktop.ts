@@ -10,6 +10,7 @@ import {
   createProjectArgsValidator,
   createProjectForUser,
   deleteTaskForUser,
+  setTaskBoardStateForUser,
   setTaskPriorityForUser,
 } from "./domain/projects/service";
 import { recomputeProjectState } from "./domain/projects/readModel";
@@ -302,6 +303,7 @@ export const createTask = mutation({
     title: v.string(),
     priority: v.optional(taskPriorityValidator),
     content: v.optional(v.string()),
+    isCompleted: v.optional(v.boolean()),
   },
   returns: taskSummaryReturn,
   handler: async (ctx, args) => {
@@ -329,12 +331,13 @@ export const createTask = mutation({
       .withIndex("by_phase_order", (q) => q.eq("phaseId", targetPhase._id))
       .collect();
     const timestamp = Date.now();
+    const completed = Boolean(args.isCompleted);
     const taskId = await ctx.db.insert("tasks", {
       phaseId: targetPhase._id,
       title: trimmedTitle,
-      isCompleted: false,
+      isCompleted: completed,
       content: args.content?.trim() || "",
-      priority: args.priority,
+      priority: completed ? undefined : args.priority,
       order: existing.length,
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -362,6 +365,26 @@ export const setTaskPriority = mutation({
       userId: user._id,
       taskId,
       priority: args.priority,
+    });
+    return buildApiTaskSummary(ctx, task);
+  },
+});
+
+export const updateTaskBoardState = mutation({
+  args: {
+    taskId: v.string(),
+    priority: v.union(taskPriorityValidator, v.null()),
+    isCompleted: v.boolean(),
+  },
+  returns: taskSummaryReturn,
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    const taskId = await normalizeTaskId(ctx, args.taskId);
+    const task = await setTaskBoardStateForUser(ctx, {
+      userId: user._id,
+      taskId,
+      priority: args.priority,
+      isCompleted: args.isCompleted,
     });
     return buildApiTaskSummary(ctx, task);
   },

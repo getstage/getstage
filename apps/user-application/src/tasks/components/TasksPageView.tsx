@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { WorkspaceFrame } from "@/app/WorkspaceFrame";
 import {
   useDeleteTaskMutation,
   useProjectsQuery,
@@ -280,8 +279,7 @@ export function TasksPageView() {
   }
 
   return (
-    <WorkspaceFrame>
-      <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
+    <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -396,7 +394,6 @@ export function TasksPageView() {
           ) : null}
         </motion.div>
       </div>
-    </WorkspaceFrame>
   );
 }
 

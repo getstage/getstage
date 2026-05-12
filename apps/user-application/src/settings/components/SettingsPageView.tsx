@@ -1,12 +1,18 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useAction } from "convex/react";
-import { WorkspaceFrame } from "@/app/WorkspaceFrame";
+import { useAction, useMutation } from "convex/react";
+import { z } from "zod";
 import { ClientPortalSettingsView } from "@/client-portal/components/ClientPortalSettingsView";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
+import { useClientsQuery, useSettingsOverviewQuery } from "@/hooks/desktop-api";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { api } from "@/lib/convexApi";
+import {
+  AVATAR_ACCEPT,
+  prepareAvatarUpload,
+  uploadFileToR2,
+} from "@/lib/r2Uploads";
 import { settingsSnapshot } from "../data/settingsSnapshot";
 import type { Integration, SettingsTab } from "../models/settings";
 import type { DesktopSession } from "@shared/models/desktop";
@@ -30,6 +36,12 @@ const SETTINGS_TAB_ICON_PATHS: { [key: string]: string } = {
   developer: "/logos/dashboard/developer.svg",
   account: "/logos/dashboard/account.svg",
 };
+
+const profileUpdateResultSchema = z.object({
+  email: z.string(),
+  name: z.string(),
+  avatarUrl: z.string().nullable(),
+});
 
 export function SettingsPageView({
   initialTab = "profile",
@@ -67,35 +79,25 @@ export function SettingsPageView({
   }
 
   if (isIntegrationsPage) {
-    return (
-      <WorkspaceFrame>
-        <IntegrationsPage />
-      </WorkspaceFrame>
-    );
+    return <IntegrationsPage />;
   }
 
   if (activeTab === "portal") {
-    return (
-      <WorkspaceFrame>
-        <ClientPortalSettingsView />
-      </WorkspaceFrame>
-    );
+    return <ClientPortalSettingsView />;
   }
 
   return (
-    <WorkspaceFrame>
-      <div className="flex-1 px-[32px] py-[44px]">
-        <div className="mx-auto flex w-full max-w-[674px] flex-col gap-[44px]">
-          <div>
-            <button
-              type="button"
-              onClick={() => void navigate({ to: "/" })}
-              className="mb-[24px] inline-flex cursor-pointer items-center gap-[8px] text-[13px] font-medium leading-[1.5] text-[#A3A3A3] transition-colors hover:text-[#737373]"
-            >
-              <ArrowLeftIcon />
-              Back to dashboard
-            </button>
-
+    <div className="flex-1 px-[32px] py-[44px]">
+      <div className="mx-auto flex w-full max-w-[674px] flex-col gap-[44px]">
+        <div>
+          <button
+            type="button"
+            onClick={() => void navigate({ to: "/" })}
+            className="mb-[24px] inline-flex cursor-pointer items-center gap-[8px] text-[13px] font-medium leading-[1.5] text-[#A3A3A3] transition-colors hover:text-[#737373]"
+          >
+            <ArrowLeftIcon />
+            Back to dashboard
+          </button>
           <header className="mb-[24px]">
             <h1 className="text-[20px] font-semibold leading-[1.2] text-[#0A0A0A]">
               {title}
@@ -108,18 +110,17 @@ export function SettingsPageView({
           {!isIntegrationsPage ? (
             <SettingsTabBar activeTab={activeTab} onSelect={selectTab} />
           ) : null}
-          </div>
+        </div>
 
-          <div>
-            {activeTab === "profile" ? <ProfilePanel /> : null}
-            {activeTab === "billing" ? <BillingPanel /> : null}
-            {activeTab === "clients" ? <ClientsPanel /> : null}
-            {activeTab === "developer" ? <DeveloperPanel /> : null}
-            {activeTab === "account" ? <AccountPanel /> : null}
-          </div>
+        <div>
+          {activeTab === "profile" ? <ProfilePanel /> : null}
+          {activeTab === "billing" ? <BillingPanel /> : null}
+          {activeTab === "clients" ? <ClientsPanel /> : null}
+          {activeTab === "developer" ? <DeveloperPanel /> : null}
+          {activeTab === "account" ? <AccountPanel /> : null}
         </div>
       </div>
-    </WorkspaceFrame>
+    </div>
   );
 }
 
@@ -190,8 +191,86 @@ function SettingsTabIcon({ name }: { name: string }) {
 
 function ProfilePanel() {
   const { profile } = settingsSnapshot;
-  const [fullName, setFullName] = useState(profile.fullName);
+  const overview = useSettingsOverviewQuery();
+  const updateProfile = useMutation(api.settings.updateProfile);
+  const generateUploadUrl = useMutation(api.r2.generateUploadUrl);
+  const syncMetadata = useMutation(api.r2.syncMetadata);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const savedName = overview.data?.profile.name || profile.fullName;
+  const savedAvatarUrl = overview.data?.profile.avatarUrl ?? undefined;
+  const [fullName, setFullName] = useState(savedName);
   const [selectedRole, setSelectedRole] = useState(profile.selectedRole);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileNotice, setProfileNotice] = useState<string | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  useEffect(() => {
+    setFullName(savedName);
+  }, [savedName]);
+
+  async function selectAvatarFile(file: File | undefined) {
+    if (!file) return;
+    setProfileError(null);
+    setProfileNotice(null);
+    try {
+      const prepared = await prepareAvatarUpload(file);
+      setAvatarFile(prepared.file);
+      setAvatarPreviewUrl(prepared.previewUrl);
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : "Could not prepare this avatar.");
+    }
+  }
+
+  async function saveProfile() {
+    setIsSavingProfile(true);
+    setProfileError(null);
+    setProfileNotice(null);
+    try {
+      const trimmedName = fullName.trim();
+      const avatarKey = avatarFile
+        ? await uploadFileToR2({
+            generateUploadUrl,
+            syncMetadata,
+            purpose: "profile-avatar",
+            file: avatarFile,
+          })
+        : undefined;
+      const result = profileUpdateResultSchema.parse(
+        await updateProfile(avatarKey ? { name: trimmedName, avatarKey } : { name: trimmedName }),
+      );
+      setFullName(result.name);
+      setAvatarFile(null);
+      setAvatarPreviewUrl(null);
+      setProfileNotice("Profile saved.");
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : "Could not save profile.");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  }
+
+  async function removeAvatar() {
+    setIsSavingProfile(true);
+    setProfileError(null);
+    setProfileNotice(null);
+    try {
+      const result = profileUpdateResultSchema.parse(
+        await updateProfile({ name: fullName.trim(), avatarUrl: "" }),
+      );
+      setFullName(result.name);
+      setAvatarFile(null);
+      setAvatarPreviewUrl(null);
+      setProfileNotice("Avatar removed.");
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : "Could not remove avatar.");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  }
+
+  const avatarSrc = avatarPreviewUrl ?? savedAvatarUrl;
 
   return (
     <SettingsCard title="Profile Details">
@@ -210,7 +289,9 @@ function ProfilePanel() {
               onChange={(e) => setFullName(e.target.value)}
               className="flex min-h-[30px] flex-1 items-center rounded-[6px] bg-[#F5F5F5] px-[12px] py-[8px] text-[12px] font-medium leading-none text-[#0A0A0A] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none"
             />
-            <SaveButton />
+            <SaveButton onClick={saveProfile} disabled={isSavingProfile}>
+              {isSavingProfile ? "Saving" : "Save"}
+            </SaveButton>
           </div>
         </SettingsRow>
 
@@ -222,9 +303,20 @@ function ProfilePanel() {
             </p>
           </div>
           <div className="flex items-center gap-[8px]">
-            <Avatar name={fullName} size="lg" className="h-[56px] w-[56px]" />
+            <Avatar name={fullName} src={avatarSrc} size="lg" className="h-[56px] w-[56px]" />
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept={AVATAR_ACCEPT}
+              className="hidden"
+              onChange={(event) => {
+                void selectAvatarFile(event.target.files?.[0]);
+                event.currentTarget.value = "";
+              }}
+            />
             <button
               type="button"
+              onClick={() => avatarInputRef.current?.click()}
               className="inline-flex cursor-pointer items-center gap-[6px] pl-[12px] text-[12px] font-medium leading-none text-[#525252] transition-colors hover:text-[#171717]"
             >
               <SettingsIcon name="upload" className="h-[16px] w-[16px]" />
@@ -233,12 +325,18 @@ function ProfilePanel() {
             <span className="flex-1" />
             <button
               type="button"
+              onClick={() => void removeAvatar()}
+              disabled={isSavingProfile || (!avatarSrc && !avatarFile)}
               className="cursor-pointer text-[12px] font-medium leading-none text-[#EF4444] transition-colors hover:text-[#DC2626]"
             >
               Remove
             </button>
-            <SaveButton />
+            <SaveButton onClick={saveProfile} disabled={isSavingProfile}>
+              {isSavingProfile ? "Saving" : "Save"}
+            </SaveButton>
           </div>
+          {profileError ? <p className="mt-[10px] text-[12px] font-medium text-[#b91c1c]">{profileError}</p> : null}
+          {profileNotice ? <p className="mt-[10px] text-[12px] font-medium text-[#166534]">{profileNotice}</p> : null}
         </SettingsRow>
 
         <SettingsRow>
@@ -330,9 +428,11 @@ function BillingPanel() {
 }
 
 function ClientsPanel() {
+  const clientsQuery = useClientsQuery();
+  const clients = clientsQuery.data ?? [];
   const totalProjects = useMemo(
-    () => settingsSnapshot.clients.reduce((sum, client) => sum + client.projectCount, 0),
-    [],
+    () => clients.reduce((sum, client) => sum + client.projectCount, 0),
+    [clients],
   );
 
   return (
@@ -341,15 +441,29 @@ function ClientsPanel() {
         Manage clients across all your projects.
       </p>
       <div className="flex flex-col gap-[4px]">
-        {settingsSnapshot.clients.map((client) => (
+        {clientsQuery.isLoading ? (
+          <SettingsRow>
+            <p className="text-[12px] font-normal leading-[1.5] text-[#737373]">
+              Loading clients...
+            </p>
+          </SettingsRow>
+        ) : null}
+        {!clientsQuery.isLoading && clients.length === 0 ? (
+          <SettingsRow>
+            <p className="text-[12px] font-normal leading-[1.5] text-[#737373]">
+              No clients yet. Create a project with a client to see them here.
+            </p>
+          </SettingsRow>
+        ) : null}
+        {clients.map((client) => (
           <SettingsRow key={client.id}>
             <div className="flex items-center justify-between gap-[18px]">
               <div className="flex flex-col gap-[12px]">
                 <div className="flex items-center gap-[12px]">
-                  <Avatar name={client.name} size="md" />
+                  <Avatar name={client.name} src={client.avatarUrl} size="md" />
                   <div>
                     <h3 className="text-[13px] font-medium leading-[1.5] text-[#0A0A0A]">{client.name}</h3>
-                    <p className="text-[12px] font-normal leading-[1.5] text-[#404040]">{client.email}</p>
+                    <p className="text-[12px] font-normal leading-[1.5] text-[#404040]">{client.email ?? "No email"}</p>
                   </div>
                 </div>
                 <p className="text-[12px] font-normal leading-[1.5] text-[#737373]">
@@ -363,7 +477,7 @@ function ClientsPanel() {
           </SettingsRow>
         ))}
         <div className="px-[20px] py-[6px] text-[13px] text-[#525252]">
-          <span className="font-medium text-[#0A0A0A]">{totalProjects}</span> Projects <span className="px-[16px] text-[#A3A3A3]">•</span> <span className="font-medium text-[#0A0A0A]">{settingsSnapshot.clients.length}</span> Clients
+          <span className="font-medium text-[#0A0A0A]">{totalProjects}</span> Projects <span className="px-[16px] text-[#A3A3A3]">•</span> <span className="font-medium text-[#0A0A0A]">{clients.length}</span> Clients
         </div>
       </div>
     </SettingsCard>
@@ -498,7 +612,7 @@ function AccountPanel() {
               disabled={authStatus === "opening" || authStatus === "checking"}
               className="rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-[12px] py-[8px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Log in with Stage
+              {authStatus === "connected" ? "Refresh session" : "Log in with Stage"}
             </button>
           </div>
         </SettingsRow>
