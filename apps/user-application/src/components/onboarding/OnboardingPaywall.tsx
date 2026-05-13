@@ -4,7 +4,7 @@ import stageLogo from "@/assets/logos/stage-logo-light.png";
 export type BillingCycle = "monthly" | "yearly";
 
 export const FREE_FEATURES = [
-  "Up to 3 projects",
+  "1 project included",
   "Task management",
   "Client portal (Stage branding)",
 ];

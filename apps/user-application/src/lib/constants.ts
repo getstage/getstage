@@ -325,7 +325,7 @@ export const FAQ_ITEMS = [
   {
     question: "Is it really free to get started?",
     answer:
-      "Yes! Stage offers a generous free tier that lets you manage up to 3 projects with all core features included. No credit card required, no time limits.",
+      "Yes! Stage offers a free tier that lets you manage your first project with all core features included. No credit card required, no time limits.",
   },
   {
     question: "Do I need a credit card to sign up?",
@@ -340,7 +340,7 @@ export const FAQ_ITEMS = [
   {
     question: "Do you have a free trial?",
     answer:
-      "We don't have a traditional trial because our free tier is already generous. You can use Stage for free with up to 3 projects, forever. Upgrade to Pro when you need more.",
+      "We don't have a traditional trial because your first project is already included on the free tier. Upgrade to Pro when you need to create more projects.",
   },
   {
     question: "How does Stripe integration work?",

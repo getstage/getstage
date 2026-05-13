@@ -1,20 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import type { OnboardingStepId, OnboardingSubmission } from "@/features/onboarding/model";
-import { useProjectsQuery, useSettingsOverviewQuery } from "@/hooks/desktop-api";
+import {
+  useOnboardingStateQuery,
+  useProjectsQuery,
+  useSettingsOverviewQuery,
+} from "@/hooks/desktop-api";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { desktopSessionQueryKey } from "@/lib/desktopSession";
 
 /**
- * Product-tier gate for authenticated desktop users: opens onboarding/paywall when
- * not Pro. Lives beside Convex-backed queries (`useProjectsQuery`,
- * `useSettingsOverviewQuery`); session uses React Query + `desktopSessionQueryKey`
- * so it stays aligned with router invalidation on `onSessionChanged`.
+ * Product-tier gate for authenticated desktop users. The welcome flow is only for
+ * free workspaces without projects; any free workspace that already has one or more
+ * projects gets pushed to the paywall instead.
  */
 export function useNonProOnboardingGate() {
   const desktop = useDesktopBridge();
   const projectsQuery = useProjectsQuery();
   const settingsOverviewQuery = useSettingsOverviewQuery();
+  const onboardingStateQuery = useOnboardingStateQuery();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [onboardingInitialStep, setOnboardingInitialStep] = useState<OnboardingStepId>("welcome");
 
@@ -30,19 +34,35 @@ export function useNonProOnboardingGate() {
       return;
     }
 
-    if (projectsQuery.isLoading || settingsOverviewQuery.isLoading) {
+    if (
+      projectsQuery.isLoading ||
+      settingsOverviewQuery.isLoading ||
+      onboardingStateQuery.isLoading
+    ) {
       return;
     }
 
-    const hasProjects = (projectsQuery.data?.length ?? 0) > 0;
+    const projectCount = projectsQuery.data?.length ?? 0;
     const isPro = settingsOverviewQuery.data?.profile.plan === "pro";
+    const isOnboardingCompleted = onboardingStateQuery.data?.isCompleted ?? false;
 
     if (isPro) {
       setOnboardingOpen(false);
       return;
     }
 
-    setOnboardingInitialStep(hasProjects ? "paywall" : "welcome");
+    if (projectCount >= 1) {
+      setOnboardingInitialStep("paywall");
+      setOnboardingOpen(true);
+      return;
+    }
+
+    if (isOnboardingCompleted) {
+      setOnboardingOpen(false);
+      return;
+    }
+
+    setOnboardingInitialStep("welcome");
     setOnboardingOpen(true);
   }, [
     session.isLoading,
@@ -51,6 +71,8 @@ export function useNonProOnboardingGate() {
     projectsQuery.data,
     settingsOverviewQuery.isLoading,
     settingsOverviewQuery.data,
+    onboardingStateQuery.isLoading,
+    onboardingStateQuery.data,
   ]);
 
   const onOnboardingComplete = useCallback((_submission: OnboardingSubmission) => {
