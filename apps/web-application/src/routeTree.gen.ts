@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OpenclawRouteImport } from './routes/openclaw'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -30,6 +32,16 @@ import { Route as PortalTokenTaskTaskIdRouteImport } from './routes/portal.$toke
 import { Route as AuthedProjectIdStitchRouteImport } from './routes/_authed/project.$id.stitch'
 import { Route as AuthedProjectIdTaskTaskIdRouteImport } from './routes/_authed/project.$id.task.$taskId'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OpenclawRoute = OpenclawRouteImport.update({
   id: '/openclaw',
   path: '/openclaw',
@@ -138,6 +150,8 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/docs': typeof DocsRoute
   '/openclaw': typeof OpenclawRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
   '/settings': typeof AuthedSettingsRoute
@@ -158,6 +172,8 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/docs': typeof DocsRoute
   '/openclaw': typeof OpenclawRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/new-project': typeof AuthedNewProjectRoute
   '/settings': typeof AuthedSettingsRoute
@@ -181,6 +197,8 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/docs': typeof DocsRoute
   '/openclaw': typeof OpenclawRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/new-project': typeof AuthedNewProjectRoute
   '/_authed/settings': typeof AuthedSettingsRoute
@@ -204,6 +222,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/docs'
     | '/openclaw'
+    | '/privacy'
+    | '/terms'
     | '/dashboard'
     | '/new-project'
     | '/settings'
@@ -224,6 +244,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/docs'
     | '/openclaw'
+    | '/privacy'
+    | '/terms'
     | '/dashboard'
     | '/new-project'
     | '/settings'
@@ -246,6 +268,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/docs'
     | '/openclaw'
+    | '/privacy'
+    | '/terms'
     | '/_authed/dashboard'
     | '/_authed/new-project'
     | '/_authed/settings'
@@ -269,12 +293,28 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   DocsRoute: typeof DocsRoute
   OpenclawRoute: typeof OpenclawRoute
+  PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
   HelpImportTransactionsViaGoogleSheetsRoute: typeof HelpImportTransactionsViaGoogleSheetsRoute
   PortalTokenRoute: typeof PortalTokenRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/openclaw': {
       id: '/openclaw'
       path: '/openclaw'
@@ -495,6 +535,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   DocsRoute: DocsRoute,
   OpenclawRoute: OpenclawRoute,
+  PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
   HelpImportTransactionsViaGoogleSheetsRoute:
     HelpImportTransactionsViaGoogleSheetsRoute,
   PortalTokenRoute: PortalTokenRouteWithChildren,
