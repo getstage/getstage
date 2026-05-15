@@ -65,6 +65,41 @@ function isDemoAuthEnabled() {
   return isDemoAuthEnabledForHostname(siteHostname);
 }
 
+function getSiteHostname() {
+  return getHostnameFromUrl(getEnv("SITE_URL")) ?? getHostnameFromUrl(getEnv("CONVEX_SITE_URL"));
+}
+
+function getNormalizedEmailAllowlist(name: string) {
+  const raw = getEnv(name);
+  if (!raw) {
+    return new Set<string>();
+  }
+
+  return new Set(
+    raw
+      .split(",")
+      .map((value) => normalizeEmailAddress(value))
+      .filter(Boolean),
+  );
+}
+
+function shouldGrantReviewerPro(normalizedEmail?: string) {
+  const siteHostname = getSiteHostname();
+  if (siteHostname !== "testing.getstage.co") {
+    return false;
+  }
+
+  if (getEnv("ENABLE_TESTING_DEFAULT_PRO") === "true") {
+    return true;
+  }
+
+  if (!normalizedEmail) {
+    return false;
+  }
+
+  return getNormalizedEmailAllowlist("TESTING_PRO_EMAIL_ALLOWLIST").has(normalizedEmail);
+}
+
 type AuthProfile = {
   email?: string;
   phone?: string;
@@ -200,6 +235,7 @@ function applyUserDefaults(args: {
   timestamp: number;
 }) {
   const nextData = { ...args.data };
+  const reviewerProEnabled = shouldGrantReviewerPro(args.normalizedEmail);
 
   if (args.existingUser?.createdAt === undefined && nextData.createdAt === undefined) {
     nextData.createdAt = args.timestamp;
@@ -207,6 +243,10 @@ function applyUserDefaults(args: {
 
   if (args.existingUser?.role === undefined && nextData.role === undefined) {
     nextData.role = "freelancer";
+  }
+
+  if (reviewerProEnabled) {
+    nextData.plan = "pro";
   }
 
   if (args.existingUser?.plan === undefined && nextData.plan === undefined) {

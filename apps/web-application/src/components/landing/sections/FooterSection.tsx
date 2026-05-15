@@ -8,9 +8,9 @@ export function FooterSection() {
         <div className="landing-footer-shell">
           <div className="landing-footer-grid">
             <div className="landing-footer-brand">
-              <a href="#" className="landing-footer-logo">
+              <Link to="/" className="landing-footer-logo">
                 <img src={stageLogo} alt="Stage" />
-              </a>
+              </Link>
               <div className="landing-footer-brand-desc">
                 Plan phases, share progress, and keep payments in view from one calm workspace.
               </div>
@@ -20,10 +20,10 @@ export function FooterSection() {
             </div>
             <div>
               <div className="landing-footer-col-title">Product</div>
-              <a href="#features" className="landing-footer-link">
+              <a href="/#features" className="landing-footer-link">
                 Features
               </a>
-              <a href="#pricing" className="landing-footer-link">
+              <a href="/#pricing" className="landing-footer-link">
                 Pricing
               </a>
               <Link to="/agents" className="landing-footer-link">
@@ -47,37 +47,37 @@ export function FooterSection() {
             </div>
             <div>
               <div className="landing-footer-col-title">Company</div>
-              <a href="#" className="landing-footer-link">
+              <a href="/#features" className="landing-footer-link">
                 About
               </a>
-              <a href="#" className="landing-footer-link">
+              <a href="/#faq" className="landing-footer-link">
                 Blog
               </a>
-              <a href="#" className="landing-footer-link">
+              <a href="mailto:support@getstage.co" className="landing-footer-link">
                 Contact
               </a>
             </div>
             <div>
               <div className="landing-footer-col-title">Legal</div>
-              <a href="#" className="landing-footer-link">
+              <Link to="/terms" className="landing-footer-link">
                 Terms
-              </a>
-              <a href="#" className="landing-footer-link">
+              </Link>
+              <Link to="/privacy" className="landing-footer-link">
                 Privacy
-              </a>
+              </Link>
             </div>
           </div>
 
           <div className="landing-footer-bottom">
             <span>© 2026 Stage</span>
             <div className="landing-footer-bottom-links">
-              <a href="#features" className="landing-footer-bottom-link">
+              <a href="/#features" className="landing-footer-bottom-link">
                 Features
               </a>
-              <a href="#faq" className="landing-footer-bottom-link">
+              <a href="/#faq" className="landing-footer-bottom-link">
                 FAQ
               </a>
-              <a href="#pricing" className="landing-footer-bottom-link">
+              <a href="/#pricing" className="landing-footer-bottom-link">
                 Pricing
               </a>
               <Link to="/agents" className="landing-footer-bottom-link">

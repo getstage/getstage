@@ -27,6 +27,14 @@ type TokenPayload = {
 };
 
 const internalApi = internal as any;
+const FIGMA_OAUTH_SCOPES = [
+  "current_user:read",
+  "file_content:read",
+  "file_metadata:read",
+  "file_dev_resources:read",
+  "file_dev_resources:write",
+] as const;
+const FIGMA_OAUTH_SCOPE_STRING = FIGMA_OAUTH_SCOPES.join(" ");
 
 function now() {
   return Date.now();
@@ -42,6 +50,18 @@ function requireEnv(name: string) {
   const value = getEnv(name);
   if (!value) {
     throw new Error(`${name} is not configured.`);
+  }
+  return value;
+}
+
+function getSiteUrl() {
+  return (getEnv("SITE_URL") ?? getEnv("CONVEX_SITE_URL") ?? "").replace(/\/$/, "");
+}
+
+function requireSiteUrl() {
+  const value = getSiteUrl();
+  if (!value) {
+    throw new Error("SITE_URL or CONVEX_SITE_URL must be configured.");
   }
   return value;
 }
@@ -86,7 +106,7 @@ function buildSettingsRedirect(
   status: "connected" | "error",
   reason?: string,
 ) {
-  const url = new URL("/settings", requireEnv("CONVEX_SITE_URL"));
+  const url = new URL("/settings", requireSiteUrl());
   url.searchParams.set("tab", "integrations");
   url.searchParams.set("integration", provider);
   url.searchParams.set("integration_status", status);
@@ -333,7 +353,7 @@ export const startOAuthConnect = action({
     const url = new URL("https://www.figma.com/oauth");
     url.searchParams.set("client_id", requireEnv("FIGMA_CLIENT_ID"));
     url.searchParams.set("redirect_uri", getCallbackUrl("figma"));
-    url.searchParams.set("scope", "current_user:read file_content:read file_metadata:read file_dev_resources:read file_dev_resources:write");
+    url.searchParams.set("scope", FIGMA_OAUTH_SCOPE_STRING);
     url.searchParams.set("state", oauthState);
     url.searchParams.set("response_type", "code");
     url.searchParams.set("code_challenge", pkce.challenge);
@@ -578,13 +598,7 @@ async function handleProviderCallback(
         accessTokenExpiresAt: tokenResponse.expires_in
           ? completedAt + tokenResponse.expires_in * 1000
           : undefined,
-        scopes: [
-          "current_user:read",
-          "file_content:read",
-          "file_metadata:read",
-          "file_dev_resources:read",
-          "file_dev_resources:write",
-        ],
+        scopes: [...FIGMA_OAUTH_SCOPES],
         completedAt,
       });
     }

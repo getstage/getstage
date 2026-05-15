@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   useAction as useConvexAction,
   useConvexAuth,
@@ -23,7 +22,6 @@ import {
   trackDatafastGoalOnce,
 } from "@/lib/datafast";
 import { isProjectUpgradeRequiredError, toUserFacingErrorMessage } from "@/lib/errors";
-import { convexQueryKeys } from "@/lib/queryKeys";
 import { googleSheetsUrlSchema } from "@/lib/validation";
 import type { ClaudeConnectionSummary } from "@/types/settings";
 import type { ProjectType } from "@/types";
@@ -41,7 +39,6 @@ export function useOnboardingController({
   initialStep,
   onComplete,
 }: UseOnboardingControllerInput) {
-  const queryClient = useQueryClient();
   const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
   const [step, setStep] = useState<OnboardingStepId>("welcome");
   const [isClosing, setIsClosing] = useState(false);
@@ -193,7 +190,6 @@ export function useOnboardingController({
             syncMetadata: r2SyncMetadata,
             aiRoadmaps: AI_ROADMAPS,
           });
-          void queryClient.invalidateQueries({ queryKey: convexQueryKeys.dockProjects });
           await markProjectCreated({});
           trackDatafastGoalOnce("first_project_created", "first_project_created", {
             source: "onboarding_creation",
@@ -281,6 +277,18 @@ export function useOnboardingController({
     }
 
     setIsClosing(true);
+    if (completionTimeoutRef.current !== null) {
+      window.clearTimeout(completionTimeoutRef.current);
+    }
+
+    if (isConvexAuthenticated) {
+      void completeOnboarding({
+        workCategory: submission.fieldOfWork,
+      }).catch(() => {
+        // Best-effort persistence so the gate does not reopen the welcome flow.
+      });
+    }
+
     completionTimeoutRef.current = window.setTimeout(() => {
       onComplete(submission);
     }, 720);
@@ -364,7 +372,7 @@ export function useOnboardingController({
     if (!pendingSubmission) {
       setPendingSubmission(submission);
     }
-    completeWithSubmission(submission);
+    setStep("celebrating");
   }
 
   async function handlePaywallUpgrade(billingCycle: "monthly" | "yearly") {

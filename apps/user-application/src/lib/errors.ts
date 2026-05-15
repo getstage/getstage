@@ -97,7 +97,7 @@ export function toUserFacingErrorMessage(error: unknown, fallback: string): stri
   }
 
   if (PROJECT_UPGRADE_REQUIRED_PATTERN.test(message)) {
-    return "You've reached the 3-project limit on the Free plan. Upgrade to Pro to create another project.";
+    return "You've reached the 1-project limit on the Free plan. Upgrade to Pro to create another project.";
   }
 
   if (isUnsafeUserMessage(message)) {

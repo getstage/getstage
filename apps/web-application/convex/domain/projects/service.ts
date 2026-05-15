@@ -23,6 +23,7 @@ import {
   buildApiTaskDetail,
   buildApiTaskSummary,
 } from "./apiReadModel";
+import { assertProjectCreationAllowed } from "./entitlement";
 import { buildProject, recomputeProjectState } from "./readModel";
 
 type ReaderCtx = QueryCtx | MutationCtx;
@@ -266,9 +267,10 @@ export async function createProjectForUser(
     .withIndex("by_user", (q) => q.eq("userId", user._id))
     .collect();
 
-  if (plan !== "pro" && existingProjects.length > 0) {
-    throw new Error("Upgrade to Pro to create more projects.");
-  }
+  assertProjectCreationAllowed({
+    plan,
+    projectCount: existingProjects.length,
+  });
 
   const existingClient = await getClientByUserAndName(ctx, {
     userId: user._id,
