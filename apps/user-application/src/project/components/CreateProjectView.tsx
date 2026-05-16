@@ -45,10 +45,17 @@ const basicDetailsFormSchema = z.object({
   projectName: z.string().trim().min(1, "Project name is required."),
 });
 
-const clientDetailsFormSchema = z.object({
-  clientName: z.string().trim().min(1, "Client name is required."),
-  clientEmail: z.string().trim().min(1, "Client email is required.").email("Enter a valid client email."),
-});
+const clientDetailsFormSchema = z
+  .object({
+    clientMode: z.enum(["new", "existing"]),
+    clientName: z.string().trim().min(1, "Client name is required."),
+    clientEmail: z.string().trim().min(1, "Client email is required.").email("Enter a valid client email."),
+    hasClientPhoto: z.boolean(),
+  })
+  .refine((value) => value.clientMode === "existing" || value.hasClientPhoto, {
+    path: ["hasClientPhoto"],
+    message: "Upload a client photo to continue.",
+  });
 
 const timelineFormSchema = z
   .object({
@@ -176,7 +183,12 @@ export function CreateProjectView() {
   }
 
   function continueFromClientDetails() {
-    const result = clientDetailsFormSchema.safeParse({ clientName, clientEmail });
+    const result = clientDetailsFormSchema.safeParse({
+      clientMode,
+      clientName,
+      clientEmail,
+      hasClientPhoto: Boolean(clientPhoto),
+    });
     const error = getFirstZodError(result);
     setClientDetailsError(error);
     if (error) return;
@@ -325,7 +337,10 @@ export function CreateProjectView() {
                   setClientMode("new");
                   setClientDetailsError(null);
                 }}
-                onClientPhotoChange={setClientPhoto}
+                onClientPhotoChange={(file) => {
+                  setClientPhoto(file);
+                  setClientDetailsError(null);
+                }}
                 onPickClientPhoto={() => clientPhotoInputRef.current?.click()}
                 onContinue={continueFromClientDetails}
                 inputRef={clientPhotoInputRef}
@@ -561,7 +576,12 @@ function ClientDetailsStep({
   onContinue: () => void;
   inputRef: RefObject<HTMLInputElement | null>;
 }) {
-  const canContinue = clientDetailsFormSchema.safeParse({ clientName, clientEmail }).success;
+  const canContinue = clientDetailsFormSchema.safeParse({
+    clientMode,
+    clientName,
+    clientEmail,
+    hasClientPhoto: Boolean(clientPhoto),
+  }).success;
 
   return (
     <CreateProjectStepShell
