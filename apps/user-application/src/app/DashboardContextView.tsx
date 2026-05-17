@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ActivityTimelineChart } from "../dashboard/components/ActivityTimelineChart";
 import { DashboardHeader, type DashboardPeriod } from "../dashboard/components/DashboardHeader";
@@ -67,6 +68,7 @@ function isInPeriod(timestamp: number | undefined, period: DashboardPeriod) {
 }
 
 export function DashboardContextView() {
+  const navigate = useNavigate();
   const desktop = useDesktopBridge();
   const engineStatus = useEngineStatus();
   const selectedProject = useSelectedProjectContext();
@@ -101,6 +103,10 @@ export function DashboardContextView() {
   const timelineProjects = projectsQuery.data?.length
     ? buildSidebarProjectsFromSummaries(projectsQuery.data)
     : buildSidebarProjectsFromProjectContext(selectedProjectContext);
+  const hasNoProjects =
+    !projectsQuery.isLoading &&
+    !projectsQuery.error &&
+    (projectsQuery.data?.length ?? 0) === 0;
   const engineState = engineStatus.data?.state ?? "starting";
   const engineStatusLabel =
     engineState === "ready"
@@ -131,12 +137,18 @@ export function DashboardContextView() {
           />
           <MetricGrid metrics={dashboardMetrics} />
         </div>
-        <ActivityTimelineChart
-          points={dashboardChart}
-          projects={timelineProjects}
-          tasks={[...periodDashboardTasks.upcomingTasks, ...periodDashboardTasks.recentActivity]}
-          period={selectedPeriod}
-        />
+        {hasNoProjects ? (
+          <DashboardEmptyProjectsCta
+            onCreateProject={() => void navigate({ to: "/projects/create" })}
+          />
+        ) : (
+          <ActivityTimelineChart
+            points={dashboardChart}
+            projects={timelineProjects}
+            tasks={[...periodDashboardTasks.upcomingTasks, ...periodDashboardTasks.recentActivity]}
+            period={selectedPeriod}
+          />
+        )}
 
         <div className="overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[2px]">
           <div className="grid grid-cols-1 gap-[2px] xl:grid-cols-2">
@@ -148,5 +160,51 @@ export function DashboardContextView() {
         </div>
       </div>
     </div>
+  );
+}
+
+function DashboardEmptyProjectsCta({
+  onCreateProject,
+}: {
+  onCreateProject: () => void;
+}) {
+  return (
+    <section className="flex min-h-[394px] min-w-[360px] items-center justify-center rounded-[12px] bg-[#f5f5f5] p-[4px] shadow-[0px_0.45px_0.5px_rgba(10,10,10,0.25)]">
+      <div className="flex min-h-[386px] w-full flex-col items-center justify-center rounded-[8px] bg-white px-[24px] py-[44px] text-center shadow-[0px_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="flex h-[44px] w-[44px] items-center justify-center rounded-[8px] bg-[#f5f5f5] shadow-[0px_0.45px_1px_rgba(10,10,10,0.25)]">
+          <img
+            src="/logos/dashboard/projects.svg"
+            alt=""
+            aria-hidden="true"
+            className="h-[20px] w-[20px]"
+          />
+        </div>
+
+        <div className="mt-[18px] flex max-w-[360px] flex-col items-center gap-[8px]">
+          <h2 className="text-[18px] font-semibold leading-[1.2] text-[#0a0a0a]">
+            Create your first project
+          </h2>
+          <p className="text-[13px] font-medium leading-[1.5] text-[#737373]">
+            Set up a project to start tracking tasks, activity, and progress from your dashboard.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onCreateProject}
+          className="mt-[24px] inline-flex h-[35px] cursor-pointer items-center justify-center gap-[6px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#fafafa] shadow-[0px_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+        >
+          <img
+            src="/logos/dashboard/plus.svg"
+            alt=""
+            aria-hidden="true"
+            className="h-[14px] w-[14px] brightness-0 invert"
+          />
+          <span className="whitespace-nowrap [text-shadow:0px_0.5px_1.5px_rgba(0,0,0,0.15)]">
+            Create Project
+          </span>
+        </button>
+      </div>
+    </section>
   );
 }
