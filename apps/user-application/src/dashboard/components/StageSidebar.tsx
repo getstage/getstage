@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { RefObject } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import type { DashboardProject } from "../models/dashboard";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
@@ -33,8 +34,11 @@ export function StageSidebar({
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isCompactSearchOpen, setIsCompactSearchOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const compactSearchRef = useRef<HTMLDivElement | null>(null);
+  const compactSearchInputRef = useRef<HTMLInputElement | null>(null);
   const searchRef = useRef<HTMLDivElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
@@ -63,6 +67,7 @@ export function StageSidebar({
       .slice(0, 5);
   }, [normalizedSearchQuery, projects]);
   const showSearchPreview = !collapsed && isSearchFocused && normalizedSearchQuery.length > 0;
+  const compactSearchProjects = normalizedSearchQuery ? matchingProjects : projects.slice(0, 5);
 
   function getActiveItem(routeKey: string) {
     if (routeKey === "dashboard") return pathname === "/";
@@ -88,7 +93,15 @@ export function StageSidebar({
   function openProject(projectId: string) {
     setSearchQuery("");
     setIsSearchFocused(false);
+    setIsCompactSearchOpen(false);
     void navigate({ to: "/project/$projectId", params: { projectId } });
+  }
+
+  function viewAllProjects() {
+    setSearchQuery("");
+    setIsSearchFocused(false);
+    setIsCompactSearchOpen(false);
+    void navigate({ to: "/projects" });
   }
 
   function openSettings() {
@@ -158,6 +171,24 @@ export function StageSidebar({
     };
   }, [showSearchPreview]);
 
+  useEffect(() => {
+    if (!isCompactSearchOpen) return;
+
+    compactSearchInputRef.current?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsCompactSearchOpen(false);
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isCompactSearchOpen]);
+
   const labelClassName = cn(
     "min-w-0 overflow-hidden truncate whitespace-nowrap text-[13px] font-medium transition-[max-width,opacity] duration-200 ease-out",
     collapsed ? "max-w-0 opacity-0" : "max-w-[150px] opacity-100",
@@ -226,11 +257,18 @@ export function StageSidebar({
             {/* Search box */}
             <div ref={searchRef} className="relative w-full">
               <div
-                onClick={() => collapsed && onCollapsedChange(false)}
+                onClick={() => {
+                  if (!collapsed) return;
+                  if (canExpand) {
+                    onCollapsedChange(false);
+                    return;
+                  }
+                  setIsCompactSearchOpen(true);
+                }}
                 className={cn(
                   "flex h-[32px] items-center overflow-hidden rounded-[6px] bg-white text-[#525252] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.15)] transition-[width,padding,gap] duration-200 ease-out",
                   collapsed
-                    ? "w-[32px] justify-center gap-0 px-0"
+                    ? "w-[32px] justify-center gap-0 px-0 cursor-pointer"
                     : "w-full justify-start gap-[8px] px-[12px]",
                 )}
               >
@@ -265,10 +303,22 @@ export function StageSidebar({
                   query={searchQuery}
                   onOpenProject={openProject}
                   onViewAllProjects={() => {
-                    setSearchQuery("");
-                    setIsSearchFocused(false);
-                    void navigate({ to: "/projects" });
+                    viewAllProjects();
                   }}
+                />
+              ) : null}
+
+              {isCompactSearchOpen ? (
+                <CompactProjectSearchDialog
+                  refEl={compactSearchRef}
+                  inputRef={compactSearchInputRef}
+                  query={searchQuery}
+                  projects={compactSearchProjects}
+                  hasQuery={normalizedSearchQuery.length > 0}
+                  onQueryChange={setSearchQuery}
+                  onOpenProject={openProject}
+                  onViewAllProjects={viewAllProjects}
+                  onClose={() => setIsCompactSearchOpen(false)}
                 />
               ) : null}
             </div>
@@ -565,6 +615,93 @@ function ProjectSearchPreview({
             View all projects
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+function CompactProjectSearchDialog({
+  refEl,
+  inputRef,
+  query,
+  projects,
+  hasQuery,
+  onQueryChange,
+  onOpenProject,
+  onViewAllProjects,
+  onClose,
+}: {
+  refEl: RefObject<HTMLDivElement | null>;
+  inputRef: RefObject<HTMLInputElement | null>;
+  query: string;
+  projects: DashboardProject[];
+  hasQuery: boolean;
+  onQueryChange: (query: string) => void;
+  onOpenProject: (projectId: string) => void;
+  onViewAllProjects: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 p-[24px] backdrop-blur-[5px]"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Search projects"
+      onClick={onClose}
+    >
+      <div
+        ref={refEl}
+        className="w-full max-w-[516px] rounded-[12px] bg-[#F5F5F5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+      <div className="rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <label className="flex h-[34px] w-full items-center gap-[8px] rounded-[6px] bg-[#F5F5F5] px-[12px] text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+          <img
+            src="/logos/dashboard/search.svg"
+            alt=""
+            aria-hidden="true"
+            className="h-[15px] w-[15px] shrink-0"
+          />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(event) => onQueryChange(event.target.value)}
+            placeholder="Search projects..."
+            aria-label="Search projects"
+            className="min-w-0 flex-1 bg-transparent p-0 text-[12px] font-medium leading-[1.25] text-[#525252] outline-none placeholder:text-[#525252]"
+          />
+        </label>
+
+        <div className="mt-[8px] px-[4px] pb-[4px]">
+          <p className="truncate text-[12px] font-medium leading-[1.25] text-[#737373]">
+            {hasQuery
+              ? projects.length > 0
+                ? "Matching projects"
+                : `No projects for "${query.trim()}"`
+              : "Recent projects"}
+          </p>
+        </div>
+
+        <div className="flex max-h-[240px] flex-col gap-[2px] overflow-y-auto">
+          {projects.length > 0 ? (
+            projects.map((project) => (
+              <ProjectSearchPreviewItem
+                key={project.id}
+                project={project}
+                onOpenProject={onOpenProject}
+              />
+            ))
+          ) : (
+            <button
+              type="button"
+              onClick={onViewAllProjects}
+              className="flex h-[34px] w-full cursor-pointer items-center rounded-[6px] px-[8px] text-left text-[13px] font-medium leading-none text-[#171717] outline-none transition-colors hover:bg-[#F5F5F5]"
+            >
+              View all projects
+            </button>
+          )}
+        </div>
+      </div>
       </div>
     </div>
   );
