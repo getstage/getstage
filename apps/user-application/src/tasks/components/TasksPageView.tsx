@@ -801,10 +801,5 @@ function TaskSkeleton({ height }: { height?: number }) {
 }
 
 function ArrowLeftIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-4 w-4">
-      <path d="M10 3.5 5.5 8l4.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M6 8h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
+  return <img src="/logos/back.svg" alt="" aria-hidden="true" className="h-4 w-4 shrink-0" />;
 }

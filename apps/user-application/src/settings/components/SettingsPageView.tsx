@@ -125,22 +125,7 @@ export function SettingsPageView({
 }
 
 function ArrowLeftIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-      className="h-[16px] w-[16px] shrink-0"
-    >
-      <path
-        d="M10 4 6 8l4 4M6.5 8H13"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return <img src="/logos/back.svg" alt="" aria-hidden="true" className="h-[16px] w-[16px] shrink-0" />;
 }
 
 function SettingsTabBar({
