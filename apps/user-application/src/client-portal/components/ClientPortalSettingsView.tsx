@@ -102,7 +102,12 @@ export function ClientPortalSettingsView() {
           </div>
 
           {!overview.isLoading && !hasPortalAccess ? (
-            <PortalPaywall onStartTrial={() => void navigate({ to: "/settings/billing" })} />
+            <PortalPaywall
+              onStartTrial={() => {
+                sessionStorage.setItem("stage:subscriptions-back-label", "Back to client portal");
+                void navigate({ to: "/subscriptions" });
+              }}
+            />
           ) : null}
         </section>
       </div>
@@ -233,40 +238,48 @@ function PortalPaywall({ onStartTrial }: { onStartTrial: () => void }) {
           </p>
         </div>
         <div className="rounded-[12px] bg-[#f5f5f5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-          <div className="flex flex-col gap-[24px] rounded-[8px] bg-gradient-to-b from-white to-[rgba(158,153,248,0.05)] p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-            <p className="bg-gradient-to-r from-[#463fba] via-[rgba(70,63,186,0.75)] to-[#463fba] bg-clip-text text-[13px] font-medium text-transparent">Pro</p>
-            <div>
-              <p className="text-[19px] font-semibold leading-[1.25] text-[#171717]">$29</p>
-              <p className="mt-[2px] text-[13px] font-medium leading-[1.25] text-[#525252]">/month</p>
-            </div>
-            <div className="flex flex-col gap-[12px] text-[13px] font-medium text-[#525252]">
-              <p>Everything in Start</p>
-              <PlanFeature>Unlimited projects</PlanFeature>
-              <PlanFeature>Customizable client portal (your brand, your domain)</PlanFeature>
-              <PlanFeature>Priority support</PlanFeature>
+          <div className="flex flex-col gap-[4px]">
+            <div className="flex flex-col gap-[24px] rounded-[8px] bg-[linear-gradient(180deg,rgba(158,153,248,0.05)_0%,#ffffff_78%)] p-[12px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+              <p className="w-fit bg-gradient-to-r from-[#463fba] via-[rgba(70,63,186,0.75)] to-[#463fba] bg-clip-text text-[13px] font-medium leading-[1.5] text-transparent">
+                Pro
+              </p>
+              <div>
+                <p className="text-[19px] font-semibold leading-none text-[#171717]">$19</p>
+                <p className="mt-[4px] text-[13px] font-medium leading-none text-[#525252]">/month</p>
+              </div>
+              <div className="flex flex-col gap-[12px] text-[13px] font-medium leading-none text-[#525252]">
+                <p>Everything in Start</p>
+                <PlanFeature iconSrc="/logos/pricing/folder.svg">Unlimited projects</PlanFeature>
+                <PlanFeature iconSrc="/logos/pricing/portal.svg">Customizable client portal (your brand, your domain)</PlanFeature>
+                <PlanFeature iconSrc="/logos/pricing/priority.svg">Priority support</PlanFeature>
+              </div>
+              <button
+                type="button"
+                onClick={onStartTrial}
+                className="flex w-full items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] px-[12px] py-[10px] text-[13px] font-medium leading-none text-[#fafafa] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)]"
+              >
+                Start 14-Day Trial
+              </button>
             </div>
             <button
+              className="flex w-full items-center justify-center gap-[8px] rounded-[6px] bg-white px-[12px] py-[10px] text-[13px] font-medium leading-none text-[#737373] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#fafafa]"
               type="button"
               onClick={onStartTrial}
-              className="w-full rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] px-[12px] py-[10px] text-[13px] font-medium text-[#fafafa] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)]"
             >
-              Start 14-Day Trial
+              See All Plans
+              <ArrowRightIcon className="h-[16px] w-[16px]" />
             </button>
           </div>
-          <button className="mt-[4px] flex w-full items-center justify-center gap-[8px] rounded-[6px] bg-white py-[10px] text-[13px] font-medium text-[#737373] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]" type="button">
-            See All Plans
-            <ArrowRightIcon className="h-[16px] w-[16px]" />
-          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function PlanFeature({ children }: { children: string }) {
+function PlanFeature({ children, iconSrc }: { children: string; iconSrc: string }) {
   return (
     <div className="flex items-center gap-[8px]">
-      <BriefcaseIcon className="h-[16px] w-[16px]" />
+      <img src={iconSrc} alt="" aria-hidden="true" className="h-[16px] w-[16px] shrink-0" />
       <span>{children}</span>
     </div>
   );
@@ -298,8 +311,4 @@ function ChevronDownIcon({ className }: { className?: string }) {
 
 function CheckIcon({ className }: { className?: string }) {
   return <svg className={className} viewBox="0 0 12 12" fill="none"><path d="M2.5 6 5 8.5 9.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
-}
-
-function BriefcaseIcon({ className }: { className?: string }) {
-  return <svg className={className} viewBox="0 0 16 16" fill="none"><path d="M5.5 5V4A1.5 1.5 0 0 1 7 2.5h2A1.5 1.5 0 0 1 10.5 4v1M3 5.5h10v7H3zM3 8h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }

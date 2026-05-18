@@ -376,6 +376,7 @@ function ProfilePanel() {
 }
 
 function BillingPanel() {
+  const navigate = useNavigate();
   const { billing } = settingsSnapshot;
 
   return (
@@ -402,7 +403,14 @@ function BillingPanel() {
                 </div>
               </div>
             </div>
-            <button type="button" className="rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-[12px] py-[8px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)]">
+            <button
+              type="button"
+              onClick={() => {
+                sessionStorage.setItem("stage:subscriptions-back-label", "Back to billing");
+                void navigate({ to: "/subscriptions" });
+              }}
+              className="rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-[12px] py-[8px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)]"
+            >
               Upgrade to Team Plan
             </button>
           </div>

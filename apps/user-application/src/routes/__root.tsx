@@ -61,7 +61,7 @@ function RootLayout() {
   ]);
 
   return (
-    <DesktopShell>
+    <DesktopShell hideCompanion={location.pathname === "/subscriptions"}>
       <Outlet />
     </DesktopShell>
   );

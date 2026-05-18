@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 
 export type BillingCycle = "monthly" | "yearly";
@@ -113,7 +113,8 @@ export function OnboardingPaywall({
   isUpgradeLoading,
   upgradeError,
 }: OnboardingPaywallProps) {
-  const [showAllPlans, setShowAllPlans] = useState(false);
+  const navigate = useNavigate();
+  const showAllPlans = false;
 
   if (showAllPlans) {
     return (
@@ -264,7 +265,10 @@ export function OnboardingPaywall({
 
         <button
           type="button"
-          onClick={() => setShowAllPlans(true)}
+          onClick={() => {
+            sessionStorage.setItem("stage:subscriptions-back-label", "Back to onboarding");
+            void navigate({ to: "/subscriptions" });
+          }}
           className="mt-1 inline-flex h-[40px] w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-white text-[13px] font-medium text-text-secondary shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EFEFF2] focus:outline-none"
         >
           See All Plans

@@ -11,7 +11,7 @@ import { WorkspaceFrame } from "@/app/WorkspaceFrame";
 export function AuthedWorkspaceLayout() {
   const gate = useNonProOnboardingGate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const shouldRenderChrome = pathname !== "/projects/create";
+  const shouldRenderChrome = pathname !== "/projects/create" && pathname !== "/subscriptions";
 
   return (
     <>
