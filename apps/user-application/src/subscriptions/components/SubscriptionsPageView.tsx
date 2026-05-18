@@ -54,8 +54,8 @@ export function SubscriptionsPageView() {
 
   return (
     <div className="flex h-dvh w-full min-w-0 overflow-hidden bg-white">
-      <div className="flex h-full w-full min-w-0 flex-col items-center overflow-auto px-[clamp(16px,5vw,72px)] py-[clamp(18px,4vw,44px)]">
-        <div className="flex min-h-full w-full max-w-[1100px] flex-col justify-center gap-[32px]">
+      <div className="flex h-full w-full min-w-0 flex-col items-center overflow-auto px-[clamp(10px,3vw,56px)] pb-[clamp(18px,3vw,40px)] pt-[64px] min-[900px]:py-[clamp(14px,3vw,40px)]">
+        <div className="flex w-full max-w-[1098px] flex-col gap-[clamp(18px,3vw,32px)] min-[900px]:min-h-full min-[900px]:justify-center">
           <div className="flex w-full flex-col gap-[32px]">
             <button
               type="button"
@@ -83,7 +83,7 @@ export function SubscriptionsPageView() {
           </div>
 
           <section className="mx-auto w-full rounded-[12px] bg-[#f5f5f5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-            <div className="grid grid-cols-1 gap-[4px] min-[1160px]:grid-cols-3">
+            <div className="flex flex-col gap-[4px] min-[900px]:flex-row">
               <PlanCard
                 name="Start"
                 price={9}
@@ -148,6 +148,7 @@ function PlanCard({
   popular = false,
   primary = false,
   seatControl,
+  className,
 }: {
   name: string;
   price: number;
@@ -159,14 +160,14 @@ function PlanCard({
   popular?: boolean;
   primary?: boolean;
   seatControl?: ReactNode;
+  className?: string;
 }) {
   return (
     <article
-      className={
-        primary
-          ? "flex min-h-[429px] flex-col gap-[24px] rounded-[8px] bg-[linear-gradient(180deg,rgba(158,153,248,0.09)_0%,rgba(158,153,248,0.045)_16%,#ffffff_44%)] p-[12px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
-          : "flex min-h-[429px] flex-col gap-[24px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
-      }
+      className={`${primary
+        ? "flex w-full flex-col gap-[24px] rounded-[8px] bg-[linear-gradient(180deg,rgba(158,153,248,0.09)_0%,rgba(158,153,248,0.045)_16%,#ffffff_44%)] p-[12px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] min-[900px]:min-h-[429px] min-[900px]:min-w-0 min-[900px]:flex-1"
+        : "flex w-full flex-col gap-[24px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] min-[900px]:min-h-[429px] min-[900px]:min-w-0 min-[900px]:flex-1"
+      } ${className ?? ""}`}
     >
       <div className="flex items-center justify-between gap-[16px]">
         <p className={primary ? "bg-gradient-to-r from-[#463fba] via-[rgba(70,63,186,0.75)] to-[#463fba] bg-clip-text text-[13px] font-medium leading-[1.5] text-transparent" : "text-[13px] font-medium leading-[1.5] text-[#0a0a0a]"}>
