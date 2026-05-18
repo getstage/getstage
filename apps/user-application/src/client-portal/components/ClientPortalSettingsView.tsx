@@ -104,6 +104,9 @@ export function ClientPortalSettingsView() {
           {!overview.isLoading && !hasPortalAccess ? (
             <PortalPaywall
               onStartTrial={() => {
+                void navigate({ to: "/settings/billing" });
+              }}
+              onSeeAllPlans={() => {
                 sessionStorage.setItem("stage:subscriptions-back-label", "Back to client portal");
                 void navigate({ to: "/subscriptions" });
               }}
@@ -227,7 +230,13 @@ function DomainCard() {
   );
 }
 
-function PortalPaywall({ onStartTrial }: { onStartTrial: () => void }) {
+function PortalPaywall({
+  onStartTrial,
+  onSeeAllPlans,
+}: {
+  onStartTrial: () => void;
+  onSeeAllPlans: () => void;
+}) {
   return (
     <div className="absolute inset-x-[4px] top-[64px] flex min-h-[calc(100%-68px)] items-start justify-center rounded-[8px] bg-white/25 px-[clamp(14px,4vw,24px)] pt-[clamp(56px,10vw,112px)] backdrop-blur-[12.5px]">
       <div className="flex w-full max-w-[516px] flex-col gap-[24px]">
@@ -258,13 +267,13 @@ function PortalPaywall({ onStartTrial }: { onStartTrial: () => void }) {
                 onClick={onStartTrial}
                 className="flex w-full items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] px-[12px] py-[10px] text-[13px] font-medium leading-none text-[#fafafa] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)]"
               >
-                Start 14-Day Trial
+                Start 7-Day Trial
               </button>
             </div>
             <button
               className="flex w-full items-center justify-center gap-[8px] rounded-[6px] bg-white px-[12px] py-[10px] text-[13px] font-medium leading-none text-[#737373] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#fafafa]"
               type="button"
-              onClick={onStartTrial}
+              onClick={onSeeAllPlans}
             >
               See All Plans
               <ArrowRightIcon className="h-[16px] w-[16px]" />
