@@ -12,7 +12,7 @@ export function useDashboardPreviewState({
   previewEligible: boolean;
   onboardingCompleted?: boolean;
 }) {
-  const [previewStage, setPreviewStage] = useState<PreviewStage>("onboarding");
+  const [previewStage, setPreviewStage] = useState<PreviewStage>("paywall");
   const previewStorageKey = userId ? `${ONBOARDING_STORAGE_KEY}:${userId}` : null;
 
   useEffect(() => {
@@ -21,9 +21,9 @@ export function useDashboardPreviewState({
     }
 
     const savedStage = window.localStorage.getItem(previewStorageKey);
-    const defaultStage: PreviewStage = onboardingCompleted ? "paywall" : "onboarding";
+    const defaultStage: PreviewStage = "paywall";
     if (savedStage === "onboarding" || savedStage === "paywall" || savedStage === "preview") {
-      setPreviewStage(onboardingCompleted ? "paywall" : savedStage);
+      setPreviewStage(savedStage === "preview" && !onboardingCompleted ? "preview" : "paywall");
       return;
     }
 

@@ -17,10 +17,6 @@ import { PipelineCard } from "@/components/dashboard/PipelineCard";
 import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
 import { Timeline, type TimelineHorizon } from "@/components/dashboard/Timeline";
 import { UpcomingTasksCard } from "@/components/dashboard/UpcomingTasksCard";
-import {
-  OnboardingModal,
-  type OnboardingSubmission,
-} from "@/components/onboarding/OnboardingModal";
 import { UpgradePaywallModal } from "@/components/onboarding/UpgradePaywallModal";
 import {
   buildDashboardMetrics,
@@ -62,7 +58,6 @@ export function DashboardPage() {
     api.onboarding.getState,
     shouldLoadOnboardingState ? {} : "skip",
   );
-  const completeOnboarding = useConvexMutation(api.onboarding.completeOnboarding);
   const markProjectCreated = useConvexMutation(api.onboarding.markProjectCreated);
   const createProject = useConvexMutation(api.projects.create);
   const createCheckoutSession = useConvexAction(api.billing.createCheckoutSession);
@@ -152,22 +147,6 @@ export function DashboardPage() {
     setPreviewStage("paywall");
   };
 
-  const handleOnboardingComplete = async (submission: OnboardingSubmission) => {
-    try {
-      await completeOnboarding({
-        workCategory: submission.fieldOfWork,
-      });
-      trackDatafastGoalOnce("onboarding_completed", "onboarding_completed", {
-        source: "onboarding_modal",
-        work_category: submission.fieldOfWork,
-      });
-    } catch (error) {
-      console.error("Could not persist onboarding state", error);
-    } finally {
-      setPreviewStage("paywall");
-    }
-  };
-
   const handlePaywallClose = () => {
     setPaywallError(null);
     setPreviewStage("preview");
@@ -226,14 +205,6 @@ export function DashboardPage() {
           <DashboardPreview
             greetingName={greetingName}
             onPrimaryAction={handlePreviewPrimaryAction}
-          />
-
-          <OnboardingModal
-            open={previewStage === "onboarding"}
-            userName={greetingName}
-            onComplete={(submission) => {
-              void handleOnboardingComplete(submission);
-            }}
           />
 
           <UpgradePaywallModal
