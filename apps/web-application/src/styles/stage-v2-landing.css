@@ -1438,17 +1438,384 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* Checked checkbox — white check on dark wrapper */
 .kchk-on img { filter: brightness(0) invert(1); }
 
-/* ═══ MOBILE: keep the live project view so labels stay current ════ */
+/* ═══ MOBILE: use the optimized static hero image ═══════════ */
 .happ-mobile {
   display: none;
   width: 100%;
   height: auto;
-  border-radius: 12px;
+  border-radius: 16px;
   box-shadow:
     0 1px 1px rgba(10,10,10,0.04),
-    0 24px 60px -24px rgba(70,63,186,0.22),
-    0 8px 24px -8px rgba(10,10,10,0.06);
+    0 26px 60px -24px rgba(70,63,186,0.38),
+    0 10px 26px -10px rgba(10,10,10,0.12);
 }
 @media (max-width: 880px) {
-  .happ-mobile { display: none; }
+  .happ {
+    display: none;
+  }
+
+  .happ-mobile {
+    display: block;
+  }
+}
+
+/* ═══ RESPONSIVE POLISH ═════════════════════════════════════
+   Desktop styling above remains the source of truth. These
+   overrides only tighten tablet and phone layouts. */
+@media (max-width: 1024px) {
+  .container { padding: 0 20px; }
+
+  .nav {
+    gap: 18px;
+    padding: 20px;
+  }
+
+  .nav-links {
+    gap: 22px;
+    margin-right: 12px;
+  }
+
+  .hero {
+    padding-top: 118px;
+  }
+
+  .hero-visual {
+    margin-top: 44px;
+  }
+
+  .features {
+    padding: 96px 0 72px;
+  }
+
+  .features-stack {
+    gap: 112px;
+  }
+
+  .feature {
+    gap: 48px;
+    grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  }
+
+  .feature-flip {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 300px);
+  }
+
+  .price-card {
+    padding: 18px;
+  }
+
+  .footer-col + .footer-col {
+    margin-left: 32px;
+  }
+
+  .footer-col {
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 880px) {
+  .hero {
+    padding: 112px 0 40px;
+    background: var(--surface-canvas);
+  }
+
+  .hero-grad {
+    display: none;
+  }
+
+  .hero-copy {
+    max-width: 680px;
+  }
+
+  .hero-title {
+    max-width: 620px;
+    font-size: clamp(36px, 6.2vw, 48px);
+    line-height: 1.08;
+  }
+
+  .hero-sub {
+    max-width: 520px;
+    font-size: clamp(16px, 2.4vw, 19px);
+    line-height: 1.48;
+  }
+
+  .section-title {
+    font-size: clamp(34px, 5.8vw, 46px);
+  }
+
+  .feature-title {
+    font-size: clamp(24px, 3.4vw, 30px);
+  }
+
+  .footer-headline {
+    font-size: clamp(38px, 7vw, 52px);
+    max-width: 620px;
+  }
+
+  .feature,
+  .feature-flip {
+    gap: 24px;
+    grid-template-columns: 1fr;
+  }
+
+  .feature-flip .feature-head,
+  .feature-flip .feature-visual {
+    order: initial;
+  }
+
+  .feature-sub {
+    max-width: 560px;
+  }
+
+  .demo-placeholder {
+    border-radius: 12px;
+  }
+
+  .price-grid {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .footer {
+    padding-top: 96px;
+  }
+
+  .footer-cta {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 32px;
+    padding-bottom: 96px;
+  }
+
+  .footer-cols {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 32px 24px;
+  }
+
+  .footer-brand {
+    grid-column: 1 / -1;
+    margin-right: 0;
+  }
+
+  .footer-col,
+  .footer-col + .footer-col {
+    min-width: 0;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 16px;
+  }
+
+  .nav {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .nav-links {
+    display: none;
+  }
+
+  .nav-brand {
+    min-width: 0;
+  }
+
+  .wordmark {
+    font-size: 20px;
+  }
+
+  .nav .btn-primary {
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  .hero {
+    padding: 112px 0 0;
+  }
+
+  .hero-title {
+    font-size: clamp(34px, 9.4vw, 40px);
+    line-height: 1.08;
+    margin-bottom: 14px;
+  }
+
+  .hero-sub {
+    font-size: clamp(15px, 4.2vw, 17px);
+    line-height: 1.5;
+    margin-bottom: 0;
+  }
+
+  .hero-visual {
+    margin-top: 42px;
+    padding-bottom: 28px;
+  }
+
+  .happ-mobile {
+    width: min(100%, 390px);
+    margin: 0 auto;
+  }
+
+  .logobar {
+    padding: 54px 0 40px;
+  }
+
+  .logobar-label {
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+
+  .logobar-list {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    font-size: clamp(16px, 4.4vw, 19px);
+    line-height: 1.15;
+    max-width: 340px;
+    margin: 0 auto;
+  }
+
+  .logobar-list li {
+    justify-content: center;
+    gap: 9px;
+  }
+
+  .logobar-list li img {
+    width: 22px;
+    height: 22px;
+  }
+
+  .features {
+    padding: 64px 0 48px;
+  }
+
+  .features-stack {
+    gap: 64px;
+  }
+
+  .feature-title {
+    font-size: clamp(22px, 6.4vw, 26px);
+    line-height: 1.16;
+    margin-bottom: 10px;
+  }
+
+  .feature-sub {
+    font-size: clamp(14px, 3.8vw, 15px);
+    line-height: 1.55;
+  }
+
+  .bezel-core {
+    min-height: 0;
+  }
+
+  .pricing {
+    padding: 64px 0 48px;
+  }
+
+  .section-title {
+    font-size: clamp(30px, 8.8vw, 38px);
+    line-height: 1.08;
+  }
+
+  .billing-toggle {
+    margin-top: 20px;
+  }
+
+  .bt-opt {
+    padding: 0 10px;
+  }
+
+  .price-grid {
+    max-width: none;
+  }
+
+  .price-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .price-num {
+    font-size: clamp(32px, 9vw, 36px);
+  }
+
+  .price-per,
+  .price-desc,
+  .price-feats li {
+    font-size: 13px;
+  }
+
+  .footer {
+    padding: 72px 0 44px;
+  }
+
+  .footer-cta {
+    flex-direction: column;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    gap: 24px;
+    padding-bottom: 72px;
+  }
+
+  .footer-headline {
+    font-size: clamp(32px, 9vw, 40px);
+    line-height: 1.08;
+    margin: 0 auto;
+  }
+
+  .footer-cta .btn-primary {
+    width: min(100%, 240px);
+  }
+
+  .footer-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .nav .btn-primary {
+    padding: 0 11px;
+  }
+
+  .hero-title {
+    font-size: clamp(30px, 9.2vw, 34px);
+    line-height: 1.08;
+  }
+
+  .hero-sub {
+    font-size: 14px;
+  }
+
+  .section-title {
+    font-size: 29px;
+  }
+
+  .feature-title {
+    font-size: 21px;
+  }
+
+  .footer-headline {
+    font-size: 30px;
+  }
+
+  .billing-toggle {
+    width: 100%;
+  }
+
+  .bt-opt {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+
+  .bt-save {
+    display: none;
+  }
+
+  .footer-cols {
+    gap: 28px 18px;
+  }
 }

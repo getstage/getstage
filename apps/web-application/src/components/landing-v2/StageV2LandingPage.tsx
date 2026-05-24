@@ -272,7 +272,7 @@ export function StageV2LandingPage() {
         
                 {/* Interactive Stage Dashboard mockup (recreated from the Figma source). */}
                 <div className="hero-visual reveal">
-                  <img className="happ-mobile" src="/stage-v2-lp/assets/hero-kanban.png" alt="Stage project view - Apple Website Redesign Kanban" />
+                  <img className="happ-mobile" src="/hero/hero-mobile.webp" alt="Stage project workflow on mobile" />
                   <div className="happ">
                     {/* Sidebar (icon rail) */}
                     <aside className="happ-rail">
