@@ -76,6 +76,7 @@ export function ProjectActionModal({
             title="Are you sure you want to pause Project?"
             description="Pausing the project will stop active progress updates until you resume it. You can come back and continue work whenever you're ready."
             confirmLabel="Pause Project"
+            projectImageUrl={project.projectImageUrl}
             onConfirm={onPauseProject}
             onClose={onClose}
           />
@@ -87,6 +88,7 @@ export function ProjectActionModal({
             description="Deleting the project is a permanent action, and once it's gone, you won't be able to retrieve it. Please double-check that you truly want to continue with this decision."
             confirmLabel="Delete Project"
             error={deleteError}
+            projectImageUrl={project.projectImageUrl}
             onConfirm={onDeleteProject}
             onClose={onClose}
           />
@@ -323,6 +325,7 @@ function ConfirmModal({
   title,
   description,
   confirmLabel,
+  projectImageUrl,
   destructive = false,
   error = null,
   onConfirm,
@@ -331,6 +334,7 @@ function ConfirmModal({
   title: string;
   description: string;
   confirmLabel: string;
+  projectImageUrl?: string;
   destructive?: boolean;
   error?: string | null;
   onConfirm: () => void | Promise<void>;
@@ -357,7 +361,12 @@ function ConfirmModal({
   return (
     <div className="flex w-[min(509px,calc(100vw-48px))] flex-col gap-[44px] rounded-[8px] bg-white p-[20px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex w-full flex-col gap-[20px]">
-        <img src="/images/project-modals/delete-logo.svg" alt="" aria-hidden="true" className="h-[32px] w-[32px] rounded-full" />
+        <img
+          src={projectImageUrl ?? "/images/project-modals/delete-logo.svg"}
+          alt=""
+          aria-hidden="true"
+          className="h-[32px] w-[32px] rounded-full object-cover"
+        />
         <div className="flex w-full flex-col gap-[4px] text-[#171717]">
           <p className="text-[15px] font-semibold leading-none">{title}</p>
           <p className="max-w-[381px] text-[12px] font-normal leading-[1.5]">{description}</p>
