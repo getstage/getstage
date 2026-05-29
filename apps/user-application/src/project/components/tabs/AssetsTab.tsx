@@ -1,9 +1,23 @@
 import { useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import type { Project, ProjectAsset } from "../../models/project";
 
-const FIGMA_SYMBOL_URL = "https://www.figma.com/api/mcp/asset/8e10264d-f4f3-4742-8b43-3438d237e192";
-
 const ASSET_CARD_COUNT = 6;
+
+type ExportOption = "code" | "paper" | "figma";
+
+const EXPORT_OPTIONS: Array<{
+  id: ExportOption;
+  label: string;
+  actionLabel: string;
+  iconSrc: string;
+  connected: boolean;
+  connectLabel?: string;
+}> = [
+  { id: "code", label: "Export In Code", actionLabel: "Export In Code", iconSrc: "/logos/code.svg", connected: true },
+  { id: "paper", label: "Export In Paper", actionLabel: "Export In Paper", iconSrc: "/logos/paper.svg", connected: false, connectLabel: "Connect Paper" },
+  { id: "figma", label: "Export in Figma", actionLabel: "Export in Figma", iconSrc: "/logos/integrations/figma.svg", connected: true },
+];
 
 type AssetCategory = {
   id: AssetView;
@@ -16,6 +30,7 @@ type AssetView = "wireframes" | "documents" | "uploaded";
 
 export function AssetsTab({ project }: { project: Project }) {
   const [activeView, setActiveView] = useState<AssetView>("documents");
+  const [exportAsset, setExportAsset] = useState<(ProjectAsset & { date: string; source: string; priority: string }) | null>(null);
   const assetCards = buildAssetCards(project.assets);
   const uploadedCount = Math.max(project.assets.length, 3);
   const categories: AssetCategory[] = [
@@ -50,12 +65,22 @@ export function AssetsTab({ project }: { project: Project }) {
           {activeView === "wireframes" ? (
             <div className="grid gap-1 lg:grid-cols-3">
               {assetCards.map((asset) => (
-                <AssetCard key={asset.id} asset={asset} />
+                <AssetCard key={asset.id} asset={asset} onExport={() => setExportAsset(asset)} />
               ))}
             </div>
           ) : null}
         </div>
       </div>
+
+      <ExportOptionsDialog
+        asset={exportAsset}
+        open={exportAsset !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setExportAsset(null);
+          }
+        }}
+      />
     </section>
   );
 }
@@ -212,7 +237,13 @@ function UploadedGrid() {
   );
 }
 
-function AssetCard({ asset }: { asset: ProjectAsset & { date: string; source: string; priority: string } }) {
+function AssetCard({
+  asset,
+  onExport,
+}: {
+  asset: ProjectAsset & { date: string; source: string; priority: string };
+  onExport: () => void;
+}) {
   return (
     <article className="flex h-[240px] flex-col overflow-hidden rounded-[8px] bg-white p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] sm:h-[336px]">
       <div className="flex min-h-0 flex-1 items-center justify-center rounded-[6px] bg-[#E5E5E5] p-2 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
@@ -220,8 +251,8 @@ function AssetCard({ asset }: { asset: ProjectAsset & { date: string; source: st
       </div>
 
       <div className="p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-[6px]">
             <div className="flex min-w-0 items-center gap-2">
               <h3 className="truncate text-[15px] font-medium leading-[1.25] text-[#171717]">
                 {asset.title}
@@ -241,14 +272,128 @@ function AssetCard({ asset }: { asset: ProjectAsset & { date: string; source: st
 
           <button
             type="button"
-            className="inline-flex h-[27px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[4px] bg-[#F5F5F5] px-3 text-[12px] font-medium leading-[1.25] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
+            onClick={onExport}
+            className="inline-flex h-[27px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] border border-[#D4D4D4] bg-[#F5F5F5] px-3 text-[12px] font-medium leading-[1.25] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
           >
-            <img src={FIGMA_SYMBOL_URL} alt="" className="h-[15px] w-[10px]" />
-            Open in Figma
+            Export
           </button>
         </div>
       </div>
     </article>
+  );
+}
+
+function ExportOptionsDialog({
+  asset,
+  open,
+  onOpenChange,
+}: {
+  asset: (ProjectAsset & { date: string; source: string; priority: string }) | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [selectedOption, setSelectedOption] = useState<ExportOption>("figma");
+  const option = EXPORT_OPTIONS.find((item) => item.id === selectedOption) ?? EXPORT_OPTIONS[2];
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-[rgba(10,10,10,0.22)]" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-[518px] -translate-x-1/2 -translate-y-1/2 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25),0_18px_55px_rgba(10,10,10,0.22)] outline-none">
+          <div className="flex flex-col">
+            <div className="flex flex-col justify-center p-3 font-medium leading-[1.5]">
+              <Dialog.Title className="text-[15px] font-medium text-[#0A0A0A]">
+                Export Options
+              </Dialog.Title>
+              <Dialog.Description className="text-[13px] font-medium text-[#525252]">
+                Select how you want to export your assets.
+              </Dialog.Description>
+            </div>
+
+            <div className="rounded-[8px] bg-white px-3 pb-5 pt-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+              <p className="text-[13px] font-medium leading-[1.25] text-[#171717]">
+                How do you want to export?
+              </p>
+              <div className="mt-3 flex flex-col gap-4">
+                {EXPORT_OPTIONS.map((item) => (
+                  <ExportOptionRow
+                    key={item.id}
+                    option={item}
+                    selected={selectedOption === item.id}
+                    onSelect={() => setSelectedOption(item.id)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-3">
+              <Dialog.Close asChild>
+                <button
+                  type="button"
+                  className="inline-flex h-[29px] cursor-pointer items-center justify-center rounded-[6px] bg-white px-3 text-[13px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA]"
+                >
+                  Done
+                </button>
+              </Dialog.Close>
+
+              <button
+                type="button"
+                disabled={!option.connected}
+                className="inline-flex h-[29px] cursor-pointer items-center justify-center gap-[10px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label={asset ? `${option.actionLabel} ${asset.title}` : option.actionLabel}
+              >
+                <img src={option.iconSrc} alt="" className="h-[15px] w-[15px] shrink-0 object-contain" />
+                {option.actionLabel}
+              </button>
+            </div>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+function ExportOptionRow({
+  option,
+  selected,
+  onSelect,
+}: {
+  option: (typeof EXPORT_OPTIONS)[number];
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const disabledDisconnected = !option.connected;
+
+  return (
+    <div className="flex min-h-[14px] items-center justify-between gap-3">
+      <button
+        type="button"
+        onClick={onSelect}
+        className={`flex min-w-0 cursor-pointer items-center gap-2 text-left text-[13px] font-medium leading-[1.25] ${
+          disabledDisconnected ? "text-[#525252]" : "text-[#171717]"
+        }`}
+      >
+        <span
+          aria-hidden="true"
+          className={`flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-full ${
+            selected ? "bg-[#0A0A0A]" : disabledDisconnected ? "bg-[#0A0A0A]/20" : "bg-[#E5E5E5]"
+          }`}
+        >
+          {selected ? <span className="h-[6px] w-[6px] rounded-full bg-[#FAFAFA]" /> : null}
+        </span>
+        <span className="truncate">{option.label}</span>
+      </button>
+
+      {disabledDisconnected ? (
+        <button
+          type="button"
+          className="shrink-0 cursor-pointer text-[13px] font-medium leading-[1.25] text-[#171717] underline"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {option.connectLabel}
+        </button>
+      ) : null}
+    </div>
   );
 }
 

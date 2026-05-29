@@ -72,7 +72,7 @@ export function DashboardContextView() {
   const desktop = useDesktopBridge();
   const engineStatus = useEngineStatus();
   const selectedProject = useSelectedProjectContext();
-  const projectsQuery = useProjectsQuery();
+  const projectsQuery = useProjectsQuery({ includeMocks: true });
   const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>(DEFAULT_DASHBOARD_PERIOD);
   const selectedProjectContext = selectedProject.isFallback ? null : selectedProject.context;
   const openContextTasks = selectedProjectContext?.tasks.filter(

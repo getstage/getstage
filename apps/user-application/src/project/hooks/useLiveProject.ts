@@ -11,6 +11,7 @@ import {
 import { z } from "zod";
 import { useDesktopAuth } from "@/lib/auth";
 import { api } from "@/lib/convexApi";
+import { findMockProject, findMockProjectDetail } from "@/project/data/projectSnapshot";
 import type { Phase, Project, Task } from "../models/project";
 
 const EMPTY_PHASES: PhaseSummary[] = [];
@@ -90,9 +91,11 @@ export type UseLiveProjectResult = {
 
 export function useLiveProject(projectId: string | undefined): UseLiveProjectResult {
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
+  const mockProject = findMockProject(projectId);
+  const mockDetail = findMockProjectDetail(projectId);
   const rawProjectData = useQuery(
     api.desktop.getProjectData,
-    isAuthenticated && projectId ? { projectId } : "skip",
+    isAuthenticated && projectId && !mockProject ? { projectId } : "skip",
   );
   const liveData = useMemo(() => {
     if (!rawProjectData) {
@@ -110,19 +113,23 @@ export function useLiveProject(projectId: string | undefined): UseLiveProjectRes
     };
   }, [rawProjectData]);
 
-  const isLoading = isAuthLoading || (isAuthenticated && Boolean(projectId) && rawProjectData === undefined);
+  const isLoading =
+    isAuthLoading || (isAuthenticated && Boolean(projectId) && !mockProject && rawProjectData === undefined);
   const error = null;
 
   const project = useMemo<Project | null>(() => {
+    if (mockProject) {
+      return mockProject;
+    }
     if (!liveData) {
       return null;
     }
     return mapProject(liveData);
-  }, [liveData]);
+  }, [liveData, mockProject]);
 
   return {
     project,
-    detail: liveData?.project ?? null,
+    detail: liveData?.project ?? mockDetail,
     phases: liveData?.phases ?? EMPTY_PHASES,
     tasksByPhaseId: liveData?.tasksByPhaseId ?? EMPTY_TASKS_BY_PHASE,
     isLoading,

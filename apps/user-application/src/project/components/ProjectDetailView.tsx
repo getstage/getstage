@@ -198,7 +198,7 @@ export function ProjectDetailView() {
               {activeTab === "strategy" ? <StrategyTab /> : null}
               {activeTab === "moodboard" ? <MoodboardTab project={project} /> : null}
               {activeTab === "flows" ? <FlowsTab project={project} /> : null}
-              {activeTab === "wireframes" ? <WireframesTab /> : null}
+              {activeTab === "wireframes" ? <WireframesTab project={project} /> : null}
               {activeTab === "assets" ? <AssetsTab project={project} /> : null}
             </div>
           )}

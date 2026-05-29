@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import type { Project } from "../../models/project";
 
 const FIGMA_SYMBOL_URL = "https://www.figma.com/api/mcp/asset/0fb6d4b5-4b4a-43dd-b78a-56971a159d3f";
 
@@ -81,11 +82,29 @@ const MOCK_SCREENS: ScreenItem[] = [
   },
 ];
 
-export function WireframesTab() {
+function buildScreenItems(project: Project): ScreenItem[] {
+  const projectScreens = project.screens?.length ? project.screens : [];
+  if (projectScreens.length === 0) {
+    return MOCK_SCREENS;
+  }
+
+  return projectScreens.map((screen, index) => ({
+    id: screen.id,
+    title: screen.title,
+    description: screen.description,
+    kind: index % 3 === 1 ? "Section" : "Page",
+    priority: `P${index}`,
+    required: index < 3,
+    selected: true,
+  }));
+}
+
+export function WireframesTab({ project }: { project: Project }) {
   const [step, setStep] = useState<WireframeStep>("choose-type");
   const [wireframeKind, setWireframeKind] = useState<WireframeKind | null>(null);
   const [hasBrandKit, setHasBrandKit] = useState(false);
-  const [screens, setScreens] = useState(MOCK_SCREENS);
+  const initialScreens = useMemo(() => buildScreenItems(project), [project]);
+  const [screens, setScreens] = useState(initialScreens);
   const selectedCount = screens.filter((screen) => screen.selected).length;
 
   function selectKind(nextKind: WireframeKind) {
@@ -374,7 +393,7 @@ function ConfigureStep({
         </div>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3 text-[13px] font-medium leading-[1.25]">
-            <span className="text-[#171717]">13 screens from Flows</span>
+            <span className="text-[#171717]">{screens.length} screens from Flows</span>
             <span className="h-1 w-1 rounded-full bg-[#D4D4D4]" />
             <span className="text-[#737373]">14 patterns applied from Moodboard</span>
           </div>
@@ -396,7 +415,7 @@ function ConfigureStep({
       <div className="rounded-[8px] bg-white p-11 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="mb-6 flex items-center justify-between text-[15px] font-medium leading-[1.25] text-[#171717]">
           <span>Screens To Generate</span>
-          <span className="text-[13px] text-[#525252]">{selectedCount} of 13 selected</span>
+          <span className="text-[13px] text-[#525252]">{selectedCount} of {screens.length} selected</span>
         </div>
         <div className="flex flex-col gap-1">
           {screens.map((screen) => (
