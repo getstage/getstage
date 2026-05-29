@@ -432,6 +432,10 @@ a,
   color: #262626;
 }
 
+.chat-message-stage .chat-message-error-text {
+  color: #7a3a3a;
+}
+
 .chat-message-label {
   gap: 6px;
 }

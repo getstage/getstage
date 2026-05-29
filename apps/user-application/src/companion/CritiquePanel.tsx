@@ -1,7 +1,5 @@
 import { FormEvent, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CompanionState } from "@shared/models/desktop";
-import { useSelectedProjectContext } from "../hooks/useSelectedProjectContext";
-import { critiqueThread } from "./data/critiqueThread";
 import { useDraggablePanel } from "./hooks/useDraggablePanel";
 
 type ChatMessage = {
@@ -9,6 +7,7 @@ type ChatMessage = {
   role: "user" | "stage";
   content: string[];
   source?: string;
+  tone?: "error";
 };
 
 type CritiquePanelProps = {
@@ -91,45 +90,22 @@ const chatModels: ChatModel[] = [
   },
 ];
 
-const initialMessages: ChatMessage[] = [
-  {
-    id: "initial-user",
-    role: "user",
-    content: [critiqueThread.prompt],
-  },
-];
-
 const PANEL_WIDTH = 432;
 const PANEL_HEIGHT = 504;
 const ACTIVE_COMPANION_BAR_HEIGHT = 42;
 const MAIN_WINDOW_BAR_BOTTOM = 12;
 const COMPANION_WINDOW_BAR_BOTTOM = 32;
-
-function createInitialStageReply(projectContext: ReturnType<typeof useSelectedProjectContext>["context"]): ChatMessage {
-  return {
-    id: "initial-stage",
-    role: "stage",
-    content: [
-      `${projectContext.projectName} is currently in ${projectContext.currentPhase ?? "active work"}, so I would judge this pass against brief clarity first.`,
-      projectContext.visualDirection
-        ? `Visual direction: ${projectContext.visualDirection}`
-        : "Visual direction is not set for this project yet.",
-      "The CTA color #FF4444 does not match the approved palette. Primary actions should use #8782F5.",
-    ],
-    source: "Project Context",
-  };
-}
+const PROVIDER_ERROR_MESSAGE = "Something went wrong. Please check your integrations for Claude/Codex connection.";
 
 export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
-  const selectedProject = useSelectedProjectContext();
   const visible = state === "thinking" || state === "response";
   const isCompanionWindow = new URLSearchParams(window.location.search).get("stageWindow") === "companion";
   const companionBarBottom = isCompanionWindow
     ? COMPANION_WINDOW_BAR_BOTTOM
     : MAIN_WINDOW_BAR_BOTTOM;
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
-  const [isThinking, setIsThinking] = useState(state === "thinking");
+  const [isThinking, setIsThinking] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ChatModel>(chatModels[0]!);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [activeProvider, setActiveProvider] = useState<ChatProviderId>("favorites");
@@ -149,6 +125,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     ),
   }), [companionBarBottom]);
   const { position, resetPosition, dragHandlers } = useDraggablePanel(getOpeningPosition());
+  const inputPlaceholder = messages.length > 0 ? "Ask a follow-up" : "Message Stage";
   const visibleModels = useMemo(() => {
     if (activeProvider === "favorites") {
       return chatModels.filter((model) => favoriteModelIds.includes(model.id));
@@ -191,21 +168,8 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     }
 
     resetPosition(getOpeningPosition());
-    setIsThinking(true);
-    const timeoutId = window.setTimeout(() => {
-      setMessages((currentMessages) => {
-        if (currentMessages.some((message) => message.id === "initial-stage")) {
-          return currentMessages;
-        }
-
-        return [...currentMessages, createInitialStageReply(selectedProject.context)];
-      });
-      setIsThinking(false);
-      void onStateChange("response");
-    }, 900);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [getOpeningPosition, onStateChange, resetPosition, selectedProject.context, state, visible]);
+    void onStateChange("response");
+  }, [getOpeningPosition, onStateChange, resetPosition, state, visible]);
 
   useEffect(() => {
     threadRef.current?.scrollTo({
@@ -222,7 +186,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     textarea.style.height = `${Math.min(textarea.scrollHeight, 82)}px`;
   }, [draft]);
 
-  function submitMessage(event: FormEvent<HTMLFormElement>) {
+  async function submitMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextPrompt = draft.trim();
 
@@ -239,24 +203,24 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
         content: [nextPrompt],
       },
     ]);
-    setIsThinking(true);
 
-    window.setTimeout(() => {
+    try {
+      setIsThinking(true);
+      throw new Error("No chat provider response handler is connected.");
+    } catch {
       setMessages((currentMessages) => [
         ...currentMessages,
         {
-          id: `stage-${Date.now()}`,
+          id: `stage-error-${Date.now()}`,
           role: "stage",
-          content: [
-            `I would treat "${nextPrompt}" as a follow-up critique pass against ${selectedProject.context.projectName}.`,
-            selectedProject.summary,
-          ],
-          source: "Project Context",
+          tone: "error",
+          content: [PROVIDER_ERROR_MESSAGE],
         },
       ]);
+    } finally {
       setIsThinking(false);
-      void onStateChange("response");
-    }, 700);
+      await onStateChange("response");
+    }
   }
 
   function toggleFavorite(modelId: string, event: MouseEvent<HTMLButtonElement>) {
@@ -283,7 +247,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       <header className="chat-panel-header">
         <div className="chat-panel-title">
           <img className="stage-mark" src="/logos/stage.svg" alt="" aria-hidden="true" />
-          <strong>{critiqueThread.title}</strong>
+          <strong>Stage chat</strong>
         </div>
         <div className="chat-panel-actions">
           <button
@@ -320,12 +284,12 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
               <span>You</span>
             ) : (
               <div className="chat-message-label">
-                <img className="stage-mark stage-mark-small" src="/logos/stage.svg" alt="" aria-hidden="true" />
-              </div>
-            )}
-            {message.content.map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
-            ))}
+            <img className="stage-mark stage-mark-small" src="/logos/stage.svg" alt="" aria-hidden="true" />
+          </div>
+        )}
+        {message.content.map((paragraph) => (
+          <p className={message.tone === "error" ? "chat-message-error-text" : undefined} key={paragraph}>{paragraph}</p>
+        ))}
             {message.source ? (
               <p>
                 Based on: <a href="#brief">{message.source}</a>
@@ -348,7 +312,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
         <textarea
           ref={textareaRef}
           aria-label="Message Stage"
-          placeholder={isThinking ? "Type here..." : "Ask a follow-up"}
+          placeholder={isThinking ? "Waiting for response..." : inputPlaceholder}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           rows={1}
