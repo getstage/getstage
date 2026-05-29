@@ -7,7 +7,15 @@ import type {
   EngineStatus,
   PermissionKind,
 } from "@shared/models/desktop";
-import type { ProviderListResponse } from "@stage/data-ops/contracts";
+import type {
+  ProviderId,
+  ProviderListResponse,
+  ProviderUpdateResponse,
+  RunEvent,
+  StartRunRequest,
+  StartRunResponse,
+  CancelRunResponse,
+} from "@stage/data-ops/contracts";
 
 export type StageDesktopApi = {
   auth: {
@@ -21,6 +29,10 @@ export type StageDesktopApi = {
     getStatus: () => Promise<EngineStatus>;
     listProviders: () => Promise<ProviderListResponse>;
     refreshProviders: () => Promise<ProviderListResponse>;
+    updateProvider: (providerId: ProviderId) => Promise<ProviderUpdateResponse>;
+    startRun: (request: StartRunRequest) => Promise<StartRunResponse>;
+    cancelRun: (runId: string) => Promise<CancelRunResponse>;
+    onRunEvent: (callback: (event: RunEvent) => void) => () => void;
   };
   companion: {
     show: () => Promise<void>;

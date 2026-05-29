@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::errors::EngineError;
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ProviderId {
     Claude,
@@ -15,7 +15,7 @@ pub enum ProviderKind {
     Cli,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ProviderStatus {
     Ready,
@@ -42,6 +42,17 @@ pub enum ProviderModelSource {
     Fallback,
     Custom,
     Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ProviderUpdateStatus {
+    Idle,
+    Checking,
+    Updating,
+    Updated,
+    Failed,
+    Unsupported,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -95,9 +106,14 @@ pub struct ProviderStatusRecord {
     pub installed: bool,
     pub authenticated: bool,
     pub auth_status: ProviderAuthStatus,
+    pub auth_label: Option<String>,
+    pub account_email: Option<String>,
     pub enabled: bool,
     pub version: Option<String>,
     pub status: ProviderStatus,
+    pub update_available: Option<bool>,
+    pub update_status: ProviderUpdateStatus,
+    pub update_hint: Option<String>,
     pub checked_at: u128,
     pub models: Vec<ProviderModel>,
     pub setup_hint: Option<String>,
@@ -110,4 +126,16 @@ pub struct ProviderStatusRecord {
 pub struct ProviderListResponse {
     pub api_version: &'static str,
     pub providers: Vec<ProviderStatusRecord>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderUpdateResponse {
+    pub api_version: &'static str,
+    pub provider_id: ProviderId,
+    pub status: ProviderUpdateStatus,
+    pub version_before: Option<String>,
+    pub version_after: Option<String>,
+    pub message: Option<String>,
+    pub error: Option<EngineError>,
 }

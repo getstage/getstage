@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import type { DesktopSession } from "@shared/models/desktop";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
+import { useDesktopSession } from "@/hooks/engine/useDesktopSession";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { getSafeAuthRedirect } from "@/lib/authRedirect";
 
@@ -28,49 +28,52 @@ export function DesktopAuthView() {
   const navigate = useNavigate();
   const search = useSearch({ from: "/auth" });
   const desktop = useDesktopBridge();
-  const [session, setSession] = useState<DesktopSession | null>(null);
-  const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
+  const session = useDesktopSession();
+  const [loginStatus, setLoginStatus] = useState<"idle" | "opening" | "opened" | "error">("idle");
   const redirectTarget = getSafeAuthRedirect(search.redirect);
 
-  useEffect(() => {
-    desktop.auth.getSession()
-      .then((storedSession) => {
-        setSession(storedSession);
-        setAuthStatus(storedSession?.hasAccessToken ? "connected" : "idle");
-      })
-      .catch(() => setAuthStatus("idle"));
-
-    return desktop.auth.onSessionChanged((nextSession) => {
-      setSession(nextSession);
-      setAuthStatus(nextSession?.hasAccessToken ? "connected" : "idle");
-      if (nextSession?.hasAccessToken) {
-        continueAfterAuth();
-      }
-    });
-  }, [desktop.auth, navigate, redirectTarget]);
-
-  async function openLogin() {
-    setAuthStatus("opening");
-    try {
-      await desktop.auth.openLogin();
-      setAuthStatus("opened");
-    } catch {
-      setAuthStatus("error");
-    }
-  }
-
-  const accountLabel = session?.name ?? session?.email ?? "Stage account";
-  const isBusy = authStatus === "checking" || authStatus === "opening";
-  const isConnected = authStatus === "connected" && session?.hasAccessToken;
-
-  function continueAfterAuth() {
+  const continueAfterAuth = useCallback(() => {
     if (redirectTarget) {
       window.location.assign(redirectTarget);
       return;
     }
 
     void navigate({ to: "/" });
+  }, [navigate, redirectTarget]);
+
+  useEffect(() => {
+    if (session.data?.hasAccessToken) {
+      continueAfterAuth();
+    }
+  }, [session.data?.hasAccessToken, continueAfterAuth]);
+
+  async function openLogin() {
+    setLoginStatus("opening");
+    try {
+      await desktop.auth.openLogin();
+      setLoginStatus("opened");
+    } catch {
+      setLoginStatus("error");
+    }
   }
+
+  const sessionData = session.data ?? null;
+  const accountLabel = sessionData?.name ?? sessionData?.email ?? "Stage account";
+  const isConnected = sessionData?.hasAccessToken === true;
+
+  const authStatus: AuthStatus = session.isLoading
+    ? "checking"
+    : isConnected
+      ? "connected"
+      : loginStatus === "opening"
+        ? "opening"
+        : loginStatus === "opened"
+          ? "opened"
+          : loginStatus === "error"
+            ? "error"
+            : "idle";
+
+  const isBusy = authStatus === "checking" || authStatus === "opening";
 
   return (
     <div className="relative min-h-dvh bg-white p-2 xl:h-dvh xl:overflow-hidden xl:bg-[#F5F5F5] xl:p-1">

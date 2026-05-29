@@ -3,6 +3,8 @@ mod config;
 mod helpers;
 mod models;
 mod observability;
+mod providers;
+mod runs;
 mod server;
 
 use anyhow::Context;

@@ -2,15 +2,12 @@ import {
   Outlet,
   createRootRoute,
   type ErrorComponentProps,
-  useRouter,
   useRouterState,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { DesktopShell } from "@/app/DesktopShell";
-import { useDesktopBridge } from "@/hooks/useDesktopBridge";
-import { buildAuthRedirect } from "@/lib/authRedirect";
-import { desktopSessionQueryKey } from "@/lib/desktopSession";
+import { useDesktopSessionInvalidation } from "@/app/hooks/useDesktopSessionInvalidation";
+import { useProviderRunInvalidation } from "@/app/hooks/useProviderRunInvalidation";
+import { shouldHideCompanion } from "@/app/layout/chromeRules";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 
 export const Route = createRootRoute({
@@ -19,49 +16,12 @@ export const Route = createRootRoute({
 });
 
 function RootLayout() {
-  const desktop = useDesktopBridge();
-  const queryClient = useQueryClient();
-  const router = useRouter();
+  useDesktopSessionInvalidation();
+  useProviderRunInvalidation();
   const location = useRouterState({ select: (state) => state.location });
 
-  useEffect(() => {
-    return desktop.auth.onSessionChanged((nextSession) => {
-      void queryClient.invalidateQueries({ queryKey: [...desktopSessionQueryKey] });
-
-      if (nextSession?.hasAccessToken || location.pathname === "/auth") {
-        return;
-      }
-
-      const redirectTarget = buildAuthRedirect(
-        location.pathname,
-        location.searchStr,
-        location.hash,
-      );
-
-      void router.navigate(
-        redirectTarget
-          ? {
-              to: "/auth",
-              search: { redirect: redirectTarget },
-              replace: true,
-            }
-          : {
-              to: "/auth",
-              replace: true,
-            },
-      );
-    });
-  }, [
-    desktop.auth,
-    location.hash,
-    location.pathname,
-    location.searchStr,
-    queryClient,
-    router,
-  ]);
-
   return (
-    <DesktopShell hideCompanion={location.pathname === "/subscriptions"}>
+    <DesktopShell hideCompanion={shouldHideCompanion(location.pathname)}>
       <Outlet />
     </DesktopShell>
   );

@@ -1,0 +1,37 @@
+import type { NavigateOptions } from "@tanstack/react-router";
+import type { SettingsTab } from "../models/settings";
+
+export const SETTINGS_TABS: Array<{ key: SettingsTab; label: string; icon: string }> = [
+  { key: "profile", label: "Profile", icon: "profile" },
+  { key: "billing", label: "Plans & Billing", icon: "billing" },
+  { key: "clients", label: "Clients", icon: "clients" },
+  { key: "developer", label: "Developer", icon: "developer" },
+  { key: "account", label: "Account", icon: "account" },
+];
+
+export const SETTINGS_TAB_ICON_PATHS: Record<string, string> = {
+  profile: "/logos/dashboard/profile.svg",
+  billing: "/logos/dashboard/billing.svg",
+  clients: "/logos/dashboard/clients.svg",
+  developer: "/logos/dashboard/developer.svg",
+  account: "/logos/dashboard/account.svg",
+};
+
+export function getSettingsTabRoute(tab: SettingsTab): NavigateOptions["to"] {
+  switch (tab) {
+    case "integrations":
+      return "/integrations";
+    case "profile":
+      return "/settings";
+    case "billing":
+      return "/settings/billing";
+    case "clients":
+      return "/settings/clients";
+    case "developer":
+      return "/settings/developer";
+    case "account":
+      return "/settings/account";
+    case "portal":
+      return "/settings/portal";
+  }
+}

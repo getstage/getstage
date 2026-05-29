@@ -66,13 +66,25 @@ export async function fetchEngineJson<T>(args: {
   method?: "GET" | "POST";
   path: string;
   port: number;
+  body?: unknown;
+  timeoutMs?: number;
 }): Promise<T> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), ENGINE_REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(
+    () => controller.abort(),
+    args.timeoutMs ?? ENGINE_REQUEST_TIMEOUT_MS,
+  );
 
   try {
     const response = await fetch(`http://127.0.0.1:${args.port}${args.path}`, {
       method: args.method ?? "GET",
+      body: args.body === undefined ? undefined : JSON.stringify(args.body),
+      headers:
+        args.body === undefined
+          ? undefined
+          : {
+              "content-type": "application/json",
+            },
       signal: controller.signal,
     });
 

@@ -2,6 +2,7 @@ import { Outlet, useRouterState } from "@tanstack/react-router";
 import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 import { useNonProOnboardingGate } from "@/features/onboarding/useNonProOnboardingGate";
 import { WorkspaceFrame } from "@/app/WorkspaceFrame";
+import { shouldRenderWorkspaceChrome } from "@/app/layout/chromeRules";
 
 /**
  * Authenticated shell: renders child routes and global non-Pro onboarding/paywall.
@@ -11,7 +12,7 @@ import { WorkspaceFrame } from "@/app/WorkspaceFrame";
 export function AuthedWorkspaceLayout() {
   const gate = useNonProOnboardingGate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const shouldRenderChrome = pathname !== "/projects/create" && pathname !== "/subscriptions";
+  const shouldRenderChrome = shouldRenderWorkspaceChrome(pathname);
 
   return (
     <>

@@ -101,24 +101,28 @@ pub struct VoiceTranscriptResponse {
     rename_all_fields = "camelCase"
 )]
 pub enum VoiceTranscriptionEvent {
-    TranscriptionStarted {
+    #[serde(rename = "transcription_started")]
+    Started {
         api_version: &'static str,
         transcription_id: String,
         created_at: u128,
     },
-    TranscriptionCompleted {
+    #[serde(rename = "transcription_completed")]
+    Completed {
         api_version: &'static str,
         transcription_id: String,
         text: String,
         created_at: u128,
     },
-    TranscriptionFailed {
+    #[serde(rename = "transcription_failed")]
+    Failed {
         api_version: &'static str,
         transcription_id: String,
         error: EngineError,
         created_at: u128,
     },
-    TranscriptionCancelled {
+    #[serde(rename = "transcription_cancelled")]
+    Cancelled {
         api_version: &'static str,
         transcription_id: String,
         created_at: u128,

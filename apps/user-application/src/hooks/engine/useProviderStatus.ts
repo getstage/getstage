@@ -1,12 +1,26 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ProviderId } from "@stage/data-ops/contracts";
+import { engineQueryKeys } from "./queryKeys";
 import { useDesktopBridge } from "../useDesktopBridge";
 
 export function useProviderStatus() {
   const desktop = useDesktopBridge();
 
   return useQuery({
-    queryKey: ["desktop", "engine-providers"],
+    queryKey: engineQueryKeys.providers(),
     queryFn: () => desktop.engine.listProviders(),
     refetchInterval: 10_000,
+  });
+}
+
+export function useProviderUpdate() {
+  const desktop = useDesktopBridge();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (providerId: ProviderId) => desktop.engine.updateProvider(providerId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: engineQueryKeys.providers() });
+    },
   });
 }

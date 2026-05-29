@@ -1,11 +1,9 @@
-import { type ReactNode, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { type ReactNode } from "react";
 import { StageSidebar } from "@/dashboard/components/StageSidebar";
 import { buildSidebarProjectsFromSummaries } from "@/dashboard/helpers/projectContextDashboard";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useProjectsQuery } from "@/hooks/convex-data";
-import { useDesktopBridge } from "@/hooks/useDesktopBridge";
-import { desktopSessionQueryKey } from "@/lib/desktopSession";
+import { useDesktopSession } from "@/hooks/engine/useDesktopSession";
 import { useSidebarState } from "@/hooks/useSidebarState";
 
 export function WorkspaceFrame({
@@ -13,24 +11,12 @@ export function WorkspaceFrame({
 }: {
   children: ReactNode;
 }) {
-  const desktop = useDesktopBridge();
-  const queryClient = useQueryClient();
   const projectsQuery = useProjectsQuery();
+  const session = useDesktopSession();
   const [sidebarCollapsed, setSidebarCollapsed] = useSidebarState(false);
   const isCompact = useMediaQuery("(max-width: 860px)");
   const effectiveSidebarCollapsed = isCompact || sidebarCollapsed;
   const sidebarProjects = buildSidebarProjectsFromSummaries(projectsQuery.data ?? []);
-  const session = useQuery({
-    queryKey: desktopSessionQueryKey,
-    queryFn: () => desktop.auth.getSession(),
-    retry: false,
-  });
-  useEffect(() => {
-    return desktop.auth.onSessionChanged(() => {
-      void queryClient.invalidateQueries({ queryKey: [...desktopSessionQueryKey] });
-      void queryClient.invalidateQueries({ queryKey: ["desktop", "project-context", "selected"] });
-    });
-  }, [desktop.auth, queryClient]);
 
   const accountLabel = session.data?.name ?? session.data?.email ?? session.data?.userId ?? "Not signed in";
   const accountMeta = session.data?.hasAccessToken ? "Connected" : "Connect in Settings";

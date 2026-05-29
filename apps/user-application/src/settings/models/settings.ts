@@ -72,3 +72,11 @@ export type ClientSettings = z.infer<typeof clientSettingsSchema>;
 export type DeveloperSettings = z.infer<typeof developerSettingsSchema>;
 export type Integration = z.infer<typeof integrationSchema>;
 export type SettingsSnapshot = z.infer<typeof settingsSnapshotSchema>;
+
+export const profileUpdateResultSchema = z.object({
+  email: z.string(),
+  name: z.string(),
+  avatarUrl: z.string().nullable(),
+});
+
+export type ProfileUpdateResult = z.infer<typeof profileUpdateResultSchema>;

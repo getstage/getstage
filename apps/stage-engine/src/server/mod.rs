@@ -1,5 +1,6 @@
 pub mod events;
 pub mod providers;
+pub mod runs;
 pub mod status;
 
 use axum::{
@@ -17,5 +18,12 @@ pub fn router(state: AppState) -> Router {
         .route("/v1/events", get(events::events))
         .route("/v1/providers", get(providers::list_providers))
         .route("/v1/providers/refresh", post(providers::refresh_providers))
+        .route(
+            "/v1/providers/{provider_id}/update",
+            post(providers::update_provider),
+        )
+        .route("/v1/runs", post(runs::start_run))
+        .route("/v1/runs/{run_id}/events", get(runs::run_events))
+        .route("/v1/runs/{run_id}/cancel", post(runs::cancel_run))
         .with_state(state)
 }
