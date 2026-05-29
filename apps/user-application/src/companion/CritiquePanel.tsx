@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CompanionState } from "@shared/models/desktop";
 import { useSelectedProjectContext } from "../hooks/useSelectedProjectContext";
 import { critiqueThread } from "./data/critiqueThread";
@@ -19,14 +19,76 @@ type CritiquePanelProps = {
 type ChatModel = {
   id: string;
   label: string;
-  provider: "openai" | "claude";
+  provider: ChatProviderId;
+  description: string;
+  badge?: string;
 };
 
+type ChatProviderId = "favorites" | "openai" | "anthropic";
+
+type ChatProvider = {
+  id: ChatProviderId;
+  label: string;
+  icon: "star" | "openai" | "claude";
+};
+
+const chatProviders: ChatProvider[] = [
+  { id: "favorites", label: "Favorites", icon: "star" },
+  { id: "anthropic", label: "Claude", icon: "claude" },
+  { id: "openai", label: "OpenAI", icon: "openai" },
+];
+
 const chatModels: ChatModel[] = [
-  { id: "gpt-5.5", label: "GPT-5.5", provider: "openai" },
-  { id: "gpt-5.4", label: "GPT-5.4", provider: "openai" },
-  { id: "claude-opus-4.1", label: "Claude Opus 4.1", provider: "claude" },
-  { id: "claude-sonnet-4.5", label: "Claude Sonnet 4.5", provider: "claude" },
+  {
+    id: "claude-opus-4.8",
+    label: "Claude Opus 4.8",
+    provider: "anthropic",
+    description: "Newest flagship Claude model",
+    badge: "New",
+  },
+  {
+    id: "claude-sonnet-4.6",
+    label: "Claude Sonnet 4.6",
+    provider: "anthropic",
+    description: "Newest balanced Claude model",
+  },
+  {
+    id: "claude-haiku-4.5",
+    label: "Claude Haiku 4.5",
+    provider: "anthropic",
+    description: "Newest fast Claude model",
+  },
+  {
+    id: "claude-opus-4.7",
+    label: "Claude Opus 4.7",
+    provider: "anthropic",
+    description: "Previous flagship Claude",
+  },
+  {
+    id: "gpt-5.5",
+    label: "GPT-5.5",
+    provider: "openai",
+    description: "Newest flagship OpenAI model",
+    badge: "New",
+  },
+  {
+    id: "gpt-5.5-pro",
+    label: "GPT-5.5 Pro",
+    provider: "openai",
+    description: "Top OpenAI deep work model",
+  },
+  {
+    id: "gpt-5.5-instant",
+    label: "GPT-5.5 Instant",
+    provider: "openai",
+    description: "Newest fast ChatGPT model",
+  },
+  {
+    id: "gpt-5.4",
+    label: "GPT-5.4",
+    provider: "openai",
+    description: "Previous frontier model",
+  },
 ];
 
 const initialMessages: ChatMessage[] = [
@@ -70,6 +132,13 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const [isThinking, setIsThinking] = useState(state === "thinking");
   const [selectedModel, setSelectedModel] = useState<ChatModel>(chatModels[0]!);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [activeProvider, setActiveProvider] = useState<ChatProviderId>("favorites");
+  const [favoriteModelIds, setFavoriteModelIds] = useState<string[]>([
+    "claude-opus-4.8",
+    "claude-sonnet-4.6",
+    "gpt-5.5",
+  ]);
+  const modelPickerRef = useRef<HTMLDivElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const getOpeningPosition = useCallback(() => ({
@@ -80,6 +149,41 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     ),
   }), [companionBarBottom]);
   const { position, resetPosition, dragHandlers } = useDraggablePanel(getOpeningPosition());
+  const visibleModels = useMemo(() => {
+    if (activeProvider === "favorites") {
+      return chatModels.filter((model) => favoriteModelIds.includes(model.id));
+    }
+
+    return chatModels.filter((model) => model.provider === activeProvider);
+  }, [activeProvider, favoriteModelIds]);
+
+  useEffect(() => {
+    if (!modelMenuOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (event.target instanceof Node && modelPickerRef.current?.contains(event.target)) {
+        return;
+      }
+
+      setModelMenuOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setModelMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [modelMenuOpen]);
 
   useEffect(() => {
     if (!visible || state !== "thinking") {
@@ -153,6 +257,17 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       setIsThinking(false);
       void onStateChange("response");
     }, 700);
+  }
+
+  function toggleFavorite(modelId: string, event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    setFavoriteModelIds((currentIds) => {
+      if (currentIds.includes(modelId)) {
+        return currentIds.filter((id) => id !== modelId);
+      }
+
+      return [modelId, ...currentIds];
+    });
   }
 
   if (!visible) {
@@ -247,7 +362,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
           }}
         />
         <div className="chat-input-controls">
-          <div className="chat-model-picker">
+          <div className="chat-model-picker" ref={modelPickerRef}>
             <button
               className="chat-model-button"
               type="button"
@@ -260,23 +375,69 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
               <span className="chat-model-chevron" aria-hidden="true" />
             </button>
             {modelMenuOpen ? (
-              <div className="chat-model-menu" role="listbox" aria-label="Model">
-                {chatModels.map((model) => (
-                  <button
-                    key={model.id}
-                    className={`chat-model-option ${model.id === selectedModel.id ? "chat-model-option-active" : ""}`}
-                    type="button"
-                    role="option"
-                    aria-selected={model.id === selectedModel.id}
-                    onClick={() => {
-                      setSelectedModel(model);
-                      setModelMenuOpen(false);
-                    }}
-                  >
-                    <ProviderMark provider={model.provider} />
-                    <span>{model.label}</span>
-                  </button>
-                ))}
+              <div className="chat-model-menu" aria-label="Model picker">
+                <div className="chat-model-provider-list" role="tablist" aria-label="Providers">
+                  {chatProviders.map((provider) => (
+                    <button
+                      key={provider.id}
+                      className={`chat-model-provider ${activeProvider === provider.id ? "chat-model-provider-active" : ""}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeProvider === provider.id}
+                      onClick={() => setActiveProvider(provider.id)}
+                    >
+                      <ProviderMark provider={provider.icon} />
+                      <span>{provider.label}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="chat-model-list" role="listbox" aria-label="Models">
+                  {visibleModels.length > 0 ? (
+                    visibleModels.map((model) => {
+                      const isFavorite = favoriteModelIds.includes(model.id);
+
+                      return (
+                        <div
+                          key={model.id}
+                          className={`chat-model-option ${model.id === selectedModel.id ? "chat-model-option-active" : ""}`}
+                          role="option"
+                          aria-selected={model.id === selectedModel.id}
+                        >
+                          <button
+                            className={`chat-model-star ${isFavorite ? "chat-model-star-active" : ""}`}
+                            type="button"
+                            aria-label={isFavorite ? `Remove ${model.label} from favorites` : `Add ${model.label} to favorites`}
+                            onClick={(event) => toggleFavorite(model.id, event)}
+                          >
+                            ★
+                          </button>
+                          <button
+                            className="chat-model-choice"
+                            type="button"
+                            onClick={() => {
+                              setSelectedModel(model);
+                              setModelMenuOpen(false);
+                            }}
+                          >
+                            <ProviderMark provider={model.provider} />
+                            <span className="chat-model-copy">
+                              <span className="chat-model-name">
+                                <span>{model.label}</span>
+                                {model.badge ? <span className="chat-model-badge">{model.badge}</span> : null}
+                              </span>
+                              <span className="chat-model-description">{model.description}</span>
+                            </span>
+                          </button>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="chat-model-empty">
+                      <span>No favorites yet</span>
+                      <small>Star a model from Claude or OpenAI.</small>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : null}
           </div>
@@ -294,11 +455,19 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   );
 }
 
-function ProviderMark({ provider }: { provider: ChatModel["provider"] }) {
+function ProviderMark({ provider }: { provider: ChatProvider["icon"] | ChatModel["provider"] }) {
+  if (provider === "star") {
+    return (
+      <span className="chat-provider-mark chat-provider-star" aria-hidden="true">
+        ★
+      </span>
+    );
+  }
+
   return (
     <img
       className="chat-provider-mark"
-      src={`/logos/integrations/${provider}.svg`}
+      src={`/logos/integrations/${provider === "anthropic" ? "claude" : provider}.svg`}
       alt=""
       aria-hidden="true"
     />
