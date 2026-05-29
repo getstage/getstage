@@ -78,6 +78,7 @@ export function CreateProjectView() {
                 clientName={draft.clientName}
                 clientEmail={draft.clientEmail}
                 clientAvatar={draft.clientAvatar}
+                hasPendingAvatarFile={Boolean(draft.pendingAvatarFile)}
                 error={flow.clientDetailsError}
                 onClientModeChange={flow.selectClientMode}
                 onExistingClientSelect={flow.selectExistingClient}

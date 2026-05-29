@@ -41,8 +41,8 @@ export const providerUpdateStatusSchema = z.enum([
 export const providerOptionChoiceSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
-  description: z.string().min(1).optional(),
-  isDefault: z.boolean().optional(),
+  description: z.string().min(1).nullish(),
+  isDefault: z.boolean().nullish(),
 });
 
 export const providerOptionDescriptorSchema = z.discriminatedUnion("type", [
@@ -50,16 +50,16 @@ export const providerOptionDescriptorSchema = z.discriminatedUnion("type", [
     id: z.string().min(1),
     type: z.literal("select"),
     label: z.string().min(1),
-    description: z.string().min(1).optional(),
+    description: z.string().min(1).nullish(),
     options: z.array(providerOptionChoiceSchema),
-    currentValue: z.string().min(1).optional(),
+    currentValue: z.string().min(1).nullish(),
   }),
   z.object({
     id: z.string().min(1),
     type: z.literal("boolean"),
     label: z.string().min(1),
-    description: z.string().min(1).optional(),
-    currentValue: z.boolean().optional(),
+    description: z.string().min(1).nullish(),
+    currentValue: z.boolean().nullish(),
   }),
 ]);
 
@@ -67,7 +67,7 @@ export const providerModelSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
   source: providerModelSourceSchema,
-  isDefault: z.boolean().optional(),
+  isDefault: z.boolean().nullish(),
   options: z.array(providerOptionDescriptorSchema).default([]),
 });
 
@@ -88,9 +88,9 @@ export const providerErrorCodeSchema = z.enum([
 export const engineErrorSchema = z.object({
   code: providerErrorCodeSchema,
   message: z.string().min(1),
-  providerId: providerIdSchema.optional(),
+  providerId: providerIdSchema.nullish(),
   retryable: z.boolean(),
-  detail: z.string().min(1).optional(),
+  detail: z.string().min(1).nullish(),
 });
 
 export const providerStatusRecordSchema = z.object({
@@ -100,19 +100,19 @@ export const providerStatusRecordSchema = z.object({
   installed: z.boolean(),
   authenticated: z.boolean(),
   authStatus: providerAuthStatusSchema,
-  authLabel: z.string().min(1).optional(),
-  accountEmail: z.string().email().optional(),
+  authLabel: z.string().min(1).nullish(),
+  accountEmail: z.string().email().nullish(),
   enabled: z.boolean(),
   version: z.string().min(1).nullable(),
   status: providerStatusSchema,
   updateAvailable: z.boolean().nullable(),
   updateStatus: providerUpdateStatusSchema,
-  updateHint: z.string().min(1).optional(),
+  updateHint: z.string().min(1).nullish(),
   checkedAt: z.number().int().nonnegative(),
   models: z.array(providerModelSchema),
-  setupHint: z.string().min(1).optional(),
-  message: z.string().min(1).optional(),
-  error: engineErrorSchema.optional(),
+  setupHint: z.string().min(1).nullish(),
+  message: z.string().min(1).nullish(),
+  error: engineErrorSchema.nullish(),
 });
 
 export const providerListResponseSchema = z.object({
@@ -126,8 +126,8 @@ export const providerUpdateResponseSchema = z.object({
   status: providerUpdateStatusSchema,
   versionBefore: z.string().min(1).nullable(),
   versionAfter: z.string().min(1).nullable(),
-  message: z.string().min(1).optional(),
-  error: engineErrorSchema.optional(),
+  message: z.string().min(1).nullish(),
+  error: engineErrorSchema.nullish(),
 });
 
 export type EngineApiVersion = z.infer<typeof engineApiVersionSchema>;

@@ -77,7 +77,7 @@ export function useCreateProjectFlow() {
       clientMode: draft.clientMode,
       clientName: draft.clientName,
       clientEmail: draft.clientEmail,
-      hasClientPhoto: Boolean(draft.clientAvatar?.trim()),
+      hasClientPhoto: Boolean(draft.pendingAvatarFile || draft.clientAvatar?.trim()),
     });
     const error = getFirstZodError(result);
     setClientDetailsError(error);
@@ -150,6 +150,12 @@ export function useCreateProjectFlow() {
 
     if (activePhases.length < 2) {
       setCreateError("Select at least two phases.");
+      return;
+    }
+
+    const hasClientPhoto = Boolean(draft.pendingAvatarFile || draft.clientAvatar?.trim());
+    if (!hasClientPhoto) {
+      setCreateError("Upload a client photo to continue.");
       return;
     }
 

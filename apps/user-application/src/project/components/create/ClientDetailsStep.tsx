@@ -22,6 +22,7 @@ export function ClientDetailsStep({
   clientName,
   clientEmail,
   clientAvatar,
+  hasPendingAvatarFile,
   error,
   onClientModeChange,
   onExistingClientSelect,
@@ -39,6 +40,7 @@ export function ClientDetailsStep({
   clientName: string;
   clientEmail: string;
   clientAvatar: string | null;
+  hasPendingAvatarFile: boolean;
   error: string | null;
   onClientModeChange: (value: "new" | "existing") => void;
   onExistingClientSelect: (client: ExistingClientOption) => void;
@@ -54,7 +56,7 @@ export function ClientDetailsStep({
     clientMode,
     clientName,
     clientEmail,
-    hasClientPhoto: Boolean(clientAvatar?.trim()),
+    hasClientPhoto: Boolean(hasPendingAvatarFile || clientAvatar?.trim()),
   }).success;
 
   return (

@@ -40,7 +40,7 @@ export const clientDetailsFormSchema = z
     clientEmail: z.string().trim().min(1, "Client email is required.").email("Enter a valid client email."),
     hasClientPhoto: z.boolean(),
   })
-  .refine((value) => value.clientMode === "existing" || value.hasClientPhoto, {
+  .refine((value) => value.hasClientPhoto, {
     path: ["hasClientPhoto"],
     message: "Upload a client photo to continue.",
   });

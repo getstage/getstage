@@ -162,8 +162,10 @@ export function useProjectDraft({
       selectedExistingClientName: "",
       clientName: value,
       clientEmail: current.clientMode === "existing" ? "" : current.clientEmail,
-      clientAvatar: current.clientMode === "existing" ? null : current.clientAvatar,
-      pendingAvatarFile: current.clientMode === "existing" ? null : current.pendingAvatarFile,
+      clientAvatar:
+        current.clientMode === "existing" && !current.pendingAvatarFile ? null : current.clientAvatar,
+      pendingAvatarFile:
+        current.clientMode === "existing" && !current.pendingAvatarFile ? null : current.pendingAvatarFile,
     }));
   }
 
@@ -274,8 +276,8 @@ export function useProjectDraft({
       selectedExistingClientName: client.name,
       clientName: client.name,
       clientEmail: client.email ?? "",
-      clientAvatar: client.avatarUrl ?? null,
-      pendingAvatarFile: null,
+      clientAvatar: current.pendingAvatarFile ? current.clientAvatar : (client.avatarUrl ?? null),
+      pendingAvatarFile: current.pendingAvatarFile,
     }));
   }
 

@@ -176,7 +176,7 @@ export function OnboardingStepRenderer({
 
                   <div>
                     <FigmaLabel>
-                      Client photo <span className="text-[#737373]">(Optional)</span>
+                      Client photo
                     </FigmaLabel>
                     <button
                       type="button"

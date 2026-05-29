@@ -62,6 +62,7 @@ export function canContinue({
   projectName,
   clientName,
   clientEmail,
+  hasClientAvatar,
   projectType,
   activePhasesLength,
   startDate,
@@ -76,7 +77,8 @@ export function canContinue({
       return (
         setProjectLater ||
         (projectBasicsSchema.safeParse({ projectName }).success &&
-          clientInfoSchema.safeParse({ clientName, clientEmail }).success)
+          clientInfoSchema.safeParse({ clientName, clientEmail }).success &&
+          hasClientAvatar)
       );
     case "client":
       return clientInfoSchema.safeParse({ clientName, clientEmail }).success;
@@ -106,6 +108,7 @@ export function getStepValidationError({
   projectName,
   clientName,
   clientEmail,
+  hasClientAvatar,
   projectType,
   activePhasesLength,
   startDate,
@@ -134,6 +137,9 @@ export function getStepValidationError({
         return clientEmail.trim().length === 0
           ? "Client email is required."
           : (clientEmailParsed.error.issues[0]?.message ?? "Please enter a valid email address.");
+      }
+      if (!hasClientAvatar) {
+        return "Upload a client photo to continue.";
       }
       return null;
     }

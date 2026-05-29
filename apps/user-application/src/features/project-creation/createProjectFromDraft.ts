@@ -25,14 +25,25 @@ export async function createProjectFromDraft<TResult>({
     throw new Error("Project details are incomplete.");
   }
 
-  const clientAvatarUrl = draft.pendingAvatarFile
-    ? await uploadFileToR2({
-        generateUploadUrl,
-        syncMetadata,
-        purpose: "client-avatar",
-        file: draft.pendingAvatarFile,
-      })
-    : draft.clientAvatar?.trim() || undefined;
+  let clientAvatarUrl: string | undefined;
+
+  if (draft.pendingAvatarFile) {
+    clientAvatarUrl = await uploadFileToR2({
+      generateUploadUrl,
+      syncMetadata,
+      purpose: "client-avatar",
+      file: draft.pendingAvatarFile,
+    });
+  } else if (draft.clientMode !== "existing") {
+    const avatar = draft.clientAvatar?.trim();
+    if (avatar && !avatar.startsWith("data:") && !avatar.startsWith("blob:")) {
+      clientAvatarUrl = avatar;
+    }
+  }
+
+  if (draft.clientMode !== "existing" && !clientAvatarUrl) {
+    throw new Error("Upload a client photo to continue.");
+  }
 
   const projectImageUrl = draft.pendingProjectImageFile
     ? await uploadFileToR2({
