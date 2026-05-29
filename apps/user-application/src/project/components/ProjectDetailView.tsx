@@ -12,6 +12,7 @@ import { WireframesTab } from "./tabs/WireframesTab";
 import { useLiveProject } from "@/project/hooks";
 import { useDeleteProjectMutation } from "@/hooks/convex-data";
 import { toUserFacingErrorMessage } from "@/lib/errors";
+import { formatInputDate } from "@/lib/format";
 import { formatRelativeTime } from "@/lib/utils";
 import type { Phase, Project, ProjectTab } from "../models/project";
 
@@ -19,14 +20,6 @@ type ProjectTimeline = {
   start: string;
   end: string;
 };
-
-function formatTimelineDate(timestamp: number) {
-  return new Intl.DateTimeFormat("en-US", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(timestamp));
-}
 
 export function ProjectDetailView() {
   const navigate = useNavigate();
@@ -49,8 +42,8 @@ export function ProjectDetailView() {
   useEffect(() => {
     if (live.detail) {
       setTimeline({
-        start: formatTimelineDate(live.detail.startDate),
-        end: formatTimelineDate(live.detail.endDate),
+        start: formatInputDate(new Date(live.detail.startDate)),
+        end: formatInputDate(new Date(live.detail.endDate)),
       });
     }
   }, [live.detail]);

@@ -212,6 +212,11 @@ function TimelineModal({
   const [start, setStart] = useState(timeline.start);
   const [end, setEnd] = useState(timeline.end);
 
+  useEffect(() => {
+    setStart(timeline.start);
+    setEnd(timeline.end);
+  }, [timeline.start, timeline.end]);
+
   function save() {
     onSave({ start, end });
     onClose();
