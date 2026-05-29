@@ -1,14 +1,15 @@
 import { projectSchema } from "../models/project";
 import type { Project } from "../models/project";
+import type { ProjectDetail, ProjectSummary } from "@stage/data-ops";
 
 const now = Date.now();
 const ONE_HOUR = 60 * 60 * 1000;
 const ONE_DAY = 24 * ONE_HOUR;
 
 export const mockProject = projectSchema.parse({
-  id: "test",
-  name: "Project Name",
-  clientName: "Example",
+  id: "mock-stellar-site",
+  name: "Stellar Labs Website",
+  clientName: "Stellar Labs",
   status: "active",
   phases: [
     {
@@ -134,11 +135,17 @@ export const mockProject = projectSchema.parse({
     },
   ],
   research: {
-    clientWebsite: "https://example.com",
-    competitors: ["reddit.com"],
-    references: ["https://reference.com"],
-    brief: "Test branding project for agent endpoint testing",
-    notes: "Testing Claude Code integration",
+    clientWebsite: "https://stellarlabs.example",
+    competitors: ["linear.app", "vercel.com", "stripe.com", "attio.com"],
+    references: [
+      "https://mobbin.com/browse/web/apps/linear",
+      "https://www.figma.com/community/file/1307143255737860810",
+      "https://land-book.com",
+    ],
+    brief:
+      "Design a conversion-focused marketing site for a developer tools startup launching an AI observability product.",
+    notes:
+      "Client wants a polished technical feel, compact proof points, clear security messaging, and a demo request path that works for enterprise buyers.",
   },
   moodboard: {
     references: [
@@ -287,10 +294,146 @@ export const mockProject = projectSchema.parse({
     },
   ],
   assets: [
-    { id: "asset-1", title: "Logo mark", type: "Brand" },
-    { id: "asset-2", title: "Primary palette", type: "Color" },
-    { id: "asset-3", title: "Hero reference", type: "Image" },
+    { id: "asset-1", title: "Homepage Wireframe", type: "Wireframe" },
+    { id: "asset-2", title: "Demo Request Wireframe", type: "Wireframe" },
+    { id: "asset-3", title: "Confirmation Wireframe", type: "Wireframe" },
+    { id: "asset-4", title: "Client Portal Wireframe", type: "Wireframe" },
+    { id: "asset-5", title: "Research Library Wireframe", type: "Wireframe" },
+    { id: "asset-6", title: "Asset Handoff Wireframe", type: "Wireframe" },
   ],
 });
 
-export const mockProjects: Project[] = [mockProject];
+export const mockProjectTwo = projectSchema.parse({
+  ...mockProject,
+  id: "mock-nova-mobile",
+  name: "Nova Banking App",
+  clientName: "Nova Credit Union",
+  status: "paused",
+  research: {
+    clientWebsite: "https://novacu.example",
+    competitors: ["chime.com", "monzo.com", "revolut.com"],
+    references: ["https://mobbin.com", "https://www.apple.com/apple-card"],
+    brief: "Create product flows and mobile wireframes for a savings-first banking app.",
+    notes: "Prioritize trust, plain-language financial decisions, and fast onboarding recovery states.",
+  },
+  flows: [
+    {
+      id: "flow-mobile-1",
+      title: "New Member Opens Account",
+      description: "Finish onboarding and fund the first savings goal",
+      status: "Draft",
+      screenCount: 6,
+      category: "Mobile onboarding",
+      steps: [
+        "Welcome → Verify phone",
+        "Identity check → Confirm details",
+        "Choose savings goal",
+        "Connect external account",
+        "Review disclosures",
+        "Fund account",
+      ],
+    },
+    {
+      id: "flow-mobile-2",
+      title: "Member Reviews Spending",
+      description: "Find monthly trends and move money into savings",
+      status: "Approved",
+      screenCount: 4,
+    },
+  ],
+  screens: [
+    {
+      id: "screen-mobile-1",
+      title: "Welcome",
+      description: "Mobile entry screen with trust cues and account creation CTA.",
+      flowCount: 1,
+      keyElements: ["Logo lockup", "Primary signup CTA", "Sign-in link", "Security note"],
+    },
+    {
+      id: "screen-mobile-2",
+      title: "Identity Check",
+      description: "KYC step with document capture and confidence messaging.",
+      flowCount: 1,
+      keyElements: ["Document scanner", "Progress indicator", "Privacy message", "Error recovery"],
+    },
+    {
+      id: "screen-mobile-3",
+      title: "Savings Goal",
+      description: "Goal setup interface with amount, timeline, and recommended deposits.",
+      flowCount: 2,
+      keyElements: ["Goal templates", "Amount input", "Timeline slider", "Recommended weekly transfer"],
+    },
+  ],
+  assets: [
+    { id: "asset-mobile-1", title: "Welcome Wireframe", type: "Wireframe" },
+    { id: "asset-mobile-2", title: "Identity Check Wireframe", type: "Wireframe" },
+    { id: "asset-mobile-3", title: "Savings Goal Wireframe", type: "Wireframe" },
+  ],
+});
+
+export const mockProjectThree = projectSchema.parse({
+  ...mockProject,
+  id: "mock-harbor-brand",
+  name: "Harbor Coffee Rebrand",
+  clientName: "Harbor Coffee Co.",
+  status: "completed",
+  research: {
+    clientWebsite: "https://harborcoffee.example",
+    competitors: ["bluebottlecoffee.com", "stumptowncoffee.com", "counterculturecoffee.com"],
+    references: ["https://packagingoftheworld.com", "https://the-brandidentity.com"],
+    brief: "Refresh the cafe brand system and prepare handoff assets for packaging and web.",
+    notes: "Keep the brand warm but not rustic; focus on clarity, origin stories, and retail shelf impact.",
+  },
+  assets: [
+    { id: "asset-brand-1", title: "Logo Exploration", type: "Brand" },
+    { id: "asset-brand-2", title: "Menu Board Wireframe", type: "Wireframe" },
+    { id: "asset-brand-3", title: "Packaging Label", type: "Print" },
+    { id: "asset-brand-4", title: "Color System", type: "Brand" },
+  ],
+});
+
+export const mockProjects: Project[] = [mockProject, mockProjectTwo, mockProjectThree];
+
+export const mockProjectSummaries: ProjectSummary[] = mockProjects.map((project, index) => {
+  const totalTasks = project.phases.reduce((sum, phase) => sum + phase.tasks.length, 0);
+  const completedTasks = project.phases.reduce(
+    (sum, phase) => sum + phase.tasks.filter((task) => task.isCompleted || task.status === "done").length,
+    0,
+  );
+  return {
+    id: project.id,
+    name: project.name,
+    clientName: project.clientName,
+    type: index === 1 ? "app-design" : index === 2 ? "branding" : "web-design",
+    status: project.status,
+    startDate: now - (14 + index * 11) * ONE_DAY,
+    endDate: now + (28 - index * 8) * ONE_DAY,
+    progress: totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100),
+  };
+});
+
+export const mockProjectDetails: ProjectDetail[] = mockProjectSummaries.map((summary) => {
+  const project = mockProjects.find((candidate) => candidate.id === summary.id)!;
+  const taskCount = project.phases.reduce((sum, phase) => sum + phase.tasks.length, 0);
+  const completedTaskCount = project.phases.reduce(
+    (sum, phase) => sum + phase.tasks.filter((task) => task.isCompleted || task.status === "done").length,
+    0,
+  );
+  return {
+    ...summary,
+    accessRole: "owner",
+    phaseCount: project.phases.length,
+    taskCount,
+    completedTaskCount,
+    createdAt: summary.startDate,
+    updatedAt: now - 2 * ONE_HOUR,
+  };
+});
+
+export function findMockProject(projectId: string | undefined) {
+  return mockProjects.find((project) => project.id === projectId) ?? null;
+}
+
+export function findMockProjectDetail(projectId: string | undefined) {
+  return mockProjectDetails.find((project) => project.id === projectId) ?? null;
+}

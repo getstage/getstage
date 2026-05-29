@@ -1,5 +1,5 @@
 export type WireframeKind = "lofi" | "hifi";
-export type WireframeStep = "choose-type" | "brand-kit" | "configure" | "generating" | "results";
+export type WireframeStep = "choose-type" | "style-guide" | "brand-kit" | "configure" | "generating" | "results";
 
 export type ScreenItem = {
   id: string;

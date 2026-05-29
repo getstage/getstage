@@ -6,26 +6,26 @@ import { CanvasShell } from "./CanvasShell";
 import { ConfigureStep } from "./ConfigureStep";
 import { GeneratingStep } from "./GeneratingStep";
 import { ResultsGrid } from "./ResultsGrid";
+import { StyleGuideStep } from "./StyleGuideStep";
+import type { BrandSource } from "./TypeChooser";
 import { TypeChooser } from "./TypeChooser";
 
 export function WireframesTab() {
   const [step, setStep] = useState<WireframeStep>("choose-type");
-  const [wireframeKind, setWireframeKind] = useState<WireframeKind | null>(null);
+  const [wireframeKind, setWireframeKind] = useState<WireframeKind>("hifi");
+  const [brandSource, setBrandSource] = useState<BrandSource>("style-guide");
   const [hasBrandKit, setHasBrandKit] = useState(false);
   const [screens, setScreens] = useState(MOCK_SCREENS);
   const selectedCount = screens.filter((screen) => screen.selected).length;
 
-  function selectKind(nextKind: WireframeKind) {
-    setWireframeKind(nextKind);
-  }
-
-  function continueFromType() {
-    if (!wireframeKind) return;
-    if (wireframeKind === "hifi") {
+  function continueFromSource(source: BrandSource) {
+    setBrandSource(source);
+    setWireframeKind("hifi");
+    if (source === "brand-kit") {
       setStep("brand-kit");
       return;
     }
-    setStep("configure");
+    setStep("style-guide");
   }
 
   function generateWireframes() {
@@ -52,11 +52,18 @@ export function WireframesTab() {
       {step === "choose-type" ? (
         <CanvasShell centered>
           <TypeChooser
-            selectedKind={wireframeKind}
-            onSelect={selectKind}
-            onContinue={continueFromType}
+            selectedSource={brandSource}
+            onSelect={setBrandSource}
+            onContinue={continueFromSource}
           />
         </CanvasShell>
+      ) : null}
+
+      {step === "style-guide" ? (
+        <StyleGuideStep
+          onBack={() => setStep("choose-type")}
+          onContinue={() => setStep("configure")}
+        />
       ) : null}
 
       {step === "brand-kit" ? (
@@ -79,6 +86,7 @@ export function WireframesTab() {
           onChangeType={() => setStep("choose-type")}
           onAddBrandKit={() => {
             setWireframeKind("hifi");
+            setBrandSource("brand-kit");
             setStep("brand-kit");
           }}
           onToggle={(id) =>

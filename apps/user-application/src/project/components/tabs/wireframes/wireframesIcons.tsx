@@ -40,6 +40,30 @@ export function UploadFromDeviceIcon({ className }: { className: string }) {
   );
 }
 
+export function BookOpenIcon({ className }: { className: string }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" className={`${className} shrink-0`}>
+      <path d="M2.5 3.2c0-.55.45-1 1-1H6c.82 0 1.55.4 2 .98.45-.58 1.18-.98 2-.98h2.5c.55 0 1 .45 1 1v8.5c0 .55-.45 1-1 1H9.8c-.42 0-.82.17-1.12.46l-.33.32a.5.5 0 0 1-.7 0l-.33-.32a1.6 1.6 0 0 0-1.12-.46H3.5c-.55 0-1-.45-1-1V3.2Zm1.5.5v7.5h2.2c.45 0 .9.1 1.3.3V4.7A1.5 1.5 0 0 0 6 3.7H4Zm4.5 7.8c.4-.2.85-.3 1.3-.3H12V3.7h-2a1.5 1.5 0 0 0-1.5 1.5v6.3Z" />
+    </svg>
+  );
+}
+
+export function MonitorIcon({ className = "h-[13px] w-[13px]" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" className={`${className} shrink-0`}>
+      <path d="M2.5 3.5A1.5 1.5 0 0 1 4 2h8a1.5 1.5 0 0 1 1.5 1.5v5.8a1.5 1.5 0 0 1-1.5 1.5H8.75v1.4h2.05a.65.65 0 1 1 0 1.3H5.2a.65.65 0 1 1 0-1.3h2.05v-1.4H4a1.5 1.5 0 0 1-1.5-1.5V3.5Z" />
+    </svg>
+  );
+}
+
+export function CloseSmallIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" aria-hidden="true" className="h-[14px] w-[14px] shrink-0">
+      <path d="m4.25 4.25 5.5 5.5m0-5.5-5.5 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function TrashIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" className="h-[14px] w-[14px]">

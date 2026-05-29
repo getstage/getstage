@@ -19,6 +19,13 @@ export function useNonProOnboardingGate() {
   const session = useDesktopSession();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [onboardingInitialStep, setOnboardingInitialStep] = useState<OnboardingStepId>("welcome");
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (onboardingStateQuery.data?.isCompleted) {
+      setHasCompletedOnboarding(true);
+    }
+  }, [onboardingStateQuery.data?.isCompleted]);
 
   useEffect(() => {
     if (session.isLoading || !session.data?.hasAccessToken) {
@@ -36,9 +43,15 @@ export function useNonProOnboardingGate() {
 
     const projectCount = projectsQuery.data?.length ?? 0;
     const isPro = settingsOverviewQuery.data?.profile.plan === "pro";
-    const isOnboardingCompleted = onboardingStateQuery.data?.isCompleted ?? false;
+    const isOnboardingCompleted =
+      hasCompletedOnboarding || (onboardingStateQuery.data?.isCompleted ?? false);
 
     if (isPro) {
+      setOnboardingOpen(false);
+      return;
+    }
+
+    if (isOnboardingCompleted) {
       setOnboardingOpen(false);
       return;
     }
@@ -49,14 +62,10 @@ export function useNonProOnboardingGate() {
       return;
     }
 
-    if (isOnboardingCompleted) {
-      setOnboardingOpen(false);
-      return;
-    }
-
     setOnboardingInitialStep("welcome");
     setOnboardingOpen(true);
   }, [
+    hasCompletedOnboarding,
     session.isLoading,
     session.data?.hasAccessToken,
     projectsQuery.isLoading,
@@ -68,6 +77,7 @@ export function useNonProOnboardingGate() {
   ]);
 
   const onOnboardingComplete = useCallback((_submission: OnboardingSubmission) => {
+    setHasCompletedOnboarding(true);
     setOnboardingOpen(false);
   }, []);
 
