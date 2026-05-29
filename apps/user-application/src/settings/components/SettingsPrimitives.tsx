@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { surfaceStyles, textStyles } from "@/styles/recipes";
 
 export function SettingsCard({
   title,
@@ -11,10 +12,10 @@ export function SettingsCard({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-[12px] bg-[#F5F5F5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]", className)}>
+    <section className={cn(surfaceStyles.frame, className)}>
       {title ? (
         <div className="px-[12px] pb-[12px] pt-[8px]">
-          <h2 className="text-[13px] font-medium leading-[1.5] text-[#0A0A0A]">
+          <h2 className={cn(textStyles.body, "text-ink")}>
             {title}
           </h2>
         </div>
@@ -32,7 +33,7 @@ export function SettingsRow({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-[8px] bg-white p-[20px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]", className)}>
+    <div className={cn(surfaceStyles.card, "p-5", className)}>
       {children}
     </div>
   );
@@ -65,8 +66,8 @@ export function SaveButton({
       onClick={() => void handleSave()}
       disabled={disabled || status !== "idle"}
       className={cn(
-        "inline-flex min-h-[30px] min-w-[64px] items-center justify-center rounded-[6px] bg-[#F5F5F5] px-[16px] py-[8px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EBEBEB]",
-        (disabled || status !== "idle") && "opacity-70 cursor-default",
+        "inline-flex min-h-[30px] min-w-[64px] items-center justify-center rounded-control bg-input-bg px-4 py-2 text-[12px] font-medium leading-none text-ink-soft shadow-stage-hairline transition-colors hover:bg-input-bg-hover",
+        (disabled || status !== "idle") && "cursor-default opacity-70",
       )}
     >
       {status === "idle" && children}
@@ -81,13 +82,13 @@ export function MockToggle({ active }: { active: boolean }) {
     <span
       className={cn(
         "flex h-[20px] w-[36px] items-center rounded-full p-[2px] transition-colors",
-        active ? "bg-[#8782F5]" : "bg-[#E5E5E5]",
+        active ? "bg-accent" : "bg-line",
       )}
     >
       <span
         className={cn(
           "h-[16px] w-[16px] rounded-full transition-transform",
-          active ? "translate-x-[16px] bg-white" : "translate-x-0 bg-[#737373]",
+          active ? "translate-x-[16px] bg-white" : "translate-x-0 bg-ink-subtle",
         )}
       />
     </span>

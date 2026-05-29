@@ -1,8 +1,10 @@
 import type { DashboardMetric } from "../models/dashboard";
+import { cn } from "@/lib/utils";
+import { surfaceStyles, textStyles } from "@/styles/recipes";
 
 export function MetricGrid({ metrics }: { metrics: DashboardMetric[] }) {
   return (
-    <div className="overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[2px]">
+    <div className="overflow-hidden rounded-[10px] bg-input-bg p-[2px]">
       <div className="grid grid-cols-2 gap-[2px] xl:grid-cols-4">
         {metrics.map((metric) => (
           <StatCard
@@ -27,13 +29,13 @@ function StatCard({
   label: string;
 }) {
   return (
-    <div className="flex min-w-0 flex-col items-start gap-[clamp(16px,3vw,28px)] rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[16px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]">
+    <div className={cn("flex min-w-0 flex-col items-start gap-[clamp(16px,3vw,28px)] p-4", surfaceStyles.elevatedCard)}>
       <img src={icon} alt="" aria-hidden="true" className="h-[18px] w-[18px]" />
       <div className="flex min-w-0 flex-col items-start gap-[4px]">
-        <div className="text-[20px] font-semibold leading-[1.2] tracking-[-0.2px] text-[#0a0a0a]">
+        <div className="text-[20px] font-semibold leading-[1.2] tracking-[-0.2px] text-ink">
           {value}
         </div>
-        <div className="truncate text-[12px] font-medium leading-[1.5] text-[#737373]">
+        <div className={cn(textStyles.caption, "truncate")}>
           {label}
         </div>
       </div>

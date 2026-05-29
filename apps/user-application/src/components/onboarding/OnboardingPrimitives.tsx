@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ArrowUpRight, Eye } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { surfaceStyles } from "@/styles/recipes";
 
 export function OptionCard({
   active,
@@ -19,8 +20,8 @@ export function OptionCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "cursor-pointer rounded-xl border-[1.5px] bg-input-bg px-5 py-[18px] text-left transition-colors focus:outline-none",
-        active ? "border-accent bg-[rgba(135,130,245,0.08)]" : "border-transparent hover:bg-[#EFEFEF]",
+        "cursor-pointer rounded-panel border-[1.5px] px-5 py-[18px] text-left transition-colors",
+        active ? "border-accent bg-[rgba(135,130,245,0.08)]" : "border-transparent bg-input-bg hover:bg-[#EFEFEF]",
       )}
     >
       <div
@@ -100,11 +101,11 @@ export function StepShell({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]", className)}>
+    <div className={cn(surfaceStyles.frame, "shadow-stage-field", className)}>
       {label ? (
         <div className="px-4 pb-3 pt-3 text-[13px] font-semibold text-text-primary">{label}</div>
       ) : null}
-      <div className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">{children}</div>
+      <div className={cn(surfaceStyles.card, "p-4 shadow-stage-field")}>{children}</div>
     </div>
   );
 }

@@ -14,12 +14,14 @@
   --color-bg: #FFFFFF;
   --color-bg-subtle: #FAFAF9;
   --color-surface: #FFFFFF;
+  --color-surface-muted: #FAFAFA;
   --color-text-primary: #1A1A2E;
   --color-text-secondary: #8C8C8C;
   --color-text-tertiary: #BFBFBF;
   --color-border: #E8E8E8;
   --color-border-subtle: #F0F0F0;
   --color-input-bg: #F5F5F5;
+  --color-input-bg-hover: #EBEBEB;
 
   /* ---- Accent — Lavender Purple ---- */
   --color-accent: #8782F5;
@@ -34,6 +36,20 @@
   --color-destructive: #E07070;
   --color-destructive-hover: #D45A5A;
   --color-warning: #E5A84B;
+
+  /* ---- Stage App Primitives ---- */
+  --color-ink: #0A0A0A;
+  --color-ink-soft: #171717;
+  --color-ink-muted: #525252;
+  --color-ink-subtle: #737373;
+  --color-line: #E5E5E5;
+
+  --radius-panel: 12px;
+  --radius-surface: 8px;
+  --radius-control: 6px;
+
+  --shadow-stage-hairline: 0 0.45px 0.5px rgb(10 10 10 / 25%);
+  --shadow-stage-field: 0 0.45px 1px rgb(10 10 10 / 25%);
 
   /* ---- Typography ---- */
   --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
