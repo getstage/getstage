@@ -29,6 +29,15 @@ export const providerModelSourceSchema = z.enum([
   "unknown",
 ]);
 
+export const providerUpdateStatusSchema = z.enum([
+  "idle",
+  "checking",
+  "updating",
+  "updated",
+  "failed",
+  "unsupported",
+]);
+
 export const providerOptionChoiceSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
@@ -91,9 +100,14 @@ export const providerStatusRecordSchema = z.object({
   installed: z.boolean(),
   authenticated: z.boolean(),
   authStatus: providerAuthStatusSchema,
+  authLabel: z.string().min(1).optional(),
+  accountEmail: z.string().email().optional(),
   enabled: z.boolean(),
   version: z.string().min(1).nullable(),
   status: providerStatusSchema,
+  updateAvailable: z.boolean().nullable(),
+  updateStatus: providerUpdateStatusSchema,
+  updateHint: z.string().min(1).optional(),
   checkedAt: z.number().int().nonnegative(),
   models: z.array(providerModelSchema),
   setupHint: z.string().min(1).optional(),
@@ -106,12 +120,23 @@ export const providerListResponseSchema = z.object({
   providers: z.array(providerStatusRecordSchema),
 });
 
+export const providerUpdateResponseSchema = z.object({
+  apiVersion: engineApiVersionSchema,
+  providerId: providerIdSchema,
+  status: providerUpdateStatusSchema,
+  versionBefore: z.string().min(1).nullable(),
+  versionAfter: z.string().min(1).nullable(),
+  message: z.string().min(1).optional(),
+  error: engineErrorSchema.optional(),
+});
+
 export type EngineApiVersion = z.infer<typeof engineApiVersionSchema>;
 export type ProviderId = z.infer<typeof providerIdSchema>;
 export type ProviderKind = z.infer<typeof providerKindSchema>;
 export type ProviderStatus = z.infer<typeof providerStatusSchema>;
 export type ProviderAuthStatus = z.infer<typeof providerAuthStatusSchema>;
 export type ProviderModelSource = z.infer<typeof providerModelSourceSchema>;
+export type ProviderUpdateStatus = z.infer<typeof providerUpdateStatusSchema>;
 export type ProviderOptionChoice = z.infer<typeof providerOptionChoiceSchema>;
 export type ProviderOptionDescriptor = z.infer<typeof providerOptionDescriptorSchema>;
 export type ProviderModel = z.infer<typeof providerModelSchema>;
@@ -119,3 +144,4 @@ export type ProviderErrorCode = z.infer<typeof providerErrorCodeSchema>;
 export type EngineError = z.infer<typeof engineErrorSchema>;
 export type ProviderStatusRecord = z.infer<typeof providerStatusRecordSchema>;
 export type ProviderListResponse = z.infer<typeof providerListResponseSchema>;
+export type ProviderUpdateResponse = z.infer<typeof providerUpdateResponseSchema>;

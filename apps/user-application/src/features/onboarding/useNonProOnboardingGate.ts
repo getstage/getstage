@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import type { OnboardingStepId, OnboardingSubmission } from "@/features/onboarding/model";
 import {
@@ -6,8 +5,7 @@ import {
   useProjectsQuery,
   useSettingsOverviewQuery,
 } from "@/hooks/convex-data";
-import { useDesktopBridge } from "@/hooks/useDesktopBridge";
-import { desktopSessionQueryKey } from "@/lib/desktopSession";
+import { useDesktopSession } from "@/hooks/engine/useDesktopSession";
 
 /**
  * Product-tier gate for authenticated desktop users. The welcome flow is only for
@@ -15,18 +13,12 @@ import { desktopSessionQueryKey } from "@/lib/desktopSession";
  * projects gets pushed to the paywall instead.
  */
 export function useNonProOnboardingGate() {
-  const desktop = useDesktopBridge();
   const projectsQuery = useProjectsQuery();
   const settingsOverviewQuery = useSettingsOverviewQuery();
   const onboardingStateQuery = useOnboardingStateQuery();
+  const session = useDesktopSession();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [onboardingInitialStep, setOnboardingInitialStep] = useState<OnboardingStepId>("welcome");
-
-  const session = useQuery({
-    queryKey: desktopSessionQueryKey,
-    queryFn: () => desktop.auth.getSession(),
-    retry: false,
-  });
 
   useEffect(() => {
     if (session.isLoading || !session.data?.hasAccessToken) {

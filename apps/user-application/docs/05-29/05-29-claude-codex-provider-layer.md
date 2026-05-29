@@ -530,6 +530,208 @@ provider metadata.
 Unknown model IDs are allowed if they come from a ready provider. The UI should
 display them with a generated label instead of failing.
 
+## Caption: Provider updates and newest models
+
+Provider updates are a first-class part of the provider layer.
+
+Stage must support two separate update concepts:
+
+```txt
+Provider binary update:
+Update the local Claude/Codex CLI installation itself.
+
+Provider model refresh:
+Refresh the available model list and capabilities exposed by the provider.
+```
+
+These are not the same thing.
+
+Provider binary update examples:
+
+```txt
+Claude:
+Run claude update.
+
+Codex:
+Run codex --upgrade.
+```
+
+Stage must not invent unsafe update behavior. It should only run update commands
+that are known and provider-supported for the detected install method.
+
+References:
+
+```txt
+Claude Code CLI reference: https://code.claude.com/docs/en/cli-usage
+OpenAI Codex CLI help article: https://help.openai.com/en/articles/11096431
+```
+
+Provider model refresh examples:
+
+```txt
+Codex:
+Prefer provider-reported model list when the local Codex runtime exposes one.
+
+Claude:
+Prefer provider-reported capabilities when available. Otherwise use a small
+fallback model registry gated by detected Claude CLI version.
+```
+
+The UI should expose this as:
+
+```txt
+Refresh providers
+Check for updates
+Updating provider...
+Checked just now
+Version label per provider
+Latest model list after refresh
+```
+
+Important rule:
+
+```txt
+React never hardcodes newest Claude/Codex model names.
+React renders whatever the typed provider snapshot returns.
+Stage Engine owns provider version detection, update command execution, and
+model/capability refresh.
+```
+
+The provider snapshot must eventually include:
+
+```txt
+version
+updateAvailable
+updateStatus
+updateHint
+models
+model capabilities
+checkedAt
+```
+
+V1 implementation order for updates:
+
+```txt
+1. Detect provider version.
+2. Detect provider auth state.
+3. Refresh provider models/capabilities.
+4. Add update status fields to provider snapshot.
+5. Add safe update command support per provider/install method.
+6. Add UI progress state: "Updating provider".
+7. Re-run model refresh after successful update.
+```
+
+Current implementation status:
+
+```txt
+Partially implemented.
+/v1/providers now runs real non-destructive version probes.
+Claude version probe: claude --version.
+Codex version probe: codex --version.
+/v1/providers/{provider_id}/update now exists.
+Claude update command: claude update.
+Codex update command: codex --upgrade.
+Provider auth detection now has a conservative local credential-file probe.
+Provider-reported model list refresh is still pending.
+Smoke test on May 29, 2026 returned Claude and Codex as installed,
+authenticated, and ready on the local machine.
+Integrations page now reads the live Stage Engine provider snapshot instead of
+using local fake connected/available state for Claude and Codex.
+```
+
+## Caption: Implemented provider files
+
+The current provider implementation is intentionally split into small layers:
+
+```txt
+apps/stage-engine/src/models/providers.rs
+Public serde API models. This is the Rust mirror of the Zod provider contract.
+
+apps/stage-engine/src/server/providers.rs
+Axum route handlers only. No provider business logic lives here.
+
+apps/stage-engine/src/providers/catalog.rs
+Static provider metadata: provider id, label, binary, version command, update
+command, auth file locations, fallback model labels, setup hints.
+
+apps/stage-engine/src/providers/command.rs
+Async Tokio child-process runner with timeout handling and version parsing.
+
+apps/stage-engine/src/providers/auth.rs
+Conservative local auth-file detection. This may return safe account metadata
+like email or subscription label, but never returns tokens or raw auth file
+contents.
+
+apps/stage-engine/src/providers/service.rs
+Provider orchestration: build provider snapshots, map probe failures to typed
+EngineError values, run provider update commands.
+```
+
+TypeScript/Electron bridge files:
+
+```txt
+packages/data-ops/src/contracts/engine-provider.ts
+Zod contract for provider ids, status records, update responses, errors, model
+options, and safe auth metadata.
+
+apps/user-application/shared/ipc/channels.ts
+Typed channel names for provider list, refresh, and update.
+
+apps/user-application/electron/preload.ts
+Secure renderer-facing API: window.stageDesktop.engine.*
+
+apps/user-application/electron/ipc.ts
+Main-process handlers. Validates renderer input and Stage Engine responses.
+
+apps/user-application/src/hooks/engine/useProviderStatus.ts
+TanStack Query hook for provider status plus provider update mutation.
+
+apps/user-application/src/types/stage-desktop.d.ts
+Renderer type definitions for the preload provider API.
+
+apps/user-application/src/settings/components/SettingsPageView.tsx
+Integrations page maps the live provider snapshot into Connected and Available
+Tools sections. It no longer locally pretends Claude/Codex are connected.
+```
+
+## Caption: Auth detection status
+
+Auth detection is deliberately conservative.
+
+Stage Engine currently checks local credential-file presence and extracts only
+safe metadata:
+
+```txt
+Claude:
+~/.claude/.credentials.json
+~/.claude.json
+
+Codex:
+$CODEX_HOME/auth.json
+~/.codex/auth.json
+```
+
+Returned auth fields:
+
+```txt
+authenticated
+authStatus
+authLabel
+accountEmail
+```
+
+Security rule:
+
+```txt
+Never expose tokens.
+Never expose raw credential file contents.
+Never let React read provider auth files.
+Only Stage Engine may inspect local provider metadata.
+```
+
+This is good enough for the first Providers UI pass. Later, Claude/Codex runtime
+probes can replace or enrich this with provider-reported auth and model data.
+
 ## Caption: Type safety plan
 
 The system is contract-first.
@@ -951,11 +1153,11 @@ apps/stage-engine/src/models/providers.rs
 apps/stage-engine/src/models/runs.rs
 apps/stage-engine/src/models/errors.rs
 apps/stage-engine/src/server/providers.rs
+apps/stage-engine/src/providers/catalog.rs
+apps/stage-engine/src/providers/command.rs
+apps/stage-engine/src/providers/service.rs
 apps/stage-engine/src/server/runs.rs
 apps/stage-engine/src/providers/mod.rs
-apps/stage-engine/src/providers/detection.rs
-apps/stage-engine/src/providers/claude.rs
-apps/stage-engine/src/providers/codex.rs
 apps/stage-engine/src/runs/mod.rs
 apps/stage-engine/src/runs/manager.rs
 ```
@@ -1049,4 +1251,225 @@ Integrations page: configuration and status only.
 Moodboard: UI and artifact rendering only, no direct provider execution.
 Stage Engine: local provider execution owner.
 Convex: cloud product data and artifact owner.
+```
+
+## Caption: Implemented so far
+
+Status date:
+
+```txt
+May 29, 2026
+```
+
+Completed implementation slice:
+
+```txt
+T3 Code provider/runtime source audit completed.
+Audit notes added to this document.
+Provider Zod contracts added in packages/data-ops.
+Run Zod contracts added in packages/data-ops.
+Voice Zod contracts added in packages/data-ops.
+Rust serde mirror models added in Stage Engine.
+Stage Engine /v1/providers endpoint added.
+Stage Engine /v1/providers/refresh endpoint added.
+Stage Engine /v1/providers/{provider_id}/update endpoint added.
+Real provider version probes added for claude --version and codex --version.
+Real provider update commands added for claude update and codex --upgrade.
+Provider Rust route file refactored into route/service/catalog/command modules.
+Electron IPC bridge added for provider list/refresh.
+Electron IPC bridge added for provider update.
+Preload API exposes typed provider methods.
+React hook added for provider status.
+React mutation hook added for provider update.
+OpenRouter Voxtral Mini Transcribe batch voice decision documented.
+```
+
+Files added:
+
+```txt
+packages/data-ops/src/contracts/engine-provider.ts
+packages/data-ops/src/contracts/engine-run.ts
+packages/data-ops/src/contracts/engine-voice.ts
+apps/stage-engine/src/models/errors.rs
+apps/stage-engine/src/models/providers.rs
+apps/stage-engine/src/models/runs.rs
+apps/stage-engine/src/models/voice.rs
+apps/stage-engine/src/server/providers.rs
+apps/stage-engine/src/providers/mod.rs
+apps/stage-engine/src/providers/catalog.rs
+apps/stage-engine/src/providers/command.rs
+apps/stage-engine/src/providers/service.rs
+apps/user-application/src/hooks/engine/useProviderStatus.ts
+```
+
+Files updated:
+
+```txt
+packages/data-ops/src/contracts/index.ts
+apps/stage-engine/src/models/mod.rs
+apps/stage-engine/src/server/mod.rs
+apps/user-application/electron/helpers/sidecar.ts
+apps/user-application/electron/ipc.ts
+apps/user-application/electron/preload.ts
+apps/user-application/shared/ipc/channels.ts
+apps/user-application/src/types/stage-desktop.d.ts
+apps/stage-engine/Cargo.toml
+apps/stage-engine/src/main.rs
+```
+
+Rust provider module split:
+
+```txt
+models/providers.rs:
+Public API wire types only. This is the Rust equivalent of Pydantic response
+models.
+
+server/providers.rs:
+Axum route handlers only. This is the route/controller layer.
+
+providers/catalog.rs:
+Claude/Codex static provider metadata: binary names, version args, update args,
+setup hints, fallback model labels.
+
+providers/command.rs:
+Async child-process command runner, timeout handling, command detail parsing,
+version parsing.
+
+providers/service.rs:
+Provider application logic: build provider snapshots, update provider by route
+id, map command failures into typed EngineError responses.
+```
+
+Current provider endpoint behavior:
+
+```txt
+GET /v1/providers returns Claude and Codex provider records.
+POST /v1/providers/refresh re-runs provider version probes.
+POST /v1/providers/{provider_id}/update runs the provider update command.
+Both endpoints use apiVersion: "v1".
+Both endpoints are typed in Rust and validated by Electron with Zod.
+Provider status is still conservative because auth detection is pending.
+```
+
+Important current limitation:
+
+```txt
+No provider-reported model list refresh yet.
+No real Claude/Codex CLI run adapter yet.
+No voice transcription call yet.
+No voice-to-provider handoff yet.
+```
+
+Validation completed:
+
+```txt
+pnpm --dir packages/data-ops run typecheck
+pnpm --dir packages/data-ops run build
+cargo fmt --manifest-path apps/stage-engine/Cargo.toml --check
+cargo check --manifest-path apps/stage-engine/Cargo.toml
+pnpm --dir apps/user-application run typecheck
+pnpm --dir apps/user-application run build
+git diff --check
+manual smoke test: GET /v1/providers on temporary Stage Engine port
+manual smoke test: invalid provider update returns HTTP 400 typed EngineError
+local probe result during smoke: Claude 2.1.156, Codex 0.135.0
+```
+
+Next implementation slice:
+
+```txt
+Implement real Claude CLI adapter behind the existing run pipeline.
+Implement real Codex CLI adapter behind the same run pipeline.
+Add child-process cancellation and timeout handling for real provider runs.
+Implement provider-reported model/capability refresh where available.
+Connect voice transcript handoff to useProviderRun.
+```
+
+## Caption: Provider runtime audit table
+
+Last updated: May 29, 2026
+
+Status meanings:
+
+```txt
+done     = implemented and previously verified
+partial  = file exists or contract exists, but not fully wired/verified
+todo     = not implemented yet
+blocked  = waiting on product/API decision
+```
+
+| Path | Layer | Action | Status |
+|------|-------|--------|--------|
+| `packages/data-ops/src/contracts/engine-provider.ts` | Zod contract | Provider snapshots, status, updates, safe auth metadata | done |
+| `packages/data-ops/src/contracts/engine-run.ts` | Zod contract | Start run request, run events, cancel response | done |
+| `packages/data-ops/src/contracts/engine-voice.ts` | Zod contract | Batch voice transcription contracts | done |
+| `apps/stage-engine/src/models/providers.rs` | Rust model | Serde mirror for provider snapshots | done |
+| `apps/stage-engine/src/models/runs.rs` | Rust model | Serde mirror for run request/events/cancel | done |
+| `apps/stage-engine/src/models/voice.rs` | Rust model | Serde mirror for voice contracts | done |
+| `apps/stage-engine/src/providers/catalog.rs` | Provider metadata | Claude/Codex binaries, args, fallback models, hints | done |
+| `apps/stage-engine/src/providers/command.rs` | Provider helper | Async child process command runner and version parsing | done |
+| `apps/stage-engine/src/providers/auth.rs` | Provider helper | Conservative local auth metadata detection | done |
+| `apps/stage-engine/src/providers/service.rs` | Provider service | Snapshot and update orchestration | done |
+| `apps/stage-engine/src/providers/adapter.rs` | Provider adapter | Canonical provider run adapter boundary with fake streamed adapter | partial |
+| `apps/stage-engine/src/runs/mod.rs` | Run manager | Start/track/cancel runs, retain event history, broadcast events | done |
+| `apps/stage-engine/src/server/providers.rs` | HTTP route | Provider list/refresh/update routes | done |
+| `apps/stage-engine/src/server/runs.rs` | HTTP route | `/v1/runs`, SSE events, cancel routes | done |
+| `apps/stage-engine/src/server/mod.rs` | HTTP router | Register run routes | done |
+| `apps/user-application/electron/helpers/sidecar.ts` | Electron helper | JSON requests with body support | done |
+| `apps/user-application/electron/ipc.ts` | Electron IPC | Provider IPC plus run start/cancel/SSE bridge | done |
+| `apps/user-application/electron/preload.ts` | Preload API | Provider API plus typed run API/event subscription | done |
+| `apps/user-application/shared/ipc/channels.ts` | IPC contract | Provider and run channels | done |
+| `apps/user-application/src/types/stage-desktop.d.ts` | Renderer types | Provider and run preload API types | done |
+| `apps/user-application/src/hooks/engine/useProviderStatus.ts` | React query | Provider status/update hook | done |
+| `apps/user-application/src/hooks/engine/useProviderRun.ts` | React hook | Start/cancel/collect streamed run events | done |
+| `apps/user-application/src/companion/VoiceControlBar.tsx` | Voice UI | Later handoff transcript to provider run | todo |
+| `apps/user-application/src/companion/hooks/useVoiceCapture.ts` | Voice capture | Push-to-talk capture hook | todo |
+| `apps/user-application/src/companion/hooks/useVoiceTranscript.ts` | Voice transcript | Batch OpenRouter Voxtral transcript hook | todo |
+
+Immediate runtime work:
+
+```txt
+1. Replace fake stream with real Claude adapter.
+2. Replace fake stream with real Codex adapter.
+3. Add provider process cancellation and timeout handling for real child processes.
+4. Add provider-reported model/capability refresh where available.
+5. Connect voice transcript handoff to the same run pipeline.
+6. Connect research/generation workflows to useProviderRun.
+```
+
+## Caption: Run pipeline implementation notes
+
+Implemented on May 29, 2026:
+
+```txt
+Stage Engine /v1/runs starts typed runs.
+Stage Engine /v1/runs/{runId}/events streams Server-Sent Events.
+Stage Engine /v1/runs/{runId}/cancel cancels active runs.
+RunManager keeps a short event history so late SSE subscribers can replay events.
+Provider adapter boundary emits canonical Stage RunEvent values.
+Electron starts runs through IPC and validates the request/response with Zod.
+Electron owns the SSE connection and forwards validated RunEvent objects to React.
+Preload exposes startRun, cancelRun, and onRunEvent.
+React has useProviderRun for start/cancel/event collection.
+```
+
+Smoke tested:
+
+```txt
+POST /v1/runs returns status: started.
+GET /v1/runs/{runId}/events replays run_started, output_delta, run_completed.
+POST /v1/runs/{runId}/cancel returns status: cancelled.
+Cancelled run event stream includes run_cancelled.
+```
+
+Validation completed after this slice:
+
+```txt
+pnpm --dir packages/data-ops run build
+pnpm --dir apps/user-application run typecheck
+pnpm --dir apps/user-application run build
+cargo fmt --manifest-path apps/stage-engine/Cargo.toml
+cargo check --manifest-path apps/stage-engine/Cargo.toml
+cargo test --manifest-path apps/stage-engine/Cargo.toml
+cargo clippy --manifest-path apps/stage-engine/Cargo.toml --all-targets --all-features --locked -- -D warnings
 ```

@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import type { CompanionState, DesktopSession, PermissionKind } from "@shared/models/desktop";
+import type { RunEvent, StartRunRequest } from "@stage/data-ops/contracts";
 
 const stageDesktop = {
   auth: {
@@ -23,6 +24,21 @@ const stageDesktop = {
     getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.engineGetStatus),
     listProviders: () => ipcRenderer.invoke(IPC_CHANNELS.engineListProviders),
     refreshProviders: () => ipcRenderer.invoke(IPC_CHANNELS.engineRefreshProviders),
+    updateProvider: (providerId: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.engineUpdateProvider, providerId),
+    startRun: (request: StartRunRequest) =>
+      ipcRenderer.invoke(IPC_CHANNELS.engineStartRun, request),
+    cancelRun: (runId: string) => ipcRenderer.invoke(IPC_CHANNELS.engineCancelRun, runId),
+    onRunEvent: (callback: (event: RunEvent) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, runEvent: RunEvent) => {
+        callback(runEvent);
+      };
+
+      ipcRenderer.on(IPC_CHANNELS.engineRunEvent, listener);
+      return () => {
+        ipcRenderer.off(IPC_CHANNELS.engineRunEvent, listener);
+      };
+    },
   },
   companion: {
     show: () => ipcRenderer.invoke(IPC_CHANNELS.companionShow),
