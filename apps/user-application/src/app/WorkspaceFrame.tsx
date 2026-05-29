@@ -15,7 +15,7 @@ export function WorkspaceFrame({
 }) {
   const desktop = useDesktopBridge();
   const queryClient = useQueryClient();
-  const projectsQuery = useProjectsQuery({ includeMocks: true });
+  const projectsQuery = useProjectsQuery();
   const [sidebarCollapsed, setSidebarCollapsed] = useSidebarState(false);
   const isCompact = useMediaQuery("(max-width: 860px)");
   const effectiveSidebarCollapsed = isCompact || sidebarCollapsed;

@@ -46,7 +46,7 @@ function formatCreatedAt(timestamp: number) {
 export function ProjectsOverviewView() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const projectsQuery = useProjectsQuery({ includeMocks: true });
+  const projectsQuery = useProjectsQuery();
   const projects = projectsQuery.data ?? [];
 
   const filteredProjects = useMemo(() => {
