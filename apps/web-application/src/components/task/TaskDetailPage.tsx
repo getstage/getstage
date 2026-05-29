@@ -22,7 +22,7 @@ import { api } from "@/lib/convex";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { debounce, formatFileSize } from "@/lib/utils";
 import type { Attachment } from "@/types";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "@stage/data-ops/convex/data-model";
 import { uploadFileToR2, getNormalizedMimeType } from "@/lib/r2Uploads";
 
 export function TaskDetailPage() {

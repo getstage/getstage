@@ -6,7 +6,7 @@ import {
   DEFAULT_PORT,
   SHUTDOWN_TIMEOUT_MS,
   fetchReadiness,
-  findDataServiceManifest,
+  findStageEngineManifest,
   getSidecarPort,
   logSidecarOutput,
   type SidecarChildProcess,
@@ -40,14 +40,14 @@ export class SidecarSupervisor {
 
     if (existingReadiness?.ready) {
       this.status = { adopted: true, pid: null, port, state: "ready" };
-      console.info(`[stage-data-service] using existing service on port ${port}`);
+      console.info(`[stage-engine] using existing service on port ${port}`);
       return this.getStatus();
     }
 
-    const manifestPath = findDataServiceManifest();
+    const manifestPath = findStageEngineManifest();
 
     if (!existsSync(manifestPath)) {
-      const error = `Stage data service manifest not found at ${manifestPath}.`;
+      const error = `Stage Engine manifest not found at ${manifestPath}.`;
       this.status = { adopted: false, error, pid: null, port, state: "failed" };
       throw new Error(error);
     }
@@ -75,7 +75,7 @@ export class SidecarSupervisor {
         return;
       }
 
-      const error = `Stage data service exited unexpectedly with code ${code ?? "null"} and signal ${signal ?? "null"}.`;
+      const error = `Stage Engine exited unexpectedly with code ${code ?? "null"} and signal ${signal ?? "null"}.`;
       this.child = null;
       this.status = {
         adopted: false,
@@ -84,13 +84,13 @@ export class SidecarSupervisor {
         port,
         state: "failed",
       };
-      console.warn(`[stage-data-service] ${error}`);
+      console.warn(`[stage-engine] ${error}`);
     });
 
     try {
       await Promise.race([waitForReadiness(port), spawnError]);
       this.status = { adopted: false, pid: child.pid ?? null, port, state: "ready" };
-      console.info(`[stage-data-service] ready on port ${port}`);
+      console.info(`[stage-engine] ready on port ${port}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown sidecar startup error.";
       this.status = { adopted: false, error: message, pid: child.pid ?? null, port, state: "failed" };

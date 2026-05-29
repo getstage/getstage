@@ -3,7 +3,7 @@ import { useMutation as useConvexMutation } from "convex/react";
 import { api } from "@/lib/convex";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import type { ProjectTaskController } from "@/features/project-detail/controllers";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "@stage/data-ops/convex/data-model";
 
 type ProjectTaskActionsInput = {
   currentPhaseId?: Id<"phases">;

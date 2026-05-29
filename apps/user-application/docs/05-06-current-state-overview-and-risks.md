@@ -11,7 +11,7 @@ Stage Desktop has moved from a mock-only Electron app into the first real deskto
 ```txt
 apps/web-application    # Website, Convex, auth, onboarding, billing, API routes
 apps/user-application   # Electron desktop UI
-apps/data-service       # Rust local sidecar engine
+apps/stage-engine       # Rust local sidecar engine
 packages/data-ops       # Shared TypeScript/Zod contracts and domain models
 ```
 
@@ -382,7 +382,7 @@ cd ../web-application
 pnpm run typecheck
 pnpm run build:testing
 
-cd ../data-service
+cd ../stage-engine
 cargo check --manifest-path Cargo.toml
 ```
 

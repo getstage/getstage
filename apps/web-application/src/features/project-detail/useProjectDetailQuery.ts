@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery as useConvexQuery } from "convex/react";
 import { api } from "@/lib/convex";
 import type { Phase } from "@/types";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "@stage/data-ops/convex/data-model";
 
 export function useProjectDetailQuery(projectId: Id<"projects">) {
   const [activePhaseId, setActivePhaseId] = useState<string | null>(null);

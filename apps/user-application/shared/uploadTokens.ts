@@ -1,4 +1,4 @@
-import type { UploadPurpose } from "./uploadRules";
+import type { UploadPurpose } from "@stage/data-ops/shared/upload-rules";
 
 export type UploadTokenPayload = {
   tokenId: string;

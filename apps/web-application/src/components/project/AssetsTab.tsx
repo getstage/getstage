@@ -8,7 +8,7 @@ import {
   validateUploadFile,
 } from "@/lib/r2Uploads";
 import { formatTimestamp } from "@/components/project/ProjectAiModulePrimitives";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "@stage/data-ops/convex/data-model";
 import type { ProjectAiArtifact } from "@/types/ai";
 import {
   AssetsPanelChrome,

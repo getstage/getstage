@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { StageSidebar } from "@/dashboard/components/StageSidebar";
 import { buildSidebarProjectsFromSummaries } from "@/dashboard/helpers/projectContextDashboard";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { useDesktopApiInvalidation, useProjectsQuery } from "@/hooks/desktop-api";
+import { useProjectsQuery } from "@/hooks/convex-data";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { desktopSessionQueryKey } from "@/lib/desktopSession";
 import { useSidebarState } from "@/hooks/useSidebarState";
@@ -16,7 +16,6 @@ export function WorkspaceFrame({
   const desktop = useDesktopBridge();
   const queryClient = useQueryClient();
   const projectsQuery = useProjectsQuery();
-  useDesktopApiInvalidation();
   const [sidebarCollapsed, setSidebarCollapsed] = useSidebarState(false);
   const isCompact = useMediaQuery("(max-width: 860px)");
   const effectiveSidebarCollapsed = isCompact || sidebarCollapsed;

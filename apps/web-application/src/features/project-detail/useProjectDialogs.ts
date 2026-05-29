@@ -17,7 +17,7 @@ import type {
   ProjectDialogState,
 } from "@/features/project-detail/controllers";
 import type { Phase, Project } from "@/types";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "@stage/data-ops/convex/data-model";
 
 const DEFAULT_DIALOG_STATE: ProjectDialogState = {
   editName: false,

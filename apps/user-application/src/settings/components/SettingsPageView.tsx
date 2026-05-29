@@ -5,7 +5,7 @@ import { z } from "zod";
 import { ClientPortalSettingsView } from "@/client-portal/components/ClientPortalSettingsView";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
-import { useClientsQuery, useSettingsOverviewQuery } from "@/hooks/desktop-api";
+import { useClientsQuery, useSettingsOverviewQuery } from "@/hooks/convex-data";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { api } from "@/lib/convexApi";
 import {

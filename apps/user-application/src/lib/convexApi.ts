@@ -1,1 +1,1 @@
-export { api } from "../../../web-application/convex/_generated/api";
+export { api } from "@stage/data-ops/convex/api";

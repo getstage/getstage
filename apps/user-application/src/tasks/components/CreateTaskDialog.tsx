@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ProjectSummary, TaskPriority, TaskSummary } from "@stage/data-ops";
-import { useCreateTaskMutation } from "@/hooks/desktop-api";
+import { useCreateTaskMutation } from "@/hooks/convex-data";
 
 const PRIORITY_OPTIONS: Array<{ value: TaskPriority | null; label: string }> = [
   { value: null, label: "Backlog" },

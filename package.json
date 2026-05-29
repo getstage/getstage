@@ -1,0 +1,25 @@
+{
+  "name": "stage-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.26.1",
+  "scripts": {
+    "build": "pnpm run data-ops:build && pnpm run desktop:build && pnpm run web:build",
+    "typecheck": "pnpm run data-ops:typecheck && pnpm run desktop:typecheck && pnpm run web:typecheck",
+    "data-ops:build": "pnpm --filter @stage/data-ops run build",
+    "data-ops:typecheck": "pnpm --filter @stage/data-ops run typecheck",
+    "convex:dev": "pnpm --filter @stage/data-ops run convex:dev",
+    "convex:deploy": "pnpm --filter @stage/data-ops run convex:deploy",
+    "convex:typecheck": "pnpm --filter @stage/data-ops run convex:typecheck",
+    "desktop:dev": "pnpm --filter stage-user-application run dev",
+    "desktop:build": "pnpm --filter stage-user-application run build",
+    "desktop:typecheck": "pnpm --filter stage-user-application run typecheck",
+    "desktop:preview": "pnpm --filter stage-user-application run preview",
+    "web:dev": "pnpm --filter stage-app run dev",
+    "web:build": "pnpm --filter stage-app run build",
+    "web:build:testing": "pnpm --filter stage-app run build:testing",
+    "web:typecheck": "pnpm --filter stage-app run typecheck",
+    "engine:fmt": "cargo fmt --manifest-path apps/stage-engine/Cargo.toml --check",
+    "engine:check": "cargo check --manifest-path apps/stage-engine/Cargo.toml"
+  }
+}

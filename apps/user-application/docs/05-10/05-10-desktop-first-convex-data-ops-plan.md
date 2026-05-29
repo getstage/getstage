@@ -28,7 +28,7 @@ apps/
     worker/               # Web routing if needed
     convex/               # TEMP: old location, to migrate out
 
-  data-service/           # Rust
+  stage-engine/           # Rust
     src/
       providers/          # Codex/Claude CLI
       scanner/            # Local file search
@@ -61,7 +61,7 @@ Desktop local/native work:
 apps/user-application renderer
   -> preload IPC
   -> Electron main
-  -> apps/data-service Rust sidecar
+  -> apps/stage-engine Rust sidecar
   -> local files / Codex CLI / Claude CLI / native work
 ```
 
@@ -100,7 +100,7 @@ desktop opens web auth/payment
 - desktop handoff/deep-link return
 - current Convex backend only until it is migrated into `packages/data-ops`
 
-`apps/data-service` Rust owns:
+`apps/stage-engine` Rust owns:
 
 - Codex/Claude CLI process execution
 - local file scanning

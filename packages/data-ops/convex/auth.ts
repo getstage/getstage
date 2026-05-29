@@ -10,7 +10,7 @@ import type { Value } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { LoopsOTP } from "./integrations/loopsOtp";
-import { getHostnameFromUrl, isDemoAuthEnabledForHostname } from "../shared/demoAuth";
+import { getHostnameFromUrl, isDemoAuthEnabledForHostname } from "../src/shared/demoAuth";
 import { buildNameFromEmail, getCanonicalUserByEmail, normalizeEmailAddress } from "./userEmails";
 
 function now() {

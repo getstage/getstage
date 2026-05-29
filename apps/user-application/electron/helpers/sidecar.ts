@@ -26,15 +26,15 @@ export function getSidecarPort() {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_PORT;
 }
 
-export function findDataServiceManifest() {
-  if (process.env.STAGE_DATA_SERVICE_MANIFEST) {
-    return process.env.STAGE_DATA_SERVICE_MANIFEST;
+export function findStageEngineManifest() {
+  if (process.env.STAGE_ENGINE_MANIFEST) {
+    return process.env.STAGE_ENGINE_MANIFEST;
   }
 
   const candidates = [
-    resolve(app.getAppPath(), "..", "..", "apps/data-service/Cargo.toml"),
-    resolve(process.cwd(), "..", "..", "apps/data-service/Cargo.toml"),
-    resolve(process.cwd(), "apps/data-service/Cargo.toml"),
+    resolve(app.getAppPath(), "..", "..", "apps/stage-engine/Cargo.toml"),
+    resolve(process.cwd(), "..", "..", "apps/stage-engine/Cargo.toml"),
+    resolve(process.cwd(), "apps/stage-engine/Cargo.toml"),
   ];
 
   return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0];
@@ -72,7 +72,7 @@ export async function waitForReadiness(port: number) {
     await delay(READINESS_INTERVAL_MS);
   }
 
-  throw new Error(`Stage data service did not become ready on port ${port}.`);
+  throw new Error(`Stage Engine did not become ready on port ${port}.`);
 }
 
 export function logSidecarOutput(streamName: "stdout" | "stderr", chunk: Buffer | string) {
@@ -82,7 +82,7 @@ export function logSidecarOutput(streamName: "stdout" | "stderr", chunk: Buffer 
     .filter(Boolean)
     .forEach((line) => {
       const logger = streamName === "stderr" ? console.warn : console.info;
-      logger(`[stage-data-service] ${line}`);
+      logger(`[stage-engine] ${line}`);
     });
 }
 

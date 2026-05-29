@@ -17,7 +17,7 @@ import {
   buildSidebarProjectsFromProjectContext,
   buildSidebarProjectsFromSummaries,
 } from "../dashboard/helpers/projectContextDashboard";
-import { useProjectsQuery } from "../hooks/desktop-api";
+import { useProjectsQuery } from "../hooks/convex-data";
 import { useDesktopBridge } from "../hooks/useDesktopBridge";
 import { useEngineStatus } from "../hooks/useEngineStatus";
 import { useSelectedProjectContext } from "../hooks/useSelectedProjectContext";

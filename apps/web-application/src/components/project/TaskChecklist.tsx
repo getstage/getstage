@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { ConfirmPopover } from "@/components/ui/ConfirmPopover";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "@stage/data-ops/convex/data-model";
 import type { Phase, Task } from "@/types";
 
 function formatDueDate(timestamp: number): { label: string; isOverdue: boolean; isDueSoon: boolean } {

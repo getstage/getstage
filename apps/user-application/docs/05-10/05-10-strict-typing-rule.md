@@ -8,7 +8,7 @@ agents).
 
 ## Why this exists
 
-Stage's backend is moving to a Rust sidecar (`apps/data-service`).
+Stage's backend is moving to a Rust sidecar (`apps/stage-engine`).
 TypeScript-side `any`, `as` casts, and hand-rolled narrowing all
 become silent contract drift the moment Rust starts emitting events
 through the same `packages/data-ops` schemas:

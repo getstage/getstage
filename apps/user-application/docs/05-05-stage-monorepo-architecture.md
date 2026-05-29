@@ -51,7 +51,7 @@ stage_mvp/
 ├── apps/
 │   ├── web-application/   # Current web/cloud app with Convex
 │   ├── user-application/  # Electron desktop UI app
-│   └── data-service/      # Rust local engine sidecar
+│   └── stage-engine/      # Rust local engine sidecar
 ├── .agents/      # Installed agent skills
 ├── .claude/      # Local Claude config/worktrees
 └── skills/       # Installed skills symlinks/copies
@@ -203,7 +203,7 @@ stage_mvp/
 │   │   ├── shared/
 │   │   └── package.json
 │   │
-│   └── data-service/
+│   └── stage-engine/
 │       ├── Cargo.toml
 │       └── src/
 │
@@ -227,7 +227,7 @@ Recommended migration path from here:
 ```txt
 Phase 0: Keep apps/user-application/ and apps/web-application/ working.
 Phase 1: Write architecture docs.
-Phase 2: Add Rust sidecar as apps/data-service/.
+Phase 2: Add Rust sidecar as apps/stage-engine/.
 Phase 3: Prove the first runtime boundary: health/readiness/version, WebSocket, engine.ping -> engine.ready.
 Phase 4: Create packages/data-ops for shared Zod contracts and domain models. # started
 Phase 5: Wire Convex-backed project context through data-ops into the desktop app.
@@ -252,7 +252,7 @@ Current decision:
 Convex remains the cloud source of truth.
 packages/data-ops becomes the clean shared TypeScript layer for domain models and Zod contracts.
 apps/user-application consumes project context through data-ops.
-apps/data-service mirrors only the stable command/event/context shapes with serde.
+apps/stage-engine mirrors only the stable command/event/context shapes with serde.
 ```
 
 Current implementation note, May 6:
@@ -298,7 +298,7 @@ apps/user-application renderer
   verified
   must not store raw tokens or call privileged APIs
 
-apps/data-service Rust
+apps/stage-engine Rust
   owns local engine work
   receives stable ProjectContext payloads when jobs need cloud context
 ```
@@ -565,7 +565,7 @@ well-scoped, and still respects the Electron security boundary.
 Rust sidecar owns:
 
 ```txt
-apps/data-service/
+apps/stage-engine/
 ├── Cargo.toml
 └── src/
     ├── main.rs
@@ -1352,7 +1352,7 @@ Current Phase 3 status:
 Done:
   Electron main has SidecarSupervisor
   supervisor reuses an already-running ready service
-  supervisor spawns cargo run for apps/data-service when needed
+  supervisor spawns cargo run for apps/stage-engine when needed
   supervisor polls /v1/readiness
   supervisor shuts down owned child process on app quit
   sidecar helpers extracted to electron/helpers/
@@ -1380,7 +1380,7 @@ packages/data-ops/contracts/
 Rust:
 
 ```txt
-apps/data-service/src/models/
+apps/stage-engine/src/models/
 ```
 
 Start with manual Zod + serde mirror.
@@ -1483,7 +1483,7 @@ The first app-level monorepo restructure is now done:
 ```txt
 apps/web-application/ stays current Stage web/cloud app
 apps/user-application/ stays Electron desktop UI
-apps/data-service/ stays Rust engine
+apps/stage-engine/ stays Rust engine
 ```
 
 The later package-level extraction is still future work:
@@ -1511,12 +1511,12 @@ apps/user-application/shared/contracts/voice.ts
 Initial Rust model files:
 
 ```txt
-apps/data-service/src/models/commands.rs
-apps/data-service/src/models/events.rs
-apps/data-service/src/models/providers.rs
-apps/data-service/src/models/file_context.rs
-apps/data-service/src/models/critique.rs
-apps/data-service/src/models/voice.rs
+apps/stage-engine/src/models/commands.rs
+apps/stage-engine/src/models/events.rs
+apps/stage-engine/src/models/providers.rs
+apps/stage-engine/src/models/file_context.rs
+apps/stage-engine/src/models/critique.rs
+apps/stage-engine/src/models/voice.rs
 ```
 
 Initial IPC additions:

@@ -27,7 +27,7 @@ No local AI inference.
 
 - [x] 1. Confirm branch is `monorepo`.
 - [x] 2. Confirm desktop TypeScript still typechecks from `apps/user-application/`.
-- [x] 3. Create `apps/data-service/` Rust sidecar folder.
+- [x] 3. Create `apps/stage-engine/` Rust sidecar folder.
 - [x] 4. Add Rust service skeleton with clear module folders.
 - [x] 5. Add `/v1/health`, `/v1/readiness`, and `/v1/version` route code.
 - [x] 6. Document how to run the Rust sidecar.
@@ -113,21 +113,21 @@ Step 23 sub-items (2026-05-11 update):
 ## Current Files Added
 
 ```txt
-apps/data-service/Cargo.toml
-apps/data-service/README.md
-apps/data-service/src/main.rs
-apps/data-service/src/app.rs
-apps/data-service/src/config/mod.rs
-apps/data-service/src/helpers/mod.rs
-apps/data-service/src/helpers/time.rs
-apps/data-service/src/models/commands.rs
-apps/data-service/src/models/events.rs
-apps/data-service/src/models/mod.rs
-apps/data-service/src/models/status.rs
-apps/data-service/src/observability/mod.rs
-apps/data-service/src/server/events.rs
-apps/data-service/src/server/mod.rs
-apps/data-service/src/server/status.rs
+apps/stage-engine/Cargo.toml
+apps/stage-engine/README.md
+apps/stage-engine/src/main.rs
+apps/stage-engine/src/app.rs
+apps/stage-engine/src/config/mod.rs
+apps/stage-engine/src/helpers/mod.rs
+apps/stage-engine/src/helpers/time.rs
+apps/stage-engine/src/models/commands.rs
+apps/stage-engine/src/models/events.rs
+apps/stage-engine/src/models/mod.rs
+apps/stage-engine/src/models/status.rs
+apps/stage-engine/src/observability/mod.rs
+apps/stage-engine/src/server/events.rs
+apps/stage-engine/src/server/mod.rs
+apps/stage-engine/src/server/status.rs
 packages/data-ops/README.md
 packages/data-ops/package.json
 packages/data-ops/tsconfig.json
@@ -161,7 +161,7 @@ apps/web-application/src/routes/auth.desktop.tsx
 apps/
 ├── web-application/   # Existing Stage web/cloud app with Convex and Wrangler
 ├── user-application/  # Electron + React desktop UI
-└── data-service/      # Rust local engine sidecar
+└── stage-engine/      # Rust local engine sidecar
 ```
 
 Shared package:
@@ -176,7 +176,7 @@ Use these paths for local commands, GitHub Actions, and Cloudflare settings:
 
 ```txt
 apps/user-application/  # Electron desktop UI package path
-apps/data-service/      # Rust sidecar Cargo manifest path
+apps/stage-engine/      # Rust sidecar Cargo manifest path
 apps/web-application/   # Web/cloud app path with package.json and wrangler.jsonc
 ```
 
@@ -200,8 +200,8 @@ pnpm run testing:deploy
 Rust CI checks can run from the repository root:
 
 ```bash
-cargo fmt --manifest-path apps/data-service/Cargo.toml --check
-cargo check --manifest-path apps/data-service/Cargo.toml
+cargo fmt --manifest-path apps/stage-engine/Cargo.toml --check
+cargo check --manifest-path apps/stage-engine/Cargo.toml
 ```
 
 ## Rust Toolchain Status
@@ -221,9 +221,9 @@ rustup component add rustfmt
 The Rust sidecar now passes:
 
 ```bash
-cargo fmt --manifest-path apps/data-service/Cargo.toml
-cargo check --manifest-path apps/data-service/Cargo.toml
-cargo run --manifest-path apps/data-service/Cargo.toml
+cargo fmt --manifest-path apps/stage-engine/Cargo.toml
+cargo check --manifest-path apps/stage-engine/Cargo.toml
+cargo run --manifest-path apps/stage-engine/Cargo.toml
 ```
 
 ## Intended First Runtime Contract
@@ -258,7 +258,7 @@ Expected response:
   "type": "engine.ready",
   "payload": {
     "kind": "ready",
-    "service": "stage-data-service",
+    "service": "stage-engine",
     "ready": true,
     "timestampMs": 1778066547538
   },
@@ -269,9 +269,9 @@ Expected response:
 Current Rust sidecar verification:
 
 ```bash
-cargo fmt --manifest-path apps/data-service/Cargo.toml --check
-cargo check --manifest-path apps/data-service/Cargo.toml
-cargo run --manifest-path apps/data-service/Cargo.toml
+cargo fmt --manifest-path apps/stage-engine/Cargo.toml --check
+cargo check --manifest-path apps/stage-engine/Cargo.toml
+cargo run --manifest-path apps/stage-engine/Cargo.toml
 curl http://127.0.0.1:48221/v1/health
 curl http://127.0.0.1:48221/v1/readiness
 curl http://127.0.0.1:48221/v1/version
@@ -285,23 +285,24 @@ curl http://127.0.0.1:48221/v1/version
 - `pnpm run build` in `apps/user-application/` passes after moving `desktop/` to `apps/user-application/`.
 - `pnpm run typecheck` in `apps/web-application/` passes after moving `app/` to `apps/web-application/`.
 - `rustup component add rustfmt` completed successfully.
-- `cargo fmt --manifest-path apps/data-service/Cargo.toml` passes.
-- `cargo check --manifest-path apps/data-service/Cargo.toml` passes.
-- `cargo run --manifest-path apps/data-service/Cargo.toml` starts the local server on `127.0.0.1:48221`.
+- `cargo fmt --manifest-path apps/stage-engine/Cargo.toml` passes.
+- `cargo check --manifest-path apps/stage-engine/Cargo.toml` passes.
+- `cargo run --manifest-path apps/stage-engine/Cargo.toml` starts the local server on `127.0.0.1:48221`.
 - `curl http://127.0.0.1:48221/v1/health` returns `status: "ok"`.
 - `curl http://127.0.0.1:48221/v1/readiness` returns `ready: true` with provider/WebSocket checks intentionally `false`.
 - `curl http://127.0.0.1:48221/v1/version` returns `version: "0.1.0"` and `rustEdition: "2024"`.
 - Added Axum WebSocket support for `GET /v1/events`.
 - Added typed Rust command/event models for `engine.ping` and `engine.ready`.
-- `cargo fmt --manifest-path apps/data-service/Cargo.toml` passes after WebSocket changes.
-- `cargo check --manifest-path apps/data-service/Cargo.toml` passes after WebSocket changes.
+- `cargo fmt --manifest-path apps/stage-engine/Cargo.toml` passes after WebSocket changes.
+- `cargo check --manifest-path apps/stage-engine/Cargo.toml` passes after WebSocket changes.
 - Local smoke test on port `48222` returned HTTP health/readiness/version responses and a WebSocket `engine.ready` event for `engine.ping`.
 - Created `packages/data-ops` and pushed it in commit `ce6aba9`.
 - `packages/data-ops` dependencies were installed locally.
 - `packages/data-ops` typecheck passed locally.
 - `pnpm run typecheck` in `apps/user-application/` passes after data-ops was created.
 - `pnpm run build` in `apps/user-application/` passes after data-ops was created.
-- Added `@stage/data-ops` as a local `file:../../packages/data-ops` dependency in `apps/user-application`.
+- Added `@stage/data-ops` as the shared package dependency in `apps/user-application`;
+  as of May 28 this uses the root monorepo `workspace:*` dependency boundary.
 - Added a desktop read adapter that maps a Convex-like selected project/read-model shape into `ProjectContext`.
 - The selected desktop project context is validated by `projectContextSchema` before the dashboard or critique panel consumes it.
 - The dashboard header and critique mock now read from the shared `ProjectContext` path instead of isolated local copy.
@@ -313,7 +314,7 @@ curl http://127.0.0.1:48221/v1/version
 - Sidecar startup failure is logged without crashing the desktop window.
 - `pnpm run typecheck` in `apps/user-application/` passes after the Electron sidecar supervisor.
 - `pnpm run build` in `apps/user-application/` passes after the Electron sidecar supervisor.
-- `cargo check --manifest-path apps/data-service/Cargo.toml` passes after the Electron sidecar supervisor.
+- `cargo check --manifest-path apps/stage-engine/Cargo.toml` passes after the Electron sidecar supervisor.
 - `pnpm run typecheck` in `packages/data-ops/` passes after the Electron sidecar supervisor.
 - Added typed `EngineStatus` Zod model in `apps/user-application/shared/models/desktop.ts`.
 - Added `engine:get-status` IPC and `window.stageDesktop.engine.getStatus()`.
@@ -334,7 +335,7 @@ curl http://127.0.0.1:48221/v1/version
 - `pnpm run typecheck` in `apps/user-application/` passes after the Electron helper refactor.
 - `pnpm run build` in `apps/user-application/` passes after the Electron helper refactor.
 - `pnpm run typecheck` in `packages/data-ops/` passes after the Electron helper refactor.
-- `cargo check --manifest-path apps/data-service/Cargo.toml` passes after the Electron helper refactor.
+- `cargo check --manifest-path apps/stage-engine/Cargo.toml` passes after the Electron helper refactor.
 - `git diff --check` passes after the Electron helper refactor.
 - Replaced desktop login API-key bridge with Convex Auth JWT handoff from the signed-in website session.
 - Added `GET /api/v1/me` so Electron can verify a bearer token before storing a desktop session.
@@ -375,10 +376,10 @@ We are through the monorepo move and the first Rust sidecar skeleton.
 Done:
 
 - Electron desktop UI path is `apps/user-application/`.
-- Rust local engine path is `apps/data-service/`.
+- Rust local engine path is `apps/stage-engine/`.
 - Shared domain/contracts package path is `packages/data-ops/`.
 - Rust installs and runs locally.
-- `cargo fmt`, `cargo check`, and `cargo run` pass for `apps/data-service/Cargo.toml`.
+- `cargo fmt`, `cargo check`, and `cargo run` pass for `apps/stage-engine/Cargo.toml`.
 - `/v1/health`, `/v1/readiness`, and `/v1/version` respond locally.
 - `/v1/events` accepts WebSocket connections.
 - `engine.ping` returns `engine.ready`.

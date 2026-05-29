@@ -4,7 +4,7 @@ import type { DataModel } from "./_generated/dataModel";
 import { components } from "./_generated/api";
 import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { requireAuthUser } from "./_helpers";
-import { getUploadValidationError, type UploadPurpose } from "../shared/uploadRules";
+import { getUploadValidationError, type UploadPurpose } from "../src/shared/uploadRules";
 
 export const r2 = new R2(components.r2);
 const STALE_PENDING_UPLOAD_MS = 24 * 60 * 60 * 1000;

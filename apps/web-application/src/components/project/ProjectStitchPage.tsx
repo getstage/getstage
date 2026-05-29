@@ -13,7 +13,7 @@ import {
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
 import { api } from "@/lib/convex";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "@stage/data-ops/convex/data-model";
 
 /* ─── types for the stitch data we expect from the backend ─── */
 

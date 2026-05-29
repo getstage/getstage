@@ -1,7 +1,7 @@
 //! Learning note: Tokio concurrency pattern for the future Stage Rust engine.
 //!
 //! This is not part of the desktop build. It is a small scratch example that
-//! shows the V1 technique we want later in `apps/data-service`: spawn bounded
+//! shows the V1 technique we want later in `apps/stage-engine`: spawn bounded
 //! async work, await all jobs, and keep network/file work off the UI process.
 //!
 //! To turn this into a runnable example later, place it in a Cargo project with:

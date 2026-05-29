@@ -19,32 +19,6 @@ const stageDesktop = {
       };
     },
   },
-  projectContext: {
-    getSelected: () => ipcRenderer.invoke(IPC_CHANNELS.projectContextGetSelected),
-  },
-  api: {
-    listProjects: () => ipcRenderer.invoke(IPC_CHANNELS.desktopApiListProjects),
-    getProject: (projectId: string) =>
-      ipcRenderer.invoke(IPC_CHANNELS.desktopApiGetProject, projectId),
-    listProjectPhases: (projectId: string) =>
-      ipcRenderer.invoke(IPC_CHANNELS.desktopApiListProjectPhases, projectId),
-    listPhaseTasks: (phaseId: string) =>
-      ipcRenderer.invoke(IPC_CHANNELS.desktopApiListPhaseTasks, phaseId),
-    listUserTasks: (args?: { limit?: number }) =>
-      ipcRenderer.invoke(IPC_CHANNELS.desktopApiListUserTasks, args ?? {}),
-    createTask: (args: {
-      projectId: string;
-      title: string;
-      priority?: "low" | "medium" | "high";
-      content?: string;
-    }) => ipcRenderer.invoke(IPC_CHANNELS.desktopApiCreateTask, args),
-    deleteTask: (taskId: string) =>
-      ipcRenderer.invoke(IPC_CHANNELS.desktopApiDeleteTask, taskId),
-    setTaskPriority: (args: {
-      taskId: string;
-      priority: "low" | "medium" | "high" | null;
-    }) => ipcRenderer.invoke(IPC_CHANNELS.desktopApiSetTaskPriority, args),
-  },
   engine: {
     getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.engineGetStatus),
   },

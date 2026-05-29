@@ -1,10 +1,23 @@
 # Stage Desktop - Where We Are Now
 
-Last updated: 2026-05-11 (see also `05-11/05-11-session-summary.md` for that day’s delta).
+Last updated: 2026-05-28 (see also `05-28/05-28-stage-engine-rename-decision.md` for the sidecar rename).
 Read this first if you want a 60-second snapshot of the project before
 diving into any other doc. The detailed implementation logs live in
 `05-09/` and `05-10/`. The full step list lives in
 `05-09/05-09-monorepo-implementation-tracker.md` - this doc only summarises.
+
+## Caption: Stage Engine naming decision
+
+As of May 28, 2026, the Rust sidecar is named **Stage Engine** and lives at:
+
+```txt
+apps/stage-engine/
+```
+
+Do not use `data-service` for current architecture. That name made the Rust app
+sound like a cloud data backend. Stage Engine is the local desktop execution
+engine for agents, file search, jobs, streaming, cancellation, and future native
+macOS work. See `05-28/05-28-stage-engine-rename-decision.md`.
 
 ## Status in one paragraph
 
@@ -151,6 +164,9 @@ Build-to-dist migration plan for data-ops
 
 2026-05-11 session delta (settings, portal, kanban create)
   apps/user-application/docs/05-11/05-11-session-summary.md
+
+2026-05-28 Stage Engine rename decision
+  apps/user-application/docs/05-28/05-28-stage-engine-rename-decision.md
 ```
 
 ## Verification (latest: 2026-05-11)

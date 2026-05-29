@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import type { ProjectSummary } from "@stage/data-ops";
-import { useProjectsQuery } from "@/hooks/desktop-api";
+import { useProjectsQuery } from "@/hooks/convex-data";
 import { ClientPortalTabBar } from "./ClientPortalTabBar";
 import { cn } from "@/lib/utils";
 

@@ -156,7 +156,7 @@ app.whenReady().then(() => {
 
   sidecarSupervisor.start().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : "Unknown sidecar startup error.";
-    console.warn(`[stage-data-service] ${message}`);
+    console.warn(`[stage-engine] ${message}`);
   }).finally(() => {
     createMainWindow();
     void installStageTrayIfEnabled();

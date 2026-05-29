@@ -1,5 +1,5 @@
 import type { ChangeEvent, RefObject } from "react";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "@stage/data-ops/convex/data-model";
 
 export type ProjectDialogKey =
   | "editName"

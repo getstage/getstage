@@ -5,7 +5,7 @@ import {
   useOnboardingStateQuery,
   useProjectsQuery,
   useSettingsOverviewQuery,
-} from "@/hooks/desktop-api";
+} from "@/hooks/convex-data";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { desktopSessionQueryKey } from "@/lib/desktopSession";
 

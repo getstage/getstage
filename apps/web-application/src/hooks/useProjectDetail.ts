@@ -4,7 +4,7 @@ import { useProjectDetailQuery } from "@/features/project-detail/useProjectDetai
 import { useProjectDialogs } from "@/features/project-detail/useProjectDialogs";
 import { useProjectTaskActions } from "@/features/project-detail/useProjectTaskActions";
 import { useShareLink } from "@/features/project-detail/useShareLink";
-import type { Id } from "../../convex/_generated/dataModel";
+import type { Id } from "@stage/data-ops/convex/data-model";
 
 export function useProjectDetail(projectId: Id<"projects">) {
   const navigate = useNavigate();

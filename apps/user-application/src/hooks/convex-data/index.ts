@@ -1,4 +1,3 @@
-export { useDesktopApiInvalidation } from "./invalidation";
 export { useClientsQuery, type ClientSummary } from "./useClientsQuery";
 export { useOnboardingStateQuery, type OnboardingState } from "./useOnboardingStateQuery";
 export { usePhaseTasksQuery } from "./usePhaseTasksQuery";

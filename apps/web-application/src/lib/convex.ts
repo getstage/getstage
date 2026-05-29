@@ -1,5 +1,5 @@
 import { ConvexReactClient } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@stage/data-ops/convex/api";
 
 const convexUrl = import.meta.env.VITE_CONVEX_URL;
 

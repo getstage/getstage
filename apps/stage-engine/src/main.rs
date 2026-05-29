@@ -20,14 +20,14 @@ async fn main() -> anyhow::Result<()> {
 
     let listener = TcpListener::bind(address)
         .await
-        .with_context(|| format!("failed to bind Stage data service to {address}"))?;
+        .with_context(|| format!("failed to bind Stage Engine to {address}"))?;
 
-    tracing::info!(%address, "stage data service listening");
+    tracing::info!(%address, "stage engine listening");
 
     axum::serve(listener, router)
         .with_graceful_shutdown(shutdown_signal())
         .await
-        .context("stage data service stopped unexpectedly")?;
+        .context("stage engine stopped unexpectedly")?;
 
     Ok(())
 }
@@ -59,5 +59,5 @@ async fn shutdown_signal() {
         _ = terminate => {},
     }
 
-    tracing::info!("stage data service shutdown requested");
+    tracing::info!("stage engine shutdown requested");
 }

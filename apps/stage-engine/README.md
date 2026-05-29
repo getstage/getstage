@@ -1,4 +1,4 @@
-# Stage Data Service
+# Stage Engine
 
 Status: Rust sidecar skeleton for the Stage Desktop monorepo.
 
@@ -44,9 +44,9 @@ source "$HOME/.cargo/env"
 From the repository root, run:
 
 ```bash
-cargo fmt --manifest-path apps/data-service/Cargo.toml
-cargo check --manifest-path apps/data-service/Cargo.toml
-cargo run --manifest-path apps/data-service/Cargo.toml
+cargo fmt --manifest-path apps/stage-engine/Cargo.toml
+cargo check --manifest-path apps/stage-engine/Cargo.toml
+cargo run --manifest-path apps/stage-engine/Cargo.toml
 ```
 
 The sidecar listens on `127.0.0.1:48221` by default.
@@ -54,7 +54,7 @@ The sidecar listens on `127.0.0.1:48221` by default.
 Optional port override:
 
 ```bash
-STAGE_ENGINE_PORT=48222 cargo run --manifest-path apps/data-service/Cargo.toml
+STAGE_ENGINE_PORT=48222 cargo run --manifest-path apps/stage-engine/Cargo.toml
 ```
 
 Test the endpoints in another terminal:
@@ -77,12 +77,12 @@ Expected current state:
 Use this app path in GitHub Actions or other CI jobs:
 
 ```bash
-cargo fmt --manifest-path apps/data-service/Cargo.toml --check
-cargo check --manifest-path apps/data-service/Cargo.toml
+cargo fmt --manifest-path apps/stage-engine/Cargo.toml --check
+cargo check --manifest-path apps/stage-engine/Cargo.toml
 ```
 
 For a local smoke test only:
 
 ```bash
-cargo run --manifest-path apps/data-service/Cargo.toml
+cargo run --manifest-path apps/stage-engine/Cargo.toml
 ```

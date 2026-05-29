@@ -1,6 +1,6 @@
 import type { FunctionReference } from "convex/server";
 import type { useMutation } from "convex/react";
-import { getUploadValidationError, type UploadPurpose } from "../../shared/uploadRules";
+import { getUploadValidationError, type UploadPurpose } from "@stage/data-ops/shared/upload-rules";
 import { readFileAsDataUrl } from "@/lib/utils";
 
 export const TASK_ATTACHMENT_ACCEPT = ".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.txt";

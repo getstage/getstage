@@ -19,7 +19,7 @@ import {
   WhiteCard,
 } from "@/components/project/ProjectAiModulePrimitives";
 import { cn } from "@/lib/utils";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "@stage/data-ops/convex/data-model";
 import type { ProjectAiArtifact, ProjectAiRun } from "@/types/ai";
 
 type MoodboardTabProps = {

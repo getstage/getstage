@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { api } from "@/lib/convex";
 import { trackDatafastGoalOnce } from "@/lib/datafast";
 import { useAuth } from "@/lib/auth";
-import type { Id } from "../../../../convex/_generated/dataModel";
+import type { Id } from "@stage/data-ops/convex/data-model";
 
 type ShareProjectDialogProps = {
   open: boolean;

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import type { ProjectSummary } from "@stage/data-ops";
-import { useProjectsQuery } from "@/hooks/desktop-api";
+import { useProjectsQuery } from "@/hooks/convex-data";
 import { cn } from "@/lib/utils";
 
 const TABLE_COLUMNS = [

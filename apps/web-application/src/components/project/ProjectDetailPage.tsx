@@ -16,7 +16,7 @@ import { GenerateTab } from "@/components/project/GenerateTab";
 import { AssetsTab } from "@/components/project/AssetsTab";
 import { useProjectDetail } from "@/hooks/useProjectDetail";
 import { api } from "@/lib/convex";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "@stage/data-ops/convex/data-model";
 import type { Task } from "@/types";
 
 function getTimeAgo(timestamp: number): string {

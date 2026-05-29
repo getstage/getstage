@@ -11,7 +11,7 @@ import {
 } from "@/lib/desktopAuthRedirect";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { signInEmailSchema, verificationCodeSchema } from "@/lib/validation";
-import { isDemoAuthEnabledForHostname } from "../../../shared/demoAuth";
+import { isDemoAuthEnabledForHostname } from "@stage/data-ops/shared/demo-auth";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { cn } from "@/lib/utils";
 

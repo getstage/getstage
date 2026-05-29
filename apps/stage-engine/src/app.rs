@@ -15,7 +15,7 @@ impl AppState {
     pub fn new() -> Self {
         Self {
             api_version: "v1",
-            service_name: "stage-data-service",
+            service_name: "stage-engine",
             started_at_ms: now_millis(),
         }
     }

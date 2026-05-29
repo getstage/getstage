@@ -6,7 +6,7 @@ import {
   useProjectsQuery,
   useSetTaskPriorityMutation,
   useUserTasksQuery,
-} from "@/hooks/desktop-api";
+} from "@/hooks/convex-data";
 import type { Task } from "@/project/models/project";
 import { CreateTaskDialog } from "@/tasks/components/CreateTaskDialog";
 import {

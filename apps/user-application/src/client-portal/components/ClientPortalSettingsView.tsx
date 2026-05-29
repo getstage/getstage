@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { z } from "zod";
 
-import { useSettingsOverviewQuery } from "@/hooks/desktop-api";
+import { useSettingsOverviewQuery } from "@/hooks/convex-data";
 import { api } from "@/lib/convexApi";
 import { ClientPortalTabBar } from "./ClientPortalTabBar";
 
