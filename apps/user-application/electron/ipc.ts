@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { providerListResponseSchema } from "@stage/data-ops/contracts";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import {
   companionStateSchema,
@@ -10,6 +11,7 @@ import {
   type DesktopSession,
 } from "@shared/models/desktop";
 import { defaultPermissionStatus } from "./helpers/permissions";
+import { fetchEngineJson } from "./helpers/sidecar";
 import { closeCompanionWindow, setCompanionWindowInteractive } from "./windows";
 import type { SidecarSupervisor } from "./sidecar";
 import type { DesktopAuthController } from "./auth";
@@ -43,6 +45,27 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IPC_CHANNELS.engineGetStatus, () => {
     return engineStatusSchema.parse(sidecarSupervisor.getStatus());
+  });
+
+  ipcMain.handle(IPC_CHANNELS.engineListProviders, async () => {
+    const status = await sidecarSupervisor.start();
+    const payload = await fetchEngineJson<unknown>({
+      path: "/v1/providers",
+      port: status.port,
+    });
+
+    return providerListResponseSchema.parse(payload);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.engineRefreshProviders, async () => {
+    const status = await sidecarSupervisor.start();
+    const payload = await fetchEngineJson<unknown>({
+      method: "POST",
+      path: "/v1/providers/refresh",
+      port: status.port,
+    });
+
+    return providerListResponseSchema.parse(payload);
   });
 
   ipcMain.handle(IPC_CHANNELS.companionShow, () => {

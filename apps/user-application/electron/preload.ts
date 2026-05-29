@@ -21,6 +21,8 @@ const stageDesktop = {
   },
   engine: {
     getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.engineGetStatus),
+    listProviders: () => ipcRenderer.invoke(IPC_CHANNELS.engineListProviders),
+    refreshProviders: () => ipcRenderer.invoke(IPC_CHANNELS.engineRefreshProviders),
   },
   companion: {
     show: () => ipcRenderer.invoke(IPC_CHANNELS.companionShow),

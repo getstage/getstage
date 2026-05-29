@@ -18,6 +18,7 @@ export const READINESS_ATTEMPTS = 40;
 export const READINESS_INTERVAL_MS = 250;
 export const READINESS_TIMEOUT_MS = 350;
 export const SHUTDOWN_TIMEOUT_MS = 1_500;
+export const ENGINE_REQUEST_TIMEOUT_MS = 2_000;
 
 export function getSidecarPort() {
   const raw = process.env.STAGE_ENGINE_PORT;
@@ -56,6 +57,30 @@ export async function fetchReadiness(port: number): Promise<ReadinessResponse | 
     return (await response.json()) as ReadinessResponse;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function fetchEngineJson<T>(args: {
+  method?: "GET" | "POST";
+  path: string;
+  port: number;
+}): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ENGINE_REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${args.port}${args.path}`, {
+      method: args.method ?? "GET",
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Stage Engine request failed with ${response.status}.`);
+    }
+
+    return (await response.json()) as T;
   } finally {
     clearTimeout(timeout);
   }

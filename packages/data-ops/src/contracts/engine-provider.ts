@@ -1,0 +1,121 @@
+import { z } from "zod";
+
+export const engineApiVersionSchema = z.literal("v1");
+
+export const providerIdSchema = z.enum(["claude", "codex"]);
+
+export const providerKindSchema = z.enum(["cli"]);
+
+export const providerStatusSchema = z.enum([
+  "ready",
+  "missing",
+  "not-authenticated",
+  "checking",
+  "warning",
+  "disabled",
+  "error",
+]);
+
+export const providerAuthStatusSchema = z.enum([
+  "authenticated",
+  "not-authenticated",
+  "unknown",
+]);
+
+export const providerModelSourceSchema = z.enum([
+  "provider",
+  "fallback",
+  "custom",
+  "unknown",
+]);
+
+export const providerOptionChoiceSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  description: z.string().min(1).optional(),
+  isDefault: z.boolean().optional(),
+});
+
+export const providerOptionDescriptorSchema = z.discriminatedUnion("type", [
+  z.object({
+    id: z.string().min(1),
+    type: z.literal("select"),
+    label: z.string().min(1),
+    description: z.string().min(1).optional(),
+    options: z.array(providerOptionChoiceSchema),
+    currentValue: z.string().min(1).optional(),
+  }),
+  z.object({
+    id: z.string().min(1),
+    type: z.literal("boolean"),
+    label: z.string().min(1),
+    description: z.string().min(1).optional(),
+    currentValue: z.boolean().optional(),
+  }),
+]);
+
+export const providerModelSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  source: providerModelSourceSchema,
+  isDefault: z.boolean().optional(),
+  options: z.array(providerOptionDescriptorSchema).default([]),
+});
+
+export const providerErrorCodeSchema = z.enum([
+  "missing_binary",
+  "version_timeout",
+  "not_authenticated",
+  "readiness_failed",
+  "invalid_request",
+  "run_spawn_failed",
+  "run_timeout",
+  "run_cancelled",
+  "provider_process_failed",
+  "io_error",
+  "internal_error",
+]);
+
+export const engineErrorSchema = z.object({
+  code: providerErrorCodeSchema,
+  message: z.string().min(1),
+  providerId: providerIdSchema.optional(),
+  retryable: z.boolean(),
+  detail: z.string().min(1).optional(),
+});
+
+export const providerStatusRecordSchema = z.object({
+  id: providerIdSchema,
+  label: z.string().min(1),
+  kind: providerKindSchema,
+  installed: z.boolean(),
+  authenticated: z.boolean(),
+  authStatus: providerAuthStatusSchema,
+  enabled: z.boolean(),
+  version: z.string().min(1).nullable(),
+  status: providerStatusSchema,
+  checkedAt: z.number().int().nonnegative(),
+  models: z.array(providerModelSchema),
+  setupHint: z.string().min(1).optional(),
+  message: z.string().min(1).optional(),
+  error: engineErrorSchema.optional(),
+});
+
+export const providerListResponseSchema = z.object({
+  apiVersion: engineApiVersionSchema,
+  providers: z.array(providerStatusRecordSchema),
+});
+
+export type EngineApiVersion = z.infer<typeof engineApiVersionSchema>;
+export type ProviderId = z.infer<typeof providerIdSchema>;
+export type ProviderKind = z.infer<typeof providerKindSchema>;
+export type ProviderStatus = z.infer<typeof providerStatusSchema>;
+export type ProviderAuthStatus = z.infer<typeof providerAuthStatusSchema>;
+export type ProviderModelSource = z.infer<typeof providerModelSourceSchema>;
+export type ProviderOptionChoice = z.infer<typeof providerOptionChoiceSchema>;
+export type ProviderOptionDescriptor = z.infer<typeof providerOptionDescriptorSchema>;
+export type ProviderModel = z.infer<typeof providerModelSchema>;
+export type ProviderErrorCode = z.infer<typeof providerErrorCodeSchema>;
+export type EngineError = z.infer<typeof engineErrorSchema>;
+export type ProviderStatusRecord = z.infer<typeof providerStatusRecordSchema>;
+export type ProviderListResponse = z.infer<typeof providerListResponseSchema>;

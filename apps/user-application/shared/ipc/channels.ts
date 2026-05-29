@@ -5,6 +5,8 @@ export const IPC_CHANNELS = {
   authGetAccessToken: "auth:get-access-token",
   authSessionChanged: "auth:session-changed",
   engineGetStatus: "engine:get-status",
+  engineListProviders: "engine:list-providers",
+  engineRefreshProviders: "engine:refresh-providers",
   companionShow: "companion:show",
   companionHide: "companion:hide",
   companionSetState: "companion:set-state",

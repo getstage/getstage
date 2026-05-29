@@ -7,6 +7,7 @@ import type {
   EngineStatus,
   PermissionKind,
 } from "@shared/models/desktop";
+import type { ProviderListResponse } from "@stage/data-ops/contracts";
 
 export type StageDesktopApi = {
   auth: {
@@ -18,6 +19,8 @@ export type StageDesktopApi = {
   };
   engine: {
     getStatus: () => Promise<EngineStatus>;
+    listProviders: () => Promise<ProviderListResponse>;
+    refreshProviders: () => Promise<ProviderListResponse>;
   };
   companion: {
     show: () => Promise<void>;
