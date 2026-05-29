@@ -20,6 +20,7 @@ export function ProjectHeader({
   onPhasesSave,
   onPauseProject,
   onDeleteProject,
+  deleteError,
 }: {
   project: Project;
   timeline: ProjectTimeline;
@@ -31,7 +32,8 @@ export function ProjectHeader({
   onTimelineSave: (timeline: ProjectTimeline) => void;
   onPhasesSave: (phases: Phase[]) => void;
   onPauseProject: () => void;
-  onDeleteProject: () => void;
+  onDeleteProject: () => void | Promise<void>;
+  deleteError?: string | null;
 }) {
   const navigate = useNavigate();
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
@@ -174,6 +176,7 @@ export function ProjectHeader({
           onPhasesSave={onPhasesSave}
           onPauseProject={onPauseProject}
           onDeleteProject={onDeleteProject}
+          deleteError={deleteError}
           onClose={() => setActiveModal(null)}
         />
       ) : null}

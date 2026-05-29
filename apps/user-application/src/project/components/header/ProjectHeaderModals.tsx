@@ -13,6 +13,7 @@ export function ProjectActionModal({
   onPhasesSave,
   onPauseProject,
   onDeleteProject,
+  deleteError,
   onClose,
 }: {
   modal: ProjectModal;
@@ -23,7 +24,8 @@ export function ProjectActionModal({
   onTimelineSave: (timeline: ProjectTimeline) => void;
   onPhasesSave: (phases: Phase[]) => void;
   onPauseProject: () => void;
-  onDeleteProject: () => void;
+  onDeleteProject: () => void | Promise<void>;
+  deleteError?: string | null;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -84,6 +86,7 @@ export function ProjectActionModal({
             title="Are you sure you want to delete Project?"
             description="Deleting the project is a permanent action, and once it's gone, you won't be able to retrieve it. Please double-check that you truly want to continue with this decision."
             confirmLabel="Delete Project"
+            error={deleteError}
             onConfirm={onDeleteProject}
             onClose={onClose}
           />
@@ -316,6 +319,7 @@ function ConfirmModal({
   description,
   confirmLabel,
   destructive = false,
+  error = null,
   onConfirm,
   onClose,
 }: {
@@ -323,41 +327,58 @@ function ConfirmModal({
   description: string;
   confirmLabel: string;
   destructive?: boolean;
-  onConfirm: () => void;
+  error?: string | null;
+  onConfirm: () => void | Promise<void>;
   onClose: () => void;
 }) {
-  function confirm() {
-    onConfirm();
-    onClose();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function confirm() {
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onConfirm();
+      onClose();
+    } catch {
+      // Parent sets error message; keep modal open.
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <div className="flex w-[min(509px,calc(100vw-48px))] flex-col gap-[44px] rounded-[8px] bg-white p-[20px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex w-full flex-col gap-[20px]">
-        <img src="/images/project-modals/delete-logo.png" alt="" aria-hidden="true" className="h-[32px] w-[32px] rounded-full" />
+        <img src="/images/project-modals/delete-logo.svg" alt="" aria-hidden="true" className="h-[32px] w-[32px] rounded-full" />
         <div className="flex w-full flex-col gap-[4px] text-[#171717]">
           <p className="text-[15px] font-semibold leading-none">{title}</p>
           <p className="max-w-[381px] text-[12px] font-normal leading-[1.5]">{description}</p>
+          {error ? <p className="text-[12px] font-medium leading-[1.5] text-[#b91c1c]">{error}</p> : null}
         </div>
       </div>
       <div className="flex w-full items-center gap-[8px]">
         <button
           type="button"
           onClick={onClose}
-          className="rounded-[6px] bg-[#F5F5F5] px-[16px] py-[8px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+          disabled={isSubmitting}
+          className="rounded-[6px] bg-[#F5F5F5] px-[16px] py-[8px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           type="button"
-          onClick={confirm}
-          className={`rounded-[6px] border py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${
+          onClick={() => void confirm()}
+          disabled={isSubmitting}
+          className={`rounded-[6px] border py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] disabled:opacity-50 ${
             destructive
               ? "border-[#F87171] bg-gradient-to-b from-[#EF4444] to-[#DC2626]"
               : "border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA]"
           }`}
         >
-          {confirmLabel}
+          {isSubmitting ? "Deleting…" : confirmLabel}
         </button>
       </div>
     </div>

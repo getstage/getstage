@@ -10,6 +10,8 @@ import { ResearchTab } from "./tabs/ResearchTab";
 import { StrategyTab } from "./tabs/StrategyTab";
 import { WireframesTab } from "./tabs/WireframesTab";
 import { useLiveProject } from "@/project/hooks";
+import { useDeleteProjectMutation } from "@/hooks/convex-data";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 import { formatRelativeTime } from "@/lib/utils";
 import type { Phase, Project, ProjectTab } from "../models/project";
 
@@ -29,7 +31,10 @@ function formatTimelineDate(timestamp: number) {
 export function ProjectDetailView() {
   const navigate = useNavigate();
   const { projectId } = useParams({ from: "/_authed/project/$projectId" });
-  const live = useLiveProject(projectId);
+  const deleteProject = useDeleteProjectMutation();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isLeavingAfterDelete, setIsLeavingAfterDelete] = useState(false);
+  const live = useLiveProject(projectId, { enabled: !isLeavingAfterDelete });
   const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
@@ -70,8 +75,17 @@ export function ProjectDetailView() {
     setProject((current) => (current ? { ...current, status: "paused" } : current));
   }
 
-  function deleteProject() {
-    void navigate({ to: "/projects" });
+  async function handleDeleteProject() {
+    setDeleteError(null);
+    setIsLeavingAfterDelete(true);
+    try {
+      await deleteProject.mutateAsync(projectId);
+      void navigate({ to: "/projects", replace: true });
+    } catch (error) {
+      setIsLeavingAfterDelete(false);
+      setDeleteError(toUserFacingErrorMessage(error, "Could not delete the project."));
+      throw error;
+    }
   }
 
   const recentTasks = useMemo(() => {
@@ -140,7 +154,8 @@ export function ProjectDetailView() {
               onTimelineSave={updateTimeline}
               onPhasesSave={updatePhases}
               onPauseProject={pauseProject}
-              onDeleteProject={deleteProject}
+              onDeleteProject={handleDeleteProject}
+              deleteError={deleteError}
             />
           </div>
 

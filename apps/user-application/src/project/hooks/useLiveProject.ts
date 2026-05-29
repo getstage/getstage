@@ -88,11 +88,19 @@ export type UseLiveProjectResult = {
   error: unknown;
 };
 
-export function useLiveProject(projectId: string | undefined): UseLiveProjectResult {
+type UseLiveProjectOptions = {
+  enabled?: boolean;
+};
+
+export function useLiveProject(
+  projectId: string | undefined,
+  options: UseLiveProjectOptions = {},
+): UseLiveProjectResult {
+  const { enabled = true } = options;
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
   const rawProjectData = useQuery(
     api.desktop.getProjectData,
-    isAuthenticated && projectId ? { projectId } : "skip",
+    isAuthenticated && enabled && projectId ? { projectId } : "skip",
   );
   const liveData = useMemo(() => {
     if (!rawProjectData) {
@@ -110,7 +118,9 @@ export function useLiveProject(projectId: string | undefined): UseLiveProjectRes
     };
   }, [rawProjectData]);
 
-  const isLoading = isAuthLoading || (isAuthenticated && Boolean(projectId) && rawProjectData === undefined);
+  const isLoading =
+    isAuthLoading ||
+    (isAuthenticated && enabled && Boolean(projectId) && rawProjectData === undefined);
   const error = null;
 
   const project = useMemo<Project | null>(() => {

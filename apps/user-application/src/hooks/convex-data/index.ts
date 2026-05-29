@@ -13,3 +13,4 @@ export {
   type CreateTaskInput,
   type SetTaskPriorityInput,
 } from "./useTaskMutations";
+export { useDeleteProjectMutation } from "./useProjectMutations";

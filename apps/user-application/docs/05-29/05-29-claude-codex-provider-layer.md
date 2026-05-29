@@ -1355,7 +1355,8 @@ Important current limitation:
 
 ```txt
 No provider-reported model list refresh yet.
-No real Claude/Codex CLI run adapter yet.
+Claude/Codex CLI adapters exist, but Claude local auth failed during smoke with
+401 invalid credentials.
 No voice transcription call yet.
 No voice-to-provider handoff yet.
 ```
@@ -1378,9 +1379,9 @@ local probe result during smoke: Claude 2.1.156, Codex 0.135.0
 Next implementation slice:
 
 ```txt
-Implement real Claude CLI adapter behind the existing run pipeline.
-Implement real Codex CLI adapter behind the same run pipeline.
-Add child-process cancellation and timeout handling for real provider runs.
+Fix Claude readiness/auth detection so provider status reflects the real runtime
+401 state.
+Improve Codex stderr event normalization so user-visible output is less noisy.
 Implement provider-reported model/capability refresh where available.
 Connect voice transcript handoff to useProviderRun.
 ```
@@ -1410,7 +1411,10 @@ blocked  = waiting on product/API decision
 | `apps/stage-engine/src/providers/command.rs` | Provider helper | Async child process command runner and version parsing | done |
 | `apps/stage-engine/src/providers/auth.rs` | Provider helper | Conservative local auth metadata detection | done |
 | `apps/stage-engine/src/providers/service.rs` | Provider service | Snapshot and update orchestration | done |
-| `apps/stage-engine/src/providers/adapter.rs` | Provider adapter | Canonical provider run adapter boundary with fake streamed adapter | partial |
+| `apps/stage-engine/src/providers/adapter.rs` | Provider adapter | Routes canonical runs to Claude/Codex adapters | done |
+| `apps/stage-engine/src/providers/process.rs` | Provider helper | Shared async child-process runner with stdout/stderr/stdin/cancel handling | done |
+| `apps/stage-engine/src/providers/claude.rs` | Provider adapter | Real `claude --print` adapter | partial |
+| `apps/stage-engine/src/providers/codex.rs` | Provider adapter | Real `codex exec` adapter | done |
 | `apps/stage-engine/src/runs/mod.rs` | Run manager | Start/track/cancel runs, retain event history, broadcast events | done |
 | `apps/stage-engine/src/server/providers.rs` | HTTP route | Provider list/refresh/update routes | done |
 | `apps/stage-engine/src/server/runs.rs` | HTTP route | `/v1/runs`, SSE events, cancel routes | done |
@@ -1429,12 +1433,13 @@ blocked  = waiting on product/API decision
 Immediate runtime work:
 
 ```txt
-1. Replace fake stream with real Claude adapter.
-2. Replace fake stream with real Codex adapter.
-3. Add provider process cancellation and timeout handling for real child processes.
-4. Add provider-reported model/capability refresh where available.
-5. Connect voice transcript handoff to the same run pipeline.
-6. Connect research/generation workflows to useProviderRun.
+1. Fix Claude readiness/auth detection so 401 runtime failures are shown before
+   the user starts a run.
+2. Improve Codex event normalization and suppress provider boilerplate from
+   user-facing output.
+3. Add provider-reported model/capability refresh where available.
+4. Connect voice transcript handoff to the same run pipeline.
+5. Connect research/generation workflows to useProviderRun.
 ```
 
 ## Caption: Run pipeline implementation notes
@@ -1447,6 +1452,8 @@ Stage Engine /v1/runs/{runId}/events streams Server-Sent Events.
 Stage Engine /v1/runs/{runId}/cancel cancels active runs.
 RunManager keeps a short event history so late SSE subscribers can replay events.
 Provider adapter boundary emits canonical Stage RunEvent values.
+Provider adapter boundary now routes to real Claude and Codex CLI adapters.
+Codex prompt is sent over stdin instead of process args.
 Electron starts runs through IPC and validates the request/response with Zod.
 Electron owns the SSE connection and forwards validated RunEvent objects to React.
 Preload exposes startRun, cancelRun, and onRunEvent.
@@ -1460,6 +1467,13 @@ POST /v1/runs returns status: started.
 GET /v1/runs/{runId}/events replays run_started, output_delta, run_completed.
 POST /v1/runs/{runId}/cancel returns status: cancelled.
 Cancelled run event stream includes run_cancelled.
+Codex real adapter smoke returned STAGE_CODEX_STDIN_OK through output_delta and
+run_completed.
+Claude real adapter reached the CLI but failed with 401 invalid authentication
+credentials on the local machine.
+Claude `auth status` reports logged in with Claude Pro, but `claude --print`
+still returns 401. Treat this as a runtime readiness issue, not a Stage transport
+issue.
 ```
 
 Validation completed after this slice:
