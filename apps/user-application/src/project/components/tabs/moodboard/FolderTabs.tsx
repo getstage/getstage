@@ -53,7 +53,7 @@ export function FolderTabs({
             if (event.key === "Enter") onCommitFolder();
           }}
           autoFocus
-          placeholder="Name your folder"
+          placeholder="Type here..."
           className="h-[27px] w-[132px] rounded-[6px] bg-[#D4D4D4] px-[10px] text-[13px] font-medium leading-[1.25] text-[#0A0A0A] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#0A0A0A]"
         />
       ) : (
@@ -63,7 +63,7 @@ export function FolderTabs({
           onClick={onCreateFolder}
         >
           <PlusIcon className="h-[15px] w-[15px]" />
-          Create Folder
+          Direction Hub
         </button>
       )}
     </div>

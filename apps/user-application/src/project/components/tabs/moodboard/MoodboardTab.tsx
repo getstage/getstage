@@ -5,32 +5,42 @@ import {
   type MoodboardMode,
 } from "../../../data/fixtures/moodboardTabFixtures";
 import type { Project } from "../../../models/project";
+import { DirectionHub, type Direction } from "./DirectionHub";
+import { DirectionToggle } from "./DirectionToggle";
 import { FigmaLinkPanel } from "./FigmaLinkPanel";
 import { FolderMenu } from "./FolderMenu";
-import { FolderTabs } from "./FolderTabs";
 import { Footer } from "./Footer";
 import { Header } from "./Header";
 import { ModeToggle } from "./ModeToggle";
 import { MoodboardGrid } from "./MoodboardGrid";
-import { PlusIcon } from "./moodboardIcons";
+import { StyleGuideGenerating } from "./StyleGuideGenerating";
+import { StyleGuideView } from "./StyleGuideView";
+import { DirectionIcon } from "./moodboardIcons";
 import { UploadDropzone } from "./UploadDropzone";
 import { UploadedFilesList } from "./UploadedFilesList";
+
+type MoodboardView = "board" | "hub" | "generating-style-guide" | "style-guide";
 
 export function MoodboardTab({ project: _project }: { project: Project }) {
   const [mode, setMode] = useState<MoodboardMode>("upload");
   const [hasUploadedFiles, setHasUploadedFiles] = useState(false);
+  const [view, setView] = useState<MoodboardView>("board");
   const [items, setItems] = useState<MoodboardItem[]>(
     moodboardImages.map((image, index) => ({
       id: `reference-${index + 1}`,
       image,
-      folder: null,
-      isInMoodboard: false,
+      folder: index < 2 ? "Direction 1" : index < 4 ? "Direction 2" : "Direction 3",
+      isInMoodboard: true,
     })),
   );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(["reference-1", "reference-2"]),
   );
-  const [folders, setFolders] = useState<string[]>([]);
+  const [folders, setFolders] = useState<Direction[]>([
+    { name: "Direction 1" },
+    { name: "Direction 2", hasStyleGuide: true },
+    { name: "Direction 3" },
+  ]);
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [draftFolderName, setDraftFolderName] = useState("");
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -39,6 +49,7 @@ export function MoodboardTab({ project: _project }: { project: Project }) {
 
   const selectedItems = items.filter((item) => selectedIds.has(item.id));
   const hasMoodboard = items.some((item) => item.isInMoodboard);
+  const folderNames = folders.map((folder) => folder.name);
   const showFigmaImportGrid = mode === "figma";
   const showMoodboardGrid = hasMoodboard && !showFigmaImportGrid;
   const showGrid = showFigmaImportGrid || showMoodboardGrid;
@@ -50,19 +61,51 @@ export function MoodboardTab({ project: _project }: { project: Project }) {
   const canAddToMoodboard = mode === "figma" ? selectedItems.length > 0 : hasUploadedFiles;
   const showSelectionActions = hasMoodboard && selectedItems.length > 0;
 
-  const commitFolder = () => {
-    const name = draftFolderName.trim() || `Direction ${folders.length + 1}`;
-    setFolders((current) => current.includes(name) ? current : [...current, name]);
-    setActiveFolder(name);
-    setDraftFolderName("");
-    setIsCreatingFolder(false);
-  };
+  function openDirectionMenu() {
+    setIsFolderMenuOpen((current) => !current);
+  }
+
+  function generateStyleGuide(direction: string) {
+    setFolders((current) => current.map((item) =>
+      item.name === direction ? { ...item, hasStyleGuide: true } : item,
+    ));
+    setView("generating-style-guide");
+    window.setTimeout(() => setView("style-guide"), 900);
+  }
+
+  if (view === "generating-style-guide") {
+    return <StyleGuideGenerating />;
+  }
+
+  if (view === "style-guide") {
+    return (
+      <StyleGuideView
+        onBack={() => setView("hub")}
+        onRegenerate={() => {
+          setView("generating-style-guide");
+          window.setTimeout(() => setView("style-guide"), 900);
+        }}
+      />
+    );
+  }
 
   return (
     <section className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <Header />
 
-      {!showGrid ? (
+      {view === "hub" ? (
+        <DirectionHub
+          directions={folders}
+          items={items.filter((item) => item.isInMoodboard)}
+          onAll={() => setView("board")}
+          onNewDirection={() => {
+            setView("board");
+            setIsFolderMenuOpen(true);
+            setIsCreatingFolder(true);
+          }}
+          onGenerateStyleGuide={generateStyleGuide}
+        />
+      ) : !showGrid ? (
         <div className="flex min-h-[420px] flex-1 items-center justify-center rounded-[8px] bg-white p-[clamp(24px,4.3vw,44px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
           <div className="flex w-full max-w-[611px] flex-col items-start gap-6">
             <ModeToggle mode={mode} onModeChange={setMode} />
@@ -99,19 +142,10 @@ export function MoodboardTab({ project: _project }: { project: Project }) {
             showFigmaImportGrid ? "gap-1 p-1" : "gap-2 p-4"
           }`}>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <FolderTabs
-                folders={folders}
-                activeFolder={activeFolder}
-                isCreatingFolder={isCreatingFolder}
-                draftFolderName={draftFolderName}
+              <DirectionToggle
+                activeView="all"
                 onAll={() => setActiveFolder(null)}
-                onFolderChange={setActiveFolder}
-                onCreateFolder={() => {
-                  setIsCreatingFolder(true);
-                  setIsFolderMenuOpen(false);
-                }}
-                onDraftFolderNameChange={setDraftFolderName}
-                onCommitFolder={commitFolder}
+                onDirectionHub={() => setView("hub")}
               />
 
               {showSelectionActions ? (
@@ -131,15 +165,10 @@ export function MoodboardTab({ project: _project }: { project: Project }) {
                   <button
                     type="button"
                     className="inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] py-2 pl-3 pr-[10px] text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
-                    onClick={() => {
-                      setIsFolderMenuOpen((current) => !current);
-                      if (folders.length === 0) {
-                        setFolders(["Direction 1", "Direction 2", "Direction 3"]);
-                      }
-                    }}
+                    onClick={openDirectionMenu}
                   >
-                    Add to Folder
-                    <PlusIcon className="h-[15px] w-[15px]" />
+                    Add to Direction
+                    <DirectionIcon />
                   </button>
                 </div>
               ) : null}
@@ -160,13 +189,33 @@ export function MoodboardTab({ project: _project }: { project: Project }) {
 
             {isFolderMenuOpen ? (
               <FolderMenu
-                folders={folders.length > 0 ? folders : ["Direction 1", "Direction 2", "Direction 3"]}
+                folders={folderNames.length > 0 ? folderNames : ["Direction 1", "Direction 2", "Direction 3"]}
+                creating={isCreatingFolder}
+                draftName={draftFolderName}
                 onSelectFolder={(folder) => {
-                  setFolders((current) => current.includes(folder) ? current : [...current, folder]);
+                  setFolders((current) => current.some((item) => item.name === folder) ? current : [...current, { name: folder }]);
                   setItems((current) => current.map((item) =>
                     selectedIds.has(item.id) ? { ...item, folder, isInMoodboard: true } : item,
                   ));
-                  setActiveFolder(folder);
+                  setActiveFolder(null);
+                  setIsCreatingFolder(false);
+                  setDraftFolderName("");
+                  setIsFolderMenuOpen(false);
+                }}
+                onCreateFolder={() => {
+                  setIsCreatingFolder(true);
+                  setDraftFolderName("");
+                }}
+                onDraftNameChange={setDraftFolderName}
+                onCommitFolder={() => {
+                  const name = draftFolderName.trim() || `Direction ${folders.length + 1}`;
+                  setFolders((current) => current.some((item) => item.name === name) ? current : [...current, { name }]);
+                  setItems((current) => current.map((item) =>
+                    selectedIds.has(item.id) ? { ...item, folder: name, isInMoodboard: true } : item,
+                  ));
+                  setActiveFolder(null);
+                  setDraftFolderName("");
+                  setIsCreatingFolder(false);
                   setIsFolderMenuOpen(false);
                 }}
               />
@@ -175,20 +224,22 @@ export function MoodboardTab({ project: _project }: { project: Project }) {
         </div>
       )}
 
-      <Footer
-        hasMoodboard={hasMoodboard}
-        canAddToMoodboard={canAddToMoodboard}
-        onAddToMoodboard={() => {
-          if (!canAddToMoodboard) return;
-          if (mode === "upload") {
-            setMode("figma");
-            setSelectedIds(new Set(["reference-1", "reference-2"]));
-          }
-          setItems((current) => current.map((item) =>
-            selectedIds.has(item.id) || mode === "upload" ? { ...item, isInMoodboard: true } : item,
-          ));
-        }}
-      />
+      {view === "board" ? (
+        <Footer
+          hasMoodboard={hasMoodboard}
+          canAddToMoodboard={canAddToMoodboard}
+          onAddToMoodboard={() => {
+            if (!canAddToMoodboard) return;
+            if (mode === "upload") {
+              setMode("figma");
+              setSelectedIds(new Set(["reference-1", "reference-2"]));
+            }
+            setItems((current) => current.map((item) =>
+              selectedIds.has(item.id) || mode === "upload" ? { ...item, isInMoodboard: true } : item,
+            ));
+          }}
+        />
+      ) : null}
     </section>
   );
 }

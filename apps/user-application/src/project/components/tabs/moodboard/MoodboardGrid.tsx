@@ -18,7 +18,7 @@ export function MoodboardGrid({
           <button
             key={item.id}
             type="button"
-            className="relative min-w-0 cursor-pointer rounded-[8px] bg-[#FAFAFA] p-2 text-left shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-transform hover:-translate-y-px"
+            className="relative min-w-0 cursor-pointer rounded-[8px] bg-[#FAFAFA] p-2 text-left shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
             onClick={() => onToggleSelect(item.id)}
           >
             <div className="relative aspect-[1920/1325] w-full overflow-hidden rounded-[4px]">
