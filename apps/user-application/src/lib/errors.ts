@@ -4,6 +4,9 @@ const STACK_TRACE_PATTERN =
 const INTERNAL_ERROR_PATTERN =
   /Uncaught Error:|Request ID:|Provider `.+` is not configured|Missing environment variable|JWT_PRIVATE_KEY|JWKS|CONVEX_SITE_URL|SITE_URL|Stripe checkout URL is missing|Stripe portal URL is missing|Stripe Connect URL is missing/i;
 
+const RUNTIME_ERROR_PATTERN =
+  /Cannot read properties of (null|undefined)|Cannot destructure property|undefined is not an object|null is not an object|is not a function|Cannot access .+ before initialization|Maximum update depth exceeded|Minified React error/i;
+
 const AUTH_INVALID_CODE_PATTERN =
   /invalid code|invalid verification code|code must be 6 digits|expired code|verification code|incorrect code|could not verify code/i;
 
@@ -20,18 +23,23 @@ function extractErrorMessage(error: unknown): string | null {
   }
 
   if (error instanceof Error) {
-    const details = [error.message, ...extractNestedMessages(error)].filter(Boolean);
-    return details.map((value) => value.trim()).join("\n").trim();
+    return normalizeMessages([error.message, ...extractNestedMessages(error)]);
   }
 
   if (error && typeof error === "object") {
     const details = extractNestedMessages(error);
     if (details.length > 0) {
-      return details.map((value) => value.trim()).join("\n").trim();
+      return normalizeMessages(details);
     }
   }
 
   return null;
+}
+
+function normalizeMessages(messages: string[]): string {
+  return Array.from(new Set(messages.map((value) => value.trim()).filter(Boolean)))
+    .join("\n")
+    .trim();
 }
 
 function extractNestedMessages(value: unknown, seen = new Set<unknown>()): string[] {
@@ -70,7 +78,8 @@ function isUnsafeUserMessage(message: string): boolean {
   return (
     message.length > 180 ||
     STACK_TRACE_PATTERN.test(message) ||
-    INTERNAL_ERROR_PATTERN.test(message)
+    INTERNAL_ERROR_PATTERN.test(message) ||
+    RUNTIME_ERROR_PATTERN.test(message)
   );
 }
 

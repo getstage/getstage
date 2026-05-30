@@ -1,5 +1,5 @@
 import { useMutation as useConvexMutation } from "convex/react";
-import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import { useState, type ChangeEvent, type DragEvent } from "react";
 import { api } from "@/lib/convexApi";
 import {
   getNormalizedMimeType,
@@ -13,7 +13,6 @@ import type { UploadedAssetRow } from "../types/assetsTab";
 export function useProjectAssetUploads(onUploaded?: () => void) {
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
   const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
-  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const [uploadedAssets, setUploadedAssets] = useState<UploadedAssetRow[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
@@ -71,7 +70,7 @@ export function useProjectAssetUploads(onUploaded?: () => void) {
     );
   }
 
-  function handleDrop(event: DragEvent<HTMLButtonElement>) {
+  function handleDrop(event: DragEvent<HTMLLabelElement>) {
     event.preventDefault();
     setIsDragActive(false);
     void uploadFiles(event.dataTransfer.files);
@@ -84,11 +83,11 @@ export function useProjectAssetUploads(onUploaded?: () => void) {
 
   return {
     accept: PROJECT_ASSET_ACCEPT,
-    inputRef,
     uploadedAssets,
     isDragActive,
     setIsDragActive,
     handleDrop,
     handleInputChange,
+    uploadFiles,
   };
 }

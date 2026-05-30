@@ -1,19 +1,116 @@
-import { useMemo, type ReactNode } from "react";
-import { useProviderStatus, useProviderUpdate } from "@/hooks/engine/useProviderStatus";
-import { providerToIntegrationRow } from "../helpers/providerIntegrationRows";
+import { useMemo, useState, type ReactNode } from "react";
+import {
+  useAction as useConvexAction,
+  useConvexAuth,
+  useMutation as useConvexMutation,
+  useQuery as useConvexQuery,
+} from "convex/react";
+import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
+import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
+import { api } from "@/lib/convex";
+import {
+  googleSheetsIntegrationToRow,
+  nativeIntegrationToRow,
+  providerToIntegrationRow,
+} from "../helpers/providerIntegrationRows";
+import { openExternalLink } from "../helpers/openExternalLink";
 import type { IntegrationRowModel } from "../types/integrations";
 import { SettingsIcon } from "./SettingsIcons";
 
 export function IntegrationsPage() {
+  const { isAuthenticated } = useConvexAuth();
   const providers = useProviderStatus();
-  const providerUpdate = useProviderUpdate();
-  const providerRows = useMemo(
-    () => (providers.data?.providers ?? []).map(providerToIntegrationRow),
-    [providers.data?.providers],
+  const providerPreferences = useProviderPreferences();
+  const [busyIntegrationId, setBusyIntegrationId] = useState<string | null>(null);
+
+  const nativeConnectionStatus = useConvexQuery(
+    api.integrations.contentPlatforms.getNativeConnectionStatus,
+    isAuthenticated ? {} : "skip",
   );
-  const connectedIntegrations = providerRows.filter((integration) => integration.connected);
-  const availableIntegrations = providerRows.filter((integration) => !integration.connected);
-  const isRefreshing = providers.isFetching && !providerUpdate.isPending;
+  const sheetConnectionStatus = useConvexQuery(
+    api.integrations.googleSheets.getSheetConnectionStatus,
+    isAuthenticated ? {} : "skip",
+  );
+
+  const startOAuthConnect = useConvexAction(
+    api.integrations.contentPlatforms.startOAuthConnect,
+  );
+  const disconnectNativeConnection = useConvexMutation(
+    api.integrations.contentPlatforms.disconnectConnection,
+  );
+  const connectSheet = useConvexMutation(api.integrations.googleSheets.connectSheet);
+  const disconnectSheet = useConvexMutation(api.integrations.googleSheets.disconnectSheet);
+
+  const providerRows = useMemo(
+    () =>
+      (providers.data?.providers ?? []).map((provider) =>
+        providerToIntegrationRow(
+          provider,
+          providerPreferences.isProviderEnabled(provider.id),
+        ),
+      ),
+    [providerPreferences, providers.data?.providers],
+  );
+  const nativeIntegrationRows = useMemo(
+    () => [
+      nativeIntegrationToRow("figma", nativeConnectionStatus?.figma ?? null),
+      nativeIntegrationToRow("notion", nativeConnectionStatus?.notion ?? null),
+      googleSheetsIntegrationToRow(sheetConnectionStatus?.googleSheet ?? null),
+    ],
+    [
+      nativeConnectionStatus?.figma,
+      nativeConnectionStatus?.notion,
+      sheetConnectionStatus?.googleSheet,
+    ],
+  );
+
+  const integrationRows = [...providerRows, ...nativeIntegrationRows];
+  const connectedIntegrations = integrationRows.filter((integration) => integration.connected);
+  const availableIntegrations = integrationRows.filter((integration) => !integration.connected);
+  const isRefreshing = providers.isFetching;
+
+  async function handleIntegrationAction(integration: IntegrationRowModel) {
+    try {
+      setBusyIntegrationId(integration.id);
+
+      if (integration.providerId) {
+        if (integration.connected) {
+          providerPreferences.setProviderEnabled(integration.providerId, false);
+          return;
+        }
+
+        providerPreferences.setProviderEnabled(integration.providerId, true);
+        return;
+      }
+
+      if (integration.nativeIntegrationId === "figma" || integration.nativeIntegrationId === "notion") {
+        if (integration.connected) {
+          await disconnectNativeConnection({ provider: integration.nativeIntegrationId });
+          return;
+        }
+
+        const result = await startOAuthConnect({ provider: integration.nativeIntegrationId });
+        await openExternalLink(result.url);
+        return;
+      }
+
+      if (integration.nativeIntegrationId === "google-sheets") {
+        if (integration.connected) {
+          await disconnectSheet({ sourceType: "google_sheet" });
+          return;
+        }
+
+        const sheetUrl = window.prompt("Paste your Google Sheets URL");
+        if (!sheetUrl) return;
+        await connectSheet({ sheetUrl });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Integration action failed.";
+      window.alert(message);
+    } finally {
+      setBusyIntegrationId(null);
+    }
+  }
 
   return (
     <div className="relative flex min-h-full flex-1 justify-center overflow-x-hidden bg-white px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
@@ -45,12 +142,9 @@ export function IntegrationsPage() {
                   <IntegrationListRow
                     key={integration.id}
                     integration={integration}
-                    actionLabel="Update"
-                    busy={
-                      providerUpdate.isPending &&
-                      providerUpdate.variables === integration.providerId
-                    }
-                    onAction={() => providerUpdate.mutate(integration.providerId)}
+                    actionLabel={getIntegrationActionLabel(integration)}
+                    busy={busyIntegrationId === integration.id}
+                    onAction={() => void handleIntegrationAction(integration)}
                   />
                 ))
               ) : (
@@ -68,14 +162,14 @@ export function IntegrationsPage() {
                   <IntegrationListRow
                     key={integration.id}
                     integration={integration}
-                    actionLabel="Refresh"
-                    busy={isRefreshing}
-                    onAction={() => void providers.refetch()}
+                    actionLabel={getIntegrationActionLabel(integration)}
+                    busy={isRefreshing || busyIntegrationId === integration.id}
+                    onAction={() => void handleIntegrationAction(integration)}
                   />
                 ))
               ) : (
                 <p className="text-[12px] leading-none text-[#737373]">
-                  No unavailable providers
+                  No unavailable integrations
                 </p>
               )}
             </div>
@@ -84,6 +178,11 @@ export function IntegrationsPage() {
       </div>
     </div>
   );
+}
+
+function getIntegrationActionLabel(integration: IntegrationRowModel) {
+  if (integration.providerId) return integration.connected ? "Disconnect" : "Connect";
+  return integration.connected ? "Disconnect" : "Connect";
 }
 
 function IntegrationGroup({
@@ -146,16 +245,41 @@ function IntegrationListRow({
         >
           {busy ? "Working..." : actionLabel}
         </button>
-        <IntegrationToggle active={integration.connected} />
+        <IntegrationToggle
+          active={integration.connected}
+          disabled={busy}
+          onToggle={onAction}
+          label={getToggleLabel(integration)}
+        />
       </span>
     </div>
   );
 }
 
-function IntegrationToggle({ active }: { active: boolean }) {
+function getToggleLabel(integration: IntegrationRowModel) {
+  const action = integration.connected ? "Disconnect" : "Connect";
+  return `${action} ${integration.name}`;
+}
+
+function IntegrationToggle({
+  active,
+  disabled,
+  label,
+  onToggle,
+}: {
+  active: boolean;
+  disabled: boolean;
+  label: string;
+  onToggle: () => void;
+}) {
   return (
-    <span
-      className={`mt-[1px] flex h-[16px] w-[30px] shrink-0 items-center rounded-full p-[2px] ${
+    <button
+      type="button"
+      disabled={disabled}
+      aria-label={label}
+      aria-pressed={active}
+      onClick={onToggle}
+      className={`mt-[1px] flex h-[16px] w-[30px] shrink-0 items-center rounded-full p-[2px] transition-colors disabled:cursor-wait ${
         active ? "justify-end bg-[#DBD9FC]" : "justify-start bg-[#E5E5E5]"
       }`}
     >
@@ -164,6 +288,6 @@ function IntegrationToggle({ active }: { active: boolean }) {
           active ? "bg-[#221E6C]" : "bg-[#737373]"
         }`}
       />
-    </span>
+    </button>
   );
 }
