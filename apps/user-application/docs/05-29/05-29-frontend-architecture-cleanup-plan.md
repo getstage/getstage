@@ -760,6 +760,9 @@ Thresholds:
 | `project/components/tabs/wireframes/WireframesTab.tsx` | 113 | 4 | Shell; steps in `tabs/wireframes/*` | done |
 | `project/components/tabs/wireframes/ConfigureStep.tsx` | 119 | 4 | Largest wireframes step file | done |
 | `project/components/tabs/MoodboardTab.tsx` | 1 | 4 | Re-export → `tabs/moodboard/` | done |
+| `project/components/tabs/AssetsTab.tsx` | 1 | 4 | Re-export → `tabs/assets/` + `useProjectAssetUploads` | done |
+| `project/components/tabs/assets/AssetsTab.tsx` | ~85 | 4 | Shell; upload hook + section components | done |
+| `project/hooks/useProjectAssetUploads.ts` | ~95 | 4 | R2 project-asset uploads | done |
 | `project/components/tabs/moodboard/MoodboardTab.tsx` | 194 | 4 | Shell; panels in `tabs/moodboard/*` | done |
 | `tasks/components/TasksPageView.tsx` | ~85 | 5 | Shell + useTasksBoard | done |
 | `tasks/hooks/useTasksBoard.ts` | ~220 | 5 | Board state + drag/mutations | done |

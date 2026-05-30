@@ -1,7 +1,23 @@
 # Desktop app: where data lives, what's broken, what's next
 
-**Date:** 30 May 2026  
+**Date:** 30 May 2026 (updated)  
 **App:** `apps/user-application`
+
+---
+
+## Fix progress (Notion list)
+
+| # | Item | Status | Commit / notes |
+|---|------|--------|----------------|
+| 1 | Edit project + client + photos | **Done** (await partner test) | `15ef653` — `useProjectMutations`, `useProjectHeaderActions` |
+| 2 | Assign person to task | **Done** (await partner test) | `ec31392` — `useSetTaskAssigneesMutation`, real members |
+| 3 | Settings role save | **Done** (await partner test) | `71f49b7` — `updateProfile` accepts `role` |
+| 4 | Timeline save | **Done** (part of #1) | Same as project header |
+| 5 | Upload file on project details | **Done** (await partner test) | `AssetsTab` → R2 `project-asset` upload |
+| 6 | All project tab actions | Not started | Needs `api.projectAi.*` port from web |
+| 7 | Task checkbox bug | Not started | Separate from assign |
+
+**Audit note:** This table tracks the Notion bug-fix list. The [file audit table](../05-29/05-29-frontend-architecture-cleanup-plan.md#caption-file-audit-table) in `05-29-frontend-architecture-cleanup-plan.md` tracks architecture refactor / line-count phases — it was **not** updated for this fix work.
 
 ---
 
@@ -109,53 +125,43 @@ Convex backend             → auth in every public function
 | Project detail **read** | `useLiveProject` → `api.desktop.getProjectData` |
 | Create project | `useCreateProjectFlow` → `api.desktop.createProject` + R2 |
 | Create/delete/priority tasks | `useTaskMutations` |
-| Settings name/avatar | inline `api.settings.updateProfile` + R2 in `SettingsPageView` |
+| Settings name/avatar/role | `ProfilePanel` → `api.settings.updateProfile` + R2 |
+| Project header saves | `useProjectHeaderActions` → `api.projects.*` + R2 |
+| Kanban assign | `useSetTaskAssigneesMutation` + `useProjectMembersQuery` |
+| Assets upload (session) | `AssetsTab` → R2 `project-asset` (files in R2; list is in-memory like web) |
 | Onboarding | Convex mutations in `useOnboardingController` |
 
 ---
 
-## What is broken (root cause: UI never calls write APIs)
+## What is still broken
 
-Same pattern everywhere: **UI updates local React state or shows mock data. Convex is never called.**
+Same pattern on remaining items: **UI uses mock/local state instead of Convex write APIs.**
 
-### Project header modals (`ProjectDetailView` + `ProjectHeader`)
+### Project header modals — **fixed** (partner test pending)
 
-| Action | What happens now | What should happen |
-|--------|------------------|-------------------|
-| Edit project name | `setProject({ ...name })` | `api.projects.update` |
-| Edit client | `setClientName` local | `api.projects.update` |
-| Project/client photo reupload/remove | Buttons have no handlers | R2 upload + `api.projects.update` |
-| Timeline | `setTimeline` local | `api.projects.update` with parsed dates |
-| Phases | local list + fake `phase-${Date.now()}` ids | `api.projects.syncPhases` |
-| Pause | local status | `api.projects.update({ status: "paused" })` |
-| Delete | `navigate("/projects")` only | `api.projects.deleteById` then navigate |
+Wired via `useProjectHeaderActions` + `useProjectMutations`.
 
-Backend mutations **exist** in `packages/data-ops/convex/projects.ts`. Desktop never calls them from the project page.
+### Kanban assign — **fixed** (partner test pending)
 
-### Kanban assign person
+Real project members + `api.tasks.setAssignees`.
 
-- Hardcoded `ASSIGNEES` array in `KanbanBoard.tsx`
-- Assign updates local column state only
-- Backend: `api.tasks.getProjectMembers`, `api.tasks.setAssignees` — **exist, unused**
+### Settings role — **fixed** (partner test pending)
 
-### Settings role
+`ProfilePanel` loads/saves `role` via `updateProfile`.
 
-- Role picker uses mock `settingsSnapshot`, not `useSettingsOverviewQuery().data.profile.role`
-- Save button has **no `onClick`**
-- Backend: `users.role` is read in `getOverview`; `updateProfile` does **not** accept `role` yet
+### File upload on project page — **fixed** (partner test pending)
 
-### Project tabs (Research → Assets)
+`AssetsTab` dropzone uploads to R2 (`project-asset`). Uploaded tab shows files for the current session. **Not persisted to a DB table yet** — same limitation as web `AssetsTab`.
+
+### Project tabs (Research → Wireframes) — **not started**
 
 - Hardcoded mock content or local `useState`
 - `useLiveProject` zeroes out tab fields (`research`, `flows`, `assets`, etc.)
-- Web app uses `api.projectAi.*` + R2 `project-asset` — **desktop tabs don't call it**
+- Web app uses `api.projectAi.*` + R2 `project-asset` — **desktop tabs don't call projectAi yet**
 
-### File upload on project page
+### Task checkbox bug (#7)
 
-- `AssetsTab` dropzone is a `<button>` with no file input
-- No R2, no persistence
-
----
+- Checkbox state disappears after moving another task — **not investigated**
 
 ## Hooks inventory (`src/hooks/`)
 
@@ -164,15 +170,17 @@ Backend mutations **exist** in `packages/data-ops/convex/projects.ts`. Desktop n
 - `useProjectsQuery`, `useProjectQuery`, `useProjectPhasesQuery`, `usePhaseTasksQuery`
 - `useUserTasksQuery`, `useClientsQuery`, `useSettingsOverviewQuery`, `useOnboardingStateQuery`
 
-**Mutations (partial):**
+**Mutations:**
 
-- `useCreateTaskMutation`, `useDeleteTaskMutation`, `useSetTaskPriorityMutation`
-- **Missing:** project update/sync/delete, task assignees
+- `useProjectMutations` — update, syncPhases, delete
+- `useTaskMutations` — create, delete, priority, setAssignees
+- `useProjectMembersQuery` — kanban assign picker
 
 **Not in `src/hooks/` but relevant:**
 
 - `project/hooks/useLiveProject.ts` — project page read model
-- `lib/r2Uploads.ts` — upload helpers (used in create/settings, not project edit modals)
+- `project/hooks/useProjectHeaderActions.ts` — header modal saves + R2
+- `lib/r2Uploads.ts` — upload helpers (create, settings, project header, assets tab)
 
 Do **not** rebuild query hooks. Do **not** move Convex reads to router loaders. Add **thin mutation hooks** where task pattern applies; wire components.
 
@@ -180,35 +188,18 @@ Do **not** rebuild query hooks. Do **not** move Convex reads to router loaders. 
 
 ## What needs to happen next (order)
 
-### 1. Wire project header writes (highest impact)
-
-**Files:** `ProjectDetailView.tsx`, `ProjectHeader.tsx`, new `hooks/convex-data/useProjectMutations.ts`  
-**APIs:** `api.projects.update`, `syncPhases`, `deleteById`, existing R2 helpers  
-**Reference:** `apps/web-application/src/features/project-detail/useProjectDialogs.ts`
-
-### 2. Settings role
-
-**Files:** `packages/data-ops/convex/settings.ts`, `SettingsPageView.tsx`  
-Add `role` to `updateProfile`. Wire Save. Init from `overview.data.profile.role`.
-
-### 3. Task assign
-
-**Files:** `KanbanBoard.tsx`, extend `useTaskMutations.ts` with `useSetTaskAssigneesMutation`  
-**APIs:** `api.tasks.getProjectMembers`, `api.tasks.setAssignees`
-
-### 4. Assets upload
-
-**Files:** `AssetsTab.tsx`, maybe `r2Uploads.ts`  
-Port upload/list pattern from web `AssetsTab`.
-
-### 5. All project tabs
+### 1. All project tabs
 
 **Files:** `project/components/tabs/*.tsx`  
 Port persistence from `apps/web-application/src/components/project/*` using `api.projectAi.*`. Largest chunk.
 
-### 6. Verify
+### 2. Task checkbox bug
 
-Each action must survive page refresh. Run `pnpm exec tsc --noEmit` in `apps/user-application`.
+Investigate kanban drag vs checkbox state.
+
+### 3. Verify + partner test
+
+Refresh persistence for header/settings/assign. Assets survive in R2 but uploaded list resets on refresh (web parity). Run `pnpm exec tsc --noEmit` in `apps/user-application`.
 
 ---
 
