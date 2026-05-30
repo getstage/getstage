@@ -6,11 +6,14 @@ export { useProjectQuery } from "./useProjectQuery";
 export { useProjectsQuery } from "./useProjectsQuery";
 export { useSettingsOverviewQuery, type SettingsOverview } from "./useSettingsOverviewQuery";
 export { useUserTasksQuery, type UseUserTasksQueryArgs } from "./useUserTasksQuery";
+export { useProjectMembersQuery, type ProjectMember } from "./useProjectMembersQuery";
 export {
   useCreateTaskMutation,
   useDeleteTaskMutation,
+  useSetTaskAssigneesMutation,
   useSetTaskPriorityMutation,
   type CreateTaskInput,
+  type SetTaskAssigneesInput,
   type SetTaskPriorityInput,
 } from "./useTaskMutations";
 export {

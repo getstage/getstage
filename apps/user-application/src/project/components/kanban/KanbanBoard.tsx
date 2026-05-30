@@ -17,7 +17,7 @@ export function KanbanBoard({
   projectName?: string;
 }) {
   const navigate = useNavigate();
-  const board = useKanbanBoard(phases);
+  const board = useKanbanBoard(phases, projectId);
 
   return (
     <div className="relative">
@@ -84,9 +84,10 @@ export function KanbanBoard({
                     />
                     {board.assignTaskId === task.id ? (
                       <KanbanAssignCard
+                        members={board.members}
                         search={board.assignSearch}
                         onSearchChange={board.setAssignSearch}
-                        onAssign={(assignee) => board.assignTask(task.id, assignee)}
+                        onAssign={(member) => void board.assignTask(task.id, member)}
                       />
                     ) : null}
                   </div>

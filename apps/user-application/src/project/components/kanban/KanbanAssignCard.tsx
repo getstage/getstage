@@ -1,18 +1,28 @@
 import { Avatar } from "@/components/ui/Avatar";
-import { KANBAN_ASSIGNEES, type KanbanAssignee } from "../../data/fixtures/kanbanAssignees";
+import type { ProjectMember } from "@/hooks/convex-data";
+
+function memberLabel(member: ProjectMember) {
+  return member.name?.trim() || member.email?.trim() || "Member";
+}
 
 export function KanbanAssignCard({
+  members,
   search,
   onSearchChange,
   onAssign,
 }: {
+  members: ProjectMember[];
   search: string;
   onSearchChange: (value: string) => void;
-  onAssign: (assignee: KanbanAssignee) => void;
+  onAssign: (member: ProjectMember) => void;
 }) {
-  const filteredAssignees = KANBAN_ASSIGNEES.filter((assignee) =>
-    assignee.name.toLowerCase().includes(search.trim().toLowerCase()),
-  );
+  const query = search.trim().toLowerCase();
+  const filteredMembers = members.filter((member) => {
+    if (!query) return true;
+    const label = memberLabel(member).toLowerCase();
+    const email = member.email?.toLowerCase() ?? "";
+    return label.includes(query) || email.includes(query);
+  });
 
   return (
     <div
@@ -38,18 +48,18 @@ export function KanbanAssignCard({
           />
         </label>
         <div className="flex flex-col">
-          {filteredAssignees.map((assignee) => (
+          {filteredMembers.map((member) => (
             <button
-              key={assignee.name}
+              key={member.userId}
               type="button"
-              onClick={() => onAssign(assignee)}
+              onClick={() => onAssign(member)}
               className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-2 py-[6px] text-left transition-colors hover:bg-[#F5F5F5]"
             >
-              <Avatar name={assignee.name} src={assignee.avatar} className="h-5 w-5" />
-              <span className="text-[12px] font-medium leading-[1.25] text-[#262626]">{assignee.name}</span>
+              <Avatar name={memberLabel(member)} className="h-5 w-5" />
+              <span className="text-[12px] font-medium leading-[1.25] text-[#262626]">{memberLabel(member)}</span>
             </button>
           ))}
-          {filteredAssignees.length === 0 ? (
+          {filteredMembers.length === 0 ? (
             <div className="px-2 py-[6px] text-[12px] font-medium leading-[1.25] text-[#737373]">No matches</div>
           ) : null}
         </div>

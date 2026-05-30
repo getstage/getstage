@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type PointerEvent } from "react";
-import type { KanbanAssignee } from "../data/fixtures/kanbanAssignees";
+import { useProjectMembersQuery, useSetTaskAssigneesMutation } from "@/hooks/convex-data";
+import type { ProjectMember } from "@/hooks/convex-data";
 import {
   buildKanbanColumns,
   KANBAN_COLUMNS,
@@ -10,8 +11,10 @@ import { getKanbanDropTargetFromPoint } from "../helpers/kanbanDrag";
 import type { Phase } from "../models/project";
 import type { KanbanDragPreview } from "../components/kanban/KanbanTaskCard";
 
-export function useKanbanBoard(phases: Phase[]) {
+export function useKanbanBoard(phases: Phase[], projectId?: string) {
   const initialColumns = useMemo(() => buildKanbanColumns(phases), [phases]);
+  const membersQuery = useProjectMembersQuery(projectId);
+  const setAssignees = useSetTaskAssigneesMutation();
   const [columns, setColumns] = useState(initialColumns);
   const [activeDrag, setActiveDrag] = useState<KanbanDragPreview | null>(null);
   const [assignTaskId, setAssignTaskId] = useState<string | null>(null);
@@ -143,25 +146,15 @@ export function useKanbanBoard(phases: Phase[]) {
     setDropBeforeTaskId(null);
   }
 
-  function assignTask(taskId: string, assignee: KanbanAssignee) {
-    setColumns((current) => {
-      const next = { ...current };
-
-      for (const column of KANBAN_COLUMNS) {
-        next[column.key] = current[column.key].map((item) => {
-          if (item.task.id !== taskId) return item;
-          return {
-            ...item,
-            task: {
-              ...item.task,
-              assignees: [{ name: assignee.name }],
-            },
-          };
-        });
-      }
-
-      return next;
-    });
+  async function assignTask(taskId: string, member: ProjectMember) {
+    try {
+      await setAssignees.mutateAsync({
+        taskId,
+        assigneeIds: [member.userId],
+      });
+    } catch {
+      return;
+    }
     setAssignTaskId(null);
     setAssignSearch("");
   }
@@ -191,6 +184,7 @@ export function useKanbanBoard(phases: Phase[]) {
 
   return {
     columns,
+    members: membersQuery.data,
     activeDrag,
     assignTaskId,
     assignSearch,

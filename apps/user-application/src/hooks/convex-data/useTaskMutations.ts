@@ -1,3 +1,4 @@
+import type { Id } from "@stage/data-ops/convex/data-model";
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import {
@@ -73,6 +74,38 @@ export type SetTaskPriorityInput = {
   taskId: string;
   priority: TaskPriority | null;
 };
+
+export type SetTaskAssigneesInput = {
+  taskId: string;
+  assigneeIds: string[];
+};
+
+export function useSetTaskAssigneesMutation() {
+  const setAssignees = useMutation(api.tasks.setAssignees);
+  const { isAuthenticated } = useDesktopAuth();
+  const [isPending, setIsPending] = useState(false);
+
+  async function mutateAsync(input: SetTaskAssigneesInput) {
+    requireDesktopAuth(isAuthenticated);
+    setIsPending(true);
+    try {
+      return setAssignees({
+        taskId: input.taskId as Id<"tasks">,
+        assigneeIds: input.assigneeIds,
+      });
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  return {
+    isPending,
+    mutateAsync,
+    mutate: (input: SetTaskAssigneesInput, options?: { onError?: () => void }) => {
+      void mutateAsync(input).catch(() => options?.onError?.());
+    },
+  };
+}
 
 export function useSetTaskPriorityMutation() {
   const setTaskPriority = useMutation(api.desktop.setTaskPriority);
