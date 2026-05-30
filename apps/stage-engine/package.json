@@ -1,0 +1,13 @@
+{
+  "name": "@stage/stage-engine",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "cargo run --manifest-path Cargo.toml",
+    "dev:port": "STAGE_ENGINE_PORT=${STAGE_ENGINE_PORT:-48221} cargo run --manifest-path Cargo.toml",
+    "check": "cargo check --manifest-path Cargo.toml",
+    "fmt": "cargo fmt --manifest-path Cargo.toml --check",
+    "test": "cargo test --manifest-path Cargo.toml",
+    "clippy": "cargo clippy --manifest-path Cargo.toml --all-targets --all-features --locked -- -D warnings"
+  }
+}

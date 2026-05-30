@@ -19,7 +19,10 @@
     "web:build": "pnpm --filter stage-app run build",
     "web:build:testing": "pnpm --filter stage-app run build:testing",
     "web:typecheck": "pnpm --filter stage-app run typecheck",
+    "engine:dev": "pnpm --dir apps/stage-engine run dev",
     "engine:fmt": "cargo fmt --manifest-path apps/stage-engine/Cargo.toml --check",
-    "engine:check": "cargo check --manifest-path apps/stage-engine/Cargo.toml"
+    "engine:check": "pnpm --dir apps/stage-engine run check",
+    "engine:test": "pnpm --dir apps/stage-engine run test",
+    "engine:clippy": "pnpm --dir apps/stage-engine run clippy"
   }
 }
