@@ -28,14 +28,18 @@ function RootLayout() {
 }
 
 function RootErrorBoundary({ error, reset }: ErrorComponentProps) {
+  console.error("[RootErrorBoundary]", error);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#f5f5f5] px-6">
       <div className="w-full max-w-[480px] rounded-[24px] border border-[#e5e5e5] bg-white p-8 shadow-[0_18px_60px_rgba(15,23,42,0.08)]">
-        <h1 className="text-[28px] font-semibold text-[#0a0a0a]">Something went wrong</h1>
+        <h1 className="text-[28px] font-semibold text-[#0a0a0a]">
+          Stage needs a quick refresh
+        </h1>
         <p className="mt-3 text-[15px] leading-[1.6] text-[#525252]">
           {toUserFacingErrorMessage(
             error,
-            "We could not load this page right now. Please try again in a moment.",
+            "We could not load this view. Try again, or return to the dashboard.",
           )}
         </p>
         <div className="mt-6 flex items-center gap-3">

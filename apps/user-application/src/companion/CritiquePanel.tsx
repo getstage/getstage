@@ -1,5 +1,8 @@
 import { FormEvent, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CompanionState } from "@shared/models/desktop";
+import type { ProviderId, RunEvent } from "@stage/data-ops/contracts";
+import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
+import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useDraggablePanel } from "./hooks/useDraggablePanel";
 
 type ChatMessage = {
@@ -95,6 +98,7 @@ const PANEL_HEIGHT = 504;
 const ACTIVE_COMPANION_BAR_HEIGHT = 42;
 const MAIN_WINDOW_BAR_BOTTOM = 12;
 const COMPANION_WINDOW_BAR_BOTTOM = 32;
+const DEFAULT_CHAT_MODEL = chatModels.find((model) => model.id === "gpt-5.5") ?? chatModels[0]!;
 const PROVIDER_ERROR_MESSAGE = "Something went wrong. Please check your integrations for Claude/Codex connection.";
 
 export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
@@ -106,17 +110,20 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [isThinking, setIsThinking] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ChatModel>(chatModels[0]!);
+  const [selectedModel, setSelectedModel] = useState<ChatModel>(DEFAULT_CHAT_MODEL);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [activeProvider, setActiveProvider] = useState<ChatProviderId>("favorites");
   const [favoriteModelIds, setFavoriteModelIds] = useState<string[]>([
+    "gpt-5.5",
     "claude-opus-4.8",
     "claude-sonnet-4.6",
-    "gpt-5.5",
   ]);
+  const providerRun = useProviderRun();
+  const providerPreferences = useProviderPreferences();
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const activeResponseMessageIdRef = useRef<string | null>(null);
   const getOpeningPosition = useCallback(() => ({
     x: Math.max(16, Math.round((window.innerWidth - PANEL_WIDTH) / 2)),
     y: Math.max(
@@ -179,6 +186,57 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   }, [messages, isThinking]);
 
   useEffect(() => {
+    const responseMessageId = activeResponseMessageIdRef.current;
+    if (!responseMessageId) return;
+
+    const outputText = providerRun.activeRunEvents
+      .filter((event): event is Extract<RunEvent, { type: "output_delta" }> => event.type === "output_delta")
+      .map((event) => event.text)
+      .join("");
+    const failedEvent = providerRun.activeRunEvents.find(
+      (event): event is Extract<RunEvent, { type: "run_failed" }> => event.type === "run_failed",
+    );
+    const completedEvent = providerRun.activeRunEvents.find(
+      (event): event is Extract<RunEvent, { type: "run_completed" }> => event.type === "run_completed",
+    );
+
+    if (failedEvent) {
+      setMessages((currentMessages) =>
+        currentMessages.map((message) =>
+          message.id === responseMessageId
+            ? {
+                ...message,
+                tone: "error",
+                content: [failedEvent.error.message || PROVIDER_ERROR_MESSAGE],
+              }
+            : message,
+        ),
+      );
+      activeResponseMessageIdRef.current = null;
+      setIsThinking(false);
+      return;
+    }
+
+    if (outputText || completedEvent?.finalText) {
+      setMessages((currentMessages) =>
+        currentMessages.map((message) =>
+          message.id === responseMessageId
+            ? {
+                ...message,
+                content: [completedEvent?.finalText ?? outputText],
+              }
+            : message,
+        ),
+      );
+    }
+
+    if (completedEvent) {
+      activeResponseMessageIdRef.current = null;
+      setIsThinking(false);
+    }
+  }, [providerRun.activeRunEvents]);
+
+  useEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -204,21 +262,42 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       },
     ]);
 
+    const stageMessageId = `stage-${Date.now()}`;
+    activeResponseMessageIdRef.current = stageMessageId;
+    setMessages((currentMessages) => [
+      ...currentMessages,
+      {
+        id: stageMessageId,
+        role: "stage",
+        content: [],
+      },
+    ]);
+
     try {
       setIsThinking(true);
-      throw new Error("No chat provider response handler is connected.");
-    } catch {
+      const providerId = getProviderIdForModel(selectedModel);
+      if (!providerPreferences.isProviderEnabled(providerId)) {
+        throw new Error(`Connect ${providerId === "claude" ? "Claude" : "Codex"} in Integrations before using it in Stage chat.`);
+      }
+
+      await providerRun.startRun.mutateAsync({
+        providerId,
+        modelId: getEngineModelIdForModel(selectedModel),
+        prompt: nextPrompt,
+        mode: "chat",
+        context: {},
+        attachments: [],
+        modelOptions: [],
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : PROVIDER_ERROR_MESSAGE;
       setMessages((currentMessages) => [
-        ...currentMessages,
-        {
-          id: `stage-error-${Date.now()}`,
-          role: "stage",
-          tone: "error",
-          content: [PROVIDER_ERROR_MESSAGE],
-        },
+        ...currentMessages.filter((message) => message.id !== stageMessageId),
+        { id: stageMessageId, role: "stage", tone: "error", content: [message] },
       ]);
-    } finally {
+      activeResponseMessageIdRef.current = null;
       setIsThinking(false);
+    } finally {
       await onStateChange("response");
     }
   }
@@ -417,6 +496,18 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       </form>
     </aside>
   );
+}
+
+function getProviderIdForModel(model: ChatModel): ProviderId {
+  return model.provider === "anthropic" ? "claude" : "codex";
+}
+
+function getEngineModelIdForModel(model: ChatModel) {
+  if (model.provider === "openai") {
+    return "codex-default";
+  }
+
+  return model.id.replaceAll(".", "-");
 }
 
 function ProviderMark({ provider }: { provider: ChatProvider["icon"] | ChatModel["provider"] }) {

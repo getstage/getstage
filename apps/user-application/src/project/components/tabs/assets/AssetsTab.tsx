@@ -30,20 +30,12 @@ export function AssetsTab({ project }: { project: Project }) {
 
   return (
     <section className="flex w-full flex-col gap-[18px]">
-      <input
-        ref={uploads.inputRef}
-        type="file"
-        multiple
-        accept={uploads.accept}
-        className="hidden"
-        onChange={uploads.handleInputChange}
-      />
-
       <UploadDropzone
-        inputRef={uploads.inputRef}
+        accept={uploads.accept}
         isDragActive={uploads.isDragActive}
         onDragState={uploads.setIsDragActive}
         onDrop={uploads.handleDrop}
+        onInputChange={uploads.handleInputChange}
       />
 
       <div className="overflow-hidden rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
