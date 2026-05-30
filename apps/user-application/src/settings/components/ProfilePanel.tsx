@@ -9,7 +9,7 @@ import {
   uploadFileToR2,
 } from "@/lib/r2Uploads";
 import { settingsSnapshot } from "../data/settingsSnapshot";
-import { profileUpdateResultSchema } from "../models/settings";
+import { profileUpdateResultSchema, userRoleSchema, type ProfileUpdateResult, type UserRole } from "../models/settings";
 import { SettingsIcon } from "./SettingsIcons";
 import { SaveButton, SettingsCard, SettingsRow } from "./SettingsPrimitives";
 
@@ -22,17 +22,25 @@ export function ProfilePanel() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const savedName = overview.data?.profile.name || profile.fullName;
   const savedAvatarUrl = overview.data?.profile.avatarUrl ?? undefined;
+  const savedRole: UserRole = overview.data?.profile.role ?? userRoleSchema.parse(profile.selectedRole);
   const [fullName, setFullName] = useState(savedName);
-  const [selectedRole, setSelectedRole] = useState(profile.selectedRole);
+  const [selectedRole, setSelectedRole] = useState<UserRole>(savedRole);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [roleError, setRoleError] = useState<string | null>(null);
   const [profileNotice, setProfileNotice] = useState<string | null>(null);
+  const [roleNotice, setRoleNotice] = useState<string | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingRole, setIsSavingRole] = useState(false);
 
   useEffect(() => {
     setFullName(savedName);
   }, [savedName]);
+
+  useEffect(() => {
+    setSelectedRole(savedRole);
+  }, [savedRole]);
 
   async function selectAvatarFile(file: File | undefined) {
     if (!file) return;
@@ -45,6 +53,10 @@ export function ProfilePanel() {
     } catch (error) {
       setProfileError(error instanceof Error ? error.message : "Could not prepare this avatar.");
     }
+  }
+
+  function parseProfileUpdateResult(result: unknown): ProfileUpdateResult {
+    return profileUpdateResultSchema.parse(result);
   }
 
   async function saveProfile() {
@@ -61,7 +73,7 @@ export function ProfilePanel() {
             file: avatarFile,
           })
         : undefined;
-      const result = profileUpdateResultSchema.parse(
+      const result = parseProfileUpdateResult(
         await updateProfile(avatarKey ? { name: trimmedName, avatarKey } : { name: trimmedName }),
       );
       setFullName(result.name);
@@ -75,12 +87,31 @@ export function ProfilePanel() {
     }
   }
 
+  async function saveRole() {
+    if (selectedRole === savedRole) {
+      return;
+    }
+
+    setIsSavingRole(true);
+    setRoleError(null);
+    setRoleNotice(null);
+    try {
+      const result = parseProfileUpdateResult(await updateProfile({ role: selectedRole }));
+      setSelectedRole(result.role);
+      setRoleNotice("Role saved.");
+    } catch (error) {
+      setRoleError(error instanceof Error ? error.message : "Could not save role.");
+    } finally {
+      setIsSavingRole(false);
+    }
+  }
+
   async function removeAvatar() {
     setIsSavingProfile(true);
     setProfileError(null);
     setProfileNotice(null);
     try {
-      const result = profileUpdateResultSchema.parse(
+      const result = parseProfileUpdateResult(
         await updateProfile({ name: fullName.trim(), avatarUrl: "" }),
       );
       setFullName(result.name);
@@ -95,6 +126,7 @@ export function ProfilePanel() {
   }
 
   const avatarSrc = avatarPreviewUrl ?? savedAvatarUrl;
+  const roleChanged = selectedRole !== savedRole;
 
   return (
     <SettingsCard title="Profile Details">
@@ -113,7 +145,7 @@ export function ProfilePanel() {
               onChange={(e) => setFullName(e.target.value)}
               className="flex min-h-[30px] flex-1 items-center rounded-[6px] bg-[#F5F5F5] px-[12px] py-[8px] text-[12px] font-medium leading-none text-[#0A0A0A] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none"
             />
-            <SaveButton onClick={saveProfile} disabled={isSavingProfile}>
+            <SaveButton onClick={() => void saveProfile()} disabled={isSavingProfile}>
               {isSavingProfile ? "Saving" : "Save"}
             </SaveButton>
           </div>
@@ -155,7 +187,7 @@ export function ProfilePanel() {
             >
               Remove
             </button>
-            <SaveButton onClick={saveProfile} disabled={isSavingProfile}>
+            <SaveButton onClick={() => void saveProfile()} disabled={isSavingProfile}>
               {isSavingProfile ? "Saving" : "Save"}
             </SaveButton>
           </div>
@@ -171,7 +203,12 @@ export function ProfilePanel() {
                 This helps Stage tailor the experience for you.
               </p>
             </div>
-            <SaveButton />
+            <SaveButton
+              onClick={() => void saveRole()}
+              disabled={isSavingRole || !roleChanged}
+            >
+              {isSavingRole ? "Saving" : "Save"}
+            </SaveButton>
           </div>
           <div className="grid grid-cols-4 gap-[4px]">
             {profile.roles.map((role) => {
@@ -180,7 +217,11 @@ export function ProfilePanel() {
                 <button
                   key={role.id}
                   type="button"
-                  onClick={() => setSelectedRole(role.id)}
+                  onClick={() => {
+                    setSelectedRole(userRoleSchema.parse(role.id));
+                    setRoleError(null);
+                    setRoleNotice(null);
+                  }}
                   className={`flex min-h-[64px] cursor-pointer items-center justify-center gap-[8px] rounded-[6px] px-[12px] py-[24px] text-[12px] font-medium leading-none transition-colors outline-none ${
                     active
                       ? "bg-[#E8E6FF] text-[#14113F] ring-1 ring-inset ring-[#8782F5]/25"
@@ -193,6 +234,8 @@ export function ProfilePanel() {
               );
             })}
           </div>
+          {roleError ? <p className="mt-[10px] text-[12px] font-medium text-[#b91c1c]">{roleError}</p> : null}
+          {roleNotice ? <p className="mt-[10px] text-[12px] font-medium text-[#166534]">{roleNotice}</p> : null}
         </SettingsRow>
       </div>
     </SettingsCard>

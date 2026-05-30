@@ -73,10 +73,54 @@ export type DeveloperSettings = z.infer<typeof developerSettingsSchema>;
 export type Integration = z.infer<typeof integrationSchema>;
 export type SettingsSnapshot = z.infer<typeof settingsSnapshotSchema>;
 
+export const userRoleSchema = z.enum(["freelancer", "studio", "in-house", "agency"]);
+
+export const planSchema = z.enum(["free", "pro"]);
+
+export const settingsOverviewSchema = z.object({
+  profile: z.object({
+    id: z.string().min(1),
+    email: z.string(),
+    name: z.string(),
+    avatarUrl: z.string().nullable(),
+    role: userRoleSchema,
+    plan: planSchema,
+  }),
+  subscription: z
+    .object({
+      plan: planSchema,
+      status: z.string(),
+      provider: z.string(),
+      billingCycle: z.string(),
+      currentPeriodEnd: z.number().nullable().optional(),
+      cancelAtPeriodEnd: z.boolean(),
+      paymentMethodBrand: z.string().nullable(),
+      paymentMethodLast4: z.string().nullable(),
+      stripeCustomerId: z.string().nullable(),
+      stripeSubscriptionId: z.string().nullable(),
+      stripePriceId: z.string().nullable(),
+    })
+    .nullable(),
+  paymentConnection: z
+    .object({
+      provider: z.string(),
+      status: z.string(),
+    })
+    .nullable(),
+  portalBranding: z.object({
+    logoUrl: z.string().nullable(),
+    accentColor: z.string(),
+  }),
+  previewPortalUrl: z.string().nullable(),
+});
+
 export const profileUpdateResultSchema = z.object({
   email: z.string(),
   name: z.string(),
   avatarUrl: z.string().nullable(),
+  role: userRoleSchema,
 });
 
+export type UserRole = z.infer<typeof userRoleSchema>;
+export type SettingsOverview = z.infer<typeof settingsOverviewSchema>;
 export type ProfileUpdateResult = z.infer<typeof profileUpdateResultSchema>;

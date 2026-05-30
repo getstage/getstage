@@ -102,13 +102,21 @@ export const getOverview = query({
   },
 });
 
+const userRoleValidator = v.union(
+  v.literal("freelancer"),
+  v.literal("studio"),
+  v.literal("in-house"),
+  v.literal("agency"),
+);
+
 export const updateProfile = mutation({
   args: {
     name: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
     avatarKey: v.optional(v.string()),
+    role: v.optional(userRoleValidator),
   },
-  handler: async (ctx, { name, avatarUrl, avatarKey }) => {
+  handler: async (ctx, { name, avatarUrl, avatarKey, role }) => {
     const user = await requireAuthUser(ctx);
 
     const nextName = name?.trim();
@@ -126,6 +134,7 @@ export const updateProfile = mutation({
     const patch: Record<string, string | number> = { updatedAt: now() };
     if (nextName !== undefined) patch.name = nextName;
     if (nextAvatarUrl !== undefined) patch.avatarUrl = nextAvatarUrl;
+    if (role !== undefined) patch.role = role;
 
     await ctx.db.patch(user._id, patch);
     await attachTrackedR2Asset(ctx, { key: nextAvatarUrl ?? user.avatarUrl });
@@ -134,6 +143,7 @@ export const updateProfile = mutation({
       email: user.email ?? "",
       name: nextName ?? user.name ?? "",
       avatarUrl: await resolveAssetUrl(nextAvatarUrl ?? user.avatarUrl ?? null),
+      role: role ?? user.role ?? "freelancer",
     };
   },
 });
