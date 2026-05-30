@@ -1,26 +1,26 @@
 import { useMemo, useState } from "react";
 import { MOCK_SCREENS } from "../../../data/fixtures/wireframesTabFixtures";
-import type { WireframeKind, WireframeStep } from "../../../types/wireframesTab";
+import type { WireframeKindChoice, WireframeStep } from "../../../types/wireframesTab";
 import { BrandKitStep } from "./BrandKitStep";
 import { CanvasShell } from "./CanvasShell";
 import { ConfigureStep } from "./ConfigureStep";
 import { GeneratingStep } from "./GeneratingStep";
 import { ResultsGrid } from "./ResultsGrid";
 import { StyleGuideStep } from "./StyleGuideStep";
-import type { BrandSource } from "./TypeChooser";
+import type { BrandSource, BrandSourceChoice } from "./TypeChooser";
 import { TypeChooser } from "./TypeChooser";
+import { WireframeKindChooser } from "./WireframeKindChooser";
 
 export function WireframesTab() {
-  const [step, setStep] = useState<WireframeStep>("choose-type");
-  const [wireframeKind, setWireframeKind] = useState<WireframeKind>("hifi");
-  const [brandSource, setBrandSource] = useState<BrandSource>("style-guide");
+  const [step, setStep] = useState<WireframeStep>("choose-kind");
+  const [wireframeKind, setWireframeKind] = useState<WireframeKindChoice>(null);
+  const [brandSource, setBrandSource] = useState<BrandSourceChoice>(null);
   const [hasBrandKit, setHasBrandKit] = useState(false);
   const [screens, setScreens] = useState(MOCK_SCREENS);
   const selectedCount = screens.filter((screen) => screen.selected).length;
 
   function continueFromSource(source: BrandSource) {
     setBrandSource(source);
-    setWireframeKind("hifi");
     if (source === "brand-kit") {
       setStep("brand-kit");
       return;
@@ -59,9 +59,27 @@ export function WireframesTab() {
         </CanvasShell>
       ) : null}
 
+      {step === "choose-kind" ? (
+        <CanvasShell centered>
+          <WireframeKindChooser
+            selectedKind={wireframeKind}
+            onSelect={setWireframeKind}
+            onContinue={() => {
+              if (wireframeKind) {
+                setBrandSource(null);
+                setStep("choose-type");
+              }
+            }}
+          />
+        </CanvasShell>
+      ) : null}
+
       {step === "style-guide" ? (
         <StyleGuideStep
-          onBack={() => setStep("choose-type")}
+          onBack={() => {
+            setBrandSource(null);
+            setStep("choose-type");
+          }}
           onContinue={() => setStep("configure")}
         />
       ) : null}
@@ -72,7 +90,10 @@ export function WireframesTab() {
             hasBrandKit={hasBrandKit}
             onUpload={() => setHasBrandKit(true)}
             onRemove={() => setHasBrandKit(false)}
-            onBack={() => setStep("choose-type")}
+            onBack={() => {
+              setBrandSource(null);
+              setStep("choose-type");
+            }}
             onContinue={() => setStep("configure")}
           />
         </CanvasShell>
@@ -83,7 +104,7 @@ export function WireframesTab() {
           wireframeKind={wireframeKind ?? "lofi"}
           screens={screens}
           selectedCount={selectedCount}
-          onChangeType={() => setStep("choose-type")}
+          onChangeType={() => setStep("choose-kind")}
           onAddBrandKit={() => {
             setWireframeKind("hifi");
             setBrandSource("brand-kit");
