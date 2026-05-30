@@ -9,25 +9,35 @@ import { MoodboardTab } from "./tabs/MoodboardTab";
 import { ResearchTab } from "./tabs/ResearchTab";
 import { StrategyTab } from "./tabs/StrategyTab";
 import { WireframesTab } from "./tabs/WireframesTab";
-import { useLiveProject } from "@/project/hooks";
-import { useDeleteProjectMutation } from "@/hooks/convex-data";
-import { toUserFacingErrorMessage } from "@/lib/errors";
+import { useLiveProject, useProjectHeaderActions } from "@/project/hooks";
 import { formatInputDate } from "@/lib/format";
 import { formatRelativeTime } from "@/lib/utils";
-import type { Phase, Project, ProjectTab } from "../models/project";
+import type { Project, ProjectTab } from "../models/project";
 
 type ProjectTimeline = {
   start: string;
   end: string;
 };
 
+function formatTimelineDate(timestamp: number) {
+  return formatInputDate(new Date(timestamp));
+}
+
 export function ProjectDetailView() {
   const navigate = useNavigate();
   const { projectId } = useParams({ from: "/_authed/project/$projectId" });
-  const deleteProject = useDeleteProjectMutation();
-  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isLeavingAfterDelete, setIsLeavingAfterDelete] = useState(false);
   const live = useLiveProject(projectId, { enabled: !isLeavingAfterDelete });
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const actions = useProjectHeaderActions({
+    projectId,
+    detail: live.detail,
+    onDeleteSuccess: () => {
+      void navigate({ to: "/projects", replace: true });
+    },
+    onLeavingAfterDelete: setIsLeavingAfterDelete,
+  });
   const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
@@ -42,41 +52,28 @@ export function ProjectDetailView() {
   useEffect(() => {
     if (live.detail) {
       setTimeline({
-        start: formatInputDate(new Date(live.detail.startDate)),
-        end: formatInputDate(new Date(live.detail.endDate)),
+        start: formatTimelineDate(live.detail.startDate),
+        end: formatTimelineDate(live.detail.endDate),
       });
     }
   }, [live.detail]);
 
-  function updateProjectName(name: string) {
-    setProject((current) => (current ? { ...current, name } : current));
-  }
-
-  function updateClientName(clientName: string) {
-    setProject((current) => (current ? { ...current, clientName } : current));
-  }
-
-  function updateTimeline(nextTimeline: ProjectTimeline) {
-    setTimeline(nextTimeline);
-  }
-
-  function updatePhases(phases: Phase[]) {
-    setProject((current) => (current ? { ...current, phases } : current));
-  }
-
-  function pauseProject() {
-    setProject((current) => (current ? { ...current, status: "paused" } : current));
-  }
-
-  async function handleDeleteProject() {
-    setDeleteError(null);
-    setIsLeavingAfterDelete(true);
+  async function runModalAction(action: () => Promise<void>) {
+    setModalError(null);
     try {
-      await deleteProject.mutateAsync(projectId);
-      void navigate({ to: "/projects", replace: true });
+      await action();
     } catch (error) {
-      setIsLeavingAfterDelete(false);
-      setDeleteError(toUserFacingErrorMessage(error, "Could not delete the project."));
+      setModalError(actions.toActionErrorMessage(error));
+      throw error;
+    }
+  }
+
+  async function runDeleteAction() {
+    setDeleteError(null);
+    try {
+      await actions.deleteProject();
+    } catch (error) {
+      setDeleteError(actions.toActionErrorMessage(error));
       throw error;
     }
   }
@@ -138,16 +135,21 @@ export function ProjectDetailView() {
 
             <ProjectHeader
               project={project}
+              projectImageUrl={live.detail?.projectImageUrl}
+              clientAvatarUrl={live.detail?.clientAvatarUrl}
               timeline={timeline}
               activeTab={activeTab}
               onTabChange={setActiveTab}
               onShare={() => setIsShareModalOpen(true)}
-              onProjectNameSave={updateProjectName}
-              onClientNameSave={updateClientName}
-              onTimelineSave={updateTimeline}
-              onPhasesSave={updatePhases}
-              onPauseProject={pauseProject}
-              onDeleteProject={handleDeleteProject}
+              onSaveProjectProfile={(input) => runModalAction(() => actions.saveProjectProfile(input))}
+              onSaveClientProfile={(input) => runModalAction(() => actions.saveClientProfile(input))}
+              onSaveTimeline={(nextTimeline) => runModalAction(() => actions.saveTimeline(nextTimeline))}
+              onSavePhases={(phases) => runModalAction(() => actions.savePhases(phases))}
+              onPauseProject={() => runModalAction(() => actions.pauseProject())}
+              onDeleteProject={runDeleteAction}
+              onPrepareProjectMarkerUpload={actions.prepareProjectMarkerUpload}
+              onPrepareClientAvatarUpload={actions.prepareClientAvatarUpload}
+              modalError={modalError}
               deleteError={deleteError}
             />
           </div>

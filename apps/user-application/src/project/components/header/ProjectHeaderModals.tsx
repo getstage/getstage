@@ -1,31 +1,46 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { StageDatePicker } from "@/components/ui/StageDatePicker";
+import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@/lib/r2Uploads";
+import type {
+  SaveClientProfileInput,
+  SaveProjectProfileInput,
+} from "@/project/hooks";
 import type { Phase, Project } from "../../models/project";
 import type { ProjectModal, ProjectTimeline } from "../../types/projectHeader";
 
 export function ProjectActionModal({
   modal,
   project,
+  projectImageUrl,
+  clientAvatarUrl,
   timeline,
-  onProjectNameSave,
-  onClientNameSave,
-  onTimelineSave,
-  onPhasesSave,
+  onSaveProjectProfile,
+  onSaveClientProfile,
+  onSaveTimeline,
+  onSavePhases,
   onPauseProject,
   onDeleteProject,
+  onPrepareProjectMarkerUpload,
+  onPrepareClientAvatarUpload,
+  modalError,
   deleteError,
   onClose,
 }: {
   modal: ProjectModal;
   project: Project;
+  projectImageUrl?: string;
+  clientAvatarUrl?: string;
   timeline: ProjectTimeline;
-  onProjectNameSave: (name: string) => void;
-  onClientNameSave: (clientName: string) => void;
-  onTimelineSave: (timeline: ProjectTimeline) => void;
-  onPhasesSave: (phases: Phase[]) => void;
-  onPauseProject: () => void;
-  onDeleteProject: () => void | Promise<void>;
-  deleteError?: string | null;
+  onSaveProjectProfile: (input: SaveProjectProfileInput) => Promise<void>;
+  onSaveClientProfile: (input: SaveClientProfileInput) => Promise<void>;
+  onSaveTimeline: (timeline: ProjectTimeline) => Promise<void>;
+  onSavePhases: (phases: Phase[]) => Promise<void>;
+  onPauseProject: () => Promise<void>;
+  onDeleteProject: () => Promise<void>;
+  onPrepareProjectMarkerUpload: (file: File) => Promise<{ file: File; previewUrl: string }>;
+  onPrepareClientAvatarUpload: (file: File) => Promise<{ file: File; previewUrl: string }>;
+  modalError: string | null;
+  deleteError: string | null;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -47,37 +62,48 @@ export function ProjectActionModal({
       <div onClick={(event) => event.stopPropagation()}>
         {modal === "name" ? (
           <ProfileEditModal
+            mode="project"
             title="Edit Project Name"
             fieldLabel="Project Name"
             fieldValue={project.name}
             photoLabel="Project Photo"
-            onSave={onProjectNameSave}
+            imageUrl={projectImageUrl}
+            accept={PROJECT_MARKER_ACCEPT}
+            onPrepareUpload={onPrepareProjectMarkerUpload}
+            onSave={onSaveProjectProfile}
+            error={modalError}
             onClose={onClose}
           />
         ) : null}
         {modal === "client" ? (
           <ProfileEditModal
+            mode="client"
             title="Edit Client Details"
             fieldLabel="Client Name"
             fieldValue={project.clientName}
             photoLabel="Client Photo"
-            onSave={onClientNameSave}
+            imageUrl={clientAvatarUrl}
+            accept={AVATAR_ACCEPT}
+            onPrepareUpload={onPrepareClientAvatarUpload}
+            onSave={onSaveClientProfile}
+            error={modalError}
             onClose={onClose}
           />
         ) : null}
         {modal === "timeline" ? (
-          <TimelineModal timeline={timeline} onSave={onTimelineSave} onClose={onClose} />
+          <TimelineModal timeline={timeline} onSave={onSaveTimeline} error={modalError} onClose={onClose} />
         ) : null}
         {modal === "phases" ? (
-          <PhasesModal project={project} onSave={onPhasesSave} onClose={onClose} />
+          <PhasesModal project={project} onSave={onSavePhases} error={modalError} onClose={onClose} />
         ) : null}
         {modal === "pause" ? (
           <ConfirmModal
             title="Are you sure you want to pause Project?"
             description="Pausing the project will stop active progress updates until you resume it. You can come back and continue work whenever you're ready."
             confirmLabel="Pause Project"
-            projectImageUrl={project.projectImageUrl}
+            projectImageUrl={projectImageUrl ?? project.projectImageUrl}
             onConfirm={onPauseProject}
+            error={modalError}
             onClose={onClose}
           />
         ) : null}
@@ -87,9 +113,9 @@ export function ProjectActionModal({
             title="Are you sure you want to delete Project?"
             description="Deleting the project is a permanent action, and once it's gone, you won't be able to retrieve it. Please double-check that you truly want to continue with this decision."
             confirmLabel="Delete Project"
-            error={deleteError}
-            projectImageUrl={project.projectImageUrl}
+            projectImageUrl={projectImageUrl ?? project.projectImageUrl}
             onConfirm={onDeleteProject}
+            error={deleteError}
             onClose={onClose}
           />
         ) : null}
@@ -103,6 +129,7 @@ function ModalShell({
   children,
   action,
   disabled = false,
+  isSubmitting = false,
   onAction,
   onClose,
 }: {
@@ -110,6 +137,7 @@ function ModalShell({
   children: ReactNode;
   action: string;
   disabled?: boolean;
+  isSubmitting?: boolean;
   onAction: () => void;
   onClose: () => void;
 }) {
@@ -133,42 +161,126 @@ function ModalShell({
         <button
           type="button"
           onClick={onAction}
-          disabled={disabled}
+          disabled={disabled || isSubmitting}
           className="flex w-full cursor-pointer items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] py-[10px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] disabled:cursor-default disabled:opacity-50"
         >
-          {action}
+          {isSubmitting ? "Saving…" : action}
         </button>
       </div>
     </div>
   );
 }
 
-function ProfileEditModal({
-  title,
-  fieldLabel,
-  fieldValue,
-  photoLabel,
-  onSave,
-  onClose,
-}: {
+type ProfileEditModalProps = {
   title: string;
   fieldLabel: string;
   fieldValue: string;
   photoLabel: string;
-  onSave: (value: string) => void;
+  imageUrl?: string;
+  accept: string;
+  error: string | null;
+  onPrepareUpload: (file: File) => Promise<{ file: File; previewUrl: string }>;
   onClose: () => void;
-}) {
+} & (
+  | {
+      mode: "project";
+      onSave: (input: SaveProjectProfileInput) => Promise<void>;
+    }
+  | {
+      mode: "client";
+      onSave: (input: SaveClientProfileInput) => Promise<void>;
+    }
+);
+
+function ProfileEditModal(props: ProfileEditModalProps) {
+  const {
+    title,
+    fieldLabel,
+    fieldValue,
+    photoLabel,
+    imageUrl,
+    accept,
+    error,
+    onPrepareUpload,
+    onClose,
+    mode,
+    onSave,
+  } = props;
+
   const [value, setValue] = useState(fieldValue);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(imageUrl ?? null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [imageRemoved, setImageRemoved] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const canSave = value.trim().length > 0;
 
-  function save() {
-    if (!canSave) return;
-    onSave(value.trim());
-    onClose();
+  useEffect(() => {
+    setValue(fieldValue);
+    setPreviewUrl(imageUrl ?? null);
+    setPendingFile(null);
+    setImageRemoved(false);
+  }, [fieldValue, imageUrl]);
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    void onPrepareUpload(file)
+      .then((prepared) => {
+        setPendingFile(prepared.file);
+        setPreviewUrl(prepared.previewUrl);
+        setImageRemoved(false);
+      })
+      .finally(() => {
+        event.target.value = "";
+      });
+  }
+
+  function handleRemoveImage() {
+    setPendingFile(null);
+    setPreviewUrl(null);
+    setImageRemoved(true);
+  }
+
+  async function save() {
+    if (!canSave || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      if (mode === "project") {
+        await onSave({
+          name: value.trim(),
+          previewImageUrl: previewUrl,
+          pendingImageFile: pendingFile,
+          imageRemoved,
+          currentImageUrl: imageUrl,
+        });
+      } else {
+        await onSave({
+          clientName: value.trim(),
+          previewAvatarUrl: previewUrl,
+          pendingAvatarFile: pendingFile,
+          avatarRemoved: imageRemoved,
+          currentAvatarUrl: imageUrl,
+        });
+      }
+      onClose();
+    } catch {
+      // Parent sets error; keep modal open.
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
-    <ModalShell title={title} action="Save" disabled={!canSave} onAction={save} onClose={onClose}>
+    <ModalShell
+      title={title}
+      action="Save"
+      disabled={!canSave}
+      isSubmitting={isSubmitting}
+      onAction={() => void save()}
+      onClose={onClose}
+    >
       <div className="flex w-full flex-col gap-[24px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <FieldBlock label={fieldLabel}>
           <input
@@ -180,23 +292,46 @@ function ProfileEditModal({
         <div className="flex w-full flex-col gap-[12px]">
           <p className="text-[13px] font-medium leading-none text-[#171717]">{photoLabel}</p>
           <div className="flex w-full items-center gap-[8px]">
-            <img
-              src="/images/project-modals/avatar.png"
-              alt=""
-              aria-hidden="true"
-              className="h-[40px] w-[40px] shrink-0 rounded-full object-cover"
+            {previewUrl ? (
+              <img
+                src={previewUrl}
+                alt=""
+                aria-hidden="true"
+                className="h-[40px] w-[40px] shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full bg-[#E5E5E5] text-[12px] font-medium text-[#525252]">
+                {value.trim().charAt(0).toUpperCase() || "?"}
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={accept}
+              className="hidden"
+              onChange={handleFileChange}
             />
             <div className="flex min-w-0 flex-1 items-center justify-between overflow-hidden rounded-[6px] px-[12px] py-[6px]">
-              <button type="button" className="flex items-center gap-[6px] text-[12px] font-medium leading-none text-[#525252]">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-[6px] text-[12px] font-medium leading-none text-[#525252]"
+              >
                 <img src="/logos/dashboard/upload.svg" alt="" aria-hidden="true" className="h-[16px] w-[16px]" />
                 Reupload
               </button>
-              <button type="button" className="text-[12px] font-medium leading-none text-[#EF4444]">
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                disabled={!previewUrl && !imageUrl}
+                className="text-[12px] font-medium leading-none text-[#EF4444] disabled:opacity-40"
+              >
                 Remove
               </button>
             </div>
           </div>
         </div>
+        {error ? <p className="text-[12px] font-medium text-[#b91c1c]">{error}</p> : null}
       </div>
     </ModalShell>
   );
@@ -205,27 +340,44 @@ function ProfileEditModal({
 function TimelineModal({
   timeline,
   onSave,
+  error,
   onClose,
 }: {
   timeline: ProjectTimeline;
-  onSave: (timeline: ProjectTimeline) => void;
+  onSave: (timeline: ProjectTimeline) => Promise<void>;
+  error: string | null;
   onClose: () => void;
 }) {
   const [start, setStart] = useState(timeline.start);
   const [end, setEnd] = useState(timeline.end);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setStart(timeline.start);
     setEnd(timeline.end);
-  }, [timeline.start, timeline.end]);
+  }, [timeline.end, timeline.start]);
 
-  function save() {
-    onSave({ start, end });
-    onClose();
+  async function save() {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onSave({ start, end });
+      onClose();
+    } catch {
+      // Parent sets error; keep modal open.
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
-    <ModalShell title="Edit Timeline Details" action="Save" onAction={save} onClose={onClose}>
+    <ModalShell
+      title="Edit Timeline Details"
+      action="Save"
+      isSubmitting={isSubmitting}
+      onAction={() => void save()}
+      onClose={onClose}
+    >
       <div className="flex w-full flex-col rounded-[8px] bg-white p-[16px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="flex w-full flex-col gap-[24px]">
           <FieldBlock label="Start">
@@ -235,6 +387,7 @@ function TimelineModal({
             <DateInput value={end} onChange={setEnd} />
           </FieldBlock>
         </div>
+        {error ? <p className="mt-[12px] text-[12px] font-medium text-[#b91c1c]">{error}</p> : null}
       </div>
     </ModalShell>
   );
@@ -243,22 +396,30 @@ function TimelineModal({
 function PhasesModal({
   project,
   onSave,
+  error,
   onClose,
 }: {
   project: Project;
-  onSave: (phases: Phase[]) => void;
+  onSave: (phases: Phase[]) => Promise<void>;
+  error: string | null;
   onClose: () => void;
 }) {
   const [isAddingPhase, setIsAddingPhase] = useState(false);
   const [phaseName, setPhaseName] = useState("");
   const [phases, setPhases] = useState<Phase[]>(project.phases);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const canSave = !isAddingPhase || phaseName.trim().length > 0;
+
+  useEffect(() => {
+    setPhases(project.phases);
+  }, [project.phases]);
 
   function removePhase(phaseId: string) {
     setPhases((current) => current.filter((phase) => phase.id !== phaseId));
   }
 
-  function save() {
+  async function save() {
+    if (!canSave || isSubmitting) return;
     const nextPhases = phaseName.trim()
       ? [
           ...phases,
@@ -271,12 +432,26 @@ function PhasesModal({
         ]
       : phases;
 
-    onSave(nextPhases);
-    onClose();
+    setIsSubmitting(true);
+    try {
+      await onSave(nextPhases);
+      onClose();
+    } catch {
+      // Parent sets error; keep modal open.
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
-    <ModalShell title="Add or Remove Phases" action="Save" disabled={!canSave} onAction={save} onClose={onClose}>
+    <ModalShell
+      title="Add or Remove Phases"
+      action="Save"
+      disabled={!canSave}
+      isSubmitting={isSubmitting}
+      onAction={() => void save()}
+      onClose={onClose}
+    >
       <div className="flex w-full flex-col rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="flex w-full flex-col gap-[8px]">
           <div className="flex w-full flex-col gap-[4px]">
@@ -316,6 +491,7 @@ function PhasesModal({
             Add a phase
           </button>
         </div>
+        {error ? <p className="mt-[12px] text-[12px] font-medium text-[#b91c1c]">{error}</p> : null}
       </div>
     </ModalShell>
   );
@@ -337,22 +513,19 @@ function ConfirmModal({
   projectImageUrl?: string;
   destructive?: boolean;
   error?: string | null;
-  onConfirm: () => void | Promise<void>;
+  onConfirm: () => Promise<void>;
   onClose: () => void;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function confirm() {
-    if (isSubmitting) {
-      return;
-    }
-
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       await onConfirm();
       onClose();
     } catch {
-      // Parent sets error message; keep modal open.
+      // Parent sets error; keep modal open.
     } finally {
       setIsSubmitting(false);
     }
@@ -392,7 +565,7 @@ function ConfirmModal({
               : "border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA]"
           }`}
         >
-          {isSubmitting ? "Deleting…" : confirmLabel}
+          {isSubmitting ? (destructive ? "Deleting…" : "Working…") : confirmLabel}
         </button>
       </div>
     </div>

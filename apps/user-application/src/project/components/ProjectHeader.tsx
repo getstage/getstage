@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import type {
+  SaveClientProfileInput,
+  SaveProjectProfileInput,
+} from "@/project/hooks";
 import { PROJECT_PAGE_TABS } from "../helpers/projectTabs";
 import type { Phase, Project, ProjectTab } from "../models/project";
 import type { ProjectModal, ProjectTimeline } from "../types/projectHeader";
@@ -10,30 +14,40 @@ export type { ProjectTimeline };
 
 export function ProjectHeader({
   project,
+  projectImageUrl,
+  clientAvatarUrl,
   timeline,
   activeTab,
   onTabChange,
   onShare,
-  onProjectNameSave,
-  onClientNameSave,
-  onTimelineSave,
-  onPhasesSave,
+  onSaveProjectProfile,
+  onSaveClientProfile,
+  onSaveTimeline,
+  onSavePhases,
   onPauseProject,
   onDeleteProject,
+  onPrepareProjectMarkerUpload,
+  onPrepareClientAvatarUpload,
+  modalError,
   deleteError,
 }: {
   project: Project;
+  projectImageUrl?: string;
+  clientAvatarUrl?: string;
   timeline: ProjectTimeline;
   activeTab: ProjectTab;
   onTabChange: (tab: ProjectTab) => void;
   onShare: () => void;
-  onProjectNameSave: (name: string) => void;
-  onClientNameSave: (clientName: string) => void;
-  onTimelineSave: (timeline: ProjectTimeline) => void;
-  onPhasesSave: (phases: Phase[]) => void;
-  onPauseProject: () => void;
-  onDeleteProject: () => void | Promise<void>;
-  deleteError?: string | null;
+  onSaveProjectProfile: (input: SaveProjectProfileInput) => Promise<void>;
+  onSaveClientProfile: (input: SaveClientProfileInput) => Promise<void>;
+  onSaveTimeline: (timeline: ProjectTimeline) => Promise<void>;
+  onSavePhases: (phases: Phase[]) => Promise<void>;
+  onPauseProject: () => Promise<void>;
+  onDeleteProject: () => Promise<void>;
+  onPrepareProjectMarkerUpload: (file: File) => Promise<{ file: File; previewUrl: string }>;
+  onPrepareClientAvatarUpload: (file: File) => Promise<{ file: File; previewUrl: string }>;
+  modalError: string | null;
+  deleteError: string | null;
 }) {
   const navigate = useNavigate();
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
@@ -169,13 +183,18 @@ export function ProjectHeader({
         <ProjectActionModal
           modal={activeModal}
           project={project}
+          projectImageUrl={projectImageUrl}
+          clientAvatarUrl={clientAvatarUrl}
           timeline={timeline}
-          onProjectNameSave={onProjectNameSave}
-          onClientNameSave={onClientNameSave}
-          onTimelineSave={onTimelineSave}
-          onPhasesSave={onPhasesSave}
+          onSaveProjectProfile={onSaveProjectProfile}
+          onSaveClientProfile={onSaveClientProfile}
+          onSaveTimeline={onSaveTimeline}
+          onSavePhases={onSavePhases}
           onPauseProject={onPauseProject}
           onDeleteProject={onDeleteProject}
+          onPrepareProjectMarkerUpload={onPrepareProjectMarkerUpload}
+          onPrepareClientAvatarUpload={onPrepareClientAvatarUpload}
+          modalError={modalError}
           deleteError={deleteError}
           onClose={() => setActiveModal(null)}
         />
