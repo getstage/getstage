@@ -25,7 +25,7 @@
 }
 
 .stage-companion-window .voice-control-bar {
-  bottom: 32px;
+  bottom: 24px;
 }
 
 .stage-window-chrome,
@@ -154,7 +154,7 @@ a,
 .voice-control-bar {
   position: fixed;
   left: 50%;
-  bottom: 12px;
+  bottom: 24px;
   display: flex;
   align-items: center;
   overflow: hidden;
