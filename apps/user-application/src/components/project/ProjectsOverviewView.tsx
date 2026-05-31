@@ -30,6 +30,12 @@ const PROJECT_STATUS_LABEL: Record<ProjectSummary["status"], string> = {
   completed: "Completed",
 };
 
+const PROJECT_STATUS_CLASSNAME: Record<ProjectSummary["status"], string> = {
+  active: "bg-[#DCFCE7] text-[#052E16]",
+  paused: "bg-[#FFEDD5] text-[#9A3412]",
+  completed: "bg-[#E7E5E4] text-[#292524]",
+};
+
 function getInitial(name: string) {
   const trimmed = name.trim();
   return trimmed.length > 0 ? trimmed[0]!.toUpperCase() : "S";
@@ -208,6 +214,7 @@ function ProjectTableRow({
   onOpenProjectDetails: (projectId: string) => void;
 }) {
   const statusLabel = PROJECT_STATUS_LABEL[project.status];
+  const statusClassName = PROJECT_STATUS_CLASSNAME[project.status];
   const typeLabel = PROJECT_TYPE_LABEL[project.type];
   const createdLabel = formatCreatedAt(project.startDate);
   const initial = getInitial(project.name);
@@ -245,7 +252,7 @@ function ProjectTableRow({
         </div>
 
         <div className="col-start-3 row-start-1 flex min-w-0 items-center justify-end xl:col-auto xl:row-auto xl:justify-start">
-          <span className="rounded-[2px] bg-[#dcfce7] px-[6px] py-[2px] text-[12px] font-normal leading-[1.25] text-[#052e16]">
+          <span className={cn("rounded-[2px] px-[6px] py-[2px] text-[12px] font-normal leading-[1.25]", statusClassName)}>
             {statusLabel}
           </span>
         </div>
