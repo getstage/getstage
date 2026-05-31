@@ -6,12 +6,15 @@ import { CompetitiveAnalysis } from "./CompetitiveAnalysis";
 import { Opportunities } from "./Opportunities";
 import { PhotoLightbox } from "./PhotoLightbox";
 import { ResearchActions } from "./ResearchActions";
+import { ResearchConfigureStep } from "./ResearchConfigureStep";
 import { Divider } from "./ResearchPrimitives";
 import { ResearchSummary } from "./ResearchSummary";
 import { TargetUsers } from "./TargetUsers";
 import { UiPatterns } from "./UiPatterns";
 
 export function ResearchTab({ project: _project }: { project: Project }) {
+  const [hasConfiguredResearch, setHasConfiguredResearch] = useState(false);
+  const [isRunningResearch, setIsRunningResearch] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [openPatternGroup, setOpenPatternGroup] = useState<string | null>(null);
   const [competitiveView, setCompetitiveView] = useState<CompetitiveView>("card");
@@ -29,6 +32,19 @@ export function ResearchTab({ project: _project }: { project: Project }) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [openPhoto]);
+
+  function runResearch() {
+    if (isRunningResearch) return;
+    setIsRunningResearch(true);
+    window.setTimeout(() => {
+      setIsRunningResearch(false);
+      setHasConfiguredResearch(true);
+    }, 1200);
+  }
+
+  if (!hasConfiguredResearch) {
+    return <ResearchConfigureStep isSubmitting={isRunningResearch} onSubmit={runResearch} />;
+  }
 
   return (
     <>
