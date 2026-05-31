@@ -51,9 +51,9 @@ export function ScreenCard({
               <ScreenElementList elements={elements} editing onDraftElementChange={onDraftElementChange} />
               <button
                 type="button"
-                className="inline-flex h-[30px] w-fit items-center gap-2 rounded-[4px] bg-white px-3 text-[12px] font-medium leading-[1.25] text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F3FF]"
+                className="inline-flex h-[30px] w-fit items-center justify-center gap-2 rounded-[4px] bg-white px-3 text-[12px] font-medium leading-none text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F3FF]"
               >
-                <SparkleIcon />
+                <SparkleIcon className="h-3 w-3 shrink-0" />
                 Regenerate with AI
               </button>
             </div>

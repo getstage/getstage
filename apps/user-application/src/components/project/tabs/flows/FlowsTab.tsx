@@ -1,4 +1,10 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  createSeedFlows,
+  createSeedScreens,
+  getDefaultExpandedFlowId,
+} from "@/data/fixtures/project/flowsTabFixtures";
+import { useFlowsTab } from "@/hooks/project";
 import type { Project, ProjectFlow } from "@/models/project/project";
 import {
   EMPTY_ADD_FLOW,
@@ -13,10 +19,19 @@ import { ScreenFilter } from "./ScreenFilter";
 import { ScreensPanel } from "./ScreensPanel";
 
 export function FlowsTab({ project }: { project: Project }) {
-  const [flows, setFlows] = useState<ProjectFlow[]>(project.flows);
-  const [screens, setScreens] = useState(project.screens ?? []);
+  const flowsTab = useFlowsTab({ id: project.id, name: project.name });
+  const initialFlows = useMemo(
+    () => (project.flows.length > 0 ? project.flows : createSeedFlows()),
+    [project.flows],
+  );
+  const initialScreens = useMemo(
+    () => (project.screens && project.screens.length > 0 ? project.screens : createSeedScreens()),
+    [project.screens],
+  );
+  const [flows, setFlows] = useState<ProjectFlow[]>(initialFlows);
+  const [screens, setScreens] = useState(initialScreens);
   const [activePanelTab, setActivePanelTab] = useState<FlowPanelTab>("flows");
-  const [expandedFlowId, setExpandedFlowId] = useState<string | null>(project.flows[0]?.id ?? null);
+  const [expandedFlowId, setExpandedFlowId] = useState<string | null>(() => getDefaultExpandedFlowId(initialFlows));
   const [editingFlowId, setEditingFlowId] = useState<string | null>(null);
   const [editingScreenId, setEditingScreenId] = useState<string | null>(null);
   const [draftSteps, setDraftSteps] = useState<Record<string, string[]>>({});
@@ -25,6 +40,28 @@ export function FlowsTab({ project }: { project: Project }) {
   const [addFlowStep, setAddFlowStep] = useState<AddFlowStep>("details");
   const [addFlowDraft, setAddFlowDraft] = useState(EMPTY_ADD_FLOW);
   const [newStepDraft, setNewStepDraft] = useState("");
+
+  useEffect(() => {
+    if (flowsTab.data?.tabData) {
+      const { tabData } = flowsTab.data;
+      setFlows(tabData.flows);
+      setScreens(tabData.screens);
+      setExpandedFlowId(getDefaultExpandedFlowId(tabData.flows));
+      setEditingFlowId(null);
+      setEditingScreenId(null);
+      setDraftSteps({});
+      setDraftScreenElements({});
+      return;
+    }
+
+    setFlows(initialFlows);
+    setScreens(initialScreens);
+    setExpandedFlowId(getDefaultExpandedFlowId(initialFlows));
+    setEditingFlowId(null);
+    setEditingScreenId(null);
+    setDraftSteps({});
+    setDraftScreenElements({});
+  }, [flowsTab.data, initialFlows, initialScreens]);
 
   const approvedCount = flows.filter((flow) => flow.status.toLowerCase() === "approved").length;
   const flowTotal = flows.length;

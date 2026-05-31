@@ -88,9 +88,16 @@ export function SaveIcon({ className = "h-[14px] w-[14px] shrink-0" }: { classNa
   );
 }
 
-export function SparkleIcon() {
+export function SparkleIcon({ className = "h-3 w-3 shrink-0" }: { className?: string }) {
   return (
-    <img src="/logos/dashboard/ai-generated.svg" alt="" aria-hidden="true" className="h-3 w-3 shrink-0" />
+    <span
+      aria-hidden="true"
+      className={`${className} bg-current`}
+      style={{
+        WebkitMask: 'url("/logos/regenerate-flows.svg") center / contain no-repeat',
+        mask: 'url("/logos/regenerate-flows.svg") center / contain no-repeat',
+      }}
+    />
   );
 }
 
