@@ -1,10 +1,10 @@
-import { DEFAULT_DOCUMENTS } from "@/lib/project/assetsTab";
+import type { DocumentAssetRow } from "@/types/project/assetsTab";
 import { CalendarIcon, ResearchReportIcon } from "./assetsIcons";
 
-export function DocumentsGrid() {
+export function DocumentsGrid({ documents }: { documents: DocumentAssetRow[] }) {
   return (
     <div className="grid gap-1 lg:grid-cols-2">
-      {DEFAULT_DOCUMENTS.map((document) => (
+      {documents.map((document) => (
         <article
           key={document.id}
           className="flex min-h-[70px] items-start justify-between rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"

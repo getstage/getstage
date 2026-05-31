@@ -8,6 +8,7 @@ export * from "./project-context";
 export * from "./refero";
 export * from "./flows";
 export * from "./wireframes";
+export * from "./assets";
 export * from "./moodboard";
 export * from "./research";
 export * from "./strategy";

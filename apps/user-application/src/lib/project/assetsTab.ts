@@ -1,48 +1,15 @@
-import type { ProjectAsset } from "@/models/project/project";
-import type { DocumentAssetRow, ExportOptionConfig, WireframeAssetCard } from "@/types/project/assetsTab";
+import {
+  EXPORT_OPTIONS,
+  createSeedDocuments,
+  createSeedWireframeAssets,
+} from "@/mock/project/assets";
 
-const ASSET_CARD_COUNT = 6;
-
-export const EXPORT_OPTIONS: ExportOptionConfig[] = [
-  { id: "code", label: "Export In Code", actionLabel: "Export In Code", iconSrc: "/logos/code.svg", connected: true },
-  { id: "paper", label: "Export In Paper", actionLabel: "Export In Paper", iconSrc: "/logos/paper.svg", connected: false, connectLabel: "Connect Paper" },
-  { id: "figma", label: "Export in Figma", actionLabel: "Export in Figma", iconSrc: "/logos/integrations/figma.svg", connected: true },
-];
-
-export const DEFAULT_DOCUMENTS: DocumentAssetRow[] = [
-  {
-    id: "research-complete",
-    title: "Brand Research Report",
-    description: "Company overview, 4 competitors, market insights",
-    status: "Complete",
-    statusClass: "bg-[#F0FDF4] text-[#022C22]",
-    date: "April 2",
-  },
-  {
-    id: "research-shared",
-    title: "Brand Research Report",
-    description: "Company overview, 4 competitors, market insights",
-    status: "Shared",
-    statusClass: "bg-[rgba(0,125,252,0.15)] text-[#007DFC]",
-    date: "April 2",
-  },
-];
-
-export function buildAssetCards(assets: ProjectAsset[]): WireframeAssetCard[] {
-  const defaults: ProjectAsset[] = Array.from({ length: ASSET_CARD_COUNT }, (_, index) => ({
-    id: `wireframe-${index + 1}`,
-    title: "Homepage Wireframe",
-    type: "Wireframe",
-  }));
-
-  return defaults.map((fallback, index) => ({
-    ...fallback,
-    ...(assets[index] ? { title: assets[index].title, type: assets[index].type } : {}),
-    date: "6th April, 2025",
-    source: "AI Generated",
-    priority: "P0",
-  }));
-}
+export {
+  EXPORT_OPTIONS,
+  createSeedDocuments,
+  createSeedExportOptions,
+  createSeedWireframeAssets,
+} from "@/mock/project/assets";
 
 export function getProjectAssetSizeError(file: File) {
   const lower = file.name.toLowerCase();
@@ -65,3 +32,15 @@ export function formatBytes(bytes: number) {
 export function formatUploadDate(timestamp: number) {
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(timestamp));
 }
+
+/** @deprecated Use createSeedWireframeAssets from assetsTabFixtures or useAssetsTab().tabData.wireframeAssets */
+export function buildAssetCards(assets: import("@/models/project/project").ProjectAsset[]) {
+  const seed = createSeedWireframeAssets();
+  return seed.map((fallback, index) => ({
+    ...fallback,
+    ...(assets[index] ? { title: assets[index].title, type: assets[index].type } : {}),
+  }));
+}
+
+/** @deprecated Use createSeedDocuments from assetsTabFixtures or useAssetsTab().tabData.documents */
+export const DEFAULT_DOCUMENTS = createSeedDocuments();

@@ -671,6 +671,39 @@ export const getLatestWireframesArtifact = query({
   },
 });
 
+export const getLatestAssetsArtifact = query({
+  args: {
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    await requireProjectAccess(ctx, args.projectId);
+    const artifacts = await ctx.db
+      .query("projectAiArtifacts")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .collect();
+
+    const latest = artifacts
+      .filter((artifact) => artifact.module === "delivery" && artifact.kind === "assetsArtifact")
+      .sort((left, right) => right.createdAt - left.createdAt)[0];
+
+    if (!latest) {
+      return null;
+    }
+
+    return {
+      id: String(latest._id),
+      projectId: String(latest.projectId),
+      runId: latest.runId ? String(latest.runId) : null,
+      title: latest.title,
+      summary: latest.summary ?? null,
+      status: latest.status,
+      contentJson: latest.contentJson ?? null,
+      createdAt: latest.createdAt,
+      updatedAt: latest.updatedAt,
+    };
+  },
+});
+
 export const listArtifacts = query({
   args: {
     projectId: v.id("projects"),

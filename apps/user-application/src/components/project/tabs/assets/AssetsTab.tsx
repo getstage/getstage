@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { buildAssetCards, DEFAULT_DOCUMENTS } from "@/lib/project/assetsTab";
+import { useState } from "react";
+import { useAssetsTab } from "@/hooks/project";
 import { useProjectAssetUploads } from "@/hooks/project/useProjectAssetUploads";
 import type { Project } from "@/models/project/project";
 import type { AssetView, WireframeAssetCard } from "@/types/project/assetsTab";
@@ -15,18 +15,10 @@ export function AssetsTab({ project }: { project: Project }) {
   const [exportAsset, setExportAsset] = useState<WireframeAssetCard | null>(null);
 
   const uploads = useProjectAssetUploads(() => setActiveView("uploaded"));
-  const assetCards = useMemo(() => buildAssetCards(project.assets), [project.assets]);
+  const assetsTab = useAssetsTab({ id: project.id, name: project.name }, uploads.uploadedAssets.length);
+  const { wireframeAssets, documents } = assetsTab.tabData;
 
-  const categories = useMemo(
-    () => [
-      { id: "wireframes" as const, label: "Wireframes", count: 5, iconSrc: "/logos/dashboard/wireframes.svg" },
-      { id: "documents" as const, label: "Documents", count: DEFAULT_DOCUMENTS.length, iconSrc: "/logos/dashboard/documents.svg" },
-      { id: "uploaded" as const, label: "Uploaded", count: uploads.uploadedAssets.length, iconSrc: "/logos/dashboard/upload-from-device.svg" },
-    ],
-    [uploads.uploadedAssets.length],
-  );
-
-  const sectionTitle = categories.find((category) => category.id === activeView)?.label ?? "Documents";
+  const sectionTitle = assetsTab.categories.find((category) => category.id === activeView)?.label ?? "Documents";
 
   return (
     <section className="flex w-full flex-col gap-[18px]">
@@ -46,19 +38,19 @@ export function AssetsTab({ project }: { project: Project }) {
                 {sectionTitle}
               </h2>
               <AssetCategoryTabs
-                categories={categories}
+                categories={assetsTab.categories}
                 activeView={activeView}
                 onChange={setActiveView}
               />
             </div>
           </div>
 
-          {activeView === "documents" ? <DocumentsGrid /> : null}
+          {activeView === "documents" ? <DocumentsGrid documents={documents} /> : null}
           {activeView === "uploaded" ? <UploadedGrid uploads={uploads.uploadedAssets} /> : null}
 
           {activeView === "wireframes" ? (
             <div className="grid gap-1 lg:grid-cols-3">
-              {assetCards.map((asset) => (
+              {wireframeAssets.map((asset) => (
                 <AssetCard key={asset.id} asset={asset} onExport={() => setExportAsset(asset)} />
               ))}
             </div>

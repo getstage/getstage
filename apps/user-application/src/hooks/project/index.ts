@@ -5,6 +5,7 @@ export { useStrategyArtifact, useStrategyTab, type StrategyArtifactRecord } from
 export { useMoodboardArtifact, useMoodboardTab, type MoodboardArtifactRecord } from "./moodboard";
 export { useFlowsArtifact, useFlowsTab, type FlowsArtifactRecord } from "./flows";
 export { useWireframesArtifact, useWireframesTab, type WireframesArtifactRecord } from "./wireframes";
+export { useAssetsArtifact, useAssetsTab, type AssetsArtifactRecord } from "./assets";
 export type {
   ProjectTimelineInput,
   SaveClientProfileInput,

@@ -42,3 +42,17 @@ export type DocumentAssetRow = {
   statusClass: string;
   date: string;
 };
+
+export type AssetsTabStats = {
+  wireframeCount: number;
+  documentCount: number;
+  uploadedCount: number;
+};
+
+export type AssetsTabData = {
+  wireframeAssets: WireframeAssetCard[];
+  documents: DocumentAssetRow[];
+  exportOptions: ExportOptionConfig[];
+  categories: AssetCategory[];
+  stats: AssetsTabStats;
+};
