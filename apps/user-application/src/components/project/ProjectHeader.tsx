@@ -120,7 +120,7 @@ export function ProjectHeader({
             </svg>
           </button>
 
-          {isProjectMenuOpen ? <ProjectActionsMenu onAction={openProjectModal} /> : null}
+          {isProjectMenuOpen ? <ProjectActionsMenu projectStatus={project.status} onAction={openProjectModal} /> : null}
         </div>
       </div>
 

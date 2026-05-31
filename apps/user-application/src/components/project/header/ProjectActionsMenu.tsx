@@ -1,6 +1,15 @@
 import type { ProjectModal } from "@/types/project/projectHeader";
+import type { ProjectStatus } from "@stage/data-ops";
 
-export function ProjectActionsMenu({ onAction }: { onAction: (modal: ProjectModal) => void }) {
+export function ProjectActionsMenu({
+  projectStatus,
+  onAction,
+}: {
+  projectStatus: ProjectStatus;
+  onAction: (modal: ProjectModal) => void;
+}) {
+  const pauseLabel = projectStatus === "paused" ? "Unpause Project" : "Pause Project";
+
   return (
     <div
       className="absolute right-0 top-[35px] z-40 flex w-[212px] flex-col gap-[8px] rounded-[8px] border-2 border-[rgba(0,0,0,0.05)] bg-gradient-to-b from-white to-[#FAFAFA] p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
@@ -17,7 +26,7 @@ export function ProjectActionsMenu({ onAction }: { onAction: (modal: ProjectModa
       <div className="h-px w-full bg-[#E5E5E5]" />
 
       <div className="flex w-full flex-col items-start">
-        <ProjectActionItem onSelect={() => onAction("pause")}>Pause Project</ProjectActionItem>
+        <ProjectActionItem onSelect={() => onAction("pause")}>{pauseLabel}</ProjectActionItem>
       </div>
 
       <div className="h-px w-full bg-[#E5E5E5]" />
