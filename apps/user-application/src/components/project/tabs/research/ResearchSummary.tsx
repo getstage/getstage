@@ -1,14 +1,14 @@
-import { researchSummary } from "@/data/fixtures/project/researchTabFixtures";
 import { EditIcon, SaveIcon } from "./researchIcons";
 
 type ResearchSummaryProps = {
+  summary: string[];
   isEditing: boolean;
   onEdit: () => void;
   onDiscard: () => void;
   onSave: () => void;
 };
 
-export function ResearchSummary({ isEditing, onEdit, onDiscard, onSave }: ResearchSummaryProps) {
+export function ResearchSummary({ summary, isEditing, onEdit, onDiscard, onSave }: ResearchSummaryProps) {
   return (
     <section className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-4">
@@ -44,13 +44,13 @@ export function ResearchSummary({ isEditing, onEdit, onDiscard, onSave }: Resear
       </div>
       {isEditing ? (
         <textarea
-          defaultValue={researchSummary.join(" ")}
+          defaultValue={summary.join(" ")}
           className="min-h-[124px] w-full resize-y rounded-[8px] border border-[#E5E5E5] bg-[#FAFAFA] px-3 py-[10px] text-[13px] font-medium leading-[1.5] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)]"
           aria-label="Research summary"
         />
       ) : (
         <ul className="list-disc space-y-0 pl-[19.5px] text-[13px] font-medium leading-[1.5] text-[#525252]">
-          {researchSummary.map((item) => (
+          {summary.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>

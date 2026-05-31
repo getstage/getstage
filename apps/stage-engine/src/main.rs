@@ -1,9 +1,12 @@
 mod app;
 mod config;
+mod convex_store;
 mod helpers;
 mod models;
 mod observability;
 mod providers;
+mod refero;
+mod research;
 mod runs;
 mod server;
 

@@ -14,8 +14,9 @@ type ReadinessResponse = {
 };
 
 export const DEFAULT_PORT = 48_221;
-export const READINESS_ATTEMPTS = 40;
-export const READINESS_INTERVAL_MS = 250;
+// First `cargo run` can take minutes while dependencies compile.
+export const READINESS_ATTEMPTS = 240;
+export const READINESS_INTERVAL_MS = 500;
 export const READINESS_TIMEOUT_MS = 350;
 export const SHUTDOWN_TIMEOUT_MS = 1_500;
 export const ENGINE_REQUEST_TIMEOUT_MS = 2_000;
@@ -67,6 +68,7 @@ export async function fetchEngineJson<T>(args: {
   path: string;
   port: number;
   body?: unknown;
+  accessToken?: string | null;
   timeoutMs?: number;
 }): Promise<T> {
   const controller = new AbortController();
@@ -76,15 +78,18 @@ export async function fetchEngineJson<T>(args: {
   );
 
   try {
+    const headers: Record<string, string> = {};
+    if (args.body !== undefined) {
+      headers["content-type"] = "application/json";
+    }
+    if (args.accessToken) {
+      headers.authorization = `Bearer ${args.accessToken}`;
+    }
+
     const response = await fetch(`http://127.0.0.1:${args.port}${args.path}`, {
       method: args.method ?? "GET",
       body: args.body === undefined ? undefined : JSON.stringify(args.body),
-      headers:
-        args.body === undefined
-          ? undefined
-          : {
-              "content-type": "application/json",
-            },
+      headers: Object.keys(headers).length === 0 ? undefined : headers,
       signal: controller.signal,
     });
 

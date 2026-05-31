@@ -1,12 +1,17 @@
-import { targetUsers } from "@/data/fixtures/project/researchTabFixtures";
+import type { ResearchTargetUser } from "@/types/project/researchTab";
 import { SectionTitle } from "./ResearchPrimitives";
 
-export function TargetUsers({ isEditing }: { isEditing: boolean }) {
+type TargetUsersProps = {
+  users: ResearchTargetUser[];
+  isEditing: boolean;
+};
+
+export function TargetUsers({ users, isEditing }: TargetUsersProps) {
   return (
     <section className="flex flex-col gap-2">
       <SectionTitle>Target Users</SectionTitle>
       <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
-        {targetUsers.map((user) => (
+        {users.map((user) => (
           <article key={user.name} className="rounded-[10px] bg-[#FAFAFA] p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E5E5E5] text-[13px] font-semibold text-[#525252]">

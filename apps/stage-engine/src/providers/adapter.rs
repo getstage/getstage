@@ -4,8 +4,9 @@ use crate::helpers::time::now_millis;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::providers::ProviderId;
 use crate::models::runs::{RunEvent, StartRunRequest};
-use crate::providers::claude::run_claude;
-use crate::providers::codex::run_codex;
+use crate::providers::claude::{run_claude, run_claude_collect};
+use crate::providers::codex::{run_codex, run_codex_collect};
+use crate::providers::process::{ProviderProcessError, ProviderProcessOutcome};
 use crate::runs::RunEventSink;
 
 #[derive(Clone, Debug)]
@@ -23,6 +24,17 @@ pub async fn run_provider(
     match context.request.provider_id {
         ProviderId::Claude => run_claude(context, events, &mut cancel).await,
         ProviderId::Codex => run_codex(context, events, &mut cancel).await,
+    }
+}
+
+pub async fn run_provider_collect(
+    context: ProviderRunContext,
+    events: RunEventSink,
+    mut cancel: watch::Receiver<bool>,
+) -> Result<ProviderProcessOutcome, ProviderProcessError> {
+    match context.request.provider_id {
+        ProviderId::Claude => run_claude_collect(context, events, &mut cancel).await,
+        ProviderId::Codex => run_codex_collect(context, events, &mut cancel).await,
     }
 }
 

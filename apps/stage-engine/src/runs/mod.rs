@@ -10,10 +10,11 @@ use uuid::Uuid;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::providers::{ProviderId, ProviderStatus};
 use crate::models::runs::{
-    CancelRunResponse, RunEvent, RunStatus, StartRunRequest, StartRunResponse,
+    CancelRunResponse, RunEvent, RunMode, RunStatus, StartRunRequest, StartRunResponse,
 };
 use crate::providers::adapter::{ProviderRunContext, provider_unavailable_event, run_provider};
 use crate::providers::service::provider_snapshot;
+use crate::research::workflow::ResearchWorkflow;
 
 const RUN_EVENT_CAPACITY: usize = 256;
 const COMPLETED_RUN_RETENTION: Duration = Duration::from_secs(300);
@@ -57,17 +58,23 @@ pub struct RunSubscription {
 pub struct RunManager {
     api_version: &'static str,
     runs: Arc<RwLock<HashMap<String, ActiveRun>>>,
+    research: Option<Arc<ResearchWorkflow>>,
 }
 
 impl RunManager {
-    pub fn new(api_version: &'static str) -> Self {
+    pub fn new(api_version: &'static str, research: Option<Arc<ResearchWorkflow>>) -> Self {
         Self {
             api_version,
             runs: Arc::new(RwLock::new(HashMap::new())),
+            research,
         }
     }
 
-    pub async fn start_run(&self, request: StartRunRequest) -> StartRunResponse {
+    pub async fn start_run(
+        &self,
+        request: StartRunRequest,
+        auth_token: Option<String>,
+    ) -> StartRunResponse {
         let run_id = Uuid::new_v4().to_string();
         let (events, _) = broadcast::channel(RUN_EVENT_CAPACITY);
         let history = Arc::new(Mutex::new(Vec::new()));
@@ -83,6 +90,7 @@ impl RunManager {
 
         let api_version = self.api_version;
         let runs = Arc::clone(&self.runs);
+        let research = self.research.clone();
         let context = ProviderRunContext {
             api_version,
             run_id: run_id.clone(),
@@ -93,6 +101,33 @@ impl RunManager {
         tokio::spawn(async move {
             if let Some(error_event) = provider_readiness_error(api_version, &context).await {
                 sink.send(error_event);
+            } else if matches!(context.request.mode, RunMode::Research) {
+                if let Some(research) = research {
+                    research
+                        .run(
+                            api_version,
+                            context.run_id.clone(),
+                            context.request.clone(),
+                            auth_token,
+                            sink,
+                            cancel_rx,
+                        )
+                        .await;
+                } else {
+                    sink.send(RunEvent::RunFailed {
+                        api_version,
+                        run_id: context.run_id.clone(),
+                        provider_id: context.request.provider_id,
+                        created_at: crate::helpers::time::now_millis(),
+                        error: EngineError {
+                            code: EngineErrorCode::InternalError,
+                            message: "Research workflow is not configured.".to_string(),
+                            provider_id: Some(context.request.provider_id),
+                            retryable: true,
+                            detail: None,
+                        },
+                    });
+                }
             } else {
                 run_provider(context.clone(), sink, cancel_rx).await;
             }

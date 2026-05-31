@@ -15,4 +15,26 @@ export type UiPatternGroup = {
   images: string[];
 };
 
+export type UiPatternGroupWithPatterns = UiPatternGroup & {
+  recognizedPatterns: ReadonlyArray<readonly [string, string]>;
+};
+
+export type ResearchTargetUser = {
+  name: string;
+  role: string;
+  goals: string;
+  frustration: string;
+  context: string;
+};
+
 export type CompetitiveView = "card" | "matrix";
+
+export type ResearchTabData = {
+  summary: string[];
+  companySnapshot: ReadonlyArray<readonly [string, string]>;
+  competitors: ResearchCompetitor[];
+  competitiveMatrixRows: Array<{ label: string; values: string[] }>;
+  uiPatternGroups: UiPatternGroupWithPatterns[];
+  targetUsers: ResearchTargetUser[];
+  opportunities: string[];
+};

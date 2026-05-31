@@ -1,9 +1,5 @@
-import {
-  mobbinMark,
-  uiPatternGroups,
-  uiPatterns,
-} from "@/data/fixtures/project/researchTabFixtures";
-import type { UiPatternGroup } from "@/types/project/researchTab";
+import { mobbinMark } from "@/data/fixtures/project/researchTabFixtures";
+import type { UiPatternGroupWithPatterns } from "@/types/project/researchTab";
 import {
   ArrowLeftMiniIcon,
   ArrowRightMiniIcon,
@@ -14,13 +10,14 @@ import {
 } from "./researchIcons";
 
 type UiPatternsProps = {
+  groups: UiPatternGroupWithPatterns[];
   isEditing: boolean;
   openGroupId: string | null;
   onToggleGroup: (groupId: string) => void;
   onOpenPhoto: (src: string) => void;
 };
 
-export function UiPatterns({ isEditing, openGroupId, onToggleGroup, onOpenPhoto }: UiPatternsProps) {
+export function UiPatterns({ groups, isEditing, openGroupId, onToggleGroup, onOpenPhoto }: UiPatternsProps) {
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-end">
@@ -29,13 +26,13 @@ export function UiPatterns({ isEditing, openGroupId, onToggleGroup, onOpenPhoto 
           <div className="h-1 w-1 rounded-full bg-[#A3A3A3]" />
           <div className="flex items-center gap-2">
             <img src={mobbinMark} alt="" className="h-[10px] w-[22px]" />
-            <p className="text-[12px] font-medium leading-[1.25] text-[#525252]">Analysed with Mobbin</p>
+            <p className="text-[12px] font-medium leading-[1.25] text-[#525252]">Analysed with Refero</p>
           </div>
         </div>
       </div>
 
       <div className="flex flex-col gap-3">
-        {uiPatternGroups.map((group) => (
+        {groups.map((group) => (
           <UiPatternGroup
             key={group.id}
             group={group}
@@ -57,7 +54,7 @@ function UiPatternGroup({
   onToggle,
   onOpenPhoto,
 }: {
-  group: UiPatternGroup;
+  group: UiPatternGroupWithPatterns;
   isEditing: boolean;
   isOpen: boolean;
   onToggle: () => void;
@@ -77,21 +74,23 @@ function UiPatternGroup({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-1 md:grid-cols-3">
-        {group.images.map((src, index) => (
-          <button
-            key={`${group.id}-${src}-${index}`}
-            type="button"
-            onClick={() => onOpenPhoto(src)}
-            className="group rounded-[8px] bg-white p-2 text-left shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-transform hover:-translate-y-px"
-            aria-label={`Open ${group.title} reference ${index + 1}`}
-          >
-            <div className="aspect-[1920/1325] overflow-hidden rounded-[4px]">
-              <img src={src} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-[1.01]" />
-            </div>
-          </button>
-        ))}
-      </div>
+      {group.images.length > 0 ? (
+        <div className="grid grid-cols-1 gap-1 md:grid-cols-3">
+          {group.images.map((src, index) => (
+            <button
+              key={`${group.id}-${src}-${index}`}
+              type="button"
+              onClick={() => onOpenPhoto(src)}
+              className="group rounded-[8px] bg-white p-2 text-left shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-transform hover:-translate-y-px"
+              aria-label={`Open ${group.title} reference ${index + 1}`}
+            >
+              <div className="aspect-[1920/1325] overflow-hidden rounded-[4px]">
+                <img src={src} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-[1.01]" />
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <div className="mt-1 overflow-hidden rounded-[8px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <button
@@ -107,7 +106,7 @@ function UiPatternGroup({
         {isOpen ? (
           <div className="flex flex-col gap-4 border-t border-[#F5F5F5] px-4 pb-4">
             <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
-              {uiPatterns.map(([title, body]) => (
+              {group.recognizedPatterns.map(([title, body]) => (
                 <PatternCard key={title} title={title} body={body} isEditing={isEditing} />
               ))}
             </div>
@@ -140,7 +139,7 @@ function PatternCard({ title, body, isEditing }: { title: string; body: string; 
         ) : (
           <div className="min-w-0">
             <h3 className="text-[13px] font-semibold leading-[1.25] text-[#171717]">{title}</h3>
-            <p className="mt-1 text-[12px] font-medium leading-[1.5] text-[#737373]">{body}</p>
+            {body ? <p className="mt-1 text-[12px] font-medium leading-[1.5] text-[#737373]">{body}</p> : null}
           </div>
         )}
       </div>

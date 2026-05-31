@@ -93,15 +93,18 @@ export function registerIpcHandlers({
   ipcMain.handle(IPC_CHANNELS.engineStartRun, async (event, request: unknown) => {
     const parsedRequest = startRunRequestSchema.parse(request);
     const status = await sidecarSupervisor.start();
+    const accessToken = await authController.getAccessToken();
     const payload = await fetchEngineJson<unknown>({
       method: "POST",
       path: "/v1/runs",
       port: status.port,
       body: parsedRequest,
+      accessToken,
     });
     const response = startRunResponseSchema.parse(payload);
 
     void streamRunEventsToRenderer({
+      accessToken,
       port: status.port,
       runId: response.runId,
       sender: event.sender,
@@ -200,6 +203,7 @@ export function registerIpcHandlers({
 }
 
 async function streamRunEventsToRenderer(args: {
+  accessToken?: string | null;
   port: number;
   runId: string;
   sender: WebContents;
@@ -212,7 +216,12 @@ async function streamRunEventsToRenderer(args: {
   try {
     const response = await fetch(
       `http://127.0.0.1:${args.port}/v1/runs/${encodeURIComponent(args.runId)}/events`,
-      { signal: controller.signal },
+      {
+        headers: args.accessToken
+          ? { authorization: `Bearer ${args.accessToken}` }
+          : undefined,
+        signal: controller.signal,
+      },
     );
 
     if (!response.ok || !response.body) {

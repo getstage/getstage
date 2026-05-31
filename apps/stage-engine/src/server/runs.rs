@@ -1,5 +1,5 @@
 use axum::extract::{Path, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::{Json, response::IntoResponse};
 use std::convert::Infallible;
@@ -12,9 +12,10 @@ use crate::models::runs::{CancelRunResponse, StartRunRequest, StartRunResponse};
 
 pub async fn start_run(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(request): Json<StartRunRequest>,
 ) -> Json<StartRunResponse> {
-    Json(state.runs.start_run(request).await)
+    Json(state.runs.start_run(request, bearer_token(&headers)).await)
 }
 
 pub async fn run_events(
@@ -60,4 +61,14 @@ fn event_to_sse(event: crate::models::runs::RunEvent) -> Option<Result<Event, In
             None
         }
     }
+}
+
+fn bearer_token(headers: &HeaderMap) -> Option<String> {
+    let header = headers.get(axum::http::header::AUTHORIZATION)?;
+    let value = header.to_str().ok()?.trim();
+    value
+        .strip_prefix("Bearer ")
+        .map(str::trim)
+        .filter(|token| !token.is_empty())
+        .map(ToOwned::to_owned)
 }

@@ -57,6 +57,10 @@ export class SidecarSupervisor {
       env: {
         ...process.env,
         STAGE_ENGINE_PORT: String(port),
+        CONVEX_URL:
+          process.env.CONVEX_URL ??
+          process.env.VITE_CONVEX_URL ??
+          "https://reliable-bullfrog-917.convex.cloud",
       },
       stdio: ["ignore", "pipe", "pipe"],
     });

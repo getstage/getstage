@@ -4,6 +4,19 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 pub struct AppConfig {
     pub host: IpAddr,
     pub port: u16,
+    pub refero: ReferoConfig,
+    pub convex: ConvexConfig,
+}
+
+#[derive(Clone, Debug)]
+pub struct ReferoConfig {
+    pub mcp_url: String,
+    pub token: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ConvexConfig {
+    pub deployment_url: String,
 }
 
 impl AppConfig {
@@ -16,10 +29,38 @@ impl AppConfig {
         Ok(Self {
             host: IpAddr::V4(Ipv4Addr::LOCALHOST),
             port,
+            refero: ReferoConfig::from_env(),
+            convex: ConvexConfig::from_env(),
         })
     }
 
     pub fn socket_addr(&self) -> SocketAddr {
         SocketAddr::new(self.host, self.port)
+    }
+}
+
+impl ReferoConfig {
+    pub fn from_env() -> Self {
+        Self {
+            mcp_url: std::env::var("REFERO_MCP_URL")
+                .unwrap_or_else(|_| "https://api.refero.design/mcp".to_string()),
+            token: std::env::var("REFERO_MCP_TOKEN")
+                .ok()
+                .filter(|token| !token.trim().is_empty()),
+        }
+    }
+
+    pub fn is_configured(&self) -> bool {
+        self.token.is_some()
+    }
+}
+
+impl ConvexConfig {
+    pub fn from_env() -> Self {
+        Self {
+            deployment_url: std::env::var("CONVEX_URL")
+                .or_else(|_| std::env::var("VITE_CONVEX_URL"))
+                .unwrap_or_else(|_| "https://reliable-bullfrog-917.convex.cloud".to_string()),
+        }
     }
 }

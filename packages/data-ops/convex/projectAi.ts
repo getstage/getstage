@@ -274,6 +274,31 @@ export const getContext = query({
   },
 });
 
+export const getResearchInput = query({
+  args: {
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    const { project } = await requireProjectAccess(ctx, args.projectId);
+    const record = await getContextRecord(ctx, args.projectId);
+
+    return {
+      projectId: String(project._id),
+      projectName: project.name,
+      clientName: project.clientName,
+      industry: null,
+      website: record?.clientWebsite ?? null,
+      projectBrief: record?.brief ?? null,
+      competitorUrls: record?.competitorUrls ?? [],
+      targetUsers: null,
+      additionalNotes: record?.notes ?? null,
+      uploadedAssetIds: record?.briefAttachmentR2ObjectKey
+        ? [record.briefAttachmentR2ObjectKey]
+        : [],
+    };
+  },
+});
+
 export const upsertContext = mutation({
   args: {
     projectId: v.id("projects"),
@@ -364,6 +389,99 @@ export const createRun = mutation({
   },
 });
 
+export const createResearchRun = mutation({
+  args: {
+    projectId: v.id("projects"),
+    title: v.string(),
+    inputSummary: v.optional(v.string()),
+    externalRunId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireProjectAccess(ctx, args.projectId);
+    const runId = await createRunRecord(ctx, {
+      userId: user._id,
+      projectId: args.projectId,
+      module: "research",
+      title: args.title,
+      status: "running",
+      trigger: "user",
+      inputSummary: args.inputSummary,
+      externalRunId: args.externalRunId,
+    });
+
+    return {
+      runId: String(runId),
+      startedAt: now(),
+    };
+  },
+});
+
+export const completeResearchRun = mutation({
+  args: {
+    projectId: v.id("projects"),
+    runId: v.optional(v.id("projectAiRuns")),
+    title: v.string(),
+    summary: v.optional(v.string()),
+    contentJson: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireProjectAccess(ctx, args.projectId);
+
+    if (args.runId) {
+      const run = await getRunRecord(ctx, args.runId);
+      if (run.projectId !== args.projectId) {
+        throw new Error("Run not found.");
+      }
+    }
+
+    const artifactId = await createArtifactRecord(ctx, {
+      userId: user._id,
+      projectId: args.projectId,
+      runId: args.runId,
+      module: "research",
+      kind: "researchArtifact",
+      title: args.title,
+      summary: args.summary,
+      status: "ready",
+      contentFormat: "json",
+      contentJson: args.contentJson,
+    });
+
+    return {
+      artifactId: String(artifactId),
+      completedAt: now(),
+    };
+  },
+});
+
+export const failResearchRun = mutation({
+  args: {
+    projectId: v.id("projects"),
+    runId: v.id("projectAiRuns"),
+    errorMessage: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireProjectAccess(ctx, args.projectId);
+    const run = await getRunRecord(ctx, args.runId);
+    if (run.projectId !== args.projectId) {
+      throw new Error("Run not found.");
+    }
+
+    const timestamp = now();
+    await ctx.db.patch(args.runId, {
+      status: "failed",
+      errorMessage: normalizeOptional(args.errorMessage),
+      completedAt: timestamp,
+      updatedAt: timestamp,
+    });
+
+    return {
+      runId: String(args.runId),
+      failedAt: timestamp,
+    };
+  },
+});
+
 export const cancelRun = mutation({
   args: {
     runId: v.string(),
@@ -385,6 +503,39 @@ export const cancelRun = mutation({
       completedAt: now(),
       updatedAt: now(),
     });
+  },
+});
+
+export const getLatestResearchArtifact = query({
+  args: {
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    await requireProjectAccess(ctx, args.projectId);
+    const artifacts = await ctx.db
+      .query("projectAiArtifacts")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .collect();
+
+    const latest = artifacts
+      .filter((artifact) => artifact.module === "research" && artifact.kind === "researchArtifact")
+      .sort((left, right) => right.createdAt - left.createdAt)[0];
+
+    if (!latest) {
+      return null;
+    }
+
+    return {
+      id: String(latest._id),
+      projectId: String(latest.projectId),
+      runId: latest.runId ? String(latest.runId) : null,
+      title: latest.title,
+      summary: latest.summary ?? null,
+      status: latest.status,
+      contentJson: latest.contentJson ?? null,
+      createdAt: latest.createdAt,
+      updatedAt: latest.updatedAt,
+    };
   },
 });
 

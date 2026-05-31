@@ -1,7 +1,7 @@
 # Stage AI Workflow Context Plan
 
 Date: May 30, 2026  
-Status: Discussion plan  
+Status: Discussion plan, May 31 architecture correction applied  
 Scope: Project AI workflows, Claude/Codex, Refero, voice, Figma-driven product flows
 
 ## CAPTION: Why this document exists
@@ -53,8 +53,140 @@ Core rule:
 React renders workflows.
 Convex stores project data and generated artifacts.
 Electron owns the bridge and sidecar lifecycle.
-Stage Engine runs Claude/Codex and local/deep context tasks.
+Stage Engine reads/writes AI workflow context from Convex directly, then runs
+Claude/Codex and local/deep context tasks.
 Refero provides external design reference intelligence.
+```
+
+## CAPTION: May 31 architecture correction
+
+This document previously leaned too much toward React or REST API as the context
+handoff layer for AI runs.
+
+That is not the clean internal desktop architecture.
+
+Correct rule:
+
+```txt
+For in-app AI workflows, Stage Engine connects to Convex directly.
+```
+
+Why:
+
+```txt
+React often does not know enough.
+React should not assemble the full AI context.
+Workspace chat, critique, voice, Research, Strategy, Moodboard, and Generate all
+need project context that lives in Convex.
+Stage Engine is the AI brain and context runner, so it must be able to fetch and
+write the relevant Convex data itself.
+```
+
+Use REST API for this:
+
+```txt
+external agents
+Claude Code / Codex outside Stage
+third-party integrations
+public developer API
+Agent Skill usage outside the desktop app
+```
+
+Do not use REST API as the main internal desktop path for Research/chat context.
+
+Internal desktop path:
+
+```txt
+React -> Electron IPC -> Stage Engine -> Convex direct
+                              -> Refero
+                              -> Claude/Codex
+                              -> Convex direct
+                              -> React stream/update
+```
+
+External agent path:
+
+```txt
+Claude Code / Codex outside Stage -> Stage REST API -> Convex
+```
+
+This keeps the desktop workflow simple:
+
+```txt
+React sends intent and current surface.
+Stage Engine fetches the full project context.
+Convex remains the source of truth.
+Stage Engine writes runs/messages/artifacts back to Convex.
+```
+
+## CAPTION: Stage Engine Convex auth decision
+
+This is the next architecture blocker before Research can be completed.
+
+Problem:
+
+```txt
+Electron/React already know the current desktop session.
+Stage Engine needs to read/write Convex directly for AI workflows.
+Stage Engine must not get unlimited database access.
+Stage Engine must act only for the current authenticated user/workspace/project.
+```
+
+Recommended direction:
+
+```txt
+Electron owns the desktop auth session.
+Electron gives Stage Engine a short-lived, scoped engine auth token.
+Stage Engine uses that token when calling Convex queries/mutations.
+Convex validates the token scope before returning or writing project data.
+```
+
+Token lifetime recommendation:
+
+```txt
+Default: 10-15 minutes.
+Refresh: Electron can rotate/refresh while the desktop session is active.
+Scope: current userId, workspaceId, allowed projectIds, allowed AI operations.
+Revoke: token is invalidated when the user signs out, switches workspace, or
+disconnects the desktop session.
+```
+
+Why not longer:
+
+```txt
+A long-lived token inside a local sidecar increases blast radius if anything
+goes wrong.
+```
+
+Why not extremely short:
+
+```txt
+Research, voice, chat, and provider runs can take time.
+If the token expires every 60 seconds, the system becomes annoying and fragile.
+```
+
+V1 acceptable rule:
+
+```txt
+Use a short-lived scoped token with a 15 minute TTL and refresh it through
+Electron while the user remains signed in.
+```
+
+Open technical decision:
+
+```txt
+Should Convex validate this token as a custom JWT/session claim, or should
+Stage Engine call a small Convex auth mutation first to exchange the desktop
+session for an engine-scoped token?
+```
+
+This must be solved before:
+
+```txt
+Stage Engine can fetch full Research context from Convex.
+Stage Engine can store projectAiRuns.
+Stage Engine can store projectAiArtifacts.
+Workspace chat can reliably answer project-aware questions.
 ```
 
 ## CAPTION: Product split
@@ -121,26 +253,29 @@ apps/user-application/src/project/components/ProjectDetailView.tsx
 Existing tab entrypoints:
 
 ```txt
-apps/user-application/src/project/components/tabs/ResearchTab.tsx
-apps/user-application/src/project/components/tabs/StrategyTab.tsx
-apps/user-application/src/project/components/tabs/MoodboardTab.tsx
-apps/user-application/src/project/components/tabs/FlowsTab.tsx
-apps/user-application/src/project/components/tabs/WireframesTab.tsx
-apps/user-application/src/project/components/tabs/AssetsTab.tsx
-apps/user-application/src/project/components/tabs/GenerateTab.tsx
+apps/user-application/src/components/project/tabs/research/ResearchTab.tsx
+apps/user-application/src/components/project/tabs/strategy/StrategyTab.tsx
+apps/user-application/src/components/project/tabs/moodboard/MoodboardTab.tsx
+apps/user-application/src/components/project/tabs/flows/FlowsTab.tsx
+apps/user-application/src/components/project/tabs/wireframes/WireframesTab.tsx
+apps/user-application/src/components/project/tabs/assets/AssetsTab.tsx
+apps/user-application/src/components/project/tabs/GenerateTab.tsx
 ```
 
 Research is already split into smaller React components:
 
 ```txt
-apps/user-application/src/project/components/tabs/research/ResearchTab.tsx
-apps/user-application/src/project/components/tabs/research/ResearchSummary.tsx
-apps/user-application/src/project/components/tabs/research/CompanySnapshot.tsx
-apps/user-application/src/project/components/tabs/research/CompetitiveAnalysis.tsx
-apps/user-application/src/project/components/tabs/research/UiPatterns.tsx
-apps/user-application/src/project/components/tabs/research/TargetUsers.tsx
-apps/user-application/src/project/components/tabs/research/Opportunities.tsx
-apps/user-application/src/project/components/tabs/research/ResearchActions.tsx
+apps/user-application/src/components/project/tabs/research/ResearchTab.tsx
+apps/user-application/src/components/project/tabs/research/ResearchSummary.tsx
+apps/user-application/src/components/project/tabs/research/CompanySnapshot.tsx
+apps/user-application/src/components/project/tabs/research/CompetitiveAnalysis.tsx
+apps/user-application/src/components/project/tabs/research/UiPatterns.tsx
+apps/user-application/src/components/project/tabs/research/TargetUsers.tsx
+apps/user-application/src/components/project/tabs/research/Opportunities.tsx
+apps/user-application/src/components/project/tabs/research/ResearchActions.tsx
+apps/user-application/src/components/project/tabs/research/PhotoLightbox.tsx
+apps/user-application/src/components/project/tabs/research/ResearchPrimitives.tsx
+apps/user-application/src/components/project/tabs/research/researchIcons.tsx
 ```
 
 Current Research UI already includes:
@@ -165,7 +300,7 @@ Current limitation:
 The Research UI is mostly fixture-driven.
 It reads from:
 
-apps/user-application/src/project/data/fixtures/researchTabFixtures.ts
+apps/user-application/src/data/fixtures/project/researchTabFixtures.ts
 
 It is not yet connected to:
   real researchArtifact data
@@ -178,7 +313,7 @@ It is not yet connected to:
 Generate tab status:
 
 ```txt
-apps/user-application/src/project/components/tabs/GenerateTab.tsx
+apps/user-application/src/components/project/tabs/GenerateTab.tsx
 
 This tab currently looks more placeholder-level than Research.
 Do not treat Generate as equally complete yet.
@@ -450,6 +585,75 @@ Research asks Refero for fintech onboarding screens.
 Claude/Codex summarizes the patterns and creates Stage research sections.
 Convex stores the result as a research artifact.
 React renders the Research tab.
+```
+
+Confirmed Refero decisions:
+
+```txt
+Refero is part of the default AI workflow.
+Research should always use Refero when running generation.
+All main workflows should eventually use Refero where visual/product references
+matter, but implementation happens step by step.
+The Refero token must not live in React.
+The Refero token should be stored in desktop secure storage for the desktop app,
+with an environment variable fallback for local development.
+```
+
+V1 implementation order:
+
+```txt
+1. Research
+2. Moodboard / Style Guide
+3. Flows
+4. Generate / Wireframes
+```
+
+Technical boundary:
+
+```txt
+React:
+  Shows workflow UI.
+  Sends typed intent/surface requests.
+  Renders typed artifacts.
+  Does not fetch or assemble full AI context.
+
+Electron:
+  Owns secure IPC.
+  Starts and supervises Stage Engine.
+  Can provide secure token access to Stage Engine if needed.
+
+Stage Engine:
+  Reads workflow context from Convex directly.
+  Writes runs/messages/artifacts back to Convex directly.
+  Calls Refero.
+  Calls Claude/Codex.
+  Builds context.
+  Normalizes external results.
+  Streams run progress.
+
+Convex:
+  Stores project AI context.
+  Stores project AI runs.
+  Stores project AI artifacts.
+```
+
+Internal desktop AI runs should not depend on:
+
+```txt
+React manually collecting all project context.
+HTTP cron-style Convex routes.
+REST API roundtrips for normal in-app workflow context.
+```
+
+The REST API still exists, but it is not the default internal desktop workflow
+path.
+
+Refero should not be called directly from:
+
+```txt
+React components
+random hooks
+Convex actions without an explicit architecture decision
 ```
 
 ## CAPTION: Voice role
@@ -785,12 +989,341 @@ generate strategy
 Open discussion points:
 
 ```txt
-Should Research always call Refero, or only when the user asks?
 Should competitor websites be required?
 Should Research be allowed to use Notion and Google Sheets automatically?
 What counts as enough input before "Generate Research" is enabled?
 Which Research sections are mandatory in V1?
 Which sections can be regenerated per item versus only per block?
+```
+
+Resolved:
+
+```txt
+Research should always call Refero.
+```
+
+## CAPTION: Research A-Z implementation plan
+
+Goal:
+
+```txt
+Turn the existing Research React UI from fixture-driven display into a real
+end-to-end workflow:
+
+Research intent/input -> Stage Engine -> Convex project context -> Refero context
+-> Claude/Codex synthesis -> researchArtifact -> Convex direct persistence
+-> existing Research components render the artifact.
+```
+
+Correct Research ownership:
+
+```txt
+React:
+  Displays the Research form, generated artifact, edit state, and actions.
+  Sends the user's explicit input and current surface state to Stage Engine.
+  Does not assemble the full Research prompt.
+  Does not call Refero.
+  Does not call Claude/Codex.
+
+Electron:
+  Sends the typed request over IPC to Stage Engine.
+  Streams run progress/results back to React.
+  Supervises the Stage Engine process.
+
+Stage Engine:
+  Reads the project, existing AI context, previous artifacts, tasks/decisions,
+  uploaded context pointers, and integration state from Convex.
+  Calls Refero for external product/design references.
+  Builds the Research prompt.
+  Runs Claude/Codex.
+  Validates the generated ResearchArtifact.
+  Writes projectAiRuns and projectAiArtifacts back to Convex.
+  Streams status and final artifact back to React.
+
+Convex:
+  Stores source project data.
+  Stores the Research run.
+  Stores one researchArtifact.
+  Stores later edits/approval state.
+```
+
+Research V1 run:
+
+```txt
+1. User fills Research input or dictates it with voice.
+2. React sends:
+     projectId
+     current tab = research
+     selected provider/model
+     explicit form input / transcript
+     optional selected screenshot/frame pointers
+3. Stage Engine fetches the full project context from Convex.
+4. Stage Engine calls Refero using the normalized ResearchInput.
+5. Stage Engine creates a provider prompt from:
+     ResearchInput
+     Convex project context
+     previous project artifacts
+     Refero references
+6. Stage Engine runs Claude/Codex.
+7. Stage Engine validates the JSON as ResearchArtifact.
+8. Stage Engine writes run + artifact to Convex.
+9. React receives progress/final result and re-renders from Convex/artifact.
+```
+
+This means Research is not finished yet.
+
+Current status:
+
+```txt
+The contracts, Rust models, Refero adapter boundary, prompt builder, and service
+skeleton are in place.
+
+The missing piece is now clear:
+Stage Engine still needs direct Convex client integration for AI workflow context
+and persistence.
+```
+
+Step 1: Define the contracts.
+
+Files:
+
+```txt
+packages/data-ops/src/contracts/research.ts
+packages/data-ops/src/contracts/refero.ts
+packages/data-ops/src/contracts/index.ts
+apps/stage-engine/src/models/research.rs
+apps/stage-engine/src/models/refero.rs
+apps/stage-engine/src/models/mod.rs
+```
+
+Contracts:
+
+```txt
+ResearchInput
+ResearchArtifact
+ResearchCompetitor
+ResearchCompetitiveMatrix
+ResearchUiPatternGroup
+ResearchTargetUser
+ResearchOpportunity
+ResearchSourceReference
+ReferoSearchRequest
+ReferoScreenReference
+ReferoFlowReference
+ReferoStyleReference
+```
+
+Step 2: Add the Refero adapter in Stage Engine.
+
+Files:
+
+```txt
+apps/stage-engine/src/refero/mod.rs
+apps/stage-engine/src/refero/client.rs
+apps/stage-engine/src/refero/service.rs
+apps/stage-engine/src/config.rs
+apps/stage-engine/src/models/refero.rs
+```
+
+Responsibilities:
+
+```txt
+Read Refero token from secure runtime config.
+Call Refero MCP/tools.
+Search screens/styles/flows based on ResearchInput.
+Normalize Refero responses into Stage ReferoReference models.
+Return references to the Research workflow.
+```
+
+Step 3: Add the Research workflow in Stage Engine.
+
+Files:
+
+```txt
+apps/stage-engine/src/research/mod.rs
+apps/stage-engine/src/research/context.rs
+apps/stage-engine/src/research/prompt.rs
+apps/stage-engine/src/research/service.rs
+apps/stage-engine/src/server/research.rs
+```
+
+Responsibilities:
+
+```txt
+Receive Research intent/input from Electron IPC.
+Fetch project/workspace context from Convex directly.
+Fetch Refero references.
+Build the Claude/Codex prompt with project context and Refero context.
+Require JSON output matching ResearchArtifact.
+Validate/deserialize with serde.
+Persist the run and typed ResearchArtifact back to Convex.
+Return/stream typed ResearchArtifact to React.
+```
+
+Step 4: Add direct Convex access in Stage Engine.
+
+Files:
+
+```txt
+apps/stage-engine/src/convex/mod.rs
+apps/stage-engine/src/convex/client.rs
+apps/stage-engine/src/convex/research_repository.rs
+apps/stage-engine/src/config/mod.rs
+apps/stage-engine/Cargo.toml
+```
+
+Responsibilities:
+
+```txt
+Read Convex URL and auth/session credentials from secure runtime config.
+Use the Rust Convex client for queries/mutations.
+Fetch project AI context by projectId.
+Fetch prior artifacts relevant to Research.
+Create/update projectAiRuns.
+Create/update projectAiArtifacts.
+Keep Convex access out of React.
+Keep REST API out of the normal in-app AI workflow path.
+```
+
+Step 5: Store the Research run and artifact in Convex.
+
+Existing tables already support the direction:
+
+```txt
+projectAiContexts
+projectAiRuns
+projectAiArtifacts
+```
+
+Files:
+
+```txt
+packages/data-ops/convex/projectAi.ts
+packages/data-ops/convex/schema.ts
+```
+
+Responsibilities:
+
+```txt
+Save ResearchInput to projectAiContexts.
+Create a projectAiRuns row when generation starts.
+Save the final ResearchArtifact as projectAiArtifacts.contentJson.
+Keep module = "research".
+Keep kind = "researchArtifact".
+```
+
+Important:
+
+```txt
+This is direct Convex data access from Stage Engine, not HTTP cron-style
+functions and not a REST API detour.
+```
+
+Step 6: Connect React to artifact data.
+
+Current render components:
+
+```txt
+apps/user-application/src/components/project/tabs/research/ResearchSummary.tsx
+apps/user-application/src/components/project/tabs/research/CompanySnapshot.tsx
+apps/user-application/src/components/project/tabs/research/CompetitiveAnalysis.tsx
+apps/user-application/src/components/project/tabs/research/UiPatterns.tsx
+apps/user-application/src/components/project/tabs/research/TargetUsers.tsx
+apps/user-application/src/components/project/tabs/research/Opportunities.tsx
+apps/user-application/src/components/project/tabs/research/ResearchActions.tsx
+```
+
+New React data files:
+
+```txt
+apps/user-application/src/hooks/project/research/useResearchArtifact.ts
+apps/user-application/src/hooks/project/research/useGenerateResearch.ts
+apps/user-application/src/hooks/project/research/useUpdateResearchArtifact.ts
+apps/user-application/src/hooks/project/research/useRegenerateResearchSection.ts
+```
+
+Responsibilities:
+
+```txt
+ResearchTab owns state composition.
+Section components receive typed props.
+Fixture data becomes fallback/dev-only only.
+No section component calls Stage Engine directly.
+No section component calls Refero directly.
+```
+
+Step 7: Add edit/regenerate behavior.
+
+Rules:
+
+```txt
+Edit per visible field/cell/card is allowed.
+Save still updates one researchArtifact.
+Regenerate starts per block/section.
+Per-item regeneration can come later.
+Chat may propose artifact patches, but never silently saves them.
+```
+
+Step 8: Verify one vertical slice.
+
+Smoke path:
+
+```txt
+Open project.
+Fill Research input.
+Run Research.
+Stage Engine reads project context from Convex directly.
+Stage Engine calls Refero.
+Stage Engine calls Claude/Codex.
+ResearchArtifact validates.
+Stage Engine writes artifact to Convex directly.
+React renders summary, snapshot, competitors, matrix, UI patterns, personas,
+and opportunities from the artifact.
+Refresh app.
+Same artifact still renders.
+```
+
+This is how we know the changes work before expanding to Strategy, Moodboard,
+Flows, and Generate.
+
+## CAPTION: Research A-Z audit table
+
+Last updated: May 31, 2026
+
+| Step | Area | Files | Status | Notes |
+|---:|---|---|---|---|
+| 1 | Shared Research contract | `packages/data-ops/src/contracts/research.ts` | done | Adds `ResearchInput`, `ResearchArtifact`, section models, patch model, and Zod validation. |
+| 1 | Shared Refero contract | `packages/data-ops/src/contracts/refero.ts` | done | Adds Refero search/context/reference contracts for screens, flows, and styles. |
+| 1 | Contract exports | `packages/data-ops/src/contracts/index.ts` | done | Exports Research and Refero contracts from `@stage/data-ops/contracts`. |
+| 1 | Rust Research models | `apps/stage-engine/src/models/research.rs` | done | Mirrors the shared TypeScript contract with serde structs/enums. |
+| 1 | Rust Refero models | `apps/stage-engine/src/models/refero.rs` | done | Mirrors normalized Refero context/reference models. |
+| 2 | Refero config boundary | `apps/stage-engine/src/config/mod.rs` | done | Adds `REFERO_MCP_URL` and `REFERO_MCP_TOKEN` env boundary. Token stays out of React. |
+| 2 | Refero client skeleton | `apps/stage-engine/src/refero/client.rs` | done | Adds JSON-RPC MCP `tools/call` client boundary with bearer token support. |
+| 2 | Refero normalization service | `apps/stage-engine/src/refero/service.rs` | done | Adds screen/flow search methods and normalizes loose Refero responses into Stage references. |
+| 2 | Rust module wiring | `apps/stage-engine/src/main.rs` | done | Registers the Refero module in Stage Engine. |
+| 2 | Rust dependency | `apps/stage-engine/Cargo.toml` | done | Adds `reqwest` with `rustls-tls` and JSON support for outbound Refero calls. |
+| 3 | Research Refero query builder | `apps/stage-engine/src/research/context.rs` | done | Builds the first Refero search request from `ResearchInput`. |
+| 3 | Research provider prompt builder | `apps/stage-engine/src/research/prompt.rs` | done | Builds a provider-ready prompt from `ResearchInput` + `ReferoContext`. |
+| 3 | Research workflow service skeleton | `apps/stage-engine/src/research/service.rs` | done | Builds prompt bundle with Refero context for the Research workflow. |
+| 4 | Stage Engine Convex auth decision | `apps/user-application/docs/STAGE_AI_WORKFLOW_CONTEXT_PLAN.md` | partial | Architecture decision is documented. Current implementation passes the desktop bearer token from Electron to Stage Engine, then Stage Engine uses that token against Convex directly. Scoped engine token is still the cleaner next step. |
+| 4 | Stage Engine Convex client | `apps/stage-engine/src/convex_store/*`, `apps/stage-engine/Cargo.toml`, `apps/stage-engine/src/config/mod.rs` | done | Added direct Rust Convex client integration with `convex = 0.10.4` and `CONVEX_URL` runtime config. |
+| 4 | Research context repository | `apps/stage-engine/src/convex_store/research_repository.rs` | done | Fetches normalized Research input from Convex with authenticated direct access. |
+| 4 | Research persistence repository | `apps/stage-engine/src/convex_store/research_repository.rs` | done | Creates Research runs, completes Research runs, saves artifacts, and marks failed runs directly in Convex. |
+| 5 | Convex artifact functions | `packages/data-ops/convex/projectAi.ts` | done | Added `getResearchInput`, `createResearchRun`, `completeResearchRun`, and `failResearchRun` for direct Stage Engine usage. |
+| 5 | Research workflow orchestration | `apps/stage-engine/src/research/workflow.rs`, `apps/stage-engine/src/runs/mod.rs`, `apps/stage-engine/src/server/runs.rs`, `apps/stage-engine/src/app.rs` | done | Research runs now go through Stage Engine -> Convex direct -> Refero -> Claude/Codex -> Convex direct, using the existing `/v1/runs` path. |
+| 5 | Provider final-text collection | `apps/stage-engine/src/providers/process.rs`, `apps/stage-engine/src/providers/adapter.rs`, `apps/stage-engine/src/providers/claude.rs`, `apps/stage-engine/src/providers/codex.rs` | done | Added collect-path so Research can parse the final provider JSON and persist a typed artifact. |
+| 5 | Electron auth handoff to Stage Engine | `apps/user-application/electron/ipc.ts`, `apps/user-application/electron/helpers/sidecar.ts`, `apps/user-application/electron/sidecar.ts` | done | Electron now forwards the current bearer token to Stage Engine requests and SSE run streaming. |
+| 6 | React artifact hooks | `apps/user-application/src/hooks/project/research/*` | todo | Query/mutation hooks should replace fixture reads. |
+| 6 | Research component props | `apps/user-application/src/components/project/tabs/research/*` | todo | Existing components should receive typed artifact sections, not import fixtures directly. |
+| 7 | Edit/regenerate | Research hooks + Convex mutations | todo | Section-level regenerate first; per-item later. |
+| 8 | Vertical slice verification | data-ops + stage-engine + user-application | partial | Verified: `cargo check`, `pnpm run convex:typecheck`, and `pnpm run typecheck` all pass. Full Research is still not complete because the React tab still renders fixtures. |
+
+Verification so far:
+
+```txt
+cargo check
+pnpm --dir packages/data-ops run convex:typecheck
+pnpm --dir apps/user-application run typecheck
 ```
 
 ## CAPTION: Strategy workflow
@@ -981,13 +1514,22 @@ Chat is project-aware, not a generic chatbot.
 Input context:
 
 ```txt
-current project
-current tab
-selected artifact
-selected text/section
-provider preference
-user message
-optional tagged integration or source
+React sends:
+  user message
+  current projectId
+  current route/tab
+  selected visible artifact/section/entity if any
+  selected provider/model
+  optional screenshot/frame pointer
+
+Stage Engine fetches:
+  current project
+  project AI context
+  previous artifacts
+  tasks/decisions
+  provider connection state
+  integration state
+  relevant external context when allowed
 ```
 
 Output:
@@ -1015,6 +1557,18 @@ Should chat be allowed to mutate project artifacts directly?
 Should chat always ask for confirmation before changing saved artifacts?
 How should tagged integrations work: @Refero, @Figma, @Notion, @Sheets?
 ```
+
+Technical rule:
+
+```txt
+Workspace chat, critique, and voice commands should use Stage Engine as the
+context owner.
+
+React provides the user's current surface.
+Stage Engine fetches the real context from Convex directly.
+```
+
+This prevents the fragile pattern where React has to know and send everything.
 
 ## CAPTION: Research chatbox overlay
 
@@ -1137,6 +1691,10 @@ Convex:
   Export state
 
 Stage Engine:
+  Direct Convex access for in-app AI workflows
+  Project/workspace context fetching
+  Research/chat/voice context building
+  AI run and artifact persistence
   Claude/Codex local provider runs
   Deep file search
   Local provider discovery
@@ -1164,6 +1722,8 @@ Do not do this:
 ```txt
 Do not call Claude/Codex directly from each React tab.
 Do not put Refero calls inside random UI components.
+Do not make React responsible for assembling full project AI context.
+Do not route normal desktop AI workflow context through the public REST API.
 Do not store generated research as plain chat text.
 Do not let voice become a separate duplicate AI system.
 Do not make Figma, Notion, and Sheets look like local AI providers.
@@ -1229,9 +1789,11 @@ apps/user-application/src/project/components/tabs/strategy/
 Stage Engine:
 
 ```txt
+apps/stage-engine/src/convex/
 apps/stage-engine/src/providers/
 apps/stage-engine/src/runs/
 apps/stage-engine/src/context/
+apps/stage-engine/src/research/
 apps/stage-engine/src/voice/
 ```
 
@@ -1239,7 +1801,7 @@ Convex:
 
 ```txt
 packages/data-ops/convex/schema.ts
-packages/data-ops/convex/aiArtifacts.ts
+packages/data-ops/convex/projectAi.ts
 packages/data-ops/convex/integrations.ts
 ```
 
@@ -1249,13 +1811,13 @@ packages/data-ops/convex/integrations.ts
 |---|---|---|---|---|
 | Claude/Codex provider detection | Works | Connection preference UX still young | Should providers auto-enable after detection? | Keep explicit connect/disconnect |
 | Claude/Codex chat run | Basic run works | Not yet tied to project artifacts | What context level does chat receive by default? | Define chat context contract |
-| Research | Output shape partly confirmed | Must match Figma and support edit/regenerate | Mandatory V1 sections | Define Research artifact schema |
+| Research | Contracts, Rust models, Refero boundary, prompt builder, and service skeleton exist | Still not end-to-end; Stage Engine does not yet read/write Convex directly | Exact Convex query/mutation surface for Stage Engine | Add Stage Engine Convex client/repository, then wire artifact data |
 | Strategy | Figma flow exists | Approval rules unclear | Can it generate from draft Research? | Define Strategy artifact |
 | Moodboard | Product concept exists | Refero + uploads + styleguide can get messy | What is required for styleguide generation? | Define Moodboard/Styleguide artifact |
 | Flows | Product concept exists | Could jump too quickly to screens | Does it produce flow plans or screens? | Define Flow artifact |
 | Generate/Wireframes | Product concept exists | Too easy to generate from weak context | Lo-Fi/Hi-Fi output shape | Define Wireframe artifact |
 | Voice | Provider chosen: Voxtral Mini Transcribe | Could duplicate chat workflow | Is voice command or dictation first? | Define transcript -> intent flow |
-| Refero | MCP planned/configured | Exact tool contract still needs confirmation | Which Refero results are stored? | Create Refero adapter contract |
+| Refero | MCP access/token available; default for Research confirmed; Rust adapter boundary started | Token must not leak to React; results need normalized Stage types | Which exact screen/style/flow fields are stored? | Connect Refero adapter into Research workflow after Convex context is available |
 | Figma | Designs available | Top-level frames are too broad | Which subframes map to V1? | Inspect sublayers when implementing |
 | Notion | Basic integration exists | Export vs source context must stay separate | Can AI read Notion automatically? | Define Notion context permission |
 | Google Sheets | Basic integration exists | Imported rows need schema | Which sheets become project context? | Define Sheets import schema |

@@ -1,10 +1,13 @@
 import { app, Menu } from "electron";
+import { loadLocalEnv } from "./helpers/loadEnv";
 import { createDesktopAuthController } from "./auth";
 import { createDesktopAuthCallbackServer } from "./helpers/auth-callback-server";
 import { findStageAuthUrl, registerStageProtocol } from "./helpers/auth";
 import { registerIpcHandlers } from "./ipc";
 import { createSidecarSupervisor } from "./sidecar";
 import { createMainWindow, shouldSuppressMainWindowActivation } from "./windows";
+
+loadLocalEnv();
 
 app.setName("Stage");
 if (process.platform === "darwin") {

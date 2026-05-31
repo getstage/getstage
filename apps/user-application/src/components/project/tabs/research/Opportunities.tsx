@@ -1,8 +1,12 @@
-import { opportunities } from "@/data/fixtures/project/researchTabFixtures";
 import { SectionTitle } from "./ResearchPrimitives";
 import { RegenerateIcon } from "./researchIcons";
 
-export function Opportunities({ isEditing }: { isEditing: boolean }) {
+type OpportunitiesProps = {
+  opportunities: string[];
+  isEditing: boolean;
+};
+
+export function Opportunities({ opportunities, isEditing }: OpportunitiesProps) {
   return (
     <section className="flex flex-col gap-2">
       <SectionTitle>Opportunities</SectionTitle>

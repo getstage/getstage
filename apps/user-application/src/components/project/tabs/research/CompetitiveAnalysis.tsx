@@ -1,7 +1,3 @@
-import {
-  competitiveMatrixRows,
-  competitors,
-} from "@/data/fixtures/project/researchTabFixtures";
 import type { ResearchCompetitor } from "@/types/project/researchTab";
 import { SectionTitle } from "./ResearchPrimitives";
 import { CardIcon, MatrixIcon } from "./researchIcons";
@@ -9,10 +5,18 @@ import { CardIcon, MatrixIcon } from "./researchIcons";
 type CompetitiveAnalysisProps = {
   isEditing: boolean;
   view: "card" | "matrix";
+  competitors: ResearchCompetitor[];
+  matrixRows: Array<{ label: string; values: string[] }>;
   onViewChange: (view: "card" | "matrix") => void;
 };
 
-export function CompetitiveAnalysis({ isEditing, view, onViewChange }: CompetitiveAnalysisProps) {
+export function CompetitiveAnalysis({
+  isEditing,
+  view,
+  competitors,
+  matrixRows,
+  onViewChange,
+}: CompetitiveAnalysisProps) {
   return (
     <section className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -45,7 +49,7 @@ export function CompetitiveAnalysis({ isEditing, view, onViewChange }: Competiti
         </div>
       </div>
       {view === "matrix" ? (
-        <CompetitiveMatrix />
+        <CompetitiveMatrix competitors={competitors} matrixRows={matrixRows} />
       ) : (
         <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
           {competitors.map((competitor) => (
@@ -57,7 +61,13 @@ export function CompetitiveAnalysis({ isEditing, view, onViewChange }: Competiti
   );
 }
 
-function CompetitiveMatrix() {
+function CompetitiveMatrix({
+  competitors,
+  matrixRows,
+}: {
+  competitors: ResearchCompetitor[];
+  matrixRows: Array<{ label: string; values: string[] }>;
+}) {
   return (
     <div className="w-full overflow-x-auto rounded-[8px] pb-1">
       <div className="min-w-[820px] overflow-hidden rounded-[8px] border border-[#D9D9D9] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -70,16 +80,16 @@ function CompetitiveMatrix() {
             </div>
           ))}
         </div>
-        {competitiveMatrixRows.map((row, rowIndex) => (
+        {matrixRows.map((row, rowIndex) => (
           <div
             key={row.label}
-            className={`grid grid-cols-[220px_repeat(4,minmax(130px,1fr))] ${rowIndex < competitiveMatrixRows.length - 1 ? "border-b border-[#E8E8E8]" : ""}`}
+            className={`grid grid-cols-[220px_repeat(4,minmax(130px,1fr))] ${rowIndex < matrixRows.length - 1 ? "border-b border-[#E8E8E8]" : ""}`}
           >
             <div className="border-r border-[#E8E8E8] bg-[#FBFBFB] px-4 py-3 text-[12px] font-medium leading-[1.25] text-[#171717]">
               {row.label}
             </div>
             {row.values.map((value, index) => (
-              <div key={`${row.label}-${competitors[index].name}`} className="border-r border-[#E8E8E8] px-4 py-3 last:border-r-0">
+              <div key={`${row.label}-${competitors[index]?.name ?? index}`} className="border-r border-[#E8E8E8] px-4 py-3 last:border-r-0">
                 <MatrixScore value={value} />
               </div>
             ))}

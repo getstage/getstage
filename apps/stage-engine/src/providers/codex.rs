@@ -3,7 +3,10 @@ use tokio::sync::watch;
 use crate::helpers::time::now_millis;
 use crate::models::runs::RunEvent;
 use crate::providers::adapter::ProviderRunContext;
-use crate::providers::process::{ProviderProcessSpec, run_provider_process};
+use crate::providers::process::{
+    ProviderProcessError, ProviderProcessOutcome, ProviderProcessSpec, run_provider_process,
+    run_provider_process_collect,
+};
 use crate::runs::RunEventSink;
 
 pub async fn run_codex(
@@ -28,6 +31,30 @@ pub async fn run_codex(
     };
 
     run_provider_process(context, spec, events, cancel).await;
+}
+
+pub async fn run_codex_collect(
+    context: ProviderRunContext,
+    events: RunEventSink,
+    cancel: &mut watch::Receiver<bool>,
+) -> Result<ProviderProcessOutcome, ProviderProcessError> {
+    events.send(RunEvent::RunStarted {
+        api_version: context.api_version,
+        run_id: context.run_id.clone(),
+        provider_id: context.request.provider_id,
+        created_at: now_millis(),
+        model_id: context.request.model_id.clone(),
+        mode: context.request.mode,
+    });
+
+    let spec = ProviderProcessSpec {
+        binary: "codex",
+        args: codex_args(&context),
+        stdin: Some(context.request.prompt.clone()),
+        working_directory: None,
+    };
+
+    run_provider_process_collect(&context, spec, events, cancel).await
 }
 
 fn codex_args(context: &ProviderRunContext) -> Vec<String> {

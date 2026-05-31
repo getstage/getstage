@@ -73,7 +73,7 @@ pub async fn run_provider_process(
     events: RunEventSink,
     cancel: &mut watch::Receiver<bool>,
 ) {
-    match run_provider_process_inner(&context, spec, events.clone(), cancel).await {
+    match run_provider_process_collect(&context, spec, events.clone(), cancel).await {
         Ok(ProviderProcessOutcome::Completed(final_text)) => {
             events.send(RunEvent::RunCompleted {
                 api_version: context.api_version,
@@ -96,7 +96,7 @@ pub async fn run_provider_process(
     }
 }
 
-async fn run_provider_process_inner(
+pub async fn run_provider_process_collect(
     context: &ProviderRunContext,
     spec: ProviderProcessSpec,
     events: RunEventSink,
@@ -213,7 +213,7 @@ async fn run_provider_process_inner(
 }
 
 #[derive(Debug)]
-enum ProviderProcessOutcome {
+pub enum ProviderProcessOutcome {
     Completed(String),
     Cancelled,
 }
