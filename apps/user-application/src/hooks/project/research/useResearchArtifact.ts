@@ -1,32 +1,35 @@
 import { useMemo } from "react";
 import { useQuery } from "convex/react";
-import { researchArtifactSchema, type ResearchArtifact } from "@stage/data-ops/contracts";
+import {
+  formatResearchArtifactParseIssues,
+  parseResearchArtifactContent,
+} from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { useDesktopAuth } from "@/lib/auth";
 import { mapResearchArtifactToTabData } from "@/lib/project/mapResearchArtifactToTabData";
-import { SHOULD_QUERY_PROJECT_AI_ARTIFACTS } from "@/lib/project/shouldQueryProjectAiArtifacts";
 import { api } from "@/lib/convexApi";
 import type { ResearchArtifactRecord } from "@/types/project/researchArtifactRecord";
 
 export type { ResearchArtifactRecord } from "@/types/project/researchArtifactRecord";
 
-function parseResearchArtifact(contentJson: string | null): ResearchArtifact | null {
-  if (!contentJson) {
+function parseResearchArtifact(contentJson: string | null) {
+  if (!contentJson?.trim()) {
     return null;
   }
 
-  try {
-    const parsed = JSON.parse(contentJson) as unknown;
-    return researchArtifactSchema.parse(parsed);
-  } catch {
+  const artifact = parseResearchArtifactContent(contentJson);
+  if (!artifact) {
+    const issues = formatResearchArtifactParseIssues(contentJson);
+    console.error("[research] artifact parse failed", issues);
     return null;
   }
+
+  return artifact;
 }
 
 export function useResearchArtifact(projectId: string | undefined) {
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
-  const queryEnabled =
-    SHOULD_QUERY_PROJECT_AI_ARTIFACTS && isAuthenticated && Boolean(projectId);
+  const queryEnabled = isAuthenticated && Boolean(projectId);
   const record = useQuery(
     api.projectAi.getLatestResearchArtifact,
     queryEnabled ? { projectId: projectId as Id<"projects"> } : "skip",
@@ -56,10 +59,12 @@ export function useResearchArtifact(projectId: string | undefined) {
     return null;
   }, [record]);
 
+  const hasStoredContent = Boolean(record?.contentJson?.trim());
+
   return {
     data,
     isLoading: isAuthLoading || (queryEnabled && record === undefined),
     hasArtifact: data !== null,
-    parseError: record !== undefined && record !== null && data === null,
+    parseError: hasStoredContent && data === null,
   };
 }

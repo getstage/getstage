@@ -1,7 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ProviderId } from "@stage/data-ops/contracts";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ProviderId, RunEvent } from "@stage/data-ops/contracts";
+import { useQueryClient } from "@tanstack/react-query";
+import { engineQueryKeys } from "@/hooks/engine/queryKeys";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
+import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
+import {
+  RESEARCH_RUN_FAILED_USER_MESSAGE,
+  formatRunFailedEvent,
+} from "@/lib/engine/formatRunError";
 
 const RESEARCH_PROMPT = "Generate project research from the current Stage project context.";
 
@@ -10,65 +17,133 @@ const DEFAULT_RESEARCH_MODELS: Record<ProviderId, string> = {
   codex: "codex-default",
 };
 
-function resolveResearchProvider(isProviderEnabled: (providerId: ProviderId) => boolean): ProviderId | null {
-  if (isProviderEnabled("claude")) {
-    return "claude";
-  }
+/** If IPC stream dies immediately, unblock the UI within ~20s. */
+const RESEARCH_EVENT_STALL_MS = 20_000;
+const RESEARCH_RUN_MAX_MS = 20 * 60 * 1000;
 
-  if (isProviderEnabled("codex")) {
-    return "codex";
-  }
-
-  return null;
+function hasTerminalRunEvent(events: RunEvent[]) {
+  return events.some(
+    (event) =>
+      event.type === "run_completed" ||
+      event.type === "run_failed" ||
+      event.type === "run_cancelled",
+  );
 }
 
 export function useResearchRun(projectId: string) {
+  const queryClient = useQueryClient();
   const providerRun = useProviderRun();
   const providerPreferences = useProviderPreferences();
+  const providers = useProviderStatus();
   const [error, setError] = useState<string | null>(null);
+  const [runEnded, setRunEnded] = useState(false);
+  const runStartedAtRef = useRef<number | null>(null);
 
+  const activeRunId = providerRun.activeRunId;
   const activeRunEvents = providerRun.activeRunEvents;
+  const hasTerminalEvent = hasTerminalRunEvent(activeRunEvents);
+
   const isRunning = useMemo(
-    () =>
-      providerRun.activeRunId !== null &&
-      !activeRunEvents.some(
-        (event) =>
-          event.type === "run_completed" ||
-          event.type === "run_failed" ||
-          event.type === "run_cancelled",
-      ),
-    [activeRunEvents, providerRun.activeRunId],
+    () => !runEnded && activeRunId !== null && !hasTerminalEvent,
+    [activeRunId, hasTerminalEvent, runEnded],
   );
 
   const runError = useMemo(() => {
     const failedEvent = activeRunEvents.find((event) => event.type === "run_failed");
-    return failedEvent?.type === "run_failed" ? failedEvent.error.message : null;
+    return failedEvent?.type === "run_failed" ? formatRunFailedEvent(failedEvent) : null;
   }, [activeRunEvents]);
+
+  const failRun = useCallback(
+    (logMessage: string) => {
+      console.error(logMessage);
+      setRunEnded(true);
+      setError(RESEARCH_RUN_FAILED_USER_MESSAGE);
+      providerRun.resetActiveRun();
+    },
+    [providerRun],
+  );
 
   useEffect(() => {
     if (runError) {
-      setError(runError);
+      console.error(runError);
+      setRunEnded(true);
+      setError(RESEARCH_RUN_FAILED_USER_MESSAGE);
     }
   }, [runError]);
 
-  const startResearch = useCallback(async () => {
-    setError(null);
+  useEffect(() => {
+    if (hasTerminalEvent && !runEnded) {
+      setRunEnded(true);
+    }
+  }, [hasTerminalEvent, runEnded]);
 
-    const providerId = resolveResearchProvider(providerPreferences.isProviderEnabled);
-    if (!providerId) {
-      throw new Error("Connect Claude or Codex in Integrations before running Research.");
+  useEffect(() => {
+    if (!activeRunId || runEnded || hasTerminalEvent) {
+      return;
     }
 
-    await providerRun.startRun.mutateAsync({
-      providerId,
-      modelId: DEFAULT_RESEARCH_MODELS[providerId],
-      prompt: RESEARCH_PROMPT,
-      mode: "research",
-      context: { projectId },
-      attachments: [],
-      modelOptions: [],
-    });
-  }, [projectId, providerPreferences, providerRun.startRun]);
+    runStartedAtRef.current = Date.now();
+
+    const stallTimer = window.setTimeout(() => {
+      const events =
+        queryClient.getQueryData<RunEvent[]>(engineQueryKeys.runEvents(activeRunId)) ?? [];
+
+      if (hasTerminalRunEvent(events)) {
+        return;
+      }
+
+      if (events.length === 0) {
+        failRun(
+          "[stage-engine] research run stalled: no events received (Electron main process likely out of date — restart pnpm dev)",
+        );
+      }
+    }, RESEARCH_EVENT_STALL_MS);
+
+    const maxTimer = window.setTimeout(() => {
+      failRun("[stage-engine] research run watchdog: exceeded maximum duration");
+    }, RESEARCH_RUN_MAX_MS);
+
+    return () => {
+      window.clearTimeout(stallTimer);
+      window.clearTimeout(maxTimer);
+    };
+  }, [activeRunId, failRun, hasTerminalEvent, queryClient, runEnded]);
+
+  const startResearch = useCallback(
+    async (providerId: ProviderId) => {
+      setError(null);
+      setRunEnded(false);
+      runStartedAtRef.current = null;
+
+      if (!providerPreferences.isProviderEnabled(providerId)) {
+        const userMessage = `Connect ${providerId === "claude" ? "Claude" : "Codex"} in Settings → Integrations before running Research.`;
+        console.error(`[stage-engine] preflight failed: ${userMessage}`);
+        throw new Error(userMessage);
+      }
+
+      const provider = providers.data?.providers.find((entry) => entry.id === providerId);
+      if (!provider || provider.status !== "ready") {
+        const userMessage =
+          provider?.setupHint ??
+          `${providerId === "claude" ? "Claude" : "Codex"} is not set up yet. Open Settings → Integrations and try again.`;
+        console.error(
+          `[stage-engine] preflight failed provider=${providerId} status=${provider?.status ?? "missing"} message=${provider?.message ?? "none"} detail=${userMessage}`,
+        );
+        throw new Error(userMessage);
+      }
+
+      await providerRun.startRun.mutateAsync({
+        providerId,
+        modelId: DEFAULT_RESEARCH_MODELS[providerId],
+        prompt: RESEARCH_PROMPT,
+        mode: "research",
+        context: { projectId },
+        attachments: [],
+        modelOptions: [],
+      });
+    },
+    [projectId, providerPreferences, providerRun.startRun, providers.data?.providers],
+  );
 
   const cancelResearch = useCallback(async () => {
     if (!providerRun.activeRunId) {
@@ -85,6 +160,8 @@ export function useResearchRun(projectId: string) {
     isRunning,
     activeRunId: providerRun.activeRunId,
     runEvents: activeRunEvents,
-    error: error ?? (providerRun.startRun.error instanceof Error ? providerRun.startRun.error.message : null),
+    error:
+      error ??
+      (providerRun.startRun.error instanceof Error ? RESEARCH_RUN_FAILED_USER_MESSAGE : null),
   };
 }

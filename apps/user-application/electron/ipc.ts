@@ -7,6 +7,8 @@ import {
   runEventSchema,
   startRunRequestSchema,
   startRunResponseSchema,
+  type ProviderId,
+  type RunEvent,
 } from "@stage/data-ops/contracts";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import {
@@ -92,6 +94,9 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IPC_CHANNELS.engineStartRun, async (event, request: unknown) => {
     const parsedRequest = startRunRequestSchema.parse(request);
+    console.info(
+      `[stage-engine] run request provider=${parsedRequest.providerId} mode=${parsedRequest.mode} projectId=${parsedRequest.context.projectId ?? "none"}`,
+    );
     const status = await sidecarSupervisor.start();
     const accessToken = await authController.getAccessToken();
     const payload = await fetchEngineJson<unknown>({
@@ -107,6 +112,7 @@ export function registerIpcHandlers({
       accessToken,
       port: status.port,
       runId: response.runId,
+      providerId: parsedRequest.providerId,
       sender: event.sender,
     });
 
@@ -206,12 +212,14 @@ async function streamRunEventsToRenderer(args: {
   accessToken?: string | null;
   port: number;
   runId: string;
+  providerId: ProviderId;
   sender: WebContents;
 }) {
   activeRunStreams.get(args.runId)?.abort();
 
   const controller = new AbortController();
   activeRunStreams.set(args.runId, controller);
+  let sawTerminalEvent = false;
 
   try {
     const response = await fetch(
@@ -247,7 +255,7 @@ async function streamRunEventsToRenderer(args: {
         if (!runEvent) {
           continue;
         }
-
+        logRunEvent(runEvent);
         args.sender.send(IPC_CHANNELS.engineRunEvent, runEvent);
 
         if (
@@ -255,6 +263,7 @@ async function streamRunEventsToRenderer(args: {
           runEvent.type === "run_failed" ||
           runEvent.type === "run_cancelled"
         ) {
+          sawTerminalEvent = true;
           controller.abort();
           break;
         }
@@ -262,9 +271,12 @@ async function streamRunEventsToRenderer(args: {
     }
   } catch (error) {
     if (!controller.signal.aborted) {
-      console.warn("[Stage Engine] Run event stream failed", error);
+      console.error("[stage-engine] run event stream failed", error);
     }
   } finally {
+    if (!sawTerminalEvent && !controller.signal.aborted) {
+      emitSyntheticRunFailed(args, "The research run ended before Stage received a final status.");
+    }
     activeRunStreams.delete(args.runId);
   }
 }
@@ -280,5 +292,61 @@ function parseRunEventBlock(block: string) {
     return null;
   }
 
-  return runEventSchema.parse(JSON.parse(data));
+  let json: unknown;
+  try {
+    json = JSON.parse(data);
+  } catch (error) {
+    console.warn("[stage-engine] skipped non-JSON run event block", error);
+    return null;
+  }
+
+  const parsed = runEventSchema.safeParse(json);
+  if (!parsed.success) {
+    console.warn("[stage-engine] skipped invalid run event", parsed.error.flatten());
+    return null;
+  }
+
+  return parsed.data;
+}
+
+function emitSyntheticRunFailed(
+  args: {
+    runId: string;
+    providerId: ProviderId;
+    sender: WebContents;
+  },
+  detail: string,
+) {
+  const event = runEventSchema.parse({
+    apiVersion: "v1",
+    type: "run_failed",
+    runId: args.runId,
+    providerId: args.providerId,
+    createdAt: Date.now(),
+    error: {
+      code: "io_error",
+      message: "The selected AI provider could not finish the research run.",
+      providerId: args.providerId,
+      retryable: true,
+      detail,
+    },
+  } satisfies RunEvent);
+
+  console.error(`[stage-engine] ${JSON.stringify(event)}`);
+  args.sender.send(IPC_CHANNELS.engineRunEvent, event);
+}
+
+function logRunEvent(event: RunEvent) {
+  const payload = JSON.stringify(event);
+  switch (event.type) {
+    case "run_failed":
+      console.error(`[stage-engine] ${payload}`);
+      return;
+    case "run_cancelled":
+    case "provider_warning":
+      console.warn(`[stage-engine] ${payload}`);
+      return;
+    default:
+      console.info(`[stage-engine] ${payload}`);
+  }
 }

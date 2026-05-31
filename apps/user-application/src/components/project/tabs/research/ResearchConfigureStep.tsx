@@ -1,4 +1,6 @@
 import { useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import type { ProviderId } from "@stage/data-ops/contracts";
+import { useResearchProviderSelection } from "@/hooks/project/research/useResearchProviderSelection";
 import {
   DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES,
   isResearchConfigureFormSubmittable,
@@ -8,6 +10,7 @@ import {
   type ResearchConfigureFormValues,
   type ValidatedResearchConfigureInput,
 } from "@/lib/project/researchConfigureInput";
+import { ResearchProviderPicker } from "./ResearchProviderPicker";
 import { PlusIcon } from "./researchIcons";
 
 const suggestedIndustries = "e.g. Fintech, E-commerce, SaaS, Health";
@@ -17,14 +20,21 @@ export function ResearchConfigureStep({
   onSubmit,
 }: {
   isSubmitting: boolean;
-  onSubmit: (input: ValidatedResearchConfigureInput) => void;
+  onSubmit: (input: ValidatedResearchConfigureInput, providerId: ProviderId) => void;
 }) {
   const [values, setValues] = useState<ResearchConfigureFormValues>(DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES);
   const [competitorInput, setCompetitorInput] = useState("");
   const [fieldErrors, setFieldErrors] = useState<ResearchConfigureFieldErrors>({});
+  const [providerError, setProviderError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const {
+    selectedProviderId,
+    selectProvider,
+    providerOptions,
+    canRunWithProvider,
+  } = useResearchProviderSelection();
 
-  const canSubmit = isResearchConfigureFormSubmittable(values);
+  const canSubmit = isResearchConfigureFormSubmittable(values) && canRunWithProvider;
 
   function updateField<Key extends keyof ResearchConfigureFormValues>(
     key: Key,
@@ -129,8 +139,14 @@ export function ResearchConfigureStep({
       return;
     }
 
+    if (!selectedProviderId || !canRunWithProvider) {
+      setProviderError("Choose Claude or Codex to run Research.");
+      return;
+    }
+
     setFieldErrors({});
-    onSubmit(result.data);
+    setProviderError(null);
+    onSubmit(result.data, selectedProviderId);
   }
 
   return (
@@ -260,6 +276,16 @@ export function ResearchConfigureStep({
                   className="h-[92px] w-[370px] rounded-[6px] bg-[#F5F5F5] p-3 text-[12px] font-medium text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#525252]"
                 />
               </FormField>
+
+              <ResearchProviderPicker
+                options={providerOptions}
+                selectedProviderId={selectedProviderId}
+                onSelect={(providerId) => {
+                  selectProvider(providerId);
+                  setProviderError(null);
+                }}
+                error={providerError ?? undefined}
+              />
 
               <div className="flex items-center gap-3">
                 <button

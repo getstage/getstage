@@ -2,6 +2,10 @@ import { z } from "zod";
 
 import { referoContextSchema } from "./refero";
 
+/** Codex/engine emits explicit null for absent fields — use nullish, not optional-only. */
+const optionalText = z.string().min(1).nullish();
+const optionalUrl = z.string().min(1).nullish();
+
 export const researchMatrixScoreSchema = z.enum(["Strong", "OK", "Weak"]);
 
 export const researchArtifactSectionSchema = z.enum([
@@ -34,12 +38,12 @@ export const researchCompanySnapshotRowSchema = z.object({
 export const researchCompetitorSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
-  url: z.string().min(1).optional(),
-  logoUrl: z.string().url().optional(),
-  mark: z.string().min(1).optional(),
-  color: z.string().min(1).optional(),
-  positioning: z.string().min(1).optional(),
-  summary: z.string().min(1).optional(),
+  url: optionalText,
+  logoUrl: optionalUrl,
+  mark: optionalText,
+  color: optionalText,
+  positioning: optionalText,
+  summary: optionalText,
   strengths: z.array(z.string().min(1)).default([]),
   weaknesses: z.array(z.string().min(1)).default([]),
   sourceReferenceIds: z.array(z.string().min(1)).default([]),
@@ -48,7 +52,7 @@ export const researchCompetitorSchema = z.object({
 export const researchCompetitiveMatrixCellSchema = z.object({
   competitorId: z.string().min(1),
   score: researchMatrixScoreSchema,
-  note: z.string().optional(),
+  note: z.string().nullish(),
 });
 
 export const researchCompetitiveMatrixRowSchema = z.object({
@@ -65,16 +69,16 @@ export const researchCompetitiveAnalysisSchema = z.object({
 export const researchUiPatternExampleSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
-  imageUrl: z.string().url().optional(),
-  sourceProduct: z.string().min(1).optional(),
-  sourceReferenceId: z.string().min(1).optional(),
+  imageUrl: optionalUrl,
+  sourceProduct: optionalText,
+  sourceReferenceId: optionalText,
 });
 
 export const researchUiPatternGroupSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
-  summary: z.string().min(1).optional(),
-  patternCountLabel: z.string().min(1).optional(),
+  summary: optionalText,
+  patternCountLabel: optionalText,
   recognizedPatterns: z.array(z.string().min(1)).default([]),
   examples: z.array(researchUiPatternExampleSchema).default([]),
 });
@@ -85,24 +89,24 @@ export const researchTargetUserSchema = z.object({
   role: z.string().min(1),
   goals: z.array(z.string().min(1)).default([]),
   frustrations: z.array(z.string().min(1)).default([]),
-  context: z.string().min(1).optional(),
-  relevance: z.string().min(1).optional(),
+  context: optionalText,
+  relevance: optionalText,
   assumptions: z.array(z.string().min(1)).default([]),
 });
 
 export const researchOpportunitySchema = z.object({
   id: z.string().min(1),
-  title: z.string().min(1).optional(),
+  title: optionalText,
   description: z.string().min(1),
-  sourceSection: researchArtifactSectionSchema.optional(),
+  sourceSection: researchArtifactSectionSchema.nullish(),
 });
 
 export const researchSourceReferenceSchema = z.object({
   id: z.string().min(1),
   provider: z.enum(["refero", "figma", "notion", "sheets", "website", "user"]),
   label: z.string().min(1),
-  url: z.string().url().optional(),
-  externalId: z.string().min(1).optional(),
+  url: optionalUrl,
+  externalId: optionalText,
 });
 
 export const researchArtifactSchema = z.object({

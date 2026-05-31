@@ -1,14 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
-import type { ResearchInput } from "@stage/data-ops/contracts";
-import {
-  buildResearchInput,
-  parseStoredResearchConfigureInput,
-  type ValidatedResearchConfigureInput,
-} from "@/lib/project/researchConfigureInput";
+import { useCallback, useState } from "react";
+import type { ProviderId } from "@stage/data-ops/contracts";
+import type { ValidatedResearchConfigureInput } from "@/lib/project/researchConfigureInput";
 import {
   delay,
   getMockResearchArtifactRecord,
-  loadMockResearchArtifactRecord,
   MOCK_RESEARCH_RUN_DELAY_MS,
   saveMockResearchArtifactRecord,
   USE_MOCK_RESEARCH_DATA,
@@ -17,52 +12,23 @@ import type { Project } from "@/models/project/project";
 import type { ResearchArtifactRecord } from "@/types/project/researchArtifactRecord";
 import { useResearchArtifact } from "./useResearchArtifact";
 import { useResearchRun } from "./useResearchRun";
-
-const RESEARCH_INPUT_STORAGE_PREFIX = "stage:research-configure-input:";
-
-function loadStoredResearchInput(projectId: string): ValidatedResearchConfigureInput | null {
-  try {
-    const raw = sessionStorage.getItem(`${RESEARCH_INPUT_STORAGE_PREFIX}${projectId}`);
-    if (!raw) {
-      return null;
-    }
-
-    return parseStoredResearchConfigureInput(JSON.parse(raw) as unknown);
-  } catch {
-    return null;
-  }
-}
-
-function saveStoredResearchInput(projectId: string, input: ValidatedResearchConfigureInput) {
-  sessionStorage.setItem(`${RESEARCH_INPUT_STORAGE_PREFIX}${projectId}`, JSON.stringify(input));
-}
+import { useSaveResearchContext } from "./useSaveResearchContext";
+import { RESEARCH_RUN_FAILED_USER_MESSAGE } from "@/lib/engine/formatRunError";
 
 export function useResearchTab(project: Pick<Project, "id" | "name" | "clientName">) {
   const projectId = project.id;
   const researchArtifact = useResearchArtifact(projectId);
   const researchRun = useResearchRun(projectId);
-  const [mockRecord, setMockRecord] = useState<ResearchArtifactRecord | null>(() =>
-    loadMockResearchArtifactRecord(projectId),
-  );
-  const [lastInput, setLastInput] = useState<ValidatedResearchConfigureInput | null>(() =>
-    loadStoredResearchInput(projectId),
-  );
+  const saveResearchContext = useSaveResearchContext(projectId);
+  const [mockRecord, setMockRecord] = useState<ResearchArtifactRecord | null>(null);
   const [isMockRunning, setIsMockRunning] = useState(false);
-  const [mockError, setMockError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setMockRecord(loadMockResearchArtifactRecord(projectId));
-    setLastInput(loadStoredResearchInput(projectId));
-    setMockError(null);
-    setIsMockRunning(false);
-  }, [projectId]);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const backendData = researchArtifact.data;
-  const data = backendData ?? mockRecord;
-  const usingMockData = backendData === null && mockRecord !== null;
+  const data = USE_MOCK_RESEARCH_DATA ? (backendData ?? mockRecord) : backendData;
+  const usingMockData = USE_MOCK_RESEARCH_DATA && backendData === null && mockRecord !== null;
 
   const startMockResearch = useCallback(async () => {
-    setMockError(null);
     setIsMockRunning(true);
 
     try {
@@ -70,47 +36,45 @@ export function useResearchTab(project: Pick<Project, "id" | "name" | "clientNam
       const record = getMockResearchArtifactRecord(projectId);
       setMockRecord(record);
       saveMockResearchArtifactRecord(projectId, record);
-    } catch (error) {
-      setMockError(error instanceof Error ? error.message : "Could not finish mock Research.");
     } finally {
       setIsMockRunning(false);
     }
   }, [projectId]);
 
   const startResearch = useCallback(
-    async (input?: ValidatedResearchConfigureInput) => {
-      const resolvedInput = input ?? lastInput;
-      let researchInput: ResearchInput | undefined;
-
-      if (resolvedInput) {
-        researchInput = buildResearchInput(project, resolvedInput);
-        setLastInput(resolvedInput);
-        saveStoredResearchInput(projectId, resolvedInput);
+    async (input?: ValidatedResearchConfigureInput, providerId?: ProviderId) => {
+      if (!input || !providerId) {
+        throw new Error("Configure Research before running.");
       }
+
+      setSaveError(null);
 
       if (USE_MOCK_RESEARCH_DATA && !backendData) {
-        if (!researchInput) {
-          throw new Error("Configure Research before running.");
-        }
-
         await startMockResearch();
-        return researchInput;
+        return;
       }
 
-      if (!researchInput) {
-        await researchRun.startResearch();
-        return undefined;
+      try {
+        await saveResearchContext(input);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Could not save research context.";
+        console.error(`[stage-engine] convex context save failed: ${message}`);
+        setSaveError(RESEARCH_RUN_FAILED_USER_MESSAGE);
+        throw error;
       }
 
-      await researchRun.startResearch();
-      return researchInput;
+      await researchRun.startResearch(providerId);
     },
-    [backendData, lastInput, project, projectId, researchRun, startMockResearch],
+    [backendData, researchRun, saveResearchContext, startMockResearch],
   );
 
-  const isRunning = backendData ? researchRun.isRunning : isMockRunning || researchRun.isRunning;
-  const isStarting = backendData ? researchRun.isStarting : isMockRunning || researchRun.isStarting;
-  const error = mockError ?? researchRun.error;
+  const isRunning = USE_MOCK_RESEARCH_DATA && !backendData
+    ? isMockRunning || researchRun.isRunning
+    : researchRun.isRunning;
+  const isStarting = USE_MOCK_RESEARCH_DATA && !backendData
+    ? isMockRunning || researchRun.isStarting
+    : researchRun.isStarting;
+  const error = saveError ?? researchRun.error;
 
   return {
     data,
@@ -118,7 +82,6 @@ export function useResearchTab(project: Pick<Project, "id" | "name" | "clientNam
     hasArtifact: data !== null,
     parseError: researchArtifact.parseError,
     usingMockData,
-    lastInput,
     startResearch,
     cancelResearch: researchRun.cancelResearch,
     isRunning,

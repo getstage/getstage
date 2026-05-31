@@ -1,8 +1,10 @@
 # Stage AI Research Handoff
 
-Date: May 31, 2026  
-Status: Clear handoff for the next AI  
+Date: May 31, 2026 (updated end of day)  
+Status: Backend done; desktop wiring in progress — see `RESEARCH_DEV_STATUS.md`  
 Scope: Research workflow only
+
+> **For debugging and what changed today:** read [`RESEARCH_DEV_STATUS.md`](./RESEARCH_DEV_STATUS.md) first.
 
 ## CAPTION: Why this file exists
 
@@ -172,19 +174,37 @@ User application TypeScript typechecks.
 Still missing:
 
 ```txt
-1. React Research hooks that read the saved researchArtifact from Convex.
-2. ResearchTab switching from fixtures to persisted artifact data.
-3. Real Run Research action from the Research UI.
-4. Edit/save/regenerate mutations for Research sections.
-5. Full end-to-end smoke test from Research form -> saved artifact -> rendered tab.
+1. Edit/save/regenerate mutations for Research sections.
+2. Export to Notion.
+3. Brief file upload to R2 (filename only in form today).
+4. Full end-to-end smoke test signed off.
+```
+
+Desktop wiring progress (May 31):
+
+```txt
+DONE:
+  - useResearchArtifact + useResearchRun hooks
+  - useSaveResearchContext (form → upsertContext)
+  - Real runs by default (mock opt-in via VITE_MOCK_RESEARCH=1)
+  - Engine logs in pnpm dev terminal ([stage-engine] prefix)
+  - Error detail surfaced in UI + IPC logging
+  - industry field on projectAiContexts
+
+NOT DONE:
+  - Section edit/save/regenerate
+  - Notion export
+  - E2E verification
 ```
 
 Important:
 
 ```txt
-Backend Research foundation is now real.
-Frontend Research rendering is still fixture-driven.
-So Research is NOT fully done yet.
+Backend Research foundation is real.
+Desktop Research runs end-to-end (Codex/Claude + Convex artifact) when CLI and .env are correct.
+Artifact parse in UI fixed May 31: research.ts + refero.ts use .nullish() for Codex null fields.
+Refero screenshots NOT persisted yet — next work is stage-engine → R2.
+See RESEARCH_DEV_STATUS.md and RESEARCH_PRODUCT_REQUIREMENTS.md.
 ```
 
 ## CAPTION: Current auth reality
@@ -208,21 +228,19 @@ But that is NOT required before the next frontend Research step.
 
 ## CAPTION: The next AI should do this first
 
-First next step:
+**Product rules:** [`RESEARCH_PRODUCT_REQUIREMENTS.md`](./RESEARCH_PRODUCT_REQUIREMENTS.md)
+
+Priority order:
 
 ```txt
-Replace Research fixture reads with a real Convex-backed hook.
+1. Stage Engine: Refero MCP images → download → R2 → permanent URLs in contentJson + uiPatterns.examples.imageUrl
+2. Convex completeResearchRun: delete previous research artifacts for project (one active research)
+3. React: Save Changes → patch contentJson in Convex
+4. Section-level Regenerate with AI (not full rerun)
+5. Pre-fill Configure Research from projectAiContexts
 ```
 
-Suggested order:
-
-```txt
-1. Add a query that returns the latest researchArtifact for a project.
-2. Add a React hook, e.g. useResearchArtifact(projectId).
-3. Map artifact JSON into the existing ResearchTab section props.
-4. Keep fixtures only as explicit fallback/dev data.
-5. Wire the "Run Research" action to the existing Stage Engine run path.
-```
+Desktop hook + artifact read are done. Do **not** re-wire fixtures unless VITE_MOCK_RESEARCH=1.
 
 ## CAPTION: Files the next AI should inspect first
 
@@ -242,6 +260,7 @@ Convex:
 packages/data-ops/convex/projectAi.ts
 packages/data-ops/src/contracts/research.ts
 packages/data-ops/src/contracts/refero.ts
+packages/data-ops/src/contracts/parseResearchArtifact.ts
 ```
 
 Frontend:

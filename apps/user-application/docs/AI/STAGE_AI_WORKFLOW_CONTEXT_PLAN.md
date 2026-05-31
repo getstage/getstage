@@ -4,6 +4,8 @@ Date: May 30, 2026
 Status: Discussion plan, May 31 architecture correction applied  
 Scope: Project AI workflows, Claude/Codex, Refero, voice, Figma-driven product flows
 
+> **May 31 dev session (logging, mock fix, Convex wiring):** see [`RESEARCH_DEV_STATUS.md`](./RESEARCH_DEV_STATUS.md).
+
 ## CAPTION: Why this document exists
 
 We are intentionally bringing the AI workflow back to the basics.
@@ -1313,10 +1315,11 @@ Last updated: May 31, 2026
 | 5 | Research workflow orchestration | `apps/stage-engine/src/research/workflow.rs`, `apps/stage-engine/src/runs/mod.rs`, `apps/stage-engine/src/server/runs.rs`, `apps/stage-engine/src/app.rs` | done | Research runs now go through Stage Engine -> Convex direct -> Refero -> Claude/Codex -> Convex direct, using the existing `/v1/runs` path. |
 | 5 | Provider final-text collection | `apps/stage-engine/src/providers/process.rs`, `apps/stage-engine/src/providers/adapter.rs`, `apps/stage-engine/src/providers/claude.rs`, `apps/stage-engine/src/providers/codex.rs` | done | Added collect-path so Research can parse the final provider JSON and persist a typed artifact. |
 | 5 | Electron auth handoff to Stage Engine | `apps/user-application/electron/ipc.ts`, `apps/user-application/electron/helpers/sidecar.ts`, `apps/user-application/electron/sidecar.ts` | done | Electron now forwards the current bearer token to Stage Engine requests and SSE run streaming. |
-| 6 | React artifact hooks | `apps/user-application/src/hooks/project/research/*` | todo | Query/mutation hooks should replace fixture reads. |
-| 6 | Research component props | `apps/user-application/src/components/project/tabs/research/*` | todo | Existing components should receive typed artifact sections, not import fixtures directly. |
+| 6 | React artifact hooks | `apps/user-application/src/hooks/project/research/*` | partial | `useResearchArtifact`, `useResearchRun`, `useSaveResearchContext`, `useResearchTab` wired. Mock off by default. |
+| 6 | Research component props | `apps/user-application/src/components/project/tabs/research/*` | partial | Renders Convex artifact when present; configure form saves context. |
+| 6 | Dev logging + errors | `docs/AI/RESEARCH_DEV_STATUS.md`, stage-engine + electron/ipc | partial | Engine logs in pnpm dev terminal; UI shows error detail. See RESEARCH_DEV_STATUS.md. |
 | 7 | Edit/regenerate | Research hooks + Convex mutations | todo | Section-level regenerate first; per-item later. |
-| 8 | Vertical slice verification | data-ops + stage-engine + user-application | partial | Verified: `cargo check`, `pnpm run convex:typecheck`, and `pnpm run typecheck` all pass. Full Research is still not complete because the React tab still renders fixtures. |
+| 8 | Vertical slice verification | data-ops + stage-engine + user-application | partial | `cargo check`, typecheck pass. Manual E2E not signed off. See RESEARCH_DEV_STATUS.md checklist. |
 
 Verification so far:
 

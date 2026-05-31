@@ -10,4 +10,11 @@ export function loadLocalEnv() {
   }
 
   config({ path: envPath, quiet: true });
+
+  if (!process.env.REFERO_MCP_TOKEN?.trim()) {
+    const referoToken = process.env.refero_mcp_token ?? process.env.VITE_REFERO_MCP_TOKEN;
+    if (referoToken?.trim()) {
+      process.env.REFERO_MCP_TOKEN = referoToken.trim();
+    }
+  }
 }

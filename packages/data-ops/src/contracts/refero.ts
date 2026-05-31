@@ -11,34 +11,40 @@ export const referoSearchRequestSchema = z.object({
   tags: z.array(z.string().min(1)).default([]),
 });
 
+/** Rust/Convex JSON uses null for absent optional fields — nullish, not optional-only. */
+const referoOptionalTextSchema = z.string().min(1).nullish();
+
+/** Refero MCP may return relative paths or non-standard URLs — do not require absolute URL. */
+const referoOptionalUrlSchema = referoOptionalTextSchema;
+
 export const referoReferenceBaseSchema = z.object({
   id: z.string().min(1),
   kind: referoReferenceKindSchema,
   title: z.string().min(1),
-  productName: z.string().min(1).optional(),
-  productUrl: z.string().url().optional(),
+  productName: referoOptionalTextSchema,
+  productUrl: referoOptionalUrlSchema,
   platform: referoPlatformSchema.default("unknown"),
-  sourceUrl: z.string().url().optional(),
-  thumbnailUrl: z.string().url().optional(),
-  imageUrl: z.string().url().optional(),
-  summary: z.string().optional(),
+  sourceUrl: referoOptionalUrlSchema,
+  thumbnailUrl: referoOptionalUrlSchema,
+  imageUrl: referoOptionalUrlSchema,
+  summary: z.string().nullish(),
   tags: z.array(z.string().min(1)).default([]),
 });
 
 export const referoScreenReferenceSchema = referoReferenceBaseSchema.extend({
   kind: z.literal("screen"),
-  screenType: z.string().min(1).optional(),
+  screenType: referoOptionalTextSchema,
 });
 
 export const referoFlowReferenceSchema = referoReferenceBaseSchema.extend({
   kind: z.literal("flow"),
-  flowType: z.string().min(1).optional(),
-  stepCount: z.number().int().positive().optional(),
+  flowType: referoOptionalTextSchema,
+  stepCount: z.number().int().positive().nullish(),
 });
 
 export const referoStyleReferenceSchema = referoReferenceBaseSchema.extend({
   kind: z.literal("style"),
-  styleType: z.string().min(1).optional(),
+  styleType: referoOptionalTextSchema,
 });
 
 export const referoReferenceSchema = z.discriminatedUnion("kind", [

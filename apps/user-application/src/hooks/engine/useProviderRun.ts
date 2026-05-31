@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { RunEvent, StartRunRequest } from "@stage/data-ops/contracts";
 import { engineQueryKeys } from "./queryKeys";
@@ -23,12 +24,17 @@ export function useProviderRun() {
     mutationFn: (runId: string) => desktop.engine.cancelRun(runId),
   });
 
+  const resetActiveRun = useCallback(() => {
+    startRun.reset();
+  }, [startRun]);
+
   const activeRunId = startRun.data?.runId ?? null;
   const activeRunEventsQuery = useProviderRunEvents(activeRunId);
 
   return {
     startRun,
     cancelRun,
+    resetActiveRun,
     activeRunId,
     activeRunEvents: activeRunEventsQuery.data ?? [],
   };

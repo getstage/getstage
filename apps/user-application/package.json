@@ -6,7 +6,7 @@
   "main": "out/main/index.js",
   "scripts": {
     "predev": "pnpm --dir ../../packages/data-ops run build && cargo build --manifest-path ../stage-engine/Cargo.toml",
-    "dev": "env -u ELECTRON_RUN_AS_NODE electron-vite dev",
+    "dev": "env -u ELECTRON_RUN_AS_NODE RUST_LOG=stage_engine=debug,tower_http=info electron-vite dev",
     "prebuild": "pnpm --dir ../../packages/data-ops run build",
     "build": "tsc --noEmit && electron-vite build",
     "pretypecheck": "pnpm --dir ../../packages/data-ops run build",

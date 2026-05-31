@@ -555,6 +555,7 @@ export default defineSchema({
   projectAiContexts: defineTable({
     userId: v.id("users"),
     projectId: v.id("projects"),
+    industry: v.optional(v.string()),
     clientWebsite: v.optional(v.string()),
     competitorUrls: v.array(v.string()),
     referenceUrls: v.array(v.string()),

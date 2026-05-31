@@ -7,8 +7,8 @@ import { createMockResearchArtifact, mockResearchArtifact, MOCK_RESEARCH_PROJECT
 export { referoProviderMark, uiPatternExampleImages } from "./assets";
 export { createMockResearchArtifact, mockResearchArtifact, MOCK_RESEARCH_PROJECT_ID };
 
-/** Simulate backend research in dev until Convex returns a saved artifact. */
-export const USE_MOCK_RESEARCH_DATA = import.meta.env.DEV;
+/** Opt-in fixture research for UI-only work. Real runs are the default in dev. */
+export const USE_MOCK_RESEARCH_DATA = import.meta.env.VITE_MOCK_RESEARCH === "1";
 
 export const MOCK_RESEARCH_RUN_DELAY_MS = 2500;
 

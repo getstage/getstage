@@ -88,6 +88,15 @@ impl RunManager {
 
         self.runs.write().await.insert(run_id.clone(), active_run);
 
+        tracing::info!(
+            run_id = %run_id,
+            provider_id = ?request.provider_id,
+            mode = ?request.mode,
+            project_id = ?request.context.project_id,
+            has_auth_token = auth_token.is_some(),
+            "run started"
+        );
+
         let api_version = self.api_version;
         let runs = Arc::clone(&self.runs);
         let research = self.research.clone();
@@ -100,6 +109,16 @@ impl RunManager {
 
         tokio::spawn(async move {
             if let Some(error_event) = provider_readiness_error(api_version, &context).await {
+                if let RunEvent::RunFailed { ref error, .. } = error_event {
+                    tracing::error!(
+                        run_id = %context.run_id,
+                        provider_id = ?context.request.provider_id,
+                        code = ?error.code,
+                        message = %error.message,
+                        detail = ?error.detail,
+                        "run failed before provider execution"
+                    );
+                }
                 sink.send(error_event);
             } else if matches!(context.request.mode, RunMode::Research) {
                 if let Some(research) = research {

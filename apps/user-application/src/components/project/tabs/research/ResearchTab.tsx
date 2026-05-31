@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import type { Project } from "@/models/project/project";
 import type { ValidatedResearchConfigureInput } from "@/lib/project/researchConfigureInput";
+import type { ProviderId } from "@stage/data-ops/contracts";
 import type { CompetitiveView } from "@/types/project/researchTab";
 import { useResearchTab } from "@/hooks/project";
+import { RESEARCH_RUN_FAILED_USER_MESSAGE } from "@/lib/engine/formatRunError";
 import { CompanySnapshot } from "./CompanySnapshot";
 import { CompetitiveAnalysis } from "./CompetitiveAnalysis";
 import { Opportunities } from "./Opportunities";
@@ -42,13 +44,18 @@ export function ResearchTab({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [openPhoto]);
 
-  async function handleRunResearch(input?: ValidatedResearchConfigureInput) {
+  async function handleRunResearch(input?: ValidatedResearchConfigureInput, providerId?: ProviderId) {
     setRunError(null);
 
     try {
-      await research.startResearch(input);
+      await research.startResearch(input, providerId);
     } catch (error) {
-      setRunError(error instanceof Error ? error.message : "Could not start Research.");
+      const message =
+        error instanceof Error ? error.message : RESEARCH_RUN_FAILED_USER_MESSAGE;
+      if (!(error instanceof Error)) {
+        console.error("[stage-engine] research start failed", error);
+      }
+      setRunError(message);
     }
   }
 
@@ -65,19 +72,14 @@ export function ResearchTab({
   if (!research.hasArtifact || !research.data) {
     return (
       <div className="flex flex-col gap-4">
-        {research.parseError ? (
-          <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
-            Saved research exists but could not be parsed. Try running Research again.
-          </p>
-        ) : null}
         {runError || research.error ? (
-          <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
+          <p className="whitespace-pre-wrap text-[13px] font-medium leading-[1.5] text-[#DC2626]">
             {runError ?? research.error}
           </p>
         ) : null}
         <ResearchConfigureStep
           isSubmitting={research.isStarting || research.isRunning}
-          onSubmit={(input) => void handleRunResearch(input)}
+          onSubmit={(input, providerId) => void handleRunResearch(input, providerId)}
         />
       </div>
     );
@@ -91,15 +93,13 @@ export function ResearchTab({
         <div className="rounded-[8px] bg-white px-[clamp(24px,3.8vw,44px)] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
           <div className="flex w-full flex-col gap-[44px]">
             {runError || research.error ? (
-              <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
+              <p className="whitespace-pre-wrap text-[13px] font-medium leading-[1.5] text-[#DC2626]">
                 {runError ?? research.error}
               </p>
             ) : null}
             {research.isRunning ? (
               <p className="text-[13px] font-medium leading-[1.5] text-[#737373]">
-                {research.usingMockData
-                  ? "Research is running. Results will appear here when the mock run completes."
-                  : "Research is running. This tab will refresh when the artifact is saved."}
+                Research is running. This tab updates when the artifact is saved.
               </p>
             ) : null}
             <ResearchSummary

@@ -125,6 +125,7 @@ async function upsertContextRecord(
   args: {
     userId: Id<"users">;
     projectId: Id<"projects">;
+    industry?: string;
     clientWebsite?: string;
     competitorUrls: string[];
     referenceUrls: string[];
@@ -138,6 +139,7 @@ async function upsertContextRecord(
   const timestamp = now();
   const nextBriefAttachmentKey = normalizeOptional(args.briefAttachmentR2ObjectKey);
   const payload = {
+    industry: normalizeOptional(args.industry),
     clientWebsite: normalizeOptional(args.clientWebsite),
     competitorUrls: normalizeList(args.competitorUrls),
     referenceUrls: normalizeList(args.referenceUrls),
@@ -262,6 +264,7 @@ export const getContext = query({
       projectId: String(project._id),
       userId: String(user._id),
       clientWebsite: record?.clientWebsite ?? "",
+      industry: record?.industry ?? "",
       competitorUrls: record?.competitorUrls ?? [],
       referenceUrls: record?.referenceUrls ?? [],
       brief: record?.brief ?? "",
@@ -286,7 +289,7 @@ export const getResearchInput = query({
       projectId: String(project._id),
       projectName: project.name,
       clientName: project.clientName,
-      industry: null,
+      industry: record?.industry ?? null,
       website: record?.clientWebsite ?? null,
       projectBrief: record?.brief ?? null,
       competitorUrls: record?.competitorUrls ?? [],
@@ -302,6 +305,7 @@ export const getResearchInput = query({
 export const upsertContext = mutation({
   args: {
     projectId: v.id("projects"),
+    industry: v.optional(v.string()),
     clientWebsite: v.optional(v.string()),
     competitorUrls: v.array(v.string()),
     referenceUrls: v.array(v.string()),
@@ -315,6 +319,7 @@ export const upsertContext = mutation({
     await upsertContextRecord(ctx, {
       userId: user._id,
       projectId: args.projectId,
+      industry: args.industry,
       clientWebsite: args.clientWebsite,
       competitorUrls: args.competitorUrls,
       referenceUrls: args.referenceUrls,

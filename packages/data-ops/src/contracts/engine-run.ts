@@ -100,7 +100,7 @@ export const runEventSchema = z.discriminatedUnion("type", [
   }),
   runEventBaseSchema.extend({
     type: z.literal("provider_warning"),
-    message: z.string().min(1),
+    message: z.string(),
   }),
   runEventBaseSchema.extend({
     type: z.literal("model_rerouted"),

@@ -39,6 +39,14 @@ impl ResearchWorkflow {
         let auth_token_for_failure = auth_token.clone();
         let mut convex_run_id: Option<String> = None;
 
+        tracing::info!(
+            run_id = %run_id,
+            provider_id = ?provider_id,
+            project_id = ?project_id,
+            has_auth_token = auth_token.is_some(),
+            "research workflow started"
+        );
+
         let result = async {
             let auth_token =
                 auth_token.ok_or_else(|| WorkflowError::InvalidRequest("Missing desktop session for Research.".to_string()))?;
@@ -47,7 +55,15 @@ impl ResearchWorkflow {
                 .ok_or_else(|| WorkflowError::InvalidRequest("Missing project id for Research.".to_string()))?;
 
             self.tool_started(api_version, &run_id, provider_id, &sink, "stage-context", "Load Stage project context");
+            tracing::info!(run_id = %run_id, project_id, "loading research input from Convex");
             let input = self.repository.fetch_research_input(&auth_token, project_id).await?;
+            tracing::info!(
+                run_id = %run_id,
+                project_id,
+                industry = %input.industry,
+                competitor_count = input.competitor_urls.len(),
+                "research input loaded"
+            );
             self.tool_completed(api_version, &run_id, provider_id, &sink, "stage-context");
 
             convex_run_id = self
@@ -61,7 +77,9 @@ impl ResearchWorkflow {
                 .await?;
 
             self.tool_started(api_version, &run_id, provider_id, &sink, "refero-context", "Search Refero examples");
+            tracing::info!(run_id = %run_id, project_id, "building Refero context");
             let bundle = self.research.build_prompt_bundle(input.clone()).await?;
+            tracing::info!(run_id = %run_id, project_id, "Refero context ready");
             self.tool_completed(api_version, &run_id, provider_id, &sink, "refero-context");
 
             request.prompt = bundle.prompt;
@@ -71,11 +89,18 @@ impl ResearchWorkflow {
                 request,
             };
 
+            tracing::info!(run_id = %run_id, provider_id = ?provider_id, "starting provider run");
             let outcome = run_provider_collect(provider_context, sink.clone(), cancel_rx).await?;
             let ProviderProcessOutcome::Completed(final_text) = outcome else {
+                tracing::info!(run_id = %run_id, "research provider run cancelled");
                 return Ok(());
             };
 
+            tracing::info!(
+                run_id = %run_id,
+                output_chars = final_text.len(),
+                "provider run completed, parsing research artifact"
+            );
             let raw_artifact = extract_json_object(&final_text)?;
             let refero_context = serde_json::to_value(&bundle.refero_context)?;
             let artifact = enrich_research_artifact(raw_artifact, &input, refero_context, now_millis())?;
@@ -88,6 +113,8 @@ impl ResearchWorkflow {
                     &artifact,
                 )
                 .await?;
+
+            tracing::info!(run_id = %run_id, project_id, "research artifact saved to Convex");
 
             sink.send(RunEvent::RunCompleted {
                 api_version,
@@ -102,6 +129,13 @@ impl ResearchWorkflow {
         .await;
 
         if let Err(error) = result {
+            tracing::error!(
+                run_id = %run_id,
+                provider_id = ?provider_id,
+                project_id = ?project_id,
+                error = %error,
+                "research workflow failed"
+            );
             if let (Some(token), Some(project_id)) =
                 (auth_token_for_failure.as_deref(), project_id.as_deref())
             {
@@ -110,7 +144,7 @@ impl ResearchWorkflow {
                     .fail_research_run(token, project_id, convex_run_id.as_deref(), &error.to_string())
                     .await
                 {
-                    tracing::debug!(%mark_failed_error, "failed to mark Convex research run failed");
+                    tracing::warn!(%mark_failed_error, "failed to mark Convex research run failed");
                 }
             }
 

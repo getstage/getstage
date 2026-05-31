@@ -73,6 +73,7 @@ pub async fn run_provider_process(
     events: RunEventSink,
     cancel: &mut watch::Receiver<bool>,
 ) {
+    let binary = spec.binary;
     match run_provider_process_collect(&context, spec, events.clone(), cancel).await {
         Ok(ProviderProcessOutcome::Completed(final_text)) => {
             events.send(RunEvent::RunCompleted {
@@ -85,6 +86,13 @@ pub async fn run_provider_process(
         }
         Ok(ProviderProcessOutcome::Cancelled) => {}
         Err(error) => {
+            tracing::error!(
+                run_id = %context.run_id,
+                provider_id = ?context.request.provider_id,
+                binary,
+                error = %error,
+                "provider process failed"
+            );
             events.send(RunEvent::RunFailed {
                 api_version: context.api_version,
                 run_id: context.run_id,
@@ -176,6 +184,16 @@ pub async fn run_provider_process_collect(
                         });
                     }
                     StreamName::Stderr => {
+                        if line.text.trim().is_empty() {
+                            continue;
+                        }
+
+                        tracing::warn!(
+                            run_id = %context.run_id,
+                            provider_id = ?context.request.provider_id,
+                            stderr = %line.text,
+                            "provider stderr"
+                        );
                         events.send(RunEvent::ProviderWarning {
                             api_version: context.api_version,
                             run_id: context.run_id.clone(),
