@@ -47,6 +47,19 @@ export function UploadFromDeviceIcon({ className }: { className: string }) {
   );
 }
 
+export function GenerateWithAiIcon({ className = "h-[15px] w-[15px]" }: { className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`${className} shrink-0 bg-current`}
+      style={{
+        WebkitMask: 'url("/logos/ai-generated.svg") center / contain no-repeat',
+        mask: 'url("/logos/ai-generated.svg") center / contain no-repeat',
+      }}
+    />
+  );
+}
+
 export function PlusIcon({ className }: { className: string }) {
   return (
     <svg

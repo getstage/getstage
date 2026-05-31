@@ -1,4 +1,5 @@
 import type { MoodboardItem } from "@/data/fixtures/project/moodboardTabFixtures";
+import { MOODBOARD_DIRECTION_REFERENCE_COUNTS } from "@/mock/project/moodboard";
 import { DirectionToggle } from "./DirectionToggle";
 import { ArrowRightIcon, DirectionIcon, MonitorIcon } from "./moodboardIcons";
 
@@ -39,7 +40,7 @@ export function DirectionHub({
           <DirectionCard
             key={direction.name}
             direction={direction}
-            count={[24, 12, 43, 8, 16][index] ?? 9}
+            count={MOODBOARD_DIRECTION_REFERENCE_COUNTS[index] ?? 9}
             images={(items.filter((item) => item.folder === direction.name).length > 0
               ? items.filter((item) => item.folder === direction.name)
               : items

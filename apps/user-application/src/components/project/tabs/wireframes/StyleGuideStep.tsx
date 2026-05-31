@@ -1,21 +1,10 @@
 import { useState } from "react";
+import { getStyleDirectionSummaries, moodboardImages } from "@/mock/project/moodboard";
 import { PrimaryButton } from "./WireframePrimitives";
 import { ArrowLeftIcon, ArrowRightIcon, CloseSmallIcon, MonitorIcon } from "./wireframesIcons";
 
-const STYLE_DIRECTIONS = [
-  { id: 1, title: "Direction 1", count: 24 },
-  { id: 2, title: "Direction 2", count: 12 },
-  { id: 3, title: "Direction 3", count: 43 },
-];
-
-const STYLE_IMAGES = [
-  "/images/moodboard/reference-1.png",
-  "/images/moodboard/reference-2.png",
-  "/images/moodboard/reference-3.png",
-  "/images/moodboard/reference-1.png",
-  "/images/moodboard/reference-2.png",
-  "/images/moodboard/reference-3.png",
-];
+const STYLE_DIRECTIONS = getStyleDirectionSummaries();
+const STYLE_IMAGES = moodboardImages;
 
 export function StyleGuideStep({
   onBack,

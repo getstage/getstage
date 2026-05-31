@@ -1,43 +1,43 @@
 import { useMemo } from "react";
 import { useQuery } from "convex/react";
-import { strategyArtifactSchema, type StrategyArtifact } from "@stage/data-ops/contracts";
+import { moodboardArtifactSchema, type MoodboardArtifact } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { useDesktopAuth } from "@/lib/auth";
-import { mapStrategyArtifactToTabData } from "@/lib/project/mapStrategyArtifactToTabData";
+import { mapMoodboardArtifactToTabData } from "@/lib/project/mapMoodboardArtifactToTabData";
 import { SHOULD_QUERY_PROJECT_AI_ARTIFACTS } from "@/lib/project/shouldQueryProjectAiArtifacts";
 import { api } from "@/lib/convexApi";
-import type { StrategyArtifactRecord } from "@/types/project/strategyArtifactRecord";
+import type { MoodboardArtifactRecord } from "@/types/project/moodboardArtifactRecord";
 
-export type { StrategyArtifactRecord } from "@/types/project/strategyArtifactRecord";
+export type { MoodboardArtifactRecord } from "@/types/project/moodboardArtifactRecord";
 
-function parseStrategyArtifact(contentJson: string | null): StrategyArtifact | null {
+function parseMoodboardArtifact(contentJson: string | null): MoodboardArtifact | null {
   if (!contentJson) {
     return null;
   }
 
   try {
     const parsed = JSON.parse(contentJson) as unknown;
-    return strategyArtifactSchema.parse(parsed);
+    return moodboardArtifactSchema.parse(parsed);
   } catch {
     return null;
   }
 }
 
-export function useStrategyArtifact(projectId: string | undefined) {
+export function useMoodboardArtifact(projectId: string | undefined) {
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
   const queryEnabled =
     SHOULD_QUERY_PROJECT_AI_ARTIFACTS && isAuthenticated && Boolean(projectId);
   const record = useQuery(
-    api.projectAi.getLatestStrategyArtifact,
+    api.projectAi.getLatestMoodboardArtifact,
     queryEnabled ? { projectId: projectId as Id<"projects"> } : "skip",
   );
 
-  const data = useMemo<StrategyArtifactRecord | null>(() => {
+  const data = useMemo<MoodboardArtifactRecord | null>(() => {
     if (!record) {
       return null;
     }
 
-    const artifact = parseStrategyArtifact(record.contentJson);
+    const artifact = parseMoodboardArtifact(record.contentJson);
     if (!artifact) {
       return null;
     }
@@ -52,7 +52,7 @@ export function useStrategyArtifact(projectId: string | undefined) {
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
       artifact,
-      tabData: mapStrategyArtifactToTabData(artifact),
+      tabData: mapMoodboardArtifactToTabData(artifact),
     };
   }, [record]);
 

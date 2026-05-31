@@ -1,58 +1,25 @@
 import { useState, type ReactNode } from "react";
+import { defaultStyleGuide } from "@/mock/project/moodboard";
+import type { MoodboardStyleGuideViewData } from "@/types/project/moodboardTab";
 import { EditIcon, PlusIcon, RegenerateIcon } from "./moodboardIcons";
 
-const paletteGroups = [
-  {
-    label: "Warning",
-    hex: "#F97316",
-    colors: ["#FFF7ED", "#FFEDD5", "#FED7AA", "#FDBA74", "#FB923C", "#F97316", "#EA580C", "#C2410C", "#9A3412", "#7C2D12", "#431407"],
-  },
-  {
-    label: "Error",
-    hex: "#EF4444",
-    colors: ["#FEF2F2", "#FEE2E2", "#FECACA", "#FCA5A5", "#F87171", "#EF4444", "#DC2626", "#B91C1C", "#991B1B", "#7F1D1D", "#450A0A"],
-  },
-  {
-    label: "Success",
-    hex: "#10B981",
-    colors: ["#ECFDF5", "#D1FAE5", "#A7F3D0", "#6EE7B7", "#34D399", "#10B981", "#059669", "#047857", "#065F46", "#064E3B", "#022C22"],
-  },
-];
-
-const typeRows = [
-  { id: "21-semibold", size: 21, weight: "Semi-Bold", className: "text-[21px] font-semibold", lineHeight: "100%" },
-  { id: "19-semibold", size: 19, weight: "Semi-Bold", className: "text-[19px] font-semibold", lineHeight: "100%" },
-  { id: "16-semibold", size: 16, weight: "Semi-Bold", className: "text-[16px] font-semibold", lineHeight: "100%" },
-  { id: "15-semibold", size: 15, weight: "Semi-Bold", className: "text-[15px] font-semibold", lineHeight: "100%" },
-  { id: "13-medium", size: 13, weight: "Medium", className: "text-[13px] font-medium", lineHeight: "100%" },
-  { id: "12-medium", size: 12, weight: "Medium", className: "text-[12px] font-medium", lineHeight: "150%" },
-];
-
-type TypeRow = (typeof typeRows)[number];
-
-const weightRows = [
-  { label: "Inter - Black", className: "text-[28px] font-extrabold" },
-  { label: "Inter - Extra Bold", className: "text-[26px] font-extrabold" },
-  { label: "Inter - Bold", className: "text-[24px] font-bold" },
-  { label: "Inter - Semi Bold", className: "text-[22px] font-semibold" },
-  { label: "Inter - Medium", className: "text-[22px] font-medium" },
-  { label: "Inter - Regular", className: "text-[20px] font-normal" },
-  { label: "Inter - Light", className: "text-[18px] font-light" },
-  { label: "Inter - Extra Light", className: "text-[16px] font-extralight" },
-];
+type TypographyRow = MoodboardStyleGuideViewData["typography"]["rows"][number];
 
 export function StyleGuideView({
+  styleGuide = defaultStyleGuide,
   onBack: _onBack,
   onRegenerate,
 }: {
+  styleGuide?: MoodboardStyleGuideViewData;
   onBack: () => void;
   onRegenerate: () => void;
 }) {
-  const [previewSize, setPreviewSize] = useState(28);
-  const [fontFamily, setFontFamily] = useState("Inter");
-  const [customRows, setCustomRows] = useState<TypeRow[]>([]);
+  const [previewSize, setPreviewSize] = useState(styleGuide.typography.previewSize);
+  const [fontFamily, setFontFamily] = useState(styleGuide.typography.fontFamily);
+  const [customRows, setCustomRows] = useState<TypographyRow[]>([]);
   const previewProgress = ((previewSize - 12) / (48 - 12)) * 100;
-  const renderedRows = [...typeRows, ...customRows];
+  const renderedRows = [...styleGuide.typography.rows, ...customRows];
+  const componentSwatches = Array.from({ length: styleGuide.componentSwatchCount }, (_, index) => index);
 
   function addTypographyRow() {
     const weight = previewSize >= 15 ? "Semi-Bold" : "Medium";
@@ -73,9 +40,9 @@ export function StyleGuideView({
     <section className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex items-end justify-between gap-3 p-4">
         <div className="min-w-0">
-          <h2 className="text-[15px] font-medium leading-[1.25] text-[#0A0A0A]">Style Guide</h2>
+          <h2 className="text-[15px] font-medium leading-[1.25] text-[#0A0A0A]">{styleGuide.title}</h2>
           <p className="mt-1 text-[12px] font-medium leading-[1.5] text-[#525252]">
-            Brand Handbook for your project
+            {styleGuide.subtitle ?? "Brand Handbook for your project"}
           </p>
         </div>
         <div className="flex items-center gap-1">
@@ -101,9 +68,9 @@ export function StyleGuideView({
         <div className="flex flex-col gap-11">
           <StyleSection title="Atmosphere">
             <div className="grid gap-2 lg:grid-cols-3">
-              <AtmosphereMetric label="Density" value="10/10" color="#6D67D3" tint="#E7E6FD" position={97} />
-              <AtmosphereMetric label="Variance" value="8/10" color="#C2410C" tint="#FFEDD5" position={78} />
-              <AtmosphereMetric label="Motion" value="5/10" color="#059669" tint="#D1FAE5" position={50} />
+              {styleGuide.atmosphere.map((metric) => (
+                <AtmosphereMetric key={metric.label} {...metric} />
+              ))}
             </div>
           </StyleSection>
 
@@ -111,13 +78,13 @@ export function StyleGuideView({
 
           <StyleSection title="Color Palette">
             <div className="grid gap-3 lg:grid-cols-3">
-              {paletteGroups.map((group) => (
+              {styleGuide.colorPalettes.map((group) => (
                 <div key={group.label} className="min-w-0">
                   <div className="mb-2 flex h-5 items-center justify-between gap-2">
                     <p className="min-w-0 flex-1 text-[15px] font-medium leading-none text-[#171717]">
                       {group.label}
                     </p>
-                    <ColorPill hex={group.hex} color={group.colors[5]} />
+                    <ColorPill hex={group.hex} color={group.colors[group.highlightIndex ?? 5] ?? group.hex} />
                   </div>
                   <div className="grid h-24 grid-cols-11 overflow-hidden rounded-[6px]">
                     {group.colors.map((color, index) => (
@@ -199,7 +166,7 @@ export function StyleGuideView({
                   ))}
                 </div>
                 <div className="flex min-w-0 flex-col items-start gap-4 whitespace-nowrap text-[#171717]">
-                  {weightRows.map((row) => (
+                  {styleGuide.typography.weightSamples.map((row) => (
                     <p key={row.label} className={`${row.className} leading-none`}>
                       {row.label}
                     </p>
@@ -214,15 +181,16 @@ export function StyleGuideView({
           <StyleSection title="Components" titleSize="text-[15px]" titleWeight="font-medium">
             <div className="grid gap-2">
               <div className="grid gap-2 md:grid-cols-2">
-                <ComponentSwatch />
-                <ComponentSwatch />
+                {componentSwatches.slice(0, 2).map((index) => (
+                  <ComponentSwatch key={`component-swatch-${index}`} />
+                ))}
               </div>
               <div className="grid gap-2 md:grid-cols-3">
-                <ComponentSwatch />
-                <ComponentSwatch />
-                <ComponentSwatch />
+                {componentSwatches.slice(2, 5).map((index) => (
+                  <ComponentSwatch key={`component-swatch-${index}`} />
+                ))}
               </div>
-              <ComponentSwatch />
+              {componentSwatches[5] !== undefined ? <ComponentSwatch key="component-swatch-5" /> : null}
             </div>
           </StyleSection>
         </div>
@@ -331,7 +299,7 @@ function TypographyRow({
   fontFamily,
   padded,
 }: {
-  row: TypeRow;
+  row: TypographyRow;
   fontFamily: string;
   padded: boolean;
 }) {
