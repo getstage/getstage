@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+import { setProjectBackDestination } from "@/lib/projectBackDestination";
 import type { CSSProperties } from "react";
 import type { DashboardChartPoint, DashboardProject, DashboardTask } from "@/models/dashboard/dashboard";
 import type { DashboardPeriod } from "./DashboardHeader";
@@ -223,12 +224,13 @@ export function ActivityTimelineChart({
                 key={project.id}
                 accentColor={project.accentColor}
                 label={project.logoLabel}
-                onClick={() =>
+                onClick={() => {
+                  setProjectBackDestination({ href: "/", label: "Back to dashboard" });
                   void navigate({
                     to: "/project/$projectId",
                     params: { projectId: project.id },
-                  })
-                }
+                  });
+                }}
                 onPointerEnter={() => setHoveredProjectId(project.id)}
                 onFocus={() => setHoveredProjectId(project.id)}
                 onPointerLeave={() => setHoveredProjectId(null)}
@@ -268,6 +270,7 @@ export function ActivityTimelineChart({
                 onClick={() => {
                   if (!project) return;
 
+                  setProjectBackDestination({ href: "/", label: "Back to dashboard" });
                   void navigate({
                     to: "/project/$projectId",
                     params: { projectId: project.id },

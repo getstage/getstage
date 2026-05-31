@@ -8,6 +8,7 @@ import { ProjectTypeStep } from "./create/ProjectTypeStep";
 import { RoadmapStep } from "./create/RoadmapStep";
 import { TimelineStep } from "./create/TimelineStep";
 import { useCreateProjectFlow } from "@/hooks/project/useCreateProjectFlow";
+import { setProjectBackDestination } from "@/lib/projectBackDestination";
 
 export function CreateProjectView() {
   const navigate = useNavigate();
@@ -17,12 +18,13 @@ export function CreateProjectView() {
   if (flow.step === "success") {
     return (
       <ProjectCreatedStep
-        onViewProject={() =>
+        onViewProject={() => {
+          setProjectBackDestination({ href: "/projects/create", label: "Back to create project" });
           void navigate({
             to: "/project/$projectId",
             params: { projectId: flow.createdProjectId ?? "" },
-          })
-        }
+          });
+        }}
       />
     );
   }

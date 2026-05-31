@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import type { ProjectSummary } from "@stage/data-ops";
 import { useProjectsQuery } from "@/hooks/convex-data";
+import { setProjectBackDestination } from "@/lib/projectBackDestination";
 import { ClientPortalTabBar } from "./ClientPortalTabBar";
 import { cn } from "@/lib/utils";
 
@@ -77,10 +78,13 @@ export function ClientPortalProjectsView() {
             isLoading={projectsQuery.isLoading}
             error={projectsQuery.error}
             onOpenProject={(projectId) =>
-              void navigate({
-                to: "/project/$projectId",
-                params: { projectId },
-              })
+              {
+                setProjectBackDestination({ href: "/client-portal", label: "Back to client portal" });
+                void navigate({
+                  to: "/project/$projectId",
+                  params: { projectId },
+                });
+              }
             }
             onOpenPortal={(projectId) =>
               void navigate({

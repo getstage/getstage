@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import type { ProjectSummary } from "@stage/data-ops";
 import { useProjectsQuery } from "@/hooks/convex-data";
+import { setProjectBackDestination } from "@/lib/projectBackDestination";
 import { cn } from "@/lib/utils";
 
 const TABLE_COLUMNS = [
@@ -127,10 +128,13 @@ export function ProjectsOverviewView() {
             error={projectsQuery.error}
             hasQuery={query.trim().length > 0}
             onOpenProject={(projectId) =>
-              void navigate({
-                to: "/project/$projectId",
-                params: { projectId },
-              })
+              {
+                setProjectBackDestination({ href: "/projects", label: "Back to projects" });
+                void navigate({
+                  to: "/project/$projectId",
+                  params: { projectId },
+                });
+              }
             }
             onOpenProjectDetails={(projectId) =>
               void navigate({
