@@ -4,10 +4,10 @@ import {
   type ErrorComponentProps,
   useRouterState,
 } from "@tanstack/react-router";
-import { DesktopShell } from "@/app/DesktopShell";
-import { useDesktopSessionInvalidation } from "@/app/hooks/useDesktopSessionInvalidation";
-import { useProviderRunInvalidation } from "@/app/hooks/useProviderRunInvalidation";
-import { shouldHideCompanion } from "@/app/layout/chromeRules";
+import { DesktopShell } from "@/components/app/DesktopShell";
+import { useDesktopSessionInvalidation } from "@/hooks/app/useDesktopSessionInvalidation";
+import { useProviderRunInvalidation } from "@/hooks/app/useProviderRunInvalidation";
+import { shouldHideCompanion } from "@/lib/app/chromeRules";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 
 export const Route = createRootRoute({

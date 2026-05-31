@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod";
-import { DesktopAuthView } from "@/auth/DesktopAuthView";
+import { DesktopAuthView } from "@/components/auth/DesktopAuthView";
 import { getDesktopSession } from "@/lib/desktopSession";
 
 const authSearchSchema = z.object({

@@ -1,5 +1,5 @@
 import { Outlet, createFileRoute, useMatches } from "@tanstack/react-router";
-import { ProjectDetailView } from "@/project/components/ProjectDetailView";
+import { ProjectDetailView } from "@/components/project/ProjectDetailView";
 
 export const Route = createFileRoute("/_authed/project/$projectId")({
   component: ProjectRoute,

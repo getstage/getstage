@@ -1,5 +1,5 @@
 import { Outlet, createFileRoute, useMatches } from "@tanstack/react-router";
-import { SettingsPageView } from "@/settings/components/SettingsPageView";
+import { SettingsPageView } from "@/components/settings/SettingsPageView";
 
 export const Route = createFileRoute("/_authed/settings")({
   component: SettingsRoute,

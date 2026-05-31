@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { useDesktopAuth } from "@/lib/auth";
 import { api } from "@/lib/convexApi";
-import { settingsOverviewSchema, type SettingsOverview } from "@/settings/models/settings";
+import { settingsOverviewSchema, type SettingsOverview } from "@/models/settings/settings";
 
 export type { SettingsOverview };
 

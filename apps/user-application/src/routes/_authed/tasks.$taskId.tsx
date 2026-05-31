@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { TaskDetailsView } from "@/tasks/components/TaskDetailsView";
+import { TaskDetailsView } from "@/components/tasks/TaskDetailsView";
 
 const taskDetailsSearchSchema = z.object({
   from: z.union([z.literal("project"), z.literal("client-portal")]).optional(),

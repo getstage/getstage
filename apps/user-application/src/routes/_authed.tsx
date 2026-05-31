@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { AuthedWorkspaceLayout } from "@/app/AuthedWorkspaceLayout";
+import { AuthedWorkspaceLayout } from "@/components/app/AuthedWorkspaceLayout";
 import { buildAuthRedirect } from "@/lib/authRedirect";
 import { getDesktopSession } from "@/lib/desktopSession";
 

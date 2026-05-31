@@ -1,5 +1,5 @@
 import { Outlet, createFileRoute, useMatches } from "@tanstack/react-router";
-import { ClientPortalProjectsView } from "@/client-portal/components/ClientPortalProjectsView";
+import { ClientPortalProjectsView } from "@/components/client-portal/ClientPortalProjectsView";
 
 export const Route = createFileRoute("/_authed/client-portal")({
   component: ClientPortalRoute,

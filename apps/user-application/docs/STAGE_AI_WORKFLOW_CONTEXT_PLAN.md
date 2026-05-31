@@ -479,6 +479,192 @@ Wireframes: "Make this high fidelity and use the approved styleguide."
 Chat: "Explain what is missing in this project."
 ```
 
+## CAPTION: Voice outside Stage
+
+Stage voice should also work when the user is outside the Stage window.
+
+Example:
+
+```txt
+The user is working in Figma.
+The user triggers Stage voice.
+The user says: "Critique this layout based on the brief."
+Stage should understand the active project context and answer with relevant
+feedback, not a generic design critique.
+```
+
+This is not a separate AI product. It is the same Stage workflow layer with a
+system-wide input surface.
+
+Figma design reference:
+
+```txt
+Figma node: 799:9
+Design name: FIgma SS
+Relevant states: Audio - Idle, Audio - Active, Audio <> Chatbot
+```
+
+The design shows a small audio/control surface that can sit on top of another
+application. This should be treated as a desktop companion overlay, not as a
+normal in-app page.
+
+## CAPTION: Voice outside Stage workflow
+
+System-wide voice flow:
+
+```txt
+global shortcut / tray action / floating control
+-> open small Stage voice overlay
+-> record user speech
+-> transcribe with Voxtral Mini Transcribe
+-> detect active app context
+-> build Stage context from Convex
+-> optionally add active app context, e.g. Figma file/frame/selection
+-> send task to Claude/Codex through Stage Engine
+-> show answer in compact overlay or expand into Stage chat
+```
+
+For Figma specifically:
+
+```txt
+active application: Figma
+active file or known Figma URL
+selected frame/page if available
+current Stage project
+approved research artifact
+approved strategy artifact
+approved styleguide artifact
+open decisions
+user voice transcript
+```
+
+The expected user experience:
+
+```txt
+The user does not need to switch back to Stage.
+Stage listens, understands the current project context, and answers in place.
+```
+
+## CAPTION: Context policy for outside-Stage voice
+
+The phrase "full context" means:
+
+```txt
+Claude/Codex can receive all relevant Stage context that belongs to the active
+project and workspace.
+```
+
+It does not mean:
+
+```txt
+Claude/Codex gets uncontrolled access to the user's entire computer.
+```
+
+Use this policy:
+
+```txt
+Always available:
+  active Stage workspace
+  active Stage project
+  project metadata
+  Convex project data
+  saved artifacts
+  approved research
+  approved strategy
+  approved styleguide
+  tasks and decisions
+
+Available when connected/allowed:
+  Figma file/frame context
+  Notion source notes
+  Google Sheets imported rows
+  Refero search results
+
+Never automatic:
+  arbitrary local files
+  unrelated folders
+  unrelated projects
+  browser/app data without permission
+```
+
+The context builder should have access to all Stage project data, but it should
+pack only the relevant context into each Claude/Codex run.
+
+Reason:
+
+```txt
+Full project intelligence is good.
+Unbounded context dumping is expensive, noisy, and unsafe.
+```
+
+## CAPTION: Outside-Stage voice technical boundary
+
+Ownership:
+
+```txt
+Electron:
+  global shortcut
+  tray/menu action
+  floating always-on-top overlay window
+  microphone permission surface
+  frontmost app/window detection
+
+React:
+  voice overlay UI
+  audio idle/listening/thinking/response states
+  transcript review
+  compact chat response
+
+Stage Engine:
+  provider execution
+  cancellation
+  streaming
+  local context helpers
+  future native app context helpers
+
+Convex:
+  workspace/project context
+  saved artifacts
+  integration state
+  generated outputs
+```
+
+V1 should avoid deep native macOS APIs unless needed.
+
+Recommended V1:
+
+```txt
+Use Electron globalShortcut.
+Use a small always-on-top BrowserWindow for the voice overlay.
+Use existing browser/Electron microphone capture where possible.
+Use Voxtral Mini Transcribe for batch transcription.
+Use Convex for project context.
+Use explicit Figma integration/MCP context when available.
+```
+
+Later versions can add:
+
+```txt
+ScreenCaptureKit
+Accessibility API
+deeper active app extraction
+native audio pipeline
+```
+
+## CAPTION: Outside-Stage voice open decisions
+
+Decisions still needed:
+
+```txt
+1. How does Stage know which project is active when the user is in Figma?
+2. Should the user manually pin a project to the voice overlay?
+3. Should Stage infer the project from the Figma file link?
+4. Should the overlay answer only, or also save results into artifacts?
+5. Should voice commands mutate artifacts directly, or require confirmation?
+6. Should Figma context come from MCP/plugin selection, pasted link, or connected file?
+7. What is the first V1 command: critique, ask question, or fill workflow input?
+```
+
 ## CAPTION: Research workflow
 
 Research is the first workflow to implement end-to-end.
@@ -828,6 +1014,113 @@ Open discussion points:
 Should chat be allowed to mutate project artifacts directly?
 Should chat always ask for confirmation before changing saved artifacts?
 How should tagged integrations work: @Refero, @Figma, @Notion, @Sheets?
+```
+
+## CAPTION: Research chatbox overlay
+
+Figma reference:
+
+```txt
+File: Stage -- Main
+Node: 1076:53
+Section: ChatBox
+Frame: Projects - Research - Chatbox
+```
+
+Meaning:
+
+```txt
+This is not a separate chat page.
+This is a contextual chat overlay on top of the current workflow.
+In this screen the current workflow is Research.
+```
+
+The important product idea:
+
+```txt
+Chat can answer a question, but it can also propose a concrete artifact action.
+```
+
+Example from the Figma screen:
+
+```txt
+User:
+  "Can you do a proper competitive analysis on Zapier?"
+
+Stage:
+  Answers inside the chat.
+  Offers an action:
+  "Add to competitive analysis"
+```
+
+This means the chat response must not be treated as plain text only.
+It needs a typed action layer.
+
+Input context:
+
+```txt
+projectId
+currentTab = "research"
+activeArtifact = researchArtifact
+selectedArtifactSection = "competitiveAnalysis"
+selectedEntity = "Zapier"
+userMessage
+providerId = claude | codex
+modelId
+availableIntegrations
+optional Refero context
+optional Figma selection/frame context
+```
+
+Output contract:
+
+```txt
+chatAnswer
+followUpSuggestions
+suggestedArtifactAction
+suggestedPatch
+requiresUserConfirmation
+```
+
+Suggested action examples:
+
+```txt
+add_competitor_analysis
+update_competitor_analysis
+regenerate_research_section
+add_ui_pattern_reference
+add_target_user
+add_opportunity
+```
+
+Safety rule:
+
+```txt
+The chat may propose a patch.
+The chat may preview a patch.
+The chat must not silently save the patch to Convex.
+The user confirms before the researchArtifact is changed.
+```
+
+Technical implication:
+
+```txt
+Do not build chat as a generic message list only.
+Build chat messages so assistant responses can include typed actions.
+The UI renders those actions as buttons.
+The action calls a mutation that validates and applies a patch to the artifact.
+```
+
+For Research V1, this should target one artifact:
+
+```txt
+researchArtifact
+```
+
+Not:
+
+```txt
+separate invisible research records per chat message
 ```
 
 ## CAPTION: Data ownership
