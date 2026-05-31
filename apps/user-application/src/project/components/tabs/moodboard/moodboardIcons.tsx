@@ -21,6 +21,19 @@ export function FolderIcon() {
   );
 }
 
+export function DirectionIcon({ className = "h-[15px] w-[15px]" }: { className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`${className} shrink-0 bg-current`}
+      style={{
+        WebkitMask: 'url("/logos/direction.svg") center / contain no-repeat',
+        mask: 'url("/logos/direction.svg") center / contain no-repeat',
+      }}
+    />
+  );
+}
+
 export function UploadFromDeviceIcon({ className }: { className: string }) {
   return (
     <span
@@ -50,7 +63,7 @@ export function PlusIcon({ className }: { className: string }) {
   );
 }
 
-export function CheckIcon() {
+export function CheckIcon({ className = "h-4 w-4 text-[#171717]" }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 16 16"
@@ -60,7 +73,7 @@ export function CheckIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="h-4 w-4 text-[#171717]"
+      className={className}
     >
       <path d="m4 8.4 2.4 2.4L12 5.2" />
     </svg>
@@ -97,6 +110,40 @@ export function ArrowRightIcon() {
       className="h-4 w-4 shrink-0"
     >
       <path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" />
+    </svg>
+  );
+}
+
+export function EditIcon() {
+  return (
+    <span
+      aria-hidden="true"
+      className="h-[15px] w-[15px] shrink-0 bg-current"
+      style={{
+        WebkitMask: 'url("/logos/dashboard/edit.svg") center / contain no-repeat',
+        mask: 'url("/logos/dashboard/edit.svg") center / contain no-repeat',
+      }}
+    />
+  );
+}
+
+export function RegenerateIcon() {
+  return (
+    <span
+      aria-hidden="true"
+      className="h-[15px] w-[15px] shrink-0 bg-current"
+      style={{
+        WebkitMask: 'url("/logos/style-guide-regenerate.svg") center / contain no-repeat',
+        mask: 'url("/logos/style-guide-regenerate.svg") center / contain no-repeat',
+      }}
+    />
+  );
+}
+
+export function MonitorIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" className="h-[13px] w-[13px] shrink-0">
+      <path d="M2.5 3.5A1.5 1.5 0 0 1 4 2h8a1.5 1.5 0 0 1 1.5 1.5v5.8a1.5 1.5 0 0 1-1.5 1.5H8.75v1.4h2.05a.65.65 0 1 1 0 1.3H5.2a.65.65 0 1 1 0-1.3h2.05v-1.4H4a1.5 1.5 0 0 1-1.5-1.5V3.5Z" />
     </svg>
   );
 }

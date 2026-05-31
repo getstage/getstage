@@ -134,3 +134,29 @@ export function FigmaIcon() {
     <img src="/logos/integrations/figma.svg" alt="" aria-hidden="true" className="h-[15px] w-[10px] shrink-0" />
   );
 }
+
+export function LofiWireframeIcon({ className }: { className: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`${className} shrink-0 bg-current`}
+      style={{
+        WebkitMask: 'url("/logos/dashboard/lofi-wireframe.svg") center / contain no-repeat',
+        mask: 'url("/logos/dashboard/lofi-wireframe.svg") center / contain no-repeat',
+      }}
+    />
+  );
+}
+
+export function HifiWireframeIcon({ className }: { className: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`${className} shrink-0 bg-current`}
+      style={{
+        WebkitMask: 'url("/logos/dashboard/hifi-wireframe.svg") center / contain no-repeat',
+        mask: 'url("/logos/dashboard/hifi-wireframe.svg") center / contain no-repeat',
+      }}
+    />
+  );
+}
