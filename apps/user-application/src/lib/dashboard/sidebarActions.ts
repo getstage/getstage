@@ -1,4 +1,5 @@
 import type { NavigateOptions } from "@tanstack/react-router";
+import { setProjectBackDestination } from "@/lib/projectBackDestination";
 
 export type SidebarNavigate = (options: NavigateOptions) => void | Promise<void>;
 
@@ -34,6 +35,7 @@ export function openSidebarProject(
   projectId: string,
 ) {
   resetSearch();
+  setProjectBackDestination({ href: "/", label: "Back to dashboard" });
   void navigate({ to: "/project/$projectId", params: { projectId } });
 }
 

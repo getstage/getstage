@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
+import { setProjectBackDestination } from "@/lib/projectBackDestination";
 
 const TASK_SECTIONS = [
   {
@@ -49,7 +50,8 @@ export function TaskDetailsView() {
       ? "Back to Project"
       : search.from === "client-portal"
         ? "Back to Client Portal"
-        : "Back to Tasks";
+      : "Back to Tasks";
+  const taskBackHref = typeof window === "undefined" ? "/tasks" : `${window.location.pathname}${window.location.search}`;
 
   function goBack() {
     if (search.from === "project" && search.projectId) {
@@ -63,6 +65,12 @@ export function TaskDetailsView() {
     }
 
     void navigate({ to: "/tasks" });
+  }
+
+  function openLinkedProject() {
+    if (!search.projectId) return;
+    setProjectBackDestination({ href: taskBackHref, label: "Back to task" });
+    void navigate({ to: "/project/$projectId", params: { projectId: search.projectId } });
   }
 
   useEffect(() => {

@@ -7,6 +7,7 @@ import { CompetitiveAnalysis } from "./CompetitiveAnalysis";
 import { Opportunities } from "./Opportunities";
 import { PhotoLightbox } from "./PhotoLightbox";
 import { ResearchActions } from "./ResearchActions";
+import { ResearchConfigureStep } from "./ResearchConfigureStep";
 import { Divider } from "./ResearchPrimitives";
 import { ResearchSummary } from "./ResearchSummary";
 import { TargetUsers } from "./TargetUsers";
@@ -57,33 +58,22 @@ export function ResearchTab({ project }: { project: Project }) {
 
   if (!researchArtifact.hasArtifact || !researchArtifact.data) {
     return (
-      <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        <div className="rounded-[8px] bg-white px-[clamp(24px,3.8vw,44px)] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-          <div className="flex max-w-[560px] flex-col gap-4">
-            <div>
-              <h2 className="text-[15px] font-medium leading-[1.25] text-[#171717]">No research yet</h2>
-              <p className="mt-2 text-[13px] font-medium leading-[1.5] text-[#737373]">
-                Run Research to generate a typed artifact from your project brief, competitors, and Refero references.
-              </p>
-            </div>
-            {researchArtifact.parseError ? (
-              <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
-                Saved research exists but could not be parsed. Try running Research again.
-              </p>
-            ) : null}
-            {runError || researchRun.error ? (
-              <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
-                {runError ?? researchRun.error}
-              </p>
-            ) : null}
-            <ResearchActions
-              canRunResearch
-              onRunResearch={() => void handleRunResearch()}
-              isRunning={researchRun.isStarting || researchRun.isRunning}
-            />
-          </div>
-        </div>
-      </section>
+      <div className="flex flex-col gap-4">
+        {researchArtifact.parseError ? (
+          <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
+            Saved research exists but could not be parsed. Try running Research again.
+          </p>
+        ) : null}
+        {runError || researchRun.error ? (
+          <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
+            {runError ?? researchRun.error}
+          </p>
+        ) : null}
+        <ResearchConfigureStep
+          isSubmitting={researchRun.isStarting || researchRun.isRunning}
+          onSubmit={() => void handleRunResearch()}
+        />
+      </div>
     );
   }
 

@@ -98,9 +98,17 @@ export function ProjectActionModal({
         ) : null}
         {modal === "pause" ? (
           <ConfirmModal
-            title="Are you sure you want to pause Project?"
-            description="Pausing the project will stop active progress updates until you resume it. You can come back and continue work whenever you're ready."
-            confirmLabel="Pause Project"
+            title={
+              project.status === "paused"
+                ? "Are you sure you want to unpause Project?"
+                : "Are you sure you want to pause Project?"
+            }
+            description={
+              project.status === "paused"
+                ? "Unpausing the project will resume active progress updates so work can continue normally."
+                : "Pausing the project will stop active progress updates until you resume it. You can come back and continue work whenever you're ready."
+            }
+            confirmLabel={project.status === "paused" ? "Unpause Project" : "Pause Project"}
             projectName={project.name}
             projectImageUrl={projectImageUrl ?? project.projectImageUrl}
             onConfirm={onPauseProject}

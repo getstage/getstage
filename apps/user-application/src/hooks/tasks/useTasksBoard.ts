@@ -3,6 +3,7 @@ import {
   useDeleteTaskMutation,
   useProjectsQuery,
   useSetTaskPriorityMutation,
+  useToggleTaskCompletionMutation,
   useUserTasksQuery,
 } from "@/hooks/convex-data";
 import {
@@ -34,6 +35,7 @@ export function useTasksBoard() {
   const projectsQuery = useProjectsQuery();
   const setPriority = useSetTaskPriorityMutation();
   const deleteTask = useDeleteTaskMutation();
+  const toggleTaskCompletionMutation = useToggleTaskCompletionMutation();
 
   const liveColumns = useMemo<PriorityColumns>(() => {
     if (!tasksQuery.data) {
@@ -95,6 +97,7 @@ export function useTasksBoard() {
   }, [activeDrag, liveColumns]);
 
   function toggleTaskCompletion(taskId: string) {
+    const previous = columns;
     setColumns((current) => {
       const next = { ...current };
       for (const { key } of PRIORITY_COLUMNS) {
@@ -109,6 +112,11 @@ export function useTasksBoard() {
         });
       }
       return next;
+    });
+    toggleTaskCompletionMutation.mutate(taskId, {
+      onError: () => {
+        setColumns(previous);
+      },
     });
   }
 

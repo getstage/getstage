@@ -11,6 +11,7 @@ import { StrategyTab } from "./tabs/strategy/StrategyTab";
 import { WireframesTab } from "./tabs/wireframes/WireframesTab";
 import { useLiveProject, useProjectHeaderActions } from "@/hooks/project";
 import { formatInputDate } from "@/lib/format";
+import { getProjectBackDestination } from "@/lib/projectBackDestination";
 import { formatRelativeTime } from "@/lib/utils";
 import type { Project, ProjectTab } from "@/models/project/project";
 
@@ -42,6 +43,7 @@ export function ProjectDetailView() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
   const [timeline, setTimeline] = useState<ProjectTimeline>({ start: "", end: "" });
+  const projectBackDestination = getProjectBackDestination();
 
   useEffect(() => {
     if (live.project) {
@@ -89,6 +91,10 @@ export function ProjectDetailView() {
     return tasks.sort((a, b) => b.task.updatedAt - a.task.updatedAt).slice(0, 3);
   }, [project]);
 
+  function goBack() {
+    void navigate({ to: projectBackDestination.href as never });
+  }
+
   if (!project) {
     return (
       <div className="flex flex-1 items-center justify-center px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
@@ -99,11 +105,11 @@ export function ProjectDetailView() {
             </p>
             <button
               type="button"
-              onClick={() => void navigate({ to: "/projects" })}
+              onClick={goBack}
               className="inline-flex items-center gap-[8px] text-[13px] font-medium text-[#525252] underline"
             >
               <ArrowLeftIcon />
-              Back to projects
+              {projectBackDestination.label}
             </button>
           </div>
         ) : (
@@ -126,11 +132,11 @@ export function ProjectDetailView() {
           <div className="w-full pt-0">
             <button
               type="button"
-              onClick={() => void navigate({ to: "/" })}
+              onClick={goBack}
               className="mb-6 inline-flex w-fit cursor-pointer items-center gap-[8px] text-[13px] font-medium text-[#A3A3A3] transition-colors hover:text-[#525252]"
             >
               <ArrowLeftIcon />
-              Back to dashboard
+              {projectBackDestination.label}
             </button>
 
             <ProjectHeader

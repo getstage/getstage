@@ -3,5 +3,5 @@ export function shouldRenderWorkspaceChrome(pathname: string) {
 }
 
 export function shouldHideCompanion(pathname: string) {
-  return pathname === "/auth" || pathname === "/subscriptions";
+  return pathname === "/auth" || pathname === "/projects/create" || pathname === "/subscriptions";
 }

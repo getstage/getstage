@@ -12,6 +12,7 @@ export {
   useDeleteTaskMutation,
   useSetTaskAssigneesMutation,
   useSetTaskPriorityMutation,
+  useToggleTaskCompletionMutation,
   type CreateTaskInput,
   type SetTaskAssigneesInput,
   type SetTaskPriorityInput,

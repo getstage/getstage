@@ -70,6 +70,32 @@ export function useDeleteTaskMutation() {
   };
 }
 
+export function useToggleTaskCompletionMutation() {
+  const toggleTaskCompletion = useMutation(api.tasks.toggleComplete);
+  const { isAuthenticated } = useDesktopAuth();
+  const [isPending, setIsPending] = useState(false);
+
+  async function mutateAsync(taskId: string) {
+    requireDesktopAuth(isAuthenticated);
+    setIsPending(true);
+    try {
+      return toggleTaskCompletion({
+        taskId: taskId as Id<"tasks">,
+      });
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  return {
+    isPending,
+    mutateAsync,
+    mutate: (taskId: string, options?: { onError?: () => void }) => {
+      void mutateAsync(taskId).catch(() => options?.onError?.());
+    },
+  };
+}
+
 export type SetTaskPriorityInput = {
   taskId: string;
   priority: TaskPriority | null;
