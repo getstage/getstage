@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import type { Project } from "@/models/project/project";
+import type { ValidatedResearchConfigureInput } from "@/lib/project/researchConfigureInput";
 import type { CompetitiveView } from "@/types/project/researchTab";
-import { useResearchArtifact, useResearchRun } from "@/hooks/project";
+import { useResearchTab } from "@/hooks/project";
 import { CompanySnapshot } from "./CompanySnapshot";
 import { CompetitiveAnalysis } from "./CompetitiveAnalysis";
 import { Opportunities } from "./Opportunities";
@@ -20,8 +21,7 @@ export function ResearchTab({ project }: { project: Project }) {
   const [openPhoto, setOpenPhoto] = useState<string | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
 
-  const researchArtifact = useResearchArtifact(project.id);
-  const researchRun = useResearchRun(project.id);
+  const research = useResearchTab(project);
 
   useEffect(() => {
     if (!openPhoto) return;
@@ -36,17 +36,17 @@ export function ResearchTab({ project }: { project: Project }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [openPhoto]);
 
-  async function handleRunResearch() {
+  async function handleRunResearch(input?: ValidatedResearchConfigureInput) {
     setRunError(null);
 
     try {
-      await researchRun.startResearch();
+      await research.startResearch(input);
     } catch (error) {
       setRunError(error instanceof Error ? error.message : "Could not start Research.");
     }
   }
 
-  if (researchArtifact.isLoading) {
+  if (research.isLoading) {
     return (
       <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="rounded-[8px] bg-white px-[clamp(24px,3.8vw,44px)] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -56,42 +56,44 @@ export function ResearchTab({ project }: { project: Project }) {
     );
   }
 
-  if (!researchArtifact.hasArtifact || !researchArtifact.data) {
+  if (!research.hasArtifact || !research.data) {
     return (
       <div className="flex flex-col gap-4">
-        {researchArtifact.parseError ? (
+        {research.parseError ? (
           <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
             Saved research exists but could not be parsed. Try running Research again.
           </p>
         ) : null}
-        {runError || researchRun.error ? (
+        {runError || research.error ? (
           <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
-            {runError ?? researchRun.error}
+            {runError ?? research.error}
           </p>
         ) : null}
         <ResearchConfigureStep
-          isSubmitting={researchRun.isStarting || researchRun.isRunning}
-          onSubmit={() => void handleRunResearch()}
+          isSubmitting={research.isStarting || research.isRunning}
+          onSubmit={(input) => void handleRunResearch(input)}
         />
       </div>
     );
   }
 
-  const { tabData } = researchArtifact.data;
+  const { tabData } = research.data;
 
   return (
     <>
       <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="rounded-[8px] bg-white px-[clamp(24px,3.8vw,44px)] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
           <div className="flex w-full flex-col gap-[44px]">
-            {runError || researchRun.error ? (
+            {runError || research.error ? (
               <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
-                {runError ?? researchRun.error}
+                {runError ?? research.error}
               </p>
             ) : null}
-            {researchRun.isRunning ? (
+            {research.isRunning ? (
               <p className="text-[13px] font-medium leading-[1.5] text-[#737373]">
-                Research is running. This tab will refresh when the artifact is saved.
+                {research.usingMockData
+                  ? "Research is running. Results will appear here when the mock run completes."
+                  : "Research is running. This tab will refresh when the artifact is saved."}
               </p>
             ) : null}
             <ResearchSummary
@@ -124,11 +126,7 @@ export function ResearchTab({ project }: { project: Project }) {
             <Divider />
             <Opportunities opportunities={tabData.opportunities} isEditing={isEditing} />
             <Divider />
-            <ResearchActions
-              canRunResearch
-              onRunResearch={() => void handleRunResearch()}
-              isRunning={researchRun.isStarting || researchRun.isRunning}
-            />
+            <ResearchActions />
           </div>
         </div>
       </section>

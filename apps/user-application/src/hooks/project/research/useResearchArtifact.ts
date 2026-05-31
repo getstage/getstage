@@ -5,20 +5,9 @@ import type { Id } from "@stage/data-ops/convex/data-model";
 import { useDesktopAuth } from "@/lib/auth";
 import { mapResearchArtifactToTabData } from "@/lib/project/mapResearchArtifactToTabData";
 import { api } from "@/lib/convexApi";
-import type { ResearchTabData } from "@/types/project/researchTab";
+import type { ResearchArtifactRecord } from "@/types/project/researchArtifactRecord";
 
-export type ResearchArtifactRecord = {
-  id: string;
-  projectId: string;
-  runId: string | null;
-  title: string;
-  summary: string | null;
-  status: string;
-  createdAt: number;
-  updatedAt: number;
-  artifact: ResearchArtifact;
-  tabData: ResearchTabData;
-};
+export type { ResearchArtifactRecord } from "@/types/project/researchArtifactRecord";
 
 function parseResearchArtifact(contentJson: string | null): ResearchArtifact | null {
   if (!contentJson) {
@@ -41,27 +30,27 @@ export function useResearchArtifact(projectId: string | undefined) {
   );
 
   const data = useMemo<ResearchArtifactRecord | null>(() => {
-    if (!record) {
-      return null;
+    if (record) {
+      const artifact = parseResearchArtifact(record.contentJson);
+      if (!artifact) {
+        return null;
+      }
+
+      return {
+        id: record.id,
+        projectId: record.projectId,
+        runId: record.runId,
+        title: record.title,
+        summary: record.summary,
+        status: record.status,
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
+        artifact,
+        tabData: mapResearchArtifactToTabData(artifact),
+      };
     }
 
-    const artifact = parseResearchArtifact(record.contentJson);
-    if (!artifact) {
-      return null;
-    }
-
-    return {
-      id: record.id,
-      projectId: record.projectId,
-      runId: record.runId,
-      title: record.title,
-      summary: record.summary,
-      status: record.status,
-      createdAt: record.createdAt,
-      updatedAt: record.updatedAt,
-      artifact,
-      tabData: mapResearchArtifactToTabData(artifact),
-    };
+    return null;
   }, [record]);
 
   return {

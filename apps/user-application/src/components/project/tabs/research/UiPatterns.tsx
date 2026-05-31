@@ -1,4 +1,4 @@
-import { mobbinMark } from "@/data/fixtures/project/researchTabFixtures";
+import { referoProviderMark } from "@/mock/project/research";
 import type { UiPatternGroupWithPatterns } from "@/types/project/researchTab";
 import {
   ArrowLeftMiniIcon,
@@ -25,7 +25,7 @@ export function UiPatterns({ groups, isEditing, openGroupId, onToggleGroup, onOp
           <h2 className="text-[15px] font-medium leading-[1.25] text-[#171717]">UI Patterns</h2>
           <div className="h-1 w-1 rounded-full bg-[#A3A3A3]" />
           <div className="flex items-center gap-2">
-            <img src={mobbinMark} alt="" className="h-[10px] w-[22px]" />
+            <img src={referoProviderMark} alt="" className="h-[10px] w-[22px]" />
             <p className="text-[12px] font-medium leading-[1.25] text-[#525252]">Analysed with Refero</p>
           </div>
         </div>

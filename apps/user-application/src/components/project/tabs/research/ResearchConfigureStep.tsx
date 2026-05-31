@@ -1,23 +1,14 @@
 import { useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import {
+  DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES,
+  isResearchConfigureFormSubmittable,
+  parseCompetitorWebsite,
+  validateResearchConfigureForm,
+  type ResearchConfigureFieldErrors,
+  type ResearchConfigureFormValues,
+  type ValidatedResearchConfigureInput,
+} from "@/lib/project/researchConfigureInput";
 import { PlusIcon } from "./researchIcons";
-
-type ResearchConfig = {
-  industry: string;
-  website: string;
-  brief: string;
-  notes: string;
-  competitors: string[];
-  briefFileName: string | null;
-};
-
-const DEFAULT_CONFIG: ResearchConfig = {
-  industry: "",
-  website: "",
-  brief: "",
-  notes: "",
-  competitors: [],
-  briefFileName: null,
-};
 
 const suggestedIndustries = "e.g. Fintech, E-commerce, SaaS, Health";
 
@@ -26,54 +17,120 @@ export function ResearchConfigureStep({
   onSubmit,
 }: {
   isSubmitting: boolean;
-  onSubmit: (config: ResearchConfig) => void;
+  onSubmit: (input: ValidatedResearchConfigureInput) => void;
 }) {
-  const [config, setConfig] = useState<ResearchConfig>(DEFAULT_CONFIG);
+  const [values, setValues] = useState<ResearchConfigureFormValues>(DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES);
   const [competitorInput, setCompetitorInput] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<ResearchConfigureFieldErrors>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const canSubmit =
-    config.industry.trim().length > 0 &&
-    config.website.trim().length > 0 &&
-    (config.brief.trim().length > 0 || config.briefFileName !== null);
+  const canSubmit = isResearchConfigureFormSubmittable(values);
 
-  function updateField<Key extends keyof ResearchConfig>(key: Key, value: ResearchConfig[Key]) {
-    setConfig((current) => ({ ...current, [key]: value }));
+  function updateField<Key extends keyof ResearchConfigureFormValues>(
+    key: Key,
+    value: ResearchConfigureFormValues[Key],
+  ) {
+    setValues((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => {
+      if (!current[key]) {
+        return current;
+      }
+
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
   }
 
   function addCompetitor() {
-    const value = competitorInput.trim();
-    if (!value) return;
-    setConfig((current) => ({
-      ...current,
-      competitors: current.competitors.includes(value) ? current.competitors : [...current.competitors, value],
-    }));
+    const parsed = parseCompetitorWebsite(competitorInput);
+    if (!parsed.ok) {
+      setFieldErrors((current) => ({ ...current, competitorInput: parsed.error }));
+      return;
+    }
+
+    setValues((current) => {
+      if (current.competitorUrls.includes(parsed.value)) {
+        setFieldErrors((errors) => ({
+          ...errors,
+          competitorInput: "This competitor is already added",
+        }));
+        return current;
+      }
+
+      if (current.competitorUrls.length >= 10) {
+        setFieldErrors((errors) => ({
+          ...errors,
+          competitorUrls: "Add up to 10 competitors",
+        }));
+        return current;
+      }
+
+      return {
+        ...current,
+        competitorUrls: [...current.competitorUrls, parsed.value],
+      };
+    });
+
     setCompetitorInput("");
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next.competitorInput;
+      delete next.competitorUrls;
+      return next;
+    });
   }
 
   function removeCompetitor(value: string) {
-    setConfig((current) => ({
+    setValues((current) => ({
       ...current,
-      competitors: current.competitors.filter((item) => item !== value),
+      competitorUrls: current.competitorUrls.filter((item) => item !== value),
     }));
+    setFieldErrors((current) => {
+      if (!current.competitorUrls) {
+        return current;
+      }
+
+      const next = { ...current };
+      delete next.competitorUrls;
+      return next;
+    });
   }
 
   function handleBriefUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      return;
+    }
+
     updateField("briefFileName", file.name);
     event.target.value = "";
   }
 
   function handleCompetitorKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key !== "Enter") return;
+    if (event.key !== "Enter") {
+      return;
+    }
+
     event.preventDefault();
     addCompetitor();
   }
 
   function resetForm() {
-    setConfig(DEFAULT_CONFIG);
+    setValues(DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES);
     setCompetitorInput("");
+    setFieldErrors({});
+  }
+
+  function handleSubmit() {
+    const result = validateResearchConfigureForm(values);
+    if (!result.success) {
+      setFieldErrors(result.errors);
+      return;
+    }
+
+    setFieldErrors({});
+    onSubmit(result.data);
   }
 
   return (
@@ -91,29 +148,30 @@ export function ResearchConfigureStep({
 
           <div className="rounded-[8px] bg-white px-11 py-11 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
             <div className="flex max-w-[560px] flex-col gap-6">
-              <FormField label="Industry">
+              <FormField label="Industry" error={fieldErrors.industry}>
                 <input
-                  value={config.industry}
+                  value={values.industry}
                   onChange={(event) => updateField("industry", event.target.value)}
                   placeholder={suggestedIndustries}
                   className="h-[40px] w-[290px] rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#525252]"
                 />
               </FormField>
 
-              <FormField label="Client Website">
+              <FormField label="Client Website" error={fieldErrors.website}>
                 <input
-                  value={config.website}
+                  value={values.website}
                   onChange={(event) => updateField("website", event.target.value)}
                   placeholder="ex. www.google.com"
+                  inputMode="url"
                   className="h-[40px] w-[290px] rounded-[6px] bg-[#F5F5F5] px-3 text-[12px] font-medium text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#525252]"
                 />
               </FormField>
 
-              <FormField label="Project Brief or Context">
+              <FormField label="Project Brief or Context" error={fieldErrors.projectBrief}>
                 <div className="flex h-[114px] w-full flex-col justify-between rounded-[6px] bg-[#F5F5F5] px-3 py-[10px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
                   <textarea
-                    value={config.brief}
-                    onChange={(event) => updateField("brief", event.target.value)}
+                    value={values.projectBrief}
+                    onChange={(event) => updateField("projectBrief", event.target.value)}
                     placeholder="Type here..."
                     className="h-full w-full resize-none bg-transparent text-[12px] font-medium text-[#171717] outline-none placeholder:text-[#525252]"
                   />
@@ -133,35 +191,52 @@ export function ResearchConfigureStep({
                       <img src="/logos/upload-brief.svg" alt="" aria-hidden="true" className="h-4 w-4" />
                       Upload Brief
                     </button>
-                    {config.briefFileName ? (
-                      <span className="truncate text-[12px] font-medium text-[#525252]">{config.briefFileName}</span>
+                    {values.briefFileName ? (
+                      <span className="truncate text-[12px] font-medium text-[#525252]">{values.briefFileName}</span>
                     ) : null}
                   </div>
                 </div>
               </FormField>
 
-              <FormField label="Specific Competitors to include">
+              <FormField label="Specific Competitors to include" error={fieldErrors.competitorUrls}>
                 <div className="flex flex-col gap-3">
-                  <div className="flex w-[290px] items-center overflow-hidden rounded-[8px] bg-[#F5F5F5] pl-3 pr-[2px] py-[2px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-                    <input
-                      value={competitorInput}
-                      onChange={(event) => setCompetitorInput(event.target.value)}
-                      onKeyDown={handleCompetitorKeyDown}
-                      placeholder="ex. www.competitor.com"
-                      className="min-w-0 flex-1 bg-transparent text-[12px] font-medium text-[#171717] outline-none placeholder:text-[#525252]"
-                    />
-                    <button
-                      type="button"
-                      onClick={addCompetitor}
-                      className="inline-flex h-[32px] items-center gap-[6px] rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] pl-[10px] pr-3 text-[12px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
-                    >
-                      <PlusIcon />
-                      Add
-                    </button>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex w-[290px] items-center overflow-hidden rounded-[8px] bg-[#F5F5F5] pl-3 pr-[2px] py-[2px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+                      <input
+                        value={competitorInput}
+                        onChange={(event) => {
+                          setCompetitorInput(event.target.value);
+                          setFieldErrors((current) => {
+                            if (!current.competitorInput) {
+                              return current;
+                            }
+
+                            const next = { ...current };
+                            delete next.competitorInput;
+                            return next;
+                          });
+                        }}
+                        onKeyDown={handleCompetitorKeyDown}
+                        placeholder="ex. www.competitor.com"
+                        inputMode="url"
+                        className="min-w-0 flex-1 bg-transparent text-[12px] font-medium text-[#171717] outline-none placeholder:text-[#525252]"
+                      />
+                      <button
+                        type="button"
+                        onClick={addCompetitor}
+                        className="inline-flex h-[32px] items-center gap-[6px] rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] pl-[10px] pr-3 text-[12px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
+                      >
+                        <PlusIcon />
+                        Add
+                      </button>
+                    </div>
+                    {fieldErrors.competitorInput ? (
+                      <FieldError message={fieldErrors.competitorInput} />
+                    ) : null}
                   </div>
-                  {config.competitors.length > 0 ? (
+                  {values.competitorUrls.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                      {config.competitors.map((competitor) => (
+                      {values.competitorUrls.map((competitor) => (
                         <button
                           key={competitor}
                           type="button"
@@ -177,11 +252,11 @@ export function ResearchConfigureStep({
                 </div>
               </FormField>
 
-              <FormField label="Additional notes">
+              <FormField label="Additional notes" error={fieldErrors.additionalNotes}>
                 <textarea
-                  value={config.notes}
-                  onChange={(event) => updateField("notes", event.target.value)}
-                  placeholder="https://Baseframe.com"
+                  value={values.additionalNotes}
+                  onChange={(event) => updateField("additionalNotes", event.target.value)}
+                  placeholder="Optional context, links, or constraints"
                   className="h-[92px] w-[370px] rounded-[6px] bg-[#F5F5F5] p-3 text-[12px] font-medium text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#525252]"
                 />
               </FormField>
@@ -197,7 +272,7 @@ export function ResearchConfigureStep({
                 <button
                   type="button"
                   disabled={!canSubmit || isSubmitting}
-                  onClick={() => onSubmit(config)}
+                  onClick={handleSubmit}
                   className="inline-flex h-[37px] items-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] disabled:cursor-default disabled:opacity-50"
                 >
                   {isSubmitting ? (
@@ -223,15 +298,22 @@ export function ResearchConfigureStep({
 
 function FormField({
   label,
+  error,
   children,
 }: {
   label: string;
+  error?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex w-full flex-col gap-2">
       <p className="text-[13px] font-medium leading-none text-[#171717]">{label}</p>
       {children}
+      {error ? <FieldError message={error} /> : null}
     </div>
   );
+}
+
+function FieldError({ message }: { message: string }) {
+  return <p className="text-[12px] font-medium leading-[1.4] text-[#DC2626]">{message}</p>;
 }
