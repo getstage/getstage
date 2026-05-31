@@ -101,6 +101,7 @@ export function ProjectActionModal({
             title="Are you sure you want to pause Project?"
             description="Pausing the project will stop active progress updates until you resume it. You can come back and continue work whenever you're ready."
             confirmLabel="Pause Project"
+            projectName={project.name}
             projectImageUrl={projectImageUrl ?? project.projectImageUrl}
             onConfirm={onPauseProject}
             error={modalError}
@@ -113,6 +114,7 @@ export function ProjectActionModal({
             title="Are you sure you want to delete Project?"
             description="Deleting the project is a permanent action, and once it's gone, you won't be able to retrieve it. Please double-check that you truly want to continue with this decision."
             confirmLabel="Delete Project"
+            projectName={project.name}
             projectImageUrl={projectImageUrl ?? project.projectImageUrl}
             onConfirm={onDeleteProject}
             error={deleteError}
@@ -214,6 +216,7 @@ function ProfileEditModal(props: ProfileEditModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canSave = value.trim().length > 0;
+  const fallbackAccentColor = "#8782F5";
 
   useEffect(() => {
     setValue(fieldValue);
@@ -300,9 +303,18 @@ function ProfileEditModal(props: ProfileEditModalProps) {
                 className="h-[40px] w-[40px] shrink-0 rounded-full object-cover"
               />
             ) : (
-              <div className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full bg-[#E5E5E5] text-[12px] font-medium text-[#525252]">
-                {value.trim().charAt(0).toUpperCase() || "?"}
-              </div>
+              mode === "project" ? (
+                <div
+                  className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full text-[12px] font-medium text-white"
+                  style={{ background: fallbackAccentColor }}
+                >
+                  {getInitials(value)}
+                </div>
+              ) : (
+                <div className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full bg-[#E5E5E5] text-[12px] font-medium text-[#525252]">
+                  {value.trim().charAt(0).toUpperCase() || "?"}
+                </div>
+              )
             )}
             <input
               ref={fileInputRef}
@@ -501,6 +513,7 @@ function ConfirmModal({
   title,
   description,
   confirmLabel,
+  projectName,
   projectImageUrl,
   destructive = false,
   error = null,
@@ -510,6 +523,7 @@ function ConfirmModal({
   title: string;
   description: string;
   confirmLabel: string;
+  projectName: string;
   projectImageUrl?: string;
   destructive?: boolean;
   error?: string | null;
@@ -517,6 +531,16 @@ function ConfirmModal({
   onClose: () => void;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fallbackAccentColor = "#8782F5";
+  const resolvedProjectImageUrl =
+    typeof projectImageUrl === "string" && projectImageUrl.trim().length > 0
+      ? projectImageUrl.trim()
+      : null;
+  const [displayImageUrl, setDisplayImageUrl] = useState<string | null>(resolvedProjectImageUrl);
+
+  useEffect(() => {
+    setDisplayImageUrl(resolvedProjectImageUrl);
+  }, [resolvedProjectImageUrl]);
 
   async function confirm() {
     if (isSubmitting) return;
@@ -534,12 +558,23 @@ function ConfirmModal({
   return (
     <div className="flex w-[min(509px,calc(100vw-48px))] flex-col gap-[44px] rounded-[8px] bg-white p-[20px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex w-full flex-col gap-[20px]">
-        <img
-          src={projectImageUrl ?? "/images/project-modals/delete-logo.svg"}
-          alt=""
-          aria-hidden="true"
-          className="h-[32px] w-[32px] rounded-full object-cover"
-        />
+        {displayImageUrl ? (
+          <img
+            src={displayImageUrl}
+            alt=""
+            aria-hidden="true"
+            className="h-[32px] w-[32px] rounded-full object-cover"
+            onError={() => setDisplayImageUrl(null)}
+          />
+        ) : (
+          <div
+            aria-hidden="true"
+            className="flex h-[32px] w-[32px] items-center justify-center rounded-full text-[12px] font-medium text-white"
+            style={{ background: fallbackAccentColor }}
+          >
+            {getInitials(projectName)}
+          </div>
+        )}
         <div className="flex w-full flex-col gap-[4px] text-[#171717]">
           <p className="text-[15px] font-semibold leading-none">{title}</p>
           <p className="max-w-[381px] text-[12px] font-normal leading-[1.5]">{description}</p>
@@ -570,6 +605,18 @@ function ConfirmModal({
       </div>
     </div>
   );
+}
+
+function getInitials(value: string) {
+  const words = value
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length === 0) return "?";
+  return words
+    .slice(0, 2)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join("");
 }
 
 function FieldBlock({ label, children }: { label: string; children: ReactNode }) {
