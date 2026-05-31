@@ -8,6 +8,8 @@ importers:
 
   .: {}
 
+  apps/stage-engine: {}
+
   apps/user-application:
     dependencies:
       '@auth/core':
