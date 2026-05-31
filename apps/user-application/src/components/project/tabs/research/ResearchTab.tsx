@@ -14,7 +14,13 @@ import { ResearchSummary } from "./ResearchSummary";
 import { TargetUsers } from "./TargetUsers";
 import { UiPatterns } from "./UiPatterns";
 
-export function ResearchTab({ project }: { project: Project }) {
+export function ResearchTab({
+  project,
+  onGenerateStrategy,
+}: {
+  project: Project;
+  onGenerateStrategy: () => void;
+}) {
   const [isEditing, setIsEditing] = useState(false);
   const [openPatternGroup, setOpenPatternGroup] = useState<string | null>(null);
   const [competitiveView, setCompetitiveView] = useState<CompetitiveView>("card");
@@ -126,7 +132,7 @@ export function ResearchTab({ project }: { project: Project }) {
             <Divider />
             <Opportunities opportunities={tabData.opportunities} isEditing={isEditing} />
             <Divider />
-            <ResearchActions />
+            <ResearchActions onGenerateStrategy={onGenerateStrategy} />
           </div>
         </div>
       </section>

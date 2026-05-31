@@ -41,6 +41,7 @@ export function ProjectDetailView() {
   });
   const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isStrategyGenerating, setIsStrategyGenerating] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
   const [timeline, setTimeline] = useState<ProjectTimeline>({ start: "", end: "" });
   const projectBackDestination = getProjectBackDestination();
@@ -93,6 +94,11 @@ export function ProjectDetailView() {
 
   function goBack() {
     void navigate({ to: projectBackDestination.href as never });
+  }
+
+  function handleGenerateStrategy() {
+    setIsStrategyGenerating(true);
+    setActiveTab("strategy");
   }
 
   if (!project) {
@@ -210,8 +216,17 @@ export function ProjectDetailView() {
 
           {activeTab !== "overview" && (
             <div className="w-full pb-[120px] pt-7">
-              {activeTab === "research" ? <ResearchTab project={project} /> : null}
-              {activeTab === "strategy" ? <StrategyTab /> : null}
+              {activeTab === "research" ? (
+                <ResearchTab project={project} onGenerateStrategy={handleGenerateStrategy} />
+              ) : null}
+              {activeTab === "strategy" ? (
+                <StrategyTab
+                  project={project}
+                  onGoToResearch={() => setActiveTab("research")}
+                  isGenerating={isStrategyGenerating}
+                  onGenerationComplete={() => setIsStrategyGenerating(false)}
+                />
+              ) : null}
               {activeTab === "moodboard" ? <MoodboardTab project={project} /> : null}
               {activeTab === "flows" ? <FlowsTab project={project} /> : null}
               {activeTab === "wireframes" ? <WireframesTab /> : null}

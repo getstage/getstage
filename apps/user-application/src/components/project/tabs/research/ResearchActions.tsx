@@ -1,6 +1,6 @@
 import { ArrowRightIcon, NotionIcon, PlusIcon } from "./researchIcons";
 
-export function ResearchActions() {
+export function ResearchActions({ onGenerateStrategy }: { onGenerateStrategy: () => void }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
       <button type="button" className="inline-flex h-8 items-center gap-2 rounded-[6px] text-[13px] font-medium leading-[1.25] text-[#525252] transition-colors hover:text-[#171717]">
@@ -12,7 +12,11 @@ export function ResearchActions() {
           <NotionIcon />
           Export to Notion
         </button>
-        <button type="button" className="inline-flex h-8 items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95">
+        <button
+          type="button"
+          onClick={onGenerateStrategy}
+          className="inline-flex h-8 items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+        >
           Generate Strategy
           <ArrowRightIcon />
         </button>

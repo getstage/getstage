@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useResearchTab } from "@/hooks/project";
 import { cn } from "@/lib/utils";
 import { appendRegeneratedText, cloneSections } from "@/lib/project/strategyTabHelpers";
+import type { Project } from "@/models/project/project";
 import { initialSections, type StrategySection } from "@/models/project/strategyTab";
 import {
   AddSectionEditor,
@@ -14,14 +16,38 @@ import {
   SaveIcon,
 } from "./strategyIcons";
 
-export function StrategyTab() {
+type StrategyTabProps = {
+  project: Pick<Project, "id" | "name" | "clientName">;
+  onGoToResearch: () => void;
+  isGenerating: boolean;
+  onGenerationComplete: () => void;
+};
+
+const STRATEGY_GENERATION_DELAY_MS = 1800;
+
+export function StrategyTab({
+  project,
+  onGoToResearch,
+  isGenerating,
+  onGenerationComplete,
+}: StrategyTabProps) {
   const [sections, setSections] = useState(initialSections);
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editSections, setEditSections] = useState<StrategySection[]>([]);
   const [draftTitle, setDraftTitle] = useState("Enter Title Here");
   const [draftBody, setDraftBody] = useState("");
+  const research = useResearchTab(project);
   const visibleSections = isEditing ? editSections : sections;
+
+  useEffect(() => {
+    if (!isGenerating) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(onGenerationComplete, STRATEGY_GENERATION_DELAY_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [isGenerating, onGenerationComplete]);
 
   const approvedCount = useMemo(
     () => visibleSections.filter((section) => section.status === "approved").length,
@@ -80,6 +106,104 @@ export function StrategyTab() {
     setDraftTitle("Enter Title Here");
     setDraftBody("");
     setIsAdding(false);
+  }
+
+  if (research.isLoading) {
+    return (
+      <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="rounded-[8px] bg-white px-[clamp(24px,3.8vw,44px)] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <p className="text-[13px] font-medium leading-[1.5] text-[#737373]">Loading research status...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (!research.hasArtifact || !research.data) {
+    return (
+      <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="rounded-[8px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <div className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+            <div className="flex items-center justify-center p-4">
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <p className="text-[15px] font-medium leading-none text-[#171717]">Generate Strategy</p>
+                <p className="max-w-[420px] text-[12px] font-medium leading-[1.5] text-[#737373]">
+                  Strategy is generated from the research. Run research first, then come back here to generate the strategy.
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-[8px] bg-white px-11 py-11 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+              <div className="flex max-w-[420px] flex-col gap-6">
+                <div className="flex flex-col gap-2">
+                  <p className="text-[20px] font-semibold leading-[1.2] text-[#171717]">
+                    Research required
+                  </p>
+                  <p className="text-[13px] font-medium leading-[1.6] text-[#737373]">
+                    We need the project research before strategy can be generated. Add the project context in Research and run it first.
+                  </p>
+                  {research.parseError ? (
+                    <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
+                      Saved research exists but could not be parsed. Re-run research to continue.
+                    </p>
+                  ) : null}
+                  {research.error ? (
+                    <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
+                      {research.error}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onGoToResearch}
+                    className="inline-flex h-8 items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+                  >
+                    Go to Research
+                    <ArrowRightIcon />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (isGenerating) {
+    return (
+      <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="rounded-[8px] bg-white px-[44px] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <div className="flex min-h-[520px] items-center justify-center">
+            <div className="flex w-full max-w-[282px] flex-col items-center gap-6">
+              <img
+                src="/logos/generating-strategy.svg"
+                alt=""
+                aria-hidden="true"
+                className="h-[37px] w-[37px] animate-spin"
+              />
+
+              <div className="flex w-full flex-col items-center gap-2">
+                <p className="text-center text-[16px] font-semibold leading-none text-[#171717]">
+                  Generating Strategy
+                </p>
+                <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
+                  Extracting structural patterns - AI ignores color, typography, and visual style.
+                </p>
+              </div>
+
+              <div className="flex w-full flex-col items-center gap-2">
+                <StrategyLoadingStep icon="/logos/check.svg" label="Identified Goals & KPIs" />
+                <StrategyLoadingStep icon="/logos/check.svg" label="Created user journey" />
+                <StrategyLoadingStep icon="/logos/loader.svg" label="Generating conversion approach" spinning />
+                <StrategyLoadingStep icon="/logos/unchecked.svg" label="Identify Technical Requirements" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -185,5 +309,29 @@ export function StrategyTab() {
         </div>
       </div>
     </section>
+  );
+}
+
+function StrategyLoadingStep({
+  icon,
+  label,
+  spinning = false,
+}: {
+  icon: string;
+  label: string;
+  spinning?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <img
+        src={icon}
+        alt=""
+        aria-hidden="true"
+        className={cn("shrink-0", spinning ? "h-[16px] w-[16px] animate-spin" : "h-[18px] w-[18px]")}
+      />
+      <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
+        {label}
+      </p>
+    </div>
   );
 }
