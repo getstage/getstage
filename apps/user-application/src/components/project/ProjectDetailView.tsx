@@ -41,7 +41,7 @@ export function ProjectDetailView() {
   });
   const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isStrategyGenerating, setIsStrategyGenerating] = useState(false);
+  const [pendingStrategyGeneration, setPendingStrategyGeneration] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
   const [timeline, setTimeline] = useState<ProjectTimeline>({ start: "", end: "" });
   const projectBackDestination = getProjectBackDestination();
@@ -97,7 +97,7 @@ export function ProjectDetailView() {
   }
 
   function handleGenerateStrategy() {
-    setIsStrategyGenerating(true);
+    setPendingStrategyGeneration(true);
     setActiveTab("strategy");
   }
 
@@ -223,8 +223,8 @@ export function ProjectDetailView() {
                 <StrategyTab
                   project={project}
                   onGoToResearch={() => setActiveTab("research")}
-                  isGenerating={isStrategyGenerating}
-                  onGenerationComplete={() => setIsStrategyGenerating(false)}
+                  autoStartGeneration={pendingStrategyGeneration}
+                  onAutoStartHandled={() => setPendingStrategyGeneration(false)}
                 />
               ) : null}
               {activeTab === "moodboard" ? <MoodboardTab project={project} /> : null}

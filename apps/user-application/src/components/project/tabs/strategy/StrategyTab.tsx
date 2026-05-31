@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { useResearchTab } from "@/hooks/project";
+import { useStrategyTab } from "@/hooks/project";
+import type { ValidatedStrategyGenerateInput } from "@/lib/project/strategyGenerateInput";
 import { cn } from "@/lib/utils";
 import { appendRegeneratedText, cloneSections } from "@/lib/project/strategyTabHelpers";
 import type { Project } from "@/models/project/project";
-import { initialSections, type StrategySection } from "@/models/project/strategyTab";
+import type { StrategySection } from "@/models/project/strategyTab";
 import {
   AddSectionEditor,
 } from "./AddSectionEditor";
+import { StrategyGenerateStep } from "./StrategyGenerateStep";
 import { StrategySectionCard } from "./StrategySectionCard";
 import { MetaDot } from "./StrategyStatus";
 import {
@@ -19,40 +21,57 @@ import {
 type StrategyTabProps = {
   project: Pick<Project, "id" | "name" | "clientName">;
   onGoToResearch: () => void;
-  isGenerating: boolean;
-  onGenerationComplete: () => void;
+  autoStartGeneration?: boolean;
+  onAutoStartHandled?: () => void;
 };
-
-const STRATEGY_GENERATION_DELAY_MS = 1800;
 
 export function StrategyTab({
   project,
   onGoToResearch,
-  isGenerating,
-  onGenerationComplete,
+  autoStartGeneration = false,
+  onAutoStartHandled,
 }: StrategyTabProps) {
-  const [sections, setSections] = useState(initialSections);
+  const [sections, setSections] = useState<StrategySection[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editSections, setEditSections] = useState<StrategySection[]>([]);
   const [draftTitle, setDraftTitle] = useState("Enter Title Here");
   const [draftBody, setDraftBody] = useState("");
-  const research = useResearchTab(project);
+  const [runError, setRunError] = useState<string | null>(null);
+
+  const strategy = useStrategyTab(project);
   const visibleSections = isEditing ? editSections : sections;
 
   useEffect(() => {
-    if (!isGenerating) {
+    if (strategy.data) {
+      setSections(cloneSections(strategy.data.tabData.sections));
+    }
+  }, [strategy.data]);
+
+  useEffect(() => {
+    if (!autoStartGeneration || !strategy.hasResearch || strategy.hasArtifact || strategy.isRunning) {
       return;
     }
 
-    const timeoutId = window.setTimeout(onGenerationComplete, STRATEGY_GENERATION_DELAY_MS);
-    return () => window.clearTimeout(timeoutId);
-  }, [isGenerating, onGenerationComplete]);
+    void handleGenerateStrategy().finally(() => {
+      onAutoStartHandled?.();
+    });
+  }, [autoStartGeneration, onAutoStartHandled, strategy.hasArtifact, strategy.hasResearch, strategy.isRunning]);
 
   const approvedCount = useMemo(
     () => visibleSections.filter((section) => section.status === "approved").length,
     [visibleSections],
   );
+
+  async function handleGenerateStrategy(input?: ValidatedStrategyGenerateInput) {
+    setRunError(null);
+
+    try {
+      await strategy.startStrategy(input);
+    } catch (error) {
+      setRunError(error instanceof Error ? error.message : "Could not generate Strategy.");
+    }
+  }
 
   function approveSection(sectionId: string) {
     setSections((current) => current.map((section) => (
@@ -108,17 +127,17 @@ export function StrategyTab({
     setIsAdding(false);
   }
 
-  if (research.isLoading) {
+  if (strategy.isLoading) {
     return (
       <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="rounded-[8px] bg-white px-[clamp(24px,3.8vw,44px)] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-          <p className="text-[13px] font-medium leading-[1.5] text-[#737373]">Loading research status...</p>
+          <p className="text-[13px] font-medium leading-[1.5] text-[#737373]">Loading strategy...</p>
         </div>
       </section>
     );
   }
 
-  if (!research.hasArtifact || !research.data) {
+  if (!strategy.hasResearch) {
     return (
       <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="rounded-[8px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -141,14 +160,9 @@ export function StrategyTab({
                   <p className="text-[13px] font-medium leading-[1.6] text-[#737373]">
                     We need the project research before strategy can be generated. Add the project context in Research and run it first.
                   </p>
-                  {research.parseError ? (
+                  {strategy.researchError ? (
                     <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
-                      Saved research exists but could not be parsed. Re-run research to continue.
-                    </p>
-                  ) : null}
-                  {research.error ? (
-                    <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
-                      {research.error}
+                      {strategy.researchError}
                     </p>
                   ) : null}
                 </div>
@@ -171,7 +185,7 @@ export function StrategyTab({
     );
   }
 
-  if (isGenerating) {
+  if (strategy.isRunning) {
     return (
       <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="rounded-[8px] bg-white px-[44px] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -189,7 +203,9 @@ export function StrategyTab({
                   Generating Strategy
                 </p>
                 <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
-                  Extracting structural patterns - AI ignores color, typography, and visual style.
+                  {strategy.usingMockData
+                    ? "Turning research into strategy sections. Results will appear here when the mock run completes."
+                    : "Extracting structural patterns - AI ignores color, typography, and visual style."}
                 </p>
               </div>
 
@@ -203,6 +219,27 @@ export function StrategyTab({
           </div>
         </div>
       </section>
+    );
+  }
+
+  if (!strategy.hasArtifact || !strategy.data) {
+    return (
+      <div className="flex flex-col gap-4">
+        {strategy.parseError ? (
+          <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
+            Saved strategy exists but could not be parsed. Try generating Strategy again.
+          </p>
+        ) : null}
+        {runError || strategy.error ? (
+          <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
+            {runError ?? strategy.error}
+          </p>
+        ) : null}
+        <StrategyGenerateStep
+          isSubmitting={strategy.isStarting || strategy.isRunning}
+          onSubmit={(input) => void handleGenerateStrategy(input)}
+        />
+      </div>
     );
   }
 

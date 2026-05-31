@@ -7,3 +7,4 @@ export * from "./engine-voice";
 export * from "./project-context";
 export * from "./refero";
 export * from "./research";
+export * from "./strategy";
