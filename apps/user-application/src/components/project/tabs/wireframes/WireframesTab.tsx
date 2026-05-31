@@ -1,5 +1,12 @@
-import { useMemo, useState } from "react";
-import { MOCK_SCREENS } from "@/data/fixtures/project/wireframesTabFixtures";
+import { useEffect, useMemo, useState } from "react";
+import {
+  createSeedConfigureScreens,
+  MOCK_WIREFRAMES_GENERATED_AT_LABEL,
+  WIREFRAMES_RESULTS_PREVIEW_LIMIT,
+} from "@/data/fixtures/project/wireframesTabFixtures";
+import { useWireframesTab } from "@/hooks/project";
+import { buildResultCards } from "@/lib/project/mapWireframesArtifactToTabData";
+import type { Project } from "@/models/project/project";
 import type { WireframeKindChoice, WireframeStep } from "@/types/project/wireframesTab";
 import { BrandKitStep } from "./BrandKitStep";
 import { CanvasShell } from "./CanvasShell";
@@ -11,13 +18,26 @@ import type { BrandSource, BrandSourceChoice } from "./TypeChooser";
 import { TypeChooser } from "./TypeChooser";
 import { WireframeKindChooser } from "./WireframeKindChooser";
 
-export function WireframesTab() {
+export function WireframesTab({ project }: { project: Project }) {
+  const wireframesTab = useWireframesTab({ id: project.id, name: project.name });
+  const seedScreens = useMemo(() => createSeedConfigureScreens(), []);
   const [step, setStep] = useState<WireframeStep>("choose-kind");
   const [wireframeKind, setWireframeKind] = useState<WireframeKindChoice>(null);
   const [brandSource, setBrandSource] = useState<BrandSourceChoice>(null);
   const [hasBrandKit, setHasBrandKit] = useState(false);
-  const [screens, setScreens] = useState(MOCK_SCREENS);
+  const [screens, setScreens] = useState(seedScreens);
+  const [generatedAtLabel, setGeneratedAtLabel] = useState(MOCK_WIREFRAMES_GENERATED_AT_LABEL);
   const selectedCount = screens.filter((screen) => screen.selected).length;
+
+  useEffect(() => {
+    if (!wireframesTab.data?.tabData) {
+      return;
+    }
+
+    const { tabData } = wireframesTab.data;
+    setScreens(tabData.configureScreens);
+    setGeneratedAtLabel(tabData.generatedAtLabel);
+  }, [wireframesTab.data]);
 
   function continueFromSource(source: BrandSource) {
     setBrandSource(source);
@@ -28,23 +48,25 @@ export function WireframesTab() {
     setStep("style-guide");
   }
 
-  function generateWireframes() {
+  async function generateWireframes() {
     setStep("generating");
-    window.setTimeout(() => {
+    try {
+      const record = await wireframesTab.generateWireframes({
+        wireframeKind: wireframeKind ?? "lofi",
+        brandSource,
+        screens,
+      });
+      setScreens(record.tabData.configureScreens);
+      setGeneratedAtLabel(record.tabData.generatedAtLabel);
       setStep("results");
-    }, 1300);
+    } catch {
+      setStep("configure");
+    }
   }
 
   const generatedCards = useMemo(
-    () =>
-      screens
-        .filter((screen) => screen.selected)
-        .slice(0, 6)
-        .map((screen) => ({
-          ...screen,
-          date: "6th April, 2025",
-        })),
-    [screens],
+    () => buildResultCards(screens, generatedAtLabel, WIREFRAMES_RESULTS_PREVIEW_LIMIT),
+    [generatedAtLabel, screens],
   );
 
   return (
@@ -117,7 +139,9 @@ export function WireframesTab() {
               ),
             )
           }
-          onGenerate={generateWireframes}
+          onGenerate={() => {
+            void generateWireframes();
+          }}
         />
       ) : null}
 

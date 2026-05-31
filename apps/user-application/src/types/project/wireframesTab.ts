@@ -1,6 +1,13 @@
 export type WireframeKind = "lofi" | "hifi";
 export type WireframeKindChoice = WireframeKind | null;
-export type WireframeStep = "choose-kind" | "choose-type" | "style-guide" | "brand-kit" | "configure" | "generating" | "results";
+export type WireframeStep =
+  | "choose-kind"
+  | "choose-type"
+  | "style-guide"
+  | "brand-kit"
+  | "configure"
+  | "generating"
+  | "results";
 
 export type ScreenItem = {
   id: string;
@@ -10,4 +17,33 @@ export type ScreenItem = {
   priority: string;
   required: boolean;
   selected: boolean;
+};
+
+export type WireframesTabStats = {
+  flowsScreenCount: number;
+  moodboardPatternCount: number;
+  totalConfigureScreenCount: number;
+};
+
+export type WireframesBrandKit = {
+  fileName: string;
+  sizeBytes: number;
+  fileSizeLabel: string;
+};
+
+export type WireframeGeneratedScreen = {
+  id: string;
+  title: string;
+  priority: string;
+  generatedAtLabel: string;
+  figmaUrl?: string;
+};
+
+export type WireframesTabData = {
+  configureScreens: ScreenItem[];
+  stats: WireframesTabStats;
+  brandKit: WireframesBrandKit | null;
+  generatedAtLabel: string;
+  figmaSymbolUrl: string;
+  generatedScreens: WireframeGeneratedScreen[];
 };
