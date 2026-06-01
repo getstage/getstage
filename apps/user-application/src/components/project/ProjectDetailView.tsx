@@ -9,15 +9,49 @@ import { MoodboardTab } from "./tabs/moodboard/MoodboardTab";
 import { ResearchTab } from "./tabs/research/ResearchTab";
 import { StrategyTab } from "./tabs/strategy/StrategyTab";
 import { WireframesTab } from "./tabs/wireframes/WireframesTab";
-import { useLiveProject, useProjectHeaderActions } from "@/hooks/project";
+import {
+  useFlowsArtifact,
+  useLiveProject,
+  useMoodboardArtifact,
+  useProjectHeaderActions,
+  useResearchArtifact,
+  useStrategyArtifact,
+  useWireframesArtifact,
+} from "@/hooks/project";
 import { formatInputDate } from "@/lib/format";
 import { getProjectBackDestination } from "@/lib/projectBackDestination";
 import { formatRelativeTime } from "@/lib/utils";
+import { loadMockFlowsArtifactRecord } from "@/mock/project/flows";
+import { loadMockMoodboardArtifactRecord } from "@/mock/project/moodboard";
+import { loadMockStrategyArtifactRecord } from "@/mock/project/strategy";
+import { loadMockWireframesArtifactRecord } from "@/mock/project/wireframes";
 import type { Project, ProjectTab } from "@/models/project/project";
 
 type ProjectTimeline = {
   start: string;
   end: string;
+};
+
+type StepTab = Exclude<ProjectTab, "overview">;
+
+type ProjectStepStatus = Record<StepTab, boolean>;
+
+const PROJECT_STEP_ORDER: StepTab[] = [
+  "research",
+  "strategy",
+  "moodboard",
+  "flows",
+  "wireframes",
+  "assets",
+];
+
+const PROJECT_STEP_LABELS: Record<StepTab, string> = {
+  research: "Research",
+  strategy: "Strategy",
+  moodboard: "Moodboard",
+  flows: "Flows",
+  wireframes: "Wireframes",
+  assets: "Assets",
 };
 
 function formatTimelineDate(timestamp: number) {
@@ -29,6 +63,11 @@ export function ProjectDetailView() {
   const { projectId } = useParams({ from: "/_authed/project/$projectId" });
   const [isLeavingAfterDelete, setIsLeavingAfterDelete] = useState(false);
   const live = useLiveProject(projectId, { enabled: !isLeavingAfterDelete });
+  const researchArtifact = useResearchArtifact(projectId);
+  const strategyArtifact = useStrategyArtifact(projectId);
+  const moodboardArtifact = useMoodboardArtifact(projectId);
+  const flowsArtifact = useFlowsArtifact(projectId);
+  const wireframesArtifact = useWireframesArtifact(projectId);
   const [modalError, setModalError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const actions = useProjectHeaderActions({
@@ -91,6 +130,27 @@ export function ProjectDetailView() {
     }
     return tasks.sort((a, b) => b.task.updatedAt - a.task.updatedAt).slice(0, 3);
   }, [project]);
+
+  const stepStatus = useMemo<ProjectStepStatus>(() => {
+    return {
+      research: researchArtifact.hasArtifact,
+      strategy: strategyArtifact.hasArtifact || loadMockStrategyArtifactRecord(projectId) !== null,
+      moodboard: moodboardArtifact.hasArtifact || loadMockMoodboardArtifactRecord(projectId) !== null,
+      flows: flowsArtifact.hasArtifact || loadMockFlowsArtifactRecord(projectId) !== null,
+      wireframes: wireframesArtifact.hasArtifact || loadMockWireframesArtifactRecord(projectId) !== null,
+      assets: true,
+    };
+  }, [
+    flowsArtifact.hasArtifact,
+    moodboardArtifact.hasArtifact,
+    projectId,
+    researchArtifact.hasArtifact,
+    strategyArtifact.hasArtifact,
+    wireframesArtifact.hasArtifact,
+    activeTab,
+  ]);
+
+  const blockedStep = getBlockedProjectStep(activeTab, stepStatus);
 
   function goBack() {
     void navigate({ to: projectBackDestination.href as never });
@@ -216,10 +276,17 @@ export function ProjectDetailView() {
 
           {activeTab !== "overview" && (
             <div className="w-full pb-[120px] pt-7">
-              {activeTab === "research" ? (
+              {blockedStep ? (
+                <ProjectStepBlockedState
+                  currentTab={activeTab as StepTab}
+                  requiredTab={blockedStep}
+                  onGoToStep={() => setActiveTab(blockedStep)}
+                />
+              ) : null}
+              {!blockedStep && activeTab === "research" ? (
                 <ResearchTab project={project} onGenerateStrategy={handleGenerateStrategy} />
               ) : null}
-              {activeTab === "strategy" ? (
+              {!blockedStep && activeTab === "strategy" ? (
                 <StrategyTab
                   project={project}
                   onGoToResearch={() => setActiveTab("research")}
@@ -227,16 +294,91 @@ export function ProjectDetailView() {
                   onAutoStartHandled={() => setPendingStrategyGeneration(false)}
                 />
               ) : null}
-              {activeTab === "moodboard" ? <MoodboardTab project={project} /> : null}
-              {activeTab === "flows" ? <FlowsTab project={project} /> : null}
-              {activeTab === "wireframes" ? <WireframesTab project={project} /> : null}
-              {activeTab === "assets" ? <AssetsTab project={project} /> : null}
+              {!blockedStep && activeTab === "moodboard" ? <MoodboardTab project={project} /> : null}
+              {!blockedStep && activeTab === "flows" ? <FlowsTab project={project} /> : null}
+              {!blockedStep && activeTab === "wireframes" ? <WireframesTab project={project} /> : null}
+              {!blockedStep && activeTab === "assets" ? <AssetsTab project={project} /> : null}
             </div>
           )}
         </motion.div>
       </div>
       {isShareModalOpen ? <ShareModal onClose={() => setIsShareModalOpen(false)} /> : null}
     </>
+  );
+}
+
+function getBlockedProjectStep(activeTab: ProjectTab, stepStatus: ProjectStepStatus): StepTab | null {
+  if (activeTab === "overview" || activeTab === "research") {
+    return null;
+  }
+
+  const activeIndex = PROJECT_STEP_ORDER.indexOf(activeTab);
+  if (activeIndex <= 0) {
+    return null;
+  }
+
+  for (const step of PROJECT_STEP_ORDER.slice(0, activeIndex)) {
+    if (!stepStatus[step]) {
+      return step;
+    }
+  }
+
+  return null;
+}
+
+function ProjectStepBlockedState({
+  currentTab,
+  requiredTab,
+  onGoToStep,
+}: {
+  currentTab: StepTab;
+  requiredTab: StepTab;
+  onGoToStep: () => void;
+}) {
+  const currentLabel = PROJECT_STEP_LABELS[currentTab];
+  const requiredLabel = PROJECT_STEP_LABELS[requiredTab];
+
+  return (
+    <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+      <div className="rounded-[8px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <div className="flex items-center justify-center p-4">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <p className="text-[15px] font-medium leading-none text-[#171717]">
+                {currentLabel}
+              </p>
+              <p className="max-w-[460px] text-[12px] font-medium leading-[1.5] text-[#737373]">
+                This project moves step by step. Complete {requiredLabel} before proceeding to {currentLabel}.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-[8px] bg-white px-11 py-11 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+            <div className="flex max-w-[460px] flex-col gap-6">
+              <div className="flex flex-col gap-2">
+                <p className="text-[20px] font-semibold leading-[1.2] text-[#171717]">
+                  Complete {requiredLabel} first
+                </p>
+                <p className="text-[13px] font-medium leading-[1.6] text-[#737373]">
+                  {currentLabel} depends on the work from {requiredLabel}. Finish that step and this tab will become available.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onGoToStep}
+                  className="inline-flex h-8 items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+                >
+                  Go to {requiredLabel}
+                  <ArrowRightIconSmall />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
