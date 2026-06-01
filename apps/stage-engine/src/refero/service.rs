@@ -1,6 +1,4 @@
 #![allow(dead_code)]
-// Refero normalization service. This stays separate from Research so other
-// workflows can reuse the adapter without copying MCP logic into UI code.
 
 use serde_json::{Value, json};
 use thiserror::Error;
@@ -11,6 +9,14 @@ use crate::models::refero::{
 };
 
 use super::client::{ReferoClient, ReferoClientError};
+use super::parse::{
+    decode_image_bytes, extract_reference_values, infer_extension, is_synthetic_reference_id,
+    looks_like_image_bytes, nested_string_field, reference_id, refero_tags, string_array_field,
+    string_field,
+};
+
+const MAX_REFERO_SEARCH_RESULTS: u8 = 4;
+const MAX_REFERO_IMAGE_FETCHES: usize = 6;
 
 #[derive(Clone, Debug)]
 pub struct ReferoService {
@@ -51,16 +57,15 @@ impl ReferoService {
                 json!({
                     "query": request.query,
                     "platform": platform_to_refero_value(request.platform),
-                    "limit": request.limit,
-                    "tags": request.tags,
                 }),
             )
             .await?;
 
         Ok(extract_reference_values(&raw)
             .into_iter()
+            .take(usize::from(MAX_REFERO_SEARCH_RESULTS))
             .enumerate()
-            .map(|(index, value)| normalize_reference(value, ReferoReferenceKind::Screen, index))
+            .map(|(index, value)| normalize_reference(&value, ReferoReferenceKind::Screen, index))
             .collect())
     }
 
@@ -75,17 +80,87 @@ impl ReferoService {
                 json!({
                     "query": request.query,
                     "platform": platform_to_refero_value(request.platform),
-                    "limit": request.limit,
-                    "tags": request.tags,
                 }),
             )
             .await?;
 
         Ok(extract_reference_values(&raw)
             .into_iter()
+            .take(usize::from(MAX_REFERO_SEARCH_RESULTS))
             .enumerate()
-            .map(|(index, value)| normalize_reference(value, ReferoReferenceKind::Flow, index))
+            .map(|(index, value)| normalize_reference(&value, ReferoReferenceKind::Flow, index))
             .collect())
+    }
+
+    pub async fn fetch_screen_image_bytes(
+        &self,
+        screen_id: &str,
+    ) -> Result<Vec<u8>, ReferoServiceError> {
+        let raw = self
+            .client
+            .call_tool(
+                "refero_get_screen_image",
+                json!({
+                    "screen_id": screen_id,
+                    "image_size": "full",
+                }),
+            )
+            .await?;
+
+        let bytes = decode_image_bytes(&raw).ok_or_else(|| ReferoServiceError::MissingImage {
+            reference_id: screen_id.to_string(),
+        })?;
+
+        if !looks_like_image_bytes(&bytes) {
+            return Err(ReferoServiceError::MissingImage {
+                reference_id: screen_id.to_string(),
+            });
+        }
+
+        Ok(bytes)
+    }
+
+    pub async fn hydrate_reference_images(
+        &self,
+        references: &mut [ReferoReference],
+    ) -> Result<usize, ReferoServiceError> {
+        let mut fetched = 0usize;
+
+        for reference in references.iter_mut() {
+            if fetched >= MAX_REFERO_IMAGE_FETCHES {
+                break;
+            }
+
+            if reference.kind != ReferoReferenceKind::Screen {
+                continue;
+            }
+
+            if reference.image_url.is_some() || reference.thumbnail_url.is_some() {
+                continue;
+            }
+
+            if is_synthetic_reference_id(&reference.id) {
+                tracing::warn!(
+                    screen_id = %reference.id,
+                    "Skipping Refero image fetch because search result had no real screen id"
+                );
+                continue;
+            }
+
+            let screen_id = reference.id.clone();
+            let bytes = match self.fetch_screen_image_bytes(&screen_id).await {
+                Ok(bytes) => bytes,
+                Err(error) => {
+                    tracing::warn!(screen_id = %screen_id, %error, "Refero screen image fetch failed");
+                    continue;
+                }
+            };
+
+            reference.raw_image_bytes = Some(bytes);
+            fetched += 1;
+        }
+
+        Ok(fetched)
     }
 }
 
@@ -98,77 +173,68 @@ fn platform_to_refero_value(platform: ReferoPlatform) -> &'static str {
     }
 }
 
-fn extract_reference_values(raw: &Value) -> Vec<&Value> {
-    if let Some(items) = raw.get("items").and_then(Value::as_array) {
-        return items.iter().collect();
-    }
-
-    if let Some(results) = raw.get("results").and_then(Value::as_array) {
-        return results.iter().collect();
-    }
-
-    if let Some(content) = raw.get("content").and_then(Value::as_array) {
-        return content.iter().collect();
-    }
-
-    raw.as_array()
-        .map(|items| items.iter().collect())
-        .unwrap_or_default()
-}
-
 fn normalize_reference(value: &Value, kind: ReferoReferenceKind, index: usize) -> ReferoReference {
-    let fallback_id = format!("{kind:?}-{index}");
-    let id = string_field(value, &["id", "screenId", "flowId", "slug"]).unwrap_or(fallback_id);
+    let kind_label = match kind {
+        ReferoReferenceKind::Screen => "screen",
+        ReferoReferenceKind::Flow => "flow",
+        ReferoReferenceKind::Style => "style",
+    };
+    let id = reference_id(value, kind_label, index);
     let title = string_field(value, &["title", "name", "screenName", "flowName"])
         .unwrap_or_else(|| "Untitled Refero reference".to_string());
+
+    let product_name = nested_string_field(value, &["site", "name"])
+        .or_else(|| string_field(value, &["productName", "appName", "companyName", "product"]));
+    let product_url = nested_string_field(value, &["site", "domain"])
+        .or_else(|| string_field(value, &["productUrl", "appUrl", "website", "url", "page_url"]));
 
     ReferoReference {
         id,
         kind,
         title,
-        product_name: string_field(value, &["productName", "appName", "companyName"]),
-        product_url: string_field(value, &["productUrl", "appUrl", "website"]),
-        platform: ReferoPlatform::Unknown,
-        source_url: string_field(value, &["sourceUrl", "url"]),
-        thumbnail_url: string_field(value, &["thumbnailUrl", "thumbnail", "image"]),
-        image_url: string_field(value, &["imageUrl", "screenshotUrl"]),
-        summary: string_field(value, &["summary", "description"]),
-        tags: string_array_field(value, &["tags", "categories"]),
-        screen_type: string_field(value, &["screenType", "type"]),
+        product_name,
+        product_url,
+        platform: parse_platform(value),
+        source_url: string_field(value, &["refero_url", "referoUrl", "sourceUrl", "pageUrl", "page_url"]),
+        thumbnail_url: string_field(value, &["thumbnail_url", "thumbnailUrl", "thumbnail", "preview_url", "previewUrl"]),
+        image_url: string_field(value, &["preview_url", "previewUrl", "imageUrl", "screenshotUrl", "fullImageUrl"]),
+        summary: nested_string_field(value, &["content", "description"])
+            .or_else(|| string_field(value, &["summary", "description", "problem"])),
+        tags: refero_tags(value),
+        screen_type: string_array_field(value, &["page_types", "pageTypes"])
+            .first()
+            .cloned()
+            .or_else(|| string_field(value, &["screenType", "type"])),
         flow_type: string_field(value, &["flowType", "type"]),
         step_count: value
-            .get("stepCount")
+            .get("screens_count")
+            .or_else(|| value.get("screensCount"))
+            .or_else(|| value.get("stepCount"))
             .and_then(Value::as_u64)
             .and_then(|count| u32::try_from(count).ok()),
         style_type: string_field(value, &["styleType"]),
+        raw_image_bytes: None,
     }
 }
 
-fn string_field(value: &Value, keys: &[&str]) -> Option<String> {
-    keys.iter()
-        .find_map(|key| value.get(*key).and_then(Value::as_str))
-        .map(str::trim)
-        .filter(|text| !text.is_empty())
-        .map(ToOwned::to_owned)
-}
-
-fn string_array_field(value: &Value, keys: &[&str]) -> Vec<String> {
-    keys.iter()
-        .find_map(|key| value.get(*key).and_then(Value::as_array))
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(Value::as_str)
-                .map(str::trim)
-                .filter(|text| !text.is_empty())
-                .map(ToOwned::to_owned)
-                .collect()
-        })
-        .unwrap_or_default()
+fn parse_platform(value: &Value) -> ReferoPlatform {
+    match string_field(value, &["platform"]).as_deref() {
+        Some("ios") => ReferoPlatform::Ios,
+        Some("android") => ReferoPlatform::Android,
+        Some("web") => ReferoPlatform::Web,
+        _ => ReferoPlatform::Unknown,
+    }
 }
 
 #[derive(Debug, Error)]
 pub enum ReferoServiceError {
     #[error("Refero client error: {0}")]
     Client(#[from] ReferoClientError),
+
+    #[error("Refero image missing for {reference_id}")]
+    MissingImage { reference_id: String },
+}
+
+pub fn infer_refero_file_name(reference_id: &str, mime_type: &str) -> String {
+    format!("{reference_id}.{}", infer_extension(mime_type))
 }

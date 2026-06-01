@@ -17,7 +17,7 @@ pub fn build_refero_search_request(input: &ResearchInput) -> ReferoSearchRequest
     ReferoSearchRequest {
         query: parts.join(" "),
         platform: ReferoPlatform::Web,
-        limit: 8,
+        limit: 4,
         tags: vec![
             "research".to_string(),
             "competitive-analysis".to_string(),

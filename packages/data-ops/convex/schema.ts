@@ -121,6 +121,8 @@ const uploadPurpose = v.union(
   v.literal("portal-logo"),
   v.literal("generated-design"),
   v.literal("project-asset"),
+  v.literal("research-refero"),
+  v.literal("research-brief"),
 );
 
 const subscriptionStatus = v.union(

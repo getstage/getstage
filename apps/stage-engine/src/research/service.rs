@@ -38,6 +38,10 @@ impl ResearchService {
             prompt,
         })
     }
+
+    pub fn refero(&self) -> &ReferoService {
+        &self.refero
+    }
 }
 
 #[derive(Debug, Error)]

@@ -4,7 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ReferoReferenceKind {
     Screen,
@@ -50,6 +50,8 @@ pub struct ReferoReference {
     pub flow_type: Option<String>,
     pub step_count: Option<u32>,
     pub style_type: Option<String>,
+    #[serde(skip)]
+    pub raw_image_bytes: Option<Vec<u8>>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

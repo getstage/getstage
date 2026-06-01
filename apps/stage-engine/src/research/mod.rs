@@ -4,5 +4,7 @@
 
 pub mod context;
 pub mod prompt;
+pub mod refero_assets;
+pub mod section;
 pub mod service;
 pub mod workflow;

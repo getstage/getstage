@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::convex_store::asset_upload::ConvexAssetUploader;
 use crate::convex_store::research_repository::{
     ResearchRepository, enrich_research_artifact, extract_json_object,
 };
@@ -8,8 +9,14 @@ use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::runs::{RunEvent, RunStatus, StartRunRequest};
 use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
 use crate::providers::process::ProviderProcessOutcome;
+use crate::research::prompt::build_research_prompt;
+use crate::research::refero_assets::{persist_refero_context_images, wire_refero_images_in_artifact};
+use crate::research::section::{
+    build_section_regenerate_prompt, merge_research_section, parse_research_section,
+};
 use crate::research::service::ResearchService;
 use crate::runs::RunEventSink;
+use serde_json::json;
 
 #[derive(Clone, Debug)]
 pub struct ResearchWorkflow {
@@ -57,14 +64,25 @@ impl ResearchWorkflow {
             self.tool_started(api_version, &run_id, provider_id, &sink, "stage-context", "Load Stage project context");
             tracing::info!(run_id = %run_id, project_id, "loading research input from Convex");
             let input = self.repository.fetch_research_input(&auth_token, project_id).await?;
-            tracing::info!(
-                run_id = %run_id,
-                project_id,
-                industry = %input.industry,
-                competitor_count = input.competitor_urls.len(),
-                "research input loaded"
-            );
             self.tool_completed(api_version, &run_id, provider_id, &sink, "stage-context");
+
+            let section = parse_research_section(request.context.source.as_deref())
+                .map(str::to_string);
+            if let Some(section_name) = section {
+                return self
+                    .run_section_regenerate(
+                        api_version,
+                        &run_id,
+                        provider_id,
+                        &auth_token,
+                        project_id,
+                        &section_name,
+                        &mut request,
+                        sink.clone(),
+                        cancel_rx,
+                    )
+                    .await;
+            }
 
             convex_run_id = self
                 .repository
@@ -78,8 +96,25 @@ impl ResearchWorkflow {
 
             self.tool_started(api_version, &run_id, provider_id, &sink, "refero-context", "Search Refero examples");
             tracing::info!(run_id = %run_id, project_id, "building Refero context");
-            let bundle = self.research.build_prompt_bundle(input.clone()).await?;
-            tracing::info!(run_id = %run_id, project_id, "Refero context ready");
+            let mut bundle = self.research.build_prompt_bundle(input.clone()).await?;
+
+            let uploader = ConvexAssetUploader::new(self.repository.deployment_url().to_string());
+            let image_keys = persist_refero_context_images(
+                self.research.refero(),
+                &uploader,
+                &auth_token,
+                project_id,
+                &mut bundle.refero_context,
+            )
+            .await?;
+            tracing::info!(
+                run_id = %run_id,
+                project_id,
+                refero_images = image_keys.len(),
+                "Refero images persisted to R2"
+            );
+
+            bundle.prompt = build_research_prompt(&input, &bundle.refero_context);
             self.tool_completed(api_version, &run_id, provider_id, &sink, "refero-context");
 
             request.prompt = bundle.prompt;
@@ -101,8 +136,9 @@ impl ResearchWorkflow {
                 output_chars = final_text.len(),
                 "provider run completed, parsing research artifact"
             );
-            let raw_artifact = extract_json_object(&final_text)?;
+            let mut raw_artifact = extract_json_object(&final_text)?;
             let refero_context = serde_json::to_value(&bundle.refero_context)?;
+            wire_refero_images_in_artifact(&mut raw_artifact, &image_keys);
             let artifact = enrich_research_artifact(raw_artifact, &input, refero_context, now_millis())?;
 
             self.repository
@@ -156,6 +192,61 @@ impl ResearchWorkflow {
                 error: error.to_engine_error(provider_id),
             });
         }
+    }
+
+    async fn run_section_regenerate(
+        &self,
+        api_version: &'static str,
+        run_id: &str,
+        provider_id: crate::models::providers::ProviderId,
+        auth_token: &str,
+        project_id: &str,
+        section: &str,
+        request: &mut StartRunRequest,
+        sink: RunEventSink,
+        cancel_rx: tokio::sync::watch::Receiver<bool>,
+    ) -> Result<(), WorkflowError> {
+        let (artifact_id, mut artifact) = self
+            .repository
+            .fetch_latest_research_artifact(auth_token, project_id)
+            .await?
+            .ok_or_else(|| {
+                WorkflowError::InvalidRequest("No saved research artifact to regenerate.".to_string())
+            })?;
+
+        let input = self.repository.fetch_research_input(auth_token, project_id).await?;
+        request.prompt = build_section_regenerate_prompt(section, &artifact, &input);
+
+        let provider_context = ProviderRunContext {
+            api_version,
+            run_id: run_id.to_string(),
+            request: request.clone(),
+        };
+
+        let outcome = run_provider_collect(provider_context, sink.clone(), cancel_rx).await?;
+        let ProviderProcessOutcome::Completed(final_text) = outcome else {
+            return Ok(());
+        };
+
+        let section_patch = extract_json_object(&final_text)?;
+        merge_research_section(&mut artifact, section, section_patch)?;
+        artifact.as_object_mut().map(|object| {
+            object.insert("generatedAt".to_string(), json!(now_millis()));
+        });
+
+        self.repository
+            .update_research_artifact(auth_token, project_id, &artifact_id, &artifact)
+            .await?;
+
+        sink.send(RunEvent::RunCompleted {
+            api_version,
+            run_id: run_id.to_string(),
+            provider_id,
+            created_at: now_millis(),
+            final_text: Some(format!("Regenerated research section: {section}")),
+        });
+
+        Ok(())
     }
 
     fn tool_started(

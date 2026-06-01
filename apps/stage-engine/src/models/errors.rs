@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-
 use super::providers::ProviderId;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

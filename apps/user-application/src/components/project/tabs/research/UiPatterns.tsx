@@ -15,9 +15,10 @@ type UiPatternsProps = {
   openGroupId: string | null;
   onToggleGroup: (groupId: string) => void;
   onOpenPhoto: (src: string) => void;
+  onRegenerate?: () => void;
 };
 
-export function UiPatterns({ groups, isEditing, openGroupId, onToggleGroup, onOpenPhoto }: UiPatternsProps) {
+export function UiPatterns({ groups, isEditing, openGroupId, onToggleGroup, onOpenPhoto, onRegenerate }: UiPatternsProps) {
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-end">
@@ -40,6 +41,7 @@ export function UiPatterns({ groups, isEditing, openGroupId, onToggleGroup, onOp
             isOpen={openGroupId === group.id}
             onToggle={() => onToggleGroup(group.id)}
             onOpenPhoto={onOpenPhoto}
+            onRegenerate={onRegenerate}
           />
         ))}
       </div>
@@ -53,12 +55,14 @@ function UiPatternGroup({
   isOpen,
   onToggle,
   onOpenPhoto,
+  onRegenerate,
 }: {
   group: UiPatternGroupWithPatterns;
   isEditing: boolean;
   isOpen: boolean;
   onToggle: () => void;
   onOpenPhoto: (src: string) => void;
+  onRegenerate?: () => void;
 }) {
   return (
     <article className="rounded-[10px] bg-[#FAFAFA] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -112,7 +116,11 @@ function UiPatternGroup({
             </div>
 
             {isEditing ? (
-              <button type="button" className="inline-flex h-[27px] w-fit cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F3FF]">
+              <button
+                type="button"
+                onClick={onRegenerate}
+                className="inline-flex h-[27px] w-fit cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F3FF]"
+              >
                 <RegenerateIcon />
                 Regenerate with AI
               </button>

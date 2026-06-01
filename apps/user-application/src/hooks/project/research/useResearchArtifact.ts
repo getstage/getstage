@@ -12,15 +12,28 @@ import type { ResearchArtifactRecord } from "@/types/project/researchArtifactRec
 
 export type { ResearchArtifactRecord } from "@/types/project/researchArtifactRecord";
 
-function parseResearchArtifact(contentJson: string | null) {
-  if (!contentJson?.trim()) {
+function toContentJsonString(contentJson: unknown): string | null {
+  if (typeof contentJson === "string") {
+    return contentJson.trim() ? contentJson : null;
+  }
+
+  if (contentJson && typeof contentJson === "object") {
+    return JSON.stringify(contentJson);
+  }
+
+  return null;
+}
+
+function parseResearchArtifact(contentJson: unknown) {
+  const json = toContentJsonString(contentJson);
+  if (!json) {
     return null;
   }
 
-  const artifact = parseResearchArtifactContent(contentJson);
+  const artifact = parseResearchArtifactContent(json);
   if (!artifact) {
-    const issues = formatResearchArtifactParseIssues(contentJson);
-    console.error("[research] artifact parse failed", issues);
+    const issues = formatResearchArtifactParseIssues(json);
+    console.error("[research] artifact parse failed", issues.join(", "));
     return null;
   }
 
@@ -59,12 +72,16 @@ export function useResearchArtifact(projectId: string | undefined) {
     return null;
   }, [record]);
 
-  const hasStoredContent = Boolean(record?.contentJson?.trim());
+  const hasStoredContent = Boolean(toContentJsonString(record?.contentJson));
+  const parseError = hasStoredContent && data === null;
 
   return {
     data,
     isLoading: isAuthLoading || (queryEnabled && record === undefined),
     hasArtifact: data !== null,
-    parseError: hasStoredContent && data === null,
+    parseError,
+    parseErrorMessage: parseError
+      ? "Saved research exists but could not be loaded. Try running Research again."
+      : null,
   };
 }
