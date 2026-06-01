@@ -331,7 +331,10 @@ function CustomModelSelect({
         onClick={() => onOpenChange(!open)}
         className="flex h-[32px] w-full items-center justify-between gap-[10px] rounded-[6px] border border-[#E5E5E5] bg-[#F5F5F5] px-[10px] text-left text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.18)] transition-colors hover:bg-[#ECECEC]"
       >
-        <span className="truncate">{selectedModel.label}</span>
+        <span className="flex min-w-0 items-center gap-[7px]">
+          <ProviderMark provider={getAiProviderMark(selectedModel.provider)} />
+          <span className="truncate">{selectedModel.label}</span>
+        </span>
         <ChevronIcon open={open} />
       </button>
 
@@ -359,7 +362,9 @@ function CustomModelSelect({
                       <span className="flex h-[18px] w-[18px] items-center justify-center text-[13px] font-semibold text-[#525252]">
                         {selected ? "✓" : ""}
                       </span>
-                      <span className="min-w-0">
+                      <span className="flex min-w-0 items-center gap-[8px]">
+                        <ProviderMark provider={getAiProviderMark(model.provider)} />
+                        <span className="min-w-0">
                         <span className="flex min-w-0 items-center gap-[6px]">
                           <span className="truncate text-[12px] font-medium leading-[1.2] text-[#171717]">
                             {model.label}
@@ -373,6 +378,7 @@ function CustomModelSelect({
                         <span className="mt-[3px] block truncate text-[11px] font-normal leading-[1.2] text-[#737373]">
                           {model.description}
                         </span>
+                        </span>
                       </span>
                     </button>
                   );
@@ -383,6 +389,21 @@ function CustomModelSelect({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function getAiProviderMark(provider: string): "openai" | "anthropic" {
+  return provider === "anthropic" ? "anthropic" : "openai";
+}
+
+function ProviderMark({ provider }: { provider: "openai" | "anthropic" }) {
+  return (
+    <img
+      className="h-[14px] w-[14px] shrink-0 object-contain"
+      src={`/logos/integrations/${provider === "anthropic" ? "claude" : "openai"}.svg`}
+      alt=""
+      aria-hidden="true"
+    />
   );
 }
 
