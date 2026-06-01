@@ -34,10 +34,35 @@ type ChatProvider = {
   icon: "star" | "openai" | "claude";
 };
 
+type ReasoningEffort = "low" | "medium" | "high" | "extra-high";
+type ResponseSpeed = "default" | "fast";
+
+type ReasoningEffortOption = {
+  id: ReasoningEffort;
+  label: string;
+};
+
+type ResponseSpeedOption = {
+  id: ResponseSpeed;
+  label: string;
+};
+
 const chatProviders: ChatProvider[] = [
   { id: "favorites", label: "Favorites", icon: "star" },
   { id: "anthropic", label: "Claude", icon: "claude" },
   { id: "openai", label: "OpenAI", icon: "openai" },
+];
+
+const reasoningEfforts: ReasoningEffortOption[] = [
+  { id: "low", label: "Low" },
+  { id: "medium", label: "Medium" },
+  { id: "high", label: "High" },
+  { id: "extra-high", label: "Extra High" },
+];
+
+const responseSpeeds: ResponseSpeedOption[] = [
+  { id: "default", label: "Default" },
+  { id: "fast", label: "Fast" },
 ];
 
 const chatModels: ChatModel[] = [
@@ -112,6 +137,9 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const [isThinking, setIsThinking] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ChatModel>(DEFAULT_CHAT_MODEL);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [reasoningMenuOpen, setReasoningMenuOpen] = useState(false);
+  const [selectedEffort, setSelectedEffort] = useState<ReasoningEffort>("medium");
+  const [selectedSpeed, setSelectedSpeed] = useState<ResponseSpeed>("default");
   const [activeProvider, setActiveProvider] = useState<ChatProviderId>("favorites");
   const [favoriteModelIds, setFavoriteModelIds] = useState<string[]>([
     "gpt-5.5",
@@ -121,6 +149,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const providerRun = useProviderRun();
   const providerPreferences = useProviderPreferences();
   const modelPickerRef = useRef<HTMLDivElement>(null);
+  const reasoningPickerRef = useRef<HTMLDivElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const activeResponseMessageIdRef = useRef<string | null>(null);
@@ -133,6 +162,8 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   }), [companionBarBottom]);
   const { position, resetPosition, dragHandlers } = useDraggablePanel(getOpeningPosition());
   const inputPlaceholder = messages.length > 0 ? "Ask a follow-up" : "Message Stage";
+  const selectedEffortLabel = reasoningEfforts.find((effort) => effort.id === selectedEffort)?.label ?? "Medium";
+  const selectedSpeedLabel = responseSpeeds.find((speed) => speed.id === selectedSpeed)?.label ?? "Default";
   const visibleModels = useMemo(() => {
     if (activeProvider === "favorites") {
       return chatModels.filter((model) => favoriteModelIds.includes(model.id));
@@ -168,6 +199,34 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [modelMenuOpen]);
+
+  useEffect(() => {
+    if (!reasoningMenuOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (event.target instanceof Node && reasoningPickerRef.current?.contains(event.target)) {
+        return;
+      }
+
+      setReasoningMenuOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setReasoningMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [reasoningMenuOpen]);
 
   useEffect(() => {
     if (!visible || state !== "thinking") {
@@ -287,7 +346,10 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
         mode: "chat",
         context: {},
         attachments: [],
-        modelOptions: [],
+        modelOptions: [
+          { id: "reasoning_effort", value: selectedEffort },
+          { id: "response_speed", value: selectedSpeed },
+        ],
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : PROVIDER_ERROR_MESSAGE;
@@ -405,84 +467,144 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
           }}
         />
         <div className="chat-input-controls">
-          <div className="chat-model-picker" ref={modelPickerRef}>
-            <button
-              className="chat-model-button"
-              type="button"
-              aria-label="Change model"
-              aria-expanded={modelMenuOpen}
-              onClick={() => setModelMenuOpen((open) => !open)}
-            >
-              <ProviderMark provider={selectedModel.provider} />
-              <span>{selectedModel.label}</span>
-              <span className="chat-model-chevron" aria-hidden="true" />
-            </button>
-            {modelMenuOpen ? (
-              <div className="chat-model-menu" aria-label="Model picker">
-                <div className="chat-model-provider-list" role="tablist" aria-label="Providers">
-                  {chatProviders.map((provider) => (
-                    <button
-                      key={provider.id}
-                      className={`chat-model-provider ${activeProvider === provider.id ? "chat-model-provider-active" : ""}`}
-                      type="button"
-                      role="tab"
-                      aria-selected={activeProvider === provider.id}
-                      onClick={() => setActiveProvider(provider.id)}
-                    >
-                      <ProviderMark provider={provider.icon} />
-                      <span>{provider.label}</span>
-                    </button>
-                  ))}
-                </div>
-                <div className="chat-model-list" role="listbox" aria-label="Models">
-                  {visibleModels.length > 0 ? (
-                    visibleModels.map((model) => {
-                      const isFavorite = favoriteModelIds.includes(model.id);
+          <div className="chat-control-group">
+            <div className="chat-model-picker" ref={modelPickerRef}>
+              <button
+                className="chat-model-button"
+                type="button"
+                aria-label="Change model"
+                aria-expanded={modelMenuOpen}
+                onClick={() => {
+                  setModelMenuOpen((open) => !open);
+                  setReasoningMenuOpen(false);
+                }}
+              >
+                <ProviderMark provider={selectedModel.provider} />
+                <span>{selectedModel.label}</span>
+                <span className={`chat-model-chevron ${modelMenuOpen ? "chat-model-chevron-open" : ""}`} aria-hidden="true" />
+              </button>
+              {modelMenuOpen ? (
+                <div className="chat-model-menu" aria-label="Model picker">
+                  <div className="chat-model-provider-list" role="tablist" aria-label="Providers">
+                    {chatProviders.map((provider) => (
+                      <button
+                        key={provider.id}
+                        className={`chat-model-provider ${activeProvider === provider.id ? "chat-model-provider-active" : ""}`}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeProvider === provider.id}
+                        onClick={() => setActiveProvider(provider.id)}
+                      >
+                        <ProviderMark provider={provider.icon} />
+                        <span>{provider.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="chat-model-list" role="listbox" aria-label="Models">
+                    {visibleModels.length > 0 ? (
+                      visibleModels.map((model) => {
+                        const isFavorite = favoriteModelIds.includes(model.id);
 
-                      return (
-                        <div
-                          key={model.id}
-                          className={`chat-model-option ${model.id === selectedModel.id ? "chat-model-option-active" : ""}`}
-                          role="option"
-                          aria-selected={model.id === selectedModel.id}
-                        >
-                          <button
-                            className={`chat-model-star ${isFavorite ? "chat-model-star-active" : ""}`}
-                            type="button"
-                            aria-label={isFavorite ? `Remove ${model.label} from favorites` : `Add ${model.label} to favorites`}
-                            onClick={(event) => toggleFavorite(model.id, event)}
+                        return (
+                          <div
+                            key={model.id}
+                            className={`chat-model-option ${model.id === selectedModel.id ? "chat-model-option-active" : ""}`}
+                            role="option"
+                            aria-selected={model.id === selectedModel.id}
                           >
-                            ★
-                          </button>
-                          <button
-                            className="chat-model-choice"
-                            type="button"
-                            onClick={() => {
-                              setSelectedModel(model);
-                              setModelMenuOpen(false);
-                            }}
-                          >
-                            <ProviderMark provider={model.provider} />
-                            <span className="chat-model-copy">
-                              <span className="chat-model-name">
-                                <span>{model.label}</span>
-                                {model.badge ? <span className="chat-model-badge">{model.badge}</span> : null}
+                            <button
+                              className={`chat-model-star ${isFavorite ? "chat-model-star-active" : ""}`}
+                              type="button"
+                              aria-label={isFavorite ? `Remove ${model.label} from favorites` : `Add ${model.label} to favorites`}
+                              onClick={(event) => toggleFavorite(model.id, event)}
+                            >
+                              ★
+                            </button>
+                            <button
+                              className="chat-model-choice"
+                              type="button"
+                              onClick={() => {
+                                setSelectedModel(model);
+                                setModelMenuOpen(false);
+                              }}
+                            >
+                              <ProviderMark provider={model.provider} />
+                              <span className="chat-model-copy">
+                                <span className="chat-model-name">
+                                  <span>{model.label}</span>
+                                  {model.badge ? <span className="chat-model-badge">{model.badge}</span> : null}
+                                </span>
+                                <span className="chat-model-description">{model.description}</span>
                               </span>
-                              <span className="chat-model-description">{model.description}</span>
-                            </span>
-                          </button>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="chat-model-empty">
-                      <span>No favorites yet</span>
-                      <small>Star a model from Claude or OpenAI.</small>
-                    </div>
-                  )}
+                            </button>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="chat-model-empty">
+                        <span>No favorites yet</span>
+                        <small>Star a model from Claude or OpenAI.</small>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
+            <div className="chat-reasoning-picker" ref={reasoningPickerRef}>
+              <button
+                className="chat-model-button chat-reasoning-button"
+                type="button"
+                aria-label="Change reasoning settings"
+                aria-expanded={reasoningMenuOpen}
+                onClick={() => {
+                  setReasoningMenuOpen((open) => !open);
+                  setModelMenuOpen(false);
+                }}
+              >
+                <span>{selectedSpeedLabel}</span>
+                <span className="chat-reasoning-divider" aria-hidden="true" />
+                <span>{selectedEffortLabel}</span>
+                <span className={`chat-model-chevron ${reasoningMenuOpen ? "chat-model-chevron-open" : ""}`} aria-hidden="true" />
+              </button>
+              {reasoningMenuOpen ? (
+                <div className="chat-reasoning-menu" aria-label="Reasoning settings">
+                  <div className="chat-reasoning-section">
+                    <p>Mode</p>
+                    {responseSpeeds.map((speed) => (
+                      <button
+                        key={speed.id}
+                        className="chat-reasoning-option"
+                        type="button"
+                        aria-pressed={selectedSpeed === speed.id}
+                        onClick={() => setSelectedSpeed(speed.id)}
+                      >
+                        <span className="chat-reasoning-check" aria-hidden="true">
+                          {selectedSpeed === speed.id ? "✓" : ""}
+                        </span>
+                        <span>{speed.label}{speed.id === "default" ? " (default)" : ""}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="chat-reasoning-section">
+                    <p>Effort</p>
+                    {reasoningEfforts.map((effort) => (
+                      <button
+                        key={effort.id}
+                        className="chat-reasoning-option"
+                        type="button"
+                        aria-pressed={selectedEffort === effort.id}
+                        onClick={() => setSelectedEffort(effort.id)}
+                      >
+                        <span className="chat-reasoning-check" aria-hidden="true">
+                          {selectedEffort === effort.id ? "✓" : ""}
+                        </span>
+                        <span>{effort.label}{effort.id === "medium" ? " (default)" : ""}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
           <button
             className="chat-send-button"
