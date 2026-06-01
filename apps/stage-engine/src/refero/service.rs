@@ -1,11 +1,14 @@
 #![allow(dead_code)]
 
+use std::collections::HashSet;
+
 use serde_json::{Value, json};
 use thiserror::Error;
 
 use crate::helpers::time::now_millis;
 use crate::models::refero::{
-    ReferoContext, ReferoPlatform, ReferoReference, ReferoReferenceKind, ReferoSearchRequest,
+    ReferoCategorySearch, ReferoCategorySearchRequest, ReferoContext, ReferoPlatform,
+    ReferoReference, ReferoReferenceKind, ReferoSearchRequest,
 };
 
 use super::client::{ReferoClient, ReferoClientError};
@@ -16,7 +19,7 @@ use super::parse::{
 };
 
 const MAX_REFERO_SEARCH_RESULTS: u8 = 4;
-const MAX_REFERO_IMAGE_FETCHES: usize = 6;
+const MAX_REFERO_IMAGE_FETCHES: usize = 15;
 
 #[derive(Clone, Debug)]
 pub struct ReferoService {
@@ -28,29 +31,82 @@ impl ReferoService {
         Self { client }
     }
 
-    pub async fn research_context(
+    pub async fn research_context_for_categories(
         &self,
-        screen_request: &ReferoSearchRequest,
+        category_requests: &[ReferoCategorySearchRequest],
         flow_request: &ReferoSearchRequest,
     ) -> Result<ReferoContext, ReferoServiceError> {
-        let screens = self.search_screens(screen_request).await?;
-        let flows = self.search_flows(flow_request).await?;
+        let mut category_searches = Vec::with_capacity(category_requests.len());
+        let mut references = Vec::new();
+        let mut seen_screen_ids = HashSet::new();
 
-        let mut references = Vec::with_capacity(screens.len() + flows.len());
-        references.extend(screens);
+        for request in category_requests {
+            let screens = self.search_screens_for_category(request).await?;
+            let mut bucket = Vec::new();
+
+            for mut screen in screens {
+                if seen_screen_ids.contains(&screen.id) {
+                    continue;
+                }
+
+                seen_screen_ids.insert(screen.id.clone());
+                screen.ui_pattern_category = Some(request.category);
+                bucket.push(screen.clone());
+                references.push(screen);
+
+                if bucket.len() >= usize::from(request.limit) {
+                    break;
+                }
+            }
+
+            category_searches.push(ReferoCategorySearch {
+                category: request.category,
+                query: request.query.clone(),
+                references: bucket,
+            });
+        }
+
+        let flows = self.search_flows(flow_request).await?;
         references.extend(flows);
 
+        let query = category_requests
+            .iter()
+            .map(|request| request.query.as_str())
+            .collect::<Vec<_>>()
+            .join(" | ");
+
         tracing::info!(
-            screen_hits = references.iter().filter(|r| r.kind == ReferoReferenceKind::Screen).count(),
-            flow_hits = references.iter().filter(|r| r.kind == ReferoReferenceKind::Flow).count(),
+            screen_hits = references
+                .iter()
+                .filter(|reference| reference.kind == ReferoReferenceKind::Screen)
+                .count(),
+            flow_hits = references
+                .iter()
+                .filter(|reference| reference.kind == ReferoReferenceKind::Flow)
+                .count(),
+            category_buckets = category_searches.len(),
             "Refero search completed"
         );
 
         Ok(ReferoContext {
-            query: screen_request.query.clone(),
+            query,
             references,
+            category_searches,
             fetched_at: now_millis(),
         })
+    }
+
+    async fn search_screens_for_category(
+        &self,
+        request: &ReferoCategorySearchRequest,
+    ) -> Result<Vec<ReferoReference>, ReferoServiceError> {
+        let search = ReferoSearchRequest {
+            query: request.query.clone(),
+            platform: request.platform,
+            limit: request.limit,
+            tags: vec![request.category.as_str().to_string()],
+        };
+        self.search_screens(&search).await
     }
 
     pub async fn search_screens(
@@ -77,9 +133,11 @@ impl ReferoService {
             );
         }
 
+        let take = request.limit.min(MAX_REFERO_SEARCH_RESULTS);
+
         Ok(records
             .into_iter()
-            .take(usize::from(MAX_REFERO_SEARCH_RESULTS))
+            .take(usize::from(take))
             .enumerate()
             .map(|(index, value)| normalize_reference(&value, ReferoReferenceKind::Screen, index))
             .collect())
@@ -111,7 +169,7 @@ impl ReferoService {
 
         Ok(records
             .into_iter()
-            .take(usize::from(MAX_REFERO_SEARCH_RESULTS))
+            .take(usize::from(request.limit.min(MAX_REFERO_SEARCH_RESULTS)))
             .enumerate()
             .map(|(index, value)| normalize_reference(&value, ReferoReferenceKind::Flow, index))
             .collect())
@@ -145,44 +203,54 @@ impl ReferoService {
         Ok(bytes)
     }
 
-    pub async fn hydrate_reference_images(
+    pub async fn hydrate_category_screen_images(
         &self,
-        references: &mut [ReferoReference],
+        category_searches: &mut [ReferoCategorySearch],
     ) -> Result<usize, ReferoServiceError> {
         let mut fetched = 0usize;
 
-        for reference in references.iter_mut() {
+        for bucket in category_searches.iter_mut() {
             if fetched >= MAX_REFERO_IMAGE_FETCHES {
                 break;
             }
 
-            if reference.kind != ReferoReferenceKind::Screen {
-                continue;
-            }
+            for reference in bucket.references.iter_mut() {
+                if fetched >= MAX_REFERO_IMAGE_FETCHES {
+                    break;
+                }
 
-            if reference.image_url.is_some() || reference.thumbnail_url.is_some() {
-                continue;
-            }
-
-            if is_synthetic_reference_id(&reference.id) {
-                tracing::warn!(
-                    screen_id = %reference.id,
-                    "Skipping Refero image fetch because search result had no real screen id"
-                );
-                continue;
-            }
-
-            let screen_id = reference.id.clone();
-            let bytes = match self.fetch_screen_image_bytes(&screen_id).await {
-                Ok(bytes) => bytes,
-                Err(error) => {
-                    tracing::warn!(screen_id = %screen_id, %error, "Refero screen image fetch failed");
+                if reference.kind != ReferoReferenceKind::Screen {
                     continue;
                 }
-            };
 
-            reference.raw_image_bytes = Some(bytes);
-            fetched += 1;
+                if is_synthetic_reference_id(&reference.id) {
+                    tracing::warn!(
+                        screen_id = %reference.id,
+                        category = %reference
+                            .ui_pattern_category
+                            .map(|category| category.as_str())
+                            .unwrap_or("unknown"),
+                        "Skipping Refero image fetch because search result had no real screen id"
+                    );
+                    continue;
+                }
+
+                if reference.raw_image_bytes.is_some() {
+                    continue;
+                }
+
+                let screen_id = reference.id.clone();
+                let bytes = match self.fetch_screen_image_bytes(&screen_id).await {
+                    Ok(bytes) => bytes,
+                    Err(error) => {
+                        tracing::warn!(screen_id = %screen_id, %error, "Refero screen image fetch failed");
+                        continue;
+                    }
+                };
+
+                reference.raw_image_bytes = Some(bytes);
+                fetched += 1;
+            }
         }
 
         Ok(fetched)
@@ -238,6 +306,7 @@ fn normalize_reference(value: &Value, kind: ReferoReferenceKind, index: usize) -
             .and_then(Value::as_u64)
             .and_then(|count| u32::try_from(count).ok()),
         style_type: string_field(value, &["styleType"]),
+        ui_pattern_category: None,
         raw_image_bytes: None,
     }
 }

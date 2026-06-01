@@ -1,14 +1,12 @@
 # Research dev status & debugging guide
 
-Date: May 31, 2026  
+Date: June 1, 2026  
 Audience: You + the next AI agent  
-Scope: Desktop Research V1 — what works, what broke, what we changed
+Scope: Desktop Research V1 — architecture, file map, debugging
 
 ---
 
 ## Read this first
-
-If Research fails and you cannot see why, start here — not DevTools Network.
 
 ```txt
 Terminal 1: packages/data-ops  →  npx convex dev
@@ -17,158 +15,168 @@ Logs:       Terminal 2 only, lines prefixed with [stage-engine]
 Do NOT:     Run cargo run in a third terminal while pnpm dev is running (port 48221 conflict)
 ```
 
+After **Rust changes**, kill the stale engine or restart `pnpm dev`:
+
+```bash
+kill $(lsof -t -i:48221)
+```
+
+If you see `using existing service on port 48221`, Electron adopted an **old binary** — fixes will not run until you kill it.
+
 ---
 
-## Architecture (desktop Research)
+## System structure (layers)
 
 ```txt
-Research form (React)
-  → upsertContext (Convex)           save industry, website, brief, competitors
-  → startRun (Electron IPC)
-  → Stage Engine (Rust, port 48221)
-      → getResearchInput (Convex)
-      → Refero MCP
-      → Claude/Codex CLI
-      → completeResearchRun (Convex)
-  → React reads getLatestResearchArtifact (Convex)
+┌─────────────────────────────────────────────────────────────────┐
+│  LAYER 1 — React (apps/user-application/src)                    │
+│  Configure form · Research tab · hooks · map artifact → UI        │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ Electron IPC (startRun, run events)
+┌────────────────────────────▼────────────────────────────────────┐
+│  LAYER 2 — Stage Engine (apps/stage-engine, port 48221)         │
+│  Research workflow · Refero MCP · provider CLI · R2 upload      │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ Convex HTTP (bearer token from Electron)
+┌────────────────────────────▼────────────────────────────────────┐
+│  LAYER 3 — Convex (packages/data-ops/convex)                    │
+│  Context · runs · artifacts · R2 presigned URLs                 │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ External
+┌────────────────────────────▼────────────────────────────────────┐
+│  LAYER 4 — External services                                    │
+│  Refero MCP · Claude/Codex CLI · Cloudflare R2                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-React does **not** call Refero or Claude directly. Stage Engine owns the run.
+React never calls Refero or providers directly. Stage Engine owns the run.
 
 ---
 
-## What was broken (May 31 session)
-
-| Problem | Cause | Symptom |
-|---------|-------|---------|
-| Zapier/fixture data after Run | `USE_MOCK_RESEARCH_DATA = import.meta.env.DEV` | Fake research, Figma 404 images |
-| Form ignored | Configure form not saved to Convex | Engine ran with empty context |
-| No engine logs | Rust filter targeted `stage_data_service` not `stage_engine` | Only Cargo lines in terminal |
-| Convex crash | `.env` had placeholder `your-deployment.convex.cloud` | `[CONVEX FATAL ERROR]` in renderer |
-| Generic UI error | UI showed `error.message` only, hid `error.detail` | "The selected AI provider could not finish…" with no reason |
-| Port conflict | Manual `cargo run` while Electron already spawned engine | `Address already in use (os error 48)` |
-| Connect Claude error | Toggle in Integrations ≠ CLI actually ready | Red banner before run starts |
-| Stuck “Running Research” | Electron main `runEventSchema.parse()` crashed on empty `provider_warning` | Stream died; no `run_failed` to React |
-| Saved research, empty UI | `contentJson` failed Zod (explicit `null` from Codex/Rust) | Console: `[research] artifact parse failed` |
-| No Refero screenshots | MCP returns refs without image URLs; no R2 upload | UI Patterns text only, no carousel images |
-
----
-
-## What we fixed
-
-### 1. Real runs by default (no mock)
-
-**File:** `apps/user-application/src/mock/project/research/index.ts`
-
-```ts
-// Before: mock ON in every dev build
-USE_MOCK_RESEARCH_DATA = import.meta.env.DEV
-
-// After: mock only when explicitly enabled
-USE_MOCK_RESEARCH_DATA = import.meta.env.VITE_MOCK_RESEARCH === "1"
-```
-
-Mock data = Zapier, dead Figma asset URLs. Only use for UI layout work.
-
-### 2. Save form → Convex before run
-
-**Files:**
-
-- `apps/user-application/src/hooks/project/research/useSaveResearchContext.ts` (new)
-- `apps/user-application/src/hooks/project/research/useResearchTab.ts`
-- `packages/data-ops/convex/projectAi.ts` — added `industry` to `upsertContext` + `getResearchInput`
-- `packages/data-ops/convex/schema.ts` — `projectAiContexts.industry`
-
-Flow: Run Research → `upsertContext` → `startResearch()` → Stage Engine reads `getResearchInput`.
-
-### 3. Engine logs visible in `pnpm dev` terminal
-
-**Files:**
-
-- `apps/stage-engine/src/observability/mod.rs` — filter `stage_engine=info`
-- `apps/user-application/package.json` — `RUST_LOG=stage_engine=info,tower_http=info`
-- `apps/user-application/electron/helpers/sidecar.ts` — forwards stdout/stderr as `[stage-engine] …`
-- `apps/stage-engine/src/research/workflow.rs` — step logs (Convex load, Refero, provider, save)
-- `apps/stage-engine/src/runs/mod.rs` — log run start + provider-not-ready failures
-- `apps/stage-engine/src/providers/process.rs` — log provider stderr + process failures
-- `apps/user-application/electron/ipc.ts` — log every run event (failed/completed/tools/warnings)
-
-You should see lines like:
+## Research run flow (step by step)
 
 ```txt
-[stage-engine]  INFO stage_engine::app: stage engine config loaded refero_configured=true …
-[stage-engine] run request provider=claude mode=research projectId=…
-[stage-engine] tool started runId=… tool=stage-context label=Load Stage project context
-[stage-engine] run failed runId=… detail=…        ← full reason here
-```
-
-More detail: `RUST_LOG=stage_engine=debug pnpm dev`
-
-### 4. Errors: user message in UI, full detail in terminal
-
-**User sees (production):**
-
-- Run failed → *"Something went wrong while running Research. Please try again."*
-- Setup missing → actionable copy (*"Connect Claude in Settings → Integrations"*) — not technical, not "check terminal"
-
-**You see (pnpm dev terminal):**
-
-- Full `[stage-engine]` JSON run events
-- Rust `tracing` at debug level
-- `console.error` with `code=`, `detail=`, provider stderr
-
-The UI never tells the user to open a terminal.
-
-### 5. Refero token from `.env`
-
-**File:** `apps/user-application/electron/helpers/loadEnv.ts`
-
-Accepts `REFERO_MCP_TOKEN`, `refero_mcp_token`, or `VITE_REFERO_MCP_TOKEN`.
-
-Electron loads `apps/user-application/.env` on startup and passes token to Stage Engine.
-
-### 6. IPC run event stream (no stuck spinner)
-
-**Files:**
-
-- `apps/user-application/electron/ipc.ts` — `safeParse` run events; skip invalid blocks; `emitSyntheticRunFailed` if stream ends without terminal event
-- `apps/stage-engine/src/providers/process.rs` — skip empty stderr lines (no bogus `provider_warning`)
-- `packages/data-ops/src/contracts/engine-run.ts` — `provider_warning.message` no longer requires min length
-- `apps/user-application/src/hooks/project/research/useResearchRun.ts` — 20s stall watchdog + `resetActiveRun`
-- `apps/user-application/src/hooks/engine/useProviderRun.ts` — `resetActiveRun()`
-
-Requires **full `pnpm dev` restart** after `electron/ipc.ts` changes (Electron main does not HMR).
-
-### 7. Provider picker (no auto-Claude)
-
-**Files:** `ResearchConfigureStep.tsx`, `useResearchProviderSelection.ts` — user picks Claude or Codex before Run.
-
-### 8. Artifact parse in UI (Zod 4 + explicit null)
-
-Codex and Rust serialize absent fields as **`null`**, not omitted keys. Zod 4 `.optional()` rejects `null`.
-
-**Files:**
-
-- `packages/data-ops/src/contracts/refero.ts` — optional Refero fields → `.nullish()`; URLs not strict `.url()`
-- `packages/data-ops/src/contracts/research.ts` — competitors, UI examples, source refs, matrix notes, etc. → `.nullish()`
-- `packages/data-ops/src/contracts/parseResearchArtifact.ts` — shared parse helper + issue formatting for console
-- `apps/user-application/src/hooks/project/research/useResearchArtifact.ts` — uses parser; logs `[research] artifact parse failed` with field paths
-- `apps/user-application/src/components/project/tabs/research/ResearchTab.tsx` — removed persistent “could not be parsed” banner (configure form shows when parse fails; check console)
-
-After schema changes: `pnpm --dir packages/data-ops run build` then reload app. **No re-run** needed if artifact already in Convex.
-
-**Known parse failures fixed (May 31 evening):**
-
-```txt
-referoContext.references[].imageUrl — null from Rust Refero normalize
-competitiveAnalysis.competitors[].logoUrl — null from Codex
-uiPatterns[].examples[].imageUrl / sourceProduct — null from Codex
-sourceReferences[].url / externalId — null from Codex
+1. User fills Configure Research → upsertContext (Convex projectAiContexts)
+2. User clicks Run Research → Electron IPC startRun (mode: research)
+3. Stage Engine workflow.rs:
+     a. getResearchInput (Convex)
+     b. createResearchRun (Convex)
+     c. Refero: 5 category screen searches + 1 flow search → parse records → fetch images → R2 upload
+     d. build_research_prompt (input + referoContext; Codex skips uiPatterns)
+     e. Claude/Codex CLI → JSON researchArtifact (text sections only)
+     f. apply_engine_ui_patterns (engine-built uiPatterns rows from Refero buckets)
+     g. completeResearchRun (Convex) — deletes previous research artifacts + R2 keys
+4. React: getLatestResearchArtifact → resolve R2 keys → mapResearchArtifactToTabData → UI
 ```
 
 ---
 
-## `.env` setup (required)
+## File map (where to look)
+
+### Frontend — `apps/user-application/src`
+
+| Path | Role |
+|------|------|
+| `hooks/project/research/useResearchRun.ts` | Starts engine run (`mode: "research"`) |
+| `hooks/project/research/useResearchTab.ts` | Saves context, then starts run |
+| `hooks/project/research/useResearchContext.ts` | Pre-fills configure form from `getContext` |
+| `hooks/project/research/useResearchArtifact.ts` | Loads + parses latest artifact |
+| `hooks/project/research/useSaveResearchArtifact.ts` | Save Changes → `updateResearchArtifact` |
+| `hooks/project/research/useResearchSectionRegenerate.ts` | Section regen → `source: section:…` |
+| `lib/project/mapResearchArtifactToTabData.ts` | Artifact JSON → UI sections |
+| `lib/project/applyResearchTabEdits.ts` | Edit mode → patch summary/snapshot/opportunities |
+| `components/project/tabs/research/ResearchTab.tsx` | Main tab orchestration |
+| `components/project/tabs/research/UiPatterns.tsx` | Carousel from `examples[].imageUrl` |
+| `electron/sidecar.ts` | Spawns or **adopts** engine on 48221 |
+| `electron/ipc.ts` | Run events stream to React |
+| `electron/helpers/loadEnv.ts` | `REFERO_MCP_TOKEN` → engine env |
+
+### Stage Engine — `apps/stage-engine/src`
+
+| Path | Role |
+|------|------|
+| `research/workflow.rs` | **Orchestrator** — Refero → provider → Convex save |
+| `research/service.rs` | Builds prompt bundle; calls `ReferoService::research_context` |
+| `research/context.rs` | **Per-category Refero queries** (Onboarding, Homepage, Pricing, Checkout, Dashboard) |
+| `research/refero_assets.rs` | Image hydrate, R2 upload, **`build_ui_patterns_from_refero`** |
+| `research/prompt.rs` | Codex/Claude system + user prompt |
+| `research/section.rs` | Section-level regenerate merge |
+| `refero/client.rs` | HTTP JSON-RPC to `https://api.refero.design/mcp` |
+| `refero/service.rs` | `refero_search_screens/flows`, `refero_get_screen_image` |
+| `refero/parse.rs` | Unwrap MCP JSON; read `records[]`; markdown fallback |
+| `convex_store/research_repository.rs` | Convex mutations for research |
+| `convex_store/asset_upload.rs` | R2 presigned PUT (`purpose: research-refero`) |
+
+### Convex + contracts — `packages/data-ops`
+
+| Path | Role |
+|------|------|
+| `convex/projectAi.ts` | `getContext`, `upsertContext`, `getResearchInput`, `completeResearchRun`, `updateResearchArtifact`, `getLatestResearchArtifact` |
+| `convex/r2.ts` | Upload rules, `generateUploadUrl`, `syncMetadata` |
+| `src/contracts/research.ts` | `researchArtifact` Zod schema |
+| `src/contracts/refero.ts` | `referoContext` / `ReferoReference` / **`referoUiPatternCategorySchema`** / **`referoCategorySearchSchema`** |
+| `src/contracts/parseResearchArtifact.ts` | Normalizer (null, double JSON, matrix scores) |
+
+### Agent skill (Refero rules)
+
+| Path | Role |
+|------|------|
+| `.agents/skills/refero-mcp/SKILL.md` | ID rules (`uuid` vs numeric flow `id`), `records`, R2, caps |
+| `.agents/skills/refero-mcp/references/stage-engine-integration.md` | Rust integration checklist |
+
+---
+
+## Refero pipeline (detail)
+
+```txt
+For each UI Patterns category (onboarding, homepage, pricing, checkout, dashboard):
+  refero_search_screens(category-specific query, platform=web, response_format=json)
+    → up to 3 unique screen UUIDs per category (deduped across categories)
+
+refero_search_flows(journey query, platform=web, response_format=json)
+  → up to 4 flow hits (text context for Codex only)
+
+  → parse.rs: extract `records[]` OR markdown `## Screen: {uuid}`
+  → service.rs: normalize → ReferoReference (id = screen uuid, uiPatternCategory set)
+
+refero_get_screen_image(screen_id=uuid, image_size=full)  [max 15, category order]
+  → refero_assets.rs: PUT bytes to R2 (research-refero)
+  → reference.image_url = R2 object key
+
+Codex returns text sections only (no uiPatterns)
+  → apply_engine_ui_patterns: replace uiPatterns with engine-built rows
+  → each row title = category display name (Onboarding, Homepage, …)
+  → each example.imageUrl wired by sourceReferenceId = Refero uuid (no round-robin)
+
+getLatestResearchArtifact
+  → resolveResearchImageUrls: R2 keys → signed URLs
+  → UiPatterns carousel renders category-matched screenshots
+```
+
+**Caps:** 5 category screen searches + 1 flow search; 3 screens/category; 15 image fetches per run (`refero/service.rs`).
+
+**Contracts (Zod):** `packages/data-ops/src/contracts/refero.ts`
+- `referoUiPatternCategorySchema` — `onboarding | homepage | pricing | checkout | dashboard`
+- `referoCategorySearchSchema` — `{ category, query, references[] }`
+- `referoContextSchema.categorySearches` — persisted on artifact for debugging
+
+**Soft-fail:** Refero/R2 errors log a warning; research still completes with text.
+
+---
+
+## Convex data model
+
+| Table | Purpose | Cardinality |
+|-------|---------|-------------|
+| `projectAiContexts` | Configure form (industry, brief, competitors) | One per project |
+| `projectAiRuns` | Run status / external run id | Many (audit OK) |
+| `projectAiArtifacts` | `contentJson` = full `ResearchArtifact` | **One active** — old rows deleted on `completeResearchRun` |
+
+R2 object keys live **inside** `contentJson` on `imageUrl` / `thumbnailUrl` fields. Convex resolves them on read.
+
+---
+
+## `.env` (required)
 
 **File:** `apps/user-application/.env`
 
@@ -176,108 +184,77 @@ sourceReferences[].url / externalId — null from Codex
 REFERO_MCP_TOKEN=your_token_here
 ```
 
-Optional — only if you want to override the default dev Convex URL:
+Optional mock UI only:
 
 ```txt
-VITE_CONVEX_URL=https://reliable-bullfrog-917.convex.cloud
+VITE_MOCK_RESEARCH=1
 ```
 
-**Do not** use the placeholder `your-deployment.convex.cloud` from old examples.
-
-If `VITE_CONVEX_URL` is wrong or missing a real deployment, the app crashes on load.
-
-Copy real URL from `app/.env.local` if needed.
+Do **not** use placeholder `your-deployment.convex.cloud` for `VITE_CONVEX_URL`.
 
 ---
 
-## How to test Research (checklist)
+## How to test (short checklist)
 
-1. `cd packages/data-ops && npx convex dev`
-2. Fix `apps/user-application/.env` (Refero token; no bad Convex URL)
-3. `cd apps/user-application && pnpm dev`
-4. Confirm in terminal: `refero_configured=true` and `ready on port 48221`
-5. Log in to Stage desktop
-6. **Settings → Integrations** → Connect Claude or Codex → **Refresh** until status is ready
-7. Open project → **Research** → fill form → **Run Research**
-8. Watch terminal 2 for `[stage-engine]` lines through the full run
-9. Tab updates when Convex saves the artifact (Convex reactive query)
+1. `npx convex dev` + `pnpm dev`
+2. Confirm: `refero_configured=true`, `ready on port 48221` (not “using existing service”)
+3. Settings → Integrations → Claude or Codex **ready**
+4. Open a **valid project** (deleted project → `Project not found`)
+5. Run Research → watch for:
 
----
+```txt
+Refero search completed screen_hits=N flow_hits=M
+Refero images persisted to R2 refero_images=N
+research artifact saved to Convex
+```
 
-## Common errors → what they mean
+6. UI Patterns carousel should show images when N > 0.
 
-| UI / terminal message | Meaning | Fix |
-|----------------------|---------|-----|
-| Connect Claude or Codex in Integrations | No provider enabled in local preferences | Settings → Integrations → Connect |
-| Claude is not ready… install CLI… | Toggle on but CLI missing or not logged in | Install `claude` CLI, run `claude auth login`, Refresh |
-| `[CONVEX FATAL ERROR] Couldn't parse deployment name` | Bad `VITE_CONVEX_URL` in `.env` | Fix or remove that line |
-| Address already in use :48221 | Two engines running | Stop extra `cargo run`; use only `pnpm dev` |
-| The selected AI provider could not finish… | Provider CLI failed — read **Details** below message or terminal `detail=` | Check `[stage-engine] provider stderr` lines |
-| Research context could not be prepared | Refero step failed | Check `REFERO_MCP_TOKEN` |
-| Stage project context could not be loaded… | Convex auth or `upsertContext` failed | Logged in? `convex dev` running? |
-| AI response did not match Research artifact format | Claude returned non-JSON | Terminal shows provider output size / parse error |
-| `[research] artifact parse failed … received null` | Saved artifact has `"field": null`; schema was `.optional()` only | Fixed in `research.ts` / `refero.ts` — rebuild `data-ops`, reload app |
-| Research tab shows configure form but run succeeded | Parse failed on existing `contentJson` | Renderer console for field paths; artifact row still in Convex |
-| UI Patterns has no screenshots | `imageUrl` null in artifact; Refero→R2 not built | See `RESEARCH_PRODUCT_REQUIREMENTS.md` |
+Full form values: [`RESEARCH_TESTING.md`](./RESEARCH_TESTING.md)
 
 ---
 
-## Files changed (May 31)
+## Common errors
 
-### Frontend (`apps/user-application`)
-
-| File | Change |
-|------|--------|
-| `src/mock/project/research/index.ts` | Mock opt-in only |
-| `src/hooks/project/research/useSaveResearchContext.ts` | New — saves form to Convex |
-| `src/hooks/project/research/useResearchTab.ts` | Real run path, no default mock |
-| `src/hooks/project/research/useResearchRun.ts` | Provider picker flow, stall watchdog, resetActiveRun |
-| `src/hooks/project/research/useResearchArtifact.ts` | Parse saved artifact; console errors on failure |
-| `src/hooks/engine/useProviderRun.ts` | `resetActiveRun()` |
-| `src/components/project/tabs/research/ResearchConfigureStep.tsx` | Claude/Codex picker |
-| `src/components/project/tabs/research/ResearchTab.tsx` | No parse-error banner on configure view |
-| `electron/ipc.ts` | safeParse run events, synthetic run_failed, logging |
-| `src/lib/engine/formatRunError.ts` | User-friendly run error message |
-| `electron/helpers/loadEnv.ts` | Refero token aliases |
-| `package.json` | `RUST_LOG` in dev script |
-| `.env.example` | Refero + optional mock flag |
-
-### Backend (`packages/data-ops`)
-
-| File | Change |
-|------|--------|
-| `convex/schema.ts` | `projectAiContexts.industry` |
-| `convex/projectAi.ts` | `industry` in upsert/getResearchInput/getContext |
-| `src/contracts/refero.ts` | `.nullish()` on optional Refero fields |
-| `src/contracts/research.ts` | `.nullish()` on AI optional fields (competitors, UI examples, source refs) |
-| `src/contracts/parseResearchArtifact.ts` | Shared `parseResearchArtifactContent` + parse issue helper |
-| `src/contracts/engine-run.ts` | Relaxed `provider_warning.message` validation |
-| `src/contracts/index.ts` | Export parse helper |
-
-### Stage Engine (`apps/stage-engine`)
-
-| File | Change |
-|------|--------|
-| `src/observability/mod.rs` | Correct tracing filter |
-| `src/research/workflow.rs` | Step + failure logging |
-| `src/runs/mod.rs` | Run start + pre-flight failure logging |
-| `src/providers/process.rs` | Provider stderr + failure logging; skip empty stderr |
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `Project not found` | Stale/wrong project id or auth | Open/create valid project |
+| No Refero logs / old behavior | Stale engine on 48221 | `kill $(lsof -t -i:48221)` + restart dev |
+| `screen_hits=0` | Bad token or parse failure | Check `REFERO_MCP_TOKEN`; engine logs for “no parseable records” |
+| `refero_images=0` but screen_hits > 0 | Image fetch or R2 upload failed | Check R2 config + auth; warnings in log |
+| `imageUrl: null` in artifact | Refero step produced nothing | Fix above, re-run Research |
+| Stuck “Running Research” | Old Electron main | Full `pnpm dev` restart |
+| Parse error in UI | `contentJson` vs Zod | Rebuild `data-ops`, reload app |
 
 ---
 
-## Still TODO (Research V1 not done)
+## Status snapshot (June 1, 2026)
 
-See full owner checklist: [`RESEARCH_PRODUCT_REQUIREMENTS.md`](./RESEARCH_PRODUCT_REQUIREMENTS.md)
+| Feature | Status |
+|---------|--------|
+| Real engine run + Convex artifact | Done |
+| Configure form → Convex | Done |
+| Pre-fill configure from `getContext` | Done |
+| Artifact parse in UI (`.nullish()`) | Done |
+| One artifact per project (delete on rerun) | Done |
+| Save Changes → `updateResearchArtifact` | Done (summary, snapshot, opportunities) |
+| Section regenerate (engine + UI) | Done |
+| Refero category search + engine uiPatterns | Done (June 1) |
+| Brief file upload → R2 | Partial |
+| Export to Notion | Not wired |
+| Styles search (`refero_search_styles`) | Not wired |
 
-- [ ] **One research per project** — delete previous `projectAiArtifacts` (research) + orphaned R2 before saving new run (`completeResearchRun` / engine)
-- [ ] **Refero images → R2 → `contentJson` URLs** — implement in **`apps/stage-engine`** (download MCP images, upload R2, wire `uiPatterns.examples.imageUrl`)
-- [ ] Edit/save sections → Convex mutation on `contentJson` (Save Changes today is UI-only)
-- [ ] Regenerate section (block-level) — not full research rerun
-- [ ] Pre-fill Configure Research from `projectAiContexts`
-- [ ] Export to Notion
-- [ ] Brief file upload → R2 (form only stores filename today)
-- [x] Artifact schema accepts Codex/Rust `null` optional fields — `research.ts` + `refero.ts` `.nullish()` (May 31 evening)
-- [ ] Scoped engine token (optional hardening)
+---
+
+## June 1 — Refero fixes
+
+| Bug | Fix |
+|-----|-----|
+| MCP markdown treated as 1 “record” | `parse.rs`: parse markdown before treating `content[]` as hits |
+| Skipped full image when thumbnail existed | `service.rs`: fetch up to 15 category screen images for R2 |
+| One broad search → wrong UI Patterns rows | `context.rs` + `service.rs`: 5 targeted category searches |
+| Codex-authored uiPatterns + round-robin images | `prompt.rs` + `refero_assets.rs`: engine builds rows by category |
+| Stale engine after Rust edits | Kill 48221; sidecar warns on adopt |
 
 ---
 
@@ -285,13 +262,13 @@ See full owner checklist: [`RESEARCH_PRODUCT_REQUIREMENTS.md`](./RESEARCH_PRODUC
 
 | Doc | Purpose |
 |-----|---------|
-| `RESEARCH_PRODUCT_REQUIREMENTS.md` | **Owner rules** — one research, edits, Refero→R2, what’s done vs not |
-| `RESEARCH_TESTING.md` | E2E test commands + run log |
-| `STAGE_AI_RESEARCH_HANDOFF.md` | Backend handoff for next AI |
-| `STAGE_AI_WORKFLOW_CONTEXT_PLAN.md` | Full workflow architecture + audit table |
+| [`RESEARCH_PRODUCT_REQUIREMENTS.md`](./RESEARCH_PRODUCT_REQUIREMENTS.md) | Product rules + requirement checklist |
+| [`RESEARCH_TESTING.md`](./RESEARCH_TESTING.md) | E2E form values + run log |
+| [`STAGE_AI_RESEARCH_HANDOFF.md`](./STAGE_AI_RESEARCH_HANDOFF.md) | Short handoff for next agent |
+| [`STAGE_AI_WORKFLOW_CONTEXT_PLAN.md`](./STAGE_AI_WORKFLOW_CONTEXT_PLAN.md) | Full workflow architecture plan |
 
 ---
 
 ## One-line summary
 
-Research backend is real; desktop saves form context, runs through Stage Engine, saves artifact to Convex. **Reload app after `data-ops` schema changes.** Refero screenshots still need R2 work in stage-engine. Product rules: `RESEARCH_PRODUCT_REQUIREMENTS.md`.
+Research runs: **React → Engine → Refero (5 category searches) + R2 → Codex (text) → engine uiPatterns → Convex → React**. Kill stale engine after Rust changes. Check `screen_hits`, `category_buckets=5`, and `refero_images` in logs.

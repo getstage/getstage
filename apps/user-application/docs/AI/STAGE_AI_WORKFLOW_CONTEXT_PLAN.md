@@ -1,10 +1,35 @@
 # Stage AI Workflow Context Plan
 
-Date: May 30, 2026  
-Status: Discussion plan, May 31 architecture correction applied  
+Date: May 30, 2026 (plan) · **Research V1 status: June 1, 2026**  
+Status: Discussion plan; Research desktop path **implemented** — see docs below  
 Scope: Project AI workflows, Claude/Codex, Refero, voice, Figma-driven product flows
 
-> **May 31 dev session (logging, mock fix, Convex wiring):** see [`RESEARCH_DEV_STATUS.md`](./RESEARCH_DEV_STATUS.md).
+> **Research V1 (implemented):** [`RESEARCH_DEV_STATUS.md`](./RESEARCH_DEV_STATUS.md) — full structure, file map, Refero→R2 flow.  
+> **May 31 dev session (logging, mock fix):** same file, history sections.  
+> **Refero MCP rules:** `.agents/skills/refero-mcp/SKILL.md`
+
+## CAPTION: Research V1 structure (June 2026)
+
+Desktop Research uses this internal path only:
+
+```txt
+React (Configure + Research tab)
+  → Electron IPC (mode: research)
+  → Stage Engine workflow.rs
+       → Convex getResearchInput / createResearchRun
+       → Refero MCP (refero/service.rs + refero/parse.rs)
+       → R2 upload (refero_assets.rs, purpose: research-refero)
+       → Codex/Claude prompt (research/prompt.rs)
+       → wire_refero_images_in_artifact
+       → Convex completeResearchRun (replaces prior artifact + R2 keys)
+  → React getLatestResearchArtifact → UI
+```
+
+React does **not** assemble AI context or call Refero. Stage Engine is the context owner for Research.
+
+Other tabs (Strategy, Moodboard, Generate) are **not** fully on this path yet — this plan still applies to them.
+
+---
 
 ## CAPTION: Why this document exists
 

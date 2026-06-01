@@ -10,7 +10,7 @@ use crate::models::runs::{RunEvent, RunStatus, StartRunRequest};
 use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
 use crate::providers::process::ProviderProcessOutcome;
 use crate::research::prompt::build_research_prompt;
-use crate::research::refero_assets::{persist_refero_context_images, wire_refero_images_in_artifact};
+use crate::research::refero_assets::{apply_engine_ui_patterns, persist_refero_context_images};
 use crate::research::section::{
     build_section_regenerate_prompt, merge_research_section, parse_research_section,
 };
@@ -137,8 +137,12 @@ impl ResearchWorkflow {
                 "provider run completed, parsing research artifact"
             );
             let mut raw_artifact = extract_json_object(&final_text)?;
+            apply_engine_ui_patterns(
+                &mut raw_artifact,
+                &bundle.refero_context,
+                &image_keys,
+            );
             let refero_context = serde_json::to_value(&bundle.refero_context)?;
-            wire_refero_images_in_artifact(&mut raw_artifact, &image_keys);
             let artifact = enrich_research_artifact(raw_artifact, &input, refero_context, now_millis())?;
 
             self.repository

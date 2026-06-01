@@ -75,12 +75,14 @@ Good queries: `subscription cancellation retention`, `checkout promo code`, `sig
 ## Stage Research workflow (minimal)
 
 ```
-refero_search_screens(query, platform=web)
-refero_search_flows(query, platform=web)
-for each screen uuid (cap 6):
+for category in [onboarding, homepage, pricing, checkout, dashboard]:
+  refero_search_screens(category_query, platform=web)
+refero_search_flows(journey_query, platform=web)
+for each screen uuid in category buckets (cap 15):
   refero_get_screen_image(screen_id=uuid, image_size=full)
   → upload bytes to R2 (research-refero)
-embed referoContext + metadata in Codex prompt
+engine build_ui_patterns_from_refero(categorySearches)
+Codex prompt: text sections only (no uiPatterns)
 ```
 
 ## Common API mistakes

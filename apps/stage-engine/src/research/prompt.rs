@@ -1,4 +1,4 @@
-use crate::models::refero::ReferoContext;
+use crate::models::refero::{ReferoContext, ReferoReferenceKind, ReferoUiPatternCategory};
 use crate::models::research::ResearchInput;
 
 pub fn build_research_prompt(input: &ResearchInput, refero_context: &ReferoContext) -> String {
@@ -8,14 +8,33 @@ pub fn build_research_prompt(input: &ResearchInput, refero_context: &ReferoConte
         input.competitor_urls.join("\n")
     };
 
-    let reference_lines = refero_context
+    let category_lines = refero_context
+        .category_searches
+        .iter()
+        .map(|bucket| {
+            let hits = bucket
+                .references
+                .iter()
+                .filter(|reference| reference.kind == ReferoReferenceKind::Screen)
+                .count();
+            format!(
+                "- {} ({} screens): {}",
+                bucket.category.display_title(),
+                hits,
+                bucket.query
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let flow_lines = refero_context
         .references
         .iter()
+        .filter(|reference| reference.kind == ReferoReferenceKind::Flow)
         .map(|reference| {
             format!(
-                "- {} ({:?}){}",
+                "- {} flow{}",
                 reference.title,
-                reference.kind,
                 reference
                     .product_name
                     .as_deref()
@@ -52,21 +71,22 @@ Additional notes:
 Competitors to include:
 {competitor_urls}
 
-Refero context query:
-{refero_query}
+Refero category searches (UI Patterns are built by Stage from these — do not author uiPatterns):
+{category_lines}
 
-Refero references:
-{reference_lines}
+Refero flow references (journey context only):
+{flow_lines}
 
 Required artifact sections:
 - summary
 - companySnapshot
 - competitiveAnalysis with card view data and matrix rows
-- uiPatterns with Refero screenshots/references when available
 - targetUsers as generated personas
 - opportunities
 - openQuestions
 - sourceReferences
+
+Do NOT include uiPatterns in your JSON — Stage engine builds UI Patterns rows ({ui_pattern_rows}) from Refero screenshots after your response.
 
 The JSON must use:
 - apiVersion: "v1"
@@ -82,11 +102,20 @@ The JSON must use:
         target_users = input.target_users.as_deref().unwrap_or("Not provided."),
         additional_notes = input.additional_notes.as_deref().unwrap_or("Not provided."),
         competitor_urls = competitor_urls,
-        refero_query = refero_context.query,
-        reference_lines = if reference_lines.is_empty() {
-            "No Refero references returned.".to_string()
+        category_lines = if category_lines.is_empty() {
+            "No Refero category searches returned.".to_string()
         } else {
-            reference_lines
+            category_lines
         },
+        flow_lines = if flow_lines.is_empty() {
+            "No Refero flow references returned.".to_string()
+        } else {
+            flow_lines
+        },
+        ui_pattern_rows = ReferoUiPatternCategory::all()
+            .iter()
+            .map(|category| category.display_title())
+            .collect::<Vec<_>>()
+            .join(", "),
     )
 }

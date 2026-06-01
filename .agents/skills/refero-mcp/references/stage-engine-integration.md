@@ -13,28 +13,52 @@ refero_configured=true refero_mcp_url=https://api.refero.design/mcp
 `apps/stage-engine/src/research/workflow.rs`:
 
 1. Load research input from Convex
-2. `ReferoService::research_context` — search screens + flows
-3. `persist_refero_context_images` — hydrate bytes, R2 upload (soft-fail)
-4. Build Codex prompt with Refero metadata
-5. Parse JSON artifact → enrich → `completeResearchRun` in Convex
+2. `ReferoService::research_context_for_categories` — 5 screen searches + 1 flow search
+3. `persist_refero_context_images` — hydrate bytes per category bucket, R2 upload (soft-fail)
+4. Build Codex prompt with Refero metadata (**Codex skips uiPatterns**)
+5. Parse JSON artifact → `apply_engine_ui_patterns` → enrich → `completeResearchRun` in Convex
 
 ## Caps (`refero/service.rs`)
 
-- `MAX_REFERO_SEARCH_RESULTS = 4` per search type
-- `MAX_REFERO_IMAGE_FETCHES = 6`
+- 5 category screen searches × 3 hits each (deduped by UUID across categories)
+- 1 flow search × 4 hits
+- `MAX_REFERO_IMAGE_FETCHES = 15` (category order)
 - Skip synthetic ids (`screen-0`, `flow-1`, …) — means parse missed real Refero id
+
+## Category queries (`research/context.rs`)
+
+Fixed rows map to Refero searches:
+
+| Category | Query pattern (includes industry + client) |
+|----------|---------------------------------------------|
+| `onboarding` | B2B wholesale signup onboarding setup wizard account request |
+| `homepage` | B2B wholesale marketing homepage landing hero product |
+| `pricing` | B2B pricing page plan comparison subscription tiers |
+| `checkout` | B2B mobile checkout payment order review cart |
+| `dashboard` | B2B wholesale dashboard admin catalog approval queue |
+
+## UI Patterns assembly (`refero_assets.rs`)
+
+- `build_ui_patterns_from_refero` — one group per non-empty category bucket
+- Row title = category display name (Onboarding, Homepage, …)
+- Example `sourceReferenceId` = Refero screen UUID
+- `imageUrl` = R2 key from upload (no round-robin)
+- Codex output `uiPatterns` is **replaced** by engine-built rows
+
+## TS / Zod contracts (`packages/data-ops/src/contracts/refero.ts`)
+
+- `referoUiPatternCategorySchema` — enum of five row categories
+- `referoCategorySearchSchema` — `{ category, query, references[] }`
+- `referoContextSchema.categorySearches` — persisted on artifact
+- `referoReferenceBaseSchema.uiPatternCategory` — optional bucket tag on screen refs
+
+Validated on read via `researchArtifactSchema` + `parseResearchArtifactContent`.
 
 ## Parse gaps to fix when debugging
 
-Current `extract_reference_values` keys: `items`, `results`, `screens`, `flows`, `data`.
+Search payloads nest hits under **`records`**. Screen id field is **`uuid`**. Flow id is numeric `id`.
 
-**Refero search returns `records`** — add `"records"` to this list.
-
-Current `reference_id` keys include `id`, `screenId`, … but Refero screens use **`uuid`** — ensure `uuid` is first for screens.
-
-Flow search uses numeric `id` — stringify for Stage reference id.
-
-Snake_case URL fields: map `thumbnail_url`, `preview_url`, `page_url`, `refero_url`, `site.name`, `site.domain`.
+Snake_case URL fields: `thumbnail_url`, `preview_url`, `page_url`, `refero_url`, `site.name`, `site.domain`.
 
 ## R2 upload path
 
@@ -50,28 +74,18 @@ Never pass `fileSize: 0`. Validate image magic bytes before upload.
 
 `getLatestResearchArtifact` → `resolveResearchContentJson` → resolves R2 keys to signed URLs.
 
-**Only** resolve on object keys named `imageUrl`, `thumbnailUrl`, or `url`, and only when value looks like a stored key (contains `/`). Do not resolve arbitrary strings like `"Strong"` or `"v1"`.
-
-## TS artifact contract
-
-`packages/data-ops/src/contracts/research.ts` — full `researchArtifact` with optional `referoContext`.
-
-Parse normalizer: `parseResearchArtifactContent` — double-encoded JSON, matrix score casing, missing envelope fields.
+**Only** resolve on object keys named `imageUrl`, `thumbnailUrl`, or `url`, and only when value looks like a stored key (contains `/`).
 
 ## Testing Refero locally
 
 1. `npx convex dev` in `packages/data-ops`
 2. `pnpm dev` in `apps/user-application` (builds data-ops + stage-engine)
 3. Run Research on a project with competitors + brief
-4. Check stage-engine logs: Refero search → image skip/upload → Codex → artifact saved
-5. Research tab should load without parse errors
+4. Check stage-engine logs: `category_buckets=5`, image upload → Codex → artifact saved
+5. Research tab: 5 UI Patterns rows with distinct carousels
 
 ## When Refero images are missing in UI
 
-Expected until parse + UUID mapping works:
-
 - Artifact still saves with text research
-- `referoContext.references` may show "Untitled Refero reference"
-- `imageUrl` null on uiPatterns examples
-
-Fix parse (`records`, `uuid`) before expecting R2 screenshots in Research tab.
+- Empty category bucket → row omitted from `uiPatterns`
+- `referoContext.references` with synthetic ids → parse failure; fix `records` + `uuid` mapping

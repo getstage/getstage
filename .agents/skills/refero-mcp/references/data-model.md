@@ -66,6 +66,7 @@ Stage normalizes MCP records into `packages/data-ops/src/contracts/refero.ts`:
 
 - `id` — must be real Refero id (`uuid` or flow numeric id as string)
 - `kind` — `screen` | `flow` | `style`
+- `uiPatternCategory` — optional; `onboarding | homepage | pricing | checkout | dashboard` for screens bucketed by engine
 - `title`, `productName`, `productUrl`, `platform`, `sourceUrl`
 - `thumbnailUrl`, `imageUrl` — after R2 upload, object keys; before upload, Refero CDN URLs if present
 - `tags` — from `page_types`, `ux_patterns`, or API tags

@@ -40,7 +40,9 @@ export class SidecarSupervisor {
 
     if (existingReadiness?.ready) {
       this.status = { adopted: true, pid: null, port, state: "ready" };
-      console.info(`[stage-engine] using existing service on port ${port}`);
+      console.warn(
+        `[stage-engine] using existing service on port ${port} — restart it after Rust changes (kill $(lsof -t -i:${port}))`,
+      );
       return this.getStatus();
     }
 

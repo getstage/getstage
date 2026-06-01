@@ -25,9 +25,11 @@ Read `references/data-model.md` for field names and ID types.
 ```
 Research form → Convex context
   → stage-engine Research workflow
-  → Refero MCP (search + optional images)
+  → Refero MCP (5 category screen searches + 1 flow search + images)
   → R2 upload (research-refero) for screenshot bytes
-  → Codex → researchArtifact JSON → Convex
+  → Codex → text sections only (competitors, personas, opportunities)
+  → Engine builds uiPatterns rows from Refero category buckets
+  → researchArtifact JSON → Convex
   → React Research tab
 ```
 
@@ -41,7 +43,7 @@ Refero is **not** used in Stage chat (`mode: chat`). Only Research workflow.
 | **Screens** | `refero_search_screens`, `refero_get_screen`, `refero_get_screen_image`, `refero_get_similar_screens` | Concrete UI: pricing, checkout, dashboards, empty states |
 | **Flows** | `refero_search_flows`, `refero_get_flow` | Onboarding, cancellation, checkout sequences |
 
-For Stage Research today: **screens + flows** are implemented in `ReferoService`. Styles are not wired yet — add if visual-direction research is needed.
+For Stage Research today: **screens + flows** are implemented in `ReferoService`. Five **category-targeted** screen searches map to UI Patterns rows (`onboarding`, `homepage`, `pricing`, `checkout`, `dashboard`). Styles are not wired yet.
 
 ## Critical ID and response rules
 
@@ -69,10 +71,11 @@ Upload is **soft-fail**: bad/missing images must not abort Research.
 ## Request budget (Refero Pro)
 
 ~8,000 MCP calls/month. Stage caps per run (see stage-engine `ReferoService`):
-- 4 screen searches + 4 flow searches (compact list)
-- Up to 6 `refero_get_screen_image` fetches
+- 5 category screen searches (3 hits each, deduped)
+- 1 flow search (4 hits)
+- Up to 15 `refero_get_screen_image` fetches (category order)
 
-Keep queries specific; avoid redundant get_screen calls when search metadata is enough.
+Keep queries specific per category; avoid one mega-query mixing onboarding + checkout.
 
 ## Common mistakes (Refero + Stage)
 
@@ -84,8 +87,10 @@ Keep queries specific; avoid redundant get_screen calls when search metadata is 
 | Pass `limit` to search tools | Use `page` pagination only on search |
 | Pass `image_size` to `refero_get_screen` | Only on `refero_get_screen_image` |
 | Old tool names with `_tool` suffix | Use current names from tools doc |
+| Round-robin images into uiPatterns | Engine builds rows in `refero_assets.rs` by category |
 | Resolve every string as R2 key in Convex | Only resolve url fields that contain `/` path keys |
 | Hard-fail Research on R2 upload error | Log, skip image, continue to Codex |
+| One broad Refero search for all UI Patterns | Five category queries in `research/context.rs` |
 
 ## Implementation map (Stage monorepo)
 
@@ -96,7 +101,9 @@ Keep queries specific; avoid redundant get_screen calls when search metadata is 
 | Search + image hydrate | `apps/stage-engine/src/refero/service.rs` |
 | R2 upload | `apps/stage-engine/src/research/refero_assets.rs`, `convex_store/asset_upload.rs` |
 | Research workflow | `apps/stage-engine/src/research/workflow.rs` |
-| TS contracts | `packages/data-ops/src/contracts/refero.ts` |
+| Category queries | `apps/stage-engine/src/research/context.rs` |
+| UI Patterns builder | `apps/stage-engine/src/research/refero_assets.rs` (`build_ui_patterns_from_refero`) |
+| TS contracts | `packages/data-ops/src/contracts/refero.ts` (`referoUiPatternCategorySchema`, `referoCategorySearchSchema`) |
 | R2 rules | `packages/data-ops/convex/r2.ts`, `src/shared/uploadRules.ts` |
 | Artifact parse | `packages/data-ops/src/contracts/parseResearchArtifact.ts` |
 
@@ -105,8 +112,8 @@ When fixing Refero parse: add `records` to extractors and `uuid` as first-class 
 ## Agent checklist — Refero in Research
 
 1. Confirm `REFERO_*` / MCP auth configured in stage-engine env.
-2. Search with concrete UX queries (not generic "e-commerce").
-3. Parse `records`; map `uuid` → screen reference id.
+2. Run **five category screen searches** (not one broad query).
+3. Parse `records`; map `uuid` → screen reference id; set `uiPatternCategory`.
 4. Fetch images only for valid UUIDs; upload to R2 or skip.
-5. Pass text metadata + Refero context into Codex prompt.
-6. Save artifact with `referoContext` embedded; wire `imageUrl` keys where uploaded.
+5. Pass flow metadata + category summaries into Codex prompt (**Codex does not author uiPatterns**).
+6. Engine builds `uiPatterns` from `categorySearches`; save artifact with `referoContext`.

@@ -1,4 +1,4 @@
-use serde_json::Value;
+use serde_json::{json, Value};
 
 pub fn unwrap_mcp_tool_result(raw: &Value) -> Value {
     if let Some(structured) = raw.get("structuredContent") {
@@ -44,18 +44,173 @@ pub fn extract_reference_values(raw: &Value) -> Vec<Value> {
     // Refero search tools return `{ pagination, records: [...] }`.
     for key in ["records", "items", "results", "screens", "flows", "data"] {
         if let Some(items) = unwrapped.get(key).and_then(Value::as_array) {
-            return items.to_vec();
+            if !items.is_empty() {
+                return items.to_vec();
+            }
+        }
+    }
+
+    // Refero defaults to markdown when `response_format: "json"` is omitted.
+    for source in [raw, &unwrapped] {
+        if let Some(markdown_records) = extract_records_from_refero_markdown(source) {
+            if !markdown_records.is_empty() {
+                tracing::warn!(
+                    record_count = markdown_records.len(),
+                    "Parsed Refero search results from markdown fallback (missing response_format=json?)"
+                );
+                return markdown_records;
+            }
         }
     }
 
     if let Some(content) = unwrapped.get("content").and_then(Value::as_array) {
-        return content.to_vec();
+        if content.iter().all(|item| looks_like_refero_record(item)) && !content.is_empty() {
+            return content.to_vec();
+        }
     }
 
-    unwrapped
-        .as_array()
-        .map(|items| items.to_vec())
-        .unwrap_or_default()
+    if let Some(items) = unwrapped.as_array() {
+        if items.iter().all(|item| looks_like_refero_record(item)) && !items.is_empty() {
+            return items.to_vec();
+        }
+    }
+
+    Vec::new()
+}
+
+fn looks_like_refero_record(value: &Value) -> bool {
+    value.get("uuid").is_some()
+        || value.get("id").is_some()
+        || value.get("screenId").is_some()
+        || value.get("flowId").is_some()
+}
+
+fn extract_records_from_refero_markdown(value: &Value) -> Option<Vec<Value>> {
+    let text = collect_refero_markdown_text(value)?;
+    let mut records = Vec::new();
+    let mut current_uuid: Option<String> = None;
+    let mut thumbnail_url: Option<String> = None;
+    let mut preview_url: Option<String> = None;
+    let mut page_url: Option<String> = None;
+    let mut product_name: Option<String> = None;
+
+    let flush = |records: &mut Vec<Value>,
+                 uuid: &mut Option<String>,
+                 thumbnail_url: &mut Option<String>,
+                 preview_url: &mut Option<String>,
+                 page_url: &mut Option<String>,
+                 product_name: &mut Option<String>| {
+        let Some(id) = uuid.take() else {
+            return;
+        };
+
+        let mut record = serde_json::Map::new();
+        record.insert("uuid".to_string(), Value::String(id));
+        if let Some(url) = thumbnail_url.take() {
+            record.insert("thumbnail_url".to_string(), Value::String(url));
+        }
+        if let Some(url) = preview_url.take() {
+            record.insert("preview_url".to_string(), Value::String(url));
+        }
+        if let Some(url) = page_url.take() {
+            record.insert("page_url".to_string(), Value::String(url));
+        }
+        if let Some(name) = product_name.take() {
+            record.insert(
+                "site".to_string(),
+                json!({ "name": name }),
+            );
+        }
+
+        records.push(Value::Object(record));
+    };
+
+    for line in text.lines() {
+        let trimmed = line.trim();
+
+        if let Some(id) = trimmed.strip_prefix("## Screen: ") {
+            flush(
+                &mut records,
+                &mut current_uuid,
+                &mut thumbnail_url,
+                &mut preview_url,
+                &mut page_url,
+                &mut product_name,
+            );
+            current_uuid = Some(id.trim().to_string());
+            continue;
+        }
+
+        if let Some(id) = trimmed.strip_prefix("## Flow: ") {
+            flush(
+                &mut records,
+                &mut current_uuid,
+                &mut thumbnail_url,
+                &mut preview_url,
+                &mut page_url,
+                &mut product_name,
+            );
+            if let Ok(flow_id) = id.trim().parse::<u64>() {
+                records.push(json!({
+                    "id": flow_id,
+                    "name": "Refero flow",
+                    "platform": "web",
+                }));
+            }
+            current_uuid = None;
+            continue;
+        }
+
+        if current_uuid.is_some() {
+            if let Some(url) = extract_markdown_field(trimmed, "Thumbnail URL") {
+                thumbnail_url = Some(url);
+            } else if let Some(url) = extract_markdown_field(trimmed, "Preview URL") {
+                preview_url = Some(url);
+            } else if let Some(url) = extract_markdown_field(trimmed, "Page URL") {
+                page_url = Some(url);
+            } else if let Some(name) = extract_markdown_field(trimmed, "Site") {
+                product_name = Some(name);
+            }
+        }
+    }
+
+    flush(
+        &mut records,
+        &mut current_uuid,
+        &mut thumbnail_url,
+        &mut preview_url,
+        &mut page_url,
+        &mut product_name,
+    );
+
+    if records.is_empty() { None } else { Some(records) }
+}
+
+fn collect_refero_markdown_text(value: &Value) -> Option<String> {
+    if let Some(text) = value.as_str() {
+        return Some(text.to_string());
+    }
+
+    if let Some(content) = value.get("content").and_then(Value::as_array) {
+        let merged = content
+            .iter()
+            .filter_map(|item| item.get("text").and_then(Value::as_str))
+            .collect::<String>();
+        if !merged.trim().is_empty() {
+            return Some(merged);
+        }
+    }
+
+    None
+}
+
+fn extract_markdown_field(line: &str, label: &str) -> Option<String> {
+    let marker = format!("**{label}**:");
+    let rest = line.strip_prefix(&marker)?.trim();
+    if rest.is_empty() {
+        return None;
+    }
+    Some(rest.to_string())
 }
 
 pub fn nested_string_field(value: &Value, path: &[&str]) -> Option<String> {
@@ -297,5 +452,22 @@ mod tests {
 
         let records = extract_reference_values(&raw);
         assert_eq!(reference_id(&records[0], "flow", 0), "11201");
+    }
+
+    #[test]
+    fn extracts_records_from_refero_markdown() {
+        let raw = json!({
+            "content": [{
+                "type": "text",
+                "text": "*Page 1 of 100 · 1000 results*\n\n## Screen: e680e476-6cd9-4ee0-a001-d961efbf9ab9\n\n- **Platform**: web\n- **Thumbnail URL**: https://images.refero.design/screenshots/example_thumb.jpg\n- **Page URL**: https://example.com/checkout\n\n## Screen: f87d2cf7-183b-4188-ae10-30864ee67fa6\n\n- **Thumbnail URL**: https://images.refero.design/screenshots/example2_thumb.jpg\n"
+            }]
+        });
+
+        let records = extract_reference_values(&raw);
+        assert_eq!(records.len(), 2);
+        assert_eq!(
+            reference_id(&records[0], "screen", 0),
+            "e680e476-6cd9-4ee0-a001-d961efbf9ab9"
+        );
     }
 }

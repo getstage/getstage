@@ -4,7 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ReferoReferenceKind {
     Screen,
@@ -12,13 +12,60 @@ pub enum ReferoReferenceKind {
     Style,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ReferoPlatform {
     Web,
     Ios,
     Android,
     Unknown,
+}
+
+/// Fixed UI Patterns row categories — mirrors `referoUiPatternCategorySchema` in data-ops.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ReferoUiPatternCategory {
+    Onboarding,
+    Homepage,
+    Pricing,
+    Checkout,
+    Dashboard,
+}
+
+impl ReferoUiPatternCategory {
+    pub fn display_title(self) -> &'static str {
+        match self {
+            Self::Onboarding => "Onboarding",
+            Self::Homepage => "Homepage",
+            Self::Pricing => "Pricing",
+            Self::Checkout => "Checkout",
+            Self::Dashboard => "Dashboard",
+        }
+    }
+
+    pub fn row_id(self) -> String {
+        format!("ui-patterns-{}", self.as_str())
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Onboarding => "onboarding",
+            Self::Homepage => "homepage",
+            Self::Pricing => "pricing",
+            Self::Checkout => "checkout",
+            Self::Dashboard => "dashboard",
+        }
+    }
+
+    pub fn all() -> &'static [Self] {
+        &[
+            Self::Onboarding,
+            Self::Homepage,
+            Self::Pricing,
+            Self::Checkout,
+            Self::Dashboard,
+        ]
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -29,6 +76,15 @@ pub struct ReferoSearchRequest {
     pub limit: u8,
     #[serde(default)]
     pub tags: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReferoCategorySearchRequest {
+    pub category: ReferoUiPatternCategory,
+    pub query: String,
+    pub platform: ReferoPlatform,
+    pub limit: u8,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -50,8 +106,18 @@ pub struct ReferoReference {
     pub flow_type: Option<String>,
     pub step_count: Option<u32>,
     pub style_type: Option<String>,
+    pub ui_pattern_category: Option<ReferoUiPatternCategory>,
     #[serde(skip)]
     pub raw_image_bytes: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReferoCategorySearch {
+    pub category: ReferoUiPatternCategory,
+    pub query: String,
+    #[serde(default)]
+    pub references: Vec<ReferoReference>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -60,5 +126,7 @@ pub struct ReferoContext {
     pub query: String,
     #[serde(default)]
     pub references: Vec<ReferoReference>,
+    #[serde(default)]
+    pub category_searches: Vec<ReferoCategorySearch>,
     pub fetched_at: u128,
 }
