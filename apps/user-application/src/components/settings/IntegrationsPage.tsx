@@ -180,7 +180,7 @@ export function IntegrationsPage() {
               type="button"
               onClick={() => setAiDefaultsOpen((open) => !open)}
               aria-expanded={aiDefaultsOpen}
-              className="flex w-full items-center justify-between gap-[16px] px-[clamp(14px,3vw,20px)] py-[16px] text-left transition-colors hover:bg-[#FAFAFA]"
+              className="flex w-full items-center justify-between gap-[16px] px-[clamp(14px,3vw,20px)] py-[16px] text-left"
             >
               <span className="min-w-0">
                 <span className="block text-[13px] font-medium leading-[1.2] text-[#171717]">
