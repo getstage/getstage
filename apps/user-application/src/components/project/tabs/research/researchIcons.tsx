@@ -30,9 +30,14 @@ export function MatrixIcon() {
 
 export function PatternIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
-      <path d="M3.2 3.2h9.6v1.6H3.2V3.2Zm0 4h9.6v1.6H3.2V7.2Zm0 4h6.4v1.6H3.2v-1.6Z" />
-    </svg>
+    <span
+      aria-hidden="true"
+      className="h-4 w-4 bg-current"
+      style={{
+        WebkitMask: 'url("/logos/recognised-patterns.svg") center / contain no-repeat',
+        mask: 'url("/logos/recognised-patterns.svg") center / contain no-repeat',
+      }}
+    />
   );
 }
 
@@ -70,16 +75,26 @@ export function ArrowRightIcon() {
 
 export function ArrowLeftMiniIcon() {
   return (
-    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-[14px] w-[14px]">
-      <path d="M8.75 3.5 5.25 7l3.5 3.5M5.5 7h6" />
+    <svg viewBox="0 0 14 14" fill="none" className="h-[14px] w-[14px] rotate-180">
+      <path
+        fill="currentColor"
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M7.65106 3.13024C7.93584 2.84548 8.39749 2.84548 8.68227 3.13024L12.0364 6.48439C12.1732 6.62113 12.25 6.80663 12.25 7C12.25 7.19338 12.1732 7.37882 12.0364 7.51561L8.68227 10.8698C8.39749 11.1545 7.93584 11.1545 7.65106 10.8698C7.36633 10.585 7.36633 10.1233 7.65106 9.83856L9.76045 7.72917H2.47917C2.07646 7.72917 1.75 7.40268 1.75 7C1.75 6.59727 2.07646 6.27083 2.47917 6.27083H9.76045L7.65106 4.16143C7.36633 3.87668 7.36633 3.41499 7.65106 3.13024Z"
+      />
     </svg>
   );
 }
 
 export function ArrowRightMiniIcon() {
   return (
-    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-[14px] w-[14px]">
-      <path d="M5.25 3.5 8.75 7l-3.5 3.5M2.5 7h6" />
+    <svg viewBox="0 0 14 14" fill="none" className="h-[14px] w-[14px]">
+      <path
+        fill="currentColor"
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M7.65106 3.13024C7.93584 2.84548 8.39749 2.84548 8.68227 3.13024L12.0364 6.48439C12.1732 6.62113 12.25 6.80663 12.25 7C12.25 7.19338 12.1732 7.37882 12.0364 7.51561L8.68227 10.8698C8.39749 11.1545 7.93584 11.1545 7.65106 10.8698C7.36633 10.585 7.36633 10.1233 7.65106 9.83856L9.76045 7.72917H2.47917C2.07646 7.72917 1.75 7.40268 1.75 7C1.75 6.59727 2.07646 6.27083 2.47917 6.27083H9.76045L7.65106 4.16143C7.36633 3.87668 7.36633 3.41499 7.65106 3.13024Z"
+      />
     </svg>
   );
 }

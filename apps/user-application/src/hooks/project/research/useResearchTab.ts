@@ -1,15 +1,7 @@
 import { useCallback, useState } from "react";
 import type { ProviderId } from "@stage/data-ops/contracts";
 import type { ValidatedResearchConfigureInput } from "@/lib/project/researchConfigureInput";
-import {
-  delay,
-  getMockResearchArtifactRecord,
-  MOCK_RESEARCH_RUN_DELAY_MS,
-  saveMockResearchArtifactRecord,
-  USE_MOCK_RESEARCH_DATA,
-} from "@/mock/project/research";
 import type { Project } from "@/models/project/project";
-import type { ResearchArtifactRecord } from "@/types/project/researchArtifactRecord";
 import { useResearchArtifact } from "./useResearchArtifact";
 import { useResearchRun } from "./useResearchRun";
 import { useSaveResearchContext } from "./useSaveResearchContext";
@@ -20,26 +12,7 @@ export function useResearchTab(project: Pick<Project, "id" | "name" | "clientNam
   const researchArtifact = useResearchArtifact(projectId);
   const researchRun = useResearchRun(projectId);
   const saveResearchContext = useSaveResearchContext(projectId);
-  const [mockRecord, setMockRecord] = useState<ResearchArtifactRecord | null>(null);
-  const [isMockRunning, setIsMockRunning] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-
-  const backendData = researchArtifact.data;
-  const data = USE_MOCK_RESEARCH_DATA ? (backendData ?? mockRecord) : backendData;
-  const usingMockData = USE_MOCK_RESEARCH_DATA && backendData === null && mockRecord !== null;
-
-  const startMockResearch = useCallback(async () => {
-    setIsMockRunning(true);
-
-    try {
-      await delay(MOCK_RESEARCH_RUN_DELAY_MS);
-      const record = getMockResearchArtifactRecord(projectId);
-      setMockRecord(record);
-      saveMockResearchArtifactRecord(projectId, record);
-    } finally {
-      setIsMockRunning(false);
-    }
-  }, [projectId]);
 
   const startResearch = useCallback(
     async (input?: ValidatedResearchConfigureInput, providerId?: ProviderId) => {
@@ -48,11 +21,6 @@ export function useResearchTab(project: Pick<Project, "id" | "name" | "clientNam
       }
 
       setSaveError(null);
-
-      if (USE_MOCK_RESEARCH_DATA && !backendData) {
-        await startMockResearch();
-        return;
-      }
 
       try {
         await saveResearchContext(input);
@@ -65,27 +33,21 @@ export function useResearchTab(project: Pick<Project, "id" | "name" | "clientNam
 
       await researchRun.startResearch(providerId);
     },
-    [backendData, researchRun, saveResearchContext, startMockResearch],
+    [researchRun, saveResearchContext],
   );
 
-  const isRunning = USE_MOCK_RESEARCH_DATA && !backendData
-    ? isMockRunning || researchRun.isRunning
-    : researchRun.isRunning;
-  const isStarting = USE_MOCK_RESEARCH_DATA && !backendData
-    ? isMockRunning || researchRun.isStarting
-    : researchRun.isStarting;
   const error = saveError ?? researchRun.error;
 
   return {
-    data,
+    data: researchArtifact.data,
     isLoading: researchArtifact.isLoading,
-    hasArtifact: data !== null,
+    hasArtifact: researchArtifact.data !== null,
     parseError: researchArtifact.parseError,
-    usingMockData,
+    usingMockData: false,
     startResearch,
     cancelResearch: researchRun.cancelResearch,
-    isRunning,
-    isStarting,
+    isRunning: researchRun.isRunning,
+    isStarting: researchRun.isStarting,
     error,
   };
 }

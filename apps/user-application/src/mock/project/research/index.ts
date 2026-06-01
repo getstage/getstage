@@ -7,11 +7,6 @@ import { createMockResearchArtifact, mockResearchArtifact, MOCK_RESEARCH_PROJECT
 export { referoProviderMark, uiPatternExampleImages } from "./assets";
 export { createMockResearchArtifact, mockResearchArtifact, MOCK_RESEARCH_PROJECT_ID };
 
-/** Opt-in fixture research for UI-only work. Real runs are the default in dev. */
-export const USE_MOCK_RESEARCH_DATA = import.meta.env.VITE_MOCK_RESEARCH === "1";
-
-export const MOCK_RESEARCH_RUN_DELAY_MS = 2500;
-
 const MOCK_RESEARCH_STORAGE_PREFIX = "stage:mock-research-artifact:";
 
 export function buildResearchArtifactRecord(
@@ -44,10 +39,6 @@ export function getMockResearchArtifactRecord(projectId: string): ResearchArtifa
 }
 
 export function loadMockResearchArtifactRecord(projectId: string): ResearchArtifactRecord | null {
-  if (!USE_MOCK_RESEARCH_DATA) {
-    return null;
-  }
-
   try {
     const raw = sessionStorage.getItem(`${MOCK_RESEARCH_STORAGE_PREFIX}${projectId}`);
     if (!raw) {
@@ -62,10 +53,6 @@ export function loadMockResearchArtifactRecord(projectId: string): ResearchArtif
 }
 
 export function saveMockResearchArtifactRecord(projectId: string, record: ResearchArtifactRecord) {
-  if (!USE_MOCK_RESEARCH_DATA) {
-    return;
-  }
-
   sessionStorage.setItem(
     `${MOCK_RESEARCH_STORAGE_PREFIX}${projectId}`,
     JSON.stringify(record.artifact),

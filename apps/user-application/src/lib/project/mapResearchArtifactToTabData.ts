@@ -26,8 +26,8 @@ export function mapResearchArtifactToTabData(artifact: ResearchArtifact): Resear
     (competitor, index) => ({
       name: competitor.name,
       url: competitor.url ?? "",
-      mark: competitorMark(competitor.name, competitor.mark),
-      color: competitorColor(index, competitor.color),
+      mark: competitorMark(competitor.name, competitor.mark ?? undefined),
+      color: competitorColor(index, competitor.color ?? undefined),
       tagline: competitor.positioning ?? competitor.summary ?? "",
       note: competitor.summary ?? competitor.positioning ?? "",
       strengths: competitor.strengths,

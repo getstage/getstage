@@ -25,7 +25,7 @@ export function ResearchTab({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [openPatternGroup, setOpenPatternGroup] = useState<string | null>(null);
-  const [competitiveView, setCompetitiveView] = useState<CompetitiveView>("card");
+  const [competitiveView, setCompetitiveView] = useState<CompetitiveView>("matrix");
   const [openPhoto, setOpenPhoto] = useState<string | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
 

@@ -24,18 +24,6 @@ export function CompetitiveAnalysis({
         <div className="flex items-start gap-1 rounded-[8px] bg-[#F5F5F5] p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
           <button
             type="button"
-            onClick={() => onViewChange("card")}
-            className={`inline-flex h-7 cursor-pointer items-center gap-2 rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] ${
-              view === "card"
-                ? "bg-white text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
-                : "text-[#737373]"
-            }`}
-          >
-            <CardIcon />
-            Card View
-          </button>
-          <button
-            type="button"
             onClick={() => onViewChange("matrix")}
             className={`inline-flex h-7 cursor-pointer items-center gap-2 rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] ${
               view === "matrix"
@@ -45,6 +33,18 @@ export function CompetitiveAnalysis({
           >
             <MatrixIcon />
             Matrix View
+          </button>
+          <button
+            type="button"
+            onClick={() => onViewChange("card")}
+            className={`inline-flex h-7 cursor-pointer items-center gap-2 rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] ${
+              view === "card"
+                ? "bg-white text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+                : "text-[#737373]"
+            }`}
+          >
+            <CardIcon />
+            Card View
           </button>
         </div>
       </div>

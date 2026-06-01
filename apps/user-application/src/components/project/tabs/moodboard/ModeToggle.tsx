@@ -12,7 +12,7 @@ export function ModeToggle({
     <div className="inline-flex w-fit rounded-[8px] bg-[#F5F5F5] p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <button
         type="button"
-        className={`inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] transition-colors ${
+        className={`inline-flex h-7 cursor-pointer items-center gap-2 rounded-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-none transition-colors ${
           mode === "figma"
             ? "bg-white text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
             : "text-[#737373] hover:bg-white"
@@ -24,7 +24,7 @@ export function ModeToggle({
       </button>
       <button
         type="button"
-        className={`inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[6px] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] transition-colors ${
+        className={`inline-flex h-7 cursor-pointer items-center gap-2 rounded-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-none transition-colors ${
           mode === "upload"
             ? "bg-white text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
             : "text-[#737373] hover:bg-white"
