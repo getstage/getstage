@@ -80,9 +80,12 @@ for category in [onboarding, homepage, pricing, checkout, dashboard]:
 refero_search_flows(journey_query, platform=web)
 for each screen uuid in category buckets (cap 15):
   refero_get_screen_image(screen_id=uuid, image_size=full)
-  → upload bytes to R2 (research-refero)
+  → upload bytes to R2 (research-refero) when possible
 engine build_ui_patterns_from_refero(categorySearches)
+  → imageUrl: R2 key | preview_url | thumbnail_url (full/lightbox)
+  → thumbnailUrl: thumbnail_url | imageUrl (carousel)
 Codex prompt: text sections only (no uiPatterns)
+React: mapResearchArtifactToTabData → carousel + patterns + personas
 ```
 
 ## Common API mistakes

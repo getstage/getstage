@@ -65,7 +65,10 @@ impl ConvexAssetUploader {
             .context("Refero image upload rejected")?;
 
         if !response.status().is_success() {
-            bail!("Refero image upload failed with status {}", response.status());
+            bail!(
+                "Refero image upload failed with status {}",
+                response.status()
+            );
         }
 
         let mut sync_args = args();

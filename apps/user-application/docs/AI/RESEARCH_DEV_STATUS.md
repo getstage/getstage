@@ -93,6 +93,8 @@ React never calls Refero or providers directly. Stage Engine owns the run.
 
 ### Stage Engine — `apps/stage-engine/src`
 
+Helper/layout conventions: [`apps/stage-engine/ARCHITECTURE.md`](../../../stage-engine/ARCHITECTURE.md) — file roles, when to extract private `fn`s, Strategy module template.
+
 | Path | Role |
 |------|------|
 | `research/workflow.rs` | **Orchestrator** — Refero → provider → Convex save |
@@ -140,17 +142,22 @@ refero_search_flows(journey query, platform=web, response_format=json)
   → service.rs: normalize → ReferoReference (id = screen uuid, uiPatternCategory set)
 
 refero_get_screen_image(screen_id=uuid, image_size=full)  [max 15, category order]
-  → refero_assets.rs: PUT bytes to R2 (research-refero)
-  → reference.image_url = R2 object key
+  → refero_assets.rs: PUT bytes to R2 (research-refero) when upload succeeds
+  → reference.image_url = R2 object key on success
 
 Codex returns text sections only (no uiPatterns)
   → apply_engine_ui_patterns: replace uiPatterns with engine-built rows
   → each row title = category display name (Onboarding, Homepage, …)
-  → each example.imageUrl wired by sourceReferenceId = Refero uuid (no round-robin)
+  → each example.imageUrl / thumbnailUrl wired by sourceReferenceId = Refero uuid (no round-robin)
+  → imageUrl = full-size target for click/lightbox:
+      1. R2 key from upload
+      2. reference.image_url (preview from get_screen_image)
+      3. reference.thumbnail_url (Refero search CDN thumbnail_url)
+  → thumbnailUrl = Refero search thumbnail when available; carousel uses this first
 
 getLatestResearchArtifact
-  → resolveResearchImageUrls: R2 keys → signed URLs
-  → UiPatterns carousel renders category-matched screenshots
+  → resolveResearchImageUrls: R2 keys → signed URLs; https:// URLs pass through unchanged
+  → UiPatterns carousel renders thumbnails; lightbox opens imageUrl/fullSrc
 ```
 
 **Caps:** 5 category screen searches + 1 flow search; 3 screens/category; 15 image fetches per run (`refero/service.rs`).
@@ -172,7 +179,7 @@ getLatestResearchArtifact
 | `projectAiRuns` | Run status / external run id | Many (audit OK) |
 | `projectAiArtifacts` | `contentJson` = full `ResearchArtifact` | **One active** — old rows deleted on `completeResearchRun` |
 
-R2 object keys live **inside** `contentJson` on `imageUrl` / `thumbnailUrl` fields. Convex resolves them on read.
+`uiPatterns.examples[].imageUrl` is the **full-size target** for click/lightbox: R2 object key preferred, then Refero `preview_url`, then `thumbnail_url`. `thumbnailUrl` is the small carousel image. Convex resolves R2 keys → signed URLs on read; `https://` values pass through unchanged.
 
 ---
 
@@ -208,7 +215,9 @@ Refero images persisted to R2 refero_images=N
 research artifact saved to Convex
 ```
 
-6. UI Patterns carousel should show images when N > 0.
+6. UI Patterns carousel should show images when `screen_hits > 0` (even if `refero_images=0` — Refero CDN fallback).
+7. Clicking an image should open `imageUrl` / fullSrc in the lightbox, not re-scale the carousel thumbnail.
+8. **Re-run Research** after engine/UI mapping fixes; old artifacts keep null `imageUrl` and stale tab mapping.
 
 Full form values: [`RESEARCH_TESTING.md`](./RESEARCH_TESTING.md)
 
@@ -221,8 +230,12 @@ Full form values: [`RESEARCH_TESTING.md`](./RESEARCH_TESTING.md)
 | `Project not found` | Stale/wrong project id or auth | Open/create valid project |
 | No Refero logs / old behavior | Stale engine on 48221 | `kill $(lsof -t -i:48221)` + restart dev |
 | `screen_hits=0` | Bad token or parse failure | Check `REFERO_MCP_TOKEN`; engine logs for “no parseable records” |
-| `refero_images=0` but screen_hits > 0 | Image fetch or R2 upload failed | Check R2 config + auth; warnings in log |
-| `imageUrl: null` in artifact | Refero step produced nothing | Fix above, re-run Research |
+| `refero_images=0` but screen_hits > 0 | R2 upload failed; CDN fallback may still fill carousel | Check R2 config; carousel can work via `thumbnail_url` |
+| `imageUrl: null` in artifact | Old run before CDN fallback fix | Re-run Research after engine restart |
+| Empty UI Patterns carousel with hits | Stale artifact or ignored `thumbnail_url` | Kill 48221, re-run Research |
+| Blurry lightbox after clicking image | UI opened the same carousel thumbnail | Fixed: carousel uses `thumbnailUrl`, lightbox uses full `imageUrl` |
+| Same summary under every pattern tag | Old `mapResearchArtifactToTabData` | Rebuild app; re-run not required if artifact OK |
+| Persona goals/frustrations show `..` | Double period from join | Fixed in `joinSentences()` — reload app |
 | Stuck “Running Research” | Old Electron main | Full `pnpm dev` restart |
 | Parse error in UI | `contentJson` vs Zod | Rebuild `data-ops`, reload app |
 
@@ -240,6 +253,9 @@ Full form values: [`RESEARCH_TESTING.md`](./RESEARCH_TESTING.md)
 | Save Changes → `updateResearchArtifact` | Done (summary, snapshot, opportunities) |
 | Section regenerate (engine + UI) | Done |
 | Refero category search + engine uiPatterns | Done (June 1) |
+| imageUrl CDN fallback (R2 → preview → thumbnail) | Done (June 1) |
+| Separate carousel thumbnail vs lightbox full image | Done (June 1) |
+| UI mapping: patterns + persona sentence join | Done (June 1) |
 | Brief file upload → R2 | Partial |
 | Export to Notion | Not wired |
 | Styles search (`refero_search_styles`) | Not wired |
@@ -255,6 +271,10 @@ Full form values: [`RESEARCH_TESTING.md`](./RESEARCH_TESTING.md)
 | One broad search → wrong UI Patterns rows | `context.rs` + `service.rs`: 5 targeted category searches |
 | Codex-authored uiPatterns + round-robin images | `prompt.rs` + `refero_assets.rs`: engine builds rows by category |
 | Stale engine after Rust edits | Kill 48221; sidecar warns on adopt |
+| Empty carousel despite screen_hits > 0 | Stage ignored Refero `thumbnail_url` | `refero_assets.rs`: fallback chain on `imageUrl` |
+| Blurry clicked image | Lightbox reused carousel thumbnail and cropped it | `thumbnailUrl` for carousel, `imageUrl` for lightbox; `object-contain` |
+| Repeated group summary on every pattern card | Mapper attached `group.summary` per tag | `mapResearchArtifactToTabData`: tag-only rows |
+| Persona text with `..` | `.join(". ")` on strings already ending `.` | `joinSentences()` strips trailing punctuation |
 
 ---
 
@@ -266,9 +286,10 @@ Full form values: [`RESEARCH_TESTING.md`](./RESEARCH_TESTING.md)
 | [`RESEARCH_TESTING.md`](./RESEARCH_TESTING.md) | E2E form values + run log |
 | [`STAGE_AI_RESEARCH_HANDOFF.md`](./STAGE_AI_RESEARCH_HANDOFF.md) | Short handoff for next agent |
 | [`STAGE_AI_WORKFLOW_CONTEXT_PLAN.md`](./STAGE_AI_WORKFLOW_CONTEXT_PLAN.md) | Full workflow architecture plan |
+| [`apps/stage-engine/ARCHITECTURE.md`](../../../stage-engine/ARCHITECTURE.md) | Engine module roles + helper conventions |
 
 ---
 
 ## One-line summary
 
-Research runs: **React → Engine → Refero (5 category searches) + R2 → Codex (text) → engine uiPatterns → Convex → React**. Kill stale engine after Rust changes. Check `screen_hits`, `category_buckets=5`, and `refero_images` in logs.
+Research runs: **React → Engine → Refero (5 category searches) + R2/CDN images → Codex (text) → engine uiPatterns → Convex → React**. Kill stale engine after Rust changes. Check `screen_hits`, `category_buckets=5`, and `refero_images` in logs; carousel can work when `refero_images=0` via Refero CDN fallback, but sharp lightbox needs full `imageUrl` from R2/preview.

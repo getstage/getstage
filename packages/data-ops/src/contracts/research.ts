@@ -70,6 +70,7 @@ export const researchUiPatternExampleSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   imageUrl: optionalUrl,
+  thumbnailUrl: optionalUrl,
   sourceProduct: optionalText,
   sourceReferenceId: optionalText,
 });

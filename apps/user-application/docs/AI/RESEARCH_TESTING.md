@@ -52,13 +52,17 @@ Pick **Claude** or **Codex**, then **Run Research**.
 - Running state for a few minutes, then full Research tab
 - **UI Patterns** shows **5 rows**: Onboarding, Homepage, Pricing, Checkout, Dashboard
 - Each row carousel has **category-matched** Refero screenshots (not the same checkout image in every row)
+- Carousel images visible when `screen_hits > 0` even if `refero_images=0` (Refero CDN fallback)
+- Clicking a carousel image opens the full `imageUrl` in the lightbox; it should not crop/upscale the thumbnail
+- **Patterns Recognised** shows tag labels only (no repeated group summary under every tag)
+- **Target Users** goals/frustrations have single periods (no `..`)
 - No red error banner
 
 ### Terminal 2 (`[stage-engine]`)
 
 ```txt
 Refero search completed screen_hits=N flow_hits=M category_buckets=5   # N should be > 0
-Refero images persisted to R2 refero_images=K                           # K should be > 0 for carousel
+Refero images persisted to R2 refero_images=K                           # K=0 OK if screen_hits>0 (CDN fallback)
 provider run completed, parsing research artifact
 research artifact saved to Convex
 run_completed
@@ -69,7 +73,10 @@ run_completed
 - `referoContext.categorySearches` — 5 buckets with real Refero UUIDs (not `screen-0`)
 - `uiPatterns[].title` — Onboarding / Homepage / Pricing / Checkout / Dashboard
 - `uiPatterns[].examples[].sourceReferenceId` — matches Refero screen `uuid`
-- `uiPatterns[].examples[].imageUrl` — R2 object keys (resolved to URLs on read)
+- `uiPatterns[].examples[].imageUrl` — full/lightbox URL: R2 object key **or** Refero `preview_url` / CDN fallback
+- `uiPatterns[].examples[].thumbnailUrl` — carousel URL; should be Refero `thumbnail_url` when present
+
+**Re-run required:** Artifacts saved before the CDN fallback fix may have `imageUrl: null`. Kill stale engine (`48221`) and run Research again.
 
 **Bad signs:**
 
@@ -90,7 +97,7 @@ run_failed detail=...
 | `projectAiRuns` | Run record |
 | `projectAiArtifacts` | Final `contentJson` (`ResearchArtifact` JSON) |
 
-Read path: `getLatestResearchArtifact` → resolve R2 keys → `mapResearchArtifactToTabData`.
+Read path: `getLatestResearchArtifact` → resolve R2 keys (https URLs pass through) → `mapResearchArtifactToTabData` maps `thumbnailUrl` to carousel `src` and `imageUrl` to lightbox `fullSrc`.
 
 ---
 
@@ -111,6 +118,8 @@ Mock UI only: `VITE_MOCK_RESEARCH=1` in `.env`.
 | 2026-05-31 | PASS | codex | Text artifact; IPC fix |
 | 2026-05-31 | PASS* | codex | UI parse failed until `.nullish()` fix |
 | 2026-06-01 | — | — | Category Refero searches + engine uiPatterns |
+| 2026-06-01 | — | — | imageUrl CDN fallback + UI mapping fixes (patterns, personas) |
+| 2026-06-01 | — | — | Split thumbnail carousel from full-size lightbox image |
 
 ### Template for next run
 

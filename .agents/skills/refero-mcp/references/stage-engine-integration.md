@@ -42,7 +42,8 @@ Fixed rows map to Refero searches:
 - `build_ui_patterns_from_refero` — one group per non-empty category bucket
 - Row title = category display name (Onboarding, Homepage, …)
 - Example `sourceReferenceId` = Refero screen UUID
-- `imageUrl` = R2 key from upload (no round-robin)
+- `imageUrl` priority: R2 upload key → `reference.image_url` (preview) → `reference.thumbnail_url` (search CDN)
+- `thumbnailUrl`: search thumbnail when present; React carousel uses this, lightbox uses `imageUrl`
 - Codex output `uiPatterns` is **replaced** by engine-built rows
 
 ## TS / Zod contracts (`packages/data-ops/src/contracts/refero.ts`)
@@ -74,7 +75,16 @@ Never pass `fileSize: 0`. Validate image magic bytes before upload.
 
 `getLatestResearchArtifact` → `resolveResearchContentJson` → resolves R2 keys to signed URLs.
 
-**Only** resolve on object keys named `imageUrl`, `thumbnailUrl`, or `url`, and only when value looks like a stored key (contains `/`).
+**Only** resolve on object keys named `imageUrl`, `thumbnailUrl`, or `url`, and only when value looks like a stored key (contains `/`, not `https://`).
+
+Refero CDN URLs in `imageUrl` / `thumbnailUrl` are stored as-is and render without R2 resolution.
+
+## UI read mapping (`mapResearchArtifactToTabData.ts`)
+
+- Carousel: `group.examples[].thumbnailUrl ?? imageUrl`
+- Lightbox: `group.examples[].imageUrl ?? thumbnailUrl`
+- Patterns Recognised: tag labels only — do not repeat `group.summary` on every tag row
+- Target Users: `joinSentences()` on goals/frustrations to avoid double periods (`..`)
 
 ## Testing Refero locally
 
@@ -89,3 +99,5 @@ Never pass `fileSize: 0`. Validate image magic bytes before upload.
 - Artifact still saves with text research
 - Empty category bucket → row omitted from `uiPatterns`
 - `referoContext.references` with synthetic ids → parse failure; fix `records` + `uuid` mapping
+- `imageUrl: null` on old artifacts → re-run Research after CDN fallback fix
+- `refero_images=0` with `screen_hits > 0` → check artifact for Refero CDN URLs before assuming total failure

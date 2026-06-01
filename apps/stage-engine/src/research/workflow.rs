@@ -55,19 +55,30 @@ impl ResearchWorkflow {
         );
 
         let result = async {
-            let auth_token =
-                auth_token.ok_or_else(|| WorkflowError::InvalidRequest("Missing desktop session for Research.".to_string()))?;
-            let project_id = project_id
-                .as_deref()
-                .ok_or_else(|| WorkflowError::InvalidRequest("Missing project id for Research.".to_string()))?;
+            let auth_token = auth_token.ok_or_else(|| {
+                WorkflowError::InvalidRequest("Missing desktop session for Research.".to_string())
+            })?;
+            let project_id = project_id.as_deref().ok_or_else(|| {
+                WorkflowError::InvalidRequest("Missing project id for Research.".to_string())
+            })?;
 
-            self.tool_started(api_version, &run_id, provider_id, &sink, "stage-context", "Load Stage project context");
+            self.tool_started(
+                api_version,
+                &run_id,
+                provider_id,
+                &sink,
+                "stage-context",
+                "Load Stage project context",
+            );
             tracing::info!(run_id = %run_id, project_id, "loading research input from Convex");
-            let input = self.repository.fetch_research_input(&auth_token, project_id).await?;
+            let input = self
+                .repository
+                .fetch_research_input(&auth_token, project_id)
+                .await?;
             self.tool_completed(api_version, &run_id, provider_id, &sink, "stage-context");
 
-            let section = parse_research_section(request.context.source.as_deref())
-                .map(str::to_string);
+            let section =
+                parse_research_section(request.context.source.as_deref()).map(str::to_string);
             if let Some(section_name) = section {
                 return self
                     .run_section_regenerate(
@@ -94,7 +105,14 @@ impl ResearchWorkflow {
                 )
                 .await?;
 
-            self.tool_started(api_version, &run_id, provider_id, &sink, "refero-context", "Search Refero examples");
+            self.tool_started(
+                api_version,
+                &run_id,
+                provider_id,
+                &sink,
+                "refero-context",
+                "Search Refero examples",
+            );
             tracing::info!(run_id = %run_id, project_id, "building Refero context");
             let mut bundle = self.research.build_prompt_bundle(input.clone()).await?;
 
@@ -137,21 +155,13 @@ impl ResearchWorkflow {
                 "provider run completed, parsing research artifact"
             );
             let mut raw_artifact = extract_json_object(&final_text)?;
-            apply_engine_ui_patterns(
-                &mut raw_artifact,
-                &bundle.refero_context,
-                &image_keys,
-            );
+            apply_engine_ui_patterns(&mut raw_artifact, &bundle.refero_context, &image_keys);
             let refero_context = serde_json::to_value(&bundle.refero_context)?;
-            let artifact = enrich_research_artifact(raw_artifact, &input, refero_context, now_millis())?;
+            let artifact =
+                enrich_research_artifact(raw_artifact, &input, refero_context, now_millis())?;
 
             self.repository
-                .complete_research_run(
-                    &auth_token,
-                    project_id,
-                    convex_run_id.as_deref(),
-                    &artifact,
-                )
+                .complete_research_run(&auth_token, project_id, convex_run_id.as_deref(), &artifact)
                 .await?;
 
             tracing::info!(run_id = %run_id, project_id, "research artifact saved to Convex");
@@ -181,7 +191,12 @@ impl ResearchWorkflow {
             {
                 if let Err(mark_failed_error) = self
                     .repository
-                    .fail_research_run(token, project_id, convex_run_id.as_deref(), &error.to_string())
+                    .fail_research_run(
+                        token,
+                        project_id,
+                        convex_run_id.as_deref(),
+                        &error.to_string(),
+                    )
                     .await
                 {
                     tracing::warn!(%mark_failed_error, "failed to mark Convex research run failed");
@@ -215,10 +230,15 @@ impl ResearchWorkflow {
             .fetch_latest_research_artifact(auth_token, project_id)
             .await?
             .ok_or_else(|| {
-                WorkflowError::InvalidRequest("No saved research artifact to regenerate.".to_string())
+                WorkflowError::InvalidRequest(
+                    "No saved research artifact to regenerate.".to_string(),
+                )
             })?;
 
-        let input = self.repository.fetch_research_input(auth_token, project_id).await?;
+        let input = self
+            .repository
+            .fetch_research_input(auth_token, project_id)
+            .await?;
         request.prompt = build_section_regenerate_prompt(section, &artifact, &input);
 
         let provider_context = ProviderRunContext {
@@ -332,9 +352,15 @@ impl WorkflowError {
 fn user_message(error: &WorkflowError) -> String {
     match error {
         WorkflowError::InvalidRequest(message) => message.clone(),
-        WorkflowError::Provider(_) => "The selected AI provider could not finish the research run.".to_string(),
+        WorkflowError::Provider(_) => {
+            "The selected AI provider could not finish the research run.".to_string()
+        }
         WorkflowError::Research(_) => "Research context could not be prepared.".to_string(),
-        WorkflowError::Convex(_) => "Stage project context could not be loaded or saved.".to_string(),
-        WorkflowError::Serde(_) => "The AI response did not match the Research artifact format.".to_string(),
+        WorkflowError::Convex(_) => {
+            "Stage project context could not be loaded or saved.".to_string()
+        }
+        WorkflowError::Serde(_) => {
+            "The AI response did not match the Research artifact format.".to_string()
+        }
     }
 }

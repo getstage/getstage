@@ -21,6 +21,17 @@ function competitorMark(name: string, explicit?: string) {
   return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
 }
 
+function joinSentences(sentences: string[]) {
+  return sentences
+    .map((sentence) => sentence.trim().replace(/[.。]+$/u, ""))
+    .filter(Boolean)
+    .join(". ");
+}
+
+function mapRecognizedPatterns(patterns: string[]) {
+  return patterns.map((pattern) => [pattern, ""] as const);
+}
+
 export function mapResearchArtifactToTabData(artifact: ResearchArtifact): ResearchTabData {
   const competitors: ResearchCompetitor[] = artifact.competitiveAnalysis.competitors.map(
     (competitor, index) => ({
@@ -48,16 +59,20 @@ export function mapResearchArtifactToTabData(artifact: ResearchArtifact): Resear
     id: group.id,
     title: group.title,
     images: group.examples
-      .map((example) => example.imageUrl)
-      .filter((imageUrl): imageUrl is string => Boolean(imageUrl)),
-    recognizedPatterns: group.recognizedPatterns.map((pattern) => [pattern, group.summary ?? ""] as const),
+      .map((example) => {
+        const fullSrc = example.imageUrl ?? example.thumbnailUrl ?? "";
+        const src = example.thumbnailUrl ?? example.imageUrl ?? "";
+        return src && fullSrc ? { src, fullSrc } : null;
+      })
+      .filter((image): image is { src: string; fullSrc: string } => Boolean(image)),
+    recognizedPatterns: mapRecognizedPatterns(group.recognizedPatterns),
   }));
 
   const targetUsers: ResearchTargetUser[] = artifact.targetUsers.map((user) => ({
     name: user.name,
     role: user.role,
-    goals: user.goals.join(". "),
-    frustration: user.frustrations.join(". "),
+    goals: joinSentences(user.goals),
+    frustration: joinSentences(user.frustrations),
     context: user.context ?? user.relevance ?? "",
   }));
 

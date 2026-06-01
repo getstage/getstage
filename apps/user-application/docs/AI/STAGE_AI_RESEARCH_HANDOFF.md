@@ -44,7 +44,8 @@ Stage Engine owns context assembly. React does not call Refero or providers dire
 - Direct Convex from Rust (`research_repository.rs`)
 - Full research workflow (`workflow.rs`)
 - Refero search + parse + image fetch + R2 upload (`refero/*`, `refero_assets.rs`)
-- Wire `uiPatterns.examples.imageUrl` after Codex (`wire_refero_images_in_artifact`)
+- Wire `uiPatterns.examples.imageUrl` / `thumbnailUrl` after Codex (full image for lightbox, thumbnail for carousel)
+- UI tab mapping fixes: pattern tags without repeated summary; persona `joinSentences`
 - Delete previous artifact + R2 keys on full rerun (`completeResearchRun`)
 - Configure form save + pre-fill (`useSaveResearchContext`, `useResearchContext`)
 - Save Changes → Convex (`useSaveResearchArtifact`, partial sections)
@@ -67,6 +68,7 @@ Stage Engine owns context assembly. React does not call Refero or providers dire
 ## Next agent: inspect these first
 
 ```txt
+apps/stage-engine/ARCHITECTURE.md
 apps/stage-engine/src/research/workflow.rs
 apps/stage-engine/src/refero/parse.rs
 apps/stage-engine/src/refero/service.rs
@@ -75,6 +77,19 @@ packages/data-ops/convex/projectAi.ts
 apps/user-application/src/hooks/project/research/
 .agents/skills/refero-mcp/SKILL.md
 ```
+
+## Next workflow (Strategy) — engine module shape
+
+When adding Strategy, mirror Research layout (see [`apps/stage-engine/ARCHITECTURE.md`](../../../stage-engine/ARCHITECTURE.md)):
+
+```txt
+strategy/workflow.rs       # orchestration only
+strategy/context.rs        # load research artifact + queries
+strategy/prompt.rs         # provider prompt
+strategy/post_process.rs   # validate/merge strategyArtifact
+```
+
+Reuse `refero/`, `runs/`, `providers/`, `convex_store/` — do not duplicate platform plumbing.
 
 ---
 
@@ -85,10 +100,10 @@ kill $(lsof -t -i:48221)
 # restart pnpm dev
 ```
 
-Look for `screen_hits` and `refero_images` in logs — not just `run_completed`.
+Look for `screen_hits`, `refero_images`, and `category_buckets=5` in logs — not just `run_completed`. Carousel can work when `refero_images=0` if artifact has Refero CDN thumbnails, but sharp click/lightbox needs full `imageUrl` from R2/preview. Re-run Research after engine image fixes.
 
 ---
 
 ## One-line summary
 
-Research is end-to-end: **Refero → R2 → Codex → Convex → UI**. Kill stale engine on 48221 after engine edits.
+Research is end-to-end: **Refero → R2/CDN images → Codex → Convex → UI**. Kill stale engine on 48221 after engine edits; re-run Research for new `imageUrl`/`thumbnailUrl` mapping.

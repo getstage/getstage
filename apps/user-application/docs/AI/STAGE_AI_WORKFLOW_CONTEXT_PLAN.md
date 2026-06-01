@@ -1404,6 +1404,18 @@ Does each Strategy section need independent approval?
 Should "Continue to Flows" require all sections approved?
 ```
 
+Stage Engine module layout (copy Research shape, not Research code):
+
+```txt
+apps/stage-engine/src/strategy/
+  workflow.rs       # thin run loop (like research/workflow.rs)
+  context.rs        # load research artifact + build provider context
+  prompt.rs         # provider instructions
+  post_process.rs   # validate/merge strategyArtifact
+```
+
+Shared platform stays in `refero/`, `runs/`, `providers/`, `convex_store/`. See [`apps/stage-engine/ARCHITECTURE.md`](../../../stage-engine/ARCHITECTURE.md).
+
 ## CAPTION: Moodboard and styleguide workflow
 
 Moodboard is where visual direction becomes structured design rules.

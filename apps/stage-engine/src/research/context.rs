@@ -45,12 +45,8 @@ fn build_category_query(input: &ResearchInput, category: ReferoUiPatternCategory
         ReferoUiPatternCategory::Homepage => {
             "B2B wholesale marketing homepage landing hero product"
         }
-        ReferoUiPatternCategory::Pricing => {
-            "B2B pricing page plan comparison subscription tiers"
-        }
-        ReferoUiPatternCategory::Checkout => {
-            "B2B mobile checkout payment order review cart"
-        }
+        ReferoUiPatternCategory::Pricing => "B2B pricing page plan comparison subscription tiers",
+        ReferoUiPatternCategory::Checkout => "B2B mobile checkout payment order review cart",
         ReferoUiPatternCategory::Dashboard => {
             "B2B wholesale dashboard admin catalog approval queue"
         }

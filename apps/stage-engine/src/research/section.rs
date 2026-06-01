@@ -59,7 +59,5 @@ pub fn merge_research_section(
 }
 
 fn section_value<'a>(artifact: &'a Value, section: &str) -> &'a Value {
-    artifact
-        .get(section)
-        .unwrap_or(&Value::Null)
+    artifact.get(section).unwrap_or(&Value::Null)
 }

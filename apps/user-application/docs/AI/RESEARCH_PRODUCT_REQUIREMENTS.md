@@ -43,11 +43,14 @@ projectAiContexts    →     Refero + provider   →     projectAiArtifacts.cont
 ### Refero images
 
 - [x] Engine searches Refero (`refero_search_screens`, `refero_search_flows`)
-- [x] Fetch full screenshots (`refero_get_screen_image`, max 6)
+- [x] Fetch full screenshots (`refero_get_screen_image`, max 15)
 - [x] Upload to R2 (`purpose: research-refero`, project-scoped keys)
-- [x] Store R2 keys in artifact (`referoContext`, `uiPatterns.examples.imageUrl`)
-- [x] Convex resolves keys → signed URLs on read
-- [x] UI carousel reads `imageUrl` via `mapResearchArtifactToTabData`
+- [x] Store full image and carousel thumbnail separately (`uiPatterns.examples.imageUrl`, `thumbnailUrl`)
+- [x] Convex resolves R2 keys → signed URLs on read (`https://` pass through)
+- [x] UI carousel reads `thumbnailUrl`; lightbox opens full `imageUrl`
+- [x] CDN fallback when R2 upload fails (`thumbnail_url` / `preview_url`)
+- [x] Patterns Recognised: tag labels only (no repeated group summary)
+- [x] Target Users: `joinSentences()` (no double periods)
 
 ### Not in V1
 
@@ -63,7 +66,7 @@ projectAiContexts    →     Refero + provider   →     projectAiArtifacts.cont
 1. refero_search_* (response_format=json) → records[].uuid
 2. refero_get_screen_image(uuid, full) → bytes
 3. Convex generateUploadUrl + PUT + syncMetadata
-4. wire_refero_images_in_artifact → uiPatterns.examples[].imageUrl
+4. build_ui_pattern_example → uiPatterns.examples[].imageUrl (full) + thumbnailUrl (carousel)
 5. completeResearchRun → delete old artifact + R2 keys
 ```
 
@@ -90,7 +93,7 @@ projectAiContexts    →     Refero + provider   →     projectAiArtifacts.cont
 | Configure form → Convex | Done |
 | Pre-fill configure form | Done |
 | Parse artifact in UI | Done |
-| Refero images → R2 → UI | **Done** (June 1) |
+| Refero images → R2/CDN → UI | **Done** (June 1) |
 | One artifact per project | Done |
 | Save text edits to Convex | **Partial** (3 sections) |
 | Section regenerate | Done |

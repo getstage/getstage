@@ -63,8 +63,8 @@ When Refero returns valid screenshot bytes:
 1. stage-engine calls Convex `r2:generateUploadUrl` (`purpose: research-refero`, `scopeId: projectId`)
 2. HTTP PUT bytes to presigned URL
 3. Convex `r2:syncMetadata`
-4. Artifact stores **R2 object key** in `imageUrl` / `thumbnailUrl` (not Refero CDN URL)
-5. On read, Convex resolves keys → signed URLs **only** on `imageUrl`, `thumbnailUrl`, `url` fields
+4. Artifact stores full/lightbox target in `imageUrl` (R2 key preferred, then `preview_url`, then `thumbnail_url`) and carousel source in `thumbnailUrl`
+5. On read, Convex resolves R2 keys → signed URLs **only** on `imageUrl`, `thumbnailUrl`, `url` fields; `https://` values pass through unchanged
 
 Upload is **soft-fail**: bad/missing images must not abort Research.
 
@@ -89,7 +89,7 @@ Keep queries specific per category; avoid one mega-query mixing onboarding + che
 | Old tool names with `_tool` suffix | Use current names from tools doc |
 | Round-robin images into uiPatterns | Engine builds rows in `refero_assets.rs` by category |
 | Resolve every string as R2 key in Convex | Only resolve url fields that contain `/` path keys |
-| Hard-fail Research on R2 upload error | Log, skip image, continue to Codex |
+| Hard-fail Research on R2 upload error | Log, skip upload, use Refero CDN fallback on `imageUrl` |
 | One broad Refero search for all UI Patterns | Five category queries in `research/context.rs` |
 
 ## Implementation map (Stage monorepo)
@@ -114,6 +114,6 @@ When fixing Refero parse: add `records` to extractors and `uuid` as first-class 
 1. Confirm `REFERO_*` / MCP auth configured in stage-engine env.
 2. Run **five category screen searches** (not one broad query).
 3. Parse `records`; map `uuid` → screen reference id; set `uiPatternCategory`.
-4. Fetch images only for valid UUIDs; upload to R2 or skip.
+4. Fetch images only for valid UUIDs; upload to R2 or skip (CDN fallback on artifact)
 5. Pass flow metadata + category summaries into Codex prompt (**Codex does not author uiPatterns**).
 6. Engine builds `uiPatterns` from `categorySearches`; save artifact with `referoContext`.

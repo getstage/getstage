@@ -5,7 +5,8 @@ use serde_json::{Value, json};
 
 use crate::convex_store::asset_upload::ConvexAssetUploader;
 use crate::models::refero::{
-    ReferoCategorySearch, ReferoContext, ReferoReference, ReferoReferenceKind, ReferoUiPatternCategory,
+    ReferoCategorySearch, ReferoContext, ReferoReference, ReferoReferenceKind,
+    ReferoUiPatternCategory,
 };
 use crate::refero::parse::{infer_image_mime, looks_like_image_bytes};
 use crate::refero::service::{ReferoService, infer_refero_file_name};
@@ -99,22 +100,34 @@ fn build_ui_pattern_group(
     })
 }
 
-fn build_ui_pattern_example(reference: &ReferoReference, image_keys: &HashMap<String, String>) -> Value {
+fn build_ui_pattern_example(
+    reference: &ReferoReference,
+    image_keys: &HashMap<String, String>,
+) -> Value {
     let image_url = image_keys
         .get(&reference.id)
         .cloned()
-        .or_else(|| reference.image_url.clone());
+        .or_else(|| reference.image_url.clone())
+        .or_else(|| reference.thumbnail_url.clone());
+    let thumbnail_url = reference
+        .thumbnail_url
+        .clone()
+        .or_else(|| image_url.clone());
 
     json!({
         "id": reference.id,
         "title": reference.title,
         "imageUrl": image_url,
+        "thumbnailUrl": thumbnail_url,
         "sourceProduct": reference.product_name,
         "sourceReferenceId": reference.id,
     })
 }
 
-fn build_group_summary(category: ReferoUiPatternCategory, references: &[ReferoReference]) -> Option<String> {
+fn build_group_summary(
+    category: ReferoUiPatternCategory,
+    references: &[ReferoReference],
+) -> Option<String> {
     if let Some(summary) = references
         .iter()
         .filter_map(|reference| reference.summary.as_deref())
@@ -146,21 +159,14 @@ fn build_group_summary(category: ReferoUiPatternCategory, references: &[ReferoRe
 }
 
 fn collect_recognized_patterns(references: &[ReferoReference]) -> Vec<String> {
-    let mut patterns = Vec::new();
     let mut seen = HashSet::new();
 
-    for reference in references {
-        for tag in &reference.tags {
-            if seen.insert(tag.clone()) {
-                patterns.push(tag.clone());
-            }
-            if patterns.len() >= 3 {
-                return patterns;
-            }
-        }
-    }
-
-    patterns
+    references
+        .iter()
+        .flat_map(|reference| reference.tags.iter())
+        .filter_map(|tag| seen.insert(tag.clone()).then(|| tag.clone()))
+        .take(3)
+        .collect()
 }
 
 async fn upload_reference_image(
@@ -191,7 +197,9 @@ async fn upload_reference_image(
     {
         Ok(key) => {
             reference.image_url = Some(key.clone());
-            reference.thumbnail_url = Some(key.clone());
+            if reference.thumbnail_url.is_none() {
+                reference.thumbnail_url = Some(key.clone());
+            }
             uploaded_keys.insert(reference.id.clone(), key);
         }
         Err(error) => {
@@ -230,16 +238,21 @@ fn sync_category_image_urls_to_flat_references(context: &mut ReferoContext) {
 
     for bucket in &context.category_searches {
         for reference in &bucket.references {
-            if let Some(url) = reference.image_url.as_ref() {
-                urls_by_id.insert(reference.id.clone(), url.clone());
-            }
+            urls_by_id.insert(
+                reference.id.clone(),
+                (reference.image_url.clone(), reference.thumbnail_url.clone()),
+            );
         }
     }
 
     for reference in &mut context.references {
-        if let Some(url) = urls_by_id.get(&reference.id) {
-            reference.image_url = Some(url.clone());
-            reference.thumbnail_url = Some(url.clone());
+        if let Some((image_url, thumbnail_url)) = urls_by_id.get(&reference.id) {
+            if let Some(url) = image_url {
+                reference.image_url = Some(url.clone());
+            }
+            if let Some(url) = thumbnail_url {
+                reference.thumbnail_url = Some(url.clone());
+            }
         }
     }
 }
@@ -261,7 +274,9 @@ fn wire_refero_images_in_source_references(
         };
 
         if let Some(key) = image_keys.get(id) {
-            let object = source.as_object_mut().expect("source reference must be object");
+            let object = source
+                .as_object_mut()
+                .expect("source reference must be object");
             object.insert("url".to_string(), json!(key));
         }
     }
@@ -272,7 +287,11 @@ mod tests {
     use super::*;
     use crate::models::refero::ReferoPlatform;
 
-    fn sample_screen(id: &str, category: ReferoUiPatternCategory, product: &str) -> ReferoReference {
+    fn sample_screen(
+        id: &str,
+        category: ReferoUiPatternCategory,
+        product: &str,
+    ) -> ReferoReference {
         ReferoReference {
             id: id.to_string(),
             kind: ReferoReferenceKind::Screen,
@@ -281,10 +300,13 @@ mod tests {
             product_url: None,
             platform: ReferoPlatform::Web,
             source_url: None,
-            thumbnail_url: None,
-            image_url: Some(format!("research/proj/{id}.png")),
+            thumbnail_url: Some(format!("https://images.refero.design/screenshots/{id}.png")),
+            image_url: None,
             summary: None,
-            tags: vec!["Checklist".to_string(), "Progressive disclosure".to_string()],
+            tags: vec![
+                "Checklist".to_string(),
+                "Progressive disclosure".to_string(),
+            ],
             screen_type: None,
             flow_type: None,
             step_count: None,
@@ -292,6 +314,31 @@ mod tests {
             ui_pattern_category: Some(category),
             raw_image_bytes: None,
         }
+    }
+
+    #[test]
+    fn collect_recognized_patterns_dedupes_and_caps_at_three() {
+        let references = vec![
+            sample_screen("uuid-a", ReferoUiPatternCategory::Onboarding, "Shopify"),
+            ReferoReference {
+                tags: vec![
+                    "Progressive disclosure".to_string(),
+                    "Wizard".to_string(),
+                    "Stepper".to_string(),
+                    "Extra".to_string(),
+                ],
+                ..sample_screen("uuid-b", ReferoUiPatternCategory::Onboarding, "Stripe")
+            },
+        ];
+
+        assert_eq!(
+            collect_recognized_patterns(&references),
+            vec![
+                "Checklist".to_string(),
+                "Progressive disclosure".to_string(),
+                "Wizard".to_string(),
+            ]
+        );
     }
 
     #[test]
@@ -303,30 +350,78 @@ mod tests {
                 ReferoCategorySearch {
                     category: ReferoUiPatternCategory::Onboarding,
                     query: "onboarding".to_string(),
-                    references: vec![sample_screen("uuid-onboard", ReferoUiPatternCategory::Onboarding, "Shopify")],
+                    references: vec![sample_screen(
+                        "uuid-onboard",
+                        ReferoUiPatternCategory::Onboarding,
+                        "Shopify",
+                    )],
                 },
                 ReferoCategorySearch {
                     category: ReferoUiPatternCategory::Pricing,
                     query: "pricing".to_string(),
-                    references: vec![sample_screen("uuid-pricing", ReferoUiPatternCategory::Pricing, "Stripe")],
+                    references: vec![sample_screen(
+                        "uuid-pricing",
+                        ReferoUiPatternCategory::Pricing,
+                        "Stripe",
+                    )],
                 },
             ],
             fetched_at: 1,
         };
 
         let mut keys = HashMap::new();
-        keys.insert("uuid-onboard".to_string(), "research/proj/uuid-onboard.png".to_string());
-        keys.insert("uuid-pricing".to_string(), "research/proj/uuid-pricing.png".to_string());
+        keys.insert(
+            "uuid-onboard".to_string(),
+            "research/proj/uuid-onboard.png".to_string(),
+        );
+        keys.insert(
+            "uuid-pricing".to_string(),
+            "research/proj/uuid-pricing.png".to_string(),
+        );
 
         let groups = build_ui_patterns_from_refero(&context, &keys);
         let array = groups.as_array().expect("ui patterns array");
         assert_eq!(array.len(), 2);
         assert_eq!(array[0]["title"], "Onboarding");
         assert_eq!(array[0]["examples"][0]["sourceReferenceId"], "uuid-onboard");
+        assert_eq!(
+            array[0]["examples"][0]["thumbnailUrl"],
+            "https://images.refero.design/screenshots/uuid-onboard.png"
+        );
         assert_eq!(array[1]["examples"][0]["sourceReferenceId"], "uuid-pricing");
         assert_ne!(
             array[0]["examples"][0]["imageUrl"],
             array[1]["examples"][0]["imageUrl"]
+        );
+    }
+
+    #[test]
+    fn uses_refero_thumbnail_when_r2_image_key_is_missing() {
+        let context = ReferoContext {
+            query: "onboarding".to_string(),
+            references: vec![],
+            category_searches: vec![ReferoCategorySearch {
+                category: ReferoUiPatternCategory::Onboarding,
+                query: "onboarding".to_string(),
+                references: vec![sample_screen(
+                    "uuid-onboard",
+                    ReferoUiPatternCategory::Onboarding,
+                    "Shopify",
+                )],
+            }],
+            fetched_at: 1,
+        };
+
+        let groups = build_ui_patterns_from_refero(&context, &HashMap::new());
+        let example = &groups.as_array().expect("ui patterns array")[0]["examples"][0];
+        let image_url = &example["imageUrl"];
+        assert_eq!(
+            image_url,
+            "https://images.refero.design/screenshots/uuid-onboard.png"
+        );
+        assert_eq!(
+            example["thumbnailUrl"],
+            "https://images.refero.design/screenshots/uuid-onboard.png"
         );
     }
 }

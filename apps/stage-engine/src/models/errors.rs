@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use super::providers::ProviderId;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { UiPatternGroupWithPatterns } from "@/types/project/researchTab";
+import type { UiPatternGroupWithPatterns, UiPatternImage } from "@/types/project/researchTab";
 import {
   ArrowLeftMiniIcon,
   ArrowRightMiniIcon,
@@ -125,16 +125,16 @@ function UiPatternGroup({
 
       {visibleImages.length > 0 ? (
         <div className="grid grid-cols-1 gap-1 md:grid-cols-3">
-          {visibleImages.map(({ src, originalIndex }) => (
+          {visibleImages.map(({ image, originalIndex }) => (
             <button
-              key={`${group.id}-${src}-${originalIndex}`}
+              key={`${group.id}-${image.src}-${originalIndex}`}
               type="button"
-              onClick={() => onOpenPhoto(src)}
+              onClick={() => onOpenPhoto(image.fullSrc)}
               className="group rounded-[8px] bg-white p-2 text-left shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-transform hover:-translate-y-px"
               aria-label={`Open ${group.title} reference ${originalIndex + 1}`}
             >
               <div className="aspect-[1920/1325] overflow-hidden rounded-[4px]">
-                <img src={src} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-[1.01]" />
+                <img src={image.src} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-[1.01]" />
               </div>
             </button>
           ))}
@@ -177,16 +177,16 @@ function UiPatternGroup({
   );
 }
 
-function getVisibleCarouselImages(images: string[], startIndex: number, visibleCount: number) {
+function getVisibleCarouselImages(images: UiPatternImage[], startIndex: number, visibleCount: number) {
   if (images.length <= 1) {
-    return images.map((src, originalIndex) => ({ src, originalIndex }));
+    return images.map((image, originalIndex) => ({ image, originalIndex }));
   }
 
   const count = Math.min(images.length, visibleCount);
 
   return Array.from({ length: count }, (_, index) => {
     const originalIndex = (startIndex + index) % images.length;
-    return { src: images[originalIndex], originalIndex };
+    return { image: images[originalIndex], originalIndex };
   });
 }
 

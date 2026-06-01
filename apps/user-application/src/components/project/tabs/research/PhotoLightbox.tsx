@@ -17,11 +17,11 @@ export function PhotoLightbox({ src, onClose }: PhotoLightboxProps) {
         aria-label="Close photo preview"
         onClick={onClose}
       />
-      <div className="relative h-[min(828px,calc(100vh-48px))] w-[min(1200px,calc(100vw-48px))] rounded-[4px] shadow-[0_20px_80px_rgba(0,0,0,0.22)]">
+      <div className="relative flex h-[min(828px,calc(100vh-48px))] w-[min(1200px,calc(100vw-48px))] items-center justify-center rounded-[4px] bg-white shadow-[0_20px_80px_rgba(0,0,0,0.22)]">
         <img
           src={src}
           alt=""
-          className="h-full w-full rounded-[4px] object-cover"
+          className="max-h-full max-w-full rounded-[4px] object-contain"
         />
       </div>
     </div>

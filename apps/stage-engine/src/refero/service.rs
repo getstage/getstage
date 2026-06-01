@@ -278,8 +278,12 @@ fn normalize_reference(value: &Value, kind: ReferoReferenceKind, index: usize) -
 
     let product_name = nested_string_field(value, &["site", "name"])
         .or_else(|| string_field(value, &["productName", "appName", "companyName", "product"]));
-    let product_url = nested_string_field(value, &["site", "domain"])
-        .or_else(|| string_field(value, &["productUrl", "appUrl", "website", "url", "page_url"]));
+    let product_url = nested_string_field(value, &["site", "domain"]).or_else(|| {
+        string_field(
+            value,
+            &["productUrl", "appUrl", "website", "url", "page_url"],
+        )
+    });
 
     ReferoReference {
         id,
@@ -288,9 +292,36 @@ fn normalize_reference(value: &Value, kind: ReferoReferenceKind, index: usize) -
         product_name,
         product_url,
         platform: parse_platform(value),
-        source_url: string_field(value, &["refero_url", "referoUrl", "sourceUrl", "pageUrl", "page_url"]),
-        thumbnail_url: string_field(value, &["thumbnail_url", "thumbnailUrl", "thumbnail", "preview_url", "previewUrl"]),
-        image_url: string_field(value, &["preview_url", "previewUrl", "imageUrl", "screenshotUrl", "fullImageUrl"]),
+        source_url: string_field(
+            value,
+            &[
+                "refero_url",
+                "referoUrl",
+                "sourceUrl",
+                "pageUrl",
+                "page_url",
+            ],
+        ),
+        thumbnail_url: string_field(
+            value,
+            &[
+                "thumbnail_url",
+                "thumbnailUrl",
+                "thumbnail",
+                "preview_url",
+                "previewUrl",
+            ],
+        ),
+        image_url: string_field(
+            value,
+            &[
+                "preview_url",
+                "previewUrl",
+                "imageUrl",
+                "screenshotUrl",
+                "fullImageUrl",
+            ],
+        ),
         summary: nested_string_field(value, &["content", "description"])
             .or_else(|| string_field(value, &["summary", "description", "problem"])),
         tags: refero_tags(value),

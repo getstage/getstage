@@ -12,7 +12,12 @@ export type ResearchCompetitor = {
 export type UiPatternGroup = {
   id: string;
   title: string;
-  images: string[];
+  images: UiPatternImage[];
+};
+
+export type UiPatternImage = {
+  src: string;
+  fullSrc: string;
 };
 
 export type UiPatternGroupWithPatterns = UiPatternGroup & {

@@ -54,7 +54,10 @@ impl ResearchRepository {
         let mut client = self.authenticated_client(token).await?;
         let mut args = args();
         args.insert("projectId".to_string(), Value::from(project_id.to_string()));
-        args.insert("title".to_string(), Value::from("Generate research".to_string()));
+        args.insert(
+            "title".to_string(),
+            Value::from("Generate research".to_string()),
+        );
         args.insert(
             "externalRunId".to_string(),
             Value::from(external_run_id.to_string()),
@@ -100,7 +103,9 @@ impl ResearchRepository {
         );
         args.insert(
             "summary".to_string(),
-            Value::from(summary_text(artifact).unwrap_or_else(|| "Research generated.".to_string())),
+            Value::from(
+                summary_text(artifact).unwrap_or_else(|| "Research generated.".to_string()),
+            ),
         );
         args.insert(
             "contentJson".to_string(),
@@ -285,7 +290,10 @@ fn normalize_competitive_matrix_scores(object: &mut serde_json::Map<String, Json
     let Some(analysis_object) = competitive_analysis.as_object_mut() else {
         return;
     };
-    let Some(matrix_rows) = analysis_object.get_mut("matrixRows").and_then(JsonValue::as_array_mut) else {
+    let Some(matrix_rows) = analysis_object
+        .get_mut("matrixRows")
+        .and_then(JsonValue::as_array_mut)
+    else {
         return;
     };
 
@@ -293,7 +301,10 @@ fn normalize_competitive_matrix_scores(object: &mut serde_json::Map<String, Json
         let Some(row_object) = row.as_object_mut() else {
             continue;
         };
-        let Some(cells) = row_object.get_mut("cells").and_then(JsonValue::as_array_mut) else {
+        let Some(cells) = row_object
+            .get_mut("cells")
+            .and_then(JsonValue::as_array_mut)
+        else {
             continue;
         };
 
