@@ -24,6 +24,24 @@ const GRID_BLEED_X = 100;
 const INDICATOR_TOP = 68;
 const PROJECT_CARD_WIDTH = 286;
 
+function estimateTimelineLabelWidth(label: string) {
+  return label.length * 7 + 4;
+}
+
+function getBaselineLabelIndexes(count: number) {
+  if (count <= 0) return new Set<number>();
+  if (count <= 4) {
+    return new Set(Array.from({ length: count }, (_, index) => index));
+  }
+
+  return new Set([
+    0,
+    Math.round((count - 1) / 3),
+    Math.round(((count - 1) * 2) / 3),
+    count - 1,
+  ]);
+}
+
 export function ActivityTimelineChart({
   points,
   projects,
@@ -100,13 +118,44 @@ export function ActivityTimelineChart({
   const areaPath = useMemo(() => buildRoundedSteppedAreaPath(bars), [bars]);
   const activeBar = activeIndex === null ? undefined : bars[activeIndex];
   const visibleLabelIndexes = useMemo(() => {
-    const indexes = new Set<number>();
+    if (bars.length === 0) return [];
+    const baselineIndexes = getBaselineLabelIndexes(chartPoints.length);
+
+    const candidates: Array<{
+      index: number;
+      label: string;
+      priority: number;
+      x: number;
+      width: number;
+    }> = [];
+
     chartPoints.forEach((point, index) => {
-      if (point.showLabel) indexes.add(index);
+      const bar = bars[index];
+      if (!bar || (!baselineIndexes.has(index) && index !== activeIndex)) return;
+
+      const isEdgeLabel = index === 0 || index === chartPoints.length - 1;
+      const isActiveLabel = index === activeIndex;
+      candidates.push({
+        index,
+        label: point.label,
+        priority: isActiveLabel ? 4 : isEdgeLabel ? 3 : 2,
+        x: bar.x + bar.width / 2,
+        width: estimateTimelineLabelWidth(point.label),
+      });
     });
-    if (activeIndex !== null) indexes.add(activeIndex);
-    return Array.from(indexes).sort((a, b) => a - b);
-  }, [activeIndex, chartPoints]);
+
+    const placed: typeof candidates = [];
+    for (const candidate of [...candidates].sort((a, b) => b.priority - a.priority || a.index - b.index)) {
+      const collides = placed.some((label) =>
+        Math.abs(label.x - candidate.x) < (label.width + candidate.width) / 2 + 8,
+      );
+      if (!collides) {
+        placed.push(candidate);
+      }
+    }
+
+    return placed.map((label) => label.index).sort((a, b) => a - b);
+  }, [activeIndex, bars, chartPoints]);
 
   const projectsByPointIndex = useMemo(
     () =>
