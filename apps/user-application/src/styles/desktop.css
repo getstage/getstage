@@ -512,10 +512,22 @@ a,
   min-height: 28px;
 }
 
+.chat-control-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .chat-model-picker {
   position: relative;
   flex: 0 1 auto;
   min-width: 0;
+}
+
+.chat-reasoning-picker {
+  position: relative;
+  flex: 0 0 auto;
 }
 
 .chat-model-button {
@@ -534,6 +546,10 @@ a,
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
+}
+
+.chat-reasoning-button {
+  max-width: 152px;
 }
 
 .chat-model-button span:not(.chat-provider-mark, .chat-model-chevron) {
@@ -557,6 +573,18 @@ a,
   border-right: 1.5px solid #8a8a8a;
   border-bottom: 1.5px solid #8a8a8a;
   transform: translateY(-2px) rotate(45deg);
+  transition: transform 140ms ease;
+}
+
+.chat-model-chevron-open {
+  transform: translateY(2px) rotate(225deg);
+}
+
+.chat-reasoning-divider {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 12px;
+  background: #e5e5e5;
 }
 
 .chat-model-menu {
@@ -745,6 +773,68 @@ a,
   font-size: 11px;
   font-weight: 500;
   line-height: 1.35;
+}
+
+.chat-reasoning-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  z-index: 4;
+  width: 236px;
+  overflow: hidden;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 14px 36px rgb(10 10 10 / 13%);
+  padding: 7px;
+}
+
+.chat-reasoning-section + .chat-reasoning-section {
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid #eeeeee;
+}
+
+.chat-reasoning-section p {
+  margin: 0 0 3px;
+  padding: 0 8px;
+  color: #737373;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.chat-reasoning-option {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  min-height: 32px;
+  padding: 0 8px 0 2px;
+  border-radius: 6px;
+  color: #262626;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.chat-reasoning-option:hover,
+.chat-reasoning-option[aria-pressed="true"] {
+  background: #f5f5f5 !important;
+  color: #111121;
+}
+
+.chat-reasoning-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  color: #525252;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .chat-send-button {

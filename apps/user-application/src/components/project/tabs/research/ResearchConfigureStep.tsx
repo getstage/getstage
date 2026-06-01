@@ -310,17 +310,8 @@ export function ResearchConfigureStep({
                   onClick={handleSubmit}
                   className="inline-flex h-[37px] items-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] disabled:cursor-default disabled:opacity-50"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      Running Research
-                    </>
-                  ) : (
-                    <>
-                      <img src="/logos/dashboard/ai-generated.svg" alt="" aria-hidden="true" className="h-[15px] w-[15px] brightness-0 invert" />
-                      Run Research
-                    </>
-                  )}
+                  <img src="/logos/dashboard/ai-generated.svg" alt="" aria-hidden="true" className="h-[15px] w-[15px] brightness-0 invert" />
+                  Run Research
                 </button>
               </div>
             </div>
