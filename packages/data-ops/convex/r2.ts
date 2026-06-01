@@ -18,6 +18,8 @@ const uploadPurposeValidator = v.union(
   v.literal("portal-logo"),
   v.literal("generated-design"),
   v.literal("project-asset"),
+  v.literal("research-refero"),
+  v.literal("research-brief"),
 );
 
 export const { syncMetadata } = r2.clientApi<DataModel>({
@@ -74,7 +76,13 @@ function getExtensionFromMimeType(mimeType: string, fileName: string) {
   }
 }
 
-function buildObjectKey(userId: string, purpose: UploadPurpose, fileName: string, mimeType: string) {
+function buildObjectKey(
+  userId: string,
+  purpose: UploadPurpose,
+  fileName: string,
+  mimeType: string,
+  scopeId?: string,
+) {
   const extension = getExtensionFromMimeType(mimeType, fileName);
   const uuid = crypto.randomUUID();
 
@@ -95,6 +103,12 @@ function buildObjectKey(userId: string, purpose: UploadPurpose, fileName: string
       return `users/${userId}/generated-designs/${uuid}.${extension}`;
     case "project-asset":
       return `users/${userId}/project-assets/${uuid}.${extension}`;
+    case "research-refero": {
+      const projectId = scopeId?.trim() || "unknown-project";
+      return `users/${userId}/research/${projectId}/refero/${uuid}.${extension}`;
+    }
+    case "research-brief":
+      return `users/${userId}/research-briefs/${uuid}.${extension}`;
   }
 }
 
@@ -268,6 +282,7 @@ async function createTrackedUpload(
     fileName: string;
     fileSize: number;
     mimeType: string;
+    scopeId?: string;
   },
 ) {
   const validationError = getUploadValidationError(args.purpose, {
@@ -280,7 +295,13 @@ async function createTrackedUpload(
     throw new Error(validationError);
   }
 
-  const key = buildObjectKey(String(args.userId), args.purpose, args.fileName, args.mimeType);
+  const key = buildObjectKey(
+    String(args.userId),
+    args.purpose,
+    args.fileName,
+    args.mimeType,
+    args.scopeId,
+  );
   const timestamp = Date.now();
   await ctx.db.insert("uploadedAssets", {
     userId: args.userId,
@@ -304,6 +325,7 @@ export const generateUploadUrl = mutation({
     fileName: v.string(),
     fileSize: v.number(),
     mimeType: v.string(),
+    scopeId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
@@ -313,9 +335,13 @@ export const generateUploadUrl = mutation({
       fileName: args.fileName,
       fileSize: args.fileSize,
       mimeType: args.mimeType,
+      scopeId: args.scopeId,
     });
 
-    return trackedUpload.uploadUrl;
+    return {
+      key: trackedUpload.key,
+      uploadUrl: trackedUpload.uploadUrl,
+    };
   },
 });
 
@@ -326,6 +352,7 @@ export const generateUploadUrlForApi = internalMutation({
     fileName: v.string(),
     fileSize: v.number(),
     mimeType: v.string(),
+    scopeId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return createTrackedUpload(ctx, {
@@ -334,6 +361,7 @@ export const generateUploadUrlForApi = internalMutation({
       fileName: args.fileName,
       fileSize: args.fileSize,
       mimeType: args.mimeType,
+      scopeId: args.scopeId,
     });
   },
 });

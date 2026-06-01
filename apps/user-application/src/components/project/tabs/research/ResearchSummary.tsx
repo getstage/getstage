@@ -3,12 +3,24 @@ import { EditIcon, SaveIcon } from "./researchIcons";
 type ResearchSummaryProps = {
   summary: string[];
   isEditing: boolean;
+  editValue?: string;
+  onEditValueChange?: (value: string) => void;
   onEdit: () => void;
   onDiscard: () => void;
   onSave: () => void;
+  isSaving?: boolean;
 };
 
-export function ResearchSummary({ summary, isEditing, onEdit, onDiscard, onSave }: ResearchSummaryProps) {
+export function ResearchSummary({
+  summary,
+  isEditing,
+  editValue,
+  onEditValueChange,
+  onEdit,
+  onDiscard,
+  onSave,
+  isSaving = false,
+}: ResearchSummaryProps) {
   return (
     <section className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-4">
@@ -25,7 +37,8 @@ export function ResearchSummary({ summary, isEditing, onEdit, onDiscard, onSave 
             <button
               type="button"
               onClick={onSave}
-              className="inline-flex h-[31px] items-center justify-center gap-2 rounded-[6px] border border-[#34D399] bg-gradient-to-b from-[#10B981] to-[#059669] px-3 text-[12px] font-medium leading-[1.25] text-[#ECFDF5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+              disabled={isSaving}
+              className="inline-flex h-[31px] items-center justify-center gap-2 rounded-[6px] border border-[#34D399] bg-gradient-to-b from-[#10B981] to-[#059669] px-3 text-[12px] font-medium leading-[1.25] text-[#ECFDF5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:opacity-60"
             >
               <SaveIcon />
               Save Changes
@@ -44,7 +57,8 @@ export function ResearchSummary({ summary, isEditing, onEdit, onDiscard, onSave 
       </div>
       {isEditing ? (
         <textarea
-          defaultValue={summary.join(" ")}
+          value={editValue ?? summary.join("\n")}
+          onChange={(event) => onEditValueChange?.(event.target.value)}
           className="min-h-[124px] w-full resize-y rounded-[8px] border border-[#E5E5E5] bg-[#FAFAFA] px-3 py-[10px] text-[13px] font-medium leading-[1.5] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)]"
           aria-label="Research summary"
         />

@@ -11,7 +11,7 @@ export function useResearchTab(project: Pick<Project, "id" | "name" | "clientNam
   const projectId = project.id;
   const researchArtifact = useResearchArtifact(projectId);
   const researchRun = useResearchRun(projectId);
-  const saveResearchContext = useSaveResearchContext(projectId);
+  const { saveResearchContext, setBriefFile } = useSaveResearchContext(projectId);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const startResearch = useCallback(
@@ -36,18 +36,18 @@ export function useResearchTab(project: Pick<Project, "id" | "name" | "clientNam
     [researchRun, saveResearchContext],
   );
 
-  const error = saveError ?? researchRun.error;
-
   return {
     data: researchArtifact.data,
     isLoading: researchArtifact.isLoading,
     hasArtifact: researchArtifact.data !== null,
     parseError: researchArtifact.parseError,
+    parseErrorMessage: researchArtifact.parseErrorMessage,
     usingMockData: false,
     startResearch,
     cancelResearch: researchRun.cancelResearch,
     isRunning: researchRun.isRunning,
     isStarting: researchRun.isStarting,
-    error,
+    error: saveError ?? researchRun.error,
+    setBriefFile,
   };
 }

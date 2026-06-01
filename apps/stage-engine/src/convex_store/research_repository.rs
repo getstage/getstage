@@ -20,6 +20,10 @@ impl ResearchRepository {
         }
     }
 
+    pub fn deployment_url(&self) -> &str {
+        &self.deployment_url
+    }
+
     pub async fn fetch_research_input(
         &self,
         token: &str,
@@ -118,6 +122,70 @@ impl ResearchRepository {
             .map(ToOwned::to_owned))
     }
 
+    pub async fn fetch_latest_research_artifact(
+        &self,
+        token: &str,
+        project_id: &str,
+    ) -> anyhow::Result<Option<(String, JsonValue)>> {
+        let mut client = self.authenticated_client(token).await?;
+        let mut args = args();
+        args.insert("projectId".to_string(), Value::from(project_id.to_string()));
+
+        let result = client
+            .query("projectAi:getLatestResearchArtifact", args)
+            .await
+            .context("failed to fetch latest research artifact from Convex")?;
+        let json = function_result_to_json(result)?;
+
+        if json.is_null() {
+            return Ok(None);
+        }
+
+        let content_json = json
+            .get("contentJson")
+            .and_then(JsonValue::as_str)
+            .context("latest research artifact missing contentJson")?;
+        let artifact_id = json
+            .get("id")
+            .and_then(JsonValue::as_str)
+            .context("latest research artifact missing id")?
+            .to_string();
+
+        let artifact = serde_json::from_str::<JsonValue>(content_json)
+            .context("latest research artifact contentJson was invalid")?;
+
+        Ok(Some((artifact_id, artifact)))
+    }
+
+    pub async fn update_research_artifact(
+        &self,
+        token: &str,
+        project_id: &str,
+        artifact_id: &str,
+        artifact: &JsonValue,
+    ) -> anyhow::Result<()> {
+        let mut client = self.authenticated_client(token).await?;
+        let mut args = args();
+        args.insert("projectId".to_string(), Value::from(project_id.to_string()));
+        args.insert(
+            "artifactId".to_string(),
+            Value::from(artifact_id.to_string()),
+        );
+        args.insert(
+            "contentJson".to_string(),
+            Value::from(serde_json::to_string(artifact)?),
+        );
+        if let Some(summary) = summary_text(artifact) {
+            args.insert("summary".to_string(), Value::from(summary));
+        }
+
+        let result = client
+            .mutation("projectAi:updateResearchArtifact", args)
+            .await
+            .context("failed to update research artifact in Convex")?;
+        function_result_to_json(result).map(|_| ())
+    }
+
     pub async fn fail_research_run(
         &self,
         token: &str,
@@ -203,9 +271,54 @@ pub fn enrich_research_artifact(
     object.insert("artifactKind".to_string(), json!("researchArtifact"));
     object.insert("projectId".to_string(), json!(input.project_id));
     object.insert("referoContext".to_string(), refero_context);
+    let generated_at = i64::try_from(generated_at).unwrap_or(i64::MAX);
     object.insert("generatedAt".to_string(), json!(generated_at));
+    normalize_competitive_matrix_scores(object);
 
     Ok(JsonValue::Object(object.clone()))
+}
+
+fn normalize_competitive_matrix_scores(object: &mut serde_json::Map<String, JsonValue>) {
+    let Some(competitive_analysis) = object.get_mut("competitiveAnalysis") else {
+        return;
+    };
+    let Some(analysis_object) = competitive_analysis.as_object_mut() else {
+        return;
+    };
+    let Some(matrix_rows) = analysis_object.get_mut("matrixRows").and_then(JsonValue::as_array_mut) else {
+        return;
+    };
+
+    for row in matrix_rows {
+        let Some(row_object) = row.as_object_mut() else {
+            continue;
+        };
+        let Some(cells) = row_object.get_mut("cells").and_then(JsonValue::as_array_mut) else {
+            continue;
+        };
+
+        for cell in cells {
+            let Some(cell_object) = cell.as_object_mut() else {
+                continue;
+            };
+            let Some(score) = cell_object.get("score").and_then(JsonValue::as_str) else {
+                continue;
+            };
+            if let Some(normalized) = normalize_matrix_score(score) {
+                cell_object.insert("score".to_string(), json!(normalized));
+            }
+        }
+    }
+}
+
+fn normalize_matrix_score(score: &str) -> Option<&'static str> {
+    match score.trim() {
+        "Strong" | "OK" | "Weak" => None,
+        "strong" => Some("Strong"),
+        "ok" => Some("OK"),
+        "weak" => Some("Weak"),
+        _ => None,
+    }
 }
 
 pub fn extract_json_object(text: &str) -> anyhow::Result<JsonValue> {

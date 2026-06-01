@@ -13,7 +13,7 @@ export const PORTAL_LOGO_ACCEPT = ".jpg,.jpeg,.png,.webp,.svg";
 type MutationFn = ReturnType<typeof useMutation<FunctionReference<"mutation">>>;
 
 type UploadResult = {
-  url: string;
+  uploadUrl: string;
   key: string;
 };
 
@@ -76,14 +76,14 @@ export async function uploadFileToR2(args: {
     throw new Error(validationError);
   }
 
-  const { url, key } = (await args.generateUploadUrl({
+  const { uploadUrl, key } = (await args.generateUploadUrl({
     purpose: args.purpose,
     fileName: args.file.name,
     fileSize: args.file.size,
     mimeType,
   })) as UploadResult;
 
-  const response = await fetch(url, {
+  const response = await fetch(uploadUrl, {
     method: "PUT",
     headers: {
       "Content-Type": mimeType,

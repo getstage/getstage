@@ -1,27 +1,38 @@
 use crate::models::refero::{ReferoPlatform, ReferoSearchRequest};
 use crate::models::research::ResearchInput;
 
-pub fn build_refero_search_request(input: &ResearchInput) -> ReferoSearchRequest {
-    let mut parts = Vec::new();
-    parts.push(input.industry.as_str());
-    parts.push(input.project_name.as_str());
+pub fn build_refero_screen_search_request(input: &ResearchInput) -> ReferoSearchRequest {
+    let mut query_parts = vec![
+        input.industry.clone(),
+        "B2B wholesale onboarding pricing checkout mobile dashboard".to_string(),
+    ];
 
     if let Some(client_name) = input.client_name.as_deref() {
-        parts.push(client_name);
-    }
-
-    if let Some(brief) = input.project_brief.as_deref() {
-        parts.push(brief);
+        query_parts.push(client_name.to_string());
     }
 
     ReferoSearchRequest {
-        query: parts.join(" "),
+        query: query_parts.join(" "),
         platform: ReferoPlatform::Web,
-        limit: 8,
-        tags: vec![
-            "research".to_string(),
-            "competitive-analysis".to_string(),
-            "ui-patterns".to_string(),
-        ],
+        limit: 4,
+        tags: vec!["ui-patterns".to_string()],
+    }
+}
+
+pub fn build_refero_flow_search_request(input: &ResearchInput) -> ReferoSearchRequest {
+    let mut query_parts = vec![
+        input.industry.clone(),
+        "B2B buyer approval onboarding checkout subscription flow".to_string(),
+    ];
+
+    if let Some(client_name) = input.client_name.as_deref() {
+        query_parts.push(client_name.to_string());
+    }
+
+    ReferoSearchRequest {
+        query: query_parts.join(" "),
+        platform: ReferoPlatform::Web,
+        limit: 4,
+        tags: vec!["competitive-analysis".to_string()],
     }
 }

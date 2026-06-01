@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import type { ProviderId } from "@stage/data-ops/contracts";
 import { useResearchProviderSelection } from "@/hooks/project/research/useResearchProviderSelection";
 import {
@@ -17,12 +17,16 @@ const suggestedIndustries = "e.g. Fintech, E-commerce, SaaS, Health";
 
 export function ResearchConfigureStep({
   isSubmitting,
+  initialValues = DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES,
+  onBriefFileChange,
   onSubmit,
 }: {
   isSubmitting: boolean;
+  initialValues?: ResearchConfigureFormValues;
+  onBriefFileChange?: (file: File | null) => void;
   onSubmit: (input: ValidatedResearchConfigureInput, providerId: ProviderId) => void;
 }) {
-  const [values, setValues] = useState<ResearchConfigureFormValues>(DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES);
+  const [values, setValues] = useState<ResearchConfigureFormValues>(initialValues);
   const [competitorInput, setCompetitorInput] = useState("");
   const [fieldErrors, setFieldErrors] = useState<ResearchConfigureFieldErrors>({});
   const [providerError, setProviderError] = useState<string | null>(null);
@@ -33,6 +37,10 @@ export function ResearchConfigureStep({
     providerOptions,
     canRunWithProvider,
   } = useResearchProviderSelection();
+
+  useEffect(() => {
+    setValues(initialValues);
+  }, [initialValues]);
 
   const canSubmit = isResearchConfigureFormSubmittable(values) && canRunWithProvider;
 
@@ -114,6 +122,7 @@ export function ResearchConfigureStep({
     }
 
     updateField("briefFileName", file.name);
+    onBriefFileChange?.(file);
     event.target.value = "";
   }
 

@@ -15,9 +15,17 @@ type UiPatternsProps = {
   openGroupId: string | null;
   onToggleGroup: (groupId: string) => void;
   onOpenPhoto: (src: string) => void;
+  onRegenerate?: () => void;
 };
 
-export function UiPatterns({ groups, isEditing, openGroupId, onToggleGroup, onOpenPhoto }: UiPatternsProps) {
+export function UiPatterns({
+  groups,
+  isEditing,
+  openGroupId,
+  onToggleGroup,
+  onOpenPhoto,
+  onRegenerate,
+}: UiPatternsProps) {
   const [carouselIndexes, setCarouselIndexes] = useState<Record<string, number>>({});
 
   const updateCarouselIndex = (groupId: string, imageCount: number, direction: -1 | 1) => {
@@ -57,6 +65,7 @@ export function UiPatterns({ groups, isEditing, openGroupId, onToggleGroup, onOp
             onNext={() => updateCarouselIndex(group.id, group.images.length, 1)}
             onToggle={() => onToggleGroup(group.id)}
             onOpenPhoto={onOpenPhoto}
+            onRegenerate={onRegenerate}
           />
         ))}
       </div>
@@ -73,6 +82,7 @@ function UiPatternGroup({
   onNext,
   onToggle,
   onOpenPhoto,
+  onRegenerate,
 }: {
   group: UiPatternGroupWithPatterns;
   isEditing: boolean;
@@ -82,6 +92,7 @@ function UiPatternGroup({
   onNext: () => void;
   onToggle: () => void;
   onOpenPhoto: (src: string) => void;
+  onRegenerate?: () => void;
 }) {
   const canCycleImages = group.images.length > 1;
   const visibleImages = getVisibleCarouselImages(group.images, carouselIndex, 3);
@@ -114,7 +125,7 @@ function UiPatternGroup({
 
       {visibleImages.length > 0 ? (
         <div className="grid grid-cols-1 gap-1 md:grid-cols-3">
-          {visibleImages.map(({ src, originalIndex }, index) => (
+          {visibleImages.map(({ src, originalIndex }) => (
             <button
               key={`${group.id}-${src}-${originalIndex}`}
               type="button"
@@ -150,7 +161,11 @@ function UiPatternGroup({
             </div>
 
             {isEditing ? (
-              <button type="button" className="inline-flex h-[27px] w-fit cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F3FF]">
+              <button
+                type="button"
+                onClick={onRegenerate}
+                className="inline-flex h-[27px] w-fit cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F3FF]"
+              >
                 <RegenerateIcon />
                 Regenerate with AI
               </button>

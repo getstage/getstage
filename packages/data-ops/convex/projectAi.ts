@@ -68,6 +68,114 @@ function normalizeList(values: string[]) {
   );
 }
 
+function isR2ObjectKey(value: string) {
+  return !/^https?:\/\//i.test(value) && !value.startsWith("data:");
+}
+
+function collectR2KeysFromJson(value: unknown, keys: Set<string>) {
+  if (typeof value === "string") {
+    if (isR2ObjectKey(value) && value.includes("/research/")) {
+      keys.add(value);
+    }
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectR2KeysFromJson(item, keys);
+    }
+    return;
+  }
+
+  if (value && typeof value === "object") {
+    for (const nested of Object.values(value)) {
+      collectR2KeysFromJson(nested, keys);
+    }
+  }
+}
+
+function isStoredAssetKey(value: string) {
+  return (
+    !/^https?:\/\//i.test(value) &&
+    !value.startsWith("data:") &&
+    value.includes("/")
+  );
+}
+
+async function resolveResearchImageUrls(value: unknown): Promise<unknown> {
+  if (Array.isArray(value)) {
+    return Promise.all(value.map((item) => resolveResearchImageUrls(item)));
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const next: Record<string, unknown> = {};
+
+    for (const [key, nested] of Object.entries(record)) {
+      const isResolvableUrlField =
+        (key === "imageUrl" || key === "thumbnailUrl" || key === "url") &&
+        typeof nested === "string";
+
+      if (isResolvableUrlField) {
+        next[key] =
+          isStoredAssetKey(nested) ? ((await resolveAssetUrl(nested)) ?? nested) : nested;
+        continue;
+      }
+
+      next[key] = await resolveResearchImageUrls(nested);
+    }
+
+    return next;
+  }
+
+  return value;
+}
+
+async function resolveResearchContentJson(contentJson: string | null | undefined) {
+  if (!contentJson?.trim()) {
+    return contentJson ?? null;
+  }
+
+  try {
+    const parsed = JSON.parse(contentJson);
+    const resolved = await resolveResearchImageUrls(parsed);
+    return JSON.stringify(resolved);
+  } catch {
+    return contentJson;
+  }
+}
+
+async function deletePreviousResearchArtifacts(
+  ctx: any,
+  projectId: Id<"projects">,
+) {
+  const artifacts = await ctx.db
+    .query("projectAiArtifacts")
+    .withIndex("by_project", (q: any) => q.eq("projectId", projectId))
+    .collect();
+
+  const previous = artifacts.filter(
+    (artifact: any) => artifact.module === "research" && artifact.kind === "researchArtifact",
+  );
+
+  for (const artifact of previous) {
+    if (artifact.contentJson) {
+      try {
+        const parsed = JSON.parse(artifact.contentJson);
+        const keys = new Set<string>();
+        collectR2KeysFromJson(parsed, keys);
+        for (const key of keys) {
+          await deleteOldR2Asset(ctx, key);
+        }
+      } catch {
+        // Keep going even if old JSON is invalid.
+      }
+    }
+
+    await ctx.db.delete(artifact._id);
+  }
+}
+
 async function requireProjectForApi(
   ctx: any,
   userId: Id<"users">,
@@ -439,6 +547,8 @@ export const completeResearchRun = mutation({
       }
     }
 
+    await deletePreviousResearchArtifacts(ctx, args.projectId);
+
     const artifactId = await createArtifactRecord(ctx, {
       userId: user._id,
       projectId: args.projectId,
@@ -537,9 +647,44 @@ export const getLatestResearchArtifact = query({
       title: latest.title,
       summary: latest.summary ?? null,
       status: latest.status,
-      contentJson: latest.contentJson ?? null,
+      contentJson: await resolveResearchContentJson(latest.contentJson ?? null),
       createdAt: latest.createdAt,
       updatedAt: latest.updatedAt,
+    };
+  },
+});
+
+export const updateResearchArtifact = mutation({
+  args: {
+    projectId: v.id("projects"),
+    artifactId: v.id("projectAiArtifacts"),
+    contentJson: v.string(),
+    summary: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireProjectAccess(ctx, args.projectId);
+    const artifact = await getArtifactRecord(ctx, args.artifactId);
+
+    if (artifact.projectId !== args.projectId) {
+      throw new Error("Artifact not found.");
+    }
+
+    if (artifact.module !== "research" || artifact.kind !== "researchArtifact") {
+      throw new Error("Artifact is not a research artifact.");
+    }
+
+    JSON.parse(args.contentJson);
+
+    const timestamp = now();
+    await ctx.db.patch(args.artifactId, {
+      contentJson: args.contentJson,
+      summary: normalizeOptional(args.summary),
+      updatedAt: timestamp,
+    });
+
+    return {
+      artifactId: String(args.artifactId),
+      updatedAt: timestamp,
     };
   },
 });

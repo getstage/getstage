@@ -6,7 +6,9 @@ export type UploadPurpose =
   | "project-marker"
   | "portal-logo"
   | "generated-design"
-  | "project-asset";
+  | "project-asset"
+  | "research-refero"
+  | "research-brief";
 
 type UploadRule = {
   allowedMimeTypes: string[];
@@ -57,6 +59,24 @@ export const UPLOAD_RULES: Record<UploadPurpose, UploadRule> = {
     allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
     allowedExtensions: [".jpg", ".jpeg", ".png", ".webp"],
     maxBytes: 10 * 1024 * 1024,
+  },
+  "research-refero": {
+    allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
+    allowedExtensions: [".jpg", ".jpeg", ".png", ".webp"],
+    maxBytes: 10 * 1024 * 1024,
+  },
+  "research-brief": {
+    allowedMimeTypes: [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/plain",
+    ],
+    allowedExtensions: [".jpg", ".jpeg", ".png", ".webp", ".pdf", ".doc", ".docx", ".txt"],
+    maxBytes: 15 * 1024 * 1024,
   },
   "project-asset": {
     allowedMimeTypes: [
