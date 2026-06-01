@@ -10,6 +10,7 @@ import { useSaveResearchArtifact } from "@/hooks/project/research/useSaveResearc
 import { useResearchTab } from "@/hooks/project";
 import { applyResearchTabEdits } from "@/lib/project/applyResearchTabEdits";
 import { RESEARCH_RUN_FAILED_USER_MESSAGE } from "@/lib/engine/formatRunError";
+import { cn } from "@/lib/utils";
 import { CompanySnapshot } from "./CompanySnapshot";
 import { CompetitiveAnalysis } from "./CompetitiveAnalysis";
 import { Opportunities } from "./Opportunities";
@@ -21,13 +22,6 @@ import { ResearchSummary } from "./ResearchSummary";
 import { TargetUsers } from "./TargetUsers";
 import { UiPatterns } from "./UiPatterns";
 
-function splitSummaryText(value: string) {
-  return value
-    .split(/\n+/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
 export function ResearchTab({
   project,
   onGenerateStrategy,
@@ -37,7 +31,7 @@ export function ResearchTab({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftTabData, setDraftTabData] = useState<ResearchTabData | null>(null);
-  const [summaryDraft, setSummaryDraft] = useState("");
+  const [summaryDraft, setSummaryDraft] = useState<string[]>([]);
   const [openPatternGroup, setOpenPatternGroup] = useState<string | null>(null);
   const [competitiveView, setCompetitiveView] = useState<CompetitiveView>("matrix");
   const [openPhoto, setOpenPhoto] = useState<string | null>(null);
@@ -85,7 +79,7 @@ export function ResearchTab({
     }
 
     setDraftTabData(structuredClone(research.data.tabData));
-    setSummaryDraft(research.data.tabData.summary.join("\n"));
+    setSummaryDraft([...research.data.tabData.summary]);
     setIsEditing(true);
     setSaveError(null);
   }
@@ -93,7 +87,7 @@ export function ResearchTab({
   function discardEditing() {
     setIsEditing(false);
     setDraftTabData(null);
-    setSummaryDraft("");
+    setSummaryDraft([]);
     setSaveError(null);
   }
 
@@ -108,13 +102,13 @@ export function ResearchTab({
     try {
       const nextTabData: ResearchTabData = {
         ...draftTabData,
-        summary: splitSummaryText(summaryDraft),
+        summary: summaryDraft.map((item) => item.trim()).filter(Boolean),
       };
       const nextArtifact = applyResearchTabEdits(research.data.artifact, nextTabData);
       await saveResearchArtifact(research.data.id, nextArtifact);
       setIsEditing(false);
       setDraftTabData(null);
-      setSummaryDraft("");
+      setSummaryDraft([]);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Could not save research changes.");
     } finally {
@@ -148,6 +142,10 @@ export function ResearchTab({
   }
 
   if (!research.hasArtifact || !research.data) {
+    if (research.isRunning) {
+      return <ResearchGeneratingState usingMockData={research.usingMockData} />;
+    }
+
     return (
       <div className="flex flex-col gap-4">
         {research.parseErrorMessage ? (
@@ -172,6 +170,10 @@ export function ResearchTab({
 
   const tabData = isEditing && draftTabData ? draftTabData : research.data.tabData;
 
+  if (research.isRunning) {
+    return <ResearchGeneratingState usingMockData={research.usingMockData} />;
+  }
+
   return (
     <>
       <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -190,8 +192,8 @@ export function ResearchTab({
             <ResearchSummary
               summary={tabData.summary}
               isEditing={isEditing}
-              editValue={summaryDraft}
-              onEditValueChange={setSummaryDraft}
+              editItems={summaryDraft}
+              onEditItemsChange={setSummaryDraft}
               onEdit={beginEditing}
               onDiscard={discardEditing}
               onSave={() => void saveEditing()}
@@ -231,5 +233,66 @@ export function ResearchTab({
       </section>
       {openPhoto ? <PhotoLightbox src={openPhoto} onClose={() => setOpenPhoto(null)} /> : null}
     </>
+  );
+}
+
+function ResearchGeneratingState({ usingMockData }: { usingMockData: boolean }) {
+  return (
+    <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+      <div className="rounded-[8px] bg-white px-[44px] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="flex min-h-[520px] items-center justify-center">
+          <div className="flex w-full max-w-[282px] flex-col items-center gap-6">
+            <img
+              src="/logos/dashboard/research.svg"
+              alt=""
+              aria-hidden="true"
+              className="h-[37px] w-[37px]"
+            />
+
+            <div className="flex w-full flex-col items-center gap-2">
+              <p className="text-center text-[16px] font-semibold leading-none text-[#171717]">
+                Researching Project
+              </p>
+              <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
+                {usingMockData
+                  ? "Building a test research report from the project context. The results will appear here when the run completes."
+                  : "Analysing the market, competitors, UI patterns, target users, and product opportunities."}
+              </p>
+            </div>
+
+            <div className="flex w-full flex-col items-center gap-2">
+              <ResearchLoadingStep icon="/logos/check.svg" label="Project context prepared" />
+              <ResearchLoadingStep icon="/logos/check.svg" label="Competitor set selected" />
+              <ResearchLoadingStep icon="/logos/loader.svg" label="Analysing patterns and users" spinning />
+              <ResearchLoadingStep icon="/logos/unchecked.svg" label="Creating final report" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ResearchLoadingStep({
+  icon,
+  label,
+  spinning = false,
+}: {
+  icon: string;
+  label: string;
+  spinning?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <img
+        src={icon}
+        alt=""
+        aria-hidden="true"
+        className={cn("shrink-0", spinning ? "h-[16px] w-[16px] animate-spin" : "h-[18px] w-[18px]")}
+      />
+      <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
+        {label}
+      </p>
+    </div>
   );
 }

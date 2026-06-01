@@ -1,10 +1,11 @@
+import { useLayoutEffect, useRef, type KeyboardEvent } from "react";
 import { EditIcon, SaveIcon } from "./researchIcons";
 
 type ResearchSummaryProps = {
   summary: string[];
   isEditing: boolean;
-  editValue?: string;
-  onEditValueChange?: (value: string) => void;
+  editItems?: string[];
+  onEditItemsChange?: (items: string[]) => void;
   onEdit: () => void;
   onDiscard: () => void;
   onSave: () => void;
@@ -14,13 +15,54 @@ type ResearchSummaryProps = {
 export function ResearchSummary({
   summary,
   isEditing,
-  editValue,
-  onEditValueChange,
+  editItems,
+  onEditItemsChange,
   onEdit,
   onDiscard,
   onSave,
   isSaving = false,
 }: ResearchSummaryProps) {
+  const items = editItems ?? summary;
+  const editTextareaRefs = useRef<Array<HTMLTextAreaElement | null>>([]);
+
+  useLayoutEffect(() => {
+    if (!isEditing) {
+      return;
+    }
+
+    editTextareaRefs.current.forEach((element) => {
+      if (element) {
+        autoResizeTextarea(element);
+      }
+    });
+  }, [items, isEditing]);
+
+  function updateEditLine(index: number, value: string) {
+    const next = [...items];
+    next[index] = value;
+    onEditItemsChange?.(next);
+  }
+
+  function handleItemKeyDown(event: KeyboardEvent<HTMLTextAreaElement>, index: number) {
+    if (event.key !== "Enter" || event.shiftKey) {
+      return;
+    }
+
+    event.preventDefault();
+    const element = event.currentTarget;
+    const before = element.value.slice(0, element.selectionStart);
+    const after = element.value.slice(element.selectionEnd);
+    const next = [...items];
+    next[index] = before;
+    next.splice(index + 1, 0, after);
+    onEditItemsChange?.(next);
+
+    window.requestAnimationFrame(() => {
+      editTextareaRefs.current[index + 1]?.focus();
+      editTextareaRefs.current[index + 1]?.setSelectionRange(0, 0);
+    });
+  }
+
   return (
     <section className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-4">
@@ -56,12 +98,29 @@ export function ResearchSummary({
         )}
       </div>
       {isEditing ? (
-        <textarea
-          value={editValue ?? summary.join("\n")}
-          onChange={(event) => onEditValueChange?.(event.target.value)}
-          className="min-h-[124px] w-full resize-y rounded-[8px] border border-[#E5E5E5] bg-[#FAFAFA] px-3 py-[10px] text-[13px] font-medium leading-[1.5] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)]"
-          aria-label="Research summary"
-        />
+        <div className="flex flex-col items-start justify-center rounded-[8px] bg-[#F5F5F5] p-3">
+          <ul className="min-w-full list-disc pl-[19.5px] text-[13px] font-medium leading-[1.5] text-[#525252]">
+            {items.map((item, index) => (
+              <li key={`${index}-${summary[index] ?? ""}`}>
+                <textarea
+                  ref={(element) => {
+                    editTextareaRefs.current[index] = element;
+                  }}
+                  value={item}
+                  onChange={(event) => {
+                    autoResizeTextarea(event.currentTarget);
+                    updateEditLine(index, event.target.value);
+                  }}
+                  onInput={(event) => autoResizeTextarea(event.currentTarget)}
+                  onKeyDown={(event) => handleItemKeyDown(event, index)}
+                  rows={1}
+                  className="block min-h-[20px] w-full resize-none overflow-hidden bg-transparent p-0 text-[13px] font-medium leading-[1.5] text-[#525252] outline-none"
+                  aria-label={`Research summary item ${index + 1}`}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : (
         <ul className="list-disc space-y-0 pl-[19.5px] text-[13px] font-medium leading-[1.5] text-[#525252]">
           {summary.map((item) => (
@@ -71,4 +130,9 @@ export function ResearchSummary({
       )}
     </section>
   );
+}
+
+function autoResizeTextarea(element: HTMLTextAreaElement) {
+  element.style.height = "0px";
+  element.style.height = `${element.scrollHeight}px`;
 }
