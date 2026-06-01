@@ -1,6 +1,15 @@
 import { FormEvent, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CompanionState } from "@shared/models/desktop";
 import type { ProviderId, RunEvent } from "@stage/data-ops/contracts";
+import {
+  chatModels,
+  getChatModelById,
+  reasoningEfforts,
+  responseSpeeds,
+  type ChatModel,
+  type ChatProviderId,
+} from "@/hooks/engine/useChatDefaults";
+import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useDraggablePanel } from "@/hooks/companion/useDraggablePanel";
@@ -18,33 +27,10 @@ type CritiquePanelProps = {
   onStateChange: (state: CompanionState) => Promise<void>;
 };
 
-type ChatModel = {
-  id: string;
-  label: string;
-  provider: ChatProviderId;
-  description: string;
-  badge?: string;
-};
-
-type ChatProviderId = "favorites" | "openai" | "anthropic";
-
 type ChatProvider = {
   id: ChatProviderId;
   label: string;
   icon: "star" | "openai" | "claude";
-};
-
-type ReasoningEffort = "low" | "medium" | "high" | "extra-high";
-type ResponseSpeed = "default" | "fast";
-
-type ReasoningEffortOption = {
-  id: ReasoningEffort;
-  label: string;
-};
-
-type ResponseSpeedOption = {
-  id: ResponseSpeed;
-  label: string;
 };
 
 const chatProviders: ChatProvider[] = [
@@ -53,77 +39,11 @@ const chatProviders: ChatProvider[] = [
   { id: "openai", label: "OpenAI", icon: "openai" },
 ];
 
-const reasoningEfforts: ReasoningEffortOption[] = [
-  { id: "low", label: "Low" },
-  { id: "medium", label: "Medium" },
-  { id: "high", label: "High" },
-  { id: "extra-high", label: "Extra High" },
-];
-
-const responseSpeeds: ResponseSpeedOption[] = [
-  { id: "default", label: "Default" },
-  { id: "fast", label: "Fast" },
-];
-
-const chatModels: ChatModel[] = [
-  {
-    id: "claude-opus-4.8",
-    label: "Claude Opus 4.8",
-    provider: "anthropic",
-    description: "Newest flagship Claude model",
-    badge: "New",
-  },
-  {
-    id: "claude-sonnet-4.6",
-    label: "Claude Sonnet 4.6",
-    provider: "anthropic",
-    description: "Newest balanced Claude model",
-  },
-  {
-    id: "claude-haiku-4.5",
-    label: "Claude Haiku 4.5",
-    provider: "anthropic",
-    description: "Newest fast Claude model",
-  },
-  {
-    id: "claude-opus-4.7",
-    label: "Claude Opus 4.7",
-    provider: "anthropic",
-    description: "Previous flagship Claude",
-  },
-  {
-    id: "gpt-5.5",
-    label: "GPT-5.5",
-    provider: "openai",
-    description: "Newest flagship OpenAI model",
-    badge: "New",
-  },
-  {
-    id: "gpt-5.5-pro",
-    label: "GPT-5.5 Pro",
-    provider: "openai",
-    description: "Top OpenAI deep work model",
-  },
-  {
-    id: "gpt-5.5-instant",
-    label: "GPT-5.5 Instant",
-    provider: "openai",
-    description: "Newest fast ChatGPT model",
-  },
-  {
-    id: "gpt-5.4",
-    label: "GPT-5.4",
-    provider: "openai",
-    description: "Previous frontier model",
-  },
-];
-
 const PANEL_WIDTH = 432;
 const PANEL_HEIGHT = 504;
 const ACTIVE_COMPANION_BAR_HEIGHT = 42;
 const MAIN_WINDOW_BAR_BOTTOM = 12;
 const COMPANION_WINDOW_BAR_BOTTOM = 32;
-const DEFAULT_CHAT_MODEL = chatModels.find((model) => model.id === "gpt-5.5") ?? chatModels[0]!;
 const PROVIDER_ERROR_MESSAGE = "Something went wrong. Please check your integrations for Claude/Codex connection.";
 
 export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
@@ -135,11 +55,12 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [isThinking, setIsThinking] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ChatModel>(DEFAULT_CHAT_MODEL);
+  const chatDefaults = useChatDefaults();
+  const [selectedModel, setSelectedModel] = useState<ChatModel>(chatDefaults.selectedModel);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [reasoningMenuOpen, setReasoningMenuOpen] = useState(false);
-  const [selectedEffort, setSelectedEffort] = useState<ReasoningEffort>("medium");
-  const [selectedSpeed, setSelectedSpeed] = useState<ResponseSpeed>("default");
+  const [selectedEffort, setSelectedEffort] = useState(chatDefaults.selectedEffort);
+  const [selectedSpeed, setSelectedSpeed] = useState(chatDefaults.selectedSpeed);
   const [activeProvider, setActiveProvider] = useState<ChatProviderId>("favorites");
   const [favoriteModelIds, setFavoriteModelIds] = useState<string[]>([
     "gpt-5.5",
@@ -171,6 +92,12 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
 
     return chatModels.filter((model) => model.provider === activeProvider);
   }, [activeProvider, favoriteModelIds]);
+
+  useEffect(() => {
+    setSelectedModel(getChatModelById(chatDefaults.defaults.modelId));
+    setSelectedEffort(chatDefaults.selectedEffort);
+    setSelectedSpeed(chatDefaults.selectedSpeed);
+  }, [chatDefaults.defaults.modelId, chatDefaults.selectedEffort, chatDefaults.selectedSpeed]);
 
   useEffect(() => {
     if (!modelMenuOpen) {
@@ -525,6 +452,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
                               type="button"
                               onClick={() => {
                                 setSelectedModel(model);
+                                chatDefaults.setDefaults({ modelId: model.id });
                                 setModelMenuOpen(false);
                               }}
                             >
@@ -576,12 +504,15 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
                         className="chat-reasoning-option"
                         type="button"
                         aria-pressed={selectedSpeed === speed.id}
-                        onClick={() => setSelectedSpeed(speed.id)}
+                        onClick={() => {
+                          setSelectedSpeed(speed.id);
+                          chatDefaults.setDefaults({ responseSpeed: speed.id });
+                        }}
                       >
                         <span className="chat-reasoning-check" aria-hidden="true">
                           {selectedSpeed === speed.id ? "✓" : ""}
                         </span>
-                        <span>{speed.label}{speed.id === "default" ? " (default)" : ""}</span>
+                        <span>{speed.label}</span>
                       </button>
                     ))}
                   </div>
@@ -593,12 +524,15 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
                         className="chat-reasoning-option"
                         type="button"
                         aria-pressed={selectedEffort === effort.id}
-                        onClick={() => setSelectedEffort(effort.id)}
+                        onClick={() => {
+                          setSelectedEffort(effort.id);
+                          chatDefaults.setDefaults({ reasoningEffort: effort.id });
+                        }}
                       >
                         <span className="chat-reasoning-check" aria-hidden="true">
                           {selectedEffort === effort.id ? "✓" : ""}
                         </span>
-                        <span>{effort.label}{effort.id === "medium" ? " (default)" : ""}</span>
+                        <span>{effort.label}</span>
                       </button>
                     ))}
                   </div>
