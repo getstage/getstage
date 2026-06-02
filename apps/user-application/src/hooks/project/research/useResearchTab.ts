@@ -11,7 +11,8 @@ export function useResearchTab(project: Pick<Project, "id" | "name" | "clientNam
   const projectId = project.id;
   const researchArtifact = useResearchArtifact(projectId);
   const researchRun = useResearchRun(projectId);
-  const { saveResearchContext, setBriefFile } = useSaveResearchContext(projectId);
+  const { saveResearchContext, setBriefFile, markBriefForRemoval } =
+    useSaveResearchContext(projectId);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const startResearch = useCallback(
@@ -49,5 +50,6 @@ export function useResearchTab(project: Pick<Project, "id" | "name" | "clientNam
     isStarting: researchRun.isStarting,
     error: saveError ?? researchRun.error,
     setBriefFile,
+    markBriefForRemoval,
   };
 }

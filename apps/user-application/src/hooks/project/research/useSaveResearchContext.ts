@@ -10,26 +10,47 @@ export function useSaveResearchContext(projectId: string) {
   const generateUploadUrl = useMutation(api.r2.generateUploadUrl);
   const syncMetadata = useMutation(api.r2.syncMetadata);
   const briefFileRef = useRef<File | null>(null);
+  const briefRemovalRequestedRef = useRef(false);
 
   const setBriefFile = useCallback((file: File | null) => {
     briefFileRef.current = file;
+    if (file) {
+      briefRemovalRequestedRef.current = false;
+    }
+  }, []);
+
+  const markBriefForRemoval = useCallback(() => {
+    briefFileRef.current = null;
+    briefRemovalRequestedRef.current = true;
   }, []);
 
   return {
     setBriefFile,
+    markBriefForRemoval,
     saveResearchContext: useCallback(
       async (input: ValidatedResearchConfigureInput) => {
-        let briefAttachmentR2ObjectKey: string | null = null;
-        let briefAttachmentName: string | null = null;
+        let briefAttachment:
+          | { briefAttachmentName: string; briefAttachmentR2ObjectKey: string }
+          | { briefAttachmentName: null; briefAttachmentR2ObjectKey: null }
+          | Record<string, never> = {};
 
         if (briefFileRef.current) {
-          briefAttachmentR2ObjectKey = await uploadFileToR2({
+          const briefAttachmentR2ObjectKey = await uploadFileToR2({
             generateUploadUrl,
             syncMetadata,
             purpose: "research-brief",
             file: briefFileRef.current,
+            scopeId: projectId,
           });
-          briefAttachmentName = briefFileRef.current.name;
+          briefAttachment = {
+            briefAttachmentName: briefFileRef.current.name,
+            briefAttachmentR2ObjectKey,
+          };
+        } else if (briefRemovalRequestedRef.current) {
+          briefAttachment = {
+            briefAttachmentName: null,
+            briefAttachmentR2ObjectKey: null,
+          };
         }
 
         await upsertContext({
@@ -40,9 +61,11 @@ export function useSaveResearchContext(projectId: string) {
           referenceUrls: [],
           brief: input.projectBrief,
           notes: input.additionalNotes,
-          briefAttachmentName,
-          briefAttachmentR2ObjectKey,
+          ...briefAttachment,
         });
+
+        briefFileRef.current = null;
+        briefRemovalRequestedRef.current = false;
       },
       [generateUploadUrl, projectId, syncMetadata, upsertContext],
     ),

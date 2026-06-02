@@ -250,14 +250,15 @@ Full form values: [`RESEARCH_TESTING.md`](./RESEARCH_TESTING.md)
 | Pre-fill configure from `getContext` | Done |
 | Artifact parse in UI (`.nullish()`) | Done |
 | One artifact per project (delete on rerun) | Done |
-| Save Changes → `updateResearchArtifact` | Done (summary, snapshot, opportunities) |
+| Save Changes → `updateResearchArtifact` | Done (all editable sections) |
 | Section regenerate (engine + UI) | Done |
 | Refero category search + engine uiPatterns | Done (June 1) |
 | imageUrl CDN fallback (R2 → preview → thumbnail) | Done (June 1) |
 | Separate carousel thumbnail vs lightbox full image | Done (June 1) |
 | UI mapping: patterns + persona sentence join | Done (June 1) |
-| Brief file upload → R2 | Partial |
-| Export to Notion | Not wired |
+| Brief file upload → R2 | Done (project-scoped key under `research/{projectId}/briefs`; **5 MB** cap, client validation on pick) |
+| Custom sections (Add Section) | Done (`customSections` on artifact + Save Changes) |
+| Export to Notion | Done (native OAuth; parent page URL paste once, stored on connection) |
 | Styles search (`refero_search_styles`) | Not wired |
 
 ---

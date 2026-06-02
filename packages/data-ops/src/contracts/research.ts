@@ -102,6 +102,12 @@ export const researchOpportunitySchema = z.object({
   sourceSection: researchArtifactSectionSchema.nullish(),
 });
 
+export const researchCustomSectionSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  body: z.string().min(1),
+});
+
 export const researchSourceReferenceSchema = z.object({
   id: z.string().min(1),
   provider: z.enum(["refero", "figma", "notion", "sheets", "website", "user"]),
@@ -121,6 +127,7 @@ export const researchArtifactSchema = z.object({
   uiPatterns: z.array(researchUiPatternGroupSchema).default([]),
   targetUsers: z.array(researchTargetUserSchema).default([]),
   opportunities: z.array(researchOpportunitySchema).default([]),
+  customSections: z.array(researchCustomSectionSchema).default([]),
   openQuestions: z.array(z.string().min(1)).default([]),
   sourceReferences: z.array(researchSourceReferenceSchema).default([]),
   referoContext: referoContextSchema.optional(),
@@ -146,6 +153,7 @@ export type ResearchUiPatternExample = z.infer<typeof researchUiPatternExampleSc
 export type ResearchUiPatternGroup = z.infer<typeof researchUiPatternGroupSchema>;
 export type ResearchTargetUser = z.infer<typeof researchTargetUserSchema>;
 export type ResearchOpportunity = z.infer<typeof researchOpportunitySchema>;
+export type ResearchCustomSection = z.infer<typeof researchCustomSectionSchema>;
 export type ResearchSourceReference = z.infer<typeof researchSourceReferenceSchema>;
 export type ResearchArtifact = z.infer<typeof researchArtifactSchema>;
 export type ResearchArtifactPatch = z.infer<typeof researchArtifactPatchSchema>;

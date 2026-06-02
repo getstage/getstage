@@ -107,8 +107,10 @@ function buildObjectKey(
       const projectId = scopeId?.trim() || "unknown-project";
       return `users/${userId}/research/${projectId}/refero/${uuid}.${extension}`;
     }
-    case "research-brief":
-      return `users/${userId}/research-briefs/${uuid}.${extension}`;
+    case "research-brief": {
+      const projectId = scopeId?.trim() || "unknown-project";
+      return `users/${userId}/research/${projectId}/briefs/${uuid}.${extension}`;
+    }
   }
 }
 

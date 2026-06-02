@@ -10,6 +10,7 @@ import {
   type ResearchConfigureFormValues,
   type ValidatedResearchConfigureInput,
 } from "@/lib/project/researchConfigureInput";
+import { validateUploadFile } from "@/lib/r2Uploads";
 import { ResearchProviderPicker } from "./ResearchProviderPicker";
 import { PlusIcon } from "./researchIcons";
 
@@ -19,11 +20,13 @@ export function ResearchConfigureStep({
   isSubmitting,
   initialValues = DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES,
   onBriefFileChange,
+  onClearBriefAttachment,
   onSubmit,
 }: {
   isSubmitting: boolean;
   initialValues?: ResearchConfigureFormValues;
   onBriefFileChange?: (file: File | null) => void;
+  onClearBriefAttachment?: () => void;
   onSubmit: (input: ValidatedResearchConfigureInput, providerId: ProviderId) => void;
 }) {
   const [values, setValues] = useState<ResearchConfigureFormValues>(initialValues);
@@ -121,9 +124,44 @@ export function ResearchConfigureStep({
       return;
     }
 
+    const validationError = validateUploadFile("research-brief", file);
+    if (validationError) {
+      onBriefFileChange?.(null);
+      setFieldErrors((current) => ({ ...current, projectBrief: validationError }));
+      event.target.value = "";
+      return;
+    }
+
     updateField("briefFileName", file.name);
     onBriefFileChange?.(file);
+    setFieldErrors((current) => {
+      if (!current.projectBrief) {
+        return current;
+      }
+
+      const next = { ...current };
+      delete next.projectBrief;
+      return next;
+    });
     event.target.value = "";
+  }
+
+  function clearBriefAttachment() {
+    updateField("briefFileName", null);
+    onBriefFileChange?.(null);
+    onClearBriefAttachment?.();
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    setFieldErrors((current) => {
+      if (!current.projectBrief) {
+        return current;
+      }
+
+      const next = { ...current };
+      delete next.projectBrief;
+      return next;
+    });
   }
 
   function handleCompetitorKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -136,6 +174,7 @@ export function ResearchConfigureStep({
   }
 
   function resetForm() {
+    clearBriefAttachment();
     setValues(DEFAULT_RESEARCH_CONFIGURE_FORM_VALUES);
     setCompetitorInput("");
     setFieldErrors({});
@@ -217,7 +256,18 @@ export function ResearchConfigureStep({
                       Upload Brief
                     </button>
                     {values.briefFileName ? (
-                      <span className="truncate text-[12px] font-medium text-[#525252]">{values.briefFileName}</span>
+                      <button
+                        type="button"
+                        onClick={clearBriefAttachment}
+                        className="inline-flex max-w-[220px] items-center gap-2 rounded-full bg-white px-3 py-[6px] text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.15)] transition-colors hover:bg-[#FAFAFA]"
+                        title="Remove uploaded brief"
+                      >
+                        <span className="truncate">{values.briefFileName}</span>
+                        <span className="shrink-0 text-[#A3A3A3]" aria-hidden="true">
+                          ×
+                        </span>
+                        <span className="sr-only">Remove brief</span>
+                      </button>
                     ) : null}
                   </div>
                 </div>

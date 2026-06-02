@@ -1,16 +1,40 @@
 import { ArrowRightIcon, NotionIcon, PlusIcon } from "./researchIcons";
 
-export function ResearchActions({ onGenerateStrategy }: { onGenerateStrategy: () => void }) {
+type ResearchActionsProps = {
+  onAddSection: () => void;
+  onExportToNotion: () => void;
+  onGenerateStrategy: () => void;
+  isAddingSection?: boolean;
+  isExporting?: boolean;
+};
+
+export function ResearchActions({
+  onAddSection,
+  onExportToNotion,
+  onGenerateStrategy,
+  isAddingSection = false,
+  isExporting = false,
+}: ResearchActionsProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
-      <button type="button" className="inline-flex h-8 items-center gap-2 rounded-[6px] text-[13px] font-medium leading-[1.25] text-[#525252] transition-colors hover:text-[#171717]">
+      <button
+        type="button"
+        onClick={onAddSection}
+        disabled={isAddingSection}
+        className="inline-flex h-8 items-center gap-2 rounded-[6px] text-[13px] font-medium leading-[1.25] text-[#525252] transition-colors hover:text-[#171717] disabled:cursor-not-allowed disabled:opacity-50"
+      >
         <PlusIcon />
         Add Section
       </button>
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className="inline-flex h-[31px] items-center gap-[6px] rounded-[6px] bg-[#F5F5F5] px-2 text-[13px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]">
+        <button
+          type="button"
+          onClick={onExportToNotion}
+          disabled={isExporting}
+          className="inline-flex h-[31px] items-center gap-[6px] rounded-[6px] bg-[#F5F5F5] px-2 text-[13px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC] disabled:cursor-not-allowed disabled:opacity-50"
+        >
           <NotionIcon />
-          Export to Notion
+          {isExporting ? "Exporting…" : "Export to Notion"}
         </button>
         <button
           type="button"

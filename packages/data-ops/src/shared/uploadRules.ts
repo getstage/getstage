@@ -76,7 +76,7 @@ export const UPLOAD_RULES: Record<UploadPurpose, UploadRule> = {
       "text/plain",
     ],
     allowedExtensions: [".jpg", ".jpeg", ".png", ".webp", ".pdf", ".doc", ".docx", ".txt"],
-    maxBytes: 15 * 1024 * 1024,
+    maxBytes: 5 * 1024 * 1024,
   },
   "project-asset": {
     allowedMimeTypes: [

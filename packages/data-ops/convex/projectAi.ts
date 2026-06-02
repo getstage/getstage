@@ -245,20 +245,27 @@ async function upsertContextRecord(
 ) {
   const existing = await getContextRecord(ctx, args.projectId);
   const timestamp = now();
-  const nextBriefAttachmentKey = normalizeOptional(args.briefAttachmentR2ObjectKey);
+  const hasBriefAttachmentKey = args.briefAttachmentR2ObjectKey !== undefined;
+  const hasBriefAttachmentName = args.briefAttachmentName !== undefined;
+  const nextBriefAttachmentKey = hasBriefAttachmentKey
+    ? normalizeOptional(args.briefAttachmentR2ObjectKey)
+    : (existing?.briefAttachmentR2ObjectKey ?? null);
   const payload = {
     industry: normalizeOptional(args.industry),
     clientWebsite: normalizeOptional(args.clientWebsite),
     competitorUrls: normalizeList(args.competitorUrls),
     referenceUrls: normalizeList(args.referenceUrls),
     brief: normalizeOptional(args.brief),
-    briefAttachmentName: normalizeOptional(args.briefAttachmentName),
+    briefAttachmentName: hasBriefAttachmentName
+      ? normalizeOptional(args.briefAttachmentName)
+      : (existing?.briefAttachmentName ?? null),
     briefAttachmentR2ObjectKey: nextBriefAttachmentKey,
     notes: normalizeOptional(args.notes),
     updatedAt: timestamp,
   };
 
   if (
+    hasBriefAttachmentKey &&
     existing?.briefAttachmentR2ObjectKey &&
     existing.briefAttachmentR2ObjectKey !== nextBriefAttachmentKey
   ) {

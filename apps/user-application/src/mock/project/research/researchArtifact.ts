@@ -336,6 +336,7 @@ function buildResearchArtifact(projectId: string, generatedAt: number): Research
         sourceSection: "competitiveAnalysis",
       },
     ],
+    customSections: [],
     openQuestions: [
       "Which competitor onboarding flows should we benchmark in detail?",
       "Does the client need mobile parity at launch or in a later phase?",

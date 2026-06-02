@@ -92,5 +92,10 @@ export function mapResearchArtifactToTabData(artifact: ResearchArtifact): Resear
     uiPatternGroups,
     targetUsers,
     opportunities,
+    customSections: (artifact.customSections ?? []).map((section) => ({
+      id: section.id,
+      title: section.title,
+      body: section.body,
+    })),
   };
 }

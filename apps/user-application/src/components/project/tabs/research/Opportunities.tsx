@@ -1,15 +1,20 @@
-import { useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useLayoutEffect, useRef, type KeyboardEvent } from "react";
 import { SectionTitle } from "./ResearchPrimitives";
 import { RegenerateIcon } from "./researchIcons";
 
 type OpportunitiesProps = {
   opportunities: string[];
   isEditing: boolean;
+  onOpportunitiesChange?: (opportunities: string[]) => void;
   onRegenerate?: () => void;
 };
 
-export function Opportunities({ opportunities, isEditing, onRegenerate }: OpportunitiesProps) {
-  const [editItems, setEditItems] = useState(opportunities);
+export function Opportunities({
+  opportunities,
+  isEditing,
+  onOpportunitiesChange,
+  onRegenerate,
+}: OpportunitiesProps) {
   const textareaRefs = useRef<Array<HTMLTextAreaElement | null>>([]);
 
   useLayoutEffect(() => {
@@ -22,16 +27,12 @@ export function Opportunities({ opportunities, isEditing, onRegenerate }: Opport
         autoResizeTextarea(element);
       }
     });
-  }, [isEditing, editItems]);
-
-  useLayoutEffect(() => {
-    if (isEditing) {
-      setEditItems(opportunities);
-    }
   }, [isEditing, opportunities]);
 
   function updateEditItem(index: number, value: string) {
-    setEditItems((current) => current.map((item, itemIndex) => (itemIndex === index ? value : item)));
+    onOpportunitiesChange?.(
+      opportunities.map((item, itemIndex) => (itemIndex === index ? value : item)),
+    );
   }
 
   function handleItemKeyDown(event: KeyboardEvent<HTMLTextAreaElement>, index: number) {
@@ -44,12 +45,10 @@ export function Opportunities({ opportunities, isEditing, onRegenerate }: Opport
     const before = element.value.slice(0, element.selectionStart);
     const after = element.value.slice(element.selectionEnd);
 
-    setEditItems((current) => {
-      const next = [...current];
-      next[index] = before;
-      next.splice(index + 1, 0, after);
-      return next;
-    });
+    const next = [...opportunities];
+    next[index] = before;
+    next.splice(index + 1, 0, after);
+    onOpportunitiesChange?.(next);
 
     window.requestAnimationFrame(() => {
       textareaRefs.current[index + 1]?.focus();
@@ -63,7 +62,7 @@ export function Opportunities({ opportunities, isEditing, onRegenerate }: Opport
       {isEditing ? (
         <div className="flex flex-col items-start justify-center gap-4 rounded-[8px] bg-[#F5F5F5] p-3">
           <ul className="min-w-full list-disc pl-[19.5px] text-[13px] font-medium leading-[1.5] text-[#525252]">
-            {editItems.map((opportunity, index) => (
+            {opportunities.map((opportunity, index) => (
               <li key={`${index}-${opportunity}`}>
                 <textarea
                   ref={(element) => {

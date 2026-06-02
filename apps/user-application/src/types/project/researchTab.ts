@@ -32,6 +32,12 @@ export type ResearchTargetUser = {
   context: string;
 };
 
+export type ResearchCustomSection = {
+  id: string;
+  title: string;
+  body: string;
+};
+
 export type CompetitiveView = "card" | "matrix";
 
 export type ResearchTabData = {
@@ -42,4 +48,5 @@ export type ResearchTabData = {
   uiPatternGroups: UiPatternGroupWithPatterns[];
   targetUsers: ResearchTargetUser[];
   opportunities: string[];
+  customSections: ResearchCustomSection[];
 };

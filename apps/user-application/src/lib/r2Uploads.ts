@@ -69,6 +69,7 @@ export async function uploadFileToR2(args: {
   syncMetadata: MutationFn;
   purpose: UploadPurpose;
   file: File;
+  scopeId?: string;
 }) {
   const mimeType = getNormalizedMimeType(args.file);
   const validationError = validateUploadFile(args.purpose, args.file);
@@ -81,6 +82,7 @@ export async function uploadFileToR2(args: {
     fileName: args.file.name,
     fileSize: args.file.size,
     mimeType,
+    scopeId: args.scopeId,
   })) as UploadResult;
 
   const response = await fetch(uploadUrl, {

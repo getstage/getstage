@@ -15,6 +15,7 @@ type UiPatternsProps = {
   openGroupId: string | null;
   onToggleGroup: (groupId: string) => void;
   onOpenPhoto: (src: string) => void;
+  onGroupsChange?: (groups: UiPatternGroupWithPatterns[]) => void;
   onRegenerate?: () => void;
 };
 
@@ -24,9 +25,16 @@ export function UiPatterns({
   openGroupId,
   onToggleGroup,
   onOpenPhoto,
+  onGroupsChange,
   onRegenerate,
 }: UiPatternsProps) {
   const [carouselIndexes, setCarouselIndexes] = useState<Record<string, number>>({});
+
+  function updateGroup(index: number, patch: Partial<UiPatternGroupWithPatterns>) {
+    onGroupsChange?.(
+      groups.map((group, groupIndex) => (groupIndex === index ? { ...group, ...patch } : group)),
+    );
+  }
 
   const updateCarouselIndex = (groupId: string, imageCount: number, direction: -1 | 1) => {
     if (imageCount <= 1) {
@@ -54,7 +62,7 @@ export function UiPatterns({
       </div>
 
       <div className="flex flex-col gap-3">
-        {groups.map((group) => (
+        {groups.map((group, index) => (
           <UiPatternGroup
             key={group.id}
             group={group}
@@ -65,6 +73,7 @@ export function UiPatterns({
             onNext={() => updateCarouselIndex(group.id, group.images.length, 1)}
             onToggle={() => onToggleGroup(group.id)}
             onOpenPhoto={onOpenPhoto}
+            onChange={(patch) => updateGroup(index, patch)}
             onRegenerate={onRegenerate}
           />
         ))}
@@ -82,6 +91,7 @@ function UiPatternGroup({
   onNext,
   onToggle,
   onOpenPhoto,
+  onChange,
   onRegenerate,
 }: {
   group: UiPatternGroupWithPatterns;
@@ -92,6 +102,7 @@ function UiPatternGroup({
   onNext: () => void;
   onToggle: () => void;
   onOpenPhoto: (src: string) => void;
+  onChange?: (patch: Partial<UiPatternGroupWithPatterns>) => void;
   onRegenerate?: () => void;
 }) {
   const canCycleImages = group.images.length > 1;
@@ -100,7 +111,16 @@ function UiPatternGroup({
   return (
     <article className="rounded-[10px] bg-[#FAFAFA] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex items-center justify-between p-3">
-        <h3 className="text-[13px] font-medium leading-[1.25] text-[#171717]">{group.title}</h3>
+        {isEditing ? (
+          <input
+            value={group.title}
+            onChange={(event) => onChange?.({ title: event.target.value })}
+            aria-label={`${group.title} title`}
+            className="h-[25px] rounded-[5px] bg-white px-2 text-[13px] font-medium leading-[1.25] text-[#171717]"
+          />
+        ) : (
+          <h3 className="text-[13px] font-medium leading-[1.25] text-[#171717]">{group.title}</h3>
+        )}
         <div className="flex h-[22px] items-start gap-[2px] rounded-[6px] bg-[#F4F4F5] p-[2px]">
           <button
             type="button"
@@ -155,8 +175,20 @@ function UiPatternGroup({
         {isOpen ? (
           <div className="mt-4 flex flex-col gap-4">
             <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
-              {group.recognizedPatterns.map(([title, body]) => (
-                <PatternCard key={title} title={title} body={body} isEditing={isEditing} />
+              {group.recognizedPatterns.map(([title, body], patternIndex) => (
+                <PatternCard
+                  key={`${patternIndex}-${title}`}
+                  title={title}
+                  body={body}
+                  isEditing={isEditing}
+                  onTitleChange={(nextTitle) =>
+                    onChange?.({
+                      recognizedPatterns: group.recognizedPatterns.map((pattern, index) =>
+                        index === patternIndex ? [nextTitle, pattern[1]] : pattern,
+                      ),
+                    })
+                  }
+                />
               ))}
             </div>
 
@@ -190,7 +222,17 @@ function getVisibleCarouselImages(images: UiPatternImage[], startIndex: number, 
   });
 }
 
-function PatternCard({ title, body, isEditing }: { title: string; body: string; isEditing: boolean }) {
+function PatternCard({
+  title,
+  body,
+  isEditing,
+  onTitleChange,
+}: {
+  title: string;
+  body: string;
+  isEditing: boolean;
+  onTitleChange?: (title: string) => void;
+}) {
   return (
     <article className="rounded-[8px] bg-[#FAFAFA] p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex min-h-[70px] gap-3 rounded-[6px] p-4">
@@ -199,8 +241,13 @@ function PatternCard({ title, body, isEditing }: { title: string; body: string; 
         </div>
         {isEditing ? (
           <div className="grid min-w-0 flex-1 gap-[6px]">
-            <input defaultValue={title} aria-label={`${title} title`} className="h-[25px] rounded-[5px] bg-[#F5F5F5] px-2 text-[13px] font-semibold leading-[1.25] text-[#171717]" />
-            <textarea defaultValue={body} aria-label={`${title} body`} className="min-h-[54px] resize-y rounded-[6px] bg-[#F5F5F5] px-2 py-[7px] text-[12px] font-medium leading-[1.5] text-[#737373]" />
+            <input
+              value={title}
+              onChange={(event) => onTitleChange?.(event.target.value)}
+              aria-label={`${title} title`}
+              className="h-[25px] rounded-[5px] bg-[#F5F5F5] px-2 text-[13px] font-semibold leading-[1.25] text-[#171717]"
+            />
+            {body ? <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">{body}</p> : null}
           </div>
         ) : (
           <div className="min-w-0">

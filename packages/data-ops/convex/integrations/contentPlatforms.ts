@@ -10,7 +10,14 @@ import {
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireAuthUser } from "../_helpers";
+import { requireProjectAccessForUserId } from "../domain/projects/service";
 import { decryptSecret, encryptSecret } from "../lib/credentialVault";
+import { parseResearchArtifactContent } from "../../src/contracts/parseResearchArtifact";
+import {
+  buildNotionBlocksFromResearchArtifact,
+  createNotionChildPage,
+  parseNotionPageIdFromInput,
+} from "./notionResearchExport";
 
 type Provider = "notion" | "figma";
 
@@ -153,6 +160,8 @@ function formatConnectionSummary(record: Doc<"nativeIntegrationConnections"> | n
         connectedAt: record.connectedAt ?? null,
         lastSyncedAt: record.lastSyncedAt ?? null,
         lastError: record.lastError ?? null,
+        defaultParentPageId: record.defaultParentPageId ?? null,
+        defaultParentPageUrl: record.defaultParentPageUrl ?? null,
       }
     : null;
 }
@@ -614,6 +623,172 @@ async function handleProviderCallback(
     return Response.redirect(buildSettingsRedirect(provider, "error", "callback_failed"), 302);
   }
 }
+
+export const getResearchArtifactForNotionExport = internalQuery({
+  args: {
+    userId: v.id("users"),
+    artifactId: v.id("projectAiArtifacts"),
+  },
+  handler: async (ctx, args) => {
+    const artifact = await ctx.db.get(args.artifactId);
+    if (!artifact) {
+      throw new Error("Artifact not found.");
+    }
+
+    await requireProjectAccessForUserId(ctx, {
+      userId: args.userId,
+      projectId: artifact.projectId,
+    });
+
+    if (artifact.module !== "research" || artifact.kind !== "researchArtifact") {
+      throw new Error("Artifact is not a research artifact.");
+    }
+
+    const project = await ctx.db.get(artifact.projectId);
+    const connection = await getConnection(ctx, args.userId, "notion");
+
+    return {
+      artifactId: artifact._id,
+      projectId: artifact.projectId,
+      contentJson: artifact.contentJson ?? null,
+      projectName: project?.name ?? "Project",
+      connection: connection
+        ? {
+            id: connection._id,
+            status: connection.status,
+            defaultParentPageId: connection.defaultParentPageId ?? null,
+            defaultParentPageUrl: connection.defaultParentPageUrl ?? null,
+          }
+        : null,
+    };
+  },
+});
+
+export const completeNotionResearchExport = internalMutation({
+  args: {
+    userId: v.id("users"),
+    artifactId: v.id("projectAiArtifacts"),
+    projectId: v.id("projects"),
+    connectionId: v.id("nativeIntegrationConnections"),
+    destinationUrl: v.string(),
+    destinationLabel: v.string(),
+    parentPageId: v.string(),
+    parentPageUrl: v.optional(v.string()),
+    completedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const timestamp = args.completedAt;
+    await ctx.db.insert("artifactDestinations", {
+      userId: args.userId,
+      artifactId: args.artifactId,
+      projectId: args.projectId,
+      provider: "notion",
+      action: "export_to_notion",
+      status: "completed",
+      destinationLabel: args.destinationLabel,
+      destinationUrl: args.destinationUrl,
+      requestedVia: "native",
+      lastSyncedAt: timestamp,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+
+    await ctx.db.patch(args.connectionId, {
+      defaultParentPageId: args.parentPageId,
+      defaultParentPageUrl: args.parentPageUrl ?? args.destinationUrl,
+      lastSyncedAt: timestamp,
+      updatedAt: timestamp,
+    });
+  },
+});
+
+export const exportResearchArtifactToNotion = action({
+  args: {
+    artifactId: v.id("projectAiArtifacts"),
+    parentPageUrlOrId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
+    const bundle = (await ctx.runQuery(
+      internalApi.integrations.contentPlatforms.getResearchArtifactForNotionExport,
+      {
+        userId: viewer.userId,
+        artifactId: args.artifactId,
+      },
+    )) as {
+      artifactId: Id<"projectAiArtifacts">;
+      projectId: Id<"projects">;
+      contentJson: string | null;
+      projectName: string;
+      connection: {
+        id: Id<"nativeIntegrationConnections">;
+        status: string;
+        defaultParentPageId: string | null;
+        defaultParentPageUrl: string | null;
+      } | null;
+    };
+
+    if (!bundle.connection || bundle.connection.status !== "active") {
+      throw new Error("Connect Notion in Settings before exporting.");
+    }
+
+    const tokenRecord = (await ctx.runQuery(
+      internalApi.integrations.contentPlatforms.getConnectionTokenForProvider,
+      { userId: viewer.userId, provider: "notion" },
+    )) as { accessToken: string | null } | null;
+
+    if (!tokenRecord?.accessToken) {
+      throw new Error("Notion access token is unavailable. Reconnect Notion in Settings.");
+    }
+
+    const parsedArtifact = parseResearchArtifactContent(bundle.contentJson ?? "");
+    if (!parsedArtifact) {
+      throw new Error("Research artifact content could not be parsed.");
+    }
+
+    const parentInput =
+      args.parentPageUrlOrId?.trim() ||
+      bundle.connection.defaultParentPageUrl?.trim() ||
+      bundle.connection.defaultParentPageId?.trim() ||
+      "";
+
+    if (!parentInput) {
+      throw new Error("NOTION_PARENT_REQUIRED");
+    }
+
+    const parentPageId = parseNotionPageIdFromInput(parentInput);
+    const parentPageUrl =
+      args.parentPageUrlOrId?.trim() || bundle.connection.defaultParentPageUrl || undefined;
+    const children = buildNotionBlocksFromResearchArtifact(parsedArtifact);
+    const pageTitle = `${bundle.projectName} Research`;
+    const { destinationUrl } = await createNotionChildPage({
+      accessToken: tokenRecord.accessToken,
+      parentPageId,
+      title: pageTitle,
+      children,
+    });
+
+    const completedAt = now();
+    await ctx.runMutation(internalApi.integrations.contentPlatforms.completeNotionResearchExport, {
+      userId: viewer.userId,
+      artifactId: bundle.artifactId,
+      projectId: bundle.projectId,
+      connectionId: bundle.connection.id,
+      destinationUrl,
+      destinationLabel: pageTitle,
+      parentPageId,
+      parentPageUrl,
+      completedAt,
+    });
+
+    return {
+      destinationUrl,
+      parentPageId,
+      parentPageUrl: parentPageUrl ?? null,
+      exportedAt: completedAt,
+    };
+  },
+});
 
 export const notionConnectCallback = httpAction(async (ctx, req) => {
   return handleProviderCallback(ctx, "notion", req);

@@ -48,7 +48,10 @@ Stage Engine owns context assembly. React does not call Refero or providers dire
 - UI tab mapping fixes: pattern tags without repeated summary; persona `joinSentences`
 - Delete previous artifact + R2 keys on full rerun (`completeResearchRun`)
 - Configure form save + pre-fill (`useSaveResearchContext`, `useResearchContext`)
-- Save Changes → Convex (`useSaveResearchArtifact`, partial sections)
+- Save Changes → Convex (`useSaveResearchArtifact`, all editable sections)
+- Brief upload → project-scoped R2 key (`users/{userId}/research/{projectId}/briefs/...`); **5 MB** max, validated on file pick
+- Custom sections (`customSections` + Add Section editor)
+- Export to Notion (`exportResearchArtifactToNotion`; requires Settings → Notion OAuth; paste parent page URL on first export)
 - Section regenerate (`useResearchSectionRegenerate`, `workflow.rs` section path)
 - Artifact parse `.nullish()` for Codex null fields
 - Engine logs in `pnpm dev` terminal (`[stage-engine]`)
@@ -57,11 +60,9 @@ Stage Engine owns context assembly. React does not call Refero or providers dire
 
 ## What is not done
 
-- Export to Notion (button only)
-- Brief file upload → R2 (filename in form; upload incomplete)
 - `refero_search_styles` (visual direction)
 - Scoped engine token (optional hardening)
-- Save Changes for **all** sections (today: summary, snapshot, opportunities only)
+- Document text extraction from brief files (upload/key exists; provider receives attachment reference only)
 
 ---
 

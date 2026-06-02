@@ -31,13 +31,15 @@ projectAiContexts    →     Refero + provider   →     projectAiArtifacts.cont
 
 - [x] Save fields before run → `projectAiContexts` (`upsertContext`)
 - [x] Pre-fill form when user returns (`getContext` → `useResearchContext`)
-- [ ] Brief file upload → R2 (`briefAttachmentR2ObjectKey` — partial)
+- [x] Brief file upload → project-scoped R2 key (`briefAttachmentR2ObjectKey`); **5 MB** max, no compression, error on pick
+- [x] Custom sections (Add Section → `customSections[]` on artifact)
+- [x] Export to Notion (native OAuth + parent page URL stored on connection)
 
 ### Output (research tab)
 
 - [x] Load latest artifact → parse → map to UI
-- [x] **Save Changes** writes back to Convex (`updateResearchArtifact`) — summary, snapshot, opportunities
-- [ ] Save Changes for all sections (competitors, UI patterns, personas — not wired)
+- [x] **Save Changes** writes back to Convex (`updateResearchArtifact`) — all editable sections
+- [x] Save Changes for all editable sections (summary, snapshot, competitors, UI patterns, personas, opportunities)
 - [ ] **Discard Changes** explicit revert (reload from Convex today)
 
 ### Refero images
@@ -54,8 +56,8 @@ projectAiContexts    →     Refero + provider   →     projectAiArtifacts.cont
 
 ### Not in V1
 
-- Export to Notion
 - Research history UI
+- Notion export with embedded Refero images (text/links only in v1)
 - Scoped engine token
 
 ---
@@ -95,10 +97,11 @@ projectAiContexts    →     Refero + provider   →     projectAiArtifacts.cont
 | Parse artifact in UI | Done |
 | Refero images → R2/CDN → UI | **Done** (June 1) |
 | One artifact per project | Done |
-| Save text edits to Convex | **Partial** (3 sections) |
+| Save text edits to Convex | Done (all editable sections) |
 | Section regenerate | Done |
-| Brief upload → R2 | Not done |
-| Export to Notion | Not done |
+| Brief upload → R2 | Done (project-scoped key; 5 MB cap) |
+| Custom sections | Done |
+| Export to Notion | Done (parent page URL paste) |
 
 ---
 

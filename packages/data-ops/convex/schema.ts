@@ -531,6 +531,8 @@ export default defineSchema({
     connectedAt: v.optional(v.number()),
     lastSyncedAt: v.optional(v.number()),
     lastError: v.optional(v.string()),
+    defaultParentPageId: v.optional(v.string()),
+    defaultParentPageUrl: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

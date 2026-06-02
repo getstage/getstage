@@ -45,6 +45,7 @@ import type * as http from "../http.js";
 import type * as integrations_contentPlatforms from "../integrations/contentPlatforms.js";
 import type * as integrations_googleSheets from "../integrations/googleSheets.js";
 import type * as integrations_loopsOtp from "../integrations/loopsOtp.js";
+import type * as integrations_notionResearchExport from "../integrations/notionResearchExport.js";
 import type * as integrations_resendAudience from "../integrations/resendAudience.js";
 import type * as integrations_stitch from "../integrations/stitch.js";
 import type * as integrations_stripeConnect from "../integrations/stripeConnect.js";
@@ -106,6 +107,7 @@ declare const fullApi: ApiFromModules<{
   "integrations/contentPlatforms": typeof integrations_contentPlatforms;
   "integrations/googleSheets": typeof integrations_googleSheets;
   "integrations/loopsOtp": typeof integrations_loopsOtp;
+  "integrations/notionResearchExport": typeof integrations_notionResearchExport;
   "integrations/resendAudience": typeof integrations_resendAudience;
   "integrations/stitch": typeof integrations_stitch;
   "integrations/stripeConnect": typeof integrations_stripeConnect;

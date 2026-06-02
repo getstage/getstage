@@ -3,9 +3,16 @@ import { SectionTitle } from "./ResearchPrimitives";
 type CompanySnapshotProps = {
   rows: ReadonlyArray<readonly [string, string]>;
   isEditing: boolean;
+  onRowsChange?: (rows: ReadonlyArray<readonly [string, string]>) => void;
 };
 
-export function CompanySnapshot({ rows, isEditing }: CompanySnapshotProps) {
+export function CompanySnapshot({ rows, isEditing, onRowsChange }: CompanySnapshotProps) {
+  function updateValue(index: number, value: string) {
+    onRowsChange?.(
+      rows.map((row, rowIndex) => (rowIndex === index ? ([row[0], value] as const) : row)),
+    );
+  }
+
   return (
     <section className="flex flex-col gap-4">
       <SectionTitle>Company Snapshot</SectionTitle>
@@ -19,7 +26,8 @@ export function CompanySnapshot({ rows, isEditing }: CompanySnapshotProps) {
               {isEditing ? (
                 <div className="p-2">
                   <input
-                    defaultValue={value}
+                    value={value}
+                    onChange={(event) => updateValue(index, event.target.value)}
                     aria-label={label}
                     className="h-[25px] w-full rounded-[5px] bg-[#F5F5F5] px-2 text-[14px] font-medium leading-[1.25] text-[#0A0A0A] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.18)]"
                   />
