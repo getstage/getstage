@@ -10,6 +10,7 @@ export type TaskPriorityColumn = {
 
 export type PriorityTask = {
   task: Task;
+  projectId: string;
   projectName: string;
   projectLogoUrl?: string;
 };
@@ -56,6 +57,7 @@ export function buildPriorityColumns(
     const project = projectsById.get(task.projectId);
     columns[priorityKey(task.priority)].push({
       task: toLocalTask(task),
+      projectId: task.projectId,
       projectName: project?.name ?? "Untitled project",
       projectLogoUrl: project?.projectImageUrl,
     });
