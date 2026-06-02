@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
+import { DeleteTaskModal } from "@/components/tasks/DeleteTaskModal";
 import { TasksPriorityBoard } from "@/components/tasks/board/TasksPriorityBoard";
 import { useTasksBoard } from "@/hooks/tasks/useTasksBoard";
+import type { PriorityTask } from "@/lib/tasks/priorityColumns";
 
 export { CreateTaskModal, type TaskAssignee, type TaskProject } from "@/components/tasks/dialogs/CreateTaskModal";
 
@@ -11,6 +13,13 @@ export function TasksPageView() {
   const navigate = useNavigate();
   const board = useTasksBoard();
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [taskPendingDelete, setTaskPendingDelete] = useState<PriorityTask | null>(null);
+
+  function confirmDeleteTask() {
+    if (!taskPendingDelete) return;
+    board.handleDeleteTask(taskPendingDelete.task.id);
+    setTaskPendingDelete(null);
+  }
 
   return (
     <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
@@ -62,7 +71,7 @@ export function TasksPageView() {
             });
           }}
           onToggleTask={board.toggleTaskCompletion}
-          onDeleteTask={board.handleDeleteTask}
+          onDeleteTask={setTaskPendingDelete}
           onStartDragging={board.startDragging}
         />
 
@@ -70,6 +79,12 @@ export function TasksPageView() {
           <CreateTaskDialog
             projects={board.projects}
             onClose={() => setIsCreateTaskOpen(false)}
+          />
+        ) : null}
+        {taskPendingDelete ? (
+          <DeleteTaskModal
+            onCancel={() => setTaskPendingDelete(null)}
+            onDelete={confirmDeleteTask}
           />
         ) : null}
       </motion.div>
