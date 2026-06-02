@@ -9,6 +9,7 @@ export function ScreenCard({
   draftElements,
   onBeginEdit,
   onDraftElementChange,
+  onRegenerate,
   onDiscard,
   onSave,
 }: {
@@ -17,6 +18,7 @@ export function ScreenCard({
   draftElements: string[];
   onBeginEdit: () => void;
   onDraftElementChange: (elementIndex: number, value: string) => void;
+  onRegenerate: () => void;
   onDiscard: () => void;
   onSave: () => void;
 }) {
@@ -51,6 +53,7 @@ export function ScreenCard({
               <ScreenElementList elements={elements} editing onDraftElementChange={onDraftElementChange} />
               <button
                 type="button"
+                onClick={onRegenerate}
                 className="inline-flex h-[30px] w-fit items-center justify-center gap-2 rounded-[4px] bg-white px-3 text-[12px] font-medium leading-none text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F3FF]"
               >
                 <SparkleIcon className="h-3 w-3 shrink-0" />

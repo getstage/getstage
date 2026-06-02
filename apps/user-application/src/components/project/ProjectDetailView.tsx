@@ -21,10 +21,6 @@ import {
 import { formatInputDate } from "@/lib/format";
 import { getProjectBackDestination } from "@/lib/projectBackDestination";
 import { formatRelativeTime } from "@/lib/utils";
-import { loadMockFlowsArtifactRecord } from "@/mock/project/flows";
-import { loadMockMoodboardArtifactRecord } from "@/mock/project/moodboard";
-import { loadMockStrategyArtifactRecord } from "@/mock/project/strategy";
-import { loadMockWireframesArtifactRecord } from "@/mock/project/wireframes";
 import type { Project, ProjectTab } from "@/models/project/project";
 
 type ProjectTimeline = {
@@ -134,16 +130,15 @@ export function ProjectDetailView() {
   const stepStatus = useMemo<ProjectStepStatus>(() => {
     return {
       research: researchArtifact.hasArtifact,
-      strategy: strategyArtifact.hasArtifact || loadMockStrategyArtifactRecord(projectId) !== null,
-      moodboard: moodboardArtifact.hasArtifact || loadMockMoodboardArtifactRecord(projectId) !== null,
-      flows: flowsArtifact.hasArtifact || loadMockFlowsArtifactRecord(projectId) !== null,
-      wireframes: wireframesArtifact.hasArtifact || loadMockWireframesArtifactRecord(projectId) !== null,
+      strategy: strategyArtifact.hasArtifact,
+      moodboard: moodboardArtifact.hasArtifact,
+      flows: flowsArtifact.hasArtifact,
+      wireframes: wireframesArtifact.hasArtifact,
       assets: true,
     };
   }, [
     flowsArtifact.hasArtifact,
     moodboardArtifact.hasArtifact,
-    projectId,
     researchArtifact.hasArtifact,
     strategyArtifact.hasArtifact,
     wireframesArtifact.hasArtifact,

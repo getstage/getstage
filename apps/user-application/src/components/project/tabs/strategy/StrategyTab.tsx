@@ -38,6 +38,7 @@ export function StrategyTab({
   const [draftTitle, setDraftTitle] = useState("Enter Title Here");
   const [draftBody, setDraftBody] = useState("");
   const [runError, setRunError] = useState<string | null>(null);
+  const [regeneratingSectionId, setRegeneratingSectionId] = useState<string | null>(null);
 
   const strategy = useStrategyTab(project);
   const visibleSections = isEditing ? editSections : sections;
@@ -79,12 +80,22 @@ export function StrategyTab({
     )));
   }
 
-  function regenerateSection(sectionId: string) {
+  async function regenerateSection(sectionId: string) {
+    setRegeneratingSectionId(sectionId);
+    await delay(900);
     setSections((current) => current.map((section) => (
       section.id === sectionId
         ? { ...section, status: "action", body: section.body?.map((line) => `${line} Regenerated mock update.`) }
         : section
     )));
+    setRegeneratingSectionId(null);
+  }
+
+  async function regenerateEditSection(section: StrategySection) {
+    setRegeneratingSectionId(section.id);
+    await delay(900);
+    updateEditSection(section.id, appendRegeneratedText(section));
+    setRegeneratingSectionId(null);
   }
 
   function startEditing() {
@@ -186,40 +197,12 @@ export function StrategyTab({
   }
 
   if (strategy.isRunning) {
-    return (
-      <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        <div className="rounded-[8px] bg-white px-[44px] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-          <div className="flex min-h-[520px] items-center justify-center">
-            <div className="flex w-full max-w-[282px] flex-col items-center gap-6">
-              <img
-                src="/logos/generating-strategy.svg"
-                alt=""
-                aria-hidden="true"
-                className="h-[37px] w-[37px] animate-spin"
-              />
+    return <StrategyGeneratingState usingMockData={strategy.usingMockData} />;
+  }
 
-              <div className="flex w-full flex-col items-center gap-2">
-                <p className="text-center text-[16px] font-semibold leading-none text-[#171717]">
-                  Generating Strategy
-                </p>
-                <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
-                  {strategy.usingMockData
-                    ? "Turning research into strategy sections. Results will appear here when the mock run completes."
-                    : "Extracting structural patterns - AI ignores color, typography, and visual style."}
-                </p>
-              </div>
-
-              <div className="flex w-full flex-col items-center gap-2">
-                <StrategyLoadingStep icon="/logos/check.svg" label="Identified Goals & KPIs" />
-                <StrategyLoadingStep icon="/logos/check.svg" label="Created user journey" />
-                <StrategyLoadingStep icon="/logos/loader.svg" label="Generating conversion approach" spinning />
-                <StrategyLoadingStep icon="/logos/unchecked.svg" label="Identify Technical Requirements" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
+  if (regeneratingSectionId) {
+    const section = visibleSections.find((item) => item.id === regeneratingSectionId);
+    return <StrategyGeneratingState mode="regenerate" sectionTitle={section?.title} usingMockData={strategy.usingMockData} />;
   }
 
   if (!strategy.hasArtifact || !strategy.data) {
@@ -304,10 +287,10 @@ export function StrategyTab({
                 onApprove={() => approveSection(section.id)}
                 onRegenerate={() => {
                   if (isEditing) {
-                    updateEditSection(section.id, appendRegeneratedText(section));
+                    void regenerateEditSection(section);
                     return;
                   }
-                  regenerateSection(section.id);
+                  void regenerateSection(section.id);
                 }}
               />
             ))}
@@ -347,6 +330,61 @@ export function StrategyTab({
       </div>
     </section>
   );
+}
+
+function StrategyGeneratingState({
+  usingMockData,
+  mode = "generate",
+  sectionTitle,
+}: {
+  usingMockData: boolean;
+  mode?: "generate" | "regenerate";
+  sectionTitle?: string;
+}) {
+  const isRegenerating = mode === "regenerate";
+
+  return (
+    <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+      <div className="rounded-[8px] bg-white px-[44px] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="flex min-h-[520px] items-center justify-center">
+          <div className="flex w-full max-w-[282px] flex-col items-center gap-6">
+            <img
+              src={isRegenerating ? "/logos/dashboard/strategy.svg" : "/logos/generating-strategy.svg"}
+              alt=""
+              aria-hidden="true"
+              className={`h-[37px] w-[37px] ${isRegenerating ? "" : "animate-spin"}`}
+            />
+
+            <div className="flex w-full flex-col items-center gap-2">
+              <p className="text-center text-[16px] font-semibold leading-none text-[#171717]">
+                {isRegenerating ? `Regenerating ${sectionTitle ?? "Strategy"}` : "Generating Strategy"}
+              </p>
+              <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
+                {isRegenerating
+                  ? "Refreshing this section with the current research context."
+                  : usingMockData
+                  ? "Turning research into strategy sections. Results will appear here when the mock run completes."
+                  : "Extracting structural patterns - AI ignores color, typography, and visual style."}
+              </p>
+            </div>
+
+            <div className="flex w-full flex-col items-center gap-2">
+              <StrategyLoadingStep icon="/logos/check.svg" label={isRegenerating ? "Section loaded" : "Identified Goals & KPIs"} />
+              <StrategyLoadingStep icon="/logos/check.svg" label={isRegenerating ? "Research context attached" : "Created user journey"} />
+              <StrategyLoadingStep icon="/logos/loader.svg" label={isRegenerating ? "Generating replacement content" : "Generating conversion approach"} spinning />
+              <StrategyLoadingStep icon="/logos/unchecked.svg" label={isRegenerating ? "Updating strategy section" : "Identify Technical Requirements"} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function delay(ms: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 }
 
 function StrategyLoadingStep({

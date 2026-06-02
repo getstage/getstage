@@ -38,6 +38,7 @@ export function ResearchTab({
   const [runError, setRunError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [regeneratingSection, setRegeneratingSection] = useState<ResearchArtifactSection | null>(null);
 
   const research = useResearchTab(project);
   const researchContext = useResearchContext(project.id);
@@ -117,17 +118,27 @@ export function ResearchTab({
   }
 
   async function handleRegenerateSection(section: ResearchArtifactSection) {
+    setRunError(null);
+    setRegeneratingSection(section);
+
     if (!selectedProviderId) {
-      setRunError("Choose Claude or Codex before regenerating a section.");
+      await delay(900);
+      if (!research.usingMockData) {
+        setRunError("Choose Claude or Codex before regenerating a section.");
+      }
+      setRegeneratingSection(null);
       return;
     }
 
-    setRunError(null);
-
     try {
-      await regenerateSection(section, selectedProviderId);
+      await Promise.all([
+        regenerateSection(section, selectedProviderId),
+        delay(900),
+      ]);
     } catch (error) {
       setRunError(error instanceof Error ? error.message : RESEARCH_RUN_FAILED_USER_MESSAGE);
+    } finally {
+      setRegeneratingSection(null);
     }
   }
 
@@ -170,8 +181,12 @@ export function ResearchTab({
 
   const tabData = isEditing && draftTabData ? draftTabData : research.data.tabData;
 
+  if (regeneratingSection) {
+    return <ResearchGeneratingState mode="regenerate" section={regeneratingSection} usingMockData={false} />;
+  }
+
   if (research.isRunning) {
-    return <ResearchGeneratingState usingMockData={research.usingMockData} />;
+    return <ResearchGeneratingState mode="generate" usingMockData={research.usingMockData} />;
   }
 
   return (
@@ -236,7 +251,18 @@ export function ResearchTab({
   );
 }
 
-function ResearchGeneratingState({ usingMockData }: { usingMockData: boolean }) {
+function ResearchGeneratingState({
+  usingMockData,
+  mode = "generate",
+  section,
+}: {
+  usingMockData: boolean;
+  mode?: "generate" | "regenerate";
+  section?: ResearchArtifactSection;
+}) {
+  const isRegenerating = mode === "regenerate";
+  const sectionLabel = section ? RESEARCH_SECTION_LABELS[section] : "Research";
+
   return (
     <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="rounded-[8px] bg-white px-[44px] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -251,26 +277,43 @@ function ResearchGeneratingState({ usingMockData }: { usingMockData: boolean }) 
 
             <div className="flex w-full flex-col items-center gap-2">
               <p className="text-center text-[16px] font-semibold leading-none text-[#171717]">
-                Researching Project
+                {isRegenerating ? `Regenerating ${sectionLabel}` : "Researching Project"}
               </p>
               <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
-                {usingMockData
+                {isRegenerating
+                  ? "Refreshing this section with the latest project context. The updated result will appear when the run completes."
+                  : usingMockData
                   ? "Building a test research report from the project context. The results will appear here when the run completes."
                   : "Analysing the market, competitors, UI patterns, target users, and product opportunities."}
               </p>
             </div>
 
             <div className="flex w-full flex-col items-center gap-2">
-              <ResearchLoadingStep icon="/logos/check.svg" label="Project context prepared" />
-              <ResearchLoadingStep icon="/logos/check.svg" label="Competitor set selected" />
-              <ResearchLoadingStep icon="/logos/loader.svg" label="Analysing patterns and users" spinning />
-              <ResearchLoadingStep icon="/logos/unchecked.svg" label="Creating final report" />
+              <ResearchLoadingStep icon="/logos/check.svg" label={isRegenerating ? "Current section loaded" : "Project context prepared"} />
+              <ResearchLoadingStep icon="/logos/check.svg" label={isRegenerating ? "Project context attached" : "Competitor set selected"} />
+              <ResearchLoadingStep icon="/logos/loader.svg" label={isRegenerating ? "Generating replacement content" : "Analysing patterns and users"} spinning />
+              <ResearchLoadingStep icon="/logos/unchecked.svg" label={isRegenerating ? "Updating section" : "Creating final report"} />
             </div>
           </div>
         </div>
       </div>
     </section>
   );
+}
+
+const RESEARCH_SECTION_LABELS: Record<ResearchArtifactSection, string> = {
+  summary: "Research Summary",
+  companySnapshot: "Company Snapshot",
+  competitiveAnalysis: "Competitive Analysis",
+  uiPatterns: "UI Patterns",
+  targetUsers: "Target Users",
+  opportunities: "Opportunities",
+};
+
+function delay(ms: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 }
 
 function ResearchLoadingStep({
