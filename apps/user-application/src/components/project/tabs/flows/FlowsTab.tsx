@@ -43,6 +43,7 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
   const [editingScreenId, setEditingScreenId] = useState<string | null>(null);
   const [draftSteps, setDraftSteps] = useState<Record<string, string[]>>({});
   const [draftScreenElements, setDraftScreenElements] = useState<Record<string, string[]>>({});
+  const [regeneratingScreenTitle, setRegeneratingScreenTitle] = useState<string | null>(null);
   const [addFlowOpen, setAddFlowOpen] = useState(false);
   const [addFlowStep, setAddFlowStep] = useState<AddFlowStep>("details");
   const [addFlowDraft, setAddFlowDraft] = useState(EMPTY_ADD_FLOW);
@@ -160,6 +161,23 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
     closeAddFlow();
   };
 
+  async function regenerateScreenElements(screenId: string, screenTitle: string) {
+    setRegeneratingScreenTitle(screenTitle);
+    await delay(900);
+    setDraftScreenElements((currentDrafts) => {
+      const currentElements = currentDrafts[screenId] ?? screens.find((screen) => screen.id === screenId)?.keyElements ?? [];
+      return {
+        ...currentDrafts,
+        [screenId]: currentElements.map((element) => `${element} - regenerated`),
+      };
+    });
+    setRegeneratingScreenTitle(null);
+  }
+
+  if (regeneratingScreenTitle) {
+    return <FlowsRegeneratingState screenTitle={regeneratingScreenTitle} />;
+  }
+
   return (
     <>
       <UpstreamStaleBanner
@@ -265,6 +283,9 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
                   };
                 });
               }}
+              onRegenerate={(screen) => {
+                void regenerateScreenElements(screen.id, screen.title);
+              }}
               onDiscard={(screenId) => {
                 setDraftScreenElements((currentDrafts) => {
                   const { [screenId]: _discarded, ...nextDrafts } = currentDrafts;
@@ -306,4 +327,54 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
       ) : null}
     </>
   );
+}
+
+function FlowsRegeneratingState({ screenTitle }: { screenTitle: string }) {
+  return (
+    <section className="overflow-hidden rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+      <div className="rounded-[8px] bg-white px-[44px] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="flex min-h-[520px] items-center justify-center">
+          <div className="flex w-full max-w-[282px] flex-col items-center gap-6">
+            <img src="/logos/dashboard/flows.svg" alt="" aria-hidden="true" className="h-[37px] w-[37px]" />
+
+            <div className="flex w-full flex-col items-center gap-2">
+              <p className="text-center text-[16px] font-semibold leading-none text-[#171717]">
+                Regenerating {screenTitle}
+              </p>
+              <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
+                Refreshing the key elements for this screen from the current flow context.
+              </p>
+            </div>
+
+            <div className="flex w-full flex-col items-center gap-2">
+              <LoadingStep icon="/logos/check.svg" label="Screen context loaded" />
+              <LoadingStep icon="/logos/check.svg" label="Related flows attached" />
+              <LoadingStep icon="/logos/loader.svg" label="Generating key elements" spinning />
+              <LoadingStep icon="/logos/unchecked.svg" label="Updating screen card" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LoadingStep({ icon, label, spinning = false }: { icon: string; label: string; spinning?: boolean }) {
+  return (
+    <div className="flex items-center gap-2">
+      <img
+        src={icon}
+        alt=""
+        aria-hidden="true"
+        className={`${spinning ? "h-[16px] w-[16px] animate-spin" : "h-[18px] w-[18px]"} shrink-0`}
+      />
+      <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">{label}</p>
+    </div>
+  );
+}
+
+function delay(ms: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 }

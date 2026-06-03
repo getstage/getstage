@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { StageSidebar } from "@/components/dashboard/StageSidebar";
 import { buildSidebarProjectsFromSummaries } from "@/lib/dashboard/projectContextDashboard";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { useProjectsQuery } from "@/hooks/convex-data";
+import { useProjectsQuery, useSettingsOverviewQuery } from "@/hooks/convex-data";
 import { useDesktopSession } from "@/hooks/engine/useDesktopSession";
 import { useSidebarState } from "@/hooks/useSidebarState";
 
@@ -12,14 +12,17 @@ export function WorkspaceFrame({
   children: ReactNode;
 }) {
   const projectsQuery = useProjectsQuery();
+  const settingsOverviewQuery = useSettingsOverviewQuery();
   const session = useDesktopSession();
   const [sidebarCollapsed, setSidebarCollapsed] = useSidebarState(false);
   const isCompact = useMediaQuery("(max-width: 860px)");
   const effectiveSidebarCollapsed = isCompact || sidebarCollapsed;
   const sidebarProjects = buildSidebarProjectsFromSummaries(projectsQuery.data ?? []);
 
-  const accountLabel = session.data?.name ?? session.data?.email ?? session.data?.userId ?? "Not signed in";
-  const accountMeta = session.data?.hasAccessToken ? "Connected" : "Connect in Settings";
+  const profile = settingsOverviewQuery.data?.profile;
+  const accountLabel = profile?.name || session.data?.name || session.data?.email || session.data?.userId || "Not signed in";
+  const accountAvatarUrl = profile?.avatarUrl ?? undefined;
+  const accountMeta = profile?.email ?? (session.data?.hasAccessToken ? "Connected" : "Connect in Settings");
   const accountInitials = getAccountInitials(accountLabel);
 
   return (
@@ -34,6 +37,7 @@ export function WorkspaceFrame({
         <StageSidebar
           accountInitials={accountInitials}
           accountLabel={accountLabel}
+          accountAvatarUrl={accountAvatarUrl}
           accountMeta={accountMeta}
           projects={sidebarProjects}
           collapsed={effectiveSidebarCollapsed}

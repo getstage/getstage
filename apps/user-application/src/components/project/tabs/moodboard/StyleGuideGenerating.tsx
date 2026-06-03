@@ -6,7 +6,9 @@ const generatingRows = [
   { label: "Extract Anti-Pattern", state: "idle", delay: "560ms" },
 ] as const;
 
-export function StyleGuideGenerating() {
+export function StyleGuideGenerating({ mode = "generate" }: { mode?: "generate" | "regenerate" }) {
+  const isRegenerating = mode === "regenerate";
+
   return (
     <div className="flex min-h-[640px] w-full items-center justify-center rounded-[10px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <style>
@@ -41,13 +43,13 @@ export function StyleGuideGenerating() {
             style={{ animation: "style-guide-panel-rise 360ms cubic-bezier(.2,.8,.2,1) both" }}
           >
             <img
-              src="/logos/stage.svg"
+              src={isRegenerating ? "/logos/dashboard/moodboard.svg" : "/logos/stage.svg"}
               alt=""
               aria-hidden="true"
-              className="h-[14px] w-[11px] shrink-0 brightness-0"
+              className={`${isRegenerating ? "h-[15px] w-[15px]" : "h-[14px] w-[11px] brightness-0"} shrink-0`}
             />
             <span className="text-[12px] font-medium leading-[1.25] text-[#171717]">
-              Stage is creating...
+              {isRegenerating ? "Regenerating style guide..." : "Stage is creating..."}
             </span>
           </div>
         </div>

@@ -7,6 +7,7 @@ export function ScreensPanel({
   draftScreenElements,
   onBeginEdit,
   onDraftElementChange,
+  onRegenerate,
   onDiscard,
   onSave,
 }: {
@@ -15,6 +16,7 @@ export function ScreensPanel({
   draftScreenElements: Record<string, string[]>;
   onBeginEdit: (screen: ProjectScreen) => void;
   onDraftElementChange: (screenId: string, elementIndex: number, value: string) => void;
+  onRegenerate: (screen: ProjectScreen) => void;
   onDiscard: (screenId: string) => void;
   onSave: (screenId: string) => void;
 }) {
@@ -29,6 +31,7 @@ export function ScreensPanel({
             draftElements={draftScreenElements[screen.id] ?? screen.keyElements}
             onBeginEdit={() => onBeginEdit(screen)}
             onDraftElementChange={(elementIndex, value) => onDraftElementChange(screen.id, elementIndex, value)}
+            onRegenerate={() => onRegenerate(screen)}
             onDiscard={() => onDiscard(screen.id)}
             onSave={() => onSave(screen.id)}
           />

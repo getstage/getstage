@@ -78,6 +78,9 @@ export function useKanbanBoard(phases: Phase[], projectId?: string) {
 
   function moveTask(taskId: string, targetColumn: KanbanStatus, beforeTaskId?: string | null) {
     if (taskId === beforeTaskId) return;
+    const previous = columns;
+    const taskBeforeMove = findBoardTask(taskId);
+    const shouldBeCompleted = targetColumn === "done";
 
     setColumns((current) => {
       let movingTask: BoardTask | undefined;
@@ -117,6 +120,14 @@ export function useKanbanBoard(phases: Phase[], projectId?: string) {
       next[targetColumn] = targetItems;
       return next;
     });
+
+    if (taskBeforeMove && taskBeforeMove.task.isCompleted !== shouldBeCompleted) {
+      toggleTaskCompletionMutation.mutate(taskId, {
+        onError: () => {
+          setColumns(previous);
+        },
+      });
+    }
   }
 
   function findBoardTask(taskId: string) {

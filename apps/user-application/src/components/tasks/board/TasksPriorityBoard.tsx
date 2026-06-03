@@ -28,7 +28,7 @@ export function TasksPriorityBoard({
   dropBeforeTaskId: string | null;
   onOpenTask: (taskId: string) => void;
   onToggleTask: (taskId: string) => void;
-  onDeleteTask: (taskId: string) => void;
+  onDeleteTask: (task: PriorityTask) => void;
   onStartDragging: (event: PointerEvent<HTMLDivElement>, taskId: string) => void;
 }) {
   return (
@@ -71,7 +71,7 @@ export function TasksPriorityBoard({
                       onOpen={() => onOpenTask(item.task.id)}
                       onPointerDown={(event) => onStartDragging(event, item.task.id)}
                       onToggle={() => onToggleTask(item.task.id)}
-                      onDelete={() => onDeleteTask(item.task.id)}
+                      onDelete={() => onDeleteTask(item)}
                     />
                   </div>
                 );

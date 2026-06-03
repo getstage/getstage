@@ -273,6 +273,7 @@ export function ActivityTimelineChart({
                 key={project.id}
                 accentColor={project.accentColor}
                 label={project.logoLabel}
+                imageUrl={project.projectImageUrl}
                 onClick={() => {
                   setProjectBackDestination({ href: "/", label: "Back to dashboard" });
                   void navigate({
@@ -370,6 +371,7 @@ export function ActivityTimelineChart({
 function ProjectBadge({
   accentColor,
   label,
+  imageUrl,
   className,
   onClick,
   onPointerEnter,
@@ -380,6 +382,7 @@ function ProjectBadge({
 }: {
   accentColor: string;
   label: string;
+  imageUrl?: string;
   className?: string;
   onClick?: () => void;
   onPointerEnter?: () => void;
@@ -402,7 +405,11 @@ function ProjectBadge({
       )}
       style={{ background: accentColor, ...style }}
     >
-      {label}
+      {imageUrl ? (
+        <img src={imageUrl} alt="" aria-hidden="true" className="h-full w-full object-cover" />
+      ) : (
+        label
+      )}
     </button>
   );
 }

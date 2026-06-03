@@ -57,6 +57,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
   const [isFolderMenuOpen, setIsFolderMenuOpen] = useState(false);
   const [figmaLink, setFigmaLink] = useState("");
   const [activeStyleGuideDirectionName, setActiveStyleGuideDirectionName] = useState<string | null>(null);
+  const [styleGuideGeneratingMode, setStyleGuideGeneratingMode] = useState<"generate" | "regenerate">("generate");
 
   useEffect(() => {
     if (!moodboard.data?.tabData) {
@@ -124,6 +125,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
     setFolders((current) => current.map((item) =>
       item.name === direction ? { ...item, hasStyleGuide: true } : item,
     ));
+    setStyleGuideGeneratingMode("generate");
     setView("generating-style-guide");
 
     const directionId = moodboard.data?.tabData.directions.find((item) => item.name === direction)?.id;
@@ -142,7 +144,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
   }
 
   if (view === "generating-style-guide") {
-    return <StyleGuideGenerating />;
+    return <StyleGuideGenerating mode={styleGuideGeneratingMode} />;
   }
 
   if (view === "style-guide") {
@@ -151,6 +153,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
           styleGuide={activeStyleGuide}
           onBack={() => setView("hub")}
           onRegenerate={() => {
+            setStyleGuideGeneratingMode("regenerate");
             setView("generating-style-guide");
             window.setTimeout(() => setView("style-guide"), 900);
           }}

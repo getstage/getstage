@@ -56,6 +56,7 @@ export function StrategyTab({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
+  const [regeneratingSectionId, setRegeneratingSectionId] = useState<string | null>(null);
 
   const strategy = useStrategyTab(project);
   const researchRun = useProjectResearchRun(project.id);
@@ -173,11 +174,14 @@ export function StrategyTab({
     }
 
     setRunError(null);
+    setRegeneratingSectionId(sectionId);
 
     try {
       await regenerateSection(sectionId, resolvedProviderId);
     } catch (error) {
       setRunError(error instanceof Error ? error.message : "Could not regenerate Strategy.");
+    } finally {
+      setRegeneratingSectionId(null);
     }
   }
 
@@ -331,37 +335,17 @@ export function StrategyTab({
   }
 
   if (strategy.isRunning) {
+    return <StrategyGeneratingState usingMockData={strategy.usingMockData} />;
+  }
+
+  if (regeneratingSectionId) {
+    const section = visibleSections.find((item) => item.id === regeneratingSectionId);
     return (
-      <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        <div className="rounded-[8px] bg-white px-[44px] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-          <div className="flex min-h-[520px] items-center justify-center">
-            <div className="flex w-full max-w-[282px] flex-col items-center gap-6">
-              <img
-                src="/logos/generating-strategy.svg"
-                alt=""
-                aria-hidden="true"
-                className="h-[37px] w-[37px] animate-spin"
-              />
-
-              <div className="flex w-full flex-col items-center gap-2">
-                <p className="text-center text-[16px] font-semibold leading-none text-[#171717]">
-                  Generating Strategy
-                </p>
-                <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
-                  Generating project-specific strategy from the saved research artifact.
-                </p>
-              </div>
-
-              <div className="flex w-full flex-col items-center gap-2">
-                <StrategyLoadingStep icon="/logos/check.svg" label="Identified Goals & KPIs" />
-                <StrategyLoadingStep icon="/logos/check.svg" label="Created user journey" />
-                <StrategyLoadingStep icon="/logos/loader.svg" label="Generating conversion approach" spinning />
-                <StrategyLoadingStep icon="/logos/unchecked.svg" label="Identify Technical Requirements" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <StrategyGeneratingState
+        mode="regenerate"
+        sectionTitle={section?.title}
+        usingMockData={strategy.usingMockData}
+      />
     );
   }
 
@@ -539,6 +523,55 @@ export function StrategyTab({
         errorMessage={downstreamPrompt.clearError}
       />
     </>
+  );
+}
+
+function StrategyGeneratingState({
+  usingMockData,
+  mode = "generate",
+  sectionTitle,
+}: {
+  usingMockData: boolean;
+  mode?: "generate" | "regenerate";
+  sectionTitle?: string;
+}) {
+  const isRegenerating = mode === "regenerate";
+
+  return (
+    <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+      <div className="rounded-[8px] bg-white px-[44px] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="flex min-h-[520px] items-center justify-center">
+          <div className="flex w-full max-w-[282px] flex-col items-center gap-6">
+            <img
+              src={isRegenerating ? "/logos/dashboard/strategy.svg" : "/logos/generating-strategy.svg"}
+              alt=""
+              aria-hidden="true"
+              className={`h-[37px] w-[37px] ${isRegenerating ? "" : "animate-spin"}`}
+            />
+
+            <div className="flex w-full flex-col items-center gap-2">
+              <p className="text-center text-[16px] font-semibold leading-none text-[#171717]">
+                {isRegenerating ? `Regenerating ${sectionTitle ?? "Strategy"}` : "Generating Strategy"}
+              </p>
+              <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
+                {isRegenerating
+                  ? "Refreshing this section with the current research context."
+                  : usingMockData
+                  ? "Turning research into strategy sections. Results will appear here when the mock run completes."
+                  : "Extracting structural patterns - AI ignores color, typography, and visual style."}
+              </p>
+            </div>
+
+            <div className="flex w-full flex-col items-center gap-2">
+              <StrategyLoadingStep icon="/logos/check.svg" label={isRegenerating ? "Section loaded" : "Identified Goals & KPIs"} />
+              <StrategyLoadingStep icon="/logos/check.svg" label={isRegenerating ? "Research context attached" : "Created user journey"} />
+              <StrategyLoadingStep icon="/logos/loader.svg" label={isRegenerating ? "Generating replacement content" : "Generating conversion approach"} spinning />
+              <StrategyLoadingStep icon="/logos/unchecked.svg" label={isRegenerating ? "Updating strategy section" : "Identify Technical Requirements"} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

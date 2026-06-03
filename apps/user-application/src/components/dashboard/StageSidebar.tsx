@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 export function StageSidebar({
   accountInitials,
   accountLabel,
+  accountAvatarUrl,
   accountMeta,
   projects,
   collapsed,
@@ -29,6 +30,7 @@ export function StageSidebar({
 }: {
   accountInitials: string;
   accountLabel: string;
+  accountAvatarUrl?: string;
   accountMeta: string;
   projects: DashboardProject[];
   collapsed: boolean;
@@ -96,6 +98,7 @@ export function StageSidebar({
         canExpand={canExpand}
         accountInitials={accountInitials}
         accountLabel={accountLabel}
+        accountAvatarUrl={accountAvatarUrl}
         accountMeta={accountMeta}
         onCollapsedChange={onCollapsedChange}
         onOpenSettings={() => openSidebarSettings(navigate)}
