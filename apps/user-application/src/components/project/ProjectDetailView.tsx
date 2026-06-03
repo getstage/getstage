@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
+import { Avatar } from "@/components/ui/Avatar";
 import { ProjectHeader } from "./ProjectHeader";
 import { KanbanBoard } from "./KanbanBoard";
 import { AssetsTab } from "./tabs/assets/AssetsTab";
@@ -18,6 +19,7 @@ import {
   useStrategyArtifact,
   useWireframesArtifact,
 } from "@/hooks/project";
+import { useSettingsOverviewQuery } from "@/hooks/convex-data";
 import { formatInputDate } from "@/lib/format";
 import { getProjectBackDestination } from "@/lib/projectBackDestination";
 import { formatRelativeTime } from "@/lib/utils";
@@ -54,9 +56,17 @@ function formatTimelineDate(timestamp: number) {
   return formatInputDate(new Date(timestamp));
 }
 
+function getRecentActivityAvatarUrl(
+  profile: { name: string; email: string; avatarUrl: string | null } | undefined,
+) {
+  return profile?.avatarUrl ?? undefined;
+}
+
 export function ProjectDetailView() {
   const navigate = useNavigate();
   const { projectId } = useParams({ from: "/_authed/project/$projectId" });
+  const settingsOverviewQuery = useSettingsOverviewQuery();
+  const profile = settingsOverviewQuery.data?.profile;
   const [isLeavingAfterDelete, setIsLeavingAfterDelete] = useState(false);
   const live = useLiveProject(projectId, { enabled: !isLeavingAfterDelete });
   const researchArtifact = useResearchArtifact(projectId);
@@ -243,9 +253,11 @@ export function ProjectDetailView() {
                         return (
                           <div key={task.id} className="flex flex-col gap-4">
                             <div className="flex items-start gap-[10px]">
-                              <div className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-[#E5E5E5] px-2 py-[3px] text-[12px] font-medium leading-[1.5] text-[#221E6C]">
-                                {task.assignees?.[0]?.name?.charAt(0)?.toUpperCase() ?? "S"}
-                              </div>
+                              <Avatar
+                                name={profile?.name ?? task.assignees?.[0]?.name ?? "Stage"}
+                                src={getRecentActivityAvatarUrl(profile)}
+                                className="h-6 w-6"
+                              />
                               <div className="min-w-0 flex-1">
                                 <div className="truncate text-[13px] font-medium leading-[1.2] text-[#0A0A0A]">
                                   {action}: {task.title}

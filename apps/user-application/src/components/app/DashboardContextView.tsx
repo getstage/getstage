@@ -94,10 +94,30 @@ export function DashboardContextView() {
   });
   const dashboardChart = buildDashboardChart(selectedProjectContext, selectedPeriod);
   const dashboardTasks = buildDashboardTasks(selectedProjectContext);
+  const projectImageByName = useMemo(
+    () =>
+      new Map(
+        (projectsQuery.data ?? []).map((project) => [
+          project.name,
+          project.projectImageUrl,
+        ]),
+      ),
+    [projectsQuery.data],
+  );
   const periodDashboardTasks = useMemo(() => ({
-    upcomingTasks: dashboardTasks.upcomingTasks.filter((task) => isInPeriod(task.dueDate ?? task.updatedAt, selectedPeriod)),
-    recentActivity: dashboardTasks.recentActivity.filter((task) => isInPeriod(task.updatedAt, selectedPeriod)),
-  }), [dashboardTasks.recentActivity, dashboardTasks.upcomingTasks, selectedPeriod]);
+    upcomingTasks: dashboardTasks.upcomingTasks
+      .filter((task) => isInPeriod(task.dueDate ?? task.updatedAt, selectedPeriod))
+      .map((task) => ({
+        ...task,
+        projectImageUrl: task.projectImageUrl ?? projectImageByName.get(task.projectName),
+      })),
+    recentActivity: dashboardTasks.recentActivity
+      .filter((task) => isInPeriod(task.updatedAt, selectedPeriod))
+      .map((task) => ({
+        ...task,
+        projectImageUrl: task.projectImageUrl ?? projectImageByName.get(task.projectName),
+      })),
+  }), [dashboardTasks.recentActivity, dashboardTasks.upcomingTasks, projectImageByName, selectedPeriod]);
   const dashboardPipeline = buildDashboardPipeline(selectedProjectContext);
   const dashboardRevenue = buildDashboardRevenue(selectedProjectContext);
   const timelineProjects = projectsQuery.data?.length
