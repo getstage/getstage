@@ -1,6 +1,7 @@
 import type { PointerEvent } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { KANBAN_ASSIGNEES } from "@/data/fixtures/project/kanbanAssignees";
+import { useSettingsOverviewQuery } from "@/hooks/convex-data";
 import {
   DEFAULT_PHASE_TAG_COLOR,
   PHASE_TAG_COLORS,
@@ -28,6 +29,12 @@ export function KanbanTaskCard({
   onOpen?: () => void;
 }) {
   const tagColor = PHASE_TAG_COLORS[phaseName] ?? DEFAULT_PHASE_TAG_COLOR;
+  const settingsOverviewQuery = useSettingsOverviewQuery();
+  const profile = settingsOverviewQuery.data?.profile;
+  const assignee = task.assignees?.[0];
+  const assigneeAvatarUrl = assignee
+    ? getTaskAssigneeAvatarUrl(assignee.name, profile)
+    : undefined;
 
   return (
     <div
@@ -54,10 +61,10 @@ export function KanbanTaskCard({
           className="flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#E5E5E5] text-[10px] font-medium text-[#221E6C]"
           aria-label="Assign task"
         >
-          {task.assignees?.[0] ? (
+          {assignee ? (
             <Avatar
-              name={task.assignees[0].name}
-              src={KANBAN_ASSIGNEES.find((assignee) => assignee.name.includes(task.assignees![0].name))?.avatar}
+              name={assignee.name}
+              src={assigneeAvatarUrl}
               className="h-full w-full"
             />
           ) : (
@@ -102,6 +109,17 @@ export function KanbanTaskCard({
       </div>
     </div>
   );
+}
+
+function getTaskAssigneeAvatarUrl(
+  assigneeName: string,
+  profile: { name: string; email: string; avatarUrl: string | null } | undefined,
+) {
+  if (profile?.avatarUrl && (assigneeName === profile.name || assigneeName === profile.email)) {
+    return profile.avatarUrl;
+  }
+
+  return KANBAN_ASSIGNEES.find((assignee) => assignee.name.includes(assigneeName))?.avatar;
 }
 
 export type KanbanDragPreview = BoardTask & {

@@ -224,8 +224,11 @@ function ClientPickerDropdown({
         onClick={() => setOpen((current) => !current)}
         className={cn(inputSurfaceClassName, "flex items-center cursor-pointer justify-between pr-[36px] text-left")}
       >
-        <span className={cn("min-w-0 truncate", selectedClient || clientMode === "new" ? "text-[#171717]" : "text-[#525252]")}>
+        <span className={cn("flex min-w-0 items-center gap-[8px]", selectedClient || clientMode === "new" ? "text-[#171717]" : "text-[#525252]")}>
+          {selectedClient ? <ClientAvatar client={selectedClient} /> : null}
+          <span className="min-w-0 truncate">
           {label}
+          </span>
         </span>
       </button>
       <ChevronDownIcon />
@@ -250,6 +253,7 @@ function ClientPickerDropdown({
                   selected={clientMode === "existing" && selectedExistingClientId === client.id}
                   label={client.name}
                   description={client.email}
+                  avatar={<ClientAvatar client={client} />}
                   onSelect={() => chooseExistingClient(client)}
                 />
               ))
@@ -269,11 +273,13 @@ function ClientPickerOption({
   selected,
   label,
   description,
+  avatar,
   onSelect,
 }: {
   selected: boolean;
   label: string;
   description?: string;
+  avatar?: React.ReactNode;
   onSelect: () => void;
 }) {
   return (
@@ -283,18 +289,45 @@ function ClientPickerOption({
       aria-selected={selected}
       onClick={onSelect}
       className={cn(
-        "flex min-h-[34px] w-full cursor-pointer flex-col justify-center rounded-[6px] px-[8px] py-[6px] text-left outline-none transition-colors",
+        "flex min-h-[34px] w-full cursor-pointer items-center gap-[8px] rounded-[6px] px-[8px] py-[6px] text-left outline-none transition-colors",
         selected ? "bg-[#F5F5F5]" : "hover:bg-[#F5F5F5]",
       )}
     >
-      <span className="truncate text-[13px] font-medium leading-[1.25] text-[#171717]">
-        {label}
-      </span>
-      {description ? (
-        <span className="mt-[2px] truncate text-[12px] font-medium leading-[1.25] text-[#737373]">
-          {description}
+      {avatar}
+      <span className="flex min-w-0 flex-1 flex-col justify-center">
+        <span className="truncate text-[13px] font-medium leading-[1.25] text-[#171717]">
+          {label}
         </span>
-      ) : null}
+        {description ? (
+          <span className="mt-[2px] truncate text-[12px] font-medium leading-[1.25] text-[#737373]">
+            {description}
+          </span>
+        ) : null}
+      </span>
     </button>
   );
+}
+
+function ClientAvatar({ client }: { client: ExistingClientOption }) {
+  if (client.avatarUrl) {
+    return (
+      <img
+        src={client.avatarUrl}
+        alt=""
+        aria-hidden="true"
+        className="h-[20px] w-[20px] shrink-0 rounded-full object-cover"
+      />
+    );
+  }
+
+  return (
+    <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-[#171717] text-[10px] font-semibold uppercase text-white">
+      {getClientInitial(client.name)}
+    </span>
+  );
+}
+
+function getClientInitial(name: string) {
+  const trimmed = name.trim();
+  return trimmed.length > 0 ? trimmed[0] : "S";
 }

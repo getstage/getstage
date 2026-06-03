@@ -1,5 +1,5 @@
 import { Avatar } from "@/components/ui/Avatar";
-import type { ProjectMember } from "@/hooks/convex-data";
+import { useSettingsOverviewQuery, type ProjectMember } from "@/hooks/convex-data";
 
 function memberLabel(member: ProjectMember) {
   return member.name?.trim() || member.email?.trim() || "Member";
@@ -16,6 +16,8 @@ export function KanbanAssignCard({
   onSearchChange: (value: string) => void;
   onAssign: (member: ProjectMember) => void;
 }) {
+  const settingsOverviewQuery = useSettingsOverviewQuery();
+  const profile = settingsOverviewQuery.data?.profile;
   const query = search.trim().toLowerCase();
   const filteredMembers = members.filter((member) => {
     if (!query) return true;
@@ -55,7 +57,11 @@ export function KanbanAssignCard({
               onClick={() => onAssign(member)}
               className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-2 py-[6px] text-left transition-colors hover:bg-[#F5F5F5]"
             >
-              <Avatar name={memberLabel(member)} className="h-5 w-5" />
+              <Avatar
+                name={memberLabel(member)}
+                src={getMemberAvatarUrl(member, profile)}
+                className="h-5 w-5"
+              />
               <span className="text-[12px] font-medium leading-[1.25] text-[#262626]">{memberLabel(member)}</span>
             </button>
           ))}
@@ -66,4 +72,17 @@ export function KanbanAssignCard({
       </div>
     </div>
   );
+}
+
+function getMemberAvatarUrl(
+  member: ProjectMember,
+  profile: { id: string; email: string; avatarUrl: string | null } | undefined,
+) {
+  if (!profile?.avatarUrl) return undefined;
+
+  if (member.userId === profile.id || member.email === profile.email) {
+    return profile.avatarUrl;
+  }
+
+  return undefined;
 }
