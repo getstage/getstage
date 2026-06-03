@@ -9,6 +9,7 @@ mod refero;
 mod research;
 mod runs;
 mod server;
+mod strategy;
 
 use anyhow::Context;
 use config::AppConfig;

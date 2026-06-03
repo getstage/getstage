@@ -18,6 +18,12 @@ export function PlusIcon() {
   return <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" className="h-[14px] w-[14px]"><path d="M7 3v8M3 7h8" /></svg>;
 }
 
+export function NotionIcon() {
+  return (
+    <img src="/logos/integrations/notion.svg" alt="" aria-hidden="true" className="h-[13px] w-[13px] shrink-0" />
+  );
+}
+
 export function ArrowRightIcon() {
   return <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M6 3l5 5-5 5M10.5 8H3" /></svg>;
 }

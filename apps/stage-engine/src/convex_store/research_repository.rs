@@ -87,6 +87,7 @@ impl ResearchRepository {
         project_id: &str,
         run_id: Option<&str>,
         artifact: &JsonValue,
+        provider_id: crate::models::providers::ProviderId,
     ) -> anyhow::Result<Option<String>> {
         let mut client = self.authenticated_client(token).await?;
         let mut args = args();
@@ -114,6 +115,13 @@ impl ResearchRepository {
         if let Some(run_id) = run_id {
             args.insert("runId".to_string(), Value::from(run_id.to_string()));
         }
+        args.insert(
+            "providerId".to_string(),
+            Value::from(match provider_id {
+                crate::models::providers::ProviderId::Claude => "claude",
+                crate::models::providers::ProviderId::Codex => "codex",
+            }),
+        );
 
         let result = client
             .mutation("projectAi:completeResearchRun", args)
@@ -279,6 +287,7 @@ pub fn enrich_research_artifact(
     let generated_at = i64::try_from(generated_at).unwrap_or(i64::MAX);
     object.insert("generatedAt".to_string(), json!(generated_at));
     normalize_competitive_matrix_scores(object);
+    crate::research::competitive::filter_competitive_analysis(object, input);
 
     Ok(JsonValue::Object(object.clone()))
 }
@@ -332,22 +341,9 @@ fn normalize_matrix_score(score: &str) -> Option<&'static str> {
     }
 }
 
-pub fn extract_json_object(text: &str) -> anyhow::Result<JsonValue> {
-    let trimmed = text.trim();
-    if let Ok(value) = serde_json::from_str::<JsonValue>(trimmed) {
-        return Ok(value);
-    }
-
-    let start = trimmed
-        .find('{')
-        .context("provider output did not contain a JSON object start")?;
-    let end = trimmed
-        .rfind('}')
-        .context("provider output did not contain a JSON object end")?;
-
-    serde_json::from_str(&trimmed[start..=end])
-        .context("provider output contained invalid research JSON")
-}
+pub use crate::helpers::provider_json::{
+    extract_json_object, extract_research_artifact, extract_strategy_artifact,
+};
 
 fn summary_text(artifact: &JsonValue) -> Option<String> {
     let items = artifact.get("summary")?.as_array()?;

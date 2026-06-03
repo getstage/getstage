@@ -14,7 +14,7 @@ import {
   setTaskPriorityForUser,
 } from "./domain/projects/service";
 import { recomputeProjectState } from "./domain/projects/readModel";
-import { requireAuthUser, requirePhaseAccess, requireProjectAccess } from "./_helpers";
+import { requireAuthUser, requirePhaseAccess, requireProjectAccess, requireProjectAccessOrNull } from "./_helpers";
 
 const projectTypeValidator = v.union(
   v.literal("branding"),
@@ -194,8 +194,17 @@ export const getProjectData = query({
     v.null(),
   ),
   handler: async (ctx, args) => {
-    const projectId = await normalizeProjectId(ctx, args.projectId);
-    const { project, role } = await requireProjectAccess(ctx, projectId);
+    const projectId = await ctx.db.normalizeId("projects", args.projectId);
+    if (!projectId) {
+      return null;
+    }
+
+    const access = await requireProjectAccessOrNull(ctx, projectId);
+    if (!access) {
+      return null;
+    }
+
+    const { project, role } = access;
     const phases = await ctx.db
       .query("phases")
       .withIndex("by_project_order", (q) => q.eq("projectId", projectId))

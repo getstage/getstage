@@ -10,6 +10,8 @@ type ResearchSummaryProps = {
   onDiscard: () => void;
   onSave: () => void;
   isSaving?: boolean;
+  onRerunResearch?: () => void;
+  isRunBusy?: boolean;
 };
 
 export function ResearchSummary({
@@ -21,6 +23,8 @@ export function ResearchSummary({
   onDiscard,
   onSave,
   isSaving = false,
+  onRerunResearch,
+  isRunBusy = false,
 }: ResearchSummaryProps) {
   const items = editItems ?? summary;
   const editTextareaRefs = useRef<Array<HTMLTextAreaElement | null>>([]);
@@ -87,14 +91,27 @@ export function ResearchSummary({
             </button>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={onEdit}
-            className="inline-flex h-[34px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-[#F5F5F5] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
-          >
-            <EditIcon />
-            Edit Research
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {onRerunResearch ? (
+              <button
+                type="button"
+                onClick={onRerunResearch}
+                disabled={isRunBusy}
+                className="inline-flex h-[34px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-[#F5F5F5] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Re-run research
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onEdit}
+              disabled={isRunBusy}
+              className="inline-flex h-[34px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-[#F5F5F5] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <EditIcon />
+              Edit Research
+            </button>
+          </div>
         )}
       </div>
       {isEditing ? (

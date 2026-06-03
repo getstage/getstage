@@ -4,7 +4,6 @@ import { strategyArtifactSchema, type StrategyArtifact } from "@stage/data-ops/c
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { useDesktopAuth } from "@/lib/auth";
 import { mapStrategyArtifactToTabData } from "@/lib/project/mapStrategyArtifactToTabData";
-import { SHOULD_QUERY_PROJECT_AI_ARTIFACTS } from "@/lib/project/shouldQueryProjectAiArtifacts";
 import { api } from "@/lib/convexApi";
 import type { StrategyArtifactRecord } from "@/types/project/strategyArtifactRecord";
 
@@ -23,10 +22,13 @@ function parseStrategyArtifact(contentJson: string | null): StrategyArtifact | n
   }
 }
 
-export function useStrategyArtifact(projectId: string | undefined) {
+export function useStrategyArtifact(
+  projectId: string | undefined,
+  options: { enabled?: boolean } = {},
+) {
+  const { enabled = true } = options;
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
-  const queryEnabled =
-    SHOULD_QUERY_PROJECT_AI_ARTIFACTS && isAuthenticated && Boolean(projectId);
+  const queryEnabled = enabled && isAuthenticated && Boolean(projectId);
   const record = useQuery(
     api.projectAi.getLatestStrategyArtifact,
     queryEnabled ? { projectId: projectId as Id<"projects"> } : "skip",

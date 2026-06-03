@@ -25,6 +25,23 @@ If you see `using existing service on port 48221`, Electron adopted an **old bin
 
 ---
 
+## Provider output pipeline (normalize first)
+
+Codex/Claude output is **never trusted as final shape**. Stage uses two layers:
+
+| Layer | Where | Role |
+|-------|--------|------|
+| **Extract** | `apps/stage-engine/src/helpers/provider_json.rs` | Find `researchArtifact` JSON in stdout or stderr (lines containing `artifactKind`) |
+| **Normalize** | `apps/stage-engine/src/research/workflow.rs`, `research_repository.rs`, competitive matrix helpers | Coerce into `@stage/data-ops/contracts` before Convex + R2 |
+
+**Prompt** (`research/prompt.rs`) guides the model; **normalize** guarantees the UI contract (competitors, UI patterns, matrix scores, etc.).
+
+**Terminal noise:** Hundreds of `provider_warning` lines can be Codex streaming `researchArtifact` fields on stderr — not failures. Success = `research artifact saved to Convex` / `run_completed`. See [RESEARCH_TESTING.md](./RESEARCH_TESTING.md#terminal-noise-provider_warning).
+
+Strategy: same philosophy in [STRATEGY_DEV_STATUS.md](./STRATEGY_DEV_STATUS.md#provider-output-pipeline-normalize-first).
+
+---
+
 ## System structure (layers)
 
 ```txt
@@ -238,6 +255,17 @@ Full form values: [`RESEARCH_TESTING.md`](./RESEARCH_TESTING.md)
 | Persona goals/frustrations show `..` | Double period from join | Fixed in `joinSentences()` — reload app |
 | Stuck “Running Research” | Old Electron main | Full `pnpm dev` restart |
 | Parse error in UI | `contentJson` vs Zod | Rebuild `data-ops`, reload app |
+
+---
+
+## Re-run research (shipped)
+
+- **Re-run research** button on the Research tab when an artifact exists (opens configure modal prefilled from `getContext`).
+- Successful re-run replaces research (`deletePreviousResearchArtifacts`) and **clears strategy** (`deletePreviousStrategyArtifacts` in `completeResearchRunHandler`).
+- **Moodboard / flows / wireframes** are not auto-deleted. If downstream work exists, a post-run dialog offers **Keep later steps** (stale banner on later tabs) or **Clear later steps** (`projectAi.clearDownstreamArtifacts` + mock session clear).
+- Per-section **Regenerate with AI** is unchanged — full pipeline re-run only via **Re-run research**.
+
+See [RESEARCH_TESTING.md](./RESEARCH_TESTING.md) for manual checks.
 
 ---
 

@@ -2,13 +2,14 @@ use std::sync::Arc;
 
 use crate::convex_store::asset_upload::ConvexAssetUploader;
 use crate::convex_store::research_repository::{
-    ResearchRepository, enrich_research_artifact, extract_json_object,
+    ResearchRepository, enrich_research_artifact, extract_json_object, extract_research_artifact,
 };
 use crate::helpers::time::now_millis;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::runs::{RunEvent, RunStatus, StartRunRequest};
 use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
 use crate::providers::process::ProviderProcessOutcome;
+use crate::research::competitive::filter_competitive_analysis;
 use crate::research::prompt::build_research_prompt;
 use crate::research::refero_assets::{apply_engine_ui_patterns, persist_refero_context_images};
 use crate::research::section::{
@@ -75,6 +76,13 @@ impl ResearchWorkflow {
                 .repository
                 .fetch_research_input(&auth_token, project_id)
                 .await?;
+            tracing::info!(
+                run_id = %run_id,
+                project_id,
+                competitor_count = input.competitor_urls.len(),
+                competitive_targets = ?crate::research::competitive::allowed_competitive_targets(&input),
+                "loaded research input"
+            );
             self.tool_completed(api_version, &run_id, provider_id, &sink, "stage-context");
 
             let section =
@@ -154,14 +162,20 @@ impl ResearchWorkflow {
                 output_chars = final_text.len(),
                 "provider run completed, parsing research artifact"
             );
-            let mut raw_artifact = extract_json_object(&final_text)?;
+            let mut raw_artifact = extract_research_artifact(&final_text)?;
             apply_engine_ui_patterns(&mut raw_artifact, &bundle.refero_context, &image_keys);
             let refero_context = serde_json::to_value(&bundle.refero_context)?;
             let artifact =
                 enrich_research_artifact(raw_artifact, &input, refero_context, now_millis())?;
 
             self.repository
-                .complete_research_run(&auth_token, project_id, convex_run_id.as_deref(), &artifact)
+                .complete_research_run(
+                    &auth_token,
+                    project_id,
+                    convex_run_id.as_deref(),
+                    &artifact,
+                    provider_id,
+                )
                 .await?;
 
             tracing::info!(run_id = %run_id, project_id, "research artifact saved to Convex");
@@ -254,9 +268,10 @@ impl ResearchWorkflow {
 
         let section_patch = extract_json_object(&final_text)?;
         merge_research_section(&mut artifact, section, section_patch)?;
-        artifact.as_object_mut().map(|object| {
+        if let Some(object) = artifact.as_object_mut() {
+            filter_competitive_analysis(object, &input);
             object.insert("generatedAt".to_string(), json!(now_millis()));
-        });
+        }
 
         self.repository
             .update_research_artifact(auth_token, project_id, &artifact_id, &artifact)

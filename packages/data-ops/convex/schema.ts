@@ -567,6 +567,9 @@ export default defineSchema({
     briefAttachmentName: v.optional(v.string()),
     briefAttachmentR2ObjectKey: v.optional(v.string()),
     notes: v.optional(v.string()),
+    strategyFocusAreas: v.optional(v.array(v.string())),
+    strategyGenerateNotes: v.optional(v.string()),
+    lastProviderId: v.optional(v.union(v.literal("claude"), v.literal("codex"))),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

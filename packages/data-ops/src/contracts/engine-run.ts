@@ -11,6 +11,7 @@ export const runModeSchema = z.enum([
   "chat",
   "voice",
   "research",
+  "strategy",
   "generation",
   "critique",
   "styleguide",

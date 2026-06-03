@@ -85,6 +85,7 @@ export type UseLiveProjectResult = {
   phases: PhaseSummary[];
   tasksByPhaseId: { [phaseId: string]: TaskSummary[] };
   isLoading: boolean;
+  isNotFound: boolean;
   error: unknown;
 };
 
@@ -121,7 +122,9 @@ export function useLiveProject(
   const isLoading =
     isAuthLoading ||
     (isAuthenticated && enabled && Boolean(projectId) && rawProjectData === undefined);
-  const error = null;
+  const isNotFound =
+    isAuthenticated && enabled && Boolean(projectId) && rawProjectData === null;
+  const error = isNotFound ? new Error("Project not found.") : null;
 
   const project = useMemo<Project | null>(() => {
     if (!liveData) {
@@ -136,6 +139,7 @@ export function useLiveProject(
     phases: liveData?.phases ?? EMPTY_PHASES,
     tasksByPhaseId: liveData?.tasksByPhaseId ?? EMPTY_TASKS_BY_PHASE,
     isLoading,
+    isNotFound,
     error,
   };
 }

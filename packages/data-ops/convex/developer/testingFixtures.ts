@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
+import { requireAuthUser } from "../_helpers";
+import { cleanupOrphanedProjectAiDataForUser } from "../lib/projectAi/domain/projectCleanup";
 import { deleteProjectWithDependents } from "../projects";
 
 const SMOKE_PROJECT_PREFIXES = ["Stitch smoke project", "REST smoke project"];
@@ -31,5 +33,13 @@ export const cleanupSmokeProjects = mutation({
       deletedCount: deleted.length,
       deleted,
     };
+  },
+});
+
+export const cleanupOrphanedProjectAiData = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireAuthUser(ctx);
+    return cleanupOrphanedProjectAiDataForUser(ctx, user._id);
   },
 });

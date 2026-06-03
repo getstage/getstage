@@ -118,6 +118,22 @@ function isR2Key(value: string) {
   return !/^https?:\/\//i.test(value) && !value.startsWith("data:");
 }
 
+function getUploadUrlString(value: unknown) {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (value && typeof value === "object") {
+    const candidate =
+      (value as { url?: unknown }).url ?? (value as { uploadUrl?: unknown }).uploadUrl;
+    if (typeof candidate === "string") {
+      return candidate;
+    }
+  }
+
+  throw new Error("Could not generate an upload URL.");
+}
+
 function hasLegacyUploadFields(upload: {
   status?: string;
   source?: string;
@@ -317,7 +333,7 @@ async function createTrackedUpload(
 
   return {
     key,
-    uploadUrl: await r2.generateUploadUrl(key),
+    uploadUrl: getUploadUrlString(await r2.generateUploadUrl(key)),
   };
 }
 

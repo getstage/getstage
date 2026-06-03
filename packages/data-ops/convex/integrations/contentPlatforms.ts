@@ -18,6 +18,11 @@ import {
   createNotionChildPage,
   parseNotionPageIdFromInput,
 } from "./notionResearchExport";
+import {
+  buildNotionBlocksFromStrategyArtifact,
+  createNotionChildPage as createStrategyNotionChildPage,
+  parseStrategyArtifactContent,
+} from "./notionStrategyExport";
 
 type Provider = "notion" | "figma";
 
@@ -678,20 +683,6 @@ export const completeNotionResearchExport = internalMutation({
   },
   handler: async (ctx, args) => {
     const timestamp = args.completedAt;
-    await ctx.db.insert("artifactDestinations", {
-      userId: args.userId,
-      artifactId: args.artifactId,
-      projectId: args.projectId,
-      provider: "notion",
-      action: "export_to_notion",
-      status: "completed",
-      destinationLabel: args.destinationLabel,
-      destinationUrl: args.destinationUrl,
-      requestedVia: "native",
-      lastSyncedAt: timestamp,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
 
     await ctx.db.patch(args.connectionId, {
       defaultParentPageId: args.parentPageId,
@@ -770,6 +761,158 @@ export const exportResearchArtifactToNotion = action({
 
     const completedAt = now();
     await ctx.runMutation(internalApi.integrations.contentPlatforms.completeNotionResearchExport, {
+      userId: viewer.userId,
+      artifactId: bundle.artifactId,
+      projectId: bundle.projectId,
+      connectionId: bundle.connection.id,
+      destinationUrl,
+      destinationLabel: pageTitle,
+      parentPageId,
+      parentPageUrl,
+      completedAt,
+    });
+
+    return {
+      destinationUrl,
+      parentPageId,
+      parentPageUrl: parentPageUrl ?? null,
+      exportedAt: completedAt,
+    };
+  },
+});
+
+export const getStrategyArtifactForNotionExport = internalQuery({
+  args: {
+    userId: v.id("users"),
+    artifactId: v.id("projectAiArtifacts"),
+  },
+  handler: async (ctx, args) => {
+    const artifact = await ctx.db.get(args.artifactId);
+    if (!artifact) {
+      throw new Error("Artifact not found.");
+    }
+
+    await requireProjectAccessForUserId(ctx, {
+      userId: args.userId,
+      projectId: artifact.projectId,
+    });
+
+    if (artifact.module !== "strategy" || artifact.kind !== "strategyArtifact") {
+      throw new Error("Artifact is not a strategy artifact.");
+    }
+
+    const project = await ctx.db.get(artifact.projectId);
+    const connection = await getConnection(ctx, args.userId, "notion");
+
+    return {
+      artifactId: artifact._id,
+      projectId: artifact.projectId,
+      contentJson: artifact.contentJson ?? null,
+      projectName: project?.name ?? "Project",
+      connection: connection
+        ? {
+            id: connection._id,
+            status: connection.status,
+            defaultParentPageId: connection.defaultParentPageId ?? null,
+            defaultParentPageUrl: connection.defaultParentPageUrl ?? null,
+          }
+        : null,
+    };
+  },
+});
+
+export const completeNotionStrategyExport = internalMutation({
+  args: {
+    userId: v.id("users"),
+    artifactId: v.id("projectAiArtifacts"),
+    projectId: v.id("projects"),
+    connectionId: v.id("nativeIntegrationConnections"),
+    destinationUrl: v.string(),
+    destinationLabel: v.string(),
+    parentPageId: v.string(),
+    parentPageUrl: v.optional(v.string()),
+    completedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const timestamp = args.completedAt;
+
+    await ctx.db.patch(args.connectionId, {
+      defaultParentPageId: args.parentPageId,
+      defaultParentPageUrl: args.parentPageUrl ?? args.destinationUrl,
+      lastSyncedAt: timestamp,
+      updatedAt: timestamp,
+    });
+  },
+});
+
+export const exportStrategyArtifactToNotion = action({
+  args: {
+    artifactId: v.id("projectAiArtifacts"),
+    parentPageUrlOrId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
+    const bundle = (await ctx.runQuery(
+      internalApi.integrations.contentPlatforms.getStrategyArtifactForNotionExport,
+      {
+        userId: viewer.userId,
+        artifactId: args.artifactId,
+      },
+    )) as {
+      artifactId: Id<"projectAiArtifacts">;
+      projectId: Id<"projects">;
+      contentJson: string | null;
+      projectName: string;
+      connection: {
+        id: Id<"nativeIntegrationConnections">;
+        status: string;
+        defaultParentPageId: string | null;
+        defaultParentPageUrl: string | null;
+      } | null;
+    };
+
+    if (!bundle.connection || bundle.connection.status !== "active") {
+      throw new Error("Connect Notion in Settings before exporting.");
+    }
+
+    const tokenRecord = (await ctx.runQuery(
+      internalApi.integrations.contentPlatforms.getConnectionTokenForProvider,
+      { userId: viewer.userId, provider: "notion" },
+    )) as { accessToken: string | null } | null;
+
+    if (!tokenRecord?.accessToken) {
+      throw new Error("Notion access token is unavailable. Reconnect Notion in Settings.");
+    }
+
+    const parsedArtifact = parseStrategyArtifactContent(bundle.contentJson ?? "");
+    if (!parsedArtifact) {
+      throw new Error("Strategy artifact content could not be parsed.");
+    }
+
+    const parentInput =
+      args.parentPageUrlOrId?.trim() ||
+      bundle.connection.defaultParentPageUrl?.trim() ||
+      bundle.connection.defaultParentPageId?.trim() ||
+      "";
+
+    if (!parentInput) {
+      throw new Error("NOTION_PARENT_REQUIRED");
+    }
+
+    const parentPageId = parseNotionPageIdFromInput(parentInput);
+    const parentPageUrl =
+      args.parentPageUrlOrId?.trim() || bundle.connection.defaultParentPageUrl || undefined;
+    const children = buildNotionBlocksFromStrategyArtifact(parsedArtifact);
+    const pageTitle = `${bundle.projectName} Strategy`;
+    const { destinationUrl } = await createStrategyNotionChildPage({
+      accessToken: tokenRecord.accessToken,
+      parentPageId,
+      title: pageTitle,
+      children,
+    });
+
+    const completedAt = now();
+    await ctx.runMutation(internalApi.integrations.contentPlatforms.completeNotionStrategyExport, {
       userId: viewer.userId,
       artifactId: bundle.artifactId,
       projectId: bundle.projectId,

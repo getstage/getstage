@@ -17,7 +17,7 @@
 curl http://127.0.0.1:48221/v1/readiness   # expect "ready": true
 ```
 
-Use a **real, existing project** (logged in). Deleted project ids cause `Project not found`.
+Use a **real, existing project** (logged in). If the project was deleted but the URL is still open, the app shows **“Could not load this project”** (no crash).
 
 First `pnpm dev` after Rust changes: **1–3 min** compile. Research run: **2–8 min**.
 
@@ -42,6 +42,8 @@ Deliver actionable design insights for a wholesale dashboard MVP.
 ```
 
 Pick **Claude** or **Codex**, then **Run Research**.
+
+**Re-run research:** With an existing artifact, use **Re-run research** → edit configure form → **Replace research & run**. Expect strategy tab to reset; if moodboard/flows/wireframes exist, choose **Keep** or **Clear later steps** after the run completes.
 
 ---
 
@@ -91,13 +93,43 @@ run_failed detail=...
 
 ## Where data is saved
 
-| Table | What |
-|-------|------|
-| `projectAiContexts` | Form input (`upsertContext`) |
-| `projectAiRuns` | Run record |
-| `projectAiArtifacts` | Final `contentJson` (`ResearchArtifact` JSON) |
+### Convex (metadata + JSON)
+
+| Table | What | Retention |
+|-------|------|-----------|
+| `projectAiContexts` | Form input + `lastProviderId` after a successful run | 1 row per project; deleted with project |
+| `projectAiRuns` | Failed / cancelled runs only | **Deleted** after successful artifact save |
+| `projectAiArtifacts` | Final `contentJson` (`ResearchArtifact` JSON) | Latest per project; old rows + R2 keys removed on re-run |
+| `artifactDestinations` | Failed Notion exports only | No row on successful export |
+
+### R2 (`assetsgetstage-testing`)
+
+Refero screenshots: `users/{userId}/research/{projectId}/refero/{uuid}.png`  
+Brief PDFs: `users/{userId}/research/{projectId}/briefs/{uuid}.pdf`
+
+Keys live inside `contentJson`; R2 bytes are deleted when the artifact is replaced or the project is deleted.
 
 Read path: `getLatestResearchArtifact` → resolve R2 keys (https URLs pass through) → `mapResearchArtifactToTabData` maps `thumbnailUrl` to carousel `src` and `imageUrl` to lightbox `fullSrc`.
+
+### Dev cleanup
+
+Run `developer.testingFixtures.cleanupOrphanedProjectAiData` in the Convex dashboard to purge rows whose `projectId` no longer exists (and remove legacy `artifactDestinations` with `status: completed`).
+
+---
+
+## Terminal noise (`provider_warning`)
+
+During **Strategy** runs, stderr may stream **saved Research** JSON (`ui-patterns-*`, `examples`, Refero URLs). That is Codex re-reading context — **not** a Research re-run and **not** a failure.
+
+During **Research** runs, stderr may stream partial JSON lines before the final artifact.
+
+| You see | Meaning |
+|---------|---------|
+| `provider_warning` with `uiPatterns` / `competitive` | Usually Strategy job echoing research; ignore if you are running Strategy |
+| `research artifact saved to Convex` | Research **success** |
+| `run_failed` | Real failure — read `ERROR` / `run_failed` message |
+
+Architecture: [RESEARCH_DEV_STATUS.md](./RESEARCH_DEV_STATUS.md#provider-output-pipeline-normalize-first).
 
 ---
 

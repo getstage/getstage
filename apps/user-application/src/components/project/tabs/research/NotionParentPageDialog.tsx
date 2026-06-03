@@ -44,8 +44,8 @@ export function NotionParentPageDialog({
               Choose Notion parent page
             </Dialog.Title>
             <Dialog.Description className="mt-1 text-[13px] font-medium text-[#525252]">
-              Paste the URL of the Notion page where Stage should create the research export. We
-              reuse this parent for future exports.
+              Paste the URL of the Notion page where Stage should create the export. We reuse this
+              parent for future exports.
             </Dialog.Description>
             <input
               value={parentPageUrl}

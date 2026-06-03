@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProviderId, RunEvent } from "@stage/data-ops/contracts";
+import { useQuery } from "convex/react";
 import { useQueryClient } from "@tanstack/react-query";
+import type { Id } from "@stage/data-ops/convex/data-model";
+import { useDesktopAuth } from "@/lib/auth";
+import { api } from "@/lib/convexApi";
 import { engineQueryKeys } from "@/hooks/engine/queryKeys";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
@@ -32,20 +36,35 @@ function hasTerminalRunEvent(events: RunEvent[]) {
 
 export function useResearchRun(projectId: string) {
   const queryClient = useQueryClient();
-  const providerRun = useProviderRun();
+  const { isAuthenticated } = useDesktopAuth();
+  const providerRun = useProviderRun({ projectId, mode: "research" });
   const providerPreferences = useProviderPreferences();
   const providers = useProviderStatus();
   const [error, setError] = useState<string | null>(null);
   const [runEnded, setRunEnded] = useState(false);
   const runStartedAtRef = useRef<number | null>(null);
 
+  const runs = useQuery(
+    api.projectAi.listRuns,
+    isAuthenticated && projectId
+      ? { projectId: projectId as Id<"projects">, module: "research" }
+      : "skip",
+  );
+
+  const convexResearchRunning = useMemo(
+    () => runs?.some((run) => run.status === "running") ?? false,
+    [runs],
+  );
+
   const activeRunId = providerRun.activeRunId;
   const activeRunEvents = providerRun.activeRunEvents;
-  const hasTerminalEvent = hasTerminalRunEvent(activeRunEvents);
+  const hasTerminalEvent = providerRun.hasTerminalEvent;
 
   const isRunning = useMemo(
-    () => !runEnded && activeRunId !== null && !hasTerminalEvent,
-    [activeRunId, hasTerminalEvent, runEnded],
+    () =>
+      !runEnded &&
+      (providerRun.isRunActive || convexResearchRunning),
+    [convexResearchRunning, providerRun.isRunActive, runEnded],
   );
 
   const runError = useMemo(() => {

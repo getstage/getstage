@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
+import { DownstreamStepsDialog } from "@/components/project/DownstreamStepsDialog";
+import { ResearchRerunDialog } from "@/components/project/ResearchRerunDialog";
+import { useAfterUpstreamRunPrompt } from "@/hooks/project/useAfterUpstreamRunPrompt";
+import { useClearResearchAndStrategyForRerun } from "@/hooks/project/useClearResearchAndStrategyForRerun";
+import { useProjectDownstreamWork } from "@/hooks/project/useProjectDownstreamWork";
 import type { Project } from "@/models/project/project";
 import type { ValidatedResearchConfigureInput } from "@/lib/project/researchConfigureInput";
 import type { ProviderId, ResearchArtifactSection } from "@stage/data-ops/contracts";
+import type { Id } from "@stage/data-ops/convex/data-model";
 import type { CompetitiveView, ResearchTabData } from "@/types/project/researchTab";
 import { useResearchContext } from "@/hooks/project/research/useResearchContext";
 import { useResearchProviderSelection } from "@/hooks/project/research/useResearchProviderSelection";
@@ -45,8 +51,14 @@ export function ResearchTab({
   const [isAddingSection, setIsAddingSection] = useState(false);
   const [newSectionTitle, setNewSectionTitle] = useState("");
   const [newSectionBody, setNewSectionBody] = useState("");
+  const [isRerunDialogOpen, setIsRerunDialogOpen] = useState(false);
 
   const research = useResearchTab(project);
+  const clearForRerun = useClearResearchAndStrategyForRerun(project.id);
+  const downstreamWork = useProjectDownstreamWork(project.id);
+  const upstreamPrompt = useAfterUpstreamRunPrompt(project.id);
+  const isRunBusy =
+    research.isRunning || research.isStarting || clearForRerun.isPending;
   const researchContext = useResearchContext(project.id);
   const saveResearchArtifact = useSaveResearchArtifact(project.id);
   const regenerateSection = useResearchSectionRegenerate(project.id);
@@ -66,8 +78,30 @@ export function ResearchTab({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [openPhoto]);
 
-  async function handleRunResearch(input?: ValidatedResearchConfigureInput, providerId?: ProviderId) {
+  const { trackRunActivity, beginPending, ...downstreamPrompt } = upstreamPrompt;
+
+  useEffect(() => {
+    trackRunActivity(isRunBusy, runError ?? research.error);
+  }, [isRunBusy, runError, research.error, trackRunActivity]);
+
+  async function handleRunResearch(
+    input?: ValidatedResearchConfigureInput,
+    providerId?: ProviderId,
+    options?: { isFullRerun?: boolean },
+  ) {
     setRunError(null);
+
+    if (options?.isFullRerun) {
+      beginPending("research", { hadDownstream: downstreamWork.hasDownstream });
+      try {
+        await clearForRerun({ projectId: project.id as Id<"projects"> });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Could not clear research and strategy.";
+        setRunError(message);
+        throw error;
+      }
+    }
 
     try {
       await research.startResearch(input, providerId);
@@ -204,7 +238,7 @@ export function ResearchTab({
   }
 
   if (!research.hasArtifact || !research.data) {
-    if (research.isRunning) {
+    if (isRunBusy) {
       return <ResearchGeneratingState usingMockData={research.usingMockData} />;
     }
 
@@ -231,11 +265,11 @@ export function ResearchTab({
     );
   }
 
-  const tabData = isEditing && draftTabData ? draftTabData : research.data.tabData;
-
-  if (research.isRunning) {
+  if (isRunBusy) {
     return <ResearchGeneratingState usingMockData={research.usingMockData} />;
   }
+
+  const tabData = isEditing && draftTabData ? draftTabData : research.data.tabData;
 
   return (
     <>
@@ -247,11 +281,6 @@ export function ResearchTab({
                 {runError ?? saveError ?? notionExport.exportError ?? research.error}
               </p>
             ) : null}
-            {research.isRunning ? (
-              <p className="text-[13px] font-medium leading-[1.5] text-[#737373]">
-                Research is running. This tab updates when the artifact is saved.
-              </p>
-            ) : null}
             <ResearchSummary
               summary={tabData.summary}
               isEditing={isEditing}
@@ -261,6 +290,8 @@ export function ResearchTab({
               onDiscard={discardEditing}
               onSave={() => void saveEditing()}
               isSaving={isSaving}
+              onRerunResearch={() => setIsRerunDialogOpen(true)}
+              isRunBusy={isRunBusy}
             />
             <Divider />
             <CompanySnapshot
@@ -331,6 +362,7 @@ export function ResearchTab({
             <ResearchActions
               onAddSection={() => setIsAddingSection(true)}
               isAddingSection={isAddingSection}
+              isRunBusy={isRunBusy}
               onExportToNotion={() => {
                 notionExport.setExportError(null);
                 void notionExport.exportToNotion();
@@ -352,6 +384,24 @@ export function ResearchTab({
         onSubmit={(parentPageUrl) => void notionExport.exportToNotion(parentPageUrl)}
         isSubmitting={notionExport.isExporting}
         errorMessage={notionExport.exportError}
+      />
+      <ResearchRerunDialog
+        open={isRerunDialogOpen}
+        onOpenChange={setIsRerunDialogOpen}
+        initialValues={researchContext.initialValues}
+        isSubmitting={isRunBusy}
+        onBriefFileChange={research.setBriefFile}
+        onClearBriefAttachment={research.markBriefForRemoval}
+        onSubmit={(input, providerId) => void handleRunResearch(input, providerId, { isFullRerun: true })}
+      />
+      <DownstreamStepsDialog
+        open={downstreamPrompt.dialogOpen}
+        onOpenChange={downstreamPrompt.setDialogOpen}
+        upstreamKind={downstreamPrompt.upstreamKind}
+        onKeep={downstreamPrompt.keepDownstream}
+        onClear={() => void downstreamPrompt.clearDownstreamWork()}
+        isClearing={downstreamPrompt.isClearing}
+        errorMessage={downstreamPrompt.clearError}
       />
     </>
   );

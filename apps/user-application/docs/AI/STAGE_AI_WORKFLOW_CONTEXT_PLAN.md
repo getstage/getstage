@@ -1852,7 +1852,7 @@ packages/data-ops/convex/integrations.ts
 | Claude/Codex provider detection | Works | Connection preference UX still young | Should providers auto-enable after detection? | Keep explicit connect/disconnect |
 | Claude/Codex chat run | Basic run works | Not yet tied to project artifacts | What context level does chat receive by default? | Define chat context contract |
 | Research | Contracts, Rust models, Refero boundary, prompt builder, and service skeleton exist | Still not end-to-end; Stage Engine does not yet read/write Convex directly | Exact Convex query/mutation surface for Stage Engine | Add Stage Engine Convex client/repository, then wire artifact data |
-| Strategy | Figma flow exists | Approval rules unclear | Can it generate from draft Research? | Define Strategy artifact |
+| Strategy | End-to-end V1 now wired: stage-engine workflow, Convex persistence, desktop editing, section regenerate, and Notion export | Flow gating and approval policy are still product decisions | Should Flows require all Strategy sections approved? | Validate live provider output quality and decide the Flow gate |
 | Moodboard | Product concept exists | Refero + uploads + styleguide can get messy | What is required for styleguide generation? | Define Moodboard/Styleguide artifact |
 | Flows | Product concept exists | Could jump too quickly to screens | Does it produce flow plans or screens? | Define Flow artifact |
 | Generate/Wireframes | Product concept exists | Too easy to generate from weak context | Lo-Fi/Hi-Fi output shape | Define Wireframe artifact |

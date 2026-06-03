@@ -1,1145 +1,181 @@
-import { v } from "convex/values";
-import {
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
-} from "./_generated/server";
-import { requireProjectAccess } from "./_helpers";
-import type { Id } from "./_generated/dataModel";
-import { attachTrackedR2Asset, deleteOldR2Asset, resolveAssetUrl } from "./r2";
-
-const aiModule = v.union(
-  v.literal("research"),
-  v.literal("strategy"),
-  v.literal("flows"),
-  v.literal("moodboard"),
-  v.literal("generate"),
-  v.literal("delivery"),
-);
-
-const aiRunStatus = v.union(
-  v.literal("draft"),
-  v.literal("running"),
-  v.literal("completed"),
-  v.literal("failed"),
-  v.literal("needs_input"),
-);
-
-const aiArtifactStatus = v.union(
-  v.literal("draft"),
-  v.literal("ready"),
-  v.literal("approved"),
-  v.literal("superseded"),
-  v.literal("failed"),
-);
-
-const aiContentFormat = v.union(
-  v.literal("markdown"),
-  v.literal("json"),
-  v.literal("link_set"),
-);
-
-const exportProvider = v.union(v.literal("notion"), v.literal("figma"));
-
-const exportStatus = v.union(
-  v.literal("requested"),
-  v.literal("in_progress"),
-  v.literal("completed"),
-  v.literal("failed"),
-);
-
-function now() {
-  return Date.now();
-}
-
-function normalizeOptional(value?: string | null) {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
-}
-
-function normalizeList(values: string[]) {
-  return Array.from(
-    new Set(
-      values
-        .map((value) => value.trim())
-        .filter(Boolean),
-    ),
-  );
-}
-
-function isR2ObjectKey(value: string) {
-  return !/^https?:\/\//i.test(value) && !value.startsWith("data:");
-}
-
-function collectR2KeysFromJson(value: unknown, keys: Set<string>) {
-  if (typeof value === "string") {
-    if (isR2ObjectKey(value) && value.includes("/research/")) {
-      keys.add(value);
-    }
-    return;
-  }
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      collectR2KeysFromJson(item, keys);
-    }
-    return;
-  }
-
-  if (value && typeof value === "object") {
-    for (const nested of Object.values(value)) {
-      collectR2KeysFromJson(nested, keys);
-    }
-  }
-}
-
-function isStoredAssetKey(value: string) {
-  return (
-    !/^https?:\/\//i.test(value) &&
-    !value.startsWith("data:") &&
-    value.includes("/")
-  );
-}
-
-async function resolveResearchImageUrls(value: unknown): Promise<unknown> {
-  if (Array.isArray(value)) {
-    return Promise.all(value.map((item) => resolveResearchImageUrls(item)));
-  }
-
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    const next: Record<string, unknown> = {};
-
-    for (const [key, nested] of Object.entries(record)) {
-      const isResolvableUrlField =
-        (key === "imageUrl" || key === "thumbnailUrl" || key === "url") &&
-        typeof nested === "string";
-
-      if (isResolvableUrlField) {
-        next[key] =
-          isStoredAssetKey(nested) ? ((await resolveAssetUrl(nested)) ?? nested) : nested;
-        continue;
-      }
-
-      next[key] = await resolveResearchImageUrls(nested);
-    }
-
-    return next;
-  }
-
-  return value;
-}
-
-async function resolveResearchContentJson(contentJson: string | null | undefined) {
-  if (!contentJson?.trim()) {
-    return contentJson ?? null;
-  }
-
-  try {
-    const parsed = JSON.parse(contentJson);
-    const resolved = await resolveResearchImageUrls(parsed);
-    return JSON.stringify(resolved);
-  } catch {
-    return contentJson;
-  }
-}
-
-async function deletePreviousResearchArtifacts(
-  ctx: any,
-  projectId: Id<"projects">,
-) {
-  const artifacts = await ctx.db
-    .query("projectAiArtifacts")
-    .withIndex("by_project", (q: any) => q.eq("projectId", projectId))
-    .collect();
-
-  const previous = artifacts.filter(
-    (artifact: any) => artifact.module === "research" && artifact.kind === "researchArtifact",
-  );
-
-  for (const artifact of previous) {
-    if (artifact.contentJson) {
-      try {
-        const parsed = JSON.parse(artifact.contentJson);
-        const keys = new Set<string>();
-        collectR2KeysFromJson(parsed, keys);
-        for (const key of keys) {
-          await deleteOldR2Asset(ctx, key);
-        }
-      } catch {
-        // Keep going even if old JSON is invalid.
-      }
-    }
-
-    await ctx.db.delete(artifact._id);
-  }
-}
-
-async function requireProjectForApi(
-  ctx: any,
-  userId: Id<"users">,
-  projectId: Id<"projects">,
-) {
-  const project = await ctx.db.get(projectId);
-  if (!project) {
-    throw new Error("Project not found.");
-  }
-  if (project.userId !== userId) {
-    throw new Error("Not authorized.");
-  }
-  return project;
-}
-
-async function getContextRecord(ctx: any, projectId: Id<"projects">) {
-  return ctx.db
-    .query("projectAiContexts")
-    .withIndex("by_project", (q: any) => q.eq("projectId", projectId))
-    .unique();
-}
-
-async function getArtifactRecord(ctx: any, artifactId: Id<"projectAiArtifacts">) {
-  const artifact = await ctx.db.get(artifactId);
-  if (!artifact) {
-    throw new Error("Artifact not found.");
-  }
-  return artifact;
-}
-
-async function getRunRecord(ctx: any, runId: Id<"projectAiRuns">) {
-  const run = await ctx.db.get(runId);
-  if (!run) {
-    throw new Error("Run not found.");
-  }
-  return run;
-}
-
-async function listDestinationsForArtifacts(ctx: any, artifactIds: Id<"projectAiArtifacts">[]) {
-  const results = new Map<string, any[]>();
-  await Promise.all(
-    artifactIds.map(async (artifactId) => {
-      const destinations = await ctx.db
-        .query("artifactDestinations")
-        .withIndex("by_artifact", (q: any) => q.eq("artifactId", artifactId))
-        .collect();
-      results.set(String(artifactId), destinations.sort((a: any, b: any) => b.updatedAt - a.updatedAt));
-    }),
-  );
-  return results;
-}
-
-async function upsertContextRecord(
-  ctx: any,
-  args: {
-    userId: Id<"users">;
-    projectId: Id<"projects">;
-    industry?: string;
-    clientWebsite?: string;
-    competitorUrls: string[];
-    referenceUrls: string[];
-    brief?: string;
-    briefAttachmentName?: string | null;
-    briefAttachmentR2ObjectKey?: string | null;
-    notes?: string;
-  },
-) {
-  const existing = await getContextRecord(ctx, args.projectId);
-  const timestamp = now();
-  const hasBriefAttachmentKey = args.briefAttachmentR2ObjectKey !== undefined;
-  const hasBriefAttachmentName = args.briefAttachmentName !== undefined;
-  const nextBriefAttachmentKey = hasBriefAttachmentKey
-    ? normalizeOptional(args.briefAttachmentR2ObjectKey)
-    : (existing?.briefAttachmentR2ObjectKey ?? null);
-  const payload = {
-    industry: normalizeOptional(args.industry),
-    clientWebsite: normalizeOptional(args.clientWebsite),
-    competitorUrls: normalizeList(args.competitorUrls),
-    referenceUrls: normalizeList(args.referenceUrls),
-    brief: normalizeOptional(args.brief),
-    briefAttachmentName: hasBriefAttachmentName
-      ? normalizeOptional(args.briefAttachmentName)
-      : (existing?.briefAttachmentName ?? null),
-    briefAttachmentR2ObjectKey: nextBriefAttachmentKey,
-    notes: normalizeOptional(args.notes),
-    updatedAt: timestamp,
-  };
-
-  if (
-    hasBriefAttachmentKey &&
-    existing?.briefAttachmentR2ObjectKey &&
-    existing.briefAttachmentR2ObjectKey !== nextBriefAttachmentKey
-  ) {
-    await deleteOldR2Asset(ctx, existing.briefAttachmentR2ObjectKey);
-  }
-
-  if (nextBriefAttachmentKey && existing?.briefAttachmentR2ObjectKey !== nextBriefAttachmentKey) {
-    await attachTrackedR2Asset(ctx, { key: nextBriefAttachmentKey });
-  }
-
-  if (existing) {
-    await ctx.db.patch(existing._id, payload);
-    return existing._id;
-  }
-
-  return ctx.db.insert("projectAiContexts", {
-    userId: args.userId,
-    projectId: args.projectId,
-    createdAt: timestamp,
-    ...payload,
-  });
-}
-
-async function createRunRecord(
-  ctx: any,
-  args: {
-    userId: Id<"users">;
-    projectId: Id<"projects">;
-    connectionId?: Id<"agentConnections">;
-    module: "research" | "strategy" | "flows" | "moodboard" | "generate" | "delivery";
-    title: string;
-    status: "draft" | "running" | "completed" | "failed" | "needs_input";
-    trigger: "user" | "agent";
-    inputSummary?: string;
-    externalRunId?: string;
-  },
-) {
-  const timestamp = now();
-  return ctx.db.insert("projectAiRuns", {
-    userId: args.userId,
-    projectId: args.projectId,
-    connectionId: args.connectionId,
-    module: args.module,
-    title: args.title.trim(),
-    status: args.status,
-    trigger: args.trigger,
-    inputSummary: normalizeOptional(args.inputSummary),
-    externalRunId: normalizeOptional(args.externalRunId),
-    startedAt: timestamp,
-    updatedAt: timestamp,
-  });
-}
-
-async function createArtifactRecord(
-  ctx: any,
-  args: {
-    userId: Id<"users">;
-    projectId: Id<"projects">;
-    runId?: Id<"projectAiRuns">;
-    module: "research" | "strategy" | "flows" | "moodboard" | "generate" | "delivery";
-    kind: string;
-    title: string;
-    summary?: string;
-    status: "draft" | "ready" | "approved" | "superseded" | "failed";
-    contentFormat: "markdown" | "json" | "link_set";
-    contentMarkdown?: string;
-    contentJson?: string;
-    externalUrl?: string;
-  },
-) {
-  const timestamp = now();
-  const artifactId = await ctx.db.insert("projectAiArtifacts", {
-    userId: args.userId,
-    projectId: args.projectId,
-    runId: args.runId,
-    module: args.module,
-    kind: args.kind.trim(),
-    title: args.title.trim(),
-    summary: normalizeOptional(args.summary),
-    status: args.status,
-    contentFormat: args.contentFormat,
-    contentMarkdown: normalizeOptional(args.contentMarkdown),
-    contentJson: normalizeOptional(args.contentJson),
-    externalUrl: normalizeOptional(args.externalUrl),
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    approvedAt: args.status === "approved" ? timestamp : undefined,
-  });
-
-  if (args.runId) {
-    await ctx.db.patch(args.runId, {
-      status: args.status === "failed" ? "failed" : "completed",
-      errorMessage: args.status === "failed" ? normalizeOptional(args.summary) : undefined,
-      completedAt: timestamp,
-      updatedAt: timestamp,
-    });
-  }
-
-  return artifactId;
-}
+/**
+ * Project AI Convex endpoints — registered here only.
+ * Logic: `lib/projectAi/handlers/*` + `lib/projectAi/domain/*`
+ */
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import * as apiHandlers from "./lib/projectAi/handlers/api";
+import * as artifactHandlers from "./lib/projectAi/handlers/artifacts";
+import * as contextHandlers from "./lib/projectAi/handlers/context";
+import * as researchHandlers from "./lib/projectAi/handlers/research";
+import * as runHandlers from "./lib/projectAi/handlers/runs";
+import * as strategyHandlers from "./lib/projectAi/handlers/strategy";
 
 export const getContext = query({
-  args: {
-    projectId: v.id("projects"),
-  },
-  handler: async (ctx, args) => {
-    const { user, project } = await requireProjectAccess(ctx, args.projectId);
-    const record = await getContextRecord(ctx, args.projectId);
-
-    return {
-      projectId: String(project._id),
-      userId: String(user._id),
-      clientWebsite: record?.clientWebsite ?? "",
-      industry: record?.industry ?? "",
-      competitorUrls: record?.competitorUrls ?? [],
-      referenceUrls: record?.referenceUrls ?? [],
-      brief: record?.brief ?? "",
-      briefAttachmentName: record?.briefAttachmentName ?? null,
-      briefAttachmentR2ObjectKey: record?.briefAttachmentR2ObjectKey ?? null,
-      briefAttachmentUrl: await resolveAssetUrl(record?.briefAttachmentR2ObjectKey ?? null),
-      notes: record?.notes ?? "",
-      updatedAt: record?.updatedAt ?? null,
-    };
-  },
+  args: contextHandlers.getContextArgs,
+  handler: contextHandlers.getContextHandler,
 });
 
 export const getResearchInput = query({
-  args: {
-    projectId: v.id("projects"),
-  },
-  handler: async (ctx, args) => {
-    const { project } = await requireProjectAccess(ctx, args.projectId);
-    const record = await getContextRecord(ctx, args.projectId);
-
-    return {
-      projectId: String(project._id),
-      projectName: project.name,
-      clientName: project.clientName,
-      industry: record?.industry ?? null,
-      website: record?.clientWebsite ?? null,
-      projectBrief: record?.brief ?? null,
-      competitorUrls: record?.competitorUrls ?? [],
-      targetUsers: null,
-      additionalNotes: record?.notes ?? null,
-      uploadedAssetIds: record?.briefAttachmentR2ObjectKey
-        ? [record.briefAttachmentR2ObjectKey]
-        : [],
-    };
-  },
+  args: contextHandlers.getResearchInputArgs,
+  handler: contextHandlers.getResearchInputHandler,
 });
 
 export const upsertContext = mutation({
-  args: {
-    projectId: v.id("projects"),
-    industry: v.optional(v.string()),
-    clientWebsite: v.optional(v.string()),
-    competitorUrls: v.array(v.string()),
-    referenceUrls: v.array(v.string()),
-    brief: v.optional(v.string()),
-    briefAttachmentName: v.optional(v.union(v.string(), v.null())),
-    briefAttachmentR2ObjectKey: v.optional(v.union(v.string(), v.null())),
-    notes: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const { user } = await requireProjectAccess(ctx, args.projectId);
-    await upsertContextRecord(ctx, {
-      userId: user._id,
-      projectId: args.projectId,
-      industry: args.industry,
-      clientWebsite: args.clientWebsite,
-      competitorUrls: args.competitorUrls,
-      referenceUrls: args.referenceUrls,
-      brief: args.brief,
-      briefAttachmentName: args.briefAttachmentName,
-      briefAttachmentR2ObjectKey: args.briefAttachmentR2ObjectKey,
-      notes: args.notes,
-    });
-
-    return { saved: true, updatedAt: now() };
-  },
+  args: contextHandlers.upsertContextArgs,
+  handler: contextHandlers.upsertContextHandler,
 });
 
 export const listRuns = query({
-  args: {
-    projectId: v.id("projects"),
-    module: v.optional(aiModule),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectAccess(ctx, args.projectId);
-    const runs = await ctx.db
-      .query("projectAiRuns")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .collect();
-
-    return runs
-      .filter((run) => !args.module || run.module === args.module)
-      .sort((a, b) => b.startedAt - a.startedAt)
-      .map((run) => ({
-        id: String(run._id),
-        projectId: String(run.projectId),
-        connectionId: run.connectionId ? String(run.connectionId) : null,
-        module: run.module,
-        title: run.title,
-        status: run.status,
-        trigger: run.trigger,
-        externalRunId: run.externalRunId ?? null,
-        inputSummary: run.inputSummary ?? null,
-        errorMessage: run.errorMessage ?? null,
-        startedAt: run.startedAt,
-        completedAt: run.completedAt ?? null,
-        updatedAt: run.updatedAt,
-      }));
-  },
+  args: runHandlers.listRunsArgs,
+  handler: runHandlers.listRunsHandler,
 });
 
 export const createRun = mutation({
-  args: {
-    projectId: v.id("projects"),
-    connectionId: v.optional(v.id("agentConnections")),
-    module: aiModule,
-    title: v.string(),
-    inputSummary: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const { user } = await requireProjectAccess(ctx, args.projectId);
-    const runId = await createRunRecord(ctx, {
-      userId: user._id,
-      projectId: args.projectId,
-      connectionId: args.connectionId,
-      module: args.module,
-      title: args.title,
-      status: "draft",
-      trigger: "user",
-      inputSummary: args.inputSummary,
-    });
-
-    return {
-      runId: String(runId),
-      startedAt: now(),
-    };
-  },
-});
-
-export const createResearchRun = mutation({
-  args: {
-    projectId: v.id("projects"),
-    title: v.string(),
-    inputSummary: v.optional(v.string()),
-    externalRunId: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const { user } = await requireProjectAccess(ctx, args.projectId);
-    const runId = await createRunRecord(ctx, {
-      userId: user._id,
-      projectId: args.projectId,
-      module: "research",
-      title: args.title,
-      status: "running",
-      trigger: "user",
-      inputSummary: args.inputSummary,
-      externalRunId: args.externalRunId,
-    });
-
-    return {
-      runId: String(runId),
-      startedAt: now(),
-    };
-  },
-});
-
-export const completeResearchRun = mutation({
-  args: {
-    projectId: v.id("projects"),
-    runId: v.optional(v.id("projectAiRuns")),
-    title: v.string(),
-    summary: v.optional(v.string()),
-    contentJson: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { user } = await requireProjectAccess(ctx, args.projectId);
-
-    if (args.runId) {
-      const run = await getRunRecord(ctx, args.runId);
-      if (run.projectId !== args.projectId) {
-        throw new Error("Run not found.");
-      }
-    }
-
-    await deletePreviousResearchArtifacts(ctx, args.projectId);
-
-    const artifactId = await createArtifactRecord(ctx, {
-      userId: user._id,
-      projectId: args.projectId,
-      runId: args.runId,
-      module: "research",
-      kind: "researchArtifact",
-      title: args.title,
-      summary: args.summary,
-      status: "ready",
-      contentFormat: "json",
-      contentJson: args.contentJson,
-    });
-
-    return {
-      artifactId: String(artifactId),
-      completedAt: now(),
-    };
-  },
-});
-
-export const failResearchRun = mutation({
-  args: {
-    projectId: v.id("projects"),
-    runId: v.id("projectAiRuns"),
-    errorMessage: v.string(),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectAccess(ctx, args.projectId);
-    const run = await getRunRecord(ctx, args.runId);
-    if (run.projectId !== args.projectId) {
-      throw new Error("Run not found.");
-    }
-
-    const timestamp = now();
-    await ctx.db.patch(args.runId, {
-      status: "failed",
-      errorMessage: normalizeOptional(args.errorMessage),
-      completedAt: timestamp,
-      updatedAt: timestamp,
-    });
-
-    return {
-      runId: String(args.runId),
-      failedAt: timestamp,
-    };
-  },
+  args: runHandlers.createRunArgs,
+  handler: runHandlers.createRunHandler,
 });
 
 export const cancelRun = mutation({
-  args: {
-    runId: v.string(),
-    projectId: v.id("projects"),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectAccess(ctx, args.projectId);
-    const runId = args.runId as Id<"projectAiRuns">;
-    const run = await ctx.db.get(runId);
-    if (!run) {
-      throw new Error("Run not found");
-    }
-    if (run.status === "completed" || run.status === "failed") {
-      return;
-    }
-    await ctx.db.patch(runId, {
-      status: "failed",
-      errorMessage: "Cancelled by user",
-      completedAt: now(),
-      updatedAt: now(),
-    });
-  },
+  args: runHandlers.cancelRunArgs,
+  handler: runHandlers.cancelRunHandler,
+});
+
+export const createResearchRun = mutation({
+  args: researchHandlers.createResearchRunArgs,
+  handler: researchHandlers.createResearchRunHandler,
+});
+
+export const clearResearchAndStrategyForRerun = mutation({
+  args: researchHandlers.clearResearchAndStrategyForRerunArgs,
+  handler: researchHandlers.clearResearchAndStrategyForRerunHandler,
+});
+
+export const completeResearchRun = mutation({
+  args: researchHandlers.completeResearchRunArgs,
+  handler: researchHandlers.completeResearchRunHandler,
+});
+
+export const failResearchRun = mutation({
+  args: researchHandlers.failResearchRunArgs,
+  handler: researchHandlers.failResearchRunHandler,
 });
 
 export const getLatestResearchArtifact = query({
-  args: {
-    projectId: v.id("projects"),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectAccess(ctx, args.projectId);
-    const artifacts = await ctx.db
-      .query("projectAiArtifacts")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .collect();
-
-    const latest = artifacts
-      .filter((artifact) => artifact.module === "research" && artifact.kind === "researchArtifact")
-      .sort((left, right) => right.createdAt - left.createdAt)[0];
-
-    if (!latest) {
-      return null;
-    }
-
-    return {
-      id: String(latest._id),
-      projectId: String(latest.projectId),
-      runId: latest.runId ? String(latest.runId) : null,
-      title: latest.title,
-      summary: latest.summary ?? null,
-      status: latest.status,
-      contentJson: await resolveResearchContentJson(latest.contentJson ?? null),
-      createdAt: latest.createdAt,
-      updatedAt: latest.updatedAt,
-    };
-  },
+  args: researchHandlers.getLatestResearchArtifactArgs,
+  handler: researchHandlers.getLatestResearchArtifactHandler,
 });
 
 export const updateResearchArtifact = mutation({
-  args: {
-    projectId: v.id("projects"),
-    artifactId: v.id("projectAiArtifacts"),
-    contentJson: v.string(),
-    summary: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectAccess(ctx, args.projectId);
-    const artifact = await getArtifactRecord(ctx, args.artifactId);
+  args: researchHandlers.updateResearchArtifactArgs,
+  handler: researchHandlers.updateResearchArtifactHandler,
+});
 
-    if (artifact.projectId !== args.projectId) {
-      throw new Error("Artifact not found.");
-    }
+export const upsertStrategyGenerateInput = mutation({
+  args: strategyHandlers.upsertStrategyGenerateInputArgs,
+  handler: strategyHandlers.upsertStrategyGenerateInputHandler,
+});
 
-    if (artifact.module !== "research" || artifact.kind !== "researchArtifact") {
-      throw new Error("Artifact is not a research artifact.");
-    }
+export const getStrategyInput = query({
+  args: strategyHandlers.getStrategyInputArgs,
+  handler: strategyHandlers.getStrategyInputHandler,
+});
 
-    JSON.parse(args.contentJson);
+export const createStrategyRun = mutation({
+  args: strategyHandlers.createStrategyRunArgs,
+  handler: strategyHandlers.createStrategyRunHandler,
+});
 
-    const timestamp = now();
-    await ctx.db.patch(args.artifactId, {
-      contentJson: args.contentJson,
-      summary: normalizeOptional(args.summary),
-      updatedAt: timestamp,
-    });
+export const completeStrategyRun = mutation({
+  args: strategyHandlers.completeStrategyRunArgs,
+  handler: strategyHandlers.completeStrategyRunHandler,
+});
 
-    return {
-      artifactId: String(args.artifactId),
-      updatedAt: timestamp,
-    };
-  },
+export const failStrategyRun = mutation({
+  args: strategyHandlers.failStrategyRunArgs,
+  handler: strategyHandlers.failStrategyRunHandler,
+});
+
+export const updateStrategyArtifact = mutation({
+  args: strategyHandlers.updateStrategyArtifactArgs,
+  handler: strategyHandlers.updateStrategyArtifactHandler,
 });
 
 export const getLatestStrategyArtifact = query({
-  args: {
-    projectId: v.id("projects"),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectAccess(ctx, args.projectId);
-    const artifacts = await ctx.db
-      .query("projectAiArtifacts")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .collect();
-
-    const latest = artifacts
-      .filter((artifact) => artifact.module === "strategy" && artifact.kind === "strategyArtifact")
-      .sort((left, right) => right.createdAt - left.createdAt)[0];
-
-    if (!latest) {
-      return null;
-    }
-
-    return {
-      id: String(latest._id),
-      projectId: String(latest.projectId),
-      runId: latest.runId ? String(latest.runId) : null,
-      title: latest.title,
-      summary: latest.summary ?? null,
-      status: latest.status,
-      contentJson: latest.contentJson ?? null,
-      createdAt: latest.createdAt,
-      updatedAt: latest.updatedAt,
-    };
-  },
+  args: strategyHandlers.getLatestStrategyArtifactArgs,
+  handler: strategyHandlers.getLatestStrategyArtifactHandler,
 });
 
 export const getLatestMoodboardArtifact = query({
-  args: {
-    projectId: v.id("projects"),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectAccess(ctx, args.projectId);
-    const artifacts = await ctx.db
-      .query("projectAiArtifacts")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .collect();
-
-    const latest = artifacts
-      .filter((artifact) => artifact.module === "moodboard" && artifact.kind === "moodboardArtifact")
-      .sort((left, right) => right.createdAt - left.createdAt)[0];
-
-    if (!latest) {
-      return null;
-    }
-
-    return {
-      id: String(latest._id),
-      projectId: String(latest.projectId),
-      runId: latest.runId ? String(latest.runId) : null,
-      title: latest.title,
-      summary: latest.summary ?? null,
-      status: latest.status,
-      contentJson: latest.contentJson ?? null,
-      createdAt: latest.createdAt,
-      updatedAt: latest.updatedAt,
-    };
-  },
+  args: artifactHandlers.getLatestMoodboardArtifactArgs,
+  handler: artifactHandlers.getLatestMoodboardArtifactHandler,
 });
 
 export const getLatestFlowsArtifact = query({
-  args: {
-    projectId: v.id("projects"),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectAccess(ctx, args.projectId);
-    const artifacts = await ctx.db
-      .query("projectAiArtifacts")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .collect();
-
-    const latest = artifacts
-      .filter((artifact) => artifact.module === "flows" && artifact.kind === "flowsArtifact")
-      .sort((left, right) => right.createdAt - left.createdAt)[0];
-
-    if (!latest) {
-      return null;
-    }
-
-    return {
-      id: String(latest._id),
-      projectId: String(latest.projectId),
-      runId: latest.runId ? String(latest.runId) : null,
-      title: latest.title,
-      summary: latest.summary ?? null,
-      status: latest.status,
-      contentJson: latest.contentJson ?? null,
-      createdAt: latest.createdAt,
-      updatedAt: latest.updatedAt,
-    };
-  },
+  args: artifactHandlers.getLatestFlowsArtifactArgs,
+  handler: artifactHandlers.getLatestFlowsArtifactHandler,
 });
 
 export const getLatestWireframesArtifact = query({
-  args: {
-    projectId: v.id("projects"),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectAccess(ctx, args.projectId);
-    const artifacts = await ctx.db
-      .query("projectAiArtifacts")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .collect();
-
-    const latest = artifacts
-      .filter((artifact) => artifact.module === "generate" && artifact.kind === "wireframesArtifact")
-      .sort((left, right) => right.createdAt - left.createdAt)[0];
-
-    if (!latest) {
-      return null;
-    }
-
-    return {
-      id: String(latest._id),
-      projectId: String(latest.projectId),
-      runId: latest.runId ? String(latest.runId) : null,
-      title: latest.title,
-      summary: latest.summary ?? null,
-      status: latest.status,
-      contentJson: latest.contentJson ?? null,
-      createdAt: latest.createdAt,
-      updatedAt: latest.updatedAt,
-    };
-  },
+  args: artifactHandlers.getLatestWireframesArtifactArgs,
+  handler: artifactHandlers.getLatestWireframesArtifactHandler,
 });
 
 export const getLatestAssetsArtifact = query({
-  args: {
-    projectId: v.id("projects"),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectAccess(ctx, args.projectId);
-    const artifacts = await ctx.db
-      .query("projectAiArtifacts")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .collect();
-
-    const latest = artifacts
-      .filter((artifact) => artifact.module === "delivery" && artifact.kind === "assetsArtifact")
-      .sort((left, right) => right.createdAt - left.createdAt)[0];
-
-    if (!latest) {
-      return null;
-    }
-
-    return {
-      id: String(latest._id),
-      projectId: String(latest.projectId),
-      runId: latest.runId ? String(latest.runId) : null,
-      title: latest.title,
-      summary: latest.summary ?? null,
-      status: latest.status,
-      contentJson: latest.contentJson ?? null,
-      createdAt: latest.createdAt,
-      updatedAt: latest.updatedAt,
-    };
-  },
+  args: artifactHandlers.getLatestAssetsArtifactArgs,
+  handler: artifactHandlers.getLatestAssetsArtifactHandler,
 });
 
 export const listArtifacts = query({
-  args: {
-    projectId: v.id("projects"),
-    module: v.optional(aiModule),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectAccess(ctx, args.projectId);
-    const artifacts = await ctx.db
-      .query("projectAiArtifacts")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .collect();
-    const filtered = artifacts
-      .filter((artifact) => !args.module || artifact.module === args.module)
-      .sort((a, b) => b.createdAt - a.createdAt);
-    const destinationsByArtifact = await listDestinationsForArtifacts(
-      ctx,
-      filtered.map((artifact) => artifact._id),
-    );
-
-    return filtered.map((artifact) => ({
-      id: String(artifact._id),
-      projectId: String(artifact.projectId),
-      runId: artifact.runId ? String(artifact.runId) : null,
-      module: artifact.module,
-      kind: artifact.kind,
-      title: artifact.title,
-      summary: artifact.summary ?? null,
-      status: artifact.status,
-      contentFormat: artifact.contentFormat,
-      contentMarkdown: artifact.contentMarkdown ?? null,
-      contentJson: artifact.contentJson ?? null,
-      externalUrl: artifact.externalUrl ?? null,
-      createdAt: artifact.createdAt,
-      updatedAt: artifact.updatedAt,
-      approvedAt: artifact.approvedAt ?? null,
-      destinations: (destinationsByArtifact.get(String(artifact._id)) ?? []).map((destination) => ({
-        id: String(destination._id),
-        provider: destination.provider,
-        action: destination.action,
-        status: destination.status,
-        destinationLabel: destination.destinationLabel ?? null,
-        destinationUrl: destination.destinationUrl ?? null,
-        errorMessage: destination.errorMessage ?? null,
-        lastSyncedAt: destination.lastSyncedAt ?? null,
-        createdAt: destination.createdAt,
-        updatedAt: destination.updatedAt,
-      })),
-    }));
-  },
+  args: artifactHandlers.listArtifactsArgs,
+  handler: artifactHandlers.listArtifactsHandler,
 });
 
 export const setArtifactStatus = mutation({
-  args: {
-    artifactId: v.id("projectAiArtifacts"),
-    status: aiArtifactStatus,
-  },
-  handler: async (ctx, args) => {
-    const artifact = await getArtifactRecord(ctx, args.artifactId);
-    await requireProjectAccess(ctx, artifact.projectId);
-    const timestamp = now();
+  args: artifactHandlers.setArtifactStatusArgs,
+  handler: artifactHandlers.setArtifactStatusHandler,
+});
 
-    await ctx.db.patch(args.artifactId, {
-      status: args.status,
-      approvedAt: args.status === "approved" ? timestamp : undefined,
-      updatedAt: timestamp,
-    });
-
-    return {
-      artifactId: String(args.artifactId),
-      status: args.status,
-      updatedAt: timestamp,
-    };
-  },
+export const clearDownstreamArtifacts = mutation({
+  args: artifactHandlers.clearDownstreamArtifactsArgs,
+  handler: artifactHandlers.clearDownstreamArtifactsHandler,
 });
 
 export const requestArtifactDestination = mutation({
-  args: {
-    artifactId: v.id("projectAiArtifacts"),
-    provider: exportProvider,
-    action: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const artifact = await getArtifactRecord(ctx, args.artifactId);
-    const { user } = await requireProjectAccess(ctx, artifact.projectId);
-    const timestamp = now();
-    const destinationId = await ctx.db.insert("artifactDestinations", {
-      userId: user._id,
-      artifactId: artifact._id,
-      projectId: artifact.projectId,
-      provider: args.provider,
-      action: args.action.trim(),
-      status: "requested",
-      requestedVia: "claude",
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
-
-    return {
-      destinationId: String(destinationId),
-      requestedAt: timestamp,
-    };
-  },
+  args: artifactHandlers.requestArtifactDestinationArgs,
+  handler: artifactHandlers.requestArtifactDestinationHandler,
 });
 
 export const getContextForApi = internalQuery({
-  args: {
-    userId: v.id("users"),
-    projectId: v.id("projects"),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectForApi(ctx, args.userId, args.projectId);
-    const record = await getContextRecord(ctx, args.projectId);
-    if (!record) {
-      return null;
-    }
-
-    return {
-      ...record,
-      briefAttachmentName: record.briefAttachmentName ?? null,
-      briefAttachmentUrl: await resolveAssetUrl(record.briefAttachmentR2ObjectKey ?? null),
-    };
-  },
+  args: apiHandlers.getContextForApiArgs,
+  handler: apiHandlers.getContextForApiHandler,
 });
 
 export const upsertContextForApi = internalMutation({
-  args: {
-    userId: v.id("users"),
-    projectId: v.id("projects"),
-    clientWebsite: v.optional(v.string()),
-    competitorUrls: v.array(v.string()),
-    referenceUrls: v.array(v.string()),
-    brief: v.optional(v.string()),
-    briefAttachmentName: v.optional(v.union(v.string(), v.null())),
-    briefAttachmentR2ObjectKey: v.optional(v.union(v.string(), v.null())),
-    notes: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectForApi(ctx, args.userId, args.projectId);
-    const contextId = await upsertContextRecord(ctx, args);
-    return { contextId };
-  },
+  args: apiHandlers.upsertContextForApiArgs,
+  handler: apiHandlers.upsertContextForApiHandler,
 });
 
 export const listRunsForApi = internalQuery({
-  args: {
-    userId: v.id("users"),
-    projectId: v.id("projects"),
-    module: v.optional(aiModule),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectForApi(ctx, args.userId, args.projectId);
-    const runs = await ctx.db
-      .query("projectAiRuns")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .collect();
-
-    return runs
-      .filter((run) => !args.module || run.module === args.module)
-      .sort((a, b) => b.startedAt - a.startedAt);
-  },
+  args: apiHandlers.listRunsForApiArgs,
+  handler: apiHandlers.listRunsForApiHandler,
 });
 
 export const createRunForApi = internalMutation({
-  args: {
-    userId: v.id("users"),
-    projectId: v.id("projects"),
-    connectionId: v.optional(v.id("agentConnections")),
-    module: aiModule,
-    title: v.string(),
-    status: aiRunStatus,
-    trigger: v.union(v.literal("user"), v.literal("agent")),
-    inputSummary: v.optional(v.string()),
-    externalRunId: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectForApi(ctx, args.userId, args.projectId);
-    const runId = await createRunRecord(ctx, args);
-    return { runId };
-  },
+  args: apiHandlers.createRunForApiArgs,
+  handler: apiHandlers.createRunForApiHandler,
 });
 
 export const listArtifactsForApi = internalQuery({
-  args: {
-    userId: v.id("users"),
-    projectId: v.id("projects"),
-    module: v.optional(aiModule),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectForApi(ctx, args.userId, args.projectId);
-    const artifacts = await ctx.db
-      .query("projectAiArtifacts")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .collect();
-
-    return artifacts
-      .filter((artifact) => !args.module || artifact.module === args.module)
-      .sort((a, b) => b.createdAt - a.createdAt);
-  },
+  args: apiHandlers.listArtifactsForApiArgs,
+  handler: apiHandlers.listArtifactsForApiHandler,
 });
 
 export const createArtifactForApi = internalMutation({
-  args: {
-    userId: v.id("users"),
-    projectId: v.id("projects"),
-    runId: v.optional(v.id("projectAiRuns")),
-    module: aiModule,
-    kind: v.string(),
-    title: v.string(),
-    summary: v.optional(v.string()),
-    status: aiArtifactStatus,
-    contentFormat: aiContentFormat,
-    contentMarkdown: v.optional(v.string()),
-    contentJson: v.optional(v.string()),
-    externalUrl: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    await requireProjectForApi(ctx, args.userId, args.projectId);
-    if (args.runId) {
-      const run = await getRunRecord(ctx, args.runId);
-      if (run.projectId !== args.projectId) {
-        throw new Error("Run not found.");
-      }
-    }
-
-    const artifactId = await createArtifactRecord(ctx, args);
-    return { artifactId };
-  },
+  args: apiHandlers.createArtifactForApiArgs,
+  handler: apiHandlers.createArtifactForApiHandler,
 });
 
 export const upsertArtifactExportForApi = internalMutation({
-  args: {
-    userId: v.id("users"),
-    artifactId: v.id("projectAiArtifacts"),
-    provider: exportProvider,
-    action: v.string(),
-    status: exportStatus,
-    destinationLabel: v.optional(v.string()),
-    destinationUrl: v.optional(v.string()),
-    errorMessage: v.optional(v.string()),
-    lastSyncedAt: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const artifact = await getArtifactRecord(ctx, args.artifactId);
-    await requireProjectForApi(ctx, args.userId, artifact.projectId);
-    const timestamp = now();
-    const existing = (
-      await ctx.db
-        .query("artifactDestinations")
-        .withIndex("by_artifact", (q) => q.eq("artifactId", args.artifactId))
-        .collect()
-    )
-      .filter((destination) => destination.provider === args.provider && destination.action === args.action)
-      .sort((a, b) => b.updatedAt - a.updatedAt)[0];
-
-    const patch = {
-      destinationLabel: normalizeOptional(args.destinationLabel),
-      destinationUrl: normalizeOptional(args.destinationUrl),
-      errorMessage: normalizeOptional(args.errorMessage),
-      lastSyncedAt: args.lastSyncedAt ?? timestamp,
-      status: args.status,
-      updatedAt: timestamp,
-    };
-
-    if (existing) {
-      await ctx.db.patch(existing._id, patch);
-      return { destinationId: existing._id };
-    }
-
-    const destinationId = await ctx.db.insert("artifactDestinations", {
-      userId: args.userId,
-      artifactId: artifact._id,
-      projectId: artifact.projectId,
-      provider: args.provider,
-      action: args.action.trim(),
-      requestedVia: "claude",
-      createdAt: timestamp,
-      ...patch,
-    });
-
-    return { destinationId };
-  },
+  args: apiHandlers.upsertArtifactExportForApiArgs,
+  handler: apiHandlers.upsertArtifactExportForApiHandler,
 });

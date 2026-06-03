@@ -10,7 +10,7 @@ const DEFAULT_RESEARCH_MODELS: Record<ProviderId, string> = {
 };
 
 export function useResearchSectionRegenerate(projectId: string) {
-  const providerRun = useProviderRun();
+  const providerRun = useProviderRun({ projectId, mode: "research-section" });
   const providerPreferences = useProviderPreferences();
   const providers = useProviderStatus();
 

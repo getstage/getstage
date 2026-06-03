@@ -87,7 +87,7 @@ export function ClientDetailsStep({
             <input
               value={clientName}
               onChange={(event) => onClientNameChange(event.target.value)}
-              placeholder="BaseFrame"
+              placeholder="Acme Inc."
               aria-label="Client name"
               className={inputSurfaceClassName}
             />

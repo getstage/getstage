@@ -1,8 +1,10 @@
-import { useCallback } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { RunEvent, StartRunRequest } from "@stage/data-ops/contracts";
 import { engineQueryKeys } from "./queryKeys";
 import { useDesktopBridge } from "../useDesktopBridge";
+
+type ActiveRunSnapshot = { runId: string };
 
 export function useProviderRunEvents(runId: string | null) {
   return useQuery({
@@ -13,11 +15,26 @@ export function useProviderRunEvents(runId: string | null) {
   });
 }
 
-export function useProviderRun() {
+type ProviderRunScope = {
+  projectId: string;
+  mode: string;
+};
+
+export function useProviderRun(scope?: ProviderRunScope) {
   const desktop = useDesktopBridge();
+  const queryClient = useQueryClient();
+  const activeRunKey = scope
+    ? engineQueryKeys.activeProviderRun(scope.projectId, scope.mode)
+    : null;
 
   const startRun = useMutation({
+    mutationKey: activeRunKey ?? undefined,
     mutationFn: (request: StartRunRequest) => desktop.engine.startRun(request),
+    onSuccess: (data, _variables, _context) => {
+      if (activeRunKey) {
+        queryClient.setQueryData<ActiveRunSnapshot>(activeRunKey, { runId: data.runId });
+      }
+    },
   });
 
   const cancelRun = useMutation({
@@ -26,16 +43,43 @@ export function useProviderRun() {
 
   const resetActiveRun = useCallback(() => {
     startRun.reset();
-  }, [startRun]);
+    if (activeRunKey) {
+      queryClient.removeQueries({ queryKey: activeRunKey });
+    }
+  }, [activeRunKey, queryClient, startRun]);
 
-  const activeRunId = startRun.data?.runId ?? null;
+  const cachedActiveRun = activeRunKey
+    ? queryClient.getQueryData<ActiveRunSnapshot>(activeRunKey)
+    : null;
+
+  const activeRunId = startRun.data?.runId ?? cachedActiveRun?.runId ?? null;
   const activeRunEventsQuery = useProviderRunEvents(activeRunId);
+
+  const activeRunEvents = activeRunEventsQuery.data ?? [];
+  const hasTerminalEvent = useMemo(
+    () =>
+      activeRunEvents.some(
+        (event) =>
+          event.type === "run_completed" ||
+          event.type === "run_failed" ||
+          event.type === "run_cancelled",
+      ),
+    [activeRunEvents],
+  );
+
+  const isRunActive = useMemo(
+    () => activeRunId !== null && !hasTerminalEvent && !startRun.isError,
+    [activeRunId, hasTerminalEvent, startRun.isError],
+  );
 
   return {
     startRun,
     cancelRun,
     resetActiveRun,
     activeRunId,
-    activeRunEvents: activeRunEventsQuery.data ?? [],
+    activeRunEvents,
+    hasTerminalEvent,
+    isRunActive,
+    isStarting: startRun.isPending,
   };
 }

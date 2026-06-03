@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import {
   createSeedFlows,
   createSeedScreens,
@@ -18,7 +19,13 @@ import { FlowIcon, ScreenIcon } from "./flowsIcons";
 import { ScreenFilter } from "./ScreenFilter";
 import { ScreensPanel } from "./ScreensPanel";
 
-export function FlowsTab({ project }: { project: Project }) {
+type FlowsTabProps = {
+  project: Project;
+  onGoToResearch?: () => void;
+  onGoToStrategy?: () => void;
+};
+
+export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabProps) {
   const flowsTab = useFlowsTab({ id: project.id, name: project.name });
   const initialFlows = useMemo(
     () => (project.flows.length > 0 ? project.flows : createSeedFlows()),
@@ -155,6 +162,11 @@ export function FlowsTab({ project }: { project: Project }) {
 
   return (
     <>
+      <UpstreamStaleBanner
+        projectId={project.id}
+        onGoToResearch={onGoToResearch}
+        onGoToStrategy={onGoToStrategy}
+      />
       <section className="overflow-hidden rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="flex flex-col gap-4 p-4">
           <div className="flex flex-wrap items-end justify-between gap-5">

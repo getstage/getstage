@@ -6,4 +6,5 @@ pub mod refero;
 pub mod research;
 pub mod runs;
 pub mod status;
+pub mod strategy;
 pub mod voice;

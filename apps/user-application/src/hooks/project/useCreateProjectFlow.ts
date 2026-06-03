@@ -7,7 +7,6 @@ import { useClientsQuery } from "@/hooks/convex-data/useClientsQuery";
 import { AI_ROADMAPS } from "@/lib/constants";
 import { api } from "@/lib/convexApi";
 import { isProjectUpgradeRequiredError, toUserFacingErrorMessage } from "@/lib/errors";
-import { settingsSnapshot } from "@/data/settings/settingsSnapshot";
 import {
   basicDetailsFormSchema,
   clientDetailsFormSchema,
@@ -40,13 +39,15 @@ export function useCreateProjectFlow() {
   const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
 
   const existingClients = useMemo<ExistingClientOption[]>(() => {
-    const clients = clientsQueryData?.length ? clientsQueryData : settingsSnapshot.clients;
+    if (!clientsQueryData) {
+      return [];
+    }
 
-    return clients.map((client) => ({
+    return clientsQueryData.map((client) => ({
       id: String(client.id),
       name: client.name,
       email: client.email,
-      avatarUrl: "avatarUrl" in client ? client.avatarUrl : undefined,
+      avatarUrl: client.avatarUrl,
     }));
   }, [clientsQueryData]);
 

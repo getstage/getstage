@@ -7,12 +7,13 @@ use serde::{Deserialize, Serialize};
 use super::errors::EngineError;
 use super::providers::{ProviderId, ProviderOptionChoice};
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum RunMode {
     Chat,
     Voice,
     Research,
+    Strategy,
     Generation,
     Critique,
     Styleguide,

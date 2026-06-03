@@ -24,6 +24,10 @@ import {
 } from "./domain/projects/service";
 import { attachTrackedR2Asset, deleteOldR2Asset, resolveAssetUrl } from "./r2";
 import { deleteGeneratedDesignsForProject } from "./integrations/stitch";
+import {
+  deleteAllProjectAiData,
+  deleteProjectCollaboratorsForProject,
+} from "./lib/projectAi/domain/projectCleanup";
 
 function now() {
   return Date.now();
@@ -435,6 +439,8 @@ export async function deleteProjectWithDependents(
   }
 
   await deleteGeneratedDesignsForProject(ctx, projectId);
+  await deleteAllProjectAiData(ctx, projectId);
+  await deleteProjectCollaboratorsForProject(ctx, projectId);
 
   await ctx.db.delete(project._id);
 

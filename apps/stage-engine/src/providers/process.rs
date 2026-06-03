@@ -188,6 +188,20 @@ pub async fn run_provider_process_collect(
                             continue;
                         }
 
+                        if looks_like_json_artifact_line(&line.text) {
+                            append_output(&mut final_text, &line.text);
+                        }
+
+                        if should_suppress_stderr_warning(&line.text) {
+                            tracing::debug!(
+                                run_id = %context.run_id,
+                                provider_id = ?context.request.provider_id,
+                                stderr = %line.text,
+                                "provider stderr (suppressed warning)"
+                            );
+                            continue;
+                        }
+
                         tracing::warn!(
                             run_id = %context.run_id,
                             provider_id = ?context.request.provider_id,
@@ -281,4 +295,72 @@ fn append_output(final_text: &mut String, text: &str) {
         final_text.push('\n');
     }
     final_text.push_str(text);
+}
+
+fn looks_like_json_artifact_line(text: &str) -> bool {
+    let trimmed = text.trim();
+    trimmed.starts_with('{')
+        && trimmed.ends_with('}')
+        && trimmed.contains("\"artifactKind\"")
+}
+
+/// Codex often streams artifact JSON and prompt echoes on stderr. Still parsed when needed,
+/// but not surfaced as provider_warning (avoids false "something broke" signals in the terminal).
+fn should_suppress_stderr_warning(text: &str) -> bool {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return true;
+    }
+
+    if looks_like_json_artifact_line(text) {
+        return true;
+    }
+
+    if trimmed == "codex" || trimmed.starts_with("tokens used") {
+        return true;
+    }
+
+    if trimmed.contains("\"artifactKind\"")
+        || trimmed.contains("researchArtifact")
+        || trimmed.contains("strategyArtifact")
+        || trimmed.contains("ui-patterns-")
+        || trimmed.contains("recognizedPatterns")
+        || trimmed.contains("sourceReferenceId")
+        || trimmed.contains("imageUrl")
+    {
+        return true;
+    }
+
+    if trimmed.starts_with("Requirements:")
+        || trimmed.starts_with("- Use exactly these seven sections")
+        || trimmed.starts_with("- `apiVersion`")
+        || trimmed.starts_with("- `artifactKind`")
+        || trimmed.starts_with("- Make the strategy specific")
+        || trimmed.starts_with("- Set every section to")
+        || trimmed.starts_with("- For Content Strategy")
+        || trimmed.starts_with("- For Competitive Positioning")
+        || trimmed.starts_with("- For Key Pages")
+        || trimmed.starts_with("- For `table` sections")
+        || trimmed.starts_with("The JSON must use:")
+        || trimmed.starts_with("  1. Design Direction")
+        || trimmed.starts_with("  2. Design Principles")
+        || trimmed.starts_with("  3. Target Audience")
+        || trimmed.starts_with("  4. Content Strategy")
+        || trimmed.starts_with("  5. Competitive Positioning")
+        || trimmed.starts_with("  6. Key Pages")
+        || trimmed.starts_with("  7. Accessibility")
+    {
+        return true;
+    }
+
+    // JSON line fragments (Codex pretty-print on stderr)
+    let looks_like_json_fragment = (trimmed.starts_with('"') && trimmed.contains("\":"))
+        || trimmed == "{"
+        || trimmed == "}"
+        || trimmed == "],"
+        || trimmed.starts_with("},")
+        || trimmed.starts_with("{")
+        || trimmed.starts_with("[");
+
+    looks_like_json_fragment
 }

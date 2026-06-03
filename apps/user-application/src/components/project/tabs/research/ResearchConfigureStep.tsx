@@ -22,14 +22,30 @@ export function ResearchConfigureStep({
   onBriefFileChange,
   onClearBriefAttachment,
   onSubmit,
+  onCancel,
+  title = "Configure Research",
+  description = "Provide context about the client and their market. The more you give, the better the research.",
+  submitLabel = "Run Research",
+  submitVariant = "primary",
+  warningMessage,
 }: {
   isSubmitting: boolean;
   initialValues?: ResearchConfigureFormValues;
   onBriefFileChange?: (file: File | null) => void;
   onClearBriefAttachment?: () => void;
   onSubmit: (input: ValidatedResearchConfigureInput, providerId: ProviderId) => void;
+  onCancel?: () => void;
+  title?: string;
+  description?: string;
+  submitLabel?: string;
+  submitVariant?: "primary" | "secondary";
+  warningMessage?: string;
 }) {
   const [values, setValues] = useState<ResearchConfigureFormValues>(initialValues);
+
+  useEffect(() => {
+    setValues(initialValues);
+  }, [initialValues]);
   const [competitorInput, setCompetitorInput] = useState("");
   const [fieldErrors, setFieldErrors] = useState<ResearchConfigureFieldErrors>({});
   const [providerError, setProviderError] = useState<string | null>(null);
@@ -203,9 +219,9 @@ export function ResearchConfigureStep({
         <div className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
           <div className="flex items-center justify-center p-4">
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <p className="text-[15px] font-medium leading-none text-[#171717]">Configure Research</p>
+              <p className="text-[15px] font-medium leading-none text-[#171717]">{title}</p>
               <p className="max-w-[385px] text-[12px] font-medium leading-[1.5] text-[#737373]">
-                Provide context about the client and their market. The more you give, the better the research.
+                {description}
               </p>
             </div>
           </div>
@@ -346,10 +362,14 @@ export function ResearchConfigureStep({
                 error={providerError ?? undefined}
               />
 
+              {warningMessage ? (
+                <p className="text-[12px] font-medium leading-[1.5] text-[#B45309]">{warningMessage}</p>
+              ) : null}
+
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={resetForm}
+                  onClick={onCancel ?? resetForm}
                   className="inline-flex h-[37px] items-center rounded-[6px] bg-white px-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA]"
                 >
                   Cancel
@@ -358,10 +378,21 @@ export function ResearchConfigureStep({
                   type="button"
                   disabled={!canSubmit || isSubmitting}
                   onClick={handleSubmit}
-                  className="inline-flex h-[37px] items-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] disabled:cursor-default disabled:opacity-50"
+                  className={
+                    submitVariant === "secondary"
+                      ? "inline-flex h-[37px] items-center gap-2 rounded-[6px] bg-[#F5F5F5] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC] disabled:cursor-not-allowed disabled:opacity-50"
+                      : "inline-flex h-[37px] items-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] disabled:cursor-default disabled:opacity-50"
+                  }
                 >
-                  <img src="/logos/dashboard/ai-generated.svg" alt="" aria-hidden="true" className="h-[15px] w-[15px] brightness-0 invert" />
-                  Run Research
+                  {submitVariant === "primary" ? (
+                    <img
+                      src="/logos/dashboard/ai-generated.svg"
+                      alt=""
+                      aria-hidden="true"
+                      className="h-[15px] w-[15px] brightness-0 invert"
+                    />
+                  ) : null}
+                  {isSubmitting ? "Running…" : submitLabel}
                 </button>
               </div>
             </div>

@@ -2,6 +2,18 @@ import { cn } from "@/lib/utils";
 import type { StrategySection } from "@/models/project/strategyTab";
 import { StrategyIcon } from "./strategyIcons";
 
+function parseLabeledLine(line: string) {
+  const match = line.match(/^([^:]{2,40}):\s*(.+)$/);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    label: match[1].trim(),
+    value: match[2].trim(),
+  };
+}
+
 export function StrategyContent({
   section,
   variant = "default",
@@ -87,6 +99,46 @@ export function StrategyContent({
             </ul>
           </article>
         ))}
+      </div>
+    );
+  }
+
+  if (section.kind === "paragraph") {
+    const labeledRows = (section.body ?? [])
+      .map((line) => ({ raw: line, parsed: parseLabeledLine(line) }));
+    const hasLabels = labeledRows.some((row) => row.parsed);
+
+    return (
+      <div
+        className={cn(
+          "rounded-[8px] bg-[#F5F5F5] p-4 text-[13px] font-medium",
+          variant === "edit" ? "text-[#404040]" : "text-[#262626]",
+        )}
+      >
+        {hasLabels ? (
+          <div className="flex flex-col gap-3">
+            {labeledRows.map((row) => (
+              <div key={row.raw} className="flex flex-col gap-1">
+                {row.parsed ? (
+                  <>
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.04em] text-[#171717]">
+                      {row.parsed.label}
+                    </p>
+                    <p className="leading-[1.55] text-[#525252]">{row.parsed.value}</p>
+                  </>
+                ) : (
+                  <p className="leading-[1.55] text-[#525252]">{row.raw}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          section.body?.map((line) => (
+            <p key={line} className="mb-2 last:mb-0">
+              {line}
+            </p>
+          ))
+        )}
       </div>
     );
   }

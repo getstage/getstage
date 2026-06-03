@@ -1,12 +1,11 @@
 use crate::models::refero::{ReferoContext, ReferoReferenceKind, ReferoUiPatternCategory};
 use crate::models::research::ResearchInput;
 
+use super::competitive::{competitive_rules_for_prompt, format_competitive_targets_for_prompt};
+
 pub fn build_research_prompt(input: &ResearchInput, refero_context: &ReferoContext) -> String {
-    let competitor_urls = if input.competitor_urls.is_empty() {
-        "None provided.".to_string()
-    } else {
-        input.competitor_urls.join("\n")
-    };
+    let competitive_targets = format_competitive_targets_for_prompt(input);
+    let competitive_rules = competitive_rules_for_prompt(input);
 
     let category_lines = refero_context
         .category_searches
@@ -68,8 +67,10 @@ Target users:
 Additional notes:
 {additional_notes}
 
-Competitors to include:
-{competitor_urls}
+Allowed competitive sites (and ONLY these):
+{competitive_targets}
+
+{competitive_rules}
 
 Refero category searches (UI Patterns are built by Stage from these — do not author uiPatterns):
 {category_lines}
@@ -101,7 +102,8 @@ The JSON must use:
         project_brief = input.project_brief.as_deref().unwrap_or("Not provided."),
         target_users = input.target_users.as_deref().unwrap_or("Not provided."),
         additional_notes = input.additional_notes.as_deref().unwrap_or("Not provided."),
-        competitor_urls = competitor_urls,
+        competitive_targets = competitive_targets,
+        competitive_rules = competitive_rules,
         category_lines = if category_lines.is_empty() {
             "No Refero category searches returned.".to_string()
         } else {

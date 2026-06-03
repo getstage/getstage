@@ -40,9 +40,13 @@ function parseResearchArtifact(contentJson: unknown) {
   return artifact;
 }
 
-export function useResearchArtifact(projectId: string | undefined) {
+export function useResearchArtifact(
+  projectId: string | undefined,
+  options: { enabled?: boolean } = {},
+) {
+  const { enabled = true } = options;
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
-  const queryEnabled = isAuthenticated && Boolean(projectId);
+  const queryEnabled = enabled && isAuthenticated && Boolean(projectId);
   const record = useQuery(
     api.projectAi.getLatestResearchArtifact,
     queryEnabled ? { projectId: projectId as Id<"projects"> } : "skip",

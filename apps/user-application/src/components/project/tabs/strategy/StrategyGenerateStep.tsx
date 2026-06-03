@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import {
   DEFAULT_STRATEGY_GENERATE_FORM_VALUES,
   isStrategyGenerateFormSubmittable,
@@ -13,11 +13,33 @@ import { ArrowRightIcon, PlusIcon } from "./strategyIcons";
 export function StrategyGenerateStep({
   isSubmitting,
   onSubmit,
+  initialValues,
+  onCancel,
+  title = "Generate Strategy",
+  description = "Turn your research into an actionable strategy. Add optional direction before generating.",
+  submitLabel = "Generate Strategy",
+  submitVariant = "primary",
+  warningMessage,
 }: {
   isSubmitting: boolean;
   onSubmit: (input: ValidatedStrategyGenerateInput) => void;
+  initialValues?: StrategyGenerateFormValues;
+  onCancel?: () => void;
+  title?: string;
+  description?: string;
+  submitLabel?: string;
+  submitVariant?: "primary" | "secondary";
+  warningMessage?: string;
 }) {
-  const [values, setValues] = useState<StrategyGenerateFormValues>(DEFAULT_STRATEGY_GENERATE_FORM_VALUES);
+  const [values, setValues] = useState<StrategyGenerateFormValues>(
+    initialValues ?? DEFAULT_STRATEGY_GENERATE_FORM_VALUES,
+  );
+
+  useEffect(() => {
+    if (initialValues) {
+      setValues(initialValues);
+    }
+  }, [initialValues]);
   const [focusInput, setFocusInput] = useState("");
   const [fieldErrors, setFieldErrors] = useState<StrategyGenerateFieldErrors>({});
   const canSubmit = isStrategyGenerateFormSubmittable(values);
@@ -107,9 +129,9 @@ export function StrategyGenerateStep({
         <div className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
           <div className="flex items-center justify-center p-4">
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <p className="text-[15px] font-medium leading-none text-[#171717]">Generate Strategy</p>
+              <p className="text-[15px] font-medium leading-none text-[#171717]">{title}</p>
               <p className="max-w-[420px] text-[12px] font-medium leading-[1.5] text-[#737373]">
-                Turn your research into an actionable strategy. Add optional direction before generating.
+                {description}
               </p>
             </div>
           </div>
@@ -178,7 +200,21 @@ export function StrategyGenerateStep({
                 />
               </FormField>
 
+              {warningMessage ? (
+                <p className="text-[12px] font-medium leading-[1.5] text-[#B45309]">{warningMessage}</p>
+              ) : null}
+
               <div className="flex items-center gap-3">
+                {onCancel ? (
+                  <button
+                    type="button"
+                    onClick={onCancel}
+                    disabled={isSubmitting}
+                    className="inline-flex h-[37px] items-center rounded-[6px] bg-white px-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA] disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   disabled={!canSubmit || isSubmitting}
@@ -188,12 +224,12 @@ export function StrategyGenerateStep({
                   {isSubmitting ? (
                     <>
                       <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      Generating Strategy
+                      Running…
                     </>
                   ) : (
                     <>
                       <img src="/logos/dashboard/ai-generated.svg" alt="" aria-hidden="true" className="h-[15px] w-[15px] brightness-0 invert" />
-                      Generate Strategy
+                      {submitLabel}
                       <ArrowRightIcon />
                     </>
                   )}

@@ -10,8 +10,8 @@ import {
 
 export { createMockStrategyArtifact, mockStrategyArtifact, MOCK_STRATEGY_PROJECT_ID };
 
-/** Simulate backend strategy in dev until Convex returns a saved artifact. */
-export const USE_MOCK_STRATEGY_DATA = import.meta.env.DEV;
+/** Layout-only mock; set VITE_MOCK_STRATEGY=1 in .env — never used on the default generate path. */
+export const USE_MOCK_STRATEGY_DATA = import.meta.env.VITE_MOCK_STRATEGY === "1";
 
 export const MOCK_STRATEGY_RUN_DELAY_MS = 1800;
 

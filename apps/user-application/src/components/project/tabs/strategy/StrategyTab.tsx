@@ -1,10 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
+import { DownstreamStepsDialog } from "@/components/project/DownstreamStepsDialog";
+import { StrategyRegenerateDialog } from "@/components/project/StrategyRegenerateDialog";
+import { useAfterUpstreamRunPrompt } from "@/hooks/project/useAfterUpstreamRunPrompt";
+import { useProjectDownstreamWork } from "@/hooks/project/useProjectDownstreamWork";
+import { useProjectResearchRun } from "@/hooks/project/useProjectResearchRun";
 import { useStrategyTab } from "@/hooks/project";
+import { strategyInputToFormValues } from "@/lib/project/strategyGenerateInput";
+import { useProjectAiProvider } from "@/hooks/project/useProjectAiProvider";
+import { useExportStrategyToNotion } from "@/hooks/project/strategy/useExportStrategyToNotion";
+import { useSaveStrategyArtifact } from "@/hooks/project/strategy/useSaveStrategyArtifact";
+import { useStrategySectionRegenerate } from "@/hooks/project/strategy/useStrategySectionRegenerate";
+import { applyStrategyTabEdits } from "@/lib/project/applyStrategyTabEdits";
 import type { ValidatedStrategyGenerateInput } from "@/lib/project/strategyGenerateInput";
 import { cn } from "@/lib/utils";
-import { appendRegeneratedText, cloneSections } from "@/lib/project/strategyTabHelpers";
+import { cloneSections } from "@/lib/project/strategyTabHelpers";
 import type { Project } from "@/models/project/project";
 import type { StrategySection } from "@/models/project/strategyTab";
+import { NotionParentPageDialog } from "../research/NotionParentPageDialog";
 import {
   AddSectionEditor,
 } from "./AddSectionEditor";
@@ -14,6 +26,7 @@ import { MetaDot } from "./StrategyStatus";
 import {
   ArrowRightIcon,
   EditIcon,
+  NotionIcon,
   PlusIcon,
   SaveIcon,
 } from "./strategyIcons";
@@ -21,6 +34,7 @@ import {
 type StrategyTabProps = {
   project: Pick<Project, "id" | "name" | "clientName">;
   onGoToResearch: () => void;
+  onGoToMoodboard: () => void;
   autoStartGeneration?: boolean;
   onAutoStartHandled?: () => void;
 };
@@ -28,6 +42,7 @@ type StrategyTabProps = {
 export function StrategyTab({
   project,
   onGoToResearch,
+  onGoToMoodboard,
   autoStartGeneration = false,
   onAutoStartHandled,
 }: StrategyTabProps) {
@@ -38,14 +53,30 @@ export function StrategyTab({
   const [draftTitle, setDraftTitle] = useState("Enter Title Here");
   const [draftBody, setDraftBody] = useState("");
   const [runError, setRunError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
 
   const strategy = useStrategyTab(project);
+  const researchRun = useProjectResearchRun(project.id);
+  const downstreamWork = useProjectDownstreamWork(project.id);
+  const upstreamPrompt = useAfterUpstreamRunPrompt(project.id);
+  const isRunBusy = strategy.isRunning || strategy.isStarting;
+  const saveStrategyArtifact = useSaveStrategyArtifact(project.id);
+  const regenerateSection = useStrategySectionRegenerate(project.id);
+  const { resolvedProviderId } = useProjectAiProvider(project.id);
+  const notionExport = useExportStrategyToNotion(strategy.data?.id ?? null);
   const visibleSections = isEditing ? editSections : sections;
 
   useEffect(() => {
     if (strategy.data) {
       setSections(cloneSections(strategy.data.tabData.sections));
+      return;
     }
+
+    setSections([]);
+    setIsEditing(false);
+    setEditSections([]);
   }, [strategy.data]);
 
   useEffect(() => {
@@ -53,9 +84,9 @@ export function StrategyTab({
       return;
     }
 
-    void handleGenerateStrategy().finally(() => {
-      onAutoStartHandled?.();
-    });
+    // Consume the one-shot flag before any async work so Strict Mode cannot start twice.
+    onAutoStartHandled?.();
+    void handleGenerateStrategy();
   }, [autoStartGeneration, onAutoStartHandled, strategy.hasArtifact, strategy.hasResearch, strategy.isRunning]);
 
   const approvedCount = useMemo(
@@ -63,8 +94,21 @@ export function StrategyTab({
     [visibleSections],
   );
 
-  async function handleGenerateStrategy(input?: ValidatedStrategyGenerateInput) {
+  const { trackRunActivity, beginPending, ...downstreamPrompt } = upstreamPrompt;
+
+  useEffect(() => {
+    trackRunActivity(isRunBusy, runError ?? strategy.error);
+  }, [isRunBusy, runError, strategy.error, trackRunActivity]);
+
+  async function handleGenerateStrategy(
+    input?: ValidatedStrategyGenerateInput,
+    options?: { isFullRegenerate?: boolean },
+  ) {
     setRunError(null);
+
+    if (options?.isFullRegenerate) {
+      beginPending("strategy", { hadDownstream: downstreamWork.hasDownstream });
+    }
 
     try {
       await strategy.startStrategy(input);
@@ -73,18 +117,68 @@ export function StrategyTab({
     }
   }
 
-  function approveSection(sectionId: string) {
-    setSections((current) => current.map((section) => (
-      section.id === sectionId ? { ...section, status: "approved" } : section
-    )));
+  const regenerateFormInitialValues = useMemo(
+    () => (strategy.lastInput ? strategyInputToFormValues(strategy.lastInput) : undefined),
+    [strategy.lastInput],
+  );
+
+  async function persistSections(nextSections: StrategySection[], options?: { exitEditMode?: boolean }) {
+    if (!strategy.data) {
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      const nextArtifact = applyStrategyTabEdits(strategy.data.artifact, {
+        sections: cloneSections(nextSections),
+      });
+      await saveStrategyArtifact(strategy.data.id, nextArtifact);
+      setSections(cloneSections(nextSections));
+
+      if (options?.exitEditMode) {
+        setEditSections([]);
+        setIsEditing(false);
+      }
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Could not save strategy changes.");
+      throw error;
+    } finally {
+      setIsSaving(false);
+    }
   }
 
-  function regenerateSection(sectionId: string) {
-    setSections((current) => current.map((section) => (
-      section.id === sectionId
-        ? { ...section, status: "action", body: section.body?.map((line) => `${line} Regenerated mock update.`) }
-        : section
-    )));
+  async function approveSection(sectionId: string) {
+    const nextSections = sections.map((section) =>
+      section.id === sectionId ? { ...section, status: "approved" as const } : section,
+    );
+
+    try {
+      await persistSections(nextSections);
+    } catch {
+      // saveError already set
+    }
+  }
+
+  async function handleRegenerateSection(sectionId: string) {
+    if (isEditing) {
+      setSaveError("Save or discard changes before regenerating with AI.");
+      return;
+    }
+
+    if (!resolvedProviderId) {
+      setRunError("Connect Claude or Codex in Settings before regenerating a section.");
+      return;
+    }
+
+    setRunError(null);
+
+    try {
+      await regenerateSection(sectionId, resolvedProviderId);
+    } catch (error) {
+      setRunError(error instanceof Error ? error.message : "Could not regenerate Strategy.");
+    }
   }
 
   function startEditing() {
@@ -95,12 +189,15 @@ export function StrategyTab({
   function discardEditing() {
     setEditSections([]);
     setIsEditing(false);
+    setSaveError(null);
   }
 
-  function saveEditing() {
-    setSections(cloneSections(editSections));
-    setEditSections([]);
-    setIsEditing(false);
+  async function saveEditing() {
+    try {
+      await persistSections(editSections, { exitEditMode: true });
+    } catch {
+      // saveError already set
+    }
   }
 
   function updateEditSection(sectionId: string, nextSection: StrategySection) {
@@ -109,22 +206,32 @@ export function StrategyTab({
     )));
   }
 
-  function saveDraftSection() {
+  async function saveDraftSection() {
     const title = draftTitle.trim() || "Untitled Strategy Section";
     const body = draftBody.trim() || "Write here...";
-    setSections((current) => [
-      ...current,
+    const baseSections = isEditing ? editSections : sections;
+    const nextSections = [
+      ...baseSections,
       {
         id: `custom-${Date.now()}`,
         title,
-        status: "approved",
-        kind: "paragraph",
+        status: "approved" as const,
+        kind: "paragraph" as const,
         body: [body],
       },
-    ]);
-    setDraftTitle("Enter Title Here");
-    setDraftBody("");
-    setIsAdding(false);
+    ];
+
+    try {
+      await persistSections(nextSections);
+      if (isEditing) {
+        setEditSections(cloneSections(nextSections));
+      }
+      setDraftTitle("Enter Title Here");
+      setDraftBody("");
+      setIsAdding(false);
+    } catch {
+      // saveError already set
+    }
   }
 
   if (strategy.isLoading) {
@@ -138,6 +245,8 @@ export function StrategyTab({
   }
 
   if (!strategy.hasResearch) {
+    const replacingResearch = researchRun.isReplacingResearch;
+
     return (
       <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="rounded-[8px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -155,10 +264,12 @@ export function StrategyTab({
               <div className="flex max-w-[420px] flex-col gap-6">
                 <div className="flex flex-col gap-2">
                   <p className="text-[20px] font-semibold leading-[1.2] text-[#171717]">
-                    Research required
+                    {replacingResearch ? "Research is being replaced" : "Research required"}
                   </p>
                   <p className="text-[13px] font-medium leading-[1.6] text-[#737373]">
-                    We need the project research before strategy can be generated. Add the project context in Research and run it first.
+                    {replacingResearch
+                      ? "Saved research and strategy were cleared for a re-run. Stay on Research to watch progress, or come back when the new research artifact is ready."
+                      : "We need the project research before strategy can be generated. Add the project context in Research and run it first."}
                   </p>
                   {strategy.researchError ? (
                     <p className="text-[13px] font-medium leading-[1.5] text-[#DC2626]">
@@ -173,11 +284,45 @@ export function StrategyTab({
                     onClick={onGoToResearch}
                     className="inline-flex h-8 items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
                   >
-                    Go to Research
+                    {replacingResearch ? "View Research progress" : "Go to Research"}
                     <ArrowRightIcon />
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (researchRun.isReplacingResearch) {
+    return (
+      <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="rounded-[8px] bg-white px-[44px] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <div className="flex min-h-[320px] items-center justify-center">
+            <div className="flex max-w-[360px] flex-col items-center gap-3 text-center">
+              <img
+                src="/logos/dashboard/research.svg"
+                alt=""
+                aria-hidden="true"
+                className="h-[37px] w-[37px] animate-spin"
+              />
+              <p className="text-[16px] font-semibold leading-none text-[#171717]">
+                Research is being replaced
+              </p>
+              <p className="text-[13px] font-medium leading-[1.5] text-[#525252]">
+                Saved strategy was cleared. Generate strategy again after the new research run
+                finishes.
+              </p>
+              <button
+                type="button"
+                onClick={onGoToResearch}
+                className="inline-flex h-8 items-center justify-center gap-2 rounded-[6px] bg-[#F5F5F5] px-3 text-[13px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#ECECEC]"
+              >
+                View Research progress
+                <ArrowRightIcon />
+              </button>
             </div>
           </div>
         </div>
@@ -203,9 +348,7 @@ export function StrategyTab({
                   Generating Strategy
                 </p>
                 <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
-                  {strategy.usingMockData
-                    ? "Turning research into strategy sections. Results will appear here when the mock run completes."
-                    : "Extracting structural patterns - AI ignores color, typography, and visual style."}
+                  Generating project-specific strategy from the saved research artifact.
                 </p>
               </div>
 
@@ -244,9 +387,15 @@ export function StrategyTab({
   }
 
   return (
-    <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <div className="rounded-[8px] bg-white p-[clamp(24px,3.8vw,44px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        <div className="flex flex-col gap-6">
+    <>
+      <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="rounded-[8px] bg-white p-[clamp(24px,3.8vw,44px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <div className="flex flex-col gap-6">
+            {runError || saveError || notionExport.exportError || (!strategy.hasArtifact && strategy.error) ? (
+              <p className="whitespace-pre-wrap text-[13px] font-medium leading-[1.5] text-[#DC2626]">
+                {runError ?? saveError ?? notionExport.exportError ?? strategy.error}
+              </p>
+            ) : null}
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="h-[10px] w-[65px] overflow-hidden rounded-full bg-[#E5E5E5]">
@@ -275,21 +424,33 @@ export function StrategyTab({
                 <button
                   type="button"
                   onClick={saveEditing}
+                  disabled={isSaving}
                   className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-[6px] border border-[#34D399] bg-gradient-to-b from-[#10B981] to-[#059669] px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#ECFDF5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:opacity-95"
                 >
                   <SaveIcon />
-                  Save Changes
+                  {isSaving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={startEditing}
-                className="inline-flex h-[34px] cursor-pointer items-center gap-2 rounded-[6px] bg-[#F5F5F5] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#ECECEC]"
-              >
-                <EditIcon />
-                Edit Strategy
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsRegenerateDialogOpen(true)}
+                  disabled={isRunBusy}
+                  className="inline-flex h-[34px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-[#F5F5F5] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Regenerate strategy
+                </button>
+                <button
+                  type="button"
+                  onClick={startEditing}
+                  disabled={isRunBusy}
+                  className="inline-flex h-[34px] cursor-pointer items-center gap-2 rounded-[6px] bg-[#F5F5F5] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#ECECEC] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <EditIcon />
+                  Edit Strategy
+                </button>
+              </div>
             )}
           </div>
 
@@ -301,14 +462,8 @@ export function StrategyTab({
                 showDivider={index > 0}
                 isEditing={isEditing}
                 onSectionChange={(nextSection) => updateEditSection(section.id, nextSection)}
-                onApprove={() => approveSection(section.id)}
-                onRegenerate={() => {
-                  if (isEditing) {
-                    updateEditSection(section.id, appendRegeneratedText(section));
-                    return;
-                  }
-                  regenerateSection(section.id);
-                }}
+                onApprove={() => void approveSection(section.id)}
+                onRegenerate={() => void handleRegenerateSection(section.id)}
               />
             ))}
           </div>
@@ -334,18 +489,56 @@ export function StrategyTab({
               Add Section
             </button>
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" className="inline-flex h-[29px] cursor-pointer items-center gap-[6px] rounded-[4px] bg-[#F5F5F5] p-2 text-[12px] font-medium leading-[1.25] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#ECECEC]">
-                Add to notion
+              <button
+                type="button"
+                onClick={() => void notionExport.exportToNotion()}
+                disabled={notionExport.isExporting}
+                className="inline-flex h-[31px] cursor-pointer items-center gap-[6px] rounded-[6px] bg-[#F5F5F5] px-2 text-[13px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#ECECEC] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <NotionIcon />
+                {notionExport.isExporting ? "Exporting…" : "Add to Notion"}
               </button>
-              <button type="button" disabled className="inline-flex h-8 cursor-not-allowed items-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] py-2 pl-3 pr-[10px] text-[13px] font-medium leading-[1.25] text-[#FAFAFA] opacity-50 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-                Continue to Flows
+              <button
+                type="button"
+                onClick={onGoToMoodboard}
+                className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] py-2 pl-3 pr-[10px] text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+              >
+                Continue to Moodboard
                 <ArrowRightIcon />
               </button>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+        </div>
+      </section>
+      <NotionParentPageDialog
+        open={notionExport.needsParentPage}
+        onOpenChange={(open) => {
+          if (!open) {
+            notionExport.dismissParentPagePrompt();
+          }
+        }}
+        onSubmit={(parentPageUrl) => void notionExport.exportToNotion(parentPageUrl)}
+        isSubmitting={notionExport.isExporting}
+        errorMessage={notionExport.exportError}
+      />
+      <StrategyRegenerateDialog
+        open={isRegenerateDialogOpen}
+        onOpenChange={setIsRegenerateDialogOpen}
+        initialValues={regenerateFormInitialValues}
+        isSubmitting={isRunBusy}
+        onSubmit={(input) => void handleGenerateStrategy(input, { isFullRegenerate: true })}
+      />
+      <DownstreamStepsDialog
+        open={downstreamPrompt.dialogOpen}
+        onOpenChange={downstreamPrompt.setDialogOpen}
+        upstreamKind={downstreamPrompt.upstreamKind}
+        onKeep={downstreamPrompt.keepDownstream}
+        onClear={() => void downstreamPrompt.clearDownstreamWork()}
+        isClearing={downstreamPrompt.isClearing}
+        errorMessage={downstreamPrompt.clearError}
+      />
+    </>
   );
 }
 

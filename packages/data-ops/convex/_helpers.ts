@@ -127,6 +127,45 @@ export async function requireProjectAccess(
   return { user, project, role: "editor" };
 }
 
+export async function requireProjectAccessOrNull(
+  ctx: ReaderCtx,
+  projectId: Id<"projects">,
+): Promise<{ user: Doc<"users">; project: Doc<"projects">; role: "owner" | "editor" } | null> {
+  const user = await requireAuthUser(ctx);
+  const project = await ctx.db.get(projectId);
+
+  if (!project) {
+    return null;
+  }
+
+  if (project.userId === user._id) {
+    return { user, project, role: "owner" };
+  }
+
+  const collaborator = await ctx.db
+    .query("projectCollaborators")
+    .withIndex("by_project_user", (q) =>
+      q.eq("projectId", projectId).eq("userId", user._id),
+    )
+    .unique();
+
+  if (!collaborator) {
+    throw new Error("Not authorized.");
+  }
+
+  const ownerSubscription = await getCurrentSubscriptionSnapshot(ctx, String(project.userId));
+  if (!ownerSubscription) {
+    throw new Error("Not authorized. Project owner needs an active subscription.");
+  }
+
+  const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
+  if (!subscription) {
+    throw new Error("Not authorized. Active subscription required.");
+  }
+
+  return { user, project, role: "editor" };
+}
+
 export async function requirePhaseAccess(
   ctx: ReaderCtx,
   phaseId: Id<"phases">,

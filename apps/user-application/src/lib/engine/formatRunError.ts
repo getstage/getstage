@@ -4,6 +4,10 @@ import type { EngineError, RunEvent } from "@stage/data-ops/contracts";
 export const RESEARCH_RUN_FAILED_USER_MESSAGE =
   "Something went wrong while running Research. Please try again.";
 
+/** Shown in the Strategy UI when a run fails. Technical detail goes to the dev terminal only. */
+export const STRATEGY_RUN_FAILED_USER_MESSAGE =
+  "Something went wrong while running Strategy. Please try again.";
+
 export function formatEngineError(error: EngineError): string {
   const parts = [`code=${error.code}`, `message=${error.message}`];
   if (error.detail) {

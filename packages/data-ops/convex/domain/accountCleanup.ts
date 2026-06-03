@@ -2,6 +2,11 @@ import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { deleteOldR2Asset } from "../r2";
 import { deleteGeneratedDesignsForProject } from "../integrations/stitch";
+import {
+  deleteAllProjectAiData,
+  deleteCollaboratorMembershipsForUser,
+  deleteProjectCollaboratorsForProject,
+} from "../lib/projectAi/domain/projectCleanup";
 
 async function deleteAttachmentTreeForProject(
   ctx: MutationCtx,
@@ -218,8 +223,12 @@ export async function deleteWorkspaceDataForUser(
       projectAvatarKeys.add(project.clientAvatarUrl);
     }
     await deleteAttachmentTreeForProject(ctx, project._id);
+    await deleteAllProjectAiData(ctx, project._id);
+    await deleteProjectCollaboratorsForProject(ctx, project._id);
     await ctx.db.delete(project._id);
   }
+
+  await deleteCollaboratorMembershipsForUser(ctx, userId);
 
   const clients = await ctx.db
     .query("clients")

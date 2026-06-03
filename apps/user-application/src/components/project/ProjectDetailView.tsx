@@ -23,7 +23,6 @@ import { getProjectBackDestination } from "@/lib/projectBackDestination";
 import { formatRelativeTime } from "@/lib/utils";
 import { loadMockFlowsArtifactRecord } from "@/mock/project/flows";
 import { loadMockMoodboardArtifactRecord } from "@/mock/project/moodboard";
-import { loadMockStrategyArtifactRecord } from "@/mock/project/strategy";
 import { loadMockWireframesArtifactRecord } from "@/mock/project/wireframes";
 import type { Project, ProjectTab } from "@/models/project/project";
 
@@ -63,8 +62,10 @@ export function ProjectDetailView() {
   const { projectId } = useParams({ from: "/_authed/project/$projectId" });
   const [isLeavingAfterDelete, setIsLeavingAfterDelete] = useState(false);
   const live = useLiveProject(projectId, { enabled: !isLeavingAfterDelete });
-  const researchArtifact = useResearchArtifact(projectId);
-  const strategyArtifact = useStrategyArtifact(projectId);
+  const artifactQueriesEnabled =
+    !isLeavingAfterDelete && Boolean(live.detail) && !live.isLoading && !live.isNotFound;
+  const researchArtifact = useResearchArtifact(projectId, { enabled: artifactQueriesEnabled });
+  const strategyArtifact = useStrategyArtifact(projectId, { enabled: artifactQueriesEnabled });
   const moodboardArtifact = useMoodboardArtifact(projectId);
   const flowsArtifact = useFlowsArtifact(projectId);
   const wireframesArtifact = useWireframesArtifact(projectId);
@@ -88,8 +89,13 @@ export function ProjectDetailView() {
   useEffect(() => {
     if (live.project) {
       setProject(live.project);
+      return;
     }
-  }, [live.project]);
+
+    if (!live.isLoading && live.isNotFound) {
+      setProject(null);
+    }
+  }, [live.project, live.isLoading, live.isNotFound]);
 
   useEffect(() => {
     if (live.detail) {
@@ -134,7 +140,7 @@ export function ProjectDetailView() {
   const stepStatus = useMemo<ProjectStepStatus>(() => {
     return {
       research: researchArtifact.hasArtifact,
-      strategy: strategyArtifact.hasArtifact || loadMockStrategyArtifactRecord(projectId) !== null,
+      strategy: strategyArtifact.hasArtifact,
       moodboard: moodboardArtifact.hasArtifact || loadMockMoodboardArtifactRecord(projectId) !== null,
       flows: flowsArtifact.hasArtifact || loadMockFlowsArtifactRecord(projectId) !== null,
       wireframes: wireframesArtifact.hasArtifact || loadMockWireframesArtifactRecord(projectId) !== null,
@@ -290,13 +296,32 @@ export function ProjectDetailView() {
                 <StrategyTab
                   project={project}
                   onGoToResearch={() => setActiveTab("research")}
+                  onGoToMoodboard={() => setActiveTab("moodboard")}
                   autoStartGeneration={pendingStrategyGeneration}
                   onAutoStartHandled={() => setPendingStrategyGeneration(false)}
                 />
               ) : null}
-              {!blockedStep && activeTab === "moodboard" ? <MoodboardTab project={project} /> : null}
-              {!blockedStep && activeTab === "flows" ? <FlowsTab project={project} /> : null}
-              {!blockedStep && activeTab === "wireframes" ? <WireframesTab project={project} /> : null}
+              {!blockedStep && activeTab === "moodboard" ? (
+                <MoodboardTab
+                  project={project}
+                  onGoToResearch={() => setActiveTab("research")}
+                  onGoToStrategy={() => setActiveTab("strategy")}
+                />
+              ) : null}
+              {!blockedStep && activeTab === "flows" ? (
+                <FlowsTab
+                  project={project}
+                  onGoToResearch={() => setActiveTab("research")}
+                  onGoToStrategy={() => setActiveTab("strategy")}
+                />
+              ) : null}
+              {!blockedStep && activeTab === "wireframes" ? (
+                <WireframesTab
+                  project={project}
+                  onGoToResearch={() => setActiveTab("research")}
+                  onGoToStrategy={() => setActiveTab("strategy")}
+                />
+              ) : null}
               {!blockedStep && activeTab === "assets" ? <AssetsTab project={project} /> : null}
             </div>
           )}

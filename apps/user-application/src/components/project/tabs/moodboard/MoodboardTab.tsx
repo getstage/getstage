@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import {
   createDefaultSelectedReferenceIds,
   createSeedDirections,
@@ -35,7 +36,13 @@ function createFallbackDirections() {
   return createSeedDirections();
 }
 
-export function MoodboardTab({ project }: { project: Project }) {
+type MoodboardTabProps = {
+  project: Project;
+  onGoToResearch?: () => void;
+  onGoToStrategy?: () => void;
+};
+
+export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: MoodboardTabProps) {
   const moodboard = useMoodboardTab({ id: project.id, name: project.name });
   const [mode, setMode] = useState<MoodboardMode>("upload");
   const [hasUploadedFiles, setHasUploadedFiles] = useState(false);
@@ -152,8 +159,14 @@ export function MoodboardTab({ project }: { project: Project }) {
   }
 
   return (
-    <section className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <Header />
+    <>
+      <UpstreamStaleBanner
+        projectId={project.id}
+        onGoToResearch={onGoToResearch}
+        onGoToStrategy={onGoToStrategy}
+      />
+      <section className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <Header />
 
       {view === "hub" ? (
         <DirectionHub
@@ -328,6 +341,7 @@ export function MoodboardTab({ project }: { project: Project }) {
           }}
         />
       ) : null}
-    </section>
+      </section>
+    </>
   );
 }

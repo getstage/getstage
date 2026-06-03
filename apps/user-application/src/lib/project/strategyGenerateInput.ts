@@ -93,6 +93,15 @@ export function parseStoredStrategyGenerateInput(value: unknown): ValidatedStrat
   return result.success ? result.data : null;
 }
 
+export function strategyInputToFormValues(
+  input: ValidatedStrategyGenerateInput,
+): StrategyGenerateFormValues {
+  return {
+    additionalNotes: input.additionalNotes ?? "",
+    focusAreas: [...input.focusAreas],
+  };
+}
+
 export function isStrategyGenerateFormSubmittable(values: StrategyGenerateFormValues) {
   return validateStrategyGenerateForm(values).success;
 }

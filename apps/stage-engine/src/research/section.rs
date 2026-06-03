@@ -3,6 +3,8 @@ use serde_json::Value;
 
 use crate::models::research::ResearchInput;
 
+use super::competitive::competitive_rules_for_prompt;
+
 pub fn parse_research_section(source: Option<&str>) -> Option<&str> {
     source.and_then(|value| value.strip_prefix("section:"))
 }
@@ -29,8 +31,9 @@ Current artifact title: {title}
 Current `{section}` value:
 {current_section}
 
-Regenerate this section with fresh, specific product-design insights grounded in the project brief and competitors.
+Regenerate this section with fresh, specific product-design insights grounded in the project brief.
 Keep IDs stable when possible. For list sections, preserve stable `id` fields where they already exist.
+{competitive_rules}
 "#,
         section = section,
         project_id = input.project_id,
@@ -42,6 +45,11 @@ Keep IDs stable when possible. For list sections, preserve stable `id` fields wh
             .unwrap_or("Research"),
         current_section = serde_json::to_string_pretty(section_value(artifact, section))
             .unwrap_or_else(|_| "null".to_string()),
+        competitive_rules = if section == "competitiveAnalysis" {
+            format!("\n{}\n", competitive_rules_for_prompt(input))
+        } else {
+            String::new()
+        },
     )
 }
 

@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crate::config::AppConfig;
 use crate::convex_store::research_repository::ResearchRepository;
+use crate::convex_store::strategy_repository::StrategyRepository;
 use crate::helpers::time::now_millis;
 use crate::refero::client::ReferoClient;
 use crate::refero::service::ReferoService;
@@ -10,6 +11,7 @@ use crate::research::service::ResearchService;
 use crate::research::workflow::ResearchWorkflow;
 use crate::runs::RunManager;
 use crate::server;
+use crate::strategy::workflow::StrategyWorkflow;
 
 #[derive(Clone, Debug)]
 pub struct AppState {
@@ -27,12 +29,15 @@ impl AppState {
             ResearchRepository::new(&config.convex),
             ResearchService::new(refero),
         ));
+        let strategy = Arc::new(StrategyWorkflow::new(StrategyRepository::new(
+            &config.convex,
+        )));
 
         Ok(Self {
             api_version: "v1",
             service_name: "stage-engine",
             started_at_ms: now_millis(),
-            runs: Arc::new(RunManager::new("v1", Some(research))),
+            runs: Arc::new(RunManager::new("v1", Some(research), Some(strategy))),
         })
     }
 }

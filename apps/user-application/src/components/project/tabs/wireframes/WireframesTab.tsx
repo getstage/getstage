@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import {
   createSeedConfigureScreens,
   MOCK_WIREFRAMES_GENERATED_AT_LABEL,
@@ -18,7 +19,13 @@ import type { BrandSource, BrandSourceChoice } from "./TypeChooser";
 import { TypeChooser } from "./TypeChooser";
 import { WireframeKindChooser } from "./WireframeKindChooser";
 
-export function WireframesTab({ project }: { project: Project }) {
+type WireframesTabProps = {
+  project: Project;
+  onGoToResearch?: () => void;
+  onGoToStrategy?: () => void;
+};
+
+export function WireframesTab({ project, onGoToResearch, onGoToStrategy }: WireframesTabProps) {
   const wireframesTab = useWireframesTab({ id: project.id, name: project.name });
   const seedScreens = useMemo(() => createSeedConfigureScreens(), []);
   const [step, setStep] = useState<WireframeStep>("choose-kind");
@@ -71,6 +78,11 @@ export function WireframesTab({ project }: { project: Project }) {
 
   return (
     <section className="w-full">
+      <UpstreamStaleBanner
+        projectId={project.id}
+        onGoToResearch={onGoToResearch}
+        onGoToStrategy={onGoToStrategy}
+      />
       {step === "choose-type" ? (
         <CanvasShell centered>
           <TypeChooser

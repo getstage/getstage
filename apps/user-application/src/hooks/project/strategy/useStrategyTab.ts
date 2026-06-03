@@ -1,22 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
-import type { StrategyInput } from "@stage/data-ops/contracts";
+import { useMutation } from "convex/react";
+import type { Id } from "@stage/data-ops/convex/data-model";
 import {
-  buildStrategyInput,
   parseStoredStrategyGenerateInput,
   type ValidatedStrategyGenerateInput,
 } from "@/lib/project/strategyGenerateInput";
-import {
-  delay,
-  getMockStrategyArtifactRecord,
-  loadMockStrategyArtifactRecord,
-  MOCK_STRATEGY_RUN_DELAY_MS,
-  saveMockStrategyArtifactRecord,
-  USE_MOCK_STRATEGY_DATA,
-} from "@/mock/project/strategy";
+import { api } from "@/lib/convexApi";
+import { STRATEGY_RUN_FAILED_USER_MESSAGE } from "@/lib/engine/formatRunError";
 import type { Project } from "@/models/project/project";
-import type { StrategyArtifactRecord } from "@/types/project/strategyArtifactRecord";
+import { useProjectAiProvider } from "@/hooks/project/useProjectAiProvider";
 import { useResearchArtifact } from "../research/useResearchArtifact";
 import { useStrategyArtifact } from "./useStrategyArtifact";
+import { useStrategyRun } from "./useStrategyRun";
 
 const STRATEGY_INPUT_STORAGE_PREFIX = "stage:strategy-generate-input:";
 
@@ -41,96 +36,79 @@ export function useStrategyTab(project: Pick<Project, "id" | "name">) {
   const projectId = project.id;
   const researchArtifact = useResearchArtifact(projectId);
   const strategyArtifact = useStrategyArtifact(projectId);
-  const [mockRecord, setMockRecord] = useState<StrategyArtifactRecord | null>(() =>
-    loadMockStrategyArtifactRecord(projectId),
-  );
+  const strategyRun = useStrategyRun(projectId);
+  const { resolvedProviderId } = useProjectAiProvider(projectId);
+  const upsertStrategyGenerateInput = useMutation(api.projectAi.upsertStrategyGenerateInput);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [lastInput, setLastInput] = useState<ValidatedStrategyGenerateInput | null>(() =>
     loadStoredStrategyInput(projectId),
   );
-  const [isMockRunning, setIsMockRunning] = useState(false);
-  const [mockError, setMockError] = useState<string | null>(null);
 
   useEffect(() => {
-    setMockRecord(loadMockStrategyArtifactRecord(projectId));
     setLastInput(loadStoredStrategyInput(projectId));
-    setMockError(null);
-    setIsMockRunning(false);
+    setSaveError(null);
   }, [projectId]);
 
-  const backendData = strategyArtifact.data;
-  const data = backendData ?? mockRecord;
-  const usingMockData = backendData === null && mockRecord !== null;
   const hasResearch = researchArtifact.hasArtifact && researchArtifact.data !== null;
-
-  const startMockStrategy = useCallback(
-    async (researchArtifactId?: string | null) => {
-      setMockError(null);
-      setIsMockRunning(true);
-
-      try {
-        await delay(MOCK_STRATEGY_RUN_DELAY_MS);
-        const record = getMockStrategyArtifactRecord(projectId, researchArtifactId);
-        setMockRecord(record);
-        saveMockStrategyArtifactRecord(projectId, record);
-      } catch (error) {
-        setMockError(error instanceof Error ? error.message : "Could not finish mock Strategy.");
-      } finally {
-        setIsMockRunning(false);
-      }
-    },
-    [projectId],
-  );
 
   const startStrategy = useCallback(
     async (input?: ValidatedStrategyGenerateInput) => {
+      if (strategyRun.isRunning || strategyRun.isStarting) {
+        return;
+      }
+
       if (!hasResearch) {
         throw new Error("Run Research before generating Strategy.");
       }
 
       const resolvedInput = input ?? lastInput ?? { focusAreas: [] };
-      const researchArtifactId = researchArtifact.data?.id ?? null;
-      const strategyInput: StrategyInput = buildStrategyInput(
-        project,
-        resolvedInput,
-        researchArtifactId,
-      );
 
       setLastInput(resolvedInput);
       saveStoredStrategyInput(projectId, resolvedInput);
+      setSaveError(null);
 
-      if (USE_MOCK_STRATEGY_DATA && !backendData) {
-        await startMockStrategy(researchArtifactId);
-        return strategyInput;
+      try {
+        await upsertStrategyGenerateInput({
+          projectId: projectId as Id<"projects">,
+          focusAreas: resolvedInput.focusAreas,
+          additionalNotes: resolvedInput.additionalNotes || undefined,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Could not save strategy input.";
+        console.error(`[stage-engine] convex strategy input save failed: ${message}`);
+        setSaveError(STRATEGY_RUN_FAILED_USER_MESSAGE);
+        throw error;
       }
 
-      throw new Error("Strategy engine is not connected yet.");
+      if (!resolvedProviderId) {
+        throw new Error("Connect Claude or Codex in Settings before generating Strategy.");
+      }
+
+      await strategyRun.startStrategy(resolvedProviderId);
     },
     [
-      backendData,
       hasResearch,
       lastInput,
-      project,
       projectId,
-      researchArtifact.data?.id,
-      startMockStrategy,
+      resolvedProviderId,
+      strategyRun,
+      upsertStrategyGenerateInput,
     ],
   );
 
-  const isRunning = isMockRunning;
-  const isStarting = isMockRunning;
-
   return {
-    data,
+    data: strategyArtifact.data,
     isLoading: researchArtifact.isLoading || strategyArtifact.isLoading,
-    hasArtifact: data !== null,
+    hasArtifact: strategyArtifact.data !== null,
     parseError: strategyArtifact.parseError,
-    usingMockData,
+    usingMockData: false,
     hasResearch,
     researchError: researchArtifact.parseError ? "Saved research could not be parsed." : null,
     lastInput,
     startStrategy,
-    isRunning,
-    isStarting,
-    error: mockError,
+    cancelStrategy: strategyRun.cancelStrategy,
+    isRunning: strategyRun.isRunning,
+    isStarting: strategyRun.isStarting,
+    error: saveError ?? strategyRun.error,
   };
 }
