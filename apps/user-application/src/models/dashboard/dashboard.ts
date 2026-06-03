@@ -22,6 +22,7 @@ export const dashboardProjectSchema = z.object({
 export const dashboardTaskSchema = z.object({
   id: z.string(),
   title: z.string(),
+  projectId: z.string().optional(),
   projectName: z.string(),
   projectImageUrl: z.string().optional(),
   dueDate: z.number().optional(),

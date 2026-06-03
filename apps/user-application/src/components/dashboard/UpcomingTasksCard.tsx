@@ -1,5 +1,7 @@
+import { useNavigate } from "@tanstack/react-router";
 import { DashboardCard, CardTab } from "./DashboardCard";
 import type { DashboardPeriod } from "./DashboardHeader";
+import { setProjectBackDestination } from "@/lib/projectBackDestination";
 import type { DashboardTask } from "@/models/dashboard/dashboard";
 
 function getDueUrgency(dueDate: number | undefined): { color: string; label: string } {
@@ -22,6 +24,18 @@ export function UpcomingTasksCard({
   tasks: DashboardTask[];
   period: DashboardPeriod;
 }) {
+  const navigate = useNavigate();
+
+  function openProject(projectId: string | undefined) {
+    if (!projectId) return;
+
+    setProjectBackDestination({ href: "/", label: "Back to dashboard" });
+    void navigate({
+      to: "/project/$projectId",
+      params: { projectId },
+    });
+  }
+
   return (
     <DashboardCard
       className="h-full flex-1"
@@ -40,7 +54,12 @@ export function UpcomingTasksCard({
                   {index > 0 && (
                     <div className="mb-[16px] h-px w-full bg-[#e5e5e5]" />
                   )}
-                  <div className="flex items-start gap-[10px]">
+                  <button
+                    type="button"
+                    disabled={!task.projectId}
+                    onClick={() => openProject(task.projectId)}
+                    className="flex w-full cursor-pointer items-start gap-[10px] rounded-[8px] text-left outline-none focus-visible:ring-2 focus-visible:ring-[#8782F5]/35 disabled:cursor-default"
+                  >
                     {task.projectImageUrl ? (
                       <img
                         src={task.projectImageUrl}
@@ -70,7 +89,7 @@ export function UpcomingTasksCard({
                         )}
                       </div>
                     </div>
-                  </div>
+                  </button>
                 </div>
               );
             })}

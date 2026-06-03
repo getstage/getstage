@@ -106,6 +106,7 @@ function toDashboardTask(context: ProjectContext, task: ProjectContextTask): Das
   return {
     id: task.id,
     title: task.title,
+    projectId: context.projectId,
     projectName: context.projectName,
     dueDate: (task as ProjectContextTask & { dueDate?: number }).dueDate,
     updatedAt: task.updatedAt ?? context.updatedAt,
