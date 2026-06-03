@@ -7,6 +7,7 @@ export function SidebarAccountMenu({
   canExpand,
   accountInitials,
   accountLabel,
+  accountAvatarUrl,
   accountMeta,
   onCollapsedChange,
   onOpenSettings,
@@ -16,6 +17,7 @@ export function SidebarAccountMenu({
   canExpand: boolean;
   accountInitials: string;
   accountLabel: string;
+  accountAvatarUrl?: string;
   accountMeta: string;
   onCollapsedChange: (collapsed: boolean) => void;
   onOpenSettings: () => void;
@@ -156,9 +158,18 @@ export function SidebarAccountMenu({
           )}
         >
           <div className={cn("flex items-center", collapsed ? "gap-0" : "gap-[8px]")}>
-            <div className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-[#e5e5e5] text-[10px] font-medium text-[#525252]">
-              {accountInitials}
-            </div>
+            {accountAvatarUrl ? (
+              <img
+                src={accountAvatarUrl}
+                alt=""
+                aria-hidden="true"
+                className="h-[24px] w-[24px] shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-[#e5e5e5] text-[10px] font-medium text-[#525252]">
+                {accountInitials}
+              </div>
+            )}
             <span aria-hidden={collapsed} className={cn(labelClassName, "text-[#0a0a0a]")}>
               {accountLabel}
             </span>
