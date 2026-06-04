@@ -19,6 +19,7 @@ export function ProjectActionModal({
   onSaveTimeline,
   onSavePhases,
   onPauseProject,
+  onCompleteProject,
   onDeleteProject,
   onPrepareProjectMarkerUpload,
   onPrepareClientAvatarUpload,
@@ -36,6 +37,7 @@ export function ProjectActionModal({
   onSaveTimeline: (timeline: ProjectTimeline) => Promise<void>;
   onSavePhases: (phases: Phase[]) => Promise<void>;
   onPauseProject: () => Promise<void>;
+  onCompleteProject: () => Promise<void>;
   onDeleteProject: () => Promise<void>;
   onPrepareProjectMarkerUpload: (file: File) => Promise<{ file: File; previewUrl: string }>;
   onPrepareClientAvatarUpload: (file: File) => Promise<{ file: File; previewUrl: string }>;
@@ -112,6 +114,18 @@ export function ProjectActionModal({
             projectName={project.name}
             projectImageUrl={projectImageUrl ?? project.projectImageUrl}
             onConfirm={onPauseProject}
+            error={modalError}
+            onClose={onClose}
+          />
+        ) : null}
+        {modal === "complete" ? (
+          <ConfirmModal
+            title="Mark this project as completed?"
+            description="The project status will change to Completed. You can still open tasks and files, but the project will no longer show as active on your dashboard."
+            confirmLabel="Complete Project"
+            projectName={project.name}
+            projectImageUrl={projectImageUrl ?? project.projectImageUrl}
+            onConfirm={onCompleteProject}
             error={modalError}
             onClose={onClose}
           />

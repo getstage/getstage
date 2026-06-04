@@ -2,17 +2,21 @@ import { useNavigate } from "@tanstack/react-router";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { KANBAN_COLUMNS } from "@/lib/project/kanbanColumns";
 import { useKanbanBoard } from "@/hooks/project/useKanbanBoard";
+import type { PhaseSummary } from "@stage/data-ops";
 import type { Phase } from "@/models/project/project";
+import type { KanbanStatus } from "@/lib/project/kanbanColumns";
 import { KanbanAssignCard } from "./KanbanAssignCard";
 import { KanbanTaskCard } from "./KanbanTaskCard";
 import { KanbanTaskSkeleton } from "./KanbanTaskSkeleton";
 
 export function KanbanBoard({
   phases,
+  phaseOptions = [],
   projectId,
   projectName = "Project Name",
 }: {
   phases: Phase[];
+  phaseOptions?: PhaseSummary[];
   projectId?: string;
   projectName?: string;
 }) {
@@ -106,7 +110,12 @@ export function KanbanBoard({
       {board.createTaskColumn && projectId ? (
         <CreateTaskDialog
           projects={[]}
+          phases={phaseOptions}
           initialProjectId={projectId}
+          initialPhaseId={
+            phaseOptions.find((phase) => phase.status === "active")?.id ?? phaseOptions[0]?.id
+          }
+          initialBoardStatus={board.createTaskColumn as KanbanStatus}
           projectLabel={projectName}
           lockProject
           onClose={() => board.setCreateTaskColumn(null)}

@@ -27,6 +27,9 @@ export function ProjectActionsMenu({
 
       <div className="flex w-full flex-col items-start">
         <ProjectActionItem onSelect={() => onAction("pause")}>{pauseLabel}</ProjectActionItem>
+        {projectStatus !== "completed" ? (
+          <ProjectActionItem onSelect={() => onAction("complete")}>Complete Project</ProjectActionItem>
+        ) : null}
       </div>
 
       <div className="h-px w-full bg-[#E5E5E5]" />

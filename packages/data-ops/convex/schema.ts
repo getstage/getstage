@@ -368,6 +368,14 @@ export default defineSchema({
     dueDate: v.optional(v.number()),
     assigneeIds: v.optional(v.array(v.string())),
     priority: v.optional(taskPriority),
+    boardStatus: v.optional(
+      v.union(
+        v.literal("backlog"),
+        v.literal("todo"),
+        v.literal("in-progress"),
+        v.literal("done"),
+      ),
+    ),
     order: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),

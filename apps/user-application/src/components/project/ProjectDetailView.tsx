@@ -235,6 +235,7 @@ export function ProjectDetailView() {
               onSaveTimeline={(nextTimeline) => runModalAction(() => actions.saveTimeline(nextTimeline))}
               onSavePhases={(phases) => runModalAction(() => actions.savePhases(phases))}
               onPauseProject={() => runModalAction(() => actions.pauseProject())}
+              onCompleteProject={() => runModalAction(() => actions.completeProject())}
               onDeleteProject={runDeleteAction}
               onPrepareProjectMarkerUpload={actions.prepareProjectMarkerUpload}
               onPrepareClientAvatarUpload={actions.prepareClientAvatarUpload}
@@ -245,7 +246,12 @@ export function ProjectDetailView() {
 
           {activeTab === "overview" && (
             <div className="w-full pb-[120px] pt-7">
-              <KanbanBoard phases={project.phases} projectId={project.id} projectName={project.name} />
+              <KanbanBoard
+                phases={project.phases}
+                phaseOptions={live.phases}
+                projectId={project.id}
+                projectName={project.name}
+              />
 
               {recentTasks.length > 0 && (
                 <div className="mt-3 overflow-hidden rounded-[12px] bg-[#F5F5F5] p-1">

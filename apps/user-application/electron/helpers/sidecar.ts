@@ -28,6 +28,17 @@ export function getSidecarPort() {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_PORT;
 }
 
+export function getSidecarEnv(port: number): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    STAGE_ENGINE_PORT: String(port),
+    CONVEX_URL:
+      process.env.CONVEX_URL ??
+      process.env.VITE_CONVEX_URL ??
+      "https://reliable-bullfrog-917.convex.cloud",
+  };
+}
+
 export function findStageEngineManifest() {
   if (process.env.STAGE_ENGINE_MANIFEST) {
     return process.env.STAGE_ENGINE_MANIFEST;

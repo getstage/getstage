@@ -25,6 +25,7 @@ export function ProjectHeader({
   onSaveTimeline,
   onSavePhases,
   onPauseProject,
+  onCompleteProject,
   onDeleteProject,
   onPrepareProjectMarkerUpload,
   onPrepareClientAvatarUpload,
@@ -43,6 +44,7 @@ export function ProjectHeader({
   onSaveTimeline: (timeline: ProjectTimeline) => Promise<void>;
   onSavePhases: (phases: Phase[]) => Promise<void>;
   onPauseProject: () => Promise<void>;
+  onCompleteProject: () => Promise<void>;
   onDeleteProject: () => Promise<void>;
   onPrepareProjectMarkerUpload: (file: File) => Promise<{ file: File; previewUrl: string }>;
   onPrepareClientAvatarUpload: (file: File) => Promise<{ file: File; previewUrl: string }>;
@@ -191,6 +193,7 @@ export function ProjectHeader({
           onSaveTimeline={onSaveTimeline}
           onSavePhases={onSavePhases}
           onPauseProject={onPauseProject}
+          onCompleteProject={onCompleteProject}
           onDeleteProject={onDeleteProject}
           onPrepareProjectMarkerUpload={onPrepareProjectMarkerUpload}
           onPrepareClientAvatarUpload={onPrepareClientAvatarUpload}

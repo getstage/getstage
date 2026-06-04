@@ -3,6 +3,7 @@ use std::{net::IpAddr, sync::Arc};
 use reqwest::{Url, header::CONTENT_TYPE};
 use serde_json::{Value, json};
 
+use crate::convex_store::app_secrets::AppSecretsRepository;
 use crate::convex_store::asset_upload::ConvexAssetUploader;
 use crate::convex_store::moodboard_repository::{MoodboardRepository, empty_moodboard_artifact};
 use crate::figma::service::{FigmaImportedImage, FigmaService};
@@ -22,6 +23,7 @@ const MAX_URL_IMAGE_BYTES: u64 = 10 * 1024 * 1024;
 #[derive(Clone, Debug)]
 pub struct MoodboardWorkflow {
     repository: MoodboardRepository,
+    secrets: AppSecretsRepository,
     refero: ReferoService,
     figma: FigmaService,
 }
@@ -29,11 +31,13 @@ pub struct MoodboardWorkflow {
 impl MoodboardWorkflow {
     pub fn new(
         repository: MoodboardRepository,
+        secrets: AppSecretsRepository,
         refero: ReferoService,
         figma: FigmaService,
     ) -> Self {
         Self {
             repository,
+            secrets,
             refero,
             figma,
         }
@@ -170,7 +174,8 @@ impl MoodboardWorkflow {
             limit: MOODBOARD_IMPORT_LIMIT,
             tags: Vec::new(),
         };
-        let mut screens = self.refero.search_screens(&search).await?;
+        let refero = self.resolve_refero(auth_token).await?;
+        let mut screens = refero.search_screens(&search).await?;
         let uploader = ConvexAssetUploader::new(self.repository.deployment_url().to_string());
         let mut references = Vec::new();
 
@@ -180,7 +185,7 @@ impl MoodboardWorkflow {
             }
 
             let image_key =
-                upload_refero_screen_image(&self.refero, &uploader, auth_token, project_id, screen)
+                upload_refero_screen_image(&refero, &uploader, auth_token, project_id, screen)
                     .await;
             let image_url = image_key
                 .clone()
@@ -212,6 +217,26 @@ impl MoodboardWorkflow {
         );
 
         Ok(references)
+    }
+
+    async fn resolve_refero(&self, auth_token: &str) -> Result<ReferoService, WorkflowError> {
+        if self.refero.is_configured() {
+            return Ok(self.refero.clone());
+        }
+
+        let token = self
+            .secrets
+            .fetch_refero_mcp_token(auth_token)
+            .await?
+            .ok_or_else(|| {
+                WorkflowError::InvalidRequest(
+                    "Refero is not configured for this Stage deployment.".to_string(),
+                )
+            })?;
+
+        self.refero
+            .with_token(token)
+            .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))
     }
 
     async fn import_figma(

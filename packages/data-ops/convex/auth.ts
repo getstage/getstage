@@ -27,6 +27,26 @@ function getSiteUrl() {
   return (getEnv("SITE_URL") ?? getEnv("CONVEX_SITE_URL") ?? "").replace(/\/$/, "");
 }
 
+function getAllowedSiteUrls() {
+  const fromEnv = [
+    getEnv("SITE_URL"),
+    getEnv("STAGE_TESTING_SITE_URL"),
+    ...(getEnv("STAGE_ALLOWED_SITE_URLS")?.split(",") ?? []),
+  ];
+  const defaults = [
+    "https://getstage.co",
+    "https://www.getstage.co",
+    "https://testing.getstage.co",
+    "https://stage.getstage.co",
+  ];
+
+  const merged = [...fromEnv, ...defaults].filter(
+    (value): value is string => typeof value === "string" && value.trim().length > 0,
+  );
+
+  return [...new Set(merged.map((value) => value.trim().replace(/\/$/, "")))];
+}
+
 function isSameSiteRedirect(siteUrl: string, redirectTo: string) {
   if (!redirectTo.startsWith(siteUrl)) {
     return false;
@@ -36,22 +56,44 @@ function isSameSiteRedirect(siteUrl: string, redirectTo: string) {
   return nextChar === undefined || nextChar === "/" || nextChar === "?";
 }
 
-async function redirectAfterSignIn({ redirectTo }: { redirectTo: string }) {
-  const siteUrl = getSiteUrl();
+function isDesktopAuthRedirectPath(redirectTo: string) {
+  try {
+    const pathname = redirectTo.startsWith("/")
+      ? new URL(redirectTo, "https://stage.invalid").pathname
+      : new URL(redirectTo).pathname;
+    return pathname === "/auth/desktop";
+  } catch {
+    return false;
+  }
+}
 
-  if (!siteUrl) {
+async function redirectAfterSignIn({ redirectTo }: { redirectTo: string }) {
+  const allowedSiteUrls = getAllowedSiteUrls();
+  const primarySiteUrl = getSiteUrl() || allowedSiteUrls[0] || "";
+
+  if (isDesktopAuthRedirectPath(redirectTo)) {
+    if (redirectTo.startsWith("/") || redirectTo.startsWith("?")) {
+      return primarySiteUrl ? `${primarySiteUrl}${redirectTo}` : redirectTo;
+    }
+
+    if (allowedSiteUrls.some((siteUrl) => isSameSiteRedirect(siteUrl, redirectTo))) {
+      return redirectTo;
+    }
+  }
+
+  if (!primarySiteUrl) {
     return redirectTo.startsWith("/") || redirectTo.startsWith("?") ? redirectTo : "/dashboard";
   }
 
   if (redirectTo.startsWith("/") || redirectTo.startsWith("?")) {
-    return `${siteUrl}${redirectTo}`;
+    return `${primarySiteUrl}${redirectTo}`;
   }
 
-  if (isSameSiteRedirect(siteUrl, redirectTo)) {
+  if (allowedSiteUrls.some((siteUrl) => isSameSiteRedirect(siteUrl, redirectTo))) {
     return redirectTo;
   }
 
-  return `${siteUrl}/dashboard`;
+  return `${primarySiteUrl}/dashboard`;
 }
 
 function isDemoAuthEnabled() {

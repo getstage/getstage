@@ -523,8 +523,10 @@ export async function toggleTaskForUser(
   });
 
   const updatedAt = now();
+  const nextCompleted = !task.isCompleted;
   await ctx.db.patch(task._id, {
-    isCompleted: !task.isCompleted,
+    isCompleted: nextCompleted,
+    boardStatus: nextCompleted ? "done" : task.boardStatus === "done" ? "in-progress" : task.boardStatus,
     updatedAt,
   });
 
@@ -578,6 +580,37 @@ export async function setTaskPriorityForUser(
   const updated = await ctx.db.get(task._id);
   if (!updated) {
     throw new Error("Task not found after priority update.");
+  }
+  return updated;
+}
+
+export async function setTaskKanbanColumnForUser(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    taskId: Id<"tasks">;
+    boardStatus: "backlog" | "todo" | "in-progress" | "done";
+  },
+) {
+  const { task, project } = await requireTaskAccessForUserId(ctx, {
+    userId: args.userId,
+    taskId: args.taskId,
+  });
+
+  const isCompleted = args.boardStatus === "done";
+  const updatedAt = now();
+  await ctx.db.patch(task._id, {
+    boardStatus: args.boardStatus,
+    isCompleted,
+    updatedAt,
+    ...(isCompleted ? { priority: undefined } : {}),
+  });
+
+  await recomputeProjectState(ctx, project._id);
+
+  const updated = await ctx.db.get(task._id);
+  if (!updated) {
+    throw new Error("Task not found after kanban update.");
   }
   return updated;
 }

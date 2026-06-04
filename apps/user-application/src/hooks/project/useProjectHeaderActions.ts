@@ -196,6 +196,21 @@ export function useProjectHeaderActions({
     });
   }
 
+  async function completeProject() {
+    if (!detail) {
+      throw new Error("Project is not loaded yet.");
+    }
+
+    if (detail.status === "completed") {
+      return;
+    }
+
+    await updateProject.mutateAsync({
+      projectId,
+      status: "completed",
+    });
+  }
+
   async function deleteProject() {
     onLeavingAfterDelete(true);
     try {
@@ -213,6 +228,7 @@ export function useProjectHeaderActions({
     saveTimeline,
     savePhases,
     pauseProject,
+    completeProject,
     deleteProject,
     isSaving:
       updateProject.isPending || syncPhases.isPending || deleteProjectMutation.isPending,

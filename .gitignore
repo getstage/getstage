@@ -12,6 +12,8 @@ node_modules/
 dist/
 **/dist/
 apps/user-application/out/
+apps/user-application/release/
+apps/user-application/resources/stage-engine/stage-engine
 **/target/
 .tanstack/
 *.tsbuildinfo

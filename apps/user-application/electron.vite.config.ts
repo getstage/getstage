@@ -7,8 +7,16 @@ import tailwindcss from "@tailwindcss/vite";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const desktopBuildEnv = {
+  "process.env.VITE_CONVEX_URL": JSON.stringify(process.env.VITE_CONVEX_URL ?? ""),
+  "process.env.STAGE_DESKTOP_AUTH_URL": JSON.stringify(
+    process.env.STAGE_DESKTOP_AUTH_URL ?? "",
+  ),
+};
+
 export default defineConfig({
   main: {
+    define: desktopBuildEnv,
     plugins: [externalizeDepsPlugin({ exclude: ["@stage/data-ops"] })],
     resolve: {
       alias: {

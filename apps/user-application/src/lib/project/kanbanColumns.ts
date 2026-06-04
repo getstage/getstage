@@ -27,6 +27,7 @@ export const DEFAULT_PHASE_TAG_COLOR = { bg: "bg-[#F5F5F5]", text: "text-[#52525
 export type BoardTask = { task: Task; phaseName: string };
 
 export function getTaskStatus(task: Task, phaseStatus: string): KanbanStatus {
+  if (task.boardStatus) return task.boardStatus;
   if (task.status) return task.status;
   if (task.isCompleted) return "done";
   if (phaseStatus === "upcoming") return "backlog";

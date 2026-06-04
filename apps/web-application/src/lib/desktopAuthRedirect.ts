@@ -130,3 +130,28 @@ export function getLocalDesktopAuthCallbackUrl() {
 export function getLocalDesktopAuthLoginUrl() {
   return LOCAL_DESKTOP_AUTH_LOGIN_URL;
 }
+
+/** Absolute URL on the current web origin for the desktop JWT handoff page. */
+export function buildDesktopAuthHandoffUrl(args: {
+  redirectUri: string;
+  state: string;
+  origin?: string;
+}) {
+  if (!isValidDesktopCallbackUrl(args.redirectUri)) {
+    return null;
+  }
+
+  const origin =
+    args.origin ?? (typeof window !== "undefined" ? window.location.origin : undefined);
+
+  if (!origin) {
+    return null;
+  }
+
+  const search = new URLSearchParams({
+    redirect_uri: args.redirectUri,
+    state: args.state,
+  });
+
+  return `${origin}/auth/desktop?${search.toString()}`;
+}

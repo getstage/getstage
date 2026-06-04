@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { ProjectSummary, TaskPriority, TaskSummary } from "@stage/data-ops";
+import type { PhaseSummary, ProjectSummary, TaskBoardStatus, TaskPriority, TaskSummary } from "@stage/data-ops";
 import { useCreateTaskMutation } from "@/hooks/convex-data";
 
 const PRIORITY_OPTIONS: Array<{ value: TaskPriority | null; label: string }> = [
@@ -9,18 +9,24 @@ const PRIORITY_OPTIONS: Array<{ value: TaskPriority | null; label: string }> = [
   { value: "high", label: "High" },
 ];
 
-type Picker = "project" | "priority" | null;
+type Picker = "project" | "priority" | "phase" | null;
 
 export function CreateTaskDialog({
   projects,
+  phases = [],
   initialProjectId,
+  initialPhaseId,
+  initialBoardStatus,
   projectLabel,
   lockProject = false,
   onClose,
   onCreated,
 }: {
   projects: ProjectSummary[];
+  phases?: PhaseSummary[];
   initialProjectId?: string;
+  initialPhaseId?: string;
+  initialBoardStatus?: TaskBoardStatus;
   projectLabel?: string;
   lockProject?: boolean;
   onClose: () => void;
@@ -32,6 +38,7 @@ export function CreateTaskDialog({
     initialProjectId ?? projects[0]?.id,
   );
   const [priority, setPriority] = useState<TaskPriority | null>(null);
+  const [phaseId, setPhaseId] = useState<string | undefined>(initialPhaseId ?? phases[0]?.id);
   const [picker, setPicker] = useState<Picker>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -42,6 +49,10 @@ export function CreateTaskDialog({
   const selectedProject = useMemo(
     () => projects.find((project) => project.id === projectId),
     [projects, projectId],
+  );
+  const selectedPhase = useMemo(
+    () => phases.find((phase) => phase.id === phaseId),
+    [phases, phaseId],
   );
   const selectedPriorityLabel = useMemo(
     () => PRIORITY_OPTIONS.find((option) => option.value === priority)?.label ?? "Backlog",
@@ -63,8 +74,10 @@ export function CreateTaskDialog({
       const task = await createTask.mutateAsync({
         projectId,
         title: trimmedTitle,
+        phaseId: phases.length > 0 ? phaseId : undefined,
         priority: priority ?? undefined,
         content: description.trim() || undefined,
+        boardStatus: initialBoardStatus,
       });
       onCreated?.(task);
       onClose();
@@ -164,6 +177,29 @@ export function CreateTaskDialog({
                 </PickerPanel>
               ) : null}
             </PickerButton>
+
+            {phases.length > 0 ? (
+              <PickerButton
+                label={selectedPhase?.name ?? "Pick a phase"}
+                onClick={() => setPicker((current) => (current === "phase" ? null : "phase"))}
+              >
+                {picker === "phase" ? (
+                  <PickerPanel>
+                    {phases.map((phase) => (
+                      <PickerItem
+                        key={phase.id}
+                        label={phase.name}
+                        selected={phase.id === phaseId}
+                        onSelect={() => {
+                          setPhaseId(phase.id);
+                          setPicker(null);
+                        }}
+                      />
+                    ))}
+                  </PickerPanel>
+                ) : null}
+              </PickerButton>
+            ) : null}
 
             <PickerButton
               label={`Priority: ${selectedPriorityLabel}`}

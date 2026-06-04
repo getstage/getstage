@@ -5,7 +5,9 @@ import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/lib/auth";
 import { desktopAuthWebHandoffSchema } from "@/lib/desktopAuthHandoff";
 import {
+  buildDesktopAuthHandoffUrl,
   clearPendingDesktopAuthRedirect,
+  isDesktopAuthRedirect,
   isLocalDesktopCallbackUrl,
   isValidDesktopCallbackUrl,
   storePendingDesktopAuthRedirect,
@@ -26,14 +28,25 @@ export const Route = createFileRoute("/auth/desktop")({
   }),
 });
 
-function getDesktopAuthTarget() {
+function getDesktopAuthTarget(redirectUri?: string, state?: string) {
   if (typeof window === "undefined") {
     return "/auth/desktop";
   }
 
-  const target = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-  storePendingDesktopAuthRedirect(target);
-  console.info("[stage-desktop-auth] stored pending desktop auth redirect");
+  if (redirectUri && state) {
+    const target = buildDesktopAuthHandoffUrl({ redirectUri, state });
+    if (target) {
+      storePendingDesktopAuthRedirect(target);
+      console.info("[stage-desktop-auth] stored pending desktop auth redirect");
+      return target;
+    }
+  }
+
+  const target = `${window.location.origin}${window.location.pathname}${window.location.search}${window.location.hash}`;
+  if (isDesktopAuthRedirect(target)) {
+    storePendingDesktopAuthRedirect(target);
+    console.info("[stage-desktop-auth] stored pending desktop auth redirect");
+  }
   return target;
 }
 
@@ -124,7 +137,7 @@ function DesktopAuthPage() {
   }
 
   if (!isAuthenticated) {
-    storePendingDesktopAuthRedirect(getDesktopAuthTarget());
+    getDesktopAuthTarget(redirect_uri, state);
     return (
       <Navigate
         to="/auth"

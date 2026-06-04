@@ -4,9 +4,9 @@ import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth, useSignIn } from "@/lib/auth";
 import {
+  buildDesktopAuthHandoffUrl,
   getPendingDesktopAuthRedirect,
   isDesktopAuthRedirect,
-  isValidDesktopCallbackUrl,
   storePendingDesktopAuthRedirect,
 } from "@/lib/desktopAuthRedirect";
 import { toUserFacingErrorMessage } from "@/lib/errors";
@@ -18,15 +18,42 @@ import { cn } from "@/lib/utils";
 type Step = "email" | "code";
 type AuthMode = "signup" | "login";
 
+function toAuthRedirectTarget(value: string) {
+  if (typeof window === "undefined") {
+    return value;
+  }
+
+  try {
+    if (isDesktopAuthRedirect(value)) {
+      return new URL(value, window.location.origin).href;
+    }
+  } catch {
+    return value;
+  }
+
+  return value;
+}
+
 export function AuthPage() {
   const navigate = useNavigate();
   const { desktop_redirect_uri, desktop_state, redirect } = useSearch({ from: "/auth" });
   const pendingDesktopRedirect = getPendingDesktopAuthRedirect();
-  const desktopAuthRedirect = getDesktopAuthRedirect({
-    redirectUri: desktop_redirect_uri,
-    state: desktop_state,
-  });
-  const redirectTo = desktopAuthRedirect ?? redirect ?? pendingDesktopRedirect ?? "/dashboard";
+  const desktopAuthRedirect =
+    desktop_redirect_uri && desktop_state
+      ? buildDesktopAuthHandoffUrl({
+          redirectUri: desktop_redirect_uri,
+          state: desktop_state,
+        })
+      : null;
+  const redirectTo = toAuthRedirectTarget(
+    desktopAuthRedirect ?? redirect ?? pendingDesktopRedirect ?? "/dashboard",
+  );
+
+  useEffect(() => {
+    if (desktopAuthRedirect) {
+      storePendingDesktopAuthRedirect(desktopAuthRedirect);
+    }
+  }, [desktopAuthRedirect]);
   const { isAuthenticated } = useAuth();
   const signIn = useSignIn();
   const [step, setStep] = useState<Step>("email");
@@ -263,9 +290,16 @@ export function AuthPage() {
     setLoading(true);
     try {
       await signIn("demo");
+      if (isDesktopAuthRedirect(redirectTo)) {
+        storePendingDesktopAuthRedirect(redirectTo);
+        window.location.assign(redirectTo);
+        return;
+      }
       if (redirectTo === "/dashboard") {
         navigate({ to: "/dashboard", replace: true });
+        return;
       }
+      navigate({ to: redirectTo, replace: true });
     } catch (error) {
       setError(
         toUserFacingErrorMessage(
@@ -631,28 +665,3 @@ function GoogleIcon() {
   );
 }
 
-function getDesktopAuthRedirect(args: {
-  redirectUri?: string;
-  state?: string;
-}) {
-  if (!args.redirectUri || !args.state) {
-    return null;
-  }
-
-  try {
-    const redirectUri = new URL(args.redirectUri);
-
-    if (!isValidDesktopCallbackUrl(redirectUri.toString())) {
-      return null;
-    }
-
-    const search = new URLSearchParams({
-      redirect_uri: redirectUri.toString(),
-      state: args.state,
-    });
-
-    return `/auth/desktop?${search.toString()}`;
-  } catch {
-    return null;
-  }
-}

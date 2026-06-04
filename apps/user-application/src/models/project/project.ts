@@ -15,6 +15,7 @@ export const taskSchema = z.object({
   title: z.string(),
   content: z.string().optional(),
   status: z.enum(["backlog", "todo", "in-progress", "done"]).optional(),
+  boardStatus: z.enum(["backlog", "todo", "in-progress", "done"]).optional(),
   isCompleted: z.boolean(),
   updatedAt: z.number(),
   assignees: z.array(z.object({ name: z.string() })).optional(),

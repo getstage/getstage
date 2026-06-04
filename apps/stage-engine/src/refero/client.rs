@@ -13,14 +13,22 @@ use crate::config::ReferoConfig;
 pub struct ReferoClient {
     http: reqwest::Client,
     mcp_url: String,
+    auth_configured: bool,
 }
 
 impl ReferoClient {
     pub fn new(config: &ReferoConfig) -> Result<Self, ReferoClientError> {
+        Self::from_parts(config.mcp_url.clone(), config.token.clone())
+    }
+
+    pub fn from_parts(
+        mcp_url: String,
+        token: Option<String>,
+    ) -> Result<Self, ReferoClientError> {
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
-        if let Some(token) = &config.token {
+        if let Some(token) = &token {
             let value = HeaderValue::from_str(&format!("Bearer {token}"))
                 .map_err(|_| ReferoClientError::InvalidTokenHeader)?;
             headers.insert(AUTHORIZATION, value);
@@ -32,8 +40,17 @@ impl ReferoClient {
 
         Ok(Self {
             http,
-            mcp_url: config.mcp_url.clone(),
+            mcp_url,
+            auth_configured: token.is_some(),
         })
+    }
+
+    pub fn mcp_url(&self) -> &str {
+        &self.mcp_url
+    }
+
+    pub fn is_configured(&self) -> bool {
+        self.auth_configured
     }
 
     pub async fn call_tool(

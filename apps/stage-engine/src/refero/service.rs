@@ -31,6 +31,16 @@ impl ReferoService {
         Self { client }
     }
 
+    pub fn is_configured(&self) -> bool {
+        self.client.is_configured()
+    }
+
+    pub fn with_token(&self, token: String) -> Result<Self, ReferoClientError> {
+        Ok(Self {
+            client: ReferoClient::from_parts(self.client.mcp_url().to_string(), Some(token))?,
+        })
+    }
+
     pub async fn research_context_for_categories(
         &self,
         category_requests: &[ReferoCategorySearchRequest],

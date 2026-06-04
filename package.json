@@ -15,6 +15,7 @@
     "desktop:build": "pnpm --filter stage-user-application run build",
     "desktop:typecheck": "pnpm --filter stage-user-application run typecheck",
     "desktop:preview": "pnpm --filter stage-user-application run preview",
+    "desktop:dist:mac": "pnpm --filter stage-user-application run dist:mac",
     "web:dev": "pnpm --filter stage-app run dev",
     "web:build": "pnpm --filter stage-app run build",
     "web:build:testing": "pnpm --filter stage-app run build:testing",
