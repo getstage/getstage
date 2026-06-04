@@ -26,10 +26,9 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Local env / secrets
+# Local env / secrets — includes .env, .env.local, .env.example, etc.
 .env
 .env.*
-!.env.example
 
 # Wrangler / Cloudflare local files
 .wrangler/
