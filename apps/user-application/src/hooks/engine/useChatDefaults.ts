@@ -1,4 +1,6 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
+import { chatModelsFromProviders } from "@/lib/engine/providerModels";
 
 export type ChatProviderId = "favorites" | "openai" | "anthropic";
 
@@ -72,12 +74,6 @@ export const chatModels: ChatModel[] = [
     description: "Top OpenAI deep work model",
   },
   {
-    id: "gpt-5.5-instant",
-    label: "GPT-5.5 Instant",
-    provider: "openai",
-    description: "Newest fast ChatGPT model",
-  },
-  {
     id: "gpt-5.4",
     label: "GPT-5.4",
     provider: "openai",
@@ -103,8 +99,17 @@ export const DEFAULT_CHAT_DEFAULTS: ChatDefaultsState = {
   responseSpeed: "default",
 };
 
-export function getChatModelById(modelId: string) {
-  return chatModels.find((model) => model.id === modelId) ?? chatModels[0]!;
+export function getChatModelById(modelId: string, models: ChatModel[] = chatModels) {
+  return models.find((model) => model.id === modelId) ?? models[0] ?? chatModels[0]!;
+}
+
+export function useAvailableChatModels() {
+  const providers = useProviderStatus();
+
+  return useMemo(() => {
+    const fromProviders = chatModelsFromProviders(providers.data?.providers);
+    return fromProviders.length > 0 ? fromProviders : chatModels;
+  }, [providers.data?.providers]);
 }
 
 function isReasoningEffort(value: unknown): value is ReasoningEffort {
@@ -115,16 +120,18 @@ function isResponseSpeed(value: unknown): value is ResponseSpeed {
   return responseSpeeds.some((speed) => speed.id === value);
 }
 
-function readChatDefaults(): ChatDefaultsState {
+function readChatDefaults(availableModelIds: string[]): ChatDefaultsState {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_CHAT_DEFAULTS;
     const parsed = JSON.parse(raw) as Partial<ChatDefaultsState>;
 
     return {
-      modelId: chatModels.some((model) => model.id === parsed.modelId)
+      modelId: availableModelIds.includes(parsed.modelId ?? "")
         ? parsed.modelId!
-        : DEFAULT_CHAT_DEFAULTS.modelId,
+        : availableModelIds.includes(DEFAULT_CHAT_DEFAULTS.modelId)
+          ? DEFAULT_CHAT_DEFAULTS.modelId
+          : (availableModelIds[0] ?? DEFAULT_CHAT_DEFAULTS.modelId),
       reasoningEffort: isReasoningEffort(parsed.reasoningEffort)
         ? parsed.reasoningEffort
         : DEFAULT_CHAT_DEFAULTS.reasoningEffort,
@@ -158,14 +165,27 @@ function subscribeToChatDefaults(listener: () => void) {
   };
 }
 
-function getChatDefaultsSnapshot() {
-  return JSON.stringify(readChatDefaults());
+function createChatDefaultsStore(availableModelIds: string[]) {
+  return {
+    read: () => readChatDefaults(availableModelIds),
+    snapshot: () => JSON.stringify(readChatDefaults(availableModelIds)),
+  };
 }
 
 export function useChatDefaults() {
+  const availableModels = useAvailableChatModels();
+  const availableModelIds = useMemo(
+    () => availableModels.map((model) => model.id),
+    [availableModels],
+  );
+  const defaultsStore = useMemo(
+    () => createChatDefaultsStore(availableModelIds),
+    [availableModelIds],
+  );
+
   const defaultsSnapshot = useSyncExternalStore(
     subscribeToChatDefaults,
-    getChatDefaultsSnapshot,
+    defaultsStore.snapshot,
     () => JSON.stringify(DEFAULT_CHAT_DEFAULTS),
   );
   const defaults = useMemo(
@@ -173,21 +193,25 @@ export function useChatDefaults() {
     [defaultsSnapshot],
   );
 
-  const setDefaults = useCallback((nextDefaults: Partial<ChatDefaultsState>) => {
-    writeChatDefaults({
-      ...readChatDefaults(),
-      ...nextDefaults,
-    });
-  }, []);
+  const setDefaults = useCallback(
+    (nextDefaults: Partial<ChatDefaultsState>) => {
+      writeChatDefaults({
+        ...defaultsStore.read(),
+        ...nextDefaults,
+      });
+    },
+    [defaultsStore],
+  );
 
   return useMemo(
     () => ({
       defaults,
-      selectedModel: getChatModelById(defaults.modelId),
+      availableModels,
+      selectedModel: getChatModelById(defaults.modelId, availableModels),
       selectedEffort: defaults.reasoningEffort,
       selectedSpeed: defaults.responseSpeed,
       setDefaults,
     }),
-    [defaults, setDefaults],
+    [availableModels, defaults, setDefaults],
   );
 }

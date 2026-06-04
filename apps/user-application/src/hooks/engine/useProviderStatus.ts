@@ -24,3 +24,15 @@ export function useProviderUpdate() {
     },
   });
 }
+
+export function useProviderRefresh() {
+  const desktop = useDesktopBridge();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => desktop.engine.refreshProviders(),
+    onSuccess: (response) => {
+      queryClient.setQueryData(engineQueryKeys.providers(), response);
+    },
+  });
+}

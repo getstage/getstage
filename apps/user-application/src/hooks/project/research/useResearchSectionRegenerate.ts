@@ -5,11 +5,7 @@ import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
-
-const DEFAULT_RESEARCH_MODELS: Record<ProviderId, string> = {
-  claude: "claude-sonnet-4-6",
-  codex: "codex-default",
-};
+import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 
 export function useResearchSectionRegenerate(projectId: string) {
   const providerRun = useProviderRun({ projectId, mode: "research-section" });
@@ -30,7 +26,7 @@ export function useResearchSectionRegenerate(projectId: string) {
 
       await providerRun.startRun.mutateAsync({
         providerId,
-        modelId: DEFAULT_RESEARCH_MODELS[providerId],
+        modelId: resolveRunModelId(providerId, chatDefaults.defaults.modelId),
         prompt: `Regenerate research section: ${section}`,
         mode: "research",
         context: {

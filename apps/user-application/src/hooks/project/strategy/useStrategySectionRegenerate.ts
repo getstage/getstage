@@ -5,11 +5,7 @@ import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
-
-const DEFAULT_STRATEGY_MODELS: Record<ProviderId, string> = {
-  claude: "claude-sonnet-4-6",
-  codex: "codex-default",
-};
+import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 
 export function useStrategySectionRegenerate(projectId: string) {
   const providerRun = useProviderRun({ projectId, mode: "strategy-section" });
@@ -32,7 +28,7 @@ export function useStrategySectionRegenerate(projectId: string) {
 
       await providerRun.startRun.mutateAsync({
         providerId,
-        modelId: DEFAULT_STRATEGY_MODELS[providerId],
+        modelId: resolveRunModelId(providerId, chatDefaults.defaults.modelId),
         prompt: `Regenerate strategy section: ${sectionId}`,
         mode: "strategy",
         context: {

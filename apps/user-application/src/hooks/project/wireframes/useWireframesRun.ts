@@ -8,16 +8,12 @@ import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import { formatRunFailedEvent } from "@/lib/engine/formatRunError";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
+import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 
 const WIREFRAMES_PROMPT =
   "Generate Stage wireframes from the current project context.";
 const WIREFRAMES_RUN_FAILED_USER_MESSAGE =
   "Wireframes generation failed. Check that Stage Engine is running and the selected provider is configured.";
-
-const DEFAULT_WIREFRAMES_MODELS: Record<ProviderId, string> = {
-  claude: "claude-sonnet-4-6",
-  codex: "codex-default",
-};
 
 const WIREFRAMES_EVENT_STALL_MS = 20_000;
 const WIREFRAMES_RUN_MAX_MS = 20 * 60 * 1000;
@@ -164,7 +160,7 @@ export function useWireframesRun(projectId: string) {
 
         await providerRun.startRun.mutateAsync({
           providerId,
-          modelId: DEFAULT_WIREFRAMES_MODELS[providerId],
+          modelId: resolveRunModelId(providerId, chatDefaults.defaults.modelId),
           prompt: WIREFRAMES_PROMPT,
           mode: "wireframes",
           context: source ? { projectId, source } : { projectId },

@@ -7,17 +7,30 @@ use crate::models::providers::{
     ProviderUpdateResponse, ProviderUpdateStatus,
 };
 use crate::providers::auth::{LocalAuthProbe, probe_local_auth};
-use crate::providers::catalog::{
-    ProviderRuntimeSpec, all_provider_specs, fallback_models, spec_by_route_id,
-};
+use crate::providers::catalog::{ProviderRuntimeSpec, all_provider_specs, spec_by_route_id};
 use crate::providers::command::{command_detail, parse_version, run_command};
+use crate::providers::models::{invalidate_stage_models_cache, resolve_provider_models};
 
 const VERSION_TIMEOUT: Duration = Duration::from_secs(4);
 const UPDATE_TIMEOUT: Duration = Duration::from_secs(120);
 
 pub async fn provider_snapshot(api_version: &'static str) -> ProviderListResponse {
+    provider_snapshot_with_options(api_version, false).await
+}
+
+pub async fn refresh_provider_snapshot(api_version: &'static str) -> ProviderListResponse {
+    provider_snapshot_with_options(api_version, true).await
+}
+
+async fn provider_snapshot_with_options(
+    api_version: &'static str,
+    force_model_refresh: bool,
+) -> ProviderListResponse {
     let [claude_spec, codex_spec] = all_provider_specs();
-    let (claude, codex) = tokio::join!(provider_record(claude_spec), provider_record(codex_spec));
+    let (claude, codex) = tokio::join!(
+        provider_record(claude_spec, force_model_refresh),
+        provider_record(codex_spec, force_model_refresh)
+    );
 
     ProviderListResponse {
         api_version,
@@ -42,7 +55,10 @@ pub async fn update_provider_by_route_id(
     Ok(update_provider_with_spec(api_version, spec).await)
 }
 
-async fn provider_record(spec: ProviderRuntimeSpec) -> ProviderStatusRecord {
+async fn provider_record(
+    spec: ProviderRuntimeSpec,
+    force_model_refresh: bool,
+) -> ProviderStatusRecord {
     match run_command(
         spec.binary,
         spec.version_args,
@@ -66,6 +82,10 @@ async fn provider_record(spec: ProviderRuntimeSpec) -> ProviderStatusRecord {
                 LocalAuthProbe::Unknown => (ProviderAuthStatus::Unknown, None, None),
             };
             let status = provider_status(command_failed, authenticated, auth_status);
+            let models =
+                resolve_provider_models(spec, version.as_deref(), force_model_refresh).await;
+            let message =
+                provider_message(command_failed, authenticated, auth_status, &models);
 
             ProviderStatusRecord {
                 id: spec.id,
@@ -83,9 +103,9 @@ async fn provider_record(spec: ProviderRuntimeSpec) -> ProviderStatusRecord {
                 update_status: ProviderUpdateStatus::Idle,
                 update_hint: Some(spec.update_hint.to_string()),
                 checked_at: now_millis(),
-                models: fallback_models(spec.id),
+                models,
                 setup_hint: Some(spec.setup_hint.to_string()),
-                message: provider_message(command_failed, authenticated, auth_status),
+                message,
                 error: if command_failed {
                     Some(EngineError {
                         code: EngineErrorCode::ReadinessFailed,
@@ -99,7 +119,7 @@ async fn provider_record(spec: ProviderRuntimeSpec) -> ProviderStatusRecord {
                 },
             }
         }
-        Err(error) => missing_or_failed_provider(spec, error),
+        Err(error) => missing_or_failed_provider(spec, error, force_model_refresh).await,
     }
 }
 
@@ -138,6 +158,8 @@ async fn update_provider_with_spec(
                 parse_version(&result.stdout).or_else(|| parse_version(&result.stderr))
             });
 
+            invalidate_stage_models_cache(spec.id).await;
+
             ProviderUpdateResponse {
                 api_version,
                 provider_id: spec.id,
@@ -175,9 +197,10 @@ async fn update_provider_with_spec(
     }
 }
 
-fn missing_or_failed_provider(
+async fn missing_or_failed_provider(
     spec: ProviderRuntimeSpec,
     mut error: EngineError,
+    force_model_refresh: bool,
 ) -> ProviderStatusRecord {
     error.provider_id = Some(spec.id);
     let missing = matches!(error.code, EngineErrorCode::MissingBinary);
@@ -202,7 +225,7 @@ fn missing_or_failed_provider(
         update_status: ProviderUpdateStatus::Idle,
         update_hint: Some(spec.update_hint.to_string()),
         checked_at: now_millis(),
-        models: fallback_models(spec.id),
+        models: resolve_provider_models(spec, None, force_model_refresh).await,
         setup_hint: Some(spec.setup_hint.to_string()),
         message: Some(error.message.clone()),
         error: Some(error),
@@ -229,16 +252,29 @@ fn provider_message(
     command_failed: bool,
     authenticated: bool,
     auth_status: ProviderAuthStatus,
+    models: &[crate::models::providers::ProviderModel],
 ) -> Option<String> {
     if command_failed {
         return None;
     }
 
     if authenticated {
-        return Some(
-            "Provider appears authenticated from local credential metadata. Provider-reported model refresh is still pending."
-                .to_string(),
-        );
+        use crate::models::providers::ProviderModelSource;
+
+        let source = models
+            .first()
+            .map(|model| match model.source {
+                ProviderModelSource::Provider => "provider",
+                ProviderModelSource::Fallback => "fallback",
+                ProviderModelSource::Custom => "custom",
+                ProviderModelSource::Unknown => "unknown",
+            })
+            .unwrap_or("fallback");
+
+        return Some(format!(
+            "Provider is ready. Model list source: {source} ({} models).",
+            models.len()
+        ));
     }
 
     if matches!(auth_status, ProviderAuthStatus::NotAuthenticated) {

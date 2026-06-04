@@ -2,14 +2,14 @@ import { FormEvent, MouseEvent, useCallback, useEffect, useMemo, useRef, useStat
 import type { CompanionState } from "@shared/models/desktop";
 import type { ProviderId, RunEvent } from "@stage/data-ops/contracts";
 import {
-  chatModels,
   getChatModelById,
   reasoningEfforts,
   responseSpeeds,
   type ChatModel,
   type ChatProviderId,
+  useAvailableChatModels,
+  useChatDefaults,
 } from "@/hooks/engine/useChatDefaults";
-import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useDraggablePanel } from "@/hooks/companion/useDraggablePanel";
@@ -56,6 +56,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const [draft, setDraft] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const chatDefaults = useChatDefaults();
+  const availableModels = useAvailableChatModels();
   const [selectedModel, setSelectedModel] = useState<ChatModel>(chatDefaults.selectedModel);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [reasoningMenuOpen, setReasoningMenuOpen] = useState(false);
@@ -87,14 +88,14 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const selectedSpeedLabel = responseSpeeds.find((speed) => speed.id === selectedSpeed)?.label ?? "Default";
   const visibleModels = useMemo(() => {
     if (activeProvider === "favorites") {
-      return chatModels.filter((model) => favoriteModelIds.includes(model.id));
+      return availableModels.filter((model) => favoriteModelIds.includes(model.id));
     }
 
-    return chatModels.filter((model) => model.provider === activeProvider);
-  }, [activeProvider, favoriteModelIds]);
+    return availableModels.filter((model) => model.provider === activeProvider);
+  }, [activeProvider, availableModels, favoriteModelIds]);
 
   useEffect(() => {
-    setSelectedModel(getChatModelById(chatDefaults.defaults.modelId));
+    setSelectedModel(getChatModelById(chatDefaults.defaults.modelId, availableModels));
     setSelectedEffort(chatDefaults.selectedEffort);
     setSelectedSpeed(chatDefaults.selectedSpeed);
   }, [chatDefaults.defaults.modelId, chatDefaults.selectedEffort, chatDefaults.selectedSpeed]);

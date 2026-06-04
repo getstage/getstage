@@ -7,14 +7,16 @@ use axum::{
 use crate::app::AppState;
 use crate::models::errors::EngineError;
 use crate::models::providers::{ProviderListResponse, ProviderUpdateResponse};
-use crate::providers::service::{provider_snapshot, update_provider_by_route_id};
+use crate::providers::service::{
+    provider_snapshot, refresh_provider_snapshot, update_provider_by_route_id,
+};
 
 pub async fn list_providers(State(state): State<AppState>) -> Json<ProviderListResponse> {
     Json(provider_snapshot(state.api_version).await)
 }
 
 pub async fn refresh_providers(State(state): State<AppState>) -> Json<ProviderListResponse> {
-    Json(provider_snapshot(state.api_version).await)
+    Json(refresh_provider_snapshot(state.api_version).await)
 }
 
 pub async fn update_provider(

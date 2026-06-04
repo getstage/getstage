@@ -15,13 +15,9 @@ import {
   formatRunFailedEvent,
 } from "@/lib/engine/formatRunError";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
+import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 
 const RESEARCH_PROMPT = "Generate project research from the current Stage project context.";
-
-const DEFAULT_RESEARCH_MODELS: Record<ProviderId, string> = {
-  claude: "claude-sonnet-4-6",
-  codex: "codex-default",
-};
 
 /** If IPC stream dies immediately, unblock the UI within ~20s. */
 const RESEARCH_EVENT_STALL_MS = 20_000;
@@ -156,7 +152,7 @@ export function useResearchRun(projectId: string) {
 
       await providerRun.startRun.mutateAsync({
         providerId,
-        modelId: DEFAULT_RESEARCH_MODELS[providerId],
+        modelId: resolveRunModelId(providerId, chatDefaults.defaults.modelId),
         prompt: RESEARCH_PROMPT,
         mode: "research",
         context: { projectId },
@@ -165,7 +161,9 @@ export function useResearchRun(projectId: string) {
       });
     },
     [
-      chatDefaults.defaults,
+      chatDefaults.defaults.modelId,
+      chatDefaults.defaults.reasoningEffort,
+      chatDefaults.defaults.responseSpeed,
       projectId,
       providerPreferences,
       providerRun.startRun,

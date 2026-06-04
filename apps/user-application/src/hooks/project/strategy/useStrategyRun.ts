@@ -8,13 +8,9 @@ import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import { formatRunFailedEvent, STRATEGY_RUN_FAILED_USER_MESSAGE } from "@/lib/engine/formatRunError";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
+import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 
 const STRATEGY_PROMPT = "Generate project strategy from the current Stage research artifact.";
-
-const DEFAULT_STRATEGY_MODELS: Record<ProviderId, string> = {
-  claude: "claude-sonnet-4-6",
-  codex: "codex-default",
-};
 
 const STRATEGY_EVENT_STALL_MS = 20_000;
 const STRATEGY_RUN_MAX_MS = 20 * 60 * 1000;
@@ -168,7 +164,7 @@ export function useStrategyRun(projectId: string) {
 
         await providerRun.startRun.mutateAsync({
           providerId,
-          modelId: DEFAULT_STRATEGY_MODELS[providerId],
+          modelId: resolveRunModelId(providerId, chatDefaults.defaults.modelId),
           prompt: STRATEGY_PROMPT,
           mode: "strategy",
           context: { projectId },

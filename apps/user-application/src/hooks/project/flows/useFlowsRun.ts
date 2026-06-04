@@ -8,14 +8,10 @@ import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import { formatRunFailedEvent } from "@/lib/engine/formatRunError";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
+import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 
 const FLOWS_PROMPT = "Generate project flows from the current Stage project context.";
 const FLOWS_RUN_FAILED_USER_MESSAGE = "Flows generation failed. Check that Stage Engine is running and the selected provider is configured.";
-
-const DEFAULT_FLOWS_MODELS: Record<ProviderId, string> = {
-  claude: "claude-sonnet-4-6",
-  codex: "codex-default",
-};
 
 const FLOWS_EVENT_STALL_MS = 20_000;
 const FLOWS_RUN_MAX_MS = 20 * 60 * 1000;
@@ -159,7 +155,7 @@ export function useFlowsRun(projectId: string) {
 
         await providerRun.startRun.mutateAsync({
           providerId,
-          modelId: DEFAULT_FLOWS_MODELS[providerId],
+          modelId: resolveRunModelId(providerId, chatDefaults.defaults.modelId),
           prompt: FLOWS_PROMPT,
           mode: "flows",
           context: source ? { projectId, source } : { projectId },

@@ -5,9 +5,8 @@ import {
   useMutation as useConvexMutation,
   useQuery as useConvexQuery,
 } from "convex/react";
-import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
+import { useProviderRefresh, useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import {
-  chatModels,
   getChatModelById,
   reasoningEfforts,
   responseSpeeds,
@@ -27,6 +26,7 @@ import { SettingsIcon } from "./SettingsIcons";
 export function IntegrationsPage() {
   const { isAuthenticated } = useConvexAuth();
   const providers = useProviderStatus();
+  const providerRefresh = useProviderRefresh();
   const providerPreferences = useProviderPreferences();
   const chatDefaults = useChatDefaults();
   const [busyIntegrationId, setBusyIntegrationId] = useState<string | null>(null);
@@ -78,8 +78,8 @@ export function IntegrationsPage() {
   const integrationRows = [...providerRows, ...nativeIntegrationRows];
   const connectedIntegrations = integrationRows.filter((integration) => integration.connected);
   const availableIntegrations = integrationRows.filter((integration) => !integration.connected);
-  const isRefreshing = providers.isFetching;
-  const selectedDefaultModel = getChatModelById(chatDefaults.defaults.modelId);
+  const isRefreshing = providers.isFetching || providerRefresh.isPending;
+  const selectedDefaultModel = chatDefaults.selectedModel;
 
   useEffect(() => {
     if (!modelMenuOpen) {
@@ -190,7 +190,7 @@ export function IntegrationsPage() {
           <button
             type="button"
             disabled={isRefreshing}
-            onClick={() => void providers.refetch()}
+            onClick={() => void providerRefresh.mutateAsync()}
             className="inline-flex h-[32px] items-center justify-center rounded-[6px] bg-[#F5F5F5] px-[12px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors enabled:hover:bg-[#ECECEC] disabled:cursor-wait disabled:text-[#737373]"
           >
             {isRefreshing ? "Checking..." : "Refresh"}
@@ -223,6 +223,7 @@ export function IntegrationsPage() {
                     open={modelMenuOpen}
                     menuRef={modelMenuRef}
                     selectedModel={selectedDefaultModel}
+                    availableModels={chatDefaults.availableModels}
                     onOpenChange={setModelMenuOpen}
                     onSelect={(modelId) => {
                       chatDefaults.setDefaults({ modelId });
@@ -329,18 +330,26 @@ function CustomModelSelect({
   open,
   menuRef,
   selectedModel,
+  availableModels,
   onOpenChange,
   onSelect,
 }: {
   open: boolean;
   menuRef: React.RefObject<HTMLDivElement | null>;
   selectedModel: ReturnType<typeof getChatModelById>;
+  availableModels: ReturnType<typeof getChatModelById>[];
   onOpenChange: (open: boolean) => void;
   onSelect: (modelId: string) => void;
 }) {
   const groupedModels = [
-    { label: "Claude", models: chatModels.filter((model) => model.provider === "anthropic") },
-    { label: "OpenAI", models: chatModels.filter((model) => model.provider === "openai") },
+    {
+      label: "Claude",
+      models: availableModels.filter((model) => model.provider === "anthropic"),
+    },
+    {
+      label: "OpenAI",
+      models: availableModels.filter((model) => model.provider === "openai"),
+    },
   ];
 
   return (

@@ -11,9 +11,7 @@ pub fn resolve_codex_model_id(
     base_model_id: &str,
     options: &[RunModelOptionSelection],
 ) -> Option<String> {
-    if response_speed(options) == Some("fast") {
-        return Some("gpt-5.5-instant".to_string());
-    }
+    let _ = response_speed(options);
 
     match base_model_id {
         "codex-default" => None,
@@ -73,15 +71,16 @@ mod tests {
     }
 
     #[test]
-    fn fast_mode_maps_to_codex_instant_model() {
+    fn fast_mode_keeps_codex_default_model() {
         let options = vec![RunModelOptionSelection {
             id: "response_speed".to_string(),
             value: RunModelOptionValue::String("fast".to_string()),
         }];
 
+        assert_eq!(resolve_codex_model_id("codex-default", &options), None);
         assert_eq!(
-            resolve_codex_model_id("codex-default", &options).as_deref(),
-            Some("gpt-5.5-instant")
+            resolve_codex_model_id("gpt-5.5", &options).as_deref(),
+            Some("gpt-5.5")
         );
     }
 }
