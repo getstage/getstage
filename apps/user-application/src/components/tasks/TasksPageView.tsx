@@ -104,6 +104,7 @@ export function TasksPageView() {
         {isCreateTaskOpen ? (
           <CreateTaskDialog
             projects={board.projects}
+            initialProjectId={selectedProjectId ?? undefined}
             onClose={() => setIsCreateTaskOpen(false)}
           />
         ) : null}

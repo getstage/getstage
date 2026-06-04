@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ProjectSummary, TaskPriority, TaskSummary } from "@stage/data-ops";
-import { useCreateTaskMutation } from "@/hooks/convex-data";
+import { useCreateTaskMutation, useProjectPhasesQuery } from "@/hooks/convex-data";
 
 const PRIORITY_OPTIONS: Array<{ value: TaskPriority | null; label: string }> = [
   { value: null, label: "Backlog" },
@@ -9,11 +9,12 @@ const PRIORITY_OPTIONS: Array<{ value: TaskPriority | null; label: string }> = [
   { value: "high", label: "High" },
 ];
 
-type Picker = "project" | "priority" | null;
+type Picker = "project" | "phase" | "priority" | null;
 
 export function CreateTaskDialog({
   projects,
   initialProjectId,
+  initialPhaseId,
   projectLabel,
   lockProject = false,
   onClose,
@@ -21,6 +22,7 @@ export function CreateTaskDialog({
 }: {
   projects: ProjectSummary[];
   initialProjectId?: string;
+  initialPhaseId?: string;
   projectLabel?: string;
   lockProject?: boolean;
   onClose: () => void;
@@ -31,13 +33,16 @@ export function CreateTaskDialog({
   const [projectId, setProjectId] = useState<string | undefined>(
     initialProjectId ?? projects[0]?.id,
   );
+  const phasesQuery = useProjectPhasesQuery(projectId);
+  const phases = phasesQuery.data ?? [];
+  const [phaseId, setPhaseId] = useState<string | undefined>(initialPhaseId);
   const [priority, setPriority] = useState<TaskPriority | null>(null);
   const [picker, setPicker] = useState<Picker>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const createTask = useCreateTaskMutation();
   const trimmedTitle = title.trim();
-  const isSubmittable = Boolean(trimmedTitle && projectId) && !createTask.isPending;
+  const isSubmittable = Boolean(trimmedTitle && projectId && phaseId) && !createTask.isPending;
 
   const selectedProject = useMemo(
     () => projects.find((project) => project.id === projectId),
@@ -47,6 +52,22 @@ export function CreateTaskDialog({
     () => PRIORITY_OPTIONS.find((option) => option.value === priority)?.label ?? "Backlog",
     [priority],
   );
+  const selectedPhase = useMemo(
+    () => phases.find((phase) => phase.id === phaseId),
+    [phaseId, phases],
+  );
+
+  useEffect(() => {
+    if (phases.length === 0) {
+      setPhaseId(undefined);
+      return;
+    }
+
+    setPhaseId((current) => {
+      if (current && phases.some((phase) => phase.id === current)) return current;
+      return phases.find((phase) => phase.status === "active")?.id ?? phases[0]?.id;
+    });
+  }, [phases]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -57,7 +78,7 @@ export function CreateTaskDialog({
   }, [onClose]);
 
   async function handleSubmit() {
-    if (!projectId || !trimmedTitle) return;
+    if (!projectId || !phaseId || !trimmedTitle) return;
     setSubmitError(null);
     try {
       const task = await createTask.mutateAsync({
@@ -134,7 +155,7 @@ export function CreateTaskDialog({
             />
           </label>
 
-          <div className="flex flex-wrap items-center gap-[8px]">
+          <div className="flex flex-wrap items-end gap-[8px]">
             <PickerButton
               label={selectedProject?.name ?? projectLabel ?? "Pick a project"}
               disabled={lockProject || projects.length === 0}
@@ -156,11 +177,40 @@ export function CreateTaskDialog({
                         selected={project.id === projectId}
                         onSelect={() => {
                           setProjectId(project.id);
+                          setPhaseId(undefined);
                           setPicker(null);
                         }}
                       />
                     ))
                   )}
+                </PickerPanel>
+              ) : null}
+            </PickerButton>
+
+            <PickerButton
+              label={
+                phasesQuery.isLoading
+                  ? "Loading phases…"
+                  : selectedPhase?.name ?? "Pick a phase"
+              }
+              disabled={!projectId || phasesQuery.isLoading || phases.length === 0}
+              onClick={() =>
+                setPicker((current) => (current === "phase" ? null : "phase"))
+              }
+            >
+              {picker === "phase" ? (
+                <PickerPanel>
+                  {phases.map((phase) => (
+                    <PickerItem
+                      key={phase.id}
+                      label={phase.name}
+                      selected={phase.id === phaseId}
+                      onSelect={() => {
+                        setPhaseId(phase.id);
+                        setPicker(null);
+                      }}
+                    />
+                  ))}
                 </PickerPanel>
               ) : null}
             </PickerButton>
@@ -192,7 +242,7 @@ export function CreateTaskDialog({
               type="button"
               onClick={() => void handleSubmit()}
               disabled={!isSubmittable}
-              className="ml-auto inline-flex h-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none text-[#fafafa] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="ml-auto inline-flex h-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] px-[12px] pb-[7px] pt-[6px] text-[13px] font-medium leading-[1.3] text-[#fafafa] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               style={{ textShadow: "0px 0.5px 1.5px rgba(0,0,0,0.15)" }}
             >
               {createTask.isPending ? "Creating…" : "Create Task"}
@@ -201,6 +251,11 @@ export function CreateTaskDialog({
 
           {submitError ? (
             <p className="text-[12px] font-medium text-[#b91c1c]">{submitError}</p>
+          ) : null}
+          {projectId && !phasesQuery.isLoading && phases.length === 0 ? (
+            <p className="text-[12px] font-medium text-[#b91c1c]">
+              This project has no phases yet. Add a phase before creating a task.
+            </p>
           ) : null}
         </div>
       </section>
@@ -220,14 +275,17 @@ function PickerButton({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="relative">
+    <div className="relative min-w-0">
       <button
         type="button"
         disabled={disabled}
         onClick={onClick}
-        className="flex h-[31px] cursor-pointer items-center gap-[6px] rounded-[6px] bg-[#f5f5f5] py-[6px] pl-[10px] pr-[12px] text-[13px] font-medium leading-[1.25] text-[#262626]/80 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#eeeeee] disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex h-[32px] max-w-[190px] cursor-pointer items-center gap-[6px] rounded-[6px] bg-[#f5f5f5] pb-[7px] pl-[10px] pr-[9px] pt-[6px] text-[13px] font-medium leading-[1.3] text-[#262626]/80 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#eeeeee] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <span className="max-w-[180px] truncate">{label}</span>
+        <span className="min-w-0 flex-1 truncate">{label}</span>
+        {!disabled ? (
+          <img src="/logos/dashboard/dropdown.svg" alt="" aria-hidden="true" className="h-[13px] w-[13px] shrink-0 opacity-60" />
+        ) : null}
       </button>
       {children}
     </div>
@@ -236,7 +294,7 @@ function PickerButton({
 
 function PickerPanel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="absolute bottom-[39px] left-0 z-[90] flex w-[212px] flex-col rounded-[8px] border-2 border-[rgba(0,0,0,0.05)] bg-gradient-to-b from-white to-[#fafafa] p-[8px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+    <div className="absolute bottom-[40px] left-0 z-[90] flex max-h-[220px] w-[220px] flex-col overflow-y-auto rounded-[8px] border-2 border-[rgba(0,0,0,0.05)] bg-gradient-to-b from-white to-[#fafafa] p-[6px] shadow-[0_8px_24px_rgba(10,10,10,0.12)]">
       {children}
     </div>
   );
@@ -256,11 +314,11 @@ function PickerItem({
       type="button"
       onClick={onSelect}
       className={
-        "flex w-full cursor-pointer items-center gap-[8px] rounded-[6px] px-[8px] py-[6px] text-left text-[12px] font-medium leading-none text-[#262626] transition-colors hover:bg-[#f5f5f5]" +
+        "flex min-h-[32px] w-full cursor-pointer items-center gap-[8px] rounded-[6px] px-[8px] pb-[7px] pt-[6px] text-left text-[12px] font-medium leading-[1.35] text-[#262626] transition-colors hover:bg-[#f5f5f5]" +
         (selected ? " bg-[#f5f5f5]" : "")
       }
     >
-      <span className="truncate">{label}</span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
     </button>
   );
 }
