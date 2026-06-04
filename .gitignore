@@ -28,9 +28,10 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Local env / secrets — includes .env, .env.local, .env.example, etc.
+# Local env / secrets — never commit real keys or signing credentials
 .env
 .env.*
+**/env.example
 
 # Wrangler / Cloudflare local files
 .wrangler/
