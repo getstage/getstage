@@ -26,6 +26,6 @@ export function getActiveProjectId(pathname: string) {
 
 export function sidebarLabelClassName(collapsed: boolean) {
   return collapsed
-    ? "min-w-0 max-w-0 overflow-hidden truncate whitespace-nowrap text-[13px] font-medium opacity-0 transition-[max-width,opacity] duration-200 ease-out"
-    : "min-w-0 max-w-[150px] overflow-hidden truncate whitespace-nowrap text-[13px] font-medium opacity-100 transition-[max-width,opacity] duration-200 ease-out";
+    ? "hidden"
+    : "min-w-0 max-w-[150px] overflow-hidden truncate whitespace-nowrap text-[13px] font-medium";
 }

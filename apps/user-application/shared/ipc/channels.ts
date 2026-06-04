@@ -15,6 +15,7 @@ export const IPC_CHANNELS = {
   companionHide: "companion:hide",
   companionSetState: "companion:set-state",
   companionSetInteractive: "companion:set-interactive",
+  voiceGetStatus: "voice:get-status",
   voiceTranscribe: "voice:transcribe",
   voiceShortcutStartStopRecording: "voice:shortcut-start-stop-recording",
   voiceShortcutOpenLatestChat: "voice:shortcut-open-latest-chat",

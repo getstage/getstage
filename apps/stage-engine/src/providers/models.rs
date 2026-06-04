@@ -28,7 +28,8 @@ struct StageProviderModelsCache {
 
 #[derive(Debug, Deserialize)]
 struct CodexModelsCacheFile {
-    client_version: Option<String>,
+    #[serde(rename = "client_version")]
+    _client_version: Option<String>,
     models: Vec<CodexCachedModel>,
 }
 
@@ -36,7 +37,9 @@ struct CodexModelsCacheFile {
 struct CodexCachedModel {
     slug: String,
     display_name: String,
-    description: Option<String>,
+    #[serde(rename = "description")]
+    _description: Option<String>,
+    #[serde(default)]
     visibility: Option<String>,
     is_default: Option<bool>,
     default_reasoning_level: Option<String>,

@@ -36,6 +36,7 @@ export function useVoiceTranscription({
       setStatus("recording");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not start recording.";
+      console.error("[stage-voice] Could not start recording:", error);
       setError(message);
       setStatus("failed");
       await onStateChange("error");
@@ -78,10 +79,15 @@ export function useVoiceTranscription({
       }
 
       const voice = window.stageDesktop?.voice;
-      if (!voice?.transcribe) {
+      if (!voice?.transcribe || !voice.getStatus) {
         throw new Error(
           "Voice is not available in this window. Quit and restart the Stage desktop app.",
         );
+      }
+
+      const voiceStatus = await voice.getStatus();
+      if (!voiceStatus.canTranscribe) {
+        throw new Error(voiceStatus.setupHint ?? "Voice transcription is not available.");
       }
 
       const response = await voice.transcribe({
@@ -113,6 +119,7 @@ export function useVoiceTranscription({
 
       const message =
         error instanceof Error ? sanitizeVoiceError(error.message) : "The voice note could not be transcribed.";
+      console.error("[stage-voice] Transcription failed:", error);
       setError(message);
       setStatus("failed");
       await onStateChange("error");
@@ -135,6 +142,9 @@ export function useVoiceTranscription({
   useEffect(() => {
     const subscribe = window.stageDesktop?.voice?.onStartStopRecordingShortcut;
     if (!subscribe) {
+      console.warn(
+        "[stage-voice] Desktop voice bridge is unavailable. Quit and restart the Stage app after pulling voice changes.",
+      );
       return;
     }
 
