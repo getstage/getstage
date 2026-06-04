@@ -19,6 +19,7 @@ Related: [`MOODBOARD_DEV_STATUS.md`](./MOODBOARD_DEV_STATUS.md) · [`MOODBOARD_T
 | E | Image URL | Server fetch → validate → R2 → `source: "url"` |
 | F | Import vs style guide | **Two run types:** `mode: moodboard` (no LLM) and `mode: styleguide` (LLM, not built) |
 | G | Staged references | Engine **appends** to artifact with `isInMoodboard: false`; user commits via **Add to Moodboard** |
+| H | Directions | User-created/user-named only; no fixture fallback like `Direction 1/2/3`; rename persists with assigned references |
 
 ---
 
@@ -56,12 +57,15 @@ Status: ⬜ todo · 🟡 in progress · ✅ done
 | 3.y | Refero image resilience | ✅ | MCP full→thumbnail; CDN HTTPS fallback; valid reference JSON |
 | 4.x | Figma OAuth import | ✅ | `moodboard-figma` |
 | 4.y | Direct image URL import | ✅ | `moodboard-url` |
-| 5.x | Direction Hub + Style Guide AI | ⬜ | Mock delay + fixture UI only |
+| 5.0 | Direction Hub real board state | ✅ | No auto-seeded directions; inline rename; real counts |
+| 5.x | Style Guide AI | ⬜ | Mock delay + fixture style guide only |
 | 6.x | Re-run policy + testing doc | 🟡 | `MOODBOARD_TESTING.md` filled; runtime E2E manual |
 
 ---
 
 ## Phase 5 — Style guide AI (next)
+
+Direction Hub itself is board-state backed now. The remaining Phase 5 work is only the AI style guide run.
 
 | Task | Notes |
 |------|--------|

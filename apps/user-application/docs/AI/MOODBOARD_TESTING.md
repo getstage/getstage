@@ -86,6 +86,16 @@ run_completed
 | 7 | Re-run **Strategy** on same project | Moodboard **unchanged** until “Clear later steps” in dialog |
 | 8 | `UpstreamStaleBanner` | Shows when research/strategy newer than moodboard (if applicable) |
 
+### Direction checks
+
+| # | Step | Pass criteria |
+|---|------|----------------|
+| 9 | Fresh/imported moodboard with no user-created directions | No automatic `Direction 1`, `Direction 2`, `Direction 3` entries appear |
+| 10 | Open **Add to Direction** before creating a direction | Existing direction list is empty; user must create a named direction |
+| 11 | Try saving a blank new direction | Nothing is created; no fallback `Direction N` name |
+| 12 | Create a named direction and assign refs | Direction appears in Direction Hub with the real assigned reference count |
+| 13 | Rename the direction from Direction Hub | Assigned refs move with the renamed direction; reload keeps the new name |
+
 ---
 
 ## Smoke test — style guide (not shipped)
@@ -94,8 +104,8 @@ Skip until Phase 5 in [`MOODBOARD_BUILD_PLAN.md`](./MOODBOARD_BUILD_PLAN.md) is 
 
 | # | Step | Current behavior |
 |---|------|------------------|
-| 9 | **Generate style guide** on a direction | Mock delay (~900 ms); may show fixture `defaultStyleGuide` |
-| 10 | Regenerate style guide | Same mock path |
+| 14 | **Generate style guide** on a direction | Mock delay (~900 ms); may show fixture `defaultStyleGuide` |
+| 15 | Regenerate style guide | Same mock path |
 
 When shipped, expect:
 

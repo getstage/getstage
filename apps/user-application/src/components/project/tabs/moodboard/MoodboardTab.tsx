@@ -2,9 +2,7 @@ import { useEffect, useState } from "react";
 import type { MoodboardUploadedFile } from "@stage/data-ops/contracts";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import {
-  createSeedDirections,
   defaultStyleGuide,
-  MOODBOARD_DIRECTION_NAMES,
   type MoodboardItem,
   type MoodboardMode,
 } from "@/data/fixtures/project/moodboardTabFixtures";
@@ -31,10 +29,6 @@ function createFallbackItems(): MoodboardItem[] {
   return [];
 }
 
-function createFallbackDirections() {
-  return createSeedDirections();
-}
-
 type MoodboardTabProps = {
   project: Project;
   onGoToResearch?: () => void;
@@ -50,7 +44,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
   const [view, setView] = useState<MoodboardView>("board");
   const [items, setItems] = useState<MoodboardItem[]>(createFallbackItems);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
-  const [folders, setFolders] = useState<Direction[]>(createFallbackDirections);
+  const [folders, setFolders] = useState<Direction[]>([]);
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [draftFolderName, setDraftFolderName] = useState("");
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -137,6 +131,25 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
 
   function openDirectionMenu() {
     setIsFolderMenuOpen((current) => !current);
+  }
+
+  function renameDirection(previousName: string, nextName: string) {
+    const name = nextName.trim();
+    if (!name || name === previousName) return;
+    if (folders.some((folder) => folder.name === name)) return;
+
+    const nextFolders = folders.map((folder) =>
+      folder.name === previousName ? { ...folder, name } : folder,
+    );
+    const nextItems = items.map((item) =>
+      item.folder === previousName ? { ...item, folder: name } : item,
+    );
+
+    setFolders(nextFolders);
+    setItems(nextItems);
+    setActiveFolder((current) => (current === previousName ? name : current));
+    setActiveStyleGuideDirectionName((current) => (current === previousName ? name : current));
+    persistBoard(nextItems, nextFolders);
   }
 
   async function handleUpload(files: FileList) {
@@ -235,6 +248,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
             setIsFolderMenuOpen(true);
             setIsCreatingFolder(true);
           }}
+          onRenameDirection={renameDirection}
           onGenerateStyleGuide={generateStyleGuide}
         />
       ) : !showGrid ? (
@@ -380,7 +394,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
 
             {isFolderMenuOpen ? (
               <FolderMenu
-                folders={folderNames.length > 0 ? folderNames : [...MOODBOARD_DIRECTION_NAMES]}
+                folders={folderNames}
                 creating={isCreatingFolder}
                 draftName={draftFolderName}
                 onSelectFolder={(folder) => {
@@ -404,7 +418,8 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
                 }}
                 onDraftNameChange={setDraftFolderName}
                 onCommitFolder={() => {
-                  const name = draftFolderName.trim() || `Direction ${folders.length + 1}`;
+                  const name = draftFolderName.trim();
+                  if (!name) return;
                   const nextFolders = folders.some((item) => item.name === name)
                     ? folders
                     : [...folders, { name }];

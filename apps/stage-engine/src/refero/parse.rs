@@ -466,6 +466,21 @@ mod tests {
     }
 
     #[test]
+    fn decodes_image_from_mcp_content_array() {
+        let raw = json!({
+            "content": [{
+                "type": "image",
+                "mimeType": "image/png",
+                "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ"
+            }]
+        });
+
+        let bytes = decode_image_bytes(&raw).unwrap();
+
+        assert!(looks_like_image_bytes(&bytes));
+    }
+
+    #[test]
     fn detects_synthetic_reference_ids() {
         assert!(is_synthetic_reference_id("screen-0"));
         assert!(is_synthetic_reference_id("flow-3"));
