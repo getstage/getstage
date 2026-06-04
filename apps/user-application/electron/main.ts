@@ -1,4 +1,4 @@
-import { app, Menu } from "electron";
+import { app, globalShortcut, Menu } from "electron";
 import { loadLocalEnv } from "./helpers/loadEnv";
 import { createDesktopAuthController } from "./auth";
 import { createDesktopAuthCallbackServer } from "./helpers/auth-callback-server";
@@ -6,8 +6,14 @@ import { findStageAuthUrl, registerStageProtocol } from "./helpers/auth";
 import { findStageIntegrationUrl } from "./helpers/integrations";
 import { createDesktopIntegrationsController } from "./integrations";
 import { registerIpcHandlers } from "./ipc";
+import { registerVoiceTranscriptionHandler } from "./voice-transcription";
 import { createSidecarSupervisor } from "./sidecar";
-import { createMainWindow, shouldSuppressMainWindowActivation } from "./windows";
+import {
+  createMainWindow,
+  openCompanionForLatestChatShortcut,
+  openCompanionForVoiceShortcut,
+  shouldSuppressMainWindowActivation,
+} from "./windows";
 
 loadLocalEnv();
 
@@ -144,6 +150,28 @@ async function installStageTrayIfEnabled() {
   }
 }
 
+function registerVoiceShortcuts() {
+  const shortcuts = [
+    {
+      accelerator: "CommandOrControl+Shift+V",
+      label: "voice note",
+      action: openCompanionForVoiceShortcut,
+    },
+    {
+      accelerator: "CommandOrControl+Shift+A",
+      label: "latest AI chat",
+      action: openCompanionForLatestChatShortcut,
+    },
+  ];
+
+  for (const shortcut of shortcuts) {
+    const registered = globalShortcut.register(shortcut.accelerator, shortcut.action);
+    if (!registered) {
+      console.warn(`[stage-voice] Could not register ${shortcut.label} shortcut ${shortcut.accelerator}.`);
+    }
+  }
+}
+
 app.on("open-url", (event, url) => {
   event.preventDefault();
   handleDeepLinkUrl(url);
@@ -164,6 +192,8 @@ app.whenReady().then(() => {
   installApplicationMenu();
   authCallbackServer.start();
   registerIpcHandlers({ authController, integrationsController, sidecarSupervisor });
+  registerVoiceTranscriptionHandler();
+  registerVoiceShortcuts();
   authController.consumeQueuedCallback().then((result) => {
     if (result && !result.ok) {
       console.warn(`[stage-auth] ${result.error}`);
@@ -189,6 +219,10 @@ app.whenReady().then(() => {
 
     createMainWindow();
   });
+});
+
+app.on("will-quit", () => {
+  globalShortcut.unregisterAll();
 });
 
 app.on("before-quit", (event) => {

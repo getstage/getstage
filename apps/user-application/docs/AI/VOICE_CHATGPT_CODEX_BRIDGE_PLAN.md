@@ -366,6 +366,230 @@ The selected provider for reasoning remains Claude or Codex.
 
 This keeps voice as an input method, not a separate AI workflow.
 
+## Voice Settings And Shortcuts
+
+Stage V1 voice must have a settings surface. Voice should not depend only on a
+visible composer button, because the intended desktop behavior is:
+
+```txt
+User presses a keyboard shortcut anywhere.
+Stage opens the floating voice bar.
+Stage starts recording.
+The waveform moves while recording.
+User presses the shortcut again or clicks submit.
+Stage transcribes the clip.
+The transcript enters the Stage composer/chat pipeline.
+```
+
+Add a Voice settings section under Settings. If a dedicated Settings tab is too
+large for the first pass, place it under Settings -> Integrations near the
+Claude/Codex connection status.
+
+Recommended settings route:
+
+```txt
+apps/user-application/src/components/settings/VoiceSettingsPanel.tsx
+apps/user-application/src/routes/_authed/settings.voice.tsx
+```
+
+Recommended default shortcuts:
+
+```txt
+Start/stop voice note: CmdOrCtrl+Shift+V
+Open latest AI chat thread: CmdOrCtrl+Shift+A
+Cancel active voice recording: Escape, when the voice overlay is focused
+```
+
+Shortcut 1: start/stop voice note.
+
+```txt
+Idle:
+  register shortcut
+  show companion overlay
+  set state to listening
+  request microphone permission if needed
+  begin recording immediately after permission succeeds
+
+Listening:
+  same shortcut stops recording
+  set state to processing
+  transcribe audio
+  insert transcript into composer
+```
+
+Shortcut 2: open AI chat latest thread.
+
+```txt
+If latest Stage chat thread exists:
+  open companion chat panel with latest thread
+
+If no thread exists:
+  open companion chat panel with a new empty thread
+
+This shortcut does not start recording.
+It only opens the AI chat surface.
+```
+
+Settings controls:
+
+```txt
+Microphone input:
+  system default
+  detected input devices, if browser device labels are available after permission
+
+Voice shortcut:
+  editable shortcut recorder
+  reset to default
+  conflict warning if Electron cannot register it
+
+AI chat shortcut:
+  editable shortcut recorder
+  reset to default
+  conflict warning if Electron cannot register it
+
+Recording behavior:
+  push-to-talk toggle off by default
+  start/stop toggle behavior on by default
+  max recording length fixed at 120 seconds for V1
+
+Voice provider status:
+  Codex installed
+  Codex ChatGPT login available
+  microphone permission status
+  last transcription error, if any
+```
+
+Shortcut storage should be local desktop settings, not Convex project data.
+Shortcuts are machine-specific and should not sync between users or devices in
+V1.
+
+Recommended local setting shape:
+
+```ts
+type VoiceShortcutSettings = {
+  voiceNoteShortcut: string; // default "CommandOrControl+Shift+V"
+  aiChatShortcut: string; // default "CommandOrControl+Shift+A"
+  microphoneDeviceId?: string;
+  recordingMode: "toggle";
+  maxDurationMs: 120000;
+};
+```
+
+Electron ownership:
+
+```txt
+Electron:
+  stores local voice shortcut settings
+  registers/unregisters globalShortcut bindings
+  opens companion BrowserWindow
+  sends voice intent event to renderer
+
+Renderer:
+  owns recording UI and waveform state
+  requests microphone capture
+  submits audio through preload IPC
+  inserts transcript into composer/chat
+```
+
+Add IPC/event channels:
+
+```txt
+voice:get-settings
+voice:update-settings
+voice:get-shortcut-status
+voice:register-shortcuts
+voice:shortcut-start-stop-recording
+voice:shortcut-open-latest-chat
+```
+
+The shortcut action should be routed into the existing companion window when
+possible. It should not create a second duplicate voice window.
+
+## Recording Motion And Feedback
+
+The moving bars are not decorative. They are the primary user feedback that
+Stage is recording.
+
+Visual requirement:
+
+```txt
+When idle:
+  show a compact bar or inactive microphone control
+
+When listening:
+  expand the floating recorder bar
+  animate waveform bars from live microphone RMS levels
+  show active red recording button
+  keep the Stage mark visible in the center
+
+When processing:
+  stop live waveform input
+  switch bars to a slower loading pulse
+  keep the bar visible until transcript or error
+
+When transcript-ready:
+  briefly confirm success
+  collapse only after transcript has been inserted into composer
+
+When failed:
+  show error state and keep retry/cancel available
+```
+
+The waveform should use real microphone amplitude when recording:
+
+```txt
+Audio process callback
+-> calculate RMS per chunk
+-> normalize level to 0..1
+-> keep last 24-48 levels for compact bar
+-> map each level to bar height
+-> update at roughly 30-45 ms intervals
+```
+
+Fallback animation:
+
+```txt
+If live levels are unavailable but recording is active:
+  use deterministic staggered pulse animation
+  do not leave bars static
+```
+
+CSS behavior:
+
+```txt
+.voice-control-bar[data-state="listening"] .voice-wave-button span
+  height should be driven by CSS variables or inline style from waveform levels
+
+.voice-control-bar[data-state="processing"] .voice-wave-button span
+  should use a low-frequency pulse animation
+
+Respect prefers-reduced-motion:
+  show live level changes without additional looping animation
+```
+
+Accessibility:
+
+```txt
+aria-label should include current state:
+  "Recording voice note"
+  "Transcribing voice note"
+  "Voice transcription failed"
+
+Do not rely on motion only.
+Use stateful button labels and tooltips.
+Expose Escape to cancel when focused.
+```
+
+Window behavior:
+
+```txt
+Use the existing companion always-on-top BrowserWindow.
+Anchor the recorder bar bottom-center.
+Keep it visible over other apps.
+Set ignoreMouseEvents(false) only while the bar/chat is interactive.
+Return ignoreMouseEvents(true, { forward: true }) after hiding/collapsing.
+```
+
 ## Failure Modes
 
 Show clear UI states for:

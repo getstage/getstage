@@ -16,6 +16,8 @@ import type {
   StartRunRequest,
   StartRunResponse,
   CancelRunResponse,
+  VoiceTranscriptResponse,
+  VoiceTranscriptionRequest,
 } from "@stage/data-ops/contracts";
 
 export type StageDesktopApi = {
@@ -40,6 +42,11 @@ export type StageDesktopApi = {
     hide: () => Promise<void>;
     setState: (state: CompanionState) => Promise<void>;
     setInteractive: (interactive: boolean) => Promise<void>;
+  };
+  voice: {
+    transcribe: (input: VoiceTranscriptionRequest) => Promise<VoiceTranscriptResponse>;
+    onStartStopRecordingShortcut: (callback: () => void) => () => void;
+    onOpenLatestChatShortcut: (callback: () => void) => () => void;
   };
   window: {
     toggleMaximize: () => Promise<void>;

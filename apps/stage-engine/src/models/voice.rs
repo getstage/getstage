@@ -9,13 +9,26 @@ use super::errors::EngineError;
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum VoiceTranscriptionProvider {
+    #[serde(rename = "chatgpt-codex-session")]
+    ChatgptCodexSession,
+    #[serde(rename = "openai-audio-api")]
+    OpenaiAudioApi,
+    Mistral,
     Openrouter,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum VoiceTranscriptionModel {
+    #[serde(rename = "chatgpt-backend-transcribe")]
+    ChatgptBackendTranscribe,
     #[serde(rename = "mistralai/voxtral-mini-transcribe")]
     VoxtralMiniTranscribe,
+    #[serde(rename = "voxtral-mini-latest")]
+    VoxtralMiniLatest,
+    #[serde(rename = "gpt-4o-transcribe")]
+    Gpt4oTranscribe,
+    #[serde(rename = "gpt-4o-mini-transcribe")]
+    Gpt4oMiniTranscribe,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -63,17 +76,23 @@ pub enum VoiceSource {
 pub struct VoiceTranscriptionContext {
     pub project_id: Option<String>,
     pub source: Option<VoiceSource>,
+    pub selected_reasoning_provider: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VoiceTranscriptionRequest {
+    pub api_version: Option<String>,
     pub provider: VoiceTranscriptionProvider,
     pub model: VoiceTranscriptionModel,
     pub mode: VoiceCaptureMode,
     pub audio_mime_type: VoiceAudioFormat,
+    pub audio_base64: Option<String>,
     pub audio_size_bytes: u64,
+    pub sample_rate_hz: Option<u32>,
     pub duration_ms: Option<u64>,
+    pub cwd: Option<String>,
+    pub thread_id: Option<String>,
     pub language: Option<String>,
     pub prompt: Option<String>,
     #[serde(default)]

@@ -22,7 +22,7 @@ import {
 } from "@shared/models/desktop";
 import { defaultPermissionStatus } from "./helpers/permissions";
 import { fetchEngineJson } from "./helpers/sidecar";
-import { closeCompanionWindow, setCompanionWindowInteractive } from "./windows";
+import { closeCompanionWindow, openCompanionFromTray, setCompanionWindowInteractive } from "./windows";
 import type { SidecarSupervisor } from "./sidecar";
 import type { DesktopAuthController } from "./auth";
 import type { DesktopIntegrationsController } from "./integrations";
@@ -138,6 +138,7 @@ export function registerIpcHandlers({
   });
 
   ipcMain.handle(IPC_CHANNELS.companionShow, () => {
+    openCompanionFromTray();
     return { ok: true };
   });
 
