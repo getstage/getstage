@@ -89,48 +89,62 @@ function buildObjectKey(
 ) {
   const extension = getExtensionFromMimeType(mimeType, fileName);
   const uuid = crypto.randomUUID();
-  const projectId = scopeId?.trim() || "unknown-project";
+  const scope = scopeId?.trim();
 
-  function moodboardKey(source: "uploads" | "refero" | "figma" | "urls") {
-    return `moodboard/projects/${projectId}/users/${userId}/${source}/${uuid}.${extension}`;
+  function projectScopedKey(domain: string, source: string) {
+    return scope
+      ? `${domain}/projects/${scope}/users/${userId}/${source}/${uuid}.${extension}`
+      : `${domain}/project-drafts/users/${userId}/${source}/${uuid}.${extension}`;
+  }
+
+  function userScopedKey(domain: string, source: string) {
+    return `${domain}/users/${userId}/${source}/${uuid}.${extension}`;
   }
 
   switch (purpose) {
     case "task-attachment":
-      return `users/${userId}/task-attachments/${uuid}.${extension}`;
+      return scope
+        ? `tasks/projects/${scope}/users/${userId}/attachments/${uuid}.${extension}`
+        : userScopedKey("tasks", "attachments");
     case "csv-upload":
-      return `users/${userId}/imports/${uuid}.${extension}`;
+      return userScopedKey("imports", "csv");
     case "profile-avatar":
-      return `users/${userId}/profile/avatar-${uuid}.${extension}`;
+      return userScopedKey("profiles", "avatars");
     case "client-avatar":
-      return `users/${userId}/clients/avatar-${uuid}.${extension}`;
+      return scope
+        ? `clients/projects/${scope}/users/${userId}/avatars/${uuid}.${extension}`
+        : userScopedKey("clients", "avatars");
     case "project-marker":
-      return `users/${userId}/projects/marker-${uuid}.${extension}`;
+      return scope
+        ? `projects/${scope}/users/${userId}/markers/${uuid}.${extension}`
+        : `projects/project-drafts/users/${userId}/markers/${uuid}.${extension}`;
     case "portal-logo":
-      return `users/${userId}/portal/logo-${uuid}.${extension}`;
+      return userScopedKey("portal", "logos");
     case "generated-design":
-      return `users/${userId}/generated-designs/${uuid}.${extension}`;
+      return projectScopedKey("generated-designs", "images");
     case "project-asset":
-      return `users/${userId}/project-assets/${uuid}.${extension}`;
-    case "research-refero": {
-      return `users/${userId}/research/${projectId}/refero/${uuid}.${extension}`;
-    }
-    case "research-brief": {
-      return `users/${userId}/research/${projectId}/briefs/${uuid}.${extension}`;
-    }
+      return projectScopedKey("project-assets", "files");
+    case "research-refero":
+      return projectScopedKey("research", "refero");
+    case "research-brief":
+      return projectScopedKey("research", "briefs");
     case "moodboard-upload":
-      return moodboardKey("uploads");
+      return projectScopedKey("moodboard", "uploads");
     case "moodboard-refero":
-      return moodboardKey("refero");
+      return projectScopedKey("moodboard", "refero");
     case "moodboard-figma":
-      return moodboardKey("figma");
+      return projectScopedKey("moodboard", "figma");
     case "moodboard-url":
-      return moodboardKey("urls");
+      return projectScopedKey("moodboard", "urls");
   }
 }
 
 function isR2Key(value: string) {
   return !/^https?:\/\//i.test(value) && !value.startsWith("data:");
+}
+
+function keyBelongsToUser(key: string, userId: string) {
+  return key.startsWith(`users/${userId}/`) || key.includes(`/users/${userId}/`);
 }
 
 function getUploadUrlString(value: unknown) {
@@ -178,7 +192,6 @@ async function deleteTrackedUploadRecord(ctx: MutationCtx, key: string) {
 
 async function collectReferencedKeysForUser(ctx: QueryCtx, userId: string) {
   const referencedKeys = new Set<string>();
-  const userPrefix = `users/${userId}/`;
   const userRecord = await ctx.db.normalizeId("users", userId);
 
   if (userRecord) {
@@ -244,21 +257,21 @@ async function collectReferencedKeysForUser(ctx: QueryCtx, userId: string) {
 
   const attachments = await ctx.db.query("attachments").collect();
   for (const attachment of attachments) {
-    if (attachment.r2ObjectKey?.startsWith(userPrefix)) {
+    if (attachment.r2ObjectKey && keyBelongsToUser(attachment.r2ObjectKey, userId)) {
       referencedKeys.add(attachment.r2ObjectKey);
     }
   }
 
   const generatedDesigns = await ctx.db.query("projectGeneratedDesigns").collect();
   for (const generatedDesign of generatedDesigns) {
-    if (generatedDesign.r2ObjectKey.startsWith(userPrefix)) {
+    if (keyBelongsToUser(generatedDesign.r2ObjectKey, userId)) {
       referencedKeys.add(generatedDesign.r2ObjectKey);
     }
   }
 
   const portalConfigs = await ctx.db.query("portalConfigs").collect();
   for (const config of portalConfigs) {
-    if (config.logoUrl?.startsWith(userPrefix)) {
+    if (config.logoUrl && keyBelongsToUser(config.logoUrl, userId)) {
       referencedKeys.add(config.logoUrl);
     }
   }
@@ -470,7 +483,6 @@ export const listPotentialOrphanedUploads = query({
   handler: async (ctx) => {
     const user = await requireAuthUser(ctx);
     const userId = String(user._id);
-    const userPrefix = `users/${userId}/`;
     const referencedKeys = await collectReferencedKeysForUser(ctx, userId);
     const orphanedObjects: Array<{
       key: string;
@@ -484,7 +496,7 @@ export const listPotentialOrphanedUploads = query({
     do {
       const metadata = await r2.listMetadata(ctx, 200, cursor);
       for (const item of metadata.page) {
-        if (!item.key.startsWith(userPrefix) || referencedKeys.has(item.key)) {
+        if (!keyBelongsToUser(item.key, userId) || referencedKeys.has(item.key)) {
           continue;
         }
 

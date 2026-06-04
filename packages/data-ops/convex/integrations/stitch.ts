@@ -96,7 +96,7 @@ function buildGeneratedDesignKey(args: {
   contentType: string | null;
 }) {
   const extension = getExtensionFromContentType(args.contentType);
-  return `users/${args.userId}/projects/${args.projectId}/generated-designs/${args.screenId}.${extension}`;
+  return `generated-designs/projects/${args.projectId}/users/${args.userId}/images/${args.screenId}.${extension}`;
 }
 
 function buildStitchProjectUrl(projectId: string) {

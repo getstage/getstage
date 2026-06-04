@@ -10,7 +10,7 @@ import {
 import { formatUploadDate, getProjectAssetSizeError } from "@/lib/project/assetsTab";
 import type { UploadedAssetRow } from "@/types/project/assetsTab";
 
-export function useProjectAssetUploads(onUploaded?: () => void) {
+export function useProjectAssetUploads(onUploaded?: () => void, projectId?: string) {
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
   const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
 
@@ -49,6 +49,7 @@ export function useProjectAssetUploads(onUploaded?: () => void) {
             syncMetadata: r2SyncMetadata,
             purpose: "project-asset",
             file,
+            scopeId: projectId,
           });
           setUploadedAssets((current) =>
             current.map((asset) => (asset.id === draft.id ? { ...asset, status: "uploaded" } : asset)),

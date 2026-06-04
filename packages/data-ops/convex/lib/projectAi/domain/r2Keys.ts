@@ -4,12 +4,24 @@ export function isR2ObjectKey(value: string) {
 
 export function collectR2KeysFromJson(value: unknown, keys: Set<string>) {
   if (typeof value === "string") {
+    const isKnownDomainFirstKey =
+      value.startsWith("clients/") ||
+      value.startsWith("generated-designs/") ||
+      value.startsWith("imports/") ||
+      value.startsWith("portal/") ||
+      value.startsWith("profiles/") ||
+      value.startsWith("project-assets/") ||
+      value.startsWith("projects/") ||
+      value.startsWith("research/") ||
+      value.startsWith("moodboard/") ||
+      value.startsWith("tasks/");
+
     if (
       isR2ObjectKey(value) &&
-      (value.includes("/research/") ||
-        value.startsWith("research/") ||
-        value.includes("/moodboard/") ||
-        value.startsWith("moodboard/"))
+      (isKnownDomainFirstKey ||
+        value.startsWith("users/") ||
+        value.includes("/research/") ||
+        value.includes("/moodboard/"))
     ) {
       keys.add(value);
     }

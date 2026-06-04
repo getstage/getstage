@@ -6,10 +6,14 @@ function isRenderableImageSrc(value: string | null | undefined) {
   return Boolean(value && /^(https?:|data:|blob:)/i.test(value));
 }
 
-function uniqueImageSources(item: MoodboardItem) {
-  return [item.image, item.thumbnailUrl, item.imageUrl, item.sourceUrl]
+function uniqueSources(item: MoodboardItem, preferFull: boolean) {
+  const sources = preferFull
+    ? [item.imageUrl, item.thumbnailUrl, item.image, item.sourceUrl]
+    : [item.thumbnailUrl, item.image, item.imageUrl, item.sourceUrl];
+
+  return sources
     .filter(isRenderableImageSrc)
-    .filter((src, index, sources) => sources.indexOf(src) === index);
+    .filter((src, index, values) => values.indexOf(src) === index);
 }
 
 export function MoodboardGrid({
@@ -70,16 +74,18 @@ export function MoodboardGrid({
 function MoodboardGridImage({
   item,
   fit = "cover",
+  preferFull = false,
 }: {
   item: MoodboardItem;
   fit?: "cover" | "contain";
+  preferFull?: boolean;
 }) {
-  const sources = useMemo(() => uniqueImageSources(item), [item]);
+  const sources = useMemo(() => uniqueSources(item, preferFull), [item, preferFull]);
   const [sourceIndex, setSourceIndex] = useState(0);
 
   useEffect(() => {
     setSourceIndex(0);
-  }, [item.id, item.image, item.thumbnailUrl, item.imageUrl]);
+  }, [item.id, item.image, item.thumbnailUrl, item.imageUrl, preferFull]);
 
   const src = sources[sourceIndex];
 
@@ -91,11 +97,15 @@ function MoodboardGridImage({
     );
   }
 
+  const className = preferFull
+    ? "max-h-[min(640px,calc(100vh-160px))] max-w-[min(960px,calc(100vw-64px))] w-auto h-auto rounded-[4px] object-contain"
+    : `h-full w-full rounded-[4px] ${fit === "contain" ? "object-contain" : "object-cover"}`;
+
   return (
     <img
       src={src}
       alt=""
-      className={`h-full w-full rounded-[4px] ${fit === "contain" ? "object-contain" : "object-cover"}`}
+      className={className}
       onError={() => {
         setSourceIndex((current) => current + 1);
       }}
@@ -130,7 +140,7 @@ function MoodboardImagePreview({
       onMouseDown={onClose}
     >
       <div
-        className="relative flex max-h-[92vh] w-full max-w-[min(1200px,92vw)] flex-col gap-3 rounded-[8px] bg-[#0A0A0A] p-3 shadow-[0_16px_60px_rgba(0,0,0,0.32)]"
+        className="relative flex max-h-[92vh] w-full max-w-[min(980px,94vw)] flex-col gap-3 rounded-[8px] bg-[#0A0A0A] p-3 shadow-[0_16px_60px_rgba(0,0,0,0.32)]"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3">
@@ -146,8 +156,8 @@ function MoodboardImagePreview({
             <CloseIcon />
           </button>
         </div>
-        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[6px] bg-[#171717]">
-          <MoodboardGridImage item={item} fit="contain" />
+        <div className="flex w-full items-center justify-center overflow-hidden rounded-[6px] bg-[#171717] p-2">
+          <MoodboardGridImage item={item} fit="contain" preferFull />
         </div>
       </div>
     </div>

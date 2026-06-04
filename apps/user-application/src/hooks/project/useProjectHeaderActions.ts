@@ -90,6 +90,7 @@ export function useProjectHeaderActions({
         syncMetadata: r2SyncMetadata,
         purpose: "project-marker",
         file: input.pendingImageFile,
+        scopeId: projectId,
       });
     } else if (imageRemoved) {
       payload.projectImageUrl = null;
@@ -128,6 +129,7 @@ export function useProjectHeaderActions({
         syncMetadata: r2SyncMetadata,
         purpose: "client-avatar",
         file: input.pendingAvatarFile,
+        scopeId: projectId,
       });
     } else if (avatarRemoved) {
       payload.clientAvatarUrl = null;

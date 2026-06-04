@@ -123,6 +123,7 @@ export function ResearchTab({ projectId, projectName, onReturnToOverview }: Rese
           syncMetadata: r2SyncMetadata,
           purpose: "task-attachment",
           file: pendingBriefFile,
+          scopeId: projectId,
         });
         nextAttachmentName = pendingBriefFile.name;
       }

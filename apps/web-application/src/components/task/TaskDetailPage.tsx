@@ -139,6 +139,7 @@ export function TaskDetailPage() {
         syncMetadata: r2SyncMetadata,
         purpose: "task-attachment",
         file,
+        scopeId: projectId,
       });
 
       await saveAttachment({
@@ -205,6 +206,7 @@ export function TaskDetailPage() {
           syncMetadata: r2SyncMetadata,
           purpose: "task-attachment",
           file,
+          scopeId: projectId,
         });
 
         await saveAttachment({

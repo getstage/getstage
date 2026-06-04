@@ -14,7 +14,7 @@ export function AssetsTab({ project }: { project: Project }) {
   const [activeView, setActiveView] = useState<AssetView>("documents");
   const [exportAsset, setExportAsset] = useState<WireframeAssetCard | null>(null);
 
-  const uploads = useProjectAssetUploads(() => setActiveView("uploaded"));
+  const uploads = useProjectAssetUploads(() => setActiveView("uploaded"), project.id);
   const assetsTab = useAssetsTab({ id: project.id, name: project.name }, uploads.uploadedAssets.length);
   const { wireframeAssets, documents } = assetsTab.tabData;
 
