@@ -154,3 +154,56 @@ summary,
   background: var(--color-accent-light);
   color: var(--color-text-primary);
 }
+/* Keep the strategy emoji picker visually quiet and consistent with Stage. */
+.stage-emoji-picker {
+  --epr-bg-color: #ffffff;
+  --epr-category-label-height: 22px;
+  --epr-category-padding: 0 10px;
+  --epr-emoji-size: 24px;
+  --epr-emoji-padding: 5px;
+  --epr-header-padding: 10px;
+  --epr-horizontal-padding: 10px;
+  --epr-hover-bg-color: #f5f5f5;
+  --epr-focus-bg-color: #f5f5f5;
+  --epr-highlight-color: #525252;
+  --epr-picker-border-color: #e5e5e5;
+  --epr-search-input-bg-color: #f5f5f5;
+  --epr-search-input-height: 30px;
+  --epr-search-input-border-radius: 6px;
+  --epr-search-input-padding: 0 28px;
+  --epr-category-navigation-button-size: 20px;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  font-family: var(--font-body) !important;
+}
+
+.stage-emoji-picker * {
+  font-family: var(--font-body) !important;
+}
+
+.stage-emoji-picker .epr-search-container input {
+  border: 0 !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  box-shadow: none !important;
+}
+
+.stage-emoji-picker .epr-category-nav {
+  display: none !important;
+}
+
+.stage-emoji-picker .epr-emoji-category-label {
+  color: #a3a3a3 !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.stage-emoji-picker .epr-emoji {
+  border-radius: 5px !important;
+}
+
+.stage-emoji-picker .epr-body {
+  padding-top: 0 !important;
+}

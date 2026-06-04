@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ProviderId } from "@stage/data-ops/contracts";
 import { DownstreamStepsDialog } from "@/components/project/DownstreamStepsDialog";
 import { StrategyRegenerateDialog } from "@/components/project/StrategyRegenerateDialog";
@@ -60,6 +60,10 @@ export function StrategyTab({
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
   const [regeneratingSectionId, setRegeneratingSectionId] = useState<string | null>(null);
+  const latestSectionsRef = useRef<StrategySection[]>([]);
+  const lastPersistedEmojiSectionsRef = useRef<StrategySection[]>([]);
+  const emojiSaveQueueRef = useRef(Promise.resolve());
+  const pendingEmojiSaveCountRef = useRef(0);
 
   const strategy = useStrategyTab(project);
   const researchRun = useProjectResearchRun(project.id);
@@ -79,11 +83,20 @@ export function StrategyTab({
   const visibleSections = isEditing ? editSections : sections;
 
   useEffect(() => {
-    if (strategy.data) {
-      setSections(cloneSections(strategy.data.tabData.sections));
+    if (pendingEmojiSaveCountRef.current > 0) {
       return;
     }
 
+    if (strategy.data) {
+      const nextSections = cloneSections(strategy.data.tabData.sections);
+      latestSectionsRef.current = nextSections;
+      lastPersistedEmojiSectionsRef.current = cloneSections(nextSections);
+      setSections(nextSections);
+      return;
+    }
+
+    latestSectionsRef.current = [];
+    lastPersistedEmojiSectionsRef.current = [];
     setSections([]);
     setIsEditing(false);
     setEditSections([]);
@@ -140,7 +153,10 @@ export function StrategyTab({
     [strategy.lastInput],
   );
 
-  async function persistSections(nextSections: StrategySection[], options?: { exitEditMode?: boolean }) {
+  async function persistSections(
+    nextSections: StrategySection[],
+    options?: { exitEditMode?: boolean; updateLocalState?: boolean },
+  ) {
     if (!strategy.data) {
       return;
     }
@@ -153,7 +169,11 @@ export function StrategyTab({
         sections: cloneSections(nextSections),
       });
       await saveStrategyArtifact(strategy.data.id, nextArtifact);
-      setSections(cloneSections(nextSections));
+      if (options?.updateLocalState !== false) {
+        const localSections = cloneSections(nextSections);
+        latestSectionsRef.current = localSections;
+        setSections(localSections);
+      }
 
       if (options?.exitEditMode) {
         setEditSections([]);
@@ -225,6 +245,41 @@ export function StrategyTab({
     setEditSections((current) => current.map((section) => (
       section.id === sectionId ? nextSection : section
     )));
+  }
+
+  function updateSectionEmoji(sectionId: string, emoji: string) {
+    if (isEditing) {
+      setEditSections((current) => current.map((section) => (
+        section.id === sectionId ? { ...section, emoji } : section
+      )));
+      return;
+    }
+
+    const nextSections = latestSectionsRef.current.map((section) => (
+      section.id === sectionId ? { ...section, emoji } : section
+    ));
+    const saveSnapshot = cloneSections(nextSections);
+
+    latestSectionsRef.current = nextSections;
+    setSections(nextSections);
+    pendingEmojiSaveCountRef.current += 1;
+
+    emojiSaveQueueRef.current = emojiSaveQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        try {
+          await persistSections(saveSnapshot, { updateLocalState: false });
+          lastPersistedEmojiSectionsRef.current = cloneSections(saveSnapshot);
+        } catch {
+          if (latestSectionsRef.current === nextSections) {
+            const fallbackSections = cloneSections(lastPersistedEmojiSectionsRef.current);
+            latestSectionsRef.current = fallbackSections;
+            setSections(fallbackSections);
+          }
+        } finally {
+          pendingEmojiSaveCountRef.current -= 1;
+        }
+      });
   }
 
   async function saveDraftSection() {
@@ -470,6 +525,7 @@ export function StrategyTab({
                 showDivider={index > 0}
                 isEditing={isEditing}
                 onSectionChange={(nextSection) => updateEditSection(section.id, nextSection)}
+                onEmojiChange={(emoji) => void updateSectionEmoji(section.id, emoji)}
                 onApprove={() => void approveSection(section.id)}
                 onRegenerate={() => void handleRegenerateSection(section.id)}
               />

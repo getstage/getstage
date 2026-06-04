@@ -1,9 +1,13 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { StrategySection } from "@/models/project/strategyTab";
 import { EditableStrategyContent } from "./EditableStrategySection";
 import { StrategyContent } from "./StrategyContent";
 import { StatusPill } from "./StrategyStatus";
 import { CheckIcon, RegenerateIcon } from "./strategyIcons";
+
+const StrategyEmojiPicker = lazy(() =>
+  import("./StrategyEmojiPicker").then((module) => ({ default: module.StrategyEmojiPicker })),
+);
 
 const SECTION_EMOJIS: Record<string, string> = {
   "design direction": "🎨",
@@ -33,6 +37,7 @@ export function StrategySectionCard({
   showDivider,
   isEditing,
   onSectionChange,
+  onEmojiChange,
   onApprove,
   onRegenerate,
 }: {
@@ -40,11 +45,40 @@ export function StrategySectionCard({
   showDivider: boolean;
   isEditing: boolean;
   onSectionChange: (section: StrategySection) => void;
+  onEmojiChange: (emoji: string) => void;
   onApprove: () => void;
   onRegenerate: () => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const emojiButtonRef = useRef<HTMLButtonElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
   const title = useMemo(() => splitSectionTitle(section.title), [section.title]);
+  const emoji = section.emoji ?? title.emoji;
+
+  useEffect(() => {
+    if (!isEmojiPickerOpen) return;
+
+    function closeOnPointerDown(event: PointerEvent) {
+      if (!emojiPickerRef.current?.contains(event.target as Node)) {
+        setIsEmojiPickerOpen(false);
+      }
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsEmojiPickerOpen(false);
+        emojiButtonRef.current?.focus({ preventScroll: true });
+      }
+    }
+
+    document.addEventListener("pointerdown", closeOnPointerDown);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnPointerDown);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isEmojiPickerOpen]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -69,9 +103,37 @@ export function StrategySectionCard({
             </span>
           </button>
           <div className="flex min-w-0 items-center">
-            <span className="inline-flex h-6 w-[25px] items-center justify-start text-[15px] leading-6">
-              {title.emoji}
-            </span>
+            <div className="relative" ref={emojiPickerRef}>
+              <button
+                ref={emojiButtonRef}
+                type="button"
+                aria-label={`Change emoji for ${title.label}`}
+                aria-expanded={isEmojiPickerOpen}
+                onClick={() => setIsEmojiPickerOpen((current) => !current)}
+                className="inline-flex size-6 cursor-pointer items-center justify-center text-[15px] leading-none transition-opacity duration-150 hover:opacity-60 focus-visible:rounded-[4px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C3AED]"
+              >
+                {emoji}
+              </button>
+              {isEmojiPickerOpen ? (
+                <div className="absolute left-0 top-7 z-50 overflow-hidden rounded-[8px] shadow-[0_8px_24px_rgba(10,10,10,0.12)]">
+                  <Suspense
+                    fallback={
+                      <div className="flex h-[316px] w-[384px] items-center justify-center rounded-[8px] border border-[#E5E5E5] bg-white text-[12px] text-[#A3A3A3]">
+                        Loading...
+                      </div>
+                    }
+                  >
+                    <StrategyEmojiPicker
+                      onSelect={(nextEmoji) => {
+                        onEmojiChange(nextEmoji);
+                        setIsEmojiPickerOpen(false);
+                        emojiButtonRef.current?.focus({ preventScroll: true });
+                      }}
+                    />
+                  </Suspense>
+                </div>
+              ) : null}
+            </div>
             <h2 className="min-w-0 text-[15px] font-semibold leading-normal text-[#171717]">
               {title.label}
             </h2>

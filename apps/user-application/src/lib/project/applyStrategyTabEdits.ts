@@ -85,6 +85,7 @@ function cleanSection(section: StrategySection, index: number): StrategySection 
   const base = {
     id: requiredText(section.id, `custom-section-${index + 1}`),
     title: requiredText(section.title, `Section ${index + 1}`),
+    emoji: optionalText(section.emoji),
     status: section.status === "approved" ? "approved" : "action",
     kind: section.kind,
   } as const;

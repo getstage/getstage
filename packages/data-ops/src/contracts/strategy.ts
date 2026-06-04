@@ -34,6 +34,7 @@ export const strategyTableRowSchema = z.tuple([z.string().min(1), z.string().min
 export const strategySectionSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
+  emoji: z.string().min(1).optional(),
   status: strategySectionStatusSchema,
   kind: strategySectionKindSchema,
   body: z.array(z.string().min(1)).optional(),
