@@ -294,12 +294,34 @@ pub fn string_array_field(value: &Value, keys: &[&str]) -> Vec<String> {
 
 pub fn decode_image_bytes(raw: &Value) -> Option<Vec<u8>> {
     if let Some(bytes) = raw.as_array() {
+        for item in bytes {
+            if let Some(decoded) = decode_image_bytes(item) {
+                return Some(decoded);
+            }
+        }
+
+        if !bytes.iter().all(Value::is_number) {
+            return None;
+        }
+
         return Some(
             bytes
                 .iter()
                 .filter_map(|v| v.as_u64().map(|n| n as u8))
                 .collect(),
         );
+    }
+
+    if let Some(structured) = raw.get("structuredContent") {
+        if let Some(decoded) = decode_image_bytes(structured) {
+            return Some(decoded);
+        }
+    }
+
+    if let Some(result) = raw.get("result") {
+        if let Some(decoded) = decode_image_bytes(result) {
+            return Some(decoded);
+        }
     }
 
     if let Some(text) = raw.as_str() {
@@ -311,11 +333,23 @@ pub fn decode_image_bytes(raw: &Value) -> Option<Vec<u8>> {
     }
 
     if let Some(content) = raw.get("content") {
-        return decode_image_bytes(content);
+        if let Some(decoded) = decode_image_bytes(content) {
+            return Some(decoded);
+        }
     }
 
-    if let Some(data) = raw.get("data").and_then(Value::as_str) {
-        return base64_decode(data);
+    for key in ["data", "image", "bytes", "base64"] {
+        if let Some(value) = raw.get(key)
+            && let Some(decoded) = decode_image_bytes(value)
+        {
+            return Some(decoded);
+        }
+    }
+
+    if let Some(uri) = raw.get("uri").and_then(Value::as_str)
+        && uri.starts_with("data:")
+    {
+        return decode_image_bytes(&Value::String(uri.to_string()));
     }
 
     None

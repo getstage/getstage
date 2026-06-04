@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const moodboardImportModeSchema = z.enum(["upload", "figma", "ai"]);
+export const moodboardImportModeSchema = z.enum(["upload", "figma", "ai", "url"]);
 
 export const moodboardReferenceSourceSchema = z.enum(["upload", "figma", "url"]);
 

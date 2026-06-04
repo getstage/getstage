@@ -66,10 +66,14 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
     }
 
     const { tabData } = moodboard.data;
-    setMode(tabData.importMode ?? "upload");
+    setMode(
+      tabData.importMode === "url" ? "figma" : (tabData.importMode ?? "upload"),
+    );
     setHasUploadedFiles(tabData.uploadedFiles.length > 0);
     setHasFigmaImportResults(
-      (tabData.importMode === "figma" || tabData.importMode === "ai") &&
+      (tabData.importMode === "figma" ||
+        tabData.importMode === "ai" ||
+        tabData.importMode === "url") &&
         tabData.references.some((reference) => !reference.isInMoodboard),
     );
     setUploadedFiles(tabData.uploadedFiles);

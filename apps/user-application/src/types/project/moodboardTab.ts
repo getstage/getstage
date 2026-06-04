@@ -5,7 +5,7 @@ import type {
   MoodboardStyleGuide,
 } from "@stage/data-ops/contracts";
 
-export type MoodboardMode = "upload" | "figma" | "ai";
+export type MoodboardMode = "upload" | "figma" | "ai" | "url";
 
 export type MoodboardItem = {
   id: string;

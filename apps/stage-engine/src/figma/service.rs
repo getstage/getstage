@@ -177,22 +177,23 @@ struct FigmaImageResponse {
     node_names: std::collections::HashMap<String, String>,
 }
 
-fn collect_frame_ids(node: &FigmaNode, out: &mut Vec<String>) {
-    if out.len() >= MAX_FIGMA_IMPORTS {
-        return;
-    }
+fn collect_frame_ids(root: &FigmaNode, out: &mut Vec<String>) {
+    let mut stack: Vec<&FigmaNode> = vec![root];
 
-    if matches!(
-        node.node_type.as_str(),
-        "FRAME" | "COMPONENT" | "COMPONENT_SET" | "INSTANCE" | "SECTION"
-    ) {
-        out.push(node.id.clone());
-    }
-
-    for child in &node.children {
-        collect_frame_ids(child, out);
+    while let Some(node) = stack.pop() {
         if out.len() >= MAX_FIGMA_IMPORTS {
             return;
+        }
+
+        if matches!(
+            node.node_type.as_str(),
+            "FRAME" | "COMPONENT" | "COMPONENT_SET" | "INSTANCE" | "SECTION"
+        ) {
+            out.push(node.id.clone());
+        }
+
+        for child in node.children.iter().rev() {
+            stack.push(child);
         }
     }
 }

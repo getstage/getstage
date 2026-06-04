@@ -124,7 +124,7 @@ impl MoodboardWorkflow {
                 references,
                 match source {
                     "figma" => "figma",
-                    "url" | "image-url" => "figma",
+                    "url" | "image-url" => "url",
                     _ => "ai",
                 },
                 now_millis(),
@@ -435,7 +435,14 @@ struct UrlImportedImage {
 
 async fn fetch_importable_image_url(raw_url: &str) -> Result<UrlImportedImage, WorkflowError> {
     let url = parse_public_image_url(raw_url)?;
-    let response = reqwest::Client::new()
+    resolve_public_image_host(&url).await?;
+
+    let response = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::limited(3))
+        .build()
+        .map_err(|error| {
+            WorkflowError::InvalidRequest(format!("Could not prepare image fetch: {error}"))
+        })?
         .get(url.clone())
         .send()
         .await
@@ -460,15 +467,7 @@ async fn fetch_importable_image_url(raw_url: &str) -> Result<UrlImportedImage, W
         .get(CONTENT_TYPE)
         .and_then(|value| value.to_str().ok())
         .and_then(normalize_image_content_type);
-    let bytes = response.bytes().await.map_err(|error| {
-        WorkflowError::InvalidRequest(format!("Could not read that image URL: {error}"))
-    })?;
-
-    if bytes.len() as u64 > MAX_URL_IMAGE_BYTES {
-        return Err(WorkflowError::InvalidRequest(
-            "That image is too large. Max size is 10 MB.".to_string(),
-        ));
-    }
+    let bytes = read_image_response_with_limit(response).await?;
 
     if !looks_like_image_bytes(&bytes) {
         return Err(WorkflowError::InvalidRequest(
@@ -535,37 +534,110 @@ fn parse_public_image_url(raw_url: &str) -> Result<Url, WorkflowError> {
     let host = url.host_str().ok_or_else(|| {
         WorkflowError::InvalidRequest("Image URL must include a host.".to_string())
     })?;
-    if is_blocked_host(host) {
+    if is_blocked_literal_host(host) {
         return Err(WorkflowError::InvalidRequest(
             "That image URL is not allowed.".to_string(),
         ));
     }
 
+    if let Ok(ip) = host.parse::<IpAddr>() {
+        if is_blocked_ip(ip) {
+            return Err(WorkflowError::InvalidRequest(
+                "That image URL is not allowed.".to_string(),
+            ));
+        }
+    }
+
     Ok(url)
 }
 
-fn is_blocked_host(host: &str) -> bool {
-    let lower = host.to_ascii_lowercase();
-    if matches!(lower.as_str(), "localhost" | "0.0.0.0") || lower.ends_with(".localhost") {
-        return true;
+async fn resolve_public_image_host(url: &Url) -> Result<(), WorkflowError> {
+    let host = url.host_str().ok_or_else(|| {
+        WorkflowError::InvalidRequest("Image URL must include a host.".to_string())
+    })?;
+
+    if is_blocked_literal_host(host) {
+        return Err(WorkflowError::InvalidRequest(
+            "That image URL is not allowed.".to_string(),
+        ));
     }
 
-    match lower.parse::<IpAddr>() {
-        Ok(IpAddr::V4(ip)) => {
-            ip.is_private()
-                || ip.is_loopback()
-                || ip.is_link_local()
-                || ip.is_broadcast()
-                || ip.is_documentation()
-                || ip.is_unspecified()
+    if let Ok(ip) = host.parse::<IpAddr>() {
+        if is_blocked_ip(ip) {
+            return Err(WorkflowError::InvalidRequest(
+                "That image URL is not allowed.".to_string(),
+            ));
         }
-        Ok(IpAddr::V6(ip)) => {
-            ip.is_loopback()
-                || ip.is_unspecified()
-                || ip.is_unique_local()
-                || ip.is_unicast_link_local()
+        return Ok(());
+    }
+
+    let port = url
+        .port_or_known_default()
+        .ok_or_else(|| WorkflowError::InvalidRequest("Image URL must include a host.".to_string()))?;
+
+    let mut resolved_any = false;
+    let addresses = tokio::net::lookup_host((host, port)).await.map_err(|_| {
+        WorkflowError::InvalidRequest("Could not resolve that image URL host.".to_string())
+    })?;
+
+    for address in addresses {
+        resolved_any = true;
+        if is_blocked_ip(address.ip()) {
+            return Err(WorkflowError::InvalidRequest(
+                "That image URL is not allowed.".to_string(),
+            ));
         }
-        Err(_) => false,
+    }
+
+    if !resolved_any {
+        return Err(WorkflowError::InvalidRequest(
+            "Could not resolve that image URL host.".to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
+async fn read_image_response_with_limit(
+    mut response: reqwest::Response,
+) -> Result<Vec<u8>, WorkflowError> {
+    let mut bytes = Vec::new();
+
+    while let Some(chunk) = response.chunk().await.map_err(|error| {
+        WorkflowError::InvalidRequest(format!("Could not read that image URL: {error}"))
+    })? {
+        if bytes.len() + chunk.len() > MAX_URL_IMAGE_BYTES as usize {
+            return Err(WorkflowError::InvalidRequest(
+                "That image is too large. Max size is 10 MB.".to_string(),
+            ));
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+
+    Ok(bytes)
+}
+
+fn is_blocked_literal_host(host: &str) -> bool {
+    let lower = host.to_ascii_lowercase();
+    matches!(lower.as_str(), "localhost" | "0.0.0.0") || lower.ends_with(".localhost")
+}
+
+fn is_blocked_ip(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(addr) => {
+            addr.is_private()
+                || addr.is_loopback()
+                || addr.is_link_local()
+                || addr.is_broadcast()
+                || addr.is_documentation()
+                || addr.is_unspecified()
+        }
+        IpAddr::V6(addr) => {
+            addr.is_loopback()
+                || addr.is_unspecified()
+                || addr.is_unique_local()
+                || addr.is_unicast_link_local()
+        }
     }
 }
 

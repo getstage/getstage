@@ -162,17 +162,12 @@ export async function completeWireframesRunHandler(
 
   await deletePreviousWireframesArtifacts(ctx, args.projectId);
 
-  let contentJson = args.contentJson;
-  try {
-    const parsed = JSON.parse(contentJson) as Record<string, unknown>;
-    if (args.researchArtifactId) parsed.researchArtifactId = args.researchArtifactId;
-    if (args.strategyArtifactId) parsed.strategyArtifactId = args.strategyArtifactId;
-    if (args.moodboardArtifactId) parsed.moodboardArtifactId = args.moodboardArtifactId;
-    if (args.flowsArtifactId) parsed.flowsArtifactId = args.flowsArtifactId;
-    contentJson = JSON.stringify(parsed);
-  } catch {
-    // Keep original contentJson if parsing fails; Stage Engine validates before calling.
-  }
+  const parsed = parseWireframesContentJson(args.contentJson, args.projectId);
+  if (args.researchArtifactId) parsed.researchArtifactId = args.researchArtifactId;
+  if (args.strategyArtifactId) parsed.strategyArtifactId = args.strategyArtifactId;
+  if (args.moodboardArtifactId) parsed.moodboardArtifactId = args.moodboardArtifactId;
+  if (args.flowsArtifactId) parsed.flowsArtifactId = args.flowsArtifactId;
+  const contentJson = JSON.stringify(parsed);
 
   const artifactId = await createArtifactRecord(ctx, {
     userId: user._id,
@@ -271,4 +266,46 @@ export async function updateWireframesArtifactHandler(
     artifactId: String(args.artifactId),
     updatedAt: timestamp,
   };
+}
+
+function parseWireframesContentJson(contentJson: string, projectId: Id<"projects">) {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(contentJson);
+  } catch {
+    throw new Error("Wireframes artifact content must be valid JSON.");
+  }
+
+  if (!isRecord(parsed)) {
+    throw new Error("Wireframes artifact content must be a JSON object.");
+  }
+
+  if (parsed.apiVersion !== "v1" || parsed.artifactKind !== "wireframesArtifact") {
+    throw new Error("Wireframes artifact content has an invalid artifact header.");
+  }
+
+  if (parsed.projectId !== String(projectId)) {
+    throw new Error("Wireframes artifact projectId does not match the project.");
+  }
+
+  requireNonEmptyString(parsed.title, "Wireframes artifact title");
+  requireNonNegativeNumber(parsed.generatedAt, "Wireframes artifact generatedAt");
+
+  return parsed;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function requireNonEmptyString(value: unknown, label: string) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`${label} must be a non-empty string.`);
+  }
+}
+
+function requireNonNegativeNumber(value: unknown, label: string) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw new Error(`${label} must be a non-negative number.`);
+  }
 }
