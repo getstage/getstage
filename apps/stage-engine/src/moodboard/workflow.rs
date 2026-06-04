@@ -699,7 +699,13 @@ fn refero_moodboard_reference(
     if let Some(image_key) = image_key.filter(|key| !key.trim().is_empty()) {
         reference.insert("imageAssetKey".to_string(), json!(image_key.clone()));
         reference.insert("thumbnailAssetKey".to_string(), json!(image_key.clone()));
-        reference.insert("thumbnailUrl".to_string(), json!(image_key));
+        let thumbnail_fallback = screen
+            .thumbnail_url
+            .as_deref()
+            .or(screen.image_url.as_deref())
+            .filter(|url| url.starts_with("https://") && !url.trim().is_empty())
+            .unwrap_or(&image_key);
+        reference.insert("thumbnailUrl".to_string(), json!(thumbnail_fallback));
     } else if let Some(thumbnail_url) = screen
         .thumbnail_url
         .as_deref()
@@ -733,7 +739,9 @@ fn figma_moodboard_reference(
     reference.insert("title".to_string(), json!(image.title));
     reference.insert("imageUrl".to_string(), json!(image_url));
     if let Some(image_key) = image_key.filter(|key| !key.trim().is_empty()) {
-        reference.insert("imageAssetKey".to_string(), json!(image_key));
+        reference.insert("imageAssetKey".to_string(), json!(image_key.clone()));
+        reference.insert("thumbnailAssetKey".to_string(), json!(image_key));
+        reference.insert("thumbnailUrl".to_string(), json!(image.render_url));
     }
     reference.insert("source".to_string(), json!("figma"));
     if let Some(source_url) = optional_https_url(Some(image.source_url.as_str())) {
@@ -754,7 +762,7 @@ fn url_moodboard_reference(image: &UrlImportedImage, image_key: String) -> Value
     reference.insert("title".to_string(), json!(image.title));
     reference.insert("imageUrl".to_string(), json!(image_key.clone()));
     reference.insert("imageAssetKey".to_string(), json!(image_key.clone()));
-    reference.insert("thumbnailUrl".to_string(), json!(image_key.clone()));
+    reference.insert("thumbnailUrl".to_string(), json!(image.source_url));
     reference.insert("thumbnailAssetKey".to_string(), json!(image_key));
     reference.insert("source".to_string(), json!("url"));
     if let Some(source_url) = optional_https_url(Some(image.source_url.as_str())) {

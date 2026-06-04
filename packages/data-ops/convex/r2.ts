@@ -89,6 +89,11 @@ function buildObjectKey(
 ) {
   const extension = getExtensionFromMimeType(mimeType, fileName);
   const uuid = crypto.randomUUID();
+  const projectId = scopeId?.trim() || "unknown-project";
+
+  function moodboardKey(source: "uploads" | "refero" | "figma" | "urls") {
+    return `moodboard/projects/${projectId}/users/${userId}/${source}/${uuid}.${extension}`;
+  }
 
   switch (purpose) {
     case "task-attachment":
@@ -108,29 +113,19 @@ function buildObjectKey(
     case "project-asset":
       return `users/${userId}/project-assets/${uuid}.${extension}`;
     case "research-refero": {
-      const projectId = scopeId?.trim() || "unknown-project";
       return `users/${userId}/research/${projectId}/refero/${uuid}.${extension}`;
     }
     case "research-brief": {
-      const projectId = scopeId?.trim() || "unknown-project";
       return `users/${userId}/research/${projectId}/briefs/${uuid}.${extension}`;
     }
-    case "moodboard-upload": {
-      const projectId = scopeId?.trim() || "unknown-project";
-      return `users/${userId}/moodboard/${projectId}/uploads/${uuid}.${extension}`;
-    }
-    case "moodboard-refero": {
-      const projectId = scopeId?.trim() || "unknown-project";
-      return `users/${userId}/moodboard/${projectId}/refero/${uuid}.${extension}`;
-    }
-    case "moodboard-figma": {
-      const projectId = scopeId?.trim() || "unknown-project";
-      return `users/${userId}/moodboard/${projectId}/figma/${uuid}.${extension}`;
-    }
-    case "moodboard-url": {
-      const projectId = scopeId?.trim() || "unknown-project";
-      return `users/${userId}/moodboard/${projectId}/urls/${uuid}.${extension}`;
-    }
+    case "moodboard-upload":
+      return moodboardKey("uploads");
+    case "moodboard-refero":
+      return moodboardKey("refero");
+    case "moodboard-figma":
+      return moodboardKey("figma");
+    case "moodboard-url":
+      return moodboardKey("urls");
   }
 }
 

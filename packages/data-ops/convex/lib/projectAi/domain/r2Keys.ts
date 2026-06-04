@@ -4,7 +4,13 @@ export function isR2ObjectKey(value: string) {
 
 export function collectR2KeysFromJson(value: unknown, keys: Set<string>) {
   if (typeof value === "string") {
-    if (isR2ObjectKey(value) && (value.includes("/research/") || value.includes("/moodboard/"))) {
+    if (
+      isR2ObjectKey(value) &&
+      (value.includes("/research/") ||
+        value.startsWith("research/") ||
+        value.includes("/moodboard/") ||
+        value.startsWith("moodboard/"))
+    ) {
       keys.add(value);
     }
     return;

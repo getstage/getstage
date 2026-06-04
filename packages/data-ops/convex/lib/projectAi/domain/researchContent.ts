@@ -16,17 +16,28 @@ async function resolveStoredAssetUrls(value: unknown): Promise<unknown> {
         typeof nested === "string";
 
       if (isResolvableUrlField) {
-        if (isStoredAssetKey(nested)) {
-          const assetKeyField =
-            key === "imageUrl"
-              ? "imageAssetKey"
-              : key === "thumbnailUrl"
-                ? "thumbnailAssetKey"
-                : null;
+        const assetKeyField =
+          key === "imageUrl"
+            ? "imageAssetKey"
+            : key === "thumbnailUrl"
+              ? "thumbnailAssetKey"
+              : null;
+        const explicitAssetKey =
+          assetKeyField && typeof record[assetKeyField] === "string"
+            ? record[assetKeyField]
+            : null;
+        const assetKey =
+          explicitAssetKey && isStoredAssetKey(explicitAssetKey)
+            ? explicitAssetKey
+            : isStoredAssetKey(nested)
+              ? nested
+              : null;
+
+        if (assetKey) {
           if (assetKeyField && typeof record[assetKeyField] !== "string") {
-            next[assetKeyField] = nested;
+            next[assetKeyField] = assetKey;
           }
-          next[key] = (await resolveAssetUrl(nested)) ?? nested;
+          next[key] = (await resolveAssetUrl(assetKey)) ?? nested;
         } else {
           next[key] = nested;
         }
