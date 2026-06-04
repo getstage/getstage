@@ -1,6 +1,6 @@
 # Moodboard E2E testing
 
-> **Architecture & status:** [`MOODBOARD_DEV_STATUS.md`](./MOODBOARD_DEV_STATUS.md) · **Build order:** [`MOODBOARD_BUILD_PLAN.md`](./MOODBOARD_BUILD_PLAN.md)
+> **Architecture & status:** [`MOODBOARD_DEV_STATUS.md`](./MOODBOARD_DEV_STATUS.md) · **Build order:** [`MOODBOARD_BUILD_PLAN.md`](./MOODBOARD_BUILD_PLAN.md) · **Change audit:** [`MOODBOARD_CHANGE_AUDIT.md`](./MOODBOARD_CHANGE_AUDIT.md)
 
 ---
 

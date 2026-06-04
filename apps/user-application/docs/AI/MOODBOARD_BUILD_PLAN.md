@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-04  
 Audience: engineering (build order)  
-Related: [`MOODBOARD_DEV_STATUS.md`](./MOODBOARD_DEV_STATUS.md) · [`MOODBOARD_TESTING.md`](./MOODBOARD_TESTING.md) · [`RESEARCH_DEV_STATUS.md`](./RESEARCH_DEV_STATUS.md) · [`STRATEGY_DEV_STATUS.md`](./STRATEGY_DEV_STATUS.md)
+Related: [`MOODBOARD_DEV_STATUS.md`](./MOODBOARD_DEV_STATUS.md) · [`MOODBOARD_TESTING.md`](./MOODBOARD_TESTING.md) · [`MOODBOARD_CHANGE_AUDIT.md`](./MOODBOARD_CHANGE_AUDIT.md) · [`RESEARCH_DEV_STATUS.md`](./RESEARCH_DEV_STATUS.md) · [`STRATEGY_DEV_STATUS.md`](./STRATEGY_DEV_STATUS.md)
 
 > Concrete build order and progress audit. High-level status lives in **`MOODBOARD_DEV_STATUS.md`**.
 
