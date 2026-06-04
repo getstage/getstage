@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useMutation } from "convex/react";
+import type { ProviderId } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import {
   parseStoredStrategyGenerateInput,
@@ -52,7 +53,7 @@ export function useStrategyTab(project: Pick<Project, "id" | "name">) {
   const hasResearch = researchArtifact.hasArtifact && researchArtifact.data !== null;
 
   const startStrategy = useCallback(
-    async (input?: ValidatedStrategyGenerateInput) => {
+    async (input?: ValidatedStrategyGenerateInput, providerId?: ProviderId) => {
       if (strategyRun.isRunning || strategyRun.isStarting) {
         return;
       }
@@ -80,11 +81,13 @@ export function useStrategyTab(project: Pick<Project, "id" | "name">) {
         throw error;
       }
 
-      if (!resolvedProviderId) {
+      const runProviderId = providerId ?? resolvedProviderId;
+
+      if (!runProviderId) {
         throw new Error("Connect Claude or Codex in Settings before generating Strategy.");
       }
 
-      await strategyRun.startStrategy(resolvedProviderId);
+      await strategyRun.startStrategy(runProviderId);
     },
     [
       hasResearch,

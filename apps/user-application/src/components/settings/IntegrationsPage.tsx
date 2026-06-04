@@ -109,6 +109,23 @@ export function IntegrationsPage() {
     };
   }, [modelMenuOpen]);
 
+  useEffect(() => {
+    if (!window.stageDesktop?.integrations?.onOAuthCompleted) {
+      return;
+    }
+
+    return window.stageDesktop.integrations.onOAuthCompleted((result) => {
+      if (!result.ok) {
+        window.alert(result.error);
+        return;
+      }
+
+      if (result.status === "error") {
+        window.alert(`Could not connect ${result.provider === "figma" ? "Figma" : "Notion"}.`);
+      }
+    });
+  }, []);
+
   async function handleIntegrationAction(integration: IntegrationRowModel) {
     try {
       setBusyIntegrationId(integration.id);
@@ -129,7 +146,13 @@ export function IntegrationsPage() {
           return;
         }
 
-        const result = await startOAuthConnect({ provider: integration.nativeIntegrationId });
+        const returnUrl = await window.stageDesktop.integrations.getOAuthReturnUrl(
+          integration.nativeIntegrationId,
+        );
+        const result = await startOAuthConnect({
+          provider: integration.nativeIntegrationId,
+          returnUrl,
+        });
         await openExternalLink(result.url);
         return;
       }

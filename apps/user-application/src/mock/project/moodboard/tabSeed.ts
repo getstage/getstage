@@ -5,13 +5,22 @@ import {
   MOODBOARD_DIRECTION_NAMES,
 } from "./constants";
 
-export type MoodboardMode = "upload" | "figma";
+export type MoodboardMode = "upload" | "figma" | "ai";
 
 /** UI-local moodboard item used by tab components before artifact hydration. */
 export type MoodboardFixtureItem = {
   id: string;
+  title?: string;
   image: string;
+  imageUrl?: string;
+  imageAssetKey?: string;
+  thumbnailUrl?: string;
+  thumbnailAssetKey?: string;
+  source?: "upload" | "figma" | "url";
+  sourceUrl?: string;
+  uploadedAssetId?: string;
   folder: string | null;
+  directionId?: string | null;
   isInMoodboard: boolean;
 };
 

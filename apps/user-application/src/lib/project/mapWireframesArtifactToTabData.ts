@@ -1,5 +1,9 @@
 import type { WireframeConfigureScreen, WireframesArtifact } from "@stage/data-ops/contracts";
-import type { ScreenItem, WireframesTabData } from "@/types/project/wireframesTab";
+import type {
+  ScreenItem,
+  WireframeGeneratedScreen,
+  WireframesTabData,
+} from "@/types/project/wireframesTab";
 
 export function mapConfigureScreenToScreenItem(screen: WireframeConfigureScreen): ScreenItem {
   return {
@@ -32,20 +36,44 @@ export function mapWireframesArtifactToTabData(artifact: WireframesArtifact): Wi
     brandKit: artifact.brandKit ?? null,
     generatedAtLabel: artifact.generatedAtLabel,
     figmaSymbolUrl: artifact.figmaSymbolUrl,
-    generatedScreens: artifact.generatedScreens,
+    generatedScreens: artifact.generatedScreens.map((screen) => ({
+      id: screen.id,
+      title: screen.title,
+      priority: screen.priority,
+      generatedAtLabel: screen.generatedAtLabel,
+      figmaUrl: screen.figmaUrl,
+      goal: screen.goal,
+      sections: screen.sections,
+    })),
   };
 }
+
+export type WireframeResultCard = ScreenItem & {
+  date: string;
+  goal?: string;
+  sections?: WireframeGeneratedScreen["sections"];
+  figmaUrl?: string;
+};
 
 export function buildResultCards(
   screens: ScreenItem[],
   generatedAtLabel: string,
   limit = 6,
-): Array<ScreenItem & { date: string }> {
+  generatedScreens: WireframeGeneratedScreen[] = [],
+): WireframeResultCard[] {
+  const generatedById = new Map(generatedScreens.map((screen) => [screen.id, screen]));
+
   return screens
     .filter((screen) => screen.selected)
     .slice(0, limit)
-    .map((screen) => ({
-      ...screen,
-      date: generatedAtLabel,
-    }));
+    .map((screen) => {
+      const generated = generatedById.get(screen.id);
+      return {
+        ...screen,
+        date: generated?.generatedAtLabel ?? generatedAtLabel,
+        goal: generated?.goal,
+        sections: generated?.sections,
+        figmaUrl: generated?.figmaUrl,
+      };
+    });
 }

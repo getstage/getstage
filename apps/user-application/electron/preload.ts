@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
-import type { CompanionState, DesktopSession, PermissionKind } from "@shared/models/desktop";
+import type { CompanionState, DesktopSession, IntegrationOAuthResult, PermissionKind } from "@shared/models/desktop";
 import type { RunEvent, StartRunRequest } from "@stage/data-ops/contracts";
 
 const stageDesktop = {
@@ -64,6 +64,20 @@ const stageDesktop = {
   shell: {
     openExternal: (url: string) =>
       ipcRenderer.invoke(IPC_CHANNELS.shellOpenExternal, url),
+  },
+  integrations: {
+    getOAuthReturnUrl: (provider: "figma" | "notion") =>
+      ipcRenderer.invoke(IPC_CHANNELS.integrationsGetOAuthReturnUrl, provider),
+    onOAuthCompleted: (callback: (result: IntegrationOAuthResult) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, result: IntegrationOAuthResult) => {
+        callback(result);
+      };
+
+      ipcRenderer.on(IPC_CHANNELS.integrationOAuthCompleted, listener);
+      return () => {
+        ipcRenderer.off(IPC_CHANNELS.integrationOAuthCompleted, listener);
+      };
+    },
   },
 };
 

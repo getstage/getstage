@@ -299,9 +299,7 @@ fn append_output(final_text: &mut String, text: &str) {
 
 fn looks_like_json_artifact_line(text: &str) -> bool {
     let trimmed = text.trim();
-    trimmed.starts_with('{')
-        && trimmed.ends_with('}')
-        && trimmed.contains("\"artifactKind\"")
+    trimmed.starts_with('{') && trimmed.ends_with('}') && trimmed.contains("\"artifactKind\"")
 }
 
 /// Codex often streams artifact JSON and prompt echoes on stderr. Still parsed when needed,

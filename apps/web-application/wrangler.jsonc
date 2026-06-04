@@ -17,7 +17,7 @@
     "binding": "ASSETS",
     "directory": "dist",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/stripe/*"]
+    "run_worker_first": ["/api/*", "/stripe/*", "/integrations/*"]
   },
   "env": {
     "testing": {

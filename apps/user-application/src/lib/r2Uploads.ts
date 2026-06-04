@@ -9,6 +9,7 @@ export const CSV_ACCEPT = ".csv,text/csv";
 export const AVATAR_ACCEPT = ".jpg,.jpeg,.png,.webp";
 export const PROJECT_MARKER_ACCEPT = ".jpg,.jpeg,.png,.webp";
 export const PORTAL_LOGO_ACCEPT = ".jpg,.jpeg,.png,.webp,.svg";
+export const MOODBOARD_IMAGE_ACCEPT = ".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif";
 
 type MutationFn = ReturnType<typeof useMutation<FunctionReference<"mutation">>>;
 

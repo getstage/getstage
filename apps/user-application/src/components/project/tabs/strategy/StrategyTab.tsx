@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ProviderId } from "@stage/data-ops/contracts";
 import { DownstreamStepsDialog } from "@/components/project/DownstreamStepsDialog";
 import { StrategyRegenerateDialog } from "@/components/project/StrategyRegenerateDialog";
 import { useAfterUpstreamRunPrompt } from "@/hooks/project/useAfterUpstreamRunPrompt";
@@ -36,6 +37,7 @@ type StrategyTabProps = {
   onGoToResearch: () => void;
   onGoToMoodboard: () => void;
   autoStartGeneration?: boolean;
+  pendingStrategyProviderId?: ProviderId | null;
   onAutoStartHandled?: () => void;
 };
 
@@ -44,6 +46,7 @@ export function StrategyTab({
   onGoToResearch,
   onGoToMoodboard,
   autoStartGeneration = false,
+  pendingStrategyProviderId = null,
   onAutoStartHandled,
 }: StrategyTabProps) {
   const [sections, setSections] = useState<StrategySection[]>([]);
@@ -65,7 +68,13 @@ export function StrategyTab({
   const isRunBusy = strategy.isRunning || strategy.isStarting;
   const saveStrategyArtifact = useSaveStrategyArtifact(project.id);
   const regenerateSection = useStrategySectionRegenerate(project.id);
-  const { resolvedProviderId } = useProjectAiProvider(project.id);
+  const {
+    resolvedProviderId,
+    providerOptions,
+    selectedProviderId,
+    selectProvider,
+  } = useProjectAiProvider(project.id);
+  const runProviderId = selectedProviderId ?? resolvedProviderId;
   const notionExport = useExportStrategyToNotion(strategy.data?.id ?? null);
   const visibleSections = isEditing ? editSections : sections;
 
@@ -87,8 +96,15 @@ export function StrategyTab({
 
     // Consume the one-shot flag before any async work so Strict Mode cannot start twice.
     onAutoStartHandled?.();
-    void handleGenerateStrategy();
-  }, [autoStartGeneration, onAutoStartHandled, strategy.hasArtifact, strategy.hasResearch, strategy.isRunning]);
+    void handleGenerateStrategy(undefined, pendingStrategyProviderId ?? undefined);
+  }, [
+    autoStartGeneration,
+    onAutoStartHandled,
+    pendingStrategyProviderId,
+    strategy.hasArtifact,
+    strategy.hasResearch,
+    strategy.isRunning,
+  ]);
 
   const approvedCount = useMemo(
     () => visibleSections.filter((section) => section.status === "approved").length,
@@ -103,6 +119,7 @@ export function StrategyTab({
 
   async function handleGenerateStrategy(
     input?: ValidatedStrategyGenerateInput,
+    providerId?: ProviderId,
     options?: { isFullRegenerate?: boolean },
   ) {
     setRunError(null);
@@ -112,7 +129,7 @@ export function StrategyTab({
     }
 
     try {
-      await strategy.startStrategy(input);
+      await strategy.startStrategy(input, providerId);
     } catch (error) {
       setRunError(error instanceof Error ? error.message : "Could not generate Strategy.");
     }
@@ -168,7 +185,7 @@ export function StrategyTab({
       return;
     }
 
-    if (!resolvedProviderId) {
+    if (!runProviderId) {
       setRunError("Connect Claude or Codex in Settings before regenerating a section.");
       return;
     }
@@ -177,7 +194,7 @@ export function StrategyTab({
     setRegeneratingSectionId(sectionId);
 
     try {
-      await regenerateSection(sectionId, resolvedProviderId);
+      await regenerateSection(sectionId, runProviderId);
     } catch (error) {
       setRunError(error instanceof Error ? error.message : "Could not regenerate Strategy.");
     } finally {
@@ -334,7 +351,10 @@ export function StrategyTab({
     );
   }
 
-  if (strategy.isRunning) {
+  const isLaunchingStrategy =
+    autoStartGeneration || strategy.isStarting || strategy.isRunning;
+
+  if (isLaunchingStrategy && !strategy.hasArtifact) {
     return <StrategyGeneratingState usingMockData={strategy.usingMockData} />;
   }
 
@@ -364,7 +384,11 @@ export function StrategyTab({
         ) : null}
         <StrategyGenerateStep
           isSubmitting={strategy.isStarting || strategy.isRunning}
-          onSubmit={(input) => void handleGenerateStrategy(input)}
+          onSubmit={(input, providerId) => void handleGenerateStrategy(input, providerId)}
+          providerOptions={providerOptions}
+          selectedProviderId={selectedProviderId}
+          onSelectProvider={selectProvider}
+          runSettingsInDialog
         />
       </div>
     );
@@ -511,7 +535,10 @@ export function StrategyTab({
         onOpenChange={setIsRegenerateDialogOpen}
         initialValues={regenerateFormInitialValues}
         isSubmitting={isRunBusy}
-        onSubmit={(input) => void handleGenerateStrategy(input, { isFullRegenerate: true })}
+        onSubmit={(input, providerId) => void handleGenerateStrategy(input, providerId, { isFullRegenerate: true })}
+        providerOptions={providerOptions}
+        selectedProviderId={selectedProviderId}
+        onSelectProvider={selectProvider}
       />
       <DownstreamStepsDialog
         open={downstreamPrompt.dialogOpen}

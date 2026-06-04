@@ -3,6 +3,8 @@ import type { ProviderId } from "@stage/data-ops/contracts";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
+import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
+import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
 
 const DEFAULT_STRATEGY_MODELS: Record<ProviderId, string> = {
   claude: "claude-sonnet-4-6",
@@ -13,6 +15,7 @@ export function useStrategySectionRegenerate(projectId: string) {
   const providerRun = useProviderRun({ projectId, mode: "strategy-section" });
   const providerPreferences = useProviderPreferences();
   const providers = useProviderStatus();
+  const chatDefaults = useChatDefaults();
 
   return useCallback(
     async (sectionId: string, providerId: ProviderId) => {
@@ -37,9 +40,15 @@ export function useStrategySectionRegenerate(projectId: string) {
           source: `section:${sectionId}`,
         },
         attachments: [],
-        modelOptions: [],
+        modelOptions: buildRunModelOptions(chatDefaults.defaults),
       });
     },
-    [projectId, providerPreferences, providerRun.startRun, providers.data?.providers],
+    [
+      chatDefaults.defaults,
+      projectId,
+      providerPreferences,
+      providerRun.startRun,
+      providers.data?.providers,
+    ],
   );
 }

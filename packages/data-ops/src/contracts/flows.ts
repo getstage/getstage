@@ -6,6 +6,7 @@ export const flowStepSchema = z.object({
   id: z.string().min(1),
   order: z.number().int().nonnegative(),
   label: z.string().min(1),
+  screenId: z.string().min(1).optional(),
 });
 
 export const flowSchema = z.object({
@@ -39,9 +40,15 @@ export const flowsArtifactSchema = z.object({
   artifactKind: z.literal("flowsArtifact"),
   projectId: z.string().min(1),
   title: z.string().min(1),
+  researchArtifactId: z.string().min(1).optional(),
+  strategyArtifactId: z.string().min(1).optional(),
+  moodboardArtifactId: z.string().min(1).optional(),
+  figjamUrl: z.string().url().optional(),
+  figjamExportedAt: z.number().int().nonnegative().optional(),
   flows: z.array(flowSchema).default([]),
   screens: z.array(screenSchema).default([]),
   generatedAt: z.number().int().nonnegative(),
+  updatedAt: z.number().int().nonnegative().optional(),
 });
 
 export type FlowStatus = z.infer<typeof flowStatusSchema>;

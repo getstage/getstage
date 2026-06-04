@@ -5,7 +5,9 @@ import { engineQueryKeys } from "@/hooks/engine/queryKeys";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
+import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import { formatRunFailedEvent, STRATEGY_RUN_FAILED_USER_MESSAGE } from "@/lib/engine/formatRunError";
+import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
 
 const STRATEGY_PROMPT = "Generate project strategy from the current Stage research artifact.";
 
@@ -48,6 +50,7 @@ export function useStrategyRun(projectId: string) {
   const providerRun = useProviderRun({ projectId, mode: "strategy" });
   const providerPreferences = useProviderPreferences();
   const providers = useProviderStatus();
+  const chatDefaults = useChatDefaults();
   const [error, setError] = useState<string | null>(null);
   const [runEnded, setRunEnded] = useState(false);
   const runStartedAtRef = useRef<number | null>(null);
@@ -170,7 +173,7 @@ export function useStrategyRun(projectId: string) {
           mode: "strategy",
           context: { projectId },
           attachments: [],
-          modelOptions: [],
+          modelOptions: buildRunModelOptions(chatDefaults.defaults),
         });
       })();
 
@@ -188,6 +191,7 @@ export function useStrategyRun(projectId: string) {
       isRunning,
       projectId,
       providerPreferences,
+      chatDefaults.defaults,
       providerRun.startRun,
       providers.data?.providers,
     ],

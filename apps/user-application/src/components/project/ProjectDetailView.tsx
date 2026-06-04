@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ProviderId } from "@stage/data-ops/contracts";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { Avatar } from "@/components/ui/Avatar";
@@ -89,6 +90,9 @@ export function ProjectDetailView() {
   const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [pendingStrategyGeneration, setPendingStrategyGeneration] = useState(false);
+  const [pendingStrategyProviderId, setPendingStrategyProviderId] = useState<ProviderId | null>(
+    null,
+  );
   const [project, setProject] = useState<Project | null>(null);
   const [timeline, setTimeline] = useState<ProjectTimeline>({ start: "", end: "" });
   const projectBackDestination = getProjectBackDestination();
@@ -168,7 +172,8 @@ export function ProjectDetailView() {
     void navigate({ to: projectBackDestination.href as never });
   }
 
-  function handleGenerateStrategy() {
+  function handleGenerateStrategy(providerId: ProviderId) {
+    setPendingStrategyProviderId(providerId);
     setPendingStrategyGeneration(true);
     setActiveTab("strategy");
   }
@@ -306,7 +311,11 @@ export function ProjectDetailView() {
                   onGoToResearch={() => setActiveTab("research")}
                   onGoToMoodboard={() => setActiveTab("moodboard")}
                   autoStartGeneration={pendingStrategyGeneration}
-                  onAutoStartHandled={() => setPendingStrategyGeneration(false)}
+                  pendingStrategyProviderId={pendingStrategyProviderId}
+                  onAutoStartHandled={() => {
+                    setPendingStrategyGeneration(false);
+                    setPendingStrategyProviderId(null);
+                  }}
                 />
               ) : null}
               {!blockedStep && activeTab === "moodboard" ? (

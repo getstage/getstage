@@ -12,7 +12,10 @@ export const runModeSchema = z.enum([
   "voice",
   "research",
   "strategy",
+  "moodboard",
+  "flows",
   "generation",
+  "wireframes",
   "critique",
   "styleguide",
 ]);

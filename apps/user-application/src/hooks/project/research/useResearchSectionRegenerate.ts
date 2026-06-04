@@ -3,6 +3,8 @@ import type { ProviderId, ResearchArtifactSection } from "@stage/data-ops/contra
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
+import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
+import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
 
 const DEFAULT_RESEARCH_MODELS: Record<ProviderId, string> = {
   claude: "claude-sonnet-4-6",
@@ -13,6 +15,7 @@ export function useResearchSectionRegenerate(projectId: string) {
   const providerRun = useProviderRun({ projectId, mode: "research-section" });
   const providerPreferences = useProviderPreferences();
   const providers = useProviderStatus();
+  const chatDefaults = useChatDefaults();
 
   return useCallback(
     async (section: ResearchArtifactSection, providerId: ProviderId) => {
@@ -35,9 +38,15 @@ export function useResearchSectionRegenerate(projectId: string) {
           source: `section:${section}`,
         },
         attachments: [],
-        modelOptions: [],
+        modelOptions: buildRunModelOptions(chatDefaults.defaults),
       });
     },
-    [projectId, providerPreferences, providerRun.startRun, providers.data?.providers],
+    [
+      chatDefaults.defaults,
+      projectId,
+      providerPreferences,
+      providerRun.startRun,
+      providers.data?.providers,
+    ],
   );
 }

@@ -34,6 +34,7 @@ export function WireframesTab({ project, onGoToResearch, onGoToStrategy }: Wiref
   const [hasBrandKit, setHasBrandKit] = useState(false);
   const [screens, setScreens] = useState(seedScreens);
   const [generatedAtLabel, setGeneratedAtLabel] = useState(MOCK_WIREFRAMES_GENERATED_AT_LABEL);
+  const generatedScreens = wireframesTab.data?.tabData.generatedScreens ?? [];
   const selectedCount = screens.filter((screen) => screen.selected).length;
 
   useEffect(() => {
@@ -58,22 +59,38 @@ export function WireframesTab({ project, onGoToResearch, onGoToStrategy }: Wiref
   async function generateWireframes() {
     setStep("generating");
     try {
-      const record = await wireframesTab.generateWireframes({
+      await wireframesTab.generateWireframes({
         wireframeKind: wireframeKind ?? "lofi",
         brandSource,
         screens,
       });
-      setScreens(record.tabData.configureScreens);
-      setGeneratedAtLabel(record.tabData.generatedAtLabel);
-      setStep("results");
     } catch {
       setStep("configure");
     }
   }
 
+  useEffect(() => {
+    if (step !== "generating") {
+      return;
+    }
+    if (!wireframesTab.isGenerating && wireframesTab.data) {
+      setStep("results");
+      return;
+    }
+    if (!wireframesTab.isGenerating && wireframesTab.error) {
+      setStep("configure");
+    }
+  }, [step, wireframesTab.data, wireframesTab.error, wireframesTab.isGenerating]);
+
   const generatedCards = useMemo(
-    () => buildResultCards(screens, generatedAtLabel, WIREFRAMES_RESULTS_PREVIEW_LIMIT),
-    [generatedAtLabel, screens],
+    () =>
+      buildResultCards(
+        screens,
+        generatedAtLabel,
+        WIREFRAMES_RESULTS_PREVIEW_LIMIT,
+        generatedScreens,
+      ),
+    [generatedAtLabel, generatedScreens, screens],
   );
 
   return (

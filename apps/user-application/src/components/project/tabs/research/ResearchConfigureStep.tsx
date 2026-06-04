@@ -11,7 +11,7 @@ import {
   type ValidatedResearchConfigureInput,
 } from "@/lib/project/researchConfigureInput";
 import { validateUploadFile } from "@/lib/r2Uploads";
-import { ResearchProviderPicker } from "./ResearchProviderPicker";
+import { AiRunSettings } from "@/components/project/AiRunSettings";
 import { PlusIcon } from "./researchIcons";
 
 const suggestedIndustries = "e.g. Fintech, E-commerce, SaaS, Health";
@@ -352,14 +352,14 @@ export function ResearchConfigureStep({
                 />
               </FormField>
 
-              <ResearchProviderPicker
-                options={providerOptions}
+              <AiRunSettings
+                providerOptions={providerOptions}
                 selectedProviderId={selectedProviderId}
-                onSelect={(providerId) => {
+                onSelectProvider={(providerId) => {
                   selectProvider(providerId);
                   setProviderError(null);
                 }}
-                error={providerError ?? undefined}
+                providerError={providerError ?? undefined}
               />
 
               {warningMessage ? (

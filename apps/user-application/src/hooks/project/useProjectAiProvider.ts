@@ -27,7 +27,7 @@ export function useProjectAiProvider(projectId: string | undefined) {
     api.projectAi.getContext,
     isAuthenticated && projectId ? { projectId: projectId as Id<"projects"> } : "skip",
   );
-  const { selectedProviderId, providerOptions } = useResearchProviderSelection();
+  const { selectedProviderId, selectProvider, providerOptions } = useResearchProviderSelection();
 
   const resolvedProviderId = useMemo(() => {
     const fromContext = pickSelectableProvider(context?.lastProviderId ?? null, providerOptions);
@@ -47,5 +47,6 @@ export function useProjectAiProvider(projectId: string | undefined) {
     resolvedProviderId,
     providerOptions,
     selectedProviderId,
+    selectProvider,
   };
 }

@@ -1,10 +1,23 @@
-import type { MoodboardDirection, MoodboardReference, MoodboardStyleGuide } from "@stage/data-ops/contracts";
+import type {
+  MoodboardDirection,
+  MoodboardReference,
+  MoodboardReferenceSource,
+  MoodboardStyleGuide,
+} from "@stage/data-ops/contracts";
 
-export type MoodboardMode = "upload" | "figma";
+export type MoodboardMode = "upload" | "figma" | "ai";
 
 export type MoodboardItem = {
   id: string;
+  title?: string;
   image: string;
+  imageUrl?: string;
+  imageAssetKey?: string;
+  thumbnailUrl?: string;
+  thumbnailAssetKey?: string;
+  source?: MoodboardReferenceSource;
+  sourceUrl?: string;
+  uploadedAssetId?: string;
   folder: string | null;
   directionId: string | null;
   isInMoodboard: boolean;
@@ -16,6 +29,7 @@ export type MoodboardUploadedFileView = {
   id: string;
   name: string;
   sizeBytes: number;
+  uploadedAssetId?: string;
 };
 
 export type MoodboardStyleGuideViewData = MoodboardStyleGuide;
@@ -45,7 +59,15 @@ export function mapReferenceToItem(
 ): MoodboardItem {
   return {
     id: reference.id,
+    title: reference.title,
     image: reference.imageUrl,
+    imageUrl: reference.imageUrl,
+    imageAssetKey: reference.imageAssetKey,
+    thumbnailUrl: reference.thumbnailUrl,
+    thumbnailAssetKey: reference.thumbnailAssetKey,
+    source: reference.source,
+    sourceUrl: reference.sourceUrl,
+    uploadedAssetId: reference.uploadedAssetId,
     folder: getDirectionName(directions, reference.directionId),
     directionId: reference.directionId,
     isInMoodboard: reference.isInMoodboard,

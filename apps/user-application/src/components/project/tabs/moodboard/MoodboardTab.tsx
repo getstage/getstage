@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
+import type { MoodboardUploadedFile } from "@stage/data-ops/contracts";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import {
-  createDefaultSelectedReferenceIds,
   createSeedDirections,
-  createSeedReferences,
   defaultStyleGuide,
   MOODBOARD_DIRECTION_NAMES,
   type MoodboardItem,
@@ -14,7 +13,7 @@ import { getStyleGuideForDirection } from "@/lib/project/mapMoodboardArtifactToT
 import type { Project } from "@/models/project/project";
 import { DirectionHub, type Direction } from "./DirectionHub";
 import { DirectionToggle } from "./DirectionToggle";
-import { FigmaLinkPanel, GenerateWithAiButton } from "./FigmaLinkPanel";
+import { FigmaLinkPanel, GenerateWithAiButton, GenerateWithAiPanel } from "./FigmaLinkPanel";
 import { FolderMenu } from "./FolderMenu";
 import { Footer } from "./Footer";
 import { Header } from "./Header";
@@ -29,7 +28,7 @@ import { UploadedFilesList } from "./UploadedFilesList";
 type MoodboardView = "board" | "hub" | "generating-style-guide" | "style-guide";
 
 function createFallbackItems(): MoodboardItem[] {
-  return createSeedReferences();
+  return [];
 }
 
 function createFallbackDirections() {
@@ -47,15 +46,17 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
   const [mode, setMode] = useState<MoodboardMode>("upload");
   const [hasUploadedFiles, setHasUploadedFiles] = useState(false);
   const [hasFigmaImportResults, setHasFigmaImportResults] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<MoodboardUploadedFile[]>([]);
   const [view, setView] = useState<MoodboardView>("board");
   const [items, setItems] = useState<MoodboardItem[]>(createFallbackItems);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(createDefaultSelectedReferenceIds);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [folders, setFolders] = useState<Direction[]>(createFallbackDirections);
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [draftFolderName, setDraftFolderName] = useState("");
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [isFolderMenuOpen, setIsFolderMenuOpen] = useState(false);
   const [figmaLink, setFigmaLink] = useState("");
+  const [referoQuery, setReferoQuery] = useState("");
   const [activeStyleGuideDirectionName, setActiveStyleGuideDirectionName] = useState<string | null>(null);
   const [styleGuideGeneratingMode, setStyleGuideGeneratingMode] = useState<"generate" | "regenerate">("generate");
 
@@ -67,7 +68,11 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
     const { tabData } = moodboard.data;
     setMode(tabData.importMode ?? "upload");
     setHasUploadedFiles(tabData.uploadedFiles.length > 0);
-    setHasFigmaImportResults(tabData.importMode === "figma" && tabData.references.length > 0);
+    setHasFigmaImportResults(
+      (tabData.importMode === "figma" || tabData.importMode === "ai") &&
+        tabData.references.some((reference) => !reference.isInMoodboard),
+    );
+    setUploadedFiles(tabData.uploadedFiles);
     setItems(tabData.references);
     setFolders(
       tabData.directions.map((direction) => ({
@@ -79,23 +84,24 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
       const next = new Set(
         [...current].filter((id) => tabData.references.some((reference) => reference.id === id)),
       );
-      return next.size > 0 ? next : new Set(tabData.references.slice(0, 2).map((reference) => reference.id));
+      return next.size > 0 ? next : new Set(tabData.references.filter((reference) => !reference.isInMoodboard).map((reference) => reference.id));
     });
   }, [moodboard.data]);
 
   const selectedItems = items.filter((item) => selectedIds.has(item.id));
   const hasMoodboard = items.some((item) => item.isInMoodboard);
   const folderNames = folders.map((folder) => folder.name);
-  const showFigmaImportGrid = mode === "figma" && hasFigmaImportResults;
-  const showMoodboardGrid = hasMoodboard && !showFigmaImportGrid;
-  const showGrid = showFigmaImportGrid || showMoodboardGrid;
+  const hasStagedItems = items.some((item) => !item.isInMoodboard);
+  const showImportGrid = hasStagedItems && (mode === "figma" || mode === "ai" || mode === "upload");
+  const showMoodboardGrid = hasMoodboard && !showImportGrid;
+  const showGrid = showImportGrid || showMoodboardGrid;
   const visibleItems = items.filter((item) => {
-    if (showFigmaImportGrid) return true;
+    if (showImportGrid) return !item.isInMoodboard;
     if (!item.isInMoodboard) return false;
     return activeFolder ? item.folder === activeFolder : true;
   });
-  const canAddToMoodboard = mode === "figma" ? selectedItems.length > 0 : hasUploadedFiles;
-  const showSelectionActions = (hasMoodboard || showFigmaImportGrid) && selectedItems.length > 0;
+  const canAddToMoodboard = selectedItems.length > 0;
+  const showSelectionActions = (hasMoodboard || showImportGrid) && selectedItems.length > 0;
   const activeStyleGuide = (() => {
     if (!activeStyleGuideDirectionName || !moodboard.data) {
       return defaultStyleGuide;
@@ -112,12 +118,56 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
     return getStyleGuideForDirection(moodboard.data.tabData, directionId) ?? defaultStyleGuide;
   })();
 
-  function selectDefaultReferences() {
-    setSelectedIds(createDefaultSelectedReferenceIds());
+  function persistBoard(nextItems: MoodboardItem[], nextFolders: Direction[], nextUploadedFiles = uploadedFiles) {
+    void moodboard
+      .saveBoard({
+        mode,
+        items: nextItems,
+        directions: nextFolders,
+        uploadedFiles: nextUploadedFiles,
+      })
+      .catch(() => {
+        // Error is surfaced through moodboard.error; keep local board state intact.
+      });
   }
 
   function openDirectionMenu() {
     setIsFolderMenuOpen((current) => !current);
+  }
+
+  async function handleUpload(files: FileList) {
+    try {
+      const uploaded = await moodboard.uploadFiles(files);
+      const nextItems = [...items, ...uploaded.items];
+      const nextUploadedFiles = [...uploadedFiles, ...uploaded.uploadedFiles];
+      setItems(nextItems);
+      setUploadedFiles(nextUploadedFiles);
+      setHasUploadedFiles(nextUploadedFiles.length > 0);
+      setSelectedIds(new Set(uploaded.items.map((item) => item.id)));
+      persistBoard(nextItems, folders, nextUploadedFiles);
+    } catch {
+      // Error is surfaced through moodboard.error.
+    }
+  }
+
+  async function handleFigmaImport() {
+    try {
+      setMode("figma");
+      await moodboard.importFigmaLink(figmaLink);
+      setHasFigmaImportResults(true);
+    } catch {
+      // Error is surfaced through moodboard.error.
+    }
+  }
+
+  async function handleGenerateWithAi() {
+    try {
+      setMode("ai");
+      await moodboard.generateWithAi(referoQuery);
+      setHasFigmaImportResults(true);
+    } catch {
+      // Error is surfaced through moodboard.error.
+    }
   }
 
   async function generateStyleGuide(direction: string) {
@@ -186,35 +236,56 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
       ) : !showGrid ? (
         <div className="flex min-h-[420px] flex-1 items-center justify-center rounded-[8px] bg-white p-[clamp(24px,4.3vw,44px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
           <div className="flex w-full max-w-[611px] flex-col items-start gap-6">
-            {mode === "figma" ? (
+            {mode === "figma" || mode === "ai" ? (
               <div className="flex w-full flex-col gap-6">
                 <div className="flex flex-wrap items-start gap-[6px]">
                   <ModeToggle mode={mode} onModeChange={setMode} />
                   <GenerateWithAiButton
-                    onClick={() => {
-                      setHasFigmaImportResults(true);
-                      selectDefaultReferences();
-                    }}
+                    disabled={moodboard.isImporting}
+                    onClick={() => setMode("ai")}
                   />
                 </div>
-                <FigmaLinkPanel
-                  compact={false}
-                  value={figmaLink}
-                  onChange={setFigmaLink}
-                  onSubmit={() => {
-                    setHasFigmaImportResults(true);
-                    selectDefaultReferences();
-                  }}
-                />
+                {mode === "ai" ? (
+                  <GenerateWithAiPanel
+                    compact={false}
+                    disabled={moodboard.isImporting}
+                    value={referoQuery}
+                    onChange={setReferoQuery}
+                    onSubmit={handleGenerateWithAi}
+                  />
+                ) : (
+                  <FigmaLinkPanel
+                    compact={false}
+                    disabled={moodboard.isImporting}
+                    value={figmaLink}
+                    onChange={setFigmaLink}
+                    onSubmit={handleFigmaImport}
+                  />
+                )}
               </div>
             ) : (
-              <ModeToggle mode={mode} onModeChange={setMode} />
+              <div className="flex flex-wrap items-start gap-[6px]">
+                <ModeToggle mode={mode} onModeChange={setMode} />
+                <GenerateWithAiButton
+                  disabled={moodboard.isImporting}
+                  onClick={() => setMode("ai")}
+                />
+              </div>
             )}
             {mode === "upload" ? (
               <div className="flex w-full flex-col gap-3">
-                <UploadDropzone onUpload={() => setHasUploadedFiles(true)} />
-                {hasUploadedFiles ? <UploadedFilesList /> : null}
+                <UploadDropzone
+                  accept={moodboard.acceptUploads}
+                  disabled={moodboard.isUploading}
+                  onUpload={handleUpload}
+                />
+                {hasUploadedFiles ? <UploadedFilesList files={uploadedFiles} /> : null}
               </div>
+            ) : null}
+            {moodboard.error ? (
+              <p className="text-[12px] font-medium leading-[1.25] text-[#EF4444]">
+                {moodboard.error}
+              </p>
             ) : null}
           </div>
         </div>
@@ -225,21 +296,32 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
               <div className="flex flex-wrap items-start gap-[6px]">
                 <ModeToggle mode={mode} onModeChange={setMode} />
                 <GenerateWithAiButton
-                  onClick={() => {
-                    setHasFigmaImportResults(true);
-                    selectDefaultReferences();
-                  }}
+                  disabled={moodboard.isImporting}
+                  onClick={() => setMode("ai")}
                 />
               </div>
-              <FigmaLinkPanel
-                compact
-                value={figmaLink}
-                onChange={setFigmaLink}
-                onSubmit={() => {
-                  setHasFigmaImportResults(true);
-                  selectDefaultReferences();
-                }}
-              />
+              {mode === "ai" ? (
+                <GenerateWithAiPanel
+                  compact
+                  disabled={moodboard.isImporting}
+                  value={referoQuery}
+                  onChange={setReferoQuery}
+                  onSubmit={handleGenerateWithAi}
+                />
+              ) : (
+                <FigmaLinkPanel
+                  compact
+                  disabled={moodboard.isImporting}
+                  value={figmaLink}
+                  onChange={setFigmaLink}
+                  onSubmit={handleFigmaImport}
+                />
+              )}
+              {moodboard.error ? (
+                <p className="text-[12px] font-medium leading-[1.25] text-[#EF4444]">
+                  {moodboard.error}
+                </p>
+              ) : null}
             </div>
           </div>
 
@@ -257,10 +339,12 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
                     type="button"
                     className="inline-flex h-8 cursor-pointer items-center justify-center rounded-[6px] bg-white px-3 text-[12px] font-medium leading-none text-[#EF4444] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA]"
                     onClick={() => {
-                      setItems((current) => current.map((item) =>
+                      const nextItems = items.map((item) =>
                         selectedIds.has(item.id) ? { ...item, isInMoodboard: false, folder: null } : item,
-                      ));
+                      );
+                      setItems(nextItems);
                       setSelectedIds(new Set());
+                      persistBoard(nextItems, folders);
                     }}
                   >
                     Delete from Moodboard
@@ -296,14 +380,19 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
                 creating={isCreatingFolder}
                 draftName={draftFolderName}
                 onSelectFolder={(folder) => {
-                  setFolders((current) => current.some((item) => item.name === folder) ? current : [...current, { name: folder }]);
-                  setItems((current) => current.map((item) =>
+                  const nextFolders = folders.some((item) => item.name === folder)
+                    ? folders
+                    : [...folders, { name: folder }];
+                  const nextItems = items.map((item) =>
                     selectedIds.has(item.id) ? { ...item, folder, isInMoodboard: true } : item,
-                  ));
+                  );
+                  setFolders(nextFolders);
+                  setItems(nextItems);
                   setActiveFolder(null);
                   setIsCreatingFolder(false);
                   setDraftFolderName("");
                   setIsFolderMenuOpen(false);
+                  persistBoard(nextItems, nextFolders);
                 }}
                 onCreateFolder={() => {
                   setIsCreatingFolder(true);
@@ -312,14 +401,19 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
                 onDraftNameChange={setDraftFolderName}
                 onCommitFolder={() => {
                   const name = draftFolderName.trim() || `Direction ${folders.length + 1}`;
-                  setFolders((current) => current.some((item) => item.name === name) ? current : [...current, { name }]);
-                  setItems((current) => current.map((item) =>
+                  const nextFolders = folders.some((item) => item.name === name)
+                    ? folders
+                    : [...folders, { name }];
+                  const nextItems = items.map((item) =>
                     selectedIds.has(item.id) ? { ...item, folder: name, isInMoodboard: true } : item,
-                  ));
+                  );
+                  setFolders(nextFolders);
+                  setItems(nextItems);
                   setActiveFolder(null);
                   setDraftFolderName("");
                   setIsCreatingFolder(false);
                   setIsFolderMenuOpen(false);
+                  persistBoard(nextItems, nextFolders);
                 }}
               />
             ) : null}
@@ -333,14 +427,13 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
           canAddToMoodboard={canAddToMoodboard}
           onAddToMoodboard={() => {
             if (!canAddToMoodboard) return;
-            if (mode === "upload") {
-              setMode("figma");
-              setHasFigmaImportResults(true);
-              selectDefaultReferences();
-            }
-            setItems((current) => current.map((item) =>
-              selectedIds.has(item.id) || mode === "upload" ? { ...item, isInMoodboard: true } : item,
-            ));
+            const nextItems = items.map((item) =>
+              selectedIds.has(item.id) ? { ...item, isInMoodboard: true } : item,
+            );
+            setItems(nextItems);
+            setSelectedIds(new Set());
+            setHasFigmaImportResults(false);
+            persistBoard(nextItems, folders);
           }}
         />
       ) : null}

@@ -8,7 +8,7 @@ import {
   mapLatestArtifactResponse,
 } from "../domain/latestArtifact";
 import { getArtifactRecord, listDestinationsForArtifacts } from "../domain/records";
-import { resolveResearchContentJson } from "../domain/researchContent";
+import { resolveAssetContentJson, resolveResearchContentJson } from "../domain/researchContent";
 import { now } from "../domain/time";
 import {
   aiArtifactStatus,
@@ -24,17 +24,24 @@ async function latestArtifactHandler(
   args: { projectId: Id<"projects"> },
   module: AiModule,
   kind: string,
+  resolveContentJson?: (contentJson: string | null | undefined) => Promise<string | null>,
 ) {
   await requireProjectAccess(ctx, args.projectId);
   const latest = await findLatestArtifact(ctx, args.projectId, module, kind);
-  return latest ? mapLatestArtifactResponse(latest, latest.contentJson ?? null) : null;
+  if (!latest) {
+    return null;
+  }
+  const contentJson = resolveContentJson
+    ? await resolveContentJson(latest.contentJson)
+    : (latest.contentJson ?? null);
+  return mapLatestArtifactResponse(latest, contentJson);
 }
 
 export const getLatestMoodboardArtifactArgs = latestArtifactArgs;
 export const getLatestMoodboardArtifactHandler = (
   ctx: QueryCtx,
   args: { projectId: Id<"projects"> },
-) => latestArtifactHandler(ctx, args, "moodboard", "moodboardArtifact");
+) => latestArtifactHandler(ctx, args, "moodboard", "moodboardArtifact", resolveAssetContentJson);
 
 export const getLatestFlowsArtifactArgs = latestArtifactArgs;
 export const getLatestFlowsArtifactHandler = (

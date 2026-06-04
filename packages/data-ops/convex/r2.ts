@@ -20,6 +20,10 @@ const uploadPurposeValidator = v.union(
   v.literal("project-asset"),
   v.literal("research-refero"),
   v.literal("research-brief"),
+  v.literal("moodboard-upload"),
+  v.literal("moodboard-refero"),
+  v.literal("moodboard-figma"),
+  v.literal("moodboard-url"),
 );
 
 export const { syncMetadata } = r2.clientApi<DataModel>({
@@ -110,6 +114,22 @@ function buildObjectKey(
     case "research-brief": {
       const projectId = scopeId?.trim() || "unknown-project";
       return `users/${userId}/research/${projectId}/briefs/${uuid}.${extension}`;
+    }
+    case "moodboard-upload": {
+      const projectId = scopeId?.trim() || "unknown-project";
+      return `users/${userId}/moodboard/${projectId}/uploads/${uuid}.${extension}`;
+    }
+    case "moodboard-refero": {
+      const projectId = scopeId?.trim() || "unknown-project";
+      return `users/${userId}/moodboard/${projectId}/refero/${uuid}.${extension}`;
+    }
+    case "moodboard-figma": {
+      const projectId = scopeId?.trim() || "unknown-project";
+      return `users/${userId}/moodboard/${projectId}/figma/${uuid}.${extension}`;
+    }
+    case "moodboard-url": {
+      const projectId = scopeId?.trim() || "unknown-project";
+      return `users/${userId}/moodboard/${projectId}/urls/${uuid}.${extension}`;
     }
   }
 }

@@ -5,6 +5,7 @@ pub struct AppConfig {
     pub host: IpAddr,
     pub port: u16,
     pub refero: ReferoConfig,
+    pub figma: FigmaConfig,
     pub convex: ConvexConfig,
 }
 
@@ -13,6 +14,9 @@ pub struct ReferoConfig {
     pub mcp_url: String,
     pub token: Option<String>,
 }
+
+#[derive(Clone, Debug)]
+pub struct FigmaConfig;
 
 #[derive(Clone, Debug)]
 pub struct ConvexConfig {
@@ -30,6 +34,7 @@ impl AppConfig {
             host: IpAddr::V4(Ipv4Addr::LOCALHOST),
             port,
             refero: ReferoConfig::from_env(),
+            figma: FigmaConfig::from_env(),
             convex: ConvexConfig::from_env(),
         })
     }
@@ -52,6 +57,12 @@ impl ReferoConfig {
 
     pub fn is_configured(&self) -> bool {
         self.token.is_some()
+    }
+}
+
+impl FigmaConfig {
+    pub fn from_env() -> Self {
+        Self
     }
 }
 

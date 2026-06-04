@@ -6,9 +6,12 @@ import { internalMutation, internalQuery, mutation, query } from "./_generated/s
 import * as apiHandlers from "./lib/projectAi/handlers/api";
 import * as artifactHandlers from "./lib/projectAi/handlers/artifacts";
 import * as contextHandlers from "./lib/projectAi/handlers/context";
+import * as flowsHandlers from "./lib/projectAi/handlers/flows";
+import * as moodboardHandlers from "./lib/projectAi/handlers/moodboard";
 import * as researchHandlers from "./lib/projectAi/handlers/research";
 import * as runHandlers from "./lib/projectAi/handlers/runs";
 import * as strategyHandlers from "./lib/projectAi/handlers/strategy";
+import * as wireframesHandlers from "./lib/projectAi/handlers/wireframes";
 
 export const getContext = query({
   args: contextHandlers.getContextArgs,
@@ -110,14 +113,79 @@ export const getLatestMoodboardArtifact = query({
   handler: artifactHandlers.getLatestMoodboardArtifactHandler,
 });
 
+export const saveMoodboardArtifact = mutation({
+  args: moodboardHandlers.saveMoodboardArtifactArgs,
+  handler: moodboardHandlers.saveMoodboardArtifactHandler,
+});
+
+export const getConnectedFigmaAccessToken = query({
+  args: moodboardHandlers.getConnectedFigmaAccessTokenArgs,
+  handler: moodboardHandlers.getConnectedFigmaAccessTokenHandler,
+});
+
 export const getLatestFlowsArtifact = query({
   args: artifactHandlers.getLatestFlowsArtifactArgs,
   handler: artifactHandlers.getLatestFlowsArtifactHandler,
 });
 
+export const getFlowsInput = query({
+  args: flowsHandlers.getFlowsInputArgs,
+  handler: flowsHandlers.getFlowsInputHandler,
+});
+
+export const createFlowsRun = mutation({
+  args: flowsHandlers.createFlowsRunArgs,
+  handler: flowsHandlers.createFlowsRunHandler,
+});
+
+export const completeFlowsRun = mutation({
+  args: flowsHandlers.completeFlowsRunArgs,
+  handler: flowsHandlers.completeFlowsRunHandler,
+});
+
+export const failFlowsRun = mutation({
+  args: flowsHandlers.failFlowsRunArgs,
+  handler: flowsHandlers.failFlowsRunHandler,
+});
+
+export const updateFlowsArtifact = mutation({
+  args: flowsHandlers.updateFlowsArtifactArgs,
+  handler: flowsHandlers.updateFlowsArtifactHandler,
+});
+
+export const exportFlowsToFigJam = mutation({
+  args: flowsHandlers.exportFlowsToFigJamArgs,
+  handler: flowsHandlers.exportFlowsToFigJamHandler,
+});
+
 export const getLatestWireframesArtifact = query({
   args: artifactHandlers.getLatestWireframesArtifactArgs,
   handler: artifactHandlers.getLatestWireframesArtifactHandler,
+});
+
+export const getWireframesInput = query({
+  args: wireframesHandlers.getWireframesInputArgs,
+  handler: wireframesHandlers.getWireframesInputHandler,
+});
+
+export const createWireframesRun = mutation({
+  args: wireframesHandlers.createWireframesRunArgs,
+  handler: wireframesHandlers.createWireframesRunHandler,
+});
+
+export const completeWireframesRun = mutation({
+  args: wireframesHandlers.completeWireframesRunArgs,
+  handler: wireframesHandlers.completeWireframesRunHandler,
+});
+
+export const failWireframesRun = mutation({
+  args: wireframesHandlers.failWireframesRunArgs,
+  handler: wireframesHandlers.failWireframesRunHandler,
+});
+
+export const updateWireframesArtifact = mutation({
+  args: wireframesHandlers.updateWireframesArtifactArgs,
+  handler: wireframesHandlers.updateWireframesArtifactHandler,
 });
 
 export const getLatestAssetsArtifact = query({

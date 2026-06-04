@@ -5,6 +5,7 @@ import type {
   DesktopPermissionStatus,
   DesktopSession,
   EngineStatus,
+  IntegrationOAuthResult,
   PermissionKind,
 } from "@shared/models/desktop";
 import type {
@@ -53,6 +54,10 @@ export type StageDesktopApi = {
   };
   shell: {
     openExternal: (url: string) => Promise<void>;
+  };
+  integrations: {
+    getOAuthReturnUrl: (provider: "figma" | "notion") => Promise<string>;
+    onOAuthCompleted: (callback: (result: IntegrationOAuthResult) => void) => () => void;
   };
 };
 

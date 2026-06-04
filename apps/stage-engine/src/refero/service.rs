@@ -179,13 +179,43 @@ impl ReferoService {
         &self,
         screen_id: &str,
     ) -> Result<Vec<u8>, ReferoServiceError> {
+        let mut last_error = None;
+
+        for image_size in ["full", "thumbnail"] {
+            match self
+                .fetch_screen_image_with_size(screen_id, image_size)
+                .await
+            {
+                Ok(bytes) => return Ok(bytes),
+                Err(error) => {
+                    tracing::debug!(
+                        screen_id = %screen_id,
+                        image_size,
+                        %error,
+                        "Refero get_screen_image attempt failed"
+                    );
+                    last_error = Some(error);
+                }
+            }
+        }
+
+        Err(last_error.unwrap_or_else(|| ReferoServiceError::MissingImage {
+            reference_id: screen_id.to_string(),
+        }))
+    }
+
+    async fn fetch_screen_image_with_size(
+        &self,
+        screen_id: &str,
+        image_size: &str,
+    ) -> Result<Vec<u8>, ReferoServiceError> {
         let raw = self
             .client
             .call_tool(
                 "refero_get_screen_image",
                 json!({
                     "screen_id": screen_id,
-                    "image_size": "full",
+                    "image_size": image_size,
                 }),
             )
             .await?;

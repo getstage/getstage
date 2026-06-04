@@ -1,4 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
+import type { ProviderId } from "@stage/data-ops/contracts";
+import type { ResearchProviderOption } from "@/hooks/project/research/useResearchProviderSelection";
 import type { ValidatedStrategyGenerateInput } from "@/lib/project/strategyGenerateInput";
 import type { StrategyGenerateFormValues } from "@/lib/project/strategyGenerateInput";
 import { StrategyGenerateStep } from "./tabs/strategy/StrategyGenerateStep";
@@ -8,7 +10,10 @@ type StrategyRegenerateDialogProps = {
   onOpenChange: (open: boolean) => void;
   initialValues?: StrategyGenerateFormValues;
   isSubmitting: boolean;
-  onSubmit: (input: ValidatedStrategyGenerateInput) => void;
+  onSubmit: (input: ValidatedStrategyGenerateInput, providerId?: ProviderId) => void;
+  providerOptions?: ResearchProviderOption[];
+  selectedProviderId?: ProviderId | null;
+  onSelectProvider?: (providerId: ProviderId) => void;
 };
 
 export function StrategyRegenerateDialog({
@@ -17,6 +22,9 @@ export function StrategyRegenerateDialog({
   initialValues,
   isSubmitting,
   onSubmit,
+  providerOptions,
+  selectedProviderId,
+  onSelectProvider,
 }: StrategyRegenerateDialogProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -27,8 +35,8 @@ export function StrategyRegenerateDialog({
           <StrategyGenerateStep
             isSubmitting={isSubmitting}
             initialValues={initialValues}
-            onSubmit={(input) => {
-              onSubmit(input);
+            onSubmit={(input, providerId) => {
+              onSubmit(input, providerId);
               onOpenChange(false);
             }}
             onCancel={() => onOpenChange(false)}
@@ -36,6 +44,9 @@ export function StrategyRegenerateDialog({
             description="Replace all strategy sections and approvals. Research stays as-is."
             submitLabel="Replace strategy & run"
             warningMessage="This replaces the entire strategy artifact. Later steps are kept unless you clear them after the run."
+            providerOptions={providerOptions}
+            selectedProviderId={selectedProviderId}
+            onSelectProvider={onSelectProvider}
           />
         </Dialog.Content>
       </Dialog.Portal>

@@ -5,11 +5,20 @@ export function FlowSummary({
   flow,
   index,
   expanded,
+  onStatusChange,
 }: {
   flow: ProjectFlow;
   index: number;
   expanded: boolean;
+  onStatusChange?: (status: "Draft" | "In Review" | "Approved") => void;
 }) {
+  const badgeClass =
+    flow.status === "Approved"
+      ? "bg-[#F0FDF4] text-[#022C22]"
+      : flow.status === "In Review"
+        ? "bg-[#FFF7ED] text-[#7C2D12]"
+        : "bg-[#F5F5F5] text-[#525252]";
+
   return (
     <>
       <span className="flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#E5E5E5] px-2 py-1 text-[12px] font-medium leading-[1.25] text-[#171717]">
@@ -20,9 +29,23 @@ export function FlowSummary({
           <h3 className="truncate text-[13px] font-medium leading-[1.25] text-[#171717]">
             {flow.title}
           </h3>
-          <span className="inline-flex h-[20px] items-center rounded-[2px] bg-[#F0FDF4] px-[6px] text-[12px] font-normal leading-[1.25] text-[#022C22]">
-            {flow.status}
-          </span>
+          {expanded && onStatusChange ? (
+            <select
+              value={flow.status}
+              onChange={(event) =>
+                onStatusChange(event.target.value as "Draft" | "In Review" | "Approved")
+              }
+              className={`h-[22px] rounded-[3px] border-0 px-[6px] text-[12px] font-normal leading-none outline-none ${badgeClass}`}
+            >
+              <option value="Draft">Draft</option>
+              <option value="In Review">In Review</option>
+              <option value="Approved">Approved</option>
+            </select>
+          ) : (
+            <span className={`inline-flex h-[20px] items-center rounded-[2px] px-[6px] text-[12px] font-normal leading-[1.25] ${badgeClass}`}>
+              {flow.status}
+            </span>
+          )}
         </div>
         <p className="mt-2 text-[12px] font-normal leading-[1.25] text-[#525252]">
           {flow.description}

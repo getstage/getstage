@@ -1,73 +1,249 @@
-import { useCallback, useEffect, useState } from "react";
-import type { MoodboardInput } from "@stage/data-ops/contracts";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { RunEvent } from "@stage/data-ops/contracts";
+import { useMutation as useConvexMutation } from "convex/react";
 import {
-  buildMoodboardInput,
-  parseStoredMoodboardConfigureInput,
-  type ValidatedMoodboardConfigureInput,
-} from "@/lib/project/moodboardConfigureInput";
-import {
-  delay,
-  MOCK_STYLE_GUIDE_RUN_DELAY_MS,
-} from "@/mock/project/moodboard";
+  tabStateToMoodboardArtifact,
+  type MoodboardBoardState,
+  type MoodboardBoardItem,
+} from "@/lib/project/moodboardBoardState";
+import { api } from "@/lib/convexApi";
+import { MOODBOARD_IMAGE_ACCEPT, uploadFileToR2 } from "@/lib/r2Uploads";
+import { readFileAsDataUrl } from "@/lib/utils";
+import { useProviderRun } from "@/hooks/engine/useProviderRun";
+import { formatRunFailedEvent } from "@/lib/engine/formatRunError";
+import { delay, MOCK_STYLE_GUIDE_RUN_DELAY_MS } from "@/mock/project/moodboard";
 import type { Project } from "@/models/project/project";
 import { useMoodboardArtifact } from "./useMoodboardArtifact";
+import { useSaveMoodboardArtifact } from "./useSaveMoodboardArtifact";
 
-const MOODBOARD_INPUT_STORAGE_PREFIX = "stage:moodboard-configure-input:";
+const MOODBOARD_IMPORT_PROVIDER = "codex";
+const MOODBOARD_IMPORT_MODEL = "codex-default";
 
-function loadStoredMoodboardInput(projectId: string): ValidatedMoodboardConfigureInput | null {
-  try {
-    const raw = sessionStorage.getItem(`${MOODBOARD_INPUT_STORAGE_PREFIX}${projectId}`);
-    if (!raw) {
-      return null;
+function latestTerminalRunEvent(events: RunEvent[]) {
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index];
+    if (
+      event.type === "run_completed" ||
+      event.type === "run_failed" ||
+      event.type === "run_cancelled"
+    ) {
+      return event;
     }
+  }
 
-    return parseStoredMoodboardConfigureInput(JSON.parse(raw) as unknown);
+  return null;
+}
+
+function moodboardImportErrorMessage(event: Extract<RunEvent, { type: "run_failed" }>) {
+  console.error(formatRunFailedEvent(event));
+  const message = event.error.message?.trim();
+  if (message) {
+    return message;
+  }
+
+  return "Moodboard import failed. Check that Stage Engine is running and Refero/Figma are configured.";
+}
+
+function normalizeExternalUrl(value: string) {
+  const trimmed = value.trim();
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function isFigmaUrl(value: string) {
+  try {
+    const url = new URL(normalizeExternalUrl(value));
+    return url.hostname.toLowerCase().endsWith("figma.com");
   } catch {
-    return null;
+    return false;
   }
 }
 
-function saveStoredMoodboardInput(projectId: string, input: ValidatedMoodboardConfigureInput) {
-  sessionStorage.setItem(`${MOODBOARD_INPUT_STORAGE_PREFIX}${projectId}`, JSON.stringify(input));
-}
+export type MoodboardUploadResult = {
+  items: MoodboardBoardItem[];
+  uploadedFiles: Array<{
+    id: string;
+    name: string;
+    sizeBytes: number;
+    uploadedAssetId?: string;
+  }>;
+};
 
 export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
   const projectId = project.id;
   const moodboardArtifact = useMoodboardArtifact(projectId);
-  const [lastInput, setLastInput] = useState<ValidatedMoodboardConfigureInput | null>(() =>
-    loadStoredMoodboardInput(projectId),
-  );
+  const saveArtifact = useSaveMoodboardArtifact(projectId);
+  const providerRun = useProviderRun({ projectId, mode: "moodboard" });
+  const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
+  const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingStyleGuide, setIsGeneratingStyleGuide] = useState(false);
-  const [mockError, setMockError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [importRunEnded, setImportRunEnded] = useState(false);
+
+  const data = moodboardArtifact.data;
+  const terminalImportEvent = useMemo(
+    () => latestTerminalRunEvent(providerRun.activeRunEvents),
+    [providerRun.activeRunEvents],
+  );
 
   useEffect(() => {
-    setLastInput(loadStoredMoodboardInput(projectId));
-    setMockError(null);
-    setIsGeneratingStyleGuide(false);
-  }, [projectId]);
+    if (!terminalImportEvent) {
+      return;
+    }
 
-  const backendData = moodboardArtifact.data;
-  const data = backendData;
+    setImportRunEnded(true);
 
-  const startMoodboard = useCallback(
-    async (input?: ValidatedMoodboardConfigureInput) => {
-      const resolvedInput = input ?? lastInput;
-      if (!resolvedInput) {
-        throw new Error("Configure Moodboard before importing references.");
+    if (terminalImportEvent.type === "run_completed") {
+      setError(null);
+      providerRun.resetActiveRun();
+      return;
+    }
+
+    if (terminalImportEvent.type === "run_failed") {
+      setError(moodboardImportErrorMessage(terminalImportEvent));
+      providerRun.resetActiveRun();
+      return;
+    }
+
+    providerRun.resetActiveRun();
+  }, [providerRun, terminalImportEvent]);
+
+  const saveBoard = useCallback(
+    async (state: MoodboardBoardState) => {
+      setIsSaving(true);
+      setError(null);
+      try {
+        const artifact = tabStateToMoodboardArtifact(
+          project,
+          state,
+          data?.tabData.styleGuides ?? [],
+        );
+        await saveArtifact(artifact);
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "Could not save moodboard.");
+        throw caught;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [project, saveArtifact, data],
+  );
+
+  const uploadFiles = useCallback(
+    async (files: FileList | File[]): Promise<MoodboardUploadResult> => {
+      const fileArray = Array.from(files).filter((file) => file.type.startsWith("image/"));
+      if (fileArray.length === 0) {
+        throw new Error("Upload at least one image file.");
       }
 
-      const moodboardInput: MoodboardInput = buildMoodboardInput(project, resolvedInput);
+      setIsUploading(true);
+      setError(null);
+      try {
+        const uploaded = await Promise.all(
+          fileArray.map(async (file) => {
+            const [key, previewUrl] = await Promise.all([
+              uploadFileToR2({
+                generateUploadUrl: r2GenerateUploadUrl,
+                syncMetadata: r2SyncMetadata,
+                purpose: "moodboard-upload",
+                file,
+                scopeId: projectId,
+              }),
+              readFileAsDataUrl(file),
+            ]);
+            const id = `upload-${key.replace(/[^a-zA-Z0-9]+/g, "-")}`;
+            return {
+              item: {
+                id,
+                title: file.name,
+                image: previewUrl,
+                imageUrl: previewUrl,
+                imageAssetKey: key,
+                thumbnailUrl: previewUrl,
+                thumbnailAssetKey: key,
+                source: "upload" as const,
+                uploadedAssetId: key,
+                folder: null,
+                directionId: null,
+                isInMoodboard: false,
+              },
+              uploadedFile: {
+                id,
+                name: file.name,
+                sizeBytes: file.size,
+                uploadedAssetId: key,
+              },
+            };
+          }),
+        );
 
-      setLastInput(resolvedInput);
-      saveStoredMoodboardInput(projectId, resolvedInput);
-
-      throw new Error("Moodboard engine is not connected yet.");
+        return {
+          items: uploaded.map((entry) => entry.item),
+          uploadedFiles: uploaded.map((entry) => entry.uploadedFile),
+        };
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "Could not upload moodboard images.");
+        throw caught;
+      } finally {
+        setIsUploading(false);
+      }
     },
-    [lastInput, project, projectId],
+    [projectId, r2GenerateUploadUrl, r2SyncMetadata],
+  );
+
+  const importFigmaLink = useCallback(
+    async (url: string) => {
+      const trimmed = url.trim();
+      if (!trimmed) {
+        throw new Error("Paste a Figma link or image URL.");
+      }
+
+      const normalizedUrl = normalizeExternalUrl(trimmed);
+      const source = isFigmaUrl(trimmed) ? "figma" : "url";
+      setError(null);
+      setImportRunEnded(false);
+      await providerRun.startRun.mutateAsync({
+        providerId: MOODBOARD_IMPORT_PROVIDER,
+        modelId: MOODBOARD_IMPORT_MODEL,
+        prompt: trimmed,
+        mode: "moodboard",
+        context: { projectId, source },
+        attachments: [{
+          id: source === "figma" ? "figma-link" : "image-url",
+          kind: source === "figma" ? "figma" : "url",
+          url: normalizedUrl,
+        }],
+        modelOptions: [],
+      });
+    },
+    [projectId, providerRun.startRun],
+  );
+
+  const generateWithAi = useCallback(
+    async (query: string) => {
+      const trimmed = query.trim();
+      if (!trimmed) {
+        throw new Error("Enter a Refero search query.");
+      }
+
+      setError(null);
+      setImportRunEnded(false);
+      await providerRun.startRun.mutateAsync({
+        providerId: MOODBOARD_IMPORT_PROVIDER,
+        modelId: MOODBOARD_IMPORT_MODEL,
+        prompt: trimmed,
+        mode: "moodboard",
+        context: { projectId, source: "refero" },
+        attachments: [],
+        modelOptions: [],
+      });
+    },
+    [projectId, providerRun.startRun],
   );
 
   const generateStyleGuide = useCallback(
-    async (directionId: string) => {
+    async (_directionId: string) => {
       if (!data) {
         throw new Error("Create a moodboard before generating a style guide.");
       }
@@ -87,13 +263,26 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
     isLoading: moodboardArtifact.isLoading,
     hasArtifact: data !== null,
     parseError: moodboardArtifact.parseError,
-    usingMockData: false,
-    lastInput,
-    startMoodboard,
+    saveBoard,
+    isSaving,
+    uploadFiles,
+    isUploading,
+    importFigmaLink,
+    generateWithAi,
+    isImporting:
+      !importRunEnded &&
+      (providerRun.startRun.isPending || providerRun.isRunActive),
+    runEvents: providerRun.activeRunEvents,
+    acceptUploads: MOODBOARD_IMAGE_ACCEPT,
     generateStyleGuide,
-    isRunning: false,
-    isStarting: false,
     isGeneratingStyleGuide,
-    error: mockError,
+    error:
+      error ??
+      (moodboardArtifact.parseError
+        ? "Saved moodboard could not be loaded. Try reloading the project."
+        : null) ??
+      (providerRun.startRun.error instanceof Error
+        ? providerRun.startRun.error.message
+        : null),
   };
 }

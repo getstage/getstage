@@ -5,4 +5,5 @@ pub mod claude;
 pub mod codex;
 pub mod command;
 pub mod process;
+pub mod run_model_options;
 pub mod service;

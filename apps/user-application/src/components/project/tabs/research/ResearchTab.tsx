@@ -25,6 +25,7 @@ import { PhotoLightbox } from "./PhotoLightbox";
 import { AddSectionEditor } from "../strategy/AddSectionEditor";
 import { CustomSections } from "./CustomSections";
 import { NotionParentPageDialog } from "./NotionParentPageDialog";
+import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategyRunDialog";
 import { ResearchActions } from "./ResearchActions";
 import { ResearchConfigureStep } from "./ResearchConfigureStep";
 import { Divider } from "./ResearchPrimitives";
@@ -37,7 +38,7 @@ export function ResearchTab({
   onGenerateStrategy,
 }: {
   project: Project;
-  onGenerateStrategy: () => void;
+  onGenerateStrategy: (providerId: ProviderId) => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftTabData, setDraftTabData] = useState<ResearchTabData | null>(null);
@@ -53,6 +54,7 @@ export function ResearchTab({
   const [newSectionBody, setNewSectionBody] = useState("");
   const [isRerunDialogOpen, setIsRerunDialogOpen] = useState(false);
   const [regeneratingSection, setRegeneratingSection] = useState<ResearchArtifactSection | null>(null);
+  const [isGenerateStrategyDialogOpen, setIsGenerateStrategyDialogOpen] = useState(false);
 
   const research = useResearchTab(project);
   const clearForRerun = useClearResearchAndStrategyForRerun(project.id);
@@ -63,7 +65,11 @@ export function ResearchTab({
   const researchContext = useResearchContext(project.id);
   const saveResearchArtifact = useSaveResearchArtifact(project.id);
   const regenerateSection = useResearchSectionRegenerate(project.id);
-  const { selectedProviderId } = useResearchProviderSelection();
+  const {
+    selectedProviderId,
+    selectProvider,
+    providerOptions,
+  } = useResearchProviderSelection();
   const notionExport = useExportResearchToNotion(research.data?.id ?? null);
 
   useEffect(() => {
@@ -383,7 +389,7 @@ export function ResearchTab({
                 void notionExport.exportToNotion();
               }}
               isExporting={notionExport.isExporting}
-              onGenerateStrategy={onGenerateStrategy}
+              onOpenGenerateStrategy={() => setIsGenerateStrategyDialogOpen(true)}
             />
           </div>
         </div>
@@ -399,6 +405,18 @@ export function ResearchTab({
         onSubmit={(parentPageUrl) => void notionExport.exportToNotion(parentPageUrl)}
         isSubmitting={notionExport.isExporting}
         errorMessage={notionExport.exportError}
+      />
+      <GenerateStrategyRunDialog
+        open={isGenerateStrategyDialogOpen}
+        onOpenChange={setIsGenerateStrategyDialogOpen}
+        isSubmitting={isRunBusy}
+        providerOptions={providerOptions}
+        selectedProviderId={selectedProviderId}
+        onSelectProvider={selectProvider}
+        onConfirm={(providerId) => {
+          setIsGenerateStrategyDialogOpen(false);
+          onGenerateStrategy(providerId);
+        }}
       />
       <ResearchRerunDialog
         open={isRerunDialogOpen}

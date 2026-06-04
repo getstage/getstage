@@ -123,6 +123,10 @@ const uploadPurpose = v.union(
   v.literal("project-asset"),
   v.literal("research-refero"),
   v.literal("research-brief"),
+  v.literal("moodboard-upload"),
+  v.literal("moodboard-refero"),
+  v.literal("moodboard-figma"),
+  v.literal("moodboard-url"),
 );
 
 const subscriptionStatus = v.union(
@@ -528,6 +532,7 @@ export default defineSchema({
     scopes: v.optional(v.array(v.string())),
     oauthState: v.optional(v.string()),
     pkceVerifier: v.optional(v.string()),
+    oauthReturnUrl: v.optional(v.string()),
     connectedAt: v.optional(v.number()),
     lastSyncedAt: v.optional(v.number()),
     lastError: v.optional(v.string()),

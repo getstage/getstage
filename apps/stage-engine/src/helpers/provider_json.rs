@@ -10,10 +10,80 @@ pub fn extract_research_artifact(text: &str) -> anyhow::Result<JsonValue> {
 }
 
 pub fn extract_strategy_artifact(text: &str) -> anyhow::Result<JsonValue> {
-    extract_json_object_matching(text, Some("strategyArtifact"))
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        bail!("provider output was empty");
+    }
+
+    if let Some(value) = find_artifact_by_kind(trimmed, "strategyArtifact") {
+        return Ok(value);
+    }
+
+    // Strategy normalization injects apiVersion/artifactKind/projectId later, so accept
+    // provider output that follows the artifact shape but omitted the metadata wrapper.
+    if let Ok(value) = serde_json::from_str::<JsonValue>(trimmed)
+        && strategy_shape_is_normalizable(&value)
+    {
+        return Ok(value);
+    }
+
+    collect_json_objects(trimmed)
+        .into_iter()
+        .rev()
+        .find(strategy_shape_is_normalizable)
+        .context("provider output did not contain a valid strategyArtifact artifact")
 }
 
-fn extract_json_object_matching(text: &str, artifact_kind: Option<&str>) -> anyhow::Result<JsonValue> {
+pub fn extract_flows_artifact(text: &str) -> anyhow::Result<JsonValue> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        bail!("provider output was empty");
+    }
+
+    if let Some(value) = find_artifact_by_kind(trimmed, "flowsArtifact") {
+        return Ok(value);
+    }
+
+    if let Ok(value) = serde_json::from_str::<JsonValue>(trimmed)
+        && flows_shape_is_normalizable(&value)
+    {
+        return Ok(value);
+    }
+
+    collect_json_objects(trimmed)
+        .into_iter()
+        .rev()
+        .find(flows_shape_is_normalizable)
+        .context("provider output did not contain a valid flowsArtifact artifact")
+}
+
+pub fn extract_wireframes_artifact(text: &str) -> anyhow::Result<JsonValue> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        bail!("provider output was empty");
+    }
+
+    if let Some(value) = find_artifact_by_kind(trimmed, "wireframesArtifact") {
+        return Ok(value);
+    }
+
+    if let Ok(value) = serde_json::from_str::<JsonValue>(trimmed)
+        && wireframes_shape_is_normalizable(&value)
+    {
+        return Ok(value);
+    }
+
+    collect_json_objects(trimmed)
+        .into_iter()
+        .rev()
+        .find(wireframes_shape_is_normalizable)
+        .context("provider output did not contain a valid wireframesArtifact artifact")
+}
+
+fn extract_json_object_matching(
+    text: &str,
+    artifact_kind: Option<&str>,
+) -> anyhow::Result<JsonValue> {
     let trimmed = text.trim();
     if trimmed.is_empty() {
         bail!("provider output was empty");
@@ -78,9 +148,38 @@ fn artifact_matches_kind_and_shape(value: &JsonValue, kind: &str) -> bool {
             .get("sections")
             .and_then(JsonValue::as_array)
             .is_some_and(|sections| !sections.is_empty()),
-        "researchArtifact" => value.get("summary").is_some() || value.get("competitiveAnalysis").is_some(),
+        "flowsArtifact" => flows_shape_is_normalizable(value),
+        "wireframesArtifact" => wireframes_shape_is_normalizable(value),
+        "researchArtifact" => {
+            value.get("summary").is_some() || value.get("competitiveAnalysis").is_some()
+        }
         _ => true,
     }
+}
+
+fn flows_shape_is_normalizable(value: &JsonValue) -> bool {
+    value
+        .get("flows")
+        .and_then(JsonValue::as_array)
+        .is_some_and(|flows| !flows.is_empty())
+        || value
+            .get("screens")
+            .and_then(JsonValue::as_array)
+            .is_some_and(|screens| !screens.is_empty())
+}
+
+fn wireframes_shape_is_normalizable(value: &JsonValue) -> bool {
+    value
+        .get("generatedScreens")
+        .and_then(JsonValue::as_array)
+        .is_some_and(|screens| !screens.is_empty())
+}
+
+fn strategy_shape_is_normalizable(value: &JsonValue) -> bool {
+    value
+        .get("sections")
+        .and_then(JsonValue::as_array)
+        .is_some_and(|sections| !sections.is_empty())
 }
 
 fn artifact_kind_matches(value: &JsonValue, kind: &str) -> bool {
@@ -167,9 +266,11 @@ tokens used"#;
 
         let error = extract_strategy_artifact(text).unwrap_err();
 
-        assert!(error
-            .to_string()
-            .contains("did not contain a valid strategyArtifact artifact"));
+        assert!(
+            error
+                .to_string()
+                .contains("did not contain a valid strategyArtifact artifact")
+        );
     }
 
     #[test]
@@ -178,6 +279,16 @@ tokens used"#;
 
         let value = extract_strategy_artifact(text).unwrap();
 
+        assert_eq!(value["sections"][0]["id"], "direction");
+    }
+
+    #[test]
+    fn extract_strategy_artifact_accepts_normalizable_shape_without_kind() {
+        let text = r#"{"title":"Project Strategy","sections":[{"id":"direction","title":"Design Direction","status":"action","kind":"plain","body":["Go"]}]}"#;
+
+        let value = extract_strategy_artifact(text).unwrap();
+
+        assert_eq!(value["title"], "Project Strategy");
         assert_eq!(value["sections"][0]["id"], "direction");
     }
 

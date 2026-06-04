@@ -4,7 +4,7 @@ export function isR2ObjectKey(value: string) {
 
 export function collectR2KeysFromJson(value: unknown, keys: Set<string>) {
   if (typeof value === "string") {
-    if (isR2ObjectKey(value) && value.includes("/research/")) {
+    if (isR2ObjectKey(value) && (value.includes("/research/") || value.includes("/moodboard/"))) {
       keys.add(value);
     }
     return;

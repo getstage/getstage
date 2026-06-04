@@ -13,6 +13,7 @@ export function mapMoodboardArtifactToTabData(artifact: MoodboardArtifact): Mood
       id: file.id,
       name: file.name,
       sizeBytes: file.sizeBytes,
+      uploadedAssetId: file.uploadedAssetId,
     })),
     styleGuides: artifact.styleGuides,
   };

@@ -7,6 +7,14 @@ import {
   getStageAuthUrlFromLocalCallback,
 } from "./auth";
 import type { DesktopAuthController } from "../auth";
+import type { DesktopIntegrationsController } from "../integrations";
+
+const DEV_DESKTOP_INTEGRATIONS_PATH_PREFIX = "/integrations/";
+
+type DesktopAuthCallbackServerOptions = {
+  authController: DesktopAuthController;
+  integrationsController: DesktopIntegrationsController;
+};
 
 const DEV_DESKTOP_AUTH_LOGIN_PATH = "/login";
 const HTML_HEADERS = {
@@ -51,7 +59,10 @@ function parseDesktopAuthPayload(raw: string, contentType: string | undefined) {
   };
 }
 
-export function createDesktopAuthCallbackServer(authController: DesktopAuthController) {
+export function createDesktopAuthCallbackServer({
+  authController,
+  integrationsController,
+}: DesktopAuthCallbackServerOptions) {
   let server: Server | null = null;
 
   return {
@@ -87,6 +98,18 @@ export function createDesktopAuthCallbackServer(authController: DesktopAuthContr
         }
 
         if (requestUrl.pathname !== DEV_DESKTOP_AUTH_CALLBACK_PATH) {
+          if (requestUrl.pathname.startsWith(DEV_DESKTOP_INTEGRATIONS_PATH_PREFIX)) {
+            integrationsController.handleCallbackUrl(requestUrl.toString());
+            response.writeHead(200, HTML_HEADERS);
+            response.end(
+              htmlResponse(
+                "Stage Desktop connected",
+                "Your integration is connected. You can return to the Stage app.",
+              ),
+            );
+            return;
+          }
+
           response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
           response.end("Not found");
           return;

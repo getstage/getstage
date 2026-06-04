@@ -360,6 +360,8 @@ pub fn infer_image_mime(bytes: &[u8]) -> &'static str {
         "image/jpeg"
     } else if bytes.starts_with(b"RIFF") && bytes.get(8..12) == Some(b"WEBP") {
         "image/webp"
+    } else if bytes.starts_with(b"GIF87a") || bytes.starts_with(b"GIF89a") {
+        "image/gif"
     } else {
         "image/png"
     }
@@ -369,6 +371,7 @@ pub fn infer_extension(mime_type: &str) -> &'static str {
     match mime_type {
         "image/jpeg" => "jpg",
         "image/webp" => "webp",
+        "image/gif" => "gif",
         _ => "png",
     }
 }
@@ -406,6 +409,8 @@ pub fn looks_like_image_bytes(bytes: &[u8]) -> bool {
     bytes.starts_with(&[0x89, b'P', b'N', b'G'])
         || bytes.starts_with(&[0xFF, 0xD8, 0xFF])
         || (bytes.starts_with(b"RIFF") && bytes.get(8..12) == Some(b"WEBP"))
+        || bytes.starts_with(b"GIF87a")
+        || bytes.starts_with(b"GIF89a")
 }
 
 #[cfg(test)]

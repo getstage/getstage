@@ -13,6 +13,7 @@ const MAX_UPLOADED_FILES = 20;
 export type MoodboardConfigureFormValues = {
   importMode: MoodboardMode;
   figmaUrl: string;
+  referoQuery: string;
   uploadedFiles: MoodboardUploadedFile[];
   additionalNotes: string;
 };
@@ -24,6 +25,7 @@ export type MoodboardConfigureFieldErrors = Partial<Record<MoodboardConfigureFie
 export const DEFAULT_MOODBOARD_CONFIGURE_FORM_VALUES: MoodboardConfigureFormValues = {
   importMode: "upload",
   figmaUrl: "",
+  referoQuery: "",
   uploadedFiles: [],
   additionalNotes: "",
 };
@@ -69,8 +71,9 @@ const uploadedFileSchema = z.object({
 });
 
 export const validatedMoodboardConfigureInputSchema = z.object({
-  importMode: z.enum(["upload", "figma"]),
+  importMode: z.enum(["upload", "figma", "ai"]),
   figmaUrl: z.string().url().optional(),
+  referoQuery: z.string().trim().min(1).max(500).optional(),
   uploadedAssetIds: z.array(z.string().min(1)).default([]),
   uploadedFiles: z.array(uploadedFileSchema).default([]),
   additionalNotes: z.string().trim().min(1).max(MAX_NOTES_LENGTH).optional(),
@@ -101,6 +104,10 @@ export function validateMoodboardConfigureForm(
     }
   }
 
+  if (values.importMode === "ai" && !values.referoQuery.trim()) {
+    errors.referoQuery = "Enter a search query";
+  }
+
   if (values.importMode === "upload" && values.uploadedFiles.length === 0) {
     errors.upload = "Upload at least one reference file";
   }
@@ -114,6 +121,7 @@ export function validateMoodboardConfigureForm(
       importMode: values.importMode,
       figmaUrl:
         values.importMode === "figma" ? normalizeExternalUrl(values.figmaUrl) : undefined,
+      referoQuery: values.importMode === "ai" ? values.referoQuery.trim() : undefined,
       uploadedAssetIds: values.uploadedFiles
         .map((file) => file.uploadedAssetId)
         .filter((assetId): assetId is string => Boolean(assetId)),
@@ -154,6 +162,7 @@ export function buildMoodboardInput(
     projectName: project.name,
     importMode: input.importMode,
     figmaUrl: input.figmaUrl,
+    referoQuery: input.referoQuery,
     uploadedAssetIds: input.uploadedAssetIds,
     uploadedFiles: input.uploadedFiles,
     additionalNotes: input.additionalNotes,

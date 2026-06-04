@@ -12,6 +12,9 @@ use crate::models::providers::{ProviderId, ProviderStatus};
 use crate::models::runs::{
     CancelRunResponse, RunEvent, RunMode, RunStatus, StartRunRequest, StartRunResponse,
 };
+use crate::moodboard::workflow::MoodboardWorkflow;
+use crate::flows::workflow::FlowsWorkflow;
+use crate::wireframes::workflow::WireframesWorkflow;
 use crate::providers::adapter::{ProviderRunContext, provider_unavailable_event, run_provider};
 use crate::providers::service::provider_snapshot;
 use crate::research::workflow::ResearchWorkflow;
@@ -29,7 +32,11 @@ fn project_run_dedupe_key(request: &StartRunRequest) -> Option<ProjectRunDedupeK
 
     let project_id = request.context.project_id.as_ref()?;
     match request.mode {
-        RunMode::Research | RunMode::Strategy => Some((project_id.clone(), request.mode)),
+        RunMode::Research
+        | RunMode::Strategy
+        | RunMode::Moodboard
+        | RunMode::Flows
+        | RunMode::Wireframes => Some((project_id.clone(), request.mode)),
         _ => None,
     }
 }
@@ -76,6 +83,9 @@ pub struct RunManager {
     project_run_dedupe: Arc<RwLock<HashMap<ProjectRunDedupeKey, String>>>,
     research: Option<Arc<ResearchWorkflow>>,
     strategy: Option<Arc<StrategyWorkflow>>,
+    moodboard: Option<Arc<MoodboardWorkflow>>,
+    flows: Option<Arc<FlowsWorkflow>>,
+    wireframes: Option<Arc<WireframesWorkflow>>,
 }
 
 impl RunManager {
@@ -83,6 +93,9 @@ impl RunManager {
         api_version: &'static str,
         research: Option<Arc<ResearchWorkflow>>,
         strategy: Option<Arc<StrategyWorkflow>>,
+        moodboard: Option<Arc<MoodboardWorkflow>>,
+        flows: Option<Arc<FlowsWorkflow>>,
+        wireframes: Option<Arc<WireframesWorkflow>>,
     ) -> Self {
         Self {
             api_version,
@@ -90,6 +103,9 @@ impl RunManager {
             project_run_dedupe: Arc::new(RwLock::new(HashMap::new())),
             research,
             strategy,
+            moodboard,
+            flows,
+            wireframes,
         }
     }
 
@@ -156,6 +172,9 @@ impl RunManager {
         let project_run_dedupe = Arc::clone(&self.project_run_dedupe);
         let research = self.research.clone();
         let strategy = self.strategy.clone();
+        let moodboard = self.moodboard.clone();
+        let flows = self.flows.clone();
+        let wireframes = self.wireframes.clone();
         let context = ProviderRunContext {
             api_version,
             run_id: run_id.clone(),
@@ -164,7 +183,35 @@ impl RunManager {
         let sink = RunEventSink { events, history };
 
         tokio::spawn(async move {
-            if let Some(error_event) = provider_readiness_error(api_version, &context).await {
+            if matches!(context.request.mode, RunMode::Moodboard) {
+                if let Some(moodboard) = moodboard {
+                    moodboard
+                        .run(
+                            api_version,
+                            context.run_id.clone(),
+                            context.request.clone(),
+                            auth_token,
+                            sink,
+                            cancel_rx,
+                        )
+                        .await;
+                } else {
+                    sink.send(RunEvent::RunFailed {
+                        api_version,
+                        run_id: context.run_id.clone(),
+                        provider_id: context.request.provider_id,
+                        created_at: crate::helpers::time::now_millis(),
+                        error: EngineError {
+                            code: EngineErrorCode::InternalError,
+                            message: "Moodboard workflow is not configured.".to_string(),
+                            provider_id: Some(context.request.provider_id),
+                            retryable: true,
+                            detail: None,
+                        },
+                    });
+                }
+            } else if let Some(error_event) = provider_readiness_error(api_version, &context).await
+            {
                 if let RunEvent::RunFailed { ref error, .. } = error_event {
                     tracing::error!(
                         run_id = %context.run_id,
@@ -230,13 +277,70 @@ impl RunManager {
                         },
                     });
                 }
+            } else if matches!(context.request.mode, RunMode::Flows) {
+                if let Some(flows) = flows {
+                    flows
+                        .run(
+                            api_version,
+                            context.run_id.clone(),
+                            context.request.clone(),
+                            auth_token,
+                            sink,
+                            cancel_rx,
+                        )
+                        .await;
+                } else {
+                    sink.send(RunEvent::RunFailed {
+                        api_version,
+                        run_id: context.run_id.clone(),
+                        provider_id: context.request.provider_id,
+                        created_at: crate::helpers::time::now_millis(),
+                        error: EngineError {
+                            code: EngineErrorCode::InternalError,
+                            message: "Flows workflow is not configured.".to_string(),
+                            provider_id: Some(context.request.provider_id),
+                            retryable: true,
+                            detail: None,
+                        },
+                    });
+                }
+            } else if matches!(context.request.mode, RunMode::Wireframes) {
+                if let Some(wireframes) = wireframes {
+                    wireframes
+                        .run(
+                            api_version,
+                            context.run_id.clone(),
+                            context.request.clone(),
+                            auth_token,
+                            sink,
+                            cancel_rx,
+                        )
+                        .await;
+                } else {
+                    sink.send(RunEvent::RunFailed {
+                        api_version,
+                        run_id: context.run_id.clone(),
+                        provider_id: context.request.provider_id,
+                        created_at: crate::helpers::time::now_millis(),
+                        error: EngineError {
+                            code: EngineErrorCode::InternalError,
+                            message: "Wireframes workflow is not configured.".to_string(),
+                            provider_id: Some(context.request.provider_id),
+                            retryable: true,
+                            detail: None,
+                        },
+                    });
+                }
             } else {
                 run_provider(context.clone(), sink, cancel_rx).await;
             }
 
             if let Some(dedupe_key) = project_run_dedupe_key(&context.request) {
                 let mut dedupe = project_run_dedupe.write().await;
-                if dedupe.get(&dedupe_key).is_some_and(|active_id| active_id == &context.run_id) {
+                if dedupe
+                    .get(&dedupe_key)
+                    .is_some_and(|active_id| active_id == &context.run_id)
+                {
                     dedupe.remove(&dedupe_key);
                 }
             }

@@ -3,6 +3,8 @@ import { loadLocalEnv } from "./helpers/loadEnv";
 import { createDesktopAuthController } from "./auth";
 import { createDesktopAuthCallbackServer } from "./helpers/auth-callback-server";
 import { findStageAuthUrl, registerStageProtocol } from "./helpers/auth";
+import { findStageIntegrationUrl } from "./helpers/integrations";
+import { createDesktopIntegrationsController } from "./integrations";
 import { registerIpcHandlers } from "./ipc";
 import { createSidecarSupervisor } from "./sidecar";
 import { createMainWindow, shouldSuppressMainWindowActivation } from "./windows";
@@ -15,7 +17,11 @@ if (process.platform === "darwin") {
 }
 registerStageProtocol();
 const authController = createDesktopAuthController();
-const authCallbackServer = createDesktopAuthCallbackServer(authController);
+const integrationsController = createDesktopIntegrationsController();
+const authCallbackServer = createDesktopAuthCallbackServer({
+  authController,
+  integrationsController,
+});
 const sidecarSupervisor = createSidecarSupervisor();
 const isDevelopment = !app.isPackaged;
 let sidecarStoppedForQuit = false;
@@ -84,9 +90,14 @@ function installApplicationMenu() {
   ]));
 }
 
-function handleAuthCallbackUrl(url: string) {
+function handleDeepLinkUrl(url: string) {
   if (!app.isReady()) {
     authController.queueCallbackUrl(url);
+    integrationsController.queueCallbackUrl(url);
+    return;
+  }
+
+  if (integrationsController.handleCallbackUrl(url)) {
     return;
   }
 
@@ -100,14 +111,19 @@ function handleAuthCallbackUrl(url: string) {
   });
 }
 
+function findStageDeepLinkUrl(argv: string[]) {
+  return findStageAuthUrl(argv) ?? findStageIntegrationUrl(argv) ?? null;
+}
+
 if (!isDevelopment && !app.requestSingleInstanceLock()) {
   app.quit();
 }
 
-const launchAuthUrl = findStageAuthUrl(process.argv);
+const launchDeepLinkUrl = findStageDeepLinkUrl(process.argv);
 
-if (launchAuthUrl) {
-  authController.queueCallbackUrl(launchAuthUrl);
+if (launchDeepLinkUrl) {
+  authController.queueCallbackUrl(launchDeepLinkUrl);
+  integrationsController.queueCallbackUrl(launchDeepLinkUrl);
 }
 
 function shouldInstallStageTray() {
@@ -130,24 +146,24 @@ async function installStageTrayIfEnabled() {
 
 app.on("open-url", (event, url) => {
   event.preventDefault();
-  handleAuthCallbackUrl(url);
+  handleDeepLinkUrl(url);
 });
 
 app.on("second-instance", (_event, argv) => {
-  const authUrl = findStageAuthUrl(argv);
+  const deepLinkUrl = findStageDeepLinkUrl(argv);
 
-  if (!authUrl) {
+  if (!deepLinkUrl) {
     createMainWindow();
     return;
   }
 
-  handleAuthCallbackUrl(authUrl);
+  handleDeepLinkUrl(deepLinkUrl);
 });
 
 app.whenReady().then(() => {
   installApplicationMenu();
   authCallbackServer.start();
-  registerIpcHandlers({ authController, sidecarSupervisor });
+  registerIpcHandlers({ authController, integrationsController, sidecarSupervisor });
   authController.consumeQueuedCallback().then((result) => {
     if (result && !result.ok) {
       console.warn(`[stage-auth] ${result.error}`);
@@ -156,6 +172,7 @@ app.whenReady().then(() => {
     const message = error instanceof Error ? error.message : "Unknown queued desktop auth callback error.";
     console.warn(`[stage-auth] ${message}`);
   });
+  void integrationsController.consumeQueuedCallback();
 
   sidecarSupervisor.start().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : "Unknown sidecar startup error.";

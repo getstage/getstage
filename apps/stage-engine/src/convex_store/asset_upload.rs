@@ -18,21 +18,22 @@ impl ConvexAssetUploader {
         }
     }
 
-    pub async fn upload_research_refero_image(
+    pub async fn upload_image(
         &self,
         token: &str,
         project_id: &str,
+        purpose: &str,
         file_name: &str,
         mime_type: &str,
         bytes: &[u8],
     ) -> anyhow::Result<String> {
         let mut client = self.authenticated_client(token).await?;
         let mut mutation_args = args();
-        mutation_args.insert("purpose".to_string(), Value::from("research-refero"));
+        mutation_args.insert("purpose".to_string(), Value::from(purpose.to_string()));
         mutation_args.insert("fileName".to_string(), Value::from(file_name.to_string()));
         mutation_args.insert(
             "fileSize".to_string(),
-            Value::from(i64::try_from(bytes.len()).context("image too large")?),
+            Value::from(bytes.len() as f64),
         );
         mutation_args.insert("mimeType".to_string(), Value::from(mime_type.to_string()));
         mutation_args.insert("scopeId".to_string(), Value::from(project_id.to_string()));
@@ -40,7 +41,7 @@ impl ConvexAssetUploader {
         let result = client
             .mutation("r2:generateUploadUrl", mutation_args)
             .await
-            .context("failed to prepare Refero image upload")?;
+            .context("failed to prepare image upload")?;
         let payload = function_result_to_json(result)?;
 
         let key = payload
@@ -60,15 +61,12 @@ impl ConvexAssetUploader {
             .body(bytes.to_vec())
             .send()
             .await
-            .context("failed to upload Refero image bytes")?
+            .context("failed to upload image bytes")?
             .error_for_status()
-            .context("Refero image upload rejected")?;
+            .context("image upload rejected")?;
 
         if !response.status().is_success() {
-            bail!(
-                "Refero image upload failed with status {}",
-                response.status()
-            );
+            bail!("image upload failed with status {}", response.status());
         }
 
         let mut sync_args = args();
@@ -76,9 +74,28 @@ impl ConvexAssetUploader {
         client
             .mutation("r2:syncMetadata", sync_args)
             .await
-            .context("failed to sync Refero image metadata")?;
+            .context("failed to sync image metadata")?;
 
         Ok(key)
+    }
+
+    pub async fn upload_research_refero_image(
+        &self,
+        token: &str,
+        project_id: &str,
+        file_name: &str,
+        mime_type: &str,
+        bytes: &[u8],
+    ) -> anyhow::Result<String> {
+        self.upload_image(
+            token,
+            project_id,
+            "research-refero",
+            file_name,
+            mime_type,
+            bytes,
+        )
+        .await
     }
 
     async fn authenticated_client(&self, token: &str) -> anyhow::Result<ConvexClient> {

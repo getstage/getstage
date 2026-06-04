@@ -116,10 +116,7 @@ pub fn filter_competitive_analysis(object: &mut Map<String, Value>, input: &Rese
         let Some(row_object) = row.as_object_mut() else {
             continue;
         };
-        let Some(cells) = row_object
-            .get_mut("cells")
-            .and_then(Value::as_array_mut)
-        else {
+        let Some(cells) = row_object.get_mut("cells").and_then(Value::as_array_mut) else {
             continue;
         };
         cells.retain(|cell| {
@@ -195,7 +192,10 @@ fn ensure_matrix_cells_for_competitors(analysis_object: &mut Map<String, Value>)
             competitors
                 .iter()
                 .filter_map(|competitor| {
-                    competitor.get("id").and_then(Value::as_str).map(str::to_string)
+                    competitor
+                        .get("id")
+                        .and_then(Value::as_str)
+                        .map(str::to_string)
                 })
                 .collect()
         })
@@ -287,11 +287,7 @@ pub fn competitive_host(raw: &str) -> Option<String> {
         .unwrap_or(trimmed);
     let host = without_scheme.split('/').next()?.split(':').next()?;
     let host = host.strip_prefix("www.").unwrap_or(host).to_lowercase();
-    if host.is_empty() {
-        None
-    } else {
-        Some(host)
-    }
+    if host.is_empty() { None } else { Some(host) }
 }
 
 #[cfg(test)]
@@ -342,33 +338,31 @@ mod tests {
 
     #[test]
     fn filter_drops_invented_competitors() {
-        let mut object = Map::from_iter([
-            (
-                "competitiveAnalysis".to_string(),
-                json!({
-                    "competitors": [
-                        {
-                            "id": "shopify",
-                            "name": "Shopify",
-                            "url": "https://shopify.com"
-                        },
-                        {
-                            "id": "shopware",
-                            "name": "Shopware",
-                            "url": "https://shopware.com"
-                        }
-                    ],
-                    "matrixRows": [{
-                        "id": "pricing",
-                        "label": "Pricing",
-                        "cells": [
-                            { "competitorId": "shopify", "score": "Strong" },
-                            { "competitorId": "shopware", "score": "OK" }
-                        ]
-                    }]
-                }),
-            ),
-        ]);
+        let mut object = Map::from_iter([(
+            "competitiveAnalysis".to_string(),
+            json!({
+                "competitors": [
+                    {
+                        "id": "shopify",
+                        "name": "Shopify",
+                        "url": "https://shopify.com"
+                    },
+                    {
+                        "id": "shopware",
+                        "name": "Shopware",
+                        "url": "https://shopware.com"
+                    }
+                ],
+                "matrixRows": [{
+                    "id": "pricing",
+                    "label": "Pricing",
+                    "cells": [
+                        { "competitorId": "shopify", "score": "Strong" },
+                        { "competitorId": "shopware", "score": "OK" }
+                    ]
+                }]
+            }),
+        )]);
 
         let input = ResearchInput {
             project_id: "p1".to_string(),
@@ -391,7 +385,10 @@ mod tests {
             analysis["competitors"][0]["id"].as_str().unwrap(),
             "shopify"
         );
-        assert_eq!(analysis["matrixRows"][0]["cells"].as_array().unwrap().len(), 1);
+        assert_eq!(
+            analysis["matrixRows"][0]["cells"].as_array().unwrap().len(),
+            1
+        );
     }
 
     #[test]

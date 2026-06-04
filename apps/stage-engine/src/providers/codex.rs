@@ -7,6 +7,7 @@ use crate::providers::process::{
     ProviderProcessError, ProviderProcessOutcome, ProviderProcessSpec, run_provider_process,
     run_provider_process_collect,
 };
+use crate::providers::run_model_options::resolve_codex_model_id;
 use crate::runs::RunEventSink;
 
 pub async fn run_codex(
@@ -73,9 +74,11 @@ fn codex_args(context: &ProviderRunContext) -> Vec<String> {
         args.push(working_directory.clone());
     }
 
-    if let Some(model_id) = codex_model_id(&context.request.model_id) {
+    if let Some(model_id) = resolve_codex_model_id(&context.request.model_id, &context.request.model_options)
+        .or_else(|| codex_model_id(&context.request.model_id).map(str::to_string))
+    {
         args.push("--model".to_string());
-        args.push(model_id.to_string());
+        args.push(model_id);
     }
 
     args

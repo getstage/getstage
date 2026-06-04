@@ -706,7 +706,13 @@ mod tests {
 
         let rows = normalize_table(&section).unwrap();
         assert_eq!(rows.len(), 3);
-        assert_eq!(rows[0], json!(["Audience", "Strategic role · Primary needs · Design implication"]));
+        assert_eq!(
+            rows[0],
+            json!([
+                "Audience",
+                "Strategic role · Primary needs · Design implication"
+            ])
+        );
         assert_eq!(
             rows[1],
             json!([
@@ -714,7 +720,10 @@ mod tests {
                 "Primary MVP operator · Approve companies, assign catalogs · Lead with an approval queue"
             ])
         );
-        assert_eq!(rows[2], json!(["WCAG level", "AA minimum · Must remain readable"]));
+        assert_eq!(
+            rows[2],
+            json!(["WCAG level", "AA minimum · Must remain readable"])
+        );
     }
 
     #[test]

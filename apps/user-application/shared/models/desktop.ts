@@ -98,6 +98,17 @@ export const engineStatusSchema = z.object({
   state: engineStatusStateSchema,
 });
 
+export const desktopIntegrationOAuthResultSchema = z.object({
+  ok: z.literal(true),
+  provider: z.enum(["figma", "notion"]),
+  status: z.enum(["connected", "error"]),
+  reason: z.string().optional(),
+});
+
+export type IntegrationOAuthResult =
+  | z.infer<typeof desktopIntegrationOAuthResultSchema>
+  | { error: string; ok: false };
+
 export type DesktopSession = z.infer<typeof desktopSessionSchema>;
 export type DesktopStoredSession = z.infer<typeof desktopStoredSessionSchema>;
 export type DesktopAuthHandoff = z.infer<typeof desktopAuthHandoffSchema>;

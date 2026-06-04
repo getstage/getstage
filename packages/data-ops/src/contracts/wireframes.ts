@@ -22,12 +22,56 @@ export const wireframeBrandKitSchema = z.object({
   fileSizeLabel: z.string().min(1),
 });
 
+export const wireframeBlockKindSchema = z.enum([
+  "header",
+  "hero",
+  "feature-grid",
+  "testimonial",
+  "pricing-table",
+  "cta",
+  "form",
+  "logo-strip",
+  "footer",
+  "stat-strip",
+  "faq",
+  "media",
+  "text",
+  "list",
+  "table",
+  "navigation",
+]);
+
+export const wireframeBlockEmphasisSchema = z.enum(["primary", "secondary", "tertiary"]);
+
+export const wireframeBlockSchema = z.object({
+  id: z.string().min(1),
+  kind: wireframeBlockKindSchema,
+  intent: z.string().min(1),
+  copySlots: z.record(z.string(), z.string()).optional(),
+  emphasis: wireframeBlockEmphasisSchema.default("secondary"),
+  notes: z.string().optional(),
+});
+
+export const wireframeSectionSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  blocks: z.array(wireframeBlockSchema).default([]),
+});
+
+export const wireframeBrandTokensSchema = z.object({
+  paletteRef: z.string().optional(),
+  typographyRef: z.string().optional(),
+});
+
 export const wireframeGeneratedScreenSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   priority: z.string().min(1),
   generatedAtLabel: z.string().min(1),
   figmaUrl: z.string().url().optional(),
+  goal: z.string().optional(),
+  sections: z.array(wireframeSectionSchema).default([]),
+  brandTokens: wireframeBrandTokensSchema.optional(),
 });
 
 export const wireframesStatsSchema = z.object({
@@ -68,6 +112,11 @@ export type WireframeBrandSource = z.infer<typeof wireframeBrandSourceSchema>;
 export type WireframeScreenKind = z.infer<typeof wireframeScreenKindSchema>;
 export type WireframeConfigureScreen = z.infer<typeof wireframeConfigureScreenSchema>;
 export type WireframeBrandKit = z.infer<typeof wireframeBrandKitSchema>;
+export type WireframeBlockKind = z.infer<typeof wireframeBlockKindSchema>;
+export type WireframeBlockEmphasis = z.infer<typeof wireframeBlockEmphasisSchema>;
+export type WireframeBlock = z.infer<typeof wireframeBlockSchema>;
+export type WireframeSection = z.infer<typeof wireframeSectionSchema>;
+export type WireframeBrandTokens = z.infer<typeof wireframeBrandTokensSchema>;
 export type WireframeGeneratedScreen = z.infer<typeof wireframeGeneratedScreenSchema>;
 export type WireframesStats = z.infer<typeof wireframesStatsSchema>;
 export type WireframesInput = z.infer<typeof wireframesInputSchema>;

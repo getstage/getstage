@@ -25,16 +25,19 @@ import { fetchEngineJson } from "./helpers/sidecar";
 import { closeCompanionWindow, setCompanionWindowInteractive } from "./windows";
 import type { SidecarSupervisor } from "./sidecar";
 import type { DesktopAuthController } from "./auth";
+import type { DesktopIntegrationsController } from "./integrations";
 
 const activeRunStreams = new Map<string, AbortController>();
 
 type RegisterIpcHandlersOptions = {
   authController: DesktopAuthController;
+  integrationsController: DesktopIntegrationsController;
   sidecarSupervisor: SidecarSupervisor;
 };
 
 export function registerIpcHandlers({
   authController,
+  integrationsController,
   sidecarSupervisor,
 }: RegisterIpcHandlersOptions) {
   ipcMain.handle(IPC_CHANNELS.authOpenLogin, async () => {
@@ -205,6 +208,14 @@ export function registerIpcHandlers({
     }
 
     await shell.openExternal(parsedUrl.toString());
+  });
+
+  ipcMain.handle(IPC_CHANNELS.integrationsGetOAuthReturnUrl, (_event, provider: unknown) => {
+    if (provider !== "figma" && provider !== "notion") {
+      throw new Error("Integration provider must be figma or notion.");
+    }
+
+    return integrationsController.getOAuthReturnUrl(provider);
   });
 }
 

@@ -10,6 +10,7 @@ export function ScreenCard({
   onBeginEdit,
   onDraftElementChange,
   onRegenerate,
+  regenerating = false,
   onDiscard,
   onSave,
 }: {
@@ -19,6 +20,7 @@ export function ScreenCard({
   onBeginEdit: () => void;
   onDraftElementChange: (elementIndex: number, value: string) => void;
   onRegenerate: () => void;
+  regenerating?: boolean;
   onDiscard: () => void;
   onSave: () => void;
 }) {
@@ -54,10 +56,11 @@ export function ScreenCard({
               <button
                 type="button"
                 onClick={onRegenerate}
-                className="inline-flex h-[30px] w-fit items-center justify-center gap-2 rounded-[4px] bg-white px-3 text-[12px] font-medium leading-none text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F3FF]"
+                disabled={regenerating}
+                className="inline-flex h-[30px] w-fit items-center justify-center gap-2 rounded-[4px] bg-white px-3 text-[12px] font-medium leading-none text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F3FF] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <SparkleIcon className="h-3 w-3 shrink-0" />
-                Regenerate with AI
+                <SparkleIcon className={`h-3 w-3 shrink-0 ${regenerating ? "animate-spin" : ""}`} />
+                {regenerating ? "Regenerating..." : "Regenerate with AI"}
               </button>
             </div>
           ) : (

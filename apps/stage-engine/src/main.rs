@@ -1,8 +1,11 @@
 mod app;
 mod config;
 mod convex_store;
+mod figma;
+mod flows;
 mod helpers;
 mod models;
+mod moodboard;
 mod observability;
 mod providers;
 mod refero;
@@ -10,6 +13,7 @@ mod research;
 mod runs;
 mod server;
 mod strategy;
+mod wireframes;
 
 use anyhow::Context;
 use config::AppConfig;

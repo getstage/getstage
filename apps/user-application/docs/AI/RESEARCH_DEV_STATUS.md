@@ -34,7 +34,9 @@ Codex/Claude output is **never trusted as final shape**. Stage uses two layers:
 | **Extract** | `apps/stage-engine/src/helpers/provider_json.rs` | Find `researchArtifact` JSON in stdout or stderr (lines containing `artifactKind`) |
 | **Normalize** | `apps/stage-engine/src/research/workflow.rs`, `research_repository.rs`, competitive matrix helpers | Coerce into `@stage/data-ops/contracts` before Convex + R2 |
 
-**Prompt** (`research/prompt.rs`) guides the model; **normalize** guarantees the UI contract (competitors, UI patterns, matrix scores, etc.).
+**Prompt** (`research/prompt.rs`) guides the model; **normalize** (`research/normalize.rs` + matrix score pass in `research_repository.rs`) guarantees the UI contract before Convex save.
+
+**Provider shape drift (June 2026):** Claude may return `summary` as `{ headline, body }`, `companySnapshot` as a single object, and matrix `dimension`/`rating` fields. Normalize coerces these to the Zod contract (`summary[]`, `companySnapshot[]`, `matrixRows[].id/label/cells[].score`). Codex-shaped output passes through unchanged.
 
 **Terminal noise:** Hundreds of `provider_warning` lines can be Codex streaming `researchArtifact` fields on stderr — not failures. Success = `research artifact saved to Convex` / `run_completed`. See [RESEARCH_TESTING.md](./RESEARCH_TESTING.md#terminal-noise-provider_warning).
 

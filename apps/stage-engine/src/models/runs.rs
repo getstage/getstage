@@ -14,7 +14,10 @@ pub enum RunMode {
     Voice,
     Research,
     Strategy,
+    Moodboard,
+    Flows,
     Generation,
+    Wireframes,
     Critique,
     Styleguide,
 }

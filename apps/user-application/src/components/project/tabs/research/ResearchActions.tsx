@@ -3,7 +3,7 @@ import { ArrowRightIcon, NotionIcon, PlusIcon } from "./researchIcons";
 type ResearchActionsProps = {
   onAddSection: () => void;
   onExportToNotion: () => void;
-  onGenerateStrategy: () => void;
+  onOpenGenerateStrategy: () => void;
   isAddingSection?: boolean;
   isExporting?: boolean;
   isRunBusy?: boolean;
@@ -12,7 +12,7 @@ type ResearchActionsProps = {
 export function ResearchActions({
   onAddSection,
   onExportToNotion,
-  onGenerateStrategy,
+  onOpenGenerateStrategy,
   isAddingSection = false,
   isExporting = false,
   isRunBusy = false,
@@ -40,7 +40,7 @@ export function ResearchActions({
         </button>
         <button
           type="button"
-          onClick={onGenerateStrategy}
+          onClick={onOpenGenerateStrategy}
           disabled={isRunBusy}
           className="inline-flex h-8 items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
         >

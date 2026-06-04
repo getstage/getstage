@@ -3,7 +3,7 @@ interface Env {
   CONVEX_HTTP_ORIGIN?: string;
 }
 
-const PROXY_PREFIXES = ["/api/", "/stripe/"] as const;
+const PROXY_PREFIXES = ["/api/", "/stripe/", "/integrations/"] as const;
 
 function shouldProxy(pathname: string) {
   return PROXY_PREFIXES.some((prefix) => pathname.startsWith(prefix));

@@ -65,9 +65,12 @@ import type * as lib_projectAi_domain_validators from "../lib/projectAi/domain/v
 import type * as lib_projectAi_handlers_api from "../lib/projectAi/handlers/api.js";
 import type * as lib_projectAi_handlers_artifacts from "../lib/projectAi/handlers/artifacts.js";
 import type * as lib_projectAi_handlers_context from "../lib/projectAi/handlers/context.js";
+import type * as lib_projectAi_handlers_flows from "../lib/projectAi/handlers/flows.js";
+import type * as lib_projectAi_handlers_moodboard from "../lib/projectAi/handlers/moodboard.js";
 import type * as lib_projectAi_handlers_research from "../lib/projectAi/handlers/research.js";
 import type * as lib_projectAi_handlers_runs from "../lib/projectAi/handlers/runs.js";
 import type * as lib_projectAi_handlers_strategy from "../lib/projectAi/handlers/strategy.js";
+import type * as lib_projectAi_handlers_wireframes from "../lib/projectAi/handlers/wireframes.js";
 import type * as onboarding from "../onboarding.js";
 import type * as platform_rateLimits from "../platform/rateLimits.js";
 import type * as portal from "../portal.js";
@@ -145,9 +148,12 @@ declare const fullApi: ApiFromModules<{
   "lib/projectAi/handlers/api": typeof lib_projectAi_handlers_api;
   "lib/projectAi/handlers/artifacts": typeof lib_projectAi_handlers_artifacts;
   "lib/projectAi/handlers/context": typeof lib_projectAi_handlers_context;
+  "lib/projectAi/handlers/flows": typeof lib_projectAi_handlers_flows;
+  "lib/projectAi/handlers/moodboard": typeof lib_projectAi_handlers_moodboard;
   "lib/projectAi/handlers/research": typeof lib_projectAi_handlers_research;
   "lib/projectAi/handlers/runs": typeof lib_projectAi_handlers_runs;
   "lib/projectAi/handlers/strategy": typeof lib_projectAi_handlers_strategy;
+  "lib/projectAi/handlers/wireframes": typeof lib_projectAi_handlers_wireframes;
   onboarding: typeof onboarding;
   "platform/rateLimits": typeof platform_rateLimits;
   portal: typeof portal;

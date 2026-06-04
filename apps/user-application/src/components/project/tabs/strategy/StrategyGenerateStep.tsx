@@ -1,4 +1,8 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
+import type { ProviderId } from "@stage/data-ops/contracts";
+import { AiRunSettings } from "@/components/project/AiRunSettings";
+import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategyRunDialog";
+import type { ResearchProviderOption } from "@/hooks/project/research/useResearchProviderSelection";
 import {
   DEFAULT_STRATEGY_GENERATE_FORM_VALUES,
   isStrategyGenerateFormSubmittable,
@@ -20,9 +24,13 @@ export function StrategyGenerateStep({
   submitLabel = "Generate Strategy",
   submitVariant = "primary",
   warningMessage,
+  providerOptions,
+  selectedProviderId,
+  onSelectProvider,
+  runSettingsInDialog = false,
 }: {
   isSubmitting: boolean;
-  onSubmit: (input: ValidatedStrategyGenerateInput) => void;
+  onSubmit: (input: ValidatedStrategyGenerateInput, providerId?: ProviderId) => void;
   initialValues?: StrategyGenerateFormValues;
   onCancel?: () => void;
   title?: string;
@@ -30,6 +38,11 @@ export function StrategyGenerateStep({
   submitLabel?: string;
   submitVariant?: "primary" | "secondary";
   warningMessage?: string;
+  providerOptions?: ResearchProviderOption[];
+  selectedProviderId?: ProviderId | null;
+  onSelectProvider?: (providerId: ProviderId) => void;
+  /** When true, provider/mode are chosen in a confirmation dialog on submit. */
+  runSettingsInDialog?: boolean;
 }) {
   const [values, setValues] = useState<StrategyGenerateFormValues>(
     initialValues ?? DEFAULT_STRATEGY_GENERATE_FORM_VALUES,
@@ -42,7 +55,19 @@ export function StrategyGenerateStep({
   }, [initialValues]);
   const [focusInput, setFocusInput] = useState("");
   const [fieldErrors, setFieldErrors] = useState<StrategyGenerateFieldErrors>({});
-  const canSubmit = isStrategyGenerateFormSubmittable(values);
+  const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState<ValidatedStrategyGenerateInput | null>(null);
+  const requiresProvider = Boolean(providerOptions);
+  const selectedProvider = providerOptions?.find((option) => option.id === selectedProviderId);
+  const providerError =
+    !runSettingsInDialog && requiresProvider && !selectedProviderId
+      ? "Choose an AI provider before running Strategy."
+      : !runSettingsInDialog && selectedProvider && !selectedProvider.selectable
+        ? (selectedProvider.statusMessage ?? "This provider is not ready.")
+        : undefined;
+  const canSubmit =
+    isStrategyGenerateFormSubmittable(values) &&
+    (!requiresProvider || runSettingsInDialog || selectedProvider?.selectable === true);
 
   function updateNotes(nextValue: string) {
     setValues((current) => ({ ...current, additionalNotes: nextValue }));
@@ -120,7 +145,24 @@ export function StrategyGenerateStep({
     }
 
     setFieldErrors({});
-    onSubmit(result.data);
+
+    if (runSettingsInDialog && providerOptions && onSelectProvider) {
+      setPendingSubmit(result.data);
+      setIsRunDialogOpen(true);
+      return;
+    }
+
+    onSubmit(result.data, selectedProvider?.selectable ? selectedProvider.id : undefined);
+  }
+
+  function handleRunDialogConfirm(providerId: ProviderId) {
+    if (!pendingSubmit) {
+      return;
+    }
+
+    onSubmit(pendingSubmit, providerId);
+    setPendingSubmit(null);
+    setIsRunDialogOpen(false);
   }
 
   return (
@@ -200,6 +242,15 @@ export function StrategyGenerateStep({
                 />
               </FormField>
 
+              {providerOptions && onSelectProvider && !runSettingsInDialog ? (
+                <AiRunSettings
+                  providerOptions={providerOptions}
+                  selectedProviderId={selectedProviderId ?? null}
+                  onSelectProvider={onSelectProvider}
+                  providerError={providerError}
+                />
+              ) : null}
+
               {warningMessage ? (
                 <p className="text-[12px] font-medium leading-[1.5] text-[#B45309]">{warningMessage}</p>
               ) : null}
@@ -239,6 +290,23 @@ export function StrategyGenerateStep({
           </div>
         </div>
       </div>
+
+      {providerOptions && onSelectProvider && runSettingsInDialog ? (
+        <GenerateStrategyRunDialog
+          open={isRunDialogOpen}
+          onOpenChange={(open) => {
+            setIsRunDialogOpen(open);
+            if (!open) {
+              setPendingSubmit(null);
+            }
+          }}
+          isSubmitting={isSubmitting}
+          providerOptions={providerOptions}
+          selectedProviderId={selectedProviderId ?? null}
+          onSelectProvider={onSelectProvider}
+          onConfirm={handleRunDialogConfirm}
+        />
+      ) : null}
     </section>
   );
 }

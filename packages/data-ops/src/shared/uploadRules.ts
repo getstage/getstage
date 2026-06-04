@@ -8,7 +8,11 @@ export type UploadPurpose =
   | "generated-design"
   | "project-asset"
   | "research-refero"
-  | "research-brief";
+  | "research-brief"
+  | "moodboard-upload"
+  | "moodboard-refero"
+  | "moodboard-figma"
+  | "moodboard-url";
 
 type UploadRule = {
   allowedMimeTypes: string[];
@@ -63,6 +67,26 @@ export const UPLOAD_RULES: Record<UploadPurpose, UploadRule> = {
   "research-refero": {
     allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
     allowedExtensions: [".jpg", ".jpeg", ".png", ".webp"],
+    maxBytes: 10 * 1024 * 1024,
+  },
+  "moodboard-upload": {
+    allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
+    allowedExtensions: [".jpg", ".jpeg", ".png", ".webp", ".gif"],
+    maxBytes: 10 * 1024 * 1024,
+  },
+  "moodboard-refero": {
+    allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
+    allowedExtensions: [".jpg", ".jpeg", ".png", ".webp"],
+    maxBytes: 10 * 1024 * 1024,
+  },
+  "moodboard-figma": {
+    allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
+    allowedExtensions: [".jpg", ".jpeg", ".png", ".webp"],
+    maxBytes: 10 * 1024 * 1024,
+  },
+  "moodboard-url": {
+    allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
+    allowedExtensions: [".jpg", ".jpeg", ".png", ".webp", ".gif"],
     maxBytes: 10 * 1024 * 1024,
   },
   "research-brief": {

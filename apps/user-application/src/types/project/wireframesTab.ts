@@ -31,12 +31,31 @@ export type WireframesBrandKit = {
   fileSizeLabel: string;
 };
 
+export type WireframeBlockEmphasis = "primary" | "secondary" | "tertiary";
+
+export type WireframeRenderableBlock = {
+  id: string;
+  kind: string;
+  intent: string;
+  emphasis: WireframeBlockEmphasis;
+  copySlots?: Record<string, string>;
+  notes?: string;
+};
+
+export type WireframeRenderableSection = {
+  id: string;
+  title: string;
+  blocks: WireframeRenderableBlock[];
+};
+
 export type WireframeGeneratedScreen = {
   id: string;
   title: string;
   priority: string;
   generatedAtLabel: string;
   figmaUrl?: string;
+  goal?: string;
+  sections?: WireframeRenderableSection[];
 };
 
 export type WireframesTabData = {

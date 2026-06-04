@@ -128,8 +128,53 @@ function buildSettingsRedirect(
   return url.toString();
 }
 
+function isAllowedDesktopOAuthReturnUrl(returnUrl: string, provider: Provider) {
+  let parsed: URL;
+
+  try {
+    parsed = new URL(returnUrl);
+  } catch {
+    return false;
+  }
+
+  const expectedPath = `/integrations/${provider}`;
+
+  if (parsed.protocol === "stage:" && parsed.hostname === "integrations") {
+    return parsed.pathname === `/${provider}`;
+  }
+
+  if (
+    parsed.protocol === "http:" &&
+    parsed.hostname === "127.0.0.1" &&
+    parsed.port === "48224"
+  ) {
+    return parsed.pathname === expectedPath;
+  }
+
+  return false;
+}
+
+function buildOAuthCompleteRedirect(
+  provider: Provider,
+  status: "connected" | "error",
+  reason?: string,
+  returnUrl?: string | null,
+) {
+  if (returnUrl && isAllowedDesktopOAuthReturnUrl(returnUrl, provider)) {
+    const url = new URL(returnUrl);
+    url.searchParams.set("integration", provider);
+    url.searchParams.set("integration_status", status);
+    if (reason) {
+      url.searchParams.set("reason", reason);
+    }
+    return url.toString();
+  }
+
+  return buildSettingsRedirect(provider, status, reason);
+}
+
 function getCallbackUrl(provider: Provider) {
-  return `${requireEnv("CONVEX_SITE_URL")}/integrations/${provider}/callback`;
+  return `${requireSiteUrl()}/integrations/${provider}/callback`;
 }
 
 async function getConnection(
@@ -322,22 +367,28 @@ export const disconnectConnection = mutation({
 export const startOAuthConnect = action({
   args: {
     provider: v.union(v.literal("notion"), v.literal("figma")),
+    returnUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
     const oauthState = generateOAuthState();
     const timestamp = now();
+    const oauthReturnUrl =
+      args.returnUrl && isAllowedDesktopOAuthReturnUrl(args.returnUrl, args.provider)
+        ? args.returnUrl
+        : undefined;
 
     if (args.provider === "notion") {
       requireEnv("NOTION_CLIENT_ID");
       requireEnv("NOTION_CLIENT_SECRET");
-      requireEnv("CONVEX_SITE_URL");
+      requireSiteUrl();
 
       await ctx.runMutation(internalApi.integrations.contentPlatforms.upsertPendingConnectionForOAuth, {
         userId: viewer.userId,
         provider: "notion",
         oauthState,
         pkceVerifier: undefined,
+        oauthReturnUrl,
         requestedAt: timestamp,
       });
 
@@ -353,7 +404,7 @@ export const startOAuthConnect = action({
 
     requireEnv("FIGMA_CLIENT_ID");
     requireEnv("FIGMA_CLIENT_SECRET");
-    requireEnv("CONVEX_SITE_URL");
+    requireSiteUrl();
     const pkce = await generatePkcePair();
 
     await ctx.runMutation(internalApi.integrations.contentPlatforms.upsertPendingConnectionForOAuth, {
@@ -361,6 +412,7 @@ export const startOAuthConnect = action({
       provider: "figma",
       oauthState,
       pkceVerifier: pkce.verifier,
+      oauthReturnUrl,
       requestedAt: timestamp,
     });
 
@@ -395,6 +447,7 @@ export const upsertPendingConnectionForOAuth = internalMutation({
     provider: v.union(v.literal("notion"), v.literal("figma")),
     oauthState: v.string(),
     pkceVerifier: v.optional(v.string()),
+    oauthReturnUrl: v.optional(v.string()),
     requestedAt: v.number(),
   },
   handler: async (ctx, args) => {
@@ -405,6 +458,7 @@ export const upsertPendingConnectionForOAuth = internalMutation({
         status: "pending",
         oauthState: args.oauthState,
         pkceVerifier: args.pkceVerifier,
+        oauthReturnUrl: args.oauthReturnUrl,
         lastError: undefined,
         updatedAt: args.requestedAt,
       });
@@ -417,6 +471,7 @@ export const upsertPendingConnectionForOAuth = internalMutation({
       status: "pending",
       oauthState: args.oauthState,
       pkceVerifier: args.pkceVerifier,
+      oauthReturnUrl: args.oauthReturnUrl,
       createdAt: args.requestedAt,
       updatedAt: args.requestedAt,
     });
@@ -457,6 +512,7 @@ export const completeConnectionFromOAuth = internalMutation({
       scopes: args.scopes,
       oauthState: undefined,
       pkceVerifier: undefined,
+      oauthReturnUrl: undefined,
       connectedAt: args.completedAt,
       lastError: undefined,
       updatedAt: args.completedAt,
@@ -484,6 +540,7 @@ export const markConnectionErrorByState = internalMutation({
       lastError: args.message,
       oauthState: undefined,
       pkceVerifier: undefined,
+      oauthReturnUrl: undefined,
       updatedAt: now(),
     });
 
@@ -528,6 +585,19 @@ async function handleProviderCallback(
   const code = url.searchParams.get("code");
   const oauthState = url.searchParams.get("state");
 
+  const connection = oauthState
+    ? ((await ctx.runQuery(internalApi.integrations.contentPlatforms.getConnectionByOAuthState, {
+        oauthState,
+      })) as Doc<"nativeIntegrationConnections"> | null)
+    : null;
+  const oauthReturnUrl = connection?.oauthReturnUrl;
+
+  const redirect = (status: "connected" | "error", reason?: string) =>
+    Response.redirect(
+      buildOAuthCompleteRedirect(provider, status, reason, oauthReturnUrl),
+      302,
+    );
+
   if (!oauthState) {
     return Response.redirect(buildSettingsRedirect(provider, "error", "missing_state"), 302);
   }
@@ -537,7 +607,7 @@ async function handleProviderCallback(
       oauthState,
       message: `${getProviderLabel(provider)} authorization was cancelled or rejected.`,
     });
-    return Response.redirect(buildSettingsRedirect(provider, "error", "oauth_denied"), 302);
+    return redirect("error", "oauth_denied");
   }
 
   if (!code) {
@@ -545,16 +615,11 @@ async function handleProviderCallback(
       oauthState,
       message: `No authorization code received from ${getProviderLabel(provider)}.`,
     });
-    return Response.redirect(buildSettingsRedirect(provider, "error", "missing_code"), 302);
+    return redirect("error", "missing_code");
   }
 
-  const connection = (await ctx.runQuery(
-    internalApi.integrations.contentPlatforms.getConnectionByOAuthState,
-    { oauthState },
-  )) as Doc<"nativeIntegrationConnections"> | null;
-
   if (!connection) {
-    return Response.redirect(buildSettingsRedirect(provider, "error", "unknown_state"), 302);
+    return redirect("error", "unknown_state");
   }
 
   try {
@@ -617,7 +682,7 @@ async function handleProviderCallback(
       });
     }
 
-    return Response.redirect(buildSettingsRedirect(provider, "connected"), 302);
+    return redirect("connected");
   } catch (callbackError) {
     const message =
       callbackError instanceof Error ? callbackError.message : `Could not complete ${getProviderLabel(provider)} setup.`;
@@ -625,7 +690,7 @@ async function handleProviderCallback(
       oauthState,
       message,
     });
-    return Response.redirect(buildSettingsRedirect(provider, "error", "callback_failed"), 302);
+    return redirect("error", "callback_failed");
   }
 }
 

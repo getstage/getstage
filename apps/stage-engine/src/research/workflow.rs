@@ -269,6 +269,7 @@ impl ResearchWorkflow {
         let section_patch = extract_json_object(&final_text)?;
         merge_research_section(&mut artifact, section, section_patch)?;
         if let Some(object) = artifact.as_object_mut() {
+            crate::research::normalize::normalize_research_artifact_fields(object, &input);
             filter_competitive_analysis(object, &input);
             object.insert("generatedAt".to_string(), json!(now_millis()));
         }

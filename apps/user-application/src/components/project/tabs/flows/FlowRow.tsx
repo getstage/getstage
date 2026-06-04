@@ -9,10 +9,13 @@ export function FlowRow({
   index,
   expanded,
   editing,
+  regenerating,
   draftSteps,
   onToggle,
   onBeginEdit,
+  onRegenerate,
   onDraftStepChange,
+  onStatusChange,
   onDiscard,
   onSave,
 }: {
@@ -20,10 +23,13 @@ export function FlowRow({
   index: number;
   expanded: boolean;
   editing: boolean;
+  regenerating?: boolean;
   draftSteps: string[];
   onToggle: () => void;
   onBeginEdit: () => void;
+  onRegenerate: () => void;
   onDraftStepChange: (stepIndex: number, value: string) => void;
+  onStatusChange: (status: "Draft" | "In Review" | "Approved") => void;
   onDiscard: () => void;
   onSave: () => void;
 }) {
@@ -32,11 +38,23 @@ export function FlowRow({
       <div className={`flex justify-between gap-6 rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${expanded ? "items-stretch" : "items-start"}`}>
         <div className={`flex min-w-0 items-start gap-3 ${expanded ? "flex-1 flex-col justify-between self-stretch" : ""}`}>
           <div className="flex min-w-0 items-start gap-3">
-            <FlowSummary flow={flow} index={index} expanded={expanded} />
+            <FlowSummary
+              flow={flow}
+              index={index}
+              expanded={expanded}
+              onStatusChange={onStatusChange}
+            />
           </div>
 
           {expanded ? (
-            <FlowActions editing={editing} onBeginEdit={onBeginEdit} onDiscard={onDiscard} onSave={onSave} />
+            <FlowActions
+              editing={editing}
+              regenerating={regenerating}
+              onBeginEdit={onBeginEdit}
+              onRegenerate={onRegenerate}
+              onDiscard={onDiscard}
+              onSave={onSave}
+            />
           ) : null}
         </div>
 

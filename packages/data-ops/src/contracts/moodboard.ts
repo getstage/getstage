@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const moodboardImportModeSchema = z.enum(["upload", "figma"]);
+export const moodboardImportModeSchema = z.enum(["upload", "figma", "ai"]);
 
 export const moodboardReferenceSourceSchema = z.enum(["upload", "figma", "url"]);
 
@@ -16,6 +16,9 @@ export const moodboardReferenceSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1).optional(),
   imageUrl: z.string().min(1),
+  imageAssetKey: z.string().min(1).optional(),
+  thumbnailUrl: z.string().min(1).optional(),
+  thumbnailAssetKey: z.string().min(1).optional(),
   source: moodboardReferenceSourceSchema,
   sourceUrl: z.string().url().optional(),
   uploadedAssetId: z.string().min(1).optional(),
@@ -82,6 +85,7 @@ export const moodboardInputSchema = z.object({
   strategyArtifactId: z.string().min(1).optional(),
   importMode: moodboardImportModeSchema,
   figmaUrl: z.string().url().optional(),
+  referoQuery: z.string().min(1).max(500).optional(),
   uploadedAssetIds: z.array(z.string().min(1)).default([]),
   uploadedFiles: z.array(moodboardUploadedFileSchema).default([]),
   additionalNotes: z.string().min(1).max(2000).optional(),

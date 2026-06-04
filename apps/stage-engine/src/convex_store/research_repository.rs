@@ -286,6 +286,7 @@ pub fn enrich_research_artifact(
     object.insert("referoContext".to_string(), refero_context);
     let generated_at = i64::try_from(generated_at).unwrap_or(i64::MAX);
     object.insert("generatedAt".to_string(), json!(generated_at));
+    crate::research::normalize::normalize_research_artifact_fields(object, input);
     normalize_competitive_matrix_scores(object);
     crate::research::competitive::filter_competitive_analysis(object, input);
 
@@ -326,6 +327,9 @@ fn normalize_competitive_matrix_scores(object: &mut serde_json::Map<String, Json
             };
             if let Some(normalized) = normalize_matrix_score(score) {
                 cell_object.insert("score".to_string(), json!(normalized));
+            } else if cell_object.get("score").is_none() {
+                let fallback = crate::research::normalize::normalize_matrix_score_label(score);
+                cell_object.insert("score".to_string(), json!(fallback));
             }
         }
     }
@@ -346,14 +350,34 @@ pub use crate::helpers::provider_json::{
 };
 
 fn summary_text(artifact: &JsonValue) -> Option<String> {
-    let items = artifact.get("summary")?.as_array()?;
-    let summary = items
-        .iter()
-        .filter_map(JsonValue::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .collect::<Vec<_>>()
-        .join(" ");
-
-    (!summary.is_empty()).then_some(summary)
+    match artifact.get("summary")? {
+        JsonValue::Array(items) => {
+            let summary = items
+                .iter()
+                .filter_map(JsonValue::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .collect::<Vec<_>>()
+                .join(" ");
+            (!summary.is_empty()).then_some(summary)
+        }
+        JsonValue::Object(map) => {
+            let headline = map
+                .get("headline")
+                .and_then(JsonValue::as_str)
+                .unwrap_or("");
+            let body = map.get("body").and_then(JsonValue::as_str).unwrap_or("");
+            let summary = [headline.trim(), body.trim()]
+                .into_iter()
+                .filter(|value| !value.is_empty())
+                .collect::<Vec<_>>()
+                .join(" ");
+            (!summary.is_empty()).then_some(summary)
+        }
+        JsonValue::String(text) => {
+            let trimmed = text.trim();
+            (!trimmed.is_empty()).then(|| trimmed.to_string())
+        }
+        _ => None,
+    }
 }

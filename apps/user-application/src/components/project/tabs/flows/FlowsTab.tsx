@@ -1,11 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ProviderId } from "@stage/data-ops/contracts";
+import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategyRunDialog";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
+import { getDefaultExpandedFlowId } from "@/data/fixtures/project/flowsTabFixtures";
 import {
-  createSeedFlows,
-  createSeedScreens,
-  getDefaultExpandedFlowId,
-} from "@/data/fixtures/project/flowsTabFixtures";
-import { useFlowsTab } from "@/hooks/project";
+  useFlowsFigJamExport,
+  useFlowsRun,
+  useFlowsTab,
+  useProjectAiProvider,
+  useSaveFlowsArtifact,
+} from "@/hooks/project";
 import type { Project, ProjectFlow } from "@/models/project/project";
 import {
   EMPTY_ADD_FLOW,
@@ -27,14 +31,13 @@ type FlowsTabProps = {
 
 export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabProps) {
   const flowsTab = useFlowsTab({ id: project.id, name: project.name });
-  const initialFlows = useMemo(
-    () => (project.flows.length > 0 ? project.flows : createSeedFlows()),
-    [project.flows],
-  );
-  const initialScreens = useMemo(
-    () => (project.screens && project.screens.length > 0 ? project.screens : createSeedScreens()),
-    [project.screens],
-  );
+  const flowsRun = useFlowsRun(project.id);
+  const saveFlows = useSaveFlowsArtifact(project.id);
+  const figJamExport = useFlowsFigJamExport(project.id);
+  const aiProvider = useProjectAiProvider(project.id);
+  const artifactRecord = flowsTab.data;
+  const initialFlows = useMemo(() => artifactRecord?.tabData.flows ?? [], [artifactRecord]);
+  const initialScreens = useMemo(() => artifactRecord?.tabData.screens ?? [], [artifactRecord]);
   const [flows, setFlows] = useState<ProjectFlow[]>(initialFlows);
   const [screens, setScreens] = useState(initialScreens);
   const [activePanelTab, setActivePanelTab] = useState<FlowPanelTab>("flows");
@@ -48,10 +51,13 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
   const [addFlowStep, setAddFlowStep] = useState<AddFlowStep>("details");
   const [addFlowDraft, setAddFlowDraft] = useState(EMPTY_ADD_FLOW);
   const [newStepDraft, setNewStepDraft] = useState("");
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [uiError, setUiError] = useState<string | null>(null);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
-    if (flowsTab.data?.tabData) {
-      const { tabData } = flowsTab.data;
+    if (artifactRecord?.tabData) {
+      const { tabData } = artifactRecord;
       setFlows(tabData.flows);
       setScreens(tabData.screens);
       setExpandedFlowId(getDefaultExpandedFlowId(tabData.flows));
@@ -62,19 +68,45 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
       return;
     }
 
-    setFlows(initialFlows);
-    setScreens(initialScreens);
-    setExpandedFlowId(getDefaultExpandedFlowId(initialFlows));
+    setFlows([]);
+    setScreens([]);
+    setExpandedFlowId(null);
     setEditingFlowId(null);
     setEditingScreenId(null);
     setDraftSteps({});
     setDraftScreenElements({});
-  }, [flowsTab.data, initialFlows, initialScreens]);
+  }, [artifactRecord]);
+
+  useEffect(() => {
+    if (!regeneratingScreenTitle) return;
+    const hasTerminalEvent = flowsRun.runEvents.some(
+      (event) =>
+        event.type === "run_completed" ||
+        event.type === "run_failed" ||
+        event.type === "run_cancelled",
+    );
+    if (hasTerminalEvent) {
+      setRegeneratingScreenTitle(null);
+    }
+  }, [flowsRun.runEvents, regeneratingScreenTitle]);
 
   const approvedCount = flows.filter((flow) => flow.status.toLowerCase() === "approved").length;
   const flowTotal = flows.length;
-  const screenTotal = flows.reduce((total, flow) => total + (flow.screenCount ?? 0), 0);
+  const screenTotal = screens.length;
   const progress = flowTotal > 0 ? (approvedCount / flowTotal) * 100 : 0;
+  const flowRunBusy = flowsRun.isRunning || flowsRun.isStarting;
+  const visibleRunError = artifactRecord ? null : flowsRun.error;
+
+  async function persist(nextFlows: ProjectFlow[], nextScreens = screens) {
+    if (!artifactRecord) {
+      throw new Error("Generate flows before saving changes.");
+    }
+
+    const saveTask = () => saveFlows.saveFlowsArtifact(artifactRecord, nextFlows, nextScreens);
+    const nextSave = saveQueueRef.current.then(saveTask, saveTask).then(() => undefined);
+    saveQueueRef.current = nextSave.catch(() => undefined);
+    await nextSave;
+  }
 
   const toggleFlow = (flowId: string) => {
     const willCloseCurrentFlow = expandedFlowId === flowId;
@@ -102,8 +134,7 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
   };
 
   const saveDraft = (flowId: string) => {
-    setFlows((currentFlows) =>
-      currentFlows.map((flow) => {
+    const nextFlows = flows.map((flow) => {
         if (flow.id !== flowId) return flow;
         const savedSteps = (draftSteps[flowId] ?? flow.steps ?? []).map((step) => step.trim()).filter(Boolean);
         return {
@@ -111,9 +142,12 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
           steps: savedSteps,
           screenCount: savedSteps.length > 0 ? savedSteps.length - 1 : flow.screenCount,
         };
-      }),
-    );
+      });
+    setFlows(nextFlows);
     setEditingFlowId(null);
+    void persist(nextFlows).catch((error) => {
+      setUiError(error instanceof Error ? error.message : "Could not save flow steps.");
+    });
   };
 
   const discardDraft = (flowId: string) => {
@@ -155,23 +189,82 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
       screenCount: Math.max(addFlowDraft.steps.length - 1, 1),
     };
 
-    setFlows((currentFlows) => [newFlow, ...currentFlows]);
+    const nextFlows = [newFlow, ...flows];
+    setFlows(nextFlows);
     setActivePanelTab("flows");
     setExpandedFlowId(newFlow.id);
     closeAddFlow();
+    void persist(nextFlows).catch((error) => {
+      setUiError(error instanceof Error ? error.message : "Could not save manual flow.");
+    });
   };
 
   async function regenerateScreenElements(screenId: string, screenTitle: string) {
+    if (flowRunBusy) return;
+
+    const providerId = aiProvider.resolvedProviderId;
+    if (!providerId) {
+      setUiError("Choose a connected provider before regenerating a screen.");
+      return;
+    }
+
     setRegeneratingScreenTitle(screenTitle);
-    await delay(900);
-    setDraftScreenElements((currentDrafts) => {
-      const currentElements = currentDrafts[screenId] ?? screens.find((screen) => screen.id === screenId)?.keyElements ?? [];
-      return {
-        ...currentDrafts,
-        [screenId]: currentElements.map((element) => `${element} - regenerated`),
-      };
+    try {
+      await flowsRun.startFlows(providerId, `screen:${screenId}`);
+    } catch (error) {
+      setUiError(error instanceof Error ? error.message : "Could not regenerate screen.");
+      setRegeneratingScreenTitle(null);
+    }
+  }
+
+  async function regenerateFlow(flowId: string) {
+    if (flowRunBusy) return;
+
+    const providerId = aiProvider.resolvedProviderId;
+    if (!providerId) {
+      setUiError("Choose a connected provider before regenerating a flow.");
+      return;
+    }
+
+    try {
+      await flowsRun.startFlows(providerId, `flow:${flowId}`);
+    } catch (error) {
+      setUiError(error instanceof Error ? error.message : "Could not regenerate flow.");
+    }
+  }
+
+  async function generateFlows(providerId: ProviderId) {
+    if (flowRunBusy) return;
+
+    setUiError(null);
+    try {
+      await flowsRun.startFlows(providerId);
+      setGenerateDialogOpen(false);
+    } catch (error) {
+      setUiError(error instanceof Error ? error.message : "Could not generate flows.");
+    }
+  }
+
+  function updateFlowStatus(flowId: string, status: "Draft" | "In Review" | "Approved") {
+    const nextFlows = flows.map((flow) => (flow.id === flowId ? { ...flow, status } : flow));
+    setFlows(nextFlows);
+    void persist(nextFlows).catch((error) => {
+      setUiError(error instanceof Error ? error.message : "Could not update flow status.");
     });
-    setRegeneratingScreenTitle(null);
+  }
+
+  async function handleSendToFigJam() {
+    if (!artifactRecord) return;
+    setUiError(null);
+    try {
+      await figJamExport.sendToFigJam(artifactRecord.id);
+    } catch (error) {
+      setUiError(error instanceof Error ? error.message : "Could not send flows to FigJam.");
+    }
+  }
+
+  if (!artifactRecord && (flowsRun.isRunning || flowsRun.isStarting)) {
+    return <FlowsGeneratingState />;
   }
 
   if (regeneratingScreenTitle) {
@@ -185,8 +278,39 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
         onGoToResearch={onGoToResearch}
         onGoToStrategy={onGoToStrategy}
       />
+      {!artifactRecord ? (
+        <>
+          <FlowsEmptyState
+            isRunning={flowsRun.isRunning || flowsRun.isStarting}
+            error={uiError ?? visibleRunError ?? (flowsTab.parseError ? "Saved flows could not be loaded." : null)}
+            onGenerate={() => setGenerateDialogOpen(true)}
+          />
+          <GenerateStrategyRunDialog
+            open={generateDialogOpen}
+            onOpenChange={setGenerateDialogOpen}
+            title="Generate Flows"
+            description="Turn your research, strategy and moodboard direction into editable project flows."
+            confirmLabel="Generate Flows"
+            isSubmitting={flowRunBusy}
+            providerOptions={aiProvider.providerOptions}
+            selectedProviderId={aiProvider.resolvedProviderId}
+            onSelectProvider={aiProvider.selectProvider}
+            onConfirm={(providerId) => void generateFlows(providerId)}
+          />
+        </>
+      ) : null}
+      {artifactRecord ? (
       <section className="overflow-hidden rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="flex flex-col gap-4 p-4">
+          {uiError || figJamExport.error || figJamExport.result?.message ? (
+            <div className={`rounded-[8px] px-3 py-2 text-[12px] font-medium leading-[1.5] ${
+              figJamExport.result?.message && !uiError && !figJamExport.error
+                ? "bg-[#FFF7ED] text-[#7C2D12]"
+                : "bg-[#FEF2F2] text-[#991B1B]"
+            }`}>
+              {uiError ?? figJamExport.error ?? figJamExport.result?.message}
+            </div>
+          ) : null}
           <div className="flex flex-wrap items-end justify-between gap-5">
             <div className="min-w-0">
               <h2 className="font-heading text-[15px] font-medium leading-[1.25] text-[#171717]">
@@ -205,7 +329,13 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
               </div>
             </div>
 
-            {activePanelTab === "flows" ? <FlowHeaderActions onAddFlow={() => setAddFlowOpen(true)} /> : null}
+            {activePanelTab === "flows" ? (
+              <FlowHeaderActions
+                onAddFlow={() => setAddFlowOpen(true)}
+                onSendToFigJam={() => void handleSendToFigJam()}
+                sendingToFigJam={figJamExport.isExporting}
+              />
+            ) : null}
           </div>
 
           <div className="flex items-start justify-between gap-4">
@@ -253,10 +383,13 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
                   index={index + 1}
                   expanded={expandedFlowId === flow.id}
                   editing={editingFlowId === flow.id}
+                  regenerating={flowRunBusy}
                   draftSteps={draftSteps[flow.id] ?? flow.steps ?? []}
                   onToggle={() => toggleFlow(flow.id)}
                   onBeginEdit={() => beginEdit(flow)}
+                  onRegenerate={() => void regenerateFlow(flow.id)}
                   onDraftStepChange={(stepIndex, value) => updateDraftStep(flow.id, stepIndex, value)}
+                  onStatusChange={(status) => updateFlowStatus(flow.id, status)}
                   onDiscard={() => discardDraft(flow.id)}
                   onSave={() => saveDraft(flow.id)}
                 />
@@ -286,6 +419,7 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
               onRegenerate={(screen) => {
                 void regenerateScreenElements(screen.id, screen.title);
               }}
+              regenerating={flowRunBusy}
               onDiscard={(screenId) => {
                 setDraftScreenElements((currentDrafts) => {
                   const { [screenId]: _discarded, ...nextDrafts } = currentDrafts;
@@ -294,8 +428,7 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
                 setEditingScreenId(null);
               }}
               onSave={(screenId) => {
-                setScreens((currentScreens) =>
-                  currentScreens.map((screen) => {
+                const nextScreens = screens.map((screen) => {
                     if (screen.id !== screenId) return screen;
                     return {
                       ...screen,
@@ -303,14 +436,18 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
                         .map((element) => element.trim())
                         .filter(Boolean),
                     };
-                  }),
-                );
+                  });
+                setScreens(nextScreens);
                 setEditingScreenId(null);
+                void persist(flows, nextScreens).catch((error) => {
+                  setUiError(error instanceof Error ? error.message : "Could not save screen elements.");
+                });
               }}
             />
           )}
         </div>
       </section>
+      ) : null}
 
       {addFlowOpen ? (
         <AddFlowModal
@@ -326,6 +463,80 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
         />
       ) : null}
     </>
+  );
+}
+
+function FlowsEmptyState({
+  isRunning,
+  error,
+  onGenerate,
+}: {
+  isRunning: boolean;
+  error: string | null;
+  onGenerate: () => void;
+}) {
+  return (
+    <section className="overflow-hidden rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+      <div className="rounded-[8px] bg-white px-[44px] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="flex min-h-[420px] items-center justify-center">
+          <div className="flex w-full max-w-[420px] flex-col items-center gap-5 text-center">
+            <img src="/logos/dashboard/flows.svg" alt="" aria-hidden="true" className="h-[37px] w-[37px]" />
+            <div className="flex flex-col gap-2">
+              <h2 className="text-[20px] font-semibold leading-[1.2] text-[#171717]">
+                Generate project flows
+              </h2>
+              <p className="text-[13px] font-medium leading-[1.5] text-[#525252]">
+                Turn approved research, strategy and moodboard direction into editable user flows and reusable screens.
+              </p>
+            </div>
+            {error ? (
+              <p className="rounded-[8px] bg-[#FEF2F2] px-3 py-2 text-[12px] font-medium leading-[1.5] text-[#991B1B]">
+                {error}
+              </p>
+            ) : null}
+            <button
+              type="button"
+              onClick={onGenerate}
+              disabled={isRunning}
+              className="inline-flex h-[34px] items-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] pl-[10px] pr-3 text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <img src="/logos/dashboard/ai-generated.svg" alt="" aria-hidden="true" className="h-[15px] w-[15px] brightness-0 invert" />
+              {isRunning ? "Generating..." : "Generate Flows"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FlowsGeneratingState() {
+  return (
+    <section className="overflow-hidden rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+      <div className="rounded-[8px] bg-white px-[44px] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="flex min-h-[520px] items-center justify-center">
+          <div className="flex w-full max-w-[282px] flex-col items-center gap-6">
+            <img src="/logos/dashboard/flows.svg" alt="" aria-hidden="true" className="h-[37px] w-[37px]" />
+            <div className="flex w-full flex-col items-center gap-2">
+              <p className="text-center text-[16px] font-semibold leading-none text-[#171717]">
+                Generating Flows
+              </p>
+              <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
+                Turning your project intelligence into editable journeys and screens.
+              </p>
+            </div>
+            <div className="flex w-full flex-col items-center gap-2">
+              <LoadingStep icon="/logos/check.svg" label="Project context loaded" />
+              <LoadingStep icon="/logos/check.svg" label="Research attached" />
+              <LoadingStep icon="/logos/check.svg" label="Strategy attached" />
+              <LoadingStep icon="/logos/check.svg" label="Moodboard direction attached" />
+              <LoadingStep icon="/logos/loader.svg" label="Generating flows" spinning />
+              <LoadingStep icon="/logos/unchecked.svg" label="Saving artifact" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -371,10 +582,4 @@ function LoadingStep({ icon, label, spinning = false }: { icon: string; label: s
       <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">{label}</p>
     </div>
   );
-}
-
-function delay(ms: number) {
-  return new Promise<void>((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
 }

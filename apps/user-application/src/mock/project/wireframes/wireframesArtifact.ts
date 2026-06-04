@@ -139,6 +139,7 @@ function buildGeneratedScreens(
       title: screen.title,
       priority: screen.priority,
       generatedAtLabel,
+      sections: [],
     }));
 }
 

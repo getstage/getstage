@@ -6,6 +6,7 @@ use crate::providers::process::{
     ProviderProcessError, ProviderProcessOutcome, ProviderProcessSpec, run_provider_process,
     run_provider_process_collect,
 };
+use crate::providers::run_model_options::apply_claude_run_options;
 use crate::runs::RunEventSink;
 
 pub async fn run_claude(
@@ -68,6 +69,7 @@ fn claude_args(context: &ProviderRunContext) -> Vec<String> {
         claude_model_id(&context.request.model_id).to_string(),
     ];
 
+    apply_claude_run_options(&mut args, &context.request.model_options);
     args.push(context.request.prompt.clone());
     args
 }
