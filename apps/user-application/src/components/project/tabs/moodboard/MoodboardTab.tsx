@@ -228,6 +228,10 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
       );
   }
 
+  if (mode === "ai" && moodboard.isImporting) {
+    return <MoodboardGeneratingState />;
+  }
+
   return (
     <>
       <UpstreamStaleBanner
@@ -458,5 +462,68 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
       ) : null}
       </section>
     </>
+  );
+}
+
+function MoodboardGeneratingState() {
+  return (
+    <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+      <div className="rounded-[8px] bg-white px-[44px] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="flex min-h-[520px] items-center justify-center">
+          <div className="flex w-full max-w-[282px] flex-col items-center gap-6">
+            <img
+              src="/logos/dashboard/moodboard.svg"
+              alt=""
+              aria-hidden="true"
+              className="h-[37px] w-[37px]"
+            />
+
+            <div className="flex w-full flex-col items-center gap-2">
+              <p className="text-center text-[16px] font-semibold leading-none text-[#171717]">
+                Generating Moodboard
+              </p>
+              <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
+                Finding visual references that match your search and preparing them for review.
+              </p>
+            </div>
+
+            <div className="flex w-full flex-col items-center gap-2">
+              <MoodboardLoadingStep icon="/logos/check.svg" label="Search query prepared" />
+              <MoodboardLoadingStep icon="/logos/check.svg" label="Refero search started" />
+              <MoodboardLoadingStep
+                icon="/logos/loader.svg"
+                label="Collecting visual references"
+                spinning
+              />
+              <MoodboardLoadingStep icon="/logos/unchecked.svg" label="Preparing moodboard" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MoodboardLoadingStep({
+  icon,
+  label,
+  spinning = false,
+}: {
+  icon: string;
+  label: string;
+  spinning?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <img
+        src={icon}
+        alt=""
+        aria-hidden="true"
+        className={spinning ? "h-[16px] w-[16px] shrink-0 animate-spin" : "h-[18px] w-[18px] shrink-0"}
+      />
+      <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
+        {label}
+      </p>
+    </div>
   );
 }
