@@ -34,29 +34,38 @@ export function VoiceControlBar({ state, onStateChange }: VoiceControlBarProps) 
       ? `Recording voice note ${voice.durationLabel}`
       : "Start voice note";
 
+  const isBarPinned =
+    voice.isRecording || isProcessing || voice.status === "failed" || Boolean(voice.error);
+  const showExpandedChrome = state !== "idle" || isBarPinned;
+
   if (isChatOpen) {
     return null;
   }
 
   return (
-    <div
-      className={`voice-control-bar ${state === "idle" ? "voice-control-bar-idle" : "voice-control-bar-active"}`}
-      data-state={voice.status === "failed" ? "error" : isProcessing ? "processing" : voice.isRecording ? "recording" : state}
-      onMouseEnter={() => {
-        if (!isCompanionWindow && state === "idle") void onStateChange("listening");
-      }}
-      onMouseLeave={() => {
-        if (!isCompanionWindow && state === "listening") void onStateChange("idle");
-      }}
-      onFocus={() => {
-        if (!isCompanionWindow && state === "idle") void onStateChange("listening");
-      }}
-    >
-      {state === "idle" ? (
+    <div className="voice-control-bar-shell">
+      <div
+        className={`voice-control-bar ${showExpandedChrome ? "voice-control-bar-active" : "voice-control-bar-idle"}`}
+        data-state={voice.status === "failed" ? "error" : isProcessing ? "processing" : voice.isRecording ? "recording" : state}
+        onMouseEnter={() => {
+          if (!isCompanionWindow && state === "idle") void onStateChange("listening");
+        }}
+        onMouseLeave={() => {
+          if (isCompanionWindow || isBarPinned || state !== "listening") {
+            return;
+          }
+          void onStateChange("idle");
+        }}
+        onFocus={() => {
+          if (!isCompanionWindow && state === "idle") void onStateChange("listening");
+        }}
+      >
+      {state === "idle" && !isBarPinned ? (
         <button
           className="voice-idle-hit-area"
           type="button"
           aria-label="Open Stage voice control"
+          onClick={() => void onStateChange("listening")}
         />
       ) : (
         <>
@@ -116,6 +125,12 @@ export function VoiceControlBar({ state, onStateChange }: VoiceControlBarProps) 
           </button>
         </>
       )}
+      </div>
+      {voice.error ? (
+        <p className="voice-control-bar-error" role="alert">
+          {voice.error}
+        </p>
+      ) : null}
     </div>
   );
 }

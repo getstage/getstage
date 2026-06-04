@@ -19,6 +19,7 @@ import type {
   VoiceTranscriptResponse,
   VoiceTranscriptionRequest,
 } from "@stage/data-ops/contracts";
+import type { VoiceTranscriptionStatus } from "@shared/models/desktop";
 
 export type StageDesktopApi = {
   auth: {
@@ -44,6 +45,7 @@ export type StageDesktopApi = {
     setInteractive: (interactive: boolean) => Promise<void>;
   };
   voice: {
+    getStatus: () => Promise<VoiceTranscriptionStatus>;
     transcribe: (input: VoiceTranscriptionRequest) => Promise<VoiceTranscriptResponse>;
     onStartStopRecordingShortcut: (callback: () => void) => () => void;
     onOpenLatestChatShortcut: (callback: () => void) => () => void;

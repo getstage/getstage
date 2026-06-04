@@ -1,4 +1,4 @@
-import { app, globalShortcut, Menu } from "electron";
+import { app, globalShortcut, Menu, session } from "electron";
 import { loadLocalEnv } from "./helpers/loadEnv";
 import { createDesktopAuthController } from "./auth";
 import { createDesktopAuthCallbackServer } from "./helpers/auth-callback-server";
@@ -6,7 +6,9 @@ import { findStageAuthUrl, registerStageProtocol } from "./helpers/auth";
 import { findStageIntegrationUrl } from "./helpers/integrations";
 import { createDesktopIntegrationsController } from "./integrations";
 import { registerIpcHandlers } from "./ipc";
-import { registerVoiceTranscriptionHandler } from "./voice-transcription";
+import { registerVoiceHandlers } from "./voice";
+import { fetchEngineJson } from "./helpers/sidecar";
+import { providerListResponseSchema } from "@stage/data-ops/contracts";
 import { createSidecarSupervisor } from "./sidecar";
 import {
   createMainWindow,
@@ -188,11 +190,34 @@ app.on("second-instance", (_event, argv) => {
   handleDeepLinkUrl(deepLinkUrl);
 });
 
+function registerRendererMediaPermissions() {
+  const mediaPermissions = new Set(["media", "microphone", "audioCapture"]);
+
+  session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+    callback(mediaPermissions.has(permission));
+  });
+
+  session.defaultSession.setPermissionCheckHandler((_webContents, permission) =>
+    mediaPermissions.has(permission),
+  );
+}
+
 app.whenReady().then(() => {
+  registerRendererMediaPermissions();
   installApplicationMenu();
   authCallbackServer.start();
   registerIpcHandlers({ authController, integrationsController, sidecarSupervisor });
-  registerVoiceTranscriptionHandler();
+  registerVoiceHandlers({
+    listProviders: async () => {
+      const status = await sidecarSupervisor.start();
+      const payload = await fetchEngineJson<unknown>({
+        path: "/v1/providers",
+        port: status.port,
+      });
+
+      return providerListResponseSchema.parse(payload);
+    },
+  });
   registerVoiceShortcuts();
   authController.consumeQueuedCallback().then((result) => {
     if (result && !result.ok) {

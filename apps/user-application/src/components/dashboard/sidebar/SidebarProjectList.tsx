@@ -1,6 +1,7 @@
 import type { DashboardProject } from "@/models/dashboard/dashboard";
 import { sidebarLabelClassName } from "@/lib/dashboard/sidebarNav";
 import { cn } from "@/lib/utils";
+import { SidebarRoundAvatar } from "./SidebarRoundAvatar";
 
 export function SidebarProjectList({
   collapsed,
@@ -70,20 +71,12 @@ export function SidebarProjectList({
                 isActive ? "bg-white shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.15)]" : "bg-[#f5f5f5] hover:bg-[#ebebeb]",
               )}
             >
-              {project.projectImageUrl ? (
-                <img
-                  src={project.projectImageUrl}
-                  alt={collapsed ? project.name : ""}
-                  className="h-[24px] w-[24px] shrink-0 rounded-full object-cover"
-                />
-              ) : (
-                <div
-                  className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full text-[10px] font-medium text-white"
-                  style={{ background: project.accentColor }}
-                >
-                  {project.logoLabel}
-                </div>
-              )}
+              <SidebarRoundAvatar
+                imageUrl={project.projectImageUrl}
+                label={project.name}
+                initials={project.logoLabel}
+                accentColor={project.accentColor}
+              />
               <span
                 aria-hidden={collapsed}
                 className={cn(labelClassName, isActive ? "text-[#0a0a0a]" : "text-[#525252]")}

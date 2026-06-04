@@ -98,6 +98,18 @@ export const engineStatusSchema = z.object({
   state: engineStatusStateSchema,
 });
 
+export const voiceTranscriptionStatusSchema = z.object({
+  apiVersion: z.literal("v1"),
+  canTranscribe: z.boolean(),
+  claudeConnected: z.boolean(),
+  codexConnected: z.boolean(),
+  chatgptCodexVoiceReady: z.boolean(),
+  openRouterConfigured: z.boolean(),
+  preferredProvider: z.enum(["chatgpt-codex-session", "openrouter", "none"]),
+  preferredModel: z.string().min(1).nullable(),
+  setupHint: z.string().min(1).nullable(),
+});
+
 export const desktopIntegrationOAuthResultSchema = z.object({
   ok: z.literal(true),
   provider: z.enum(["figma", "notion"]),
@@ -122,3 +134,4 @@ export type DesktopPermissionStatus = z.infer<typeof desktopPermissionStatusSche
 export type CompanionState = z.infer<typeof companionStateSchema>;
 export type EngineStatusState = z.infer<typeof engineStatusStateSchema>;
 export type EngineStatus = z.infer<typeof engineStatusSchema>;
+export type VoiceTranscriptionStatus = z.infer<typeof voiceTranscriptionStatusSchema>;
