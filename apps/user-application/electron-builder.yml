@@ -1,0 +1,29 @@
+appId: co.getstage.desktop
+productName: Stage
+copyright: Copyright © Stage
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+  - "!**/*.map"
+asar: true
+extraResources:
+  - from: resources/stage-engine/stage-engine
+    to: stage-engine/stage-engine
+mac:
+  category: public.app-category.productivity
+  icon: build/icon.png
+  target:
+    - dmg
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  gatekeeperAssess: false
+dmg:
+  title: "${productName} ${version}"
+publish:
+  provider: github
+  owner: getstage
+  repo: getstage

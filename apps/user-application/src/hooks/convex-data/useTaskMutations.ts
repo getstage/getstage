@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import {
   taskSummarySchema,
+  type TaskBoardStatus,
   type TaskPriority,
 } from "@stage/data-ops";
 import { useDesktopAuth } from "@/lib/auth";
@@ -17,8 +18,10 @@ function requireDesktopAuth(isAuthenticated: boolean) {
 export type CreateTaskInput = {
   projectId: string;
   title: string;
+  phaseId?: string;
   priority?: TaskPriority;
   content?: string;
+  boardStatus?: TaskBoardStatus;
 };
 
 export function useCreateTaskMutation() {
@@ -128,6 +131,69 @@ export function useSetTaskAssigneesMutation() {
     isPending,
     mutateAsync,
     mutate: (input: SetTaskAssigneesInput, options?: { onError?: () => void }) => {
+      void mutateAsync(input).catch(() => options?.onError?.());
+    },
+  };
+}
+
+export type SetTaskKanbanColumnInput = {
+  taskId: string;
+  boardStatus: TaskBoardStatus;
+};
+
+export function useSetTaskKanbanColumnMutation() {
+  const setTaskKanbanColumn = useMutation(api.desktop.setTaskKanbanColumn);
+  const { isAuthenticated } = useDesktopAuth();
+  const [isPending, setIsPending] = useState(false);
+
+  async function mutateAsync(input: SetTaskKanbanColumnInput) {
+    requireDesktopAuth(isAuthenticated);
+    setIsPending(true);
+    try {
+      return taskSummarySchema.parse(await setTaskKanbanColumn(input));
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  return {
+    isPending,
+    mutateAsync,
+    mutate: (input: SetTaskKanbanColumnInput, options?: { onError?: () => void }) => {
+      void mutateAsync(input).catch(() => options?.onError?.());
+    },
+  };
+}
+
+export type UpdateTaskInput = {
+  taskId: string;
+  title?: string;
+  content?: string;
+};
+
+export function useUpdateTaskMutation() {
+  const updateTask = useMutation(api.tasks.update);
+  const { isAuthenticated } = useDesktopAuth();
+  const [isPending, setIsPending] = useState(false);
+
+  async function mutateAsync(input: UpdateTaskInput) {
+    requireDesktopAuth(isAuthenticated);
+    setIsPending(true);
+    try {
+      await updateTask({
+        taskId: input.taskId as Id<"tasks">,
+        title: input.title,
+        content: input.content,
+      });
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  return {
+    isPending,
+    mutateAsync,
+    mutate: (input: UpdateTaskInput, options?: { onError?: () => void }) => {
       void mutateAsync(input).catch(() => options?.onError?.());
     },
   };

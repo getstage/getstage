@@ -1,0 +1,115 @@
+name: Release Stage Desktop (macOS)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: Upload to GitHub Releases (requires tag on ref or manual assets only)
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-macos:
+    name: macOS ${{ matrix.arch }}
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            rust_target: aarch64-apple-darwin
+          - arch: x64
+            rust_target: x86_64-apple-darwin
+    env:
+      VITE_CONVEX_URL: ${{ secrets.DESKTOP_VITE_CONVEX_URL }}
+      # Testing release: login via testing.getstage.co (override with repo variable for prod later)
+      STAGE_DESKTOP_AUTH_URL: ${{ vars.STAGE_DESKTOP_AUTH_URL != '' && vars.STAGE_DESKTOP_AUTH_URL || 'https://testing.getstage.co/auth/desktop' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Require Convex URL for desktop build
+        run: |
+          if [ -z "$VITE_CONVEX_URL" ]; then
+            echo "::error::Set GitHub secret DESKTOP_VITE_CONVEX_URL (production Convex URL, e.g. https://xxx.convex.cloud)"
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build data-ops
+        run: pnpm --filter @stage/data-ops run build
+
+      - name: Build stage-engine (${{ matrix.arch }})
+        run: |
+          cargo build --release \
+            --manifest-path apps/stage-engine/Cargo.toml \
+            --target ${{ matrix.rust_target }}
+
+      - name: Copy stage-engine into desktop resources
+        env:
+          CARGO_BUILD_TARGET: ${{ matrix.rust_target }}
+        run: node apps/user-application/scripts/copy-stage-engine.mjs
+
+      - name: Build Electron app
+        run: pnpm --filter stage-user-application run build
+
+      - name: Package DMG (${{ matrix.arch }})
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          REFERO_MCP_TOKEN: ${{ secrets.REFERO_MCP_TOKEN }}
+        run: |
+          cd apps/user-application
+          MAC_BUILD_ARGS=(-c.mac.hardenedRuntime=false -c.mac.notarize=false)
+          if [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ] && [ -n "$CSC_LINK" ]; then
+            MAC_BUILD_ARGS=(-c.mac.hardenedRuntime=true -c.mac.notarize=true)
+            echo "Apple signing + notarization enabled"
+          else
+            echo "Building unsigned DMG (add APPLE_* and CSC_LINK secrets to sign)"
+          fi
+          if [ "${{ github.event_name }}" = "push" ]; then
+            pnpm exec electron-builder --mac dmg --${{ matrix.arch }} "${MAC_BUILD_ARGS[@]}" --publish onTag
+          elif [ "${{ inputs.publish_release }}" = "true" ]; then
+            pnpm exec electron-builder --mac dmg --${{ matrix.arch }} "${MAC_BUILD_ARGS[@]}" --publish always
+          else
+            pnpm exec electron-builder --mac dmg --${{ matrix.arch }} "${MAC_BUILD_ARGS[@]}" --publish never
+          fi
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Stage-mac-${{ matrix.arch }}
+          path: apps/user-application/release/*.dmg
+          if-no-files-found: error

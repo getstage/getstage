@@ -24,7 +24,7 @@
   background: transparent;
 }
 
-.stage-companion-window .voice-control-bar {
+.stage-companion-window .voice-control-bar-shell {
   bottom: 24px;
 }
 
@@ -151,10 +151,41 @@ a,
   filter: invert(1);
 }
 
-.voice-control-bar {
+.voice-control-bar-shell {
   position: fixed;
   left: 50%;
   bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transform: translateX(-50%);
+  z-index: 40;
+  pointer-events: none;
+}
+
+.voice-control-bar-shell .voice-control-bar,
+.voice-control-bar-shell .voice-control-bar-error {
+  pointer-events: auto;
+}
+
+.voice-control-bar-error {
+  margin: 0;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgb(254 242 242);
+  border: 1px solid rgb(254 202 202);
+  color: #991b1b;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.voice-control-bar {
+  position: relative;
+  left: auto;
+  bottom: auto;
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -164,12 +195,11 @@ a,
   box-shadow:
     0 0.45px 1px rgb(10 10 10 / 25%),
     0 1px 1px rgb(0 0 0 / 25%);
-  transform: translateX(-50%);
+  transform: none;
   transition:
     width 180ms ease,
     height 180ms ease,
     padding 180ms ease;
-  z-index: 40;
 }
 
 .voice-control-bar-idle {
@@ -273,26 +303,68 @@ a,
 .voice-wave-button span {
   display: block;
   width: 2px;
-  height: 18px;
+  height: var(--voice-level, 18px);
   border-radius: 999px;
   background: #ffffff;
+  transition: height 80ms ease;
 }
 
-.voice-wave-button span:nth-child(1),
-.voice-wave-button span:nth-child(5) {
-  height: 18px;
+.voice-control-bar[data-state="recording"] {
+  border-color: #71717a;
+  box-shadow:
+    0 0.45px 1px rgb(10 10 10 / 25%),
+    0 1px 1px rgb(0 0 0 / 25%),
+    0 0 0 1px rgb(255 255 255 / 12%) inset;
 }
 
-.voice-wave-button span:nth-child(2) {
-  height: 10px;
+.voice-control-bar[data-state="processing"] .voice-wave-button span {
+  animation: voice-processing-pulse 860ms ease-in-out infinite;
 }
 
-.voice-wave-button span:nth-child(3) {
-  height: 14px;
+.voice-control-bar[data-state="processing"] .voice-wave-button span:nth-child(2) {
+  animation-delay: 90ms;
 }
 
-.voice-wave-button span:nth-child(4) {
-  height: 22px;
+.voice-control-bar[data-state="processing"] .voice-wave-button span:nth-child(3) {
+  animation-delay: 180ms;
+}
+
+.voice-control-bar[data-state="processing"] .voice-wave-button span:nth-child(4) {
+  animation-delay: 270ms;
+}
+
+.voice-control-bar[data-state="processing"] .voice-wave-button span:nth-child(5) {
+  animation-delay: 360ms;
+}
+
+.voice-control-bar[data-state="error"] {
+  border-color: #ff6b6b;
+}
+
+.voice-control-bar[data-state="error"] .voice-record-button {
+  background: rgb(255 107 107 / 16%);
+}
+
+@keyframes voice-processing-pulse {
+  0%,
+  100% {
+    height: 8px;
+    opacity: 0.55;
+  }
+
+  50% {
+    height: 24px;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-control-bar,
+  .voice-wave-button span,
+  .voice-control-bar[data-state="processing"] .voice-wave-button span {
+    animation: none;
+    transition: none;
+  }
 }
 
 .stage-mark {

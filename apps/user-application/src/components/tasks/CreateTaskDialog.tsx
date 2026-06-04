@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import type { ProjectSummary, TaskPriority, TaskSummary } from "@stage/data-ops";
-import { useCreateTaskMutation, useProjectPhasesQuery } from "@/hooks/convex-data";
+import type {
+  PhaseSummary,
+  ProjectSummary,
+  TaskBoardStatus,
+  TaskPriority,
+  TaskSummary,
+} from "@stage/data-ops";
+import { useCreateTaskMutation } from "@/hooks/convex-data";
 
 const PRIORITY_OPTIONS: Array<{ value: TaskPriority | null; label: string }> = [
   { value: null, label: "Backlog" },
@@ -13,28 +19,35 @@ type Picker = "project" | "phase" | "priority" | null;
 
 export function CreateTaskDialog({
   projects,
+  phases = [],
+  phasesLoading = false,
   initialProjectId,
   initialPhaseId,
+  initialBoardStatus,
   projectLabel,
   lockProject = false,
   onClose,
   onCreated,
+  onProjectChange,
 }: {
   projects: ProjectSummary[];
+  phases?: PhaseSummary[];
+  phasesLoading?: boolean;
   initialProjectId?: string;
   initialPhaseId?: string;
+  initialBoardStatus?: TaskBoardStatus;
   projectLabel?: string;
   lockProject?: boolean;
   onClose: () => void;
   onCreated?: (task: TaskSummary) => void;
+  /** Parent loads phases for the selected project (tasks page). */
+  onProjectChange?: (projectId: string | undefined) => void;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [projectId, setProjectId] = useState<string | undefined>(
     initialProjectId ?? projects[0]?.id,
   );
-  const phasesQuery = useProjectPhasesQuery(projectId);
-  const phases = phasesQuery.data ?? [];
   const [phaseId, setPhaseId] = useState<string | undefined>(initialPhaseId);
   const [priority, setPriority] = useState<TaskPriority | null>(null);
   const [picker, setPicker] = useState<Picker>(null);
@@ -42,7 +55,10 @@ export function CreateTaskDialog({
 
   const createTask = useCreateTaskMutation();
   const trimmedTitle = title.trim();
-  const isSubmittable = Boolean(trimmedTitle && projectId && phaseId) && !createTask.isPending;
+  const requiresPhase = phases.length > 0;
+  const isSubmittable =
+    Boolean(trimmedTitle && projectId && (!requiresPhase || phaseId)) &&
+    !createTask.isPending;
 
   const selectedProject = useMemo(
     () => projects.find((project) => project.id === projectId),
@@ -56,6 +72,10 @@ export function CreateTaskDialog({
     () => phases.find((phase) => phase.id === phaseId),
     [phaseId, phases],
   );
+
+  useEffect(() => {
+    onProjectChange?.(projectId);
+  }, [onProjectChange, projectId]);
 
   useEffect(() => {
     if (phases.length === 0) {
@@ -78,14 +98,16 @@ export function CreateTaskDialog({
   }, [onClose]);
 
   async function handleSubmit() {
-    if (!projectId || !phaseId || !trimmedTitle) return;
+    if (!projectId || !trimmedTitle || (requiresPhase && !phaseId)) return;
     setSubmitError(null);
     try {
       const task = await createTask.mutateAsync({
         projectId,
         title: trimmedTitle,
+        phaseId: requiresPhase ? phaseId : undefined,
         priority: priority ?? undefined,
         content: description.trim() || undefined,
+        boardStatus: initialBoardStatus,
       });
       onCreated?.(task);
       onClose();
@@ -187,33 +209,33 @@ export function CreateTaskDialog({
               ) : null}
             </PickerButton>
 
-            <PickerButton
-              label={
-                phasesQuery.isLoading
-                  ? "Loading phases…"
-                  : selectedPhase?.name ?? "Pick a phase"
-              }
-              disabled={!projectId || phasesQuery.isLoading || phases.length === 0}
-              onClick={() =>
-                setPicker((current) => (current === "phase" ? null : "phase"))
-              }
-            >
-              {picker === "phase" ? (
-                <PickerPanel>
-                  {phases.map((phase) => (
-                    <PickerItem
-                      key={phase.id}
-                      label={phase.name}
-                      selected={phase.id === phaseId}
-                      onSelect={() => {
-                        setPhaseId(phase.id);
-                        setPicker(null);
-                      }}
-                    />
-                  ))}
-                </PickerPanel>
-              ) : null}
-            </PickerButton>
+            {requiresPhase ? (
+              <PickerButton
+                label={
+                  phasesLoading ? "Loading phases…" : selectedPhase?.name ?? "Pick a phase"
+                }
+                disabled={!projectId || phasesLoading}
+                onClick={() =>
+                  setPicker((current) => (current === "phase" ? null : "phase"))
+                }
+              >
+                {picker === "phase" ? (
+                  <PickerPanel>
+                    {phases.map((phase) => (
+                      <PickerItem
+                        key={phase.id}
+                        label={phase.name}
+                        selected={phase.id === phaseId}
+                        onSelect={() => {
+                          setPhaseId(phase.id);
+                          setPicker(null);
+                        }}
+                      />
+                    ))}
+                  </PickerPanel>
+                ) : null}
+              </PickerButton>
+            ) : null}
 
             <PickerButton
               label={`Priority: ${selectedPriorityLabel}`}
@@ -252,7 +274,7 @@ export function CreateTaskDialog({
           {submitError ? (
             <p className="text-[12px] font-medium text-[#b91c1c]">{submitError}</p>
           ) : null}
-          {projectId && !phasesQuery.isLoading && phases.length === 0 ? (
+          {projectId && !phasesLoading && phases.length === 0 ? (
             <p className="text-[12px] font-medium text-[#b91c1c]">
               This project has no phases yet. Add a phase before creating a task.
             </p>

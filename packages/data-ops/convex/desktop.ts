@@ -11,6 +11,7 @@ import {
   createProjectForUser,
   deleteTaskForUser,
   setTaskBoardStateForUser,
+  setTaskKanbanColumnForUser,
   setTaskPriorityForUser,
 } from "./domain/projects/service";
 import { recomputeProjectState } from "./domain/projects/readModel";
@@ -44,6 +45,13 @@ const taskPriorityValidator = v.union(
   v.literal("low"),
   v.literal("medium"),
   v.literal("high"),
+);
+
+const taskBoardStatusValidator = v.union(
+  v.literal("backlog"),
+  v.literal("todo"),
+  v.literal("in-progress"),
+  v.literal("done"),
 );
 
 const projectSummaryReturn = v.object({
@@ -108,6 +116,7 @@ const taskSummaryReturn = v.object({
   attachmentCount: v.number(),
   hasContent: v.boolean(),
   priority: v.union(taskPriorityValidator, v.null()),
+  boardStatus: v.union(taskBoardStatusValidator, v.null()),
   order: v.number(),
   createdAt: v.number(),
   updatedAt: v.number(),
@@ -310,8 +319,10 @@ export const createTask = mutation({
   args: {
     projectId: v.string(),
     title: v.string(),
+    phaseId: v.optional(v.string()),
     priority: v.optional(taskPriorityValidator),
     content: v.optional(v.string()),
+    boardStatus: v.optional(taskBoardStatusValidator),
     isCompleted: v.optional(v.boolean()),
   },
   returns: taskSummaryReturn,
@@ -332,21 +343,33 @@ export const createTask = mutation({
       throw new Error("Project has no phases yet; create a phase first.");
     }
 
-    const targetPhase =
+    let targetPhase =
       phases.find((phase) => phase.status === "active") ??
       [...phases].sort((a, b) => a.order - b.order)[0]!;
+
+    if (args.phaseId) {
+      const phaseId = await normalizePhaseId(ctx, args.phaseId);
+      const selected = phases.find((phase) => phase._id === phaseId);
+      if (!selected || selected.projectId !== projectId) {
+        throw new Error("Phase not found for this project.");
+      }
+      targetPhase = selected;
+    }
+
+    const boardStatus = args.boardStatus ?? "todo";
+    const completed = args.isCompleted ?? boardStatus === "done";
     const existing = await ctx.db
       .query("tasks")
       .withIndex("by_phase_order", (q) => q.eq("phaseId", targetPhase._id))
       .collect();
     const timestamp = Date.now();
-    const completed = Boolean(args.isCompleted);
     const taskId = await ctx.db.insert("tasks", {
       phaseId: targetPhase._id,
       title: trimmedTitle,
       isCompleted: completed,
       content: args.content?.trim() || "",
       priority: completed ? undefined : args.priority,
+      boardStatus,
       order: existing.length,
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -357,6 +380,24 @@ export const createTask = mutation({
     if (!task) {
       throw new Error("Failed to load created task.");
     }
+    return buildApiTaskSummary(ctx, task);
+  },
+});
+
+export const setTaskKanbanColumn = mutation({
+  args: {
+    taskId: v.string(),
+    boardStatus: taskBoardStatusValidator,
+  },
+  returns: taskSummaryReturn,
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    const taskId = await normalizeTaskId(ctx, args.taskId);
+    const task = await setTaskKanbanColumnForUser(ctx, {
+      userId: user._id,
+      taskId,
+      boardStatus: args.boardStatus,
+    });
     return buildApiTaskSummary(ctx, task);
   },
 });

@@ -17,4 +17,12 @@ export function loadLocalEnv() {
       process.env.REFERO_MCP_TOKEN = referoToken.trim();
     }
   }
+
+  if (!process.env.OPENROUTER_API_KEY?.trim()) {
+    const openRouterKey =
+      process.env.openrouter_api_key ?? process.env.STAGE_OPENROUTER_API_KEY;
+    if (openRouterKey?.trim()) {
+      process.env.OPENROUTER_API_KEY = openRouterKey.trim();
+    }
+  }
 }

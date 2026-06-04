@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type PointerEvent } from "react";
 import {
   useProjectMembersQuery,
   useSetTaskAssigneesMutation,
+  useSetTaskKanbanColumnMutation,
   useToggleTaskCompletionMutation,
 } from "@/hooks/convex-data";
 import type { ProjectMember } from "@/hooks/convex-data";
@@ -19,6 +20,7 @@ export function useKanbanBoard(phases: Phase[], projectId?: string) {
   const initialColumns = useMemo(() => buildKanbanColumns(phases), [phases]);
   const membersQuery = useProjectMembersQuery(projectId);
   const setAssignees = useSetTaskAssigneesMutation();
+  const setKanbanColumn = useSetTaskKanbanColumnMutation();
   const toggleTaskCompletionMutation = useToggleTaskCompletionMutation();
   const [columns, setColumns] = useState(initialColumns);
   const [activeDrag, setActiveDrag] = useState<KanbanDragPreview | null>(null);
@@ -79,8 +81,6 @@ export function useKanbanBoard(phases: Phase[], projectId?: string) {
   function moveTask(taskId: string, targetColumn: KanbanStatus, beforeTaskId?: string | null) {
     if (taskId === beforeTaskId) return;
     const previous = columns;
-    const taskBeforeMove = findBoardTask(taskId);
-    const shouldBeCompleted = targetColumn === "done";
 
     setColumns((current) => {
       let movingTask: BoardTask | undefined;
@@ -121,13 +121,14 @@ export function useKanbanBoard(phases: Phase[], projectId?: string) {
       return next;
     });
 
-    if (taskBeforeMove && taskBeforeMove.task.isCompleted !== shouldBeCompleted) {
-      toggleTaskCompletionMutation.mutate(taskId, {
+    setKanbanColumn.mutate(
+      { taskId, boardStatus: targetColumn },
+      {
         onError: () => {
           setColumns(previous);
         },
-      });
-    }
+      },
+    );
   }
 
   function findBoardTask(taskId: string) {

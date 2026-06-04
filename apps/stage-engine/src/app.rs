@@ -2,6 +2,7 @@ use axum::Router;
 use std::sync::Arc;
 
 use crate::config::AppConfig;
+use crate::convex_store::app_secrets::AppSecretsRepository;
 use crate::convex_store::flows_repository::FlowsRepository;
 use crate::convex_store::moodboard_repository::MoodboardRepository;
 use crate::convex_store::research_repository::ResearchRepository;
@@ -35,10 +36,12 @@ impl AppState {
         let figma = FigmaService::new(&config.figma)?;
         let research = Arc::new(ResearchWorkflow::new(
             ResearchRepository::new(&config.convex),
+            AppSecretsRepository::new(&config.convex),
             ResearchService::new(refero.clone()),
         ));
         let moodboard = Arc::new(MoodboardWorkflow::new(
             MoodboardRepository::new(&config.convex),
+            AppSecretsRepository::new(&config.convex),
             refero,
             figma,
         ));

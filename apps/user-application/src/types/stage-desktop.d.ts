@@ -16,7 +16,10 @@ import type {
   StartRunRequest,
   StartRunResponse,
   CancelRunResponse,
+  VoiceTranscriptResponse,
+  VoiceTranscriptionRequest,
 } from "@stage/data-ops/contracts";
+import type { VoiceTranscriptionStatus } from "@shared/models/desktop";
 
 export type StageDesktopApi = {
   auth: {
@@ -40,6 +43,12 @@ export type StageDesktopApi = {
     hide: () => Promise<void>;
     setState: (state: CompanionState) => Promise<void>;
     setInteractive: (interactive: boolean) => Promise<void>;
+  };
+  voice: {
+    getStatus: () => Promise<VoiceTranscriptionStatus>;
+    transcribe: (input: VoiceTranscriptionRequest) => Promise<VoiceTranscriptResponse>;
+    onStartStopRecordingShortcut: (callback: () => void) => () => void;
+    onOpenLatestChatShortcut: (callback: () => void) => () => void;
   };
   window: {
     toggleMaximize: () => Promise<void>;

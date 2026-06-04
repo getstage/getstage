@@ -1,42 +1,114 @@
-# Stage V1 Voice Plan: ChatGPT/Codex Session Transcription Bridge
+# Stage V1 Voice Plan: ChatGPT/Codex + OpenRouter Fallback
+
+## Implementation status (shipped in desktop)
+
+```txt
+Status: implemented in Electron main (2026-06)
+Primary path: ChatGPT/Codex session bridge (Synara-class)
+Fallback path: OpenRouter Voxtral when user has Claude only
+Routing: automatic in main process from stage-engine /v1/providers
+```
+
+### Routing rules (live)
+
+```txt
+Claude + Codex connected (installed + authenticated)
+  -> prefer ChatGPT/Codex bridge (codex app-server + chatgpt.com/backend-api/transcribe)
+
+Codex only connected
+  -> same ChatGPT/Codex bridge
+
+Claude only connected + OPENROUTER_API_KEY in apps/user-application/.env
+  -> OpenRouter POST /api/v1/audio/transcriptions
+  -> model mistralai/voxtral-mini-transcribe
+
+ChatGPT/Codex path fails + Claude connected + OpenRouter key configured
+  -> automatic fallback to OpenRouter Voxtral
+```
+
+Reasoning after transcript is unchanged: selected Claude or Codex in companion chat.
+
+### Code map (implemented)
+
+```txt
+apps/user-application/electron/voice/
+  audio.ts           WAV validation (24 kHz mono)
+  chatgpt-codex.ts   Codex app-server auth + ChatGPT multipart upload
+  openrouter.ts    JSON base64 upload to OpenRouter STT
+  route.ts         Provider routing + fallback
+  status.ts        voice:get-status readiness probe
+  providers.ts     Claude/Codex connectivity from engine
+  secrets.ts       OPENROUTER_API_KEY (main only, never preload)
+  errors.ts        Sanitized user-facing errors
+  index.ts           IPC registration
+
+apps/user-application/electron/voice-transcription.ts
+  re-exports registerVoiceHandlers (compat)
+
+apps/user-application/src/hooks/companion/useVoiceRecorder.ts
+apps/user-application/src/hooks/companion/useVoiceTranscription.ts
+apps/user-application/src/components/companion/VoiceControlBar.tsx
+
+shared/ipc/channels.ts
+  voice:get-status
+  voice:transcribe
+
+packages/data-ops/src/contracts/engine-voice.ts
+apps/stage-engine/src/models/voice.rs
+  multi-provider contracts (mirror only; STT runs in Electron, not engine)
+```
+
+### Security boundaries (implemented)
+
+```txt
+ChatGPT token and OpenRouter API key stay in Electron main only
+Renderer calls voice.getStatus() + voice.transcribe() via preload
+Errors redact Bearer tokens and sk-* keys before UI/logs
+Provider list comes from stage-engine; no auth tokens sent to React
+```
+
+### Env (desktop main)
+
+```txt
+OPENROUTER_API_KEY   required for Claude-only voice (and ChatGPT-path fallback)
+REFERO_MCP_TOKEN     unrelated to voice; research/moodboard only
+```
+
+See `apps/user-application/env.example`.
 
 ## Summary
 
-Stage V1 voice uses the same class of bridge as Synara:
+Stage V1 voice is a two-backend transcription pipeline:
 
 ```txt
 Renderer microphone capture
--> 24 kHz mono WAV base64 payload
--> Electron IPC
--> Codex app-server auth discovery
--> ChatGPT session token
--> POST https://chatgpt.com/backend-api/transcribe
--> transcript text
--> Stage chat/workflow composer
--> selected Claude/Codex reasoning provider
+-> 24 kHz mono WAV base64
+-> Electron IPC (voice:get-status, voice:transcribe)
+-> route by Claude/Codex connectivity:
+     A) Codex app-server -> ChatGPT token -> POST chatgpt.com/backend-api/transcribe
+     B) OpenRouter -> POST openrouter.ai/api/v1/audio/transcriptions (Voxtral)
+-> transcript text -> companion composer event
+-> user sends to selected Claude/Codex reasoning provider
 ```
 
-This is the V1 decision. Voxtral/OpenRouter is no longer the V1 default for
-voice transcription. Voxtral/OpenRouter can remain a future fallback/provider
-option, but the first shipped Stage voice path should use the user's local
-ChatGPT-authenticated Codex session.
+Default when both Claude and Codex are connected: path A (Synara-class).
+
+When only Claude is connected: path B if `OPENROUTER_API_KEY` is set.
 
 ## Product Decision
 
-V1 default:
+V1 shipped behavior:
 
 ```txt
-Transcription provider: ChatGPT Codex session bridge
-Auth source: local Codex app-server ChatGPT auth token
-Reasoning provider after transcript: selected Stage provider, Claude or Codex
-Transcript behavior: insert into Stage composer/chat pipeline first
+Primary transcription: ChatGPT Codex session bridge when Codex is connected
+Claude-only transcription: OpenRouter mistralai/voxtral-mini-transcribe
+Reasoning after transcript: selected Stage provider (Claude or Codex)
+Transcript behavior: insert into companion composer via stage-voice-transcript-ready
 ```
 
-Do not use Mistral/Voxtral as the V1 default.
+Claude is not the speech-to-text provider. Claude receives text only after transcription.
 
-Do not attempt a Claude-private transcription bridge for V1. Claude can be the
-reasoning provider after transcript creation, but not the speech-to-text
-provider.
+There is no Anthropic-native desktop STT bridge in Stage. Claude Code `/voice` dictation is CLI-only and not wired into Stage companion.
 
 ## Source Findings
 
@@ -73,54 +145,26 @@ voice, matching Synara's behavior.
 
 ## Current Stage State
 
-Stage already has voice-shaped contracts, but they are currently
-OpenRouter/Voxtral-shaped:
-
 ```txt
-packages/data-ops/src/contracts/engine-voice.ts
-apps/stage-engine/src/models/voice.rs
+Contracts: packages/data-ops/src/contracts/engine-voice.ts (multi-provider)
+Rust mirror: apps/stage-engine/src/models/voice.rs (dead_code mirror; no /v1/voice routes yet)
+Runtime STT: apps/user-application/electron/voice/* (implemented)
+UI: VoiceControlBar + useVoiceRecorder + useVoiceTranscription (implemented)
+Pre-transcribe gate: voice.getStatus().canTranscribe + setupHint (implemented)
 ```
 
-Those contracts should be updated to make the ChatGPT/Codex session bridge the
-default V1 provider while leaving room for future providers.
+Renderer `transcribe` request still sends `provider: chatgpt-codex-session` for schema compatibility; **main process ignores it and routes from engine provider connectivity**.
 
-Existing AI workflow docs also mention Voxtral:
-
-```txt
-apps/user-application/docs/AI/STAGE_AI_WORKFLOW_CONTEXT_PLAN.md
-apps/user-application/docs/05-29/05-29-claude-codex-provider-layer.md
-```
-
-Those docs should later be updated to mark the Voxtral decision as superseded by
-this plan for V1.
-
-## Claude Feasibility
-
-Claude can be used after transcription, but Claude should not be treated as the
-V1 transcription provider.
-
-Findings:
-
-```txt
-Claude Mobile has voice mode.
-Claude Mobile has dictation.
-Claude Code CLI and SDK are text/tool oriented.
-No comparable Claude Code transcription bridge was found.
-No official Anthropic speech-to-text API equivalent was found for this V1 path.
-```
-
-Therefore:
+## Claude-only users (OpenRouter)
 
 ```txt
 Stage voice recording
--> ChatGPT/Codex transcription bridge
+-> OpenRouter Voxtral (when only Claude connected and OPENROUTER_API_KEY set)
 -> transcript
--> selected reasoning provider
--> Claude or Codex run
+-> Claude (or Codex) reasoning run
 ```
 
-This lets a Claude user still use voice in Stage, because the voice input is
-converted to text before the Claude run begins.
+Synara does **not** use this path; Synara requires ChatGPT in Codex for all voice. Stage adds OpenRouter so Claude-only teams can use voice without a Codex/ChatGPT login.
 
 ## Public Interfaces And Types
 
@@ -188,6 +232,8 @@ type VoiceTranscriptResponse = {
 };
 ```
 
+Runtime note: renderer may send `chatgpt-codex-session` on the request for schema defaults; Electron returns the **actual** `provider`/`model` used (`chatgpt-codex-session` or `openrouter` + Voxtral).
+
 Update the Rust mirror similarly:
 
 ```rust
@@ -210,10 +256,21 @@ desktop.voice.transcribe(input: VoiceTranscriptionInput): Promise<VoiceTranscrip
 desktop.voice.getStatus(): Promise<VoiceTranscriptionStatus>;
 ```
 
-Electron IPC channel:
+Electron IPC channels:
 
 ```txt
-desktop:voice-transcribe
+voice:get-status   readiness (no secrets returned)
+voice:transcribe   batch transcription with automatic routing
+voice:shortcut-start-stop-recording
+voice:shortcut-open-latest-chat
+```
+
+`VoiceTranscriptionStatus` (shared/models/desktop.ts):
+
+```txt
+canTranscribe, claudeConnected, codexConnected
+chatgptCodexVoiceReady, openRouterConfigured
+preferredProvider, preferredModel, setupHint
 ```
 
 The renderer must never receive:
@@ -241,12 +298,11 @@ duration label
 waveform levels
 ```
 
-Recommended files:
+Implemented files:
 
 ```txt
-apps/user-application/src/companion/hooks/useVoiceRecorder.ts
-apps/user-application/src/companion/hooks/useVoiceTranscript.ts
-apps/user-application/src/companion/models/voice.ts
+apps/user-application/src/hooks/companion/useVoiceRecorder.ts
+apps/user-application/src/hooks/companion/useVoiceTranscription.ts
 ```
 
 The first implementation should remain push-to-talk:
@@ -272,22 +328,35 @@ AVFoundation bridge
 
 ## Electron Transcription Bridge
 
-Add a desktop transcription module:
-
-```txt
-apps/user-application/electron/desktop-api/voice-transcription.ts
-```
+Implemented under `apps/user-application/electron/voice/`.
 
 Responsibilities:
 
 ```txt
-Validate audio payload.
-Discover Codex ChatGPT auth.
-Upload WAV file to ChatGPT transcription endpoint.
-Parse transcript response.
-Return typed response to renderer.
-Map failures to user-safe errors.
+Validate audio payload (audio.ts)
+Read Claude/Codex connectivity from stage-engine /v1/providers (providers.ts, route.ts)
+Path A: Codex ChatGPT auth + multipart upload (chatgpt-codex.ts)
+Path B: OpenRouter JSON STT with base64 WAV (openrouter.ts)
+Probe readiness without exposing tokens (status.ts)
+Map failures to user-safe errors (errors.ts)
 ```
+
+### OpenRouter path (Claude-only + fallback)
+
+```txt
+POST https://openrouter.ai/api/v1/audio/transcriptions
+Authorization: Bearer OPENROUTER_API_KEY (Electron main env only)
+Content-Type: application/json
+
+{
+  "model": "mistralai/voxtral-mini-transcribe",
+  "input_audio": { "data": "<base64 wav>", "format": "wav" }
+}
+
+Response: { "text": "..." }
+```
+
+Not multipart (unlike ChatGPT/Codex path).
 
 Validation rules:
 
@@ -365,6 +434,230 @@ The selected provider for reasoning remains Claude or Codex.
 ```
 
 This keeps voice as an input method, not a separate AI workflow.
+
+## Voice Settings And Shortcuts
+
+Stage V1 voice must have a settings surface. Voice should not depend only on a
+visible composer button, because the intended desktop behavior is:
+
+```txt
+User presses a keyboard shortcut anywhere.
+Stage opens the floating voice bar.
+Stage starts recording.
+The waveform moves while recording.
+User presses the shortcut again or clicks submit.
+Stage transcribes the clip.
+The transcript enters the Stage composer/chat pipeline.
+```
+
+Add a Voice settings section under Settings. If a dedicated Settings tab is too
+large for the first pass, place it under Settings -> Integrations near the
+Claude/Codex connection status.
+
+Recommended settings route:
+
+```txt
+apps/user-application/src/components/settings/VoiceSettingsPanel.tsx
+apps/user-application/src/routes/_authed/settings.voice.tsx
+```
+
+Recommended default shortcuts:
+
+```txt
+Start/stop voice note: CmdOrCtrl+Shift+V
+Open latest AI chat thread: CmdOrCtrl+Shift+A
+Cancel active voice recording: Escape, when the voice overlay is focused
+```
+
+Shortcut 1: start/stop voice note.
+
+```txt
+Idle:
+  register shortcut
+  show companion overlay
+  set state to listening
+  request microphone permission if needed
+  begin recording immediately after permission succeeds
+
+Listening:
+  same shortcut stops recording
+  set state to processing
+  transcribe audio
+  insert transcript into composer
+```
+
+Shortcut 2: open AI chat latest thread.
+
+```txt
+If latest Stage chat thread exists:
+  open companion chat panel with latest thread
+
+If no thread exists:
+  open companion chat panel with a new empty thread
+
+This shortcut does not start recording.
+It only opens the AI chat surface.
+```
+
+Settings controls:
+
+```txt
+Microphone input:
+  system default
+  detected input devices, if browser device labels are available after permission
+
+Voice shortcut:
+  editable shortcut recorder
+  reset to default
+  conflict warning if Electron cannot register it
+
+AI chat shortcut:
+  editable shortcut recorder
+  reset to default
+  conflict warning if Electron cannot register it
+
+Recording behavior:
+  push-to-talk toggle off by default
+  start/stop toggle behavior on by default
+  max recording length fixed at 120 seconds for V1
+
+Voice provider status:
+  Codex installed
+  Codex ChatGPT login available
+  microphone permission status
+  last transcription error, if any
+```
+
+Shortcut storage should be local desktop settings, not Convex project data.
+Shortcuts are machine-specific and should not sync between users or devices in
+V1.
+
+Recommended local setting shape:
+
+```ts
+type VoiceShortcutSettings = {
+  voiceNoteShortcut: string; // default "CommandOrControl+Shift+V"
+  aiChatShortcut: string; // default "CommandOrControl+Shift+A"
+  microphoneDeviceId?: string;
+  recordingMode: "toggle";
+  maxDurationMs: 120000;
+};
+```
+
+Electron ownership:
+
+```txt
+Electron:
+  stores local voice shortcut settings
+  registers/unregisters globalShortcut bindings
+  opens companion BrowserWindow
+  sends voice intent event to renderer
+
+Renderer:
+  owns recording UI and waveform state
+  requests microphone capture
+  submits audio through preload IPC
+  inserts transcript into composer/chat
+```
+
+Add IPC/event channels:
+
+```txt
+voice:get-settings
+voice:update-settings
+voice:get-shortcut-status
+voice:register-shortcuts
+voice:shortcut-start-stop-recording
+voice:shortcut-open-latest-chat
+```
+
+The shortcut action should be routed into the existing companion window when
+possible. It should not create a second duplicate voice window.
+
+## Recording Motion And Feedback
+
+The moving bars are not decorative. They are the primary user feedback that
+Stage is recording.
+
+Visual requirement:
+
+```txt
+When idle:
+  show a compact bar or inactive microphone control
+
+When listening:
+  expand the floating recorder bar
+  animate waveform bars from live microphone RMS levels
+  show active red recording button
+  keep the Stage mark visible in the center
+
+When processing:
+  stop live waveform input
+  switch bars to a slower loading pulse
+  keep the bar visible until transcript or error
+
+When transcript-ready:
+  briefly confirm success
+  collapse only after transcript has been inserted into composer
+
+When failed:
+  show error state and keep retry/cancel available
+```
+
+The waveform should use real microphone amplitude when recording:
+
+```txt
+Audio process callback
+-> calculate RMS per chunk
+-> normalize level to 0..1
+-> keep last 24-48 levels for compact bar
+-> map each level to bar height
+-> update at roughly 30-45 ms intervals
+```
+
+Fallback animation:
+
+```txt
+If live levels are unavailable but recording is active:
+  use deterministic staggered pulse animation
+  do not leave bars static
+```
+
+CSS behavior:
+
+```txt
+.voice-control-bar[data-state="listening"] .voice-wave-button span
+  height should be driven by CSS variables or inline style from waveform levels
+
+.voice-control-bar[data-state="processing"] .voice-wave-button span
+  should use a low-frequency pulse animation
+
+Respect prefers-reduced-motion:
+  show live level changes without additional looping animation
+```
+
+Accessibility:
+
+```txt
+aria-label should include current state:
+  "Recording voice note"
+  "Transcribing voice note"
+  "Voice transcription failed"
+
+Do not rely on motion only.
+Use stateful button labels and tooltips.
+Expose Escape to cancel when focused.
+```
+
+Window behavior:
+
+```txt
+Use the existing companion always-on-top BrowserWindow.
+Anchor the recorder bar bottom-center.
+Keep it visible over other apps.
+Set ignoreMouseEvents(false) only while the bar/chat is interactive.
+Return ignoreMouseEvents(true, { forward: true }) after hiding/collapsing.
+```
 
 ## Failure Modes
 
@@ -462,32 +755,42 @@ API-key-only Codex auth gives a clear "ChatGPT login required" message.
 
 ## Rollout
 
-Gate behind one local feature flag first:
-
 ```txt
-VITE_STAGE_CHATGPT_VOICE_BRIDGE=true
+Shipped locally without feature flag (companion voice bar + IPC).
+Requires full Electron restart after .env or main-process voice changes (not HMR-only).
+Microphone: macOS permission for Terminal/Electron; registerRendererMediaPermissions in main.ts.
 ```
 
-Once stable locally, enable by default for desktop V1 if:
+Readiness checks before transcribe:
 
 ```txt
-Codex is installed.
-Codex ChatGPT auth is available.
-Microphone permission is granted or promptable.
+voice.getStatus() -> canTranscribe false shows setupHint in UI
+Examples:
+  Claude only, no OPENROUTER_API_KEY -> hint to add key or connect Codex+ChatGPT
+  Codex connected, no ChatGPT session -> sign in to ChatGPT in Codex
 ```
-
-If unavailable, keep the microphone control visible but disabled with setup copy.
 
 ## Assumptions
 
 ```txt
-Stage V1 intentionally uses the private ChatGPT transcription bridge.
-This is a product decision, not only an experiment.
-The bridge may break if ChatGPT/Codex changes its internal endpoint or auth shape.
-Claude is supported as the reasoning provider after transcription.
-Claude is not supported as the V1 transcription provider.
-Voxtral/OpenRouter is not removed forever; it is simply not the V1 default.
+Primary path: private ChatGPT transcription bridge via Codex (may break if upstream changes).
+Fallback path: OpenRouter Voxtral for Claude-only and ChatGPT-path failures.
+Claude/Codex CLI auth is detected via stage-engine provider snapshots (installed + authenticated).
+OpenRouter key is Stage-managed desktop env, not end-user Integrations UI yet.
+Claude is the reasoning provider after transcription, not the STT provider.
 No always-on microphone in V1.
 No streaming transcription in V1.
+No stage-engine /v1/voice HTTP proxy in V1 (Electron owns STT).
 No automatic artifact mutation from voice in V1.
+```
+
+## Manual test checklist
+
+```txt
+[ ] Claude + Codex connected, ChatGPT in Codex -> voice transcribes via ChatGPT path
+[ ] Claude only + OPENROUTER_API_KEY -> voice transcribes via OpenRouter
+[ ] Claude only, no OpenRouter key -> setupHint before/at transcribe
+[ ] ChatGPT 403 with OpenRouter key -> fallback transcript succeeds
+[ ] Transcript appears in companion composer; Claude chat answer works after send
+[ ] Restart app after .env change; keys never appear in renderer DevTools
 ```

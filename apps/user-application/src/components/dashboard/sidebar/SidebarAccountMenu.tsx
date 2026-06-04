@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { sidebarLabelClassName } from "@/lib/dashboard/sidebarNav";
 import { cn } from "@/lib/utils";
+import { SidebarRoundAvatar } from "./SidebarRoundAvatar";
 
 export function SidebarAccountMenu({
   collapsed,
@@ -158,18 +159,13 @@ export function SidebarAccountMenu({
           )}
         >
           <div className={cn("flex items-center", collapsed ? "gap-0" : "gap-[8px]")}>
-            {accountAvatarUrl ? (
-              <img
-                src={accountAvatarUrl}
-                alt=""
-                aria-hidden="true"
-                className="h-[24px] w-[24px] shrink-0 rounded-full object-cover"
-              />
-            ) : (
-              <div className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-[#e5e5e5] text-[10px] font-medium text-[#525252]">
-                {accountInitials}
-              </div>
-            )}
+            <SidebarRoundAvatar
+              imageUrl={accountAvatarUrl}
+              label={accountLabel}
+              initials={accountInitials}
+              accentColor="#e5e5e5"
+              fallbackTextClassName="text-[#525252]"
+            />
             <span aria-hidden={collapsed} className={cn(labelClassName, "text-[#0a0a0a]")}>
               {accountLabel}
             </span>

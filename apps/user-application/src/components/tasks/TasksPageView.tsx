@@ -5,6 +5,7 @@ import type { ProjectSummary } from "@stage/data-ops";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { DeleteTaskModal } from "@/components/tasks/DeleteTaskModal";
 import { TasksPriorityBoard } from "@/components/tasks/board/TasksPriorityBoard";
+import { useProjectPhasesQuery } from "@/hooks/convex-data";
 import { useTasksBoard } from "@/hooks/tasks/useTasksBoard";
 import { PRIORITY_COLUMNS, type PriorityColumns, type PriorityTask } from "@/lib/tasks/priorityColumns";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,8 @@ export function TasksPageView() {
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [taskPendingDelete, setTaskPendingDelete] = useState<PriorityTask | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [createTaskProjectId, setCreateTaskProjectId] = useState<string | undefined>();
+  const createTaskPhasesQuery = useProjectPhasesQuery(createTaskProjectId);
 
   const visibleColumns = useMemo<PriorityColumns>(() => {
     if (!selectedProjectId) return board.columns;
@@ -74,7 +77,10 @@ export function TasksPageView() {
             />
             <button
               type="button"
-              onClick={() => setIsCreateTaskOpen(true)}
+              onClick={() => {
+                setCreateTaskProjectId(selectedProjectId ?? board.projects[0]?.id);
+                setIsCreateTaskOpen(true);
+              }}
               className="inline-flex h-[34px] shrink-0 cursor-pointer items-center justify-center gap-[6px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] py-[8px] pl-[10px] pr-[12px] text-[13px] font-medium leading-none text-[#fafafa] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-90"
               style={{ textShadow: "0px 0.5px 1.5px rgba(0,0,0,0.15)" }}
             >
@@ -104,7 +110,10 @@ export function TasksPageView() {
         {isCreateTaskOpen ? (
           <CreateTaskDialog
             projects={board.projects}
+            phases={createTaskPhasesQuery.data ?? []}
+            phasesLoading={createTaskPhasesQuery.isLoading}
             initialProjectId={selectedProjectId ?? undefined}
+            onProjectChange={setCreateTaskProjectId}
             onClose={() => setIsCreateTaskOpen(false)}
           />
         ) : null}

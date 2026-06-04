@@ -1,4 +1,4 @@
-import { app, Menu } from "electron";
+import { app, globalShortcut, Menu, session } from "electron";
 import { loadLocalEnv } from "./helpers/loadEnv";
 import { createDesktopAuthController } from "./auth";
 import { createDesktopAuthCallbackServer } from "./helpers/auth-callback-server";
@@ -6,8 +6,16 @@ import { findStageAuthUrl, registerStageProtocol } from "./helpers/auth";
 import { findStageIntegrationUrl } from "./helpers/integrations";
 import { createDesktopIntegrationsController } from "./integrations";
 import { registerIpcHandlers } from "./ipc";
+import { registerVoiceHandlers } from "./voice";
+import { fetchEngineJson } from "./helpers/sidecar";
+import { providerListResponseSchema } from "@stage/data-ops/contracts";
 import { createSidecarSupervisor } from "./sidecar";
-import { createMainWindow, shouldSuppressMainWindowActivation } from "./windows";
+import {
+  createMainWindow,
+  openCompanionForLatestChatShortcut,
+  openCompanionForVoiceShortcut,
+  shouldSuppressMainWindowActivation,
+} from "./windows";
 
 loadLocalEnv();
 
@@ -144,6 +152,28 @@ async function installStageTrayIfEnabled() {
   }
 }
 
+function registerVoiceShortcuts() {
+  const shortcuts = [
+    {
+      accelerator: "CommandOrControl+Shift+V",
+      label: "voice note",
+      action: openCompanionForVoiceShortcut,
+    },
+    {
+      accelerator: "CommandOrControl+Shift+A",
+      label: "latest AI chat",
+      action: openCompanionForLatestChatShortcut,
+    },
+  ];
+
+  for (const shortcut of shortcuts) {
+    const registered = globalShortcut.register(shortcut.accelerator, shortcut.action);
+    if (!registered) {
+      console.warn(`[stage-voice] Could not register ${shortcut.label} shortcut ${shortcut.accelerator}.`);
+    }
+  }
+}
+
 app.on("open-url", (event, url) => {
   event.preventDefault();
   handleDeepLinkUrl(url);
@@ -160,10 +190,35 @@ app.on("second-instance", (_event, argv) => {
   handleDeepLinkUrl(deepLinkUrl);
 });
 
+function registerRendererMediaPermissions() {
+  const mediaPermissions = new Set(["media", "microphone", "audioCapture"]);
+
+  session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+    callback(mediaPermissions.has(permission));
+  });
+
+  session.defaultSession.setPermissionCheckHandler((_webContents, permission) =>
+    mediaPermissions.has(permission),
+  );
+}
+
 app.whenReady().then(() => {
+  registerRendererMediaPermissions();
   installApplicationMenu();
   authCallbackServer.start();
   registerIpcHandlers({ authController, integrationsController, sidecarSupervisor });
+  registerVoiceHandlers({
+    listProviders: async () => {
+      const status = await sidecarSupervisor.start();
+      const payload = await fetchEngineJson<unknown>({
+        path: "/v1/providers",
+        port: status.port,
+      });
+
+      return providerListResponseSchema.parse(payload);
+    },
+  });
+  registerVoiceShortcuts();
   authController.consumeQueuedCallback().then((result) => {
     if (result && !result.ok) {
       console.warn(`[stage-auth] ${result.error}`);
@@ -189,6 +244,10 @@ app.whenReady().then(() => {
 
     createMainWindow();
   });
+});
+
+app.on("will-quit", () => {
+  globalShortcut.unregisterAll();
 });
 
 app.on("before-quit", (event) => {

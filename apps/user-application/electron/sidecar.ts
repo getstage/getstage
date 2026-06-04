@@ -1,12 +1,14 @@
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { chmodSync, existsSync } from "node:fs";
 import { dirname } from "node:path";
 import type { EngineStatus } from "@shared/models/desktop";
+import { getPackagedStageEngineBinaryPath } from "./helpers/stage-engine-binary";
 import {
   DEFAULT_PORT,
   SHUTDOWN_TIMEOUT_MS,
   fetchReadiness,
   findStageEngineManifest,
+  getSidecarEnv,
   getSidecarPort,
   logSidecarOutput,
   type SidecarChildProcess,
@@ -46,26 +48,19 @@ export class SidecarSupervisor {
       return this.getStatus();
     }
 
-    const manifestPath = findStageEngineManifest();
+    const packagedBinary = getPackagedStageEngineBinaryPath();
+    const sidecarEnv = getSidecarEnv(port);
+    let child: SidecarChildProcess;
 
-    if (!existsSync(manifestPath)) {
-      const error = `Stage Engine manifest not found at ${manifestPath}.`;
-      this.status = { adopted: false, error, pid: null, port, state: "failed" };
-      throw new Error(error);
+    try {
+      child = packagedBinary
+        ? spawnPackagedEngine(packagedBinary, sidecarEnv)
+        : spawnDevEngine(sidecarEnv);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown sidecar startup error.";
+      this.status = { adopted: false, error: message, pid: null, port, state: "failed" };
+      throw error;
     }
-
-    const child = spawn("cargo", ["run", "--manifest-path", manifestPath], {
-      cwd: dirname(manifestPath),
-      env: {
-        ...process.env,
-        STAGE_ENGINE_PORT: String(port),
-        CONVEX_URL:
-          process.env.CONVEX_URL ??
-          process.env.VITE_CONVEX_URL ??
-          "https://reliable-bullfrog-917.convex.cloud",
-      },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
 
     this.child = child;
     this.status = { adopted: false, pid: child.pid ?? null, port, state: "starting" };
@@ -147,4 +142,28 @@ export class SidecarSupervisor {
 
 export function createSidecarSupervisor() {
   return new SidecarSupervisor();
+}
+
+function spawnPackagedEngine(binaryPath: string, env: NodeJS.ProcessEnv) {
+  chmodSync(binaryPath, 0o755);
+  console.info(`[stage-engine] starting packaged binary at ${binaryPath}`);
+  return spawn(binaryPath, [], {
+    env,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
+function spawnDevEngine(env: NodeJS.ProcessEnv) {
+  const manifestPath = findStageEngineManifest();
+
+  if (!existsSync(manifestPath)) {
+    throw new Error(`Stage Engine manifest not found at ${manifestPath}.`);
+  }
+
+  console.info(`[stage-engine] starting dev cargo run (${manifestPath})`);
+  return spawn("cargo", ["run", "--manifest-path", manifestPath], {
+    cwd: dirname(manifestPath),
+    env,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
 }

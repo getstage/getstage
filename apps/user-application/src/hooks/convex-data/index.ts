@@ -11,11 +11,15 @@ export {
   useCreateTaskMutation,
   useDeleteTaskMutation,
   useSetTaskAssigneesMutation,
+  useSetTaskKanbanColumnMutation,
   useSetTaskPriorityMutation,
   useToggleTaskCompletionMutation,
+  useUpdateTaskMutation,
   type CreateTaskInput,
   type SetTaskAssigneesInput,
+  type SetTaskKanbanColumnInput,
   type SetTaskPriorityInput,
+  type UpdateTaskInput,
 } from "./useTaskMutations";
 export {
   useDeleteProjectMutation,

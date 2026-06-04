@@ -2,9 +2,20 @@ import { z } from "zod";
 
 import { engineApiVersionSchema, engineErrorSchema } from "./engine-provider";
 
-export const voiceTranscriptionProviderSchema = z.literal("openrouter");
+export const voiceTranscriptionProviderSchema = z.enum([
+  "chatgpt-codex-session",
+  "openrouter",
+  "mistral",
+  "openai-audio-api",
+]);
 
-export const voiceTranscriptionModelSchema = z.literal("mistralai/voxtral-mini-transcribe");
+export const voiceTranscriptionModelSchema = z.enum([
+  "chatgpt-backend-transcribe",
+  "mistralai/voxtral-mini-transcribe",
+  "voxtral-mini-latest",
+  "gpt-4o-transcribe",
+  "gpt-4o-mini-transcribe",
+]);
 
 export const voiceCaptureModeSchema = z.literal("batch");
 
@@ -26,17 +37,23 @@ export const voiceTranscriptionStatusSchema = z.enum([
 ]);
 
 export const voiceTranscriptionRequestSchema = z.object({
-  provider: voiceTranscriptionProviderSchema.default("openrouter"),
-  model: voiceTranscriptionModelSchema.default("mistralai/voxtral-mini-transcribe"),
+  apiVersion: engineApiVersionSchema.default("v1"),
+  provider: voiceTranscriptionProviderSchema.default("chatgpt-codex-session"),
+  model: voiceTranscriptionModelSchema.default("chatgpt-backend-transcribe"),
   mode: voiceCaptureModeSchema.default("batch"),
   audioMimeType: voiceAudioFormatSchema,
+  audioBase64: z.string().min(1).optional(),
   audioSizeBytes: z.number().int().positive(),
+  sampleRateHz: z.number().int().positive().optional(),
   durationMs: z.number().int().positive().optional(),
+  cwd: z.string().min(1).optional(),
+  threadId: z.string().min(1).optional(),
   language: z.string().min(2).max(16).optional(),
   prompt: z.string().min(1).optional(),
   context: z.object({
     projectId: z.string().min(1).optional(),
     source: z.enum(["companion", "chat", "research", "generation"]).optional(),
+    selectedReasoningProvider: z.enum(["claude", "codex"]).optional(),
   }).default({}),
 });
 

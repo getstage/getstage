@@ -7,6 +7,7 @@ import {
   type HandlerDetails,
 } from "electron";
 import { join } from "node:path";
+import { IPC_CHANNELS } from "@shared/ipc/channels";
 
 let mainWindow: BrowserWindowType | null = null;
 let companionWindow: BrowserWindowType | null = null;
@@ -112,6 +113,23 @@ function dispatchCompanionOpen(window: BrowserWindowType) {
   );
 }
 
+function sendToCompanionWhenReady(window: BrowserWindowType, channel: string) {
+  const send = () => {
+    setTimeout(() => {
+      if (!window.isDestroyed()) {
+        window.webContents.send(channel);
+      }
+    }, 100).unref();
+  };
+
+  if (window.webContents.isLoading()) {
+    window.webContents.once("did-finish-load", send);
+    return;
+  }
+
+  send();
+}
+
 function ensureDockVisible() {
   if (process.platform === "darwin") {
     app.dock?.show();
@@ -128,6 +146,18 @@ export function openCompanionFromTray() {
   }
 
   return createCompanionWindow();
+}
+
+export function openCompanionForVoiceShortcut() {
+  const window = createCompanionWindow();
+  sendToCompanionWhenReady(window, IPC_CHANNELS.voiceShortcutStartStopRecording);
+  return window;
+}
+
+export function openCompanionForLatestChatShortcut() {
+  const window = createCompanionWindow();
+  sendToCompanionWhenReady(window, IPC_CHANNELS.voiceShortcutOpenLatestChat);
+  return window;
 }
 
 export function createCompanionWindow() {

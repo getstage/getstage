@@ -170,6 +170,7 @@ export async function buildApiTaskSummary(
     attachmentCount: attachments.length,
     hasContent: (task.content ?? "").trim().length > 0,
     priority: task.priority ?? null,
+    boardStatus: task.boardStatus ?? null,
     order: task.order,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,

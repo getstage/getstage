@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::convex_store::app_secrets::AppSecretsRepository;
 use crate::convex_store::asset_upload::ConvexAssetUploader;
 use crate::convex_store::research_repository::{
     ResearchRepository, enrich_research_artifact, extract_json_object, extract_research_artifact,
@@ -16,19 +17,26 @@ use crate::research::section::{
     build_section_regenerate_prompt, merge_research_section, parse_research_section,
 };
 use crate::research::service::ResearchService;
+use crate::refero::service::ReferoService;
 use crate::runs::RunEventSink;
 use serde_json::json;
 
 #[derive(Clone, Debug)]
 pub struct ResearchWorkflow {
     repository: ResearchRepository,
+    secrets: AppSecretsRepository,
     research: ResearchService,
 }
 
 impl ResearchWorkflow {
-    pub fn new(repository: ResearchRepository, research: ResearchService) -> Self {
+    pub fn new(
+        repository: ResearchRepository,
+        secrets: AppSecretsRepository,
+        research: ResearchService,
+    ) -> Self {
         Self {
             repository,
+            secrets,
             research,
         }
     }
@@ -122,11 +130,13 @@ impl ResearchWorkflow {
                 "Search Refero examples",
             );
             tracing::info!(run_id = %run_id, project_id, "building Refero context");
-            let mut bundle = self.research.build_prompt_bundle(input.clone()).await?;
+            let refero = self.resolve_refero(&auth_token).await?;
+            let research = ResearchService::new(refero.clone());
+            let mut bundle = research.build_prompt_bundle(input.clone()).await?;
 
             let uploader = ConvexAssetUploader::new(self.repository.deployment_url().to_string());
             let image_keys = persist_refero_context_images(
-                self.research.refero(),
+                &refero,
                 &uploader,
                 &auth_token,
                 project_id,
@@ -225,6 +235,27 @@ impl ResearchWorkflow {
                 error: error.to_engine_error(provider_id),
             });
         }
+    }
+
+    async fn resolve_refero(&self, auth_token: &str) -> Result<ReferoService, WorkflowError> {
+        if self.research.refero().is_configured() {
+            return Ok(self.research.refero().clone());
+        }
+
+        let token = self
+            .secrets
+            .fetch_refero_mcp_token(auth_token)
+            .await?
+            .ok_or_else(|| {
+                WorkflowError::InvalidRequest(
+                    "Refero is not configured for this Stage deployment.".to_string(),
+                )
+            })?;
+
+        self.research
+            .refero()
+            .with_token(token)
+            .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))
     }
 
     async fn run_section_regenerate(

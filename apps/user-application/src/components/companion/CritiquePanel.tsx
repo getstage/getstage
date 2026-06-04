@@ -166,6 +166,47 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   }, [getOpeningPosition, onStateChange, resetPosition, state, visible]);
 
   useEffect(() => {
+    function handleTranscriptReady(event: Event) {
+      const text = event instanceof CustomEvent && typeof event.detail?.text === "string"
+        ? event.detail.text.trim()
+        : "";
+
+      if (!text) {
+        return;
+      }
+
+      setDraft((currentDraft) => {
+        if (!currentDraft.trim()) {
+          return text;
+        }
+
+        return `${currentDraft.trimEnd()}\n${text}`;
+      });
+      void onStateChange("response");
+      window.requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+      });
+    }
+
+    function handleOpenLatestChatShortcut() {
+      void onStateChange("thinking");
+      window.requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+      });
+    }
+
+    window.addEventListener("stage-voice-transcript-ready", handleTranscriptReady);
+    const unsubscribeOpenLatestChat =
+      window.stageDesktop?.voice?.onOpenLatestChatShortcut?.(handleOpenLatestChatShortcut) ??
+      (() => {});
+
+    return () => {
+      window.removeEventListener("stage-voice-transcript-ready", handleTranscriptReady);
+      unsubscribeOpenLatestChat();
+    };
+  }, [onStateChange]);
+
+  useEffect(() => {
     threadRef.current?.scrollTo({
       top: threadRef.current.scrollHeight,
       behavior: "smooth",

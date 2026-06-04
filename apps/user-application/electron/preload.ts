@@ -1,7 +1,12 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import type { CompanionState, DesktopSession, IntegrationOAuthResult, PermissionKind } from "@shared/models/desktop";
-import type { RunEvent, StartRunRequest } from "@stage/data-ops/contracts";
+import type {
+  RunEvent,
+  StartRunRequest,
+  VoiceTranscriptResponse,
+  VoiceTranscriptionRequest,
+} from "@stage/data-ops/contracts";
 
 const stageDesktop = {
   auth: {
@@ -47,6 +52,31 @@ const stageDesktop = {
       ipcRenderer.invoke(IPC_CHANNELS.companionSetState, state),
     setInteractive: (interactive: boolean) =>
       ipcRenderer.invoke(IPC_CHANNELS.companionSetInteractive, interactive),
+  },
+  voice: {
+    getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.voiceGetStatus),
+    transcribe: (input: VoiceTranscriptionRequest): Promise<VoiceTranscriptResponse> =>
+      ipcRenderer.invoke(IPC_CHANNELS.voiceTranscribe, input),
+    onStartStopRecordingShortcut: (callback: () => void) => {
+      const listener = () => {
+        callback();
+      };
+
+      ipcRenderer.on(IPC_CHANNELS.voiceShortcutStartStopRecording, listener);
+      return () => {
+        ipcRenderer.off(IPC_CHANNELS.voiceShortcutStartStopRecording, listener);
+      };
+    },
+    onOpenLatestChatShortcut: (callback: () => void) => {
+      const listener = () => {
+        callback();
+      };
+
+      ipcRenderer.on(IPC_CHANNELS.voiceShortcutOpenLatestChat, listener);
+      return () => {
+        ipcRenderer.off(IPC_CHANNELS.voiceShortcutOpenLatestChat, listener);
+      };
+    },
   },
   window: {
     toggleMaximize: () => ipcRenderer.invoke(IPC_CHANNELS.windowToggleMaximize),
