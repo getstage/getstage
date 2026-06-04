@@ -57,10 +57,12 @@ export function mapReferenceToItem(
   reference: MoodboardReference,
   directions: MoodboardDirectionView[],
 ): MoodboardItem {
+  const displayImage = reference.thumbnailUrl ?? reference.imageUrl;
+
   return {
     id: reference.id,
     title: reference.title,
-    image: reference.imageUrl,
+    image: displayImage,
     imageUrl: reference.imageUrl,
     imageAssetKey: reference.imageAssetKey,
     thumbnailUrl: reference.thumbnailUrl,

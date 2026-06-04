@@ -51,6 +51,14 @@ export function directionIdFromName(name: string): string {
   return `direction-${slug || "untitled"}`;
 }
 
+function stableImageUrlForSave(item: MoodboardBoardItem) {
+  return item.imageAssetKey ?? item.imageUrl ?? item.image;
+}
+
+function stableThumbnailUrlForSave(item: MoodboardBoardItem) {
+  return item.thumbnailAssetKey ?? item.thumbnailUrl;
+}
+
 /** Map tab-local board state to a validated `moodboardArtifact`. */
 export function tabStateToMoodboardArtifact(
   project: { id: string; name: string },
@@ -66,9 +74,9 @@ export function tabStateToMoodboardArtifact(
   const references: MoodboardReference[] = state.items.map((item, index) => ({
     id: item.id,
     title: item.title,
-    imageUrl: item.imageAssetKey ?? item.imageUrl ?? item.image,
+    imageUrl: stableImageUrlForSave(item),
     imageAssetKey: item.imageAssetKey,
-    thumbnailUrl: item.thumbnailAssetKey ?? item.thumbnailUrl,
+    thumbnailUrl: stableThumbnailUrlForSave(item),
     thumbnailAssetKey: item.thumbnailAssetKey,
     source: item.source ?? "upload",
     sourceUrl: item.sourceUrl,

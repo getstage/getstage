@@ -20,7 +20,7 @@ Moodboard is the **visual direction** step after Research + Strategy: import ref
 | **Convex read** | `getLatestMoodboardArtifact` with `resolveAssetContentJson` (R2 keys → signed URLs) |
 | **Convex save** | `saveMoodboardArtifact` upsert — no R2 wipe on every save |
 | **Convex cleanup** | `deletePreviousMoodboardArtifacts` — explicit downstream clear only (Research/Strategy re-run dialog) |
-| **R2 purposes** | `moodboard-upload`, `moodboard-refero`, `moodboard-figma`, `moodboard-url` |
+| **R2 purposes** | `moodboard-upload`, `moodboard-refero`, `moodboard-figma`, `moodboard-url`; new keys are project-first |
 | **Stage Engine — import** | `apps/stage-engine/src/moodboard/workflow.rs` — `RunManager` routes `mode: moodboard` (no Codex/Claude CLI for import) |
 | **Refero import** | `refero_search_screens` + image fetch (`full` → `thumbnail` MCP) + HTTPS CDN fallback + R2 `moodboard-refero` |
 | **Figma import** | User OAuth via `getConnectedFigmaAccessToken` + `figma/service.rs` + R2 `moodboard-figma` |
@@ -32,6 +32,29 @@ Moodboard is the **visual direction** step after Research + Strategy: import ref
 | **Engine `styleguide` mode** | In `runModeSchema` but **no** `styleguide/workflow.rs` yet |
 
 **Import runs are production-shaped** (engine → R2 → Convex artifact append). **Style guide generation is still UI/mock.**
+
+---
+
+## Moodboard asset storage
+
+Moodboard image storage is project-first for new assets:
+
+```txt
+moodboard/projects/{projectId}/users/{userId}/uploads/{uuid}.{ext}
+moodboard/projects/{projectId}/users/{userId}/refero/{uuid}.{ext}
+moodboard/projects/{projectId}/users/{userId}/figma/{uuid}.{ext}
+moodboard/projects/{projectId}/users/{userId}/urls/{uuid}.{ext}
+```
+
+Legacy keys like `users/{userId}/moodboard/{projectId}/...` remain supported and must not be migrated eagerly.
+
+Artifact rule:
+
+- `imageAssetKey` / `thumbnailAssetKey` are the stable source of truth when present.
+- `imageUrl` / `thumbnailUrl` may contain a stable object key at rest.
+- Convex read resolves keys to fresh signed URLs before the renderer sees them.
+- The renderer must not persist signed URLs back as primary truth when an asset key exists.
+- `sourceUrl` is provenance/fallback only, not the primary render source.
 
 ---
 

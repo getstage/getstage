@@ -95,6 +95,14 @@ run_completed
 | 11 | Try saving a blank new direction | Nothing is created; no fallback `Direction N` name |
 | 12 | Create a named direction and assign refs | Direction appears in Direction Hub with the real assigned reference count |
 | 13 | Rename the direction from Direction Hub | Assigned refs move with the renamed direction; reload keeps the new name |
+| 14 | Import refs from Refero/Figma/upload | New refs are visible but not automatically selected |
+| 15 | Select staged refs only and click **Delete selected** | Only those visible staged refs are removed from the staging grid/artifact |
+| 16 | Select one visible moodboard ref and click **Delete from Moodboard** | Only that visible selected ref leaves the moodboard; hidden/other refs are unchanged |
+| 17 | Reload an older artifact with empty `Direction 1/2/3` | Empty legacy fixture directions are not shown unless references/style guide data use them |
+| 18 | Open **Add to Direction**, then click grid/delete/outside/menu toggle | Direction menu closes cleanly; no floating popover remains |
+| 19 | Reload refs with `imageAssetKey` / `thumbnailAssetKey` | Convex resolves fresh signed URLs; grid does not show broken image placeholders when assets exist |
+| 20 | Hover a reference and open fullscreen preview | Preview opens in a modal; Escape, close button, or backdrop closes it |
+| 21 | Import a new moodboard image and inspect artifact/R2 key | New key starts `moodboard/projects/{projectId}/users/{userId}/...`; no signed URL is stored as primary truth when asset key exists |
 
 ---
 
@@ -104,8 +112,8 @@ Skip until Phase 5 in [`MOODBOARD_BUILD_PLAN.md`](./MOODBOARD_BUILD_PLAN.md) is 
 
 | # | Step | Current behavior |
 |---|------|------------------|
-| 14 | **Generate style guide** on a direction | Mock delay (~900 ms); may show fixture `defaultStyleGuide` |
-| 15 | Regenerate style guide | Same mock path |
+| 22 | **Generate style guide** on a direction | Mock delay (~900 ms); may show fixture `defaultStyleGuide` |
+| 23 | Regenerate style guide | Same mock path |
 
 When shipped, expect:
 

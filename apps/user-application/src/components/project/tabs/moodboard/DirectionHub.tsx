@@ -38,7 +38,7 @@ export function DirectionHub({
       </div>
 
       <div className="grid gap-2 lg:grid-cols-3">
-        {directions.map((direction, index) => (
+        {directions.map((direction) => (
           <DirectionCard
             key={direction.name}
             direction={direction}

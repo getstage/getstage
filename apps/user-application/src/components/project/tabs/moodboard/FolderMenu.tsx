@@ -18,7 +18,7 @@ export function FolderMenu({
   onCommitFolder?: () => void;
 }) {
   return (
-    <div className="absolute right-3 top-[52px] z-10 w-[212px] rounded-[8px] border-2 border-black/5 bg-gradient-to-b from-white to-[#FAFAFA] p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+    <div className="absolute right-0 top-[40px] z-10 w-[212px] rounded-[8px] border-2 border-black/5 bg-gradient-to-b from-white to-[#FAFAFA] p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="text-[12px] font-medium leading-[1.5] text-[#0A0A0A]">
         Select Direction
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MoodboardUploadedFile } from "@stage/data-ops/contracts";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import {
@@ -29,6 +29,12 @@ function createFallbackItems(): MoodboardItem[] {
   return [];
 }
 
+const LEGACY_AUTO_DIRECTION_NAMES = new Set(["Direction 1", "Direction 2", "Direction 3"]);
+
+function isLegacyAutoDirection(name: string, usedDirectionNames: Set<string>, hasStyleGuide?: boolean) {
+  return LEGACY_AUTO_DIRECTION_NAMES.has(name) && !usedDirectionNames.has(name) && !hasStyleGuide;
+}
+
 type MoodboardTabProps = {
   project: Project;
   onGoToResearch?: () => void;
@@ -53,6 +59,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
   const [referoQuery, setReferoQuery] = useState("");
   const [activeStyleGuideDirectionName, setActiveStyleGuideDirectionName] = useState<string | null>(null);
   const [styleGuideGeneratingMode, setStyleGuideGeneratingMode] = useState<"generate" | "regenerate">("generate");
+  const directionMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!moodboard.data?.tabData) {
@@ -72,21 +79,29 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
     );
     setUploadedFiles(tabData.uploadedFiles);
     setItems(tabData.references);
+    const usedDirectionNames = new Set(
+      tabData.references
+        .map((reference) => reference.folder)
+        .filter((folder): folder is string => Boolean(folder)),
+    );
     setFolders(
-      tabData.directions.map((direction) => ({
-        name: direction.name,
-        hasStyleGuide: direction.hasStyleGuide,
-      })),
+      tabData.directions
+        .filter((direction) =>
+          !isLegacyAutoDirection(direction.name, usedDirectionNames, direction.hasStyleGuide),
+        )
+        .map((direction) => ({
+          name: direction.name,
+          hasStyleGuide: direction.hasStyleGuide,
+        })),
     );
     setSelectedIds((current) => {
       const next = new Set(
         [...current].filter((id) => tabData.references.some((reference) => reference.id === id)),
       );
-      return next.size > 0 ? next : new Set(tabData.references.filter((reference) => !reference.isInMoodboard).map((reference) => reference.id));
+      return next;
     });
   }, [moodboard.data]);
 
-  const selectedItems = items.filter((item) => selectedIds.has(item.id));
   const hasMoodboard = items.some((item) => item.isInMoodboard);
   const folderNames = folders.map((folder) => folder.name);
   const hasStagedItems = items.some((item) => !item.isInMoodboard);
@@ -98,8 +113,13 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
     if (!item.isInMoodboard) return false;
     return activeFolder ? item.folder === activeFolder : true;
   });
-  const canAddToMoodboard = selectedItems.length > 0;
-  const showSelectionActions = (hasMoodboard || showImportGrid) && selectedItems.length > 0;
+  const selectedVisibleItems = visibleItems.filter((item) => selectedIds.has(item.id));
+  const selectedVisibleIds = new Set(selectedVisibleItems.map((item) => item.id));
+  const canAddToMoodboard = selectedVisibleItems.length > 0;
+  const showSelectionActions = (hasMoodboard || showImportGrid) && selectedVisibleItems.length > 0;
+  const deleteButtonLabel = selectedVisibleItems.some((item) => item.isInMoodboard)
+    ? "Delete from Moodboard"
+    : "Delete selected";
   const activeStyleGuide = (() => {
     if (!activeStyleGuideDirectionName || !moodboard.data) {
       return defaultStyleGuide;
@@ -129,9 +149,48 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
       });
   }
 
-  function openDirectionMenu() {
-    setIsFolderMenuOpen((current) => !current);
+  function closeDirectionMenu() {
+    setIsFolderMenuOpen(false);
+    setIsCreatingFolder(false);
+    setDraftFolderName("");
   }
+
+  function openDirectionMenu() {
+    setIsFolderMenuOpen((current) => {
+      if (current) {
+        setIsCreatingFolder(false);
+        setDraftFolderName("");
+      }
+      return !current;
+    });
+  }
+
+  useEffect(() => {
+    if (!isFolderMenuOpen) {
+      return;
+    }
+
+    if (!showSelectionActions || view !== "board") {
+      closeDirectionMenu();
+    }
+  }, [isFolderMenuOpen, showSelectionActions, view]);
+
+  useEffect(() => {
+    if (!isFolderMenuOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (target instanceof Node && directionMenuRef.current?.contains(target)) {
+        return;
+      }
+      closeDirectionMenu();
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [isFolderMenuOpen]);
 
   function renameDirection(previousName: string, nextName: string) {
     const name = nextName.trim();
@@ -356,20 +415,33 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
               />
 
               {showSelectionActions ? (
-                <div className="flex items-center justify-end gap-2">
+                <div
+                  ref={directionMenuRef}
+                  className="relative flex items-center justify-end gap-2"
+                >
                   <button
                     type="button"
                     className="inline-flex h-8 cursor-pointer items-center justify-center rounded-[6px] bg-white px-3 text-[12px] font-medium leading-none text-[#EF4444] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA]"
                     onClick={() => {
-                      const nextItems = items.map((item) =>
-                        selectedIds.has(item.id) ? { ...item, isInMoodboard: false, folder: null } : item,
-                      );
+                      if (selectedVisibleIds.size === 0) return;
+                      const nextItems = items.flatMap((item) => {
+                        if (!selectedVisibleIds.has(item.id)) {
+                          return [item];
+                        }
+
+                        if (item.isInMoodboard) {
+                          return [{ ...item, isInMoodboard: false, folder: null }];
+                        }
+
+                        return [];
+                      });
                       setItems(nextItems);
                       setSelectedIds(new Set());
+                      closeDirectionMenu();
                       persistBoard(nextItems, folders);
                     }}
                   >
-                    Delete from Moodboard
+                    {deleteButtonLabel}
                   </button>
                   <button
                     type="button"
@@ -379,6 +451,46 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
                     Add to Direction
                     <DirectionIcon />
                   </button>
+                  {isFolderMenuOpen ? (
+                    <FolderMenu
+                      folders={folderNames}
+                      creating={isCreatingFolder}
+                      draftName={draftFolderName}
+                      onSelectFolder={(folder) => {
+                        const nextFolders = folders.some((item) => item.name === folder)
+                          ? folders
+                          : [...folders, { name: folder }];
+                        const nextItems = items.map((item) =>
+                          selectedVisibleIds.has(item.id) ? { ...item, folder, isInMoodboard: true } : item,
+                        );
+                        setFolders(nextFolders);
+                        setItems(nextItems);
+                        setActiveFolder(null);
+                        closeDirectionMenu();
+                        persistBoard(nextItems, nextFolders);
+                      }}
+                      onCreateFolder={() => {
+                        setIsCreatingFolder(true);
+                        setDraftFolderName("");
+                      }}
+                      onDraftNameChange={setDraftFolderName}
+                      onCommitFolder={() => {
+                        const name = draftFolderName.trim();
+                        if (!name) return;
+                        const nextFolders = folders.some((item) => item.name === name)
+                          ? folders
+                          : [...folders, { name }];
+                        const nextItems = items.map((item) =>
+                          selectedVisibleIds.has(item.id) ? { ...item, folder: name, isInMoodboard: true } : item,
+                        );
+                        setFolders(nextFolders);
+                        setItems(nextItems);
+                        setActiveFolder(null);
+                        closeDirectionMenu();
+                        persistBoard(nextItems, nextFolders);
+                      }}
+                    />
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -387,6 +499,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
               items={visibleItems}
               selectedIds={selectedIds}
               onToggleSelect={(itemId) => {
+                closeDirectionMenu();
                 setSelectedIds((current) => {
                   const next = new Set(current);
                   if (next.has(itemId)) next.delete(itemId);
@@ -395,51 +508,6 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
                 });
               }}
             />
-
-            {isFolderMenuOpen ? (
-              <FolderMenu
-                folders={folderNames}
-                creating={isCreatingFolder}
-                draftName={draftFolderName}
-                onSelectFolder={(folder) => {
-                  const nextFolders = folders.some((item) => item.name === folder)
-                    ? folders
-                    : [...folders, { name: folder }];
-                  const nextItems = items.map((item) =>
-                    selectedIds.has(item.id) ? { ...item, folder, isInMoodboard: true } : item,
-                  );
-                  setFolders(nextFolders);
-                  setItems(nextItems);
-                  setActiveFolder(null);
-                  setIsCreatingFolder(false);
-                  setDraftFolderName("");
-                  setIsFolderMenuOpen(false);
-                  persistBoard(nextItems, nextFolders);
-                }}
-                onCreateFolder={() => {
-                  setIsCreatingFolder(true);
-                  setDraftFolderName("");
-                }}
-                onDraftNameChange={setDraftFolderName}
-                onCommitFolder={() => {
-                  const name = draftFolderName.trim();
-                  if (!name) return;
-                  const nextFolders = folders.some((item) => item.name === name)
-                    ? folders
-                    : [...folders, { name }];
-                  const nextItems = items.map((item) =>
-                    selectedIds.has(item.id) ? { ...item, folder: name, isInMoodboard: true } : item,
-                  );
-                  setFolders(nextFolders);
-                  setItems(nextItems);
-                  setActiveFolder(null);
-                  setDraftFolderName("");
-                  setIsCreatingFolder(false);
-                  setIsFolderMenuOpen(false);
-                  persistBoard(nextItems, nextFolders);
-                }}
-              />
-            ) : null}
           </div>
         </div>
       )}
@@ -451,7 +519,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
           onAddToMoodboard={() => {
             if (!canAddToMoodboard) return;
             const nextItems = items.map((item) =>
-              selectedIds.has(item.id) ? { ...item, isInMoodboard: true } : item,
+              selectedVisibleIds.has(item.id) ? { ...item, isInMoodboard: true } : item,
             );
             setItems(nextItems);
             setSelectedIds(new Set());
