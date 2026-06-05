@@ -9,9 +9,33 @@ import type { DesktopAuthController } from "../auth";
 export const PRODUCTION_DESKTOP_API_URL = "https://getstage.co/api/v1";
 export const TESTING_DESKTOP_API_URL = "https://testing.getstage.co/api/v1";
 
+function inferDesktopApiBaseUrlFromAuthUrl(authUrl: string) {
+  try {
+    const { hostname } = new URL(authUrl);
+    if (hostname === "testing.getstage.co") {
+      return TESTING_DESKTOP_API_URL;
+    }
+    if (hostname === "getstage.co" || hostname === "www.getstage.co") {
+      return PRODUCTION_DESKTOP_API_URL;
+    }
+  } catch {
+    // Fall through to packaged/dev defaults.
+  }
+
+  return null;
+}
+
 export function getDesktopApiBaseUrl() {
-  if (process.env.STAGE_DESKTOP_API_URL) {
+  if (process.env.STAGE_DESKTOP_API_URL?.trim()) {
     return process.env.STAGE_DESKTOP_API_URL.replace(/\/+$/, "");
+  }
+
+  const authUrl = process.env.STAGE_DESKTOP_AUTH_URL?.trim();
+  if (authUrl) {
+    const inferred = inferDesktopApiBaseUrlFromAuthUrl(authUrl);
+    if (inferred) {
+      return inferred;
+    }
   }
 
   return app.isPackaged ? PRODUCTION_DESKTOP_API_URL : TESTING_DESKTOP_API_URL;
