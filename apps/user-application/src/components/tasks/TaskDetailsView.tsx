@@ -5,6 +5,7 @@ import type { Id } from "@stage/data-ops/convex/data-model";
 import { DeleteTaskModal } from "@/components/tasks/DeleteTaskModal";
 import {
   useDeleteTaskMutation,
+  useSettingsOverviewQuery,
   useToggleTaskCompletionMutation,
   useUpdateTaskMutation,
 } from "@/hooks/convex-data";
@@ -41,6 +42,8 @@ export function TaskDetailsView() {
   const updateTask = useUpdateTaskMutation();
   const deleteTaskMutation = useDeleteTaskMutation();
   const toggleComplete = useToggleTaskCompletionMutation();
+  const settingsOverviewQuery = useSettingsOverviewQuery();
+  const profile = settingsOverviewQuery.data?.profile;
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
   const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
   const saveAttachment = useConvexMutation(api.tasks.saveAttachment);
@@ -265,6 +268,8 @@ export function TaskDetailsView() {
   }
 
   const primaryAssignee = task.assignees[0];
+  const primaryAssigneeLabel = primaryAssignee?.name ?? primaryAssignee?.email ?? "Unassigned";
+  const primaryAssigneeAvatarUrl = getAssigneeAvatarUrl(primaryAssignee, profile);
   const dueLabel = task.dueDate ? formatInputDate(new Date(task.dueDate)) : null;
   const isOverdue = Boolean(task.dueDate && task.dueDate < Date.now() && !task.isCompleted);
 
@@ -297,10 +302,14 @@ export function TaskDetailsView() {
               <div className="flex min-w-0 flex-wrap items-center gap-[16px]">
                 {primaryAssignee ? (
                   <MetaItem>
-                    <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-[#e5e5e5] text-[10px] font-semibold text-[#525252]">
-                      {(primaryAssignee.name ?? primaryAssignee.email ?? "?").charAt(0).toUpperCase()}
-                    </span>
-                    {primaryAssignee.name ?? primaryAssignee.email ?? "Unassigned"}
+                    {primaryAssigneeAvatarUrl ? (
+                      <img src={primaryAssigneeAvatarUrl} alt="" aria-hidden="true" className="h-[20px] w-[20px] shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-[#e5e5e5] text-[10px] font-semibold text-[#525252]">
+                        {primaryAssigneeLabel.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                    {primaryAssigneeLabel}
                   </MetaItem>
                 ) : (
                   <MetaItem>Unassigned</MetaItem>
@@ -344,10 +353,6 @@ export function TaskDetailsView() {
                   </>
                 ) : null}
               </div>
-
-              <label className="flex w-full flex-col gap-[8px]">
-                <span className="text-[13px] font-medium leading-none text-[#525252]">Description</span>
-              </label>
             </div>
 
             <div ref={menuRef} className="relative shrink-0">
@@ -515,6 +520,19 @@ function AttachmentRow({
 
 function MetaItem({ children }: { children: ReactNode }) {
   return <span className="flex items-center gap-[8px] text-[13px] font-medium leading-[1.2] text-[#525252]">{children}</span>;
+}
+
+function getAssigneeAvatarUrl(
+  assignee: { userId: string; name: string | null; email?: string | null } | undefined,
+  profile: { id: string; name: string; email: string; avatarUrl: string | null } | undefined,
+) {
+  if (!assignee || !profile?.avatarUrl) return undefined;
+
+  if (assignee.userId === profile.id || assignee.email === profile.email || assignee.name === profile.name) {
+    return profile.avatarUrl;
+  }
+
+  return undefined;
 }
 
 function Dot() {
