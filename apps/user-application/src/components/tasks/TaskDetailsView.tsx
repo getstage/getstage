@@ -10,6 +10,7 @@ import {
   useProjectPhasesQuery,
   useSetTaskAssigneesMutation,
   useSetTaskPhaseMutation,
+  useSettingsOverviewQuery,
   useToggleTaskCompletionMutation,
   useUpdateTaskMutation,
   type ProjectMember,
@@ -138,6 +139,8 @@ function TaskDetailEditor({
 
   const phasesQuery = useProjectPhasesQuery(projectId);
   const membersQuery = useProjectMembersQuery(projectId);
+  const settingsOverviewQuery = useSettingsOverviewQuery();
+  const profile = settingsOverviewQuery.data?.profile;
   const updateTask = useUpdateTaskMutation();
   const deleteTaskMutation = useDeleteTaskMutation();
   const toggleComplete = useToggleTaskCompletionMutation();
@@ -169,6 +172,7 @@ function TaskDetailEditor({
   const phases = phasesQuery.data ?? [];
   const currentPhase = phases.find((item) => item.id === phase.id) ?? { id: phase.id, name: phase.name };
   const primaryAssignee = task.assignees[0];
+  const primaryAssigneeAvatarUrl = getAssigneeAvatarUrl(primaryAssignee, profile);
   const dueLabel = task.dueDate ? formatInputDate(new Date(task.dueDate)) : null;
   const isOverdue = Boolean(task.dueDate && task.dueDate < Date.now() && !task.isCompleted);
 
@@ -471,9 +475,18 @@ function TaskDetailEditor({
                   >
                     {primaryAssignee ? (
                       <>
-                        <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-[#e5e5e5] text-[10px] font-semibold text-[#525252]">
-                          {(primaryAssignee.name ?? primaryAssignee.email ?? "?").charAt(0).toUpperCase()}
-                        </span>
+                        {primaryAssigneeAvatarUrl ? (
+                          <img
+                            src={primaryAssigneeAvatarUrl}
+                            alt=""
+                            aria-hidden="true"
+                            className="h-[20px] w-[20px] shrink-0 rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-[#e5e5e5] text-[10px] font-semibold text-[#525252]">
+                            {(primaryAssignee.name ?? primaryAssignee.email ?? "?").charAt(0).toUpperCase()}
+                          </span>
+                        )}
                         {primaryAssignee.name ?? primaryAssignee.email ?? "Assignee"}
                       </>
                     ) : (
@@ -714,6 +727,19 @@ function AttachmentRow({
 
 function MetaItem({ children }: { children: ReactNode }) {
   return <span className="flex items-center gap-[8px] text-[13px] font-medium leading-[1.2] text-[#525252]">{children}</span>;
+}
+
+function getAssigneeAvatarUrl(
+  assignee: { userId: string; name?: string | null; email?: string | null } | undefined,
+  profile: { id: string; name: string; email: string; avatarUrl: string | null } | undefined,
+) {
+  if (!assignee || !profile?.avatarUrl) return undefined;
+
+  if (assignee.userId === profile.id || assignee.email === profile.email || assignee.name === profile.name) {
+    return profile.avatarUrl;
+  }
+
+  return undefined;
 }
 
 function Dot() {

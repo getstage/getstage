@@ -1,7 +1,10 @@
 import type { PointerEvent } from "react";
+import { useQuery as useConvexQuery } from "convex/react";
+import type { Id } from "@stage/data-ops/convex/data-model";
 import { Avatar } from "@/components/ui/Avatar";
 import { KANBAN_ASSIGNEES } from "@/data/fixtures/project/kanbanAssignees";
 import { useSettingsOverviewQuery } from "@/hooks/convex-data";
+import { api } from "@/lib/convexApi";
 import {
   DEFAULT_PHASE_TAG_COLOR,
   PHASE_TAG_COLORS,
@@ -35,6 +38,11 @@ export function KanbanTaskCard({
   const assigneeAvatarUrl = assignee
     ? getTaskAssigneeAvatarUrl(assignee.name, profile)
     : undefined;
+  const taskDetail = useConvexQuery(
+    api.tasks.getDetail,
+    task.hasContent ? { taskId: task.id as Id<"tasks"> } : "skip",
+  );
+  const description = taskDetail?.task.content?.trim() || task.content?.trim();
 
   return (
     <div
@@ -104,7 +112,7 @@ export function KanbanTaskCard({
           </button>
         </div>
         <p className="line-clamp-2 text-[12px] font-normal leading-[1.5] text-[#525252]">
-          {task.summary || task.content || "Here comes the project/task description, can contain 2-3 lines at max."}
+          {description || task.summary || "No description yet."}
         </p>
       </div>
     </div>
