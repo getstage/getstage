@@ -6,7 +6,6 @@ type UpdateCheckOptions = {
 };
 
 let checkInFlight = false;
-let manualCheckPending = false;
 
 function logUpdate(message: string) {
   console.info(`[stage-update] ${message}`);
@@ -14,6 +13,20 @@ function logUpdate(message: string) {
 
 function logUpdateWarning(message: string) {
   console.warn(`[stage-update] ${message}`);
+}
+
+async function promptDownloadUpdate(version: string) {
+  const { response } = await dialog.showMessageBox({
+    type: "info",
+    buttons: ["Download", "Not Now"],
+    defaultId: 0,
+    cancelId: 1,
+    title: "Update Available",
+    message: `Stage ${version} is available.`,
+    detail: `You are on ${app.getVersion()}. Download and install the update now?`,
+  });
+
+  return response === 0;
 }
 
 async function promptRestartToUpdate(version: string) {
@@ -58,59 +71,58 @@ export async function checkForUpdates(options: UpdateCheckOptions = {}) {
       await dialog.showMessageBox({
         type: "info",
         title: "Development Build",
-        message: "Automatic updates are only available in packaged Stage builds.",
+        message: "Updates are only available in packaged Stage builds.",
       });
     }
+    return;
+  }
+
+  if (!options.manual) {
     return;
   }
 
   if (checkInFlight) {
-    if (options.manual) {
-      await dialog.showMessageBox({
-        type: "info",
-        title: "Update Check Running",
-        message: "Stage is already checking for updates.",
-      });
-    }
+    await dialog.showMessageBox({
+      type: "info",
+      title: "Update Check Running",
+      message: "Stage is already checking for updates.",
+    });
     return;
   }
 
   checkInFlight = true;
-  manualCheckPending = options.manual === true;
 
   try {
-    logUpdate(manualCheckPending ? "manual update check started" : "background update check started");
+    logUpdate("manual update check started");
     const result = await autoUpdater.checkForUpdates();
     const nextVersion = result?.updateInfo?.version;
     const hasNewerVersion =
       typeof nextVersion === "string" && nextVersion !== app.getVersion();
 
     if (!hasNewerVersion) {
-      if (manualCheckPending) {
-        await showManualUpToDateDialog();
-      } else {
-        logUpdate(`up to date (${app.getVersion()})`);
-      }
+      await showManualUpToDateDialog();
       return;
     }
 
     logUpdate(`update available: ${nextVersion}`);
-    if (manualCheckPending) {
-      await dialog.showMessageBox({
-        type: "info",
-        title: "Update Available",
-        message: `Stage ${nextVersion} is downloading now.`,
-        detail: "Stage will ask you to restart once the update is ready.",
-      });
+    const shouldDownload = await promptDownloadUpdate(nextVersion);
+    if (!shouldDownload) {
+      return;
     }
+
+    await dialog.showMessageBox({
+      type: "info",
+      title: "Downloading Update",
+      message: `Downloading Stage ${nextVersion}...`,
+      detail: "Stage will ask you to restart when the download is ready.",
+    });
+
+    await autoUpdater.downloadUpdate();
   } catch (error: unknown) {
     logUpdateWarning(error instanceof Error ? error.message : "unknown update check error");
-    if (manualCheckPending) {
-      await showManualCheckError(error);
-    }
+    await showManualCheckError(error);
   } finally {
     checkInFlight = false;
-    manualCheckPending = false;
   }
 }
 
@@ -119,8 +131,8 @@ export function initAutoUpdates() {
     return;
   }
 
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
 
   autoUpdater.on("update-downloaded", (info) => {
     logUpdate(`downloaded ${info.version}`);
@@ -130,12 +142,4 @@ export function initAutoUpdates() {
   autoUpdater.on("error", (error) => {
     logUpdateWarning(error.message);
   });
-
-  setTimeout(() => {
-    void checkForUpdates();
-  }, 30_000);
-
-  setInterval(() => {
-    void checkForUpdates();
-  }, 4 * 60 * 60 * 1000);
 }

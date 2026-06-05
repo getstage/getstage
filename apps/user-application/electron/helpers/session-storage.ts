@@ -1,6 +1,5 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { safeStorage } from "electron";
 import {
   desktopStoredSessionSchema,
   type DesktopStoredSession,
@@ -15,38 +14,46 @@ function serializeSession(session: DesktopStoredSession) {
   return JSON.stringify(desktopStoredSessionSchema.parse(session));
 }
 
-function encryptSession(session: DesktopStoredSession): StoredSessionFile {
-  if (!safeStorage.isEncryptionAvailable()) {
-    throw new Error("Electron safeStorage encryption is not available.");
-  }
-
+function toStoredSessionFile(session: DesktopStoredSession): StoredSessionFile {
   return {
-    encrypted: true,
-    payload: safeStorage.encryptString(serializeSession(session)).toString("base64"),
+    encrypted: false,
+    payload: serializeSession(session),
     version: DESKTOP_SESSION_STORAGE_VERSION,
   };
 }
 
-function decryptSession(file: StoredSessionFile) {
-  if (file.version !== DESKTOP_SESSION_STORAGE_VERSION || !file.encrypted) {
+function fromStoredSessionFile(file: StoredSessionFile) {
+  if (file.version !== DESKTOP_SESSION_STORAGE_VERSION) {
     return null;
   }
 
-  const decrypted = safeStorage.decryptString(Buffer.from(file.payload, "base64"));
-  return desktopStoredSessionSchema.parse(JSON.parse(decrypted));
+  if (file.encrypted) {
+    // Legacy keychain-backed sessions trigger macOS password prompts — drop them.
+    return null;
+  }
+
+  return desktopStoredSessionSchema.parse(JSON.parse(file.payload));
 }
 
 export async function saveStoredSession(session: DesktopStoredSession) {
   const filePath = authSessionPath();
   await mkdir(dirname(filePath), { recursive: true });
-  await writeFile(filePath, JSON.stringify(encryptSession(session)), "utf8");
+  await writeFile(filePath, JSON.stringify(toStoredSessionFile(session)), "utf8");
 }
 
 export async function loadStoredSession() {
+  const filePath = authSessionPath();
+
   try {
-    const raw = await readFile(authSessionPath(), "utf8");
+    const raw = await readFile(filePath, "utf8");
     const parsed = JSON.parse(raw) as StoredSessionFile;
-    return decryptSession(parsed);
+
+    if (parsed.encrypted) {
+      await rm(filePath, { force: true });
+      return null;
+    }
+
+    return fromStoredSessionFile(parsed);
   } catch {
     return null;
   }
