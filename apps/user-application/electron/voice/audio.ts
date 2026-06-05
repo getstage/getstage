@@ -1,5 +1,5 @@
 import { Buffer } from "node:buffer";
-import type { VoiceTranscriptionRequest } from "@stage/data-ops/contracts";
+import type { ParsedVoiceTranscriptionRequest } from "@stage/data-ops/contracts";
 
 export const MAX_VOICE_AUDIO_BYTES = 10 * 1024 * 1024;
 export const MAX_VOICE_DURATION_MS = 120_000;
@@ -27,7 +27,7 @@ function isLikelyWavBuffer(buffer: Buffer) {
   );
 }
 
-export function decodeVoiceAudio(input: VoiceTranscriptionRequest): Buffer {
+export function decodeVoiceAudio(input: ParsedVoiceTranscriptionRequest): Buffer {
   if (input.audioMimeType !== "audio/wav") {
     throw new Error("Only WAV audio is supported for voice transcription.");
   }

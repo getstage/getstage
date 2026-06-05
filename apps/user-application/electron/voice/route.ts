@@ -4,63 +4,54 @@ import {
   voiceTranscriptionRequestSchema,
   type ProviderListResponse,
   type VoiceTranscriptionProvider,
-  type VoiceTranscriptionRequest,
+  type ParsedVoiceTranscriptionRequest,
   type VoiceTranscriptResponse,
 } from "@stage/data-ops/contracts";
 import { decodeVoiceAudio } from "./audio";
 import { transcribeWithChatGptCodex } from "./chatgpt-codex";
 import { transcribeWithOpenRouter } from "./openrouter";
+import { parseVoiceProviderPreferences, type VoiceProviderPreferences } from "./providerPreferences";
 import { isOpenRouterConfigured } from "./secrets";
-import { readProviderConnectivity } from "./providers";
+import { readProviderConnectivity, type ProviderConnectivity } from "./providers";
 
 export type VoiceRouteDecision = {
   provider: VoiceTranscriptionProvider;
-  model: VoiceTranscriptionRequest["model"];
-  reason: "claude-and-codex" | "codex-only" | "claude-only-openrouter" | "openrouter-fallback";
+  model: ParsedVoiceTranscriptionRequest["model"];
+  reason: "codex-bridge" | "claude-openrouter";
 };
 
-export function decideVoiceRoute(connectivity: ReturnType<typeof readProviderConnectivity>): VoiceRouteDecision | null {
-  const openRouterReady = isOpenRouterConfigured();
+const CHATGPT_CODEX_ROUTE = {
+  provider: "chatgpt-codex-session",
+  model: "chatgpt-backend-transcribe",
+} as const satisfies Pick<VoiceRouteDecision, "provider" | "model">;
 
-  if (connectivity.bothConnected) {
-    return {
-      provider: "chatgpt-codex-session",
-      model: "chatgpt-backend-transcribe",
-      reason: "claude-and-codex",
-    };
+const OPENROUTER_ROUTE = {
+  provider: "openrouter",
+  model: "mistralai/voxtral-mini-transcribe",
+} as const satisfies Pick<VoiceRouteDecision, "provider" | "model">;
+
+export function decideVoiceRoute(connectivity: ProviderConnectivity): VoiceRouteDecision | null {
+  if (connectivity.codexActive) {
+    return { ...CHATGPT_CODEX_ROUTE, reason: "codex-bridge" };
   }
 
-  if (connectivity.codexConnected) {
-    return {
-      provider: "chatgpt-codex-session",
-      model: "chatgpt-backend-transcribe",
-      reason: "codex-only",
-    };
-  }
-
-  if (connectivity.claudeConnected && openRouterReady) {
-    return {
-      provider: "openrouter",
-      model: "mistralai/voxtral-mini-transcribe",
-      reason: "claude-only-openrouter",
-    };
+  if (connectivity.claudeActive && isOpenRouterConfigured()) {
+    return { ...OPENROUTER_ROUTE, reason: "claude-openrouter" };
   }
 
   return null;
 }
 
-export function voiceRouteUnavailableMessage(
-  connectivity: ReturnType<typeof readProviderConnectivity>,
-): string {
-  if (connectivity.claudeConnected && !isOpenRouterConfigured()) {
+export function voiceRouteUnavailableMessage(connectivity: ProviderConnectivity): string {
+  if (connectivity.claudeActive && !isOpenRouterConfigured()) {
     return "Voice with Claude only needs OPENROUTER_API_KEY in apps/user-application/.env, or connect Codex with ChatGPT for the built-in voice bridge.";
   }
 
-  if (!connectivity.claudeConnected && !connectivity.codexConnected) {
+  if (!connectivity.claudeActive && !connectivity.codexActive) {
     return "Connect Claude or Codex in Integrations before using voice.";
   }
 
-  if (connectivity.codexConnected) {
+  if (connectivity.codexActive) {
     return "Sign in to ChatGPT in Codex for voice transcription, or add OPENROUTER_API_KEY for Claude-only voice.";
   }
 
@@ -68,9 +59,9 @@ export function voiceRouteUnavailableMessage(
 }
 
 function buildVoiceResponse(input: {
-  parsedInput: VoiceTranscriptionRequest;
+  parsedInput: ParsedVoiceTranscriptionRequest;
   provider: VoiceTranscriptionProvider;
-  model: VoiceTranscriptionRequest["model"];
+  model: ParsedVoiceTranscriptionRequest["model"];
   text: string;
 }): VoiceTranscriptResponse {
   return voiceTranscriptResponseSchema.parse({
@@ -86,6 +77,13 @@ function buildVoiceResponse(input: {
   });
 }
 
+function resolveConnectivity(
+  providers: ProviderListResponse,
+  preferences?: VoiceProviderPreferences,
+) {
+  return readProviderConnectivity(providers, preferences);
+}
+
 export async function transcribeVoiceWithRouting(input: {
   rawInput: unknown;
   listProviders: () => Promise<ProviderListResponse>;
@@ -99,8 +97,9 @@ export async function transcribeVoiceWithRouting(input: {
     throw new Error("Voice messages must include recorded audio.");
   }
 
+  const preferences = parseVoiceProviderPreferences(parsedInput.context.providerPreferences);
   const providers = await input.listProviders();
-  const connectivity = readProviderConnectivity(providers);
+  const connectivity = resolveConnectivity(providers, preferences);
   const route = decideVoiceRoute(connectivity);
 
   if (!route) {
@@ -136,20 +135,20 @@ export async function transcribeVoiceWithRouting(input: {
       text,
     });
   } catch (primaryError) {
-    if (!connectivity.claudeConnected || !isOpenRouterConfigured()) {
+    if (!connectivity.claudeActive || !isOpenRouterConfigured()) {
       throw primaryError;
     }
 
     const text = await transcribeWithOpenRouter({
       audioBase64,
-      model: "mistralai/voxtral-mini-transcribe",
+      model: OPENROUTER_ROUTE.model,
       language: parsedInput.language,
     });
 
     return buildVoiceResponse({
       parsedInput,
-      provider: "openrouter",
-      model: "mistralai/voxtral-mini-transcribe",
+      provider: OPENROUTER_ROUTE.provider,
+      model: OPENROUTER_ROUTE.model,
       text,
     });
   }

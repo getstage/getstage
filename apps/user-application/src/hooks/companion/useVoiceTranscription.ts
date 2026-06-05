@@ -1,5 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  isProviderEnabledInPreferences,
+  readProviderPreferences,
+} from "@/lib/engine/providerPreferences";
 import { useVoiceRecorder } from "./useVoiceRecorder";
+
+function voiceProviderPreferencesPayload() {
+  const preferences = readProviderPreferences();
+  return {
+    claude: isProviderEnabledInPreferences(preferences, "claude"),
+    codex: isProviderEnabledInPreferences(preferences, "codex"),
+  };
+}
 
 type VoiceStatus = "idle" | "recording" | "transcribing" | "failed";
 
@@ -85,23 +97,23 @@ export function useVoiceTranscription({
         );
       }
 
-      const voiceStatus = await voice.getStatus();
+      const providerPreferences = voiceProviderPreferencesPayload();
+      const voiceStatus = await voice.getStatus(providerPreferences);
       if (!voiceStatus.canTranscribe) {
         throw new Error(voiceStatus.setupHint ?? "Voice transcription is not available.");
       }
 
       const response = await voice.transcribe({
         apiVersion: "v1",
-        provider: "chatgpt-codex-session",
-        model: "chatgpt-backend-transcribe",
         mode: "batch",
-        audioBase64: recording.audioBase64,
         audioMimeType: recording.mimeType,
+        audioBase64: recording.audioBase64,
         audioSizeBytes: recording.audioSizeBytes,
         durationMs: recording.durationMs,
         sampleRateHz: recording.sampleRateHz,
         context: {
           source: "companion",
+          providerPreferences,
         },
       });
 

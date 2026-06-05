@@ -1,6 +1,7 @@
 import type { ProviderListResponse } from "@stage/data-ops/contracts";
 import type { VoiceTranscriptionStatus } from "@shared/models/desktop";
 import { probeChatGptCodexVoiceAuth } from "./chatgpt-codex";
+import { parseVoiceProviderPreferences, type VoiceProviderPreferences } from "./providerPreferences";
 import { decideVoiceRoute, voiceRouteUnavailableMessage } from "./route";
 import { isOpenRouterConfigured } from "./secrets";
 import { readProviderConnectivity } from "./providers";
@@ -8,11 +9,12 @@ import { readProviderConnectivity } from "./providers";
 export async function resolveVoiceTranscriptionStatus(input: {
   cwd: string;
   listProviders: () => Promise<ProviderListResponse>;
+  providerPreferences?: VoiceProviderPreferences;
 }): Promise<VoiceTranscriptionStatus> {
   const providers = await input.listProviders();
-  const connectivity = readProviderConnectivity(providers);
+  const connectivity = readProviderConnectivity(providers, input.providerPreferences);
   const route = decideVoiceRoute(connectivity);
-  const chatgptCodexVoiceReady = connectivity.codexConnected
+  const chatgptCodexVoiceReady = connectivity.codexActive
     ? await probeChatGptCodexVoiceAuth(input.cwd)
     : false;
 
@@ -21,16 +23,16 @@ export async function resolveVoiceTranscriptionStatus(input: {
     route?.provider === "openrouter"
       ? openRouterReady
       : route?.provider === "chatgpt-codex-session"
-        ? chatgptCodexVoiceReady || (connectivity.claudeConnected && openRouterReady)
+        ? chatgptCodexVoiceReady || (connectivity.claudeActive && openRouterReady)
         : false;
 
   return {
     apiVersion: "v1",
     canTranscribe,
-    claudeConnected: connectivity.claudeConnected,
-    codexConnected: connectivity.codexConnected,
+    claudeConnected: connectivity.claudeActive,
+    codexConnected: connectivity.codexActive,
     chatgptCodexVoiceReady,
-    openRouterConfigured: isOpenRouterConfigured(),
+    openRouterConfigured: openRouterReady,
     preferredProvider:
       route?.provider === "openrouter"
         ? "openrouter"
@@ -41,3 +43,5 @@ export async function resolveVoiceTranscriptionStatus(input: {
     setupHint: canTranscribe ? null : voiceRouteUnavailableMessage(connectivity),
   };
 }
+
+export { parseVoiceProviderPreferences };

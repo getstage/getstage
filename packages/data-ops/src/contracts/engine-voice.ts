@@ -50,11 +50,20 @@ export const voiceTranscriptionRequestSchema = z.object({
   threadId: z.string().min(1).optional(),
   language: z.string().min(2).max(16).optional(),
   prompt: z.string().min(1).optional(),
-  context: z.object({
-    projectId: z.string().min(1).optional(),
-    source: z.enum(["companion", "chat", "research", "generation"]).optional(),
-    selectedReasoningProvider: z.enum(["claude", "codex"]).optional(),
-  }).default({}),
+  context: z
+    .object({
+      projectId: z.string().min(1).optional(),
+      source: z.enum(["companion", "chat", "research", "generation"]).optional(),
+      selectedReasoningProvider: z.enum(["claude", "codex"]).optional(),
+      /** Stage Integrations toggles — same source as localStorage provider preferences. */
+      providerPreferences: z
+        .object({
+          claude: z.boolean(),
+          codex: z.boolean(),
+        })
+        .optional(),
+    })
+    .default({}),
 });
 
 export const voiceTranscriptResponseSchema = z.object({
@@ -103,6 +112,8 @@ export type VoiceTranscriptionModel = z.infer<typeof voiceTranscriptionModelSche
 export type VoiceCaptureMode = z.infer<typeof voiceCaptureModeSchema>;
 export type VoiceAudioFormat = z.infer<typeof voiceAudioFormatSchema>;
 export type VoiceTranscriptionStatus = z.infer<typeof voiceTranscriptionStatusSchema>;
-export type VoiceTranscriptionRequest = z.infer<typeof voiceTranscriptionRequestSchema>;
+/** Caller payload (defaults applied in main via schema.parse). */
+export type VoiceTranscriptionRequest = z.input<typeof voiceTranscriptionRequestSchema>;
+export type ParsedVoiceTranscriptionRequest = z.infer<typeof voiceTranscriptionRequestSchema>;
 export type VoiceTranscriptResponse = z.infer<typeof voiceTranscriptResponseSchema>;
 export type VoiceTranscriptionEvent = z.infer<typeof voiceTranscriptionEventSchema>;

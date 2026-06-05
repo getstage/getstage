@@ -3,7 +3,7 @@ import type { ProviderListResponse } from "@stage/data-ops/contracts";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import { voiceTranscriptionStatusSchema } from "@shared/models/desktop";
 import { toUserFacingVoiceError } from "./errors";
-import { resolveVoiceTranscriptionStatus } from "./status";
+import { parseVoiceProviderPreferences, resolveVoiceTranscriptionStatus } from "./status";
 import { transcribeVoiceWithRouting } from "./route";
 
 export type VoiceHandlerDependencies = {
@@ -12,10 +12,11 @@ export type VoiceHandlerDependencies = {
 
 export function registerVoiceHandlers(deps: VoiceHandlerDependencies) {
   ipcMain.removeHandler(IPC_CHANNELS.voiceGetStatus);
-  ipcMain.handle(IPC_CHANNELS.voiceGetStatus, async () => {
+  ipcMain.handle(IPC_CHANNELS.voiceGetStatus, async (_event, rawPreferences: unknown) => {
     const status = await resolveVoiceTranscriptionStatus({
       cwd: process.cwd(),
       listProviders: deps.listProviders,
+      providerPreferences: parseVoiceProviderPreferences(rawPreferences),
     });
 
     return voiceTranscriptionStatusSchema.parse(status);

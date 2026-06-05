@@ -1,34 +1,21 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import type { ProviderId } from "@stage/data-ops/contracts";
+import {
+  PROVIDER_PREFERENCES_STORAGE_KEY,
+  readProviderPreferences,
+  type ProviderPreferences,
+} from "@/lib/engine/providerPreferences";
 
-const STORAGE_KEY = "stage.localProviderPreferences.v1";
 const CHANGE_EVENT = "stage:provider-preferences-changed";
 
-type ProviderPreferenceState = Partial<Record<ProviderId, boolean>>;
-
-function readPreferences(): ProviderPreferenceState {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as ProviderPreferenceState;
-
-    return {
-      claude: Boolean(parsed.claude),
-      codex: Boolean(parsed.codex),
-    };
-  } catch {
-    return {};
-  }
-}
-
-function writePreferences(preferences: ProviderPreferenceState) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
+function writePreferences(preferences: ProviderPreferences) {
+  window.localStorage.setItem(PROVIDER_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 
 function subscribeToPreferences(listener: () => void) {
   function handleStorage(event: StorageEvent) {
-    if (event.key === STORAGE_KEY) {
+    if (event.key === PROVIDER_PREFERENCES_STORAGE_KEY) {
       listener();
     }
   }
@@ -43,7 +30,7 @@ function subscribeToPreferences(listener: () => void) {
 }
 
 function getPreferencesSnapshot() {
-  return JSON.stringify(readPreferences());
+  return JSON.stringify(readProviderPreferences());
 }
 
 export function useProviderPreferences() {
@@ -53,12 +40,12 @@ export function useProviderPreferences() {
     () => "{}",
   );
   const preferences = useMemo(
-    () => JSON.parse(preferencesSnapshot) as ProviderPreferenceState,
+    () => JSON.parse(preferencesSnapshot) as ProviderPreferences,
     [preferencesSnapshot],
   );
 
   const setProviderEnabled = useCallback((providerId: ProviderId, enabled: boolean) => {
-    const current = readPreferences();
+    const current = readProviderPreferences();
     writePreferences({
       ...current,
       [providerId]: enabled,

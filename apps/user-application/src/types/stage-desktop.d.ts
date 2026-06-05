@@ -45,7 +45,10 @@ export type StageDesktopApi = {
     setInteractive: (interactive: boolean) => Promise<void>;
   };
   voice: {
-    getStatus: () => Promise<VoiceTranscriptionStatus>;
+    getStatus: (providerPreferences?: {
+      claude: boolean;
+      codex: boolean;
+    }) => Promise<VoiceTranscriptionStatus>;
     transcribe: (input: VoiceTranscriptionRequest) => Promise<VoiceTranscriptResponse>;
     onStartStopRecordingShortcut: (callback: () => void) => () => void;
     onOpenLatestChatShortcut: (callback: () => void) => () => void;

@@ -54,7 +54,8 @@ const stageDesktop = {
       ipcRenderer.invoke(IPC_CHANNELS.companionSetInteractive, interactive),
   },
   voice: {
-    getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.voiceGetStatus),
+    getStatus: (providerPreferences?: { claude: boolean; codex: boolean }) =>
+      ipcRenderer.invoke(IPC_CHANNELS.voiceGetStatus, providerPreferences),
     transcribe: (input: VoiceTranscriptionRequest): Promise<VoiceTranscriptResponse> =>
       ipcRenderer.invoke(IPC_CHANNELS.voiceTranscribe, input),
     onStartStopRecordingShortcut: (callback: () => void) => {

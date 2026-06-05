@@ -1,29 +1,36 @@
 import type { ProviderListResponse, ProviderStatusRecord } from "@stage/data-ops/contracts";
+import type { VoiceProviderPreferences } from "./providerPreferences";
 
 export type ProviderConnectivity = {
   claude: ProviderStatusRecord | null;
   codex: ProviderStatusRecord | null;
-  claudeConnected: boolean;
-  codexConnected: boolean;
-  bothConnected: boolean;
+  /** Matches Integrations "Connected": enabled in Stage + CLI ready. */
+  claudeActive: boolean;
+  codexActive: boolean;
 };
 
-export function readProviderConnectivity(providers: ProviderListResponse): ProviderConnectivity {
+export function readProviderConnectivity(
+  providers: ProviderListResponse,
+  preferences?: VoiceProviderPreferences,
+): ProviderConnectivity {
   const claude = providers.providers.find((provider) => provider.id === "claude") ?? null;
   const codex = providers.providers.find((provider) => provider.id === "codex") ?? null;
-
-  const claudeConnected = isProviderConnected(claude);
-  const codexConnected = isProviderConnected(codex);
 
   return {
     claude,
     codex,
-    claudeConnected,
-    codexConnected,
-    bothConnected: claudeConnected && codexConnected,
+    claudeActive: isProviderActive(claude, preferences?.claude),
+    codexActive: isProviderActive(codex, preferences?.codex),
   };
 }
 
-function isProviderConnected(provider: ProviderStatusRecord | null) {
-  return Boolean(provider?.installed && provider.authenticated);
+function isProviderActive(
+  provider: ProviderStatusRecord | null,
+  enabledInStage: boolean | undefined,
+) {
+  if (!provider?.installed || !provider.authenticated || provider.status !== "ready") {
+    return false;
+  }
+
+  return enabledInStage ?? provider.enabled;
 }
