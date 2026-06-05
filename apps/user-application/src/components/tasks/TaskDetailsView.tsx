@@ -67,14 +67,19 @@ export function TaskDetailsView() {
         : "Back to Tasks";
   const taskBackHref = typeof window === "undefined" ? "/tasks" : `${window.location.pathname}${window.location.search}`;
 
-  // Sync from server when the task record changes — not on every Convex query object reference,
-  // or typing in the description/title fields gets wiped mid-edit.
+  // Sync from server when opening a different task — not on every `updatedAt` bump,
+  // or debounced saves / kanban updates wipe the description/title mid-edit.
   useEffect(() => {
     if (!task) return;
     setTitle(task.title);
     setContent(task.content ?? "");
     setAttachments(task.attachments as Attachment[]);
-  }, [task?.id, task?.updatedAt]);
+  }, [task?.id]);
+
+  useEffect(() => {
+    if (!task) return;
+    setAttachments(task.attachments as Attachment[]);
+  }, [task?.attachments, task?.id]);
 
   useEffect(() => {
     return () => {

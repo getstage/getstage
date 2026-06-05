@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   PhaseSummary,
   ProjectSummary,
@@ -16,6 +16,8 @@ const PRIORITY_OPTIONS: Array<{ value: TaskPriority | null; label: string }> = [
 ];
 
 type Picker = "project" | "phase" | "priority" | null;
+
+const PICKER_AUTO_CLOSE_MS = 3_000;
 
 export function CreateTaskDialog({
   projects,
@@ -52,6 +54,7 @@ export function CreateTaskDialog({
   const [priority, setPriority] = useState<TaskPriority | null>(null);
   const [picker, setPicker] = useState<Picker>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const pickerAreaRef = useRef<HTMLDivElement>(null);
 
   const createTask = useCreateTaskMutation();
   const trimmedTitle = title.trim();
@@ -90,12 +93,39 @@ export function CreateTaskDialog({
   }, [phases]);
 
   useEffect(() => {
+    if (!picker) return;
+
+    const timeoutId = window.setTimeout(() => setPicker(null), PICKER_AUTO_CLOSE_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [picker]);
+
+  useEffect(() => {
+    if (!picker) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (!(target instanceof Node) || pickerAreaRef.current?.contains(target)) {
+        return;
+      }
+      setPicker(null);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [picker]);
+
+  useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key !== "Escape") return;
+      if (picker) {
+        setPicker(null);
+        return;
+      }
+      onClose();
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, [onClose, picker]);
 
   async function handleSubmit() {
     if (!projectId || !trimmedTitle || (requiresPhase && !phaseId)) return;
@@ -177,7 +207,7 @@ export function CreateTaskDialog({
             />
           </label>
 
-          <div className="flex flex-wrap items-end gap-[8px]">
+          <div ref={pickerAreaRef} className="flex flex-wrap items-end gap-[8px]">
             <PickerButton
               label={selectedProject?.name ?? projectLabel ?? "Pick a project"}
               disabled={lockProject || projects.length === 0}
