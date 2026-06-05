@@ -9,7 +9,8 @@ export function useProviderStatus() {
   return useQuery({
     queryKey: engineQueryKeys.providers(),
     queryFn: () => desktop.engine.listProviders(),
-    refetchInterval: 10_000,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 

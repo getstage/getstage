@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ActivityTimelineChart } from "@/components/dashboard/ActivityTimelineChart";
@@ -18,8 +17,6 @@ import {
   buildSidebarProjectsFromSummaries,
 } from "@/lib/dashboard/projectContextDashboard";
 import { useProjectsQuery } from "@/hooks/convex-data";
-import { useDesktopBridge } from "@/hooks/useDesktopBridge";
-import { useEngineStatus } from "@/hooks/useEngineStatus";
 import { useSelectedProjectContext } from "@/hooks/useSelectedProjectContext";
 
 const DEFAULT_DASHBOARD_PERIOD: DashboardPeriod = "This month";
@@ -69,8 +66,6 @@ function isInPeriod(timestamp: number | undefined, period: DashboardPeriod) {
 
 export function DashboardContextView() {
   const navigate = useNavigate();
-  const desktop = useDesktopBridge();
-  const engineStatus = useEngineStatus();
   const selectedProject = useSelectedProjectContext();
   const projectsQuery = useProjectsQuery();
   const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>(DEFAULT_DASHBOARD_PERIOD);
@@ -127,29 +122,11 @@ export function DashboardContextView() {
     !projectsQuery.isLoading &&
     !projectsQuery.error &&
     (projectsQuery.data?.length ?? 0) === 0;
-  const engineState = engineStatus.data?.state ?? "starting";
-  const engineStatusLabel =
-    engineState === "ready"
-      ? "Engine ready"
-      : engineState === "failed"
-        ? "Engine offline"
-        : engineState === "starting"
-          ? "Engine starting"
-          : "Engine paused";
-  const engineStatusTone =
-    engineState === "ready" ? "ready" : engineState === "failed" ? "warning" : "neutral";
-
-  useQuery({
-    queryKey: ["desktop", "active-app"],
-    queryFn: () => desktop.screen.getActiveApp(),
-  });
   return (
     <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
       <div className="flex flex-col gap-[clamp(24px,4vw,44px)]">
         <div className="flex flex-col gap-[clamp(14px,2vw,18px)]">
           <DashboardHeader
-            engineStatusLabel={engineStatusLabel}
-            engineStatusTone={engineStatusTone}
             greeting="Good Morning."
             subheading={dashboardSubheading}
             selectedPeriod={selectedPeriod}

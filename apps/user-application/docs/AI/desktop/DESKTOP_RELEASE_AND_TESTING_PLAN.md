@@ -6,6 +6,15 @@
 
 ---
 
+## Open prioriteit
+
+| Item | Doc |
+|------|-----|
+| **Startup-tijd moet veel beter** — trage cold start is geen acceptabele launch-ervaring | [`DESKTOP_STARTUP_PERFORMANCE.md`](./DESKTOP_STARTUP_PERFORMANCE.md) |
+| **Hele app te traag** — trage klikken, te veel fetches, chat `fetch failed`, geen logs | [`DESKTOP_PERFORMANCE_AND_OBSERVABILITY.md`](./DESKTOP_PERFORMANCE_AND_OBSERVABILITY.md) |
+
+---
+
 ## Kort antwoord
 
 | Vraag | Antwoord |

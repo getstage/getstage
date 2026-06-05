@@ -30,6 +30,28 @@ export class SidecarSupervisor {
     return { ...this.status };
   }
 
+  async getLiveStatus(): Promise<EngineStatus> {
+    if (this.status.state !== "ready" && this.status.state !== "starting") {
+      return this.getStatus();
+    }
+
+    const readiness = await fetchReadiness(this.status.port);
+    if (readiness?.ready) {
+      return this.getStatus();
+    }
+
+    this.child = null;
+    this.status = {
+      adopted: false,
+      error: `Stage Engine is not responding on port ${this.status.port}.`,
+      pid: null,
+      port: this.status.port,
+      state: "failed",
+    };
+
+    return this.getStatus();
+  }
+
   async start() {
     if (this.status.state === "ready" || this.status.state === "starting") {
       return this.getStatus();

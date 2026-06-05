@@ -62,8 +62,8 @@ export function registerIpcHandlers({
     return authController.getAccessToken();
   });
 
-  ipcMain.handle(IPC_CHANNELS.engineGetStatus, () => {
-    return engineStatusSchema.parse(sidecarSupervisor.getStatus());
+  ipcMain.handle(IPC_CHANNELS.engineGetStatus, async () => {
+    return engineStatusSchema.parse(await sidecarSupervisor.getLiveStatus());
   });
 
   ipcMain.handle(IPC_CHANNELS.engineListProviders, async () => {
