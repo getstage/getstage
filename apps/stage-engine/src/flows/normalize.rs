@@ -192,14 +192,21 @@ pub fn merge_flow_patch(
             .collect::<anyhow::Result<Vec<_>>>()?;
         if !normalized_steps.is_empty() {
             flow_object.insert("steps".to_string(), JsonValue::Array(normalized_steps));
-            flow_object.insert("screenCount".to_string(), json!(screen_count_from_steps(steps)));
+            flow_object.insert(
+                "screenCount".to_string(),
+                json!(screen_count_from_steps(steps)),
+            );
         }
     }
 
     Ok(())
 }
 
-fn normalize_flow(flow: &JsonValue, index: usize, force_draft: bool) -> anyhow::Result<Option<JsonValue>> {
+fn normalize_flow(
+    flow: &JsonValue,
+    index: usize,
+    force_draft: bool,
+) -> anyhow::Result<Option<JsonValue>> {
     let Some(object) = flow.as_object() else {
         return Ok(None);
     };
@@ -249,7 +256,8 @@ fn normalize_screen(screen: &JsonValue, index: usize) -> anyhow::Result<Option<J
     let Some(object) = screen.as_object() else {
         return Ok(None);
     };
-    let title = clean_string(object.get("title")).unwrap_or_else(|| format!("Screen {}", index + 1));
+    let title =
+        clean_string(object.get("title")).unwrap_or_else(|| format!("Screen {}", index + 1));
     if title.trim().is_empty() {
         return Ok(None);
     }
@@ -261,8 +269,8 @@ fn normalize_screen(screen: &JsonValue, index: usize) -> anyhow::Result<Option<J
         .get("flowCount")
         .and_then(JsonValue::as_u64)
         .unwrap_or(1);
-    let key_elements = normalize_string_array(object.get("keyElements"), MAX_KEY_ELEMENTS)
-        .unwrap_or_default();
+    let key_elements =
+        normalize_string_array(object.get("keyElements"), MAX_KEY_ELEMENTS).unwrap_or_default();
 
     Ok(Some(json!({
         "id": id,
@@ -273,7 +281,11 @@ fn normalize_screen(screen: &JsonValue, index: usize) -> anyhow::Result<Option<J
     })))
 }
 
-fn normalize_step(step: &JsonValue, flow_id: &str, index: usize) -> anyhow::Result<Option<JsonValue>> {
+fn normalize_step(
+    step: &JsonValue,
+    flow_id: &str,
+    index: usize,
+) -> anyhow::Result<Option<JsonValue>> {
     let (label, id, screen_id) = match step {
         JsonValue::String(value) => (
             value.trim().to_string(),
@@ -420,7 +432,10 @@ mod tests {
 
         assert_eq!(normalized["artifactKind"], "flowsArtifact");
         assert_eq!(normalized["flows"][0]["status"], "Draft");
-        assert_eq!(normalized["flows"][0]["steps"][0]["label"], "Landing -> Click signup");
+        assert_eq!(
+            normalized["flows"][0]["steps"][0]["label"],
+            "Landing -> Click signup"
+        );
         assert_eq!(normalized["generatedAt"], 123);
     }
 

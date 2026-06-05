@@ -21,10 +21,7 @@ impl ReferoClient {
         Self::from_parts(config.mcp_url.clone(), config.token.clone())
     }
 
-    pub fn from_parts(
-        mcp_url: String,
-        token: Option<String>,
-    ) -> Result<Self, ReferoClientError> {
+    pub fn from_parts(mcp_url: String, token: Option<String>) -> Result<Self, ReferoClientError> {
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 

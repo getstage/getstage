@@ -57,6 +57,25 @@ pub fn extract_flows_artifact(text: &str) -> anyhow::Result<JsonValue> {
         .context("provider output did not contain a valid flowsArtifact artifact")
 }
 
+pub fn extract_style_guide(text: &str) -> anyhow::Result<JsonValue> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        bail!("provider output was empty");
+    }
+
+    if let Ok(value) = serde_json::from_str::<JsonValue>(trimmed)
+        && style_guide_shape_is_normalizable(&value)
+    {
+        return Ok(value);
+    }
+
+    collect_json_objects(trimmed)
+        .into_iter()
+        .rev()
+        .find(style_guide_shape_is_normalizable)
+        .context("provider output did not contain a valid style guide object")
+}
+
 pub fn extract_wireframes_artifact(text: &str) -> anyhow::Result<JsonValue> {
     let trimmed = text.trim();
     if trimmed.is_empty() {
@@ -173,6 +192,17 @@ fn wireframes_shape_is_normalizable(value: &JsonValue) -> bool {
         .get("generatedScreens")
         .and_then(JsonValue::as_array)
         .is_some_and(|screens| !screens.is_empty())
+}
+
+fn style_guide_shape_is_normalizable(value: &JsonValue) -> bool {
+    value
+        .get("colorPalettes")
+        .and_then(JsonValue::as_array)
+        .is_some_and(|palettes| !palettes.is_empty())
+        && value
+            .get("typography")
+            .and_then(JsonValue::as_object)
+            .is_some()
 }
 
 fn strategy_shape_is_normalizable(value: &JsonValue) -> bool {

@@ -21,7 +21,7 @@ Codex/Claude output is **never trusted as final shape**. Stage uses two layers:
 
 **Terminal noise:** Long `provider_warning` streams are often Codex printing JSON or the prompt on **stderr**. If the last event is `run_completed` / `Strategy artifact saved.`, the run succeeded. See [STRATEGY_TESTING.md](./STRATEGY_TESTING.md#terminal-noise-provider_warning).
 
-Research uses the same pattern: extract → normalize in `research_repository.rs` / workflow. See [RESEARCH_DEV_STATUS.md](./RESEARCH_DEV_STATUS.md#provider-output-pipeline-normalize-first).
+Research uses the same pattern: extract → normalize in `research_repository.rs` / workflow. See [RESEARCH_DEV_STATUS.md](../research/RESEARCH_DEV_STATUS.md#provider-output-pipeline-normalize-first).
 
 ## Current state
 
@@ -66,7 +66,7 @@ No new clippy failures remained in the new Strategy workflow files after cleanup
 
 - **Regenerate strategy** beside **Edit Strategy** when an artifact exists (modal with last generate input from sessionStorage / Convex).
 - Full run uses the same engine path as first generate; `deletePreviousStrategyArtifacts` on success.
-- Research is unchanged. Downstream prompt matches Research re-run policy — see [RESEARCH_DEV_STATUS.md](./RESEARCH_DEV_STATUS.md#re-run-research-shipped).
+- Research is unchanged. Downstream prompt matches Research re-run policy — see [RESEARCH_DEV_STATUS.md](../research/RESEARCH_DEV_STATUS.md#re-run-research-shipped).
 - Per-section **Regenerate with AI** on cards is unchanged.
 
 ---

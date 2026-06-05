@@ -7,10 +7,9 @@ use tokio::fs;
 
 use crate::helpers::time::now_millis;
 use crate::models::providers::{
-    ProviderId, ProviderModel, ProviderModelSource, ProviderOptionChoice,
-    ProviderOptionDescriptor,
+    ProviderId, ProviderModel, ProviderModelSource, ProviderOptionChoice, ProviderOptionDescriptor,
 };
-use crate::providers::catalog::{fallback_models, ProviderRuntimeSpec};
+use crate::providers::catalog::{ProviderRuntimeSpec, fallback_models};
 
 const STAGE_MODELS_CACHE_FILE: &str = ".stage/provider-models-cache.json";
 
@@ -135,7 +134,9 @@ fn codex_cached_model_to_provider_model(
             label: "Reasoning effort".to_string(),
             description: None,
             options: reasoning_options,
-            current_value: model.default_reasoning_level.map(|effort| map_codex_effort_id(&effort)),
+            current_value: model
+                .default_reasoning_level
+                .map(|effort| map_codex_effort_id(&effort)),
         });
     }
 
@@ -191,7 +192,10 @@ fn stage_models_cache_path() -> Option<PathBuf> {
     env::var_os("HOME").map(|home| PathBuf::from(home).join(STAGE_MODELS_CACHE_FILE))
 }
 
-async fn load_stage_cache(provider_id: ProviderId, provider_version: &str) -> Option<Vec<ProviderModel>> {
+async fn load_stage_cache(
+    provider_id: ProviderId,
+    provider_version: &str,
+) -> Option<Vec<ProviderModel>> {
     let path = stage_models_cache_path()?;
     let contents = fs::read_to_string(path).await.ok()?;
     let cache = serde_json::from_str::<StageModelsCacheFile>(&contents).ok()?;
@@ -203,7 +207,11 @@ async fn load_stage_cache(provider_id: ProviderId, provider_version: &str) -> Op
     Some(entry.models.clone())
 }
 
-async fn store_stage_cache(provider_id: ProviderId, provider_version: &str, models: &[ProviderModel]) {
+async fn store_stage_cache(
+    provider_id: ProviderId,
+    provider_version: &str,
+    models: &[ProviderModel],
+) {
     let Some(path) = stage_models_cache_path() else {
         return;
     };

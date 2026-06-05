@@ -9,7 +9,7 @@ import {
 } from "./_helpers";
 import { addTaskForUser, toggleTaskForUser } from "./domain/projects/service";
 import { recomputeProjectState } from "./domain/projects/readModel";
-import { attachTrackedR2Asset, deleteOldR2Asset, r2 } from "./r2";
+import { attachTrackedR2Asset, deleteOldR2Asset, resolveAssetUrl } from "./r2";
 
 function now() {
   return Date.now();
@@ -338,7 +338,7 @@ export const saveAttachment = mutation({
       taskId: args.taskId,
       r2ObjectKey: args.r2ObjectKey,
       type,
-      url: await r2.getUrl(args.r2ObjectKey),
+      url: (await resolveAssetUrl(args.r2ObjectKey)) ?? args.r2ObjectKey,
       fileName: args.fileName,
       fileSize: args.fileSize,
       mimeType: args.mimeType,

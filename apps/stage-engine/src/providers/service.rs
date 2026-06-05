@@ -84,8 +84,7 @@ async fn provider_record(
             let status = provider_status(command_failed, authenticated, auth_status);
             let models =
                 resolve_provider_models(spec, version.as_deref(), force_model_refresh).await;
-            let message =
-                provider_message(command_failed, authenticated, auth_status, &models);
+            let message = provider_message(command_failed, authenticated, auth_status, &models);
 
             ProviderStatusRecord {
                 id: spec.id,

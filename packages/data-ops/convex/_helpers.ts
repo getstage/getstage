@@ -2,7 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getCurrentSubscriptionSnapshot } from "./billing";
-import { deleteOldR2Asset, r2 } from "./r2";
+import { deleteOldR2Asset, resolveAssetUrl } from "./r2";
 import { buildNameFromEmail, getCanonicalUserByEmail, normalizeEmailAddress } from "./userEmails";
 
 function getEnv(name: string) {
@@ -550,7 +550,7 @@ export async function getAttachmentsForTask(ctx: ReaderCtx, taskId: Id<"tasks">)
       type: attachment.type,
       url:
         attachment.r2ObjectKey
-          ? await r2.getUrl(attachment.r2ObjectKey)
+          ? await resolveAssetUrl(attachment.r2ObjectKey)
           : attachment.storageId !== undefined
           ? ((await ctx.storage.getUrl(attachment.storageId)) ?? attachment.url)
           : attachment.url,

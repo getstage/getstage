@@ -1,8 +1,8 @@
 # Moodboard — build plan (end-to-end)
 
-Last updated: 2026-06-04  
+Last updated: 2026-06-05
 Audience: engineering (build order)  
-Related: [`MOODBOARD_DEV_STATUS.md`](./MOODBOARD_DEV_STATUS.md) · [`MOODBOARD_TESTING.md`](./MOODBOARD_TESTING.md) · [`MOODBOARD_CHANGE_AUDIT.md`](./MOODBOARD_CHANGE_AUDIT.md) · [`RESEARCH_DEV_STATUS.md`](./RESEARCH_DEV_STATUS.md) · [`STRATEGY_DEV_STATUS.md`](./STRATEGY_DEV_STATUS.md)
+Related: [`MOODBOARD_DEV_STATUS.md`](./MOODBOARD_DEV_STATUS.md) · [`MOODBOARD_TESTING.md`](./MOODBOARD_TESTING.md) · [`MOODBOARD_CHANGE_AUDIT.md`](./MOODBOARD_CHANGE_AUDIT.md) · [`RESEARCH_DEV_STATUS.md`](../research/RESEARCH_DEV_STATUS.md) · [`STRATEGY_DEV_STATUS.md`](../strategy/STRATEGY_DEV_STATUS.md)
 
 > Concrete build order and progress audit. High-level status lives in **`MOODBOARD_DEV_STATUS.md`**.
 
@@ -14,10 +14,10 @@ Related: [`MOODBOARD_DEV_STATUS.md`](./MOODBOARD_DEV_STATUS.md) · [`MOODBOARD_T
 |---|----------|--------|
 | A | Scope (phases 1–4) | Upload + image URL + Figma OAuth + Refero search → Convex/R2 + staging grid |
 | B | Figma | Per-user OAuth from Integrations; no shared `FIGMA_ACCESS_TOKEN` in production |
-| C | “Generate with AI” | **Refero search box only** — user query; no auto-seed from Research/Strategy |
+| C | “Search Refero” | **Refero search box only** — user query; no auto-seed from Research/Strategy |
 | D | Refero | **Screens only** (`refero_search_screens` + image fetch); styles/flows deferred |
 | E | Image URL | Server fetch → validate → R2 → `source: "url"` |
-| F | Import vs style guide | **Two run types:** `mode: moodboard` (no LLM) and `mode: styleguide` (LLM, not built) |
+| F | Import vs style guide | **Two run types:** `mode: moodboard` (no LLM) and `mode: styleguide` (LLM) |
 | G | Staged references | Engine **appends** to artifact with `isInMoodboard: false`; user commits via **Add to Moodboard** |
 | H | Directions | User-created/user-named only; no fixture fallback like `Direction 1/2/3`; rename persists with assigned references |
 | I | Moodboard R2 keys | New keys are project-first: `moodboard/projects/{projectId}/users/{userId}/{source}/{uuid}.{ext}`; legacy keys still resolve |
@@ -29,8 +29,9 @@ Related: [`MOODBOARD_DEV_STATUS.md`](./MOODBOARD_DEV_STATUS.md) · [`MOODBOARD_T
 ```txt
 React (MoodboardTab, hooks)
   → Electron IPC startRun(mode: moodboard | styleguide)
-  → stage-engine moodboard/workflow.rs | styleguide/workflow.rs (TBD)
+  → stage-engine moodboard/workflow.rs | styleguide/workflow.rs
        → Refero MCP / Figma REST / URL fetch → R2
+       → styleguide LLM → normalize/merge styleGuides[]
        → Convex save moodboardArtifact
   → getLatestMoodboardArtifact (resolveAssetContentJson) → UI grid
 ```
@@ -38,7 +39,7 @@ React (MoodboardTab, hooks)
 Rules (same as Research/Strategy):
 
 - React does not call Refero/Figma/providers for import.
-- Provider JSON for style guides will use **Extract → Normalize** before Convex save (when built).
+- Provider JSON for style guides uses **Extract → Normalize → Merge** before Convex save.
 - Artifact optional fields must be **omitted**, not JSON `null`, or desktop Zod parse fails.
 
 ---
@@ -60,22 +61,22 @@ Status: ⬜ todo · 🟡 in progress · ✅ done
 | 4.y | Direct image URL import | ✅ | `moodboard-url` |
 | 4.z | Project-first moodboard R2 keys | ✅ | Stable asset keys at rest; signed URLs only on read |
 | 5.0 | Direction Hub real board state | ✅ | No auto-seeded directions; inline rename; real counts |
-| 5.x | Style Guide AI | ⬜ | Mock delay + fixture style guide only |
+| 5.x | Style Guide AI | ✅ | `mode: styleguide` routes through stage-engine; provider JSON patches `styleGuides[]` |
 | 6.x | Re-run policy + testing doc | 🟡 | `MOODBOARD_TESTING.md` filled; runtime E2E manual |
 
 ---
 
-## Phase 5 — Style guide AI (next)
+## Phase 5 — Style guide AI
 
-Direction Hub itself is board-state backed now. The remaining Phase 5 work is only the AI style guide run.
+Direction Hub and style guide generation are board-state backed now.
 
 | Task | Notes |
 |------|--------|
-| `apps/stage-engine/src/styleguide/workflow.rs` | Input: research + strategy + direction references (metadata, not raw blobs) |
-| `styleguide/prompt.rs` + `provider_json` | Detect style guide JSON / patch `styleGuides[]` |
-| Convex run handlers | Mirror strategy `createRun` / `completeRun` |
-| `useMoodboardTab.generateStyleGuide` | Replace mock delay with `startRun(mode: styleguide, context: { directionId })` |
-| UI | Keep `StyleGuideGenerating`; bind to real run events |
+| `apps/stage-engine/src/styleguide/workflow.rs` | ✅ Input: strategy/research context + direction references metadata |
+| `styleguide/prompt.rs` + `provider_json` | ✅ Detect style guide JSON / patch `styleGuides[]` |
+| Convex run handlers | Deferred — styleguide currently saves through `saveMoodboardArtifact` |
+| `useMoodboardTab.generateStyleGuide` | ✅ Replaced mock delay with `startRun(mode: styleguide, context: { directionId })` |
+| UI | ✅ `StyleGuideGenerating` bound to real run events |
 
 **Exit:** Per-direction palette/typography in Convex; view uses artifact, not only `defaultStyleGuide`.
 
@@ -87,7 +88,7 @@ Direction Hub itself is board-state backed now. The remaining Phase 5 work is on
 - `UpstreamStaleBanner` flags when research/strategy newer than moodboard
 - Figma token refresh UX
 - URL import SSRF/size guards audit
-- Rename UI: “Generate with AI” → “Search Refero” (copy only)
+- Provider picker for style guide generation
 
 ---
 

@@ -205,7 +205,10 @@ fn normalize_block(block: &JsonValue, section_id: &str, index: usize) -> Option<
     let object = block.as_object()?;
     let kind = object.get("kind").and_then(JsonValue::as_str)?;
     if !ALLOWED_BLOCK_KINDS.contains(&kind) {
-        tracing::warn!(block_kind = kind, "dropping wireframe block with unknown kind");
+        tracing::warn!(
+            block_kind = kind,
+            "dropping wireframe block with unknown kind"
+        );
         return None;
     }
 

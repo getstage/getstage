@@ -10,6 +10,7 @@ use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::runs::{RunEvent, RunStatus, StartRunRequest};
 use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
 use crate::providers::process::ProviderProcessOutcome;
+use crate::refero::service::ReferoService;
 use crate::research::competitive::filter_competitive_analysis;
 use crate::research::prompt::build_research_prompt;
 use crate::research::refero_assets::{apply_engine_ui_patterns, persist_refero_context_images};
@@ -17,7 +18,6 @@ use crate::research::section::{
     build_section_regenerate_prompt, merge_research_section, parse_research_section,
 };
 use crate::research::service::ResearchService;
-use crate::refero::service::ReferoService;
 use crate::runs::RunEventSink;
 use serde_json::json;
 

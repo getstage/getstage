@@ -19,6 +19,7 @@ use crate::research::workflow::ResearchWorkflow;
 use crate::runs::RunManager;
 use crate::server;
 use crate::strategy::workflow::StrategyWorkflow;
+use crate::styleguide::StyleguideWorkflow;
 use crate::wireframes::workflow::WireframesWorkflow;
 
 #[derive(Clone, Debug)]
@@ -48,6 +49,10 @@ impl AppState {
         let strategy = Arc::new(StrategyWorkflow::new(StrategyRepository::new(
             &config.convex,
         )));
+        let styleguide = Arc::new(StyleguideWorkflow::new(
+            MoodboardRepository::new(&config.convex),
+            StrategyRepository::new(&config.convex),
+        ));
         let flows = Arc::new(FlowsWorkflow::new(FlowsRepository::new(&config.convex)));
         let wireframes = Arc::new(WireframesWorkflow::new(WireframesRepository::new(
             &config.convex,
@@ -61,6 +66,7 @@ impl AppState {
                 "v1",
                 Some(research),
                 Some(strategy),
+                Some(styleguide),
                 Some(moodboard),
                 Some(flows),
                 Some(wireframes),

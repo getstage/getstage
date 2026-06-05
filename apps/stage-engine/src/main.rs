@@ -13,6 +13,7 @@ mod research;
 mod runs;
 mod server;
 mod strategy;
+mod styleguide;
 mod wireframes;
 
 use anyhow::Context;

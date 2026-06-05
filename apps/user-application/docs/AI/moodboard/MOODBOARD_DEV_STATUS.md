@@ -1,8 +1,8 @@
 # Moodboard Dev Status
 
-Last updated: 2026-06-04
+Last updated: 2026-06-05
 
-Related: [`MOODBOARD_BUILD_PLAN.md`](./MOODBOARD_BUILD_PLAN.md) · [`MOODBOARD_TESTING.md`](./MOODBOARD_TESTING.md) · [`MOODBOARD_CHANGE_AUDIT.md`](./MOODBOARD_CHANGE_AUDIT.md) · [`RESEARCH_DEV_STATUS.md`](./RESEARCH_DEV_STATUS.md) · [`STRATEGY_DEV_STATUS.md`](./STRATEGY_DEV_STATUS.md)
+Related: [`MOODBOARD_BUILD_PLAN.md`](./MOODBOARD_BUILD_PLAN.md) · [`MOODBOARD_TESTING.md`](./MOODBOARD_TESTING.md) · [`MOODBOARD_CHANGE_AUDIT.md`](./MOODBOARD_CHANGE_AUDIT.md) · [`RESEARCH_DEV_STATUS.md`](../research/RESEARCH_DEV_STATUS.md) · [`STRATEGY_DEV_STATUS.md`](../strategy/STRATEGY_DEV_STATUS.md)
 
 ---
 
@@ -17,7 +17,7 @@ Moodboard is the **visual direction** step after Research + Strategy: import ref
 | Area | Status |
 |------|--------|
 | **Zod contract** | `packages/data-ops/src/contracts/moodboard.ts` — `moodboardArtifact`, directions, references (`upload` \| `figma` \| `url`), `styleGuides[]` |
-| **Convex read** | `getLatestMoodboardArtifact` with `resolveAssetContentJson` (R2 keys → signed URLs) |
+| **Convex read** | `getLatestMoodboardArtifact` with `resolveAssetContentJson` (R2 keys → public custom-domain URLs when configured, signed fallback otherwise) |
 | **Convex save** | `saveMoodboardArtifact` upsert — no R2 wipe on every save |
 | **Convex cleanup** | `deletePreviousMoodboardArtifacts` — explicit downstream clear only (Research/Strategy re-run dialog) |
 | **R2 purposes** | `moodboard-upload`, `moodboard-refero`, `moodboard-figma`, `moodboard-url`; new keys are project-first |
@@ -25,13 +25,13 @@ Moodboard is the **visual direction** step after Research + Strategy: import ref
 | **Refero import** | `refero_search_screens` + image fetch (`full` → `thumbnail` MCP) + HTTPS CDN fallback + R2 `moodboard-refero` |
 | **Figma import** | User OAuth via `getConnectedFigmaAccessToken` + `figma/service.rs` + R2 `moodboard-figma` |
 | **Image URL import** | Server fetch + validate + R2 `moodboard-url` (same paste field as Figma when not a figma.com URL) |
-| **Desktop UI** | `MoodboardTab` — upload / Figma / “Generate with AI” (Refero search box), staging grid, direction hub, style guide views |
+| **Desktop UI** | `MoodboardTab` — upload / Figma / “Search Refero”, staging grid, direction hub, style guide views |
 | **Directions** | User-created/user-named; no automatic `Direction 1/2/3` fixture fallback; Direction Hub supports inline rename |
 | **Persistence** | `useMoodboardArtifact` + `useSaveMoodboardArtifact` + `buildMoodboardArtifact` / `moodboardBoardState` |
-| **Style guide AI** | **Not wired** — `generateStyleGuide` still mock delay + fixture `defaultStyleGuide` fallback |
-| **Engine `styleguide` mode** | In `runModeSchema` but **no** `styleguide/workflow.rs` yet |
+| **Style guide AI** | Wired through `mode: styleguide`; engine normalizes provider JSON into `styleGuides[]` and UI waits for real run events |
+| **Engine `styleguide` mode** | `apps/stage-engine/src/styleguide/workflow.rs` routed from `RunManager` with per-direction dedupe |
 
-**Import runs are production-shaped** (engine → R2 → Convex artifact append). **Style guide generation is still UI/mock.**
+**Import runs are production-shaped** (engine → R2 → Convex artifact append). **Style guide generation is now provider-backed, with runtime E2E still to verify in testing.**
 
 ---
 
@@ -101,7 +101,7 @@ Warnings on MCP miss are OK if CDN/R2 path succeeds.
 
 ### UI copy caveat
 
-**“Generate with AI”** on the moodboard tab is **Refero screen search**, not an LLM. No Research/Strategy context is injected into the Refero query in V1.
+**“Search Refero”** on the moodboard tab is **Refero screen search**, not an LLM. No Research/Strategy context is injected into the Refero query in V1.
 
 ### Direction behavior
 
@@ -120,8 +120,7 @@ Direction Hub uses real board state:
 
 | Item | Notes |
 |------|--------|
-| **Style guide run** | `mode: styleguide`, `styleguide/prompt.rs`, normalize `styleGuides[]`, real `StyleGuideGenerating` |
-| **Provider picker on style guide** | Optional; mirror Strategy dialog pattern |
+| **Provider picker on style guide** | Optional; currently uses the default Codex run path |
 | **Full moodboard regen** | Button + confirm + `deletePreviousMoodboardArtifacts` |
 | **Strategy approval gate** | Before style guide (product optional) |
 | **Refero styles/flows** | Screens only for moodboard import |
@@ -135,7 +134,7 @@ Direction Hub uses real board state:
 |---|----------|--------|
 | 1 | Gate moodboard on Strategy? | Soft — `UpstreamStaleBanner`; no hard block on import |
 | 2 | Refero in moodboard | **Yes** — free-text search, screens only, no LLM |
-| 3 | Images | **R2** + signed URLs on read |
+| 3 | Images | **R2** + public custom-domain URLs in testing (`assets-testing.getstage.co`), signed fallback when env is unset |
 | 4 | Figma | **Per-user OAuth** in Integrations; no `FIGMA_ACCESS_TOKEN` in production |
 | 5 | Re-run Strategy | Moodboard kept unless user clears via downstream dialog |
 | 6 | Staging in Convex | Import run **appends** staged references (`isInMoodboard: false`) to artifact; user commits via **Add to Moodboard** |
@@ -156,17 +155,19 @@ Dan-review table in older revisions is superseded by [`MOODBOARD_BUILD_PLAN.md`]
 | `apps/stage-engine/src/refero/service.rs` | MCP client; `fetch_screen_image_bytes` (full → thumbnail) |
 | `apps/stage-engine/src/figma/service.rs` | Figma REST import |
 | `apps/stage-engine/src/convex_store/moodboard_repository.rs` | Fetch/save artifact |
-| `apps/stage-engine/src/runs/mod.rs` | Routes `Moodboard` mode to `MoodboardWorkflow` |
-| `apps/user-application/src/hooks/project/moodboard/useMoodboardTab.ts` | Upload, import runs, save board |
+| `apps/stage-engine/src/runs/mod.rs` | Routes `Moodboard` mode and per-direction `Styleguide` runs |
+| `apps/stage-engine/src/styleguide/workflow.rs` | Provider-backed style guide generation and `styleGuides[]` merge |
+| `apps/stage-engine/src/styleguide/prompt.rs` | Style guide JSON prompt shape |
+| `apps/stage-engine/src/styleguide/normalize.rs` | Style guide normalization + moodboard artifact patch |
+| `apps/user-application/src/hooks/project/moodboard/useMoodboardTab.ts` | Upload, import runs, styleguide runs, save board |
 | `apps/user-application/src/hooks/project/moodboard/useMoodboardArtifact.ts` | Convex load + Zod parse |
 | `apps/user-application/src/lib/project/buildMoodboardArtifact.ts` | UI state → artifact JSON |
 | `apps/user-application/electron/integrations.ts` | Figma OAuth (desktop) |
 
-**To add (style guide phase):**
+**Deferred style guide hardening:**
 
-- `apps/stage-engine/src/styleguide/workflow.rs`
-- Convex style guide run handlers (or generic moodboard completion)
-- `useMoodboardRun` / provider run for `mode: styleguide`
+- Provider picker on style guide
+- Dedicated Convex style guide run records if product needs run history separate from moodboard artifacts
 
 ---
 

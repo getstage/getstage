@@ -153,7 +153,12 @@ impl FlowsWorkflow {
                 (auth_token_for_failure.as_deref(), project_id.as_deref())
                 && let Err(mark_failed_error) = self
                     .repository
-                    .fail_flows_run(token, project_id, convex_run_id.as_deref(), &error.to_string())
+                    .fail_flows_run(
+                        token,
+                        project_id,
+                        convex_run_id.as_deref(),
+                        &error.to_string(),
+                    )
                     .await
             {
                 tracing::warn!(%mark_failed_error, "failed to mark Convex flows run failed");

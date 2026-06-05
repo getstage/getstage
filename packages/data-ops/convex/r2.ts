@@ -139,6 +139,31 @@ function buildObjectKey(
   }
 }
 
+function getEnv(name: string) {
+  return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[
+    name
+  ];
+}
+
+function getR2PublicBaseUrl() {
+  const raw = getEnv("R2_PUBLIC_BASE_URL")?.trim();
+  if (!raw) {
+    return null;
+  }
+
+  return raw.replace(/\/$/, "");
+}
+
+export function buildPublicAssetUrl(key: string) {
+  const base = getR2PublicBaseUrl();
+  if (!base) {
+    return null;
+  }
+
+  const normalizedKey = key.startsWith("/") ? key.slice(1) : key;
+  return `${base}/${normalizedKey}`;
+}
+
 function isR2Key(value: string) {
   return !/^https?:\/\//i.test(value) && !value.startsWith("data:");
 }
@@ -303,6 +328,11 @@ export async function resolveAssetUrl(value: string | null | undefined) {
 
   if (!isR2Key(value)) {
     return value;
+  }
+
+  const publicUrl = buildPublicAssetUrl(value);
+  if (publicUrl) {
+    return publicUrl;
   }
 
   return r2.getUrl(value);

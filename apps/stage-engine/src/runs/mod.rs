@@ -7,23 +7,24 @@ use tokio::sync::{RwLock, broadcast, watch};
 use tokio::time::{Duration, sleep};
 use uuid::Uuid;
 
+use crate::flows::workflow::FlowsWorkflow;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::providers::{ProviderId, ProviderStatus};
 use crate::models::runs::{
     CancelRunResponse, RunEvent, RunMode, RunStatus, StartRunRequest, StartRunResponse,
 };
 use crate::moodboard::workflow::MoodboardWorkflow;
-use crate::flows::workflow::FlowsWorkflow;
-use crate::wireframes::workflow::WireframesWorkflow;
 use crate::providers::adapter::{ProviderRunContext, provider_unavailable_event, run_provider};
 use crate::providers::service::provider_snapshot;
 use crate::research::workflow::ResearchWorkflow;
 use crate::strategy::workflow::StrategyWorkflow;
+use crate::styleguide::StyleguideWorkflow;
+use crate::wireframes::workflow::WireframesWorkflow;
 
 const RUN_EVENT_CAPACITY: usize = 256;
 const COMPLETED_RUN_RETENTION: Duration = Duration::from_secs(300);
 
-type ProjectRunDedupeKey = (String, RunMode);
+type ProjectRunDedupeKey = (String, RunMode, Option<String>);
 
 fn project_run_dedupe_key(request: &StartRunRequest) -> Option<ProjectRunDedupeKey> {
     if request.context.source.is_some() {
@@ -36,7 +37,12 @@ fn project_run_dedupe_key(request: &StartRunRequest) -> Option<ProjectRunDedupeK
         | RunMode::Strategy
         | RunMode::Moodboard
         | RunMode::Flows
-        | RunMode::Wireframes => Some((project_id.clone(), request.mode)),
+        | RunMode::Wireframes => Some((project_id.clone(), request.mode, None)),
+        RunMode::Styleguide => Some((
+            project_id.clone(),
+            request.mode,
+            request.context.direction_id.clone(),
+        )),
         _ => None,
     }
 }
@@ -83,6 +89,7 @@ pub struct RunManager {
     project_run_dedupe: Arc<RwLock<HashMap<ProjectRunDedupeKey, String>>>,
     research: Option<Arc<ResearchWorkflow>>,
     strategy: Option<Arc<StrategyWorkflow>>,
+    styleguide: Option<Arc<StyleguideWorkflow>>,
     moodboard: Option<Arc<MoodboardWorkflow>>,
     flows: Option<Arc<FlowsWorkflow>>,
     wireframes: Option<Arc<WireframesWorkflow>>,
@@ -93,6 +100,7 @@ impl RunManager {
         api_version: &'static str,
         research: Option<Arc<ResearchWorkflow>>,
         strategy: Option<Arc<StrategyWorkflow>>,
+        styleguide: Option<Arc<StyleguideWorkflow>>,
         moodboard: Option<Arc<MoodboardWorkflow>>,
         flows: Option<Arc<FlowsWorkflow>>,
         wireframes: Option<Arc<WireframesWorkflow>>,
@@ -103,6 +111,7 @@ impl RunManager {
             project_run_dedupe: Arc::new(RwLock::new(HashMap::new())),
             research,
             strategy,
+            styleguide,
             moodboard,
             flows,
             wireframes,
@@ -127,6 +136,7 @@ impl RunManager {
                         existing_run_id = %existing_run_id,
                         project_id = %dedupe_key.0,
                         mode = ?dedupe_key.1,
+                        direction_id = ?dedupe_key.2,
                         "deduped duplicate project run start"
                     );
                     return StartRunResponse {
@@ -172,6 +182,7 @@ impl RunManager {
         let project_run_dedupe = Arc::clone(&self.project_run_dedupe);
         let research = self.research.clone();
         let strategy = self.strategy.clone();
+        let styleguide = self.styleguide.clone();
         let moodboard = self.moodboard.clone();
         let flows = self.flows.clone();
         let wireframes = self.wireframes.clone();
@@ -298,6 +309,33 @@ impl RunManager {
                         error: EngineError {
                             code: EngineErrorCode::InternalError,
                             message: "Flows workflow is not configured.".to_string(),
+                            provider_id: Some(context.request.provider_id),
+                            retryable: true,
+                            detail: None,
+                        },
+                    });
+                }
+            } else if matches!(context.request.mode, RunMode::Styleguide) {
+                if let Some(styleguide) = styleguide {
+                    styleguide
+                        .run(
+                            api_version,
+                            context.run_id.clone(),
+                            context.request.clone(),
+                            auth_token,
+                            sink,
+                            cancel_rx,
+                        )
+                        .await;
+                } else {
+                    sink.send(RunEvent::RunFailed {
+                        api_version,
+                        run_id: context.run_id.clone(),
+                        provider_id: context.request.provider_id,
+                        created_at: crate::helpers::time::now_millis(),
+                        error: EngineError {
+                            code: EngineErrorCode::InternalError,
+                            message: "Style guide workflow is not configured.".to_string(),
                             provider_id: Some(context.request.provider_id),
                             retryable: true,
                             detail: None,

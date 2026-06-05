@@ -46,6 +46,7 @@ Exacte cijfers invullen na eerste profiling-run.
 
 ## Gerelateerd
 
+- [**`DESKTOP_SPEED_AND_RELIABILITY_PLAN.md`**](./DESKTOP_SPEED_AND_RELIABILITY_PLAN.md) — **actieplan** P0 uploads + performance fasen
 - [`DESKTOP_PERFORMANCE_AND_OBSERVABILITY.md`](./DESKTOP_PERFORMANCE_AND_OBSERVABILITY.md) — traagheid, fetches, logs, chat/engine errors
 - [`DESKTOP_RELEASE_AND_TESTING_PLAN.md`](./DESKTOP_RELEASE_AND_TESTING_PLAN.md)
 - Sidecar supervisor: `apps/user-application/electron/sidecar.ts`

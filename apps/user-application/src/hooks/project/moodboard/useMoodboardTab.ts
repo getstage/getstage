@@ -11,13 +11,14 @@ import { MOODBOARD_IMAGE_ACCEPT, uploadFileToR2 } from "@/lib/r2Uploads";
 import { readFileAsDataUrl } from "@/lib/utils";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { formatRunFailedEvent } from "@/lib/engine/formatRunError";
-import { delay, MOCK_STYLE_GUIDE_RUN_DELAY_MS } from "@/mock/project/moodboard";
 import type { Project } from "@/models/project/project";
 import { useMoodboardArtifact } from "./useMoodboardArtifact";
 import { useSaveMoodboardArtifact } from "./useSaveMoodboardArtifact";
 
 const MOODBOARD_IMPORT_PROVIDER = "codex";
 const MOODBOARD_IMPORT_MODEL = "codex-default";
+const STYLEGUIDE_PROVIDER = "codex";
+const STYLEGUIDE_MODEL = "codex-default";
 
 function latestTerminalRunEvent(events: RunEvent[]) {
   for (let index = events.length - 1; index >= 0; index -= 1) {
@@ -73,6 +74,7 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
   const moodboardArtifact = useMoodboardArtifact(projectId);
   const saveArtifact = useSaveMoodboardArtifact(projectId);
   const providerRun = useProviderRun({ projectId, mode: "moodboard" });
+  const styleguideRun = useProviderRun({ projectId, mode: "styleguide" });
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
   const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
   const [isSaving, setIsSaving] = useState(false);
@@ -80,11 +82,17 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
   const [isGeneratingStyleGuide, setIsGeneratingStyleGuide] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importRunEnded, setImportRunEnded] = useState(false);
+  const [styleGuideRunEnded, setStyleGuideRunEnded] = useState(false);
+  const [styleGuideCompletedAt, setStyleGuideCompletedAt] = useState<number | null>(null);
 
   const data = moodboardArtifact.data;
   const terminalImportEvent = useMemo(
     () => latestTerminalRunEvent(providerRun.activeRunEvents),
     [providerRun.activeRunEvents],
+  );
+  const terminalStyleGuideEvent = useMemo(
+    () => latestTerminalRunEvent(styleguideRun.activeRunEvents),
+    [styleguideRun.activeRunEvents],
   );
 
   useEffect(() => {
@@ -108,6 +116,34 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
 
     providerRun.resetActiveRun();
   }, [providerRun, terminalImportEvent]);
+
+  useEffect(() => {
+    if (!terminalStyleGuideEvent) {
+      return;
+    }
+
+    setStyleGuideRunEnded(true);
+    setIsGeneratingStyleGuide(false);
+
+    if (terminalStyleGuideEvent.type === "run_completed") {
+      setError(null);
+      setStyleGuideCompletedAt(Date.now());
+      styleguideRun.resetActiveRun();
+      return;
+    }
+
+    if (terminalStyleGuideEvent.type === "run_failed") {
+      console.error(formatRunFailedEvent(terminalStyleGuideEvent));
+      setError(
+        terminalStyleGuideEvent.error.message?.trim() ||
+          "Style guide generation failed. Check Stage Engine and your AI provider setup.",
+      );
+      styleguideRun.resetActiveRun();
+      return;
+    }
+
+    styleguideRun.resetActiveRun();
+  }, [styleguideRun, terminalStyleGuideEvent]);
 
   const saveBoard = useCallback(
     async (state: MoodboardBoardState) => {
@@ -243,20 +279,54 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
   );
 
   const generateStyleGuide = useCallback(
-    async (_directionId: string) => {
+    async (directionId: string) => {
       if (!data) {
         throw new Error("Create a moodboard before generating a style guide.");
       }
+      if (isGeneratingStyleGuide || styleguideRun.startRun.isPending || styleguideRun.isRunActive) {
+        return;
+      }
 
       setIsGeneratingStyleGuide(true);
+      setStyleGuideRunEnded(false);
+      setStyleGuideCompletedAt(null);
+      setError(null);
       try {
-        await delay(MOCK_STYLE_GUIDE_RUN_DELAY_MS);
-      } finally {
+        await styleguideRun.startRun.mutateAsync({
+          providerId: STYLEGUIDE_PROVIDER,
+          modelId: STYLEGUIDE_MODEL,
+          prompt: "Generate style guide for this moodboard direction.",
+          mode: "styleguide",
+          context: { projectId, directionId },
+          attachments: [],
+          modelOptions: [],
+        });
+      } catch (caught) {
         setIsGeneratingStyleGuide(false);
+        setStyleGuideRunEnded(true);
+        setError(caught instanceof Error ? caught.message : "Could not start style guide generation.");
+        throw caught;
       }
     },
-    [data],
+    [
+      data,
+      isGeneratingStyleGuide,
+      projectId,
+      styleguideRun.isRunActive,
+      styleguideRun.startRun,
+    ],
   );
+
+  const regenerateStyleGuide = useCallback(
+    async (directionId: string) => {
+      await generateStyleGuide(directionId);
+    },
+    [generateStyleGuide],
+  );
+
+  const isStyleGuideRunActive =
+    !styleGuideRunEnded &&
+    (isGeneratingStyleGuide || styleguideRun.startRun.isPending || styleguideRun.isRunActive);
 
   return {
     data,
@@ -275,7 +345,9 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
     runEvents: providerRun.activeRunEvents,
     acceptUploads: MOODBOARD_IMAGE_ACCEPT,
     generateStyleGuide,
-    isGeneratingStyleGuide,
+    regenerateStyleGuide,
+    isGeneratingStyleGuide: isStyleGuideRunActive,
+    styleGuideCompletedAt,
     error:
       error ??
       (moodboardArtifact.parseError
@@ -283,6 +355,9 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
         : null) ??
       (providerRun.startRun.error instanceof Error
         ? providerRun.startRun.error.message
+        : null) ??
+      (styleguideRun.startRun.error instanceof Error
+        ? styleguideRun.startRun.error.message
         : null),
   };
 }

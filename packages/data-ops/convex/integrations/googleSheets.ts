@@ -3,7 +3,7 @@ import { action, internalMutation, internalQuery, mutation, query } from "../_ge
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { requireAuthUser } from "../_helpers";
-import { attachTrackedR2Asset, deleteOldR2Asset, r2 } from "../r2";
+import { attachTrackedR2Asset, deleteOldR2Asset, resolveAssetUrl } from "../r2";
 
 function now() {
   return Date.now();
@@ -729,7 +729,7 @@ export const runSheetImport = action({
         csvText = await response.text();
       } else {
         if (connection.r2ObjectKey) {
-          const response = await fetch(await r2.getUrl(connection.r2ObjectKey));
+          const response = await fetch((await resolveAssetUrl(connection.r2ObjectKey)) ?? connection.r2ObjectKey);
 
           if (!response.ok) {
             throw new Error("Uploaded CSV file could not be fetched.");

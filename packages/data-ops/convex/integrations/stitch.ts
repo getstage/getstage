@@ -14,7 +14,7 @@ import {
 } from "../_generated/server";
 import { requireProjectAccess } from "../_helpers";
 import { requirePhaseAccessForUserId, requireProjectAccessForUserId } from "../domain/projects/service";
-import { attachTrackedR2Asset, deleteOldR2Asset, r2 } from "../r2";
+import { attachTrackedR2Asset, deleteOldR2Asset, resolveAssetUrl, r2 } from "../r2";
 
 type ReaderCtx = QueryCtx | MutationCtx;
 
@@ -211,7 +211,7 @@ async function formatGeneratedDesign(
     stitchProjectId: design.stitchProjectId,
     stitchScreenId: design.stitchScreenId,
     stitchScreenUrl: design.stitchScreenUrl,
-    imageUrl: await r2.getUrl(design.r2ObjectKey),
+    imageUrl: (await resolveAssetUrl(design.r2ObjectKey)) ?? design.r2ObjectKey,
     r2ObjectKey: design.r2ObjectKey,
     sortOrder: design.sortOrder,
     status: design.status,

@@ -1,6 +1,6 @@
 # Moodboard Change Audit
 
-Last updated: 2026-06-04
+Last updated: 2026-06-05
 
 | Layer | Files | Change | Reason | Notes |
 |---|---|---|---|---|
@@ -18,7 +18,11 @@ Last updated: 2026-06-04
 | Frontend UI | `apps/user-application/src/components/project/tabs/moodboard/MoodboardTab.tsx`, `DirectionHub.tsx` | Removed auto-seeded fixture directions and added inline direction rename. | Directions are user-created buckets, not automatic fixture labels like `Direction 1/2/3`. | Empty legacy fixture directions are filtered unless referenced or style-guide-backed. |
 | Frontend reliability | `apps/user-application/src/components/project/tabs/moodboard/MoodboardTab.tsx` | Removed auto-select-on-load behavior and scoped actions to visible selected refs. | Delete/add actions should only affect explicit visible selections. | Prevents hidden/stale selections from mutating unrelated refs. |
 | Frontend reliability | `apps/user-application/src/components/project/tabs/moodboard/MoodboardTab.tsx`, `FolderMenu.tsx` | Made Direction menu close on delete, grid click, outside click, selection loss, and view changes. | Popover state was hanging after grid/delete interactions. | Menu is now positioned relative to its action wrapper. |
+| Engine Styleguide | `apps/stage-engine/src/styleguide/workflow.rs`, `prompt.rs`, `normalize.rs`, `helpers/provider_json.rs`, `runs/mod.rs`, `app.rs` | Added provider-backed `mode: styleguide` workflow and per-direction run dedupe. | Style guide generation now creates real `styleGuides[]` entries instead of relying on fixture UI. | Input uses strategy/research context plus assigned direction reference metadata; raw blobs are not sent. |
+| Frontend Styleguide | `apps/user-application/src/hooks/project/moodboard/useMoodboardTab.ts`, `MoodboardTab.tsx` | Replaced mock styleguide delay with real `startRun(mode: "styleguide", context: { directionId })` and run-event completion handling. | UI should wait for actual engine completion before showing `StyleGuideView`. | Uses Codex default provider path for now; provider picker deferred. |
+| Frontend copy | `apps/user-application/src/components/project/tabs/moodboard/FigmaLinkPanel.tsx` | Renamed “Generate with AI” to “Search Refero”. | Moodboard search is Refero screen search, not an LLM generation step. | |
 | Docs | `MOODBOARD_BUILD_PLAN.md`, `MOODBOARD_DEV_STATUS.md`, `MOODBOARD_TESTING.md`, `MOODBOARD_CHANGE_AUDIT.md` | Documented direction behavior, R2 key strategy, image resolving rules, fullscreen preview, and regression checks. | Keep product/architecture decisions durable for future implementation work. | Update this audit after future moodboard storage or UI behavior changes. |
+| R2 public domain | `R2_PUBLIC_DOMAIN_AUDIT.md`, `packages/data-ops/convex/r2.ts` | Public custom-domain URLs via `R2_PUBLIC_BASE_URL` instead of signed `r2.cloudflarestorage.com` reads. | Stable cacheable URLs for moodboard/research images in testing. | Legacy keys unchanged; 404 refs stay until re-import. |
 
 ## Storage Contract
 
@@ -29,6 +33,7 @@ Last updated: 2026-06-04
 | `imageUrl` | Stable object key or original fallback URL | Fresh signed URL when key-backed | Browser display URL after Convex read. |
 | `thumbnailUrl` | Stable object key or original fallback URL | Fresh signed URL when key-backed | Preferred browser display URL after Convex read. |
 | `sourceUrl` | Original Refero/Figma/direct source URL | Same URL | Provenance/debug fallback only, not primary truth. |
+| `styleGuides[]` | Provider-normalized JSON per direction | Same artifact content | Source of truth for `StyleGuideView`; fixture is fallback only. |
 
 ## Verification
 
@@ -38,3 +43,6 @@ Last updated: 2026-06-04
 | `cargo check` from `apps/stage-engine` | Passed | Rechecked after moodboard workflow image/fallback changes. |
 | `pnpm --dir packages/data-ops run convex:typecheck` | Passed | Rechecked R2 key generation/resolver helper changes. |
 | `pnpm run desktop:typecheck` | Passed | Rechecked Moodboard UI/save/fullscreen changes. |
+| `cargo check` from `apps/stage-engine` | Passed | 2026-06-05 styleguide workflow wiring. |
+| `pnpm --dir packages/data-ops run convex:typecheck` | Passed | 2026-06-05 public URL resolver + existing Convex functions. |
+| `pnpm run desktop:typecheck` | Passed | 2026-06-05 real styleguide run frontend wiring. |

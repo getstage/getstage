@@ -2,7 +2,7 @@
 
 > **Status:** open, **zeer hoge prioriteit** (juni 2026)  
 > **Scope:** traagheid, te veel fetches, engine errors, geen zichtbare logs  
-> **Gerelateerd:** [`DESKTOP_STARTUP_PERFORMANCE.md`](./DESKTOP_STARTUP_PERFORMANCE.md)
+> **Gerelateerd:** [`DESKTOP_SPEED_AND_RELIABILITY_PLAN.md`](./DESKTOP_SPEED_AND_RELIABILITY_PLAN.md) · [`DESKTOP_STARTUP_PERFORMANCE.md`](./DESKTOP_STARTUP_PERFORMANCE.md)
 
 ---
 

@@ -99,11 +99,18 @@ The JSON must use:
             .as_deref()
             .map(pretty_json)
             .unwrap_or_else(|| "None.".to_string()),
-        existing_flows_artifact_id = input.existing_flows_artifact_id.as_deref().unwrap_or("None."),
+        existing_flows_artifact_id = input
+            .existing_flows_artifact_id
+            .as_deref()
+            .unwrap_or("None."),
     )
 }
 
-pub fn build_screen_regenerate_prompt(screen_id: &str, artifact: &Value, input: &FlowsInput) -> String {
+pub fn build_screen_regenerate_prompt(
+    screen_id: &str,
+    artifact: &Value,
+    input: &FlowsInput,
+) -> String {
     format!(
         r#"You are regenerating one screen inside a Stage Flows artifact.
 

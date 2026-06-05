@@ -48,7 +48,7 @@ Do **not** extract one-liners or wrappers that only rename a call.
 ## Tests
 
 - Pure helpers → `#[cfg(test)]` in the same file (`refero_assets.rs`, `context.rs`, `refero/parse.rs`).
-- Full orchestration → E2E Research run; see [`../user-application/docs/AI/RESEARCH_TESTING.md`](../user-application/docs/AI/RESEARCH_TESTING.md).
+- Full orchestration → E2E Research run; see [`../user-application/docs/AI/research/RESEARCH_TESTING.md`](../user-application/docs/AI/research/RESEARCH_TESTING.md).
 
 ## Next workflow module shape (Strategy, Moodboard, …)
 

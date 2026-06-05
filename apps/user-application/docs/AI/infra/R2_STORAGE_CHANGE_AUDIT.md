@@ -59,6 +59,8 @@ users/{userId}/clients/...
 | Web R2 helper | `apps/web-application/src/lib/r2Uploads.ts` | Added optional `scopeId` support matching the desktop helper. | Web upload callsites need to pass project scope into Convex. | Keeps existing callers working. |
 | Docs | `R2_STORAGE_CHANGE_AUDIT.md` | Added global storage audit. | This decision applies beyond Moodboard. | Keep updated when new upload purposes are added. |
 
+Public custom-domain read URLs (2026-06-05): see [`R2_PUBLIC_DOMAIN_AUDIT.md`](./R2_PUBLIC_DOMAIN_AUDIT.md).
+
 ## Verification
 
 | Check | Result | Notes |

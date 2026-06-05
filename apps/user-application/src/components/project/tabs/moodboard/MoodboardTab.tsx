@@ -136,6 +136,17 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
     return getStyleGuideForDirection(moodboard.data.tabData, directionId) ?? defaultStyleGuide;
   })();
 
+  useEffect(() => {
+    if (view !== "generating-style-guide" || !activeStyleGuideDirectionName) {
+      return;
+    }
+    if (!moodboard.styleGuideCompletedAt) {
+      return;
+    }
+
+    setView("style-guide");
+  }, [activeStyleGuideDirectionName, moodboard.styleGuideCompletedAt, view]);
+
   function persistBoard(nextItems: MoodboardItem[], nextFolders: Direction[], nextUploadedFiles = uploadedFiles) {
     void moodboard
       .saveBoard({
@@ -248,9 +259,6 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
 
   async function generateStyleGuide(direction: string) {
     setActiveStyleGuideDirectionName(direction);
-    setFolders((current) => current.map((item) =>
-      item.name === direction ? { ...item, hasStyleGuide: true } : item,
-    ));
     setStyleGuideGeneratingMode("generate");
     setView("generating-style-guide");
 
@@ -260,13 +268,12 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
       try {
         await moodboard.generateStyleGuide(directionId);
       } catch {
-        // Keep the existing mock UI flow even if generation is unavailable.
+        setView("hub");
       }
-      setView("style-guide");
       return;
     }
 
-    window.setTimeout(() => setView("style-guide"), 900);
+    setView("hub");
   }
 
   if (view === "generating-style-guide") {
@@ -279,9 +286,17 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
           styleGuide={activeStyleGuide}
           onBack={() => setView("hub")}
           onRegenerate={() => {
+            const directionId = moodboard.data?.tabData.directions.find(
+              (item) => item.name === activeStyleGuideDirectionName,
+            )?.id;
+            if (!directionId) {
+              return;
+            }
             setStyleGuideGeneratingMode("regenerate");
             setView("generating-style-guide");
-            window.setTimeout(() => setView("style-guide"), 900);
+            void moodboard.regenerateStyleGuide(directionId).catch(() => {
+              setView("style-guide");
+            });
           }}
         />
       );

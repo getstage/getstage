@@ -197,10 +197,7 @@ impl MoodboardWorkflow {
             };
 
             references.push(refero_moodboard_reference(
-                screen,
-                image_url,
-                image_key,
-                index,
+                screen, image_url, image_key, index,
             ));
         }
 
@@ -265,11 +262,7 @@ impl MoodboardWorkflow {
         for (index, image) in images.into_iter().enumerate() {
             let image_key = upload_figma_image(&uploader, auth_token, project_id, &image).await;
 
-            references.push(figma_moodboard_reference(
-                &image,
-                image_key,
-                index,
-            ));
+            references.push(figma_moodboard_reference(&image, image_key, index));
         }
 
         if references.is_empty() {
@@ -596,9 +589,9 @@ async fn resolve_public_image_host(url: &Url) -> Result<(), WorkflowError> {
         return Ok(());
     }
 
-    let port = url
-        .port_or_known_default()
-        .ok_or_else(|| WorkflowError::InvalidRequest("Image URL must include a host.".to_string()))?;
+    let port = url.port_or_known_default().ok_or_else(|| {
+        WorkflowError::InvalidRequest("Image URL must include a host.".to_string())
+    })?;
 
     let mut resolved_any = false;
     let addresses = tokio::net::lookup_host((host, port)).await.map_err(|_| {
@@ -782,7 +775,11 @@ fn url_moodboard_reference(image: &UrlImportedImage, image_key: String) -> Value
     let mut reference = serde_json::Map::new();
     reference.insert(
         "id".to_string(),
-        json!(format!("url-{}-{}", sanitize_id(&image.title), now_millis())),
+        json!(format!(
+            "url-{}-{}",
+            sanitize_id(&image.title),
+            now_millis()
+        )),
     );
     reference.insert("title".to_string(), json!(image.title));
     reference.insert("imageUrl".to_string(), json!(image_key.clone()));

@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-04 (Phase 1–5 landed)
 Audience: engineering (build order)
-Related: [`MOODBOARD_BUILD_PLAN.md`](./MOODBOARD_BUILD_PLAN.md) · [`MOODBOARD_DEV_STATUS.md`](./MOODBOARD_DEV_STATUS.md) · [`STRATEGY_DEV_STATUS.md`](./STRATEGY_DEV_STATUS.md) · [`RESEARCH_DEV_STATUS.md`](./RESEARCH_DEV_STATUS.md) · [`STAGE_AI_WORKFLOW_CONTEXT_PLAN.md`](./STAGE_AI_WORKFLOW_CONTEXT_PLAN.md)
+Related: [`MOODBOARD_BUILD_PLAN.md`](../moodboard/MOODBOARD_BUILD_PLAN.md) · [`MOODBOARD_DEV_STATUS.md`](../moodboard/MOODBOARD_DEV_STATUS.md) · [`STRATEGY_DEV_STATUS.md`](../strategy/STRATEGY_DEV_STATUS.md) · [`RESEARCH_DEV_STATUS.md`](../research/RESEARCH_DEV_STATUS.md) · [`STAGE_AI_WORKFLOW_CONTEXT_PLAN.md`](../STAGE_AI_WORKFLOW_CONTEXT_PLAN.md)
 
 > Concrete build order to take Wireframes from fixture-driven UI to a real engine workflow that uses Claude/Codex to produce typed wireframe specs from the rest of the project (Flows + Strategy + Research + Moodboard). High-level status will live in `WIREFRAMES_DEV_STATUS.md` once Phase 1 lands.
 

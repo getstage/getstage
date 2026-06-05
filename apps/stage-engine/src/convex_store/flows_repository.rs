@@ -51,7 +51,10 @@ impl FlowsRepository {
         let mut client = self.authenticated_client(token).await?;
         let mut mutation_args = args();
         mutation_args.insert("projectId".to_string(), Value::from(project_id.to_string()));
-        mutation_args.insert("title".to_string(), Value::from("Generate flows".to_string()));
+        mutation_args.insert(
+            "title".to_string(),
+            Value::from("Generate flows".to_string()),
+        );
         mutation_args.insert(
             "externalRunId".to_string(),
             Value::from(external_run_id.to_string()),

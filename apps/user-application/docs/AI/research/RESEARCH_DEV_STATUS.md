@@ -40,7 +40,7 @@ Codex/Claude output is **never trusted as final shape**. Stage uses two layers:
 
 **Terminal noise:** Hundreds of `provider_warning` lines can be Codex streaming `researchArtifact` fields on stderr — not failures. Success = `research artifact saved to Convex` / `run_completed`. See [RESEARCH_TESTING.md](./RESEARCH_TESTING.md#terminal-noise-provider_warning).
 
-Strategy: same philosophy in [STRATEGY_DEV_STATUS.md](./STRATEGY_DEV_STATUS.md#provider-output-pipeline-normalize-first).
+Strategy: same philosophy in [STRATEGY_DEV_STATUS.md](../strategy/STRATEGY_DEV_STATUS.md#provider-output-pipeline-normalize-first).
 
 ---
 
@@ -316,7 +316,7 @@ See [RESEARCH_TESTING.md](./RESEARCH_TESTING.md) for manual checks.
 | [`RESEARCH_PRODUCT_REQUIREMENTS.md`](./RESEARCH_PRODUCT_REQUIREMENTS.md) | Product rules + requirement checklist |
 | [`RESEARCH_TESTING.md`](./RESEARCH_TESTING.md) | E2E form values + run log |
 | [`STAGE_AI_RESEARCH_HANDOFF.md`](./STAGE_AI_RESEARCH_HANDOFF.md) | Short handoff for next agent |
-| [`STAGE_AI_WORKFLOW_CONTEXT_PLAN.md`](./STAGE_AI_WORKFLOW_CONTEXT_PLAN.md) | Full workflow architecture plan |
+| [`STAGE_AI_WORKFLOW_CONTEXT_PLAN.md`](../STAGE_AI_WORKFLOW_CONTEXT_PLAN.md) | Full workflow architecture plan |
 | [`apps/stage-engine/ARCHITECTURE.md`](../../../stage-engine/ARCHITECTURE.md) | Engine module roles + helper conventions |
 
 ---

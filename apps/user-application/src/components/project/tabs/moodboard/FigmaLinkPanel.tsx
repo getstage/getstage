@@ -15,7 +15,7 @@ export function GenerateWithAiButton({
       onClick={onClick}
     >
       <GenerateWithAiIcon />
-      Generate with AI
+      Search Refero
     </button>
   );
 }

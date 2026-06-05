@@ -4,7 +4,7 @@ Date: May 30, 2026 (plan) · **Research V1 status: June 1, 2026**
 Status: Discussion plan; Research desktop path **implemented** — see docs below  
 Scope: Project AI workflows, Claude/Codex, Refero, voice, Figma-driven product flows
 
-> **Research V1 (implemented):** [`RESEARCH_DEV_STATUS.md`](./RESEARCH_DEV_STATUS.md) — full structure, file map, Refero→R2 flow.  
+> **Research V1 (implemented):** [`RESEARCH_DEV_STATUS.md`](./research/RESEARCH_DEV_STATUS.md) — full structure, file map, Refero→R2 flow.  
 > **May 31 dev session (logging, mock fix):** same file, history sections.  
 > **Refero MCP rules:** `.agents/skills/refero-mcp/SKILL.md`
 
@@ -1342,7 +1342,7 @@ Last updated: May 31, 2026
 | 5 | Electron auth handoff to Stage Engine | `apps/user-application/electron/ipc.ts`, `apps/user-application/electron/helpers/sidecar.ts`, `apps/user-application/electron/sidecar.ts` | done | Electron now forwards the current bearer token to Stage Engine requests and SSE run streaming. |
 | 6 | React artifact hooks | `apps/user-application/src/hooks/project/research/*` | partial | `useResearchArtifact`, `useResearchRun`, `useSaveResearchContext`, `useResearchTab` wired. Mock off by default. |
 | 6 | Research component props | `apps/user-application/src/components/project/tabs/research/*` | partial | Renders Convex artifact when present; configure form saves context. |
-| 6 | Dev logging + errors | `docs/AI/RESEARCH_DEV_STATUS.md`, stage-engine + electron/ipc | partial | Engine logs in pnpm dev terminal; UI shows error detail. See RESEARCH_DEV_STATUS.md. |
+| 6 | Dev logging + errors | `docs/AI/research/RESEARCH_DEV_STATUS.md`, stage-engine + electron/ipc | partial | Engine logs in pnpm dev terminal; UI shows error detail. See RESEARCH_DEV_STATUS.md. |
 | 7 | Edit/regenerate | Research hooks + Convex mutations | todo | Section-level regenerate first; per-item later. |
 | 8 | Vertical slice verification | data-ops + stage-engine + user-application | partial | `cargo check`, typecheck pass. Manual E2E not signed off. See RESEARCH_DEV_STATUS.md checklist. |
 

@@ -34,9 +34,9 @@ First `pnpm dev` after Rust changes: allow **1–3 min** compile. Refero import 
 
 **Expect:** R2 keys resolve to signed URLs; `source: upload`.
 
-### 2. Refero search (“Generate with AI”)
+### 2. Refero search (“Search Refero”)
 
-1. Switch to **Generate with AI** (or click the sparkle control)
+1. Switch to **Search Refero** (or click the sparkle control)
 2. Enter query, e.g. `dashboard empty states`
 3. Click **Generate**
 
@@ -106,16 +106,18 @@ run_completed
 
 ---
 
-## Smoke test — style guide (not shipped)
+## Smoke test — style guide
 
-Skip until Phase 5 in [`MOODBOARD_BUILD_PLAN.md`](./MOODBOARD_BUILD_PLAN.md) is done.
+| # | Step | Pass criteria |
+|---|------|---------------|
+| 22 | Create a direction and assign at least one moodboard reference | Direction Hub shows the direction with the real reference count |
+| 23 | Click **Generate Style Guide** | `StyleGuideGenerating` appears and stage-engine starts `mode: styleguide` |
+| 24 | Wait for completion | `StyleGuideView` opens with provider-generated palette/typography/components |
+| 25 | Inspect latest moodboard artifact | `styleGuides[]` contains one entry with matching `directionId`; direction has `hasStyleGuide: true` and `styleGuideId` |
+| 26 | Click **Regenerate** | Existing style guide for that direction is replaced, not duplicated |
+| 27 | Double-click Generate / Regenerate | Engine dedupes by `(projectId, styleguide, directionId)`; no parallel duplicate provider work |
 
-| # | Step | Current behavior |
-|---|------|------------------|
-| 22 | **Generate style guide** on a direction | Mock delay (~900 ms); may show fixture `defaultStyleGuide` |
-| 23 | Regenerate style guide | Same mock path |
-
-When shipped, expect:
+Expected logs:
 
 ```txt
 [stage-engine] styleguide workflow started

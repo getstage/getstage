@@ -31,10 +31,7 @@ impl ConvexAssetUploader {
         let mut mutation_args = args();
         mutation_args.insert("purpose".to_string(), Value::from(purpose.to_string()));
         mutation_args.insert("fileName".to_string(), Value::from(file_name.to_string()));
-        mutation_args.insert(
-            "fileSize".to_string(),
-            Value::from(bytes.len() as f64),
-        );
+        mutation_args.insert("fileSize".to_string(), Value::from(bytes.len() as f64));
         mutation_args.insert("mimeType".to_string(), Value::from(mime_type.to_string()));
         mutation_args.insert("scopeId".to_string(), Value::from(project_id.to_string()));
 

@@ -209,9 +209,11 @@ impl ReferoService {
             }
         }
 
-        Err(last_error.unwrap_or_else(|| ReferoServiceError::MissingImage {
-            reference_id: screen_id.to_string(),
-        }))
+        Err(
+            last_error.unwrap_or_else(|| ReferoServiceError::MissingImage {
+                reference_id: screen_id.to_string(),
+            }),
+        )
     }
 
     async fn fetch_screen_image_with_size(
