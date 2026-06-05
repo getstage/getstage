@@ -1,6 +1,6 @@
 import { ArrowRight } from "@phosphor-icons/react";
+import onboardingPreview from "@/assets/onboarding/onboarding.webp";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
-import { publicAssetUrl } from "@/lib/publicAsset";
 
 export function AlmostSetupPreview({
   onContinue,
@@ -35,7 +35,7 @@ export function AlmostSetupPreview({
         </div>
         <div className="hidden min-h-0 bg-white py-2 pr-2 md:block">
           <img
-            src={publicAssetUrl("/onboarding/onboarding-setup.webp")}
+            src={onboardingPreview}
             alt=""
             className="h-full w-full object-contain object-right"
           />

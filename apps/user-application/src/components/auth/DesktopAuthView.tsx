@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
+import onboardingPreview from "@/assets/onboarding/onboarding.webp";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { useDesktopSession } from "@/hooks/engine/useDesktopSession";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { getSafeAuthRedirect } from "@/lib/authRedirect";
-import { publicAssetUrl } from "@/lib/publicAsset";
 
 type AuthStatus = "checking" | "idle" | "opening" | "opened" | "connected" | "error";
 
@@ -131,7 +131,7 @@ export function DesktopAuthView() {
           <section className="hidden min-h-0 xl:flex xl:w-[min(58vw,calc((100dvh-16px)*0.76+4px))] xl:flex-none xl:items-stretch xl:justify-end">
             <div className="relative flex h-full w-full items-stretch justify-end overflow-hidden rounded-[8px] bg-white">
               <img
-                src={publicAssetUrl("/onboarding/onboarding-setup.webp")}
+                src={onboardingPreview}
                 alt=""
                 className="h-full w-full object-cover object-right"
               />
