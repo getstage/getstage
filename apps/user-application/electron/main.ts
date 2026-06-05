@@ -10,6 +10,7 @@ import { registerVoiceHandlers } from "./voice";
 import { fetchEngineJson } from "./helpers/sidecar";
 import { providerListResponseSchema } from "@stage/data-ops/contracts";
 import { createSidecarSupervisor } from "./sidecar";
+import { checkForUpdates, initAutoUpdates } from "./helpers/auto-update";
 import {
   createMainWindow,
   openCompanionForLatestChatShortcut,
@@ -43,6 +44,12 @@ function installApplicationMenu() {
           label: app.name,
           submenu: [
             { role: "about" },
+            {
+              label: "Check for Updates...",
+              click: () => {
+                void checkForUpdates({ manual: true });
+              },
+            },
             { type: "separator" },
             { role: "services" },
             { type: "separator" },
@@ -204,6 +211,7 @@ function registerRendererMediaPermissions() {
 
 app.whenReady().then(() => {
   registerRendererMediaPermissions();
+  initAutoUpdates();
   installApplicationMenu();
   authCallbackServer.start();
   registerIpcHandlers({ authController, integrationsController, sidecarSupervisor });

@@ -105,16 +105,18 @@ jobs:
             echo "Building unsigned DMG (add APPLE_* and CSC_LINK secrets to sign)"
           fi
           if [ "${{ github.event_name }}" = "push" ]; then
-            pnpm exec electron-builder --mac dmg --${{ matrix.arch }} "${MAC_BUILD_ARGS[@]}" --publish onTag
+            pnpm exec electron-builder --mac --${{ matrix.arch }} "${MAC_BUILD_ARGS[@]}" --publish onTag
           elif [ "${{ inputs.publish_release }}" = "true" ]; then
-            pnpm exec electron-builder --mac dmg --${{ matrix.arch }} "${MAC_BUILD_ARGS[@]}" --publish always
+            pnpm exec electron-builder --mac --${{ matrix.arch }} "${MAC_BUILD_ARGS[@]}" --publish always
           else
-            pnpm exec electron-builder --mac dmg --${{ matrix.arch }} "${MAC_BUILD_ARGS[@]}" --publish never
+            pnpm exec electron-builder --mac --${{ matrix.arch }} "${MAC_BUILD_ARGS[@]}" --publish never
           fi
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
           name: Stage-mac-${{ matrix.arch }}
-          path: apps/user-application/release/*.dmg
+          path: |
+            apps/user-application/release/*.dmg
+            apps/user-application/release/*.zip
           if-no-files-found: error

@@ -1,8 +1,8 @@
 import { createHashHistory, createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
-const useHashHistory =
-  typeof window !== "undefined" && window.location.protocol === "file:";
+// Packaged Electron loads via file://; hash routing keeps "/" and "/auth" working.
+const useHashHistory = import.meta.env.PROD;
 
 export const router = createRouter({
   routeTree,
