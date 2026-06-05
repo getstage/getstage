@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { electronPublicPathsPlugin } from "./vite/electronPublicPathsPlugin";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -48,7 +49,9 @@ export default defineConfig({
   },
   renderer: {
     root: ".",
-    plugins: [react(), tailwindcss()],
+    base: "./",
+    envDir: __dirname,
+    plugins: [react(), tailwindcss(), electronPublicPathsPlugin()],
     resolve: {
       alias: {
         "@": resolve(__dirname, "src"),

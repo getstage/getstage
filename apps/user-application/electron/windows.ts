@@ -8,6 +8,7 @@ import {
 } from "electron";
 import { join } from "node:path";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
+import { rendererAppUrl } from "./helpers/renderer-protocol";
 
 let mainWindow: BrowserWindowType | null = null;
 let companionWindow: BrowserWindowType | null = null;
@@ -32,6 +33,11 @@ function loadRenderer(window: BrowserWindowType, query?: Record<string, string>)
     });
 
     void window.loadURL(url.toString());
+    return;
+  }
+
+  if (app.isPackaged) {
+    void window.loadURL(rendererAppUrl("index.html", query));
     return;
   }
 

@@ -1,4 +1,9 @@
 import { app, globalShortcut, Menu, session } from "electron";
+import { join } from "node:path";
+import {
+  installRendererProtocol,
+  registerRendererProtocolSchemes,
+} from "./helpers/renderer-protocol";
 import { loadLocalEnv } from "./helpers/loadEnv";
 import { createDesktopAuthController } from "./auth";
 import { createDesktopAuthCallbackServer } from "./helpers/auth-callback-server";
@@ -19,6 +24,7 @@ import {
 } from "./windows";
 
 loadLocalEnv();
+registerRendererProtocolSchemes();
 
 app.setName("Stage");
 if (process.platform === "darwin") {
@@ -210,6 +216,10 @@ function registerRendererMediaPermissions() {
 }
 
 app.whenReady().then(() => {
+  if (app.isPackaged) {
+    installRendererProtocol(join(__dirname, "../renderer"));
+  }
+
   registerRendererMediaPermissions();
   initAutoUpdates();
   installApplicationMenu();
