@@ -31,6 +31,7 @@ yarn-error.log*
 # Local env / secrets — never commit real keys or signing credentials
 .env
 .env.*
+apps/user-application/resources/runtime-secrets.env
 **/env.example
 
 # Wrangler / Cloudflare local files

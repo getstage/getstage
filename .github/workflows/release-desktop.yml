@@ -81,6 +81,12 @@ jobs:
       - name: Build Electron app
         run: pnpm --filter stage-user-application run build
 
+      - name: Write packaged runtime secrets
+        env:
+          REFERO_MCP_TOKEN: ${{ secrets.REFERO_MCP_TOKEN }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: node apps/user-application/scripts/write-runtime-secrets.mjs
+
       - name: Package DMG (${{ matrix.arch }})
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -89,7 +95,6 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          REFERO_MCP_TOKEN: ${{ secrets.REFERO_MCP_TOKEN }}
         run: |
           cd apps/user-application
           MAC_BUILD_ARGS=(-c.mac.hardenedRuntime=false -c.mac.notarize=false)

@@ -12,6 +12,8 @@ asar: true
 extraResources:
   - from: resources/stage-engine/stage-engine
     to: stage-engine/stage-engine
+  - from: resources/runtime-secrets.env
+    to: runtime-secrets.env
 mac:
   category: public.app-category.productivity
   icon: build/icon.png

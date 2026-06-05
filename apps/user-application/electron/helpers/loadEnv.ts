@@ -1,16 +1,17 @@
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { config } from "dotenv";
+import { app } from "electron";
 
-export function loadLocalEnv() {
-  const envPath = resolve(process.cwd(), ".env");
-
-  if (!existsSync(envPath)) {
+function loadEnvFile(path: string, override = false) {
+  if (!existsSync(path)) {
     return;
   }
 
-  config({ path: envPath, quiet: true });
+  config({ path, quiet: true, override });
+}
 
+function normalizeSecretAliases() {
   if (!process.env.REFERO_MCP_TOKEN?.trim()) {
     const referoToken = process.env.refero_mcp_token ?? process.env.VITE_REFERO_MCP_TOKEN;
     if (referoToken?.trim()) {
@@ -25,4 +26,14 @@ export function loadLocalEnv() {
       process.env.OPENROUTER_API_KEY = openRouterKey.trim();
     }
   }
+}
+
+export function loadLocalEnv() {
+  if (app.isPackaged) {
+    loadEnvFile(join(process.resourcesPath, "runtime-secrets.env"));
+  } else {
+    loadEnvFile(resolve(process.cwd(), ".env"));
+  }
+
+  normalizeSecretAliases();
 }
