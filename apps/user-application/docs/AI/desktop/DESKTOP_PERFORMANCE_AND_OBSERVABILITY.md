@@ -12,6 +12,14 @@
 
 ---
 
+## v0.1.50 — Codex chat fix (juni 2026)
+
+| Change | Bestand | Effect |
+|--------|---------|--------|
+| `--skip-git-repo-check` op Codex-runs | `apps/stage-engine/src/providers/codex.rs` | Chat/AI werkt in DMG buiten git-checkout |
+
+---
+
 ## v0.1.49 — wat is gefixt (juni 2026)
 
 | Change | Bestand | Effect |
@@ -119,6 +127,96 @@ Kolommen: **% CPU**, **Geheugen**, **Energie**.
 
 ---
 
+## Packaged vs lokaal — waarom chat/AI wél dev, niet DMG
+
+**Belangrijk:** dashboard-polling verwijderen **breekt chat niet**. De engine start nog steeds bij app-launch:
+
+```txt
+electron/main.ts → sidecarSupervisor.start()  (bij whenReady)
+chat → IPC engine:start-run → sidecarSupervisor.start() → POST http://127.0.0.1:48221/v1/runs
+```
+
+| | `pnpm dev` (lokaal) | Geïnstalleerde DMG |
+|--|---------------------|-------------------|
+| Engine start | `cargo run` (Rust sidecar) | `Resources/stage-engine/stage-engine` binary |
+| Secrets | `apps/user-application/.env` | `Resources/runtime-secrets.env` (ingebakken bij CI-build) |
+| Poort 48221 | Meestal al actief na dev | Alleen als binary **succesvol** start |
+| Provider-auth | Leest `~/.claude/`, `~/.codex/` | Zelfde — macOS kan **bestandstoegang** vragen |
+
+### Waarom `curl` faalt op DMG maar lokaal werkt
+
+1. **Sidecar-binary start niet** (meest waarschijnlijk)
+   - Verkeerde arch (x64 DMG op Apple Silicon zonder Rosetta)
+   - Binary ontbreekt in `.app` (`Resources/stage-engine/stage-engine`)
+   - macOS Gatekeeper blokkeert **nested** unsigned binary
+   - Crash direct na spawn → alleen zichtbaar in Terminal/Console.app
+
+2. **Fallback faalt in packaged app**
+   - Als binary ontbreekt, probeert code `cargo run` (`spawnDevEngine`) — dat werkt **niet** in een DMG (geen Rust toolchain)
+
+3. **Fout wordt geslikt**
+   - `main.ts` logt alleen `console.warn` bij sidecar-failure en opent toch het venster → app lijkt OK, chat faalt
+
+### “Stage wil toegang tot je bestanden”
+
+Dat is **macOS Privacy**, niet Convex. De Rust engine (en provider-check) leest lokale auth-bestanden:
+
+```txt
+~/.claude/.credentials.json
+~/.claude.json
+~/.codex/auth.json   (of $CODEX_HOME/auth.json)
+```
+
+Zie `apps/stage-engine/src/providers/auth.rs` + `catalog.rs`.
+
+- **Sta toe** als macOS vraagt — anders Claude/Codex-integraties lijken “niet verbonden”
+- Dit verklaart **provider/auth** problemen, niet per se `curl` connection refused
+- Connection refused = engine-proces luistert **niet** op 48221
+
+### Packaged secrets (chat na engine-start)
+
+CI schrijft bij build `runtime-secrets.env` met o.a. `OPENROUTER_API_KEY` (GitHub secret). Lokaal komt dat uit `.env`. Ontbreekt in DMG → voice / sommige Claude-paden werken niet, maar engine **moet** nog wel op 48221 luisteren.
+
+### Debug-checklist DMG
+
+```bash
+# 1. Binary aanwezig?
+ls -la /Applications/Stage.app/Contents/Resources/stage-engine/stage-engine
+file /Applications/Stage.app/Contents/Resources/stage-engine/stage-engine
+
+# 2. Handmatig starten (zie crash direct)
+/Applications/Stage.app/Contents/Resources/stage-engine/stage-engine
+
+# 3. Daarna readiness
+curl -s http://127.0.0.1:48221/v1/readiness
+
+# 4. Stage met logs
+/Applications/Stage.app/Contents/MacOS/Stage
+```
+
+---
+
+## Chat-fout: `Provider CLI process I/O failed` (Codex)
+
+**Symptoom:** engine draait (`readiness` → `"ready": true`), chat faalt met *Provider CLI process I/O failed*.
+
+**Root cause (bevestigd juni 2026):** Codex CLI weigert buiten een git-repo:
+
+```txt
+Not inside a trusted directory and --skip-git-repo-check was not specified.
+```
+
+| Omgeving | Waarom het (niet) werkt |
+|----------|-------------------------|
+| `pnpm dev` | `cargo run` start in `stage_mvp` git checkout → Codex OK |
+| DMG / engine vanuit `~` | Geen git-repo als cwd → Codex exit 1 |
+
+**Fix:** `apps/stage-engine/src/providers/codex.rs` → `--skip-git-repo-check` op alle desktop Codex-runs.
+
+**Niet verwarren met:** bestandstoegang-macOS-dialog (dat is `~/.codex/auth.json` lezen voor login).
+
+---
+
 ## Chat-fout: `engine:start-run` → `TypeError: fetch failed`
 
 **Symptoom (Stage chat):**
@@ -138,12 +236,15 @@ Error invoking remote method 'engine:start-run': TypeError: fetch failed
 
 **Niet** hetzelfde als Convex-fetch — dit is **lokaal** naar Rust engine.
 
-**Actie:**
+**Actie (backlog):**
 
-- Toon in UI: “Engine offline” i.p.v. cryptische IPC-fout
-- Wacht op readiness vóór `startRun`
-- Verleng timeout voor eerste run na cold start
-- Betere fouttekst in renderer (sidecar down vs auth vs provider)
+- [ ] Toon in UI: “Engine offline” i.p.v. cryptische IPC-fout
+- [ ] Wacht op readiness vóór `startRun`
+- [ ] Verleng timeout voor eerste run na cold start
+- [ ] Betere fouttekst in renderer (sidecar down vs auth vs provider)
+- [ ] Sidecar-binary signen/notariseren samen met app (Gatekeeper nested binary)
+- [ ] Geen `cargo run` fallback in packaged builds — harde fout als binary ontbreekt
+- [ ] macOS bestandstoegang-documentatie in onboarding/integrations
 
 ---
 

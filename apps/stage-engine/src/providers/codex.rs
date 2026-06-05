@@ -67,6 +67,8 @@ fn codex_args(context: &ProviderRunContext) -> Vec<String> {
         "never".to_string(),
         "--sandbox".to_string(),
         "read-only".to_string(),
+        // Desktop chat/research often runs outside a git checkout (packaged app cwd).
+        "--skip-git-repo-check".to_string(),
     ];
 
     if let Some(working_directory) = context.request.working_directory.as_ref() {
@@ -74,8 +76,9 @@ fn codex_args(context: &ProviderRunContext) -> Vec<String> {
         args.push(working_directory.clone());
     }
 
-    if let Some(model_id) = resolve_codex_model_id(&context.request.model_id, &context.request.model_options)
-        .or_else(|| codex_model_id(&context.request.model_id).map(str::to_string))
+    if let Some(model_id) =
+        resolve_codex_model_id(&context.request.model_id, &context.request.model_options)
+            .or_else(|| codex_model_id(&context.request.model_id).map(str::to_string))
     {
         args.push("--model".to_string());
         args.push(model_id);
@@ -93,7 +96,33 @@ fn codex_model_id(model_id: &str) -> Option<&str> {
 
 #[cfg(test)]
 mod tests {
-    use super::codex_model_id;
+    use super::{codex_args, codex_model_id};
+    use crate::models::providers::ProviderId;
+    use crate::models::runs::{RunMode, StartRunRequest};
+    use crate::providers::adapter::ProviderRunContext;
+
+    fn sample_context() -> ProviderRunContext {
+        ProviderRunContext {
+            api_version: "v1",
+            run_id: "run-test".to_string(),
+            request: StartRunRequest {
+                provider_id: ProviderId::Codex,
+                model_id: "gpt-5.5".to_string(),
+                prompt: "hello".to_string(),
+                mode: RunMode::Chat,
+                context: Default::default(),
+                attachments: vec![],
+                model_options: vec![],
+                working_directory: None,
+            },
+        }
+    }
+
+    #[test]
+    fn codex_args_includes_skip_git_repo_check_for_desktop_runs() {
+        let args = codex_args(&sample_context());
+        assert!(args.iter().any(|arg| arg == "--skip-git-repo-check"));
+    }
 
     #[test]
     fn codex_model_id_should_omit_stage_default_alias() {
