@@ -20,6 +20,7 @@ export type CreateTaskInput = {
   title: string;
   phaseId?: string;
   priority?: TaskPriority;
+  summary?: string;
   content?: string;
   boardStatus?: TaskBoardStatus;
 };
@@ -109,6 +110,11 @@ export type SetTaskAssigneesInput = {
   assigneeIds: string[];
 };
 
+export type SetTaskPhaseInput = {
+  taskId: string;
+  phaseId: string;
+};
+
 export function useSetTaskAssigneesMutation() {
   const setAssignees = useMutation(api.tasks.setAssignees);
   const { isAuthenticated } = useDesktopAuth();
@@ -131,6 +137,33 @@ export function useSetTaskAssigneesMutation() {
     isPending,
     mutateAsync,
     mutate: (input: SetTaskAssigneesInput, options?: { onError?: () => void }) => {
+      void mutateAsync(input).catch(() => options?.onError?.());
+    },
+  };
+}
+
+export function useSetTaskPhaseMutation() {
+  const setPhase = useMutation(api.tasks.setPhase);
+  const { isAuthenticated } = useDesktopAuth();
+  const [isPending, setIsPending] = useState(false);
+
+  async function mutateAsync(input: SetTaskPhaseInput) {
+    requireDesktopAuth(isAuthenticated);
+    setIsPending(true);
+    try {
+      return setPhase({
+        taskId: input.taskId as Id<"tasks">,
+        phaseId: input.phaseId as Id<"phases">,
+      });
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  return {
+    isPending,
+    mutateAsync,
+    mutate: (input: SetTaskPhaseInput, options?: { onError?: () => void }) => {
       void mutateAsync(input).catch(() => options?.onError?.());
     },
   };
@@ -168,6 +201,7 @@ export function useSetTaskKanbanColumnMutation() {
 export type UpdateTaskInput = {
   taskId: string;
   title?: string;
+  summary?: string;
   content?: string;
 };
 
@@ -183,6 +217,7 @@ export function useUpdateTaskMutation() {
       await updateTask({
         taskId: input.taskId as Id<"tasks">,
         title: input.title,
+        summary: input.summary,
         content: input.content,
       });
     } finally {

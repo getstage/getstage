@@ -136,7 +136,7 @@ export function CreateTaskDialog({
         title: trimmedTitle,
         phaseId: requiresPhase ? phaseId : undefined,
         priority: priority ?? undefined,
-        content: description.trim() || undefined,
+        summary: description.trim() || undefined,
         boardStatus: initialBoardStatus,
       });
       onCreated?.(task);

@@ -41,6 +41,8 @@ function toLocalTask(task: TaskSummary): Task {
     title: task.title,
     isCompleted: task.isCompleted,
     updatedAt: task.updatedAt,
+    summary: task.summary,
+    content: task.summary,
     assignees: task.assignees.map((assignee) => ({
       name: assignee.name ?? "Stage",
     })),

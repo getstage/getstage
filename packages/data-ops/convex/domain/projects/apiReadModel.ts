@@ -168,7 +168,9 @@ export async function buildApiTaskSummary(
     assigneeIds,
     assignees,
     attachmentCount: attachments.length,
-    hasContent: (task.content ?? "").trim().length > 0,
+    hasContent:
+      (task.summary ?? "").trim().length > 0 || (task.content ?? "").trim().length > 0,
+    summary: task.summary,
     priority: task.priority ?? null,
     boardStatus: task.boardStatus ?? null,
     order: task.order,
@@ -189,6 +191,7 @@ export async function buildApiTaskDetail(
     phaseId: String(task.phaseId),
     title: task.title,
     isCompleted: task.isCompleted,
+    summary: task.summary,
     content: task.content,
     dueDate: task.dueDate,
     assigneeIds,

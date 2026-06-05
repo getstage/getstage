@@ -10,11 +10,13 @@ export function KanbanAssignCard({
   search,
   onSearchChange,
   onAssign,
+  className = "absolute right-0 top-8 z-30 w-[266px]",
 }: {
   members: ProjectMember[];
   search: string;
   onSearchChange: (value: string) => void;
   onAssign: (member: ProjectMember) => void;
+  className?: string;
 }) {
   const settingsOverviewQuery = useSettingsOverviewQuery();
   const profile = settingsOverviewQuery.data?.profile;
@@ -28,7 +30,7 @@ export function KanbanAssignCard({
 
   return (
     <div
-      className="absolute right-0 top-8 z-30 w-[266px] rounded-[8px] border-2 border-[rgba(0,0,0,0.05)] bg-gradient-to-b from-white to-[#FAFAFA] p-3 shadow-[0_8px_24px_rgba(10,10,10,0.12)]"
+      className={`${className} rounded-[8px] border-2 border-[rgba(0,0,0,0.05)] bg-gradient-to-b from-white to-[#FAFAFA] p-3 shadow-[0_8px_24px_rgba(10,10,10,0.12)]`}
       onClick={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
       draggable={false}

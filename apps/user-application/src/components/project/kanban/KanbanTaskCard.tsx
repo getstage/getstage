@@ -104,7 +104,7 @@ export function KanbanTaskCard({
           </button>
         </div>
         <p className="line-clamp-2 text-[12px] font-normal leading-[1.5] text-[#525252]">
-          {task.content || "Here comes the project/task description, can contain 2-3 lines at max."}
+          {task.summary || task.content || "Here comes the project/task description, can contain 2-3 lines at max."}
         </p>
       </div>
     </div>

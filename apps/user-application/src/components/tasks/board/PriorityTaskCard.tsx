@@ -87,7 +87,7 @@ export function PriorityTaskCard({
           </button>
         </div>
         <p className="line-clamp-2 text-[12px] font-normal leading-[1.5] text-[#525252]">
-          {item.task.content}
+          {item.task.summary || item.task.content}
         </p>
       </div>
 

@@ -24,6 +24,7 @@ export const taskSummarySchema = z.object({
   assigneeIds: z.array(z.string()).default([]),
   assignees: z.array(taskAssigneeSchema).default([]),
   attachmentCount: z.number().int().nonnegative(),
+  summary: z.string().optional(),
   hasContent: z.boolean(),
   priority: taskPrioritySchema.nullable(),
   boardStatus: taskBoardStatusSchema.nullable(),

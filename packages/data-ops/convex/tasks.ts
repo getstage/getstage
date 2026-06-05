@@ -115,6 +115,7 @@ export const getDetail = query({
         id: String(task._id),
         title: task.title,
         isCompleted: task.isCompleted,
+        summary: task.summary,
         content: task.content,
         dueDate: task.dueDate,
         assigneeIds,
@@ -130,9 +131,10 @@ export const update = mutation({
   args: {
     taskId: v.id("tasks"),
     title: v.optional(v.string()),
+    summary: v.optional(v.string()),
     content: v.optional(v.string()),
   },
-  handler: async (ctx, { taskId, title, content }) => {
+  handler: async (ctx, { taskId, title, summary, content }) => {
     await requireTaskAccess(ctx, taskId);
 
     const patch: Record<string, string | number> = {
@@ -141,6 +143,10 @@ export const update = mutation({
 
     if (title !== undefined) {
       patch.title = title.trim();
+    }
+
+    if (summary !== undefined) {
+      patch.summary = summary;
     }
 
     if (content !== undefined) {
@@ -178,6 +184,62 @@ export const setAssignees = mutation({
       assigneeIds,
       updatedAt: now(),
     });
+  },
+});
+
+export const setPhase = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    phaseId: v.id("phases"),
+  },
+  handler: async (ctx, { taskId, phaseId: nextPhaseId }) => {
+    const { task, project } = await requireTaskAccess(ctx, taskId);
+
+    if (task.phaseId === nextPhaseId) {
+      return;
+    }
+
+    const { phase: nextPhase } = await requirePhaseAccess(ctx, nextPhaseId);
+    if (nextPhase.projectId !== project._id) {
+      throw new Error("Phase must belong to the same project.");
+    }
+
+    const timestamp = now();
+    const oldPhaseId = task.phaseId;
+
+    const remainingInOld = await ctx.db
+      .query("tasks")
+      .withIndex("by_phase_order", (q) => q.eq("phaseId", oldPhaseId))
+      .collect();
+
+    await Promise.all(
+      remainingInOld
+        .filter((remainingTask) => remainingTask._id !== taskId)
+        .sort((a, b) => a.order - b.order)
+        .map((remainingTask, index) => {
+          if (remainingTask.order === index) {
+            return Promise.resolve();
+          }
+
+          return ctx.db.patch(remainingTask._id, {
+            order: index,
+            updatedAt: timestamp,
+          });
+        }),
+    );
+
+    const tasksInNext = await ctx.db
+      .query("tasks")
+      .withIndex("by_phase_order", (q) => q.eq("phaseId", nextPhaseId))
+      .collect();
+
+    await ctx.db.patch(taskId, {
+      phaseId: nextPhaseId,
+      order: tasksInNext.length,
+      updatedAt: timestamp,
+    });
+
+    await recomputeProjectState(ctx, project._id);
   },
 });
 

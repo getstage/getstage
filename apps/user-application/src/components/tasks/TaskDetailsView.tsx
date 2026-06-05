@@ -3,10 +3,16 @@ import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "co
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { DeleteTaskModal } from "@/components/tasks/DeleteTaskModal";
+import { KanbanAssignCard } from "@/components/project/kanban/KanbanAssignCard";
 import {
   useDeleteTaskMutation,
+  useProjectMembersQuery,
+  useProjectPhasesQuery,
+  useSetTaskAssigneesMutation,
+  useSetTaskPhaseMutation,
   useToggleTaskCompletionMutation,
   useUpdateTaskMutation,
+  type ProjectMember,
 } from "@/hooks/convex-data";
 import { setProjectBackDestination } from "@/lib/projectBackDestination";
 import { formatInputDate } from "@/lib/format";
@@ -19,6 +25,31 @@ import {
   validateUploadFile,
 } from "@/lib/r2Uploads";
 import type { Attachment } from "@/types";
+
+type DetailPicker = "assignee" | "phase" | null;
+
+type TaskDetailRecord = {
+  id: string;
+  title: string;
+  isCompleted: boolean;
+  summary?: string;
+  content?: string;
+  dueDate?: number;
+  assigneeIds: string[];
+  assignees: Array<{ userId: string; name?: string | null; email?: string | null }>;
+  attachments: Attachment[];
+  updatedAt: number;
+};
+
+type TaskDetailEditorProps = {
+  task: TaskDetailRecord;
+  project: { id: string; name: string };
+  phase: { id: string; name: string };
+  backLabel: string;
+  taskBackHref: string;
+  searchFrom?: "project" | "client-portal";
+  searchProjectId?: string;
+};
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -38,65 +69,139 @@ export function TaskDetailsView() {
   const phase = detail?.phase ?? null;
   const isLoading = detail === undefined;
 
-  const updateTask = useUpdateTaskMutation();
-  const deleteTaskMutation = useDeleteTaskMutation();
-  const toggleComplete = useToggleTaskCompletionMutation();
-  const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
-  const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
-  const saveAttachment = useConvexMutation(api.tasks.saveAttachment);
-  const deleteAttachment = useConvexMutation(api.tasks.deleteAttachment);
-
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [saved, setSaved] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const titleSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const backLabel =
     search.from === "project"
       ? "Back to Project"
       : search.from === "client-portal"
         ? "Back to Client Portal"
         : "Back to Tasks";
-  const taskBackHref = typeof window === "undefined" ? "/tasks" : `${window.location.pathname}${window.location.search}`;
+  const taskBackHref =
+    typeof window === "undefined" ? "/tasks" : `${window.location.pathname}${window.location.search}`;
 
-  // Sync from server when opening a different task — not on every `updatedAt` bump,
-  // or debounced saves / kanban updates wipe the description/title mid-edit.
-  useEffect(() => {
-    if (!task) return;
-    setTitle(task.title);
-    setContent(task.content ?? "");
-    setAttachments(task.attachments as Attachment[]);
-  }, [task?.id]);
+  if (isLoading) {
+    return (
+      <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
+        <div className="skeleton h-4 w-32" />
+        <div className="skeleton mt-6 h-8 w-[60%]" />
+        <div className="skeleton mt-4 h-5 w-48" />
+        <div className="skeleton mt-8 h-[320px] w-full rounded-[12px]" />
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    if (!task) return;
-    setAttachments(task.attachments as Attachment[]);
-  }, [task?.attachments, task?.id]);
+  if (!task || !project || !phase) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6">
+        <p className="text-[15px] font-medium text-[#171717]">Task not found</p>
+        <button
+          type="button"
+          onClick={() => {
+            if (search.from === "project" && search.projectId) {
+              void navigate({ to: "/project/$projectId", params: { projectId: search.projectId } });
+              return;
+            }
+            void navigate({ to: "/tasks" });
+          }}
+          className="text-[13px] font-medium text-[#525252] hover:text-[#171717]"
+        >
+          {backLabel}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <TaskDetailEditor
+      key={task.id}
+      task={task as TaskDetailRecord}
+      project={project}
+      phase={phase}
+      backLabel={backLabel}
+      taskBackHref={taskBackHref}
+      searchFrom={search.from === "project" || search.from === "client-portal" ? search.from : undefined}
+      searchProjectId={search.projectId}
+    />
+  );
+}
+
+function TaskDetailEditor({
+  task,
+  project,
+  phase,
+  backLabel,
+  taskBackHref,
+  searchFrom,
+  searchProjectId,
+}: TaskDetailEditorProps) {
+  const navigate = useNavigate();
+  const projectId = searchProjectId ?? project.id;
+
+  const phasesQuery = useProjectPhasesQuery(projectId);
+  const membersQuery = useProjectMembersQuery(projectId);
+  const updateTask = useUpdateTaskMutation();
+  const deleteTaskMutation = useDeleteTaskMutation();
+  const toggleComplete = useToggleTaskCompletionMutation();
+  const setAssignees = useSetTaskAssigneesMutation();
+  const setTaskPhase = useSetTaskPhaseMutation();
+  const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
+  const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
+  const saveAttachment = useConvexMutation(api.tasks.saveAttachment);
+  const deleteAttachment = useConvexMutation(api.tasks.deleteAttachment);
+
+  const [title, setTitle] = useState(task.title);
+  const [summary, setSummary] = useState(task.summary ?? "");
+  const [content, setContent] = useState(task.content ?? "");
+  const [saved, setSaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [picker, setPicker] = useState<DetailPicker>(null);
+  const [assignSearch, setAssignSearch] = useState("");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const pickerAreaRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const summarySaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const titleSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const phases = phasesQuery.data ?? [];
+  const currentPhase = phases.find((item) => item.id === phase.id) ?? { id: phase.id, name: phase.name };
+  const primaryAssignee = task.assignees[0];
+  const dueLabel = task.dueDate ? formatInputDate(new Date(task.dueDate)) : null;
+  const isOverdue = Boolean(task.dueDate && task.dueDate < Date.now() && !task.isCompleted);
 
   useEffect(() => {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (summarySaveTimerRef.current) clearTimeout(summarySaveTimerRef.current);
       if (titleSaveTimerRef.current) clearTimeout(titleSaveTimerRef.current);
     };
   }, []);
 
   useEffect(() => {
-    if (!isMenuOpen) return;
+    if (!picker && !isMenuOpen) return;
 
     function handlePointerDown(event: PointerEvent) {
-      if (!menuRef.current?.contains(event.target as Node)) setIsMenuOpen(false);
+      if (isMenuOpen && !menuRef.current?.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+      if (picker && !pickerAreaRef.current?.contains(event.target as Node)) {
+        setPicker(null);
+        setAssignSearch("");
+      }
     }
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setIsMenuOpen(false);
+      if (event.key === "Escape") {
+        if (picker) {
+          setPicker(null);
+          setAssignSearch("");
+          return;
+        }
+        setIsMenuOpen(false);
+      }
     }
 
     document.addEventListener("pointerdown", handlePointerDown);
@@ -105,16 +210,19 @@ export function TaskDetailsView() {
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isMenuOpen]);
+  }, [isMenuOpen, picker]);
 
   function goBack() {
-    if (search.from === "project" && search.projectId) {
-      void navigate({ to: "/project/$projectId", params: { projectId: search.projectId } });
+    if (searchFrom === "project" && searchProjectId) {
+      void navigate({ to: "/project/$projectId", params: { projectId: searchProjectId } });
       return;
     }
 
-    if (search.from === "client-portal" && search.projectId) {
-      void navigate({ to: "/client-portal/$projectId/preview", params: { projectId: search.projectId } });
+    if (searchFrom === "client-portal" && searchProjectId) {
+      void navigate({
+        to: "/client-portal/$projectId/preview",
+        params: { projectId: searchProjectId },
+      });
       return;
     }
 
@@ -122,9 +230,8 @@ export function TaskDetailsView() {
   }
 
   function openLinkedProject() {
-    if (!search.projectId) return;
     setProjectBackDestination({ href: taskBackHref, label: "Back to task" });
-    void navigate({ to: "/project/$projectId", params: { projectId: search.projectId } });
+    void navigate({ to: "/project/$projectId", params: { projectId: project.id } });
   }
 
   function flashSaved() {
@@ -132,10 +239,9 @@ export function TaskDetailsView() {
     window.setTimeout(() => setSaved(false), 1500);
   }
 
-  async function persistContent(nextContent: string) {
-    if (!task) return;
+  async function persistSummary(nextSummary: string) {
     try {
-      await updateTask.mutateAsync({ taskId: task.id, content: nextContent });
+      await updateTask.mutateAsync({ taskId: task.id, summary: nextSummary });
       setErrorMessage(null);
       flashSaved();
     } catch (error) {
@@ -143,8 +249,17 @@ export function TaskDetailsView() {
     }
   }
 
+  async function persistContent(nextContent: string) {
+    try {
+      await updateTask.mutateAsync({ taskId: task.id, content: nextContent });
+      setErrorMessage(null);
+      flashSaved();
+    } catch (error) {
+      setErrorMessage(toUserFacingErrorMessage(error, "Could not save the details."));
+    }
+  }
+
   async function persistTitle(nextTitle: string) {
-    if (!task) return;
     const trimmed = nextTitle.trim();
     if (!trimmed || trimmed === task.title) return;
     try {
@@ -155,6 +270,15 @@ export function TaskDetailsView() {
       setErrorMessage(toUserFacingErrorMessage(error, "Could not save the title."));
       setTitle(task.title);
     }
+  }
+
+  function handleSummaryChange(event: ChangeEvent<HTMLTextAreaElement>) {
+    const next = event.target.value;
+    setSummary(next);
+    if (summarySaveTimerRef.current) clearTimeout(summarySaveTimerRef.current);
+    summarySaveTimerRef.current = setTimeout(() => {
+      void persistSummary(next);
+    }, 900);
   }
 
   function handleContentChange(event: ChangeEvent<HTMLTextAreaElement>) {
@@ -175,10 +299,38 @@ export function TaskDetailsView() {
     }, 600);
   }
 
-  const uploadProjectId = search.projectId ?? project?.id;
+  async function handleAssign(member: ProjectMember | null) {
+    try {
+      await setAssignees.mutateAsync({
+        taskId: task.id,
+        assigneeIds: member ? [member.userId] : [],
+      });
+      setPicker(null);
+      setAssignSearch("");
+      setErrorMessage(null);
+      flashSaved();
+    } catch (error) {
+      setErrorMessage(toUserFacingErrorMessage(error, "Could not update the assignee."));
+    }
+  }
+
+  async function handlePhaseChange(nextPhaseId: string) {
+    if (nextPhaseId === phase.id) {
+      setPicker(null);
+      return;
+    }
+    try {
+      await setTaskPhase.mutateAsync({ taskId: task.id, phaseId: nextPhaseId });
+      setPicker(null);
+      setErrorMessage(null);
+      flashSaved();
+    } catch (error) {
+      setErrorMessage(toUserFacingErrorMessage(error, "Could not move the task to that phase."));
+    }
+  }
 
   async function handleFiles(files: FileList | null) {
-    if (!files?.length || !task || !uploadProjectId) return;
+    if (!files?.length) return;
     setUploading(true);
     setErrorMessage(null);
     try {
@@ -192,7 +344,7 @@ export function TaskDetailsView() {
           syncMetadata: r2SyncMetadata,
           purpose: "task-attachment",
           file,
-          scopeId: uploadProjectId,
+          scopeId: projectId,
         });
         await saveAttachment({
           taskId: task.id as Id<"tasks">,
@@ -215,7 +367,6 @@ export function TaskDetailsView() {
     setErrorMessage(null);
     try {
       await deleteAttachment({ attachmentId: attachmentId as Id<"attachments"> });
-      setAttachments((current) => current.filter((item) => item.id !== attachmentId));
       flashSaved();
     } catch (error) {
       setErrorMessage(toUserFacingErrorMessage(error, "Could not remove that file."));
@@ -223,7 +374,6 @@ export function TaskDetailsView() {
   }
 
   async function handleMarkComplete() {
-    if (!task) return;
     setIsMenuOpen(false);
     try {
       await toggleComplete.mutateAsync(task.id);
@@ -233,7 +383,6 @@ export function TaskDetailsView() {
   }
 
   async function handleDeleteTask() {
-    if (!task) return;
     try {
       await deleteTaskMutation.mutateAsync(task.id);
       goBack();
@@ -241,32 +390,6 @@ export function TaskDetailsView() {
       setErrorMessage(toUserFacingErrorMessage(error, "Could not delete the task."));
     }
   }
-
-  if (isLoading) {
-    return (
-      <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
-        <div className="skeleton h-4 w-32" />
-        <div className="skeleton mt-6 h-8 w-[60%]" />
-        <div className="skeleton mt-4 h-5 w-48" />
-        <div className="skeleton mt-8 h-[320px] w-full rounded-[12px]" />
-      </div>
-    );
-  }
-
-  if (!task) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6">
-        <p className="text-[15px] font-medium text-[#171717]">Task not found</p>
-        <button type="button" onClick={goBack} className="text-[13px] font-medium text-[#525252] hover:text-[#171717]">
-          {backLabel}
-        </button>
-      </div>
-    );
-  }
-
-  const primaryAssignee = task.assignees[0];
-  const dueLabel = task.dueDate ? formatInputDate(new Date(task.dueDate)) : null;
-  const isOverdue = Boolean(task.dueDate && task.dueDate < Date.now() && !task.isCompleted);
 
   return (
     <>
@@ -294,37 +417,105 @@ export function TaskDetailsView() {
                 className="w-full truncate border-0 bg-transparent p-0 text-[20px] font-semibold leading-[1.2] text-[#0a0a0a] outline-none placeholder:text-[#a3a3a3]"
                 aria-label="Task title"
               />
-              <div className="flex min-w-0 flex-wrap items-center gap-[16px]">
-                {primaryAssignee ? (
+
+              <div ref={pickerAreaRef} className="flex min-w-0 flex-wrap items-center gap-[16px]">
+                <div className="relative">
                   <MetaItem>
-                    <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-[#e5e5e5] text-[10px] font-semibold text-[#525252]">
-                      {(primaryAssignee.name ?? primaryAssignee.email ?? "?").charAt(0).toUpperCase()}
-                    </span>
-                    {primaryAssignee.name ?? primaryAssignee.email ?? "Unassigned"}
+                    <button
+                      type="button"
+                      onClick={openLinkedProject}
+                      className="cursor-pointer transition-colors hover:text-[#171717]"
+                    >
+                      {project.name}
+                    </button>
+                    <span className="text-[#a3a3a3]">·</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPicker((current) => (current === "phase" ? null : phases.length > 0 ? "phase" : null))
+                      }
+                      disabled={phases.length === 0 || setTaskPhase.isPending}
+                      className="cursor-pointer transition-colors hover:text-[#171717] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {currentPhase.name}
+                    </button>
                   </MetaItem>
-                ) : (
-                  <MetaItem>Unassigned</MetaItem>
-                )}
+                  {picker === "phase" ? (
+                    <div className="absolute left-0 top-[calc(100%+6px)] z-30 min-w-[180px] rounded-[8px] border-2 border-[rgba(0,0,0,0.05)] bg-white p-[6px] shadow-[0_8px_24px_rgba(10,10,10,0.12)]">
+                      {phases.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => void handlePhaseChange(item.id)}
+                          className={`flex w-full cursor-pointer items-center rounded-[6px] px-[8px] py-[6px] text-left text-[12px] font-medium leading-none transition-colors hover:bg-[#f5f5f5] ${
+                            item.id === phase.id ? "text-[#463fba]" : "text-[#262626]"
+                          }`}
+                        >
+                          {item.name}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                <Dot />
+
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPicker((current) => (current === "assignee" ? null : "assignee"));
+                      setAssignSearch("");
+                    }}
+                    className="flex cursor-pointer items-center gap-[8px] text-[13px] font-medium leading-[1.2] text-[#525252] transition-colors hover:text-[#171717]"
+                  >
+                    {primaryAssignee ? (
+                      <>
+                        <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-[#e5e5e5] text-[10px] font-semibold text-[#525252]">
+                          {(primaryAssignee.name ?? primaryAssignee.email ?? "?").charAt(0).toUpperCase()}
+                        </span>
+                        {primaryAssignee.name ?? primaryAssignee.email ?? "Assignee"}
+                      </>
+                    ) : (
+                      <>
+                        <img
+                          src="/logos/dashboard/assign.svg"
+                          alt=""
+                          aria-hidden="true"
+                          className="h-[14px] w-[14px] opacity-70"
+                        />
+                        No assignee
+                      </>
+                    )}
+                  </button>
+                  {picker === "assignee" ? (
+                    <div className="absolute left-0 top-[calc(100%+6px)] z-30 w-[266px]">
+                      <KanbanAssignCard
+                        members={membersQuery.data}
+                        search={assignSearch}
+                        onSearchChange={setAssignSearch}
+                        onAssign={(member) => void handleAssign(member)}
+                        className="relative w-full"
+                      />
+                      {primaryAssignee ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleAssign(null)}
+                          className="mt-2 w-full cursor-pointer rounded-[6px] bg-white px-3 py-2 text-left text-[12px] font-medium text-[#737373] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                        >
+                          Clear assignee
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+
                 {dueLabel ? (
                   <>
                     <Dot />
                     <MetaItem>
                       <MaskedIcon src="/logos/dashboard/deadline.svg" className="h-[18px] w-[18px] bg-[#525252]" />
                       {dueLabel}
-                    </MetaItem>
-                  </>
-                ) : null}
-                {project && phase ? (
-                  <>
-                    <Dot />
-                    <MetaItem>
-                      <button
-                        type="button"
-                        onClick={openLinkedProject}
-                        className="cursor-pointer transition-colors hover:text-[#171717]"
-                      >
-                        {project.name} · {phase.name}
-                      </button>
                     </MetaItem>
                   </>
                 ) : null}
@@ -347,6 +538,14 @@ export function TaskDetailsView() {
 
               <label className="flex w-full flex-col gap-[8px]">
                 <span className="text-[13px] font-medium leading-none text-[#525252]">Description</span>
+                <textarea
+                  value={summary}
+                  onChange={handleSummaryChange}
+                  rows={2}
+                  placeholder="Short summary shown on the board (2–3 lines max)"
+                  className="min-h-[56px] w-full resize-none rounded-[6px] bg-[#f5f5f5] px-[12px] py-[10px] text-[13px] font-normal leading-[1.5] text-[#262626] outline-none placeholder:text-[#a3a3a3]"
+                  aria-label="Task description"
+                />
               </label>
             </div>
 
@@ -380,17 +579,20 @@ export function TaskDetailsView() {
 
           <article className="rounded-[12px] bg-[#f5f5f5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
             <div className="rounded-[8px] bg-white px-[clamp(18px,8vw,100px)] py-[clamp(24px,5vw,48px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+              <label className="mb-[12px] flex flex-col gap-[8px]">
+                <span className="text-[13px] font-medium leading-none text-[#525252]">Details</span>
+              </label>
               <textarea
                 value={content}
                 onChange={handleContentChange}
-                placeholder="Add detail or context for the task…"
+                placeholder="Add notes, context, and full task details…"
                 className="min-h-[280px] w-full resize-y border-0 bg-transparent text-[13px] font-normal leading-[1.5] text-[#262626] outline-none placeholder:text-[#a3a3a3]"
-                aria-label="Task description"
+                aria-label="Task details"
               />
 
-              {attachments.length > 0 ? (
+              {task.attachments.length > 0 ? (
                 <div className="mt-[24px] flex flex-col gap-[8px]">
-                  {attachments.map((attachment) => (
+                  {task.attachments.map((attachment) => (
                     <AttachmentRow
                       key={attachment.id}
                       attachment={attachment}
@@ -411,16 +613,13 @@ export function TaskDetailsView() {
               />
               <button
                 type="button"
-                disabled={uploading || !uploadProjectId}
+                disabled={uploading}
                 onClick={() => fileInputRef.current?.click()}
                 className="mt-[12px] flex h-[32px] w-fit cursor-pointer items-center gap-[8px] rounded-[6px] py-[6px] text-[13px] font-medium leading-none text-[#525252] transition-colors hover:text-[#171717] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <img src="/logos/dashboard/plus.svg" alt="" aria-hidden="true" className="h-[15px] w-[15px]" />
                 {uploading ? "Uploading…" : "Attach File"}
               </button>
-              {!uploadProjectId ? (
-                <p className="mt-2 text-[12px] text-[#737373]">Open this task from a project to attach files.</p>
-              ) : null}
             </div>
           </article>
         </div>

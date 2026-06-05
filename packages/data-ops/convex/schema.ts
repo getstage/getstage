@@ -364,6 +364,7 @@ export default defineSchema({
     phaseId: v.id("phases"),
     title: v.string(),
     isCompleted: v.boolean(),
+    summary: v.optional(v.string()),
     content: v.optional(v.string()),
     dueDate: v.optional(v.number()),
     assigneeIds: v.optional(v.array(v.string())),
