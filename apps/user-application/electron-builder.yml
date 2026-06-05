@@ -17,6 +17,7 @@ extraResources:
 mac:
   category: public.app-category.productivity
   icon: build/icon.png
+  artifactName: "${productName}-${version}-${arch}.${ext}"
   target:
     - dmg
   hardenedRuntime: true
