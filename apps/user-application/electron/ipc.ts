@@ -20,7 +20,11 @@ import {
   type DesktopPermissionStatus,
   type DesktopSession,
 } from "@shared/models/desktop";
-import { defaultPermissionStatus } from "./helpers/permissions";
+import {
+  getDesktopPermissionStatus,
+  openPermissionSystemSettings,
+  requestMicrophoneAccess,
+} from "./helpers/permissions";
 import { fetchEngineJson } from "./helpers/sidecar";
 import { closeCompanionWindow, openCompanionFromTray, setCompanionWindowInteractive } from "./windows";
 import type { SidecarSupervisor } from "./sidecar";
@@ -190,12 +194,16 @@ export function registerIpcHandlers({
   });
 
   ipcMain.handle(IPC_CHANNELS.permissionsGetStatus, (): DesktopPermissionStatus => {
-    return defaultPermissionStatus;
+    return getDesktopPermissionStatus();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.permissionsRequestMicrophone, async () => {
+    return requestMicrophoneAccess();
   });
 
   ipcMain.handle(IPC_CHANNELS.permissionsOpenSystemSettings, async (_event, permission: unknown) => {
-    permissionKindSchema.parse(permission);
-    await shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy");
+    const kind = permissionKindSchema.parse(permission);
+    await openPermissionSystemSettings(kind);
   });
 
   ipcMain.handle(IPC_CHANNELS.shellOpenExternal, async (_event, url: unknown) => {

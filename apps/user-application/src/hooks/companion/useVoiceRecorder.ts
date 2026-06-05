@@ -83,6 +83,13 @@ export function useVoiceRecorder() {
       throw new Error("Microphone recording is unavailable in this browser.");
     }
 
+    const microphoneGranted = await window.stageDesktop?.permissions?.requestMicrophone?.();
+    if (microphoneGranted === false) {
+      throw new Error(
+        "Microphone access is off for Stage. Open System Settings → Privacy & Security → Microphone and allow Stage.",
+      );
+    }
+
     let audioContext: AudioContext | null = null;
     let processorNode: ScriptProcessorNode | null = null;
     let silentGainNode: GainNode | null = null;

@@ -89,6 +89,7 @@ const stageDesktop = {
   },
   permissions: {
     getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.permissionsGetStatus),
+    requestMicrophone: () => ipcRenderer.invoke(IPC_CHANNELS.permissionsRequestMicrophone),
     openSystemSettings: (permission: PermissionKind) =>
       ipcRenderer.invoke(IPC_CHANNELS.permissionsOpenSystemSettings, permission),
   },

@@ -17,6 +17,8 @@ extraResources:
 mac:
   category: public.app-category.productivity
   icon: build/icon.png
+  extendInfo:
+    NSMicrophoneUsageDescription: Stage uses your microphone for voice notes and dictation.
   artifactName: "${productName}-${version}-${arch}.${ext}"
   target:
     - dmg
@@ -31,4 +33,4 @@ publish:
   provider: github
   owner: getstage
   repo: getstage
-  private: true
+  private: false

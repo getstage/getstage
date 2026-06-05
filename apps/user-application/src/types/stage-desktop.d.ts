@@ -62,6 +62,7 @@ export type StageDesktopApi = {
   };
   permissions: {
     getStatus: () => Promise<DesktopPermissionStatus>;
+    requestMicrophone: () => Promise<boolean>;
     openSystemSettings: (permission: PermissionKind) => Promise<void>;
   };
   shell: {
