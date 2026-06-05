@@ -2,6 +2,7 @@ import {
   Outlet,
   createRootRoute,
   type ErrorComponentProps,
+  useRouter,
   useRouterState,
 } from "@tanstack/react-router";
 import { DesktopShell } from "@/components/app/DesktopShell";
@@ -28,6 +29,7 @@ function RootLayout() {
 }
 
 function RootErrorBoundary({ error, reset }: ErrorComponentProps) {
+  const router = useRouter();
   console.error("[RootErrorBoundary]", error);
 
   return (
@@ -53,7 +55,7 @@ function RootErrorBoundary({ error, reset }: ErrorComponentProps) {
           <button
             type="button"
             className="rounded-[10px] border border-[#e5e5e5] px-4 py-2 text-[14px] font-medium text-[#0a0a0a] transition-colors hover:bg-[#f5f5f5]"
-            onClick={() => window.location.assign("/")}
+            onClick={() => void router.navigate({ to: "/" })}
           >
             Go to dashboard
           </button>

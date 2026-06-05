@@ -34,7 +34,7 @@ export function DesktopAuthView() {
 
   const continueAfterAuth = useCallback(() => {
     if (redirectTarget) {
-      window.location.assign(redirectTarget);
+      void navigate({ to: redirectTarget });
       return;
     }
 
