@@ -1,7 +1,7 @@
 {
   "name": "stage-user-application",
   "private": true,
-  "version": "0.1.46",
+  "version": "0.1.47",
   "type": "commonjs",
   "main": "out/main/index.js",
   "scripts": {

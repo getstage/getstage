@@ -1,11 +1,16 @@
-import { app, dialog } from "electron";
+import { app, dialog, shell } from "electron";
 import { autoUpdater } from "electron-updater";
 
 type UpdateCheckOptions = {
   manual?: boolean;
 };
 
+const RELEASES_PAGE_URL = "https://github.com/getstage/getstage/releases/latest";
+const GITHUB_OWNER = "getstage";
+const GITHUB_REPO = "getstage";
+
 let checkInFlight = false;
+let feedConfigured = false;
 
 function logUpdate(message: string) {
   console.info(`[stage-update] ${message}`);
@@ -13,6 +18,43 @@ function logUpdate(message: string) {
 
 function logUpdateWarning(message: string) {
   console.warn(`[stage-update] ${message}`);
+}
+
+function configureAutoUpdaterFeed() {
+  if (feedConfigured) {
+    return;
+  }
+
+  const genericBaseUrl = process.env.STAGE_DESKTOP_UPDATES_URL?.trim().replace(/\/+$/, "");
+  const githubToken = process.env.STAGE_UPDATE_GITHUB_TOKEN?.trim();
+
+  if (genericBaseUrl) {
+    autoUpdater.setFeedURL({
+      provider: "generic",
+      url: `${genericBaseUrl}/`,
+    });
+    logUpdate(`using generic feed ${genericBaseUrl}`);
+    feedConfigured = true;
+    return;
+  }
+
+  if (githubToken) {
+    autoUpdater.setFeedURL({
+      provider: "github",
+      owner: GITHUB_OWNER,
+      repo: GITHUB_REPO,
+      private: true,
+      token: githubToken,
+    });
+    logUpdate("using private GitHub releases feed");
+    feedConfigured = true;
+    return;
+  }
+
+  logUpdateWarning(
+    "No STAGE_DESKTOP_UPDATES_URL or STAGE_UPDATE_GITHUB_TOKEN — update checks may fail on a private repo.",
+  );
+  feedConfigured = true;
 }
 
 async function promptDownloadUpdate(version: string) {
@@ -53,16 +95,32 @@ async function showManualUpToDateDialog() {
   });
 }
 
-async function showManualCheckError(error: unknown) {
-  const detail =
-    error instanceof Error ? error.message : "Could not reach the update server.";
+function isPrivateGithubFeedError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("releases.atom") || message.includes("404");
+}
 
-  await dialog.showMessageBox({
+async function showManualCheckError(error: unknown) {
+  const privateGithub = isPrivateGithubFeedError(error);
+  const { response } = await dialog.showMessageBox({
     type: "warning",
+    buttons: privateGithub ? ["Open Download Page", "OK"] : ["OK"],
+    defaultId: 0,
+    cancelId: privateGithub ? 1 : 0,
     title: "Update Check Failed",
-    message: "Stage could not check for updates right now.",
-    detail,
+    message: privateGithub
+      ? "Stage could not reach the private GitHub release feed."
+      : "Stage could not check for updates right now.",
+    detail: privateGithub
+      ? "Open the download page in your browser (sign in to GitHub if asked), then install the latest Stage.dmg."
+      : error instanceof Error
+        ? error.message
+        : "Could not reach the update server.",
   });
+
+  if (privateGithub && response === 0) {
+    await shell.openExternal(RELEASES_PAGE_URL);
+  }
 }
 
 export async function checkForUpdates(options: UpdateCheckOptions = {}) {
@@ -90,6 +148,7 @@ export async function checkForUpdates(options: UpdateCheckOptions = {}) {
     return;
   }
 
+  configureAutoUpdaterFeed();
   checkInFlight = true;
 
   try {
@@ -131,6 +190,7 @@ export function initAutoUpdates() {
     return;
   }
 
+  configureAutoUpdaterFeed();
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = false;
 

@@ -13,6 +13,12 @@ const desktopBuildEnv = {
   "process.env.STAGE_DESKTOP_AUTH_URL": JSON.stringify(
     process.env.STAGE_DESKTOP_AUTH_URL ?? "",
   ),
+  "process.env.STAGE_UPDATE_GITHUB_TOKEN": JSON.stringify(
+    process.env.STAGE_UPDATE_GITHUB_TOKEN ?? "",
+  ),
+  "process.env.STAGE_DESKTOP_UPDATES_URL": JSON.stringify(
+    process.env.STAGE_DESKTOP_UPDATES_URL ?? "",
+  ),
 };
 
 export default defineConfig({

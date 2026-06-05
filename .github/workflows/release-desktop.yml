@@ -32,6 +32,10 @@ jobs:
             rust_target: x86_64-apple-darwin
     env:
       VITE_CONVEX_URL: ${{ secrets.DESKTOP_VITE_CONVEX_URL }}
+      # Read-only PAT for in-app updates (private GitHub repo). Fine-grained: Contents read on getstage.
+      STAGE_UPDATE_GITHUB_TOKEN: ${{ secrets.DESKTOP_UPDATE_GITHUB_TOKEN }}
+      # Optional public feed, e.g. https://assets.getstage.co/desktop/macos — overrides GitHub when set.
+      STAGE_DESKTOP_UPDATES_URL: ${{ vars.STAGE_DESKTOP_UPDATES_URL }}
       # Testing release: login via testing.getstage.co (override with repo variable for prod later)
       STAGE_DESKTOP_AUTH_URL: ${{ vars.STAGE_DESKTOP_AUTH_URL != '' && vars.STAGE_DESKTOP_AUTH_URL || 'https://testing.getstage.co/auth/desktop' }}
     steps:

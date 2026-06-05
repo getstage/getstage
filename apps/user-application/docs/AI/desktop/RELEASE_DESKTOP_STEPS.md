@@ -79,6 +79,7 @@ Je hoeft **geen app** in App Store Connect aan te maken voor een DMG buiten de S
 | Secret | Verplicht | Waarde |
 |--------|-----------|--------|
 | `DESKTOP_VITE_CONVEX_URL` | **Ja** | **Testing:** `https://reliable-bullfrog-917.convex.cloud` (jouw dev deployment) |
+| `DESKTOP_UPDATE_GITHUB_TOKEN` | **Ja** (private repo) | Fine-grained GitHub PAT, **Contents: Read** on `getstage/getstage`. Gebruikt door in-app “Check for Updates”. |
 | Repository variable `STAGE_DESKTOP_AUTH_URL` | Optioneel | Default in CI: `https://testing.getstage.co/auth/desktop` |
 | `APPLE_ID` | Voor sign | Apple ID e-mail |
 | `APPLE_APP_SPECIFIC_PASSWORD` | Voor sign | App-specific password |
