@@ -113,7 +113,7 @@ export function DashboardContextView() {
     !projectsQuery.error &&
     (projectsQuery.data?.length ?? 0) === 0;
   return (
-    <div className="flex-1 px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
+    <div className="flex-1 px-[clamp(16px,7vw,100px)] pb-[clamp(56px,6vw,96px)] pt-[clamp(20px,4vw,44px)]">
       <div className="flex flex-col gap-[clamp(24px,4vw,44px)]">
         <div className="flex flex-col gap-[clamp(14px,2vw,18px)]">
           <DashboardHeader
@@ -137,7 +137,7 @@ export function DashboardContextView() {
           />
         )}
 
-        <div className="overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[2px]">
+        <div className="mb-[clamp(32px,4vw,64px)] overflow-hidden rounded-[10px] bg-[#f5f5f5] p-[2px]">
           <div className="grid grid-cols-1 gap-[2px] xl:grid-cols-2">
             <UpcomingTasksCard tasks={periodDashboardTasks.upcomingTasks} period={selectedPeriod} />
             <RecentActivityCard entries={periodDashboardTasks.recentActivity} period={selectedPeriod} />
