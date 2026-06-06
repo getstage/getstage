@@ -1,8 +1,14 @@
+import { Suspense, lazy } from "react";
 import { Outlet, useRouterState } from "@tanstack/react-router";
-import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 import { useNonProOnboardingGate } from "@/features/onboarding/useNonProOnboardingGate";
 import { WorkspaceFrame } from "@/components/app/WorkspaceFrame";
 import { shouldRenderWorkspaceChrome } from "@/lib/app/chromeRules";
+
+const OnboardingModal = lazy(() =>
+  import("@/components/onboarding/OnboardingModal").then((module) => ({
+    default: module.OnboardingModal,
+  })),
+);
 
 /**
  * Authenticated shell: renders child routes and global non-Pro onboarding/paywall.
@@ -23,12 +29,16 @@ export function AuthedWorkspaceLayout() {
       ) : (
         <Outlet />
       )}
-      <OnboardingModal
-        open={gate.onboardingOpen}
-        userName={gate.userFirstName}
-        initialStep={gate.onboardingInitialStep}
-        onComplete={gate.onOnboardingComplete}
-      />
+      {gate.onboardingOpen ? (
+        <Suspense fallback={null}>
+          <OnboardingModal
+            open={gate.onboardingOpen}
+            userName={gate.userFirstName}
+            initialStep={gate.onboardingInitialStep}
+            onComplete={gate.onOnboardingComplete}
+          />
+        </Suspense>
+      ) : null}
     </>
   );
 }

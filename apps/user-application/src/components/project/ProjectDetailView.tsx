@@ -1,16 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import type { ProviderId } from "@stage/data-ops/contracts";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { Avatar } from "@/components/ui/Avatar";
 import { ProjectHeader } from "./ProjectHeader";
 import { KanbanBoard } from "./KanbanBoard";
-import { AssetsTab } from "./tabs/assets/AssetsTab";
-import { FlowsTab } from "./tabs/flows/FlowsTab";
-import { MoodboardTab } from "./tabs/moodboard/MoodboardTab";
-import { ResearchTab } from "./tabs/research/ResearchTab";
-import { StrategyTab } from "./tabs/strategy/StrategyTab";
-import { WireframesTab } from "./tabs/wireframes/WireframesTab";
 import {
   useFlowsArtifact,
   useLiveProject,
@@ -25,6 +19,25 @@ import { formatInputDate } from "@/lib/format";
 import { getProjectBackDestination } from "@/lib/projectBackDestination";
 import { formatRelativeTime } from "@/lib/utils";
 import type { Project, ProjectTab } from "@/models/project/project";
+
+const AssetsTab = lazy(() =>
+  import("./tabs/assets/AssetsTab").then((module) => ({ default: module.AssetsTab })),
+);
+const FlowsTab = lazy(() =>
+  import("./tabs/flows/FlowsTab").then((module) => ({ default: module.FlowsTab })),
+);
+const MoodboardTab = lazy(() =>
+  import("./tabs/moodboard/MoodboardTab").then((module) => ({ default: module.MoodboardTab })),
+);
+const ResearchTab = lazy(() =>
+  import("./tabs/research/ResearchTab").then((module) => ({ default: module.ResearchTab })),
+);
+const StrategyTab = lazy(() =>
+  import("./tabs/strategy/StrategyTab").then((module) => ({ default: module.StrategyTab })),
+);
+const WireframesTab = lazy(() =>
+  import("./tabs/wireframes/WireframesTab").then((module) => ({ default: module.WireframesTab })),
+);
 
 type ProjectTimeline = {
   start: string;
@@ -308,50 +321,66 @@ export function ProjectDetailView() {
                   onGoToStep={() => setActiveTab(blockedStep)}
                 />
               ) : null}
-              {!blockedStep && activeTab === "research" ? (
-                <ResearchTab project={project} onGenerateStrategy={handleGenerateStrategy} />
+              {!blockedStep ? (
+                <Suspense fallback={<ProjectTabLoadingState />}>
+                  {activeTab === "research" ? (
+                    <ResearchTab project={project} onGenerateStrategy={handleGenerateStrategy} />
+                  ) : null}
+                  {activeTab === "strategy" ? (
+                    <StrategyTab
+                      project={project}
+                      onGoToResearch={() => setActiveTab("research")}
+                      onGoToMoodboard={() => setActiveTab("moodboard")}
+                      autoStartGeneration={pendingStrategyGeneration}
+                      pendingStrategyProviderId={pendingStrategyProviderId}
+                      onAutoStartHandled={() => {
+                        setPendingStrategyGeneration(false);
+                        setPendingStrategyProviderId(null);
+                      }}
+                    />
+                  ) : null}
+                  {activeTab === "moodboard" ? (
+                    <MoodboardTab
+                      project={project}
+                      onGoToResearch={() => setActiveTab("research")}
+                      onGoToStrategy={() => setActiveTab("strategy")}
+                    />
+                  ) : null}
+                  {activeTab === "flows" ? (
+                    <FlowsTab
+                      project={project}
+                      onGoToResearch={() => setActiveTab("research")}
+                      onGoToStrategy={() => setActiveTab("strategy")}
+                    />
+                  ) : null}
+                  {activeTab === "wireframes" ? (
+                    <WireframesTab
+                      project={project}
+                      onGoToResearch={() => setActiveTab("research")}
+                      onGoToStrategy={() => setActiveTab("strategy")}
+                    />
+                  ) : null}
+                  {activeTab === "assets" ? <AssetsTab project={project} /> : null}
+                </Suspense>
               ) : null}
-              {!blockedStep && activeTab === "strategy" ? (
-                <StrategyTab
-                  project={project}
-                  onGoToResearch={() => setActiveTab("research")}
-                  onGoToMoodboard={() => setActiveTab("moodboard")}
-                  autoStartGeneration={pendingStrategyGeneration}
-                  pendingStrategyProviderId={pendingStrategyProviderId}
-                  onAutoStartHandled={() => {
-                    setPendingStrategyGeneration(false);
-                    setPendingStrategyProviderId(null);
-                  }}
-                />
-              ) : null}
-              {!blockedStep && activeTab === "moodboard" ? (
-                <MoodboardTab
-                  project={project}
-                  onGoToResearch={() => setActiveTab("research")}
-                  onGoToStrategy={() => setActiveTab("strategy")}
-                />
-              ) : null}
-              {!blockedStep && activeTab === "flows" ? (
-                <FlowsTab
-                  project={project}
-                  onGoToResearch={() => setActiveTab("research")}
-                  onGoToStrategy={() => setActiveTab("strategy")}
-                />
-              ) : null}
-              {!blockedStep && activeTab === "wireframes" ? (
-                <WireframesTab
-                  project={project}
-                  onGoToResearch={() => setActiveTab("research")}
-                  onGoToStrategy={() => setActiveTab("strategy")}
-                />
-              ) : null}
-              {!blockedStep && activeTab === "assets" ? <AssetsTab project={project} /> : null}
             </div>
           )}
         </motion.div>
       </div>
       {isShareModalOpen ? <ShareModal onClose={() => setIsShareModalOpen(false)} /> : null}
     </>
+  );
+}
+
+function ProjectTabLoadingState() {
+  return (
+    <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+      <div className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="skeleton h-4 w-40" />
+        <div className="skeleton mt-3 h-3 w-72 max-w-full" />
+        <div className="skeleton mt-6 h-[320px] w-full rounded-[8px]" />
+      </div>
+    </div>
   );
 }
 

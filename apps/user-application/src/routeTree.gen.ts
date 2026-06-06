@@ -13,10 +13,10 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
 import { Route as AuthedTasksRouteImport } from './routes/_authed/tasks'
+import { Route as AuthedSubscriptionsRouteImport } from './routes/_authed/subscriptions'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedProjectsRouteImport } from './routes/_authed/projects'
 import { Route as AuthedIntegrationsRouteImport } from './routes/_authed/integrations'
-import { Route as AuthedSubscriptionsRouteImport } from './routes/_authed/subscriptions'
 import { Route as AuthedClientPortalRouteImport } from './routes/_authed/client-portal'
 import { Route as AuthedTasksTaskIdRouteImport } from './routes/_authed/tasks.$taskId'
 import { Route as AuthedSettingsPortalRouteImport } from './routes/_authed/settings.portal'
@@ -49,6 +49,11 @@ const AuthedTasksRoute = AuthedTasksRouteImport.update({
   path: '/tasks',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedSubscriptionsRoute = AuthedSubscriptionsRouteImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -62,11 +67,6 @@ const AuthedProjectsRoute = AuthedProjectsRouteImport.update({
 const AuthedIntegrationsRoute = AuthedIntegrationsRouteImport.update({
   id: '/integrations',
   path: '/integrations',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedSubscriptionsRoute = AuthedSubscriptionsRouteImport.update({
-  id: '/subscriptions',
-  path: '/subscriptions',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedClientPortalRoute = AuthedClientPortalRouteImport.update({
@@ -137,9 +137,9 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/client-portal': typeof AuthedClientPortalRouteWithChildren
   '/integrations': typeof AuthedIntegrationsRoute
-  '/subscriptions': typeof AuthedSubscriptionsRoute
   '/projects': typeof AuthedProjectsRouteWithChildren
   '/settings': typeof AuthedSettingsRouteWithChildren
+  '/subscriptions': typeof AuthedSubscriptionsRoute
   '/tasks': typeof AuthedTasksRouteWithChildren
   '/agents/claude': typeof AuthedAgentsClaudeRoute
   '/project/$projectId': typeof AuthedProjectProjectIdRouteWithChildren
@@ -157,9 +157,9 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/client-portal': typeof AuthedClientPortalRouteWithChildren
   '/integrations': typeof AuthedIntegrationsRoute
-  '/subscriptions': typeof AuthedSubscriptionsRoute
   '/projects': typeof AuthedProjectsRouteWithChildren
   '/settings': typeof AuthedSettingsRouteWithChildren
+  '/subscriptions': typeof AuthedSubscriptionsRoute
   '/tasks': typeof AuthedTasksRouteWithChildren
   '/': typeof AuthedIndexRoute
   '/agents/claude': typeof AuthedAgentsClaudeRoute
@@ -180,9 +180,9 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authed/client-portal': typeof AuthedClientPortalRouteWithChildren
   '/_authed/integrations': typeof AuthedIntegrationsRoute
-  '/_authed/subscriptions': typeof AuthedSubscriptionsRoute
   '/_authed/projects': typeof AuthedProjectsRouteWithChildren
   '/_authed/settings': typeof AuthedSettingsRouteWithChildren
+  '/_authed/subscriptions': typeof AuthedSubscriptionsRoute
   '/_authed/tasks': typeof AuthedTasksRouteWithChildren
   '/_authed/': typeof AuthedIndexRoute
   '/_authed/agents/claude': typeof AuthedAgentsClaudeRoute
@@ -204,9 +204,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/client-portal'
     | '/integrations'
-    | '/subscriptions'
     | '/projects'
     | '/settings'
+    | '/subscriptions'
     | '/tasks'
     | '/agents/claude'
     | '/project/$projectId'
@@ -224,9 +224,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/client-portal'
     | '/integrations'
-    | '/subscriptions'
     | '/projects'
     | '/settings'
+    | '/subscriptions'
     | '/tasks'
     | '/'
     | '/agents/claude'
@@ -246,9 +246,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authed/client-portal'
     | '/_authed/integrations'
-    | '/_authed/subscriptions'
     | '/_authed/projects'
     | '/_authed/settings'
+    | '/_authed/subscriptions'
     | '/_authed/tasks'
     | '/_authed/'
     | '/_authed/agents/claude'
@@ -299,6 +299,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedTasksRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/subscriptions': {
+      id: '/_authed/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/subscriptions'
+      preLoaderRoute: typeof AuthedSubscriptionsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/settings': {
       id: '/_authed/settings'
       path: '/settings'
@@ -318,13 +325,6 @@ declare module '@tanstack/react-router' {
       path: '/integrations'
       fullPath: '/integrations'
       preLoaderRoute: typeof AuthedIntegrationsRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/subscriptions': {
-      id: '/_authed/subscriptions'
-      path: '/subscriptions'
-      fullPath: '/subscriptions'
-      preLoaderRoute: typeof AuthedSubscriptionsRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/client-portal': {
@@ -487,9 +487,9 @@ const AuthedProjectProjectIdRouteWithChildren =
 interface AuthedRouteChildren {
   AuthedClientPortalRoute: typeof AuthedClientPortalRouteWithChildren
   AuthedIntegrationsRoute: typeof AuthedIntegrationsRoute
-  AuthedSubscriptionsRoute: typeof AuthedSubscriptionsRoute
   AuthedProjectsRoute: typeof AuthedProjectsRouteWithChildren
   AuthedSettingsRoute: typeof AuthedSettingsRouteWithChildren
+  AuthedSubscriptionsRoute: typeof AuthedSubscriptionsRoute
   AuthedTasksRoute: typeof AuthedTasksRouteWithChildren
   AuthedIndexRoute: typeof AuthedIndexRoute
   AuthedAgentsClaudeRoute: typeof AuthedAgentsClaudeRoute
@@ -499,9 +499,9 @@ interface AuthedRouteChildren {
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedClientPortalRoute: AuthedClientPortalRouteWithChildren,
   AuthedIntegrationsRoute: AuthedIntegrationsRoute,
-  AuthedSubscriptionsRoute: AuthedSubscriptionsRoute,
   AuthedProjectsRoute: AuthedProjectsRouteWithChildren,
   AuthedSettingsRoute: AuthedSettingsRouteWithChildren,
+  AuthedSubscriptionsRoute: AuthedSubscriptionsRoute,
   AuthedTasksRoute: AuthedTasksRouteWithChildren,
   AuthedIndexRoute: AuthedIndexRoute,
   AuthedAgentsClaudeRoute: AuthedAgentsClaudeRoute,

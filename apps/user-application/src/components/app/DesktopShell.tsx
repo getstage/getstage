@@ -1,9 +1,18 @@
-import { useEffect, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, type ReactNode } from "react";
 import type { CompanionState } from "@shared/models/desktop";
 import { CompanionOrb } from "@/components/companion/CompanionOrb";
-import { CritiquePanel } from "@/components/companion/CritiquePanel";
-import { VoiceControlBar } from "@/components/companion/VoiceControlBar";
 import { useCompanionState } from "@/hooks/useCompanionState";
+
+const CritiquePanel = lazy(() =>
+  import("@/components/companion/CritiquePanel").then((module) => ({
+    default: module.CritiquePanel,
+  })),
+);
+const VoiceControlBar = lazy(() =>
+  import("@/components/companion/VoiceControlBar").then((module) => ({
+    default: module.VoiceControlBar,
+  })),
+);
 
 type DesktopShellProps = {
   children: ReactNode;
@@ -71,8 +80,10 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
 
     return (
       <div className="stage-companion-window">
-        <VoiceControlBar state={companion.state} onStateChange={setCompanionPanelState} />
-        <CritiquePanel state={companion.state} onStateChange={setCompanionChatState} />
+        <Suspense fallback={null}>
+          <VoiceControlBar state={companion.state} onStateChange={setCompanionPanelState} />
+          <CritiquePanel state={companion.state} onStateChange={setCompanionChatState} />
+        </Suspense>
       </div>
     );
   }
@@ -83,8 +94,10 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
       {!hideCompanion ? (
         <>
           <CompanionOrb state={companion.state} />
-          <VoiceControlBar state={companion.state} onStateChange={companion.setState} />
-          <CritiquePanel state={companion.state} onStateChange={companion.setState} />
+          <Suspense fallback={null}>
+            <VoiceControlBar state={companion.state} onStateChange={companion.setState} />
+            <CritiquePanel state={companion.state} onStateChange={companion.setState} />
+          </Suspense>
         </>
       ) : null}
     </div>

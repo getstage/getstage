@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import react from "@vitejs/plugin-react";
+import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { electronPublicPathsPlugin } from "./vite/electronPublicPathsPlugin";
 
@@ -57,7 +58,16 @@ export default defineConfig({
     root: ".",
     base: "./",
     envDir: __dirname,
-    plugins: [react(), tailwindcss(), electronPublicPathsPlugin()],
+    plugins: [
+      TanStackRouterVite({
+        routesDirectory: "./src/routes",
+        generatedRouteTree: "./src/routeTree.gen.ts",
+        autoCodeSplitting: true,
+      }),
+      react(),
+      tailwindcss(),
+      electronPublicPathsPlugin(),
+    ],
     resolve: {
       alias: {
         "@": resolve(__dirname, "src"),
@@ -74,6 +84,12 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: resolve(__dirname, "index.html"),
+        output: {
+          manualChunks: {
+            router: ["@tanstack/react-router"],
+            query: ["@tanstack/react-query"],
+          },
+        },
       },
     },
   },
