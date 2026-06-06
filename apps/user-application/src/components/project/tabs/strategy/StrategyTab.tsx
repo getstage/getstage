@@ -59,11 +59,13 @@ export function StrategyTab({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
+  const [isFullStrategyRegenerating, setIsFullStrategyRegenerating] = useState(false);
   const [regeneratingSectionId, setRegeneratingSectionId] = useState<string | null>(null);
   const latestSectionsRef = useRef<StrategySection[]>([]);
   const lastPersistedEmojiSectionsRef = useRef<StrategySection[]>([]);
   const emojiSaveQueueRef = useRef(Promise.resolve());
   const pendingEmojiSaveCountRef = useRef(0);
+  const fullRegenerateSawBusyRef = useRef(false);
 
   const strategy = useStrategyTab(project);
   const researchRun = useProjectResearchRun(project.id);
@@ -130,6 +132,23 @@ export function StrategyTab({
     trackRunActivity(isRunBusy, runError ?? strategy.error);
   }, [isRunBusy, runError, strategy.error, trackRunActivity]);
 
+  useEffect(() => {
+    if (!isFullStrategyRegenerating) {
+      fullRegenerateSawBusyRef.current = false;
+      return;
+    }
+
+    if (isRunBusy) {
+      fullRegenerateSawBusyRef.current = true;
+      return;
+    }
+
+    if (fullRegenerateSawBusyRef.current || runError || strategy.error) {
+      fullRegenerateSawBusyRef.current = false;
+      setIsFullStrategyRegenerating(false);
+    }
+  }, [isFullStrategyRegenerating, isRunBusy, runError, strategy.error]);
+
   async function handleGenerateStrategy(
     input?: ValidatedStrategyGenerateInput,
     providerId?: ProviderId,
@@ -138,6 +157,8 @@ export function StrategyTab({
     setRunError(null);
 
     if (options?.isFullRegenerate) {
+      fullRegenerateSawBusyRef.current = false;
+      setIsFullStrategyRegenerating(true);
       beginPending("strategy", { hadDownstream: downstreamWork.hasDownstream });
     }
 
@@ -145,6 +166,10 @@ export function StrategyTab({
       await strategy.startStrategy(input, providerId);
     } catch (error) {
       setRunError(error instanceof Error ? error.message : "Could not generate Strategy.");
+      if (options?.isFullRegenerate) {
+        fullRegenerateSawBusyRef.current = false;
+        setIsFullStrategyRegenerating(false);
+      }
     }
   }
 
@@ -411,6 +436,15 @@ export function StrategyTab({
 
   if (isLaunchingStrategy && !strategy.hasArtifact) {
     return <StrategyGeneratingState usingMockData={strategy.usingMockData} />;
+  }
+
+  if (isFullStrategyRegenerating) {
+    return (
+      <StrategyGeneratingState
+        mode="regenerate"
+        usingMockData={strategy.usingMockData}
+      />
+    );
   }
 
   if (regeneratingSectionId) {
