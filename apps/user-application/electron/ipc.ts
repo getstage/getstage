@@ -32,12 +32,35 @@ import type { DesktopAuthController } from "./auth";
 import type { DesktopIntegrationsController } from "./integrations";
 
 const activeRunStreams = new Map<string, AbortController>();
+const shouldLogDesktopDebug =
+  process.env.STAGE_DESKTOP_DEBUG === "1" ||
+  (!app.isPackaged && process.env.STAGE_DESKTOP_DEBUG !== "0");
 
 type RegisterIpcHandlersOptions = {
   authController: DesktopAuthController;
   integrationsController: DesktopIntegrationsController;
   sidecarSupervisor: SidecarSupervisor;
 };
+
+function debugDesktop(message: string) {
+  if (shouldLogDesktopDebug) {
+    console.info(`[stage-desktop:debug] ${message}`);
+  }
+}
+
+async function withDebugTiming<T>(label: string, task: () => Promise<T>): Promise<T> {
+  const startedAt = performance.now();
+  debugDesktop(`${label} started`);
+
+  try {
+    const result = await task();
+    debugDesktop(`${label} completed in ${Math.round(performance.now() - startedAt)}ms`);
+    return result;
+  } catch (error) {
+    debugDesktop(`${label} failed after ${Math.round(performance.now() - startedAt)}ms`);
+    throw error;
+  }
+}
 
 export function registerIpcHandlers({
   authController,
@@ -63,40 +86,60 @@ export function registerIpcHandlers({
   });
 
   ipcMain.handle(IPC_CHANNELS.engineGetStatus, async () => {
-    return engineStatusSchema.parse(await sidecarSupervisor.getLiveStatus());
+    return withDebugTiming("engine:get-status", async () =>
+      engineStatusSchema.parse(await sidecarSupervisor.getLiveStatus()),
+    );
   });
 
   ipcMain.handle(IPC_CHANNELS.engineListProviders, async () => {
-    const status = await sidecarSupervisor.start();
-    const payload = await fetchEngineJson<unknown>({
-      path: "/v1/providers",
-      port: status.port,
-    });
+    return withDebugTiming("engine:list-providers", async () => {
+      const status = await withDebugTiming("engine:list-providers sidecar-start", () =>
+        sidecarSupervisor.start(),
+      );
+      const payload = await withDebugTiming("engine:list-providers fetch", () =>
+        fetchEngineJson<unknown>({
+          path: "/v1/providers",
+          port: status.port,
+        }),
+      );
 
-    return providerListResponseSchema.parse(payload);
+      return providerListResponseSchema.parse(payload);
+    });
   });
 
   ipcMain.handle(IPC_CHANNELS.engineRefreshProviders, async () => {
-    const status = await sidecarSupervisor.start();
-    const payload = await fetchEngineJson<unknown>({
-      method: "POST",
-      path: "/v1/providers/refresh",
-      port: status.port,
-    });
+    return withDebugTiming("engine:refresh-providers", async () => {
+      const status = await withDebugTiming("engine:refresh-providers sidecar-start", () =>
+        sidecarSupervisor.start(),
+      );
+      const payload = await withDebugTiming("engine:refresh-providers fetch", () =>
+        fetchEngineJson<unknown>({
+          method: "POST",
+          path: "/v1/providers/refresh",
+          port: status.port,
+        }),
+      );
 
-    return providerListResponseSchema.parse(payload);
+      return providerListResponseSchema.parse(payload);
+    });
   });
 
   ipcMain.handle(IPC_CHANNELS.engineUpdateProvider, async (_event, providerId: unknown) => {
     const parsedProviderId = providerIdSchema.parse(providerId);
-    const status = await sidecarSupervisor.start();
-    const payload = await fetchEngineJson<unknown>({
-      method: "POST",
-      path: `/v1/providers/${parsedProviderId}/update`,
-      port: status.port,
-    });
+    return withDebugTiming(`engine:update-provider provider=${parsedProviderId}`, async () => {
+      const status = await withDebugTiming("engine:update-provider sidecar-start", () =>
+        sidecarSupervisor.start(),
+      );
+      const payload = await withDebugTiming("engine:update-provider fetch", () =>
+        fetchEngineJson<unknown>({
+          method: "POST",
+          path: `/v1/providers/${parsedProviderId}/update`,
+          port: status.port,
+        }),
+      );
 
-    return providerUpdateResponseSchema.parse(payload);
+      return providerUpdateResponseSchema.parse(payload);
+    });
   });
 
   ipcMain.handle(IPC_CHANNELS.engineStartRun, async (event, request: unknown) => {
@@ -104,15 +147,21 @@ export function registerIpcHandlers({
     console.info(
       `[stage-engine] run request provider=${parsedRequest.providerId} mode=${parsedRequest.mode} projectId=${parsedRequest.context.projectId ?? "none"}`,
     );
-    const status = await sidecarSupervisor.start();
-    const accessToken = await authController.getAccessToken();
-    const payload = await fetchEngineJson<unknown>({
-      method: "POST",
-      path: "/v1/runs",
-      port: status.port,
-      body: parsedRequest,
-      accessToken,
-    });
+    const status = await withDebugTiming("engine:start-run sidecar-start", () =>
+      sidecarSupervisor.start(),
+    );
+    const accessToken = await withDebugTiming("engine:start-run access-token", () =>
+      authController.getAccessToken(),
+    );
+    const payload = await withDebugTiming("engine:start-run fetch", () =>
+      fetchEngineJson<unknown>({
+        method: "POST",
+        path: "/v1/runs",
+        port: status.port,
+        body: parsedRequest,
+        accessToken,
+      }),
+    );
     const response = startRunResponseSchema.parse(payload);
 
     void streamRunEventsToRenderer({
@@ -131,14 +180,20 @@ export function registerIpcHandlers({
       throw new Error("Run id must be a non-empty string.");
     }
 
-    const status = await sidecarSupervisor.start();
-    const payload = await fetchEngineJson<unknown>({
-      method: "POST",
-      path: `/v1/runs/${encodeURIComponent(runId)}/cancel`,
-      port: status.port,
-    });
+    return withDebugTiming(`engine:cancel-run runId=${runId}`, async () => {
+      const status = await withDebugTiming("engine:cancel-run sidecar-start", () =>
+        sidecarSupervisor.start(),
+      );
+      const payload = await withDebugTiming("engine:cancel-run fetch", () =>
+        fetchEngineJson<unknown>({
+          method: "POST",
+          path: `/v1/runs/${encodeURIComponent(runId)}/cancel`,
+          port: status.port,
+        }),
+      );
 
-    return cancelRunResponseSchema.parse(payload);
+      return cancelRunResponseSchema.parse(payload);
+    });
   });
 
   ipcMain.handle(IPC_CHANNELS.companionShow, () => {

@@ -10,12 +10,13 @@
 
 1. [Summary](#summary)
 2. [Changelog (already fixed)](#changelog-already-fixed)
-3. [Open blockers](#open-blockers)
-4. [Diagnosis — where is the slowness?](#diagnosis--where-is-the-slowness)
-5. [Action plan](#action-plan)
-6. [Debug & observability](#debug--observability)
-7. [Known errors (engine / chat / DMG)](#known-errors-engine--chat--dmg)
-8. [Files to change](#files-to-change)
+3. [2026-06-06 notes (Werner)](#2026-06-06-notes-werner)
+4. [Open blockers](#open-blockers)
+5. [Diagnosis — where is the slowness?](#diagnosis--where-is-the-slowness)
+6. [Action plan](#action-plan)
+7. [Debug & observability](#debug--observability)
+8. [Known errors (engine / chat / DMG)](#known-errors-engine--chat--dmg)
+9. [Files to change](#files-to-change)
 
 ---
 
@@ -55,20 +56,46 @@ Chat/AI works in DMG outside a git checkout.
 
 ---
 
+## 2026-06-06 notes (Werner)
+
+| Item | Status |
+|------|--------|
+| arm64 DMG installed | `file .../stage-engine` → **arm64** ✓ |
+| Create Project + avatar | **Fixed** — R2 CORS `app://stage` (see below) |
+| chmod EPERM in Terminal | Fix in repo (`sidecar.ts`), **not in v0.1.50 DMG** → needs v0.1.51 |
+| About panel arch | Fix in repo (`main.ts`), not released yet |
+| Startup benchmark | Targets T1 < 2s, T2 < 4s — see [Debug](#debug--observability) |
+| Moodboard error after create | `Project not found` in console — separate, investigate later |
+
+**Cold-start test (Werner):** `killall Stage` → `echo "START $(date '+%H:%M:%S')"` → `open -a Stage` (or `Contents/MacOS/Stage` for logs). Repeat 3×, note T1 window / T2 dashboard.
+
+---
+
 ## Open blockers
 
-### P0 — Create project (CORS, packaged app only)
+### P0 — Create project / R2 upload — **fixed 2026-06-06 (infra)**
 
-| Symptom | Cause |
-|---------|-------|
-| CORS on R2 upload | Renderer at `app://stage` does `PUT` to `*.r2.cloudflarestorage.com` |
-| “We could not reach the server…” | `errors.ts` maps CORS/`failed to fetch` to generic network message |
+| Was | Fix |
+|-----|-----|
+| OPTIONS **403** on `*.r2.cloudflarestorage.com` | R2 bucket CORS: add **`app://stage`**, remove **`file://`** |
+| “We could not reach the server…” | Was CORS — not network |
 
-**Chain:** `createProjectFromDraft` → `uploadFileToR2` → signed R2 URL → CORS block.
+**Check origin:** DevTools → `window.location.origin` → `'app://stage'` (not `file://`).
 
-**Fix:** upload via Electron main process (IPC, no CORS). Web (`testing.getstage.co`) unchanged.
+**CORS JSON + bucket steps:** [`../infra/R2_PUBLIC_DOMAIN_AUDIT.md`](../infra/R2_PUBLIC_DOMAIN_AUDIT.md#cors-for-desktop-uploads).
 
-**Release:** `v0.1.51`
+**Custom domain** (`assets-testing.getstage.co`) = **reads only**. Uploads still go to signed `*.r2.cloudflarestorage.com`.
+
+#### IPC upload — **planned after v0.1.51 deploy**
+
+Alternative if CORS is painful on prod: renderer sends file to **Electron main** via IPC → main does `PUT` (no browser CORS).
+
+| | Renderer PUT (now) | IPC upload (later) |
+|--|-------------------|-------------------|
+| Needs R2 CORS for `app://stage` | Yes | No |
+| Files | — | `electron/ipc.ts`, `electron/helpers/r2-upload.ts`, `src/lib/r2Uploads.ts` |
+
+Not started. Current fix is CORS-only. This is the next desktop reliability task after shipping v0.1.51.
 
 ---
 
@@ -153,7 +180,7 @@ Convex dedupes the WebSocket, but 4× Zod parse + re-renders. `getProjectData` o
 ### Order
 
 ```
-P0 uploads → P1 sidecar + window + bundle → P2 queries → P3 logs
+P1 sidecar + window + bundle → P2 queries → P3 logs → IPC upload (optional)
 ```
 
 ### Test (P1)
@@ -227,7 +254,8 @@ Engine reads `~/.claude/`, `~/.codex/` for provider auth. Allow when prompted.
 
 | Phase | Path |
 |-------|------|
-| P0 | `electron/ipc.ts`, `src/lib/r2Uploads.ts`, `src/lib/errors.ts` |
+| IPC upload (later) | `electron/ipc.ts`, `electron/helpers/r2-upload.ts`, `src/lib/r2Uploads.ts` |
+| v0.1.51 | `electron/sidecar.ts` (chmod), `electron/main.ts` (About arch) |
 | P1 | `electron/main.ts`, `electron.vite.config.ts`, `src/router.tsx`, `src/routes/*` |
 | P2 | `WorkspaceFrame.tsx`, `DashboardContextView.tsx`, `useSelectedProjectContext.ts` |
 | P3 | `errors.ts`, `electron/main.ts` (logs menu) |

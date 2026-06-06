@@ -23,10 +23,14 @@ function parseMoodboardArtifact(contentJson: string | null): MoodboardArtifact |
   }
 }
 
-export function useMoodboardArtifact(projectId: string | undefined) {
+export function useMoodboardArtifact(
+  projectId: string | undefined,
+  options: { enabled?: boolean } = {},
+) {
+  const { enabled = true } = options;
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
   const queryEnabled =
-    SHOULD_QUERY_PROJECT_AI_ARTIFACTS && isAuthenticated && Boolean(projectId);
+    enabled && SHOULD_QUERY_PROJECT_AI_ARTIFACTS && isAuthenticated && Boolean(projectId);
   const record = useQuery(
     api.projectAi.getLatestMoodboardArtifact,
     queryEnabled ? { projectId: projectId as Id<"projects"> } : "skip",

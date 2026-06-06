@@ -74,6 +74,31 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: resolve(__dirname, "index.html"),
+        output: {
+          manualChunks(id) {
+            if (!id.includes("node_modules")) {
+              return undefined;
+            }
+
+            if (id.includes("react") || id.includes("scheduler")) {
+              return "vendor-react";
+            }
+
+            if (id.includes("@tanstack")) {
+              return "vendor-tanstack";
+            }
+
+            if (id.includes("convex")) {
+              return "vendor-convex";
+            }
+
+            if (id.includes("motion") || id.includes("framer-motion")) {
+              return "vendor-motion";
+            }
+
+            return "vendor";
+          },
+        },
       },
     },
   },

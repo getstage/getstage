@@ -1,6 +1,6 @@
 # R2 Public Custom Domain Audit
 
-Last updated: 2026-06-05
+Last updated: 2026-06-06
 
 Related: [`R2_STORAGE_CHANGE_AUDIT.md`](./R2_STORAGE_CHANGE_AUDIT.md) · [`MOODBOARD_CHANGE_AUDIT.md`](../moodboard/MOODBOARD_CHANGE_AUDIT.md)
 
@@ -15,7 +15,47 @@ Testing bucket serves **stable public read URLs** through a Cloudflare R2 custom
 | Access | Public read via R2 custom domain |
 | Legacy objects | Keep as-is; no bulk migration |
 | Signed URL fallback | Remains when `R2_PUBLIC_BASE_URL` is unset |
-| Upload flow | Unchanged (`generateUploadUrl` → PUT → `syncMetadata`) |
+| Upload flow | Unchanged (`generateUploadUrl` → PUT → `syncMetadata`) — desktop needs **`app://stage`** in bucket CORS (not `file://`) — see [CORS for desktop uploads](#cors-for-desktop-uploads) |
+
+## CORS for desktop uploads
+
+Packaged Stage uses origin **`app://stage`** (`window.location.origin` in DevTools). Uploads PUT to signed `*.r2.cloudflarestorage.com` URLs.
+
+| Origin in CORS | Works for desktop upload? |
+|----------------|---------------------------|
+| `https://testing.getstage.co` | Web only |
+| `file://` | **No** — legacy; remove |
+| `app://stage` | **Yes** — confirmed 2026-06-06 |
+
+**Bucket:** `assetsgetstage-testing` → Settings → CORS Policy.
+
+Working policy (2026-06-06, Werner verified Create Project):
+
+```json
+[
+  {
+    "AllowedOrigins": [
+      "http://localhost:3001",
+      "http://localhost:5173",
+      "https://stage-app-testing.steep-resonance-f13d.workers.dev",
+      "https://stage-app-production.steep-resonance-f13d.workers.dev",
+      "https://testing.getstage.co",
+      "https://getstage.co",
+      "app://stage"
+    ],
+    "AllowedMethods": ["GET", "HEAD", "PUT"],
+    "AllowedHeaders": ["Content-Type"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+**Do not use** `file://` — packaged app origin is `app://stage` since v0.1.46.
+
+**Production:** same `app://stage` on prod bucket before prod DMG.
+
+**IPC upload (planned next):** after the v0.1.51 deploy, move desktop uploads through Electron main/IPC so browser CORS no longer affects desktop reliability. See [`../desktop/DESKTOP_PERFORMANCE.md`](../desktop/DESKTOP_PERFORMANCE.md#ipc-upload--deferred-werner-to-review-later).
 
 ## URL contract
 

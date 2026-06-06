@@ -29,13 +29,15 @@ export function getSidecarPort() {
 }
 
 export function getSidecarEnv(port: number): NodeJS.ProcessEnv {
+  const convexUrl =
+    process.env.CONVEX_URL ??
+    process.env.VITE_CONVEX_URL ??
+    (app.isPackaged ? undefined : "https://reliable-bullfrog-917.convex.cloud");
+
   return {
     ...process.env,
     STAGE_ENGINE_PORT: String(port),
-    CONVEX_URL:
-      process.env.CONVEX_URL ??
-      process.env.VITE_CONVEX_URL ??
-      "https://reliable-bullfrog-917.convex.cloud",
+    ...(convexUrl ? { CONVEX_URL: convexUrl } : {}),
   };
 }
 

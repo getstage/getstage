@@ -9,15 +9,13 @@ import { RevenueOverviewCard } from "@/components/dashboard/RevenueOverviewCard"
 import { UpcomingTasksCard } from "@/components/dashboard/UpcomingTasksCard";
 import {
   buildDashboardChart,
-  buildDashboardMetrics,
-  buildDashboardPipeline,
+  buildDashboardMetricsFromSummaries,
+  buildDashboardPipelineFromSummaries,
   buildDashboardRevenue,
   buildDashboardTasks,
-  buildSidebarProjectsFromProjectContext,
   buildSidebarProjectsFromSummaries,
 } from "@/lib/dashboard/projectContextDashboard";
 import { useProjectsQuery } from "@/hooks/convex-data";
-import { useSelectedProjectContext } from "@/hooks/useSelectedProjectContext";
 
 const DEFAULT_DASHBOARD_PERIOD: DashboardPeriod = "This month";
 
@@ -66,38 +64,32 @@ function isInPeriod(timestamp: number | undefined, period: DashboardPeriod) {
 
 export function DashboardContextView() {
   const navigate = useNavigate();
-  const selectedProject = useSelectedProjectContext();
   const projectsQuery = useProjectsQuery();
   const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>(DEFAULT_DASHBOARD_PERIOD);
-  const selectedProjectContext = selectedProject.isFallback ? null : selectedProject.context;
-  const openContextTasks = selectedProjectContext?.tasks.filter(
-    (task) => task.status !== "done",
-  ).length ?? 0;
-  const currentPhaseLabel = selectedProjectContext?.currentPhase ?? "active work";
+  const projects = projectsQuery.data ?? [];
+  const selectedProjectSummary = projects.find((project) => project.status === "active") ?? projects[0] ?? null;
   const activeProjectCount = (projectsQuery.data ?? []).filter(
     (project) => project.status === "active",
   ).length;
-  const dashboardSubheading = selectedProjectContext
-    ? `${selectedProjectContext.projectName} is in ${currentPhaseLabel} with ${openContextTasks} open decisions ready for review.`
-    : selectedProject.isLoading || projectsQuery.isLoading
+  const dashboardSubheading = projectsQuery.isLoading
       ? "Loading live project data."
+      : selectedProjectSummary
+        ? `${selectedProjectSummary.name} is ${selectedProjectSummary.progress}% complete. Open the project for tasks, artifacts, and decisions.`
       : activeProjectCount > 0
         ? `You have ${activeProjectCount} active ${activeProjectCount === 1 ? "project" : "projects"}. Open one to load live context.`
         : "Connect Stage to load live project data.";
-  const dashboardMetrics = buildDashboardMetrics(selectedProjectContext, {
-    activeProjectCount,
-  });
-  const dashboardChart = buildDashboardChart(selectedProjectContext, selectedPeriod);
-  const dashboardTasks = buildDashboardTasks(selectedProjectContext);
+  const dashboardMetrics = buildDashboardMetricsFromSummaries(projects);
+  const dashboardChart = buildDashboardChart(null, selectedPeriod);
+  const dashboardTasks = buildDashboardTasks(null);
   const projectImageByName = useMemo(
     () =>
       new Map(
-        (projectsQuery.data ?? []).map((project) => [
+        projects.map((project) => [
           project.name,
           project.projectImageUrl,
         ]),
       ),
-    [projectsQuery.data],
+    [projects],
   );
   const periodDashboardTasks = useMemo(() => ({
     upcomingTasks: dashboardTasks.upcomingTasks
@@ -113,11 +105,9 @@ export function DashboardContextView() {
         projectImageUrl: task.projectImageUrl ?? projectImageByName.get(task.projectName),
       })),
   }), [dashboardTasks.recentActivity, dashboardTasks.upcomingTasks, projectImageByName, selectedPeriod]);
-  const dashboardPipeline = buildDashboardPipeline(selectedProjectContext);
-  const dashboardRevenue = buildDashboardRevenue(selectedProjectContext);
-  const timelineProjects = projectsQuery.data?.length
-    ? buildSidebarProjectsFromSummaries(projectsQuery.data)
-    : buildSidebarProjectsFromProjectContext(selectedProjectContext);
+  const dashboardPipeline = buildDashboardPipelineFromSummaries(projects);
+  const dashboardRevenue = buildDashboardRevenue(null);
+  const timelineProjects = buildSidebarProjectsFromSummaries(projects);
   const hasNoProjects =
     !projectsQuery.isLoading &&
     !projectsQuery.error &&

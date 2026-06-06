@@ -193,6 +193,46 @@ export function buildDashboardMetrics(
   ];
 }
 
+export function buildDashboardMetricsFromSummaries(
+  summaries: ProjectSummary[],
+): DashboardMetric[] {
+  const activeProjects = summaries.filter((project) => project.status === "active");
+  const completedProjects = summaries.filter((project) => project.status === "completed");
+  const averageProgress = summaries.length === 0
+    ? 0
+    : Math.round(
+        summaries.reduce((total, project) => total + project.progress, 0) /
+          summaries.length,
+      );
+
+  return [
+    {
+      id: "active",
+      icon: "/logos/dashboard/radio.svg",
+      value: String(activeProjects.length),
+      label: "Active Projects",
+    },
+    {
+      id: "due",
+      icon: "/logos/dashboard/bell.svg",
+      value: "-",
+      label: "Tasks Due",
+    },
+    {
+      id: "done",
+      icon: "/logos/dashboard/check.svg",
+      value: String(completedProjects.length),
+      label: "Completed",
+    },
+    {
+      id: "process",
+      icon: "/logos/dashboard/calculator.svg",
+      value: `${averageProgress}%`,
+      label: "Avg. Process",
+    },
+  ];
+}
+
 export function buildDashboardChart(
   context: ProjectContext | null,
   period: DashboardPeriod = "This month",
@@ -268,6 +308,30 @@ export function buildDashboardPipeline(context: ProjectContext | null): Dashboar
         : "linear-gradient(90deg, #d6d3d1 0%, rgba(214, 211, 209, 0.72) 55%, #d6d3d1 100%)",
     };
   });
+}
+
+export function buildDashboardPipelineFromSummaries(
+  summaries: ProjectSummary[],
+): DashboardPipelineStage[] {
+  const activeSummaries = summaries.filter((project) => project.status === "active");
+  const stageCounts = new Map<string, number>();
+
+  for (const project of activeSummaries) {
+    const label = project.type
+      .split("-")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+    stageCounts.set(label, (stageCounts.get(label) ?? 0) + 1);
+  }
+
+  return Array.from(stageCounts.entries()).map(([label, count], index) => ({
+    id: `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${index}`,
+    label: count > 1 ? `${label} (${count})` : label,
+    accentColor: index === 0 ? PRIMARY_ACCENT : MUTED_ACCENT,
+    barColor: index === 0
+      ? "linear-gradient(90deg, #8782F5 0%, rgba(135, 130, 245, 0.72) 55%, #8782F5 100%)"
+      : "linear-gradient(90deg, #d6d3d1 0%, rgba(214, 211, 209, 0.72) 55%, #d6d3d1 100%)",
+  }));
 }
 
 export function buildDashboardRevenue(context: ProjectContext | null): DashboardRevenue {
