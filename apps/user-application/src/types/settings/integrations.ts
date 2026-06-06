@@ -11,5 +11,6 @@ export type IntegrationRowModel = {
   icon: string;
   connected: boolean;
   detail: string;
+  helpNote?: string;
   status?: string;
 };

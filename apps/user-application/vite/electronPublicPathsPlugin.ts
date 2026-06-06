@@ -8,15 +8,15 @@ function rewritePublicAssetPaths(code: string) {
 }
 
 export function electronPublicPathsPlugin(): Plugin {
-  let shouldRewritePublicPaths = false;
+  let shouldRewrite = false;
 
   return {
     name: "electron-public-paths",
     configResolved(config) {
-      shouldRewritePublicPaths = config.command === "build";
+      shouldRewrite = config.command === "build";
     },
     transform(code, id) {
-      if (!shouldRewritePublicPaths) {
+      if (!shouldRewrite) {
         return;
       }
 
@@ -38,11 +38,7 @@ export function electronPublicPathsPlugin(): Plugin {
       };
     },
     transformIndexHtml(html) {
-      if (!shouldRewritePublicPaths) {
-        return html;
-      }
-
-      return rewritePublicAssetPaths(html);
+      return shouldRewrite ? rewritePublicAssetPaths(html) : html;
     },
   };
 }

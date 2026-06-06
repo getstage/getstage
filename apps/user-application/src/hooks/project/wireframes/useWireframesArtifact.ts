@@ -23,10 +23,14 @@ function parseWireframesArtifact(contentJson: string | null): WireframesArtifact
   }
 }
 
-export function useWireframesArtifact(projectId: string | undefined) {
+export function useWireframesArtifact(
+  projectId: string | undefined,
+  options: { enabled?: boolean } = {},
+) {
+  const { enabled = true } = options;
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
   const queryEnabled =
-    SHOULD_QUERY_PROJECT_AI_ARTIFACTS && isAuthenticated && Boolean(projectId);
+    enabled && SHOULD_QUERY_PROJECT_AI_ARTIFACTS && isAuthenticated && Boolean(projectId);
   const record = useQuery(
     api.projectAi.getLatestWireframesArtifact,
     queryEnabled ? { projectId: projectId as Id<"projects"> } : "skip",

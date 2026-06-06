@@ -131,17 +131,30 @@ jobs:
     if: github.event_name == 'push' || inputs.publish_release == true
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download arm64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: Stage-mac-arm64
-          path: release-assets
+          path: release-assets-arm64
 
       - name: Download x64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: Stage-mac-x64
-          path: release-assets
+          path: release-assets-x64
+
+      - name: Merge macOS update manifest (arm64 + x64)
+        run: |
+          mkdir -p release-assets
+          node apps/user-application/scripts/merge-latest-mac-yml.mjs \
+            release-assets-arm64/latest-mac.yml \
+            release-assets-x64/latest-mac.yml \
+            release-assets/latest-mac.yml
+          cp release-assets-arm64/*.{dmg,zip,blockmap} release-assets/
+          cp release-assets-x64/*.{dmg,zip,blockmap} release-assets/
 
       - name: List release assets
         run: ls -lh release-assets/

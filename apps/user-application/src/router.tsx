@@ -7,8 +7,8 @@ const useHashHistory = import.meta.env.PROD;
 export const router = createRouter({
   routeTree,
   ...(useHashHistory ? { history: createHashHistory() } : {}),
-  defaultPreload: "intent",
-  defaultPreloadStaleTime: 0,
+  defaultPreload: false,
+  defaultPreloadStaleTime: 30_000,
 });
 declare module "@tanstack/react-router" {
   interface Register {

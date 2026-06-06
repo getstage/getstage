@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { chmodSync, existsSync } from "node:fs";
+import { accessSync, chmodSync, constants, existsSync } from "node:fs";
 import { dirname } from "node:path";
 import type { EngineStatus } from "@shared/models/desktop";
 import { getPackagedStageEngineBinaryPath } from "./helpers/stage-engine-binary";
@@ -16,6 +16,16 @@ import {
   waitForReadiness,
 } from "./helpers/sidecar";
 import { delay } from "./helpers/time";
+
+const shouldLogDesktopDebug =
+  process.env.STAGE_DESKTOP_DEBUG === "1" ||
+  (process.env.NODE_ENV === "development" && process.env.STAGE_DESKTOP_DEBUG !== "0");
+
+function debugDesktop(message: string) {
+  if (shouldLogDesktopDebug) {
+    console.info(`[stage-desktop:debug] ${message}`);
+  }
+}
 
 export class SidecarSupervisor {
   private child: SidecarChildProcess | null = null;
@@ -54,11 +64,14 @@ export class SidecarSupervisor {
 
   async start() {
     if (this.status.state === "ready" || this.status.state === "starting") {
+      debugDesktop(`sidecar start joined existing state=${this.status.state} port=${this.status.port}`);
       return this.getStatus();
     }
 
+    const startedAt = Date.now();
     const port = getSidecarPort();
     this.status = { adopted: false, pid: null, port, state: "starting" };
+    debugDesktop(`sidecar start requested port=${port}`);
 
     const existingReadiness = await fetchReadiness(port);
 
@@ -67,6 +80,7 @@ export class SidecarSupervisor {
       console.warn(
         `[stage-engine] using existing service on port ${port} — restart it after Rust changes (kill $(lsof -t -i:${port}))`,
       );
+      debugDesktop(`sidecar adopted existing service in ${Date.now() - startedAt}ms`);
       return this.getStatus();
     }
 
@@ -86,6 +100,7 @@ export class SidecarSupervisor {
 
     this.child = child;
     this.status = { adopted: false, pid: child.pid ?? null, port, state: "starting" };
+    debugDesktop(`sidecar spawned pid=${child.pid ?? "unknown"} after ${Date.now() - startedAt}ms`);
 
     child.stdout.on("data", (chunk: Buffer | string) => logSidecarOutput("stdout", chunk));
     child.stderr.on("data", (chunk: Buffer | string) => logSidecarOutput("stderr", chunk));
@@ -114,12 +129,14 @@ export class SidecarSupervisor {
       await Promise.race([waitForReadiness(port), spawnError]);
       this.status = { adopted: false, pid: child.pid ?? null, port, state: "ready" };
       console.info(`[stage-engine] ready on port ${port}`);
+      debugDesktop(`sidecar ready in ${Date.now() - startedAt}ms`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown sidecar startup error.";
       this.status = { adopted: false, error: message, pid: child.pid ?? null, port, state: "failed" };
       if (child.exitCode === null && child.signalCode === null) {
         child.kill("SIGTERM");
       }
+      debugDesktop(`sidecar failed in ${Date.now() - startedAt}ms`);
       throw error;
     }
 
@@ -167,7 +184,17 @@ export function createSidecarSupervisor() {
 }
 
 function spawnPackagedEngine(binaryPath: string, env: NodeJS.ProcessEnv) {
-  chmodSync(binaryPath, 0o755);
+  try {
+    chmodSync(binaryPath, 0o755);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "chmod failed";
+    try {
+      accessSync(binaryPath, constants.X_OK);
+      console.warn(`[stage-engine] could not chmod binary (${message}); continuing because it is executable`);
+    } catch {
+      throw new Error(`Stage Engine binary is not executable at ${binaryPath}.`);
+    }
+  }
   console.info(`[stage-engine] starting packaged binary at ${binaryPath}`);
   return spawn(binaryPath, [], {
     env,

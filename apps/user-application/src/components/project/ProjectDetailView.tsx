@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import type { ProviderId } from "@stage/data-ops/contracts";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
@@ -19,25 +19,6 @@ import { formatInputDate } from "@/lib/format";
 import { getProjectBackDestination } from "@/lib/projectBackDestination";
 import { formatRelativeTime } from "@/lib/utils";
 import type { Project, ProjectTab } from "@/models/project/project";
-
-const AssetsTab = lazy(() =>
-  import("./tabs/assets/AssetsTab").then((module) => ({ default: module.AssetsTab })),
-);
-const FlowsTab = lazy(() =>
-  import("./tabs/flows/FlowsTab").then((module) => ({ default: module.FlowsTab })),
-);
-const MoodboardTab = lazy(() =>
-  import("./tabs/moodboard/MoodboardTab").then((module) => ({ default: module.MoodboardTab })),
-);
-const ResearchTab = lazy(() =>
-  import("./tabs/research/ResearchTab").then((module) => ({ default: module.ResearchTab })),
-);
-const StrategyTab = lazy(() =>
-  import("./tabs/strategy/StrategyTab").then((module) => ({ default: module.StrategyTab })),
-);
-const WireframesTab = lazy(() =>
-  import("./tabs/wireframes/WireframesTab").then((module) => ({ default: module.WireframesTab })),
-);
 
 type ProjectTimeline = {
   start: string;
@@ -66,6 +47,37 @@ const PROJECT_STEP_LABELS: Record<StepTab, string> = {
   assets: "Assets",
 };
 
+const ResearchTab = lazy(() =>
+  import("./tabs/research/ResearchTab").then((module) => ({
+    default: module.ResearchTab,
+  })),
+);
+const StrategyTab = lazy(() =>
+  import("./tabs/strategy/StrategyTab").then((module) => ({
+    default: module.StrategyTab,
+  })),
+);
+const MoodboardTab = lazy(() =>
+  import("./tabs/moodboard/MoodboardTab").then((module) => ({
+    default: module.MoodboardTab,
+  })),
+);
+const FlowsTab = lazy(() =>
+  import("./tabs/flows/FlowsTab").then((module) => ({
+    default: module.FlowsTab,
+  })),
+);
+const WireframesTab = lazy(() =>
+  import("./tabs/wireframes/WireframesTab").then((module) => ({
+    default: module.WireframesTab,
+  })),
+);
+const AssetsTab = lazy(() =>
+  import("./tabs/assets/AssetsTab").then((module) => ({
+    default: module.AssetsTab,
+  })),
+);
+
 function formatTimelineDate(timestamp: number) {
   return formatInputDate(new Date(timestamp));
 }
@@ -82,14 +94,29 @@ export function ProjectDetailView() {
   const settingsOverviewQuery = useSettingsOverviewQuery();
   const profile = settingsOverviewQuery.data?.profile;
   const [isLeavingAfterDelete, setIsLeavingAfterDelete] = useState(false);
+  const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
   const live = useLiveProject(projectId, { enabled: !isLeavingAfterDelete });
   const artifactQueriesEnabled =
     !isLeavingAfterDelete && Boolean(live.detail) && !live.isLoading && !live.isNotFound;
-  const researchArtifact = useResearchArtifact(projectId, { enabled: artifactQueriesEnabled });
-  const strategyArtifact = useStrategyArtifact(projectId, { enabled: artifactQueriesEnabled });
-  const moodboardArtifact = useMoodboardArtifact(projectId);
-  const flowsArtifact = useFlowsArtifact(projectId);
-  const wireframesArtifact = useWireframesArtifact(projectId);
+  const shouldCheckResearchArtifact =
+    artifactQueriesEnabled && activeTab !== "overview" && activeTab !== "research";
+  const shouldCheckStrategyArtifact =
+    artifactQueriesEnabled &&
+    (activeTab === "moodboard" ||
+      activeTab === "flows" ||
+      activeTab === "wireframes" ||
+      activeTab === "assets");
+  const shouldCheckMoodboardArtifact =
+    artifactQueriesEnabled &&
+    (activeTab === "flows" || activeTab === "wireframes" || activeTab === "assets");
+  const shouldCheckFlowsArtifact =
+    artifactQueriesEnabled && (activeTab === "wireframes" || activeTab === "assets");
+  const shouldCheckWireframesArtifact = artifactQueriesEnabled && activeTab === "assets";
+  const researchArtifact = useResearchArtifact(projectId, { enabled: shouldCheckResearchArtifact });
+  const strategyArtifact = useStrategyArtifact(projectId, { enabled: shouldCheckStrategyArtifact });
+  const moodboardArtifact = useMoodboardArtifact(projectId, { enabled: shouldCheckMoodboardArtifact });
+  const flowsArtifact = useFlowsArtifact(projectId, { enabled: shouldCheckFlowsArtifact });
+  const wireframesArtifact = useWireframesArtifact(projectId, { enabled: shouldCheckWireframesArtifact });
   const [modalError, setModalError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const actions = useProjectHeaderActions({
@@ -100,7 +127,6 @@ export function ProjectDetailView() {
     },
     onLeavingAfterDelete: setIsLeavingAfterDelete,
   });
-  const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [pendingStrategyGeneration, setPendingStrategyGeneration] = useState(false);
   const [pendingStrategyProviderId, setPendingStrategyProviderId] = useState<ProviderId | null>(
@@ -314,55 +340,53 @@ export function ProjectDetailView() {
 
           {activeTab !== "overview" && (
             <div className="w-full pb-[120px] pt-7">
-              {blockedStep ? (
-                <ProjectStepBlockedState
-                  currentTab={activeTab as StepTab}
-                  requiredTab={blockedStep}
-                  onGoToStep={() => setActiveTab(blockedStep)}
-                />
-              ) : null}
-              {!blockedStep ? (
-                <Suspense fallback={<ProjectTabLoadingState />}>
-                  {activeTab === "research" ? (
-                    <ResearchTab project={project} onGenerateStrategy={handleGenerateStrategy} />
-                  ) : null}
-                  {activeTab === "strategy" ? (
-                    <StrategyTab
-                      project={project}
-                      onGoToResearch={() => setActiveTab("research")}
-                      onGoToMoodboard={() => setActiveTab("moodboard")}
-                      autoStartGeneration={pendingStrategyGeneration}
-                      pendingStrategyProviderId={pendingStrategyProviderId}
-                      onAutoStartHandled={() => {
-                        setPendingStrategyGeneration(false);
-                        setPendingStrategyProviderId(null);
-                      }}
-                    />
-                  ) : null}
-                  {activeTab === "moodboard" ? (
-                    <MoodboardTab
-                      project={project}
-                      onGoToResearch={() => setActiveTab("research")}
-                      onGoToStrategy={() => setActiveTab("strategy")}
-                    />
-                  ) : null}
-                  {activeTab === "flows" ? (
-                    <FlowsTab
-                      project={project}
-                      onGoToResearch={() => setActiveTab("research")}
-                      onGoToStrategy={() => setActiveTab("strategy")}
-                    />
-                  ) : null}
-                  {activeTab === "wireframes" ? (
-                    <WireframesTab
-                      project={project}
-                      onGoToResearch={() => setActiveTab("research")}
-                      onGoToStrategy={() => setActiveTab("strategy")}
-                    />
-                  ) : null}
-                  {activeTab === "assets" ? <AssetsTab project={project} /> : null}
-                </Suspense>
-              ) : null}
+              <Suspense fallback={<ProjectTabFallback label={PROJECT_STEP_LABELS[activeTab as StepTab]} />}>
+                {blockedStep ? (
+                  <ProjectStepBlockedState
+                    currentTab={activeTab as StepTab}
+                    requiredTab={blockedStep}
+                    onGoToStep={() => setActiveTab(blockedStep)}
+                  />
+                ) : null}
+                {!blockedStep && activeTab === "research" ? (
+                  <ResearchTab project={project} onGenerateStrategy={handleGenerateStrategy} />
+                ) : null}
+                {!blockedStep && activeTab === "strategy" ? (
+                  <StrategyTab
+                    project={project}
+                    onGoToResearch={() => setActiveTab("research")}
+                    onGoToMoodboard={() => setActiveTab("moodboard")}
+                    autoStartGeneration={pendingStrategyGeneration}
+                    pendingStrategyProviderId={pendingStrategyProviderId}
+                    onAutoStartHandled={() => {
+                      setPendingStrategyGeneration(false);
+                      setPendingStrategyProviderId(null);
+                    }}
+                  />
+                ) : null}
+                {!blockedStep && activeTab === "moodboard" ? (
+                  <MoodboardTab
+                    project={project}
+                    onGoToResearch={() => setActiveTab("research")}
+                    onGoToStrategy={() => setActiveTab("strategy")}
+                  />
+                ) : null}
+                {!blockedStep && activeTab === "flows" ? (
+                  <FlowsTab
+                    project={project}
+                    onGoToResearch={() => setActiveTab("research")}
+                    onGoToStrategy={() => setActiveTab("strategy")}
+                  />
+                ) : null}
+                {!blockedStep && activeTab === "wireframes" ? (
+                  <WireframesTab
+                    project={project}
+                    onGoToResearch={() => setActiveTab("research")}
+                    onGoToStrategy={() => setActiveTab("strategy")}
+                  />
+                ) : null}
+                {!blockedStep && activeTab === "assets" ? <AssetsTab project={project} /> : null}
+              </Suspense>
             </div>
           )}
         </motion.div>
@@ -372,14 +396,10 @@ export function ProjectDetailView() {
   );
 }
 
-function ProjectTabLoadingState() {
+function ProjectTabFallback({ label }: { label: string }) {
   return (
-    <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <div className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        <div className="skeleton h-4 w-40" />
-        <div className="skeleton mt-3 h-3 w-72 max-w-full" />
-        <div className="skeleton mt-6 h-[320px] w-full rounded-[8px]" />
-      </div>
+    <div className="flex min-h-[260px] items-center justify-center rounded-[12px] bg-[#f5f5f5] p-4">
+      <p className="text-[13px] font-medium text-[#737373]">Loading {label}...</p>
     </div>
   );
 }

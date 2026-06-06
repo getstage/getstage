@@ -29,6 +29,12 @@ registerRendererProtocolSchemes();
 app.setName("Stage");
 if (process.platform === "darwin") {
   app.dock?.show();
+  const archLabel = process.arch === "arm64" ? "Apple Silicon" : "Intel";
+  app.setAboutPanelOptions({
+    applicationName: "Stage",
+    applicationVersion: `${app.getVersion()} · ${archLabel}`,
+    version: "",
+  });
 }
 registerStageProtocol();
 const authController = createDesktopAuthController();
@@ -39,7 +45,16 @@ const authCallbackServer = createDesktopAuthCallbackServer({
 });
 const sidecarSupervisor = createSidecarSupervisor();
 const isDevelopment = !app.isPackaged;
+const shouldLogDesktopDebug =
+  process.env.STAGE_DESKTOP_DEBUG === "1" ||
+  (isDevelopment && process.env.STAGE_DESKTOP_DEBUG !== "0");
 let sidecarStoppedForQuit = false;
+
+function debugDesktop(message: string) {
+  if (shouldLogDesktopDebug) {
+    console.info(`[stage-desktop:debug] ${message}`);
+  }
+}
 
 function installApplicationMenu() {
   const isMac = process.platform === "darwin";
@@ -216,8 +231,12 @@ function registerRendererMediaPermissions() {
 }
 
 app.whenReady().then(() => {
+  const readyAt = Date.now();
+  debugDesktop(`app ready packaged=${app.isPackaged ? "yes" : "no"}`);
+
   if (app.isPackaged) {
     installRendererProtocol(join(__dirname, "../renderer"));
+    debugDesktop("renderer protocol installed");
   }
 
   registerRendererMediaPermissions();
@@ -247,13 +266,9 @@ app.whenReady().then(() => {
   });
   void integrationsController.consumeQueuedCallback();
 
-  sidecarSupervisor.start().catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : "Unknown sidecar startup error.";
-    console.warn(`[stage-engine] ${message}`);
-  }).finally(() => {
-    createMainWindow();
-    void installStageTrayIfEnabled();
-  });
+  createMainWindow();
+  debugDesktop(`main window requested after ${Date.now() - readyAt}ms; sidecar deferred until first engine IPC`);
+  void installStageTrayIfEnabled();
 
   app.on("activate", () => {
     if (shouldSuppressMainWindowActivation()) {
