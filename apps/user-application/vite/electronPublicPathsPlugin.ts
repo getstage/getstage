@@ -8,9 +8,18 @@ function rewritePublicAssetPaths(code: string) {
 }
 
 export function electronPublicPathsPlugin(): Plugin {
+  let shouldRewritePublicPaths = false;
+
   return {
     name: "electron-public-paths",
+    configResolved(config) {
+      shouldRewritePublicPaths = config.command === "build";
+    },
     transform(code, id) {
+      if (!shouldRewritePublicPaths) {
+        return;
+      }
+
       if (id.includes("node_modules")) {
         return;
       }
@@ -29,6 +38,10 @@ export function electronPublicPathsPlugin(): Plugin {
       };
     },
     transformIndexHtml(html) {
+      if (!shouldRewritePublicPaths) {
+        return html;
+      }
+
       return rewritePublicAssetPaths(html);
     },
   };
