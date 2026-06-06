@@ -289,7 +289,11 @@ export function ActivityTimelineChart({
                   "focus-visible:ring-2 focus-visible:ring-[#3b368e] focus-visible:ring-offset-2",
                   index < activeProjects.length - 1 && "mr-[-13px]",
                 )}
-                style={{ zIndex: activeProjects.length - index }}
+                style={{
+                  zIndex: hoveredProjectId === project.id
+                    ? activeProjects.length + 1
+                    : activeProjects.length - index,
+                }}
               />
             ))}
             {hoveredProject ? (
