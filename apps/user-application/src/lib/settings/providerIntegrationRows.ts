@@ -1,5 +1,6 @@
 import type { ProviderStatusRecord } from "@stage/data-ops/contracts";
 import type { IntegrationRowModel } from "@/types/settings/integrations";
+import { PROVIDER_CLI_MISSING_ROW_NOTE } from "@/lib/settings/providerCliHints";
 
 export function providerToIntegrationRow(
   provider: ProviderStatusRecord,
@@ -16,8 +17,17 @@ export function providerToIntegrationRow(
     icon: provider.id === "claude" ? "claude" : "code",
     connected,
     detail: providerStatusDetail(provider, enabled),
+    helpNote: providerCliHelpNote(provider),
     status: provider.status,
   };
+}
+
+function providerCliHelpNote(provider: ProviderStatusRecord) {
+  if (provider.kind !== "cli" || provider.installed) {
+    return undefined;
+  }
+
+  return PROVIDER_CLI_MISSING_ROW_NOTE;
 }
 
 type NativeConnectionSummary = {

@@ -15,6 +15,10 @@ import {
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { api } from "@/lib/convex";
 import {
+  hasMissingProviderCli,
+  PROVIDER_CLI_RESTART_BANNER,
+} from "@/lib/settings/providerCliHints";
+import {
   googleSheetsIntegrationToRow,
   nativeIntegrationToRow,
   providerToIntegrationRow,
@@ -78,6 +82,7 @@ export function IntegrationsPage() {
   const integrationRows = [...providerRows, ...nativeIntegrationRows];
   const connectedIntegrations = integrationRows.filter((integration) => integration.connected);
   const availableIntegrations = integrationRows.filter((integration) => !integration.connected);
+  const showProviderCliRestartHint = hasMissingProviderCli(providers.data?.providers);
   const isRefreshing = providers.isFetching || providerRefresh.isPending;
   const selectedDefaultModel = chatDefaults.selectedModel;
 
@@ -253,6 +258,10 @@ export function IntegrationsPage() {
           </div>
         </IntegrationGroup>
 
+        {showProviderCliRestartHint ? (
+          <ProviderCliRestartBanner message={PROVIDER_CLI_RESTART_BANNER} />
+        ) : null}
+
         <div className="flex flex-col gap-[12px]">
           <IntegrationGroup title="Connected">
             <div className="flex flex-col gap-[16px] rounded-[8px] bg-white p-[clamp(14px,3vw,20px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -295,6 +304,17 @@ export function IntegrationsPage() {
           </IntegrationGroup>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ProviderCliRestartBanner({ message }: { message: string }) {
+  return (
+    <div
+      role="status"
+      className="rounded-[8px] border border-[#F5E6B8] bg-[#FFFBEB] px-[clamp(14px,3vw,20px)] py-[12px] text-[12px] font-medium leading-[1.45] text-[#7A5B00]"
+    >
+      {message}
     </div>
   );
 }
@@ -529,6 +549,11 @@ function IntegrationListRow({
           {integration.detail ? (
             <span className="mt-[4px] block truncate text-[11px] font-normal leading-[1.35] text-[#737373]">
               {integration.detail}
+            </span>
+          ) : null}
+          {integration.helpNote ? (
+            <span className="mt-[4px] block text-[11px] font-medium leading-[1.4] text-[#9A6700]">
+              {integration.helpNote}
             </span>
           ) : null}
         </span>

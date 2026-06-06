@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import type { ChildProcessByStdio } from "node:child_process";
 import type { Readable } from "node:stream";
 import { app } from "electron";
+import { augmentPathForProviderClis } from "./cli-path";
 import { delay } from "./time";
 
 export type SidecarChildProcess = ChildProcessByStdio<null, Readable, Readable>;
@@ -36,6 +37,7 @@ export function getSidecarEnv(port: number): NodeJS.ProcessEnv {
 
   return {
     ...process.env,
+    PATH: augmentPathForProviderClis(process.env.PATH),
     STAGE_ENGINE_PORT: String(port),
     ...(convexUrl ? { CONVEX_URL: convexUrl } : {}),
   };
