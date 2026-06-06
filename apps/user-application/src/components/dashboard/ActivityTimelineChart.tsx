@@ -401,9 +401,10 @@ function ProjectBadge({
       onBlur={onBlur}
       className={cn(
         "relative flex h-[24px] w-[24px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-[#fafafa] text-[9px] font-semibold text-white outline-none transition-transform hover:scale-105",
+        imageUrl && "bg-white",
         className,
       )}
-      style={{ background: accentColor, ...style }}
+      style={{ background: imageUrl ? "#ffffff" : accentColor, ...style }}
     >
       {imageUrl ? (
         <img src={imageUrl} alt="" aria-hidden="true" className="h-full w-full object-cover" />
