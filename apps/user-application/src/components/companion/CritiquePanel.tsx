@@ -1,4 +1,4 @@
-import { FormEvent, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, FormEvent, MouseEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CompanionState } from "@shared/models/desktop";
 import type { ProviderId, RunEvent } from "@stage/data-ops/contracts";
 import {
@@ -55,6 +55,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [isThinking, setIsThinking] = useState(false);
+  const [pendingSeconds, setPendingSeconds] = useState(0);
   const chatDefaults = useChatDefaults();
   const availableModels = useAvailableChatModels();
   const [selectedModel, setSelectedModel] = useState<ChatModel>(chatDefaults.selectedModel);
@@ -86,6 +87,8 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const inputPlaceholder = messages.length > 0 ? "Ask a follow-up" : "Message Stage";
   const selectedEffortLabel = reasoningEfforts.find((effort) => effort.id === selectedEffort)?.label ?? "Medium";
   const selectedSpeedLabel = responseSpeeds.find((speed) => speed.id === selectedSpeed)?.label ?? "Default";
+  const runStarted = providerRun.activeRunEvents.some((event) => event.type === "run_started");
+  const thinkingMessage = getPendingResponseMessage({ pendingSeconds, runStarted });
   const visibleModels = useMemo(() => {
     if (activeProvider === "favorites") {
       return availableModels.filter((model) => favoriteModelIds.includes(model.id));
@@ -214,6 +217,19 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   }, [messages, isThinking]);
 
   useEffect(() => {
+    if (!isThinking) {
+      setPendingSeconds(0);
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setPendingSeconds((currentSeconds) => currentSeconds + 1);
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isThinking]);
+
+  useEffect(() => {
     const responseMessageId = activeResponseMessageIdRef.current;
     if (!responseMessageId) return;
 
@@ -292,6 +308,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
 
     const stageMessageId = `stage-${Date.now()}`;
     activeResponseMessageIdRef.current = stageMessageId;
+    setPendingSeconds(0);
     setMessages((currentMessages) => [
       ...currentMessages,
       {
@@ -385,37 +402,46 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       </header>
 
       <div className="chat-thread" ref={threadRef}>
-        {messages.map((message) => (
-          <div
-            className={`chat-message ${message.role === "stage" ? "chat-message-stage" : "chat-message-user"}`}
-            key={message.id}
-          >
-            {message.role === "user" ? (
-              <span>You</span>
-            ) : (
-              <div className="chat-message-label">
-            <img className="stage-mark stage-mark-small" src="/logos/stage.svg" alt="" aria-hidden="true" />
-          </div>
-        )}
-        {message.content.map((paragraph) => (
-          <p className={message.tone === "error" ? "chat-message-error-text" : undefined} key={paragraph}>{paragraph}</p>
-        ))}
-            {message.source ? (
-              <p>
-                Based on: <a href="#brief">{message.source}</a>
-              </p>
-            ) : null}
-          </div>
-        ))}
-        {isThinking ? (
-          <div className="chat-message chat-message-stage">
-            <div className="chat-message-label">
-              <img className="stage-mark stage-mark-small" src="/logos/stage.svg" alt="" aria-hidden="true" />
-              <strong>Stage</strong>
+        {messages.map((message) => {
+          const isPendingStageMessage =
+            message.role === "stage" &&
+            message.id === activeResponseMessageIdRef.current &&
+            isThinking &&
+            message.content.length === 0;
+
+          return (
+            <div
+              className={`chat-message ${message.role === "stage" ? "chat-message-stage" : "chat-message-user"}`}
+              key={message.id}
+            >
+              {message.role === "user" ? (
+                <span>You</span>
+              ) : (
+                <div className="chat-message-label">
+                  <img className="stage-mark stage-mark-small" src="/logos/stage.svg" alt="" aria-hidden="true" />
+                  <strong>Stage</strong>
+                </div>
+              )}
+              {isPendingStageMessage ? (
+                <p className="chat-thinking">{thinkingMessage}</p>
+              ) : message.role === "stage" ? (
+                <FormattedChatContent
+                  content={message.content}
+                  tone={message.tone}
+                />
+              ) : (
+                message.content.map((paragraph) => (
+                  <p className={message.tone === "error" ? "chat-message-error-text" : undefined} key={paragraph}>{paragraph}</p>
+                ))
+              )}
+              {message.source ? (
+                <p>
+                  Based on: <a href="#brief">{message.source}</a>
+                </p>
+              ) : null}
             </div>
-            <p className="chat-thinking">Thinking...</p>
-          </div>
-        ) : null}
+          );
+        })}
       </div>
 
       <form className="chat-input-bar" onSubmit={submitMessage}>
@@ -598,6 +624,151 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
 
 function getProviderIdForModel(model: ChatModel): ProviderId {
   return model.provider === "anthropic" ? "claude" : "codex";
+}
+
+function FormattedChatContent({
+  content,
+  tone,
+}: {
+  content: string[];
+  tone?: ChatMessage["tone"];
+}) {
+  const text = content.join("\n\n").trim();
+
+  if (!text) {
+    return null;
+  }
+
+  return (
+    <div className={`chat-formatted-content ${tone === "error" ? "chat-message-error-text" : ""}`}>
+      {formatChatBlocks(text)}
+    </div>
+  );
+}
+
+function formatChatBlocks(text: string) {
+  const lines = text.split(/\r?\n/);
+  const blocks: ReactNode[] = [];
+  let paragraphLines: string[] = [];
+  let listItems: Array<{ marker: string; text: string }> = [];
+  let listType: "ol" | "ul" | null = null;
+
+  function flushParagraph() {
+    if (paragraphLines.length === 0) return;
+    const paragraph = paragraphLines.join(" ").trim();
+    if (paragraph) {
+      blocks.push(<p key={`p-${blocks.length}`}>{formatInlineChatText(paragraph)}</p>);
+    }
+    paragraphLines = [];
+  }
+
+  function flushList() {
+    if (!listType || listItems.length === 0) return;
+    const ListTag = listType;
+    blocks.push(
+      <ListTag key={`list-${blocks.length}`}>
+        {listItems.map((item, index) => (
+          <li key={`${item.marker}-${index}`}>
+            {formatInlineChatText(item.text)}
+          </li>
+        ))}
+      </ListTag>,
+    );
+    listItems = [];
+    listType = null;
+  }
+
+  lines.forEach((line) => {
+    const trimmedLine = line.trim();
+    const orderedMatch = trimmedLine.match(/^(\d+)\.\s+(.+)$/);
+    const unorderedMatch = trimmedLine.match(/^[-*]\s+(.+)$/);
+
+    if (!trimmedLine) {
+      flushParagraph();
+      flushList();
+      return;
+    }
+
+    if (orderedMatch) {
+      flushParagraph();
+      if (listType !== "ol") {
+        flushList();
+        listType = "ol";
+      }
+      listItems.push({ marker: orderedMatch[1]!, text: orderedMatch[2]! });
+      return;
+    }
+
+    if (unorderedMatch) {
+      flushParagraph();
+      if (listType !== "ul") {
+        flushList();
+        listType = "ul";
+      }
+      listItems.push({ marker: "-", text: unorderedMatch[1]! });
+      return;
+    }
+
+    flushList();
+    paragraphLines.push(trimmedLine);
+  });
+
+  flushParagraph();
+  flushList();
+
+  return blocks;
+}
+
+function formatInlineChatText(text: string) {
+  const nodes: ReactNode[] = [];
+  const pattern = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(text.slice(lastIndex, match.index));
+    }
+
+    const token = match[0];
+    if (token.startsWith("**")) {
+      nodes.push(<strong key={`strong-${match.index}`}>{token.slice(2, -2)}</strong>);
+    } else {
+      nodes.push(<code key={`code-${match.index}`}>{token.slice(1, -1)}</code>);
+    }
+
+    lastIndex = match.index + token.length;
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+
+  return nodes.map((node, index) => (
+    <Fragment key={index}>{node}</Fragment>
+  ));
+}
+
+function getPendingResponseMessage({
+  pendingSeconds,
+  runStarted,
+}: {
+  pendingSeconds: number;
+  runStarted: boolean;
+}) {
+  if (pendingSeconds >= 8) {
+    return "Still waiting on the provider...";
+  }
+
+  if (runStarted) {
+    return "Stage is writing...";
+  }
+
+  if (pendingSeconds >= 2) {
+    return "Starting the run...";
+  }
+
+  return "Sending...";
 }
 
 function getEngineModelIdForModel(model: ChatModel) {
