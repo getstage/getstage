@@ -16,7 +16,7 @@ extraResources:
     to: runtime-secrets.env
 mac:
   category: public.app-category.productivity
-  icon: build/icon.png
+  icon: build/icon.icns
   extendInfo:
     NSMicrophoneUsageDescription: Stage uses your microphone for voice notes and dictation.
   artifactName: "${productName}-${version}-${arch}.${ext}"
