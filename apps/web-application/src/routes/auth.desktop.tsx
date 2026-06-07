@@ -63,6 +63,22 @@ function getValidatedRedirectUri(value?: string) {
   }
 }
 
+function triggerCustomProtocolRedirect(url: string) {
+  const link = document.createElement("a");
+  link.href = url;
+  link.rel = "noopener";
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+function scheduleBrowserTabClose() {
+  window.setTimeout(() => {
+    window.close();
+  }, 600);
+}
+
 async function sendDesktopAuthHandoff(args: {
   redirectUri: URL;
   state: string;
@@ -95,14 +111,23 @@ async function sendDesktopAuthHandoff(args: {
   const callbackUrl = new URL(handoff.redirectUri);
   callbackUrl.searchParams.set("code", handoff.token);
   callbackUrl.searchParams.set("state", handoff.state);
-  window.location.assign(callbackUrl.toString());
+  const callback = callbackUrl.toString();
+
+  if (handoff.redirectUri.protocol === "stage:") {
+    triggerCustomProtocolRedirect(callback);
+    return;
+  }
+
+  window.location.assign(callback);
 }
+
+type DesktopAuthHandoffPhase = "preparing" | "connecting" | "opening" | "complete";
 
 function DesktopAuthPage() {
   const { redirect_uri, state } = Route.useSearch();
   const { isAuthenticated, isLoading } = useAuth();
   const authToken = useAuthToken();
-  const [status, setStatus] = useState("Preparing desktop sign-in...");
+  const [phase, setPhase] = useState<DesktopAuthHandoffPhase>("preparing");
   const [error, setError] = useState<string | null>(null);
   const didStartRef = useRef(false);
   const redirectUri = useMemo(() => getValidatedRedirectUri(redirect_uri), [redirect_uri]);
@@ -114,16 +139,22 @@ function DesktopAuthPage() {
 
     didStartRef.current = true;
     clearPendingDesktopAuthRedirect();
-    setStatus("Connecting Stage Desktop...");
+    setPhase("connecting");
     console.info("[stage-desktop-auth] handing off Convex Auth session");
 
     sendDesktopAuthHandoff({ redirectUri, state, token: authToken })
       .then(() => {
-        setStatus("Opening Stage Desktop...");
+        setPhase("opening");
         console.info("[stage-desktop-auth] desktop auth callback accepted");
+
+        window.setTimeout(() => {
+          setPhase("complete");
+          scheduleBrowserTabClose();
+        }, 400);
       })
       .catch((error) => {
         didStartRef.current = false;
+        setPhase("preparing");
         setError(
           error instanceof Error
             ? error.message
@@ -159,10 +190,34 @@ function DesktopAuthPage() {
     );
   }
 
-  return <DesktopAuthStatus error={error} label={error ? "Desktop sign-in failed." : status} />;
+  const statusLabel = error
+    ? "Desktop sign-in failed."
+    : phase === "complete"
+      ? "Stage Desktop connected"
+      : phase === "opening"
+        ? "Opening Stage Desktop..."
+        : phase === "connecting"
+          ? "Connecting Stage Desktop..."
+          : "Preparing desktop sign-in...";
+
+  return (
+    <DesktopAuthStatus
+      error={error}
+      isComplete={phase === "complete"}
+      label={statusLabel}
+    />
+  );
 }
 
-function DesktopAuthStatus({ error, label }: { error?: string | null; label: string }) {
+function DesktopAuthStatus({
+  error,
+  isComplete = false,
+  label,
+}: {
+  error?: string | null;
+  isComplete?: boolean;
+  label: string;
+}) {
   return (
     <>
       <Helmet>
@@ -180,6 +235,19 @@ function DesktopAuthStatus({ error, label }: { error?: string | null; label: str
             <p className="mt-3 text-[15px] leading-[1.6] text-text-secondary">
               {error}
             </p>
+          ) : isComplete ? (
+            <>
+              <p className="mt-3 text-[15px] leading-[1.6] text-text-secondary">
+                Return to Stage Desktop. You can close this browser tab.
+              </p>
+              <button
+                type="button"
+                className="mt-6 rounded-full bg-accent px-5 py-2.5 text-[14px] font-medium text-white transition hover:opacity-90"
+                onClick={() => window.close()}
+              >
+                Close tab
+              </button>
+            </>
           ) : (
             <span className="mx-auto mt-6 inline-block h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
           )}

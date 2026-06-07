@@ -8,9 +8,12 @@ type UpdateCheckOptions = {
 const RELEASES_PAGE_URL = "https://github.com/getstage/getstage/releases/latest";
 const GITHUB_OWNER = "getstage";
 const GITHUB_REPO = "getstage";
+/** Delay automatic checks so startup is not blocked by network I/O. */
+const AUTO_CHECK_DELAY_MS = 10_000;
 
 let checkInFlight = false;
 let feedConfigured = false;
+let autoCheckScheduled = false;
 
 function logUpdate(message: string) {
   console.info(`[stage-update] ${message}`);
@@ -124,8 +127,10 @@ async function showManualCheckError(error: unknown) {
 }
 
 export async function checkForUpdates(options: UpdateCheckOptions = {}) {
+  const manual = options.manual ?? false;
+
   if (!app.isPackaged) {
-    if (options.manual) {
+    if (manual) {
       await dialog.showMessageBox({
         type: "info",
         title: "Development Build",
@@ -135,16 +140,14 @@ export async function checkForUpdates(options: UpdateCheckOptions = {}) {
     return;
   }
 
-  if (!options.manual) {
-    return;
-  }
-
   if (checkInFlight) {
-    await dialog.showMessageBox({
-      type: "info",
-      title: "Update Check Running",
-      message: "Stage is already checking for updates.",
-    });
+    if (manual) {
+      await dialog.showMessageBox({
+        type: "info",
+        title: "Update Check Running",
+        message: "Stage is already checking for updates.",
+      });
+    }
     return;
   }
 
@@ -152,14 +155,18 @@ export async function checkForUpdates(options: UpdateCheckOptions = {}) {
   checkInFlight = true;
 
   try {
-    logUpdate("manual update check started");
+    logUpdate(manual ? "manual update check started" : "automatic update check started");
     const result = await autoUpdater.checkForUpdates();
     const nextVersion = result?.updateInfo?.version;
     const hasNewerVersion =
       typeof nextVersion === "string" && nextVersion !== app.getVersion();
 
     if (!hasNewerVersion) {
-      await showManualUpToDateDialog();
+      if (manual) {
+        await showManualUpToDateDialog();
+      } else {
+        logUpdate(`up to date (${app.getVersion()})`);
+      }
       return;
     }
 
@@ -179,10 +186,23 @@ export async function checkForUpdates(options: UpdateCheckOptions = {}) {
     await autoUpdater.downloadUpdate();
   } catch (error: unknown) {
     logUpdateWarning(error instanceof Error ? error.message : "unknown update check error");
-    await showManualCheckError(error);
+    if (manual) {
+      await showManualCheckError(error);
+    }
   } finally {
     checkInFlight = false;
   }
+}
+
+function scheduleAutomaticUpdateCheck() {
+  if (autoCheckScheduled || process.env.STAGE_DISABLE_AUTO_UPDATE_CHECK === "1") {
+    return;
+  }
+
+  autoCheckScheduled = true;
+  setTimeout(() => {
+    void checkForUpdates({ manual: false });
+  }, AUTO_CHECK_DELAY_MS);
 }
 
 export function initAutoUpdates() {
@@ -202,4 +222,6 @@ export function initAutoUpdates() {
   autoUpdater.on("error", (error) => {
     logUpdateWarning(error.message);
   });
+
+  scheduleAutomaticUpdateCheck();
 }
