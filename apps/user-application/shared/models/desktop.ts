@@ -117,6 +117,14 @@ export const desktopIntegrationOAuthResultSchema = z.object({
   reason: z.string().optional(),
 });
 
+export const desktopUpdateStatusSchema = z.object({
+  currentVersion: z.string(),
+  availableVersion: z.string().optional(),
+  isChecking: z.boolean(),
+});
+
+export type DesktopUpdateStatus = z.infer<typeof desktopUpdateStatusSchema>;
+
 export type IntegrationOAuthResult =
   | z.infer<typeof desktopIntegrationOAuthResultSchema>
   | { error: string; ok: false };

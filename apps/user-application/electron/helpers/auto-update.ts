@@ -1,5 +1,7 @@
-import { app, dialog, shell } from "electron";
+import { app, BrowserWindow, dialog, shell } from "electron";
 import { autoUpdater } from "electron-updater";
+import { IPC_CHANNELS } from "@shared/ipc/channels";
+import type { DesktopUpdateStatus } from "@shared/models/desktop";
 
 type UpdateCheckOptions = {
   manual?: boolean;
@@ -8,12 +10,16 @@ type UpdateCheckOptions = {
 const RELEASES_PAGE_URL = "https://github.com/getstage/getstage/releases/latest";
 const GITHUB_OWNER = "getstage";
 const GITHUB_REPO = "getstage";
-/** Delay automatic checks so startup is not blocked by network I/O. */
-const AUTO_CHECK_DELAY_MS = 10_000;
+/** Wait until the main window is visible before the first automatic check. */
+const AUTO_CHECK_DELAY_MS = 3_000;
+/** Avoid hammering the update feed when macOS re-activates the app. */
+const AUTO_CHECK_COOLDOWN_MS = 4 * 60 * 60 * 1000;
 
 let checkInFlight = false;
 let feedConfigured = false;
-let autoCheckScheduled = false;
+let initialAutoCheckScheduled = false;
+let lastAutomaticCheckAt = 0;
+let availableUpdateVersion: string | null = null;
 
 function logUpdate(message: string) {
   console.info(`[stage-update] ${message}`);
@@ -58,6 +64,34 @@ function configureAutoUpdaterFeed() {
     "No STAGE_DESKTOP_UPDATES_URL or STAGE_UPDATE_GITHUB_TOKEN — update checks may fail on a private repo.",
   );
   feedConfigured = true;
+}
+
+function getDesktopUpdateStatus(): DesktopUpdateStatus {
+  return {
+    currentVersion: app.getVersion(),
+    availableVersion: availableUpdateVersion ?? undefined,
+    isChecking: checkInFlight,
+  };
+}
+
+function broadcastUpdateStatus() {
+  const status = getDesktopUpdateStatus();
+
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) {
+      window.webContents.send(IPC_CHANNELS.updatesStatusChanged, status);
+    }
+  }
+}
+
+function markUpdateAvailable(version: string) {
+  availableUpdateVersion = version;
+  broadcastUpdateStatus();
+}
+
+function clearAvailableUpdate() {
+  availableUpdateVersion = null;
+  broadcastUpdateStatus();
 }
 
 async function promptDownloadUpdate(version: string) {
@@ -126,6 +160,17 @@ async function showManualCheckError(error: unknown) {
   }
 }
 
+async function downloadUpdateVersion(version: string) {
+  await dialog.showMessageBox({
+    type: "info",
+    title: "Downloading Update",
+    message: `Downloading Stage ${version}...`,
+    detail: "Stage will ask you to restart when the download is ready.",
+  });
+
+  await autoUpdater.downloadUpdate();
+}
+
 export async function checkForUpdates(options: UpdateCheckOptions = {}) {
   const manual = options.manual ?? false;
 
@@ -137,7 +182,7 @@ export async function checkForUpdates(options: UpdateCheckOptions = {}) {
         message: "Updates are only available in packaged Stage builds.",
       });
     }
-    return;
+    return getDesktopUpdateStatus();
   }
 
   if (checkInFlight) {
@@ -148,11 +193,12 @@ export async function checkForUpdates(options: UpdateCheckOptions = {}) {
         message: "Stage is already checking for updates.",
       });
     }
-    return;
+    return getDesktopUpdateStatus();
   }
 
   configureAutoUpdaterFeed();
   checkInFlight = true;
+  broadcastUpdateStatus();
 
   try {
     logUpdate(manual ? "manual update check started" : "automatic update check started");
@@ -162,28 +208,24 @@ export async function checkForUpdates(options: UpdateCheckOptions = {}) {
       typeof nextVersion === "string" && nextVersion !== app.getVersion();
 
     if (!hasNewerVersion) {
+      clearAvailableUpdate();
       if (manual) {
         await showManualUpToDateDialog();
       } else {
         logUpdate(`up to date (${app.getVersion()})`);
       }
-      return;
+      return getDesktopUpdateStatus();
     }
 
+    markUpdateAvailable(nextVersion);
     logUpdate(`update available: ${nextVersion}`);
+
     const shouldDownload = await promptDownloadUpdate(nextVersion);
     if (!shouldDownload) {
-      return;
+      return getDesktopUpdateStatus();
     }
 
-    await dialog.showMessageBox({
-      type: "info",
-      title: "Downloading Update",
-      message: `Downloading Stage ${nextVersion}...`,
-      detail: "Stage will ask you to restart when the download is ready.",
-    });
-
-    await autoUpdater.downloadUpdate();
+    await downloadUpdateVersion(nextVersion);
   } catch (error: unknown) {
     logUpdateWarning(error instanceof Error ? error.message : "unknown update check error");
     if (manual) {
@@ -191,18 +233,80 @@ export async function checkForUpdates(options: UpdateCheckOptions = {}) {
     }
   } finally {
     checkInFlight = false;
+    broadcastUpdateStatus();
+    if (!manual) {
+      lastAutomaticCheckAt = Date.now();
+    }
   }
+
+  return getDesktopUpdateStatus();
 }
 
-function scheduleAutomaticUpdateCheck() {
-  if (autoCheckScheduled || process.env.STAGE_DISABLE_AUTO_UPDATE_CHECK === "1") {
+export async function installAvailableUpdate() {
+  if (!app.isPackaged) {
+    return getDesktopUpdateStatus();
+  }
+
+  const version = availableUpdateVersion;
+  if (!version) {
+    return getDesktopUpdateStatus();
+  }
+
+  const shouldDownload = await promptDownloadUpdate(version);
+  if (!shouldDownload) {
+    return getDesktopUpdateStatus();
+  }
+
+  configureAutoUpdaterFeed();
+  checkInFlight = true;
+  broadcastUpdateStatus();
+
+  try {
+    await downloadUpdateVersion(version);
+  } catch (error: unknown) {
+    logUpdateWarning(error instanceof Error ? error.message : "unknown update download error");
+    await showManualCheckError(error);
+  } finally {
+    checkInFlight = false;
+    broadcastUpdateStatus();
+  }
+
+  return getDesktopUpdateStatus();
+}
+
+export function getDesktopUpdateStatusForRenderer() {
+  return getDesktopUpdateStatus();
+}
+
+function scheduleInitialAutomaticUpdateCheck() {
+  if (initialAutoCheckScheduled || process.env.STAGE_DISABLE_AUTO_UPDATE_CHECK === "1") {
     return;
   }
 
-  autoCheckScheduled = true;
+  initialAutoCheckScheduled = true;
   setTimeout(() => {
     void checkForUpdates({ manual: false });
   }, AUTO_CHECK_DELAY_MS);
+}
+
+export function onMainWindowReady() {
+  scheduleInitialAutomaticUpdateCheck();
+}
+
+export function scheduleAutomaticUpdateCheckIfDue() {
+  if (!app.isPackaged || process.env.STAGE_DISABLE_AUTO_UPDATE_CHECK === "1") {
+    return;
+  }
+
+  if (availableUpdateVersion || checkInFlight) {
+    return;
+  }
+
+  if (Date.now() - lastAutomaticCheckAt < AUTO_CHECK_COOLDOWN_MS) {
+    return;
+  }
+
+  void checkForUpdates({ manual: false });
 }
 
 export function initAutoUpdates() {
@@ -214,6 +318,13 @@ export function initAutoUpdates() {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = false;
 
+  autoUpdater.on("update-available", (info) => {
+    if (typeof info.version === "string" && info.version !== app.getVersion()) {
+      markUpdateAvailable(info.version);
+      logUpdate(`update-available event: ${info.version}`);
+    }
+  });
+
   autoUpdater.on("update-downloaded", (info) => {
     logUpdate(`downloaded ${info.version}`);
     void promptRestartToUpdate(info.version);
@@ -222,6 +333,4 @@ export function initAutoUpdates() {
   autoUpdater.on("error", (error) => {
     logUpdateWarning(error.message);
   });
-
-  scheduleAutomaticUpdateCheck();
 }

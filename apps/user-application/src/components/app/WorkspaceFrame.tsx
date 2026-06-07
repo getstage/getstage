@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { DesktopUpdateBanner } from "@/components/app/DesktopUpdateBanner";
 import { StageSidebar } from "@/components/dashboard/StageSidebar";
 import { buildSidebarProjectsFromSummaries } from "@/lib/dashboard/projectContextDashboard";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -46,9 +47,10 @@ export function WorkspaceFrame({
         />
         <main
           data-sidebar-collapsed={effectiveSidebarCollapsed}
-          className="flex min-w-0 flex-1 self-stretch overflow-auto rounded-[8px] border border-[#f5f5f5] bg-white"
+          className="flex min-w-0 flex-1 flex-col self-stretch overflow-hidden rounded-[8px] border border-[#f5f5f5] bg-white"
         >
-          {children}
+          <DesktopUpdateBanner />
+          <div className="min-h-0 flex-1 overflow-auto">{children}</div>
         </main>
       </div>
     </div>

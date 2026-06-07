@@ -4,6 +4,7 @@ import type {
   CompanionState,
   DesktopPermissionStatus,
   DesktopSession,
+  DesktopUpdateStatus,
   EngineStatus,
   IntegrationOAuthResult,
   PermissionKind,
@@ -71,6 +72,12 @@ export type StageDesktopApi = {
   integrations: {
     getOAuthReturnUrl: (provider: "figma" | "notion") => Promise<string>;
     onOAuthCompleted: (callback: (result: IntegrationOAuthResult) => void) => () => void;
+  };
+  updates: {
+    getStatus: () => Promise<DesktopUpdateStatus>;
+    check: () => Promise<DesktopUpdateStatus>;
+    install: () => Promise<DesktopUpdateStatus>;
+    onStatusChanged: (callback: (status: DesktopUpdateStatus) => void) => () => void;
   };
 };
 

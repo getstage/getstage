@@ -9,6 +9,7 @@ import {
 import { join } from "node:path";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import { rendererAppUrl } from "./helpers/renderer-protocol";
+import { onMainWindowReady } from "./helpers/auto-update";
 
 let mainWindow: BrowserWindowType | null = null;
 let companionWindow: BrowserWindowType | null = null;
@@ -78,6 +79,7 @@ export function createMainWindow() {
     if (!app.isPackaged) {
       mainWindow?.webContents.openDevTools({ mode: "detach" });
     }
+    onMainWindowReady();
   });
 
   if (!app.isPackaged) {

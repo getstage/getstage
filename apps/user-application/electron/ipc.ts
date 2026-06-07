@@ -30,6 +30,11 @@ import { closeCompanionWindow, openCompanionFromTray, setCompanionWindowInteract
 import type { SidecarSupervisor } from "./sidecar";
 import type { DesktopAuthController } from "./auth";
 import type { DesktopIntegrationsController } from "./integrations";
+import {
+  checkForUpdates,
+  getDesktopUpdateStatusForRenderer,
+  installAvailableUpdate,
+} from "./helpers/auto-update";
 
 const activeRunStreams = new Map<string, AbortController>();
 const shouldLogDesktopDebug =
@@ -280,6 +285,18 @@ export function registerIpcHandlers({
     }
 
     return integrationsController.getOAuthReturnUrl(provider);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.updatesGetStatus, () => {
+    return getDesktopUpdateStatusForRenderer();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.updatesCheck, async () => {
+    return checkForUpdates({ manual: true });
+  });
+
+  ipcMain.handle(IPC_CHANNELS.updatesInstall, async () => {
+    return installAvailableUpdate();
   });
 }
 

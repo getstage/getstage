@@ -15,7 +15,7 @@ import { registerVoiceHandlers } from "./voice";
 import { fetchEngineJson } from "./helpers/sidecar";
 import { providerListResponseSchema } from "@stage/data-ops/contracts";
 import { createSidecarSupervisor } from "./sidecar";
-import { checkForUpdates, initAutoUpdates } from "./helpers/auto-update";
+import { checkForUpdates, initAutoUpdates, scheduleAutomaticUpdateCheckIfDue } from "./helpers/auto-update";
 import {
   createMainWindow,
   openCompanionForLatestChatShortcut,
@@ -276,6 +276,7 @@ app.whenReady().then(() => {
     }
 
     createMainWindow();
+    scheduleAutomaticUpdateCheckIfDue();
   });
 });
 

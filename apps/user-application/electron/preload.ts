@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
-import type { CompanionState, DesktopSession, IntegrationOAuthResult, PermissionKind } from "@shared/models/desktop";
+import type { CompanionState, DesktopSession, DesktopUpdateStatus, IntegrationOAuthResult, PermissionKind } from "@shared/models/desktop";
 import type {
   RunEvent,
   StartRunRequest,
@@ -108,6 +108,24 @@ const stageDesktop = {
       ipcRenderer.on(IPC_CHANNELS.integrationOAuthCompleted, listener);
       return () => {
         ipcRenderer.off(IPC_CHANNELS.integrationOAuthCompleted, listener);
+      };
+    },
+  },
+  updates: {
+    getStatus: (): Promise<DesktopUpdateStatus> =>
+      ipcRenderer.invoke(IPC_CHANNELS.updatesGetStatus),
+    check: (): Promise<DesktopUpdateStatus> =>
+      ipcRenderer.invoke(IPC_CHANNELS.updatesCheck),
+    install: (): Promise<DesktopUpdateStatus> =>
+      ipcRenderer.invoke(IPC_CHANNELS.updatesInstall),
+    onStatusChanged: (callback: (status: DesktopUpdateStatus) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, status: DesktopUpdateStatus) => {
+        callback(status);
+      };
+
+      ipcRenderer.on(IPC_CHANNELS.updatesStatusChanged, listener);
+      return () => {
+        ipcRenderer.off(IPC_CHANNELS.updatesStatusChanged, listener);
       };
     },
   },

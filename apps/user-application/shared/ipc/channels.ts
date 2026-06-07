@@ -28,6 +28,10 @@ export const IPC_CHANNELS = {
   shellOpenExternal: "shell:open-external",
   integrationsGetOAuthReturnUrl: "integrations:get-oauth-return-url",
   integrationOAuthCompleted: "integration:oauth-completed",
+  updatesGetStatus: "updates:get-status",
+  updatesCheck: "updates:check",
+  updatesInstall: "updates:install",
+  updatesStatusChanged: "updates:status-changed",
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
