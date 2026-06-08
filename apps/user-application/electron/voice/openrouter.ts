@@ -55,7 +55,7 @@ export async function transcribeWithOpenRouter(input: {
   const apiKey = getOpenRouterApiKey();
   if (!apiKey) {
     throw new Error(
-      "OpenRouter is not configured. Add OPENROUTER_API_KEY to apps/user-application/.env for Claude-only voice.",
+      "Desktop voice transcription is not configured.",
     );
   }
 
@@ -104,12 +104,12 @@ export async function transcribeWithOpenRouter(input: {
           const payload = JSON.parse(responseBody) as { text?: unknown; transcript?: unknown };
           const text = readTranscriptText(payload);
           if (!text) {
-            reject(new Error("OpenRouter did not return any transcript text."));
+            reject(new Error("The transcription service returned no transcript text."));
             return;
           }
           resolve(text);
         } catch {
-          reject(new Error("OpenRouter returned an invalid transcription response."));
+          reject(new Error("The transcription service returned an invalid response."));
         }
       });
       response.once("error", (error) => {

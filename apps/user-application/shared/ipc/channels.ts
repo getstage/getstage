@@ -17,6 +17,8 @@ export const IPC_CHANNELS = {
   companionSetInteractive: "companion:set-interactive",
   voiceGetStatus: "voice:get-status",
   voiceTranscribe: "voice:transcribe",
+  voiceGetSettings: "voice:get-settings",
+  voiceUpdateSettings: "voice:update-settings",
   voiceShortcutStartStopRecording: "voice:shortcut-start-stop-recording",
   voiceShortcutOpenLatestChat: "voice:shortcut-open-latest-chat",
   windowToggleMaximize: "window:toggle-maximize",

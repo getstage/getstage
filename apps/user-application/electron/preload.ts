@@ -1,6 +1,14 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
-import type { CompanionState, DesktopSession, DesktopUpdateStatus, IntegrationOAuthResult, PermissionKind } from "@shared/models/desktop";
+import type {
+  CompanionState,
+  DesktopSession,
+  DesktopShortcutSettings,
+  DesktopShortcutSettingsResult,
+  DesktopUpdateStatus,
+  IntegrationOAuthResult,
+  PermissionKind,
+} from "@shared/models/desktop";
 import type {
   RunEvent,
   StartRunRequest,
@@ -58,6 +66,10 @@ const stageDesktop = {
       ipcRenderer.invoke(IPC_CHANNELS.voiceGetStatus, providerPreferences),
     transcribe: (input: VoiceTranscriptionRequest): Promise<VoiceTranscriptResponse> =>
       ipcRenderer.invoke(IPC_CHANNELS.voiceTranscribe, input),
+    getSettings: (): Promise<DesktopShortcutSettingsResult> =>
+      ipcRenderer.invoke(IPC_CHANNELS.voiceGetSettings),
+    updateSettings: (settings: DesktopShortcutSettings): Promise<DesktopShortcutSettingsResult> =>
+      ipcRenderer.invoke(IPC_CHANNELS.voiceUpdateSettings, settings),
     onStartStopRecordingShortcut: (callback: () => void) => {
       const listener = () => {
         callback();

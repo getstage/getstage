@@ -169,6 +169,17 @@ Convex dedupes the WebSocket, but 4× Zod parse + re-renders. `getProjectData` o
 | 2 | No `getProjectData` on dashboard |
 | 3 | Single IPC path for auth session |
 
+### P0 — Idle energy (`v0.1.54`) — **!!! VERY IMPORTANT**
+
+See **[`2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md`](./2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md)** (partner data: Stage 5636 vs Arc 314, 18 GB swap). Blocks release until idle benchmark passes on local DMG.
+
+| # | Action |
+|---|--------|
+| 1 | `desktop-idle-benchmark.sh` + budgets |
+| 2 | Stop `stage-engine` when idle |
+| 3 | Remove companion overlay; lazy companion UI |
+| 4 | `backgroundThrottling` + pause work when hidden |
+
 ### P3 — Observability (`v0.1.54`)
 
 | # | Action |

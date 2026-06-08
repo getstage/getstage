@@ -5,6 +5,7 @@ export const settingsTabSchema = z.enum([
   "billing",
   "clients",
   "developer",
+  "shortcuts",
   "account",
   "integrations",
   "portal",

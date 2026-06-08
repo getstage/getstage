@@ -1,4 +1,4 @@
-import { FormEvent, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, MouseEvent, PointerEvent as ReactPointerEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CompanionState } from "@shared/models/desktop";
 import type { ProviderId, RunEvent } from "@stage/data-ops/contracts";
 import {
@@ -13,14 +13,19 @@ import {
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useDraggablePanel } from "@/hooks/companion/useDraggablePanel";
-
-type ChatMessage = {
-  id: string;
-  role: "user" | "stage";
-  content: string[];
-  source?: string;
-  tone?: "error";
-};
+import {
+  createEmptyStageChat,
+  createStageChatMessage,
+  createTitleFromPrompt,
+  deleteStageChat,
+  readStageChatPanelSize,
+  readStageChatStore,
+  subscribeToStageChats,
+  upsertStageChat,
+  writeStageChatPanelSize,
+} from "@/lib/companion/stageChats";
+import { STAGE_SHORTCUT_OPEN_CHAT } from "@/lib/companion/shortcutEvents";
+import type { StageChat, StageChatMessage } from "@/models/companion/chat";
 
 type CritiquePanelProps = {
   state: CompanionState;
@@ -41,10 +46,24 @@ const chatProviders: ChatProvider[] = [
 
 const PANEL_WIDTH = 432;
 const PANEL_HEIGHT = 504;
+const PANEL_MAX_WIDTH = 1100;
+const PANEL_MAX_HEIGHT = 900;
 const ACTIVE_COMPANION_BAR_HEIGHT = 42;
 const MAIN_WINDOW_BAR_BOTTOM = 12;
 const COMPANION_WINDOW_BAR_BOTTOM = 32;
 const PROVIDER_ERROR_MESSAGE = "Something went wrong. Please check your integrations for Claude/Codex connection.";
+
+type ResizeStart = {
+  height: number;
+  pointerX: number;
+  pointerY: number;
+  width: number;
+};
+
+function selectInitialChat(): StageChat {
+  const store = readStageChatStore();
+  return store.chats.find((chat) => chat.id === store.activeChatId) ?? store.chats[0] ?? createEmptyStageChat();
+}
 
 export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const visible = state === "thinking" || state === "response";
@@ -52,7 +71,11 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const companionBarBottom = isCompanionWindow
     ? COMPANION_WINDOW_BAR_BOTTOM
     : MAIN_WINDOW_BAR_BOTTOM;
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [activeChat, setActiveChat] = useState<StageChat>(() => selectInitialChat());
+  const [messages, setMessages] = useState<StageChatMessage[]>(() => activeChat.messages);
+  const [chatStoreSnapshot, setChatStoreSnapshot] = useState(() => readStageChatStore());
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [panelSize, setPanelSize] = useState(() => readStageChatPanelSize());
   const [draft, setDraft] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const chatDefaults = useChatDefaults();
@@ -72,18 +95,22 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const providerPreferences = useProviderPreferences();
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const reasoningPickerRef = useRef<HTMLDivElement>(null);
-  const threadRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const activeResponseMessageIdRef = useRef<string | null>(null);
+  const hasPersistedInitialChatRef = useRef(false);
+  const resizeStartRef = useRef<ResizeStart | null>(null);
+  const panelSizeRef = useRef(panelSize);
   const getOpeningPosition = useCallback(() => ({
-    x: Math.max(16, Math.round((window.innerWidth - PANEL_WIDTH) / 2)),
+    x: Math.max(16, Math.round((window.innerWidth - panelSize.width) / 2)),
     y: Math.max(
       16,
-      window.innerHeight - companionBarBottom - ACTIVE_COMPANION_BAR_HEIGHT - PANEL_HEIGHT,
+      window.innerHeight - companionBarBottom - ACTIVE_COMPANION_BAR_HEIGHT - panelSize.height,
     ),
-  }), [companionBarBottom]);
+  }), [companionBarBottom, panelSize.height, panelSize.width]);
   const { position, resetPosition, dragHandlers } = useDraggablePanel(getOpeningPosition());
   const inputPlaceholder = messages.length > 0 ? "Ask a follow-up" : "Message Stage";
+  const recentChats = chatStoreSnapshot.chats;
   const selectedEffortLabel = reasoningEfforts.find((effort) => effort.id === selectedEffort)?.label ?? "Medium";
   const selectedSpeedLabel = responseSpeeds.find((speed) => speed.id === selectedSpeed)?.label ?? "Default";
   const visibleModels = useMemo(() => {
@@ -93,6 +120,38 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
 
     return availableModels.filter((model) => model.provider === activeProvider);
   }, [activeProvider, availableModels, favoriteModelIds]);
+
+  useEffect(() => subscribeToStageChats(() => {
+    setChatStoreSnapshot(readStageChatStore());
+  }), []);
+
+  useEffect(() => {
+    panelSizeRef.current = panelSize;
+  }, [panelSize]);
+
+  useEffect(() => {
+    if (!hasPersistedInitialChatRef.current) {
+      hasPersistedInitialChatRef.current = true;
+      if (messages.length === 0) {
+        return;
+      }
+    }
+
+    setActiveChat((currentChat) => {
+      const nextChat = {
+        ...currentChat,
+        title: currentChat.title === "New chat"
+          ? createTitleFromPrompt(messages.find((message) => message.role === "user")?.content.join(" ") ?? "")
+          : currentChat.title,
+        updatedAt: Date.now(),
+        messages,
+      };
+
+      upsertStageChat(nextChat);
+      setChatStoreSnapshot(readStageChatStore());
+      return nextChat;
+    });
+  }, [messages]);
 
   useEffect(() => {
     setSelectedModel(getChatModelById(chatDefaults.defaults.modelId, availableModels));
@@ -189,6 +248,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     }
 
     function handleOpenLatestChatShortcut() {
+      openLatestChat();
       void onStateChange("thinking");
       window.requestAnimationFrame(() => {
         textareaRef.current?.focus();
@@ -196,19 +256,17 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     }
 
     window.addEventListener("stage-voice-transcript-ready", handleTranscriptReady);
-    const unsubscribeOpenLatestChat =
-      window.stageDesktop?.voice?.onOpenLatestChatShortcut?.(handleOpenLatestChatShortcut) ??
-      (() => {});
+    window.addEventListener(STAGE_SHORTCUT_OPEN_CHAT, handleOpenLatestChatShortcut);
 
     return () => {
       window.removeEventListener("stage-voice-transcript-ready", handleTranscriptReady);
-      unsubscribeOpenLatestChat();
+      window.removeEventListener(STAGE_SHORTCUT_OPEN_CHAT, handleOpenLatestChatShortcut);
     };
   }, [onStateChange]);
 
   useEffect(() => {
-    threadRef.current?.scrollTo({
-      top: threadRef.current.scrollHeight,
+    chatScrollRef.current?.scrollTo({
+      top: chatScrollRef.current.scrollHeight,
       behavior: "smooth",
     });
   }, [messages, isThinking]);
@@ -281,24 +339,24 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     }
 
     setDraft("");
+    const userMessage = createStageChatMessage({
+      role: "user",
+      content: [nextPrompt],
+    });
     setMessages((currentMessages) => [
       ...currentMessages,
-      {
-        id: `user-${Date.now()}`,
-        role: "user",
-        content: [nextPrompt],
-      },
+      userMessage,
     ]);
 
-    const stageMessageId = `stage-${Date.now()}`;
+    const stageMessage = createStageChatMessage({
+      role: "stage",
+      content: [],
+    });
+    const stageMessageId = stageMessage.id;
     activeResponseMessageIdRef.current = stageMessageId;
     setMessages((currentMessages) => [
       ...currentMessages,
-      {
-        id: stageMessageId,
-        role: "stage",
-        content: [],
-      },
+      stageMessage,
     ]);
 
     try {
@@ -322,9 +380,15 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : PROVIDER_ERROR_MESSAGE;
+      const errorMessage = createStageChatMessage({
+        id: stageMessageId,
+        role: "stage",
+        tone: "error",
+        content: [message],
+      });
       setMessages((currentMessages) => [
         ...currentMessages.filter((message) => message.id !== stageMessageId),
-        { id: stageMessageId, role: "stage", tone: "error", content: [message] },
+        errorMessage,
       ]);
       activeResponseMessageIdRef.current = null;
       setIsThinking(false);
@@ -344,6 +408,97 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     });
   }
 
+  function openChat(chat: StageChat) {
+    activeResponseMessageIdRef.current = null;
+    setIsThinking(false);
+    setActiveChat(chat);
+    setMessages(chat.messages);
+    setHistoryOpen(false);
+    upsertStageChat(chat);
+    setChatStoreSnapshot(readStageChatStore());
+  }
+
+  function openLatestChat() {
+    const store = readStageChatStore();
+    openChat(store.chats[0] ?? createEmptyStageChat());
+  }
+
+  function startNewChat() {
+    openChat(createEmptyStageChat());
+    window.requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+    });
+  }
+
+  function deleteChat(chatId: string, event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    const wasActive = activeChat.id === chatId;
+    const nextStore = deleteStageChat(chatId);
+    setChatStoreSnapshot(nextStore);
+
+    if (!wasActive) {
+      return;
+    }
+
+    if (nextStore.chats.length === 0) {
+      startNewChat();
+      return;
+    }
+
+    const nextChat = nextStore.chats.find((chat) => chat.id === nextStore.activeChatId) ?? nextStore.chats[0]!;
+    openChat(nextChat);
+  }
+
+  function startResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    const start = {
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      width: panelSizeRef.current.width,
+      height: panelSizeRef.current.height,
+    };
+    resizeStartRef.current = start;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function resizePanel(event: ReactPointerEvent<HTMLButtonElement>) {
+    const start = resizeStartRef.current;
+    if (!start) {
+      return;
+    }
+
+    const maxWidth = Math.min(PANEL_MAX_WIDTH, window.innerWidth - position.x - 16);
+    const maxHeight = Math.min(PANEL_MAX_HEIGHT, window.innerHeight - position.y - 16);
+    const nextSize = {
+      width: clamp(
+        Math.round(start.width + event.clientX - start.pointerX),
+        PANEL_WIDTH,
+        Math.max(PANEL_WIDTH, maxWidth),
+      ),
+      height: clamp(
+        Math.round(start.height + event.clientY - start.pointerY),
+        PANEL_HEIGHT,
+        Math.max(PANEL_HEIGHT, maxHeight),
+      ),
+    };
+    panelSizeRef.current = nextSize;
+    setPanelSize(nextSize);
+  }
+
+  function stopResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (!resizeStartRef.current) {
+      return;
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    resizeStartRef.current = null;
+    writeStageChatPanelSize(panelSizeRef.current);
+  }
+
   if (!visible) {
     return null;
   }
@@ -351,7 +506,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   return (
     <aside
       className="chat-panel"
-      style={{ left: position.x, top: position.y }}
+      style={{ left: position.x, top: position.y, width: panelSize.width, height: panelSize.height }}
       aria-label="Stage chat"
     >
       <header className="chat-panel-header">
@@ -360,6 +515,23 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
           <strong>Stage chat</strong>
         </div>
         <div className="chat-panel-actions">
+          <button
+            className="chat-history-button"
+            type="button"
+            onClick={() => setHistoryOpen((open) => !open)}
+            aria-label="Open recent chats"
+            aria-expanded={historyOpen}
+          >
+            Recent
+          </button>
+          <button
+            className="chat-new-button"
+            type="button"
+            onClick={startNewChat}
+            aria-label="Start new chat"
+          >
+            New
+          </button>
           <button
             className="chat-drag-handle"
             type="button"
@@ -384,7 +556,45 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
         </div>
       </header>
 
-      <div className="chat-thread" ref={threadRef}>
+      {historyOpen ? (
+        <div className="chat-history-popover" aria-label="Recent chats">
+          <div className="chat-history-header">
+            <strong>Recent chats</strong>
+            <button type="button" onClick={startNewChat}>New chat</button>
+          </div>
+          <div className="chat-history-list">
+            {recentChats.length > 0 ? (
+              recentChats.map((chat) => (
+                <div
+                  className={`chat-history-item ${chat.id === activeChat.id ? "chat-history-item-active" : ""}`}
+                  key={chat.id}
+                >
+                  <button
+                    className="chat-history-item-button"
+                    type="button"
+                    onClick={() => openChat(chat)}
+                  >
+                    <span>{chat.title}</span>
+                    <small>{formatChatDate(chat.updatedAt)}</small>
+                  </button>
+                  <button
+                    className="chat-history-delete-button"
+                    type="button"
+                    aria-label={`Delete ${chat.title}`}
+                    onClick={(event) => deleteChat(chat.id, event)}
+                  >
+                    <span aria-hidden="true">×</span>
+                  </button>
+                </div>
+              ))
+            ) : (
+              <p>No chats yet</p>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="chat-thread" ref={chatScrollRef}>
         {messages.map((message) => (
           <div
             className={`chat-message ${message.role === "stage" ? "chat-message-stage" : "chat-message-user"}`}
@@ -397,9 +607,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
             <img className="stage-mark stage-mark-small" src="/logos/stage.svg" alt="" aria-hidden="true" />
           </div>
         )}
-        {message.content.map((paragraph) => (
-          <p className={message.tone === "error" ? "chat-message-error-text" : undefined} key={paragraph}>{paragraph}</p>
-        ))}
+        {renderMessageContent(message)}
             {message.source ? (
               <p>
                 Based on: <a href="#brief">{message.source}</a>
@@ -592,6 +800,15 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
           </button>
         </div>
       </form>
+      <button
+        className="chat-resize-handle"
+        type="button"
+        aria-label="Resize chat"
+        onPointerDown={startResize}
+        onPointerMove={resizePanel}
+        onPointerUp={stopResize}
+        onPointerCancel={stopResize}
+      />
     </aside>
   );
 }
@@ -606,6 +823,75 @@ function getEngineModelIdForModel(model: ChatModel) {
   }
 
   return model.id.replaceAll(".", "-");
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function formatChatDate(timestamp: number) {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(timestamp));
+}
+
+function normalizeChatText(text: string) {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/\.{4,}/g, "...")
+    .split("\n")
+    .filter((line) => !/^\s*\.{2,}\s*$/.test(line))
+    .join("\n")
+    .trim();
+}
+
+function renderInlineMarkdown(text: string): ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong>;
+    }
+
+    return part;
+  });
+}
+
+function renderMessageContent(message: StageChatMessage) {
+  const blocks = message.content
+    .map(normalizeChatText)
+    .filter(Boolean)
+    .flatMap((text) => text.split(/\n{2,}/g));
+
+  if (blocks.length === 0) {
+    return null;
+  }
+
+  return blocks.map((block, index) => {
+    const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+    const isList = lines.length > 0 && lines.every((line) => /^([-*]\s+|\d+\.\s+)/.test(line));
+
+    if (isList) {
+      return (
+        <ul className="chat-message-list" key={`${message.id}-list-${index}`}>
+          {lines.map((line) => (
+            <li key={line}>{renderInlineMarkdown(line.replace(/^([-*]\s+|\d+\.\s+)/, ""))}</li>
+          ))}
+        </ul>
+      );
+    }
+
+    return (
+      <p
+        className={message.tone === "error" ? "chat-message-error-text" : undefined}
+        key={`${message.id}-paragraph-${index}`}
+      >
+        {renderInlineMarkdown(lines.join(" "))}
+      </p>
+    );
+  });
 }
 
 function ProviderMark({ provider }: { provider: ChatProvider["icon"] | ChatModel["provider"] }) {

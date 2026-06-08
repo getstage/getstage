@@ -4,6 +4,8 @@ import type {
   CompanionState,
   DesktopPermissionStatus,
   DesktopSession,
+  DesktopShortcutSettings,
+  DesktopShortcutSettingsResult,
   DesktopUpdateStatus,
   EngineStatus,
   IntegrationOAuthResult,
@@ -51,6 +53,8 @@ export type StageDesktopApi = {
       codex: boolean;
     }) => Promise<VoiceTranscriptionStatus>;
     transcribe: (input: VoiceTranscriptionRequest) => Promise<VoiceTranscriptResponse>;
+    getSettings: () => Promise<DesktopShortcutSettingsResult>;
+    updateSettings: (settings: DesktopShortcutSettings) => Promise<DesktopShortcutSettingsResult>;
     onStartStopRecordingShortcut: (callback: () => void) => () => void;
     onOpenLatestChatShortcut: (callback: () => void) => () => void;
   };

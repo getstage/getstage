@@ -7,6 +7,7 @@ import { DeveloperPanel } from "./DeveloperPanel";
 import { IntegrationsPage } from "./IntegrationsPage";
 import { ProfilePanel } from "./ProfilePanel";
 import { SettingsShell } from "./SettingsShell";
+import { ShortcutsPanel } from "./ShortcutsPanel";
 
 export function SettingsPageView({
   initialTab = "profile",
@@ -27,6 +28,7 @@ export function SettingsPageView({
       {initialTab === "billing" ? <BillingPanel /> : null}
       {initialTab === "clients" ? <ClientsPanel /> : null}
       {initialTab === "developer" ? <DeveloperPanel /> : null}
+      {initialTab === "shortcuts" ? <ShortcutsPanel /> : null}
       {initialTab === "account" ? <AccountPanel /> : null}
     </SettingsShell>
   );

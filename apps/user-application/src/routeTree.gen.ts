@@ -21,6 +21,7 @@ import { Route as AuthedClientPortalRouteImport } from './routes/_authed/client-
 import { Route as AuthedTasksTaskIdRouteImport } from './routes/_authed/tasks.$taskId'
 import { Route as AuthedSettingsPortalRouteImport } from './routes/_authed/settings.portal'
 import { Route as AuthedSettingsDeveloperRouteImport } from './routes/_authed/settings.developer'
+import { Route as AuthedSettingsShortcutsRouteImport } from './routes/_authed/settings.shortcuts'
 import { Route as AuthedSettingsClientsRouteImport } from './routes/_authed/settings.clients'
 import { Route as AuthedSettingsBillingRouteImport } from './routes/_authed/settings.billing'
 import { Route as AuthedSettingsAccountRouteImport } from './routes/_authed/settings.account'
@@ -89,6 +90,11 @@ const AuthedSettingsDeveloperRoute = AuthedSettingsDeveloperRouteImport.update({
   path: '/developer',
   getParentRoute: () => AuthedSettingsRoute,
 } as any)
+const AuthedSettingsShortcutsRoute = AuthedSettingsShortcutsRouteImport.update({
+  id: '/shortcuts',
+  path: '/shortcuts',
+  getParentRoute: () => AuthedSettingsRoute,
+} as any)
 const AuthedSettingsClientsRoute = AuthedSettingsClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/settings/billing': typeof AuthedSettingsBillingRoute
   '/settings/clients': typeof AuthedSettingsClientsRoute
   '/settings/developer': typeof AuthedSettingsDeveloperRoute
+  '/settings/shortcuts': typeof AuthedSettingsShortcutsRoute
   '/settings/portal': typeof AuthedSettingsPortalRoute
   '/tasks/$taskId': typeof AuthedTasksTaskIdRoute
   '/client-portal/$projectId/preview': typeof AuthedClientPortalProjectIdPreviewRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByTo {
   '/settings/billing': typeof AuthedSettingsBillingRoute
   '/settings/clients': typeof AuthedSettingsClientsRoute
   '/settings/developer': typeof AuthedSettingsDeveloperRoute
+  '/settings/shortcuts': typeof AuthedSettingsShortcutsRoute
   '/settings/portal': typeof AuthedSettingsPortalRoute
   '/tasks/$taskId': typeof AuthedTasksTaskIdRoute
   '/client-portal/$projectId/preview': typeof AuthedClientPortalProjectIdPreviewRoute
@@ -192,6 +200,7 @@ export interface FileRoutesById {
   '/_authed/settings/billing': typeof AuthedSettingsBillingRoute
   '/_authed/settings/clients': typeof AuthedSettingsClientsRoute
   '/_authed/settings/developer': typeof AuthedSettingsDeveloperRoute
+  '/_authed/settings/shortcuts': typeof AuthedSettingsShortcutsRoute
   '/_authed/settings/portal': typeof AuthedSettingsPortalRoute
   '/_authed/tasks/$taskId': typeof AuthedTasksTaskIdRoute
   '/_authed/client-portal/$projectId/preview': typeof AuthedClientPortalProjectIdPreviewRoute
@@ -215,6 +224,7 @@ export interface FileRouteTypes {
     | '/settings/billing'
     | '/settings/clients'
     | '/settings/developer'
+    | '/settings/shortcuts'
     | '/settings/portal'
     | '/tasks/$taskId'
     | '/client-portal/$projectId/preview'
@@ -236,6 +246,7 @@ export interface FileRouteTypes {
     | '/settings/billing'
     | '/settings/clients'
     | '/settings/developer'
+    | '/settings/shortcuts'
     | '/settings/portal'
     | '/tasks/$taskId'
     | '/client-portal/$projectId/preview'
@@ -258,6 +269,7 @@ export interface FileRouteTypes {
     | '/_authed/settings/billing'
     | '/_authed/settings/clients'
     | '/_authed/settings/developer'
+    | '/_authed/settings/shortcuts'
     | '/_authed/settings/portal'
     | '/_authed/tasks/$taskId'
     | '/_authed/client-portal/$projectId/preview'
@@ -355,6 +367,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSettingsDeveloperRouteImport
       parentRoute: typeof AuthedSettingsRoute
     }
+    '/_authed/settings/shortcuts': {
+      id: '/_authed/settings/shortcuts'
+      path: '/shortcuts'
+      fullPath: '/settings/shortcuts'
+      preLoaderRoute: typeof AuthedSettingsShortcutsRouteImport
+      parentRoute: typeof AuthedSettingsRoute
+    }
     '/_authed/settings/clients': {
       id: '/_authed/settings/clients'
       path: '/clients'
@@ -443,6 +462,7 @@ interface AuthedSettingsRouteChildren {
   AuthedSettingsBillingRoute: typeof AuthedSettingsBillingRoute
   AuthedSettingsClientsRoute: typeof AuthedSettingsClientsRoute
   AuthedSettingsDeveloperRoute: typeof AuthedSettingsDeveloperRoute
+  AuthedSettingsShortcutsRoute: typeof AuthedSettingsShortcutsRoute
   AuthedSettingsPortalRoute: typeof AuthedSettingsPortalRoute
 }
 
@@ -451,6 +471,7 @@ const AuthedSettingsRouteChildren: AuthedSettingsRouteChildren = {
   AuthedSettingsBillingRoute: AuthedSettingsBillingRoute,
   AuthedSettingsClientsRoute: AuthedSettingsClientsRoute,
   AuthedSettingsDeveloperRoute: AuthedSettingsDeveloperRoute,
+  AuthedSettingsShortcutsRoute: AuthedSettingsShortcutsRoute,
   AuthedSettingsPortalRoute: AuthedSettingsPortalRoute,
 }
 
