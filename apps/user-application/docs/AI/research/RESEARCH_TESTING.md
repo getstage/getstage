@@ -100,7 +100,7 @@ run_failed detail=...
 | `projectAiContexts` | Form input + `lastProviderId` after a successful run | 1 row per project; deleted with project |
 | `projectAiRuns` | Failed / cancelled runs only | **Deleted** after successful artifact save |
 | `projectAiArtifacts` | Final `contentJson` (`ResearchArtifact` JSON) | Latest per project; old rows + R2 keys removed on re-run |
-| `artifactDestinations` | Failed Notion exports only | No row on successful export |
+| `artifactDestinations` | Durable Notion/Figma delivery records | Successful Notion export creates or updates a completed destination |
 
 ### R2 (`assetsgetstage-testing`)
 
@@ -113,7 +113,7 @@ Read path: `getLatestResearchArtifact` → resolve R2 keys (https URLs pass thro
 
 ### Dev cleanup
 
-Run `developer.testingFixtures.cleanupOrphanedProjectAiData` in the Convex dashboard to purge rows whose `projectId` no longer exists (and remove legacy `artifactDestinations` with `status: completed`).
+Run `developer.testingFixtures.cleanupOrphanedProjectAiData` in the Convex dashboard to purge rows whose `projectId` no longer exists. Completed destinations are retained.
 
 ---
 

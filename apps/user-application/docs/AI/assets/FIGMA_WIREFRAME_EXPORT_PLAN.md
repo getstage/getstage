@@ -1,5 +1,28 @@
 # Figma Wireframe Export Plan
 
+## Implementation Status
+
+Implemented in the monorepo:
+
+- Assets derives real cards and previews from the latest `wireframesArtifact`.
+- Electron exposes an authenticated Figma-export engine command.
+- Rust validates and compiles a selected screen into a typed `FigmaWritePlan`.
+- Convex stores idempotent OAuth-bound export jobs.
+- Hono exposes scoped plugin claim, complete, and fail endpoints.
+- The Stage Exporter development plugin writes editable Figma auto-layout nodes.
+- Successful exports update the source artifact with the created Figma URL.
+- The same OAuth-bound job and plugin transport now supports editable FigJam flow-map exports.
+- Assets now supports deterministic Code export and local Paper Desktop MCP export for the same wireframe source screens.
+- Plugin claim heartbeat is implemented to keep long-running writes valid.
+
+Still required before customer release:
+
+- Deploy the Convex schema/functions.
+- Publish or organization-distribute the Stage Exporter plugin.
+- Replace the development plugin ID and confirm the production Convex site domain in its manifest.
+- Run an end-to-end export against the production Figma OAuth app and published plugin.
+- Run an end-to-end Paper export with Paper Desktop open; the local MCP is unavailable in CI.
+
 ## Goal
 
 Allow every Stage user to export a generated wireframe from the Assets tab into a chosen Figma Design file as editable, native Figma layers.
@@ -16,7 +39,7 @@ Use a hybrid export architecture:
 
 The plugin must be JavaScript/TypeScript because Figma runs plugin code in its JavaScript sandbox. Rust cannot call `figma.createFrame()` directly. Rust should compile the Stage wireframe into a validated, Figma-neutral command plan; the plugin should execute that command plan with the Plugin API.
 
-Figma OAuth alone cannot create or modify canvas nodes through the REST API. Figma's remote MCP can write through the Plugin API, but it currently has its own authentication, supported-client, seat, and beta constraints. It should not be the required production path for Stage customers.
+Figma OAuth alone cannot create or modify canvas nodes through the REST API. Figma's remote MCP can write native canvas content, but it is a separate authenticated MCP connection. The existing Stage Figma REST OAuth token does not automatically authenticate a user to `https://mcp.figma.com/mcp`. Remote write-to-canvas also remains a beta/usage-based capability with client and seat constraints. It should be implemented as an additional adapter, not silently substituted for the current OAuth-bound plugin transport.
 
 ## Ownership Boundaries
 
@@ -166,4 +189,12 @@ The plugin must only claim jobs owned by the OAuth-connected Figma user. A publi
 
 ## Future Option
 
-Evaluate Figma remote MCP as an additional export adapter after its write-to-canvas API is suitable for embedded third-party product clients. It must not replace the plugin path until its authentication, client support, and production guarantees meet Stage's customer requirements.
+Evaluate Figma remote MCP as an additional export adapter:
+
+- implement a standards-compliant MCP client in Rust
+- add a separate Figma MCP authorization/connection state
+- discover and validate write-to-canvas tools at runtime
+- keep the existing REST OAuth connection for identity and non-MCP API operations
+- fall back to the Stage Exporter plugin when MCP authorization, seat access, or tool availability is missing
+
+The plugin remains the controlled default until the remote MCP authentication and production guarantees can be embedded reliably for every Stage customer.

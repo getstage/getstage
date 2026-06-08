@@ -1,13 +1,11 @@
 import { FIGMA_SYMBOL_URL } from "@/data/fixtures/project/wireframesTabFixtures";
 import type { WireframeResultCard } from "@/lib/project/mapWireframesArtifactToTabData";
 import type {
-  WireframeBlockEmphasis,
   WireframeKind,
-  WireframeRenderableBlock,
-  WireframeRenderableSection,
 } from "@/types/project/wireframesTab";
 import { Badge, SecondaryButton } from "./WireframePrimitives";
 import { ArrowRightIcon, ImageIcon, SparkleIcon } from "./wireframesIcons";
+import { WireframeBlockPreview } from "./WireframeBlockPreview";
 
 export function ResultsGrid({
   wireframeKind,
@@ -47,7 +45,7 @@ export function WireframeCard({ card }: { card: WireframeResultCard }) {
   return (
     <article className="flex h-[336px] flex-col rounded-[8px] bg-white p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex min-h-0 flex-1 items-center justify-center rounded-[6px] bg-[#E5E5E5] p-2 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-        {hasBlocks ? <BlockPreview sections={sections} /> : <ImageIcon />}
+        {hasBlocks ? <WireframeBlockPreview sections={sections} /> : <ImageIcon />}
       </div>
       <div className="shrink-0 p-4">
         <div className="flex items-start justify-between gap-3">
@@ -100,48 +98,4 @@ export function WireframeCard({ card }: { card: WireframeResultCard }) {
       </div>
     </article>
   );
-}
-
-function BlockPreview({ sections }: { sections: WireframeRenderableSection[] }) {
-  return (
-    <div className="flex h-full w-full flex-col gap-1 overflow-hidden">
-      {sections.map((section) => (
-        <div key={section.id} className="flex flex-col gap-[2px]">
-          {section.blocks.map((block) => (
-            <BlockTile key={block.id} block={block} />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function BlockTile({ block }: { block: WireframeRenderableBlock }) {
-  const headline = block.copySlots?.headline ?? block.intent;
-
-  return (
-    <div
-      className={`flex items-center justify-between rounded-[3px] bg-white px-2 ${emphasisHeightClass(block.emphasis)} shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)]`}
-      title={block.intent}
-    >
-      <span className="truncate text-[10px] font-medium leading-[1.1] text-[#404040]">
-        {headline}
-      </span>
-      <span className="ml-2 shrink-0 text-[9px] uppercase tracking-wide text-[#A3A3A3]">
-        {block.kind}
-      </span>
-    </div>
-  );
-}
-
-function emphasisHeightClass(emphasis: WireframeBlockEmphasis): string {
-  switch (emphasis) {
-    case "primary":
-      return "h-9";
-    case "secondary":
-      return "h-6";
-    case "tertiary":
-    default:
-      return "h-4";
-  }
 }

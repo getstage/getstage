@@ -20,11 +20,15 @@ import {
 export function mapWireframeAssetToCard(asset: WireframeAsset): WireframeAssetCard {
   return {
     id: asset.id,
+    artifactId: asset.id,
+    screenId: asset.screenId ?? asset.id,
     title: asset.title,
     type: asset.type,
     date: asset.dateLabel,
     source: asset.source,
     priority: asset.priority,
+    figmaUrl: asset.figmaUrl,
+    sections: [],
   };
 }
 

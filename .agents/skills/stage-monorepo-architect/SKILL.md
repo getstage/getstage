@@ -9,8 +9,8 @@ This skill captures the project-specific architecture rules for Stage Desktop.
 
 ## Communication Rules
 
-- Speak with Werner in Dutch.
-- Write architecture documents, README files, code comments, and partner-facing plans in English.
+- Speak with Werner in concise German and briefly correct important German mistakes.
+- Write every repository artifact, including Markdown, architecture documents, README files, code comments, and partner-facing plans, in English.
 - Be strict and careful. Do not jump to implementation before the architecture boundary is clear.
 
 ## Product Boundary

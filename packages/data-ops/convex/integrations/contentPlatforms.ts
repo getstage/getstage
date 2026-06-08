@@ -6,6 +6,7 @@ import {
   internalQuery,
   mutation,
   query,
+  type MutationCtx,
 } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -50,6 +51,52 @@ const FIGMA_OAUTH_SCOPE_STRING = FIGMA_OAUTH_SCOPES.join(" ");
 
 function now() {
   return Date.now();
+}
+
+async function upsertNotionArtifactDestination(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    projectId: Id<"projects">;
+    artifactId: Id<"projectAiArtifacts">;
+    action: string;
+    destinationLabel: string;
+    destinationUrl: string;
+    completedAt: number;
+  },
+) {
+  const existing = (
+    await ctx.db
+      .query("artifactDestinations")
+      .withIndex("by_artifact", (q) => q.eq("artifactId", args.artifactId))
+      .collect()
+  ).find(
+    (destination) =>
+      destination.provider === "notion" && destination.action === args.action,
+  );
+  const patch = {
+    status: "completed" as const,
+    destinationLabel: args.destinationLabel,
+    destinationUrl: args.destinationUrl,
+    requestedVia: "native" as const,
+    errorMessage: undefined,
+    lastSyncedAt: args.completedAt,
+    updatedAt: args.completedAt,
+  };
+
+  if (existing) {
+    await ctx.db.patch(existing._id, patch);
+    return;
+  }
+  await ctx.db.insert("artifactDestinations", {
+    userId: args.userId,
+    projectId: args.projectId,
+    artifactId: args.artifactId,
+    provider: "notion",
+    action: args.action,
+    createdAt: args.completedAt,
+    ...patch,
+  });
 }
 
 function getEnv(name: string) {
@@ -755,6 +802,15 @@ export const completeNotionResearchExport = internalMutation({
       lastSyncedAt: timestamp,
       updatedAt: timestamp,
     });
+    await upsertNotionArtifactDestination(ctx, {
+      userId: args.userId,
+      projectId: args.projectId,
+      artifactId: args.artifactId,
+      action: "research_notion_export",
+      destinationLabel: args.destinationLabel,
+      destinationUrl: args.destinationUrl,
+      completedAt: timestamp,
+    });
   },
 });
 
@@ -907,6 +963,15 @@ export const completeNotionStrategyExport = internalMutation({
       lastSyncedAt: timestamp,
       updatedAt: timestamp,
     });
+    await upsertNotionArtifactDestination(ctx, {
+      userId: args.userId,
+      projectId: args.projectId,
+      artifactId: args.artifactId,
+      action: "strategy_notion_export",
+      destinationLabel: args.destinationLabel,
+      destinationUrl: args.destinationUrl,
+      completedAt: timestamp,
+    });
   },
 });
 
@@ -1004,4 +1069,330 @@ export const notionConnectCallback = httpAction(async (ctx, req) => {
 
 export const figmaConnectCallback = httpAction(async (ctx, req) => {
   return handleProviderCallback(ctx, "figma", req);
+});
+
+export const createFigmaCanvasExportJob = mutation({
+  args: {
+    projectId: v.id("projects"),
+    artifactId: v.id("projectAiArtifacts"),
+    screenId: v.string(),
+    exportKind: v.union(v.literal("wireframe"), v.literal("figjam_flow_map")),
+    writePlanJson: v.string(),
+    pairingCodeHash: v.string(),
+    pairingExpiresAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    await requireProjectAccessForUserId(ctx, {
+      userId: user._id,
+      projectId: args.projectId,
+    });
+
+    const artifact = await ctx.db.get(args.artifactId);
+    if (!artifact || artifact.projectId !== args.projectId) {
+      throw new Error("Export artifact not found.");
+    }
+    if (
+      args.exportKind === "wireframe" &&
+      (artifact.module !== "generate" || artifact.kind !== "wireframesArtifact")
+    ) {
+      throw new Error("Wireframes artifact not found.");
+    }
+    if (
+      args.exportKind === "figjam_flow_map" &&
+      (artifact.module !== "flows" || artifact.kind !== "flowsArtifact")
+    ) {
+      throw new Error("Flows artifact not found.");
+    }
+
+    const connection = await getConnection(ctx, user._id, "figma");
+    if (!connection || connection.status !== "active" || !connection.accountId) {
+      throw new Error("Connect Figma in Settings before exporting.");
+    }
+
+    const timestamp = now();
+    const existing = (
+      await ctx.db
+        .query("figmaExportJobs")
+        .withIndex("by_artifact_screen", (q) =>
+          q.eq("artifactId", args.artifactId).eq("screenId", args.screenId),
+        )
+        .collect()
+    ).sort((a, b) => b.updatedAt - a.updatedAt)[0];
+
+    if (existing && existing.status !== "completed") {
+      await ctx.db.patch(existing._id, {
+        figmaAccountId: connection.accountId,
+        exportKind: args.exportKind,
+        status: "requested",
+        writePlanJson: args.writePlanJson,
+        pairingCodeHash: args.pairingCodeHash,
+        pairingExpiresAt: args.pairingExpiresAt,
+        claimedFigmaUserId: undefined,
+        claimTokenHash: undefined,
+        claimExpiresAt: undefined,
+        errorMessage: undefined,
+        updatedAt: timestamp,
+      });
+      return {
+        jobId: String(existing._id),
+        status: "requested" as const,
+      };
+    }
+
+    if (existing) {
+      return {
+        jobId: String(existing._id),
+        status: "completed" as const,
+      };
+    }
+
+    const jobId = await ctx.db.insert("figmaExportJobs", {
+      userId: user._id,
+      projectId: args.projectId,
+      artifactId: args.artifactId,
+      screenId: args.screenId,
+      exportKind: args.exportKind,
+      figmaAccountId: connection.accountId,
+      status: "requested",
+      writePlanJson: args.writePlanJson,
+      pairingCodeHash: args.pairingCodeHash,
+      pairingExpiresAt: args.pairingExpiresAt,
+      attemptCount: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+
+    return {
+      jobId: String(jobId),
+      status: "requested" as const,
+    };
+  },
+});
+
+export const claimFigmaExportJob = internalMutation({
+  args: {
+    pairingCodeHash: v.string(),
+    figmaUserId: v.string(),
+    documentName: v.string(),
+    editorType: v.union(v.literal("figma"), v.literal("figjam")),
+    claimTokenHash: v.string(),
+    claimExpiresAt: v.number(),
+    claimedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const job = await ctx.db
+      .query("figmaExportJobs")
+      .withIndex("by_pairing_hash", (q) => q.eq("pairingCodeHash", args.pairingCodeHash))
+      .unique();
+
+    if (!job || job.pairingExpiresAt < args.claimedAt) {
+      throw new Error("Export pairing code is invalid or expired.");
+    }
+    if (job.figmaAccountId !== args.figmaUserId) {
+      throw new Error("Open Figma with the same account connected to Stage.");
+    }
+    if (job.status === "completed") {
+      throw new Error("This export is already completed.");
+    }
+    const expectedEditor = job.exportKind === "figjam_flow_map" ? "figjam" : "figma";
+    if (args.editorType !== expectedEditor) {
+      throw new Error(
+        expectedEditor === "figjam"
+          ? "Open a FigJam board before running this export."
+          : "Open a Figma Design file before running this export.",
+      );
+    }
+
+    await ctx.db.patch(job._id, {
+      status: "claimed",
+      claimedFigmaUserId: args.figmaUserId,
+      claimTokenHash: args.claimTokenHash,
+      claimExpiresAt: args.claimExpiresAt,
+      destinationFileName: args.documentName.trim(),
+      attemptCount: job.attemptCount + 1,
+      errorMessage: undefined,
+      updatedAt: args.claimedAt,
+    });
+
+    return {
+      jobId: String(job._id),
+      writePlanJson: job.writePlanJson,
+      claimExpiresAt: args.claimExpiresAt,
+    };
+  },
+});
+
+export const heartbeatFigmaExportJob = internalMutation({
+  args: {
+    claimTokenHash: v.string(),
+    claimExpiresAt: v.number(),
+    heartbeatAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const job = await ctx.db
+      .query("figmaExportJobs")
+      .withIndex("by_claim_hash", (q) => q.eq("claimTokenHash", args.claimTokenHash))
+      .unique();
+    if (!job || !job.claimExpiresAt || job.claimExpiresAt < args.heartbeatAt) {
+      throw new Error("Export claim is invalid or expired.");
+    }
+    if (job.status !== "claimed") {
+      throw new Error("Export job is not actively claimed.");
+    }
+    await ctx.db.patch(job._id, {
+      claimExpiresAt: args.claimExpiresAt,
+      updatedAt: args.heartbeatAt,
+    });
+    return { jobId: String(job._id), claimExpiresAt: args.claimExpiresAt };
+  },
+});
+
+export const completeFigmaExportJob = internalMutation({
+  args: {
+    claimTokenHash: v.string(),
+    destinationNodeId: v.string(),
+    destinationUrl: v.optional(v.string()),
+    completedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const job = await ctx.db
+      .query("figmaExportJobs")
+      .withIndex("by_claim_hash", (q) => q.eq("claimTokenHash", args.claimTokenHash))
+      .unique();
+
+    if (!job || !job.claimExpiresAt || job.claimExpiresAt < args.completedAt) {
+      throw new Error("Export claim is invalid or expired.");
+    }
+
+    await ctx.db.patch(job._id, {
+      status: "completed",
+      destinationNodeId: args.destinationNodeId,
+      destinationUrl: args.destinationUrl,
+      errorMessage: undefined,
+      completedAt: args.completedAt,
+      updatedAt: args.completedAt,
+    });
+
+    const exportKind = job.exportKind ?? "wireframe";
+    if (args.destinationUrl && exportKind === "wireframe") {
+      const artifact = await ctx.db.get(job.artifactId);
+      if (artifact?.contentJson) {
+        try {
+          const content = JSON.parse(artifact.contentJson) as {
+            generatedScreens?: Array<Record<string, unknown>>;
+          };
+          const screens = content.generatedScreens ?? [];
+          content.generatedScreens = screens.map((screen) =>
+            screen.id === job.screenId ? { ...screen, figmaUrl: args.destinationUrl } : screen,
+          );
+          await ctx.db.patch(job.artifactId, {
+            contentJson: JSON.stringify(content),
+            updatedAt: args.completedAt,
+          });
+        } catch {
+          // The completed export remains valid even when legacy artifact JSON cannot be patched.
+        }
+      }
+    }
+
+    if (args.destinationUrl && exportKind === "figjam_flow_map") {
+      const artifact = await ctx.db.get(job.artifactId);
+      if (artifact?.contentJson) {
+        try {
+          const content = JSON.parse(artifact.contentJson) as Record<string, unknown>;
+          content.figjamUrl = args.destinationUrl;
+          content.figjamExportedAt = args.completedAt;
+          await ctx.db.patch(job.artifactId, {
+            contentJson: JSON.stringify(content),
+            updatedAt: args.completedAt,
+          });
+        } catch {
+          // The completed export remains valid even when legacy artifact JSON cannot be patched.
+        }
+      }
+    }
+
+    const action =
+      exportKind === "figjam_flow_map"
+        ? "flows_figjam_export"
+        : `wireframe_figma_export:${job.screenId}`;
+    const existingDestination = (
+      await ctx.db
+        .query("artifactDestinations")
+        .withIndex("by_artifact", (q) => q.eq("artifactId", job.artifactId))
+        .collect()
+    ).find((destination) => destination.provider === "figma" && destination.action === action);
+    const destinationPatch = {
+      status: "completed" as const,
+      destinationLabel:
+        job.destinationFileName ??
+        (exportKind === "figjam_flow_map" ? "FigJam flow map" : "Figma wireframe"),
+      destinationUrl: args.destinationUrl,
+      requestedVia: "native" as const,
+      errorMessage: undefined,
+      lastSyncedAt: args.completedAt,
+      updatedAt: args.completedAt,
+    };
+    if (existingDestination) {
+      await ctx.db.patch(existingDestination._id, destinationPatch);
+    } else {
+      await ctx.db.insert("artifactDestinations", {
+        userId: job.userId,
+        projectId: job.projectId,
+        artifactId: job.artifactId,
+        provider: "figma",
+        action,
+        createdAt: args.completedAt,
+        ...destinationPatch,
+      });
+    }
+
+    return { jobId: String(job._id), status: "completed" as const };
+  },
+});
+
+export const failFigmaExportJob = internalMutation({
+  args: {
+    claimTokenHash: v.string(),
+    errorMessage: v.string(),
+    failedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const job = await ctx.db
+      .query("figmaExportJobs")
+      .withIndex("by_claim_hash", (q) => q.eq("claimTokenHash", args.claimTokenHash))
+      .unique();
+    if (!job) {
+      return null;
+    }
+
+    await ctx.db.patch(job._id, {
+      status: "failed",
+      errorMessage: args.errorMessage.slice(0, 1000),
+      updatedAt: args.failedAt,
+    });
+    return { jobId: String(job._id), status: "failed" as const };
+  },
+});
+
+export const getFigmaExportJob = query({
+  args: { jobId: v.id("figmaExportJobs") },
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    const job = await ctx.db.get(args.jobId);
+    if (!job || job.userId !== user._id) {
+      return null;
+    }
+    return {
+      id: String(job._id),
+      status: job.status,
+      destinationFileName: job.destinationFileName ?? null,
+      destinationNodeId: job.destinationNodeId ?? null,
+      destinationUrl: job.destinationUrl ?? null,
+      errorMessage: job.errorMessage ?? null,
+      exportKind: job.exportKind ?? "wireframe",
+      updatedAt: job.updatedAt,
+    };
+  },
 });

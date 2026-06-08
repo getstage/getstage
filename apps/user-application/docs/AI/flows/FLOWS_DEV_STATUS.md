@@ -1,6 +1,6 @@
 # Flows Dev Status
 
-Last updated: 2026-06-04
+Last updated: 2026-06-07
 
 Related: [`FLOWS_TESTING.md`](./FLOWS_TESTING.md) · [`FLOWS_CHANGE_AUDIT.md`](./FLOWS_CHANGE_AUDIT.md) · [`RESEARCH_DEV_STATUS.md`](../research/RESEARCH_DEV_STATUS.md) · [`STRATEGY_DEV_STATUS.md`](../strategy/STRATEGY_DEV_STATUS.md) · [`MOODBOARD_DEV_STATUS.md`](../moodboard/MOODBOARD_DEV_STATUS.md)
 
@@ -23,11 +23,9 @@ Implemented in this pass:
 - Screen and flow regenerate paths use `context.source` (`screen:{id}` / `flow:{id}`).
 - Flows tab is artifact-backed instead of fixture-backed in normal production flow.
 - Manual flow add, step edits, screen element edits, and status changes persist to Convex.
-- `Send to FigJam` records a Figma export request and returns the current REST/OAuth limitation clearly.
-
-Not implemented as a true canvas write:
-
-- Direct FigJam canvas creation. Current Figma OAuth/REST path supports connected-user reads and dev resource writes, but canvas node writes require a Figma Plugin/Widget path.
+- `Send to FigJam` creates an OAuth-bound, idempotent canvas export job through Stage Engine.
+- The Stage Exporter plugin claims the job with the connected Figma user identity and writes editable FigJam shapes and connectors.
+- A one-minute heartbeat keeps the short-lived plugin claim valid while the canvas write is active.
 
 ## Architecture
 
@@ -42,6 +40,13 @@ React FlowsTab
        -> Convex completeFlowsRun
   -> React getLatestFlowsArtifact
   -> editable UI + updateFlowsArtifact
+
+Send to FigJam
+  -> Electron IPC createFigJamExport
+  -> stage-engine validates latest flowsArtifact and compiles FigJamWritePlan
+  -> Convex stores OAuth-bound export job + one-time pairing code hash
+  -> Stage Exporter plugin claims job in FigJam
+  -> editable shapes/connectors + complete/fail callback
 ```
 
 ## Provider rules
@@ -60,4 +65,3 @@ Flows V1 uses:
 - Moodboard artifact
 
 Flows V1 does not call Refero directly.
-

@@ -39,6 +39,7 @@ Implemented:
 - Strategy tab approve/save/add-section persistence
 - Strategy section regenerate through `stage-engine`
 - Strategy export to Notion
+- successful Notion exports persisted as durable artifact destinations
 - dev generate path aligned with Research: Convex query + `stage-engine` (no automatic dev mock on Generate)
 - optional layout mock only via `VITE_MOCK_STRATEGY=1` (not wired to Generate)
 
@@ -77,3 +78,7 @@ No new clippy failures remained in the new Strategy workflow files after cleanup
 - `Continue to Moodboard` navigates to the moodboard tab (no approval gate yet).
 - Strategy currently reuses the stored Research provider selection instead of owning a separate selector.
 - Re-run / regenerate UX — see sections above and Research dev status.
+
+## Notion export
+
+Strategy uses the same native Notion OAuth connection and stored parent page as Research. Convex performs the API write and persists the completed destination URL. See [`NOTION_INTEGRATION.md`](../integrations/NOTION_INTEGRATION.md).

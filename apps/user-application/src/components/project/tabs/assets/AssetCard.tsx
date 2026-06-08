@@ -1,5 +1,6 @@
 import type { WireframeAssetCard } from "@/types/project/assetsTab";
 import { ImagePlaceholderIcon, SparkleIcon } from "./assetsIcons";
+import { WireframeBlockPreview } from "../wireframes/WireframeBlockPreview";
 
 export function AssetCard({
   asset,
@@ -11,7 +12,11 @@ export function AssetCard({
   return (
     <article className="flex h-[240px] flex-col overflow-hidden rounded-[8px] bg-white p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] sm:h-[336px]">
       <div className="flex min-h-0 flex-1 items-center justify-center rounded-[6px] bg-[#E5E5E5] p-2 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-        <ImagePlaceholderIcon />
+        {asset.sections.some((section) => section.blocks.length > 0) ? (
+          <WireframeBlockPreview sections={asset.sections} />
+        ) : (
+          <ImagePlaceholderIcon />
+        )}
       </div>
 
       <div className="p-4">

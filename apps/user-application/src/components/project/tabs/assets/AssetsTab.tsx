@@ -1,6 +1,10 @@
 import { useState } from "react";
+import { useQuery } from "convex/react";
 import { useAssetsTab } from "@/hooks/project";
+import { useFigmaWireframeExport } from "@/hooks/project/assets/useFigmaWireframeExport";
+import { useWireframeDeliveryExport } from "@/hooks/project/assets/useWireframeDeliveryExport";
 import { useProjectAssetUploads } from "@/hooks/project/useProjectAssetUploads";
+import { api } from "@/lib/convexApi";
 import type { Project } from "@/models/project/project";
 import type { AssetView, WireframeAssetCard } from "@/types/project/assetsTab";
 import { AssetCard } from "./AssetCard";
@@ -11,11 +15,17 @@ import { UploadDropzone } from "./UploadDropzone";
 import { UploadedGrid } from "./UploadedGrid";
 
 export function AssetsTab({ project }: { project: Project }) {
-  const [activeView, setActiveView] = useState<AssetView>("documents");
+  const [activeView, setActiveView] = useState<AssetView>("wireframes");
   const [exportAsset, setExportAsset] = useState<WireframeAssetCard | null>(null);
 
   const uploads = useProjectAssetUploads(() => setActiveView("uploaded"), project.id);
   const assetsTab = useAssetsTab({ id: project.id, name: project.name }, uploads.uploadedAssets.length);
+  const figmaExport = useFigmaWireframeExport(project.id);
+  const deliveryExport = useWireframeDeliveryExport(project.id);
+  const nativeConnections = useQuery(
+    api.integrations.contentPlatforms.getNativeConnectionStatus,
+    {},
+  );
   const { wireframeAssets, documents } = assetsTab.tabData;
 
   const sectionTitle = assetsTab.categories.find((category) => category.id === activeView)?.label ?? "Documents";
@@ -60,9 +70,24 @@ export function AssetsTab({ project }: { project: Project }) {
 
       <ExportOptionsDialog
         asset={exportAsset}
+        figmaConnected={nativeConnections?.figma?.status === "active"}
+        exportRequest={figmaExport.request}
+        exportJob={figmaExport.job}
+        exportError={figmaExport.error}
+        deliveryMessage={deliveryExport.message}
+        deliveryError={deliveryExport.error}
+        isExporting={figmaExport.isExporting || deliveryExport.isExporting}
+        onExportFigma={async (asset) => {
+          await figmaExport.startExport(asset);
+        }}
+        onExportDelivery={deliveryExport.startExport}
         open={exportAsset !== null}
         onOpenChange={(open) => {
-          if (!open) setExportAsset(null);
+          if (!open) {
+            setExportAsset(null);
+            figmaExport.reset();
+            deliveryExport.reset();
+          }
         }}
       />
     </section>
