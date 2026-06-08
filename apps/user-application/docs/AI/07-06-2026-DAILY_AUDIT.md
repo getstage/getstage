@@ -4,6 +4,46 @@ Last updated: 2026-06-08
 
 Use this table to track everything done today. Add a new row for each change, fix, or decision.
 
+## Executive bullet summary
+
+### Changed and implemented
+
+- Desktop authentication handoff no longer leaves the browser on an infinite loading screen.
+- Packaged desktop builds schedule silent automatic update checks.
+- Generated wireframes are shown in Assets and use the latest `wireframesArtifact` as their source of truth.
+- Individual wireframes can be exported to Code, Paper, and editable Figma layers.
+- Flows can be exported as editable FigJam flow maps.
+- Figma and FigJam exports use OAuth-bound pairing jobs, scoped claims, heartbeat, completion, and failure callbacks.
+- Notion OAuth is shared across onboarding, Settings, Research, and Strategy.
+- Research and Strategy can create native Notion pages and persist completed destination records.
+- Global voice/chat shortcuts, persistent chat history, history UI, and a resizable chat panel are merged into the integration branch.
+- Companion shortcuts now route through the main window instead of creating a full-screen companion overlay.
+- Chat switching no longer changes the chat's last-modified sort order.
+- Chat persistence side effects were removed from the React state updater.
+
+### Implemented but not proven by production E2E
+
+- Code wireframe export requires a packaged desktop smoke test.
+- Paper export requires a live write with Paper Desktop running.
+- Figma and FigJam exports require deployed Convex changes, plugin distribution, and production E2E.
+- Research and Strategy Notion exports require authenticated live writes.
+- Production Notion OAuth callback still requires deployment and verification.
+
+### Not implemented or still open
+
+- Moodboard export is not part of the current delivery-export implementation.
+- The generated TanStack route tree still needs regeneration when the generator is available.
+- Desktop idle benchmark automation is not implemented.
+- `stage-engine` does not yet stop automatically after an idle timeout.
+- Companion UI is still mounted while idle.
+- Hidden-window/background work has not been systematically paused.
+
+### Next focus
+
+- Establish a packaged-DMG idle-energy baseline.
+- Implement engine idle shutdown and lazy companion mounting.
+- Re-run the idle benchmark before the next desktop release.
+
 | # | Area | Files | Change | Reason | Status | Notes |
 |---|---|---|---|---|---|---|
 | 1 | Desktop auth / web handoff | `apps/web-application/src/routes/auth.desktop.tsx` | Fixed `/auth/desktop` staying on infinite spinner after successful login handoff to `stage://auth`. Added success state ("Stage Desktop connected"), auto `window.close()` attempt, manual **Close tab** button, and hidden-link redirect for `stage://` instead of `window.location.assign`. | Auth worked end-to-end, but the browser tab never left the loading screen — bad UX after a successful desktop callback. | Done locally | Needs deploy to `testing.getstage.co` (and prod when ready). Desktop app login itself was already working. |

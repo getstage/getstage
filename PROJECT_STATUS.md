@@ -10,37 +10,47 @@
 | Priority | Item | Owner / where |
 |----------|------|----------------|
 | **!!! P0** | Desktop idle energy fix (Adrien: 5636 energy, 18 GB swap) | `docs/AI/desktop/2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md` |
-| **P1** | Keep `work` in sync after merges (`monorepo` OK too) | See operating plan §Git |
-| **P2** | Uncommitted laptop work: voice shortcuts + Stage chat | `work` branch, not pushed yet |
-| **P3** | Export E2E + Convex deploy (if export branch merged) | Notion live test, Figma plugin publish |
+| **P1** | Build and run the packaged-DMG idle benchmark | `docs/AI/desktop/2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md` |
+| **P2** | Merge the current integration branch into the final target branch | `fix/desktop-shortcuts-operating-docs-and-energy-plan` |
+| **P3** | Export E2E + Convex deploy | Notion live test, Figma plugin publish, Paper live write |
 
 **Current desktop version (work branch):** `0.1.55`
 
 ---
 
-## Shipped on `work` (ahead of `monorepo`)
+## Implemented in the current integration branch
 
 - Desktop v0.1.52–0.1.55 (auto-update, auth handoff, provider CLI detection)
 - Desktop performance pass (sidecar defer, polling reduced)
-- Notion export UI: Research + Strategy (Convex handlers exist)
+- Global voice/chat shortcuts and Settings → Shortcuts
+- Persistent Stage chat history and resizable chat panel
+- Main-window companion routing; full-screen companion overlay removed
+- Notion OAuth and Research/Strategy Notion export paths
+- Assets delivery with Code, Paper, and Figma wireframe exports
+- Editable FigJam flow export
 - Dashboard / project / task UI improvements
 
 ---
 
-## Uncommitted on this laptop (`work`)
+## Current local review changes
 
-- Stage chat model + `stageChats` persistence
-- Global voice/chat shortcuts (`electron/voice/shortcuts.ts`, Settings → Shortcuts)
-- Companion overlay → main-window shortcuts refactor (`electron/windows.ts`)
-- `2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md` + desktop doc index updates
+- Chat switching no longer corrupts last-modified history order.
+- Chat persistence no longer performs side effects inside a React state updater.
+- Streaming chat updates no longer synchronously persist every chunk.
+- Duplicate list-item React keys are fixed.
+- Shortcut registration now unregisters only shortcuts owned by its module.
+- Shortcut defaults and cross-platform Ctrl handling are aligned.
+- Legacy companion cleanup no longer destroys unrelated windows.
+- Development can run without the production single-instance lock.
+- Audit, Greptile, operating-plan, and energy-plan status is updated.
 
 ---
 
 ## Blockers
 
 - [ ] Idle energy benchmark PASS on DMG (terminal test in energy plan)
-- [ ] `work` pushed and merged to `monorepo` on iMac without conflict
-- [ ] Export features: verify what is committed vs local-only (see operating plan)
+- [ ] Integration branch merged into the final target branch
+- [ ] Export destinations verified with live E2E tests
 
 ---
 

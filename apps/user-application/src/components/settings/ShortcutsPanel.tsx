@@ -1,22 +1,18 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
-import type {
-  DesktopShortcutSettings,
-  DesktopShortcutSettingsResult,
+import {
+  DEFAULT_DESKTOP_SHORTCUT_SETTINGS,
+  type DesktopShortcutSettings,
+  type DesktopShortcutSettingsResult,
 } from "@shared/models/desktop";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
 import { formatAcceleratorLabel } from "@/lib/settings/formatAcceleratorLabel";
 import { SettingsCard, SettingsRow } from "./SettingsPrimitives";
 
-const DEFAULT_SHORTCUTS: DesktopShortcutSettings = {
-  voiceNoteShortcut: "CommandOrControl+Shift+V",
-  aiChatShortcut: "CommandOrControl+Shift+A",
-};
-
 type ShortcutField = keyof DesktopShortcutSettings;
 
 export function ShortcutsPanel() {
   const desktop = useDesktopBridge();
-  const [settings, setSettings] = useState<DesktopShortcutSettings>(DEFAULT_SHORTCUTS);
+  const [settings, setSettings] = useState<DesktopShortcutSettings>(DEFAULT_DESKTOP_SHORTCUT_SETTINGS);
   const [result, setResult] = useState<DesktopShortcutSettingsResult | null>(null);
   const [recordingField, setRecordingField] = useState<ShortcutField | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "saving" | "saved" | "error">("loading");
@@ -64,8 +60,8 @@ export function ShortcutsPanel() {
   }
 
   function resetDefaults() {
-    setSettings(DEFAULT_SHORTCUTS);
-    void saveSettings(DEFAULT_SHORTCUTS);
+    setSettings(DEFAULT_DESKTOP_SHORTCUT_SETTINGS);
+    void saveSettings(DEFAULT_DESKTOP_SHORTCUT_SETTINGS);
   }
 
   return (
@@ -204,8 +200,7 @@ function eventToAccelerator(event: KeyboardEvent) {
   if (!key) return null;
 
   const parts: string[] = [];
-  if (event.metaKey) parts.push("CommandOrControl");
-  if (event.ctrlKey && !event.metaKey) parts.push("Control");
+  if (event.metaKey || event.ctrlKey) parts.push("CommandOrControl");
   if (event.altKey) parts.push("Alt");
   if (event.shiftKey) parts.push("Shift");
   parts.push(key);

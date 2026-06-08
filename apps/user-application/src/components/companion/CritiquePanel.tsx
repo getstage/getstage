@@ -98,7 +98,9 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const activeResponseMessageIdRef = useRef<string | null>(null);
-  const hasPersistedInitialChatRef = useRef(false);
+  const activeChatRef = useRef(activeChat);
+  const handledMessagesRef = useRef(messages);
+  const nonPersistentMessagesRef = useRef<StageChatMessage[] | null>(null);
   const resizeStartRef = useRef<ResizeStart | null>(null);
   const panelSizeRef = useRef(panelSize);
   const getOpeningPosition = useCallback(() => ({
@@ -130,27 +132,31 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   }, [panelSize]);
 
   useEffect(() => {
-    if (!hasPersistedInitialChatRef.current) {
-      hasPersistedInitialChatRef.current = true;
-      if (messages.length === 0) {
-        return;
-      }
+    if (handledMessagesRef.current === messages) {
+      return;
+    }
+    handledMessagesRef.current = messages;
+
+    if (nonPersistentMessagesRef.current === messages) {
+      nonPersistentMessagesRef.current = null;
+      return;
     }
 
-    setActiveChat((currentChat) => {
-      const nextChat = {
-        ...currentChat,
-        title: currentChat.title === "New chat"
-          ? createTitleFromPrompt(messages.find((message) => message.role === "user")?.content.join(" ") ?? "")
-          : currentChat.title,
-        updatedAt: Date.now(),
-        messages,
-      };
+    const currentChat = activeChatRef.current;
+    const nextChat = {
+      ...currentChat,
+      title: currentChat.title === "New chat"
+        ? createTitleFromPrompt(messages.find((message) => message.role === "user")?.content.join(" ") ?? "")
+        : currentChat.title,
+      updatedAt: Date.now(),
+      messages,
+    };
 
+    activeChatRef.current = nextChat;
+    setActiveChat(nextChat);
+    if (!activeResponseMessageIdRef.current) {
       upsertStageChat(nextChat);
-      setChatStoreSnapshot(readStageChatStore());
-      return nextChat;
-    });
+    }
   }, [messages]);
 
   useEffect(() => {
@@ -410,12 +416,13 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
 
   function openChat(chat: StageChat) {
     activeResponseMessageIdRef.current = null;
+    activeChatRef.current = chat;
+    nonPersistentMessagesRef.current = chat.messages === messages ? null : chat.messages;
     setIsThinking(false);
     setActiveChat(chat);
     setMessages(chat.messages);
     setHistoryOpen(false);
     upsertStageChat(chat);
-    setChatStoreSnapshot(readStageChatStore());
   }
 
   function openLatestChat() {
@@ -876,8 +883,10 @@ function renderMessageContent(message: StageChatMessage) {
     if (isList) {
       return (
         <ul className="chat-message-list" key={`${message.id}-list-${index}`}>
-          {lines.map((line) => (
-            <li key={line}>{renderInlineMarkdown(line.replace(/^([-*]\s+|\d+\.\s+)/, ""))}</li>
+          {lines.map((line, lineIndex) => (
+            <li key={`${line}-${lineIndex}`}>
+              {renderInlineMarkdown(line.replace(/^([-*]\s+|\d+\.\s+)/, ""))}
+            </li>
           ))}
         </ul>
       );

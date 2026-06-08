@@ -23,7 +23,7 @@ function isMacPlatform() {
     return false;
   }
 
-  return /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+  return /Macintosh|Mac OS X|iPhone|iPad|iPod/.test(navigator.userAgent);
 }
 
 export function formatAcceleratorLabel(accelerator: string) {

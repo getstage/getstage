@@ -115,6 +115,11 @@ export const desktopShortcutSettingsSchema = z.object({
   aiChatShortcut: z.string().min(1).max(80),
 });
 
+export const DEFAULT_DESKTOP_SHORTCUT_SETTINGS = {
+  voiceNoteShortcut: "CommandOrControl+Shift+V",
+  aiChatShortcut: "CommandOrControl+Shift+A",
+} satisfies z.infer<typeof desktopShortcutSettingsSchema>;
+
 export const desktopShortcutRegistrationSchema = z.object({
   accelerator: z.string(),
   registered: z.boolean(),

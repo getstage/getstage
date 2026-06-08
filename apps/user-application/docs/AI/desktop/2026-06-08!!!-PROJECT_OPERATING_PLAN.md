@@ -53,37 +53,41 @@ We have **too many sources of truth**:
 - Updated `DESKTOP_PERFORMANCE.md` + desktop `README.md`
 - Agreed: **Notion for tasks**, **3 living repo docs**, **archive** the rest
 
-### Code on laptop (`work`, **uncommitted**)
+### Code merged into the integration branch
 
 - Stage chat persistence (`stageChats`, chat model)
 - Global shortcuts (voice + open chat), Settings → Shortcuts panel
 - Companion: shortcuts target main window; overlay cleanup in `windows.ts`
 - Voice pipeline tweaks (`openrouter`, `route`, errors)
+- Monorepo export work: Code, Paper, Figma, FigJam, Assets, and Notion integration paths
 
-### NOT done yesterday
+### Still not done
 
-- Git push / merge to `monorepo`
+- Merge the integration branch back into the final target branch
 - Energy P0 code (engine idle stop, lazy companion)
 - `desktop-idle-benchmark.sh` script
+- Generated TanStack route-tree regeneration when the generator is available
 
 ---
 
 ## 4. Export features — status check
 
-**Your listed “implemented locally” vs this repo (`work`, 2026-06-08):**
+**Current integration branch status (2026-06-08):**
 
-| Feature | In committed `work`? | Notes |
-|---------|----------------------|-------|
-| Notion OAuth | ✅ | Settings integrations |
-| Research → Notion | ✅ UI + Convex | Needs **live deploy test** |
-| Strategy → Notion | ✅ UI + Convex | Needs **live deploy test** |
-| Figma OAuth | ✅ partial | `stage-engine/src/figma/` service |
-| Figma wireframe export | ⚠️ plan + partial | `FIGMA_WIREFRAME_EXPORT_PLAN.md`; no `exports/figma/` in engine yet |
-| FigJam flows export | ⚠️ stub | Convex handler returns “plugin path required” message |
-| Code / Paper / Assets export | ❓ not found in repo | May exist only on another machine or uncommitted — **verify before merge** |
-| Export reliability (pairing, jobs) | ⚠️ planned | Spec in Figma export plan |
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Notion OAuth | Implemented | Testing connection verified; production callback requires deployment |
+| Research → Notion | Implemented | Requires authenticated live write |
+| Strategy → Notion | Implemented | Requires authenticated live write |
+| Figma OAuth | Implemented | Used to identity-bind export jobs |
+| Figma wireframe export | Implemented locally | Requires Convex deploy, plugin distribution, and production E2E |
+| FigJam flows export | Implemented locally | Requires Convex deploy, plugin distribution, and production E2E |
+| Code wireframe export | Implemented locally | Requires packaged desktop smoke test |
+| Paper wireframe export | Implemented locally | Requires Paper Desktop live write |
+| Assets wireframe delivery | Implemented locally | Uses the latest generated wireframe artifact |
+| Moodboard export | Not implemented | Not part of the current delivery-export scope |
 
-**Action:** Before claiming “shipped”, run `git status` + search on **both** laptop and iMac. Align Notion “Done” cards with **committed** code only.
+**Rule:** “Implemented locally” is not “shipped.” Mark work shipped only after deployment, destination E2E, and packaged desktop verification.
 
 ### Still requires live testing / deploy
 
@@ -233,12 +237,11 @@ Do **not** bulk-delete. Do **not** copy into Notion.
 
 ## 10. What now? (one screen)
 
-1. **Commit + push `work`** from laptop  
-2. **Merge to `monorepo`** on iMac  
-3. **Run 30 min terminal idle test** on iMac DMG  
-4. **Implement energy P0** (see energy plan)  
-5. **Deploy Convex** + test Notion exports  
-6. **Verify export list** — what’s actually in git vs local-only  
-7. **Update `PROJECT_STATUS.md`** after each step  
+1. **Commit and merge the integration branch into the final target branch**
+2. **Build and install a packaged DMG**
+3. **Run the 30 min idle baseline**
+4. **Implement energy P0: engine idle stop, lazy companion, hidden-work pause**
+5. **Deploy Convex and run destination E2E for Notion, Figma, and FigJam**
+6. **Update `PROJECT_STATUS.md` after each proven result**
 
 **!!! Do not start new `.md` plans — update status + Notion instead.**

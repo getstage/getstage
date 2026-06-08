@@ -153,7 +153,7 @@ function findStageDeepLinkUrl(argv: string[]) {
   return findStageAuthUrl(argv) ?? findStageIntegrationUrl(argv) ?? null;
 }
 
-if (!app.requestSingleInstanceLock()) {
+if (!isDevelopment && !app.requestSingleInstanceLock()) {
   app.quit();
 }
 

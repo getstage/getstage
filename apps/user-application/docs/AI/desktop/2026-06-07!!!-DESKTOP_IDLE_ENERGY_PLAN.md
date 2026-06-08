@@ -326,15 +326,24 @@ pgrep -lf 'stage-engine' || echo "PASS — no engine at launch"
 
 ### P0 — Idle energy (ship in **v0.1.54**) !!!
 
-| # | Action | Acceptance criteria | Files |
-|---|--------|---------------------|-------|
-| 0.1 | **Idle benchmark script** in repo | Script runs 30 min, logs CPU/RAM/helpers, exits non-zero on budget breach | `scripts/desktop-idle-benchmark.sh` (new) |
-| 0.2 | **Stop `stage-engine` when idle** | 5–10 min after last engine IPC, supervisor stops child; port free (`lsof -i :48221` empty) | `electron/sidecar.ts`, `electron/ipc.ts` |
-| 0.3 | **Renderer background throttling** | `backgroundThrottling: true` on all `BrowserWindow` webPreferences | `electron/windows.ts` |
-| 0.4 | **Remove fullscreen companion overlay path** | No `createCompanionWindow` in production shortcuts; delete or gate dead overlay code; tray/shortcuts use main window only | `electron/windows.ts`, `electron/ipc.ts` |
-| 0.5 | **Lazy-mount companion UI** | Chat/voice chrome not in DOM until user opens companion | `DesktopShell.tsx`, companion components |
-| 0.6 | **Pause work when app hidden** | No polling / reduced Convex refetch when `document.hidden` or main window not visible | renderer hooks, `useEngineStatus.ts` |
-| 0.7 | **Document quit vs close** | In-app or release note: use **Cmd+Q** to fully quit; red X leaves Stage in background (until we change behavior) | copy / settings (optional) |
+| # | Action | Current status | Acceptance criteria | Files |
+|---|--------|----------------|---------------------|-------|
+| 0.1 | **Idle benchmark script** in repo | Not started | Script runs 30 min, logs CPU/RAM/helpers, exits non-zero on budget breach | `scripts/desktop-idle-benchmark.sh` (new) |
+| 0.2 | **Stop `stage-engine` when idle** | Not implemented | 5–10 min after last engine IPC, supervisor stops child; port free (`lsof -i :48221` empty) | `electron/sidecar.ts`, `electron/ipc.ts` |
+| 0.3 | **Renderer background throttling** | Electron default is enabled; explicit audit still needed | `backgroundThrottling: true` on all `BrowserWindow` webPreferences | `electron/windows.ts` |
+| 0.4 | **Remove fullscreen companion overlay path** | Implemented; cleanup safety fix pending | No `createCompanionWindow` in production shortcuts; legacy cleanup must not destroy unrelated windows | `electron/windows.ts`, `electron/ipc.ts` |
+| 0.5 | **Lazy-mount companion UI** | Not implemented | Chat/voice chrome not in DOM until user opens companion | `DesktopShell.tsx`, companion components |
+| 0.6 | **Pause work when app hidden** | Not implemented | No polling / reduced Convex refetch when `document.hidden` or main window not visible | renderer hooks, `useEngineStatus.ts` |
+| 0.7 | **Document quit vs close** | Planned | In-app or release note: use **Cmd+Q** to fully quit; red X leaves Stage in background (until we change behavior) | copy / settings (optional) |
+| 0.8 | **Reduce streaming persistence writes** | Implemented locally | Chat persistence does not synchronously write localStorage for every streaming chunk | `CritiquePanel.tsx`, `stageChats.ts` |
+
+### Recommended immediate energy work
+
+1. Add the repeatable packaged-DMG benchmark script and record a baseline before further energy changes.
+2. Add sidecar activity tracking and stop `stage-engine` after a bounded idle timeout.
+3. Lazy-mount `CritiquePanel` and other expensive companion UI until opened.
+4. Pause polling and optional renderer work while the main window is hidden.
+5. Re-run the 30-minute benchmark and the two-hour soak before release.
 
 ### P1 — Startup & memory (continue from performance doc)
 

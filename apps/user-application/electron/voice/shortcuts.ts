@@ -2,16 +2,12 @@ import { app, globalShortcut } from "electron";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import {
+  DEFAULT_DESKTOP_SHORTCUT_SETTINGS,
   desktopShortcutSettingsResultSchema,
   desktopShortcutSettingsSchema,
   type DesktopShortcutSettings,
   type DesktopShortcutSettingsResult,
 } from "@shared/models/desktop";
-
-export const DEFAULT_SHORTCUT_SETTINGS: DesktopShortcutSettings = {
-  voiceNoteShortcut: "CommandOrControl+Shift+V",
-  aiChatShortcut: "CommandOrControl+Shift+A",
-};
 
 type ShortcutActions = {
   openLatestChat: () => void;
@@ -20,7 +16,7 @@ type ShortcutActions = {
 
 let shortcutActions: ShortcutActions | null = null;
 let lastRegistrationResult: DesktopShortcutSettingsResult | null = null;
-let registeredAccelerators: string[] = [];
+const registeredAccelerators = new Set<string>();
 
 function settingsPath() {
   return join(app.getPath("userData"), "stage-voice-shortcuts.json");
@@ -29,7 +25,7 @@ function settingsPath() {
 function normalizeShortcutSettings(raw: unknown): DesktopShortcutSettings {
   const parsed = desktopShortcutSettingsSchema.safeParse(raw);
   if (!parsed.success) {
-    return DEFAULT_SHORTCUT_SETTINGS;
+    return DEFAULT_DESKTOP_SHORTCUT_SETTINGS;
   }
 
   return parsed.data;
@@ -40,7 +36,7 @@ export function readShortcutSettings(): DesktopShortcutSettings {
     const raw = JSON.parse(readFileSync(settingsPath(), "utf8")) as unknown;
     return normalizeShortcutSettings(raw);
   } catch {
-    return DEFAULT_SHORTCUT_SETTINGS;
+    return DEFAULT_DESKTOP_SHORTCUT_SETTINGS;
   }
 }
 
@@ -78,7 +74,7 @@ function registerShortcut(
   try {
     const registered = globalShortcut.register(accelerator, debouncedAction);
     if (registered) {
-      registeredAccelerators.push(accelerator);
+      registeredAccelerators.add(accelerator);
       return { accelerator, registered: true };
     }
   } catch {
@@ -98,8 +94,10 @@ function registerShortcut(
 
 export function registerVoiceShortcuts(actions: ShortcutActions): DesktopShortcutSettingsResult {
   shortcutActions = actions;
-  globalShortcut.unregisterAll();
-  registeredAccelerators = [];
+  for (const accelerator of registeredAccelerators) {
+    globalShortcut.unregister(accelerator);
+  }
+  registeredAccelerators.clear();
 
   const settings = readShortcutSettings();
   const result = desktopShortcutSettingsResultSchema.parse({

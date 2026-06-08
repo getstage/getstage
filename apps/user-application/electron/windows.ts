@@ -111,6 +111,14 @@ export function getMainWindow() {
   return mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
 }
 
+function isLegacyCompanionWindow(window: BrowserWindowType) {
+  try {
+    return new URL(window.webContents.getURL()).searchParams.get("stageWindow") === "companion";
+  } catch {
+    return window.getTitle() === "Stage Companion";
+  }
+}
+
 function sendToRendererWhenReady(window: BrowserWindowType, channel: string) {
   const send = () => {
     setTimeout(() => {
@@ -129,9 +137,8 @@ function sendToRendererWhenReady(window: BrowserWindowType, channel: string) {
 }
 
 export function destroyOrphanCompanionWindows() {
-  const main = getMainWindow();
   for (const window of BrowserWindow.getAllWindows()) {
-    if (window === main || window.isDestroyed()) {
+    if (window.isDestroyed() || !isLegacyCompanionWindow(window)) {
       continue;
     }
 
