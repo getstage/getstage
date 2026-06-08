@@ -5,6 +5,7 @@ pub struct AppConfig {
     pub host: IpAddr,
     pub port: u16,
     pub refero: ReferoConfig,
+    pub paper: PaperConfig,
     pub figma: FigmaConfig,
     pub convex: ConvexConfig,
 }
@@ -13,6 +14,11 @@ pub struct AppConfig {
 pub struct ReferoConfig {
     pub mcp_url: String,
     pub token: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct PaperConfig {
+    pub mcp_url: String,
 }
 
 #[derive(Clone, Debug)]
@@ -34,6 +40,7 @@ impl AppConfig {
             host: IpAddr::V4(Ipv4Addr::LOCALHOST),
             port,
             refero: ReferoConfig::from_env(),
+            paper: PaperConfig::from_env(),
             figma: FigmaConfig::from_env(),
             convex: ConvexConfig::from_env(),
         })
@@ -41,6 +48,15 @@ impl AppConfig {
 
     pub fn socket_addr(&self) -> SocketAddr {
         SocketAddr::new(self.host, self.port)
+    }
+}
+
+impl PaperConfig {
+    pub fn from_env() -> Self {
+        Self {
+            mcp_url: std::env::var("PAPER_MCP_URL")
+                .unwrap_or_else(|_| "http://127.0.0.1:29979/mcp".to_string()),
+        }
     }
 }
 

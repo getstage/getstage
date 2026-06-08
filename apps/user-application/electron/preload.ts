@@ -2,6 +2,12 @@ import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import type { CompanionState, DesktopSession, DesktopUpdateStatus, IntegrationOAuthResult, PermissionKind } from "@shared/models/desktop";
 import type {
+  CreateFigmaExportRequest,
+  CreateFigmaExportResponse,
+  CreateFigJamExportRequest,
+  CreatePaperExportResponse,
+  SaveCodeExportResponse,
+  WireframeDeliveryRequest,
   RunEvent,
   StartRunRequest,
   VoiceTranscriptResponse,
@@ -34,6 +40,22 @@ const stageDesktop = {
     startRun: (request: StartRunRequest) =>
       ipcRenderer.invoke(IPC_CHANNELS.engineStartRun, request),
     cancelRun: (runId: string) => ipcRenderer.invoke(IPC_CHANNELS.engineCancelRun, runId),
+    createFigmaExport: (
+      request: CreateFigmaExportRequest,
+    ): Promise<CreateFigmaExportResponse> =>
+      ipcRenderer.invoke(IPC_CHANNELS.engineCreateFigmaExport, request),
+    createFigJamExport: (
+      request: CreateFigJamExportRequest,
+    ): Promise<CreateFigmaExportResponse> =>
+      ipcRenderer.invoke(IPC_CHANNELS.engineCreateFigJamExport, request),
+    exportWireframeCode: (
+      request: WireframeDeliveryRequest,
+    ): Promise<SaveCodeExportResponse> =>
+      ipcRenderer.invoke(IPC_CHANNELS.engineExportWireframeCode, request),
+    createPaperExport: (
+      request: WireframeDeliveryRequest,
+    ): Promise<CreatePaperExportResponse> =>
+      ipcRenderer.invoke(IPC_CHANNELS.engineCreatePaperExport, request),
     onRunEvent: (callback: (event: RunEvent) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, runEvent: RunEvent) => {
         callback(runEvent);

@@ -1,4 +1,5 @@
 import type { ProjectAsset } from "@/models/project/project";
+import type { WireframeRenderableSection } from "@/types/project/wireframesTab";
 
 export type AssetView = "wireframes" | "documents" | "uploaded";
 
@@ -11,9 +12,13 @@ export type UploadedAssetRow = {
 };
 
 export type WireframeAssetCard = ProjectAsset & {
+  artifactId: string;
+  screenId: string;
   date: string;
   source: string;
   priority: string;
+  figmaUrl?: string;
+  sections: WireframeRenderableSection[];
 };
 
 export type ExportOption = "code" | "paper" | "figma";

@@ -17,6 +17,12 @@ import type {
   StartRunRequest,
   StartRunResponse,
   CancelRunResponse,
+  CreateFigmaExportRequest,
+  CreateFigmaExportResponse,
+  CreateFigJamExportRequest,
+  CreatePaperExportResponse,
+  SaveCodeExportResponse,
+  WireframeDeliveryRequest,
   VoiceTranscriptResponse,
   VoiceTranscriptionRequest,
 } from "@stage/data-ops/contracts";
@@ -37,6 +43,10 @@ export type StageDesktopApi = {
     updateProvider: (providerId: ProviderId) => Promise<ProviderUpdateResponse>;
     startRun: (request: StartRunRequest) => Promise<StartRunResponse>;
     cancelRun: (runId: string) => Promise<CancelRunResponse>;
+    createFigmaExport: (request: CreateFigmaExportRequest) => Promise<CreateFigmaExportResponse>;
+    createFigJamExport: (request: CreateFigJamExportRequest) => Promise<CreateFigmaExportResponse>;
+    exportWireframeCode: (request: WireframeDeliveryRequest) => Promise<SaveCodeExportResponse>;
+    createPaperExport: (request: WireframeDeliveryRequest) => Promise<CreatePaperExportResponse>;
     onRunEvent: (callback: (event: RunEvent) => void) => () => void;
   };
   companion: {

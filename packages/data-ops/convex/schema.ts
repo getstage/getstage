@@ -285,6 +285,13 @@ const nativeIntegrationStatus = v.union(
   v.literal("disconnected"),
 );
 
+const figmaExportStatus = v.union(
+  v.literal("requested"),
+  v.literal("claimed"),
+  v.literal("completed"),
+  v.literal("failed"),
+);
+
 export default defineSchema({
   ...authTables,
 
@@ -653,6 +660,35 @@ export default defineSchema({
     .index("by_user_provider", ["userId", "provider"])
     .index("by_project", ["projectId"])
     .index("by_project_provider", ["projectId", "provider"]),
+
+  figmaExportJobs: defineTable({
+    userId: v.id("users"),
+    projectId: v.id("projects"),
+    artifactId: v.id("projectAiArtifacts"),
+    screenId: v.string(),
+    exportKind: v.optional(v.union(v.literal("wireframe"), v.literal("figjam_flow_map"))),
+    figmaAccountId: v.string(),
+    status: figmaExportStatus,
+    writePlanJson: v.string(),
+    pairingCodeHash: v.string(),
+    pairingExpiresAt: v.number(),
+    claimedFigmaUserId: v.optional(v.string()),
+    claimTokenHash: v.optional(v.string()),
+    claimExpiresAt: v.optional(v.number()),
+    destinationFileName: v.optional(v.string()),
+    destinationNodeId: v.optional(v.string()),
+    destinationUrl: v.optional(v.string()),
+    errorMessage: v.optional(v.string()),
+    attemptCount: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index("by_artifact_screen", ["artifactId", "screenId"])
+    .index("by_pairing_hash", ["pairingCodeHash"])
+    .index("by_claim_hash", ["claimTokenHash"])
+    .index("by_user", ["userId"])
+    .index("by_project", ["projectId"]),
 
   invoices: defineTable({
     userId: v.id("users"),

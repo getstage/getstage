@@ -68,11 +68,14 @@ Expected UI:
 
 1. Connect Figma in Settings.
 2. Click **Send to FigJam**.
+3. Open the target FigJam board.
+4. Run the Stage Exporter plugin and enter the one-time pairing code shown in Stage.
 
 Expected V1 result:
 
-- Stage creates a Figma artifact destination request.
-- UI shows the current limitation: creating FigJam canvas content needs a Figma Plugin/Widget export path.
+- Stage creates or joins one OAuth-bound FigJam export job.
+- The plugin creates editable flow shapes and connectors.
+- Stage shows the completed job and an **Open in FigJam** link when Figma exposes the file key.
+- Repeated clicks do not create parallel active jobs.
 
 If Figma is not connected, expect a clear connect-Figma error.
-

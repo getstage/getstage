@@ -21,8 +21,7 @@ export const EXPORT_OPTIONS = [
     label: "Export In Paper",
     actionLabel: "Export In Paper",
     iconSrc: "/logos/paper.svg",
-    connected: false,
-    connectLabel: "Connect Paper",
+    connected: true,
   },
   {
     id: "figma" as const,

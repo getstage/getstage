@@ -60,7 +60,7 @@ run_completed
 | `projectAiContexts` | `strategyFocusAreas`, `strategyGenerateNotes`, `lastProviderId` | 1 row per project; deleted with project |
 | `projectAiRuns` | Failed / cancelled runs only | **Deleted** after successful artifact save |
 | `projectAiArtifacts` | Final `contentJson` (`StrategyArtifact` JSON) | Latest per project |
-| `artifactDestinations` | Failed Notion exports only | No row on successful export |
+| `artifactDestinations` | Durable Notion/Figma delivery records | Successful Notion export creates or updates a completed destination |
 
 Read path: `getLatestStrategyArtifact` → `mapStrategyArtifactToTabData`.
 

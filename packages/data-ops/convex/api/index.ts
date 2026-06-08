@@ -10,6 +10,7 @@ import { createMeRoutes } from "./routes/me";
 import { createPhaseRoutes } from "./routes/phases";
 import { createProjectRoutes } from "./routes/projects";
 import { createTaskRoutes } from "./routes/tasks";
+import { createFigmaExportRoutes } from "./routes/figmaExport";
 
 export function createApiApp() {
   const app = new Hono<{
@@ -51,6 +52,7 @@ export function createApiApp() {
   app.route("/api/v1/phases", createPhaseRoutes());
   app.route("/api/v1/tasks", createTaskRoutes());
   app.route("/api/v1/me", createMeRoutes());
+  app.route("/api/v1/figma-export", createFigmaExportRoutes());
 
   return app;
 }

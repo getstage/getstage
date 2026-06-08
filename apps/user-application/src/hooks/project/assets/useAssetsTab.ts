@@ -3,6 +3,7 @@ import { ASSET_CATEGORY_ICONS, EXPORT_OPTIONS } from "@/mock/project/assets";
 import type { Project } from "@/models/project/project";
 import { useAssetsArtifact } from "./useAssetsArtifact";
 import type { AssetsTabData } from "@/types/project/assetsTab";
+import { useWireframesArtifact } from "../wireframes/useWireframesArtifact";
 
 function createEmptyAssetsTabData(uploadedCount: number): AssetsTabData {
   return {
@@ -28,12 +29,45 @@ export function useAssetsTab(
 ) {
   const projectId = project.id;
   const assetsArtifact = useAssetsArtifact(projectId);
+  const wireframesArtifact = useWireframesArtifact(projectId);
 
   const backendData = assetsArtifact.data;
-  const data = backendData;
   const emptyTabData = useMemo(() => createEmptyAssetsTabData(uploadedCount), [uploadedCount]);
 
-  const tabData = data?.tabData ?? emptyTabData;
+  const tabData = useMemo<AssetsTabData>(() => {
+    const base = backendData?.tabData ?? emptyTabData;
+    const artifactRecord = wireframesArtifact.data;
+    const wireframeAssets =
+      artifactRecord?.artifact.generatedScreens.map((screen) => ({
+        id: screen.id,
+        artifactId: artifactRecord.id,
+        screenId: screen.id,
+        title: `${screen.title} Wireframe`,
+        type: artifactRecord.artifact.wireframeKind,
+        date: screen.generatedAtLabel,
+        source: "AI Generated",
+        priority: screen.priority,
+        figmaUrl: screen.figmaUrl,
+        sections: screen.sections,
+      })) ?? [];
+
+    return {
+      ...base,
+      wireframeAssets,
+      stats: {
+        ...base.stats,
+        wireframeCount: wireframeAssets.length,
+        uploadedCount,
+      },
+      categories: base.categories.map((category) =>
+        category.id === "wireframes"
+          ? { ...category, count: wireframeAssets.length }
+          : category.id === "uploaded"
+            ? { ...category, count: uploadedCount }
+            : category,
+      ),
+    };
+  }, [backendData?.tabData, emptyTabData, uploadedCount, wireframesArtifact.data]);
   const categories = useMemo(
     () =>
       tabData.categories.map((category) =>
@@ -43,12 +77,12 @@ export function useAssetsTab(
   );
 
   return {
-    data,
+    data: backendData,
     tabData,
     categories,
-    isLoading: assetsArtifact.isLoading,
-    hasArtifact: data !== null,
-    parseError: assetsArtifact.parseError,
+    isLoading: assetsArtifact.isLoading || wireframesArtifact.isLoading,
+    hasArtifact: backendData !== null || wireframesArtifact.data !== null,
+    parseError: assetsArtifact.parseError || wireframesArtifact.parseError,
     usingMockData: false,
   };
 }

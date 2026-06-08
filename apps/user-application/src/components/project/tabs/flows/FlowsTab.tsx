@@ -302,13 +302,41 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
       {artifactRecord ? (
       <section className="overflow-hidden rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="flex flex-col gap-4 p-4">
-          {uiError || figJamExport.error || figJamExport.result?.message ? (
+          {uiError || figJamExport.error ? (
             <div className={`rounded-[8px] px-3 py-2 text-[12px] font-medium leading-[1.5] ${
-              figJamExport.result?.message && !uiError && !figJamExport.error
-                ? "bg-[#FFF7ED] text-[#7C2D12]"
-                : "bg-[#FEF2F2] text-[#991B1B]"
+              "bg-[#FEF2F2] text-[#991B1B]"
             }`}>
-              {uiError ?? figJamExport.error ?? figJamExport.result?.message}
+              {uiError ?? figJamExport.error}
+            </div>
+          ) : null}
+          {figJamExport.request ? (
+            <div className="rounded-[8px] bg-[#EEF2FF] px-3 py-2 text-[12px] font-medium leading-[1.5] text-[#3730A3]">
+              {figJamExport.job?.status === "completed" ? (
+                <span>
+                  FigJam flow map exported.
+                  {figJamExport.job.destinationUrl ? (
+                    <>
+                      {" "}
+                      <a
+                        href={figJamExport.job.destinationUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline"
+                      >
+                        Open in FigJam
+                      </a>
+                    </>
+                  ) : null}
+                </span>
+              ) : (
+                <span>
+                  Open a FigJam board, run the Stage Exporter plugin, and enter code{" "}
+                  <strong className="font-mono tracking-[0.15em]">
+                    {figJamExport.request.pairingCode}
+                  </strong>
+                  . Status: {figJamExport.job?.status ?? figJamExport.request.status}.
+                </span>
+              )}
             </div>
           ) : null}
           <div className="flex flex-wrap items-end justify-between gap-5">

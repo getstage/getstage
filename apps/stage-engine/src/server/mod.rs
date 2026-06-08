@@ -1,4 +1,5 @@
 pub mod events;
+pub mod exports;
 pub mod providers;
 pub mod runs;
 pub mod status;
@@ -25,5 +26,9 @@ pub fn router(state: AppState) -> Router {
         .route("/v1/runs", post(runs::start_run))
         .route("/v1/runs/{run_id}/events", get(runs::run_events))
         .route("/v1/runs/{run_id}/cancel", post(runs::cancel_run))
+        .route("/v1/exports/figma", post(exports::create_figma_export))
+        .route("/v1/exports/figjam", post(exports::create_figjam_export))
+        .route("/v1/exports/code", post(exports::create_code_export))
+        .route("/v1/exports/paper", post(exports::create_paper_export))
         .with_state(state)
 }
