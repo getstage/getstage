@@ -1,64 +1,56 @@
 import { useCallback, useRef, useState } from "react";
-import { useMutation } from "convex/react";
+import { useQuery } from "convex/react";
+import type { CreateFigmaExportResponse } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { api } from "@/lib/convexApi";
 
-type FigJamExportResult = {
-  status: "failed" | "completed" | "requested";
-  message?: string;
-};
-
 export function useFlowsFigJamExport(projectId: string) {
-  const exportFlowsToFigJam = useMutation(api.projectAi.exportFlowsToFigJam);
-  const [result, setResult] = useState<FigJamExportResult | null>(null);
+  const [request, setRequest] = useState<CreateFigmaExportResponse | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const inFlightRef = useRef<Promise<unknown> | null>(null);
+  const inFlightRef = useRef<Promise<CreateFigmaExportResponse> | null>(null);
+  const job = useQuery(
+    api.integrations.contentPlatforms.getFigmaExportJob,
+    request ? { jobId: request.jobId as Id<"figmaExportJobs"> } : "skip",
+  );
 
   const sendToFigJam = useCallback(
     async (artifactId: string) => {
-      if (inFlightRef.current) {
-        return inFlightRef.current;
-      }
+      if (inFlightRef.current) return inFlightRef.current;
 
       setIsExporting(true);
       setError(null);
-      setResult(null);
-      const exportPromise = (async () => {
-        const response = await exportFlowsToFigJam({
-          projectId: projectId as Id<"projects">,
-          artifactId: artifactId as Id<"projectAiArtifacts">,
-        });
-        setResult({
-          status: response.status,
-          message: response.message,
-        });
-        return response;
-      })();
-
+      const exportPromise = window.stageDesktop.engine.createFigJamExport({
+        projectId,
+        artifactId,
+      });
       inFlightRef.current = exportPromise;
 
       try {
-        return await exportPromise;
+        const response = await exportPromise;
+        setRequest(response);
+        return response;
       } catch (err) {
         const message = err instanceof Error ? err.message : "Could not send flows to FigJam.";
         setError(message);
         throw err;
       } finally {
-        if (inFlightRef.current === exportPromise) {
-          inFlightRef.current = null;
-        }
+        if (inFlightRef.current === exportPromise) inFlightRef.current = null;
         setIsExporting(false);
       }
     },
-    [exportFlowsToFigJam, projectId],
+    [projectId],
   );
 
   return {
     sendToFigJam,
     isExporting,
-    result,
+    request,
+    job,
     error,
-    clearResult: () => setResult(null),
+    clearResult: () => {
+      setRequest(null);
+      setError(null);
+    },
   };
 }

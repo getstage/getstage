@@ -1,7 +1,21 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
-import type { CompanionState, DesktopSession, IntegrationOAuthResult, PermissionKind } from "@shared/models/desktop";
 import type {
+  CompanionState,
+  DesktopSession,
+  DesktopShortcutSettings,
+  DesktopShortcutSettingsResult,
+  DesktopUpdateStatus,
+  IntegrationOAuthResult,
+  PermissionKind,
+} from "@shared/models/desktop";
+import type {
+  CreateFigmaExportRequest,
+  CreateFigmaExportResponse,
+  CreateFigJamExportRequest,
+  CreatePaperExportResponse,
+  SaveCodeExportResponse,
+  WireframeDeliveryRequest,
   RunEvent,
   StartRunRequest,
   VoiceTranscriptResponse,
@@ -34,6 +48,22 @@ const stageDesktop = {
     startRun: (request: StartRunRequest) =>
       ipcRenderer.invoke(IPC_CHANNELS.engineStartRun, request),
     cancelRun: (runId: string) => ipcRenderer.invoke(IPC_CHANNELS.engineCancelRun, runId),
+    createFigmaExport: (
+      request: CreateFigmaExportRequest,
+    ): Promise<CreateFigmaExportResponse> =>
+      ipcRenderer.invoke(IPC_CHANNELS.engineCreateFigmaExport, request),
+    createFigJamExport: (
+      request: CreateFigJamExportRequest,
+    ): Promise<CreateFigmaExportResponse> =>
+      ipcRenderer.invoke(IPC_CHANNELS.engineCreateFigJamExport, request),
+    exportWireframeCode: (
+      request: WireframeDeliveryRequest,
+    ): Promise<SaveCodeExportResponse> =>
+      ipcRenderer.invoke(IPC_CHANNELS.engineExportWireframeCode, request),
+    createPaperExport: (
+      request: WireframeDeliveryRequest,
+    ): Promise<CreatePaperExportResponse> =>
+      ipcRenderer.invoke(IPC_CHANNELS.engineCreatePaperExport, request),
     onRunEvent: (callback: (event: RunEvent) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, runEvent: RunEvent) => {
         callback(runEvent);
@@ -58,6 +88,10 @@ const stageDesktop = {
       ipcRenderer.invoke(IPC_CHANNELS.voiceGetStatus, providerPreferences),
     transcribe: (input: VoiceTranscriptionRequest): Promise<VoiceTranscriptResponse> =>
       ipcRenderer.invoke(IPC_CHANNELS.voiceTranscribe, input),
+    getSettings: (): Promise<DesktopShortcutSettingsResult> =>
+      ipcRenderer.invoke(IPC_CHANNELS.voiceGetSettings),
+    updateSettings: (settings: DesktopShortcutSettings): Promise<DesktopShortcutSettingsResult> =>
+      ipcRenderer.invoke(IPC_CHANNELS.voiceUpdateSettings, settings),
     onStartStopRecordingShortcut: (callback: () => void) => {
       const listener = () => {
         callback();
@@ -108,6 +142,24 @@ const stageDesktop = {
       ipcRenderer.on(IPC_CHANNELS.integrationOAuthCompleted, listener);
       return () => {
         ipcRenderer.off(IPC_CHANNELS.integrationOAuthCompleted, listener);
+      };
+    },
+  },
+  updates: {
+    getStatus: (): Promise<DesktopUpdateStatus> =>
+      ipcRenderer.invoke(IPC_CHANNELS.updatesGetStatus),
+    check: (): Promise<DesktopUpdateStatus> =>
+      ipcRenderer.invoke(IPC_CHANNELS.updatesCheck),
+    install: (): Promise<DesktopUpdateStatus> =>
+      ipcRenderer.invoke(IPC_CHANNELS.updatesInstall),
+    onStatusChanged: (callback: (status: DesktopUpdateStatus) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, status: DesktopUpdateStatus) => {
+        callback(status);
+      };
+
+      ipcRenderer.on(IPC_CHANNELS.updatesStatusChanged, listener);
+      return () => {
+        ipcRenderer.off(IPC_CHANNELS.updatesStatusChanged, listener);
       };
     },
   },

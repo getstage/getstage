@@ -1,7 +1,6 @@
 import {
   app,
   BrowserWindow,
-  screen,
   shell,
   type BrowserWindow as BrowserWindowType,
   type HandlerDetails,
@@ -9,11 +8,9 @@ import {
 import { join } from "node:path";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import { rendererAppUrl } from "./helpers/renderer-protocol";
+import { onMainWindowReady } from "./helpers/auto-update";
 
 let mainWindow: BrowserWindowType | null = null;
-let companionWindow: BrowserWindowType | null = null;
-const MAIN_WINDOW_ACTIVATION_SUPPRESSION_MS = 1_500;
-let suppressMainWindowActivationUntil = 0;
 
 function denyWindowOpen(window: BrowserWindowType) {
   window.webContents.setWindowOpenHandler((details: HandlerDetails) => {
@@ -78,6 +75,7 @@ export function createMainWindow() {
     if (!app.isPackaged) {
       mainWindow?.webContents.openDevTools({ mode: "detach" });
     }
+    onMainWindowReady();
   });
 
   if (!app.isPackaged) {
@@ -113,13 +111,15 @@ export function getMainWindow() {
   return mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
 }
 
-function dispatchCompanionOpen(window: BrowserWindowType) {
-  void window.webContents.executeJavaScript(
-    "window.dispatchEvent(new CustomEvent('stage-companion-open'))",
-  );
+function isLegacyCompanionWindow(window: BrowserWindowType) {
+  try {
+    return new URL(window.webContents.getURL()).searchParams.get("stageWindow") === "companion";
+  } catch {
+    return window.getTitle() === "Stage Companion";
+  }
 }
 
-function sendToCompanionWhenReady(window: BrowserWindowType, channel: string) {
+function sendToRendererWhenReady(window: BrowserWindowType, channel: string) {
   const send = () => {
     setTimeout(() => {
       if (!window.isDestroyed()) {
@@ -136,6 +136,32 @@ function sendToCompanionWhenReady(window: BrowserWindowType, channel: string) {
   send();
 }
 
+export function destroyOrphanCompanionWindows() {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (window.isDestroyed() || !isLegacyCompanionWindow(window)) {
+      continue;
+    }
+
+    window.destroy();
+  }
+}
+
+function routeShortcutToMainWindow(channel: string) {
+  destroyOrphanCompanionWindows();
+  ensureDockVisible();
+
+  const window = getMainWindow() ?? createMainWindow();
+  if (window.isMinimized()) {
+    window.restore();
+  }
+  window.show();
+  window.focus();
+
+  sendToRendererWhenReady(window, channel);
+
+  return window;
+}
+
 function ensureDockVisible() {
   if (process.platform === "darwin") {
     app.dock?.show();
@@ -144,101 +170,31 @@ function ensureDockVisible() {
 
 export function openCompanionFromTray() {
   ensureDockVisible();
-  const visibleMainWindow = getMainWindow();
-
-  if (visibleMainWindow?.isFocused() && !visibleMainWindow.isMinimized()) {
-    dispatchCompanionOpen(visibleMainWindow);
-    return visibleMainWindow;
+  const window = getMainWindow() ?? createMainWindow();
+  if (window.isMinimized()) {
+    window.restore();
   }
-
-  return createCompanionWindow();
+  window.show();
+  window.focus();
+  return window;
 }
 
 export function openCompanionForVoiceShortcut() {
-  const window = createCompanionWindow();
-  sendToCompanionWhenReady(window, IPC_CHANNELS.voiceShortcutStartStopRecording);
-  return window;
+  routeShortcutToMainWindow(IPC_CHANNELS.voiceShortcutStartStopRecording);
 }
 
 export function openCompanionForLatestChatShortcut() {
-  const window = createCompanionWindow();
-  sendToCompanionWhenReady(window, IPC_CHANNELS.voiceShortcutOpenLatestChat);
-  return window;
-}
-
-export function createCompanionWindow() {
-  if (companionWindow && !companionWindow.isDestroyed()) {
-    const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
-    companionWindow.setBounds(display.workArea);
-    companionWindow.setFocusable(true);
-    companionWindow.showInactive();
-    dispatchCompanionOpen(companionWindow);
-    return companionWindow;
-  }
-
-  const cursorPoint = screen.getCursorScreenPoint();
-  const display = screen.getDisplayNearestPoint(cursorPoint);
-
-  companionWindow = new BrowserWindow({
-    ...display.workArea,
-    show: false,
-    title: "Stage Companion",
-    backgroundColor: "#00000000",
-    frame: false,
-    transparent: true,
-    resizable: false,
-    maximizable: false,
-    minimizable: false,
-    fullscreenable: false,
-    alwaysOnTop: true,
-    skipTaskbar: process.platform !== "darwin",
-    hasShadow: false,
-    webPreferences: {
-      preload: join(__dirname, "../preload/index.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
-  });
-
-  companionWindow.setAlwaysOnTop(true, "floating");
-  companionWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-  companionWindow.setIgnoreMouseEvents(true, { forward: true });
-
-  companionWindow.once("ready-to-show", () => {
-    companionWindow?.showInactive();
-  });
-
-  denyWindowOpen(companionWindow);
-  loadRenderer(companionWindow, { stageWindow: "companion" });
-
-  companionWindow.on("closed", () => {
-    companionWindow = null;
-  });
-
-  return companionWindow;
+  routeShortcutToMainWindow(IPC_CHANNELS.voiceShortcutOpenLatestChat);
 }
 
 export function closeCompanionWindow() {
-  if (companionWindow && !companionWindow.isDestroyed()) {
-    suppressMainWindowActivationUntil = Date.now() + MAIN_WINDOW_ACTIVATION_SUPPRESSION_MS;
-    companionWindow.hide();
-    companionWindow.setIgnoreMouseEvents(true, { forward: true });
-  }
-}
-
-function isCompanionWindowVisible() {
-  return Boolean(companionWindow && !companionWindow.isDestroyed() && companionWindow.isVisible());
+  destroyOrphanCompanionWindows();
 }
 
 export function shouldSuppressMainWindowActivation() {
-  return isCompanionWindowVisible() || Date.now() < suppressMainWindowActivationUntil;
+  return false;
 }
 
-export function setCompanionWindowInteractive(interactive: boolean) {
-  if (!companionWindow || companionWindow.isDestroyed()) {
-    return;
-  }
-
-  companionWindow.setIgnoreMouseEvents(!interactive, { forward: true });
+export function setCompanionWindowInteractive(_interactive: boolean) {
+  // Companion overlays are no longer created. Kept as a no-op for preload compatibility.
 }

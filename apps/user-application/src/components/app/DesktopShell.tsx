@@ -2,6 +2,10 @@ import { Suspense, lazy, useEffect, type ReactNode } from "react";
 import type { CompanionState } from "@shared/models/desktop";
 import { CompanionOrb } from "@/components/companion/CompanionOrb";
 import { useCompanionState } from "@/hooks/useCompanionState";
+import {
+  STAGE_SHORTCUT_OPEN_CHAT,
+  STAGE_SHORTCUT_TOGGLE_VOICE,
+} from "@/lib/companion/shortcutEvents";
 
 const CritiquePanel = lazy(() =>
   import("@/components/companion/CritiquePanel").then((module) => ({
@@ -19,9 +23,47 @@ type DesktopShellProps = {
   hideCompanion?: boolean;
 };
 
+const SHORTCUT_DEBOUNCE_MS = 400;
+
 export function DesktopShell({ children, hideCompanion = false }: DesktopShellProps) {
   const isCompanionWindow = new URLSearchParams(window.location.search).get("stageWindow") === "companion";
   const companion = useCompanionState(isCompanionWindow ? "listening" : "idle");
+
+  useEffect(() => {
+    if (isCompanionWindow) {
+      return;
+    }
+
+    let lastVoiceShortcutAt = 0;
+    let lastChatShortcutAt = 0;
+
+    const unsubscribeVoice =
+      window.stageDesktop?.voice?.onStartStopRecordingShortcut?.(() => {
+        const now = Date.now();
+        if (now - lastVoiceShortcutAt < SHORTCUT_DEBOUNCE_MS) {
+          return;
+        }
+
+        lastVoiceShortcutAt = now;
+        window.dispatchEvent(new CustomEvent(STAGE_SHORTCUT_TOGGLE_VOICE));
+      }) ?? (() => {});
+
+    const unsubscribeChat =
+      window.stageDesktop?.voice?.onOpenLatestChatShortcut?.(() => {
+        const now = Date.now();
+        if (now - lastChatShortcutAt < SHORTCUT_DEBOUNCE_MS) {
+          return;
+        }
+
+        lastChatShortcutAt = now;
+        window.dispatchEvent(new CustomEvent(STAGE_SHORTCUT_OPEN_CHAT));
+      }) ?? (() => {});
+
+    return () => {
+      unsubscribeVoice();
+      unsubscribeChat();
+    };
+  }, [isCompanionWindow]);
 
   useEffect(() => {
     let isInteractive = false;

@@ -1,6 +1,7 @@
 import { Suspense, lazy } from "react";
 import type { SettingsTab } from "@/models/settings/settings";
 import { SettingsShell } from "./SettingsShell";
+import { ShortcutsPanel } from "./ShortcutsPanel";
 
 const AccountPanel = lazy(() =>
   import("./AccountPanel").then((module) => ({ default: module.AccountPanel })),
@@ -54,6 +55,7 @@ export function SettingsPageView({
         {initialTab === "billing" ? <BillingPanel /> : null}
         {initialTab === "clients" ? <ClientsPanel /> : null}
         {initialTab === "developer" ? <DeveloperPanel /> : null}
+        {initialTab === "shortcuts" ? <ShortcutsPanel /> : null}
         {initialTab === "account" ? <AccountPanel /> : null}
       </Suspense>
     </SettingsShell>

@@ -15,13 +15,15 @@ import { registerVoiceHandlers } from "./voice";
 import { fetchEngineJson } from "./helpers/sidecar";
 import { providerListResponseSchema } from "@stage/data-ops/contracts";
 import { createSidecarSupervisor } from "./sidecar";
-import { checkForUpdates, initAutoUpdates } from "./helpers/auto-update";
+import { checkForUpdates, initAutoUpdates, scheduleAutomaticUpdateCheckIfDue } from "./helpers/auto-update";
 import {
   createMainWindow,
+  destroyOrphanCompanionWindows,
   openCompanionForLatestChatShortcut,
   openCompanionForVoiceShortcut,
   shouldSuppressMainWindowActivation,
 } from "./windows";
+import { registerVoiceShortcuts } from "./voice/shortcuts";
 
 loadLocalEnv();
 registerRendererProtocolSchemes();
@@ -180,28 +182,6 @@ async function installStageTrayIfEnabled() {
   }
 }
 
-function registerVoiceShortcuts() {
-  const shortcuts = [
-    {
-      accelerator: "CommandOrControl+Shift+V",
-      label: "voice note",
-      action: openCompanionForVoiceShortcut,
-    },
-    {
-      accelerator: "CommandOrControl+Shift+A",
-      label: "latest AI chat",
-      action: openCompanionForLatestChatShortcut,
-    },
-  ];
-
-  for (const shortcut of shortcuts) {
-    const registered = globalShortcut.register(shortcut.accelerator, shortcut.action);
-    if (!registered) {
-      console.warn(`[stage-voice] Could not register ${shortcut.label} shortcut ${shortcut.accelerator}.`);
-    }
-  }
-}
-
 app.on("open-url", (event, url) => {
   event.preventDefault();
   handleDeepLinkUrl(url);
@@ -255,7 +235,20 @@ app.whenReady().then(() => {
       return providerListResponseSchema.parse(payload);
     },
   });
-  registerVoiceShortcuts();
+  const shortcutResult = registerVoiceShortcuts({
+    openLatestChat: openCompanionForLatestChatShortcut,
+    startStopRecording: openCompanionForVoiceShortcut,
+  });
+  if (!shortcutResult.registrations.voiceNote.registered) {
+    console.warn(
+      `[stage-voice] Could not register voice shortcut ${shortcutResult.registrations.voiceNote.accelerator}.`,
+    );
+  }
+  if (!shortcutResult.registrations.aiChat.registered) {
+    console.warn(
+      `[stage-voice] Could not register chat shortcut ${shortcutResult.registrations.aiChat.accelerator}.`,
+    );
+  }
   authController.consumeQueuedCallback().then((result) => {
     if (result && !result.ok) {
       console.warn(`[stage-auth] ${result.error}`);
@@ -267,6 +260,7 @@ app.whenReady().then(() => {
   void integrationsController.consumeQueuedCallback();
 
   createMainWindow();
+  destroyOrphanCompanionWindows();
   debugDesktop(`main window requested after ${Date.now() - readyAt}ms; sidecar deferred until first engine IPC`);
   void installStageTrayIfEnabled();
 
@@ -276,6 +270,7 @@ app.whenReady().then(() => {
     }
 
     createMainWindow();
+    scheduleAutomaticUpdateCheckIfDue();
   });
 });
 
@@ -297,7 +292,7 @@ app.on("before-quit", (event) => {
 });
 
 app.on("window-all-closed", () => {
-  if (isDevelopment || process.platform !== "darwin") {
+  if (process.platform !== "darwin") {
     app.quit();
   }
 });

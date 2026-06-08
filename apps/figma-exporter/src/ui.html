@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { margin: 0; padding: 20px; font: 12px Inter, sans-serif; color: var(--figma-color-text); background: var(--figma-color-bg); }
+      h1 { margin: 0 0 8px; font-size: 16px; }
+      p { margin: 0 0 16px; line-height: 1.45; color: var(--figma-color-text-secondary); }
+      input { box-sizing: border-box; width: 100%; padding: 10px; border: 1px solid var(--figma-color-border); border-radius: 6px; background: var(--figma-color-bg); color: var(--figma-color-text); font: 600 18px monospace; letter-spacing: 0.14em; text-transform: uppercase; }
+      button { width: 100%; margin-top: 12px; padding: 10px; border: 0; border-radius: 6px; background: #5b55d6; color: white; font-weight: 600; cursor: pointer; }
+      button:disabled { cursor: wait; opacity: 0.55; }
+      #status { margin-top: 14px; min-height: 18px; color: var(--figma-color-text-secondary); }
+      #status.error { color: #dc2626; }
+      #status.success { color: #16a34a; }
+    </style>
+  </head>
+  <body>
+    <h1>Stage Exporter</h1>
+    <p>Open the target Figma Design file or FigJam board, then enter the one-time code shown in Stage.</p>
+    <form id="form">
+      <input id="code" autocomplete="off" maxlength="12" placeholder="PAIRING CODE" required />
+      <button id="submit" type="submit">Export from Stage</button>
+    </form>
+    <div id="status"></div>
+    <script>
+      const form = document.getElementById("form");
+      const code = document.getElementById("code");
+      const submit = document.getElementById("submit");
+      const status = document.getElementById("status");
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submit.disabled = true;
+        status.className = "";
+        status.textContent = "Starting export...";
+        parent.postMessage({ pluginMessage: { type: "export", pairingCode: code.value.trim() } }, "*");
+      });
+      onmessage = (event) => {
+        const message = event.data.pluginMessage;
+        if (!message) return;
+        status.className = message.status;
+        status.textContent = message.message;
+        submit.disabled = message.status === "working";
+      };
+    </script>
+  </body>
+</html>

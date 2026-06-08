@@ -59,7 +59,7 @@ Strategy: same philosophy in [STRATEGY_DEV_STATUS.md](../strategy/STRATEGY_DEV_S
                              │ Convex HTTP (bearer token from Electron)
 ┌────────────────────────────▼────────────────────────────────────┐
 │  LAYER 3 — Convex (packages/data-ops/convex)                    │
-│  Context · runs · artifacts · R2 presigned URLs                 │
+│  Context · runs · artifacts · R2 · Notion OAuth/export          │
 └────────────────────────────┬────────────────────────────────────┘
                              │ External
 ┌────────────────────────────▼────────────────────────────────────┐
@@ -137,6 +137,14 @@ Helper/layout conventions: [`apps/stage-engine/ARCHITECTURE.md`](../../../stage-
 | `src/contracts/research.ts` | `researchArtifact` Zod schema |
 | `src/contracts/refero.ts` | `referoContext` / `ReferoReference` / **`referoUiPatternCategorySchema`** / **`referoCategorySearchSchema`** |
 | `src/contracts/parseResearchArtifact.ts` | Normalizer (null, double JSON, matrix scores) |
+
+### Notion export
+
+- Uses the native Notion OAuth connection from onboarding or Settings.
+- Convex owns the encrypted token and Notion API write.
+- The first export asks for a parent page; later exports reuse it.
+- Successful exports persist a durable `artifactDestinations` record.
+- See [`NOTION_INTEGRATION.md`](../integrations/NOTION_INTEGRATION.md).
 
 ### Agent skill (Refero rules)
 

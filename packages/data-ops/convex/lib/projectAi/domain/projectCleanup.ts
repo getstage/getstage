@@ -68,6 +68,15 @@ export async function deleteAllProjectAiData(
   for (const destination of destinations) {
     await ctx.db.delete(destination._id);
   }
+
+  const figmaExportJobs = await ctx.db
+    .query("figmaExportJobs")
+    .withIndex("by_project", (q) => q.eq("projectId", projectId))
+    .collect();
+
+  for (const job of figmaExportJobs) {
+    await ctx.db.delete(job._id);
+  }
 }
 
 export async function deleteProjectCollaboratorsForProject(
@@ -106,7 +115,7 @@ export async function cleanupOrphanedProjectAiDataForUser(
   let deletedRuns = 0;
   let deletedContexts = 0;
   let deletedDestinations = 0;
-  let deletedCompletedDestinations = 0;
+  let deletedFigmaExportJobs = 0;
 
   const projectExists = async (projectId: Id<"projects">) => {
     const project = await ctx.db.get(projectId);
@@ -164,9 +173,17 @@ export async function cleanupOrphanedProjectAiDataForUser(
       continue;
     }
 
-    if (destination.status === "completed") {
-      await ctx.db.delete(destination._id);
-      deletedCompletedDestinations += 1;
+  }
+
+  const figmaExportJobs = await ctx.db
+    .query("figmaExportJobs")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+
+  for (const job of figmaExportJobs) {
+    if (!(await projectExists(job.projectId))) {
+      await ctx.db.delete(job._id);
+      deletedFigmaExportJobs += 1;
     }
   }
 
@@ -175,6 +192,6 @@ export async function cleanupOrphanedProjectAiDataForUser(
     deletedRuns,
     deletedContexts,
     deletedDestinations,
-    deletedCompletedDestinations,
+    deletedFigmaExportJobs,
   };
 }

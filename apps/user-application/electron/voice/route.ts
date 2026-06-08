@@ -44,7 +44,7 @@ export function decideVoiceRoute(connectivity: ProviderConnectivity): VoiceRoute
 
 export function voiceRouteUnavailableMessage(connectivity: ProviderConnectivity): string {
   if (connectivity.claudeActive && !isOpenRouterConfigured()) {
-    return "Voice with Claude only needs OPENROUTER_API_KEY in apps/user-application/.env, or connect Codex with ChatGPT for the built-in voice bridge.";
+    return "Voice transcription is not fully set up yet. Connect Codex with ChatGPT or finish desktop voice setup.";
   }
 
   if (!connectivity.claudeActive && !connectivity.codexActive) {
@@ -52,7 +52,7 @@ export function voiceRouteUnavailableMessage(connectivity: ProviderConnectivity)
   }
 
   if (connectivity.codexActive) {
-    return "Sign in to ChatGPT in Codex for voice transcription, or add OPENROUTER_API_KEY for Claude-only voice.";
+    return "Sign in to ChatGPT in Codex before using voice transcription.";
   }
 
   return "Voice transcription is not available with the current provider setup.";

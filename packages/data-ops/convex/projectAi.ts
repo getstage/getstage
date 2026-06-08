@@ -153,11 +153,6 @@ export const updateFlowsArtifact = mutation({
   handler: flowsHandlers.updateFlowsArtifactHandler,
 });
 
-export const exportFlowsToFigJam = mutation({
-  args: flowsHandlers.exportFlowsToFigJamArgs,
-  handler: flowsHandlers.exportFlowsToFigJamHandler,
-});
-
 export const getLatestWireframesArtifact = query({
   args: artifactHandlers.getLatestWireframesArtifactArgs,
   handler: artifactHandlers.getLatestWireframesArtifactHandler,

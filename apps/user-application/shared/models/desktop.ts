@@ -110,12 +110,44 @@ export const voiceTranscriptionStatusSchema = z.object({
   setupHint: z.string().min(1).nullable(),
 });
 
+export const desktopShortcutSettingsSchema = z.object({
+  voiceNoteShortcut: z.string().min(1).max(80),
+  aiChatShortcut: z.string().min(1).max(80),
+});
+
+export const DEFAULT_DESKTOP_SHORTCUT_SETTINGS = {
+  voiceNoteShortcut: "CommandOrControl+Shift+V",
+  aiChatShortcut: "CommandOrControl+Shift+A",
+} satisfies z.infer<typeof desktopShortcutSettingsSchema>;
+
+export const desktopShortcutRegistrationSchema = z.object({
+  accelerator: z.string(),
+  registered: z.boolean(),
+  reason: z.string().optional(),
+});
+
+export const desktopShortcutSettingsResultSchema = z.object({
+  settings: desktopShortcutSettingsSchema,
+  registrations: z.object({
+    voiceNote: desktopShortcutRegistrationSchema,
+    aiChat: desktopShortcutRegistrationSchema,
+  }),
+});
+
 export const desktopIntegrationOAuthResultSchema = z.object({
   ok: z.literal(true),
   provider: z.enum(["figma", "notion"]),
   status: z.enum(["connected", "error"]),
   reason: z.string().optional(),
 });
+
+export const desktopUpdateStatusSchema = z.object({
+  currentVersion: z.string(),
+  availableVersion: z.string().optional(),
+  isChecking: z.boolean(),
+});
+
+export type DesktopUpdateStatus = z.infer<typeof desktopUpdateStatusSchema>;
 
 export type IntegrationOAuthResult =
   | z.infer<typeof desktopIntegrationOAuthResultSchema>
@@ -135,3 +167,5 @@ export type CompanionState = z.infer<typeof companionStateSchema>;
 export type EngineStatusState = z.infer<typeof engineStatusStateSchema>;
 export type EngineStatus = z.infer<typeof engineStatusSchema>;
 export type VoiceTranscriptionStatus = z.infer<typeof voiceTranscriptionStatusSchema>;
+export type DesktopShortcutSettings = z.infer<typeof desktopShortcutSettingsSchema>;
+export type DesktopShortcutSettingsResult = z.infer<typeof desktopShortcutSettingsResultSchema>;

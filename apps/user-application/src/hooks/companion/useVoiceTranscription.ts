@@ -3,6 +3,7 @@ import {
   isProviderEnabledInPreferences,
   readProviderPreferences,
 } from "@/lib/engine/providerPreferences";
+import { STAGE_SHORTCUT_TOGGLE_VOICE } from "@/lib/companion/shortcutEvents";
 import { useVoiceRecorder } from "./useVoiceRecorder";
 
 function voiceProviderPreferencesPayload() {
@@ -152,17 +153,14 @@ export function useVoiceTranscription({
   }, [start, stopAndTranscribe]);
 
   useEffect(() => {
-    const subscribe = window.stageDesktop?.voice?.onStartStopRecordingShortcut;
-    if (!subscribe) {
-      console.warn(
-        "[stage-voice] Desktop voice bridge is unavailable. Quit and restart the Stage app after pulling voice changes.",
-      );
-      return;
+    function handleVoiceShortcut() {
+      void toggle();
     }
 
-    return subscribe(() => {
-      void toggle();
-    });
+    window.addEventListener(STAGE_SHORTCUT_TOGGLE_VOICE, handleVoiceShortcut);
+    return () => {
+      window.removeEventListener(STAGE_SHORTCUT_TOGGLE_VOICE, handleVoiceShortcut);
+    };
   }, [toggle]);
 
   return {
@@ -180,8 +178,16 @@ export function useVoiceTranscription({
 }
 
 function sanitizeVoiceError(message: string) {
-  return message
+  const sanitized = message
     .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/g, "Bearer [redacted]")
     .replace(/Error invoking remote method '[^']+':\s*/g, "")
     .trim();
+
+  if (
+    /OpenRouter|OPENROUTER_API_KEY|transcription request failed|transcription response failed|invalid transcription response|did not return any transcript text|status \d{3}/i.test(sanitized)
+  ) {
+    return "We couldn't transcribe that voice note. Please try again.";
+  }
+
+  return sanitized;
 }

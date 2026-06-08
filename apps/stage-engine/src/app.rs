@@ -8,6 +8,10 @@ use crate::convex_store::moodboard_repository::MoodboardRepository;
 use crate::convex_store::research_repository::ResearchRepository;
 use crate::convex_store::strategy_repository::StrategyRepository;
 use crate::convex_store::wireframes_repository::WireframesRepository;
+use crate::exports::delivery::paper::PaperClient;
+use crate::exports::delivery::service::DeliveryExportService;
+use crate::exports::figma::repository::FigmaExportRepository;
+use crate::exports::figma::service::FigmaExportService;
 use crate::figma::service::FigmaService;
 use crate::flows::workflow::FlowsWorkflow;
 use crate::helpers::time::now_millis;
@@ -28,6 +32,8 @@ pub struct AppState {
     pub service_name: &'static str,
     pub started_at_ms: u128,
     pub runs: Arc<RunManager>,
+    pub figma_exports: Arc<FigmaExportService>,
+    pub delivery_exports: Arc<DeliveryExportService>,
 }
 
 impl AppState {
@@ -71,6 +77,13 @@ impl AppState {
                 Some(flows),
                 Some(wireframes),
             )),
+            figma_exports: Arc::new(FigmaExportService::new(FigmaExportRepository::new(
+                &config.convex,
+            ))),
+            delivery_exports: Arc::new(DeliveryExportService::new(
+                FigmaExportRepository::new(&config.convex),
+                PaperClient::new(&config.paper)?,
+            )),
         })
     }
 }
@@ -79,6 +92,7 @@ pub fn build_app(config: AppConfig) -> Router {
     tracing::info!(
         refero_configured = config.refero.is_configured(),
         refero_mcp_url = %config.refero.mcp_url,
+        paper_mcp_url = %config.paper.mcp_url,
         convex_url = %config.convex.deployment_url,
         "stage engine config loaded"
     );

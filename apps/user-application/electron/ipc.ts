@@ -1,6 +1,15 @@
-import { app, BrowserWindow, ipcMain, shell, type WebContents } from "electron";
+import { mkdir, writeFile } from "node:fs/promises";
+import { basename, resolve, sep } from "node:path";
+import { app, BrowserWindow, dialog, ipcMain, shell, type WebContents } from "electron";
 import {
   cancelRunResponseSchema,
+  createFigmaExportRequestSchema,
+  createFigmaExportResponseSchema,
+  createFigJamExportRequestSchema,
+  createCodeExportResponseSchema,
+  createPaperExportResponseSchema,
+  saveCodeExportResponseSchema,
+  wireframeDeliveryRequestSchema,
   providerIdSchema,
   providerListResponseSchema,
   providerUpdateResponseSchema,
@@ -30,6 +39,11 @@ import { closeCompanionWindow, openCompanionFromTray, setCompanionWindowInteract
 import type { SidecarSupervisor } from "./sidecar";
 import type { DesktopAuthController } from "./auth";
 import type { DesktopIntegrationsController } from "./integrations";
+import {
+  checkForUpdates,
+  getDesktopUpdateStatusForRenderer,
+  installAvailableUpdate,
+} from "./helpers/auto-update";
 
 const activeRunStreams = new Map<string, AbortController>();
 const shouldLogDesktopDebug =
@@ -196,6 +210,96 @@ export function registerIpcHandlers({
     });
   });
 
+  ipcMain.handle(IPC_CHANNELS.engineCreateFigmaExport, async (_event, request: unknown) => {
+    const parsedRequest = createFigmaExportRequestSchema.parse(request);
+    const status = await sidecarSupervisor.start();
+    const accessToken = await authController.getAccessToken();
+    const payload = await fetchEngineJson<unknown>({
+      method: "POST",
+      path: "/v1/exports/figma",
+      port: status.port,
+      body: parsedRequest,
+      accessToken,
+      timeoutMs: 10_000,
+    });
+    return createFigmaExportResponseSchema.parse(payload);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.engineCreateFigJamExport, async (_event, request: unknown) => {
+    const parsedRequest = createFigJamExportRequestSchema.parse(request);
+    const status = await sidecarSupervisor.start();
+    const accessToken = await authController.getAccessToken();
+    const payload = await fetchEngineJson<unknown>({
+      method: "POST",
+      path: "/v1/exports/figjam",
+      port: status.port,
+      body: parsedRequest,
+      accessToken,
+      timeoutMs: 10_000,
+    });
+    return createFigmaExportResponseSchema.parse(payload);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.engineExportWireframeCode, async (_event, request: unknown) => {
+    const parsedRequest = wireframeDeliveryRequestSchema.parse(request);
+    const status = await sidecarSupervisor.start();
+    const accessToken = await authController.getAccessToken();
+    const bundle = createCodeExportResponseSchema.parse(
+      await fetchEngineJson<unknown>({
+        method: "POST",
+        path: "/v1/exports/code",
+        port: status.port,
+        body: parsedRequest,
+        accessToken,
+        timeoutMs: 10_000,
+      }),
+    );
+    const selection = await dialog.showOpenDialog({
+      title: "Choose where to export the Stage wireframe",
+      buttonLabel: "Export Code",
+      properties: ["openDirectory", "createDirectory"],
+    });
+    if (selection.canceled || !selection.filePaths[0]) {
+      return saveCodeExportResponseSchema.parse({
+        apiVersion: "v1",
+        cancelled: true,
+        fileCount: 0,
+      });
+    }
+
+    const directoryPath = resolve(selection.filePaths[0], basename(bundle.suggestedDirectoryName));
+    await mkdir(directoryPath, { recursive: true });
+    for (const file of bundle.files) {
+      const filePath = resolve(directoryPath, file.relativePath);
+      if (!filePath.startsWith(`${directoryPath}${sep}`)) {
+        throw new Error("Stage Engine returned an unsafe code export path.");
+      }
+      await mkdir(resolve(filePath, ".."), { recursive: true });
+      await writeFile(filePath, file.content, "utf8");
+    }
+    return saveCodeExportResponseSchema.parse({
+      apiVersion: "v1",
+      cancelled: false,
+      directoryPath,
+      fileCount: bundle.files.length,
+    });
+  });
+
+  ipcMain.handle(IPC_CHANNELS.engineCreatePaperExport, async (_event, request: unknown) => {
+    const parsedRequest = wireframeDeliveryRequestSchema.parse(request);
+    const status = await sidecarSupervisor.start();
+    const accessToken = await authController.getAccessToken();
+    const payload = await fetchEngineJson<unknown>({
+      method: "POST",
+      path: "/v1/exports/paper",
+      port: status.port,
+      body: parsedRequest,
+      accessToken,
+      timeoutMs: 40_000,
+    });
+    return createPaperExportResponseSchema.parse(payload);
+  });
+
   ipcMain.handle(IPC_CHANNELS.companionShow, () => {
     openCompanionFromTray();
     return { ok: true };
@@ -280,6 +384,18 @@ export function registerIpcHandlers({
     }
 
     return integrationsController.getOAuthReturnUrl(provider);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.updatesGetStatus, () => {
+    return getDesktopUpdateStatusForRenderer();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.updatesCheck, async () => {
+    return checkForUpdates({ manual: true });
+  });
+
+  ipcMain.handle(IPC_CHANNELS.updatesInstall, async () => {
+    return installAvailableUpdate();
   });
 }
 

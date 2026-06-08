@@ -1,11 +1,14 @@
 import { ArrowRight, Check } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAction as useConvexAction, useConvexAuth, useQuery as useConvexQuery } from "convex/react";
 import {
   FigmaOnboardingFrame,
   FigmaSection,
   FigmaStepHeader,
 } from "@/components/onboarding/OnboardingFigmaPrimitives";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/convex";
+import { openExternalLink } from "@/lib/settings/openExternalLink";
 import type { ClaudeConnectionSummary } from "@/types/settings";
 
 const ONBOARDING_ICON_SRC = {
@@ -250,12 +253,18 @@ export function FigmaIntegrationConfig({
   const [claudeKey, setClaudeKey] = useState("");
   const [connectedTools, setConnectedTools] = useState({
     codex: false,
-    figma: false,
-    notion: false,
   });
+  const { isAuthenticated } = useConvexAuth();
+  const nativeConnectionStatus = useConvexQuery(
+    api.integrations.contentPlatforms.getNativeConnectionStatus,
+    isAuthenticated ? {} : "skip",
+  );
+  const startOAuthConnect = useConvexAction(
+    api.integrations.contentPlatforms.startOAuthConnect,
+  );
   const codexConnected = connectedTools.codex;
-  const figmaConnected = connectedTools.figma;
-  const notionConnected = connectedTools.notion;
+  const figmaConnected = nativeConnectionStatus?.figma?.status === "active";
+  const notionConnected = nativeConnectionStatus?.notion?.status === "active";
   const claudeConnected =
     Boolean(claudeKey) ||
     (claudeConnection?.status === "connected" && claudeConnection.stageApiVerified);
@@ -269,12 +278,33 @@ export function FigmaIntegrationConfig({
     setClaudeKey(nextKey);
   }
 
-  function showConnecting(tool: "figma" | "notion") {
-    setView(tool === "figma" ? "connecting-figma" : "connecting-notion");
-    window.setTimeout(() => {
-      setConnectedTools((current) => ({ ...current, [tool]: true }));
+  useEffect(() => {
+    if (!window.stageDesktop?.integrations?.onOAuthCompleted) return;
+    return window.stageDesktop.integrations.onOAuthCompleted((result) => {
+      if (!result.ok) {
+        window.alert(result.error);
+        setView("list");
+        return;
+      }
+      if (result.status === "connected") {
+        setView("list");
+        return;
+      }
+      window.alert(`Could not connect ${result.provider}.`);
       setView("list");
-    }, 900);
+    });
+  }, []);
+
+  async function showConnecting(tool: "figma" | "notion") {
+    setView(tool === "figma" ? "connecting-figma" : "connecting-notion");
+    try {
+      const returnUrl = await window.stageDesktop.integrations.getOAuthReturnUrl(tool);
+      const result = await startOAuthConnect({ provider: tool, returnUrl });
+      await openExternalLink(result.url);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : `Could not connect ${tool}.`);
+      setView("list");
+    }
   }
 
   if (view === "connecting-figma" || view === "connecting-notion") {
@@ -344,14 +374,14 @@ export function FigmaIntegrationConfig({
               label="Figma"
               connected={figmaConnected}
               actionLabel="Connect Figma"
-              onAction={() => showConnecting("figma")}
+              onAction={() => void showConnecting("figma")}
             />
             <IntegrationRow
               iconSrc={INTEGRATION_ICON_SRC.notion}
               label="Notion"
               connected={notionConnected}
               actionLabel="Connect Notion"
-              onAction={() => showConnecting("notion")}
+              onAction={() => void showConnecting("notion")}
             />
           </ul>
         </FigmaSection>

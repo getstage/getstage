@@ -1,10 +1,14 @@
 import { ipcMain } from "electron";
 import type { ProviderListResponse } from "@stage/data-ops/contracts";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
-import { voiceTranscriptionStatusSchema } from "@shared/models/desktop";
+import {
+  desktopShortcutSettingsResultSchema,
+  voiceTranscriptionStatusSchema,
+} from "@shared/models/desktop";
 import { toUserFacingVoiceError } from "./errors";
 import { parseVoiceProviderPreferences, resolveVoiceTranscriptionStatus } from "./status";
 import { transcribeVoiceWithRouting } from "./route";
+import { getShortcutSettingsResult, updateShortcutSettings } from "./shortcuts";
 
 export type VoiceHandlerDependencies = {
   listProviders: () => Promise<ProviderListResponse>;
@@ -31,8 +35,18 @@ export function registerVoiceHandlers(deps: VoiceHandlerDependencies) {
       });
     } catch (error: unknown) {
       const message = toUserFacingVoiceError(error);
-      console.error("[stage-voice]", message);
+      console.error("[stage-voice] transcription failed", error);
       throw new Error(message);
     }
   });
+
+  ipcMain.removeHandler(IPC_CHANNELS.voiceGetSettings);
+  ipcMain.handle(IPC_CHANNELS.voiceGetSettings, async () =>
+    desktopShortcutSettingsResultSchema.parse(getShortcutSettingsResult()),
+  );
+
+  ipcMain.removeHandler(IPC_CHANNELS.voiceUpdateSettings);
+  ipcMain.handle(IPC_CHANNELS.voiceUpdateSettings, async (_event, rawSettings: unknown) =>
+    desktopShortcutSettingsResultSchema.parse(updateShortcutSettings(rawSettings)),
+  );
 }

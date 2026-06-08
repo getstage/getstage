@@ -10,6 +10,10 @@ export const IPC_CHANNELS = {
   engineUpdateProvider: "engine:update-provider",
   engineStartRun: "engine:start-run",
   engineCancelRun: "engine:cancel-run",
+  engineCreateFigmaExport: "engine:create-figma-export",
+  engineCreateFigJamExport: "engine:create-figjam-export",
+  engineExportWireframeCode: "engine:export-wireframe-code",
+  engineCreatePaperExport: "engine:create-paper-export",
   engineRunEvent: "engine:run-event",
   companionShow: "companion:show",
   companionHide: "companion:hide",
@@ -17,6 +21,8 @@ export const IPC_CHANNELS = {
   companionSetInteractive: "companion:set-interactive",
   voiceGetStatus: "voice:get-status",
   voiceTranscribe: "voice:transcribe",
+  voiceGetSettings: "voice:get-settings",
+  voiceUpdateSettings: "voice:update-settings",
   voiceShortcutStartStopRecording: "voice:shortcut-start-stop-recording",
   voiceShortcutOpenLatestChat: "voice:shortcut-open-latest-chat",
   windowToggleMaximize: "window:toggle-maximize",
@@ -28,6 +34,10 @@ export const IPC_CHANNELS = {
   shellOpenExternal: "shell:open-external",
   integrationsGetOAuthReturnUrl: "integrations:get-oauth-return-url",
   integrationOAuthCompleted: "integration:oauth-completed",
+  updatesGetStatus: "updates:get-status",
+  updatesCheck: "updates:check",
+  updatesInstall: "updates:install",
+  updatesStatusChanged: "updates:status-changed",
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];

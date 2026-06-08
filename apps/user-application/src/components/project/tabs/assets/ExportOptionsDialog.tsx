@@ -1,19 +1,58 @@
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { EXPORT_OPTIONS } from "@/lib/project/assetsTab";
+import type { CreateFigmaExportResponse } from "@stage/data-ops/contracts";
 import type { ExportOption, ExportOptionConfig, WireframeAssetCard } from "@/types/project/assetsTab";
 
 export function ExportOptionsDialog({
   asset,
   open,
   onOpenChange,
+  figmaConnected,
+  exportRequest,
+  exportJob,
+  exportError,
+  deliveryMessage,
+  deliveryError,
+  isExporting,
+  onExportFigma,
+  onExportDelivery,
 }: {
   asset: WireframeAssetCard | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  figmaConnected: boolean;
+  exportRequest: CreateFigmaExportResponse | null;
+  exportJob:
+    | {
+        status: "requested" | "claimed" | "completed" | "failed";
+        destinationUrl: string | null;
+        errorMessage: string | null;
+      }
+    | null
+    | undefined;
+  exportError: string | null;
+  deliveryMessage: string | null;
+  deliveryError: string | null;
+  isExporting: boolean;
+  onExportFigma: (asset: WireframeAssetCard) => Promise<unknown>;
+  onExportDelivery: (
+    option: Exclude<ExportOption, "figma">,
+    asset: WireframeAssetCard,
+  ) => Promise<unknown>;
 }) {
   const [selectedOption, setSelectedOption] = useState<ExportOption>("figma");
-  const option = EXPORT_OPTIONS.find((item) => item.id === selectedOption) ?? EXPORT_OPTIONS[2];
+  const options = EXPORT_OPTIONS.map((item) =>
+    item.id === "figma" ? { ...item, connected: figmaConnected } : item,
+  );
+  const option = options.find((item) => item.id === selectedOption) ?? options[2];
+  const message = exportError ?? deliveryError ?? exportJob?.errorMessage;
+
+  async function handleExport() {
+    if (!asset) return;
+    if (selectedOption === "figma") await onExportFigma(asset);
+    else await onExportDelivery(selectedOption, asset);
+  }
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -35,7 +74,7 @@ export function ExportOptionsDialog({
                 How do you want to export?
               </p>
               <div className="mt-3 flex flex-col gap-4">
-                {EXPORT_OPTIONS.map((item) => (
+                {options.map((item) => (
                   <ExportOptionRow
                     key={item.id}
                     option={item}
@@ -45,6 +84,49 @@ export function ExportOptionsDialog({
                 ))}
               </div>
             </div>
+
+            {exportRequest ? (
+              <div className="mx-3 mt-3 rounded-[8px] bg-white p-3 text-[12px] text-[#404040] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.2)]">
+                {exportJob?.status === "completed" ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <span>Exported to Figma.</span>
+                    {exportJob.destinationUrl ? (
+                      <a
+                        href={exportJob.destinationUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium underline"
+                      >
+                        Open in Figma
+                      </a>
+                    ) : null}
+                  </div>
+                ) : (
+                  <>
+                    <p className="font-medium text-[#171717]">Run the Stage Exporter plugin in Figma</p>
+                    <p className="mt-1 text-[#525252]">Enter this one-time pairing code:</p>
+                    <p className="mt-2 font-mono text-[20px] font-semibold tracking-[0.18em] text-[#171717]">
+                      {exportRequest.pairingCode}
+                    </p>
+                    <p className="mt-2 text-[#737373]">
+                      Status: {exportJob?.status ?? exportRequest.status}
+                    </p>
+                  </>
+                )}
+              </div>
+            ) : null}
+
+            {deliveryMessage ? (
+              <p className="mx-3 mt-3 rounded-[6px] bg-[#F0FDF4] p-2 text-[12px] text-[#166534]">
+                {deliveryMessage}
+              </p>
+            ) : null}
+
+            {message ? (
+              <p className="mx-3 mt-3 rounded-[6px] bg-[#FEF2F2] p-2 text-[12px] text-[#991B1B]">
+                {message}
+              </p>
+            ) : null}
 
             <div className="flex items-center justify-between p-3">
               <Dialog.Close asChild>
@@ -58,12 +140,13 @@ export function ExportOptionsDialog({
 
               <button
                 type="button"
-                disabled={!option.connected}
+                disabled={!option.connected || isExporting}
+                onClick={() => void handleExport()}
                 className="inline-flex h-[29px] cursor-pointer items-center justify-center gap-[10px] rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label={asset ? `${option.actionLabel} ${asset.title}` : option.actionLabel}
               >
                 <img src={option.iconSrc} alt="" className="h-[15px] w-[15px] shrink-0 object-contain" />
-                {option.actionLabel}
+                {isExporting ? "Starting..." : option.actionLabel}
               </button>
             </div>
           </div>

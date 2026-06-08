@@ -6,6 +6,7 @@ export const SETTINGS_TABS: Array<{ key: SettingsTab; label: string; icon: strin
   { key: "billing", label: "Plans & Billing", icon: "billing" },
   { key: "clients", label: "Clients", icon: "clients" },
   { key: "developer", label: "Developer", icon: "developer" },
+  { key: "shortcuts", label: "Shortcuts", icon: "shortcuts" },
   { key: "account", label: "Account", icon: "account" },
 ];
 
@@ -14,6 +15,7 @@ export const SETTINGS_TAB_ICON_PATHS: Record<string, string> = {
   billing: "/logos/dashboard/billing.svg",
   clients: "/logos/dashboard/clients.svg",
   developer: "/logos/dashboard/developer.svg",
+  shortcuts: "/logos/dashboard/ai-generated.svg",
   account: "/logos/dashboard/account.svg",
 };
 
@@ -29,6 +31,8 @@ export function getSettingsTabRoute(tab: SettingsTab): NavigateOptions["to"] {
       return "/settings/clients";
     case "developer":
       return "/settings/developer";
+    case "shortcuts":
+      return "/settings/shortcuts";
     case "account":
       return "/settings/account";
     case "portal":

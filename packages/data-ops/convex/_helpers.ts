@@ -538,6 +538,21 @@ export async function ensurePortalConfig(
   return created;
 }
 
+async function resolveAttachmentPublicUrl(
+  ctx: ReaderCtx,
+  attachment: Doc<"attachments">,
+): Promise<string> {
+  if (attachment.r2ObjectKey) {
+    return (await resolveAssetUrl(attachment.r2ObjectKey)) ?? attachment.url;
+  }
+
+  if (attachment.storageId !== undefined) {
+    return (await ctx.storage.getUrl(attachment.storageId)) ?? attachment.url;
+  }
+
+  return attachment.url;
+}
+
 export async function getAttachmentsForTask(ctx: ReaderCtx, taskId: Id<"tasks">) {
   const attachments = await ctx.db
     .query("attachments")
@@ -548,12 +563,7 @@ export async function getAttachmentsForTask(ctx: ReaderCtx, taskId: Id<"tasks">)
     attachments.map(async (attachment) => ({
       id: String(attachment._id),
       type: attachment.type,
-      url:
-        attachment.r2ObjectKey
-          ? await resolveAssetUrl(attachment.r2ObjectKey)
-          : attachment.storageId !== undefined
-          ? ((await ctx.storage.getUrl(attachment.storageId)) ?? attachment.url)
-          : attachment.url,
+      url: await resolveAttachmentPublicUrl(ctx, attachment),
       fileName: attachment.fileName,
       fileSize: attachment.fileSize,
       mimeType: attachment.mimeType,
