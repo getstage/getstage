@@ -17,7 +17,6 @@ import {
   createEmptyStageChat,
   createStageChatMessage,
   createTitleFromPrompt,
-  deleteStageChat,
   readStageChatPanelSize,
   readStageChatStore,
   subscribeToStageChats,
@@ -44,8 +43,8 @@ const chatProviders: ChatProvider[] = [
   { id: "openai", label: "OpenAI", icon: "openai" },
 ];
 
-const PANEL_WIDTH = 432;
-const PANEL_HEIGHT = 504;
+const PANEL_WIDTH = 552;
+const PANEL_HEIGHT = 511;
 const PANEL_MAX_WIDTH = 1100;
 const PANEL_MAX_HEIGHT = 900;
 const ACTIVE_COMPANION_BAR_HEIGHT = 42;
@@ -74,8 +73,14 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const [activeChat, setActiveChat] = useState<StageChat>(() => selectInitialChat());
   const [messages, setMessages] = useState<StageChatMessage[]>(() => activeChat.messages);
   const [chatStoreSnapshot, setChatStoreSnapshot] = useState(() => readStageChatStore());
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [panelSize, setPanelSize] = useState(() => readStageChatPanelSize());
+  const [historyOpen, setHistoryOpen] = useState(true);
+  const [panelSize, setPanelSize] = useState(() => {
+    const savedSize = readStageChatPanelSize();
+    return {
+      width: Math.max(PANEL_WIDTH, savedSize.width),
+      height: Math.max(PANEL_HEIGHT, savedSize.height),
+    };
+  });
   const [draft, setDraft] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [pendingSeconds, setPendingSeconds] = useState(0);
@@ -104,6 +109,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const nonPersistentMessagesRef = useRef<StageChatMessage[] | null>(null);
   const resizeStartRef = useRef<ResizeStart | null>(null);
   const panelSizeRef = useRef(panelSize);
+  const historyShortcutHandledAtRef = useRef(0);
   const getOpeningPosition = useCallback(() => ({
     x: Math.max(16, Math.round((window.innerWidth - panelSize.width) / 2)),
     y: Math.max(
@@ -112,7 +118,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     ),
   }), [companionBarBottom, panelSize.height, panelSize.width]);
   const { position, resetPosition, dragHandlers } = useDraggablePanel(getOpeningPosition());
-  const inputPlaceholder = messages.length > 0 ? "Ask a follow-up" : "Message Stage";
+  const inputPlaceholder = "Type here...";
   const recentChats = chatStoreSnapshot.chats;
   const selectedEffortLabel = reasoningEfforts.find((effort) => effort.id === selectedEffort)?.label ?? "Medium";
   const selectedSpeedLabel = responseSpeeds.find((speed) => speed.id === selectedSpeed)?.label ?? "Default";
@@ -125,6 +131,23 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
 
     return availableModels.filter((model) => model.provider === activeProvider);
   }, [activeProvider, availableModels, favoriteModelIds]);
+
+  function runHistoryShortcut() {
+    const now = Date.now();
+    if (now - historyShortcutHandledAtRef.current < 250) {
+      return;
+    }
+
+    historyShortcutHandledAtRef.current = now;
+    if (visible) {
+      setHistoryOpen((open) => !open);
+      return;
+    }
+
+    openLatestChat();
+    setHistoryOpen(true);
+    void onStateChange("thinking");
+  }
 
   useEffect(() => subscribeToStageChats(() => {
     setChatStoreSnapshot(readStageChatStore());
@@ -257,11 +280,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     }
 
     function handleOpenLatestChatShortcut() {
-      openLatestChat();
-      void onStateChange("thinking");
-      window.requestAnimationFrame(() => {
-        textareaRef.current?.focus();
-      });
+      runHistoryShortcut();
     }
 
     window.addEventListener("stage-voice-transcript-ready", handleTranscriptReady);
@@ -271,7 +290,24 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       window.removeEventListener("stage-voice-transcript-ready", handleTranscriptReady);
       window.removeEventListener(STAGE_SHORTCUT_OPEN_CHAT, handleOpenLatestChatShortcut);
     };
-  }, [onStateChange]);
+  }, [onStateChange, visible]);
+
+  useEffect(() => {
+    function handleHistoryShortcut(event: KeyboardEvent) {
+      if (event.key.toLowerCase() !== "k" || (!event.metaKey && !event.ctrlKey)) {
+        return;
+      }
+
+      event.preventDefault();
+      runHistoryShortcut();
+    }
+
+    window.addEventListener("keydown", handleHistoryShortcut);
+
+    return () => {
+      window.removeEventListener("keydown", handleHistoryShortcut);
+    };
+  }, [onStateChange, visible]);
 
   useEffect(() => {
     chatScrollRef.current?.scrollTo({
@@ -349,7 +385,9 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     if (!textarea) return;
 
     textarea.style.height = "auto";
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 82)}px`;
+    const nextHeight = Math.min(textarea.scrollHeight, 82);
+    textarea.style.height = `${nextHeight}px`;
+    textarea.style.overflowY = textarea.scrollHeight > 82 ? "auto" : "hidden";
   }, [draft]);
 
   async function submitMessage(event: FormEvent<HTMLFormElement>) {
@@ -438,7 +476,6 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     setIsThinking(false);
     setActiveChat(chat);
     setMessages(chat.messages);
-    setHistoryOpen(false);
     upsertStageChat(chat);
   }
 
@@ -452,25 +489,6 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     window.requestAnimationFrame(() => {
       textareaRef.current?.focus();
     });
-  }
-
-  function deleteChat(chatId: string, event: MouseEvent<HTMLButtonElement>) {
-    event.stopPropagation();
-    const wasActive = activeChat.id === chatId;
-    const nextStore = deleteStageChat(chatId);
-    setChatStoreSnapshot(nextStore);
-
-    if (!wasActive) {
-      return;
-    }
-
-    if (nextStore.chats.length === 0) {
-      startNewChat();
-      return;
-    }
-
-    const nextChat = nextStore.chats.find((chat) => chat.id === nextStore.activeChatId) ?? nextStore.chats[0]!;
-    openChat(nextChat);
   }
 
   function startResize(event: ReactPointerEvent<HTMLButtonElement>) {
@@ -534,90 +552,89 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       aria-label="Stage chat"
     >
       <header className="chat-panel-header">
+        <div className="chat-panel-drag-region" {...dragHandlers}>
         <div className="chat-panel-title">
           <img className="stage-mark" src="/logos/stage.svg" alt="" aria-hidden="true" />
-          <strong>Stage chat</strong>
+          <strong>Stage</strong>
+        </div>
         </div>
         <div className="chat-panel-actions">
+          <div className="chat-shortcut-hint" aria-label="Open Stage chat shortcut Command K">
+            <img src="/logos/cmd.svg" alt="" aria-hidden="true" />
+            <span>K</span>
+          </div>
           <button
-            className="chat-history-button"
+            className="chat-panel-icon-button"
             type="button"
             onClick={() => setHistoryOpen((open) => !open)}
-            aria-label="Open recent chats"
+            aria-label={historyOpen ? "Collapse chat history" : "Expand chat history"}
             aria-expanded={historyOpen}
           >
-            Recent
+            <img src="/logos/history.svg" alt="" aria-hidden="true" />
           </button>
           <button
-            className="chat-new-button"
-            type="button"
-            onClick={startNewChat}
-            aria-label="Start new chat"
-          >
-            New
-          </button>
-          <button
-            className="chat-drag-handle"
-            type="button"
-            aria-label="Drag chat"
-            {...dragHandlers}
-          >
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-          </button>
-          <button
-            className="chat-close-button"
+            className="chat-panel-icon-button chat-close-button"
             type="button"
             onClick={() => void onStateChange("idle")}
             aria-label="Close chat"
           >
-            <span className="voice-close-icon" aria-hidden="true" />
+            <img src="/logos/close-chat.svg" alt="" aria-hidden="true" />
           </button>
         </div>
       </header>
 
-      {historyOpen ? (
-        <div className="chat-history-popover" aria-label="Recent chats">
-          <div className="chat-history-header">
-            <strong>Recent chats</strong>
-            <button type="button" onClick={startNewChat}>New chat</button>
-          </div>
-          <div className="chat-history-list">
-            {recentChats.length > 0 ? (
-              recentChats.map((chat) => (
-                <div
-                  className={`chat-history-item ${chat.id === activeChat.id ? "chat-history-item-active" : ""}`}
-                  key={chat.id}
+      <div className="chat-panel-body">
+        <aside
+          className={`chat-history-sidebar ${historyOpen ? "chat-history-sidebar-open" : ""}`}
+          aria-label="Chat history"
+          aria-hidden={!historyOpen}
+        >
+          <div className="chat-history-sidebar-content">
+            <div className="chat-history-sidebar-main">
+              <div className="chat-history-sidebar-header">
+                <span>Chat History</span>
+                <button
+                  className="chat-history-collapse-button"
+                  type="button"
+                  onClick={() => setHistoryOpen(false)}
+                  aria-label="Collapse chat history"
                 >
-                  <button
-                    className="chat-history-item-button"
-                    type="button"
-                    onClick={() => openChat(chat)}
-                  >
-                    <span>{chat.title}</span>
-                    <small>{formatChatDate(chat.updatedAt)}</small>
-                  </button>
-                  <button
-                    className="chat-history-delete-button"
-                    type="button"
-                    aria-label={`Delete ${chat.title}`}
-                    onClick={(event) => deleteChat(chat.id, event)}
-                  >
-                    <span aria-hidden="true">×</span>
-                  </button>
-                </div>
-              ))
-            ) : (
-              <p>No chats yet</p>
-            )}
+                  <img src="/logos/sidebar.svg" alt="" aria-hidden="true" />
+                </button>
+              </div>
+              <div className="chat-history-list">
+                {recentChats.length > 0 ? (
+                  recentChats.map((chat) => (
+                    <div
+                      className={`chat-history-item ${chat.id === activeChat.id ? "chat-history-item-active" : ""}`}
+                      key={chat.id}
+                    >
+                      <button
+                        className="chat-history-item-button"
+                        type="button"
+                        onClick={() => openChat(chat)}
+                      >
+                        <span>{chat.title}</span>
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p>No chats yet</p>
+                )}
+              </div>
+            </div>
+            <button
+              className="chat-history-new-button"
+              type="button"
+              onClick={startNewChat}
+            >
+              <span aria-hidden="true">＋</span>
+              New Chat
+            </button>
           </div>
-        </div>
-      ) : null}
+        </aside>
 
+        <div className="chat-main-column">
       <div className="chat-thread" ref={chatScrollRef}>
         {messages.map((message) => {
           const isPendingStageMessage =
@@ -665,7 +682,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
         <textarea
           ref={textareaRef}
           aria-label="Message Stage"
-          placeholder={isThinking ? "Waiting for response..." : inputPlaceholder}
+          placeholder={inputPlaceholder}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           rows={1}
@@ -835,6 +852,8 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
           </button>
         </div>
       </form>
+        </div>
+      </div>
       <button
         className="chat-resize-handle"
         type="button"
@@ -1007,15 +1026,6 @@ function getEngineModelIdForModel(model: ChatModel) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
-}
-
-function formatChatDate(timestamp: number) {
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    month: "short",
-    day: "numeric",
-  }).format(new Date(timestamp));
 }
 
 function ProviderMark({ provider }: { provider: ChatProvider["icon"] | ChatModel["provider"] }) {
