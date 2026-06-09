@@ -45,7 +45,10 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
         }
 
         lastVoiceShortcutAt = now;
-        window.dispatchEvent(new CustomEvent(STAGE_SHORTCUT_TOGGLE_VOICE));
+        void companion.setState("listening");
+        window.requestAnimationFrame(() => {
+          window.dispatchEvent(new CustomEvent(STAGE_SHORTCUT_TOGGLE_VOICE));
+        });
       }) ?? (() => {});
 
     const unsubscribeChat =
@@ -56,14 +59,17 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
         }
 
         lastChatShortcutAt = now;
-        window.dispatchEvent(new CustomEvent(STAGE_SHORTCUT_OPEN_CHAT));
+        void companion.setState("response");
+        window.requestAnimationFrame(() => {
+          window.dispatchEvent(new CustomEvent(STAGE_SHORTCUT_OPEN_CHAT));
+        });
       }) ?? (() => {});
 
     return () => {
       unsubscribeVoice();
       unsubscribeChat();
     };
-  }, [isCompanionWindow]);
+  }, [companion.setState, isCompanionWindow]);
 
   useEffect(() => {
     let isInteractive = false;
@@ -130,16 +136,20 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
     );
   }
 
+  const mountCompanionPanels = companion.state !== "idle";
+
   return (
     <div className="stage-desktop-shell min-h-dvh">
       {children}
       {!hideCompanion ? (
         <>
           <CompanionOrb state={companion.state} />
-          <Suspense fallback={null}>
-            <VoiceControlBar state={companion.state} onStateChange={companion.setState} />
-            <CritiquePanel state={companion.state} onStateChange={companion.setState} />
-          </Suspense>
+          {mountCompanionPanels ? (
+            <Suspense fallback={null}>
+              <VoiceControlBar state={companion.state} onStateChange={companion.setState} />
+              <CritiquePanel state={companion.state} onStateChange={companion.setState} />
+            </Suspense>
+          ) : null}
         </>
       ) : null}
     </div>

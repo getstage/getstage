@@ -17,6 +17,9 @@ import {
 } from "./helpers/sidecar";
 import { delay } from "./helpers/time";
 
+/** Stop spawned engine after this idle period once no engine IPC or active streams remain. */
+export const ENGINE_IDLE_SHUTDOWN_MS = 7 * 60 * 1000;
+
 const shouldLogDesktopDebug =
   process.env.STAGE_DESKTOP_DEBUG === "1" ||
   (process.env.NODE_ENV === "development" && process.env.STAGE_DESKTOP_DEBUG !== "0");
@@ -35,6 +38,9 @@ export class SidecarSupervisor {
     port: DEFAULT_PORT,
     state: "idle",
   };
+  private lastEngineActivityAt = 0;
+  private idleShutdownHoldCount = 0;
+  private idleShutdownTimer: ReturnType<typeof setTimeout> | null = null;
 
   getStatus(): EngineStatus {
     return { ...this.status };
@@ -62,9 +68,25 @@ export class SidecarSupervisor {
     return this.getStatus();
   }
 
+  markEngineActivity() {
+    this.lastEngineActivityAt = Date.now();
+    this.scheduleIdleShutdown();
+  }
+
+  holdIdleShutdown() {
+    this.idleShutdownHoldCount += 1;
+    this.clearIdleShutdownTimer();
+  }
+
+  releaseIdleShutdown() {
+    this.idleShutdownHoldCount = Math.max(0, this.idleShutdownHoldCount - 1);
+    this.scheduleIdleShutdown();
+  }
+
   async start() {
     if (this.status.state === "ready" || this.status.state === "starting") {
       debugDesktop(`sidecar start joined existing state=${this.status.state} port=${this.status.port}`);
+      this.markEngineActivity();
       return this.getStatus();
     }
 
@@ -81,6 +103,7 @@ export class SidecarSupervisor {
         `[stage-engine] using existing service on port ${port} — restart it after Rust changes (kill $(lsof -t -i:${port}))`,
       );
       debugDesktop(`sidecar adopted existing service in ${Date.now() - startedAt}ms`);
+      this.markEngineActivity();
       return this.getStatus();
     }
 
@@ -130,6 +153,7 @@ export class SidecarSupervisor {
       this.status = { adopted: false, pid: child.pid ?? null, port, state: "ready" };
       console.info(`[stage-engine] ready on port ${port}`);
       debugDesktop(`sidecar ready in ${Date.now() - startedAt}ms`);
+      this.markEngineActivity();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown sidecar startup error.";
       this.status = { adopted: false, error: message, pid: child.pid ?? null, port, state: "failed" };
@@ -144,6 +168,8 @@ export class SidecarSupervisor {
   }
 
   async stop() {
+    this.clearIdleShutdownTimer();
+
     if (!this.child || this.status.adopted) {
       this.status = {
         ...this.status,
@@ -175,7 +201,62 @@ export class SidecarSupervisor {
       state: "stopped",
     };
 
+    this.scheduleIdleShutdown();
     return this.getStatus();
+  }
+
+  private clearIdleShutdownTimer() {
+    if (this.idleShutdownTimer) {
+      clearTimeout(this.idleShutdownTimer);
+      this.idleShutdownTimer = null;
+    }
+  }
+
+  private scheduleIdleShutdown() {
+    this.clearIdleShutdownTimer();
+
+    if (this.idleShutdownHoldCount > 0) {
+      return;
+    }
+
+    if (this.status.state !== "ready" || (!this.child && !this.status.adopted)) {
+      return;
+    }
+
+    const idleForMs = Date.now() - this.lastEngineActivityAt;
+    const remainingMs = ENGINE_IDLE_SHUTDOWN_MS - idleForMs;
+
+    if (remainingMs <= 0) {
+      void this.stopForIdle();
+      return;
+    }
+
+    this.idleShutdownTimer = setTimeout(() => {
+      void this.stopForIdle();
+    }, remainingMs);
+
+    if (typeof this.idleShutdownTimer.unref === "function") {
+      this.idleShutdownTimer.unref();
+    }
+  }
+
+  private async stopForIdle() {
+    if (this.idleShutdownHoldCount > 0) {
+      return;
+    }
+
+    if (Date.now() - this.lastEngineActivityAt < ENGINE_IDLE_SHUTDOWN_MS) {
+      this.scheduleIdleShutdown();
+      return;
+    }
+
+    if (this.status.state !== "ready" || this.status.adopted || !this.child) {
+      return;
+    }
+
+    debugDesktop("sidecar idle shutdown after engine inactivity");
+    console.info("[stage-engine] stopping after idle timeout");
+    await this.stop();
   }
 }
 

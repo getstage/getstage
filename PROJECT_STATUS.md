@@ -1,7 +1,7 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-06-08
+> **Last updated:** 2026-06-09
 
 ---
 
@@ -9,12 +9,12 @@
 
 | Priority | Item | Owner / where |
 |----------|------|----------------|
-| **!!! P0** | Desktop idle energy fix (Adrien: 5636 energy, 18 GB swap) | `docs/AI/desktop/2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md` |
-| **P1** | Build and run the packaged-DMG idle benchmark | `docs/AI/desktop/2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md` |
-| **P2** | Merge the current integration branch into the final target branch | `fix/desktop-shortcuts-operating-docs-and-energy-plan` |
+| **!!! P0** | Desktop idle energy P0 — PR `fix/desktop-idle-energy-p0` | `docs/AI/desktop/2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md` |
+| **P1** | Run packaged-DMG benchmark + 2 h soak (RAM < 400 MB, 12 hr power < 500) | `scripts/desktop-idle-benchmark.sh` |
+| **P2** | IPC R2 upload (separate PR after energy gate) | `src/lib/r2Uploads.ts`, `electron/helpers/r2-upload.ts` |
 | **P3** | Export E2E + Convex deploy | Notion live test, Figma plugin publish, Paper live write |
 
-**Current desktop version (work branch):** `0.1.55`
+**Current desktop version (work branch):** `0.1.56`
 
 ---
 

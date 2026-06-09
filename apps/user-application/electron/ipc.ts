@@ -62,6 +62,14 @@ function debugDesktop(message: string) {
   }
 }
 
+async function withEngineActivity<T>(
+  sidecarSupervisor: SidecarSupervisor,
+  task: () => Promise<T>,
+): Promise<T> {
+  sidecarSupervisor.markEngineActivity();
+  return task();
+}
+
 async function withDebugTiming<T>(label: string, task: () => Promise<T>): Promise<T> {
   const startedAt = performance.now();
   debugDesktop(`${label} started`);
@@ -106,7 +114,8 @@ export function registerIpcHandlers({
   });
 
   ipcMain.handle(IPC_CHANNELS.engineListProviders, async () => {
-    return withDebugTiming("engine:list-providers", async () => {
+    return withDebugTiming("engine:list-providers", async () =>
+      withEngineActivity(sidecarSupervisor, async () => {
       const status = await withDebugTiming("engine:list-providers sidecar-start", () =>
         sidecarSupervisor.start(),
       );
@@ -118,11 +127,13 @@ export function registerIpcHandlers({
       );
 
       return providerListResponseSchema.parse(payload);
-    });
+      }),
+    );
   });
 
   ipcMain.handle(IPC_CHANNELS.engineRefreshProviders, async () => {
-    return withDebugTiming("engine:refresh-providers", async () => {
+    return withDebugTiming("engine:refresh-providers", async () =>
+      withEngineActivity(sidecarSupervisor, async () => {
       const status = await withDebugTiming("engine:refresh-providers sidecar-start", () =>
         sidecarSupervisor.start(),
       );
@@ -135,12 +146,14 @@ export function registerIpcHandlers({
       );
 
       return providerListResponseSchema.parse(payload);
-    });
+      }),
+    );
   });
 
   ipcMain.handle(IPC_CHANNELS.engineUpdateProvider, async (_event, providerId: unknown) => {
     const parsedProviderId = providerIdSchema.parse(providerId);
-    return withDebugTiming(`engine:update-provider provider=${parsedProviderId}`, async () => {
+    return withDebugTiming(`engine:update-provider provider=${parsedProviderId}`, async () =>
+      withEngineActivity(sidecarSupervisor, async () => {
       const status = await withDebugTiming("engine:update-provider sidecar-start", () =>
         sidecarSupervisor.start(),
       );
@@ -153,7 +166,8 @@ export function registerIpcHandlers({
       );
 
       return providerUpdateResponseSchema.parse(payload);
-    });
+      }),
+    );
   });
 
   ipcMain.handle(IPC_CHANNELS.engineStartRun, async (event, request: unknown) => {
@@ -161,6 +175,7 @@ export function registerIpcHandlers({
     console.info(
       `[stage-engine] run request provider=${parsedRequest.providerId} mode=${parsedRequest.mode} projectId=${parsedRequest.context.projectId ?? "none"}`,
     );
+    sidecarSupervisor.markEngineActivity();
     const status = await withDebugTiming("engine:start-run sidecar-start", () =>
       sidecarSupervisor.start(),
     );
@@ -179,6 +194,7 @@ export function registerIpcHandlers({
     const response = startRunResponseSchema.parse(payload);
 
     void streamRunEventsToRenderer({
+      sidecarSupervisor,
       accessToken,
       port: status.port,
       runId: response.runId,
@@ -194,7 +210,8 @@ export function registerIpcHandlers({
       throw new Error("Run id must be a non-empty string.");
     }
 
-    return withDebugTiming(`engine:cancel-run runId=${runId}`, async () => {
+    return withDebugTiming(`engine:cancel-run runId=${runId}`, async () =>
+      withEngineActivity(sidecarSupervisor, async () => {
       const status = await withDebugTiming("engine:cancel-run sidecar-start", () =>
         sidecarSupervisor.start(),
       );
@@ -207,11 +224,13 @@ export function registerIpcHandlers({
       );
 
       return cancelRunResponseSchema.parse(payload);
-    });
+      }),
+    );
   });
 
   ipcMain.handle(IPC_CHANNELS.engineCreateFigmaExport, async (_event, request: unknown) => {
     const parsedRequest = createFigmaExportRequestSchema.parse(request);
+    sidecarSupervisor.markEngineActivity();
     const status = await sidecarSupervisor.start();
     const accessToken = await authController.getAccessToken();
     const payload = await fetchEngineJson<unknown>({
@@ -227,6 +246,7 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IPC_CHANNELS.engineCreateFigJamExport, async (_event, request: unknown) => {
     const parsedRequest = createFigJamExportRequestSchema.parse(request);
+    sidecarSupervisor.markEngineActivity();
     const status = await sidecarSupervisor.start();
     const accessToken = await authController.getAccessToken();
     const payload = await fetchEngineJson<unknown>({
@@ -242,6 +262,7 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IPC_CHANNELS.engineExportWireframeCode, async (_event, request: unknown) => {
     const parsedRequest = wireframeDeliveryRequestSchema.parse(request);
+    sidecarSupervisor.markEngineActivity();
     const status = await sidecarSupervisor.start();
     const accessToken = await authController.getAccessToken();
     const bundle = createCodeExportResponseSchema.parse(
@@ -287,6 +308,7 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IPC_CHANNELS.engineCreatePaperExport, async (_event, request: unknown) => {
     const parsedRequest = wireframeDeliveryRequestSchema.parse(request);
+    sidecarSupervisor.markEngineActivity();
     const status = await sidecarSupervisor.start();
     const accessToken = await authController.getAccessToken();
     const payload = await fetchEngineJson<unknown>({
@@ -400,6 +422,7 @@ export function registerIpcHandlers({
 }
 
 async function streamRunEventsToRenderer(args: {
+  sidecarSupervisor: SidecarSupervisor;
   accessToken?: string | null;
   port: number;
   runId: string;
@@ -411,6 +434,8 @@ async function streamRunEventsToRenderer(args: {
   const controller = new AbortController();
   activeRunStreams.set(args.runId, controller);
   let sawTerminalEvent = false;
+
+  args.sidecarSupervisor.holdIdleShutdown();
 
   try {
     const response = await fetch(
@@ -437,6 +462,7 @@ async function streamRunEventsToRenderer(args: {
         break;
       }
 
+      args.sidecarSupervisor.markEngineActivity();
       buffer += decoder.decode(value, { stream: true });
       const blocks = buffer.split(/\r?\n\r?\n/);
       buffer = blocks.pop() ?? "";
@@ -469,6 +495,7 @@ async function streamRunEventsToRenderer(args: {
       emitSyntheticRunFailed(args, "The research run ended before Stage received a final status.");
     }
     activeRunStreams.delete(args.runId);
+    args.sidecarSupervisor.releaseIdleShutdown();
   }
 }
 
