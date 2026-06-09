@@ -72,15 +72,6 @@ export default defineConfig({
       alias: {
         "@": resolve(__dirname, "src"),
         "@shared": resolve(__dirname, "shared"),
-        "@stage/data-ops": resolve(__dirname, "../../packages/data-ops/src/index.ts"),
-        "@stage/data-ops/domain": resolve(
-          __dirname,
-          "../../packages/data-ops/src/domain/index.ts",
-        ),
-        "@stage/data-ops/contracts": resolve(
-          __dirname,
-          "../../packages/data-ops/src/contracts/index.ts",
-        ),
       },
     },
     optimizeDeps: {
