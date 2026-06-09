@@ -12,6 +12,7 @@ import {
 } from "@/hooks/engine/useChatDefaults";
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
+import { useChatActiveProjectId } from "@/hooks/companion/useChatActiveProjectId";
 import { useDraggablePanel } from "@/hooks/companion/useDraggablePanel";
 import {
   createEmptyStageChat,
@@ -97,7 +98,10 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     "claude-opus-4.8",
     "claude-sonnet-4.6",
   ]);
-  const providerRun = useProviderRun();
+  const activeProjectId = useChatActiveProjectId();
+  const providerRun = useProviderRun(
+    activeProjectId ? { projectId: activeProjectId, mode: "chat" } : undefined,
+  );
   const providerPreferences = useProviderPreferences();
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const reasoningPickerRef = useRef<HTMLDivElement>(null);
@@ -433,7 +437,9 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
         modelId: getEngineModelIdForModel(selectedModel),
         prompt: nextPrompt,
         mode: "chat",
-        context: {},
+        context: activeProjectId
+          ? { projectId: activeProjectId, source: "chat" }
+          : {},
         attachments: [],
         modelOptions: [
           { id: "reasoning_effort", value: selectedEffort },

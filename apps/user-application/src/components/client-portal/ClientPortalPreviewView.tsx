@@ -366,6 +366,7 @@ function PreviewTaskCard({
   onRevisionDetails?: () => void;
 }) {
   const isRevision = task.status === "revision";
+  const description = task.content?.trim() ?? "";
   if (isRevision) {
     return (
       <div
@@ -381,9 +382,11 @@ function PreviewTaskCard({
               <span className="min-w-0 text-left text-[13px] font-medium leading-none text-[#171717]">
                 {task.title}
               </span>
-              <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">
-                {task.content || "Here comes the project/task description, can contain 2-3 lines at max."}
-              </p>
+              {description ? (
+                <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">
+                  {description}
+                </p>
+              ) : null}
             </div>
             <button
               type="button"
@@ -428,9 +431,11 @@ function PreviewTaskCard({
               {task.title}
             </span>
           </div>
-          <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">
-            {task.content || "Here comes the project/task description, can contain 2-3 lines at max."}
-          </p>
+          {description ? (
+            <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">
+              {description}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

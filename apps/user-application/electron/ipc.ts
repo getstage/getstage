@@ -592,8 +592,9 @@ function logRunEvent(event: RunEvent) {
       console.error(`[stage-engine] ${payload}`);
       return;
     case "run_cancelled":
-    case "provider_warning":
       console.warn(`[stage-engine] ${payload}`);
+      return;
+    case "provider_warning":
       return;
     default:
       console.info(`[stage-engine] ${payload}`);
