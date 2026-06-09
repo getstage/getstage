@@ -1,5 +1,4 @@
 import { Fragment, FormEvent, MouseEvent, PointerEvent as ReactPointerEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouterState } from "@tanstack/react-router";
 import type { CompanionState } from "@shared/models/desktop";
 import type { ProviderId, RunEvent } from "@stage/data-ops/contracts";
 import {
@@ -13,6 +12,7 @@ import {
 } from "@/hooks/engine/useChatDefaults";
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
+import { useChatActiveProjectId } from "@/hooks/companion/useChatActiveProjectId";
 import { useDraggablePanel } from "@/hooks/companion/useDraggablePanel";
 import {
   createEmptyStageChat,
@@ -25,7 +25,6 @@ import {
   writeStageChatPanelSize,
 } from "@/lib/companion/stageChats";
 import { STAGE_SHORTCUT_OPEN_CHAT } from "@/lib/companion/shortcutEvents";
-import { getActiveProjectId } from "@/lib/dashboard/sidebarNav";
 import type { StageChat, StageChatMessage } from "@/models/companion/chat";
 
 type CritiquePanelProps = {
@@ -99,8 +98,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     "claude-opus-4.8",
     "claude-sonnet-4.6",
   ]);
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const activeProjectId = getActiveProjectId(pathname);
+  const activeProjectId = useChatActiveProjectId();
   const providerRun = useProviderRun(
     activeProjectId ? { projectId: activeProjectId, mode: "chat" } : undefined,
   );

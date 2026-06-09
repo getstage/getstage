@@ -366,6 +366,7 @@ function PreviewTaskCard({
   onRevisionDetails?: () => void;
 }) {
   const isRevision = task.status === "revision";
+  const description = task.content?.trim() ?? "";
   if (isRevision) {
     return (
       <div
@@ -381,9 +382,9 @@ function PreviewTaskCard({
               <span className="min-w-0 text-left text-[13px] font-medium leading-none text-[#171717]">
                 {task.title}
               </span>
-              {task.content?.trim() ? (
+              {description ? (
                 <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">
-                  {task.content.trim()}
+                  {description}
                 </p>
               ) : null}
             </div>
@@ -430,9 +431,9 @@ function PreviewTaskCard({
               {task.title}
             </span>
           </div>
-          {task.content?.trim() ? (
+          {description ? (
             <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">
-              {task.content.trim()}
+              {description}
             </p>
           ) : null}
         </div>
