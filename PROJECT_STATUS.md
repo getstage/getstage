@@ -50,7 +50,9 @@
 
 - [x] Baseline idle benchmark on **v0.1.56 DMG** (2026-06-09) — **FAIL** (expected before energy P0 merge)
 - [ ] Re-benchmark **v0.1.57 DMG** (no chat in smoke) — must PASS
-- [ ] PR #5 (`fix/desktop-idle-energy-p0`) merged into `work`
+- [x] PR #5 (`fix/desktop-idle-energy-p0`) merged into `work`
+- [x] PR #6 (chat projectId + IPC polish) merged into `work`
+- [x] Tag **v0.1.57** pushed — GitHub Actions DMG build running
 - [ ] Export destinations verified with live E2E tests
 
 ### Baseline benchmark v0.1.56 (Werner Mac, chat used in smoke)
