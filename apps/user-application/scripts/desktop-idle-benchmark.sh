@@ -117,6 +117,33 @@ collect_stage_pids() {
   pgrep -lf stage-engine 2>/dev/null | awk '{print $1}' || true
 }
 
+print_rss_breakdown() {
+  local rows
+  rows="$(
+    while read -r pid; do
+      [[ -z "$pid" ]] && continue
+      ps -o pid=,rss=,%cpu=,comm= -p "$pid" 2>/dev/null || true
+    done < <(collect_stage_pids | sort -u)
+  )"
+
+  if [[ -z "$rows" ]]; then
+    echo "RSS by PID: (none)"
+    return
+  fi
+
+  echo "RSS by PID (largest first):"
+  echo "$rows" | sort -k2,2nr | awk '{
+    pid=$1
+    rss=$2
+    cpu=$3
+    $1=""
+    $2=""
+    $3=""
+    sub(/^[[:space:]]+/, "")
+    printf "  pid=%s rss=%sKB (~%.1fMB) cpu=%s%% %s\n", pid, rss, rss / 1024, cpu, $0
+  }'
+}
+
 print_footprint_breakdown() {
   local pid label footprint_kb total_kb=0
   echo "Footprint (Activity Monitor style, vmmap):"
@@ -180,6 +207,7 @@ for ((i = 1; i <= SAMPLES; i++)); do
 
   echo "main pid=$STAGE_PID cpu=${MAIN_CPU}% rss=${MAIN_RSS}KB"
   echo "totals cpu=${SAMPLE_CPU}% rss=${SAMPLE_RSS}KB (~$(awk "BEGIN { printf \"%.1f\", $SAMPLE_RSS / 1024 }")MB)"
+  print_rss_breakdown
 
   if [[ "$i" -lt "$SAMPLES" ]]; then
     sleep "$SAMPLE_INTERVAL_SEC"

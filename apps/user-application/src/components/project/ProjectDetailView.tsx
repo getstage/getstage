@@ -6,13 +6,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { ProjectHeader } from "./ProjectHeader";
 import { KanbanBoard } from "./KanbanBoard";
 import {
-  useFlowsArtifact,
   useLiveProject,
-  useMoodboardArtifact,
   useProjectHeaderActions,
-  useResearchArtifact,
-  useStrategyArtifact,
-  useWireframesArtifact,
 } from "@/hooks/project";
 import { useSettingsOverviewQuery } from "@/hooks/convex-data";
 import { useProjectShareLink } from "@/hooks/useProjectShareLink";
@@ -28,17 +23,6 @@ type ProjectTimeline = {
 
 type StepTab = Exclude<ProjectTab, "overview">;
 
-type ProjectStepStatus = Record<StepTab, boolean>;
-
-const PROJECT_STEP_ORDER: StepTab[] = [
-  "research",
-  "strategy",
-  "moodboard",
-  "flows",
-  "wireframes",
-  "assets",
-];
-
 const PROJECT_STEP_LABELS: Record<StepTab, string> = {
   research: "Research",
   strategy: "Strategy",
@@ -48,34 +32,9 @@ const PROJECT_STEP_LABELS: Record<StepTab, string> = {
   assets: "Assets",
 };
 
-const ResearchTab = lazy(() =>
-  import("./tabs/research/ResearchTab").then((module) => ({
-    default: module.ResearchTab,
-  })),
-);
-const StrategyTab = lazy(() =>
-  import("./tabs/strategy/StrategyTab").then((module) => ({
-    default: module.StrategyTab,
-  })),
-);
-const MoodboardTab = lazy(() =>
-  import("./tabs/moodboard/MoodboardTab").then((module) => ({
-    default: module.MoodboardTab,
-  })),
-);
-const FlowsTab = lazy(() =>
-  import("./tabs/flows/FlowsTab").then((module) => ({
-    default: module.FlowsTab,
-  })),
-);
-const WireframesTab = lazy(() =>
-  import("./tabs/wireframes/WireframesTab").then((module) => ({
-    default: module.WireframesTab,
-  })),
-);
-const AssetsTab = lazy(() =>
-  import("./tabs/assets/AssetsTab").then((module) => ({
-    default: module.AssetsTab,
+const ProjectStepView = lazy(() =>
+  import("./ProjectStepView").then((module) => ({
+    default: module.ProjectStepView,
   })),
 );
 
@@ -99,25 +58,6 @@ export function ProjectDetailView() {
   const live = useLiveProject(projectId, { enabled: !isLeavingAfterDelete });
   const artifactQueriesEnabled =
     !isLeavingAfterDelete && Boolean(live.detail) && !live.isLoading && !live.isNotFound;
-  const shouldCheckResearchArtifact =
-    artifactQueriesEnabled && activeTab !== "overview" && activeTab !== "research";
-  const shouldCheckStrategyArtifact =
-    artifactQueriesEnabled &&
-    (activeTab === "moodboard" ||
-      activeTab === "flows" ||
-      activeTab === "wireframes" ||
-      activeTab === "assets");
-  const shouldCheckMoodboardArtifact =
-    artifactQueriesEnabled &&
-    (activeTab === "flows" || activeTab === "wireframes" || activeTab === "assets");
-  const shouldCheckFlowsArtifact =
-    artifactQueriesEnabled && (activeTab === "wireframes" || activeTab === "assets");
-  const shouldCheckWireframesArtifact = artifactQueriesEnabled && activeTab === "assets";
-  const researchArtifact = useResearchArtifact(projectId, { enabled: shouldCheckResearchArtifact });
-  const strategyArtifact = useStrategyArtifact(projectId, { enabled: shouldCheckStrategyArtifact });
-  const moodboardArtifact = useMoodboardArtifact(projectId, { enabled: shouldCheckMoodboardArtifact });
-  const flowsArtifact = useFlowsArtifact(projectId, { enabled: shouldCheckFlowsArtifact });
-  const wireframesArtifact = useWireframesArtifact(projectId, { enabled: shouldCheckWireframesArtifact });
   const [modalError, setModalError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const actions = useProjectHeaderActions({
@@ -188,26 +128,6 @@ export function ProjectDetailView() {
     return tasks.sort((a, b) => b.task.updatedAt - a.task.updatedAt).slice(0, 3);
   }, [project]);
 
-  const stepStatus = useMemo<ProjectStepStatus>(() => {
-    return {
-      research: researchArtifact.hasArtifact,
-      strategy: strategyArtifact.hasArtifact,
-      moodboard: moodboardArtifact.hasArtifact,
-      flows: flowsArtifact.hasArtifact,
-      wireframes: wireframesArtifact.hasArtifact,
-      assets: true,
-    };
-  }, [
-    flowsArtifact.hasArtifact,
-    moodboardArtifact.hasArtifact,
-    researchArtifact.hasArtifact,
-    strategyArtifact.hasArtifact,
-    wireframesArtifact.hasArtifact,
-    activeTab,
-  ]);
-
-  const blockedStep = getBlockedProjectStep(activeTab, stepStatus);
-
   function goBack() {
     void navigate({ to: projectBackDestination.href as never });
   }
@@ -220,7 +140,7 @@ export function ProjectDetailView() {
 
   if (!project) {
     return (
-      <div className="flex flex-1 items-center justify-center px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
+      <div className="flex min-h-[calc(100dvh-88px)] flex-1 items-center justify-center px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
         {live.error ? (
           <div className="flex flex-col items-center gap-[8px] text-center">
             <p className="text-[14px] font-medium text-[#b91c1c]">
@@ -340,55 +260,21 @@ export function ProjectDetailView() {
           )}
 
           {activeTab !== "overview" && (
-            <div className="w-full pb-[120px] pt-7">
-              <Suspense fallback={<ProjectTabFallback label={PROJECT_STEP_LABELS[activeTab as StepTab]} />}>
-                {blockedStep ? (
-                  <ProjectStepBlockedState
-                    currentTab={activeTab as StepTab}
-                    requiredTab={blockedStep}
-                    onGoToStep={() => setActiveTab(blockedStep)}
-                  />
-                ) : null}
-                {!blockedStep && activeTab === "research" ? (
-                  <ResearchTab project={project} onGenerateStrategy={handleGenerateStrategy} />
-                ) : null}
-                {!blockedStep && activeTab === "strategy" ? (
-                  <StrategyTab
-                    project={project}
-                    onGoToResearch={() => setActiveTab("research")}
-                    onGoToMoodboard={() => setActiveTab("moodboard")}
-                    autoStartGeneration={pendingStrategyGeneration}
-                    pendingStrategyProviderId={pendingStrategyProviderId}
-                    onAutoStartHandled={() => {
-                      setPendingStrategyGeneration(false);
-                      setPendingStrategyProviderId(null);
-                    }}
-                  />
-                ) : null}
-                {!blockedStep && activeTab === "moodboard" ? (
-                  <MoodboardTab
-                    project={project}
-                    onGoToResearch={() => setActiveTab("research")}
-                    onGoToStrategy={() => setActiveTab("strategy")}
-                  />
-                ) : null}
-                {!blockedStep && activeTab === "flows" ? (
-                  <FlowsTab
-                    project={project}
-                    onGoToResearch={() => setActiveTab("research")}
-                    onGoToStrategy={() => setActiveTab("strategy")}
-                  />
-                ) : null}
-                {!blockedStep && activeTab === "wireframes" ? (
-                  <WireframesTab
-                    project={project}
-                    onGoToResearch={() => setActiveTab("research")}
-                    onGoToStrategy={() => setActiveTab("strategy")}
-                  />
-                ) : null}
-                {!blockedStep && activeTab === "assets" ? <AssetsTab project={project} /> : null}
-              </Suspense>
-            </div>
+            <Suspense fallback={<ProjectTabFallback label={PROJECT_STEP_LABELS[activeTab as StepTab]} />}>
+              <ProjectStepView
+                activeTab={activeTab as StepTab}
+                project={project}
+                artifactQueriesEnabled={artifactQueriesEnabled}
+                pendingStrategyGeneration={pendingStrategyGeneration}
+                pendingStrategyProviderId={pendingStrategyProviderId}
+                onGenerateStrategy={handleGenerateStrategy}
+                onGoToTab={setActiveTab}
+                onAutoStartHandled={() => {
+                  setPendingStrategyGeneration(false);
+                  setPendingStrategyProviderId(null);
+                }}
+              />
+            </Suspense>
           )}
         </motion.div>
       </div>
@@ -408,81 +294,6 @@ function ProjectTabFallback({ label }: { label: string }) {
     <div className="flex min-h-[260px] items-center justify-center rounded-[12px] bg-[#f5f5f5] p-4">
       <p className="text-[13px] font-medium text-[#737373]">Loading {label}...</p>
     </div>
-  );
-}
-
-function getBlockedProjectStep(activeTab: ProjectTab, stepStatus: ProjectStepStatus): StepTab | null {
-  if (activeTab === "overview" || activeTab === "research") {
-    return null;
-  }
-
-  const activeIndex = PROJECT_STEP_ORDER.indexOf(activeTab);
-  if (activeIndex <= 0) {
-    return null;
-  }
-
-  for (const step of PROJECT_STEP_ORDER.slice(0, activeIndex)) {
-    if (!stepStatus[step]) {
-      return step;
-    }
-  }
-
-  return null;
-}
-
-function ProjectStepBlockedState({
-  currentTab,
-  requiredTab,
-  onGoToStep,
-}: {
-  currentTab: StepTab;
-  requiredTab: StepTab;
-  onGoToStep: () => void;
-}) {
-  const currentLabel = PROJECT_STEP_LABELS[currentTab];
-  const requiredLabel = PROJECT_STEP_LABELS[requiredTab];
-
-  return (
-    <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <div className="rounded-[8px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        <div className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-          <div className="flex items-center justify-center p-4">
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <p className="text-[15px] font-medium leading-none text-[#171717]">
-                {currentLabel}
-              </p>
-              <p className="max-w-[460px] text-[12px] font-medium leading-[1.5] text-[#737373]">
-                This project moves step by step. Complete {requiredLabel} before proceeding to {currentLabel}.
-              </p>
-            </div>
-          </div>
-
-          <div className="rounded-[8px] bg-white px-11 py-11 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-            <div className="flex max-w-[460px] flex-col gap-6">
-              <div className="flex flex-col gap-2">
-                <p className="text-[20px] font-semibold leading-[1.2] text-[#171717]">
-                  Complete {requiredLabel} first
-                </p>
-                <p className="text-[13px] font-medium leading-[1.6] text-[#737373]">
-                  {currentLabel} depends on the work from {requiredLabel}. Finish that step and this tab will become available.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={onGoToStep}
-                  className="inline-flex h-8 items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
-                >
-                  Go to {requiredLabel}
-                  <ArrowRightIconSmall />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
   );
 }
 
