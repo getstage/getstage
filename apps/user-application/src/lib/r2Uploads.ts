@@ -57,6 +57,26 @@ export function getNormalizedMimeType(file: File) {
   return file.type || extensionToMimeType(file.name);
 }
 
+async function putUploadBody(uploadUrl: string, mimeType: string, file: File) {
+  if (typeof window !== "undefined" && window.stageDesktop?.storage?.putR2Upload) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    await window.stageDesktop.storage.putR2Upload({ uploadUrl, mimeType, bytes });
+    return;
+  }
+
+  const response = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": mimeType,
+    },
+    body: file,
+  });
+
+  if (!response.ok) {
+    throw new Error("Could not upload this file.");
+  }
+}
+
 export function validateUploadFile(purpose: UploadPurpose, file: File) {
   return getUploadValidationError(purpose, {
     fileName: file.name,
@@ -86,17 +106,7 @@ export async function uploadFileToR2(args: {
     scopeId: args.scopeId,
   })) as UploadResult;
 
-  const response = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: {
-      "Content-Type": mimeType,
-    },
-    body: args.file,
-  });
-
-  if (!response.ok) {
-    throw new Error("Could not upload this file.");
-  }
+  await putUploadBody(uploadUrl, mimeType, args.file);
 
   await args.syncMetadata({ key });
   return key;

@@ -19,6 +19,7 @@ import {
   type ProviderId,
   type RunEvent,
 } from "@stage/data-ops/contracts";
+import { putSignedR2Upload } from "./helpers/r2-upload";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import {
   companionStateSchema,
@@ -418,6 +419,36 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IPC_CHANNELS.updatesInstall, async () => {
     return installAvailableUpdate();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.storagePutR2Upload, async (_event, request: unknown) => {
+    if (!request || typeof request !== "object") {
+      throw new Error("R2 upload request is required.");
+    }
+
+    const { uploadUrl, mimeType, bytes } = request as {
+      uploadUrl?: unknown;
+      mimeType?: unknown;
+      bytes?: unknown;
+    };
+
+    if (typeof uploadUrl !== "string" || uploadUrl.trim().length === 0) {
+      throw new Error("R2 upload URL is required.");
+    }
+
+    if (typeof mimeType !== "string" || mimeType.trim().length === 0) {
+      throw new Error("R2 upload mime type is required.");
+    }
+
+    if (!(bytes instanceof Uint8Array) && !Array.isArray(bytes)) {
+      throw new Error("R2 upload payload is required.");
+    }
+
+    return putSignedR2Upload({
+      uploadUrl,
+      mimeType,
+      bytes: bytes instanceof Uint8Array ? bytes : bytes,
+    });
   });
 }
 
