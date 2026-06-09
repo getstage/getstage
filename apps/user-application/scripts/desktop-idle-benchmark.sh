@@ -93,6 +93,8 @@ echo
 TOTAL_CPU_SUM=0
 MAX_TOTAL_RSS=0
 ENGINE_SEEN=0
+STAGE_EXITED_EARLY=0
+SAMPLES_COMPLETED=0
 
 for ((i = 1; i <= SAMPLES; i++)); do
   echo "--- $(date '+%H:%M:%S') sample $i/$SAMPLES ---"
@@ -103,8 +105,11 @@ for ((i = 1; i <= SAMPLES; i++)); do
     :
   else
     echo "Stage main process exited."
+    STAGE_EXITED_EARLY=1
     break
   fi
+
+  SAMPLES_COMPLETED=$i
 
   HELPER_CPU=0
   HELPER_RSS=0
@@ -142,7 +147,7 @@ for ((i = 1; i <= SAMPLES; i++)); do
   fi
 done
 
-AVG_CPU="$(awk "BEGIN { printf \"%.2f\", $TOTAL_CPU_SUM / $SAMPLES }")"
+AVG_CPU="$(awk "BEGIN { printf \"%.2f\", $TOTAL_CPU_SUM / ($SAMPLES_COMPLETED > 0 ? $SAMPLES_COMPLETED : 1) }")"
 ENGINE_AT_END="$(pgrep -lf stage-engine 2>/dev/null || true)"
 
 echo
@@ -163,6 +168,10 @@ memory_pressure 2>/dev/null || true
 vm_stat 2>/dev/null | head -8 || true
 
 FAIL=0
+if [[ "$STAGE_EXITED_EARLY" -eq 1 ]]; then
+  echo "Stage exited before benchmark completed - marking FAIL."
+  FAIL=1
+fi
 awk "BEGIN { exit !($AVG_CPU > $MAX_AVG_CPU_PERCENT) }" || FAIL=1
 if [[ "$MAX_TOTAL_RSS" -gt "$MAX_TOTAL_RSS_KB" ]]; then
   FAIL=1
