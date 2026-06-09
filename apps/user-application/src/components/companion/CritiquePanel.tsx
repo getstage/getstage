@@ -1,4 +1,5 @@
 import { Fragment, FormEvent, MouseEvent, PointerEvent as ReactPointerEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import type { CompanionState } from "@shared/models/desktop";
 import type { ProviderId, RunEvent } from "@stage/data-ops/contracts";
 import {
@@ -24,6 +25,7 @@ import {
   writeStageChatPanelSize,
 } from "@/lib/companion/stageChats";
 import { STAGE_SHORTCUT_OPEN_CHAT } from "@/lib/companion/shortcutEvents";
+import { getActiveProjectId } from "@/lib/dashboard/sidebarNav";
 import type { StageChat, StageChatMessage } from "@/models/companion/chat";
 
 type CritiquePanelProps = {
@@ -97,7 +99,11 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     "claude-opus-4.8",
     "claude-sonnet-4.6",
   ]);
-  const providerRun = useProviderRun();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const activeProjectId = getActiveProjectId(pathname);
+  const providerRun = useProviderRun(
+    activeProjectId ? { projectId: activeProjectId, mode: "chat" } : undefined,
+  );
   const providerPreferences = useProviderPreferences();
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const reasoningPickerRef = useRef<HTMLDivElement>(null);
@@ -433,7 +439,9 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
         modelId: getEngineModelIdForModel(selectedModel),
         prompt: nextPrompt,
         mode: "chat",
-        context: {},
+        context: activeProjectId
+          ? { projectId: activeProjectId, source: "chat" }
+          : {},
         attachments: [],
         modelOptions: [
           { id: "reasoning_effort", value: selectedEffort },
