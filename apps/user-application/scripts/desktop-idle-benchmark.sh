@@ -18,10 +18,14 @@ Options:
   --minutes N   Duration in minutes (default: 30)
   --dmg         Launch packaged Stage from /Applications before sampling
 
-Pass budgets:
+Pass budgets (gate uses RSS sum):
   - Total RSS across Stage + Stage Helper + stage-engine < 400 MB (excellence: < 300 MB)
   - Average CPU across samples < 1%
   - stage-engine must not be running at end (no AI used during test)
+
+Memory note:
+  - RSS sum (ps) may over-count shared Electron libraries across Helpers.
+  - Summary also prints "footprint" per process (vmmap) — comparable to Activity Monitor.
 
 Do not touch Stage during the run.
 EOF
@@ -96,6 +100,41 @@ ENGINE_SEEN=0
 STAGE_EXITED_EARLY=0
 SAMPLES_COMPLETED=0
 
+footprint_kb_vmmap() {
+  local pid="$1"
+  vmmap --summary "$pid" 2>/dev/null | awk -F': ' '
+    /Physical footprint:/ && !/peak/ {
+      gsub(/M/, "", $2)
+      printf "%d", int($2 * 1024)
+      exit
+    }'
+}
+
+collect_stage_pids() {
+  local pid
+  pgrep -x Stage 2>/dev/null | head -1 || true
+  pgrep -lf "Stage Helper" 2>/dev/null | awk '{print $1}' || true
+  pgrep -lf stage-engine 2>/dev/null | awk '{print $1}' || true
+}
+
+print_footprint_breakdown() {
+  local pid label footprint_kb total_kb=0
+  echo "Footprint (Activity Monitor style, vmmap):"
+  while read -r pid; do
+    [[ -z "$pid" ]] && continue
+    if ! ps -p "$pid" >/dev/null 2>&1; then
+      continue
+    fi
+    footprint_kb="$(footprint_kb_vmmap "$pid")"
+    [[ -z "$footprint_kb" ]] && footprint_kb=0
+    total_kb=$((total_kb + footprint_kb))
+    label="$(ps -o comm= -p "$pid" 2>/dev/null | sed 's/^[[:space:]]*//')"
+    echo "  pid=$pid footprint=${footprint_kb}KB (~$(awk "BEGIN { printf \"%.1f\", $footprint_kb / 1024 }")MB) $label"
+  done < <(collect_stage_pids | sort -u)
+  echo "Footprint sum: ${total_kb}KB (~$(awk "BEGIN { printf \"%.1f\", $total_kb / 1024 }")MB)"
+  echo "(Footprint is closer to Activity Monitor; RSS sum above may be higher.)"
+}
+
 for ((i = 1; i <= SAMPLES; i++)); do
   echo "--- $(date '+%H:%M:%S') sample $i/$SAMPLES ---"
 
@@ -154,7 +193,10 @@ echo
 echo "=== Summary ==="
 echo "Finished: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "Average CPU: ${AVG_CPU}% (budget < ${MAX_AVG_CPU_PERCENT}%)"
-echo "Peak RSS: ${MAX_TOTAL_RSS}KB (budget < ${MAX_TOTAL_RSS_KB}KB)"
+echo "Peak RSS sum (ps): ${MAX_TOTAL_RSS}KB (~$(awk "BEGIN { printf \"%.1f\", $MAX_TOTAL_RSS / 1024 }")MB) — gate budget < ${MAX_TOTAL_RSS_KB}KB (~400MB)"
+echo
+print_footprint_breakdown
+echo
 echo "Engine seen during run: $([[ "$ENGINE_SEEN" -eq 1 ]] && echo yes || echo no)"
 echo "Engine at end:"
 if [[ -n "$ENGINE_AT_END" ]]; then

@@ -358,7 +358,7 @@ pgrep -lf 'stage-engine' || echo "PASS — no engine at launch"
 
 | # | Action | Files |
 |---|--------|-------|
-| 2.1 | Help → **Show Logs** (main + sidecar path) | `electron/main.ts` |
+| 2.1 | Help → **Show Logs** (main + sidecar path); terminal logs **errors/warnings only** (no `output_delta` stream) | `electron/main.ts`, `electron/ipc.ts` |
 | 2.2 | `[stage-desktop:perf]` idle log line every N min (RSS, helper count, engine up/down) | `electron/main.ts` or helper |
 | 2.3 | Link this plan + budgets in `DESKTOP_PERFORMANCE.md` | docs |
 

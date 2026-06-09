@@ -586,17 +586,28 @@ function emitSyntheticRunFailed(
 }
 
 function logRunEvent(event: RunEvent) {
-  const payload = JSON.stringify(event);
   switch (event.type) {
     case "run_failed":
-      console.error(`[stage-engine] ${payload}`);
+      console.error(
+        `[stage-engine] run failed runId=${event.runId} provider=${event.providerId} ${event.error.message}`,
+      );
       return;
     case "run_cancelled":
-      console.warn(`[stage-engine] ${payload}`);
+      console.warn(
+        `[stage-engine] run cancelled runId=${event.runId}${event.reason ? ` reason=${event.reason}` : ""}`,
+      );
       return;
     case "provider_warning":
+      console.warn(`[stage-engine] provider warning runId=${event.runId} ${event.message}`);
+      return;
+    case "tool_call_completed":
+      if (event.status === "failed") {
+        console.error(
+          `[stage-engine] tool call failed runId=${event.runId} toolCallId=${event.toolCallId}`,
+        );
+      }
       return;
     default:
-      console.info(`[stage-engine] ${payload}`);
+      return;
   }
 }
