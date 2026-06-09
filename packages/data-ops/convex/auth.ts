@@ -361,7 +361,7 @@ const Demo = ConvexCredentials({
 
 // Stopgap until the desktop refresh-token retry flow ships:
 // give the JWT a 30-day lifetime so desktop sessions do not expire after 1 hour.
-// Tracked in apps/user-application/docs/05-10/05-10-token-refresh-and-tasks-priority-plan.md.
+// Tracked in docs/archive/session-plans/05-10/05-10-token-refresh-and-tasks-priority-plan.md.
 const DESKTOP_JWT_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({

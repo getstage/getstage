@@ -75,6 +75,30 @@ export const getCollaboratorAccess = query({
   },
 });
 
+export const ensureShareLink = mutation({
+  args: {
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, { projectId }) => {
+    await requireProjectOwner(ctx, projectId);
+    const config = await ensurePortalConfig(ctx, projectId);
+
+    if (!config.isEnabled) {
+      await ctx.db.patch(config._id, {
+        isEnabled: true,
+        updatedAt: Date.now(),
+      });
+    }
+
+    return {
+      projectId: String(projectId),
+      shareToken: config.shareToken,
+      shareUrl: config.shareUrl,
+      isEnabled: true,
+    };
+  },
+});
+
 export const setEnabled = mutation({
   args: {
     projectId: v.id("projects"),

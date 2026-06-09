@@ -30,7 +30,9 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
   const companion = useCompanionState(isCompanionWindow ? "listening" : "idle");
   const pendingVoiceShortcutRef = useRef(false);
   const pendingChatShortcutRef = useRef(false);
-  const mountCompanionPanels = !isCompanionWindow && companion.state !== "idle";
+  const showChatPanel =
+    !isCompanionWindow &&
+    (companion.state === "thinking" || companion.state === "response");
 
   useEffect(() => {
     if (isCompanionWindow) {
@@ -78,7 +80,10 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
   }, [companion.setState, isCompanionWindow]);
 
   useEffect(() => {
-    if (!mountCompanionPanels) {
+    if (
+      isCompanionWindow ||
+      (!pendingVoiceShortcutRef.current && !pendingChatShortcutRef.current)
+    ) {
       return;
     }
 
@@ -105,7 +110,7 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
       cancelled = true;
       cancelAnimationFrame(frameId);
     };
-  }, [mountCompanionPanels]);
+  }, [companion.state, isCompanionWindow]);
 
   useEffect(() => {
     let isInteractive = false;
@@ -178,12 +183,12 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
       {!hideCompanion ? (
         <>
           <CompanionOrb state={companion.state} />
-          {mountCompanionPanels ? (
-            <Suspense fallback={null}>
-              <VoiceControlBar state={companion.state} onStateChange={companion.setState} />
+          <Suspense fallback={null}>
+            <VoiceControlBar state={companion.state} onStateChange={companion.setState} />
+            {showChatPanel ? (
               <CritiquePanel state={companion.state} onStateChange={companion.setState} />
-            </Suspense>
-          ) : null}
+            ) : null}
+          </Suspense>
         </>
       ) : null}
     </div>

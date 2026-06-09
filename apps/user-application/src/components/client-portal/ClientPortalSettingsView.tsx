@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { z } from "zod";
 
-import { useSettingsOverviewQuery } from "@/hooks/convex-data";
+import { useProjectsQuery, useSettingsOverviewQuery } from "@/hooks/convex-data";
 import { api } from "@/lib/convexApi";
 import { ClientPortalTabBar } from "./ClientPortalTabBar";
 
@@ -15,6 +15,8 @@ const portalBrandingResultSchema = z.object({
 
 export function ClientPortalSettingsView() {
   const navigate = useNavigate();
+  const projectsQuery = useProjectsQuery();
+  const previewProjectId = projectsQuery.data?.[0]?.id;
   const overview = useSettingsOverviewQuery();
   const updatePortalBranding = useMutation(api.settings.updatePortalBranding);
   const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
@@ -55,13 +57,15 @@ export function ClientPortalSettingsView() {
           </div>
           <button
             type="button"
-            onClick={() =>
+            disabled={!previewProjectId}
+            onClick={() => {
+              if (!previewProjectId) return;
               void navigate({
                 to: "/client-portal/$projectId/preview",
-                params: { projectId: "baseframe" },
-              })
-            }
-            className="flex h-[32px] shrink-0 items-center gap-[8px] rounded-[6px] px-[10px] py-[6px] text-[13px] font-medium text-[#525252] transition-colors hover:bg-[#f5f5f5]"
+                params: { projectId: previewProjectId },
+              });
+            }}
+            className="flex h-[32px] shrink-0 items-center gap-[8px] rounded-[6px] px-[10px] py-[6px] text-[13px] font-medium text-[#525252] transition-colors hover:bg-[#f5f5f5] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Preview Portal
             <RedirectIcon />

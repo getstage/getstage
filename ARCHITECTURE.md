@@ -56,8 +56,8 @@ Desktop → browser → web-application → deep link / callback → Electron ma
 
 ## Deep docs (reference only)
 
-- Full history: `apps/user-application/docs/05-05-stage-monorepo-architecture.md`
-- Clean ownership: `apps/user-application/docs/05-28/05-28-clean-monorepo-architecture-plan.md`
+- Full history: `docs/archive/session-plans/05-05-stage-monorepo-architecture.md`
+- Clean ownership: `docs/archive/session-plans/05-28/05-28-clean-monorepo-architecture-plan.md`
 - Desktop perf: `apps/user-application/docs/AI/desktop/DESKTOP_PERFORMANCE.md`
 
 **Do not read those for daily status — use `PROJECT_STATUS.md`.**

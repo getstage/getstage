@@ -9,7 +9,6 @@ import { DesktopShell } from "@/components/app/DesktopShell";
 import { useDesktopSessionInvalidation } from "@/hooks/app/useDesktopSessionInvalidation";
 import { useProviderRunInvalidation } from "@/hooks/app/useProviderRunInvalidation";
 import { shouldHideCompanion } from "@/lib/app/chromeRules";
-import { toUserFacingErrorMessage } from "@/lib/errors";
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -39,10 +38,7 @@ function RootErrorBoundary({ error, reset }: ErrorComponentProps) {
           Stage needs a quick refresh
         </h1>
         <p className="mt-3 text-[15px] leading-[1.6] text-[#525252]">
-          {toUserFacingErrorMessage(
-            error,
-            "We could not load this view. Try again, or return to the dashboard.",
-          )}
+          We could not load this view. Try again, or return to the dashboard.
         </p>
         <div className="mt-6 flex items-center gap-3">
           <button

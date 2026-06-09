@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type PointerEvent } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { mockProject } from "@/data/project/projectSnapshot";
+import { useNavigate, useParams } from "@tanstack/react-router";
+import { parseConvexId } from "@stage/data-ops";
+import { useLiveProject } from "@/hooks/project";
+import { useSettingsOverviewQuery } from "@/hooks/convex-data";
 import type { Phase, Task } from "@/models/project/project";
 
 type PreviewStatus = "backlog" | "todo" | "in-progress" | "done" | "revision";
@@ -39,16 +41,53 @@ const TAG_COLORS: Record<string, string> = {
 };
 
 export function ClientPortalPreviewView() {
-  const project = mockProject;
-  const phases = useMemo(() => addRevisionTasks(project.phases), [project.phases]);
+  const navigate = useNavigate();
+  const { projectId } = useParams({ from: "/_authed/client-portal/$projectId/preview" });
+  const convexProjectId = parseConvexId<"projects">(projectId);
+  const live = useLiveProject(projectId, { enabled: convexProjectId !== null });
+  const settingsOverview = useSettingsOverviewQuery();
+  const portalBranding = settingsOverview.data?.portalBranding;
+  const phases = live.project?.phases ?? [];
+  const progress = live.detail?.progress ?? 0;
+  const completedSegments = Math.min(5, Math.max(0, Math.round(progress / 20)));
+
+  if (!convexProjectId) {
+    return (
+      <PreviewState
+        title="Project not found"
+        message="This preview link does not point to a live project."
+        actionLabel="Back to Client Portal"
+        onAction={() => void navigate({ to: "/client-portal" })}
+      />
+    );
+  }
+
+  if (live.isLoading) {
+    return <PreviewState title="Loading preview..." message="Fetching live project data." />;
+  }
+
+  if (live.isNotFound || !live.project || !live.detail) {
+    return (
+      <PreviewState
+        title="Project not found"
+        message="We could not load this project for preview."
+        actionLabel="Back to Client Portal"
+        onAction={() => void navigate({ to: "/client-portal" })}
+      />
+    );
+  }
 
   return (
     <div className="flex-1 bg-white px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)] text-[#0a0a0a]">
       <div className="flex min-w-0 flex-col gap-[28px]">
         <div className="flex min-w-0 flex-col gap-[28px]">
           <header className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-[12px]">
-            <div className="flex items-center gap-[2px]">
-              <img src="/apple-touch-icon.png" alt="" className="h-[22px] w-[22px]" />
+            <div className="flex items-center gap-[8px]">
+              {portalBranding?.logoUrl ? (
+                <img src={portalBranding.logoUrl} alt="" className="h-[22px] w-[22px] rounded-full object-cover" />
+              ) : (
+                <img src="/apple-touch-icon.png" alt="" className="h-[22px] w-[22px]" />
+              )}
               <span className="font-heading text-[19px] font-semibold leading-[1.25] text-black">Stage</span>
             </div>
             <span className="justify-self-end whitespace-nowrap rounded-[8px] bg-[#fff7ed] px-[8px] py-[4px] text-[12px] font-medium leading-[1.5] text-[#ea580c]">
@@ -58,25 +97,30 @@ export function ClientPortalPreviewView() {
 
           <div className="grid min-w-0 gap-[18px] xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
             <div className="min-w-0">
-              <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0a0a0a]">Website Revamp</h1>
-              <p className="mt-[6px] text-[13px] font-medium leading-[1.5] text-[#525252]">Baseframe Design Studio</p>
+              <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0a0a0a]">{live.project.name}</h1>
+              <p className="mt-[6px] text-[13px] font-medium leading-[1.5] text-[#525252]">
+                {live.project.clientName}
+              </p>
             </div>
             <div className="flex min-w-0 flex-wrap items-center gap-x-[16px] gap-y-[10px] xl:justify-end xl:gap-x-[24px]">
               <div className="flex min-w-0 items-center gap-[12px]">
-                <span className="shrink-0 text-[11px] font-medium leading-[1.5] text-[#525252]">12 completed%</span>
+                <span className="shrink-0 text-[11px] font-medium leading-[1.5] text-[#525252]">
+                  {progress}% completed
+                </span>
                 <div className="grid min-w-[96px] flex-1 grid-cols-5 gap-[4px] sm:w-[176px] sm:flex-none">
-                  <span className="h-[6px] rounded-[2px] bg-gradient-to-r from-[#8d87ff] to-[rgba(141,135,255,0.75)]" />
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <span key={index} className="h-[6px] rounded-[2px] bg-[#e7e6fd]" />
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <span
+                      key={index}
+                      className="h-[6px] rounded-[2px]"
+                      style={{
+                        background:
+                          index < completedSegments
+                            ? portalBranding?.accentColor ?? "#8d87ff"
+                            : "#e7e6fd",
+                      }}
+                    />
                   ))}
                 </div>
-              </div>
-              <div className="hidden h-[24px] w-px bg-[#e5e5e5] sm:block" />
-              <div className="flex items-center gap-[6px]">
-                <span className="flex h-[22px] w-[22px] items-center justify-center rounded-[6px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-                  <MaskedIcon src="/logos/dashboard/number-of-revisions.svg" className="h-[14px] w-[14px] bg-[#8d87ff]" />
-                </span>
-                <span className="text-[11px] font-medium leading-[1.5] text-[#525252]">3 Revisions remaining</span>
               </div>
             </div>
           </div>
@@ -88,33 +132,32 @@ export function ClientPortalPreviewView() {
   );
 }
 
-function addRevisionTasks(phases: Phase[]): PreviewPhase[] {
-  return [
-    ...phases,
-    {
-      id: "revision",
-      name: "Submitted",
-      status: "active" as const,
-      tasks: [
-        {
-          id: "revision-1",
-          title: "Complete kickoff questionnaire",
-          content: "Here comes the project/task description, can contain 2-3 lines at max.",
-          status: "revision",
-          isCompleted: false,
-          updatedAt: Date.now(),
-        },
-        {
-          id: "revision-2",
-          title: "Complete kickoff questionnaire",
-          content: "Here comes the project/task description, can contain 2-3 lines at max.",
-          status: "revision",
-          isCompleted: false,
-          updatedAt: Date.now(),
-        },
-      ],
-    },
-  ];
+function PreviewState({
+  title,
+  message,
+  actionLabel,
+  onAction,
+}: {
+  title: string;
+  message: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+      <p className="text-[18px] font-semibold text-[#0a0a0a]">{title}</p>
+      <p className="max-w-[360px] text-[13px] font-medium text-[#525252]">{message}</p>
+      {actionLabel && onAction ? (
+        <button
+          type="button"
+          onClick={onAction}
+          className="rounded-[8px] bg-[#0a0a0a] px-4 py-2 text-[13px] font-medium text-white"
+        >
+          {actionLabel}
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 function buildColumns(phases: PreviewPhase[]): Record<PreviewStatus, BoardTask[]> {
@@ -128,7 +171,10 @@ function buildColumns(phases: PreviewPhase[]): Record<PreviewStatus, BoardTask[]
 
   for (const phase of phases) {
     for (const task of phase.tasks) {
-      const status = task.status === "revision" ? "revision" : task.status ?? (task.isCompleted ? "done" : "todo");
+      const status =
+        task.status === "revision"
+          ? "revision"
+          : task.boardStatus ?? task.status ?? (task.isCompleted ? "done" : "todo");
       if (status in grouped) grouped[status as PreviewStatus].push({ task, phaseName: phase.name });
     }
   }
@@ -137,7 +183,6 @@ function buildColumns(phases: PreviewPhase[]): Record<PreviewStatus, BoardTask[]
 }
 
 function PreviewBoard({ phases }: { phases: PreviewPhase[] }) {
-  const navigate = useNavigate();
   const initialColumns = useMemo(() => buildColumns(phases), [phases]);
   const [columns, setColumns] = useState(initialColumns);
   const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
@@ -270,13 +315,6 @@ function PreviewBoard({ phases }: { phases: PreviewPhase[] }) {
                       task={task}
                       phaseName={phaseName}
                       onPointerDown={(event) => startDragging(event, task.id)}
-                      onOpen={() =>
-                        void navigate({
-                          to: "/tasks/$taskId",
-                          params: { taskId: task.id },
-                          search: { from: "client-portal", projectId: "baseframe" },
-                        })
-                      }
                       onRevisionDetails={() => setIsRevisionDetailsOpen(true)}
                     />
                   </div>
@@ -319,14 +357,12 @@ function PreviewTaskCard({
   phaseName,
   dragging = false,
   onPointerDown,
-  onOpen,
   onRevisionDetails,
 }: {
   task: PreviewTask;
   phaseName: string;
   dragging?: boolean;
   onPointerDown?: (event: PointerEvent<HTMLDivElement>) => void;
-  onOpen?: () => void;
   onRevisionDetails?: () => void;
 }) {
   const isRevision = task.status === "revision";
@@ -342,17 +378,9 @@ function PreviewTaskCard({
           </span>
           <div className="flex flex-col gap-[12px]">
             <div className="flex flex-col gap-[4px]">
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onOpen?.();
-                }}
-                onPointerDown={(event) => event.stopPropagation()}
-                className="min-w-0 cursor-pointer text-left text-[13px] font-medium leading-none text-[#171717] outline-none hover:underline focus-visible:underline"
-              >
+              <span className="min-w-0 text-left text-[13px] font-medium leading-none text-[#171717]">
                 {task.title}
-              </button>
+              </span>
               <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">
                 {task.content || "Here comes the project/task description, can contain 2-3 lines at max."}
               </p>
@@ -396,17 +424,9 @@ function PreviewTaskCard({
                 {task.isCompleted ? <CheckIcon /> : null}
               </button>
             ) : null}
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                onOpen?.();
-              }}
-              onPointerDown={(event) => event.stopPropagation()}
-              className="min-w-0 flex-1 cursor-pointer text-left text-[13px] font-medium leading-[1.25] text-[#171717] outline-none hover:underline focus-visible:underline"
-            >
+            <span className="min-w-0 flex-1 text-left text-[13px] font-medium leading-[1.25] text-[#171717]">
               {task.title}
-            </button>
+            </span>
           </div>
           <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">
             {task.content || "Here comes the project/task description, can contain 2-3 lines at max."}

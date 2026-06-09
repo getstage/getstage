@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "r
 import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import type { Id } from "@stage/data-ops/convex/data-model";
+import { parseConvexTaskId } from "@stage/data-ops";
 import { DeleteTaskModal } from "@/components/tasks/DeleteTaskModal";
 import { KanbanAssignCard } from "@/components/project/kanban/KanbanAssignCard";
 import {
@@ -62,13 +63,15 @@ export function TaskDetailsView() {
   const navigate = useNavigate();
   const { taskId } = useParams({ from: "/_authed/tasks/$taskId" });
   const search = useSearch({ from: "/_authed/tasks/$taskId" });
-  const detail = useConvexQuery(api.tasks.getDetail, {
-    taskId: taskId as Id<"tasks">,
-  });
+  const convexTaskId = parseConvexTaskId(taskId);
+  const detail = useConvexQuery(
+    api.tasks.getDetail,
+    convexTaskId ? { taskId: convexTaskId } : "skip",
+  );
   const task = detail?.task ?? null;
   const project = detail?.project ?? null;
   const phase = detail?.phase ?? null;
-  const isLoading = detail === undefined;
+  const isLoading = convexTaskId !== null && detail === undefined;
 
   const backLabel =
     search.from === "project"

@@ -442,7 +442,8 @@ Expect: main + Helpers only; **no** `stage-engine` after idle timeout.
 | Version | Date | Idle RAM | Idle CPU (30m) | engine after idle | 12 hr power (2h soak) | Benchmark script |
 |---------|------|----------|----------------|-------------------|----------------------|------------------|
 | 0.1.53 | 2026-06-07 | — | — | yes (partner) | **5636** (partner) | not run |
-| 0.1.54 | TBD | < 800 MB | < 1% | no | < 500 | PASS |
+| 0.1.56 | 2026-06-09 | **956 MB peak** | **9.2% avg** | **yes** (after chat smoke) | not run | **FAIL** |
+| 0.1.57+ | TBD | < 400 MB | < 1% | no | < 500 | PASS (after PR #5 DMG) |
 
 ---
 

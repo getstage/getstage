@@ -1,5 +1,7 @@
 # Desktop docs — index
 
+> Full repo doc map: [`docs/README.md`](../../../../../docs/README.md)
+
 | Document | Use for |
 |----------|---------|
 | **[`2026-06-08!!!-PROJECT_OPERATING_PLAN.md`](./2026-06-08!!!-PROJECT_OPERATING_PLAN.md)** | **!!! VERY IMPORTANT** — Notion + docs + git + Greptile + exports + what now |
