@@ -87,6 +87,13 @@ export type StageDesktopApi = {
     getOAuthReturnUrl: (provider: "figma" | "notion") => Promise<string>;
     onOAuthCompleted: (callback: (result: IntegrationOAuthResult) => void) => () => void;
   };
+  storage: {
+    putR2Upload: (request: {
+      uploadUrl: string;
+      mimeType: string;
+      bytes: Uint8Array;
+    }) => Promise<{ ok: true; status: number }>;
+  };
   updates: {
     getStatus: () => Promise<DesktopUpdateStatus>;
     check: () => Promise<DesktopUpdateStatus>;

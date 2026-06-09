@@ -226,6 +226,7 @@ app.whenReady().then(() => {
   registerIpcHandlers({ authController, integrationsController, sidecarSupervisor });
   registerVoiceHandlers({
     listProviders: async () => {
+      sidecarSupervisor.markEngineActivity();
       const status = await sidecarSupervisor.start();
       const payload = await fetchEngineJson<unknown>({
         path: "/v1/providers",

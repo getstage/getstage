@@ -35,7 +35,7 @@ function mapTask(task: TaskSummary): Task {
     id: task.id,
     title: task.title,
     summary: task.summary,
-    content: undefined,
+    content: task.summary,
     hasContent: task.hasContent,
     boardStatus: task.boardStatus ?? undefined,
     isCompleted: task.isCompleted,

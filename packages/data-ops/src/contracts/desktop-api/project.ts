@@ -35,6 +35,9 @@ export const projectDetailSchema = projectSummarySchema.extend({
   completedTaskCount: z.number().int().nonnegative(),
   createdAt: z.number().int().nonnegative(),
   updatedAt: z.number().int().nonnegative(),
+  shareToken: z.string().optional(),
+  shareUrl: z.string().url().optional(),
+  portalEnabled: z.boolean().optional(),
 });
 
 export type ProjectType = z.infer<typeof projectTypeSchema>;

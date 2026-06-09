@@ -50,7 +50,7 @@ const PANEL_MAX_HEIGHT = 900;
 const ACTIVE_COMPANION_BAR_HEIGHT = 42;
 const MAIN_WINDOW_BAR_BOTTOM = 12;
 const COMPANION_WINDOW_BAR_BOTTOM = 32;
-const PROVIDER_ERROR_MESSAGE = "Something went wrong. Please check your integrations for Claude/Codex connection.";
+const PROVIDER_ERROR_MESSAGE = "Something went wrong. Please try again.";
 
 type ResizeStart = {
   height: number;
@@ -345,13 +345,14 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     );
 
     if (failedEvent) {
+      console.error("[stage-chat] run failed", failedEvent.error);
       setMessages((currentMessages) =>
         currentMessages.map((message) =>
           message.id === responseMessageId
             ? {
                 ...message,
                 tone: "error",
-                content: [failedEvent.error.message || PROVIDER_ERROR_MESSAGE],
+                content: [PROVIDER_ERROR_MESSAGE],
               }
             : message,
         ),
@@ -440,12 +441,12 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
         ],
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : PROVIDER_ERROR_MESSAGE;
+      console.error("[stage-chat] send failed", error);
       const errorMessage = createStageChatMessage({
         id: stageMessageId,
         role: "stage",
         tone: "error",
-        content: [message],
+        content: [PROVIDER_ERROR_MESSAGE],
       });
       setMessages((currentMessages) => [
         ...currentMessages.filter((message) => message.id !== stageMessageId),

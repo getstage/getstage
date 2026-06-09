@@ -1,6 +1,6 @@
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
-import { getAttachmentsForTask } from "../../_helpers";
+import { getAttachmentsForTask, getPortalConfigByProjectId } from "../../_helpers";
 import { resolveAssetUrl } from "../../r2";
 
 type ReaderCtx = QueryCtx | MutationCtx;
@@ -82,6 +82,7 @@ export async function buildApiProjectDetail(
   const endMarkerImageUrl = await resolveAssetUrl(project.endMarkerImageUrl ?? null);
   const clientAvatarUrl = await resolveAssetUrl(project.clientAvatarUrl ?? null);
   const stats = await getTaskStatsForProject(ctx, project._id);
+  const portalConfig = await getPortalConfigByProjectId(ctx, project._id);
 
   return {
     id: String(project._id),
@@ -106,6 +107,9 @@ export async function buildApiProjectDetail(
     completedTaskCount: stats.completedTaskCount,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
+    shareToken: portalConfig?.shareToken,
+    shareUrl: portalConfig?.shareUrl,
+    portalEnabled: portalConfig?.isEnabled,
   };
 }
 

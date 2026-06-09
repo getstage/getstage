@@ -84,6 +84,9 @@ const projectDetailReturn = v.object({
   completedTaskCount: v.number(),
   createdAt: v.number(),
   updatedAt: v.number(),
+  shareToken: v.optional(v.string()),
+  shareUrl: v.optional(v.string()),
+  portalEnabled: v.optional(v.boolean()),
 });
 
 const phaseSummaryReturn = v.object({

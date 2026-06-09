@@ -14,6 +14,8 @@ const AUTH_INVALID_EMAIL_PATTERN = /valid email|email address/i;
 const AUTH_UNAVAILABLE_PATTERN = /auth|oauth|loops-otp|google|sign in|signin/i;
 const PERMISSION_PATTERN = /unauthenticated|not authenticated|not authorized|forbidden|access denied/i;
 const NETWORK_PATTERN = /failed to fetch|network ?error|load failed|network request failed/i;
+const MODULE_LOAD_PATTERN =
+  /does not provide an export|failed to fetch dynamically imported module|cannot find module|module not found|importing a module script failed|error loading dynamically imported module|\/@fs\//i;
 const PROJECT_UPGRADE_REQUIRED_PATTERN =
   /free plan includes up to \d+ projects|upgrade to pro to create (another project|more projects?|projects)|project limit/i;
 
@@ -103,6 +105,10 @@ export function toUserFacingErrorMessage(error: unknown, fallback: string): stri
 
   if (NETWORK_PATTERN.test(message)) {
     return "We could not reach the server. Please check your connection and try again.";
+  }
+
+  if (MODULE_LOAD_PATTERN.test(message)) {
+    return fallback;
   }
 
   if (PROJECT_UPGRADE_REQUIRED_PATTERN.test(message)) {

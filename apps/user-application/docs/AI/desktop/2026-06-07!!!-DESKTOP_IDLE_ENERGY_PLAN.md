@@ -35,10 +35,10 @@ Same app version (**0.1.53**) can feel fine on one Mac and destroy another. Adri
 
 | Metric | v0.1.53 (observed / inferred) | **Target v0.1.54+** |
 |--------|-------------------------------|----------------------|
-| Total RAM (Stage + all Helpers) | unknown high under pressure | **< 800 MB** idle |
+| Total RAM (Stage + all Helpers) | unknown high under pressure | **< 400 MB** release gate · **< 300 MB** excellence |
 | Average CPU (idle 30 min) | spikes + background work | **< 1%** |
 | `stage-engine` running | may stay up after AI | **not running** unless AI active |
-| 12 hr power (2 h session + idle) | 5636 (partner) | **< 500** (order-of-magnitude drop) |
+| 12 hr power (2 h session + idle) | 5636 (partner) | **< 500** release gate · **single digits** when truly idle |
 | Swap growth attributable to Stage | contributed to 18 GB | **no steady climb** over 30 min idle |
 
 ---
@@ -108,11 +108,11 @@ done
 | Metric | Pass |
 |--------|------|
 | **Idle CPU** (30 min avg, main + all Helpers) | **< 1%** |
-| **Total RAM** (all Stage processes) | **< 800 MB** |
+| **Total RAM** (all Stage processes) | **< 400 MB** (excellence: **< 300 MB**) |
 | **`stage-engine`** | **not running** if you did not use AI |
 | **Energy** (after 30 min) | Activity Monitor → Energy → Stage **not** top of list |
 
-`rss` in `ps` is in **KB** — 800 MB ≈ 819200 KB total across all Stage lines.
+`rss` in `ps` is in **KB** — 400 MB ≈ 409600 KB total across all Stage lines.
 
 ---
 
@@ -328,11 +328,11 @@ pgrep -lf 'stage-engine' || echo "PASS — no engine at launch"
 
 | # | Action | Current status | Acceptance criteria | Files |
 |---|--------|----------------|---------------------|-------|
-| 0.1 | **Idle benchmark script** in repo | Not started | Script runs 30 min, logs CPU/RAM/helpers, exits non-zero on budget breach | `scripts/desktop-idle-benchmark.sh` (new) |
-| 0.2 | **Stop `stage-engine` when idle** | Not implemented | 5–10 min after last engine IPC, supervisor stops child; port free (`lsof -i :48221` empty) | `electron/sidecar.ts`, `electron/ipc.ts` |
-| 0.3 | **Renderer background throttling** | Electron default is enabled; explicit audit still needed | `backgroundThrottling: true` on all `BrowserWindow` webPreferences | `electron/windows.ts` |
+| 0.1 | **Idle benchmark script** in repo | Implemented | Script runs 30 min, logs CPU/RAM/helpers, exits non-zero on budget breach | `scripts/desktop-idle-benchmark.sh` (new) |
+| 0.2 | **Stop `stage-engine` when idle** | Implemented (7 min) | 5–10 min after last engine IPC, supervisor stops child; port free (`lsof -i :48221` empty) | `electron/sidecar.ts`, `electron/ipc.ts` |
+| 0.3 | **Renderer background throttling** | Implemented | `backgroundThrottling: true` on all `BrowserWindow` webPreferences | `electron/windows.ts` |
 | 0.4 | **Remove fullscreen companion overlay path** | Implemented; cleanup safety fix pending | No `createCompanionWindow` in production shortcuts; legacy cleanup must not destroy unrelated windows | `electron/windows.ts`, `electron/ipc.ts` |
-| 0.5 | **Lazy-mount companion UI** | Not implemented | Chat/voice chrome not in DOM until user opens companion | `DesktopShell.tsx`, companion components |
+| 0.5 | **Lazy-mount companion UI** | Implemented | Chat/voice chrome not in DOM until user opens companion | `DesktopShell.tsx`, companion components |
 | 0.6 | **Pause work when app hidden** | Not implemented | No polling / reduced Convex refetch when `document.hidden` or main window not visible | renderer hooks, `useEngineStatus.ts` |
 | 0.7 | **Document quit vs close** | Planned | In-app or release note: use **Cmd+Q** to fully quit; red X leaves Stage in background (until we change behavior) | copy / settings (optional) |
 | 0.8 | **Reduce streaming persistence writes** | Implemented locally | Chat persistence does not synchronously write localStorage for every streaming chunk | `CritiquePanel.tsx`, `stageChats.ts` |
@@ -442,7 +442,8 @@ Expect: main + Helpers only; **no** `stage-engine` after idle timeout.
 | Version | Date | Idle RAM | Idle CPU (30m) | engine after idle | 12 hr power (2h soak) | Benchmark script |
 |---------|------|----------|----------------|-------------------|----------------------|------------------|
 | 0.1.53 | 2026-06-07 | — | — | yes (partner) | **5636** (partner) | not run |
-| 0.1.54 | TBD | < 800 MB | < 1% | no | < 500 | PASS |
+| 0.1.56 | 2026-06-09 | **956 MB peak** | **9.2% avg** | **yes** (after chat smoke) | not run | **FAIL** |
+| 0.1.57+ | TBD | < 400 MB | < 1% | no | < 500 | PASS (after PR #5 DMG) |
 
 ---
 

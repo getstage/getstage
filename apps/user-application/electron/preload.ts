@@ -145,6 +145,13 @@ const stageDesktop = {
       };
     },
   },
+  storage: {
+    putR2Upload: (request: {
+      uploadUrl: string;
+      mimeType: string;
+      bytes: Uint8Array;
+    }) => ipcRenderer.invoke(IPC_CHANNELS.storagePutR2Upload, request),
+  },
   updates: {
     getStatus: (): Promise<DesktopUpdateStatus> =>
       ipcRenderer.invoke(IPC_CHANNELS.updatesGetStatus),

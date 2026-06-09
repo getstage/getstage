@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useRef, type ReactNode } from "react";
 import type { CompanionState } from "@shared/models/desktop";
 import { CompanionOrb } from "@/components/companion/CompanionOrb";
 import { useCompanionState } from "@/hooks/useCompanionState";
@@ -28,6 +28,11 @@ const SHORTCUT_DEBOUNCE_MS = 400;
 export function DesktopShell({ children, hideCompanion = false }: DesktopShellProps) {
   const isCompanionWindow = new URLSearchParams(window.location.search).get("stageWindow") === "companion";
   const companion = useCompanionState(isCompanionWindow ? "listening" : "idle");
+  const pendingVoiceShortcutRef = useRef(false);
+  const pendingChatShortcutRef = useRef(false);
+  const showChatPanel =
+    !isCompanionWindow &&
+    (companion.state === "thinking" || companion.state === "response");
 
   useEffect(() => {
     if (isCompanionWindow) {
@@ -45,7 +50,10 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
         }
 
         lastVoiceShortcutAt = now;
-        window.dispatchEvent(new CustomEvent(STAGE_SHORTCUT_TOGGLE_VOICE));
+        void import("@/components/companion/VoiceControlBar").then(() => {
+          pendingVoiceShortcutRef.current = true;
+          void companion.setState("listening");
+        });
       }) ?? (() => {});
 
     const unsubscribeChat =
@@ -56,14 +64,53 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
         }
 
         lastChatShortcutAt = now;
-        window.dispatchEvent(new CustomEvent(STAGE_SHORTCUT_OPEN_CHAT));
+        void Promise.all([
+          import("@/components/companion/VoiceControlBar"),
+          import("@/components/companion/CritiquePanel"),
+        ]).then(() => {
+          pendingChatShortcutRef.current = true;
+          void companion.setState("response");
+        });
       }) ?? (() => {});
 
     return () => {
       unsubscribeVoice();
       unsubscribeChat();
     };
-  }, [isCompanionWindow]);
+  }, [companion.setState, isCompanionWindow]);
+
+  useEffect(() => {
+    if (
+      isCompanionWindow ||
+      (!pendingVoiceShortcutRef.current && !pendingChatShortcutRef.current)
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    const frameId = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (cancelled) {
+          return;
+        }
+
+        if (pendingVoiceShortcutRef.current) {
+          pendingVoiceShortcutRef.current = false;
+          window.dispatchEvent(new CustomEvent(STAGE_SHORTCUT_TOGGLE_VOICE));
+        }
+
+        if (pendingChatShortcutRef.current) {
+          pendingChatShortcutRef.current = false;
+          window.dispatchEvent(new CustomEvent(STAGE_SHORTCUT_OPEN_CHAT));
+        }
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frameId);
+    };
+  }, [companion.state, isCompanionWindow]);
 
   useEffect(() => {
     let isInteractive = false;
@@ -138,7 +185,9 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
           <CompanionOrb state={companion.state} />
           <Suspense fallback={null}>
             <VoiceControlBar state={companion.state} onStateChange={companion.setState} />
-            <CritiquePanel state={companion.state} onStateChange={companion.setState} />
+            {showChatPanel ? (
+              <CritiquePanel state={companion.state} onStateChange={companion.setState} />
+            ) : null}
           </Suspense>
         </>
       ) : null}

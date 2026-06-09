@@ -1,6 +1,6 @@
 import type { PointerEvent } from "react";
 import { useQuery as useConvexQuery } from "convex/react";
-import type { Id } from "@stage/data-ops/convex/data-model";
+import { parseConvexTaskId } from "@stage/data-ops";
 import { Avatar } from "@/components/ui/Avatar";
 import { KANBAN_ASSIGNEES } from "@/data/fixtures/project/kanbanAssignees";
 import { useSettingsOverviewQuery } from "@/hooks/convex-data";
@@ -38,9 +38,10 @@ export function KanbanTaskCard({
   const assigneeAvatarUrl = assignee
     ? getTaskAssigneeAvatarUrl(assignee.name, profile)
     : undefined;
+  const convexTaskId = task.hasContent ? parseConvexTaskId(task.id) : null;
   const taskDetail = useConvexQuery(
     api.tasks.getDetail,
-    task.hasContent ? { taskId: task.id as Id<"tasks"> } : "skip",
+    convexTaskId ? { taskId: convexTaskId } : "skip",
   );
   const description = taskDetail?.task.content?.trim() || task.content?.trim();
 

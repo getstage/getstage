@@ -15,6 +15,7 @@ import {
   useWireframesArtifact,
 } from "@/hooks/project";
 import { useSettingsOverviewQuery } from "@/hooks/convex-data";
+import { useProjectShareLink } from "@/hooks/useProjectShareLink";
 import { formatInputDate } from "@/lib/format";
 import { getProjectBackDestination } from "@/lib/projectBackDestination";
 import { formatRelativeTime } from "@/lib/utils";
@@ -391,7 +392,13 @@ export function ProjectDetailView() {
           )}
         </motion.div>
       </div>
-      {isShareModalOpen ? <ShareModal onClose={() => setIsShareModalOpen(false)} /> : null}
+      {isShareModalOpen ? (
+        <ShareModal
+          projectId={projectId}
+          detail={live.detail}
+          onClose={() => setIsShareModalOpen(false)}
+        />
+      ) : null}
     </>
   );
 }
@@ -479,8 +486,20 @@ function ProjectStepBlockedState({
   );
 }
 
-function ShareModal({ onClose }: { onClose: () => void }) {
-  const portalLink = "https://baseframe.design/";
+function ShareModal({
+  projectId,
+  detail,
+  onClose,
+}: {
+  projectId: string;
+  detail: ReturnType<typeof useLiveProject>["detail"];
+  onClose: () => void;
+}) {
+  const share = useProjectShareLink({
+    projectId,
+    detail,
+    open: true,
+  });
 
   return (
     <div
@@ -510,10 +529,33 @@ function ShareModal({ onClose }: { onClose: () => void }) {
             </span>
             <input
               readOnly
-              value={portalLink}
+              value={share.isPreparing ? "Preparing link..." : share.shareUrl}
+              onFocus={(event) => event.currentTarget.select()}
+              onClick={(event) => event.currentTarget.select()}
               className="h-[34px] rounded-[6px] bg-[#F5F5F5] px-[12px] text-[12px] font-medium leading-none text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none"
             />
+            {share.prepareError ? (
+              <p className="text-[12px] font-medium text-[#b91c1c]">{share.prepareError}</p>
+            ) : null}
           </label>
+
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-[6px] px-[12px] py-[8px] text-[12px] font-medium text-[#525252] transition-colors hover:bg-[#f5f5f5]"
+            >
+              Done
+            </button>
+            <button
+              type="button"
+              disabled={!share.shareUrl || share.isPreparing}
+              onClick={() => void share.copyShareUrl()}
+              className="rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-[12px] py-[8px] text-[12px] font-medium text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {share.copied ? "Copied" : "Copy link"}
+            </button>
+          </div>
 
           <div className="flex flex-col gap-[8px]">
             <div className="flex flex-col gap-[4px]">
