@@ -113,11 +113,20 @@ export function getMainWindow() {
 }
 
 function isLegacyCompanionWindow(window: BrowserWindowType) {
-  try {
-    return new URL(window.webContents.getURL()).searchParams.get("stageWindow") === "companion";
-  } catch {
-    return window.getTitle() === "Stage Companion";
+  if (window === mainWindow) {
+    return false;
   }
+
+  try {
+    const url = window.webContents.getURL();
+    if (url && new URL(url).searchParams.get("stageWindow") === "companion") {
+      return true;
+    }
+  } catch {
+    // Fall through to title/name checks for unloaded or malformed legacy windows.
+  }
+
+  return window.getTitle() === "Stage Companion";
 }
 
 function sendToRendererWhenReady(window: BrowserWindowType, channel: string) {

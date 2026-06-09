@@ -41,6 +41,7 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
 
     let lastVoiceShortcutAt = 0;
     let lastChatShortcutAt = 0;
+    let cancelled = false;
 
     const unsubscribeVoice =
       window.stageDesktop?.voice?.onStartStopRecordingShortcut?.(() => {
@@ -51,6 +52,10 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
 
         lastVoiceShortcutAt = now;
         void import("@/components/companion/VoiceControlBar").then(() => {
+          if (cancelled) {
+            return;
+          }
+
           pendingVoiceShortcutRef.current = true;
           void companion.setState("listening");
         });
@@ -68,12 +73,17 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
           import("@/components/companion/VoiceControlBar"),
           import("@/components/companion/CritiquePanel"),
         ]).then(() => {
+          if (cancelled) {
+            return;
+          }
+
           pendingChatShortcutRef.current = true;
           void companion.setState("response");
         });
       }) ?? (() => {});
 
     return () => {
+      cancelled = true;
       unsubscribeVoice();
       unsubscribeChat();
     };
