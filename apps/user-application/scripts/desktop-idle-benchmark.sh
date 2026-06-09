@@ -99,7 +99,7 @@ for ((i = 1; i <= SAMPLES; i++)); do
 
   MAIN_CPU=0
   MAIN_RSS=0
-  if ps -o %cpu=,rss= -p "$STAGE_PID" 2>/dev/null | read -r MAIN_CPU MAIN_RSS; then
+  if read -r MAIN_CPU MAIN_RSS < <(ps -o %cpu=,rss= -p "$STAGE_PID" 2>/dev/null); then
     :
   else
     echo "Stage main process exited."

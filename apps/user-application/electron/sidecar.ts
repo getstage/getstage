@@ -41,6 +41,7 @@ export class SidecarSupervisor {
   private lastEngineActivityAt = 0;
   private idleShutdownHoldCount = 0;
   private idleShutdownTimer: ReturnType<typeof setTimeout> | null = null;
+  private stopPromise: Promise<EngineStatus> | null = null;
 
   getStatus(): EngineStatus {
     return { ...this.status };
@@ -84,6 +85,10 @@ export class SidecarSupervisor {
   }
 
   async start() {
+    if (this.stopPromise) {
+      await this.stopPromise;
+    }
+
     if (this.status.state === "ready" || this.status.state === "starting") {
       debugDesktop(`sidecar start joined existing state=${this.status.state} port=${this.status.port}`);
       this.markEngineActivity();
@@ -132,6 +137,10 @@ export class SidecarSupervisor {
     });
 
     child.once("exit", (code, signal) => {
+      if (this.child !== child) {
+        return;
+      }
+
       if (this.status.state === "stopping") {
         return;
       }
@@ -168,6 +177,16 @@ export class SidecarSupervisor {
   }
 
   async stop() {
+    if (!this.stopPromise) {
+      this.stopPromise = this.runStop().finally(() => {
+        this.stopPromise = null;
+      });
+    }
+
+    return this.stopPromise;
+  }
+
+  private async runStop() {
     this.clearIdleShutdownTimer();
 
     if (!this.child || this.status.adopted) {
@@ -257,6 +276,10 @@ export class SidecarSupervisor {
     debugDesktop("sidecar idle shutdown after engine inactivity");
     console.info("[stage-engine] stopping after idle timeout");
     await this.stop();
+
+    if (this.idleShutdownHoldCount > 0) {
+      return;
+    }
   }
 }
 

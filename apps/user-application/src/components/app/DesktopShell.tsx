@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useRef, type ReactNode } from "react";
 import type { CompanionState } from "@shared/models/desktop";
 import { CompanionOrb } from "@/components/companion/CompanionOrb";
 import { useCompanionState } from "@/hooks/useCompanionState";
@@ -28,6 +28,9 @@ const SHORTCUT_DEBOUNCE_MS = 400;
 export function DesktopShell({ children, hideCompanion = false }: DesktopShellProps) {
   const isCompanionWindow = new URLSearchParams(window.location.search).get("stageWindow") === "companion";
   const companion = useCompanionState(isCompanionWindow ? "listening" : "idle");
+  const pendingVoiceShortcutRef = useRef(false);
+  const pendingChatShortcutRef = useRef(false);
+  const mountCompanionPanels = !isCompanionWindow && companion.state !== "idle";
 
   useEffect(() => {
     if (isCompanionWindow) {
@@ -45,9 +48,9 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
         }
 
         lastVoiceShortcutAt = now;
-        void companion.setState("listening");
-        window.requestAnimationFrame(() => {
-          window.dispatchEvent(new CustomEvent(STAGE_SHORTCUT_TOGGLE_VOICE));
+        void import("@/components/companion/VoiceControlBar").then(() => {
+          pendingVoiceShortcutRef.current = true;
+          void companion.setState("listening");
         });
       }) ?? (() => {});
 
@@ -59,9 +62,12 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
         }
 
         lastChatShortcutAt = now;
-        void companion.setState("response");
-        window.requestAnimationFrame(() => {
-          window.dispatchEvent(new CustomEvent(STAGE_SHORTCUT_OPEN_CHAT));
+        void Promise.all([
+          import("@/components/companion/VoiceControlBar"),
+          import("@/components/companion/CritiquePanel"),
+        ]).then(() => {
+          pendingChatShortcutRef.current = true;
+          void companion.setState("response");
         });
       }) ?? (() => {});
 
@@ -70,6 +76,36 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
       unsubscribeChat();
     };
   }, [companion.setState, isCompanionWindow]);
+
+  useEffect(() => {
+    if (!mountCompanionPanels) {
+      return;
+    }
+
+    let cancelled = false;
+    const frameId = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (cancelled) {
+          return;
+        }
+
+        if (pendingVoiceShortcutRef.current) {
+          pendingVoiceShortcutRef.current = false;
+          window.dispatchEvent(new CustomEvent(STAGE_SHORTCUT_TOGGLE_VOICE));
+        }
+
+        if (pendingChatShortcutRef.current) {
+          pendingChatShortcutRef.current = false;
+          window.dispatchEvent(new CustomEvent(STAGE_SHORTCUT_OPEN_CHAT));
+        }
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frameId);
+    };
+  }, [mountCompanionPanels]);
 
   useEffect(() => {
     let isInteractive = false;
@@ -135,8 +171,6 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
       </div>
     );
   }
-
-  const mountCompanionPanels = companion.state !== "idle";
 
   return (
     <div className="stage-desktop-shell min-h-dvh">
