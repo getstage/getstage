@@ -234,7 +234,18 @@ fn collect_json_objects(text: &str) -> Vec<JsonValue> {
     objects
 }
 
-fn matching_object_end(text: &str, start: usize) -> Option<usize> {
+pub(crate) fn is_complete_json_object(text: &str) -> bool {
+    let trimmed = text.trim();
+    let Some(start) = trimmed.find('{') else {
+        return false;
+    };
+    let Some(end) = matching_object_end(trimmed, start) else {
+        return false;
+    };
+    end == trimmed.len() - 1
+}
+
+pub(crate) fn matching_object_end(text: &str, start: usize) -> Option<usize> {
     let bytes = text.as_bytes();
     if bytes.get(start) != Some(&b'{') {
         return None;
@@ -349,5 +360,35 @@ tokens used"#;
 
         assert_eq!(value["artifactKind"], "strategyArtifact");
         assert_eq!(value["sections"][0]["id"], "direction");
+    }
+
+    #[test]
+    fn extract_strategy_artifact_parses_pretty_printed_multiline_output() {
+        let text = r#"codex
+{
+  "apiVersion": "v1",
+  "artifactKind": "strategyArtifact",
+  "projectId": "p1",
+  "sections": [
+    {
+      "id": "direction",
+      "kind": "plain",
+      "body": ["Go"]
+    }
+  ]
+}
+tokens used"#;
+
+        let value = extract_strategy_artifact(text).unwrap();
+
+        assert_eq!(value["artifactKind"], "strategyArtifact");
+        assert_eq!(value["sections"][0]["id"], "direction");
+    }
+
+    #[test]
+    fn is_complete_json_object_detects_balanced_objects() {
+        assert!(is_complete_json_object(r#"{"artifactKind":"strategyArtifact"}"#));
+        assert!(!is_complete_json_object(r#"{"artifactKind":"strategyArtifact""#));
+        assert!(!is_complete_json_object(r#""artifactKind":"strategyArtifact""#));
     }
 }

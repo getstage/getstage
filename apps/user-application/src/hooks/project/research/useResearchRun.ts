@@ -14,6 +14,7 @@ import {
   RESEARCH_RUN_FAILED_USER_MESSAGE,
   formatRunFailedEvent,
 } from "@/lib/engine/formatRunError";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
 import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 
@@ -188,6 +189,8 @@ export function useResearchRun(projectId: string) {
     runEvents: activeRunEvents,
     error:
       error ??
-      (providerRun.startRun.error instanceof Error ? RESEARCH_RUN_FAILED_USER_MESSAGE : null),
+      (providerRun.startRun.error
+        ? toUserFacingErrorMessage(providerRun.startRun.error, RESEARCH_RUN_FAILED_USER_MESSAGE)
+        : null),
   };
 }

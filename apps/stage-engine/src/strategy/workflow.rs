@@ -111,8 +111,10 @@ impl StrategyWorkflow {
                 return Ok(());
             };
 
-            let raw_artifact = extract_strategy_artifact(&final_text)?;
-            let artifact = normalize_strategy_artifact(raw_artifact, &input, now_millis())?;
+            let raw_artifact =
+                extract_strategy_artifact(&final_text).map_err(map_strategy_provider_error)?;
+            let artifact = normalize_strategy_artifact(raw_artifact, &input, now_millis())
+                .map_err(map_strategy_provider_error)?;
 
             self.repository
                 .complete_strategy_run(
@@ -309,4 +311,26 @@ fn user_message(error: &WorkflowError) -> String {
             "The AI response did not match the Strategy artifact format.".to_string()
         }
     }
+}
+
+fn map_strategy_provider_error(error: anyhow::Error) -> WorkflowError {
+    let detail = error.to_string();
+    if detail.contains("did not contain a valid strategyArtifact artifact")
+        || detail.contains("provider output was empty")
+        || detail.contains("provider output did not contain a JSON object")
+    {
+        return WorkflowError::InvalidRequest(
+            "The AI provider did not return a parseable Strategy artifact. Try running Strategy again."
+                .to_string(),
+        );
+    }
+
+    if detail.contains("strategy artifact missing") || detail.contains("strategy section") {
+        return WorkflowError::InvalidRequest(
+            "The AI response was missing required Strategy sections. Try running Strategy again."
+                .to_string(),
+        );
+    }
+
+    WorkflowError::Convex(error)
 }

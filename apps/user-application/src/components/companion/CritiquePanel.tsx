@@ -12,6 +12,13 @@ import {
 } from "@/hooks/engine/useChatDefaults";
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
+import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
+import {
+  CHAT_RUN_FAILED_USER_MESSAGE,
+  toRunFailureUserMessage,
+} from "@/lib/engine/formatRunError";
+import { getProviderPreflightError } from "@/lib/engine/providerPreflight";
+import { clearDesktopSessionIfExpired, toUserFacingErrorMessage } from "@/lib/errors";
 import { useChatActiveProjectId } from "@/hooks/companion/useChatActiveProjectId";
 import { useDraggablePanel } from "@/hooks/companion/useDraggablePanel";
 import {
@@ -51,8 +58,6 @@ const PANEL_MAX_HEIGHT = 900;
 const ACTIVE_COMPANION_BAR_HEIGHT = 42;
 const MAIN_WINDOW_BAR_BOTTOM = 12;
 const COMPANION_WINDOW_BAR_BOTTOM = 32;
-const PROVIDER_ERROR_MESSAGE = "Something went wrong. Please try again.";
-
 type ResizeStart = {
   height: number;
   pointerX: number;
@@ -103,6 +108,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     activeProjectId ? { projectId: activeProjectId, mode: "chat" } : undefined,
   );
   const providerPreferences = useProviderPreferences();
+  const providers = useProviderStatus();
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const reasoningPickerRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -350,13 +356,14 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
 
     if (failedEvent) {
       console.error("[stage-chat] run failed", failedEvent.error);
+      const content = toRunFailureUserMessage(failedEvent, CHAT_RUN_FAILED_USER_MESSAGE);
       setMessages((currentMessages) =>
         currentMessages.map((message) =>
           message.id === responseMessageId
             ? {
                 ...message,
                 tone: "error",
-                content: [PROVIDER_ERROR_MESSAGE],
+                content: [content],
               }
             : message,
         ),
@@ -428,8 +435,14 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     try {
       setIsThinking(true);
       const providerId = getProviderIdForModel(selectedModel);
-      if (!providerPreferences.isProviderEnabled(providerId)) {
-        throw new Error(`Connect ${providerId === "claude" ? "Claude" : "Codex"} in Integrations before using it in Stage chat.`);
+      const preflightError = getProviderPreflightError({
+        providerId,
+        providers: providers.data?.providers,
+        isEnabled: providerPreferences.isProviderEnabled(providerId),
+        context: "chat",
+      });
+      if (preflightError) {
+        throw new Error(preflightError);
       }
 
       await providerRun.startRun.mutateAsync({
@@ -448,11 +461,14 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       });
     } catch (error) {
       console.error("[stage-chat] send failed", error);
+      await clearDesktopSessionIfExpired(error);
       const errorMessage = createStageChatMessage({
         id: stageMessageId,
         role: "stage",
         tone: "error",
-        content: [PROVIDER_ERROR_MESSAGE],
+        content: [
+          toUserFacingErrorMessage(error, CHAT_RUN_FAILED_USER_MESSAGE),
+        ],
       });
       setMessages((currentMessages) => [
         ...currentMessages.filter((message) => message.id !== stageMessageId),

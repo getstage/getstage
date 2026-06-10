@@ -15,20 +15,11 @@ import {
   waitForExit,
   waitForReadiness,
 } from "./helpers/sidecar";
+import { logDesktopDebug, logDesktopInfo, logDesktopWarn } from "./helpers/desktop-log";
 import { delay } from "./helpers/time";
 
 /** Stop spawned engine after this idle period once no engine IPC or active streams remain. */
 export const ENGINE_IDLE_SHUTDOWN_MS = 7 * 60 * 1000;
-
-const shouldLogDesktopDebug =
-  process.env.STAGE_DESKTOP_DEBUG === "1" ||
-  (process.env.NODE_ENV === "development" && process.env.STAGE_DESKTOP_DEBUG !== "0");
-
-function debugDesktop(message: string) {
-  if (shouldLogDesktopDebug) {
-    console.info(`[stage-desktop:debug] ${message}`);
-  }
-}
 
 export class SidecarSupervisor {
   private child: SidecarChildProcess | null = null;
@@ -90,7 +81,7 @@ export class SidecarSupervisor {
     }
 
     if (this.status.state === "ready" || this.status.state === "starting") {
-      debugDesktop(`sidecar start joined existing state=${this.status.state} port=${this.status.port}`);
+      logDesktopDebug(`sidecar start joined existing state=${this.status.state} port=${this.status.port}`);
       this.markEngineActivity();
       return this.getStatus();
     }
@@ -98,16 +89,17 @@ export class SidecarSupervisor {
     const startedAt = Date.now();
     const port = getSidecarPort();
     this.status = { adopted: false, pid: null, port, state: "starting" };
-    debugDesktop(`sidecar start requested port=${port}`);
+    logDesktopDebug(`sidecar start requested port=${port}`);
 
     const existingReadiness = await fetchReadiness(port);
 
     if (existingReadiness?.ready) {
       this.status = { adopted: true, pid: null, port, state: "ready" };
-      console.warn(
-        `[stage-engine] using existing service on port ${port} — restart it after Rust changes (kill $(lsof -t -i:${port}))`,
+      logDesktopWarn(
+        "stage-engine",
+        `using existing service on port ${port} — restart it after Rust changes (kill $(lsof -t -i:${port}))`,
       );
-      debugDesktop(`sidecar adopted existing service in ${Date.now() - startedAt}ms`);
+      logDesktopDebug(`sidecar adopted existing service in ${Date.now() - startedAt}ms`);
       this.markEngineActivity();
       return this.getStatus();
     }
@@ -128,7 +120,7 @@ export class SidecarSupervisor {
 
     this.child = child;
     this.status = { adopted: false, pid: child.pid ?? null, port, state: "starting" };
-    debugDesktop(`sidecar spawned pid=${child.pid ?? "unknown"} after ${Date.now() - startedAt}ms`);
+    logDesktopDebug(`sidecar spawned pid=${child.pid ?? "unknown"} after ${Date.now() - startedAt}ms`);
 
     child.stdout.on("data", (chunk: Buffer | string) => logSidecarOutput("stdout", chunk));
     child.stderr.on("data", (chunk: Buffer | string) => logSidecarOutput("stderr", chunk));
@@ -154,14 +146,14 @@ export class SidecarSupervisor {
         port,
         state: "failed",
       };
-      console.warn(`[stage-engine] ${error}`);
+      logDesktopWarn("stage-engine", error);
     });
 
     try {
       await Promise.race([waitForReadiness(port), spawnError]);
       this.status = { adopted: false, pid: child.pid ?? null, port, state: "ready" };
-      console.info(`[stage-engine] ready on port ${port}`);
-      debugDesktop(`sidecar ready in ${Date.now() - startedAt}ms`);
+      logDesktopInfo("stage-engine", `ready on port ${port}`);
+      logDesktopDebug(`sidecar ready in ${Date.now() - startedAt}ms`);
       this.markEngineActivity();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown sidecar startup error.";
@@ -169,7 +161,7 @@ export class SidecarSupervisor {
       if (child.exitCode === null && child.signalCode === null) {
         child.kill("SIGTERM");
       }
-      debugDesktop(`sidecar failed in ${Date.now() - startedAt}ms`);
+      logDesktopDebug(`sidecar failed in ${Date.now() - startedAt}ms`);
       throw error;
     }
 
@@ -273,8 +265,8 @@ export class SidecarSupervisor {
       return;
     }
 
-    debugDesktop("sidecar idle shutdown after engine inactivity");
-    console.info("[stage-engine] stopping after idle timeout");
+    logDesktopDebug("sidecar idle shutdown after engine inactivity");
+    logDesktopInfo("stage-engine", "stopping after idle timeout");
     await this.stop();
 
     if (this.idleShutdownHoldCount > 0) {
@@ -294,12 +286,12 @@ function spawnPackagedEngine(binaryPath: string, env: NodeJS.ProcessEnv) {
     const message = error instanceof Error ? error.message : "chmod failed";
     try {
       accessSync(binaryPath, constants.X_OK);
-      console.warn(`[stage-engine] could not chmod binary (${message}); continuing because it is executable`);
+      logDesktopDebug(`[stage-engine] could not chmod binary (${message}); continuing because it is executable`);
     } catch {
       throw new Error(`Stage Engine binary is not executable at ${binaryPath}.`);
     }
   }
-  console.info(`[stage-engine] starting packaged binary at ${binaryPath}`);
+  logDesktopInfo("stage-engine", `starting packaged binary at ${binaryPath}`);
   return spawn(binaryPath, [], {
     env,
     stdio: ["ignore", "pipe", "pipe"],
@@ -313,7 +305,7 @@ function spawnDevEngine(env: NodeJS.ProcessEnv) {
     throw new Error(`Stage Engine manifest not found at ${manifestPath}.`);
   }
 
-  console.info(`[stage-engine] starting dev cargo run (${manifestPath})`);
+  logDesktopInfo("stage-engine", `starting dev cargo run (${manifestPath})`);
   return spawn("cargo", ["run", "--manifest-path", manifestPath], {
     cwd: dirname(manifestPath),
     env,

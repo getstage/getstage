@@ -6,22 +6,43 @@ const MAX_CHILDREN_PER_REQUEST = 100;
 
 type NotionRichText = { type: "text"; text: { content: string } };
 
-type NotionBlock = {
+type NotionTableRowBlock = {
   object: "block";
-  type: "heading_2" | "paragraph";
-  heading_2?: { rich_text: NotionRichText[] };
-  paragraph?: { rich_text: NotionRichText[] };
+  type: "table_row";
+  table_row: {
+    cells: NotionRichText[][];
+  };
 };
 
+type NotionTableBlock = {
+  object: "block";
+  type: "table";
+  table: {
+    table_width: number;
+    has_column_header: boolean;
+    has_row_header: boolean;
+    children: NotionTableRowBlock[];
+  };
+};
+
+type NotionBlock =
+  | {
+      object: "block";
+      type: "heading_2" | "paragraph";
+      heading_2?: { rich_text: NotionRichText[] };
+      paragraph?: { rich_text: NotionRichText[] };
+    }
+  | NotionTableBlock;
+
 function richText(content: string): NotionRichText[] {
-  return [{ type: "text", text: { content } }];
+  return [{ type: "text", text: { content: content.slice(0, RICH_TEXT_CHUNK_SIZE) } }];
 }
 
 function headingBlock(text: string): NotionBlock {
   return {
     object: "block",
     type: "heading_2",
-    heading_2: { rich_text: richText(text.slice(0, RICH_TEXT_CHUNK_SIZE)) },
+    heading_2: { rich_text: richText(text) },
   };
 }
 
@@ -44,6 +65,65 @@ function paragraphBlocks(text: string): NotionBlock[] {
 
 function sectionBlocks(heading: string, body: string) {
   return [headingBlock(heading), ...paragraphBlocks(body)];
+}
+
+function tableRowBlock(cells: string[]): NotionTableRowBlock {
+  return {
+    object: "block",
+    type: "table_row",
+    table_row: {
+      cells: cells.map((cell) => richText(cell)),
+    },
+  };
+}
+
+function notionTableBlock(args: {
+  width: number;
+  rows: string[][];
+  hasColumnHeader?: boolean;
+  hasRowHeader?: boolean;
+}): NotionTableBlock {
+  const children = args.rows.map((row) => tableRowBlock(row));
+  if (children.length === 0) {
+    children.push(tableRowBlock(Array.from({ length: args.width }, () => "")));
+  }
+
+  return {
+    object: "block",
+    type: "table",
+    table: {
+      table_width: args.width,
+      has_column_header: args.hasColumnHeader ?? false,
+      has_row_header: args.hasRowHeader ?? false,
+      children,
+    },
+  };
+}
+
+function labelValueTableBlock(rows: Array<[string, string]>): NotionTableBlock {
+  return notionTableBlock({
+    width: 2,
+    rows: rows.map(([label, value]) => [label, value]),
+    hasRowHeader: true,
+  });
+}
+
+function cardsTableBlock(
+  cards: Array<{
+    title: string;
+    objective: string;
+    kpi: string;
+    keyElement: string;
+  }>,
+): NotionTableBlock {
+  return notionTableBlock({
+    width: 4,
+    rows: [
+      ["Page", "Objective", "KPI", "Key element"],
+      ...cards.map((card) => [card.title, card.objective, card.kpi, card.keyElement]),
+    ],
+    hasColumnHeader: true,
+  });
 }
 
 export function parseStrategyArtifactContent(contentJson: string) {
@@ -78,32 +158,15 @@ export function buildNotionBlocksFromStrategyArtifact(artifact: StrategyArtifact
       continue;
     }
 
-    if (section.kind === "table" && section.table) {
-      blocks.push(
-        ...sectionBlocks(
-          section.title,
-          section.table.map(([label, value]) => `${label}: ${value}`).join("\n"),
-        ),
-      );
+    if (section.kind === "table" && section.table?.length) {
+      blocks.push(headingBlock(section.title));
+      blocks.push(labelValueTableBlock(section.table));
       continue;
     }
 
-    if (section.kind === "cards" && section.cards) {
-      blocks.push(
-        ...sectionBlocks(
-          section.title,
-          section.cards
-            .map((card) =>
-              [
-                card.title,
-                `Objective: ${card.objective}`,
-                `KPI: ${card.kpi}`,
-                `Key element: ${card.keyElement}`,
-              ].join("\n"),
-            )
-            .join("\n\n"),
-        ),
-      );
+    if (section.kind === "cards" && section.cards?.length) {
+      blocks.push(headingBlock(section.title));
+      blocks.push(cardsTableBlock(section.cards));
       continue;
     }
 

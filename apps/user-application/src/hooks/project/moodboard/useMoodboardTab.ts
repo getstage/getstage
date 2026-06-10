@@ -11,6 +11,7 @@ import { MOODBOARD_IMAGE_ACCEPT, uploadFileToR2 } from "@/lib/r2Uploads";
 import { readFileAsDataUrl } from "@/lib/utils";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { formatRunFailedEvent } from "@/lib/engine/formatRunError";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 import type { Project } from "@/models/project/project";
 import { useMoodboardArtifact } from "./useMoodboardArtifact";
 import { useSaveMoodboardArtifact } from "./useSaveMoodboardArtifact";
@@ -353,11 +354,17 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
       (moodboardArtifact.parseError
         ? "Saved moodboard could not be loaded. Try reloading the project."
         : null) ??
-      (providerRun.startRun.error instanceof Error
-        ? providerRun.startRun.error.message
+      (providerRun.startRun.error
+        ? toUserFacingErrorMessage(
+            providerRun.startRun.error,
+            "Something went wrong while running Moodboard.",
+          )
         : null) ??
-      (styleguideRun.startRun.error instanceof Error
-        ? styleguideRun.startRun.error.message
+      (styleguideRun.startRun.error
+        ? toUserFacingErrorMessage(
+            styleguideRun.startRun.error,
+            "Something went wrong while generating the style guide.",
+          )
         : null),
   };
 }

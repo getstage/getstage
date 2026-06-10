@@ -27,6 +27,7 @@ import {
   loadStoredSession,
   saveStoredSession,
 } from "./helpers/session-storage";
+import { logDesktopInfo } from "./helpers/desktop-log";
 import { now } from "./helpers/time";
 import { createMainWindow } from "./windows";
 
@@ -47,7 +48,7 @@ export class DesktopAuthController {
     loginUrl.searchParams.set("state", state);
     loginUrl.searchParams.set("redirect_uri", getDesktopAuthRedirectUri());
 
-    console.info(`[stage-auth] opening desktop login at ${loginUrl.origin}${loginUrl.pathname}`);
+    logDesktopInfo("stage-auth", `opening desktop login at ${loginUrl.origin}${loginUrl.pathname}`);
     await shell.openExternal(loginUrl.toString());
   }
 
@@ -79,7 +80,7 @@ export class DesktopAuthController {
     BrowserWindow.getAllWindows().forEach((window) => {
       window.webContents.send(IPC_CHANNELS.authSessionChanged, null);
     });
-    console.info("[stage-auth] desktop session signed out");
+    logDesktopInfo("stage-auth", "desktop session signed out");
   }
 
   queueCallbackUrl(url: string) {
@@ -116,7 +117,7 @@ export class DesktopAuthController {
     const code = callbackUrl.searchParams.get("code");
     const state = callbackUrl.searchParams.get("state");
 
-    console.info("[stage-auth] received desktop auth callback");
+    logDesktopInfo("stage-auth", "received desktop auth callback");
 
     if (!code) {
       return { error: "Desktop auth callback is missing a code.", ok: false };
@@ -138,7 +139,7 @@ export class DesktopAuthController {
     BrowserWindow.getAllWindows().forEach((window) => {
       window.webContents.send(IPC_CHANNELS.authSessionChanged, publicSession);
     });
-    console.info("[stage-auth] desktop auth callback accepted");
+    logDesktopInfo("stage-auth", "desktop auth callback accepted");
 
     return { ok: true, session: publicSession };
   }
@@ -175,7 +176,7 @@ export class DesktopAuthController {
       throw new Error("Developer API keys cannot be used for desktop login.");
     }
 
-    console.info("[stage-auth] verifying Convex Auth desktop token");
+    logDesktopInfo("stage-auth", "verifying Convex Auth desktop token");
     const response = await fetch(`${getDesktopApiBaseUrl()}/me`, {
       headers: {
         Authorization: `Bearer ${code}`,
@@ -187,8 +188,9 @@ export class DesktopAuthController {
     }
 
     const identity = desktopAuthIdentitySchema.parse(await response.json());
-    console.info(
-      `[stage-auth] verified desktop user ${identity.user.name ?? identity.user.email ?? identity.user.id}`,
+    logDesktopInfo(
+      "stage-auth",
+      `verified desktop user ${identity.user.name ?? identity.user.email ?? identity.user.id}`,
     );
     return desktopStoredSessionSchema.parse({
       accessToken: code,

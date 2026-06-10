@@ -35,6 +35,8 @@ import {
   openPermissionSystemSettings,
   requestMicrophoneAccess,
 } from "./helpers/permissions";
+import { fetchEngineJsonAuthed } from "./helpers/engine-request";
+import { logDesktopDebug, logDesktopInfo } from "./helpers/desktop-log";
 import { fetchEngineJson } from "./helpers/sidecar";
 import { closeCompanionWindow, openCompanionFromTray, setCompanionWindowInteractive } from "./windows";
 import type { SidecarSupervisor } from "./sidecar";
@@ -47,21 +49,12 @@ import {
 } from "./helpers/auto-update";
 
 const activeRunStreams = new Map<string, AbortController>();
-const shouldLogDesktopDebug =
-  process.env.STAGE_DESKTOP_DEBUG === "1" ||
-  (!app.isPackaged && process.env.STAGE_DESKTOP_DEBUG !== "0");
 
 type RegisterIpcHandlersOptions = {
   authController: DesktopAuthController;
   integrationsController: DesktopIntegrationsController;
   sidecarSupervisor: SidecarSupervisor;
 };
-
-function debugDesktop(message: string) {
-  if (shouldLogDesktopDebug) {
-    console.info(`[stage-desktop:debug] ${message}`);
-  }
-}
 
 async function withEngineActivity<T>(
   sidecarSupervisor: SidecarSupervisor,
@@ -73,14 +66,14 @@ async function withEngineActivity<T>(
 
 async function withDebugTiming<T>(label: string, task: () => Promise<T>): Promise<T> {
   const startedAt = performance.now();
-  debugDesktop(`${label} started`);
+  logDesktopDebug(`${label} started`);
 
   try {
     const result = await task();
-    debugDesktop(`${label} completed in ${Math.round(performance.now() - startedAt)}ms`);
+    logDesktopDebug(`${label} completed in ${Math.round(performance.now() - startedAt)}ms`);
     return result;
   } catch (error) {
-    debugDesktop(`${label} failed after ${Math.round(performance.now() - startedAt)}ms`);
+    logDesktopDebug(`${label} failed after ${Math.round(performance.now() - startedAt)}ms`);
     throw error;
   }
 }
@@ -173,25 +166,24 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IPC_CHANNELS.engineStartRun, async (event, request: unknown) => {
     const parsedRequest = startRunRequestSchema.parse(request);
-    console.info(
-      `[stage-engine] run request provider=${parsedRequest.providerId} mode=${parsedRequest.mode} projectId=${parsedRequest.context.projectId ?? "none"}`,
+    logDesktopInfo(
+      "stage-engine",
+      `run request provider=${parsedRequest.providerId} mode=${parsedRequest.mode} projectId=${parsedRequest.context.projectId ?? "none"}`,
     );
     sidecarSupervisor.markEngineActivity();
     const status = await withDebugTiming("engine:start-run sidecar-start", () =>
       sidecarSupervisor.start(),
     );
-    const accessToken = await withDebugTiming("engine:start-run access-token", () =>
-      authController.getAccessToken(),
-    );
     const payload = await withDebugTiming("engine:start-run fetch", () =>
-      fetchEngineJson<unknown>({
+      fetchEngineJsonAuthed<unknown>({
+        authController,
         method: "POST",
         path: "/v1/runs",
         port: status.port,
         body: parsedRequest,
-        accessToken,
       }),
     );
+    const accessToken = await authController.getAccessToken();
     const response = startRunResponseSchema.parse(payload);
 
     void streamRunEventsToRenderer({
@@ -233,13 +225,12 @@ export function registerIpcHandlers({
     const parsedRequest = createFigmaExportRequestSchema.parse(request);
     sidecarSupervisor.markEngineActivity();
     const status = await sidecarSupervisor.start();
-    const accessToken = await authController.getAccessToken();
-    const payload = await fetchEngineJson<unknown>({
+    const payload = await fetchEngineJsonAuthed<unknown>({
+      authController,
       method: "POST",
       path: "/v1/exports/figma",
       port: status.port,
       body: parsedRequest,
-      accessToken,
       timeoutMs: 10_000,
     });
     return createFigmaExportResponseSchema.parse(payload);
@@ -249,13 +240,12 @@ export function registerIpcHandlers({
     const parsedRequest = createFigJamExportRequestSchema.parse(request);
     sidecarSupervisor.markEngineActivity();
     const status = await sidecarSupervisor.start();
-    const accessToken = await authController.getAccessToken();
-    const payload = await fetchEngineJson<unknown>({
+    const payload = await fetchEngineJsonAuthed<unknown>({
+      authController,
       method: "POST",
       path: "/v1/exports/figjam",
       port: status.port,
       body: parsedRequest,
-      accessToken,
       timeoutMs: 10_000,
     });
     return createFigmaExportResponseSchema.parse(payload);
@@ -265,14 +255,13 @@ export function registerIpcHandlers({
     const parsedRequest = wireframeDeliveryRequestSchema.parse(request);
     sidecarSupervisor.markEngineActivity();
     const status = await sidecarSupervisor.start();
-    const accessToken = await authController.getAccessToken();
     const bundle = createCodeExportResponseSchema.parse(
-      await fetchEngineJson<unknown>({
+      await fetchEngineJsonAuthed<unknown>({
+        authController,
         method: "POST",
         path: "/v1/exports/code",
         port: status.port,
         body: parsedRequest,
-        accessToken,
         timeoutMs: 10_000,
       }),
     );
@@ -311,13 +300,12 @@ export function registerIpcHandlers({
     const parsedRequest = wireframeDeliveryRequestSchema.parse(request);
     sidecarSupervisor.markEngineActivity();
     const status = await sidecarSupervisor.start();
-    const accessToken = await authController.getAccessToken();
-    const payload = await fetchEngineJson<unknown>({
+    const payload = await fetchEngineJsonAuthed<unknown>({
+      authController,
       method: "POST",
       path: "/v1/exports/paper",
       port: status.port,
       body: parsedRequest,
-      accessToken,
       timeoutMs: 40_000,
     });
     return createPaperExportResponseSchema.parse(payload);

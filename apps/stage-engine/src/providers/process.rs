@@ -7,15 +7,17 @@ use tokio::process::Command;
 use tokio::sync::{mpsc, watch};
 use tokio::time::sleep;
 
+use crate::helpers::provider_json::is_complete_json_object;
 use crate::helpers::time::now_millis;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::providers::ProviderId;
-use crate::models::runs::RunEvent;
+use crate::models::runs::{RunEvent, RunMode};
 use crate::providers::adapter::ProviderRunContext;
 use crate::runs::RunEventSink;
 
 const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(50);
 const PROCESS_LINE_CAPACITY: usize = 128;
+const PROCESS_DRAIN_GRACE: Duration = Duration::from_millis(25);
 
 #[derive(Clone, Copy, Debug)]
 pub enum StreamName {
@@ -155,6 +157,8 @@ pub async fn run_provider_process_collect(
     }
 
     let mut final_text = String::new();
+    let mut stderr_capture = StderrArtifactCapture::default();
+    let capture_multiline_stderr = needs_stderr_artifact_capture(context.request.mode);
 
     loop {
         tokio::select! {
@@ -172,55 +176,29 @@ pub async fn run_provider_process_collect(
                 }
             }
             Some(line) = line_rx.recv() => {
-                match line.stream {
-                    StreamName::Stdout => {
-                        append_output(&mut final_text, &line.text);
-                        events.send(RunEvent::OutputDelta {
-                            api_version: context.api_version,
-                            run_id: context.run_id.clone(),
-                            provider_id: context.request.provider_id,
-                            created_at: now_millis(),
-                            text: format!("{}\n", line.text),
-                        });
-                    }
-                    StreamName::Stderr => {
-                        if line.text.trim().is_empty() {
-                            continue;
-                        }
-
-                        if looks_like_json_artifact_line(&line.text) {
-                            append_output(&mut final_text, &line.text);
-                        }
-
-                        if should_suppress_stderr_warning(&line.text) {
-                            tracing::debug!(
-                                run_id = %context.run_id,
-                                provider_id = ?context.request.provider_id,
-                                stderr = %line.text,
-                                "provider stderr (suppressed warning)"
-                            );
-                            continue;
-                        }
-
-                        tracing::warn!(
-                            run_id = %context.run_id,
-                            provider_id = ?context.request.provider_id,
-                            stderr = %line.text,
-                            "provider stderr"
-                        );
-                        events.send(RunEvent::ProviderWarning {
-                            api_version: context.api_version,
-                            run_id: context.run_id.clone(),
-                            provider_id: context.request.provider_id,
-                            created_at: now_millis(),
-                            message: line.text,
-                        });
-                    }
-                }
+                handle_process_line(
+                    context,
+                    &events,
+                    &mut final_text,
+                    &mut stderr_capture,
+                    capture_multiline_stderr,
+                    line,
+                );
             }
             _ = sleep(PROCESS_POLL_INTERVAL) => {
                 match child.try_wait() {
                     Ok(Some(status)) if status.success() => {
+                        let _ = child.wait().await;
+                        drain_pending_lines(
+                            context,
+                            &events,
+                            &mut line_rx,
+                            &mut final_text,
+                            &mut stderr_capture,
+                            capture_multiline_stderr,
+                        )
+                        .await;
+                        stderr_capture.flush(&mut final_text, capture_multiline_stderr);
                         return Ok(ProviderProcessOutcome::Completed(final_text));
                     }
                     Ok(Some(status)) => {
@@ -250,10 +228,164 @@ pub enum ProviderProcessOutcome {
     Cancelled,
 }
 
+#[derive(Debug, Default)]
+struct StderrArtifactCapture {
+    pending: Option<String>,
+}
+
+impl StderrArtifactCapture {
+    fn ingest(&mut self, line: &str, final_text: &mut String, capture_multiline: bool) {
+        if looks_like_json_artifact_line(line) {
+            self.pending = None;
+            append_output(final_text, line.trim());
+            return;
+        }
+
+        if !capture_multiline {
+            return;
+        }
+
+        let trimmed = line.trim();
+        if self.pending.is_some() || trimmed.starts_with('{') {
+            let buffer = self.pending.get_or_insert_with(String::new);
+            if !buffer.is_empty() {
+                buffer.push('\n');
+            }
+            buffer.push_str(line);
+
+            if is_complete_json_object(buffer) && buffer.contains("\"artifactKind\"") {
+                let completed = self.pending.take().expect("pending stderr json buffer");
+                append_output(final_text, completed.trim());
+            }
+        }
+    }
+
+    fn flush(&mut self, final_text: &mut String, capture_multiline: bool) {
+        if !capture_multiline {
+            return;
+        }
+
+        let Some(pending) = self.pending.take() else {
+            return;
+        };
+
+        let trimmed = pending.trim();
+        if is_complete_json_object(trimmed) && trimmed.contains("\"artifactKind\"") {
+            append_output(final_text, trimmed);
+        }
+    }
+}
+
 #[derive(Debug)]
 struct ProcessLine {
     stream: StreamName,
     text: String,
+}
+
+fn needs_stderr_artifact_capture(mode: RunMode) -> bool {
+    matches!(
+        mode,
+        RunMode::Research
+            | RunMode::Strategy
+            | RunMode::Flows
+            | RunMode::Wireframes
+            | RunMode::Styleguide
+            | RunMode::Generation
+    )
+}
+
+fn handle_process_line(
+    context: &ProviderRunContext,
+    events: &RunEventSink,
+    final_text: &mut String,
+    stderr_capture: &mut StderrArtifactCapture,
+    capture_multiline_stderr: bool,
+    line: ProcessLine,
+) {
+    match line.stream {
+        StreamName::Stdout => {
+            append_output(final_text, &line.text);
+            events.send(RunEvent::OutputDelta {
+                api_version: context.api_version,
+                run_id: context.run_id.clone(),
+                provider_id: context.request.provider_id,
+                created_at: now_millis(),
+                text: format!("{}\n", line.text),
+            });
+        }
+        StreamName::Stderr => {
+            if line.text.trim().is_empty() {
+                return;
+            }
+
+            stderr_capture.ingest(&line.text, final_text, capture_multiline_stderr);
+
+            if should_suppress_stderr_warning(&line.text) {
+                tracing::debug!(
+                    run_id = %context.run_id,
+                    provider_id = ?context.request.provider_id,
+                    stderr = %line.text,
+                    "provider stderr (suppressed warning)"
+                );
+                return;
+            }
+
+            tracing::warn!(
+                run_id = %context.run_id,
+                provider_id = ?context.request.provider_id,
+                stderr = %line.text,
+                "provider stderr"
+            );
+            events.send(RunEvent::ProviderWarning {
+                api_version: context.api_version,
+                run_id: context.run_id.clone(),
+                provider_id: context.request.provider_id,
+                created_at: now_millis(),
+                message: line.text,
+            });
+        }
+    }
+}
+
+async fn drain_pending_lines(
+    context: &ProviderRunContext,
+    events: &RunEventSink,
+    line_rx: &mut mpsc::Receiver<ProcessLine>,
+    final_text: &mut String,
+    stderr_capture: &mut StderrArtifactCapture,
+    capture_multiline_stderr: bool,
+) {
+    loop {
+        let mut drained_any = false;
+        while let Ok(line) = line_rx.try_recv() {
+            drained_any = true;
+            handle_process_line(
+                context,
+                events,
+                final_text,
+                stderr_capture,
+                capture_multiline_stderr,
+                line,
+            );
+        }
+
+        if !drained_any {
+            break;
+        }
+    }
+
+    sleep(PROCESS_DRAIN_GRACE).await;
+
+    while let Ok(line) = line_rx.try_recv() {
+        handle_process_line(
+            context,
+            events,
+            final_text,
+            stderr_capture,
+            capture_multiline_stderr,
+            line,
+        );
+    }
 }
 
 fn spawn_line_reader<R>(stream: StreamName, reader: R, line_tx: mpsc::Sender<ProcessLine>)
@@ -361,4 +493,61 @@ fn should_suppress_stderr_warning(text: &str) -> bool {
         || trimmed.starts_with("[");
 
     looks_like_json_fragment
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stderr_capture_accepts_single_line_artifact() {
+        let mut capture = StderrArtifactCapture::default();
+        let mut final_text = String::new();
+        let line = r#"{"apiVersion":"v1","artifactKind":"strategyArtifact","sections":[{"id":"direction","kind":"plain","body":["Go"]}]}"#;
+
+        capture.ingest(line, &mut final_text, true);
+
+        assert!(final_text.contains("strategyArtifact"));
+    }
+
+    #[test]
+    fn stderr_capture_reassembles_pretty_printed_artifact() {
+        let mut capture = StderrArtifactCapture::default();
+        let mut final_text = String::new();
+        let lines = [
+            "{",
+            r#"  "apiVersion": "v1","#,
+            r#"  "artifactKind": "strategyArtifact","#,
+            r#"  "sections": [{"id":"direction","kind":"plain","body":["Go"]}]"#,
+            "}",
+        ];
+
+        for line in lines {
+            capture.ingest(line, &mut final_text, true);
+        }
+
+        assert!(final_text.contains("strategyArtifact"));
+        assert!(final_text.contains("direction"));
+    }
+
+    #[test]
+    fn stderr_capture_skips_multiline_capture_for_chat_mode() {
+        let mut capture = StderrArtifactCapture::default();
+        let mut final_text = String::new();
+
+        capture.ingest("{", &mut final_text, false);
+        capture.ingest(
+            r#"  "artifactKind": "strategyArtifact""#,
+            &mut final_text,
+            false,
+        );
+
+        assert!(final_text.is_empty());
+    }
+
+    #[test]
+    fn needs_stderr_artifact_capture_is_true_for_strategy_runs() {
+        assert!(needs_stderr_artifact_capture(RunMode::Strategy));
+        assert!(!needs_stderr_artifact_capture(RunMode::Chat));
+    }
 }

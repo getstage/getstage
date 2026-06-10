@@ -1,4 +1,5 @@
 import { app } from "electron";
+import { logDesktopInfo } from "./desktop-log";
 import { join } from "node:path";
 import type { DesktopSession, DesktopStoredSession } from "@shared/models/desktop";
 
@@ -91,18 +92,16 @@ export function registerStageProtocol() {
   if (!app.isPackaged) {
     const appPath = app.getAppPath();
     const registered = app.setAsDefaultProtocolClient(STAGE_PROTOCOL, process.execPath, [appPath]);
-    console.info(
-      `[stage-auth] registered ${STAGE_PROTOCOL}:// protocol for dev app: ${
-        registered ? "ok" : "failed"
-      }`,
+    logDesktopInfo(
+      "stage-auth",
+      `registered ${STAGE_PROTOCOL}:// protocol for dev app: ${registered ? "ok" : "failed"}`,
     );
     return;
   }
 
   const registered = app.setAsDefaultProtocolClient(STAGE_PROTOCOL);
-  console.info(
-    `[stage-auth] registered ${STAGE_PROTOCOL}:// protocol for packaged app: ${
-      registered ? "ok" : "failed"
-    }`,
+  logDesktopInfo(
+    "stage-auth",
+    `registered ${STAGE_PROTOCOL}:// protocol for packaged app: ${registered ? "ok" : "failed"}`,
   );
 }
