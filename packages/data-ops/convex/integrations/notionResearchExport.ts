@@ -8,10 +8,33 @@ type NotionRichText = { type: "text"; text: { content: string } };
 
 type NotionBlock = {
   object: "block";
-  type: "heading_2" | "paragraph";
+  type: "heading_2" | "paragraph" | "image";
   heading_2?: { rich_text: NotionRichText[] };
   paragraph?: { rich_text: NotionRichText[] };
+  image?: {
+    type: "external";
+    external: { url: string };
+  };
 };
+
+function isEmbeddableImageUrl(url: string) {
+  return /^https?:\/\//i.test(url);
+}
+
+function imageBlock(url: string): NotionBlock | null {
+  if (!isEmbeddableImageUrl(url)) {
+    return null;
+  }
+
+  return {
+    object: "block",
+    type: "image",
+    image: {
+      type: "external",
+      external: { url },
+    },
+  };
+}
 
 function richText(content: string): NotionRichText[] {
   return [{ type: "text", text: { content } }];
@@ -121,16 +144,18 @@ export function buildNotionBlocksFromResearchArtifact(artifact: ResearchArtifact
         group.recognizedPatterns.length > 0
           ? group.recognizedPatterns.join(", ")
           : "No recognized patterns";
-      const exampleLinks = group.examples
-        .map((example) => example.imageUrl ?? example.thumbnailUrl)
-        .filter((url): url is string => Boolean(url))
-        .map((url) => `Image: ${url}`);
-      blocks.push(
-        ...sectionBlocks(
-          group.title,
-          [patterns, ...exampleLinks].filter(Boolean).join("\n"),
-        ),
-      );
+      blocks.push(headingBlock(group.title));
+      blocks.push(...paragraphBlocks(patterns));
+      for (const example of group.examples) {
+        const imageUrl = example.imageUrl ?? example.thumbnailUrl;
+        if (!imageUrl) {
+          continue;
+        }
+        const block = imageBlock(imageUrl);
+        if (block) {
+          blocks.push(block);
+        }
+      }
     }
   }
 

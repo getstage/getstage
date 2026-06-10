@@ -14,6 +14,7 @@ import { requireAuthUser } from "../_helpers";
 import { requireProjectAccessForUserId } from "../domain/projects/service";
 import { decryptSecret, encryptSecret } from "../lib/credentialVault";
 import { parseResearchArtifactContent } from "../../src/contracts/parseResearchArtifact";
+import { resolveResearchContentJson } from "../lib/projectAi/domain/researchContent";
 import {
   buildNotionBlocksFromResearchArtifact,
   createNotionChildPage,
@@ -853,7 +854,9 @@ export const exportResearchArtifactToNotion = action({
       throw new Error("Notion access token is unavailable. Reconnect Notion in Settings.");
     }
 
-    const parsedArtifact = parseResearchArtifactContent(bundle.contentJson ?? "");
+    const resolvedContentJson =
+      (await resolveResearchContentJson(bundle.contentJson ?? null)) ?? bundle.contentJson ?? "";
+    const parsedArtifact = parseResearchArtifactContent(resolvedContentJson);
     if (!parsedArtifact) {
       throw new Error("Research artifact content could not be parsed.");
     }
