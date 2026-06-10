@@ -1,2 +1,7 @@
-
 .env.local
+
+# Convex generates these at build/runtime — do not commit compiled schema artifacts.
+convex/schema.js
+convex/schema.d.ts
+convex/schema.js.map
+convex/schema.d.ts.map

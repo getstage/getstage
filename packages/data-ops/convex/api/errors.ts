@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+import type { Hook } from "@hono/zod-validator";
 
 export class ApiError extends Error {
   constructor(
@@ -86,10 +87,10 @@ export function handleApiError(error: unknown, c: Context) {
   return jsonError(c, status, message);
 }
 
-export const validationHook = ((result: any, c: Context) => {
+export const validationHook: Hook<unknown, string, unknown, unknown> = (result, c) => {
   if (result.success) {
     return;
   }
 
   return jsonError(c, 400, "Invalid request.", "validation_error", result.error.issues);
-}) as any;
+};
