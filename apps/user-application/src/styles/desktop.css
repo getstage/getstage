@@ -243,8 +243,8 @@ a,
 }
 
 .voice-stage-button {
-  width: 14px;
-  height: 18px;
+  width: 30px;
+  height: 30px;
 }
 
 .voice-stage-button img {
@@ -980,7 +980,7 @@ a,
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
-  line-height: 1;
+  line-height: 1.25;
 }
 
 .chat-reasoning-button {
@@ -989,7 +989,8 @@ a,
 
 .chat-model-button span:not(.chat-provider-mark, .chat-model-chevron) {
   min-width: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: visible;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1217,8 +1218,8 @@ a,
 
 .chat-reasoning-menu {
   position: absolute;
-  right: 0;
-  left: auto;
+  right: auto;
+  left: 0;
   bottom: calc(100% + 8px);
   z-index: 6;
   width: 236px;
@@ -1228,6 +1229,10 @@ a,
   background: #ffffff;
   box-shadow: 0 14px 36px rgb(10 10 10 / 13%);
   padding: 7px;
+}
+
+.chat-history-sidebar-open + .chat-main-column .chat-reasoning-menu {
+  width: 190px;
 }
 
 .chat-reasoning-section + .chat-reasoning-section {
