@@ -51,6 +51,8 @@ const PANEL_MAX_HEIGHT = 900;
 const ACTIVE_COMPANION_BAR_HEIGHT = 42;
 const MAIN_WINDOW_BAR_BOTTOM = 12;
 const COMPANION_WINDOW_BAR_BOTTOM = 32;
+const CHAT_VIEWPORT_SIDE_INSET = 12;
+const CHAT_VIEWPORT_TOP_INSET = 52;
 const PROVIDER_ERROR_MESSAGE = "Something went wrong. Please try again.";
 
 type ResizeStart = {
@@ -121,7 +123,15 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       window.innerHeight - companionBarBottom - ACTIVE_COMPANION_BAR_HEIGHT - panelSize.height,
     ),
   }), [companionBarBottom, panelSize.height, panelSize.width]);
-  const { position, resetPosition, dragHandlers } = useDraggablePanel(getOpeningPosition());
+  const dragBounds = useMemo(() => ({
+    bottom: companionBarBottom + ACTIVE_COMPANION_BAR_HEIGHT,
+    height: panelSize.height,
+    left: CHAT_VIEWPORT_SIDE_INSET,
+    right: CHAT_VIEWPORT_SIDE_INSET,
+    top: isCompanionWindow ? CHAT_VIEWPORT_SIDE_INSET : CHAT_VIEWPORT_TOP_INSET,
+    width: panelSize.width,
+  }), [companionBarBottom, isCompanionWindow, panelSize.height, panelSize.width]);
+  const { position, resetPosition, dragHandlers } = useDraggablePanel(getOpeningPosition(), dragBounds);
   const inputPlaceholder = "Type here...";
   const recentChats = chatStoreSnapshot.chats;
   const selectedEffortLabel = reasoningEfforts.find((effort) => effort.id === selectedEffort)?.label ?? "Medium";
