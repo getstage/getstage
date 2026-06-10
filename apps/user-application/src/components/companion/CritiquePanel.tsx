@@ -1,4 +1,4 @@
-import { Fragment, FormEvent, MouseEvent, PointerEvent as ReactPointerEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, FormEvent, MouseEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CompanionState } from "@shared/models/desktop";
 import type { ProviderId, RunEvent } from "@stage/data-ops/contracts";
 import {
@@ -18,11 +18,9 @@ import {
   createEmptyStageChat,
   createStageChatMessage,
   createTitleFromPrompt,
-  readStageChatPanelSize,
   readStageChatStore,
   subscribeToStageChats,
   upsertStageChat,
-  writeStageChatPanelSize,
 } from "@/lib/companion/stageChats";
 import { STAGE_SHORTCUT_OPEN_CHAT } from "@/lib/companion/shortcutEvents";
 import type { StageChat, StageChatMessage } from "@/models/companion/chat";
@@ -46,21 +44,12 @@ const chatProviders: ChatProvider[] = [
 
 const PANEL_WIDTH = 552;
 const PANEL_HEIGHT = 511;
-const PANEL_MAX_WIDTH = 1100;
-const PANEL_MAX_HEIGHT = 900;
 const ACTIVE_COMPANION_BAR_HEIGHT = 42;
 const MAIN_WINDOW_BAR_BOTTOM = 12;
 const COMPANION_WINDOW_BAR_BOTTOM = 32;
 const CHAT_VIEWPORT_SIDE_INSET = 12;
 const CHAT_VIEWPORT_TOP_INSET = 52;
 const PROVIDER_ERROR_MESSAGE = "Something went wrong. Please try again.";
-
-type ResizeStart = {
-  height: number;
-  pointerX: number;
-  pointerY: number;
-  width: number;
-};
 
 function selectInitialChat(): StageChat {
   const store = readStageChatStore();
@@ -77,13 +66,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const [messages, setMessages] = useState<StageChatMessage[]>(() => activeChat.messages);
   const [chatStoreSnapshot, setChatStoreSnapshot] = useState(() => readStageChatStore());
   const [historyOpen, setHistoryOpen] = useState(true);
-  const [panelSize, setPanelSize] = useState(() => {
-    const savedSize = readStageChatPanelSize();
-    return {
-      width: Math.max(PANEL_WIDTH, savedSize.width),
-      height: Math.max(PANEL_HEIGHT, savedSize.height),
-    };
-  });
+  const panelSize = { width: PANEL_WIDTH, height: PANEL_HEIGHT };
   const [draft, setDraft] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [pendingSeconds, setPendingSeconds] = useState(0);
@@ -113,8 +96,6 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const activeChatRef = useRef(activeChat);
   const handledMessagesRef = useRef(messages);
   const nonPersistentMessagesRef = useRef<StageChatMessage[] | null>(null);
-  const resizeStartRef = useRef<ResizeStart | null>(null);
-  const panelSizeRef = useRef(panelSize);
   const historyShortcutHandledAtRef = useRef(0);
   const getOpeningPosition = useCallback(() => ({
     x: Math.max(16, Math.round((window.innerWidth - panelSize.width) / 2)),
@@ -124,13 +105,13 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     ),
   }), [companionBarBottom, panelSize.height, panelSize.width]);
   const dragBounds = useMemo(() => ({
-    bottom: companionBarBottom + ACTIVE_COMPANION_BAR_HEIGHT,
+    bottom: CHAT_VIEWPORT_SIDE_INSET,
     height: panelSize.height,
     left: CHAT_VIEWPORT_SIDE_INSET,
     right: CHAT_VIEWPORT_SIDE_INSET,
     top: isCompanionWindow ? CHAT_VIEWPORT_SIDE_INSET : CHAT_VIEWPORT_TOP_INSET,
     width: panelSize.width,
-  }), [companionBarBottom, isCompanionWindow, panelSize.height, panelSize.width]);
+  }), [isCompanionWindow, panelSize.height, panelSize.width]);
   const { position, resetPosition, dragHandlers } = useDraggablePanel(getOpeningPosition(), dragBounds);
   const inputPlaceholder = "Type here...";
   const recentChats = chatStoreSnapshot.chats;
@@ -166,10 +147,6 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   useEffect(() => subscribeToStageChats(() => {
     setChatStoreSnapshot(readStageChatStore());
   }), []);
-
-  useEffect(() => {
-    panelSizeRef.current = panelSize;
-  }, [panelSize]);
 
   useEffect(() => {
     if (handledMessagesRef.current === messages) {
@@ -508,56 +485,6 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     });
   }
 
-  function startResize(event: ReactPointerEvent<HTMLButtonElement>) {
-    event.preventDefault();
-    event.stopPropagation();
-    const start = {
-      pointerX: event.clientX,
-      pointerY: event.clientY,
-      width: panelSizeRef.current.width,
-      height: panelSizeRef.current.height,
-    };
-    resizeStartRef.current = start;
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
-
-  function resizePanel(event: ReactPointerEvent<HTMLButtonElement>) {
-    const start = resizeStartRef.current;
-    if (!start) {
-      return;
-    }
-
-    const maxWidth = Math.min(PANEL_MAX_WIDTH, window.innerWidth - position.x - 16);
-    const maxHeight = Math.min(PANEL_MAX_HEIGHT, window.innerHeight - position.y - 16);
-    const nextSize = {
-      width: clamp(
-        Math.round(start.width + event.clientX - start.pointerX),
-        PANEL_WIDTH,
-        Math.max(PANEL_WIDTH, maxWidth),
-      ),
-      height: clamp(
-        Math.round(start.height + event.clientY - start.pointerY),
-        PANEL_HEIGHT,
-        Math.max(PANEL_HEIGHT, maxHeight),
-      ),
-    };
-    panelSizeRef.current = nextSize;
-    setPanelSize(nextSize);
-  }
-
-  function stopResize(event: ReactPointerEvent<HTMLButtonElement>) {
-    if (!resizeStartRef.current) {
-      return;
-    }
-
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-
-    resizeStartRef.current = null;
-    writeStageChatPanelSize(panelSizeRef.current);
-  }
-
   if (!visible) {
     return null;
   }
@@ -871,15 +798,6 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       </form>
         </div>
       </div>
-      <button
-        className="chat-resize-handle"
-        type="button"
-        aria-label="Resize chat"
-        onPointerDown={startResize}
-        onPointerMove={resizePanel}
-        onPointerUp={stopResize}
-        onPointerCancel={stopResize}
-      />
     </aside>
   );
 }
@@ -1039,10 +957,6 @@ function getEngineModelIdForModel(model: ChatModel) {
   }
 
   return model.id.replaceAll(".", "-");
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
 }
 
 function ProviderMark({ provider }: { provider: ChatProvider["icon"] | ChatModel["provider"] }) {
