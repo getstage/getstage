@@ -105,11 +105,13 @@ export async function getResearchArtifactForNotionExportHandler(
 
   const project = await ctx.db.get(artifact.projectId);
   const connection = await getConnection(ctx, args.userId, "notion");
+  const resolvedContentJson =
+    (await resolveResearchContentJson(artifact.contentJson ?? null)) ?? artifact.contentJson ?? null;
 
   return {
     artifactId: artifact._id,
     projectId: artifact.projectId,
-    contentJson: artifact.contentJson ?? null,
+    contentJson: resolvedContentJson,
     projectName: project?.name ?? "Project",
     connection: connection
       ? {
@@ -181,9 +183,7 @@ export async function exportResearchArtifactToNotionHandler(
     throw new Error("Notion access token is unavailable. Reconnect Notion in Settings.");
   }
 
-  const resolvedContentJson =
-    (await resolveResearchContentJson(bundle.contentJson ?? null)) ?? bundle.contentJson ?? "";
-  const parsedArtifact = parseResearchArtifactContent(resolvedContentJson);
+  const parsedArtifact = parseResearchArtifactContent(bundle.contentJson ?? "");
   if (!parsedArtifact) {
     throw new Error("Research artifact content could not be parsed.");
   }

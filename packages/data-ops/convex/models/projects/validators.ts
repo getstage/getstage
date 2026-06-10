@@ -37,6 +37,9 @@ export const createProjectArgsValidator = {
   phases: v.optional(v.array(phaseCreationInputValidator)),
 } as const;
 
+/** Convex `v.object` for `Infer<>` / desktop handlers. */
+export const createProjectArgsObject = v.object(createProjectArgsValidator);
+
 export const projectStatusValidator = v.union(
   v.literal("active"),
   v.literal("paused"),

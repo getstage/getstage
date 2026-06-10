@@ -12,6 +12,7 @@ import {
 import type { Id } from "../../../../_generated/dataModel";
 import { requireAuthUser } from "../../../../_helpers";
 import { requireEnv, requireSiteUrl } from "../../../../helpers/env";
+import { generateOAuthState } from "../../../../helpers/integrations/oauth";
 import { now } from "../../../../helpers/time";
 import { getAccountConnectionStatus, getAccountDisplayName } from "../../../../helpers/integrations/stripe/account";
 import {
@@ -628,7 +629,7 @@ export const startConnect = action({
   handler: async (ctx) => {
     const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
     const clientId = requireEnv("STRIPE_CONNECT_CLIENT_ID");
-    const state = crypto.randomUUID();
+    const state = generateOAuthState();
 
     await ctx.runMutation(internal.integrations.stripeConnect.upsertPendingConnection, {
       userId: viewer.userId,

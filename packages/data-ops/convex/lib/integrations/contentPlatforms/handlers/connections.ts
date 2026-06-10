@@ -85,6 +85,7 @@ export async function disconnectConnectionHandler(
     status: "disconnected",
     oauthState: undefined,
     pkceVerifier: undefined,
+    oauthReturnUrl: undefined,
     encryptedTokenPayload: undefined,
     encryptionIv: undefined,
     accessTokenExpiresAt: undefined,

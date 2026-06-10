@@ -7,7 +7,6 @@ import {
   buildApiTaskSummary,
 } from "../../../domain/projects/apiReadModel";
 import {
-  createProjectArgsValidator,
   createProjectForUser,
   deleteTaskForUser,
   setTaskBoardStateForUser,
@@ -17,6 +16,7 @@ import {
 import { recomputeProjectState } from "../../../domain/projects/readModel";
 import { requireAuthUser, requirePhaseAccess, requireProjectAccess, requireProjectAccessOrNull } from "../../../_helpers";
 import { now } from "../../../helpers/time";
+import { createProjectArgsObject } from "../../../models/projects/validators";
 
 const projectTypeValidator = v.union(
   v.literal("branding"),
@@ -292,12 +292,12 @@ export async function listUserTasksHandler(ctx: QueryCtx, args: { limit?: number
   return Promise.all(ordered.map((task) => buildApiTaskSummary(ctx, task)));
 }
 
-export const createProjectArgs = createProjectArgsValidator;
+export const createProjectArgs = createProjectArgsObject;
 export const createProjectReturns = projectDetailReturn;
 
 export async function createProjectHandler(
   ctx: MutationCtx,
-  args: Infer<typeof createProjectArgsValidator>,
+  args: Infer<typeof createProjectArgsObject>,
 ) {
   const user = await requireAuthUser(ctx);
   const fallbackAvatarUrl = user.avatarUrl ?? user.image;

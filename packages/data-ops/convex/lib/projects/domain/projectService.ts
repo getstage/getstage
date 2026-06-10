@@ -12,7 +12,10 @@ import { attachTrackedR2Asset, deleteOldR2Asset } from "../../../r2";
 import { buildApiProjectSummary } from "../../../domain/projects/apiReadModel";
 import { assertProjectCreationAllowed } from "../../../domain/projects/entitlement";
 import { buildProject, recomputeProjectState } from "../../../domain/projects/readModel";
+import { requireProjectAccessForUserId } from "../../../helpers/access/projectAccess";
 import { now } from "../../../helpers/time";
+
+export { requireProjectAccessForUserId };
 import {
   createProjectArgsValidator,
   phaseCreationInputValidator,
@@ -84,48 +87,6 @@ async function requireActorUser(ctx: ReaderCtx, userId: Id<"users">) {
     throw new Error("User not found.");
   }
   return user;
-}
-
-export async function requireProjectAccessForUserId(
-  ctx: ReaderCtx,
-  args: {
-    userId: Id<"users">;
-    projectId: Id<"projects">;
-  },
-): Promise<{ user: Doc<"users">; project: Doc<"projects">; role: "owner" | "editor" }> {
-  const user = await requireActorUser(ctx, args.userId);
-  const project = await ctx.db.get(args.projectId);
-
-  if (!project) {
-    throw new Error("Project not found.");
-  }
-
-  if (project.userId === user._id) {
-    return { user, project, role: "owner" };
-  }
-
-  const collaborator = await ctx.db
-    .query("projectCollaborators")
-    .withIndex("by_project_user", (q) =>
-      q.eq("projectId", args.projectId).eq("userId", args.userId),
-    )
-    .unique();
-
-  if (!collaborator) {
-    throw new Error("Not authorized.");
-  }
-
-  const ownerSubscription = await getCurrentSubscriptionSnapshot(ctx, String(project.userId));
-  if (!ownerSubscription) {
-    throw new Error("Not authorized. Project owner needs an active subscription.");
-  }
-
-  const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
-  if (!subscription) {
-    throw new Error("Not authorized. Active subscription required.");
-  }
-
-  return { user, project, role: "editor" };
 }
 
 export async function requirePhaseAccessForUserId(

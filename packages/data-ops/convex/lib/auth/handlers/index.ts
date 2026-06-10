@@ -7,6 +7,7 @@ import {
 } from "@convex-dev/auth/server";
 import type { Value } from "convex/values";
 import type { Doc, Id } from "../../../_generated/dataModel";
+import type { MutationCtx } from "../../../_generated/server";
 import { internal } from "../../../_generated/api";
 import { LoopsOTP } from "../../../integrations/loopsOtp";
 import { getHostnameFromUrl, isDemoAuthEnabledForHostname } from "../../../../src/shared/demoAuth";
@@ -343,7 +344,7 @@ export const authJwt = {
 export const authCallbacks = {
   redirect: redirectAfterSignIn,
   async createOrUpdateUser(
-    ctx: GenericActionCtxWithAuthConfig<any>,
+    ctx: MutationCtx,
     {
       existingUserId,
       profile,
