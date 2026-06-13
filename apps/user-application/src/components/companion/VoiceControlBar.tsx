@@ -1,5 +1,5 @@
 import type { CompanionState } from "@shared/models/desktop";
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { useVoiceTranscription } from "@/hooks/companion/useVoiceTranscription";
 
 type VoiceControlBarProps = {
@@ -12,6 +12,7 @@ type VoiceLevelStyle = CSSProperties & {
 };
 
 export function VoiceControlBar({ state, onStateChange }: VoiceControlBarProps) {
+  const openingChatRef = useRef(false);
   const voice = useVoiceTranscription({
     onStateChange,
     onTranscript: async (text) => {
@@ -38,6 +39,12 @@ export function VoiceControlBar({ state, onStateChange }: VoiceControlBarProps) 
     voice.isRecording || isProcessing || voice.status === "failed" || Boolean(voice.error);
   const showExpandedChrome = state !== "idle" || isBarPinned;
 
+  useEffect(() => {
+    if (state === "idle" || state === "listening") {
+      openingChatRef.current = false;
+    }
+  }, [state]);
+
   if (isChatOpen) {
     return null;
   }
@@ -51,7 +58,7 @@ export function VoiceControlBar({ state, onStateChange }: VoiceControlBarProps) 
           if (!isCompanionWindow && state === "idle") void onStateChange("listening");
         }}
         onMouseLeave={() => {
-          if (isCompanionWindow || isBarPinned || state !== "listening") {
+          if (openingChatRef.current || isCompanionWindow || isBarPinned || state !== "listening") {
             return;
           }
           void onStateChange("idle");
@@ -94,7 +101,13 @@ export function VoiceControlBar({ state, onStateChange }: VoiceControlBarProps) 
           <button
             className="voice-stage-button"
             type="button"
-            onClick={() => void onStateChange("thinking")}
+            onPointerDown={() => {
+              openingChatRef.current = true;
+            }}
+            onClick={() => {
+              openingChatRef.current = true;
+              void onStateChange("thinking");
+            }}
             aria-label="Open Stage chat"
           >
             <img src="/logos/stage.svg" alt="" aria-hidden="true" />
