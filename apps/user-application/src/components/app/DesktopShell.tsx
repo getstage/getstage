@@ -28,12 +28,10 @@ const SHORTCUT_DEBOUNCE_MS = 400;
 export function DesktopShell({ children, hideCompanion = false }: DesktopShellProps) {
   const isCompanionWindow = new URLSearchParams(window.location.search).get("stageWindow") === "companion";
   const companion = useCompanionState(isCompanionWindow ? "listening" : "idle");
+  const companionStateRef = useRef(companion.state);
+  companionStateRef.current = companion.state;
   const pendingVoiceShortcutRef = useRef(false);
   const pendingChatShortcutRef = useRef(false);
-  const showChatPanel =
-    !isCompanionWindow &&
-    (companion.state === "thinking" || companion.state === "response");
-
   useEffect(() => {
     if (isCompanionWindow) {
       return;
@@ -57,7 +55,9 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
           }
 
           pendingVoiceShortcutRef.current = true;
-          void companion.setState("listening");
+          if (companionStateRef.current === "idle") {
+            void companion.setState("listening");
+          }
         });
       }) ?? (() => {});
 
@@ -195,9 +195,7 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
           <CompanionOrb state={companion.state} />
           <Suspense fallback={null}>
             <VoiceControlBar state={companion.state} onStateChange={companion.setState} />
-            {showChatPanel ? (
-              <CritiquePanel state={companion.state} onStateChange={companion.setState} />
-            ) : null}
+            <CritiquePanel state={companion.state} onStateChange={companion.setState} />
           </Suspense>
         </>
       ) : null}
