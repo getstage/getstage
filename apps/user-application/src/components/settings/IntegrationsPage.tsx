@@ -18,13 +18,16 @@ import {
   hasMissingProviderCli,
   PROVIDER_CLI_RESTART_BANNER,
 } from "@/lib/settings/providerCliHints";
+import type { ProviderId } from "@stage/data-ops/contracts";
 import {
   googleSheetsIntegrationToRow,
   nativeIntegrationToRow,
   providerToIntegrationRow,
 } from "@/lib/settings/providerIntegrationRows";
+import { isProviderCliReady } from "@/lib/settings/providerCliSetup";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 import type { IntegrationRowModel } from "@/types/settings/integrations";
+import { ProviderCliSetupDialog } from "./ProviderCliSetupDialog";
 import { SettingsIcon } from "./SettingsIcons";
 
 export function IntegrationsPage() {
@@ -34,6 +37,7 @@ export function IntegrationsPage() {
   const providerPreferences = useProviderPreferences();
   const chatDefaults = useChatDefaults();
   const [busyIntegrationId, setBusyIntegrationId] = useState<string | null>(null);
+  const [setupDialogProviderId, setSetupDialogProviderId] = useState<ProviderId | null>(null);
   const [aiDefaultsOpen, setAiDefaultsOpen] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement>(null);
@@ -138,6 +142,14 @@ export function IntegrationsPage() {
       if (integration.providerId) {
         if (integration.connected) {
           providerPreferences.setProviderEnabled(integration.providerId, false);
+          return;
+        }
+
+        const provider = providers.data?.providers.find(
+          (entry) => entry.id === integration.providerId,
+        );
+        if (!isProviderCliReady(provider)) {
+          setSetupDialogProviderId(integration.providerId);
           return;
         }
 
@@ -304,6 +316,20 @@ export function IntegrationsPage() {
           </IntegrationGroup>
         </div>
       </div>
+
+      {setupDialogProviderId ? (
+        <ProviderCliSetupDialog
+          providerId={setupDialogProviderId}
+          provider={providers.data?.providers.find((entry) => entry.id === setupDialogProviderId)}
+          isRefreshing={isRefreshing}
+          onClose={() => setSetupDialogProviderId(null)}
+          onRefresh={() => void providerRefresh.mutateAsync()}
+          onConnect={() => {
+            providerPreferences.setProviderEnabled(setupDialogProviderId, true);
+            setSetupDialogProviderId(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

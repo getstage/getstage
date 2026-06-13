@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { SettingsPageView } from "@/components/settings/SettingsPageView";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authed/settings/developer")({
-  component: () => <SettingsPageView initialTab="developer" />,
+  beforeLoad: () => {
+    throw redirect({ to: "/integrations" });
+  },
 });

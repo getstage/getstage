@@ -131,6 +131,6 @@ const CODEX_SPEC: ProviderRuntimeSpec = ProviderRuntimeSpec {
             relative_path: ".codex/auth.json",
         },
     ],
-    setup_hint: "Install Codex CLI and run `codex login`.",
+    setup_hint: "Install Codex CLI, run `codex`, and sign in with ChatGPT.",
     update_hint: "Runs `codex --upgrade` when requested.",
 };

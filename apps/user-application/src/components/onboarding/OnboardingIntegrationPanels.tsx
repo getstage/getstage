@@ -6,14 +6,21 @@ import {
   FigmaSection,
   FigmaStepHeader,
 } from "@/components/onboarding/OnboardingFigmaPrimitives";
+import { useProviderRefresh, useProviderStatus } from "@/hooks/engine/useProviderStatus";
+import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/convex";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
+import {
+  getProviderCliSetupSteps,
+  isProviderCliReady,
+  providerCliSetupHeadline,
+  providerCliSetupIssue,
+  providerLabel,
+} from "@/lib/settings/providerCliSetup";
+import { PROVIDER_CLI_RESTART_BANNER } from "@/lib/settings/providerCliHints";
 import type { ClaudeConnectionSummary } from "@/types/settings";
-
-const ONBOARDING_ICON_SRC = {
-  copy: "/logos/copy.svg",
-};
+import type { ProviderId } from "@stage/data-ops/contracts";
 
 const INTEGRATION_ICON_SRC = {
   claude: "/logos/integrations/claude.svg",
@@ -92,148 +99,99 @@ function IntegrationConnectingState({ tool }: { tool: "figma" | "notion" }) {
   );
 }
 
-function IntegrationSetupState({
-  provider,
-  apiKey,
-  onGenerateKey,
-  onActivate,
+function ProviderCliOnboardingSetup({
+  providerId,
+  onBack,
+  onConnected,
 }: {
-  provider: "codex" | "claude";
-  apiKey: string;
-  onGenerateKey: () => void;
-  onActivate: () => void;
+  providerId: ProviderId;
+  onBack: () => void;
+  onConnected: () => void;
 }) {
-  const isClaude = provider === "claude";
-  const providerLabel = isClaude ? "Claude" : "Codex";
-  const maskedKey = "*******************";
-  const displayKey = apiKey || maskedKey;
-  const setupText = `# ${providerLabel} Configuration
+  const providers = useProviderStatus();
+  const providerRefresh = useProviderRefresh();
+  const providerPreferences = useProviderPreferences();
+  const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
+  const provider = providers.data?.providers.find((entry) => entry.id === providerId);
+  const issue = providerCliSetupIssue(provider);
+  const ready = isProviderCliReady(provider);
+  const steps = getProviderCliSetupSteps(providerId);
 
-API_KEY=${apiKey || "[Your API key here]"}
-
-You are an expert product engineer working on a modern SaaS application.
-
-- Write clean, production-ready code
-- Maintain consistent structure and naming
-- Optimize for readability and scalability
-- Avoid breaking existing functionality
-
-UI Guidelines:
-- Use modern, minimal design patterns
-- Ensure spacing, hierarchy, and responsiveness
-
-Always return complete, usable code.`;
-
-  const [copiedKey, setCopiedKey] = useState(false);
-  const [copiedSetup, setCopiedSetup] = useState(false);
-
-  function handleCopy(text: string, type: "key" | "setup") {
-    void navigator.clipboard.writeText(text);
-    if (type === "key") {
-      setCopiedKey(true);
-      window.setTimeout(() => setCopiedKey(false), 2000);
-    } else {
-      setCopiedSetup(true);
-      window.setTimeout(() => setCopiedSetup(false), 2000);
-    }
+  async function copyCommand(command: string) {
+    await navigator.clipboard.writeText(command);
+    setCopiedCommand(command);
+    window.setTimeout(() => setCopiedCommand(null), 2000);
   }
 
   return (
     <FigmaOnboardingFrame>
       <FigmaStepHeader
         step="claude"
-        title={`Set up ${providerLabel}`}
-        subtitle={
-          isClaude
-            ? "Connect Claude to power conversations, reasoning, and content generation in your workspace."
-            : "Give Stage access to generate, update, and manage your code seamlessly."
-        }
+        title={`Set up ${providerLabel(providerId)}`}
+        subtitle={providerCliSetupHeadline(providerId, issue)}
         showProgress={false}
       />
       <div className="mt-6 space-y-3">
-        <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-          <div className="rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <img
-                  src={isClaude ? INTEGRATION_ICON_SRC.claude : INTEGRATION_ICON_SRC.codex}
-                  alt=""
-                  className="h-4 w-4 object-contain"
-                />
-                <span className="text-[13px] font-medium text-[#171717]">{providerLabel}</span>
-              </div>
-              <span className="flex h-4 w-[30px] items-center justify-end rounded-full bg-[#DBD9FC] p-0.5">
-                <span className="h-3 w-3 rounded-full bg-[#221E6C]" />
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-1 rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-            <p className="text-[13px] font-medium text-[#171717]">API Key</p>
-            <div className="mt-2 flex h-[31px] items-center justify-between gap-3 rounded-[6px] bg-[#F5F5F5] py-1 pl-3 pr-1 text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-              <span className="min-w-0 truncate">{displayKey}</span>
-              {apiKey ? (
-                <button
-                  type="button"
-                  onClick={() => handleCopy(apiKey, "key")}
-                  className={cn(
-                    "grid h-[18px] w-[18px] shrink-0 cursor-pointer place-items-center rounded-[4px] transition-colors",
-                    copiedKey ? "bg-green-50" : "hover:bg-white",
-                  )}
-                  aria-label={`Copy ${providerLabel} API key`}
-                >
-                  {copiedKey ? (
-                    <Check size={12} weight="bold" className="text-green-600" />
-                  ) : (
-                    <img src={ONBOARDING_ICON_SRC.copy} alt="" className="h-[18px] w-[18px]" />
-                  )}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={onGenerateKey}
-                  className="h-[23px] shrink-0 cursor-pointer rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-2.5 text-[12px] font-medium text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
-                >
-                  Generate Key
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-1 rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-            <p className="text-[13px] font-medium text-[#171717]">Auto-generated Setup</p>
-            <div className="mt-2 flex h-[308px] items-start gap-3 overflow-y-auto rounded-[6px] bg-[#F5F5F5] py-2.5 pl-3 pr-1 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-              <pre className="min-w-0 flex-1 whitespace-pre-wrap text-[12px] leading-[1.5] font-medium text-[#525252]">
-                {setupText}
-              </pre>
-              {apiKey ? (
-                <button
-                  type="button"
-                  onClick={() => handleCopy(setupText, "setup")}
-                  className={cn(
-                    "sticky top-0 grid h-[18px] w-[18px] shrink-0 cursor-pointer place-items-center rounded-[4px] transition-colors",
-                    copiedSetup ? "bg-green-50" : "hover:bg-white",
-                  )}
-                  aria-label={`Copy ${providerLabel} setup`}
-                >
-                  {copiedSetup ? (
-                    <Check size={12} weight="bold" className="text-green-600" />
-                  ) : (
-                    <img src={ONBOARDING_ICON_SRC.copy} alt="" className="h-[18px] w-[18px]" />
-                  )}
-                </button>
+        <ol className="space-y-3">
+          {steps.map((step, index) => (
+            <li
+              key={step.title}
+              className="rounded-[10px] border border-[#EFEFEF] bg-[#FAFAFA] px-3 py-3"
+            >
+              <p className="text-[13px] font-semibold text-[#171717]">
+                {index + 1}. {step.title}
+              </p>
+              {step.command ? (
+                <div className="mt-2 flex items-center justify-between gap-2 rounded-[6px] bg-[#171717] px-3 py-2">
+                  <code className="min-w-0 truncate font-mono text-[11px] text-[#FAFAFA]">
+                    {step.command}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => void copyCommand(step.command!)}
+                    className="shrink-0 rounded-[5px] bg-[#404040] px-2 py-1 text-[11px] font-medium text-white"
+                  >
+                    {copiedCommand === step.command ? "Copied" : "Copy"}
+                  </button>
+                </div>
               ) : null}
-            </div>
-          </div>
+              <p className="mt-2 text-[12px] leading-[1.45] text-[#525252]">{step.detail}</p>
+            </li>
+          ))}
+        </ol>
+
+        <p className="rounded-[8px] border border-[#F5E6B8] bg-[#FFFBEB] px-3 py-2 text-[12px] leading-[1.45] text-[#7A5B00]">
+          {PROVIDER_CLI_RESTART_BANNER}
+        </p>
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex h-9 flex-1 items-center justify-center rounded-[6px] bg-[#F5F5F5] px-4 text-[13px] font-medium text-[#525252]"
+          >
+            Back
+          </button>
+          <button
+            type="button"
+            disabled={providers.isFetching || providerRefresh.isPending}
+            onClick={() => void providerRefresh.mutateAsync()}
+            className="inline-flex h-9 flex-1 items-center justify-center rounded-[6px] bg-[#F5F5F5] px-4 text-[13px] font-medium text-[#171717] disabled:opacity-60"
+          >
+            {providers.isFetching || providerRefresh.isPending ? "Checking..." : "Refresh"}
+          </button>
         </div>
 
         <button
           type="button"
-          onClick={onActivate}
-          disabled={!apiKey}
-          className="inline-flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-5 text-[13px] font-medium text-white opacity-50 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:hover:opacity-50 enabled:opacity-100 focus:outline-none"
+          disabled={!ready}
+          onClick={() => {
+            providerPreferences.setProviderEnabled(providerId, true);
+            onConnected();
+          }}
+          className="inline-flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-5 text-[13px] font-medium text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Activate {providerLabel}
+          Connect {providerLabel(providerId)}
           <ArrowRight size={16} weight="bold" />
         </button>
       </div>
@@ -249,12 +207,9 @@ export function FigmaIntegrationConfig({
   onActivate: () => void;
 }) {
   const [view, setView] = useState<"list" | "codex" | "claude" | "connecting-figma" | "connecting-notion">("list");
-  const [codexKey, setCodexKey] = useState("");
-  const [claudeKey, setClaudeKey] = useState("");
-  const [connectedTools, setConnectedTools] = useState({
-    codex: false,
-  });
   const { isAuthenticated } = useConvexAuth();
+  const providers = useProviderStatus();
+  const providerPreferences = useProviderPreferences();
   const nativeConnectionStatus = useConvexQuery(
     api.integrations.contentPlatforms.getNativeConnectionStatus,
     isAuthenticated ? {} : "skip",
@@ -262,21 +217,16 @@ export function FigmaIntegrationConfig({
   const startOAuthConnect = useConvexAction(
     api.integrations.contentPlatforms.startOAuthConnect,
   );
-  const codexConnected = connectedTools.codex;
+
+  const claudeProvider = providers.data?.providers.find((entry) => entry.id === "claude");
+  const codexProvider = providers.data?.providers.find((entry) => entry.id === "codex");
+  const codexConnected =
+    providerPreferences.isProviderEnabled("codex") && isProviderCliReady(codexProvider);
+  const claudeConnected =
+    (providerPreferences.isProviderEnabled("claude") && isProviderCliReady(claudeProvider)) ||
+    (claudeConnection?.status === "connected" && claudeConnection.stageApiVerified);
   const figmaConnected = nativeConnectionStatus?.figma?.status === "active";
   const notionConnected = nativeConnectionStatus?.notion?.status === "active";
-  const claudeConnected =
-    Boolean(claudeKey) ||
-    (claudeConnection?.status === "connected" && claudeConnection.stageApiVerified);
-
-  function generateKey(kind: "codex" | "claude") {
-    const nextKey = kind === "codex" ? "sk_live_x7f3k92hdk28s9dk3h" : "sk_live_x7f3k92hdk28s9dk3h";
-    if (kind === "codex") {
-      setCodexKey(nextKey);
-      return;
-    }
-    setClaudeKey(nextKey);
-  }
 
   useEffect(() => {
     if (!window.stageDesktop?.integrations?.onOAuthCompleted) return;
@@ -317,25 +267,20 @@ export function FigmaIntegrationConfig({
 
   if (view === "codex") {
     return (
-      <IntegrationSetupState
-        provider="codex"
-        apiKey={codexKey}
-        onGenerateKey={() => generateKey("codex")}
-        onActivate={() => {
-          setConnectedTools((current) => ({ ...current, codex: true }));
-          setView("list");
-        }}
+      <ProviderCliOnboardingSetup
+        providerId="codex"
+        onBack={() => setView("list")}
+        onConnected={() => setView("list")}
       />
     );
   }
 
   if (view === "claude") {
     return (
-      <IntegrationSetupState
-        provider="claude"
-        apiKey={claudeKey}
-        onGenerateKey={() => generateKey("claude")}
-        onActivate={() => setView("list")}
+      <ProviderCliOnboardingSetup
+        providerId="claude"
+        onBack={() => setView("list")}
+        onConnected={() => setView("list")}
       />
     );
   }
@@ -345,7 +290,7 @@ export function FigmaIntegrationConfig({
       <FigmaStepHeader
         step="claude"
         title="Configure your integration"
-        subtitle="Connect your tools to sync files, tasks, and updates"
+        subtitle="Connect Claude or Codex via Terminal, then Figma and Notion with OAuth."
         showProgress={false}
       />
       <div className="mt-6 space-y-3">

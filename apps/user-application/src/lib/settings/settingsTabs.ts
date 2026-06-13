@@ -5,7 +5,6 @@ export const SETTINGS_TABS: Array<{ key: SettingsTab; label: string; icon: strin
   { key: "profile", label: "Profile", icon: "profile" },
   { key: "billing", label: "Plans & Billing", icon: "billing" },
   { key: "clients", label: "Clients", icon: "clients" },
-  { key: "developer", label: "Developer", icon: "developer" },
   { key: "shortcuts", label: "Shortcuts", icon: "shortcuts" },
   { key: "account", label: "Account", icon: "account" },
 ];

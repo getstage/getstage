@@ -88,19 +88,21 @@ impl ProviderProcessError {
                     );
                 }
 
-                if let Some(stderr) = detail.split(": ").last() {
-                    if !stderr.trim().is_empty() && stderr != detail {
-                        if looks_like_provider_auth_failure(stderr) {
-                            return format!(
-                                "{label} is not logged in. Run `{login_cmd}` in Terminal, then refresh Settings → Integrations."
-                            );
-                        }
+                if let Some(payload) = detail.split_once("failed: ").map(|(_, rest)| rest.trim()) {
+                    if looks_like_provider_auth_failure(payload) {
+                        return format!(
+                            "{label} is not logged in. Run `{login_cmd}` in Terminal, then refresh Settings → Integrations."
+                        );
+                    }
 
-                        return format!("{label} failed: {stderr}");
+                    if !payload.is_empty() && !payload.starts_with("process exited with status") {
+                        return format!("{label} failed: {payload}");
                     }
                 }
 
-                format!("{label} exited unexpectedly. Check Terminal logs for detail.")
+                format!(
+                    "{label} exited unexpectedly. Run `{login_cmd}` in Terminal, then try again."
+                )
             }
         }
     }
@@ -293,7 +295,12 @@ pub async fn run_provider_process_collect(
                         )
                         .await;
                         stderr_capture.flush(&mut final_text, capture_multiline_stderr);
-                        return Err(provider_exit_error(spec.binary, status, &stderr_diag));
+                        return Err(provider_exit_error(
+                            spec.binary,
+                            status,
+                            &stderr_diag,
+                            &final_text,
+                        ));
                     }
                     Ok(None) => sleep(PROCESS_POLL_INTERVAL).await,
                     Err(source) => {
@@ -358,11 +365,23 @@ fn provider_exit_error(
     binary: &'static str,
     status: std::process::ExitStatus,
     stderr_diag: &StderrDiagnostics,
+    stdout_text: &str,
 ) -> ProviderProcessError {
     let mut message = format!("process exited with status {status}");
+    let mut parts = Vec::new();
+
     if let Some(summary) = stderr_diag.summary() {
+        parts.push(summary);
+    }
+
+    let stdout_trimmed = stdout_text.trim();
+    if !stdout_trimmed.is_empty() {
+        parts.push(truncate_line(stdout_trimmed, STDERR_DIAG_MAX_CHARS));
+    }
+
+    if !parts.is_empty() {
         message.push_str(": ");
-        message.push_str(&summary);
+        message.push_str(&parts.join(" | "));
     }
 
     ProviderProcessError::Io {
@@ -809,6 +828,36 @@ mod tests {
             EngineErrorCode::NotAuthenticated
         ));
         assert!(engine_error.message.contains("claude auth login"));
+    }
+
+    #[test]
+    fn provider_exit_error_includes_stdout_when_stderr_is_empty() {
+        let diag = StderrDiagnostics::default();
+        let error = provider_exit_error(
+            "claude",
+            std::process::Command::new("false").status().expect("false exits"),
+            &diag,
+            "Failed to authenticate. API Error: 401 Invalid authentication credentials",
+        );
+
+        let engine_error = error.to_engine_error(ProviderId::Claude);
+        assert!(matches!(
+            engine_error.code,
+            EngineErrorCode::NotAuthenticated
+        ));
+        assert!(!engine_error.message.contains("failed: 1"));
+    }
+
+    #[test]
+    fn bare_exit_status_one_does_not_surface_as_failed_one_message() {
+        let error = ProviderProcessError::Io {
+            binary: "claude",
+            source: std::io::Error::other("process exited with status exit status: 1"),
+        };
+
+        let message = error.to_engine_error(ProviderId::Claude).message;
+        assert!(!message.contains("failed: 1"));
+        assert!(message.contains("claude auth login") || message.contains("exited unexpectedly"));
     }
 
     #[test]
