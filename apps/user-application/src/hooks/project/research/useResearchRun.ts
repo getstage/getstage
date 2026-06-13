@@ -18,6 +18,7 @@ import {
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
 import { assertProviderPreflightReady } from "@/lib/engine/providerPreflight";
+import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 
 const RESEARCH_PROMPT = "Generate project research from the current Stage project context.";
 
