@@ -17,7 +17,14 @@ export function parseAmountToCents(rawValue: string) {
       normalized = normalized.replace(/,/g, "");
     }
   } else if (lastComma !== -1) {
-    normalized = normalized.replace(",", ".");
+    const commaCount = (normalized.match(/,/g) ?? []).length;
+    const afterLastComma = normalized.slice(lastComma + 1);
+    const looksLikeThousands =
+      commaCount > 1 ||
+      (afterLastComma.length === 3 && /^\d{3}$/.test(afterLastComma));
+    normalized = looksLikeThousands
+      ? normalized.replace(/,/g, "")
+      : normalized.replace(",", ".");
   }
 
   const parsed = Number.parseFloat(normalized);
