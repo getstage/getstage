@@ -5,6 +5,7 @@ import type { Id } from "@stage/data-ops/convex/data-model";
 import { parseConvexTaskId } from "@stage/data-ops";
 import { DeleteTaskModal } from "@/components/tasks/DeleteTaskModal";
 import { KanbanAssignCard } from "@/components/project/kanban/KanbanAssignCard";
+import { AddProjectMemberDialog } from "@/components/project/kanban/AddProjectMemberDialog";
 import {
   useDeleteTaskMutation,
   useProjectMembersQuery,
@@ -164,6 +165,7 @@ function TaskDetailEditor({
   const [assignSearch, setAssignSearch] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
 
   const menuRef = useRef<HTMLDivElement | null>(null);
   const pickerAreaRef = useRef<HTMLDivElement | null>(null);
@@ -516,6 +518,11 @@ function TaskDetailEditor({
                         search={assignSearch}
                         onSearchChange={setAssignSearch}
                         onAssign={(member) => void handleAssign(member)}
+                        onAddMember={() => {
+                          setPicker(null);
+                          setAssignSearch("");
+                          setIsAddMemberOpen(true);
+                        }}
                         className="relative w-full"
                       />
                       {primaryAssignee ? (
@@ -651,6 +658,11 @@ function TaskDetailEditor({
           onDelete={() => void handleDeleteTask()}
         />
       ) : null}
+      <AddProjectMemberDialog
+        projectId={projectId}
+        open={isAddMemberOpen}
+        onOpenChange={setIsAddMemberOpen}
+      />
     </>
   );
 }
