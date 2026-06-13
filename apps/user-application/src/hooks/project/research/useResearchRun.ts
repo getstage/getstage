@@ -17,7 +17,7 @@ import {
 } from "@/lib/engine/formatRunError";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
-import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
+import { assertProviderPreflightReady } from "@/lib/engine/providerPreflight";
 
 const RESEARCH_PROMPT = "Generate project research from the current Stage project context.";
 
@@ -133,22 +133,12 @@ export function useResearchRun(projectId: string) {
       setRunEnded(false);
       runStartedAtRef.current = null;
 
-      if (!providerPreferences.isProviderEnabled(providerId)) {
-        const userMessage = `Connect ${providerId === "claude" ? "Claude" : "Codex"} in Settings → Integrations before running Research.`;
-        console.error(`[stage-engine] preflight failed: ${userMessage}`);
-        throw new Error(userMessage);
-      }
-
-      const provider = providers.data?.providers.find((entry) => entry.id === providerId);
-      if (!provider || provider.status !== "ready") {
-        const userMessage =
-          provider?.setupHint ??
-          `${providerId === "claude" ? "Claude" : "Codex"} is not set up yet. Open Settings → Integrations and try again.`;
-        console.error(
-          `[stage-engine] preflight failed provider=${providerId} status=${provider?.status ?? "missing"} message=${provider?.message ?? "none"} detail=${userMessage}`,
-        );
-        throw new Error(userMessage);
-      }
+      assertProviderPreflightReady({
+        providerId,
+        snapshot: providers.snapshot,
+        isEnabled: providerPreferences.isProviderEnabled(providerId),
+        context: "run",
+      });
 
       await providerRun.startRun.mutateAsync({
         providerId,
@@ -167,7 +157,7 @@ export function useResearchRun(projectId: string) {
       projectId,
       providerPreferences,
       providerRun.startRun,
-      providers.data?.providers,
+      providers.snapshot,
     ],
   );
 

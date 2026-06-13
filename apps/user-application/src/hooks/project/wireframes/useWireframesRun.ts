@@ -8,6 +8,7 @@ import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import { formatRunFailedEvent } from "@/lib/engine/formatRunError";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
+import { assertProviderPreflightReady } from "@/lib/engine/providerPreflight";
 import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 
 const WIREFRAMES_PROMPT =
@@ -144,19 +145,12 @@ export function useWireframesRun(projectId: string) {
         setRunEnded(false);
         runStartedAtRef.current = null;
 
-        if (!providerPreferences.isProviderEnabled(providerId)) {
-          throw new Error(
-            `Connect ${providerId === "claude" ? "Claude" : "Codex"} in Settings -> Integrations before running Wireframes.`,
-          );
-        }
-
-        const provider = providers.data?.providers.find((entry) => entry.id === providerId);
-        if (!provider || provider.status !== "ready") {
-          throw new Error(
-            provider?.setupHint ??
-              `${providerId === "claude" ? "Claude" : "Codex"} is not set up yet. Open Settings -> Integrations and try again.`,
-          );
-        }
+        assertProviderPreflightReady({
+          providerId,
+          snapshot: providers.snapshot,
+          isEnabled: providerPreferences.isProviderEnabled(providerId),
+          context: "run",
+        });
 
         await providerRun.startRun.mutateAsync({
           providerId,
@@ -185,7 +179,7 @@ export function useWireframesRun(projectId: string) {
       projectId,
       providerPreferences,
       providerRun.startRun,
-      providers.data?.providers,
+      providers.snapshot,
     ],
   );
 

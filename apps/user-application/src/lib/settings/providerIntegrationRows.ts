@@ -104,6 +104,15 @@ function providerStatusDetail(provider: ProviderStatusRecord, enabled: boolean) 
     return parts.join(" · ");
   }
 
+  if (!provider.installed || !provider.authenticated) {
+    return [
+      provider.version ? `v${provider.version}` : null,
+      provider.accountEmail ? `Authenticated as ${provider.accountEmail}` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  }
+
   const parts = [
     provider.version ? `v${provider.version}` : null,
     provider.accountEmail ? `Authenticated as ${provider.accountEmail}` : null,

@@ -1,7 +1,7 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-06-10
+> **Last updated:** 2026-06-14
 
 ---
 
@@ -14,7 +14,7 @@
 | **P2** | IPC R2 upload (separate PR after energy gate) | `src/lib/r2Uploads.ts`, `electron/helpers/r2-upload.ts` |
 | **P3** | Export E2E + Convex deploy | Notion live test, Figma plugin publish, Paper live write |
 
-**Current desktop version (work branch):** `0.1.63`
+**Current desktop version (work branch):** `0.1.64`
 
 ---
 

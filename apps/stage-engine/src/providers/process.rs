@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::process::Stdio;
 use std::time::Duration;
 
@@ -196,9 +197,14 @@ pub async fn run_provider_process_collect(
         .stderr(Stdio::piped())
         .kill_on_drop(true);
 
-    if let Some(working_directory) = spec.working_directory {
-        command.current_dir(working_directory);
-    }
+    let working_directory =
+        provider_working_directory(spec.working_directory.as_deref()).map_err(|source| {
+            ProviderProcessError::Io {
+                binary: spec.binary,
+                source,
+            }
+        })?;
+    command.current_dir(working_directory);
 
     let mut child = command
         .spawn()
@@ -313,6 +319,16 @@ pub async fn run_provider_process_collect(
             }
         }
     }
+}
+
+fn provider_working_directory(requested: Option<&str>) -> std::io::Result<PathBuf> {
+    if let Some(requested) = requested.filter(|value| !value.trim().is_empty()) {
+        return Ok(PathBuf::from(requested));
+    }
+
+    let directory = std::env::temp_dir().join("stage-engine-provider");
+    std::fs::create_dir_all(&directory)?;
+    Ok(directory)
 }
 
 #[derive(Debug)]
@@ -705,8 +721,6 @@ fn should_suppress_stderr_warning(text: &str) -> bool {
         || trimmed.starts_with("  5. Competitive Positioning")
         || trimmed.starts_with("  6. Key Pages")
         || trimmed.starts_with("  7. Accessibility")
-        || trimmed.starts_with("- ")
-        || trimmed.starts_with("• ")
     {
         return true;
     }
@@ -793,6 +807,22 @@ mod tests {
     fn needs_stderr_artifact_capture_is_true_for_strategy_runs() {
         assert!(needs_stderr_artifact_capture(RunMode::Strategy));
         assert!(!needs_stderr_artifact_capture(RunMode::Chat));
+    }
+
+    #[test]
+    fn provider_working_directory_keeps_an_explicit_directory() {
+        let requested = std::env::temp_dir().join("stage-explicit-provider-directory");
+        let resolved = provider_working_directory(requested.to_str()).expect("resolve directory");
+
+        assert_eq!(resolved, requested);
+    }
+
+    #[test]
+    fn provider_working_directory_defaults_to_an_isolated_temp_directory() {
+        let resolved = provider_working_directory(None).expect("create isolated directory");
+
+        assert_eq!(resolved, std::env::temp_dir().join("stage-engine-provider"));
+        assert!(resolved.is_dir());
     }
 
     #[test]

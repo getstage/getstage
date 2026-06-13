@@ -203,12 +203,18 @@ export async function exportResearchArtifactToNotionHandler(
     args.parentPageUrlOrId?.trim() || bundle.connection.defaultParentPageUrl || undefined;
   const children = buildNotionBlocksFromResearchArtifact(parsedArtifact);
   const pageTitle = `${bundle.projectName} Research`;
-  const { destinationUrl } = await createNotionChildPage({
+  const { destinationUrl, contentTruncated } = await createNotionChildPage({
     accessToken: tokenRecord.accessToken,
     parentPageId,
     title: pageTitle,
     children,
   });
+
+  if (contentTruncated) {
+    throw new Error(
+      "Notion export was partially saved. Some sections could not be appended to the page.",
+    );
+  }
 
   const completedAt = now();
   await ctx.runMutation(internal.integrations.contentPlatforms.completeNotionResearchExport, {
@@ -347,12 +353,18 @@ export async function exportStrategyArtifactToNotionHandler(
     args.parentPageUrlOrId?.trim() || bundle.connection.defaultParentPageUrl || undefined;
   const children = buildNotionBlocksFromStrategyArtifact(parsedArtifact);
   const pageTitle = `${bundle.projectName} Strategy`;
-  const { destinationUrl } = await createStrategyNotionChildPage({
+  const { destinationUrl, contentTruncated } = await createStrategyNotionChildPage({
     accessToken: tokenRecord.accessToken,
     parentPageId,
     title: pageTitle,
     children,
   });
+
+  if (contentTruncated) {
+    throw new Error(
+      "Notion export was partially saved. Some sections could not be appended to the page.",
+    );
+  }
 
   const completedAt = now();
   await ctx.runMutation(internal.integrations.contentPlatforms.completeNotionStrategyExport, {

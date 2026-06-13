@@ -41,6 +41,15 @@ export function IntegrationsPage() {
   const [aiDefaultsOpen, setAiDefaultsOpen] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement>(null);
+  const didMountProviderRefresh = useRef(false);
+
+  useEffect(() => {
+    if (didMountProviderRefresh.current) {
+      return;
+    }
+    didMountProviderRefresh.current = true;
+    void providerRefresh.mutateAsync();
+  }, [providerRefresh]);
 
   const nativeConnectionStatus = useConvexQuery(
     api.integrations.contentPlatforms.getNativeConnectionStatus,
@@ -346,7 +355,11 @@ function ProviderCliRestartBanner({ message }: { message: string }) {
 }
 
 function getIntegrationActionLabel(integration: IntegrationRowModel) {
-  if (integration.providerId) return integration.connected ? "Disconnect" : "Connect";
+  if (integration.providerId) {
+    if (integration.connected) return "Disconnect";
+    if (integration.status !== "ready") return "Set up";
+    return "Connect";
+  }
   return integration.connected ? "Disconnect" : "Connect";
 }
 

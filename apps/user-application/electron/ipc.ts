@@ -174,7 +174,7 @@ export function registerIpcHandlers({
     const status = await withDebugTiming("engine:start-run sidecar-start", () =>
       sidecarSupervisor.start(),
     );
-    const payload = await withDebugTiming("engine:start-run fetch", () =>
+    const { data: payload, accessToken } = await withDebugTiming("engine:start-run fetch", () =>
       fetchEngineJsonAuthed<unknown>({
         authController,
         method: "POST",
@@ -183,7 +183,6 @@ export function registerIpcHandlers({
         body: parsedRequest,
       }),
     );
-    const accessToken = await authController.getAccessToken();
     const response = startRunResponseSchema.parse(payload);
 
     void streamRunEventsToRenderer({
@@ -225,7 +224,7 @@ export function registerIpcHandlers({
     const parsedRequest = createFigmaExportRequestSchema.parse(request);
     sidecarSupervisor.markEngineActivity();
     const status = await sidecarSupervisor.start();
-    const payload = await fetchEngineJsonAuthed<unknown>({
+    const { data: payload } = await fetchEngineJsonAuthed<unknown>({
       authController,
       method: "POST",
       path: "/v1/exports/figma",
@@ -240,7 +239,7 @@ export function registerIpcHandlers({
     const parsedRequest = createFigJamExportRequestSchema.parse(request);
     sidecarSupervisor.markEngineActivity();
     const status = await sidecarSupervisor.start();
-    const payload = await fetchEngineJsonAuthed<unknown>({
+    const { data: payload } = await fetchEngineJsonAuthed<unknown>({
       authController,
       method: "POST",
       path: "/v1/exports/figjam",
@@ -255,16 +254,15 @@ export function registerIpcHandlers({
     const parsedRequest = wireframeDeliveryRequestSchema.parse(request);
     sidecarSupervisor.markEngineActivity();
     const status = await sidecarSupervisor.start();
-    const bundle = createCodeExportResponseSchema.parse(
-      await fetchEngineJsonAuthed<unknown>({
-        authController,
-        method: "POST",
-        path: "/v1/exports/code",
-        port: status.port,
-        body: parsedRequest,
-        timeoutMs: 10_000,
-      }),
-    );
+    const { data: codeExportPayload } = await fetchEngineJsonAuthed<unknown>({
+      authController,
+      method: "POST",
+      path: "/v1/exports/code",
+      port: status.port,
+      body: parsedRequest,
+      timeoutMs: 10_000,
+    });
+    const bundle = createCodeExportResponseSchema.parse(codeExportPayload);
     const selection = await dialog.showOpenDialog({
       title: "Choose where to export the Stage wireframe",
       buttonLabel: "Export Code",
@@ -300,7 +298,7 @@ export function registerIpcHandlers({
     const parsedRequest = wireframeDeliveryRequestSchema.parse(request);
     sidecarSupervisor.markEngineActivity();
     const status = await sidecarSupervisor.start();
-    const payload = await fetchEngineJsonAuthed<unknown>({
+    const { data: payload } = await fetchEngineJsonAuthed<unknown>({
       authController,
       method: "POST",
       path: "/v1/exports/paper",
@@ -442,7 +440,7 @@ export function registerIpcHandlers({
 
 async function streamRunEventsToRenderer(args: {
   sidecarSupervisor: SidecarSupervisor;
-  accessToken?: string | null;
+  accessToken: string;
   port: number;
   runId: string;
   providerId: ProviderId;
@@ -460,9 +458,7 @@ async function streamRunEventsToRenderer(args: {
     const response = await fetch(
       `http://127.0.0.1:${args.port}/v1/runs/${encodeURIComponent(args.runId)}/events`,
       {
-        headers: args.accessToken
-          ? { authorization: `Bearer ${args.accessToken}` }
-          : undefined,
+        headers: { authorization: `Bearer ${args.accessToken}` },
         signal: controller.signal,
       },
     );

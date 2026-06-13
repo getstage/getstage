@@ -5,6 +5,7 @@ import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
+import { assertProviderPreflightReady } from "@/lib/engine/providerPreflight";
 import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 
 export function useResearchSectionRegenerate(projectId: string) {
@@ -15,14 +16,12 @@ export function useResearchSectionRegenerate(projectId: string) {
 
   return useCallback(
     async (section: ResearchArtifactSection, providerId: ProviderId) => {
-      if (!providerPreferences.isProviderEnabled(providerId)) {
-        throw new Error(`Connect ${providerId === "claude" ? "Claude" : "Codex"} before regenerating.`);
-      }
-
-      const provider = providers.data?.providers.find((entry) => entry.id === providerId);
-      if (!provider || provider.status !== "ready") {
-        throw new Error(provider?.setupHint ?? "Selected provider is not ready.");
-      }
+      assertProviderPreflightReady({
+        providerId,
+        snapshot: providers.snapshot,
+        isEnabled: providerPreferences.isProviderEnabled(providerId),
+        context: "run",
+      });
 
       await providerRun.startRun.mutateAsync({
         providerId,
@@ -42,7 +41,7 @@ export function useResearchSectionRegenerate(projectId: string) {
       projectId,
       providerPreferences,
       providerRun.startRun,
-      providers.data?.providers,
+      providers.snapshot,
     ],
   );
 }

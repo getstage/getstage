@@ -12,7 +12,7 @@ export async function fetchEngineJsonAuthed<T>(args: {
   port: number;
   body?: unknown;
   timeoutMs?: number;
-}): Promise<T> {
+}): Promise<{ data: T; accessToken: string }> {
   const accessToken = await args.authController.getAccessToken();
   if (!accessToken) {
     await clearSessionAndNotify(args.authController);
@@ -20,7 +20,7 @@ export async function fetchEngineJsonAuthed<T>(args: {
   }
 
   try {
-    return await fetchEngineJson<T>({
+    const data = await fetchEngineJson<T>({
       method: args.method,
       path: args.path,
       port: args.port,
@@ -28,6 +28,7 @@ export async function fetchEngineJsonAuthed<T>(args: {
       accessToken,
       timeoutMs: args.timeoutMs,
     });
+    return { data, accessToken };
   } catch (error) {
     if (
       error instanceof Error &&

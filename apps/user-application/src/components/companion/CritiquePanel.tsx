@@ -17,7 +17,10 @@ import {
   CHAT_RUN_FAILED_USER_MESSAGE,
   toRunFailureUserMessage,
 } from "@/lib/engine/formatRunError";
-import { getProviderPreflightError } from "@/lib/engine/providerPreflight";
+import {
+  evaluateProviderPreflight,
+  isProviderStatusPending,
+} from "@/lib/engine/providerPreflight";
 import { clearDesktopSessionIfExpired, toUserFacingErrorMessage } from "@/lib/errors";
 import { useChatActiveProjectId } from "@/hooks/companion/useChatActiveProjectId";
 import { useDraggablePanel } from "@/hooks/companion/useDraggablePanel";
@@ -394,7 +397,18 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     event.preventDefault();
     const nextPrompt = draft.trim();
 
-    if (!nextPrompt || isThinking) {
+    if (!nextPrompt || isThinking || isProviderStatusPending(providers.snapshot)) {
+      return;
+    }
+
+    const providerId = getProviderIdForModel(selectedModel);
+    const preflight = evaluateProviderPreflight({
+      providerId,
+      snapshot: providers.snapshot,
+      isEnabled: providerPreferences.isProviderEnabled(providerId),
+      context: "chat",
+    });
+    if (preflight.state === "loading") {
       return;
     }
 
@@ -422,15 +436,8 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
 
     try {
       setIsThinking(true);
-      const providerId = getProviderIdForModel(selectedModel);
-      const preflightError = getProviderPreflightError({
-        providerId,
-        providers: providers.data?.providers,
-        isEnabled: providerPreferences.isProviderEnabled(providerId),
-        context: "chat",
-      });
-      if (preflightError) {
-        throw new Error(preflightError);
+      if (preflight.state === "blocked") {
+        throw new Error(preflight.message);
       }
 
       await providerRun.startRun.mutateAsync({
@@ -807,7 +814,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
             className="chat-send-button"
             type="submit"
             aria-label="Send message"
-            disabled={!draft.trim() || isThinking}
+            disabled={!draft.trim() || isThinking || isProviderStatusPending(providers.snapshot)}
           >
             <span aria-hidden="true">↑</span>
           </button>

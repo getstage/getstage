@@ -189,7 +189,26 @@ export function buildNotionBlocksFromStrategyArtifact(artifact: StrategyArtifact
     blocks.push(...paragraphBlocks("Strategy artifact exported from Stage."));
   }
 
-  return blocks.slice(0, MAX_CHILDREN_PER_REQUEST);
+  return blocks;
+}
+
+function chunkNotionBlocks(blocks: NotionBlock[], chunkSize: number) {
+  const chunks: NotionBlock[][] = [];
+  for (let index = 0; index < blocks.length; index += chunkSize) {
+    chunks.push(blocks.slice(index, index + chunkSize));
+  }
+  return chunks.length > 0 ? chunks : [[]];
+}
+
+async function appendNotionChildBlocks(
+  accessToken: string,
+  parentBlockId: string,
+  children: NotionBlock[],
+) {
+  await notionFetch(accessToken, `/blocks/${parentBlockId}/children`, {
+    method: "PATCH",
+    body: JSON.stringify({ children }),
+  });
 }
 
 async function notionFetch(accessToken: string, path: string, init?: RequestInit) {
@@ -218,6 +237,10 @@ export async function createNotionChildPage(args: {
   title: string;
   children: NotionBlock[];
 }) {
+  const [initialChildren, ...remainingChildChunks] = chunkNotionBlocks(
+    args.children,
+    MAX_CHILDREN_PER_REQUEST,
+  );
   const page = (await notionFetch(args.accessToken, "/pages", {
     method: "POST",
     body: JSON.stringify({
@@ -227,11 +250,17 @@ export async function createNotionChildPage(args: {
           title: [{ type: "text", text: { content: args.title.slice(0, RICH_TEXT_CHUNK_SIZE) } }],
         },
       },
-      children: args.children,
+      children: initialChildren,
     }),
   })) as { id?: string; url?: string };
 
   const pageId = typeof page.id === "string" ? page.id : null;
+  if (pageId) {
+    for (const chunk of remainingChildChunks) {
+      await appendNotionChildBlocks(args.accessToken, pageId, chunk);
+    }
+  }
+
   const destinationUrl =
     typeof page.url === "string"
       ? page.url
@@ -243,5 +272,17 @@ export async function createNotionChildPage(args: {
     throw new Error("Notion did not return a page URL.");
   }
 
-  return { pageId, destinationUrl };
+  const exportedBlockCount = args.children.length;
+  const truncatedBlockCount =
+    exportedBlockCount > MAX_CHILDREN_PER_REQUEST && !pageId
+      ? exportedBlockCount - initialChildren.length
+      : 0;
+
+  return {
+    pageId,
+    destinationUrl,
+    exportedBlockCount,
+    truncatedBlockCount,
+    contentTruncated: truncatedBlockCount > 0,
+  };
 }
