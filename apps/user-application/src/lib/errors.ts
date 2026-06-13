@@ -12,7 +12,11 @@ const AUTH_INVALID_CODE_PATTERN =
 
 const AUTH_INVALID_EMAIL_PATTERN = /valid email|email address/i;
 const AUTH_UNAVAILABLE_PATTERN = /auth|oauth|loops-otp|google|sign in|signin/i;
-const PERMISSION_PATTERN = /unauthenticated|not authenticated|not authorized|forbidden|access denied/i;
+export const SESSION_EXPIRED_USER_MESSAGE =
+  "Your session expired. Please log in again.";
+
+const SESSION_EXPIRED_PATTERN =
+  /DesktopSessionExpiredError|session expired|please sign in again|please log in again|log in again|stage desktop session is not connected|not authenticated|unauthenticated|authentication required|invalid (auth|jwt|token)|token expired|failed with 401|failed with 403|access denied|forbidden/i;
 const NETWORK_PATTERN = /failed to fetch|network ?error|load failed|network request failed/i;
 const MODULE_LOAD_PATTERN =
   /does not provide an export|failed to fetch dynamically imported module|cannot find module|module not found|importing a module script failed|error loading dynamically imported module|\/@fs\//i;
@@ -99,8 +103,8 @@ export function toUserFacingErrorMessage(error: unknown, fallback: string): stri
     return "Please enter a valid email address.";
   }
 
-  if (PERMISSION_PATTERN.test(message)) {
-    return "Please sign in again and try once more.";
+  if (isSessionExpiredErrorMessage(message)) {
+    return SESSION_EXPIRED_USER_MESSAGE;
   }
 
   if (NETWORK_PATTERN.test(message)) {
@@ -129,4 +133,31 @@ export function toUserFacingErrorMessage(error: unknown, fallback: string): stri
 export function isProjectUpgradeRequiredError(error: unknown): boolean {
   const message = extractErrorMessage(error);
   return message ? PROJECT_UPGRADE_REQUIRED_PATTERN.test(message) : false;
+}
+
+function isSessionExpiredErrorMessage(message: string) {
+  return SESSION_EXPIRED_PATTERN.test(message);
+}
+
+export function isSessionExpiredError(error: unknown): boolean {
+  if (error instanceof Error && error.name === "DesktopSessionExpiredError") {
+    return true;
+  }
+
+  const message = extractErrorMessage(error);
+  return message ? isSessionExpiredErrorMessage(message) : false;
+}
+
+export async function clearDesktopSessionIfExpired(error: unknown): Promise<boolean> {
+  if (!isSessionExpiredError(error)) {
+    return false;
+  }
+
+  try {
+    await window.stageDesktop?.auth?.logout?.();
+  } catch {
+    // Ignore sign-out failures; the auth route still handles the empty session.
+  }
+
+  return true;
 }

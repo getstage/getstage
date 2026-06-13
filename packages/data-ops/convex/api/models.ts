@@ -1,3 +1,6 @@
+/**
+ * Zod schemas for Hono REST (`/api/v1/*`). Convex-internal validators live in `convex/models/`.
+ */
 import { z } from "zod";
 
 const trimmedString = (field: string) =>

@@ -111,8 +111,10 @@ impl StrategyWorkflow {
                 return Ok(());
             };
 
-            let raw_artifact = extract_strategy_artifact(&final_text)?;
-            let artifact = normalize_strategy_artifact(raw_artifact, &input, now_millis())?;
+            let raw_artifact =
+                extract_strategy_artifact(&final_text).map_err(map_strategy_provider_error)?;
+            let artifact = normalize_strategy_artifact(raw_artifact, &input, now_millis())
+                .map_err(map_strategy_provider_error)?;
 
             self.repository
                 .complete_strategy_run(
@@ -282,10 +284,14 @@ enum WorkflowError {
 
 impl WorkflowError {
     fn to_engine_error(&self, provider_id: crate::models::providers::ProviderId) -> EngineError {
+        if let WorkflowError::Provider(error) = self {
+            return error.to_engine_error(provider_id);
+        }
+
         let code = match self {
             WorkflowError::InvalidRequest(_) => EngineErrorCode::InvalidRequest,
-            WorkflowError::Provider(error) => error.to_engine_error(provider_id).code,
             WorkflowError::Convex(_) | WorkflowError::Serde(_) => EngineErrorCode::InternalError,
+            WorkflowError::Provider(_) => unreachable!("handled above"),
         };
 
         EngineError {
@@ -301,12 +307,32 @@ impl WorkflowError {
 fn user_message(error: &WorkflowError) -> String {
     match error {
         WorkflowError::InvalidRequest(message) => message.clone(),
-        WorkflowError::Provider(_) => {
-            "The selected AI provider could not finish the strategy run.".to_string()
-        }
+        WorkflowError::Provider(_) => unreachable!("provider errors use ProviderProcessError::to_engine_error"),
         WorkflowError::Convex(_) => "Stage strategy data could not be loaded or saved.".to_string(),
         WorkflowError::Serde(_) => {
             "The AI response did not match the Strategy artifact format.".to_string()
         }
     }
+}
+
+fn map_strategy_provider_error(error: anyhow::Error) -> WorkflowError {
+    let detail = error.to_string();
+    if detail.contains("did not contain a valid strategyArtifact artifact")
+        || detail.contains("provider output was empty")
+        || detail.contains("provider output did not contain a JSON object")
+    {
+        return WorkflowError::InvalidRequest(
+            "The AI provider did not return a parseable Strategy artifact. Try running Strategy again."
+                .to_string(),
+        );
+    }
+
+    if detail.contains("strategy artifact missing") || detail.contains("strategy section") {
+        return WorkflowError::InvalidRequest(
+            "The AI response was missing required Strategy sections. Try running Strategy again."
+                .to_string(),
+        );
+    }
+
+    WorkflowError::Convex(error)
 }

@@ -4,6 +4,7 @@ import type { ChildProcessByStdio } from "node:child_process";
 import type { Readable } from "node:stream";
 import { app } from "electron";
 import { augmentPathForProviderClis } from "./cli-path";
+import { shouldLogDesktopVerbose } from "./desktop-log";
 import { delay } from "./time";
 
 export type SidecarChildProcess = ChildProcessByStdio<null, Readable, Readable>;
@@ -133,11 +134,22 @@ export async function waitForReadiness(port: number) {
 }
 
 export function logSidecarOutput(streamName: "stdout" | "stderr", chunk: Buffer | string) {
+  const verbose = shouldLogDesktopVerbose();
+
   String(chunk)
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
     .forEach((line) => {
+      if (!verbose) {
+        if (streamName !== "stderr") {
+          return;
+        }
+        if (!/\b(WARN|ERROR|panic|Fatal)\b/i.test(line)) {
+          return;
+        }
+      }
+
       const logger = streamName === "stderr" ? console.warn : console.info;
       logger(`[stage-engine] ${line}`);
     });

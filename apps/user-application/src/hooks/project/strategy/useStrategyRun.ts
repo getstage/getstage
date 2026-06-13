@@ -6,7 +6,7 @@ import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
-import { formatRunFailedEvent, STRATEGY_RUN_FAILED_USER_MESSAGE } from "@/lib/engine/formatRunError";
+import { formatRunFailedEvent, STRATEGY_RUN_FAILED_USER_MESSAGE, toRunFailureUserMessage } from "@/lib/engine/formatRunError";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
 import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 
@@ -89,7 +89,7 @@ export function useStrategyRun(projectId: string) {
 
     if (terminalEvent.type === "run_failed") {
       console.error(formatRunFailedEvent(terminalEvent));
-      setError(STRATEGY_RUN_FAILED_USER_MESSAGE);
+      setError(toRunFailureUserMessage(terminalEvent, STRATEGY_RUN_FAILED_USER_MESSAGE));
     }
   }, [terminalEvent]);
 

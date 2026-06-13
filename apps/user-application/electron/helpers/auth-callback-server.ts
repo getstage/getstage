@@ -1,4 +1,5 @@
 import { createServer, type Server } from "node:http";
+import { logDesktopInfo } from "./desktop-log";
 import { desktopAuthHandoffSchema } from "@shared/models/desktop";
 import {
   DEV_DESKTOP_AUTH_CALLBACK_HOST,
@@ -172,8 +173,9 @@ export function createDesktopAuthCallbackServer({
         DEV_DESKTOP_AUTH_CALLBACK_PORT,
         DEV_DESKTOP_AUTH_CALLBACK_HOST,
         () => {
-          console.info(
-            `[stage-auth] local desktop auth callback server listening on http://${DEV_DESKTOP_AUTH_CALLBACK_HOST}:${DEV_DESKTOP_AUTH_CALLBACK_PORT}${DEV_DESKTOP_AUTH_CALLBACK_PATH}`,
+          logDesktopInfo(
+            "stage-auth",
+            `local desktop auth callback server listening on http://${DEV_DESKTOP_AUTH_CALLBACK_HOST}:${DEV_DESKTOP_AUTH_CALLBACK_PORT}${DEV_DESKTOP_AUTH_CALLBACK_PATH}`,
           );
         },
       );

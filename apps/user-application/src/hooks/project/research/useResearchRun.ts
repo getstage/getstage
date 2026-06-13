@@ -13,7 +13,9 @@ import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import {
   RESEARCH_RUN_FAILED_USER_MESSAGE,
   formatRunFailedEvent,
+  toRunFailureUserMessage,
 } from "@/lib/engine/formatRunError";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
 import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 
@@ -66,9 +68,15 @@ export function useResearchRun(projectId: string) {
     [convexResearchRunning, providerRun.isRunActive, runEnded],
   );
 
-  const runError = useMemo(() => {
+  useEffect(() => {
     const failedEvent = activeRunEvents.find((event) => event.type === "run_failed");
-    return failedEvent?.type === "run_failed" ? formatRunFailedEvent(failedEvent) : null;
+    if (!failedEvent || failedEvent.type !== "run_failed") {
+      return;
+    }
+
+    console.error(formatRunFailedEvent(failedEvent));
+    setRunEnded(true);
+    setError(toRunFailureUserMessage(failedEvent, RESEARCH_RUN_FAILED_USER_MESSAGE));
   }, [activeRunEvents]);
 
   const failRun = useCallback(
@@ -80,14 +88,6 @@ export function useResearchRun(projectId: string) {
     },
     [providerRun],
   );
-
-  useEffect(() => {
-    if (runError) {
-      console.error(runError);
-      setRunEnded(true);
-      setError(RESEARCH_RUN_FAILED_USER_MESSAGE);
-    }
-  }, [runError]);
 
   useEffect(() => {
     if (hasTerminalEvent && !runEnded) {
@@ -188,6 +188,8 @@ export function useResearchRun(projectId: string) {
     runEvents: activeRunEvents,
     error:
       error ??
-      (providerRun.startRun.error instanceof Error ? RESEARCH_RUN_FAILED_USER_MESSAGE : null),
+      (providerRun.startRun.error
+        ? toUserFacingErrorMessage(providerRun.startRun.error, RESEARCH_RUN_FAILED_USER_MESSAGE)
+        : null),
   };
 }

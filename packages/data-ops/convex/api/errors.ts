@@ -86,10 +86,10 @@ export function handleApiError(error: unknown, c: Context) {
   return jsonError(c, status, message);
 }
 
-export const validationHook = ((result: any, c: Context) => {
+export const validationHook = (result: { success: boolean; error?: { issues: unknown } }, c: Context) => {
   if (result.success) {
     return;
   }
 
-  return jsonError(c, 400, "Invalid request.", "validation_error", result.error.issues);
-}) as any;
+  return jsonError(c, 400, "Invalid request.", "validation_error", result.error?.issues);
+};

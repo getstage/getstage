@@ -10,7 +10,7 @@
 apps/user-application   Desktop product (Electron + React + Vite)
 apps/stage-engine       Rust local engine (AI runs, files, exports orchestration)
 apps/web-application    Web (auth, billing, marketing, desktop handoff)
-packages/data-ops       Convex schema, functions, Zod contracts
+packages/data-ops       Convex schema, functions, Zod contracts — see `packages/data-ops/convex/ARCHITECTURE.md`
 ```
 
 ---

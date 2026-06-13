@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { useAction as useConvexAction, useConvexAuth, useQuery as useConvexQuery } from "convex/react";
 import { api } from "@/lib/convexApi";
+import { clearDesktopSessionIfExpired, toUserFacingErrorMessage } from "@/lib/errors";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 import type { Id } from "@stage/data-ops/convex/data-model";
 
@@ -53,8 +54,11 @@ export function useExportResearchToNotion(artifactId: string | null) {
         setNeedsParentPage(false);
         await openExternalLink(result.destinationUrl);
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Could not export research to Notion.";
+        await clearDesktopSessionIfExpired(error);
+        const message = toUserFacingErrorMessage(
+          error,
+          "Could not export research to Notion.",
+        );
         if (message === NOTION_PARENT_REQUIRED) {
           setNeedsParentPage(true);
           setExportError(null);

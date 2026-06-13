@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, shell } from "electron";
 import { autoUpdater } from "electron-updater";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import type { DesktopUpdateStatus } from "@shared/models/desktop";
+import { logDesktopInfo, logDesktopWarn, shouldLogDesktopVerbose } from "./desktop-log";
 
 type UpdateCheckOptions = {
   manual?: boolean;
@@ -22,11 +23,11 @@ let lastAutomaticCheckAt = 0;
 let availableUpdateVersion: string | null = null;
 
 function logUpdate(message: string) {
-  console.info(`[stage-update] ${message}`);
+  logDesktopInfo("stage-update", message);
 }
 
 function logUpdateWarning(message: string) {
-  console.warn(`[stage-update] ${message}`);
+  logDesktopWarn("stage-update", message);
 }
 
 function configureAutoUpdaterFeed() {
@@ -317,6 +318,15 @@ export function initAutoUpdates() {
   configureAutoUpdaterFeed();
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = false;
+
+  if (!shouldLogDesktopVerbose()) {
+    autoUpdater.logger = {
+      info: () => undefined,
+      warn: (message) => logUpdateWarning(String(message)),
+      error: (message) => logUpdateWarning(String(message)),
+      debug: () => undefined,
+    };
+  }
 
   autoUpdater.on("update-available", (info) => {
     if (typeof info.version === "string" && info.version !== app.getVersion()) {

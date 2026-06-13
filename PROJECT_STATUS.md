@@ -1,7 +1,7 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-06-09
+> **Last updated:** 2026-06-10
 
 ---
 
@@ -14,12 +14,14 @@
 | **P2** | IPC R2 upload (separate PR after energy gate) | `src/lib/r2Uploads.ts`, `electron/helpers/r2-upload.ts` |
 | **P3** | Export E2E + Convex deploy | Notion live test, Figma plugin publish, Paper live write |
 
-**Current desktop version (work branch):** `0.1.57`
+**Current desktop version (work branch):** `0.1.59`
 
 ---
 
 ## Implemented in the current integration branch
 
+- **Convex refactor sprint** — thin transport files, `convex/models/` + `convex/helpers/`, handlers in `convex/lib/`; see [Notion task](https://app.notion.com/p/37b8714fd55781078141d5d610317f14) and `packages/data-ops/convex/ARCHITECTURE.md`
+- Notion research export embeds Refero UI pattern images (`v0.1.59`)
 - Desktop v0.1.52–0.1.55 (auto-update, auth handoff, provider CLI detection)
 - Desktop performance pass (sidecar defer, polling reduced)
 - Global voice/chat shortcuts and Settings → Shortcuts
