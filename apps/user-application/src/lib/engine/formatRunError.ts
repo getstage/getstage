@@ -22,7 +22,17 @@ function providerLabel(providerId: ProviderId | null | undefined) {
 
 function looksLikeProviderAuthFailure(error: EngineError) {
   const combined = [error.message, error.detail].filter(Boolean).join(" ");
-  return /auth|login|not authenticated|sign in|auth file/i.test(combined);
+  return /auth|login|not authenticated|sign in|401|authenticate/i.test(combined);
+}
+
+function isProviderSetupError(error: EngineError) {
+  return (
+    error.code === "missing_binary" ||
+    error.code === "run_spawn_failed" ||
+    error.code === "provider_process_failed" ||
+    error.code === "not_authenticated" ||
+    (error.code === "readiness_failed" && looksLikeProviderAuthFailure(error))
+  );
 }
 
 export function toEngineErrorUserMessage(
@@ -32,12 +42,12 @@ export function toEngineErrorUserMessage(
   const label = providerLabel(error.providerId);
   const loginCmd = providerLoginCommand(error.providerId);
 
-  if (
-    error.code === "not_authenticated" ||
-    ((error.code === "readiness_failed" || error.code === "provider_process_failed") &&
-      looksLikeProviderAuthFailure(error))
-  ) {
+  if (error.code === "not_authenticated" || looksLikeProviderAuthFailure(error)) {
     return `${label} is not logged in. Run \`${loginCmd}\` in Terminal, then open Settings → Integrations and refresh.`;
+  }
+
+  if (isProviderSetupError(error) && error.message.trim()) {
+    return error.message;
   }
 
   if (error.code === "readiness_failed" && error.message.trim()) {

@@ -378,12 +378,16 @@ enum WorkflowError {
 
 impl WorkflowError {
     fn to_engine_error(&self, provider_id: crate::models::providers::ProviderId) -> EngineError {
+        if let WorkflowError::Provider(error) = self {
+            return error.to_engine_error(provider_id);
+        }
+
         let code = match self {
             WorkflowError::InvalidRequest(_) => EngineErrorCode::InvalidRequest,
-            WorkflowError::Provider(error) => error.to_engine_error(provider_id).code,
             WorkflowError::Convex(_) | WorkflowError::Research(_) | WorkflowError::Serde(_) => {
                 EngineErrorCode::InternalError
             }
+            WorkflowError::Provider(_) => unreachable!("handled above"),
         };
 
         EngineError {
@@ -399,9 +403,7 @@ impl WorkflowError {
 fn user_message(error: &WorkflowError) -> String {
     match error {
         WorkflowError::InvalidRequest(message) => message.clone(),
-        WorkflowError::Provider(_) => {
-            "The selected AI provider could not finish the research run.".to_string()
-        }
+        WorkflowError::Provider(_) => unreachable!("provider errors use ProviderProcessError::to_engine_error"),
         WorkflowError::Research(_) => "Research context could not be prepared.".to_string(),
         WorkflowError::Convex(_) => {
             "Stage project context could not be loaded or saved.".to_string()

@@ -577,16 +577,13 @@ function logRunEvent(event: RunEvent) {
   switch (event.type) {
     case "run_failed":
       console.error(
-        `[stage-engine] run failed runId=${event.runId} provider=${event.providerId} ${event.error.message}`,
+        `[stage-engine] run failed runId=${event.runId} provider=${event.providerId} ${event.error.message}${event.error.detail ? ` detail=${event.error.detail}` : ""}`,
       );
       return;
     case "run_cancelled":
       console.warn(
         `[stage-engine] run cancelled runId=${event.runId}${event.reason ? ` reason=${event.reason}` : ""}`,
       );
-      return;
-    case "provider_warning":
-      console.warn(`[stage-engine] provider warning runId=${event.runId} ${event.message}`);
       return;
     case "tool_call_completed":
       if (event.status === "failed") {

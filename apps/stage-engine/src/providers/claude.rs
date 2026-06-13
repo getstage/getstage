@@ -26,7 +26,7 @@ pub async fn run_claude(
     let spec = ProviderProcessSpec {
         binary: "claude",
         args: claude_args(&context),
-        stdin: None,
+        stdin: Some(context.request.prompt.clone()),
         working_directory: context.request.working_directory.clone(),
     };
 
@@ -50,7 +50,7 @@ pub async fn run_claude_collect(
     let spec = ProviderProcessSpec {
         binary: "claude",
         args: claude_args(&context),
-        stdin: None,
+        stdin: Some(context.request.prompt.clone()),
         working_directory: context.request.working_directory.clone(),
     };
 
@@ -70,7 +70,6 @@ fn claude_args(context: &ProviderRunContext) -> Vec<String> {
     ];
 
     apply_claude_run_options(&mut args, &context.request.model_options);
-    args.push(context.request.prompt.clone());
     args
 }
 
@@ -84,7 +83,27 @@ fn claude_model_id(model_id: &str) -> &str {
 
 #[cfg(test)]
 mod tests {
-    use super::claude_model_id;
+    use super::{claude_args, claude_model_id};
+    use crate::models::providers::ProviderId;
+    use crate::models::runs::{RunMode, StartRunRequest};
+    use crate::providers::adapter::ProviderRunContext;
+
+    fn sample_context(prompt: &str) -> ProviderRunContext {
+        ProviderRunContext {
+            api_version: "v1",
+            run_id: "run-test".to_string(),
+            request: StartRunRequest {
+                provider_id: ProviderId::Claude,
+                model_id: "claude-sonnet".to_string(),
+                prompt: prompt.to_string(),
+                mode: RunMode::Research,
+                context: Default::default(),
+                attachments: vec![],
+                model_options: vec![],
+                working_directory: None,
+            },
+        }
+    }
 
     #[test]
     fn claude_model_id_should_map_stage_fallback_sonnet_alias() {
@@ -94,5 +113,15 @@ mod tests {
     #[test]
     fn claude_model_id_should_keep_provider_owned_model_ids() {
         assert_eq!(claude_model_id("claude-opus-4-8"), "claude-opus-4-8");
+    }
+
+    #[test]
+    fn claude_args_should_not_embed_prompt_in_argv() {
+        let prompt = "x".repeat(8_192);
+        let args = claude_args(&sample_context(&prompt));
+
+        assert!(!args.iter().any(|arg| arg.len() > 256));
+        assert!(args.contains(&"--print".to_string()));
+        assert!(args.contains(&"sonnet".to_string()));
     }
 }
