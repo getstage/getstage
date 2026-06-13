@@ -1,5 +1,28 @@
 import type { z } from "zod";
 
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function getDefaultProjectTimeline(today = new Date()) {
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const targetMonth = start.getMonth() + 1;
+  const lastDayOfTargetMonth = new Date(start.getFullYear(), targetMonth + 1, 0).getDate();
+  const end = new Date(
+    start.getFullYear(),
+    targetMonth,
+    Math.min(start.getDate(), lastDayOfTargetMonth),
+  );
+
+  return {
+    startDate: formatDateInput(start),
+    endDate: formatDateInput(end),
+  };
+}
+
 export function getFirstZodError(result: { success: true } | { success: false; error: z.ZodError }) {
   if (result.success) return null;
   return result.error.issues[0]?.message ?? "Please check the highlighted fields.";

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { DEFAULT_PHASES, AI_ROADMAPS } from "@/lib/constants";
+import { getDefaultProjectTimeline } from "@/lib/project/createProjectDates";
 import { prepareClientAvatarUpload, prepareProjectMarkerUpload } from "@/lib/r2Uploads";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import type { ProjectType } from "@/types";
@@ -54,6 +55,8 @@ export type UseProjectDraftResult = {
 };
 
 function createInitialDraft(): ProjectDraft {
+  const timeline = getDefaultProjectTimeline();
+
   return {
     projectName: "",
     projectImage: null,
@@ -69,8 +72,8 @@ function createInitialDraft(): ProjectDraft {
     avatarFetching: false,
     projectType: null,
     method: null,
-    startDate: "",
-    endDate: "",
+    startDate: timeline.startDate,
+    endDate: timeline.endDate,
     phases: createInitialPhaseItems(DEFAULT_PHASES),
   };
 }
