@@ -193,7 +193,9 @@ export function ProjectDetailView() {
               onSaveProjectProfile={(input) => runModalAction(() => actions.saveProjectProfile(input))}
               onSaveClientProfile={(input) => runModalAction(() => actions.saveClientProfile(input))}
               onSaveTimeline={(nextTimeline) => runModalAction(() => actions.saveTimeline(nextTimeline))}
-              onSavePhases={(phases) => runModalAction(() => actions.savePhases(phases))}
+              onSavePhases={(phases, deleteTasksInRemovedPhases) =>
+                runModalAction(() => actions.savePhases(phases, deleteTasksInRemovedPhases))
+              }
               onPauseProject={() => runModalAction(() => actions.pauseProject())}
               onCompleteProject={() => runModalAction(() => actions.completeProject())}
               onDeleteProject={runDeleteAction}

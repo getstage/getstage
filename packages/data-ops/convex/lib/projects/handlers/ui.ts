@@ -21,7 +21,7 @@ import {
   phaseInputValidator,
   projectStatusValidator,
 } from "../../../models/projects/validators";
-import { attachTrackedR2Asset, resolveAssetUrl } from "../../../r2";
+import { attachTrackedR2Asset, deleteOldR2Asset, resolveAssetUrl } from "../../../r2";
 
 export const getByIdArgs = {
   projectId: v.id("projects"),
@@ -280,11 +280,16 @@ export async function updateHandler(
 export const syncPhasesArgs = {
   projectId: v.id("projects"),
   phases: v.array(phaseInputValidator),
+  deleteTasksInRemovedPhases: v.optional(v.boolean()),
 };
 
 export async function syncPhasesHandler(
   ctx: MutationCtx,
-  args: { projectId: Id<"projects">; phases: Array<{ id?: Id<"phases">; name: string }> },
+  args: {
+    projectId: Id<"projects">;
+    phases: Array<{ id?: Id<"phases">; name: string }>;
+    deleteTasksInRemovedPhases?: boolean;
+  },
 ) {
   await requireProjectAccess(ctx, args.projectId);
 
@@ -324,8 +329,27 @@ export async function syncPhasesHandler(
       .withIndex("by_phase", (q) => q.eq("phaseId", existingPhase._id))
       .collect();
 
-    if (tasks.length > 0) {
+    if (tasks.length > 0 && !args.deleteTasksInRemovedPhases) {
       throw new Error(`Cannot remove phase "${existingPhase.name}" while it still has tasks.`);
+    }
+
+    for (const task of tasks) {
+      const attachments = await ctx.db
+        .query("attachments")
+        .withIndex("by_task", (q) => q.eq("taskId", task._id))
+        .collect();
+
+      for (const attachment of attachments) {
+        if (attachment.storageId) {
+          await ctx.storage.delete(attachment.storageId);
+        }
+        if (attachment.r2ObjectKey) {
+          await deleteOldR2Asset(ctx, attachment.r2ObjectKey);
+        }
+        await ctx.db.delete(attachment._id);
+      }
+
+      await ctx.db.delete(task._id);
     }
   }
 

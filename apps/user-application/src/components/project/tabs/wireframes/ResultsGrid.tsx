@@ -11,10 +11,12 @@ export function ResultsGrid({
   wireframeKind,
   cards,
   onConvert,
+  onExportToFigma,
 }: {
   wireframeKind: WireframeKind;
   cards: WireframeResultCard[];
   onConvert: () => void;
+  onExportToFigma: () => void;
 }) {
   const title = wireframeKind === "hifi" ? "Hi-Fi Wireframes" : "Lo-Fi Wireframes";
 
@@ -31,14 +33,24 @@ export function ResultsGrid({
       </div>
       <div className="grid gap-1 lg:grid-cols-3">
         {cards.map((card, index) => (
-          <WireframeCard key={`${card.id}-${index}`} card={card} />
+          <WireframeCard
+            key={`${card.id}-${index}`}
+            card={card}
+            onExportToFigma={onExportToFigma}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-export function WireframeCard({ card }: { card: WireframeResultCard }) {
+export function WireframeCard({
+  card,
+  onExportToFigma,
+}: {
+  card: WireframeResultCard;
+  onExportToFigma: () => void;
+}) {
   const sections = card.sections ?? [];
   const hasBlocks = sections.some((section) => section.blocks.length > 0);
 
@@ -82,16 +94,16 @@ export function WireframeCard({ card }: { card: WireframeResultCard }) {
           ) : (
             <button
               type="button"
-              disabled
-              className="inline-flex min-h-[27px] w-[125px] shrink-0 cursor-not-allowed items-center justify-center gap-2 rounded-[4px] bg-[#F5F5F5] px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#A3A3A3] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+              onClick={onExportToFigma}
+              className="inline-flex min-h-[27px] w-[125px] shrink-0 items-center justify-center gap-2 rounded-[4px] bg-[#F5F5F5] px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EDEDED]"
             >
               <img
                 src={FIGMA_SYMBOL_URL}
                 alt=""
-                className="h-[15px] w-[10px] shrink-0 opacity-60"
+                className="h-[15px] w-[10px] shrink-0"
                 draggable={false}
               />
-              Open in Figma
+              Export to Figma
             </button>
           )}
         </div>

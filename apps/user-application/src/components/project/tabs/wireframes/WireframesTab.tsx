@@ -5,7 +5,7 @@ import {
   MOCK_WIREFRAMES_GENERATED_AT_LABEL,
   WIREFRAMES_RESULTS_PREVIEW_LIMIT,
 } from "@/data/fixtures/project/wireframesTabFixtures";
-import { useWireframesTab } from "@/hooks/project";
+import { useMoodboardArtifact, useWireframesTab } from "@/hooks/project";
 import { buildResultCards } from "@/lib/project/mapWireframesArtifactToTabData";
 import type { Project } from "@/models/project/project";
 import type { WireframeKindChoice, WireframeStep } from "@/types/project/wireframesTab";
@@ -23,14 +23,22 @@ type WireframesTabProps = {
   project: Project;
   onGoToResearch?: () => void;
   onGoToStrategy?: () => void;
+  onGoToAssets: () => void;
 };
 
-export function WireframesTab({ project, onGoToResearch, onGoToStrategy }: WireframesTabProps) {
+export function WireframesTab({
+  project,
+  onGoToResearch,
+  onGoToStrategy,
+  onGoToAssets,
+}: WireframesTabProps) {
   const wireframesTab = useWireframesTab({ id: project.id, name: project.name });
+  const moodboard = useMoodboardArtifact(project.id);
   const seedScreens = useMemo(() => createSeedConfigureScreens(), []);
   const [step, setStep] = useState<WireframeStep>("choose-kind");
   const [wireframeKind, setWireframeKind] = useState<WireframeKindChoice>(null);
   const [brandSource, setBrandSource] = useState<BrandSourceChoice>(null);
+  const [styleDirectionId, setStyleDirectionId] = useState<string | null>(null);
   const [hasBrandKit, setHasBrandKit] = useState(false);
   const [screens, setScreens] = useState(seedScreens);
   const [generatedAtLabel, setGeneratedAtLabel] = useState(MOCK_WIREFRAMES_GENERATED_AT_LABEL);
@@ -43,13 +51,20 @@ export function WireframesTab({ project, onGoToResearch, onGoToStrategy }: Wiref
     }
 
     const { tabData } = wireframesTab.data;
+    setWireframeKind(tabData.wireframeKind);
+    setBrandSource(tabData.brandSource);
+    setStyleDirectionId(tabData.styleDirectionId);
     setScreens(tabData.configureScreens);
     setGeneratedAtLabel(tabData.generatedAtLabel);
+    if (tabData.generatedScreens.length > 0) {
+      setStep("results");
+    }
   }, [wireframesTab.data]);
 
   function continueFromSource(source: BrandSource) {
     setBrandSource(source);
     if (source === "brand-kit") {
+      setStyleDirectionId(null);
       setStep("brand-kit");
       return;
     }
@@ -62,6 +77,7 @@ export function WireframesTab({ project, onGoToResearch, onGoToStrategy }: Wiref
       await wireframesTab.generateWireframes({
         wireframeKind: wireframeKind ?? "lofi",
         brandSource,
+        styleDirectionId: brandSource === "style-guide" ? styleDirectionId : null,
         screens,
       });
     } catch {
@@ -127,11 +143,28 @@ export function WireframesTab({ project, onGoToResearch, onGoToStrategy }: Wiref
 
       {step === "style-guide" ? (
         <StyleGuideStep
+          directions={(moodboard.data?.artifact.directions ?? [])
+            .filter((direction) => direction.hasStyleGuide)
+            .map((direction) => ({
+              id: direction.id,
+              title: direction.name,
+              count: direction.referenceCount ?? 0,
+              images: moodboard.data?.artifact.references
+                .filter((reference) => reference.directionId === direction.id)
+                .map((reference) => reference.thumbnailUrl ?? reference.imageUrl)
+                .slice(0, 6) ?? [],
+            }))}
+          selectedDirectionId={styleDirectionId}
+          onSelectDirection={setStyleDirectionId}
           onBack={() => {
             setBrandSource(null);
             setStep("choose-type");
           }}
-          onContinue={() => setStep("configure")}
+          onContinue={() => {
+            if (styleDirectionId) {
+              setStep("configure");
+            }
+          }}
         />
       ) : null}
 
@@ -184,6 +217,7 @@ export function WireframesTab({ project, onGoToResearch, onGoToStrategy }: Wiref
         <ResultsGrid
           wireframeKind={wireframeKind ?? "lofi"}
           cards={generatedCards}
+          onExportToFigma={onGoToAssets}
           onConvert={() => {
             setWireframeKind("hifi");
             setStep("brand-kit");

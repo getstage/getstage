@@ -87,7 +87,7 @@ export const wireframesInputSchema = z.object({
   brandSource: wireframeBrandSourceSchema,
   selectedScreenIds: z.array(z.string().min(1)).default([]),
   layoutPreference: z.string().max(2000).optional(),
-  styleDirectionId: z.number().int().positive().optional(),
+  styleDirectionId: z.string().min(1).optional(),
 });
 
 export const wireframesArtifactSchema = z.object({
@@ -97,6 +97,7 @@ export const wireframesArtifactSchema = z.object({
   title: z.string().min(1),
   wireframeKind: wireframeKindSchema,
   brandSource: wireframeBrandSourceSchema.optional(),
+  styleDirectionId: z.string().min(1).optional(),
   stats: wireframesStatsSchema,
   configureScreens: z.array(wireframeConfigureScreenSchema).default([]),
   brandKit: wireframeBrandKitSchema.optional(),

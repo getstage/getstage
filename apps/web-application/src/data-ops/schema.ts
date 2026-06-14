@@ -259,6 +259,7 @@ export const updateTaskInputSchema = taskSchema.partial().omit({
 });
 
 export const syncPhasesInputSchema = z.object({
+  deleteTasksInRemovedPhases: z.boolean().optional(),
   phases: z
     .array(
       z.object({

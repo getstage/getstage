@@ -59,6 +59,9 @@ export type WireframeGeneratedScreen = {
 };
 
 export type WireframesTabData = {
+  wireframeKind: WireframeKind;
+  brandSource: "style-guide" | "brand-kit" | null;
+  styleDirectionId: string | null;
   configureScreens: ScreenItem[];
   stats: WireframesTabStats;
   brandKit: WireframesBrandKit | null;

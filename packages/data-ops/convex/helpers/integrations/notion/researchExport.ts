@@ -235,10 +235,9 @@ export async function createNotionChildPage(args: {
   title: string;
   children: NotionBlock[];
 }) {
-  const [initialChildren, ...remainingChildChunks] = chunkNotionBlocks(
-    args.children,
-    MAX_CHILDREN_PER_REQUEST,
-  );
+  const childChunks = chunkNotionBlocks(args.children, MAX_CHILDREN_PER_REQUEST);
+  const initialChildren = childChunks[0] ?? [];
+  const remainingChildChunks = childChunks.slice(1);
   const page = (await notionFetch(args.accessToken, "/pages", {
     method: "POST",
     body: JSON.stringify({

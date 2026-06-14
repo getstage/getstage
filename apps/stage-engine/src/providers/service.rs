@@ -277,7 +277,10 @@ fn provider_message(
     }
 
     if matches!(auth_status, ProviderAuthStatus::NotAuthenticated) {
-        return Some("Provider binary was found, but no local auth file was detected.".to_string());
+        return Some(
+            "Provider CLI reports you are not logged in. Re-run the login command, then refresh."
+                .to_string(),
+        );
     }
 
     Some("Provider binary was found, but auth status could not be verified.".to_string())

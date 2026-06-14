@@ -53,6 +53,12 @@ impl WireframesWorkflow {
                 .as_deref()
                 .and_then(parse_brand_source_from_source),
         );
+        let style_direction_id = request
+            .context
+            .source
+            .as_deref()
+            .and_then(parse_style_direction_from_source)
+            .map(ToOwned::to_owned);
 
         tracing::info!(
             run_id = %run_id,
@@ -94,7 +100,13 @@ impl WireframesWorkflow {
                 )
                 .await?;
 
-            request.prompt = build_wireframes_prompt(&input, wireframe_kind, brand_source, None);
+            request.prompt = build_wireframes_prompt(
+                &input,
+                wireframe_kind,
+                brand_source,
+                style_direction_id.as_deref(),
+                None,
+            );
             let provider_context = ProviderRunContext {
                 api_version,
                 run_id: run_id.clone(),
@@ -118,6 +130,8 @@ impl WireframesWorkflow {
                 raw_artifact,
                 &input,
                 wireframe_kind,
+                brand_source,
+                style_direction_id.as_deref(),
                 now_millis(),
                 GENERATED_AT_LABEL,
             )?;
@@ -229,6 +243,10 @@ fn parse_kind_from_source(source: &str) -> Option<&str> {
 
 fn parse_brand_source_from_source(source: &str) -> Option<&str> {
     parse_token(source, "brand:")
+}
+
+fn parse_style_direction_from_source(source: &str) -> Option<&str> {
+    parse_token(source, "style-direction:")
 }
 
 fn parse_token<'a>(source: &'a str, prefix: &str) -> Option<&'a str> {

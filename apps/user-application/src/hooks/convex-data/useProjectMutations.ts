@@ -52,6 +52,7 @@ export function useUpdateProjectMutation() {
 export type SyncProjectPhasesInput = {
   projectId: string;
   phases: Array<{ id?: string; name: string }>;
+  deleteTasksInRemovedPhases?: boolean;
 };
 
 export function useSyncProjectPhasesMutation() {
@@ -65,6 +66,7 @@ export function useSyncProjectPhasesMutation() {
     try {
       return syncPhases({
         projectId: input.projectId as Id<"projects">,
+        deleteTasksInRemovedPhases: input.deleteTasksInRemovedPhases,
         phases: input.phases.map((phase) => ({
           name: phase.name,
           ...(phase.id ? { id: phase.id as Id<"phases"> } : {}),

@@ -7,10 +7,17 @@ import type { WireframesArtifactRecord } from "@/types/project/wireframesArtifac
 import { useWireframesArtifact } from "./useWireframesArtifact";
 import { useWireframesRun } from "./useWireframesRun";
 
-function buildRunSource(kind: WireframeKind, brandSource: WireframeBrandSource | null): string {
+function buildRunSource(
+  kind: WireframeKind,
+  brandSource: WireframeBrandSource | null,
+  styleDirectionId?: string | null,
+): string {
   const tokens = [`kind:${kind}`];
   if (brandSource) {
     tokens.push(`brand:${brandSource}`);
+  }
+  if (styleDirectionId) {
+    tokens.push(`style-direction:${styleDirectionId}`);
   }
   return tokens.join(",");
 }
@@ -31,6 +38,7 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
       wireframeKind: WireframeKind;
       brandSource: WireframeBrandSource | null;
       screens: ScreenItem[];
+      styleDirectionId?: string | null;
       providerId?: ProviderId;
     }): Promise<WireframesArtifactRecord | null> => {
       setError(null);
@@ -46,7 +54,7 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
       try {
         await wireframesRun.startWireframes(
           runProviderId,
-          buildRunSource(input.wireframeKind, input.brandSource),
+          buildRunSource(input.wireframeKind, input.brandSource, input.styleDirectionId),
         );
       } catch (runError) {
         const message =

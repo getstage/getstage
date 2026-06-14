@@ -146,12 +146,13 @@ export function useProjectHeaderActions({
     });
   }
 
-  async function savePhases(phases: Phase[]) {
+  async function savePhases(phases: Phase[], deleteTasksInRemovedPhases = false) {
     if (!detail) {
       throw new Error("Project is not loaded yet.");
     }
 
     const parsed = syncPhasesInputSchema.safeParse({
+      deleteTasksInRemovedPhases,
       phases: phases.map((phase) => ({
         id: isLocalPhaseId(phase.id) ? undefined : phase.id,
         name: phase.name,
@@ -182,7 +183,11 @@ export function useProjectHeaderActions({
       return { name: item.name };
     });
 
-    await syncPhases.mutateAsync({ projectId, phases: syncPayload });
+    await syncPhases.mutateAsync({
+      projectId,
+      phases: syncPayload,
+      deleteTasksInRemovedPhases: parsed.data.deleteTasksInRemovedPhases,
+    });
   }
 
   async function pauseProject() {

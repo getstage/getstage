@@ -35,7 +35,7 @@ export function ProjectActionModal({
   onSaveProjectProfile: (input: SaveProjectProfileInput) => Promise<void>;
   onSaveClientProfile: (input: SaveClientProfileInput) => Promise<void>;
   onSaveTimeline: (timeline: ProjectTimeline) => Promise<void>;
-  onSavePhases: (phases: Phase[]) => Promise<void>;
+  onSavePhases: (phases: Phase[], deleteTasksInRemovedPhases?: boolean) => Promise<void>;
   onPauseProject: () => Promise<void>;
   onCompleteProject: () => Promise<void>;
   onDeleteProject: () => Promise<void>;
@@ -434,7 +434,7 @@ function PhasesModal({
   onClose,
 }: {
   project: Project;
-  onSave: (phases: Phase[]) => Promise<void>;
+  onSave: (phases: Phase[], deleteTasksInRemovedPhases?: boolean) => Promise<void>;
   error: string | null;
   onClose: () => void;
 }) {
@@ -442,6 +442,7 @@ function PhasesModal({
   const [phaseName, setPhaseName] = useState("");
   const [phases, setPhases] = useState<Phase[]>(project.phases);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingPhases, setPendingPhases] = useState<Phase[] | null>(null);
   const canSave = !isAddingPhase || phaseName.trim().length > 0;
 
   useEffect(() => {
@@ -450,6 +451,18 @@ function PhasesModal({
 
   function removePhase(phaseId: string) {
     setPhases((current) => current.filter((phase) => phase.id !== phaseId));
+  }
+
+  async function submit(nextPhases: Phase[], deleteTasksInRemovedPhases = false) {
+    setIsSubmitting(true);
+    try {
+      await onSave(nextPhases, deleteTasksInRemovedPhases);
+      onClose();
+    } catch {
+      // Parent sets error; keep modal open.
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   async function save() {
@@ -466,15 +479,37 @@ function PhasesModal({
         ]
       : phases;
 
-    setIsSubmitting(true);
-    try {
-      await onSave(nextPhases);
-      onClose();
-    } catch {
-      // Parent sets error; keep modal open.
-    } finally {
-      setIsSubmitting(false);
+    const nextIds = new Set(nextPhases.map((phase) => phase.id));
+    const removedTaskCount = project.phases
+      .filter((phase) => !nextIds.has(phase.id))
+      .reduce((total, phase) => total + phase.tasks.length, 0);
+
+    if (removedTaskCount > 0) {
+      setPendingPhases(nextPhases);
+      return;
     }
+
+    await submit(nextPhases);
+  }
+
+  if (pendingPhases) {
+    const nextIds = new Set(pendingPhases.map((phase) => phase.id));
+    const removedPhases = project.phases.filter((phase) => !nextIds.has(phase.id));
+    const removedTaskCount = removedPhases.reduce((total, phase) => total + phase.tasks.length, 0);
+
+    return (
+      <ConfirmModal
+        destructive
+        title="Delete phases and their tasks?"
+        description={`Deleting ${removedPhases.length} phase${removedPhases.length === 1 ? "" : "s"} will permanently delete ${removedTaskCount} task${removedTaskCount === 1 ? "" : "s"} and their attachments.`}
+        confirmLabel="Delete Phases and Tasks"
+        projectName={project.name}
+        projectImageUrl={project.projectImageUrl}
+        onConfirm={() => submit(pendingPhases, true)}
+        error={error}
+        onClose={() => setPendingPhases(null)}
+      />
+    );
   }
 
   return (

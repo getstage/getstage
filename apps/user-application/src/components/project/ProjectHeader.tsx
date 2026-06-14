@@ -42,7 +42,7 @@ export function ProjectHeader({
   onSaveProjectProfile: (input: SaveProjectProfileInput) => Promise<void>;
   onSaveClientProfile: (input: SaveClientProfileInput) => Promise<void>;
   onSaveTimeline: (timeline: ProjectTimeline) => Promise<void>;
-  onSavePhases: (phases: Phase[]) => Promise<void>;
+  onSavePhases: (phases: Phase[], deleteTasksInRemovedPhases?: boolean) => Promise<void>;
   onPauseProject: () => Promise<void>;
   onCompleteProject: () => Promise<void>;
   onDeleteProject: () => Promise<void>;

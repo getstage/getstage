@@ -309,9 +309,28 @@ export function useProjectDialogs({
 
       return { name: item.name };
     });
+    const nextPhaseIds = new Set<string>(
+      phases
+        .map((phase) => ("id" in phase ? phase.id : undefined))
+        .filter((phaseId): phaseId is Id<"phases"> => phaseId !== undefined),
+    );
+    const removedPhases = project.phases.filter((phase: Phase) => !nextPhaseIds.has(phase.id));
+    const removedTaskCount = removedPhases.reduce(
+      (total: number, phase: Phase) => total + phase.tasks.length,
+      0,
+    );
+    const deleteTasksInRemovedPhases =
+      removedTaskCount > 0 &&
+      window.confirm(
+        `Delete ${removedPhases.length} phase${removedPhases.length === 1 ? "" : "s"} and permanently delete ${removedTaskCount} task${removedTaskCount === 1 ? "" : "s"} plus their attachments?`,
+      );
+
+    if (removedTaskCount > 0 && !deleteTasksInRemovedPhases) {
+      return;
+    }
 
     try {
-      await syncPhases({ projectId, phases });
+      await syncPhases({ projectId, phases, deleteTasksInRemovedPhases });
       setOpen("editPhases", false);
     } catch (error) {
       showError(toUserFacingErrorMessage(error, "Could not update the phases."));

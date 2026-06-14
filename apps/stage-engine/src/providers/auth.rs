@@ -1,10 +1,16 @@
 use std::env;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use serde_json::Value;
 use tokio::fs;
 
+use crate::models::errors::EngineErrorCode;
+use crate::models::providers::ProviderId;
 use crate::providers::catalog::{AuthFileSpec, ProviderRuntimeSpec};
+use crate::providers::command::run_command;
+
+const AUTH_STATUS_TIMEOUT: Duration = Duration::from_secs(15);
 
 pub enum LocalAuthProbe {
     Authenticated {
@@ -16,7 +22,54 @@ pub enum LocalAuthProbe {
 }
 
 pub async fn probe_local_auth(spec: ProviderRuntimeSpec) -> LocalAuthProbe {
-    let paths = auth_file_paths(spec.auth_files);
+    if spec.id == ProviderId::Claude {
+        if let Some(probe) = probe_claude_cli_auth(spec.binary).await {
+            return probe;
+        }
+    }
+
+    probe_auth_files(spec.auth_files).await
+}
+
+async fn probe_claude_cli_auth(binary: &str) -> Option<LocalAuthProbe> {
+    let result = run_command(
+        binary,
+        &["auth", "status"],
+        AUTH_STATUS_TIMEOUT,
+        EngineErrorCode::VersionTimeout,
+    )
+    .await
+    .ok()?;
+
+    let payload = result.stdout.trim();
+    if payload.is_empty() {
+        return None;
+    }
+
+    let value = serde_json::from_str::<Value>(payload).ok()?;
+    let logged_in = value
+        .get("loggedIn")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+
+    if logged_in {
+        Some(LocalAuthProbe::Authenticated {
+            label: value
+                .get("subscriptionType")
+                .and_then(Value::as_str)
+                .map(str::to_string),
+            email: value
+                .get("email")
+                .and_then(Value::as_str)
+                .map(str::to_string),
+        })
+    } else {
+        Some(LocalAuthProbe::NotAuthenticated)
+    }
+}
+
+async fn probe_auth_files(auth_files: &[AuthFileSpec]) -> LocalAuthProbe {
+    let paths = auth_file_paths(auth_files);
     if paths.is_empty() {
         return LocalAuthProbe::Unknown;
     }

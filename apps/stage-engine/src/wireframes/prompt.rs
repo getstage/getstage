@@ -61,6 +61,7 @@ pub fn build_wireframes_prompt(
     input: &WireframesInput,
     kind: WireframeKind,
     brand_source: Option<WireframeBrandSource>,
+    style_direction_id: Option<&str>,
     layout_preference: Option<&str>,
 ) -> String {
     let research_block = input
@@ -101,6 +102,9 @@ pub fn build_wireframes_prompt(
     let layout_block = layout_preference
         .map(|pref| format!("Layout preference: {pref}\n"))
         .unwrap_or_default();
+    let style_direction_block = style_direction_id
+        .map(|id| format!("Selected moodboard style direction ID: {id}\n"))
+        .unwrap_or_default();
     let hifi_extras = match kind {
         WireframeKind::Hifi => {
             "\nHi-Fi rules:\n- Populate brandTokens on each screen.\n- Choose blocks that match the moodboard pattern catalog when one is provided.\n"
@@ -121,7 +125,7 @@ pub fn build_wireframes_prompt(
 - copySlots are short strings (no markdown), filled from Strategy CTAs/value props when available.
 - One screen per generatedScreens[] entry; preserve every selected screen from the configure list.
 - {brand_source_line}
-{layout_block}</rules>
+{style_direction_block}{layout_block}</rules>
 
 <cognitive_steps>
 1. Restate each screen's goal in one sentence (set generatedScreens[].goal).

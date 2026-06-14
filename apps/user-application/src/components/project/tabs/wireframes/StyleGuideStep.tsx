@@ -1,20 +1,26 @@
-import { useState } from "react";
-import { getStyleDirectionSummaries, moodboardImages } from "@/mock/project/moodboard";
 import { PrimaryButton } from "./WireframePrimitives";
-import { ArrowLeftIcon, ArrowRightIcon, CloseSmallIcon, MonitorIcon } from "./wireframesIcons";
+import { ArrowLeftIcon, ArrowRightIcon, MonitorIcon } from "./wireframesIcons";
 
-const STYLE_DIRECTIONS = getStyleDirectionSummaries();
-const STYLE_IMAGES = moodboardImages;
+type StyleDirection = {
+  id: string;
+  title: string;
+  count: number;
+  images: string[];
+};
 
 export function StyleGuideStep({
+  directions,
+  selectedDirectionId,
+  onSelectDirection,
   onBack,
   onContinue,
 }: {
+  directions: StyleDirection[];
+  selectedDirectionId: string | null;
+  onSelectDirection: (directionId: string) => void;
   onBack: () => void;
   onContinue: () => void;
 }) {
-  const [selectedDirection, setSelectedDirection] = useState<number | null>(null);
-
   return (
     <div className="flex min-h-[640px] w-full items-center justify-center rounded-[8px] bg-white px-4 py-11 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex w-full max-w-[1133px] flex-col items-center gap-[6px]">
@@ -23,44 +29,34 @@ export function StyleGuideStep({
             Choose Style Guide
           </h2>
           <p className="text-[12px] font-medium leading-[1.5] text-[#525252]">
-            Select the style guide you want to use for moodboard
+            Select the style guide you want to use for wireframes
           </p>
         </div>
 
         <div className="flex w-full flex-col items-center gap-2 py-3">
           <div className="grid w-full gap-2 lg:grid-cols-3">
-            {STYLE_DIRECTIONS.map((direction) => (
+            {directions.map((direction) => (
               <StyleDirectionCard
                 key={direction.id}
                 direction={direction}
-                selected={selectedDirection === direction.id}
-                anySelected={selectedDirection !== null}
-                onSelect={() => setSelectedDirection(direction.id)}
+                selected={selectedDirectionId === direction.id}
+                anySelected={selectedDirectionId !== null}
+                onSelect={() => onSelectDirection(direction.id)}
               />
             ))}
           </div>
-
-          <div className="flex items-start gap-1 rounded-[8px] bg-[#F5F5F5] p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-            <button
-              type="button"
-              className="flex h-[27px] w-[27px] items-center justify-center rounded-[6px] text-[#525252] transition-colors hover:bg-white"
-              aria-label="Previous style directions"
-            >
-              <span className="rotate-180">
-                <ArrowRightIcon />
-              </span>
-            </button>
-            <button
-              type="button"
-              className="flex h-[27px] w-[27px] items-center justify-center rounded-[6px] bg-white text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
-              aria-label="Next style directions"
-            >
-              <ArrowRightIcon />
-            </button>
-          </div>
+          {directions.length === 0 ? (
+            <p className="py-12 text-[13px] font-medium text-[#737373]">
+              Generate a Moodboard Style Guide before creating Hi-Fi wireframes.
+            </p>
+          ) : null}
         </div>
 
-        <PrimaryButton onClick={onContinue} className="w-[357px] max-w-full">
+        <PrimaryButton
+          onClick={onContinue}
+          disabled={!selectedDirectionId}
+          className="w-[357px] max-w-full"
+        >
           Continue
           <ArrowRightIcon />
         </PrimaryButton>
@@ -84,7 +80,7 @@ function StyleDirectionCard({
   anySelected,
   onSelect,
 }: {
-  direction: (typeof STYLE_DIRECTIONS)[number];
+  direction: StyleDirection;
   selected: boolean;
   anySelected: boolean;
   onSelect: () => void;
@@ -96,13 +92,12 @@ function StyleDirectionCard({
       }`}
     >
       <div className="grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-hidden rounded-[6px] bg-white p-2 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-        {STYLE_IMAGES.map((src, index) => (
+        {direction.images.map((src, index) => (
           <div
             key={`${direction.id}-${src}-${index}`}
             className="relative min-h-0 overflow-hidden rounded-[4px] border border-[#E5E5E5]"
           >
             <img src={src} alt="" className="h-full w-full object-cover" />
-            {index === 1 ? <div className="absolute inset-0 bg-black/35" /> : null}
           </div>
         ))}
       </div>
@@ -118,25 +113,18 @@ function StyleDirectionCard({
           </span>
         </div>
 
-        {selected ? (
-          <button
-            type="button"
-            onClick={onSelect}
-            className="inline-flex h-[27px] shrink-0 items-center justify-center gap-2 rounded-[4px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] pl-2 pr-[6px] text-[12px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
-          >
-            Selected Direction
-            <CloseSmallIcon />
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={onSelect}
-            className="inline-flex h-[27px] shrink-0 items-center justify-center gap-2 rounded-[4px] border border-[#D4D4D4] bg-white px-2 text-[12px] font-medium leading-[1.25] text-[#171717] transition-colors hover:bg-[#F5F5F5]"
-          >
-            Use {direction.title}
-            <ArrowRightIcon />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={onSelect}
+          className={`inline-flex h-[27px] shrink-0 items-center justify-center gap-2 rounded-[4px] border px-2 text-[12px] font-medium leading-[1.25] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${
+            selected
+              ? "border-[#525252] bg-[#171717] text-white"
+              : "border-[#D4D4D4] bg-white text-[#171717]"
+          }`}
+        >
+          {selected ? "Selected" : `Use ${direction.title}`}
+          <ArrowRightIcon />
+        </button>
       </div>
     </article>
   );

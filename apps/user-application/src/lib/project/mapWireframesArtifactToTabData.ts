@@ -31,6 +31,9 @@ export function mapScreenItemToConfigureScreen(screen: ScreenItem): WireframeCon
 
 export function mapWireframesArtifactToTabData(artifact: WireframesArtifact): WireframesTabData {
   return {
+    wireframeKind: artifact.wireframeKind,
+    brandSource: artifact.brandSource ?? null,
+    styleDirectionId: artifact.styleDirectionId ?? null,
     configureScreens: artifact.configureScreens.map(mapConfigureScreenToScreenItem),
     stats: artifact.stats,
     brandKit: artifact.brandKit ?? null,

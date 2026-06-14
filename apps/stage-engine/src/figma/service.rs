@@ -1,5 +1,4 @@
 use anyhow::{Context, bail};
-use reqwest::header::HeaderValue;
 use serde::Deserialize;
 
 use crate::config::FigmaConfig;
@@ -97,12 +96,12 @@ impl FigmaService {
         let file = self
             .http
             .get(file_url)
-            .header("X-Figma-Token", figma_header(access_token)?)
+            .bearer_auth(access_token.trim())
             .send()
             .await
-            .context("failed to fetch Figma file")?
-            .error_for_status()
-            .context("Figma file request failed")?
+            .context("failed to fetch Figma file")?;
+        let file = require_figma_success(file, "Figma file request").await?;
+        let file = file
             .json::<FigmaFileResponse>()
             .await
             .context("failed to parse Figma file response")?;
@@ -122,14 +121,15 @@ impl FigmaService {
         let ids = node_ids.join(",");
         let image_url =
             format!("https://api.figma.com/v1/images/{file_key}?ids={ids}&format=png&scale=2");
-        self.http
+        let response = self
+            .http
             .get(image_url)
-            .header("X-Figma-Token", figma_header(access_token)?)
+            .bearer_auth(access_token.trim())
             .send()
             .await
-            .context("failed to fetch Figma image URLs")?
-            .error_for_status()
-            .context("Figma image render request failed")?
+            .context("failed to fetch Figma image URLs")?;
+        require_figma_success(response, "Figma image render request")
+            .await?
             .json::<FigmaImageResponse>()
             .await
             .context("failed to parse Figma image response")
@@ -151,8 +151,27 @@ impl FigmaService {
     }
 }
 
-fn figma_header(access_token: &str) -> anyhow::Result<HeaderValue> {
-    HeaderValue::from_str(access_token.trim()).context("invalid Figma token header")
+async fn require_figma_success(
+    response: reqwest::Response,
+    operation: &str,
+) -> anyhow::Result<reqwest::Response> {
+    let status = response.status();
+    if status.is_success() {
+        return Ok(response);
+    }
+
+    let detail = response
+        .text()
+        .await
+        .unwrap_or_else(|_| "Figma returned an unreadable error response.".to_string());
+    let detail = detail.trim();
+    let detail = if detail.is_empty() {
+        "No error detail was returned."
+    } else {
+        detail
+    };
+
+    bail!("{operation} failed ({status}): {detail}");
 }
 
 #[derive(Debug, Deserialize)]

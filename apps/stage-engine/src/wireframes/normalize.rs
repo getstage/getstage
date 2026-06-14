@@ -1,7 +1,7 @@
 use anyhow::{Context, bail};
 use serde_json::{Map as JsonMap, Value as JsonValue, json};
 
-use crate::models::wireframes::{WireframeKind, WireframesInput};
+use crate::models::wireframes::{WireframeBrandSource, WireframeKind, WireframesInput};
 
 const ALLOWED_BLOCK_KINDS: &[&str] = &[
     "header",
@@ -29,6 +29,8 @@ pub fn normalize_wireframes_artifact(
     artifact: JsonValue,
     input: &WireframesInput,
     kind: WireframeKind,
+    brand_source: Option<WireframeBrandSource>,
+    style_direction_id: Option<&str>,
     generated_at: u128,
     generated_at_label: &str,
 ) -> anyhow::Result<JsonValue> {
@@ -81,10 +83,15 @@ pub fn normalize_wireframes_artifact(
     normalized.insert("projectId".to_string(), json!(input.project_id));
     normalized.insert("title".to_string(), json!(title));
     normalized.insert("wireframeKind".to_string(), json!(kind.as_str()));
-    if let Some(brand_source) = object.get("brandSource").cloned()
-        && !brand_source.is_null()
-    {
-        normalized.insert("brandSource".to_string(), brand_source);
+    if let Some(brand_source) = brand_source {
+        let value = match brand_source {
+            WireframeBrandSource::StyleGuide => "style-guide",
+            WireframeBrandSource::BrandKit => "brand-kit",
+        };
+        normalized.insert("brandSource".to_string(), json!(value));
+    }
+    if let Some(style_direction_id) = style_direction_id {
+        normalized.insert("styleDirectionId".to_string(), json!(style_direction_id));
     }
     normalized.insert("stats".to_string(), stats);
     normalized.insert("configureScreens".to_string(), configure_screens);
