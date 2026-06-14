@@ -9,13 +9,13 @@ use uuid::Uuid;
 
 use crate::flows::workflow::FlowsWorkflow;
 use crate::models::errors::{EngineError, EngineErrorCode};
-use crate::models::providers::{ProviderId, ProviderStatus};
+use crate::models::providers::ProviderId;
 use crate::models::runs::{
     CancelRunResponse, RunEvent, RunMode, RunStatus, StartRunRequest, StartRunResponse,
 };
 use crate::moodboard::workflow::MoodboardWorkflow;
 use crate::providers::adapter::{ProviderRunContext, provider_unavailable_event, run_provider};
-use crate::providers::service::provider_snapshot;
+use crate::providers::service::assert_provider_ready_for_run;
 use crate::research::workflow::ResearchWorkflow;
 use crate::strategy::workflow::StrategyWorkflow;
 use crate::styleguide::StyleguideWorkflow;
@@ -442,24 +442,15 @@ async fn provider_readiness_error(
     api_version: &'static str,
     context: &ProviderRunContext,
 ) -> Option<RunEvent> {
-    let snapshot = provider_snapshot(api_version).await;
-    let provider = snapshot
-        .providers
-        .into_iter()
-        .find(|provider| provider.id == context.request.provider_id)?;
-
-    if matches!(provider.status, ProviderStatus::Ready) {
-        return None;
+    match assert_provider_ready_for_run(context.request.provider_id).await {
+        Ok(()) => None,
+        Err(blocked) => Some(provider_unavailable_event(
+            api_version,
+            context.run_id.clone(),
+            context.request.provider_id,
+            blocked.message,
+        )),
     }
-
-    Some(provider_unavailable_event(
-        api_version,
-        context.run_id.clone(),
-        context.request.provider_id,
-        provider
-            .message
-            .unwrap_or_else(|| "Provider is not ready for runs.".to_string()),
-    ))
 }
 
 #[derive(Debug, Error)]

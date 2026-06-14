@@ -14,6 +14,7 @@ use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::providers::ProviderId;
 use crate::models::runs::{RunEvent, RunMode};
 use crate::providers::adapter::ProviderRunContext;
+use crate::providers::command::{configure_provider_process, provider_cli_working_directory};
 use crate::runs::RunEventSink;
 
 const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(50);
@@ -186,6 +187,7 @@ pub async fn run_provider_process_collect(
     cancel: &mut watch::Receiver<bool>,
 ) -> Result<ProviderProcessOutcome, ProviderProcessError> {
     let mut command = Command::new(spec.binary);
+    configure_provider_process(&mut command);
     command
         .args(&spec.args)
         .stdin(if spec.stdin.is_some() {
@@ -326,9 +328,7 @@ fn provider_working_directory(requested: Option<&str>) -> std::io::Result<PathBu
         return Ok(PathBuf::from(requested));
     }
 
-    let directory = std::env::temp_dir().join("stage-engine-provider");
-    std::fs::create_dir_all(&directory)?;
-    Ok(directory)
+    provider_cli_working_directory()
 }
 
 #[derive(Debug)]

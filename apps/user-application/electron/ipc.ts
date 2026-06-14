@@ -50,6 +50,15 @@ import {
 
 const activeRunStreams = new Map<string, AbortController>();
 
+function sendRunEventToRenderer(sender: WebContents, runEvent: RunEvent) {
+  if (sender.isDestroyed()) {
+    return false;
+  }
+
+  sender.send(IPC_CHANNELS.engineRunEvent, runEvent);
+  return true;
+}
+
 type RegisterIpcHandlersOptions = {
   authController: DesktopAuthController;
   integrationsController: DesktopIntegrationsController;
@@ -488,7 +497,10 @@ async function streamRunEventsToRenderer(args: {
           continue;
         }
         logRunEvent(runEvent);
-        args.sender.send(IPC_CHANNELS.engineRunEvent, runEvent);
+        if (!sendRunEventToRenderer(args.sender, runEvent)) {
+          controller.abort();
+          break;
+        }
 
         if (
           runEvent.type === "run_completed" ||
@@ -566,7 +578,9 @@ function emitSyntheticRunFailed(
   } satisfies RunEvent);
 
   console.error(`[stage-engine] ${JSON.stringify(event)}`);
-  args.sender.send(IPC_CHANNELS.engineRunEvent, event);
+  if (!sendRunEventToRenderer(args.sender, event)) {
+    return;
+  }
 }
 
 function logRunEvent(event: RunEvent) {

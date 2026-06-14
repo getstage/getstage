@@ -10,6 +10,7 @@ use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::runs::{RunEvent, RunStatus, StartRunRequest};
 use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
 use crate::providers::process::ProviderProcessOutcome;
+use crate::providers::service::assert_provider_ready_for_run;
 use crate::refero::service::ReferoService;
 use crate::research::competitive::filter_competitive_analysis;
 use crate::research::prompt::build_research_prompt;
@@ -70,6 +71,19 @@ impl ResearchWorkflow {
             let project_id = project_id.as_deref().ok_or_else(|| {
                 WorkflowError::InvalidRequest("Missing project id for Research.".to_string())
             })?;
+
+            self.tool_started(
+                api_version,
+                &run_id,
+                provider_id,
+                &sink,
+                "verify-provider",
+                "Verify AI provider login",
+            );
+            assert_provider_ready_for_run(provider_id)
+                .await
+                .map_err(|blocked| WorkflowError::InvalidRequest(blocked.message))?;
+            self.tool_completed(api_version, &run_id, provider_id, &sink, "verify-provider");
 
             self.tool_started(
                 api_version,

@@ -1,4 +1,5 @@
 use std::io::ErrorKind;
+use std::path::Path;
 use std::time::Duration;
 
 use tokio::process::Command;
@@ -12,13 +13,48 @@ pub struct CommandProbe {
     pub code: Option<i32>,
 }
 
+pub fn provider_cli_working_directory() -> std::io::Result<std::path::PathBuf> {
+    let directory = std::env::temp_dir().join("stage-engine-provider");
+    std::fs::create_dir_all(&directory)?;
+    Ok(directory)
+}
+
+fn apply_provider_cli_env(command: &mut Command) {
+    for key in ["HOME", "USER", "LOGNAME", "PATH", "LANG", "LC_ALL", "SHELL"] {
+        if let Ok(value) = std::env::var(key) {
+            command.env(key, value);
+        }
+    }
+}
+
+pub fn configure_provider_process(command: &mut Command) {
+    apply_provider_cli_env(command);
+}
+
 pub async fn run_command(
     binary: &str,
     args: &[&str],
     duration: Duration,
     timeout_code: EngineErrorCode,
 ) -> Result<CommandProbe, EngineError> {
-    let output = timeout(duration, Command::new(binary).args(args).output()).await;
+    run_command_in(binary, args, duration, timeout_code, None).await
+}
+
+pub async fn run_command_in(
+    binary: &str,
+    args: &[&str],
+    duration: Duration,
+    timeout_code: EngineErrorCode,
+    working_directory: Option<&Path>,
+) -> Result<CommandProbe, EngineError> {
+    let mut command = Command::new(binary);
+    command.args(args);
+    apply_provider_cli_env(&mut command);
+    if let Some(working_directory) = working_directory {
+        command.current_dir(working_directory);
+    }
+
+    let output = timeout(duration, command.output()).await;
 
     match output {
         Ok(Ok(output)) => Ok(CommandProbe {

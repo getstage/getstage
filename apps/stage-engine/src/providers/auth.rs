@@ -8,7 +8,7 @@ use tokio::fs;
 use crate::models::errors::EngineErrorCode;
 use crate::models::providers::ProviderId;
 use crate::providers::catalog::{AuthFileSpec, ProviderRuntimeSpec};
-use crate::providers::command::run_command;
+use crate::providers::command::{provider_cli_working_directory, run_command_in};
 
 const AUTH_STATUS_TIMEOUT: Duration = Duration::from_secs(15);
 
@@ -32,14 +32,20 @@ pub async fn probe_local_auth(spec: ProviderRuntimeSpec) -> LocalAuthProbe {
 }
 
 async fn probe_claude_cli_auth(binary: &str) -> Option<LocalAuthProbe> {
-    let result = run_command(
+    let working_directory = provider_cli_working_directory().ok();
+    let result = run_command_in(
         binary,
         &["auth", "status"],
         AUTH_STATUS_TIMEOUT,
         EngineErrorCode::VersionTimeout,
+        working_directory.as_deref(),
     )
     .await
     .ok()?;
+
+    if result.code != Some(0) {
+        return Some(LocalAuthProbe::NotAuthenticated);
+    }
 
     let payload = result.stdout.trim();
     if payload.is_empty() {

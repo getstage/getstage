@@ -3,8 +3,8 @@ use std::time::Duration;
 use crate::helpers::time::now_millis;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::providers::{
-    ProviderAuthStatus, ProviderKind, ProviderListResponse, ProviderStatus, ProviderStatusRecord,
-    ProviderUpdateResponse, ProviderUpdateStatus,
+    ProviderAuthStatus, ProviderId, ProviderKind, ProviderListResponse, ProviderStatus,
+    ProviderStatusRecord, ProviderUpdateResponse, ProviderUpdateStatus,
 };
 use crate::providers::auth::{LocalAuthProbe, probe_local_auth};
 use crate::providers::catalog::{ProviderRuntimeSpec, all_provider_specs, spec_by_route_id};
@@ -289,4 +289,54 @@ fn provider_message(
 fn with_provider_id(mut error: EngineError, spec: ProviderRuntimeSpec) -> EngineError {
     error.provider_id = Some(spec.id);
     error
+}
+
+#[derive(Debug, Clone)]
+pub struct ProviderRunBlocked {
+    pub message: String,
+}
+
+/// Live provider gate before expensive workflow steps (Refero, Convex writes, etc.).
+pub async fn assert_provider_ready_for_run(
+    provider_id: ProviderId,
+) -> Result<(), ProviderRunBlocked> {
+    let route = match provider_id {
+        ProviderId::Claude => "claude",
+        ProviderId::Codex => "codex",
+    };
+    let Some(spec) = spec_by_route_id(route) else {
+        return Err(ProviderRunBlocked {
+            message: format!("Unknown provider `{route}`."),
+        });
+    };
+
+    if run_command(
+        spec.binary,
+        spec.version_args,
+        VERSION_TIMEOUT,
+        EngineErrorCode::VersionTimeout,
+    )
+    .await
+    .is_err()
+    {
+        return Err(ProviderRunBlocked {
+            message: spec.setup_hint.to_string(),
+        });
+    }
+
+    match probe_local_auth(spec).await {
+        LocalAuthProbe::Authenticated { .. } => Ok(()),
+        LocalAuthProbe::NotAuthenticated => Err(ProviderRunBlocked {
+            message: format!(
+                "{} is not logged in. Run the login command in Terminal, then refresh Settings → Integrations.",
+                spec.label
+            ),
+        }),
+        LocalAuthProbe::Unknown => Err(ProviderRunBlocked {
+            message: format!(
+                "{} is installed but Stage could not verify login. {}",
+                spec.label, spec.setup_hint
+            ),
+        }),
+    }
 }
