@@ -12,3 +12,8 @@ interface:
 
 policy:
   allow_implicit_invocation: true
+  release_control: "./stage-release-control.md"
+  mandatory_before_tag:
+    - "Greptile review complete OR Werner explicit override"
+    - "Werner explicit approval for tag and push"
+    - "Show diff summary and ask yes/no before tagging"

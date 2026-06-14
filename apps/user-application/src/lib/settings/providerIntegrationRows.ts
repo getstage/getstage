@@ -89,7 +89,7 @@ export function googleSheetsIntegrationToRow(
 function providerDescription(provider: ProviderStatusRecord) {
   if (!provider.installed) return provider.setupHint ?? "Provider CLI is not installed";
   if (!provider.authenticated) return provider.setupHint ?? "Provider is not authenticated";
-  return provider.authLabel ?? "Research, strategy, and generation";
+  return "Research, strategy, and generation";
 }
 
 function providerStatusDetail(provider: ProviderStatusRecord, enabled: boolean) {
@@ -115,6 +115,7 @@ function providerStatusDetail(provider: ProviderStatusRecord, enabled: boolean) 
 
   const parts = [
     provider.version ? `v${provider.version}` : null,
+    provider.authLabel ? provider.authLabel : null,
     provider.accountEmail ? `Authenticated as ${provider.accountEmail}` : null,
     provider.status !== "ready" ? provider.status.replaceAll("-", " ") : null,
   ].filter(Boolean);
