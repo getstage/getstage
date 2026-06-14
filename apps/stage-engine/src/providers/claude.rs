@@ -58,21 +58,31 @@ pub async fn run_claude_collect(
 }
 
 fn claude_args(context: &ProviderRunContext) -> Vec<String> {
-    let tools = if context.request.attachments.is_empty() {
-        String::new()
-    } else {
-        "Read".to_string()
-    };
+    let allowed_reads = context
+        .request
+        .attachments
+        .iter()
+        .filter_map(|attachment| attachment.local_path.as_ref())
+        .map(|path| format!("Read({path})"))
+        .collect::<Vec<_>>();
+    let tools = if allowed_reads.is_empty() { "" } else { "Read" };
     let mut args = vec![
         "--print".to_string(),
         "--output-format".to_string(),
         "text".to_string(),
         "--no-session-persistence".to_string(),
         "--tools".to_string(),
-        tools,
+        tools.to_string(),
+        "--permission-mode".to_string(),
+        "dontAsk".to_string(),
         "--model".to_string(),
         claude_model_id(&context.request.model_id).to_string(),
     ];
+
+    if !allowed_reads.is_empty() {
+        args.push("--allowedTools".to_string());
+        args.push(allowed_reads.join(","));
+    }
 
     apply_claude_run_options(&mut args, &context.request.model_options);
     args
@@ -144,5 +154,9 @@ mod tests {
 
         let args = claude_args(&context);
         assert!(args.windows(2).any(|pair| pair == ["--tools", "Read"]));
+        assert!(
+            args.windows(2)
+                .any(|pair| pair == ["--allowedTools", "Read(/tmp/layout.png)"])
+        );
     }
 }

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { extname, join, resolve, sep } from "node:path";
 import { app, desktopCapturer, dialog, nativeImage } from "electron";
 import {
@@ -144,12 +144,13 @@ export async function deleteChatAttachments(input: ChatAttachmentTarget) {
 export async function assertLocalChatAttachmentPaths(
   attachments: Array<{ localPath?: string }>,
 ) {
-  const root = resolve(attachmentRoot());
+  await mkdir(attachmentRoot(), { recursive: true });
+  const root = await realpath(attachmentRoot());
   for (const attachment of attachments) {
     if (!attachment.localPath) {
       continue;
     }
-    const localPath = resolve(attachment.localPath);
+    const localPath = await realpath(resolve(attachment.localPath));
     if (!localPath.startsWith(`${root}${sep}`)) {
       throw new Error("Chat attachment path is outside Stage local storage.");
     }
