@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import type { WireframeResultCard } from "@/lib/project/mapWireframesArtifactToTabData";
+import { formatRelativeTime } from "@/lib/utils";
 import type {
   WireframeKind,
 } from "@/types/project/wireframesTab";
@@ -50,8 +52,22 @@ export function WireframeCard({
   card: WireframeResultCard;
   onExportToFigma: () => void;
 }) {
+  const [, setRelativeTimeTick] = useState(0);
   const sections = card.sections ?? [];
   const hasBlocks = sections.some((section) => section.blocks.length > 0);
+  const generatedAtLabel = card.generatedAt
+    ? formatRelativeTime(card.generatedAt)
+    : card.date;
+
+  useEffect(() => {
+    if (!card.generatedAt) return;
+
+    const intervalId = window.setInterval(() => {
+      setRelativeTimeTick((tick) => tick + 1);
+    }, 30_000);
+
+    return () => window.clearInterval(intervalId);
+  }, [card.generatedAt]);
 
   return (
     <article className="flex h-[336px] flex-col rounded-[8px] bg-white p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -72,7 +88,7 @@ export function WireframeCard({
               AI Generated
             </div>
             <p className="mt-[3px] text-[12px] font-medium leading-[1.5] text-[#737373]">
-              {card.date}
+              {generatedAtLabel}
             </p>
           </div>
           {card.figmaUrl ? (

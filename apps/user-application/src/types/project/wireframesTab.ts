@@ -65,6 +65,7 @@ export type WireframesTabData = {
   configureScreens: ScreenItem[];
   stats: WireframesTabStats;
   brandKit: WireframesBrandKit | null;
+  generatedAt: number;
   generatedAtLabel: string;
   figmaSymbolUrl: string;
   generatedScreens: WireframeGeneratedScreen[];

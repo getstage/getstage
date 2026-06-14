@@ -41,6 +41,7 @@ export function WireframesTab({
   const [styleDirectionId, setStyleDirectionId] = useState<string | null>(null);
   const [hasBrandKit, setHasBrandKit] = useState(false);
   const [screens, setScreens] = useState(seedScreens);
+  const [generatedAt, setGeneratedAt] = useState<number | undefined>();
   const [generatedAtLabel, setGeneratedAtLabel] = useState(MOCK_WIREFRAMES_GENERATED_AT_LABEL);
   const generatedScreens = wireframesTab.data?.tabData.generatedScreens ?? [];
   const selectedCount = screens.filter((screen) => screen.selected).length;
@@ -55,6 +56,7 @@ export function WireframesTab({
     setBrandSource(tabData.brandSource);
     setStyleDirectionId(tabData.styleDirectionId);
     setScreens(tabData.configureScreens);
+    setGeneratedAt(tabData.generatedAt);
     setGeneratedAtLabel(tabData.generatedAtLabel);
     if (tabData.generatedScreens.length > 0) {
       setStep("results");
@@ -105,8 +107,9 @@ export function WireframesTab({
         generatedAtLabel,
         WIREFRAMES_RESULTS_PREVIEW_LIMIT,
         generatedScreens,
+        generatedAt,
       ),
-    [generatedAtLabel, generatedScreens, screens],
+    [generatedAt, generatedAtLabel, generatedScreens, screens],
   );
 
   return (

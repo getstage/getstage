@@ -37,6 +37,7 @@ export function mapWireframesArtifactToTabData(artifact: WireframesArtifact): Wi
     configureScreens: artifact.configureScreens.map(mapConfigureScreenToScreenItem),
     stats: artifact.stats,
     brandKit: artifact.brandKit ?? null,
+    generatedAt: artifact.generatedAt,
     generatedAtLabel: artifact.generatedAtLabel,
     figmaSymbolUrl: artifact.figmaSymbolUrl,
     generatedScreens: artifact.generatedScreens.map((screen) => ({
@@ -53,6 +54,7 @@ export function mapWireframesArtifactToTabData(artifact: WireframesArtifact): Wi
 
 export type WireframeResultCard = ScreenItem & {
   date: string;
+  generatedAt?: number;
   goal?: string;
   sections?: WireframeGeneratedScreen["sections"];
   figmaUrl?: string;
@@ -63,6 +65,7 @@ export function buildResultCards(
   generatedAtLabel: string,
   limit = 6,
   generatedScreens: WireframeGeneratedScreen[] = [],
+  generatedAt?: number,
 ): WireframeResultCard[] {
   const generatedById = new Map(generatedScreens.map((screen) => [screen.id, screen]));
 
@@ -74,6 +77,7 @@ export function buildResultCards(
       return {
         ...screen,
         date: generated?.generatedAtLabel ?? generatedAtLabel,
+        generatedAt,
         goal: generated?.goal,
         sections: generated?.sections,
         figmaUrl: generated?.figmaUrl,
