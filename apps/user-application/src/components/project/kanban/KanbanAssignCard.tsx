@@ -10,12 +10,14 @@ export function KanbanAssignCard({
   search,
   onSearchChange,
   onAssign,
+  onAddMember,
   className = "absolute right-0 top-8 z-30 w-[266px]",
 }: {
   members: ProjectMember[];
   search: string;
   onSearchChange: (value: string) => void;
   onAssign: (member: ProjectMember) => void;
+  onAddMember: () => void;
   className?: string;
 }) {
   const settingsOverviewQuery = useSettingsOverviewQuery();
@@ -71,6 +73,15 @@ export function KanbanAssignCard({
             <div className="px-2 py-[6px] text-[12px] font-medium leading-[1.25] text-[#737373]">No matches</div>
           ) : null}
         </div>
+        <div className="h-px w-full bg-[#E5E5E5]" />
+        <button
+          type="button"
+          onClick={onAddMember}
+          className="flex h-8 w-full cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-white px-3 text-[12px] font-medium leading-none text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#F5F5F5] hover:text-[#171717]"
+        >
+          <img src="/logos/dashboard/plus.svg" alt="" aria-hidden="true" className="h-[14px] w-[14px]" />
+          Add member
+        </button>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import type { Id } from "@stage/data-ops/convex/data-model";
 import { parseConvexTaskId } from "@stage/data-ops";
 import { DeleteTaskModal } from "@/components/tasks/DeleteTaskModal";
 import { KanbanAssignCard } from "@/components/project/kanban/KanbanAssignCard";
+import { AddProjectMemberDialog } from "@/components/project/kanban/AddProjectMemberDialog";
 import {
   useDeleteTaskMutation,
   useProjectMembersQuery,
@@ -164,6 +165,7 @@ function TaskDetailEditor({
   const [assignSearch, setAssignSearch] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
 
   const menuRef = useRef<HTMLDivElement | null>(null);
   const pickerAreaRef = useRef<HTMLDivElement | null>(null);
@@ -416,37 +418,42 @@ function TaskDetailEditor({
             </span>
           </div>
 
-          <header className="flex min-w-0 items-start justify-between gap-[12px]">
-            <div className="flex min-w-0 flex-1 flex-col gap-[12px]">
+          <header className="relative flex min-w-0 items-start">
+            <div className="flex min-w-0 w-full flex-col gap-[14px]">
               <input
                 value={title}
                 onChange={handleTitleChange}
-                className="w-full truncate border-0 bg-transparent p-0 text-[20px] font-semibold leading-[1.2] text-[#0a0a0a] outline-none placeholder:text-[#a3a3a3]"
+                className="w-full truncate border-0 bg-transparent p-0 pr-[48px] text-[20px] font-semibold leading-[1.2] text-[#0a0a0a] outline-none placeholder:text-[#a3a3a3]"
                 aria-label="Task title"
               />
 
-              <div ref={pickerAreaRef} className="flex min-w-0 flex-wrap items-center gap-[16px]">
+              <div
+                ref={pickerAreaRef}
+                className="flex min-h-[20px] min-w-0 flex-wrap items-center gap-[10px] text-[13px] font-medium leading-[20px] text-[#525252]"
+              >
                 <div className="relative">
-                  <MetaItem>
-                    <button
-                      type="button"
-                      onClick={openLinkedProject}
-                      className="cursor-pointer transition-colors hover:text-[#171717]"
-                    >
-                      {project.name}
-                    </button>
-                    <span className="text-[#a3a3a3]">·</span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setPicker((current) => (current === "phase" ? null : phases.length > 0 ? "phase" : null))
-                      }
-                      disabled={phases.length === 0 || setTaskPhase.isPending}
-                      className="cursor-pointer transition-colors hover:text-[#171717] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {currentPhase.name}
-                    </button>
-                  </MetaItem>
+                  <button
+                    type="button"
+                    onClick={openLinkedProject}
+                    className="flex h-[20px] cursor-pointer items-center transition-colors hover:text-[#171717]"
+                  >
+                    {project.name}
+                  </button>
+                </div>
+
+                <Dot />
+
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPicker((current) => (current === "phase" ? null : phases.length > 0 ? "phase" : null))
+                    }
+                    disabled={phases.length === 0 || setTaskPhase.isPending}
+                    className="flex h-[20px] cursor-pointer items-center transition-colors hover:text-[#171717] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {currentPhase.name}
+                  </button>
                   {picker === "phase" ? (
                     <div className="absolute left-0 top-[calc(100%+6px)] z-30 min-w-[180px] rounded-[8px] border-2 border-[rgba(0,0,0,0.05)] bg-white p-[6px] shadow-[0_8px_24px_rgba(10,10,10,0.12)]">
                       {phases.map((item) => (
@@ -474,7 +481,7 @@ function TaskDetailEditor({
                       setPicker((current) => (current === "assignee" ? null : "assignee"));
                       setAssignSearch("");
                     }}
-                    className="flex cursor-pointer items-center gap-[8px] text-[13px] font-medium leading-[1.2] text-[#525252] transition-colors hover:text-[#171717]"
+                    className="flex h-[20px] cursor-pointer items-center gap-[6px] text-[13px] font-medium leading-[20px] text-[#525252] transition-colors hover:text-[#171717]"
                   >
                     {primaryAssignee ? (
                       <>
@@ -498,7 +505,7 @@ function TaskDetailEditor({
                           src="/logos/dashboard/assign.svg"
                           alt=""
                           aria-hidden="true"
-                          className="h-[14px] w-[14px] opacity-70"
+                          className="h-[16px] w-[16px] shrink-0 opacity-70"
                         />
                         No assignee
                       </>
@@ -511,6 +518,11 @@ function TaskDetailEditor({
                         search={assignSearch}
                         onSearchChange={setAssignSearch}
                         onAssign={(member) => void handleAssign(member)}
+                        onAddMember={() => {
+                          setPicker(null);
+                          setAssignSearch("");
+                          setIsAddMemberOpen(true);
+                        }}
                         className="relative w-full"
                       />
                       {primaryAssignee ? (
@@ -565,7 +577,7 @@ function TaskDetailEditor({
               </label>
             </div>
 
-            <div ref={menuRef} className="relative shrink-0">
+            <div ref={menuRef} className="absolute right-0 top-0 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsMenuOpen((current) => !current)}
@@ -646,6 +658,11 @@ function TaskDetailEditor({
           onDelete={() => void handleDeleteTask()}
         />
       ) : null}
+      <AddProjectMemberDialog
+        projectId={projectId}
+        open={isAddMemberOpen}
+        onOpenChange={setIsAddMemberOpen}
+      />
     </>
   );
 }

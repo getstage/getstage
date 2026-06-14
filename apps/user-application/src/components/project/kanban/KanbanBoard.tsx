@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { KANBAN_COLUMNS } from "@/lib/project/kanbanColumns";
@@ -6,6 +7,7 @@ import type { PhaseSummary } from "@stage/data-ops";
 import type { Phase } from "@/models/project/project";
 import type { KanbanStatus } from "@/lib/project/kanbanColumns";
 import { KanbanAssignCard } from "./KanbanAssignCard";
+import { AddProjectMemberDialog } from "./AddProjectMemberDialog";
 import { KanbanTaskCard } from "./KanbanTaskCard";
 import { KanbanTaskSkeleton } from "./KanbanTaskSkeleton";
 
@@ -22,6 +24,7 @@ export function KanbanBoard({
 }) {
   const navigate = useNavigate();
   const board = useKanbanBoard(phases, projectId);
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
 
   return (
     <div className="relative">
@@ -92,6 +95,10 @@ export function KanbanBoard({
                         search={board.assignSearch}
                         onSearchChange={board.setAssignSearch}
                         onAssign={(member) => void board.assignTask(task.id, member)}
+                        onAddMember={() => {
+                          board.closeAssignOverlay();
+                          setIsAddMemberOpen(true);
+                        }}
                       />
                     ) : null}
                   </div>
@@ -119,6 +126,13 @@ export function KanbanBoard({
           projectLabel={projectName}
           lockProject
           onClose={() => board.setCreateTaskColumn(null)}
+        />
+      ) : null}
+      {projectId ? (
+        <AddProjectMemberDialog
+          projectId={projectId}
+          open={isAddMemberOpen}
+          onOpenChange={setIsAddMemberOpen}
         />
       ) : null}
       {board.activeDrag ? (
