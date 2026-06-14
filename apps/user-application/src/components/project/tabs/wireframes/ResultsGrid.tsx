@@ -1,10 +1,11 @@
-import { FIGMA_SYMBOL_URL } from "@/data/fixtures/project/wireframesTabFixtures";
+import { useEffect, useState } from "react";
 import type { WireframeResultCard } from "@/lib/project/mapWireframesArtifactToTabData";
+import { formatRelativeTime } from "@/lib/utils";
 import type {
   WireframeKind,
 } from "@/types/project/wireframesTab";
 import { Badge, SecondaryButton } from "./WireframePrimitives";
-import { ArrowRightIcon, ImageIcon, SparkleIcon } from "./wireframesIcons";
+import { ArrowRightIcon, FigmaIcon, ImageIcon, SparkleIcon } from "./wireframesIcons";
 import { WireframeBlockPreview } from "./WireframeBlockPreview";
 
 export function ResultsGrid({
@@ -51,8 +52,22 @@ export function WireframeCard({
   card: WireframeResultCard;
   onExportToFigma: () => void;
 }) {
+  const [, setRelativeTimeTick] = useState(0);
   const sections = card.sections ?? [];
   const hasBlocks = sections.some((section) => section.blocks.length > 0);
+  const generatedAtLabel = card.generatedAt
+    ? formatRelativeTime(card.generatedAt)
+    : card.date;
+
+  useEffect(() => {
+    if (!card.generatedAt) return;
+
+    const intervalId = window.setInterval(() => {
+      setRelativeTimeTick((tick) => tick + 1);
+    }, 30_000);
+
+    return () => window.clearInterval(intervalId);
+  }, [card.generatedAt]);
 
   return (
     <article className="flex h-[336px] flex-col rounded-[8px] bg-white p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -73,7 +88,7 @@ export function WireframeCard({
               AI Generated
             </div>
             <p className="mt-[3px] text-[12px] font-medium leading-[1.5] text-[#737373]">
-              {card.date}
+              {generatedAtLabel}
             </p>
           </div>
           {card.figmaUrl ? (
@@ -81,29 +96,19 @@ export function WireframeCard({
               href={card.figmaUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex min-h-[27px] w-[125px] shrink-0 items-center justify-center gap-2 rounded-[4px] bg-[#F5F5F5] px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EDEDED]"
+              className="inline-flex h-8 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[6px] bg-[#F5F5F5] px-3 text-[13px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EDEDED]"
             >
-              <img
-                src={FIGMA_SYMBOL_URL}
-                alt=""
-                className="h-[15px] w-[10px] shrink-0"
-                draggable={false}
-              />
+              <FigmaIcon />
               Open in Figma
             </a>
           ) : (
             <button
               type="button"
               onClick={onExportToFigma}
-              className="inline-flex min-h-[27px] w-[125px] shrink-0 items-center justify-center gap-2 rounded-[4px] bg-[#F5F5F5] px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EDEDED]"
+              className="inline-flex h-8 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[6px] bg-[#F5F5F5] px-3 text-[13px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EDEDED]"
             >
-              <img
-                src={FIGMA_SYMBOL_URL}
-                alt=""
-                className="h-[15px] w-[10px] shrink-0"
-                draggable={false}
-              />
-              Export to Figma
+              <FigmaIcon />
+              Open in Figma
             </button>
           )}
         </div>
