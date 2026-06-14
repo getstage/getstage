@@ -1,4 +1,5 @@
 import type { ResearchCompetitor } from "@/types/project/researchTab";
+import { BrandLogo } from "@/components/shared/BrandLogo";
 import { SectionTitle } from "./ResearchPrimitives";
 import { CardIcon, MatrixIcon } from "./researchIcons";
 
@@ -83,10 +84,12 @@ function CompetitiveMatrix({
   competitors: ResearchCompetitor[];
   matrixRows: Array<{ label: string; values: string[] }>;
 }) {
+  const gridTemplate = `220px repeat(${competitors.length}, minmax(130px, 1fr))`;
+  const minWidth = 220 + competitors.length * 130;
   return (
     <div className="w-full overflow-x-auto rounded-[8px] pb-1">
-      <div className="min-w-[820px] overflow-hidden rounded-[8px] border border-[#D9D9D9] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        <div className="grid grid-cols-[220px_repeat(4,minmax(130px,1fr))] border-b border-[#D9D9D9]">
+      <div className="overflow-hidden rounded-[8px] border border-[#D9D9D9] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]" style={{ minWidth }}>
+        <div className="grid border-b border-[#D9D9D9]" style={{ gridTemplateColumns: gridTemplate }}>
           <div className="border-r border-[#D9D9D9] bg-[#FBFBFB] px-4 py-3" />
           {competitors.map((competitor) => (
             <div key={competitor.name} className="flex items-center gap-2 border-r border-[#D9D9D9] bg-[#FBFBFB] px-4 py-3 last:border-r-0">
@@ -98,7 +101,8 @@ function CompetitiveMatrix({
         {matrixRows.map((row, rowIndex) => (
           <div
             key={row.label}
-            className={`grid grid-cols-[220px_repeat(4,minmax(130px,1fr))] ${rowIndex < matrixRows.length - 1 ? "border-b border-[#E8E8E8]" : ""}`}
+            className={`grid ${rowIndex < matrixRows.length - 1 ? "border-b border-[#E8E8E8]" : ""}`}
+            style={{ gridTemplateColumns: gridTemplate }}
           >
             <div className="border-r border-[#E8E8E8] bg-[#FBFBFB] px-4 py-3 text-[12px] font-medium leading-[1.25] text-[#171717]">
               {row.label}
@@ -170,23 +174,15 @@ function CompetitorCard({
 }
 
 function LogoMark({ competitor, compact = false }: { competitor: ResearchCompetitor; compact?: boolean }) {
-  const sizeClass = compact ? "h-[18px] w-[18px] rounded-[2px]" : "h-9 w-9 rounded-[8px]";
-
-  if (competitor.name === "Stripe") {
-    return (
-      <div className={`flex items-center justify-center ${sizeClass}`} style={{ background: competitor.color }}>
-        <div className={`${compact ? "h-[7px] w-[10px]" : "h-[14px] w-[20px]"} -skew-x-12 rounded-[2px] bg-white`} />
-      </div>
-    );
-  }
-
   return (
-    <div
-      className={`flex items-center justify-center text-[10px] font-semibold leading-[1.25] text-white ${sizeClass}`}
-      style={{ background: competitor.color }}
-    >
-      <span className={compact ? "scale-[0.7]" : ""}>{competitor.mark}</span>
-    </div>
+    <BrandLogo
+      url={competitor.url}
+      name={competitor.name}
+      fallbackColor={competitor.color}
+      fallbackMark={competitor.mark}
+      size={compact ? 18 : 36}
+      rounded={compact ? "rounded-[2px]" : "rounded-[8px]"}
+    />
   );
 }
 
