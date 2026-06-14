@@ -6,6 +6,9 @@ import type {
   DesktopShortcutSettings,
   DesktopShortcutSettingsResult,
   DesktopUpdateStatus,
+  CaptureWindowRequest,
+  ChatAttachmentTarget,
+  ImportChatImageBytesRequest,
   IntegrationOAuthResult,
   PermissionKind,
 } from "@shared/models/desktop";
@@ -118,8 +121,17 @@ const stageDesktop = {
   },
   screen: {
     getActiveApp: () => ipcRenderer.invoke(IPC_CHANNELS.screenGetActiveApp),
-    captureActiveWindow: () =>
-      ipcRenderer.invoke(IPC_CHANNELS.screenCaptureActiveWindow),
+    listWindowSources: () => ipcRenderer.invoke(IPC_CHANNELS.screenListWindowSources),
+    captureWindow: (request: CaptureWindowRequest) =>
+      ipcRenderer.invoke(IPC_CHANNELS.screenCaptureActiveWindow, request),
+  },
+  chat: {
+    importImages: (request: ChatAttachmentTarget) =>
+      ipcRenderer.invoke(IPC_CHANNELS.chatImportImages, request),
+    importImageBytes: (request: ImportChatImageBytesRequest) =>
+      ipcRenderer.invoke(IPC_CHANNELS.chatImportImageBytes, request),
+    deleteAttachments: (request: ChatAttachmentTarget) =>
+      ipcRenderer.invoke(IPC_CHANNELS.chatDeleteAttachments, request),
   },
   permissions: {
     getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.permissionsGetStatus),

@@ -1,6 +1,10 @@
 import type {
   ActiveAppInfo,
-  CaptureResult,
+  CaptureWindowRequest,
+  CaptureWindowSource,
+  ChatAttachmentTarget,
+  ChatImageAttachment,
+  ImportChatImageBytesRequest,
   CompanionState,
   DesktopPermissionStatus,
   DesktopSession,
@@ -73,7 +77,13 @@ export type StageDesktopApi = {
   };
   screen: {
     getActiveApp: () => Promise<ActiveAppInfo>;
-    captureActiveWindow: () => Promise<CaptureResult>;
+    listWindowSources: () => Promise<CaptureWindowSource[]>;
+    captureWindow: (request: CaptureWindowRequest) => Promise<ChatImageAttachment>;
+  };
+  chat: {
+    importImages: (request: ChatAttachmentTarget) => Promise<ChatImageAttachment[]>;
+    importImageBytes: (request: ImportChatImageBytesRequest) => Promise<ChatImageAttachment>;
+    deleteAttachments: (request: ChatAttachmentTarget) => Promise<{ ok: true }>;
   };
   permissions: {
     getStatus: () => Promise<DesktopPermissionStatus>;

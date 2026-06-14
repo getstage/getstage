@@ -6,6 +6,7 @@ import { internalMutation, internalQuery, mutation, query } from "./_generated/s
 import * as apiHandlers from "./lib/projectAi/handlers/api";
 import * as artifactHandlers from "./lib/projectAi/handlers/artifacts";
 import * as contextHandlers from "./lib/projectAi/handlers/context";
+import * as chatHandlers from "./lib/projectAi/handlers/chat";
 import * as flowsHandlers from "./lib/projectAi/handlers/flows";
 import * as moodboardHandlers from "./lib/projectAi/handlers/moodboard";
 import * as researchHandlers from "./lib/projectAi/handlers/research";
@@ -16,6 +17,11 @@ import * as wireframesHandlers from "./lib/projectAi/handlers/wireframes";
 export const getContext = query({
   args: contextHandlers.getContextArgs,
   handler: contextHandlers.getContextHandler,
+});
+
+export const getChatProjectContext = query({
+  args: chatHandlers.getChatProjectContextArgs,
+  handler: chatHandlers.getChatProjectContextHandler,
 });
 
 export const getResearchInput = query({

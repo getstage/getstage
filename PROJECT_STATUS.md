@@ -13,6 +13,7 @@
 | **P1** | Run packaged-DMG benchmark + 2 h soak (RAM < 400 MB, 12 hr power < 500) | `scripts/desktop-idle-benchmark.sh` |
 | **P2** | IPC R2 upload (separate PR after energy gate) | `src/lib/r2Uploads.ts`, `electron/helpers/r2-upload.ts` |
 | **P3** | Export E2E + Convex deploy | Notion live test, Figma plugin publish, Paper live write |
+| **P1 local review** | Project-aware Stage chat: `@project`, bounded Convex context, screenshots, confirmed window capture | `apps/user-application/docs/AI/chatbot/CHATBOT_PLAN.md`; branch `feat/stage-chat-project-context-vision` |
 
 **Current desktop version (work branch):** `0.1.68`
 
@@ -36,6 +37,7 @@
 
 ## Current local review changes
 
+- Project-aware Stage chat pins one `@project`, blocks ambiguous critique requests, loads bounded indexed Convex context, and supports local image upload/paste/drop plus confirmed window capture.
 - Chat switching no longer corrupts last-modified history order.
 - Chat persistence no longer performs side effects inside a React state updater.
 - Streaming chat updates no longer synchronously persist every chunk.

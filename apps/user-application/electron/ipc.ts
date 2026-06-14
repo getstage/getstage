@@ -22,6 +22,9 @@ import {
 import { putSignedR2Upload } from "./helpers/r2-upload";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import {
+  captureWindowRequestSchema,
+  chatAttachmentTargetSchema,
+  importChatImageBytesRequestSchema,
   companionStateSchema,
   desktopSessionSchema,
   engineStatusSchema,
@@ -30,6 +33,14 @@ import {
   type DesktopPermissionStatus,
   type DesktopSession,
 } from "@shared/models/desktop";
+import {
+  assertLocalChatAttachmentPaths,
+  captureWindowSource,
+  deleteChatAttachments,
+  importChatImages,
+  importChatImageBytes,
+  listWindowCaptureSources,
+} from "./helpers/chat-attachments";
 import {
   getDesktopPermissionStatus,
   openPermissionSystemSettings,
@@ -175,6 +186,7 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IPC_CHANNELS.engineStartRun, async (event, request: unknown) => {
     const parsedRequest = startRunRequestSchema.parse(request);
+    await assertLocalChatAttachmentPaths(parsedRequest.attachments);
     logDesktopInfo(
       "stage-engine",
       `run request provider=${parsedRequest.providerId} mode=${parsedRequest.mode} projectId=${parsedRequest.context.projectId ?? "none"}`,
@@ -366,8 +378,24 @@ export function registerIpcHandlers({
     };
   });
 
-  ipcMain.handle(IPC_CHANNELS.screenCaptureActiveWindow, () => {
-    throw new Error("Screen capture is not implemented yet.");
+  ipcMain.handle(IPC_CHANNELS.screenListWindowSources, async () => {
+    return listWindowCaptureSources();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.screenCaptureActiveWindow, async (_event, request: unknown) => {
+    return captureWindowSource(captureWindowRequestSchema.parse(request));
+  });
+
+  ipcMain.handle(IPC_CHANNELS.chatImportImages, async (_event, request: unknown) => {
+    return importChatImages(chatAttachmentTargetSchema.parse(request));
+  });
+
+  ipcMain.handle(IPC_CHANNELS.chatImportImageBytes, async (_event, request: unknown) => {
+    return importChatImageBytes(importChatImageBytesRequestSchema.parse(request));
+  });
+
+  ipcMain.handle(IPC_CHANNELS.chatDeleteAttachments, async (_event, request: unknown) => {
+    return deleteChatAttachments(chatAttachmentTargetSchema.parse(request));
   });
 
   ipcMain.handle(IPC_CHANNELS.permissionsGetStatus, (): DesktopPermissionStatus => {

@@ -58,13 +58,18 @@ pub async fn run_claude_collect(
 }
 
 fn claude_args(context: &ProviderRunContext) -> Vec<String> {
+    let tools = if context.request.attachments.is_empty() {
+        String::new()
+    } else {
+        "Read".to_string()
+    };
     let mut args = vec![
         "--print".to_string(),
         "--output-format".to_string(),
         "text".to_string(),
         "--no-session-persistence".to_string(),
         "--tools".to_string(),
-        String::new(),
+        tools,
         "--model".to_string(),
         claude_model_id(&context.request.model_id).to_string(),
     ];
@@ -85,7 +90,7 @@ fn claude_model_id(model_id: &str) -> &str {
 mod tests {
     use super::{claude_args, claude_model_id};
     use crate::models::providers::ProviderId;
-    use crate::models::runs::{RunMode, StartRunRequest};
+    use crate::models::runs::{RunAttachment, RunAttachmentKind, RunMode, StartRunRequest};
     use crate::providers::adapter::ProviderRunContext;
 
     fn sample_context(prompt: &str) -> ProviderRunContext {
@@ -123,5 +128,21 @@ mod tests {
         assert!(!args.iter().any(|arg| arg.len() > 256));
         assert!(args.contains(&"--print".to_string()));
         assert!(args.contains(&"sonnet".to_string()));
+    }
+
+    #[test]
+    fn claude_args_allows_read_for_explicit_attachments() {
+        let mut context = sample_context("Critique this layout.");
+        context.request.attachments.push(RunAttachment {
+            id: "image-1".to_string(),
+            kind: RunAttachmentKind::Image,
+            name: Some("layout.png".to_string()),
+            url: None,
+            mime_type: Some("image/png".to_string()),
+            local_path: Some("/tmp/layout.png".to_string()),
+        });
+
+        let args = claude_args(&context);
+        assert!(args.windows(2).any(|pair| pair == ["--tools", "Read"]));
     }
 }

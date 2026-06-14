@@ -1,8 +1,10 @@
 use axum::Router;
 use std::sync::Arc;
 
+use crate::chat::workflow::ChatWorkflow;
 use crate::config::AppConfig;
 use crate::convex_store::app_secrets::AppSecretsRepository;
+use crate::convex_store::chat_repository::ChatRepository;
 use crate::convex_store::flows_repository::FlowsRepository;
 use crate::convex_store::moodboard_repository::MoodboardRepository;
 use crate::convex_store::research_repository::ResearchRepository;
@@ -63,6 +65,7 @@ impl AppState {
         let wireframes = Arc::new(WireframesWorkflow::new(WireframesRepository::new(
             &config.convex,
         )));
+        let chat = Arc::new(ChatWorkflow::new(ChatRepository::new(&config.convex)));
 
         Ok(Self {
             api_version: "v1",
@@ -70,6 +73,7 @@ impl AppState {
             started_at_ms: now_millis(),
             runs: Arc::new(RunManager::new(
                 "v1",
+                Some(chat),
                 Some(research),
                 Some(strategy),
                 Some(styleguide),
