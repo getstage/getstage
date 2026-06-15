@@ -20,9 +20,20 @@ function providerLabel(providerId: ProviderId | null | undefined) {
   return providerId === "claude" ? "Claude" : "Codex";
 }
 
-function looksLikeProviderAuthFailure(error: EngineError) {
+function looksLikeProviderSessionLimit(error: EngineError) {
   const combined = [error.message, error.detail].filter(Boolean).join(" ");
-  return /auth|login|not authenticated|sign in|401|authenticate/i.test(combined);
+  return /session limit|rate limit|usage limit|resets \d/i.test(combined);
+}
+
+function looksLikeProviderAuthFailure(error: EngineError) {
+  if (looksLikeProviderSessionLimit(error)) {
+    return false;
+  }
+
+  const combined = [error.message, error.detail].filter(Boolean).join(" ");
+  return /auth|login|not authenticated|sign in|401|failed to authenticate|not logged in/i.test(
+    combined,
+  );
 }
 
 function isProviderSetupError(error: EngineError) {
@@ -41,6 +52,15 @@ export function toEngineErrorUserMessage(
 ): string {
   const label = providerLabel(error.providerId);
   const loginCmd = providerLoginCommand(error.providerId);
+
+  if (looksLikeProviderSessionLimit(error)) {
+    const payload =
+      error.detail?.match(/session limit[^]*$/i)?.[0]?.trim() ??
+      error.detail?.split(": ").at(-1)?.trim();
+    return payload
+      ? `${label} session limit reached. Wait until the limit resets, then try again. (${payload})`
+      : `${label} session limit reached. Wait until the limit resets, then try again.`;
+  }
 
   if (error.code === "not_authenticated" || looksLikeProviderAuthFailure(error)) {
     return `${label} is not logged in. Run \`${loginCmd}\` in Terminal, then open Settings → Integrations and refresh.`;

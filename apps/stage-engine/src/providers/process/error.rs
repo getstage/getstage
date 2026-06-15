@@ -3,7 +3,10 @@ use thiserror::Error;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::providers::ProviderId;
 
-use super::heuristics::looks_like_provider_auth_failure;
+use super::heuristics::{
+    extract_provider_exit_payload, looks_like_provider_auth_failure,
+    looks_like_provider_session_limit,
+};
 use super::stderr::{stderr_diag_max_chars, truncate_line, StderrDiagnostics};
 
 #[derive(Debug, Error)]
@@ -53,22 +56,42 @@ impl ProviderProcessError {
             }
             ProviderProcessError::Io { source, .. } => {
                 let detail = source.to_string();
-                if looks_like_provider_auth_failure(&detail) {
-                    return format!(
-                        "{label} is not logged in. Run `{login_cmd}` in Terminal, then refresh Settings → Integrations."
-                    );
-                }
+                let payload = extract_provider_exit_payload(&detail)
+                    .or_else(|| {
+                        detail
+                            .split_once("failed: ")
+                            .map(|(_, rest)| rest.trim().to_string())
+                    })
+                    .filter(|value| !value.is_empty());
 
-                if let Some(payload) = detail.split_once("failed: ").map(|(_, rest)| rest.trim()) {
+                if let Some(payload) = payload.as_deref() {
+                    if looks_like_provider_session_limit(payload) {
+                        return format!(
+                            "{label} session limit reached. Wait until the limit resets, then try again. ({payload})"
+                        );
+                    }
+
                     if looks_like_provider_auth_failure(payload) {
                         return format!(
                             "{label} is not logged in. Run `{login_cmd}` in Terminal, then refresh Settings → Integrations."
                         );
                     }
 
-                    if !payload.is_empty() && !payload.starts_with("process exited with status") {
+                    if !payload.starts_with("process exited with status") {
                         return format!("{label} failed: {payload}");
                     }
+                }
+
+                if looks_like_provider_session_limit(&detail) {
+                    return format!(
+                        "{label} session limit reached. Wait until the limit resets, then try again."
+                    );
+                }
+
+                if looks_like_provider_auth_failure(&detail) {
+                    return format!(
+                        "{label} is not logged in. Run `{login_cmd}` in Terminal, then refresh Settings → Integrations."
+                    );
                 }
 
                 format!(
@@ -191,6 +214,25 @@ mod tests {
             EngineErrorCode::NotAuthenticated
         ));
         assert!(!engine_error.message.contains("failed: 1"));
+    }
+
+    #[test]
+    fn session_limit_maps_to_actionable_message_not_auth_login() {
+        let error = ProviderProcessError::Io {
+            binary: "claude",
+            source: std::io::Error::other(
+                "process exited with status exit status: 1: You've hit your session limit · resets 6:50pm (Europe/Amsterdam)",
+            ),
+        };
+
+        let engine_error = error.to_engine_error(ProviderId::Claude);
+        assert!(matches!(
+            engine_error.code,
+            EngineErrorCode::ProviderProcessFailed
+        ));
+        assert!(engine_error.message.contains("session limit reached"));
+        assert!(!engine_error.message.contains("auth login"));
+        assert!(engine_error.retryable);
     }
 
     #[test]

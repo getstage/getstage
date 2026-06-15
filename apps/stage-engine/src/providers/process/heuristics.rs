@@ -5,15 +5,42 @@ pub(super) fn looks_like_json_artifact_line(text: &str) -> bool {
     trimmed.starts_with('{') && trimmed.ends_with('}') && trimmed.contains("\"artifactKind\"")
 }
 
+pub(super) fn extract_provider_exit_payload(detail: &str) -> Option<String> {
+    let marker = "process exited with status ";
+    let rest = detail.strip_prefix(marker)?;
+    let payload = rest.rsplit_once(": ").map(|(_, payload)| payload.trim())?;
+    if payload.is_empty()
+        || payload.starts_with("exit status")
+        || payload.chars().all(|ch| ch.is_ascii_digit())
+    {
+        None
+    } else {
+        Some(payload.to_string())
+    }
+}
+
+pub(super) fn looks_like_provider_session_limit(text: &str) -> bool {
+    let lower = text.to_lowercase();
+    lower.contains("session limit")
+        || lower.contains("rate limit")
+        || lower.contains("usage limit")
+        || lower.contains("resets ")
+}
+
 pub(super) fn looks_like_provider_auth_failure(text: &str) -> bool {
+    if looks_like_provider_session_limit(text) {
+        return false;
+    }
+
     let lower = text.to_lowercase();
     lower.contains("not authenticated")
-        || lower.contains("authenticate")
         || lower.contains("invalid authentication")
+        || lower.contains("failed to authenticate")
         || lower.contains("401")
         || lower.contains("auth login")
         || lower.contains("sign in")
         || lower.contains("auth status")
+        || lower.contains("not logged in")
 }
 
 pub(super) fn needs_stderr_artifact_capture(mode: RunMode) -> bool {
@@ -180,6 +207,16 @@ mod tests {
     fn needs_stderr_artifact_capture_is_true_for_strategy_runs() {
         assert!(needs_stderr_artifact_capture(RunMode::Strategy));
         assert!(!needs_stderr_artifact_capture(RunMode::Chat));
+    }
+
+    #[test]
+    fn session_limit_is_not_treated_as_auth_failure() {
+        assert!(looks_like_provider_session_limit(
+            "You've hit your session limit · resets 6:50pm (Europe/Amsterdam)"
+        ));
+        assert!(!looks_like_provider_auth_failure(
+            "You've hit your session limit · resets 6:50pm (Europe/Amsterdam)"
+        ));
     }
 
     #[test]
