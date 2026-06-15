@@ -8,15 +8,18 @@ use crate::convex_store::research_repository::{
 use crate::helpers::time::now_millis;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::runs::{RunEvent, RunStatus, StartRunRequest};
-use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
+use crate::providers::adapter::{ProviderRunContext, run_provider_collect, smoke_test_provider};
 use crate::providers::process::ProviderProcessOutcome;
 use crate::providers::service::assert_provider_ready_for_run;
 use crate::refero::service::ReferoService;
-use crate::research::competitive::filter_competitive_analysis;
+use crate::research::competitive::{
+    competitive_analysis_needs_repair, filter_competitive_analysis,
+};
 use crate::research::prompt::build_research_prompt;
 use crate::research::refero_assets::{apply_engine_ui_patterns, persist_refero_context_images};
 use crate::research::section::{
-    build_section_regenerate_prompt, merge_research_section, parse_research_section,
+    build_competitive_repair_prompt, build_opportunities_prompt, build_section_regenerate_prompt,
+    merge_research_section, parse_research_section,
 };
 use crate::research::service::ResearchService;
 use crate::runs::RunEventSink;
@@ -65,6 +68,7 @@ impl ResearchWorkflow {
         );
 
         let result = async {
+            let workflow_started = std::time::Instant::now();
             let auth_token = auth_token.ok_or_else(|| {
                 WorkflowError::InvalidRequest("Missing desktop session for Research.".to_string())
             })?;
@@ -83,6 +87,15 @@ impl ResearchWorkflow {
             assert_provider_ready_for_run(provider_id)
                 .await
                 .map_err(|blocked| WorkflowError::InvalidRequest(blocked.message))?;
+            smoke_test_provider(
+                ProviderRunContext {
+                    api_version,
+                    run_id: run_id.clone(),
+                    request: request.clone(),
+                },
+                cancel_rx.clone(),
+            )
+            .await?;
             self.tool_completed(api_version, &run_id, provider_id, &sink, "verify-provider");
 
             self.tool_started(
@@ -144,6 +157,7 @@ impl ResearchWorkflow {
                 "Search Refero examples",
             );
             tracing::info!(run_id = %run_id, project_id, "building Refero context");
+            let refero_started = std::time::Instant::now();
             let refero = self.resolve_refero(&auth_token).await?;
             let research = ResearchService::new(refero.clone());
             let mut bundle = research.build_prompt_bundle(input.clone()).await?;
@@ -161,6 +175,8 @@ impl ResearchWorkflow {
                 run_id = %run_id,
                 project_id,
                 refero_images = image_keys.len(),
+                refero_mcp_calls = refero.call_count(),
+                refero_elapsed_ms = refero_started.elapsed().as_millis(),
                 "Refero images persisted to R2"
             );
 
@@ -171,11 +187,13 @@ impl ResearchWorkflow {
             let provider_context = ProviderRunContext {
                 api_version,
                 run_id: run_id.clone(),
-                request,
+                request: request.clone(),
             };
 
             tracing::info!(run_id = %run_id, provider_id = ?provider_id, "starting provider run");
-            let outcome = run_provider_collect(provider_context, sink.clone(), cancel_rx).await?;
+            let provider_started = std::time::Instant::now();
+            let outcome =
+                run_provider_collect(provider_context, sink.clone(), cancel_rx.clone()).await?;
             let ProviderProcessOutcome::Completed(final_text) = outcome else {
                 tracing::info!(run_id = %run_id, "research provider run cancelled");
                 return Ok(());
@@ -184,13 +202,88 @@ impl ResearchWorkflow {
             tracing::info!(
                 run_id = %run_id,
                 output_chars = final_text.len(),
+                provider_elapsed_ms = provider_started.elapsed().as_millis(),
                 "provider run completed, parsing research artifact"
             );
             let mut raw_artifact = extract_research_artifact(&final_text)?;
             apply_engine_ui_patterns(&mut raw_artifact, &bundle.refero_context, &image_keys);
             let refero_context = serde_json::to_value(&bundle.refero_context)?;
-            let artifact =
+            let mut artifact =
                 enrich_research_artifact(raw_artifact, &input, refero_context, now_millis())?;
+
+            if artifact
+                .as_object()
+                .is_some_and(competitive_analysis_needs_repair)
+            {
+                self.tool_started(
+                    api_version,
+                    &run_id,
+                    provider_id,
+                    &sink,
+                    "research-competitive-repair",
+                    "Repair incomplete competitive evidence",
+                );
+                if let Err(error) = self
+                    .repair_competitive_analysis_once(
+                        api_version,
+                        &run_id,
+                        &request,
+                        &input,
+                        &mut artifact,
+                        cancel_rx.clone(),
+                    )
+                    .await
+                {
+                    tracing::warn!(
+                        run_id = %run_id,
+                        project_id,
+                        %error,
+                        "competitive repair failed; preserving validated factual research"
+                    );
+                }
+                self.tool_completed(
+                    api_version,
+                    &run_id,
+                    provider_id,
+                    &sink,
+                    "research-competitive-repair",
+                );
+            }
+
+            self.tool_started(
+                api_version,
+                &run_id,
+                provider_id,
+                &sink,
+                "research-opportunities",
+                "Generate evidence-based opportunities",
+            );
+            if let Err(error) = self
+                .generate_opportunities(
+                    api_version,
+                    &run_id,
+                    &request,
+                    &input,
+                    &mut artifact,
+                    cancel_rx.clone(),
+                )
+                .await
+            {
+                tracing::warn!(
+                    run_id = %run_id,
+                    project_id,
+                    %error,
+                    "opportunities generation failed; saving validated factual research"
+                );
+            }
+            self.tool_completed(
+                api_version,
+                &run_id,
+                provider_id,
+                &sink,
+                "research-opportunities",
+            );
+            serde_json::from_value::<crate::models::research::ResearchArtifact>(artifact.clone())?;
 
             self.repository
                 .complete_research_run(
@@ -202,7 +295,12 @@ impl ResearchWorkflow {
                 )
                 .await?;
 
-            tracing::info!(run_id = %run_id, project_id, "research artifact saved to Convex");
+            tracing::info!(
+                run_id = %run_id,
+                project_id,
+                workflow_elapsed_ms = workflow_started.elapsed().as_millis(),
+                "research artifact saved to Convex"
+            );
 
             sink.send(RunEvent::RunCompleted {
                 api_version,
@@ -253,7 +351,7 @@ impl ResearchWorkflow {
 
     async fn resolve_refero(&self, auth_token: &str) -> Result<ReferoService, WorkflowError> {
         if self.research.refero().is_configured() {
-            return Ok(self.research.refero().clone());
+            return Ok(self.research.refero().with_fresh_call_counter());
         }
 
         let token = self
@@ -270,6 +368,107 @@ impl ResearchWorkflow {
             .refero()
             .with_token(token)
             .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))
+    }
+
+    async fn generate_opportunities(
+        &self,
+        api_version: &'static str,
+        run_id: &str,
+        request: &StartRunRequest,
+        input: &crate::models::research::ResearchInput,
+        artifact: &mut serde_json::Value,
+        cancel_rx: tokio::sync::watch::Receiver<bool>,
+    ) -> Result<(), WorkflowError> {
+        let mut opportunities_request = request.clone();
+        opportunities_request.prompt = build_opportunities_prompt(artifact, input);
+        opportunities_request.context.source = Some("research-opportunities".to_string());
+        let outcome = run_provider_collect(
+            ProviderRunContext {
+                api_version,
+                run_id: format!("{run_id}-opportunities"),
+                request: opportunities_request,
+            },
+            RunEventSink::detached(),
+            cancel_rx,
+        )
+        .await?;
+        let ProviderProcessOutcome::Completed(final_text) = outcome else {
+            return Ok(());
+        };
+
+        let response = extract_json_object(&final_text)?;
+        let opportunities = response
+            .get("opportunities")
+            .and_then(serde_json::Value::as_array)
+            .cloned()
+            .ok_or_else(|| {
+                WorkflowError::InvalidRequest(
+                    "Opportunities response did not contain an opportunities array.".to_string(),
+                )
+            })?;
+
+        if let Some(object) = artifact.as_object_mut() {
+            object.insert(
+                "opportunities".to_string(),
+                serde_json::Value::Array(opportunities),
+            );
+            crate::research::normalize::normalize_research_artifact_fields(object, input);
+        }
+
+        Ok(())
+    }
+
+    async fn repair_competitive_analysis_once(
+        &self,
+        api_version: &'static str,
+        run_id: &str,
+        request: &StartRunRequest,
+        input: &crate::models::research::ResearchInput,
+        artifact: &mut serde_json::Value,
+        cancel_rx: tokio::sync::watch::Receiver<bool>,
+    ) -> Result<(), WorkflowError> {
+        let mut repair_request = request.clone();
+        repair_request.prompt = build_competitive_repair_prompt(artifact, input);
+        repair_request.context.source = Some("section:competitiveAnalysis".to_string());
+        let outcome = run_provider_collect(
+            ProviderRunContext {
+                api_version,
+                run_id: format!("{run_id}-competitive-repair"),
+                request: repair_request,
+            },
+            RunEventSink::detached(),
+            cancel_rx,
+        )
+        .await?;
+        let ProviderProcessOutcome::Completed(final_text) = outcome else {
+            return Ok(());
+        };
+        let response = extract_json_object(&final_text)?;
+        let Some(object) = artifact.as_object_mut() else {
+            return Ok(());
+        };
+
+        if let Some(analysis) = response.get("competitiveAnalysis") {
+            object.insert("competitiveAnalysis".to_string(), analysis.clone());
+        }
+        if let Some(repair_sources) = response
+            .get("sourceReferences")
+            .and_then(serde_json::Value::as_array)
+        {
+            let sources = object
+                .entry("sourceReferences".to_string())
+                .or_insert_with(|| json!([]));
+            if let Some(sources) = sources.as_array_mut() {
+                sources.extend(repair_sources.iter().cloned());
+            }
+        }
+
+        crate::research::normalize::normalize_research_artifact_fields(object, input);
+        filter_competitive_analysis(object, input);
+        let report = crate::research::competitive::repair_competitive_analysis(object, input);
+        crate::research::competitive::append_competitive_quality_warnings(object, &report);
+        crate::research::competitive::validate_competitive_analysis(object, input)?;
+        Ok(())
     }
 
     async fn run_section_regenerate(
@@ -298,7 +497,11 @@ impl ResearchWorkflow {
             .repository
             .fetch_research_input(auth_token, project_id)
             .await?;
-        request.prompt = build_section_regenerate_prompt(section, &artifact, &input);
+        request.prompt = if section == "opportunities" {
+            build_opportunities_prompt(&artifact, &input)
+        } else {
+            build_section_regenerate_prompt(section, &artifact, &input)
+        };
 
         let provider_context = ProviderRunContext {
             api_version,
@@ -311,11 +514,30 @@ impl ResearchWorkflow {
             return Ok(());
         };
 
-        let section_patch = extract_json_object(&final_text)?;
+        let section_patch = if section == "opportunities" {
+            extract_json_object(&final_text)?
+                .get("opportunities")
+                .cloned()
+                .ok_or_else(|| {
+                    WorkflowError::InvalidRequest(
+                        "Opportunities response did not contain an opportunities array."
+                            .to_string(),
+                    )
+                })?
+        } else {
+            extract_json_object(&final_text)?
+        };
         merge_research_section(&mut artifact, section, section_patch)?;
         if let Some(object) = artifact.as_object_mut() {
             crate::research::normalize::normalize_research_artifact_fields(object, &input);
             filter_competitive_analysis(object, &input);
+            let repair_report =
+                crate::research::competitive::repair_competitive_analysis(object, &input);
+            crate::research::competitive::append_competitive_quality_warnings(
+                object,
+                &repair_report,
+            );
+            crate::research::competitive::validate_competitive_analysis(object, &input)?;
             object.insert("generatedAt".to_string(), json!(now_millis()));
         }
 
@@ -417,7 +639,9 @@ impl WorkflowError {
 fn user_message(error: &WorkflowError) -> String {
     match error {
         WorkflowError::InvalidRequest(message) => message.clone(),
-        WorkflowError::Provider(_) => unreachable!("provider errors use ProviderProcessError::to_engine_error"),
+        WorkflowError::Provider(_) => {
+            unreachable!("provider errors use ProviderProcessError::to_engine_error")
+        }
         WorkflowError::Research(_) => "Research context could not be prepared.".to_string(),
         WorkflowError::Convex(_) => {
             "Stage project context could not be loaded or saved.".to_string()

@@ -72,6 +72,14 @@ Allowed competitive sites (and ONLY these):
 
 {competitive_rules}
 
+Web research rules:
+- Use web search/fetch to inspect only the project website and allowed competitive sites.
+- Inspect at most the homepage plus three relevant pages per site.
+- Prefer pricing, product/features, onboarding/signup, checkout, or dashboard evidence.
+- Every factual competitive claim must be supported by a real fetched page and represented in sourceReferences with its URL.
+- If a claim cannot be supported by fetched evidence, omit it.
+- Do not use model memory as evidence.
+
 Refero category searches (UI Patterns are built by Stage from these — do not author uiPatterns):
 {category_lines}
 
@@ -81,11 +89,43 @@ Refero flow references (journey context only):
 Required artifact sections:
 - summary
 - companySnapshot
-- competitiveAnalysis with card view data and matrix rows
+- competitiveAnalysis with card view data and matrix rows that follow the required JSON shape below
 - targetUsers as generated personas
-- opportunities
 - openQuestions
 - sourceReferences
+
+Output style (Stage is a designer OS — write for UI designers, not investors):
+- Be concise. No paragraphs in competitive matrix or card bullets.
+- Focus on screens, layout, navigation, flows, components — not pricing plans, VAT, or market strategy.
+
+Required competitiveAnalysis matrix shape:
+```json
+{{
+  "matrixRows": [
+    {{
+      "id": "matrix-onboarding",
+      "label": "Onboarding",
+      "cells": [
+        {{
+          "competitorId": "the exact id from competitiveAnalysis.competitors",
+          "score": "OK"
+        }}
+      ]
+    }}
+  ]
+}}
+```
+- Use the 7 matrix labels from the competitive rules (Navigation, Onboarding, Visual Style, Content Hierarchy, Mobile Experience, Dashboard Layout, Data Visualization).
+- Every matrix cell MUST have `competitorId` and `score` ("Strong" | "OK" | "Weak").
+- Matrix `note` is optional: max 12 words, UI-only. Example: "Multi-step wizard with progress bar". Omit when unnecessary.
+- Never put URLs or multi-sentence notes in matrix cells.
+
+targetUsers rules:
+- Exactly 2 personas max.
+- goals[] and frustrations[]: one short sentence each (max 15 words).
+- context: one short sentence (max 15 words).
+
+- Return `opportunities` as an empty array. Stage generates opportunities separately after validating the factual Research.
 
 Do NOT include uiPatterns in your JSON — Stage engine builds UI Patterns rows ({ui_pattern_rows}) from Refero screenshots after your response.
 

@@ -7,7 +7,10 @@ type CompetitiveAnalysisProps = {
   isEditing: boolean;
   view: "card" | "matrix";
   competitors: ResearchCompetitor[];
-  matrixRows: Array<{ label: string; values: string[] }>;
+  matrixRows: Array<{
+    label: string;
+    cells: Array<{ competitorId: string; score: string; note: string }>;
+  }>;
   onViewChange: (view: "card" | "matrix") => void;
   onCompetitorsChange?: (competitors: ResearchCompetitor[]) => void;
 };
@@ -82,7 +85,10 @@ function CompetitiveMatrix({
   matrixRows,
 }: {
   competitors: ResearchCompetitor[];
-  matrixRows: Array<{ label: string; values: string[] }>;
+  matrixRows: Array<{
+    label: string;
+    cells: Array<{ competitorId: string; score: string; note: string }>;
+  }>;
 }) {
   const gridTemplate = `220px repeat(${competitors.length}, minmax(130px, 1fr))`;
   const minWidth = 220 + competitors.length * 130;
@@ -107,11 +113,14 @@ function CompetitiveMatrix({
             <div className="border-r border-[#E8E8E8] bg-[#FBFBFB] px-4 py-3 text-[12px] font-medium leading-[1.25] text-[#171717]">
               {row.label}
             </div>
-            {row.values.map((value, index) => (
-              <div key={`${row.label}-${competitors[index]?.name ?? index}`} className="border-r border-[#E8E8E8] px-4 py-3 last:border-r-0">
-                <MatrixScore value={value} />
-              </div>
-            ))}
+            {competitors.map((competitor) => {
+              const cell = row.cells.find((entry) => entry.competitorId === competitor.id);
+              return (
+                <div key={`${row.label}-${competitor.id}`} className="border-r border-[#E8E8E8] px-4 py-3 last:border-r-0">
+                  {cell ? <MatrixCell score={cell.score} note={cell.note} /> : null}
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
@@ -119,12 +128,22 @@ function CompetitiveMatrix({
   );
 }
 
-function MatrixScore({ value }: { value: string }) {
-  const color = value === "Strong" ? "#16A34A" : value === "Weak" ? "#EF4444" : "#F97316";
+function MatrixCell({ score, note }: { score: string; note: string }) {
+  const color =
+    score === "Strong"
+      ? "#16A34A"
+      : score === "Weak"
+        ? "#EF4444"
+        : "#F97316";
   return (
-    <span className="text-[12px] font-medium leading-[1.25]" style={{ color }}>
-      {value}
-    </span>
+    <div className="flex flex-col gap-1">
+      <span className="text-[12px] font-medium leading-[1.25]" style={{ color }}>
+        {score}
+      </span>
+      {note.trim() ? (
+        <span className="text-[11px] font-medium leading-[1.35] text-[#737373]">{note}</span>
+      ) : null}
+    </div>
   );
 }
 

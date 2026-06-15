@@ -256,7 +256,12 @@ export function ResearchTab({
 
   if (!research.hasArtifact || !research.data) {
     if (isRunBusy) {
-      return <ResearchGeneratingState usingMockData={research.usingMockData} />;
+      return (
+        <ResearchGeneratingState
+          usingMockData={research.usingMockData}
+          elapsedSeconds={research.elapsedSeconds}
+        />
+      );
     }
 
     return (
@@ -285,11 +290,23 @@ export function ResearchTab({
   const tabData = isEditing && draftTabData ? draftTabData : research.data.tabData;
 
   if (regeneratingSection) {
-    return <ResearchGeneratingState mode="regenerate" section={regeneratingSection} usingMockData={false} />;
+    return (
+      <ResearchGeneratingState
+        mode="regenerate"
+        section={regeneratingSection}
+        usingMockData={false}
+        elapsedSeconds={research.elapsedSeconds}
+      />
+    );
   }
 
   if (isRunBusy) {
-    return <ResearchGeneratingState usingMockData={research.usingMockData} />;
+    return (
+      <ResearchGeneratingState
+        usingMockData={research.usingMockData}
+        elapsedSeconds={research.elapsedSeconds}
+      />
+    );
   }
 
   return (
@@ -444,13 +461,16 @@ function ResearchGeneratingState({
   usingMockData,
   mode = "generate",
   section,
+  elapsedSeconds = 0,
 }: {
   usingMockData: boolean;
   mode?: "generate" | "regenerate";
   section?: ResearchArtifactSection;
+  elapsedSeconds?: number;
 }) {
   const isRegenerating = mode === "regenerate";
   const sectionLabel = section ? RESEARCH_SECTION_LABELS[section] : "Research";
+  const elapsedLabel = formatResearchElapsed(elapsedSeconds);
 
   return (
     <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -475,6 +495,11 @@ function ResearchGeneratingState({
                   ? "Building a test research report from the project context. The results will appear here when the run completes."
                   : "Analysing the market, competitors, UI patterns, target users, and product opportunities."}
               </p>
+              {elapsedSeconds > 0 ? (
+                <p className="text-center text-[12px] font-medium leading-[1.5] text-[#737373]">
+                  Elapsed: {elapsedLabel}
+                </p>
+              ) : null}
             </div>
 
             <div className="flex w-full flex-col items-center gap-2">
@@ -503,6 +528,12 @@ function delay(ms: number) {
   return new Promise<void>((resolve) => {
     window.setTimeout(resolve, ms);
   });
+}
+
+function formatResearchElapsed(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
 }
 
 function ResearchLoadingStep({

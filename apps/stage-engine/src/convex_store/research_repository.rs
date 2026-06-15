@@ -289,6 +289,9 @@ pub fn enrich_research_artifact(
     crate::research::normalize::normalize_research_artifact_fields(object, input);
     normalize_competitive_matrix_scores(object);
     crate::research::competitive::filter_competitive_analysis(object, input);
+    let repair_report = crate::research::competitive::repair_competitive_analysis(object, input);
+    crate::research::competitive::append_competitive_quality_warnings(object, &repair_report);
+    crate::research::competitive::validate_competitive_analysis(object, input)?;
 
     Ok(JsonValue::Object(object.clone()))
 }
@@ -327,8 +330,9 @@ fn normalize_competitive_matrix_scores(object: &mut serde_json::Map<String, Json
             };
             if let Some(normalized) = normalize_matrix_score(score) {
                 cell_object.insert("score".to_string(), json!(normalized));
-            } else if cell_object.get("score").is_none() {
-                let fallback = crate::research::normalize::normalize_matrix_score_label(score);
+            } else if let Some(fallback) =
+                crate::research::normalize::normalize_matrix_score_label(score)
+            {
                 cell_object.insert("score".to_string(), json!(fallback));
             }
         }

@@ -19,7 +19,7 @@ use super::parse::{
 };
 
 const MAX_REFERO_SEARCH_RESULTS: u8 = 4;
-const MAX_REFERO_IMAGE_FETCHES: usize = 15;
+const MAX_REFERO_IMAGE_FETCHES: usize = 5;
 
 #[derive(Clone, Debug)]
 pub struct ReferoService {
@@ -39,6 +39,16 @@ impl ReferoService {
         Ok(Self {
             client: ReferoClient::from_parts(self.client.mcp_url().to_string(), Some(token))?,
         })
+    }
+
+    pub fn with_fresh_call_counter(&self) -> Self {
+        Self {
+            client: self.client.with_fresh_call_counter(),
+        }
+    }
+
+    pub fn call_count(&self) -> usize {
+        self.client.call_count()
     }
 
     pub async fn research_context_for_categories(
@@ -245,6 +255,14 @@ impl ReferoService {
         Ok(bytes)
     }
 
+    async fn fetch_screen_thumbnail_bytes(
+        &self,
+        screen_id: &str,
+    ) -> Result<Vec<u8>, ReferoServiceError> {
+        self.fetch_screen_image_with_size(screen_id, "thumbnail")
+            .await
+    }
+
     pub async fn hydrate_category_screen_images(
         &self,
         category_searches: &mut [ReferoCategorySearch],
@@ -256,8 +274,9 @@ impl ReferoService {
                 break;
             }
 
+            let mut fetched_for_category = false;
             for reference in bucket.references.iter_mut() {
-                if fetched >= MAX_REFERO_IMAGE_FETCHES {
+                if fetched >= MAX_REFERO_IMAGE_FETCHES || fetched_for_category {
                     break;
                 }
 
@@ -281,8 +300,12 @@ impl ReferoService {
                     continue;
                 }
 
+                if reference.image_url.is_some() || reference.thumbnail_url.is_some() {
+                    continue;
+                }
+
                 let screen_id = reference.id.clone();
-                let bytes = match self.fetch_screen_image_bytes(&screen_id).await {
+                let bytes = match self.fetch_screen_thumbnail_bytes(&screen_id).await {
                     Ok(bytes) => bytes,
                     Err(error) => {
                         tracing::warn!(screen_id = %screen_id, %error, "Refero screen image fetch failed");
@@ -292,8 +315,15 @@ impl ReferoService {
 
                 reference.raw_image_bytes = Some(bytes);
                 fetched += 1;
+                fetched_for_category = true;
             }
         }
+
+        tracing::info!(
+            refero_image_fetches = fetched,
+            refero_image_budget = MAX_REFERO_IMAGE_FETCHES,
+            "Refero image hydration completed"
+        );
 
         Ok(fetched)
     }

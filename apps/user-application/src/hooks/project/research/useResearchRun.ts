@@ -44,6 +44,8 @@ export function useResearchRun(projectId: string) {
   const chatDefaults = useChatDefaults();
   const [error, setError] = useState<string | null>(null);
   const [runEnded, setRunEnded] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [lastRunDurationSeconds, setLastRunDurationSeconds] = useState<number | null>(null);
   const runStartedAtRef = useRef<number | null>(null);
 
   const runs = useQuery(
@@ -68,6 +70,33 @@ export function useResearchRun(projectId: string) {
       (providerRun.isRunActive || convexResearchRunning),
     [convexResearchRunning, providerRun.isRunActive, runEnded],
   );
+
+  useEffect(() => {
+    if (!isRunning) {
+      return;
+    }
+
+    const tick = () => {
+      if (runStartedAtRef.current) {
+        setElapsedSeconds(Math.floor((Date.now() - runStartedAtRef.current) / 1000));
+      }
+    };
+
+    tick();
+    const interval = window.setInterval(tick, 1000);
+    return () => window.clearInterval(interval);
+  }, [isRunning]);
+
+  useEffect(() => {
+    if (!hasTerminalEvent || !runStartedAtRef.current) {
+      return;
+    }
+
+    const duration = Math.floor((Date.now() - runStartedAtRef.current) / 1000);
+    setLastRunDurationSeconds(duration);
+    setElapsedSeconds(0);
+    runStartedAtRef.current = null;
+  }, [hasTerminalEvent]);
 
   useEffect(() => {
     const failedEvent = activeRunEvents.find((event) => event.type === "run_failed");
@@ -132,6 +161,7 @@ export function useResearchRun(projectId: string) {
     async (providerId: ProviderId) => {
       setError(null);
       setRunEnded(false);
+      setElapsedSeconds(0);
       runStartedAtRef.current = null;
 
       assertProviderPreflightReady({
@@ -175,6 +205,8 @@ export function useResearchRun(projectId: string) {
     cancelResearch,
     isStarting: providerRun.startRun.isPending,
     isRunning,
+    elapsedSeconds,
+    lastRunDurationSeconds,
     activeRunId: providerRun.activeRunId,
     runEvents: activeRunEvents,
     error:

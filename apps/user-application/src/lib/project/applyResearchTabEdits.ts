@@ -35,7 +35,7 @@ export function applyResearchTabEdits(
       competitors: tabData.competitors.map((competitor, index) => {
         const existing = artifact.competitiveAnalysis.competitors[index];
         return {
-          id: existing?.id ?? `competitor-${index + 1}`,
+          id: competitor.id || existing?.id || `competitor-${index + 1}`,
           name: requiredText(competitor.name, existing?.name ?? `Competitor ${index + 1}`),
           url: optionalText(competitor.url),
           logoUrl: existing?.logoUrl ?? null,

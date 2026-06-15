@@ -1,4 +1,5 @@
 use tokio::sync::watch;
+use tokio::time::{Duration, timeout};
 
 use crate::helpers::time::now_millis;
 use crate::models::errors::{EngineError, EngineErrorCode};
@@ -35,6 +36,48 @@ pub async fn run_provider_collect(
     match context.request.provider_id {
         ProviderId::Claude => run_claude_collect(context, events, &mut cancel).await,
         ProviderId::Codex => run_codex_collect(context, events, &mut cancel).await,
+    }
+}
+
+pub async fn smoke_test_provider(
+    mut context: ProviderRunContext,
+    cancel: watch::Receiver<bool>,
+) -> Result<(), ProviderProcessError> {
+    context.run_id = format!("{}-preflight", context.run_id);
+    context.request.prompt =
+        "Provider preflight. Reply with exactly the uppercase word OK and nothing else."
+            .to_string();
+    context.request.context.source = Some("provider-preflight".to_string());
+
+    let provider_id = context.request.provider_id;
+    let binary = match provider_id {
+        ProviderId::Claude => "claude",
+        ProviderId::Codex => "codex",
+    };
+    let outcome = timeout(
+        Duration::from_secs(45),
+        run_provider_collect(context, RunEventSink::detached(), cancel),
+    )
+    .await
+    .map_err(|_| ProviderProcessError::Io {
+        binary,
+        source: std::io::Error::other("provider preflight timed out after 45 seconds"),
+    })??;
+
+    match outcome {
+        ProviderProcessOutcome::Completed(output)
+            if output.split_whitespace().any(|word| word == "OK") =>
+        {
+            Ok(())
+        }
+        ProviderProcessOutcome::Completed(_) => Err(ProviderProcessError::Io {
+            binary,
+            source: std::io::Error::other("provider preflight did not return OK"),
+        }),
+        ProviderProcessOutcome::Cancelled => Err(ProviderProcessError::Io {
+            binary,
+            source: std::io::Error::other("provider preflight was cancelled"),
+        }),
     }
 }
 

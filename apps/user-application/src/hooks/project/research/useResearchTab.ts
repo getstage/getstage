@@ -48,6 +48,8 @@ export function useResearchTab(project: Pick<Project, "id" | "name" | "clientNam
     cancelResearch: researchRun.cancelResearch,
     isRunning: researchRun.isRunning,
     isStarting: researchRun.isStarting,
+    elapsedSeconds: researchRun.elapsedSeconds,
+    lastRunDurationSeconds: researchRun.lastRunDurationSeconds,
     error: saveError ?? researchRun.error,
     setBriefFile,
     markBriefForRemoval,

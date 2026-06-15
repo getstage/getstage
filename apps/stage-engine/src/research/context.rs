@@ -3,7 +3,7 @@ use crate::models::refero::{
 };
 use crate::models::research::ResearchInput;
 
-const CATEGORY_SCREEN_LIMIT: u8 = 3;
+const CATEGORY_SCREEN_LIMIT: u8 = 4;
 
 pub fn build_refero_category_search_requests(
     input: &ResearchInput,
@@ -88,6 +88,6 @@ mod tests {
         assert!(requests[0].query.contains("E-commerce"));
         assert!(requests[0].query.contains("onboarding"));
         assert_eq!(requests[0].category, ReferoUiPatternCategory::Onboarding);
-        assert_eq!(requests[0].limit, 3);
+        assert_eq!(requests[0].limit, 4);
     }
 }

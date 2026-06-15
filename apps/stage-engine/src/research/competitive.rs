@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use serde_json::{Map, Value, json};
 
 use crate::models::research::ResearchInput;
+use crate::research::normalize::normalize_matrix_score_label;
 
 pub fn allowed_competitive_targets(input: &ResearchInput) -> Vec<String> {
     if !input.competitor_urls.is_empty() {
@@ -54,12 +55,28 @@ pub fn competitive_rules_for_prompt(input: &ResearchInput) -> String {
         .join("\n");
 
     format!(
-        r#"Competitive analysis rules (strict):
+        r#"Competitive analysis rules (strict — UI/design output for designers, not business essays):
 - competitiveAnalysis.competitors must contain exactly one card for every allowed site below (no omissions, no extras):
 {list}
 - Do NOT add Shopware, OroCommerce, or any other company not listed above.
 - Do NOT infer competitors from industry, brief, Refero results, or general market knowledge.
-- matrixRows cells must include every competitor id from that same list."#
+- These sites are COMPETITORS to benchmark. The client product you are designing is "{client_name}" / project "{project_name}" — never treat a competitor card as the client.
+- Card view (competitors[]): short UI positioning only:
+  - positioning + summary: max 12 words each (one line).
+  - strengths[] + weaknesses[]: 3 items each, max 8 words per bullet, UI components/patterns only (e.g. "Sticky header with primary CTA", "No guided onboarding wizard").
+  - Never write pricing tiers, VAT, plan names, or feature lists in card bullets.
+- Matrix view (matrixRows[]): compare UI/UX only across these 7 rows (use these exact labels):
+  1. Navigation
+  2. Onboarding
+  3. Visual Style
+  4. Content Hierarchy
+  5. Mobile Experience
+  6. Dashboard Layout
+  7. Data Visualization
+- Every matrix cell: competitorId + score ("Strong" | "OK" | "Weak"). Optional note: max 12 words, UI observation only. Omit note when the score is enough.
+- Never write paragraphs, URLs, or business strategy in matrix notes."#,
+        client_name = input.client_name.as_deref().unwrap_or("the client"),
+        project_name = input.project_name,
     )
 }
 
@@ -175,86 +192,225 @@ pub fn ensure_competitive_competitors(object: &mut Map<String, Value>, input: &R
             "id": id,
             "name": name,
             "url": url,
-            "summary": format!(
-                "Include a concise competitive read for {name} based on public positioning, B2B UX patterns, and the project brief."
-            ),
         }));
     }
-
-    ensure_matrix_cells_for_competitors(analysis_object);
 }
 
-fn ensure_matrix_cells_for_competitors(analysis_object: &mut Map<String, Value>) {
-    let competitor_ids: Vec<String> = analysis_object
+pub struct CompetitiveRepairReport {
+    pub unsupported_cells_removed: usize,
+}
+
+/// Remove unsupported matrix cells without fabricating replacement content.
+pub fn repair_competitive_analysis(
+    object: &mut Map<String, Value>,
+    input: &ResearchInput,
+) -> CompetitiveRepairReport {
+    let mut report = CompetitiveRepairReport {
+        unsupported_cells_removed: 0,
+    };
+
+    let allowed_hosts = allowed_competitive_targets(input)
+        .iter()
+        .filter_map(|url| competitive_host(url))
+        .collect::<HashSet<_>>();
+
+    if let Some(sources) = object
+        .get_mut("sourceReferences")
+        .and_then(Value::as_array_mut)
+    {
+        sources.retain(|source| {
+            if source.get("provider").and_then(Value::as_str) != Some("website") {
+                return true;
+            }
+            source
+                .get("url")
+                .and_then(Value::as_str)
+                .and_then(competitive_host)
+                .is_some_and(|host| allowed_hosts.contains(&host))
+        });
+    }
+
+    let valid_source_ids = object
+        .get("sourceReferences")
+        .and_then(Value::as_array)
+        .map(|sources| {
+            sources
+                .iter()
+                .filter_map(|source| source.get("id").and_then(Value::as_str))
+                .map(str::to_string)
+                .collect::<HashSet<_>>()
+        })
+        .unwrap_or_default();
+
+    let Some(analysis) = object
+        .get_mut("competitiveAnalysis")
+        .and_then(Value::as_object_mut)
+    else {
+        return report;
+    };
+
+    if let Some(competitors) = analysis
+        .get_mut("competitors")
+        .and_then(Value::as_array_mut)
+    {
+        for competitor in competitors {
+            let Some(competitor) = competitor.as_object_mut() else {
+                continue;
+            };
+            let source_ids = competitor
+                .entry("sourceReferenceIds".to_string())
+                .or_insert_with(|| json!([]));
+            if let Some(source_ids) = source_ids.as_array_mut() {
+                source_ids.retain(|id| id.as_str().is_some_and(|id| valid_source_ids.contains(id)));
+                if source_ids.is_empty() {
+                    for key in ["positioning", "summary"] {
+                        competitor.remove(key);
+                    }
+                    competitor.insert("strengths".to_string(), json!([]));
+                    competitor.insert("weaknesses".to_string(), json!([]));
+                }
+            }
+        }
+    }
+
+    let allowed_ids = analysis
         .get("competitors")
         .and_then(Value::as_array)
         .map(|competitors| {
             competitors
                 .iter()
-                .filter_map(|competitor| {
-                    competitor
-                        .get("id")
-                        .and_then(Value::as_str)
-                        .map(str::to_string)
-                })
-                .collect()
+                .filter_map(|competitor| competitor.get("id").and_then(Value::as_str))
+                .map(str::to_string)
+                .collect::<HashSet<_>>()
         })
         .unwrap_or_default();
 
-    if competitor_ids.is_empty() {
-        return;
-    }
-
-    let matrix_rows = analysis_object
-        .entry("matrixRows".to_string())
-        .or_insert_with(|| json!([]));
-    let Some(matrix_rows) = matrix_rows.as_array_mut() else {
-        return;
+    let Some(matrix_rows) = analysis.get_mut("matrixRows").and_then(Value::as_array_mut) else {
+        return report;
     };
-
-    if matrix_rows.is_empty() {
-        matrix_rows.push(json!({
-            "id": "matrix-overview",
-            "label": "Overall competitive fit",
-            "cells": competitor_ids.iter().map(|id| json!({
-                "competitorId": id,
-                "score": "OK",
-                "note": "Baseline comparison — refine with a fresh research run."
-            })).collect::<Vec<_>>()
-        }));
-        return;
-    }
 
     for row in matrix_rows {
         let Some(row_object) = row.as_object_mut() else {
             continue;
         };
-        let cells = row_object
-            .entry("cells".to_string())
-            .or_insert_with(|| json!([]));
-        let Some(cells) = cells.as_array_mut() else {
+        let Some(cells) = row_object.get_mut("cells").and_then(Value::as_array_mut) else {
             continue;
         };
-
-        for competitor_id in &competitor_ids {
-            let has_cell = cells.iter().any(|cell| {
-                cell.get("competitorId")
-                    .or_else(|| cell.get("competitor_id"))
-                    .and_then(Value::as_str)
-                    == Some(competitor_id.as_str())
-            });
-
-            if has_cell {
-                continue;
+        let before = cells.len();
+        cells.retain(|cell| {
+            let competitor_id = cell
+                .get("competitorId")
+                .or_else(|| cell.get("competitor_id"))
+                .and_then(Value::as_str);
+            let score = cell
+                .get("score")
+                .or_else(|| cell.get("rating"))
+                .and_then(Value::as_str);
+            match (competitor_id, score) {
+                (Some(id), Some(raw_score))
+                    if allowed_ids.contains(id)
+                        && normalize_matrix_score_label(raw_score).is_some() =>
+                {
+                    true
+                }
+                _ => false,
             }
-
-            cells.push(json!({
-                "competitorId": competitor_id,
-                "score": "OK",
-                "note": "Add qualitative scoring after reviewing this competitor's public UX and positioning."
-            }));
-        }
+        });
+        report.unsupported_cells_removed += before.saturating_sub(cells.len());
     }
+
+    report
+}
+
+pub fn append_competitive_quality_warnings(
+    object: &mut Map<String, Value>,
+    report: &CompetitiveRepairReport,
+) {
+    if report.unsupported_cells_removed == 0 {
+        return;
+    }
+
+    let warnings = object
+        .entry("openQuestions".to_string())
+        .or_insert_with(|| json!([]));
+    let Some(questions) = warnings.as_array_mut() else {
+        return;
+    };
+
+    questions.push(Value::String(format!(
+        "Competitive matrix: {} comparison cell(s) were omitted because they had no valid Strong/OK/Weak score.",
+        report.unsupported_cells_removed
+    )));
+}
+
+pub fn validate_competitive_analysis(
+    object: &Map<String, Value>,
+    input: &ResearchInput,
+) -> anyhow::Result<()> {
+    let required_targets = allowed_competitive_targets(input);
+    if required_targets.is_empty() {
+        return Ok(());
+    }
+
+    let analysis = object
+        .get("competitiveAnalysis")
+        .and_then(Value::as_object)
+        .ok_or_else(|| anyhow::anyhow!("competitiveAnalysis was missing or invalid"))?;
+    let competitor_ids = analysis
+        .get("competitors")
+        .and_then(Value::as_array)
+        .map(|competitors| {
+            competitors
+                .iter()
+                .filter_map(|competitor| competitor.get("id").and_then(Value::as_str))
+                .collect::<HashSet<_>>()
+        })
+        .unwrap_or_default();
+    if competitor_ids.is_empty() {
+        anyhow::bail!("competitiveAnalysis contained no valid competitors");
+    }
+
+    Ok(())
+}
+
+pub fn competitive_analysis_needs_repair(object: &Map<String, Value>) -> bool {
+    let Some(analysis) = object.get("competitiveAnalysis").and_then(Value::as_object) else {
+        return true;
+    };
+    let competitor_ids = analysis
+        .get("competitors")
+        .and_then(Value::as_array)
+        .map(|competitors| {
+            competitors
+                .iter()
+                .filter_map(|competitor| competitor.get("id").and_then(Value::as_str))
+                .collect::<HashSet<_>>()
+        })
+        .unwrap_or_default();
+    if competitor_ids.is_empty() {
+        return false;
+    }
+
+    let Some(rows) = analysis.get("matrixRows").and_then(Value::as_array) else {
+        return true;
+    };
+    if rows.is_empty() {
+        return true;
+    }
+
+    rows.iter().any(|row| {
+        let cell_ids = row
+            .get("cells")
+            .and_then(Value::as_array)
+            .map(|cells| {
+                cells
+                    .iter()
+                    .filter_map(|cell| cell.get("competitorId").and_then(Value::as_str))
+                    .collect::<HashSet<_>>()
+            })
+            .unwrap_or_default();
+        cell_ids != competitor_ids
+    })
 }
 
 fn competitor_id_from_host(host: &str) -> String {
@@ -432,5 +588,138 @@ mod tests {
             .unwrap();
         assert_eq!(competitors.len(), 1);
         assert_eq!(competitors[0]["name"], "Amazon");
+    }
+
+    #[test]
+    fn repair_keeps_score_cells_without_url_notes() {
+        let mut object = Map::from_iter([(
+            "competitiveAnalysis".to_string(),
+            json!({
+                "competitors": [
+                    {
+                        "id": "competitor-squarespace-com",
+                        "name": "Squarespace",
+                        "url": "https://www.squarespace.com"
+                    },
+                    {
+                        "id": "competitor-amazon-com",
+                        "name": "Amazon",
+                        "url": "https://www.amazon.com"
+                    }
+                ],
+                "matrixRows": [{
+                    "id": "onboarding",
+                    "label": "Progressive disclosure in onboarding",
+                    "cells": [{
+                        "competitorId": "competitor-amazon-com",
+                        "score": "Strong",
+                        "note": "Amazon surfaces account setup in clear steps."
+                    }]
+                }]
+            }),
+        )]);
+        let input = ResearchInput {
+            project_id: "p1".to_string(),
+            project_name: "Test".to_string(),
+            client_name: None,
+            industry: "Retail".to_string(),
+            website: Some("https://client.com".to_string()),
+            project_brief: None,
+            competitor_urls: vec![
+                "https://www.squarespace.com".to_string(),
+                "https://www.amazon.com".to_string(),
+            ],
+            target_users: None,
+            additional_notes: None,
+            uploaded_asset_ids: vec![],
+        };
+
+        let report = repair_competitive_analysis(&mut object, &input);
+
+        assert_eq!(report.unsupported_cells_removed, 0);
+        let cells = object["competitiveAnalysis"]["matrixRows"][0]["cells"]
+            .as_array()
+            .unwrap();
+        assert_eq!(cells.len(), 1);
+        assert_eq!(cells[0]["score"], "Strong");
+        validate_competitive_analysis(&object, &input).unwrap();
+    }
+
+    #[test]
+    fn repair_keeps_score_only_cells() {
+        let mut object = Map::from_iter([(
+            "competitiveAnalysis".to_string(),
+            json!({
+                "competitors": [{
+                    "id": "competitor-shopify-com",
+                    "name": "Shopify",
+                    "url": "https://shopify.com"
+                }],
+                "matrixRows": [{
+                    "id": "pricing",
+                    "label": "Pricing clarity",
+                    "cells": [{ "competitorId": "competitor-shopify-com", "score": "OK" }]
+                }]
+            }),
+        )]);
+        let input = ResearchInput {
+            project_id: "p1".to_string(),
+            project_name: "Test".to_string(),
+            client_name: None,
+            industry: "Retail".to_string(),
+            website: Some("https://shopify.com".to_string()),
+            project_brief: None,
+            competitor_urls: vec![],
+            target_users: None,
+            additional_notes: None,
+            uploaded_asset_ids: vec![],
+        };
+
+        let report = repair_competitive_analysis(&mut object, &input);
+
+        assert_eq!(report.unsupported_cells_removed, 0);
+        let cells = object["competitiveAnalysis"]["matrixRows"][0]["cells"]
+            .as_array()
+            .unwrap();
+        assert_eq!(cells.len(), 1);
+        assert_eq!(cells[0]["score"], "OK");
+    }
+
+    #[test]
+    fn validation_accepts_complete_evidence_based_matrix() {
+        let object = Map::from_iter([(
+            "competitiveAnalysis".to_string(),
+            json!({
+                "competitors": [{
+                    "id": "competitor-shopify-com",
+                    "name": "Shopify",
+                    "url": "https://shopify.com"
+                }],
+                "matrixRows": [{
+                    "id": "pricing",
+                    "label": "Pricing clarity",
+                    "cells": [{
+                        "competitorId": "competitor-shopify-com",
+                        "score": "Strong",
+                        "note": "Pricing tiers and feature limits are visible before signup."
+                    }]
+                }]
+            }),
+        )]);
+        let input = ResearchInput {
+            project_id: "p1".to_string(),
+            project_name: "Test".to_string(),
+            client_name: None,
+            industry: "Retail".to_string(),
+            website: Some("https://shopify.com".to_string()),
+            project_brief: None,
+            competitor_urls: vec![],
+            target_users: None,
+            additional_notes: None,
+            uploaded_asset_ids: vec![],
+        };
+
+        validate_competitive_analysis(&object, &input).unwrap();
+        assert!(!competitive_analysis_needs_repair(&object));
     }
 }

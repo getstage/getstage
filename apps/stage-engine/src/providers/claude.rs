@@ -58,19 +58,37 @@ pub async fn run_claude_collect(
 }
 
 fn claude_args(context: &ProviderRunContext) -> Vec<String> {
+    let tools = if research_web_tools_enabled(context) {
+        "WebSearch,WebFetch"
+    } else {
+        ""
+    };
     let mut args = vec![
         "--print".to_string(),
         "--output-format".to_string(),
         "text".to_string(),
         "--no-session-persistence".to_string(),
         "--tools".to_string(),
-        String::new(),
+        tools.to_string(),
         "--model".to_string(),
         claude_model_id(&context.request.model_id).to_string(),
     ];
 
+    if !tools.is_empty() {
+        args.push("--allowedTools".to_string());
+        args.push(tools.to_string());
+    }
+
     apply_claude_run_options(&mut args, &context.request.model_options);
     args
+}
+
+fn research_web_tools_enabled(context: &ProviderRunContext) -> bool {
+    context.request.mode == crate::models::runs::RunMode::Research
+        && !matches!(
+            context.request.context.source.as_deref(),
+            Some("provider-preflight" | "research-opportunities" | "section:opportunities")
+        )
 }
 
 fn claude_model_id(model_id: &str) -> &str {
@@ -123,5 +141,22 @@ mod tests {
         assert!(!args.iter().any(|arg| arg.len() > 256));
         assert!(args.contains(&"--print".to_string()));
         assert!(args.contains(&"sonnet".to_string()));
+    }
+
+    #[test]
+    fn claude_research_enables_only_web_research_tools() {
+        let args = claude_args(&sample_context("research"));
+        assert!(args.contains(&"WebSearch,WebFetch".to_string()));
+        assert!(args.contains(&"--allowedTools".to_string()));
+    }
+
+    #[test]
+    fn claude_opportunities_pass_disables_web_tools() {
+        let mut context = sample_context("opportunities");
+        context.request.context.source = Some("section:opportunities".to_string());
+        let args = claude_args(&context);
+        let tools_index = args.iter().position(|arg| arg == "--tools").unwrap();
+        assert_eq!(args[tools_index + 1], "");
+        assert!(!args.contains(&"--allowedTools".to_string()));
     }
 }
