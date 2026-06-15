@@ -56,12 +56,34 @@ impl ReferoService {
         category_requests: &[ReferoCategorySearchRequest],
         flow_request: &ReferoSearchRequest,
     ) -> Result<ReferoContext, ReferoServiceError> {
+        let mut join_set = tokio::task::JoinSet::new();
+
+        for (index, request) in category_requests.iter().enumerate() {
+            let service = self.clone();
+            let request = request.clone();
+            join_set.spawn(async move {
+                let screens = service.search_screens_for_category(&request).await?;
+                Ok::<_, ReferoServiceError>((index, request, screens))
+            });
+        }
+
+        let mut indexed_results = Vec::with_capacity(category_requests.len());
+        while let Some(joined) = join_set.join_next().await {
+            let result = joined.map_err(|error| {
+                ReferoServiceError::Client(ReferoClientError::ToolCallFailed {
+                    message: format!("Refero category search task failed: {error}"),
+                })
+            })?;
+            indexed_results.push(result?);
+        }
+
+        indexed_results.sort_by_key(|(index, _, _)| *index);
+
         let mut category_searches = Vec::with_capacity(category_requests.len());
         let mut references = Vec::new();
         let mut seen_screen_ids = HashSet::new();
 
-        for request in category_requests {
-            let screens = self.search_screens_for_category(request).await?;
+        for (_index, request, screens) in indexed_results {
             let mut bucket = Vec::new();
 
             for mut screen in screens {

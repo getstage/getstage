@@ -128,7 +128,7 @@ function CompetitiveMatrix({
   );
 }
 
-function MatrixCell({ score, note }: { score: string; note: string }) {
+function MatrixCell({ score }: { score: string; note: string }) {
   const color =
     score === "Strong"
       ? "#16A34A"
@@ -136,15 +136,19 @@ function MatrixCell({ score, note }: { score: string; note: string }) {
         ? "#EF4444"
         : "#F97316";
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[12px] font-medium leading-[1.25]" style={{ color }}>
-        {score}
-      </span>
-      {note.trim() ? (
-        <span className="text-[11px] font-medium leading-[1.35] text-[#737373]">{note}</span>
-      ) : null}
-    </div>
+    <span className="text-[12px] font-medium leading-[1.25]" style={{ color }}>
+      {score}
+    </span>
   );
+}
+
+function competitorPositioning(competitor: ResearchCompetitor) {
+  const tagline = competitor.tagline.trim();
+  const note = competitor.note.trim();
+  if (tagline && note && tagline !== note) {
+    return `${tagline} — ${note}`;
+  }
+  return tagline || note;
 }
 
 function CompetitorCard({
@@ -156,6 +160,8 @@ function CompetitorCard({
   isEditing: boolean;
   onChange?: (patch: Partial<ResearchCompetitor>) => void;
 }) {
+  const positioning = competitorPositioning(competitor);
+
   return (
     <article className="rounded-[10px] bg-[#FAFAFA] p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex h-full flex-col gap-4 rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -180,11 +186,11 @@ function CompetitorCard({
             aria-label={`${competitor.name} positioning`}
             className="h-[31px] w-full rounded-[6px] bg-[#F5F5F5] px-3 text-[13px] font-medium leading-[1.25] text-[#404040] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)]"
           />
-        ) : (
-          <p className="text-[13px] font-medium leading-[1.25] text-[#404040]">
-            "{competitor.tagline}" - {competitor.note}
+        ) : positioning ? (
+          <p className="break-words text-[13px] font-medium leading-[1.45] text-[#404040]">
+            {positioning}
           </p>
-        )}
+        ) : null}
         <FindingList title="Strengths" tone="good" items={competitor.strengths} isEditing={isEditing} onItemsChange={(strengths) => onChange?.({ strengths })} />
         <FindingList title="Weaknesses" tone="bad" items={competitor.weaknesses} isEditing={isEditing} onItemsChange={(weaknesses) => onChange?.({ weaknesses })} />
       </div>
@@ -231,7 +237,7 @@ function FindingList({
           className="mt-[7px] min-h-[78px] w-full resize-y rounded-[6px] bg-[#F5F5F5] px-3 py-2 text-[12px] font-medium leading-[1.45] text-[#262626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)]"
         />
       ) : (
-        <ul className="list-disc space-y-[7px] pl-[28px] pr-3 pt-[7px] text-[12px] font-medium leading-[1.25] text-[#262626]">
+        <ul className="list-disc space-y-[7px] break-words pl-[28px] pr-3 pt-[7px] text-[12px] font-medium leading-[1.45] text-[#262626]">
           {items.map((item) => (
             <li key={item}>{item}</li>
           ))}

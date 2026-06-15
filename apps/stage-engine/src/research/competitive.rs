@@ -63,7 +63,7 @@ pub fn competitive_rules_for_prompt(input: &ResearchInput) -> String {
 - These sites are COMPETITORS to benchmark. The client product you are designing is "{client_name}" / project "{project_name}" — never treat a competitor card as the client.
 - Card view (competitors[]): short UI positioning only:
   - positioning + summary: max 12 words each (one line).
-  - strengths[] + weaknesses[]: 3 items each, max 8 words per bullet, UI components/patterns only (e.g. "Sticky header with primary CTA", "No guided onboarding wizard").
+  - strengths[] + weaknesses[]: 3–5 items each, one short sentence per bullet (UI patterns/components). Do not truncate mid-sentence.
   - Never write pricing tiers, VAT, plan names, or feature lists in card bullets.
 - Matrix view (matrixRows[]): compare UI/UX only across these 7 rows (use these exact labels):
   1. Navigation
@@ -73,8 +73,8 @@ pub fn competitive_rules_for_prompt(input: &ResearchInput) -> String {
   5. Mobile Experience
   6. Dashboard Layout
   7. Data Visualization
-- Every matrix cell: competitorId + score ("Strong" | "OK" | "Weak"). Optional note: max 12 words, UI observation only. Omit note when the score is enough.
-- Never write paragraphs, URLs, or business strategy in matrix notes."#,
+- Every matrix cell: competitorId + score ("Strong" | "OK" | "Weak") only. Do not include note text.
+- Never write paragraphs, URLs, or business strategy in matrix cells."#,
         client_name = input.client_name.as_deref().unwrap_or("the client"),
         project_name = input.project_name,
     )

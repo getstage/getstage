@@ -495,11 +495,9 @@ function ResearchGeneratingState({
                   ? "Building a test research report from the project context. The results will appear here when the run completes."
                   : "Analysing the market, competitors, UI patterns, target users, and product opportunities."}
               </p>
-              {elapsedSeconds > 0 ? (
-                <p className="text-center text-[12px] font-medium leading-[1.5] text-[#737373]">
-                  Elapsed: {elapsedLabel}
-                </p>
-              ) : null}
+              <p className="text-center text-[12px] font-medium leading-[1.5] text-[#737373]">
+                Elapsed: {elapsedLabel}
+              </p>
             </div>
 
             <div className="flex w-full flex-col items-center gap-2">

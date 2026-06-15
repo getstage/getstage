@@ -530,24 +530,22 @@ fn normalize_competitive_analysis(object: &mut Map<String, Value>) {
 
             competitor_object.insert(
                 "strengths".to_string(),
-                json!(truncate_string_array(
+                json!(cap_string_array(
                     competitor_object
                         .get("strengths")
                         .and_then(|value| string_array(value))
                         .unwrap_or_default(),
-                    8,
-                    3,
+                    5,
                 )),
             );
             competitor_object.insert(
                 "weaknesses".to_string(),
-                json!(truncate_string_array(
+                json!(cap_string_array(
                     competitor_object
                         .get("weaknesses")
                         .and_then(|value| string_array(value))
                         .unwrap_or_default(),
-                    8,
-                    3,
+                    5,
                 )),
             );
             competitor_object.insert(
@@ -658,22 +656,7 @@ fn normalize_matrix_row(row: &mut Value, index: usize) -> bool {
         };
         cell_object.insert("score".to_string(), json!(score));
         cell_object.remove("rating");
-
-        let note = cell_object
-            .get("note")
-            .or_else(|| cell_object.get("notes"))
-            .and_then(Value::as_str)
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(str::to_string);
-        if let Some(note) = note {
-            cell_object.insert(
-                "note".to_string(),
-                json!(truncate_ui_text(&note, 12)),
-            );
-        } else {
-            cell_object.remove("note");
-        }
+        cell_object.remove("note");
         cell_object.remove("notes");
         true
     });
@@ -681,21 +664,12 @@ fn normalize_matrix_row(row: &mut Value, index: usize) -> bool {
     !cells.is_empty()
 }
 
-fn truncate_ui_text(value: &str, max_words: usize) -> String {
-    let trimmed = value.trim();
-    let words: Vec<&str> = trimmed.split_whitespace().collect();
-    if words.len() <= max_words {
-        return trimmed.to_string();
-    }
-    format!("{}…", words[..max_words].join(" "))
-}
-
-fn truncate_string_array(items: Vec<String>, max_words: usize, max_items: usize) -> Vec<String> {
+fn cap_string_array(items: Vec<String>, max_items: usize) -> Vec<String> {
     items
         .into_iter()
-        .take(max_items)
-        .map(|item| truncate_ui_text(&item, max_words))
+        .map(|item| item.trim().to_string())
         .filter(|item| !item.is_empty())
+        .take(max_items)
         .collect()
 }
 
@@ -872,7 +846,7 @@ mod tests {
         let row = &object["competitiveAnalysis"]["matrixRows"][0];
         assert_eq!(row["label"], "Mobile checkout");
         assert_eq!(row["cells"][0]["score"], "Strong");
-        assert_eq!(row["cells"][0]["note"], "Best in class: https://amazon.com");
+        assert!(row["cells"][0].get("note").is_none());
     }
 
     #[test]
@@ -920,6 +894,32 @@ mod tests {
         let rows = object["competitiveAnalysis"]["matrixRows"].as_array().unwrap();
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0]["cells"][0]["score"], "OK");
+    }
+
+    #[test]
+    fn strips_matrix_notes_and_keeps_score_only() {
+        let mut object = json!({
+            "competitiveAnalysis": {
+                "competitors": [{ "id": "amazon", "name": "Amazon", "url": "https://www.amazon.com" }],
+                "matrixRows": [{
+                    "label": "Navigation",
+                    "cells": [{
+                        "competitorId": "amazon",
+                        "score": "Strong",
+                        "note": "Multi-level dropdowns with dedicated B2B pathways"
+                    }]
+                }]
+            }
+        })
+        .as_object()
+        .unwrap()
+        .clone();
+
+        normalize_research_artifact_fields(&mut object, &sample_input());
+
+        let cell = &object["competitiveAnalysis"]["matrixRows"][0]["cells"][0];
+        assert_eq!(cell["score"], "Strong");
+        assert!(cell.get("note").is_none());
     }
 
     #[test]

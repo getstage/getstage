@@ -67,12 +67,19 @@ export function useResearchRun(projectId: string) {
   const isRunning = useMemo(
     () =>
       !runEnded &&
-      (providerRun.isRunActive || convexResearchRunning),
-    [convexResearchRunning, providerRun.isRunActive, runEnded],
+      (providerRun.startRun.isPending ||
+        providerRun.isRunActive ||
+        convexResearchRunning),
+    [
+      convexResearchRunning,
+      providerRun.isRunActive,
+      providerRun.startRun.isPending,
+      runEnded,
+    ],
   );
 
   useEffect(() => {
-    if (!isRunning) {
+    if (!isRunning || runStartedAtRef.current === null) {
       return;
     }
 
@@ -88,14 +95,13 @@ export function useResearchRun(projectId: string) {
   }, [isRunning]);
 
   useEffect(() => {
-    if (!hasTerminalEvent || !runStartedAtRef.current) {
+    if (!hasTerminalEvent || runStartedAtRef.current === null) {
       return;
     }
 
     const duration = Math.floor((Date.now() - runStartedAtRef.current) / 1000);
     setLastRunDurationSeconds(duration);
-    setElapsedSeconds(0);
-    runStartedAtRef.current = null;
+    setElapsedSeconds(duration);
   }, [hasTerminalEvent]);
 
   useEffect(() => {
@@ -130,8 +136,6 @@ export function useResearchRun(projectId: string) {
       return;
     }
 
-    runStartedAtRef.current = Date.now();
-
     const stallTimer = window.setTimeout(() => {
       const events =
         queryClient.getQueryData<RunEvent[]>(engineQueryKeys.runEvents(activeRunId)) ?? [];
@@ -161,8 +165,8 @@ export function useResearchRun(projectId: string) {
     async (providerId: ProviderId) => {
       setError(null);
       setRunEnded(false);
+      runStartedAtRef.current = Date.now();
       setElapsedSeconds(0);
-      runStartedAtRef.current = null;
 
       assertProviderPreflightReady({
         providerId,

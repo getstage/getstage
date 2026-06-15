@@ -117,7 +117,7 @@ Required competitiveAnalysis matrix shape:
 ```
 - Use the 7 matrix labels from the competitive rules (Navigation, Onboarding, Visual Style, Content Hierarchy, Mobile Experience, Dashboard Layout, Data Visualization).
 - Every matrix cell MUST have `competitorId` and `score` ("Strong" | "OK" | "Weak").
-- Matrix `note` is optional: max 12 words, UI-only. Example: "Multi-step wizard with progress bar". Omit when unnecessary.
+- Matrix `note` must be omitted. Cells are score-only (Strong / OK / Weak).
 - Never put URLs or multi-sentence notes in matrix cells.
 
 targetUsers rules:
