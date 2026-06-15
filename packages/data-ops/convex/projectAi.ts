@@ -21,6 +21,7 @@ export const getContext = query({
 
 export const getChatProjectContext = query({
   args: chatHandlers.getChatProjectContextArgs,
+  returns: chatHandlers.getChatProjectContextReturns,
   handler: chatHandlers.getChatProjectContextHandler,
 });
 

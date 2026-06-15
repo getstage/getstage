@@ -555,9 +555,14 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       setInputNotice("Wait for the active response or cancel it before deleting this chat.");
       return;
     }
-    await window.stageDesktop.chat.deleteAttachments({ chatId });
-    const store = deleteStageChat(chatId);
-    openChat(store.chats.find((chat) => chat.id === store.activeChatId) ?? store.chats[0] ?? createEmptyStageChat());
+
+    try {
+      await window.stageDesktop.chat.deleteAttachments({ chatId });
+      const store = deleteStageChat(chatId);
+      openChat(store.chats.find((chat) => chat.id === store.activeChatId) ?? store.chats[0] ?? createEmptyStageChat());
+    } catch (error) {
+      setInputNotice(toUserFacingErrorMessage(error, "Stage could not delete that chat's attachments."));
+    }
   }
 
   function pinProject(project: ChatProjectReference) {

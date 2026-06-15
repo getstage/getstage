@@ -43,7 +43,7 @@ If context is omitted or bounded, state that limitation instead of inventing det
 #[cfg(test)]
 mod tests {
     use super::build_grounded_chat_prompt;
-    use crate::models::chat::{ChatOmittedCounts, ChatProject, ChatProjectContext};
+    use crate::models::chat::{ChatProject, ChatProjectContext, ChatTruncatedFlags};
 
     #[test]
     fn grounded_prompt_should_delimit_context_and_user_request() {
@@ -65,10 +65,10 @@ mod tests {
             phases: vec![],
             tasks: vec![],
             artifacts: vec![],
-            omitted: ChatOmittedCounts {
-                phases: 0,
-                tasks: 0,
-                artifacts: 0,
+            truncated: ChatTruncatedFlags {
+                phases: false,
+                tasks: false,
+                artifacts: false,
             },
             updated_at: 1,
         };

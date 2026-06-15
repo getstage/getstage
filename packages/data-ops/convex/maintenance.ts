@@ -5,16 +5,20 @@ import { buildProjectSearchText } from "./lib/projects/domain/projectService";
 export const backfillProjectSearchText = internalMutation({
   args: {
     limit: v.optional(v.number()),
+    cursor: v.optional(v.string()),
   },
   returns: v.object({
     updated: v.number(),
+    scanned: v.number(),
+    cursor: v.union(v.string(), v.null()),
+    isDone: v.boolean(),
   }),
   handler: async (ctx, args) => {
     const limit = Math.max(1, Math.min(args.limit ?? 200, 500));
-    const projects = await ctx.db
+    const page = await ctx.db
       .query("projects")
-      .filter((query) => query.eq(query.field("searchText"), undefined))
-      .take(limit);
+      .paginate({ numItems: limit, cursor: args.cursor ?? null });
+    const projects = page.page.filter((project) => project.searchText === undefined);
 
     await Promise.all(projects.map((project) =>
       ctx.db.patch(project._id, {
@@ -22,6 +26,11 @@ export const backfillProjectSearchText = internalMutation({
       }),
     ));
 
-    return { updated: projects.length };
+    return {
+      updated: projects.length,
+      scanned: page.page.length,
+      cursor: page.isDone ? null : page.continueCursor,
+      isDone: page.isDone,
+    };
   },
 });

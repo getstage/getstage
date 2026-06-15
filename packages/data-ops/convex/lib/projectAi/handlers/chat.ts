@@ -2,8 +2,9 @@ import { v } from "convex/values";
 import type { Doc, Id } from "../../../_generated/dataModel";
 import type { QueryCtx } from "../../../_generated/server";
 import { requireProjectAccessOrNull } from "../../../_helpers";
+import { projectStatusValidator } from "../../../models/projects/validators";
 import { getContextRecord } from "../domain/records";
-import type { AiModule } from "../domain/validators";
+import { aiArtifactStatus, aiModule, type AiModule } from "../domain/validators";
 
 const MAX_PHASES = 30;
 const MAX_TASKS = 100;
@@ -26,9 +27,77 @@ function artifactExcerpt(artifact: Doc<"projectAiArtifacts">) {
   return truncate(artifact.contentMarkdown ?? artifact.contentJson, ARTIFACT_EXCERPT_CHARS);
 }
 
+const phaseStatusValidator = v.union(
+  v.literal("completed"),
+  v.literal("active"),
+  v.literal("upcoming"),
+);
+
+const taskStatusValidator = v.union(
+  v.literal("todo"),
+  v.literal("in_progress"),
+  v.literal("done"),
+);
+
 export const getChatProjectContextArgs = {
   projectId: v.id("projects"),
 };
+
+export const getChatProjectContextReturns = v.union(
+  v.object({
+    apiVersion: v.literal("v1"),
+    project: v.object({
+      projectId: v.string(),
+      projectName: v.string(),
+      clientName: v.string(),
+      status: projectStatusValidator,
+      updatedAt: v.number(),
+      type: v.string(),
+      progress: v.number(),
+      startDate: v.number(),
+      endDate: v.number(),
+    }),
+    brief: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    phases: v.array(v.object({
+      id: v.string(),
+      name: v.string(),
+      status: phaseStatusValidator,
+      progress: v.number(),
+      taskCount: v.number(),
+      includedTaskCount: v.number(),
+      tasksTruncated: v.boolean(),
+    })),
+    tasks: v.array(v.object({
+      id: v.string(),
+      phaseId: v.string(),
+      phaseName: v.string(),
+      title: v.string(),
+      status: taskStatusValidator,
+      summary: v.optional(v.string()),
+      priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.null()),
+      dueDate: v.optional(v.number()),
+      updatedAt: v.number(),
+    })),
+    artifacts: v.array(v.object({
+      id: v.string(),
+      module: aiModule,
+      kind: v.string(),
+      title: v.string(),
+      summary: v.optional(v.string()),
+      status: aiArtifactStatus,
+      excerpt: v.optional(v.string()),
+      updatedAt: v.number(),
+    })),
+    truncated: v.object({
+      phases: v.boolean(),
+      tasks: v.boolean(),
+      artifacts: v.boolean(),
+    }),
+    updatedAt: v.number(),
+  }),
+  v.null(),
+);
 
 export async function getChatProjectContextHandler(
   ctx: QueryCtx,
@@ -64,24 +133,40 @@ export async function getChatProjectContextHandler(
   const tasks = [];
 
   for (const phase of phaseDocs) {
-    const taskResults = remainingTasks > 0
-      ? await ctx.db
-          .query("tasks")
-          .withIndex("by_phase_order", (q) => q.eq("phaseId", phase._id))
-          .take(remainingTasks + 1)
-      : [];
+    const taskQuery = ctx.db
+      .query("tasks")
+      .withIndex("by_phase_order", (q) => q.eq("phaseId", phase._id));
+
+    if (remainingTasks <= 0) {
+      const probe = await taskQuery.take(1);
+      phases.push({
+        id: String(phase._id),
+        name: phase.name,
+        status: phase.status,
+        progress: phase.progress,
+        taskCount: probe.length,
+        includedTaskCount: 0,
+        tasksTruncated: probe.length > 0,
+      });
+      tasksWereTruncated ||= probe.length > 0;
+      continue;
+    }
+
+    const taskResults = await taskQuery.take(remainingTasks + 1);
     const includedTasks = taskResults.slice(0, remainingTasks);
-    tasksWereTruncated ||= taskResults.length > includedTasks.length;
+    const phaseTasksTruncated = taskResults.length > includedTasks.length;
+    tasksWereTruncated ||= phaseTasksTruncated;
     remainingTasks -= includedTasks.length;
     phases.push({
       id: String(phase._id),
       name: phase.name,
       status: phase.status,
       progress: phase.progress,
-      taskCount: taskResults.length > includedTasks.length
+      taskCount: phaseTasksTruncated
         ? includedTasks.length + 1
         : includedTasks.length,
       includedTaskCount: includedTasks.length,
+      tasksTruncated: phaseTasksTruncated,
     });
     tasks.push(...includedTasks.map((task) => ({
       id: String(task._id),
@@ -129,10 +214,10 @@ export async function getChatProjectContextHandler(
     phases,
     tasks,
     artifacts,
-    omitted: {
-      phases: phaseResults.length > phaseDocs.length ? 1 : 0,
-      tasks: tasksWereTruncated ? 1 : 0,
-      artifacts: 0,
+    truncated: {
+      phases: phaseResults.length > phaseDocs.length,
+      tasks: tasksWereTruncated,
+      artifacts: false,
     },
     updatedAt: Math.max(
       project.updatedAt,

@@ -27,6 +27,7 @@ export const chatProjectPhaseSchema = z.object({
   progress: z.number(),
   taskCount: z.number().int().nonnegative(),
   includedTaskCount: z.number().int().nonnegative(),
+  tasksTruncated: z.boolean(),
 });
 
 export const chatProjectArtifactSchema = z.object({
@@ -53,10 +54,10 @@ export const chatProjectContextSchema = z.object({
   phases: z.array(chatProjectPhaseSchema),
   tasks: z.array(chatProjectTaskSchema),
   artifacts: z.array(chatProjectArtifactSchema),
-  omitted: z.object({
-    phases: z.number().int().nonnegative(),
-    tasks: z.number().int().nonnegative(),
-    artifacts: z.number().int().nonnegative(),
+  truncated: z.object({
+    phases: z.boolean(),
+    tasks: z.boolean(),
+    artifacts: z.boolean(),
   }),
   updatedAt: z.number().int().nonnegative(),
 });

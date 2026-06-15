@@ -10,7 +10,7 @@ pub struct ChatProjectContext {
     pub phases: Vec<ChatPhase>,
     pub tasks: Vec<ChatTask>,
     pub artifacts: Vec<ChatArtifact>,
-    pub omitted: ChatOmittedCounts,
+    pub truncated: ChatTruncatedFlags,
     pub updated_at: u64,
 }
 
@@ -37,6 +37,7 @@ pub struct ChatPhase {
     pub progress: f64,
     pub task_count: u64,
     pub included_task_count: u64,
+    pub tasks_truncated: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -67,8 +68,8 @@ pub struct ChatArtifact {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ChatOmittedCounts {
-    pub phases: u64,
-    pub tasks: u64,
-    pub artifacts: u64,
+pub struct ChatTruncatedFlags {
+    pub phases: bool,
+    pub tasks: bool,
+    pub artifacts: bool,
 }
