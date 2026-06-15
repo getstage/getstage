@@ -338,6 +338,7 @@ export default defineSchema({
   projects: defineTable({
     userId: v.id("users"),
     name: v.string(),
+    searchText: v.optional(v.string()),
     clientName: v.string(),
     clientEmail: v.optional(v.string()),
     clientAvatarUrl: v.optional(v.string()),
@@ -353,7 +354,12 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_user_status", ["userId", "status"]),
+    .index("by_user_status", ["userId", "status"])
+    .index("by_user_updatedAt", ["userId", "updatedAt"])
+    .searchIndex("search_projects", {
+      searchField: "searchText",
+      filterFields: ["userId"],
+    }),
 
   phases: defineTable({
     projectId: v.id("projects"),
@@ -637,6 +643,7 @@ export default defineSchema({
   })
     .index("by_project", ["projectId"])
     .index("by_project_module", ["projectId", "module"])
+    .index("by_project_module_createdAt", ["projectId", "module", "createdAt"])
     .index("by_run", ["runId"])
     .index("by_user", ["userId"]),
 

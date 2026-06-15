@@ -1,6 +1,8 @@
 import { Fragment, FormEvent, MouseEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CompanionState } from "@shared/models/desktop";
-import type { ProviderId, RunEvent } from "@stage/data-ops/contracts";
+import { useQuery } from "convex/react";
+import type { CaptureWindowSource, CompanionState } from "@shared/models/desktop";
+import { chatProjectReferenceSchema, type ChatProjectReference, type ProviderId, type RunEvent } from "@stage/data-ops/contracts";
+import { z } from "zod";
 import {
   getChatModelById,
   reasoningEfforts,
@@ -22,18 +24,20 @@ import {
   isProviderStatusPending,
 } from "@/lib/engine/providerPreflight";
 import { clearDesktopSessionIfExpired, toUserFacingErrorMessage } from "@/lib/errors";
-import { useChatActiveProjectId } from "@/hooks/companion/useChatActiveProjectId";
 import { useDraggablePanel } from "@/hooks/companion/useDraggablePanel";
 import {
   createEmptyStageChat,
   createStageChatMessage,
   createTitleFromPrompt,
+  deleteStageChat,
   readStageChatStore,
   subscribeToStageChats,
   upsertStageChat,
 } from "@/lib/companion/stageChats";
 import { STAGE_SHORTCUT_OPEN_CHAT } from "@/lib/companion/shortcutEvents";
-import type { StageChat, StageChatMessage } from "@/models/companion/chat";
+import type { StageChat, StageChatAttachment, StageChatMessage } from "@/models/companion/chat";
+import { useDesktopAuth } from "@/lib/auth";
+import { api } from "@/lib/convexApi";
 
 type CritiquePanelProps = {
   state: CompanionState;
@@ -77,6 +81,10 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const [historyOpen, setHistoryOpen] = useState(true);
   const panelSize = { width: PANEL_WIDTH, height: PANEL_HEIGHT };
   const [draft, setDraft] = useState("");
+  const [draftAttachments, setDraftAttachments] = useState<StageChatAttachment[]>([]);
+  const [captureSources, setCaptureSources] = useState<CaptureWindowSource[]>([]);
+  const [captureMenuOpen, setCaptureMenuOpen] = useState(false);
+  const [inputNotice, setInputNotice] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [pendingSeconds, setPendingSeconds] = useState(0);
   const chatDefaults = useChatDefaults();
@@ -92,7 +100,19 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     "claude-opus-4.8",
     "claude-sonnet-4.6",
   ]);
-  const activeProjectId = useChatActiveProjectId();
+  const { isAuthenticated } = useDesktopAuth();
+  const projectMention = draft.match(/(?:^|\s)@([^@\n]*)$/)?.[1].trimStart() ?? null;
+  const [projectSearch, setProjectSearch] = useState<string | null>(projectMention);
+  const rawProjectMatches = useQuery(
+    api.desktop.searchProjectsForChat,
+    isAuthenticated && projectSearch !== null
+      ? { search: projectSearch, limit: 8 }
+      : "skip",
+  );
+  const projectMatches = rawProjectMatches === undefined || projectSearch !== projectMention
+    ? []
+    : z.array(chatProjectReferenceSchema).parse(rawProjectMatches);
+  const activeProjectId = activeChat.project?.projectId ?? "";
   const providerRun = useProviderRun(
     activeProjectId ? { projectId: activeProjectId, mode: "chat" } : undefined,
   );
@@ -157,6 +177,11 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   useEffect(() => subscribeToStageChats(() => {
     setChatStoreSnapshot(readStageChatStore());
   }), []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setProjectSearch(projectMention), 150);
+    return () => window.clearTimeout(timer);
+  }, [projectMention]);
 
   useEffect(() => {
     if (handledMessagesRef.current === messages) {
@@ -400,6 +425,10 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     if (!nextPrompt || isThinking || isProviderStatusPending(providers.snapshot)) {
       return;
     }
+    if (!activeChat.project && requiresProjectContext(nextPrompt, draftAttachments.length > 0)) {
+      setInputNotice("Select a project with @project before asking Stage to inspect or critique project work.");
+      return;
+    }
 
     const providerId = getProviderIdForModel(selectedModel);
     const preflight = evaluateProviderPreflight({
@@ -413,9 +442,13 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     }
 
     setDraft("");
+    setInputNotice("");
+    const submittedAttachments = draftAttachments;
+    setDraftAttachments([]);
     const userMessage = createStageChatMessage({
       role: "user",
       content: [nextPrompt],
+      attachments: submittedAttachments.map(({ previewDataUrl: _previewDataUrl, ...attachment }) => attachment),
     });
     setMessages((currentMessages) => [
       ...currentMessages,
@@ -448,7 +481,13 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
         context: activeProjectId
           ? { projectId: activeProjectId, source: "chat" }
           : {},
-        attachments: [],
+        attachments: submittedAttachments.map((attachment) => ({
+          id: attachment.id,
+          kind: "image" as const,
+          name: attachment.name,
+          mimeType: attachment.mimeType,
+          localPath: attachment.localPath,
+        })),
         modelOptions: [
           { id: "reasoning_effort", value: selectedEffort },
           { id: "response_speed", value: selectedSpeed },
@@ -494,6 +533,8 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     setIsThinking(false);
     setActiveChat(chat);
     setMessages(chat.messages);
+    setDraftAttachments([]);
+    setInputNotice("");
     upsertStageChat(chat);
   }
 
@@ -507,6 +548,82 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     window.requestAnimationFrame(() => {
       textareaRef.current?.focus();
     });
+  }
+
+  async function removeChat(chatId: string) {
+    if (chatId === activeChat.id && isThinking) {
+      setInputNotice("Wait for the active response or cancel it before deleting this chat.");
+      return;
+    }
+
+    try {
+      await window.stageDesktop.chat.deleteAttachments({ chatId });
+      const store = deleteStageChat(chatId);
+      openChat(store.chats.find((chat) => chat.id === store.activeChatId) ?? store.chats[0] ?? createEmptyStageChat());
+    } catch (error) {
+      setInputNotice(toUserFacingErrorMessage(error, "Stage could not delete that chat's attachments."));
+    }
+  }
+
+  function pinProject(project: ChatProjectReference) {
+    const nextChat = { ...activeChatRef.current, project, updatedAt: Date.now() };
+    activeChatRef.current = nextChat;
+    setActiveChat(nextChat);
+    upsertStageChat(nextChat);
+    setDraft((current) => current.replace(/(?:^|\s)@[^@\n]*$/, "").trimStart());
+    setInputNotice("");
+    window.requestAnimationFrame(() => textareaRef.current?.focus());
+  }
+
+  async function importImages() {
+    try {
+      const attachments = await window.stageDesktop.chat.importImages({ chatId: activeChat.id });
+      setDraftAttachments((current) => [...current, ...attachments].slice(0, 5));
+    } catch (error) {
+      setInputNotice(toUserFacingErrorMessage(error, "Stage could not import that image."));
+    }
+  }
+
+  async function openCaptureMenu() {
+    try {
+      const sources = await window.stageDesktop.screen.listWindowSources();
+      setCaptureSources(sources);
+      setCaptureMenuOpen(true);
+    } catch (error) {
+      setInputNotice(toUserFacingErrorMessage(error, "Stage could not list visible windows."));
+    }
+  }
+
+  async function captureWindow(sourceId: string) {
+    try {
+      const attachment = await window.stageDesktop.screen.captureWindow({
+        chatId: activeChat.id,
+        sourceId,
+      });
+      setDraftAttachments((current) => [...current, attachment].slice(0, 5));
+      setCaptureMenuOpen(false);
+    } catch (error) {
+      setInputNotice(toUserFacingErrorMessage(error, "Stage could not capture that window."));
+    }
+  }
+
+  async function importDroppedImages(files: FileList | File[]) {
+    const imageFiles = Array.from(files)
+      .filter((file) => ["image/png", "image/jpeg", "image/webp"].includes(file.type))
+      .slice(0, 5);
+    try {
+      const attachments = await Promise.all(imageFiles.map(async (file) =>
+        window.stageDesktop.chat.importImageBytes({
+          chatId: activeChat.id,
+          name: file.name || "pasted-image.png",
+          mimeType: file.type as "image/png" | "image/jpeg" | "image/webp",
+          bytes: new Uint8Array(await file.arrayBuffer()),
+        }),
+      ));
+      setDraftAttachments((current) => [...current, ...attachments].slice(0, 5));
+    } catch (error) {
+      setInputNotice(toUserFacingErrorMessage(error, "Stage could not add that image."));
+    }
   }
 
   if (!visible) {
@@ -584,6 +701,14 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
                       >
                         <span>{chat.title}</span>
                       </button>
+                      <button
+                        className="chat-history-delete-button"
+                        type="button"
+                        aria-label={`Delete ${chat.title}`}
+                        onClick={() => void removeChat(chat.id)}
+                      >
+                        ×
+                      </button>
                     </div>
                   ))
                 ) : (
@@ -646,7 +771,86 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
         })}
       </div>
 
-      <form className="chat-input-bar" onSubmit={submitMessage}>
+      <form
+        className="chat-input-bar"
+        onSubmit={submitMessage}
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={(event) => {
+          event.preventDefault();
+          void importDroppedImages(event.dataTransfer.files);
+        }}
+        onPaste={(event) => {
+          const files = Array.from(event.clipboardData.items)
+            .filter((item) => item.kind === "file")
+            .map((item) => item.getAsFile())
+            .filter((file): file is File => file !== null);
+          if (files.length > 0) {
+            event.preventDefault();
+            void importDroppedImages(files);
+          }
+        }}
+      >
+        <div className="chat-context-row">
+          {activeChat.project ? (
+            <button
+              className="chat-context-chip"
+              type="button"
+              title="Remove project context"
+              onClick={() => {
+                const nextChat = { ...activeChatRef.current, project: undefined, updatedAt: Date.now() };
+                activeChatRef.current = nextChat;
+                setActiveChat(nextChat);
+                upsertStageChat(nextChat);
+              }}
+            >
+              @{activeChat.project.projectName} ×
+            </button>
+          ) : (
+            <span className="chat-context-empty">Use @project for project-aware answers</span>
+          )}
+          <button className="chat-attachment-button" type="button" onClick={() => void importImages()}>
+            Add image
+          </button>
+          <button className="chat-attachment-button" type="button" onClick={() => void openCaptureMenu()}>
+            Capture window
+          </button>
+        </div>
+        {projectMention !== null && projectMatches.length > 0 ? (
+          <div className="chat-project-picker" role="listbox" aria-label="Select project">
+            {projectMatches.map((project) => (
+              <button key={project.projectId} type="button" onClick={() => pinProject(project)}>
+                <strong>@{project.projectName}</strong>
+                <span>{project.clientName}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {captureMenuOpen ? (
+          <div className="chat-project-picker chat-capture-picker" role="listbox" aria-label="Select window to capture">
+            {captureSources.map((source) => (
+              <button key={source.id} type="button" onClick={() => void captureWindow(source.id)}>
+                <img src={source.previewDataUrl} alt="" />
+                <span>{source.name}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {draftAttachments.length > 0 ? (
+          <div className="chat-attachment-list">
+            {draftAttachments.map((attachment) => (
+              <button
+                key={attachment.id}
+                type="button"
+                title="Remove image"
+                onClick={() => setDraftAttachments((current) => current.filter((item) => item.id !== attachment.id))}
+              >
+                {attachment.previewDataUrl ? <img src={attachment.previewDataUrl} alt={attachment.name} /> : null}
+                <span>{attachment.name}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {inputNotice ? <p className="chat-input-notice">{inputNotice}</p> : null}
         <textarea
           ref={textareaRef}
           aria-label="Message Stage"
@@ -824,6 +1028,13 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       </div>
     </aside>
   );
+}
+
+function requiresProjectContext(prompt: string, hasAttachments: boolean) {
+  if (hasAttachments) {
+    return true;
+  }
+  return /\b(critique|review|inspect|evaluate)\s+(this|the|my)\b|\bbased on (the )?(brief|project|strategy)\b|\b(this|current|my)\s+(layout|design|screen|figma|project|brief)\b/i.test(prompt);
 }
 
 function getProviderIdForModel(model: ChatModel): ProviderId {
