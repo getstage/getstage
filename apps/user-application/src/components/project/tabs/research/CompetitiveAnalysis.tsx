@@ -117,7 +117,11 @@ function CompetitiveMatrix({
               const cell = row.cells.find((entry) => entry.competitorId === competitor.id);
               return (
                 <div key={`${row.label}-${competitor.id}`} className="border-r border-[#E8E8E8] px-4 py-3 last:border-r-0">
-                  {cell ? <MatrixCell score={cell.score} note={cell.note} /> : null}
+                  {cell ? (
+                    <MatrixCell score={cell.score} note={cell.note} />
+                  ) : (
+                    <span className="text-[12px] font-medium leading-[1.25] text-[#9CA3AF]">N/A</span>
+                  )}
                 </div>
               );
             })}
