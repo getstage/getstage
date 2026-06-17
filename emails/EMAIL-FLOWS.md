@@ -316,3 +316,28 @@ Post-purchase sequence for paying users. Goal: educate on advanced features, red
   3. `user.onboarding_complete` - trial started (credit card entered)
   4. `user.payment_confirmed` - converted to paid
 - **Windows waitlist:** https://forms.gle/7X47mM7NmzgoMjeV8
+
+## Local Resend MCP setup (optional)
+
+Sending email previews from a coding agent uses the Resend MCP server. The
+config is **not committed** (`emails/.mcp.json` is gitignored) so each
+contributor opts in explicitly and your `RESEND_API_KEY` never leaves your
+machine. To enable it locally, create `emails/.mcp.json` with:
+
+```json
+{
+  "mcpServers": {
+    "resend": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "resend-mcp"],
+      "env": {
+        "RESEND_API_KEY": "${RESEND_API_KEY}",
+        "SENDER_EMAIL_ADDRESS": "noreply@getstage.co"
+      }
+    }
+  }
+}
+```
+
+Then export `RESEND_API_KEY` in your shell before launching your editor.

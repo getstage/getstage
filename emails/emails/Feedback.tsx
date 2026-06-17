@@ -2,6 +2,7 @@ import { Img, Link, Section, Text } from "@react-email/components";
 import * as React from "react";
 import { Divider, EmailLayout } from "../components/EmailLayout";
 import * as s from "../components/tokens";
+import { SLACK_INVITE_URL } from "../components/links";
 
 export interface FeedbackProps {
   firstName?: string;
@@ -12,7 +13,7 @@ export interface FeedbackProps {
 
 export const Feedback = ({
   firstName = "there",
-  slackUrl = "https://join.slack.com/t/stage-cnk9712/shared_invite/zt-3xaeofd5f-JuFnTgjh64n1Vqqbhg~DIQ",
+  slackUrl = SLACK_INVITE_URL,
   avatarUrl = "https://getstage.co/email/adrien-avatar.png",
   workspaceImageUrl = "https://getstage.co/email/stage-workspace.png",
 }: FeedbackProps) => (

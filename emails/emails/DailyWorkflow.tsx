@@ -2,6 +2,7 @@ import { Img, Link, Section, Text } from "@react-email/components";
 import * as React from "react";
 import { CTAButton, Divider, EmailLayout } from "../components/EmailLayout";
 import * as s from "../components/tokens";
+import { SLACK_INVITE_URL } from "../components/links";
 
 export interface DailyWorkflowProps {
   firstName?: string;
@@ -22,7 +23,7 @@ export const DailyWorkflow = ({
   morningImageUrl = "https://getstage.co/email/research-matrix.png",
   afternoonImageUrl = "https://getstage.co/email/vocal-shortcut.png",
   endOfDayImageUrl = "https://getstage.co/email/client-portal-mockup.png",
-  slackUrl = "https://join.slack.com/t/stage-cnk9712/shared_invite/zt-3xaeofd5f-JuFnTgjh64n1Vqqbhg~DIQ",
+  slackUrl = SLACK_INVITE_URL,
 }: DailyWorkflowProps) => (
   <EmailLayout
     preview="How designers are using Stage daily."

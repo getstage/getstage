@@ -2,6 +2,7 @@ import { Img, Section, Text } from "@react-email/components";
 import * as React from "react";
 import { CTAButton, Divider, EmailLayout } from "../components/EmailLayout";
 import * as s from "../components/tokens";
+import { SLACK_INVITE_URL } from "../components/links";
 
 export interface WelcomeProProps {
   firstName?: string;
@@ -17,7 +18,7 @@ export interface WelcomeProProps {
 export const WelcomePro = ({
   firstName = "there",
   portalSetupUrl = "https://getstage.co/portal",
-  slackUrl = "https://join.slack.com/t/stage-cnk9712/shared_invite/zt-3xaeofd5f-JuFnTgjh64n1Vqqbhg~DIQ",
+  slackUrl = SLACK_INVITE_URL,
   markUrl,
   stageIconUrl = "https://getstage.co/email/stage-mark-white.png",
   slackIconUrl = "https://getstage.co/email/slack-glyph-white.png",

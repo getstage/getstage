@@ -23,9 +23,16 @@ export interface EmailLayoutProps {
   children: React.ReactNode;
   signoffLine?: string;
   signature?: string;
+  /**
+   * Per-recipient unsubscribe URL. Defaults to the `{{unsubscribe_url}}` merge
+   * placeholder so every send carries a working opt-out link as required by
+   * CAN-SPAM and GDPR. Substitute with the real per-recipient URL at send time.
+   */
+  unsubscribeUrl?: string;
 }
 
 const DEFAULT_MARK = "https://getstage.co/email/stage-mark.png";
+const DEFAULT_UNSUBSCRIBE_URL = "{{unsubscribe_url}}";
 
 export const EmailLayout = ({
   preview,
@@ -35,6 +42,7 @@ export const EmailLayout = ({
   children,
   signoffLine,
   signature = "Adrien",
+  unsubscribeUrl = DEFAULT_UNSUBSCRIBE_URL,
 }: EmailLayoutProps) => {
   return (
     <Html lang="en">
@@ -88,6 +96,10 @@ export const EmailLayout = ({
             <br />
             <Link href="https://getstage.co" style={s.footerLink}>
               getstage.co
+            </Link>
+            {" · "}
+            <Link href={unsubscribeUrl} style={s.footerLink}>
+              Unsubscribe
             </Link>
           </Text>
         </Container>

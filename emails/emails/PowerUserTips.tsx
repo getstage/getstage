@@ -2,6 +2,7 @@ import { Img, Link, Section, Text } from "@react-email/components";
 import * as React from "react";
 import { CTAButton, Divider, EmailLayout } from "../components/EmailLayout";
 import * as s from "../components/tokens";
+import { SLACK_INVITE_URL } from "../components/links";
 
 export interface PowerUserTipsProps {
   firstName?: string;
@@ -19,10 +20,10 @@ export const PowerUserTips = ({
   openAppUrl = "https://getstage.co/open",
   markUrl,
   stageIconUrl = "https://getstage.co/email/stage-mark-white.png",
-  slackUrl = "https://join.slack.com/t/stage-cnk9712/shared_invite/zt-3xaeofd5f-JuFnTgjh64n1Vqqbhg~DIQ",
+  slackUrl = SLACK_INVITE_URL,
   shortcutImageUrl = "https://getstage.co/email/vocal-shortcut.png",
-  iterateImageUrl = "https://getstage.co/email/ai-critique.png",
-  critiqueImageUrl = "https://getstage.co/email/regenerate-iterate.png",
+  iterateImageUrl = "https://getstage.co/email/regenerate-iterate.png",
+  critiqueImageUrl = "https://getstage.co/email/ai-critique.png",
 }: PowerUserTipsProps) => (
   <EmailLayout
     preview="3 things most designers miss in Stage."
@@ -62,7 +63,7 @@ export const PowerUserTips = ({
     <Section style={s.sectionImageWrap}>
       <Img
         src={iterateImageUrl}
-        alt="Stage AI critique on a Figma layout"
+        alt="Stage regenerate and iterate"
         style={s.sectionImage}
       />
     </Section>
@@ -77,7 +78,7 @@ export const PowerUserTips = ({
     <Section style={s.sectionImageWrap}>
       <Img
         src={critiqueImageUrl}
-        alt="Stage regenerate and iterate"
+        alt="Stage AI critique on a Figma layout"
         style={s.sectionImage}
       />
     </Section>
@@ -101,8 +102,8 @@ PowerUserTips.PreviewProps = {
   markUrl: "/static/stage-mark.svg",
   stageIconUrl: "/static/stage-mark-white.svg",
   shortcutImageUrl: "/static/vocal-shortcut.png",
-  iterateImageUrl: "/static/ai-critique.png",
-  critiqueImageUrl: "/static/regenerate-iterate.png",
+  iterateImageUrl: "/static/regenerate-iterate.png",
+  critiqueImageUrl: "/static/ai-critique.png",
 } satisfies PowerUserTipsProps;
 
 export default PowerUserTips;

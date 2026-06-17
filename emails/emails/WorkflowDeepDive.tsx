@@ -2,6 +2,7 @@ import { Img, Link, Section, Text } from "@react-email/components";
 import * as React from "react";
 import { CTAButton, Divider, EmailLayout } from "../components/EmailLayout";
 import * as s from "../components/tokens";
+import { SLACK_INVITE_URL } from "../components/links";
 
 export interface WorkflowDeepDiveProps {
   firstName?: string;
@@ -67,7 +68,7 @@ export const WorkflowDeepDive = ({
   openAppUrl = "https://getstage.co/open",
   markUrl,
   stageIconUrl = "https://getstage.co/email/stage-mark-white.png",
-  slackUrl = "https://join.slack.com/t/stage-cnk9712/shared_invite/zt-3xaeofd5f-JuFnTgjh64n1Vqqbhg~DIQ",
+  slackUrl = SLACK_INVITE_URL,
   briefIconUrl = "https://getstage.co/email/icon-brief.png",
   researchIconUrl = "https://getstage.co/email/icon-research.png",
   directionsIconUrl = "https://getstage.co/email/icon-directions.png",
