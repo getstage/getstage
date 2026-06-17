@@ -7,7 +7,7 @@ use super::heuristics::{
     extract_provider_exit_payload, looks_like_provider_auth_failure,
     looks_like_provider_session_limit,
 };
-use super::stderr::{stderr_diag_max_chars, truncate_line, StderrDiagnostics};
+use super::stderr::{StderrDiagnostics, stderr_diag_max_chars, truncate_line};
 
 #[derive(Debug, Error)]
 pub enum ProviderProcessError {
@@ -22,6 +22,9 @@ pub enum ProviderProcessError {
         binary: &'static str,
         source: std::io::Error,
     },
+
+    #[error("provider process `{binary}` timed out after {seconds} seconds")]
+    Timeout { binary: &'static str, seconds: u64 },
 }
 
 impl ProviderProcessError {
@@ -32,6 +35,9 @@ impl ProviderProcessError {
             }
             ProviderProcessError::Io { source, binary } => {
                 format!("provider process `{binary}` failed: {source}")
+            }
+            ProviderProcessError::Timeout { binary, seconds } => {
+                format!("provider process `{binary}` timed out after {seconds} seconds")
             }
         }
     }
@@ -77,6 +83,10 @@ impl ProviderProcessError {
                         );
                     }
 
+                    if let Some(message) = Self::provider_model_error_message(label, payload) {
+                        return message;
+                    }
+
                     if !payload.starts_with("process exited with status") {
                         return format!("{label} failed: {payload}");
                     }
@@ -98,7 +108,42 @@ impl ProviderProcessError {
                     "{label} exited unexpectedly. Run `{login_cmd}` in Terminal, then try again."
                 )
             }
+            ProviderProcessError::Timeout { seconds, .. } => {
+                format!(
+                    "{label} took too long to respond (timed out after {seconds}s) and the run was canceled. Try again, or pick a faster model in Settings → Integrations."
+                )
+            }
         }
+    }
+
+    fn selected_model_from_text(text: &str) -> Option<&str> {
+        let marker = "selected model (";
+        let start = text.find(marker)? + marker.len();
+        let rest = &text[start..];
+        let end = rest.find(')')?;
+        Some(&rest[..end])
+    }
+
+    fn humanize_model_id(model_id: &str) -> String {
+        model_id
+            .split('-')
+            .map(|part| {
+                let mut chars = part.chars();
+                match chars.next() {
+                    Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+                    None => String::new(),
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+
+    fn provider_model_error_message(label: &str, text: &str) -> Option<String> {
+        let model_id = Self::selected_model_from_text(text)?;
+        Some(format!(
+            "{label} could not use {}. Open Settings → Integrations, refresh providers, then pick another available model if this still fails.",
+            Self::humanize_model_id(model_id)
+        ))
     }
 
     pub fn to_engine_error(&self, provider_id: ProviderId) -> EngineError {
@@ -118,6 +163,7 @@ impl ProviderProcessError {
                     EngineErrorCode::ProviderProcessFailed
                 }
             }
+            ProviderProcessError::Timeout { .. } => EngineErrorCode::ProviderProcessFailed,
         };
 
         let retryable = !matches!(
@@ -138,7 +184,7 @@ impl ProviderProcessError {
     /// candidate for an in-engine retry after warming the provider's credentials file.
     pub(super) fn is_auth_failure(&self) -> bool {
         match self {
-            ProviderProcessError::Spawn { .. } => false,
+            ProviderProcessError::Spawn { .. } | ProviderProcessError::Timeout { .. } => false,
             ProviderProcessError::Io { source, .. } => {
                 looks_like_provider_auth_failure(&source.to_string())
             }
@@ -267,6 +313,39 @@ mod tests {
         };
 
         assert!(error.is_auth_failure());
+    }
+
+    #[test]
+    fn selected_model_failure_maps_to_user_friendly_message() {
+        let error = ProviderProcessError::Io {
+            binary: "claude",
+            source: std::io::Error::other(
+                "process exited with status exit status: 1: There's an issue with the selected model (claude-opus-4.8). It may not exist or you may not have access to it.",
+            ),
+        };
+
+        let message = error.to_engine_error(ProviderId::Claude).message;
+        assert!(message.contains("Claude could not use Claude Opus 4.8"));
+        assert!(!message.contains("provider process"));
+        assert!(!message.contains("exit status"));
+    }
+
+    #[test]
+    fn timeout_maps_to_dedicated_message_not_auth_login() {
+        let error = ProviderProcessError::Timeout {
+            binary: "claude",
+            seconds: 300,
+        };
+
+        let engine_error = error.to_engine_error(ProviderId::Claude);
+        assert!(matches!(
+            engine_error.code,
+            EngineErrorCode::ProviderProcessFailed
+        ));
+        assert!(engine_error.message.contains("timed out after 300s"));
+        assert!(!engine_error.message.contains("auth login"));
+        assert!(!engine_error.message.contains("exited unexpectedly"));
+        assert!(engine_error.retryable);
     }
 
     #[test]

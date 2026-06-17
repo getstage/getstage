@@ -4,12 +4,13 @@ use crate::convex_store::app_secrets::AppSecretsRepository;
 use crate::convex_store::asset_upload::ConvexAssetUploader;
 use crate::convex_store::research_repository::{
     ResearchRepository, enrich_research_artifact, extract_json_object, extract_research_artifact,
+    validate_complete_research_artifact,
 };
 use crate::helpers::time::now_millis;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::runs::{RunEvent, RunStatus, StartRunRequest};
 use crate::providers::adapter::{ProviderRunContext, run_provider_collect, smoke_test_provider};
-use crate::providers::process::ProviderProcessOutcome;
+use crate::providers::process::{ProviderProcessError, ProviderProcessOutcome};
 use crate::providers::service::assert_provider_ready_for_run;
 use crate::refero::service::ReferoService;
 use crate::research::competitive::{
@@ -24,6 +25,9 @@ use crate::research::section::{
 use crate::research::service::ResearchService;
 use crate::runs::RunEventSink;
 use serde_json::json;
+use tokio::time::{Duration, timeout};
+
+const RESEARCH_PROVIDER_TIMEOUT: Duration = Duration::from_secs(300);
 
 #[derive(Clone, Debug)]
 pub struct ResearchWorkflow {
@@ -58,6 +62,7 @@ impl ResearchWorkflow {
         let project_id = request.context.project_id.clone();
         let auth_token_for_failure = auth_token.clone();
         let mut convex_run_id: Option<String> = None;
+        let mut uploaded_research_asset_keys: Vec<String> = Vec::new();
 
         tracing::info!(
             run_id = %run_id,
@@ -171,6 +176,7 @@ impl ResearchWorkflow {
                 &mut bundle.refero_context,
             )
             .await?;
+            uploaded_research_asset_keys = image_keys.values().cloned().collect();
             tracing::info!(
                 run_id = %run_id,
                 project_id,
@@ -193,7 +199,7 @@ impl ResearchWorkflow {
             tracing::info!(run_id = %run_id, provider_id = ?provider_id, "starting provider run");
             let provider_started = std::time::Instant::now();
             let outcome =
-                run_provider_collect(provider_context, sink.clone(), cancel_rx.clone()).await?;
+                collect_with_timeout(provider_context, sink.clone(), cancel_rx.clone()).await?;
             let ProviderProcessOutcome::Completed(final_text) = outcome else {
                 tracing::info!(run_id = %run_id, "research provider run cancelled");
                 return Ok(());
@@ -234,12 +240,13 @@ impl ResearchWorkflow {
                     )
                     .await
                 {
-                    tracing::warn!(
+                    tracing::error!(
                         run_id = %run_id,
                         project_id,
                         %error,
-                        "competitive repair failed; preserving validated factual research"
+                        "competitive repair failed; failing research run"
                     );
+                    return Err(error);
                 }
                 self.tool_completed(
                     api_version,
@@ -250,40 +257,12 @@ impl ResearchWorkflow {
                 );
             }
 
-            self.tool_started(
-                api_version,
-                &run_id,
-                provider_id,
-                &sink,
-                "research-opportunities",
-                "Generate evidence-based opportunities",
-            );
-            if let Err(error) = self
-                .generate_opportunities(
-                    api_version,
-                    &run_id,
-                    &request,
-                    &input,
-                    &mut artifact,
-                    cancel_rx.clone(),
-                )
-                .await
-            {
-                tracing::warn!(
-                    run_id = %run_id,
-                    project_id,
-                    %error,
-                    "opportunities generation failed; saving validated factual research"
-                );
-            }
-            self.tool_completed(
-                api_version,
-                &run_id,
-                provider_id,
-                &sink,
-                "research-opportunities",
-            );
-            serde_json::from_value::<crate::models::research::ResearchArtifact>(artifact.clone())?;
+            let parsed_artifact =
+                serde_json::from_value::<crate::models::research::ResearchArtifact>(
+                    artifact.clone(),
+                )?;
+            validate_complete_research_artifact(&parsed_artifact, &input)
+                .map_err(|error| WorkflowError::IncompleteArtifact(error.to_string()))?;
 
             self.repository
                 .complete_research_run(
@@ -337,6 +316,14 @@ impl ResearchWorkflow {
                 {
                     tracing::warn!(%mark_failed_error, "failed to mark Convex research run failed");
                 }
+
+                if let Err(cleanup_error) = self
+                    .repository
+                    .cleanup_research_asset_keys(token, project_id, &uploaded_research_asset_keys)
+                    .await
+                {
+                    tracing::warn!(%cleanup_error, "failed to clean up uploaded research assets");
+                }
             }
 
             sink.send(RunEvent::RunFailed {
@@ -370,54 +357,6 @@ impl ResearchWorkflow {
             .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))
     }
 
-    async fn generate_opportunities(
-        &self,
-        api_version: &'static str,
-        run_id: &str,
-        request: &StartRunRequest,
-        input: &crate::models::research::ResearchInput,
-        artifact: &mut serde_json::Value,
-        cancel_rx: tokio::sync::watch::Receiver<bool>,
-    ) -> Result<(), WorkflowError> {
-        let mut opportunities_request = request.clone();
-        opportunities_request.prompt = build_opportunities_prompt(artifact, input);
-        opportunities_request.context.source = Some("research-opportunities".to_string());
-        let outcome = run_provider_collect(
-            ProviderRunContext {
-                api_version,
-                run_id: format!("{run_id}-opportunities"),
-                request: opportunities_request,
-            },
-            RunEventSink::detached(),
-            cancel_rx,
-        )
-        .await?;
-        let ProviderProcessOutcome::Completed(final_text) = outcome else {
-            return Ok(());
-        };
-
-        let response = extract_json_object(&final_text)?;
-        let opportunities = response
-            .get("opportunities")
-            .and_then(serde_json::Value::as_array)
-            .cloned()
-            .ok_or_else(|| {
-                WorkflowError::InvalidRequest(
-                    "Opportunities response did not contain an opportunities array.".to_string(),
-                )
-            })?;
-
-        if let Some(object) = artifact.as_object_mut() {
-            object.insert(
-                "opportunities".to_string(),
-                serde_json::Value::Array(opportunities),
-            );
-            crate::research::normalize::normalize_research_artifact_fields(object, input);
-        }
-
-        Ok(())
-    }
-
     async fn repair_competitive_analysis_once(
         &self,
         api_version: &'static str,
@@ -430,7 +369,7 @@ impl ResearchWorkflow {
         let mut repair_request = request.clone();
         repair_request.prompt = build_competitive_repair_prompt(artifact, input);
         repair_request.context.source = Some("section:competitiveAnalysis".to_string());
-        let outcome = run_provider_collect(
+        let outcome = collect_with_timeout(
             ProviderRunContext {
                 api_version,
                 run_id: format!("{run_id}-competitive-repair"),
@@ -509,7 +448,7 @@ impl ResearchWorkflow {
             request: request.clone(),
         };
 
-        let outcome = run_provider_collect(provider_context, sink.clone(), cancel_rx).await?;
+        let outcome = collect_with_timeout(provider_context, sink.clone(), cancel_rx).await?;
         let ProviderProcessOutcome::Completed(final_text) = outcome else {
             return Ok(());
         };
@@ -594,10 +533,34 @@ impl ResearchWorkflow {
     }
 }
 
+async fn collect_with_timeout(
+    context: ProviderRunContext,
+    sink: RunEventSink,
+    cancel_rx: tokio::sync::watch::Receiver<bool>,
+) -> Result<ProviderProcessOutcome, ProviderProcessError> {
+    let binary = match context.request.provider_id {
+        crate::models::providers::ProviderId::Claude => "claude",
+        crate::models::providers::ProviderId::Codex => "codex",
+    };
+
+    timeout(
+        RESEARCH_PROVIDER_TIMEOUT,
+        run_provider_collect(context, sink, cancel_rx),
+    )
+    .await
+    .map_err(|_| ProviderProcessError::Timeout {
+        binary,
+        seconds: RESEARCH_PROVIDER_TIMEOUT.as_secs(),
+    })?
+}
+
 #[derive(Debug, thiserror::Error)]
 enum WorkflowError {
     #[error("{0}")]
     InvalidRequest(String),
+
+    #[error("{0}")]
+    IncompleteArtifact(String),
 
     #[error(transparent)]
     Convex(#[from] anyhow::Error),
@@ -620,6 +583,7 @@ impl WorkflowError {
 
         let code = match self {
             WorkflowError::InvalidRequest(_) => EngineErrorCode::InvalidRequest,
+            WorkflowError::IncompleteArtifact(_) => EngineErrorCode::ProviderProcessFailed,
             WorkflowError::Convex(_) | WorkflowError::Research(_) | WorkflowError::Serde(_) => {
                 EngineErrorCode::InternalError
             }
@@ -639,6 +603,7 @@ impl WorkflowError {
 fn user_message(error: &WorkflowError) -> String {
     match error {
         WorkflowError::InvalidRequest(message) => message.clone(),
+        WorkflowError::IncompleteArtifact(message) => message.clone(),
         WorkflowError::Provider(_) => {
             unreachable!("provider errors use ProviderProcessError::to_engine_error")
         }

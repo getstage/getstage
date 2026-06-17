@@ -63,6 +63,11 @@ export const failResearchRun = mutation({
   handler: researchHandlers.failResearchRunHandler,
 });
 
+export const cleanupResearchRunAsset = mutation({
+  args: researchHandlers.cleanupResearchRunAssetArgs,
+  handler: researchHandlers.cleanupResearchRunAssetHandler,
+});
+
 export const getLatestResearchArtifact = query({
   args: researchHandlers.getLatestResearchArtifactArgs,
   handler: researchHandlers.getLatestResearchArtifactHandler,

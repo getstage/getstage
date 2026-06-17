@@ -82,11 +82,20 @@ export class SidecarSupervisor {
     }
 
     if (this.status.state === "ready") {
-      logDesktopDebug(
-        `sidecar start joined existing state=ready port=${this.status.port}`,
-      );
-      this.markEngineActivity();
-      return this.getStatus();
+      const readiness = await fetchReadiness(this.status.port);
+      if (!readiness?.ready) {
+        logDesktopWarn(
+          "stage-engine",
+          `cached ready state is stale on port ${this.status.port}; restarting Stage Engine`,
+        );
+        await this.resetUnresponsiveReadyState();
+      } else {
+        logDesktopDebug(
+          `sidecar start joined existing state=ready port=${this.status.port}`,
+        );
+        this.markEngineActivity();
+        return this.getStatus();
+      }
     }
 
     if (this.startPromise) {
@@ -186,6 +195,34 @@ export class SidecarSupervisor {
     }
 
     return this.getStatus();
+  }
+
+  private async resetUnresponsiveReadyState() {
+    this.clearIdleShutdownTimer();
+
+    const child = this.child;
+    this.child = null;
+
+    if (child && child.exitCode === null && child.signalCode === null) {
+      child.kill("SIGTERM");
+      const exited = await Promise.race([
+        waitForExit(child).then(() => true),
+        delay(SHUTDOWN_TIMEOUT_MS).then(() => false),
+      ]);
+
+      if (!exited && child.exitCode === null && child.signalCode === null) {
+        child.kill("SIGKILL");
+        await waitForExit(child);
+      }
+    }
+
+    this.status = {
+      adopted: false,
+      error: `Stage Engine is not responding on port ${this.status.port}.`,
+      pid: null,
+      port: this.status.port,
+      state: "stopped",
+    };
   }
 
   async stop() {

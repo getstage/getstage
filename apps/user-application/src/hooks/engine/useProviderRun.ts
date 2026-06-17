@@ -23,9 +23,13 @@ type ProviderRunScope = {
 export function useProviderRun(scope?: ProviderRunScope) {
   const desktop = useDesktopBridge();
   const queryClient = useQueryClient();
-  const activeRunKey = scope
-    ? engineQueryKeys.activeProviderRun(scope.projectId, scope.mode)
-    : null;
+  const activeRunKey = useMemo(
+    () =>
+      scope
+        ? engineQueryKeys.activeProviderRun(scope.projectId, scope.mode)
+        : null,
+    [scope?.mode, scope?.projectId],
+  );
 
   const startRun = useMutation({
     mutationKey: activeRunKey ?? undefined,
@@ -46,7 +50,7 @@ export function useProviderRun(scope?: ProviderRunScope) {
     if (activeRunKey) {
       queryClient.removeQueries({ queryKey: activeRunKey });
     }
-  }, [activeRunKey, queryClient, startRun]);
+  }, [activeRunKey, queryClient, startRun.reset]);
 
   const cachedActiveRun = activeRunKey
     ? queryClient.getQueryData<ActiveRunSnapshot>(activeRunKey)

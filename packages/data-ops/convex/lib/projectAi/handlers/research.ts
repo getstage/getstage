@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import type { Id } from "../../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../../_generated/server";
 import { requireProjectAccess, requireProjectAccessOrNull } from "../../../_helpers";
+import { deleteOldR2Asset } from "../../../r2";
 import {
   createArtifactRecord,
   deletePreviousResearchArtifacts,
@@ -14,7 +15,11 @@ import {
 } from "../domain/latestArtifact";
 import { getArtifactRecord, getRunRecord } from "../domain/records";
 import { resolveResearchContentJson } from "../domain/researchContent";
-import { createRunRecord, findRunningRunForProjectModule } from "../domain/runStore";
+import {
+  completeRunRecord,
+  createRunRecord,
+  findRunningRunForProjectModule,
+} from "../domain/runStore";
 import { normalizeOptional } from "../domain/normalize";
 import { now } from "../domain/time";
 import { projectAiProviderId } from "../domain/validators";
@@ -114,6 +119,8 @@ export async function completeResearchRunHandler(
     }
   }
 
+  assertCompleteResearchArtifact(args.contentJson);
+
   await deletePreviousResearchArtifacts(ctx, args.projectId);
   await deletePreviousStrategyArtifacts(ctx, args.projectId);
 
@@ -138,9 +145,11 @@ export async function completeResearchRunHandler(
     });
   }
 
+  const completedAt = args.runId ? await completeRunRecord(ctx, args.runId) : now();
+
   return {
     artifactId: String(artifactId),
-    completedAt: now(),
+    completedAt,
   };
 }
 
@@ -172,6 +181,35 @@ export async function failResearchRunHandler(
     runId: String(args.runId),
     failedAt: timestamp,
   };
+}
+
+export const cleanupResearchRunAssetArgs = {
+  projectId: v.id("projects"),
+  key: v.string(),
+};
+
+export async function cleanupResearchRunAssetHandler(
+  ctx: MutationCtx,
+  args: { projectId: Id<"projects">; key: string },
+) {
+  const { user } = await requireProjectAccess(ctx, args.projectId);
+  const expectedPrefix = `research/projects/${String(args.projectId)}/users/${String(user._id)}/refero/`;
+
+  if (!args.key.startsWith(expectedPrefix)) {
+    return { deleted: false };
+  }
+
+  const upload = await ctx.db
+    .query("uploadedAssets")
+    .withIndex("by_key", (q) => q.eq("key", args.key))
+    .unique();
+
+  if (!upload || upload.userId !== user._id || upload.purpose !== "research-refero") {
+    return { deleted: false };
+  }
+
+  await deleteOldR2Asset(ctx, args.key);
+  return { deleted: true };
 }
 
 export const getLatestResearchArtifactArgs = {
@@ -226,7 +264,7 @@ export async function updateResearchArtifactHandler(
     throw new Error("Artifact is not a research artifact.");
   }
 
-  JSON.parse(args.contentJson);
+  assertCompleteResearchArtifact(args.contentJson);
 
   const timestamp = now();
   await ctx.db.patch(args.artifactId, {
@@ -239,4 +277,42 @@ export async function updateResearchArtifactHandler(
     artifactId: String(args.artifactId),
     updatedAt: timestamp,
   };
+}
+
+function assertCompleteResearchArtifact(contentJson: string) {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(contentJson);
+  } catch {
+    throw new Error("Research artifact contentJson is not valid JSON.");
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Research artifact must be a JSON object.");
+  }
+
+  const artifact = parsed as Record<string, unknown>;
+  const missing: string[] = [];
+
+  if (!nonEmptyArray(artifact.summary)) missing.push("summary");
+  if (!nonEmptyArray(artifact.companySnapshot)) missing.push("companySnapshot");
+  if (!nonEmptyArray(artifact.targetUsers)) missing.push("targetUsers");
+  if (!nonEmptyArray(artifact.opportunities)) missing.push("opportunities");
+
+  const competitiveAnalysis = artifact.competitiveAnalysis;
+  if (
+    !competitiveAnalysis ||
+    typeof competitiveAnalysis !== "object" ||
+    Array.isArray(competitiveAnalysis)
+  ) {
+    missing.push("competitiveAnalysis");
+  }
+
+  if (missing.length > 0) {
+    throw new Error(`Research artifact is incomplete: ${missing.join(", ")}.`);
+  }
+}
+
+function nonEmptyArray(value: unknown) {
+  return Array.isArray(value) && value.length > 0;
 }

@@ -91,6 +91,7 @@ Required artifact sections:
 - companySnapshot
 - competitiveAnalysis with card view data and matrix rows that follow the required JSON shape below
 - targetUsers as generated personas
+- opportunities
 - openQuestions
 - sourceReferences
 
@@ -125,7 +126,14 @@ targetUsers rules:
 - goals[] and frustrations[]: one short sentence each (max 15 words).
 - context: one short sentence (max 15 words).
 
-- Return `opportunities` as an empty array. Stage generates opportunities separately after validating the factual Research.
+opportunities rules:
+- Return 3-5 connected product opportunities grounded in the factual Research you just generated.
+- Each opportunity must advise how {project_name} can win versus the allowed competitors or user needs.
+- title: 2-4 words.
+- description: exactly one sentence, max 25 words. State the gap and why it matters for this product.
+- sourceSection must be one of "summary", "companySnapshot", "competitiveAnalysis", "uiPatterns", "targetUsers", or "openQuestions".
+- Never invent facts, competitors, user needs, or evidence just to create an opportunity.
+- If you cannot generate at least 3 grounded opportunities, return no artifact; do not return an empty opportunities array.
 
 Do NOT include uiPatterns in your JSON — Stage engine builds UI Patterns rows ({ui_pattern_rows}) from Refero screenshots after your response.
 

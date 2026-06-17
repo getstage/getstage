@@ -1,9 +1,49 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ProviderId } from "@stage/data-ops/contracts";
+import type {
+  ProviderId,
+  ProviderListResponse,
+  ProviderStatusRecord,
+} from "@stage/data-ops/contracts";
 import { resolveProviderStatusSnapshot } from "@/lib/engine/providerPreflight";
 import { engineQueryKeys } from "./queryKeys";
 import { useDesktopBridge } from "../useDesktopBridge";
+
+const ENGINE_UNAVAILABLE_MESSAGE = "Stage Engine is unavailable. Refresh to check this provider.";
+
+const FALLBACK_PROVIDER_LIST: ProviderListResponse = {
+  apiVersion: "v1",
+  providers: [
+    unavailableProvider("claude", "Claude"),
+    unavailableProvider("codex", "Codex"),
+  ],
+};
+
+function unavailableProvider(id: ProviderId, label: string): ProviderStatusRecord {
+  return {
+    id,
+    label,
+    kind: "cli",
+    installed: true,
+    authenticated: false,
+    authStatus: "unknown",
+    enabled: true,
+    version: null,
+    status: "error",
+    updateAvailable: null,
+    updateStatus: "idle",
+    checkedAt: 0,
+    models: [],
+    setupHint: ENGINE_UNAVAILABLE_MESSAGE,
+    message: ENGINE_UNAVAILABLE_MESSAGE,
+    error: {
+      code: "io_error",
+      message: ENGINE_UNAVAILABLE_MESSAGE,
+      providerId: id,
+      retryable: true,
+    },
+  };
+}
 
 export function useProviderStatus() {
   const desktop = useDesktopBridge();
@@ -24,7 +64,9 @@ export function useProviderStatus() {
     [query.data, query.isError],
   );
 
-  return { ...query, snapshot };
+  const providerList = query.data ?? FALLBACK_PROVIDER_LIST;
+
+  return { ...query, providerList, snapshot };
 }
 
 export function useProviderUpdate() {

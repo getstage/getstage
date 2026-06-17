@@ -891,7 +891,9 @@ mod tests {
 
         normalize_research_artifact_fields(&mut object, &sample_input());
 
-        let rows = object["competitiveAnalysis"]["matrixRows"].as_array().unwrap();
+        let rows = object["competitiveAnalysis"]["matrixRows"]
+            .as_array()
+            .unwrap();
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0]["cells"][0]["score"], "OK");
     }

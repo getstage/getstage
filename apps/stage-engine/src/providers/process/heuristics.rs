@@ -223,7 +223,9 @@ mod tests {
     fn should_suppress_codex_session_noise() {
         assert!(should_suppress_stderr_warning("OpenAI Codex v0.139.0"));
         assert!(should_suppress_stderr_warning("workdir: /Users/me"));
-        assert!(should_suppress_stderr_warning("Reading prompt from stdin..."));
+        assert!(should_suppress_stderr_warning(
+            "Reading prompt from stdin..."
+        ));
         assert!(should_suppress_stderr_warning("exec"));
     }
 }

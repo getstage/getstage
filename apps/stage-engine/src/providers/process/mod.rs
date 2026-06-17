@@ -18,7 +18,7 @@ use crate::models::providers::ProviderId;
 use crate::models::runs::RunEvent;
 use crate::providers::adapter::ProviderRunContext;
 use crate::providers::command::{
-    provider_cli_working_directory, run_command_in, configure_provider_process,
+    configure_provider_process, provider_cli_working_directory, run_command_in,
 };
 use crate::runs::RunEventSink;
 
@@ -27,7 +27,7 @@ pub use error::ProviderProcessError;
 use error::provider_exit_error;
 use heuristics::needs_stderr_artifact_capture;
 use line::{
-    drain_pending_lines, spawn_line_reader, terminate_child, LineSink, ProcessLine, StreamName,
+    LineSink, ProcessLine, StreamName, drain_pending_lines, spawn_line_reader, terminate_child,
 };
 
 const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(50);

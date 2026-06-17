@@ -387,8 +387,14 @@ tokens used"#;
 
     #[test]
     fn is_complete_json_object_detects_balanced_objects() {
-        assert!(is_complete_json_object(r#"{"artifactKind":"strategyArtifact"}"#));
-        assert!(!is_complete_json_object(r#"{"artifactKind":"strategyArtifact""#));
-        assert!(!is_complete_json_object(r#""artifactKind":"strategyArtifact""#));
+        assert!(is_complete_json_object(
+            r#"{"artifactKind":"strategyArtifact"}"#
+        ));
+        assert!(!is_complete_json_object(
+            r#"{"artifactKind":"strategyArtifact""#
+        ));
+        assert!(!is_complete_json_object(
+            r#""artifactKind":"strategyArtifact""#
+        ));
     }
 }

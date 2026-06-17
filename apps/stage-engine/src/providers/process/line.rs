@@ -8,7 +8,7 @@ use crate::providers::adapter::ProviderRunContext;
 use crate::runs::RunEventSink;
 
 use super::heuristics::should_suppress_stderr_warning;
-use super::stderr::{append_output, StderrArtifactCapture, StderrDiagnostics};
+use super::stderr::{StderrArtifactCapture, StderrDiagnostics, append_output};
 
 const PROCESS_DRAIN_GRACE: std::time::Duration = std::time::Duration::from_millis(25);
 
@@ -60,8 +60,11 @@ impl LineSink {
                     return;
                 }
 
-                self.stderr_capture
-                    .ingest(&line.text, &mut self.final_text, capture_multiline_stderr);
+                self.stderr_capture.ingest(
+                    &line.text,
+                    &mut self.final_text,
+                    capture_multiline_stderr,
+                );
                 self.stderr_diag.record(&line.text);
 
                 if capture_multiline_stderr || should_suppress_stderr_warning(&line.text) {
