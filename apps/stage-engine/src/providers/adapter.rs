@@ -10,6 +10,8 @@ use crate::providers::codex::{run_codex, run_codex_collect};
 use crate::providers::process::{ProviderProcessError, ProviderProcessOutcome};
 use crate::runs::RunEventSink;
 
+const PROVIDER_PREFLIGHT_TIMEOUT_SECS: u64 = 45;
+
 #[derive(Clone, Debug)]
 pub struct ProviderRunContext {
     pub api_version: &'static str,
@@ -55,30 +57,37 @@ pub async fn smoke_test_provider(
         ProviderId::Codex => "codex",
     };
     let outcome = timeout(
-        Duration::from_secs(45),
+        Duration::from_secs(PROVIDER_PREFLIGHT_TIMEOUT_SECS),
         run_provider_collect(context, RunEventSink::detached(), cancel),
     )
     .await
-    .map_err(|_| ProviderProcessError::Io {
+    .map_err(|_| ProviderProcessError::Timeout {
         binary,
-        source: std::io::Error::other("provider preflight timed out after 45 seconds"),
+        seconds: PROVIDER_PREFLIGHT_TIMEOUT_SECS,
     })??;
 
     match outcome {
-        ProviderProcessOutcome::Completed(output)
-            if output.split_whitespace().any(|word| word == "OK") =>
-        {
-            Ok(())
-        }
+        ProviderProcessOutcome::Completed(output) if preflight_output_is_ok(&output) => Ok(()),
         ProviderProcessOutcome::Completed(_) => Err(ProviderProcessError::Io {
             binary,
             source: std::io::Error::other("provider preflight did not return OK"),
         }),
-        ProviderProcessOutcome::Cancelled => Err(ProviderProcessError::Io {
-            binary,
-            source: std::io::Error::other("provider preflight was cancelled"),
-        }),
+        // User cancelled mid-preflight. The caller's `start-run` flow already treats
+        // cancellation as a clean skip, so we propagate as `Ok(())` rather than surface
+        // it as a provider error (which would mislead users into running `auth login`).
+        ProviderProcessOutcome::Cancelled => Ok(()),
     }
+}
+
+/// Whether a preflight response counts as "OK". The prompt asks for the exact
+/// uppercase word, but LLMs often add punctuation (`"OK."`, `"OK!"`) or casing
+/// variants. Strip non-alphabetic trim chars and match case-insensitively so a
+/// harmless formatting tic doesn't block every research run.
+fn preflight_output_is_ok(output: &str) -> bool {
+    output.split_whitespace().any(|word| {
+        word.trim_matches(|c: char| !c.is_alphabetic())
+            .eq_ignore_ascii_case("ok")
+    })
 }
 
 pub fn provider_unavailable_event(
@@ -99,5 +108,42 @@ pub fn provider_unavailable_event(
             retryable: true,
             detail: None,
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::preflight_output_is_ok;
+
+    #[test]
+    fn preflight_accepts_bare_ok() {
+        assert!(preflight_output_is_ok("OK"));
+    }
+
+    #[test]
+    fn preflight_accepts_ok_with_trailing_punctuation() {
+        assert!(preflight_output_is_ok("OK."));
+        assert!(preflight_output_is_ok("OK!"));
+        assert!(preflight_output_is_ok("OK,"));
+    }
+
+    #[test]
+    fn preflight_accepts_ok_in_lowercase_or_mixed_case() {
+        assert!(preflight_output_is_ok("ok"));
+        assert!(preflight_output_is_ok("Ok."));
+    }
+
+    #[test]
+    fn preflight_accepts_ok_inside_longer_response() {
+        // LLM occasionally wraps with whitespace or surrounding words.
+        assert!(preflight_output_is_ok("  OK\n"));
+        assert!(preflight_output_is_ok("Sure, OK!"));
+    }
+
+    #[test]
+    fn preflight_rejects_responses_without_ok() {
+        assert!(!preflight_output_is_ok(""));
+        assert!(!preflight_output_is_ok("ready"));
+        assert!(!preflight_output_is_ok("oko"));
     }
 }

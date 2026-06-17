@@ -104,7 +104,7 @@ Rules:
 - Inspect at most the homepage plus three relevant pages per site.
 - Return all existing valid competitive findings plus repaired missing findings.
 - Every competitor claim must reference a returned website sourceReference id.
-- Every matrix cell must include a Strong/OK/Weak score. A short UX note is optional.
+- Every matrix cell must include a Strong/OK/Weak score. Do not include notes — they are stripped from the final artifact, so any text you add is wasted tokens.
 - Never invent facts, sources, competitors, dimensions, scores, or placeholder values.
 - If evidence is insufficient for a cell, omit that cell.
 - Return no markdown and no text outside the JSON object.
