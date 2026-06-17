@@ -1,5 +1,6 @@
 import { Fragment, FormEvent, MouseEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "convex/react";
+import { ImageSquare, Monitor, X } from "@phosphor-icons/react";
 import type { CaptureWindowSource, CompanionState } from "@shared/models/desktop";
 import { chatProjectReferenceSchema, type ChatProjectReference, type ProviderId, type RunEvent } from "@stage/data-ops/contracts";
 import { z } from "zod";
@@ -56,7 +57,7 @@ const chatProviders: ChatProvider[] = [
   { id: "openai", label: "OpenAI", icon: "openai" },
 ];
 
-const PANEL_WIDTH = 552;
+const PANEL_WIDTH = 600;
 const PANEL_HEIGHT = 511;
 const ACTIVE_COMPANION_BAR_HEIGHT = 42;
 const MAIN_WINDOW_BAR_BOTTOM = 12;
@@ -81,6 +82,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const [historyOpen, setHistoryOpen] = useState(true);
   const panelSize = { width: PANEL_WIDTH, height: PANEL_HEIGHT };
   const [draft, setDraft] = useState("");
+  const [projectContextPrefix, setProjectContextPrefix] = useState("");
   const [draftAttachments, setDraftAttachments] = useState<StageChatAttachment[]>([]);
   const [captureSources, setCaptureSources] = useState<CaptureWindowSource[]>([]);
   const [captureMenuOpen, setCaptureMenuOpen] = useState(false);
@@ -102,16 +104,34 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   ]);
   const { isAuthenticated } = useDesktopAuth();
   const projectMention = draft.match(/(?:^|\s)@([^@\n]*)$/)?.[1].trimStart() ?? null;
-  const [projectSearch, setProjectSearch] = useState<string | null>(projectMention);
   const rawProjectMatches = useQuery(
     api.desktop.searchProjectsForChat,
-    isAuthenticated && projectSearch !== null
-      ? { search: projectSearch, limit: 8 }
+    isAuthenticated && projectMention !== null
+      ? { search: "", limit: 200 }
       : "skip",
   );
-  const projectMatches = rawProjectMatches === undefined || projectSearch !== projectMention
-    ? []
-    : z.array(chatProjectReferenceSchema).parse(rawProjectMatches);
+  const projectMatches = useMemo(() => {
+    if (rawProjectMatches === undefined) {
+      return [];
+    }
+
+    const projects = z.array(chatProjectReferenceSchema).parse(rawProjectMatches);
+    const search = projectMention?.trim().toLocaleLowerCase() ?? "";
+    if (!search) {
+      return projects;
+    }
+
+    return projects
+      .filter((project) =>
+        project.projectName.toLocaleLowerCase().includes(search) ||
+        project.clientName.toLocaleLowerCase().includes(search),
+      )
+      .sort((left, right) => {
+        const leftName = left.projectName.toLocaleLowerCase();
+        const rightName = right.projectName.toLocaleLowerCase();
+        return Number(rightName.startsWith(search)) - Number(leftName.startsWith(search));
+      });
+  }, [projectMention, rawProjectMatches]);
   const activeProjectId = activeChat.project?.projectId ?? "";
   const providerRun = useProviderRun(
     activeProjectId ? { projectId: activeProjectId, mode: "chat" } : undefined,
@@ -177,11 +197,6 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   useEffect(() => subscribeToStageChats(() => {
     setChatStoreSnapshot(readStageChatStore());
   }), []);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setProjectSearch(projectMention), 150);
-    return () => window.clearTimeout(timer);
-  }, [projectMention]);
 
   useEffect(() => {
     if (handledMessagesRef.current === messages) {
@@ -420,7 +435,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
 
   async function submitMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const nextPrompt = draft.trim();
+    const nextPrompt = [projectContextPrefix.trim(), draft.trim()].filter(Boolean).join(" ");
 
     if (!nextPrompt || isThinking || isProviderStatusPending(providers.snapshot)) {
       return;
@@ -442,6 +457,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     }
 
     setDraft("");
+    setProjectContextPrefix("");
     setInputNotice("");
     const submittedAttachments = draftAttachments;
     setDraftAttachments([]);
@@ -533,6 +549,8 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     setIsThinking(false);
     setActiveChat(chat);
     setMessages(chat.messages);
+    setDraft("");
+    setProjectContextPrefix("");
     setDraftAttachments([]);
     setInputNotice("");
     upsertStageChat(chat);
@@ -566,12 +584,26 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   }
 
   function pinProject(project: ChatProjectReference) {
+    const mentionMatch = draft.match(/(?:^|\s)@[^@\n]*$/);
+    const mentionStart = mentionMatch?.index ?? draft.length;
+    const prefix = draft.slice(0, mentionStart).trimEnd();
     const nextChat = { ...activeChatRef.current, project, updatedAt: Date.now() };
     activeChatRef.current = nextChat;
     setActiveChat(nextChat);
     upsertStageChat(nextChat);
-    setDraft((current) => current.replace(/(?:^|\s)@[^@\n]*$/, "").trimStart());
+    setProjectContextPrefix(prefix);
+    setDraft("");
     setInputNotice("");
+    window.requestAnimationFrame(() => textareaRef.current?.focus());
+  }
+
+  function removeProjectContext() {
+    const nextChat = { ...activeChatRef.current, project: undefined, updatedAt: Date.now() };
+    activeChatRef.current = nextChat;
+    setActiveChat(nextChat);
+    upsertStageChat(nextChat);
+    setDraft((current) => [projectContextPrefix, current].filter(Boolean).join(" "));
+    setProjectContextPrefix("");
     window.requestAnimationFrame(() => textareaRef.current?.focus());
   }
 
@@ -585,6 +617,11 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   }
 
   async function openCaptureMenu() {
+    if (captureMenuOpen) {
+      setCaptureMenuOpen(false);
+      return;
+    }
+
     try {
       const sources = await window.stageDesktop.screen.listWindowSources();
       setCaptureSources(sources);
@@ -769,6 +806,9 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
             </div>
           );
         })}
+        {!activeChat.project && messages.length === 0 ? (
+          <p className="chat-context-tip"><strong>Tip:</strong> Type @ to add project context</p>
+        ) : null}
       </div>
 
       <form
@@ -790,49 +830,50 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
           }
         }}
       >
-        <div className="chat-context-row">
-          {activeChat.project ? (
-            <button
-              className="chat-context-chip"
-              type="button"
-              title="Remove project context"
-              onClick={() => {
-                const nextChat = { ...activeChatRef.current, project: undefined, updatedAt: Date.now() };
-                activeChatRef.current = nextChat;
-                setActiveChat(nextChat);
-                upsertStageChat(nextChat);
-              }}
-            >
-              @{activeChat.project.projectName} ×
-            </button>
-          ) : (
-            <span className="chat-context-empty">Use @project for project-aware answers</span>
-          )}
-          <button className="chat-attachment-button" type="button" onClick={() => void importImages()}>
-            Add image
-          </button>
-          <button className="chat-attachment-button" type="button" onClick={() => void openCaptureMenu()}>
-            Capture window
-          </button>
-        </div>
-        {projectMention !== null && projectMatches.length > 0 ? (
+        {projectMention !== null ? (
           <div className="chat-project-picker" role="listbox" aria-label="Select project">
-            {projectMatches.map((project) => (
-              <button key={project.projectId} type="button" onClick={() => pinProject(project)}>
+            {rawProjectMatches === undefined ? (
+              <p className="chat-project-picker-status">Finding projects…</p>
+            ) : projectMatches.length > 0 ? projectMatches.map((project) => (
+              <button className="chat-project-option" key={project.projectId} type="button" onClick={() => pinProject(project)}>
                 <strong>@{project.projectName}</strong>
                 <span>{project.clientName}</span>
               </button>
-            ))}
+            )) : (
+              <p className="chat-project-picker-status">No matching projects</p>
+            )}
           </div>
         ) : null}
         {captureMenuOpen ? (
-          <div className="chat-project-picker chat-capture-picker" role="listbox" aria-label="Select window to capture">
-            {captureSources.map((source) => (
-              <button key={source.id} type="button" onClick={() => void captureWindow(source.id)}>
-                <img src={source.previewDataUrl} alt="" />
-                <span>{source.name}</span>
+          <div className="chat-capture-picker" aria-label="Select window to capture">
+            <div className="chat-capture-picker-header">
+              <div>
+                <strong>Capture a window</strong>
+                <span>Select what Stage should inspect</span>
+              </div>
+              <button type="button" aria-label="Close window picker" onClick={() => setCaptureMenuOpen(false)}>
+                <X aria-hidden="true" />
               </button>
-            ))}
+            </div>
+            <div className="chat-capture-grid" role="listbox">
+              {captureSources.length > 0 ? captureSources.map((source) => (
+                <button
+                  key={source.id}
+                  className="chat-capture-source"
+                  type="button"
+                  role="option"
+                  aria-label={`Capture ${source.name}`}
+                  onClick={() => void captureWindow(source.id)}
+                >
+                  <span className="chat-capture-preview">
+                    <img src={source.previewDataUrl} alt="" />
+                  </span>
+                  <span className="chat-capture-name">{source.name}</span>
+                </button>
+              )) : (
+                <p className="chat-capture-empty">No capturable windows are available.</p>
+              )}
+            </div>
           </div>
         ) : null}
         {draftAttachments.length > 0 ? (
@@ -851,22 +892,51 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
           </div>
         ) : null}
         {inputNotice ? <p className="chat-input-notice">{inputNotice}</p> : null}
-        <textarea
-          ref={textareaRef}
-          aria-label="Message Stage"
-          placeholder={inputPlaceholder}
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          rows={1}
-          onKeyDown={(event) => {
-            if (event.key !== "Enter" || event.shiftKey) {
-              return;
-            }
+        <div className="chat-compose-field">
+          {projectContextPrefix ? (
+            <span className="chat-context-prefix">{projectContextPrefix}</span>
+          ) : null}
+          {activeChat.project ? (
+            <button
+              className="chat-context-chip"
+              type="button"
+              title="Remove project context"
+              aria-label={`Remove ${activeChat.project.projectName} project context`}
+              onClick={removeProjectContext}
+            >
+              <span>@{activeChat.project.projectName}</span>
+              <span aria-hidden="true">×</span>
+            </button>
+          ) : null}
+          <textarea
+            ref={textareaRef}
+            aria-label="Message Stage"
+            placeholder={activeChat.project || projectContextPrefix ? "" : inputPlaceholder}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            rows={1}
+            onKeyDown={(event) => {
+              if (
+                event.key === "Backspace" &&
+                activeChat.project &&
+                draft.length === 0 &&
+                event.currentTarget.selectionStart === 0 &&
+                event.currentTarget.selectionEnd === 0
+              ) {
+                event.preventDefault();
+                removeProjectContext();
+                return;
+              }
 
-            event.preventDefault();
-            event.currentTarget.form?.requestSubmit();
-          }}
-        />
+              if (event.key !== "Enter" || event.shiftKey) {
+                return;
+              }
+
+              event.preventDefault();
+              event.currentTarget.form?.requestSubmit();
+            }}
+          />
+        </div>
         <div className="chat-input-controls">
           <div className="chat-control-group">
             <div className="chat-model-picker" ref={modelPickerRef}>
@@ -1013,12 +1083,35 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
                 </div>
               ) : null}
             </div>
+            <button
+              className="chat-attachment-icon-button"
+              type="button"
+              data-tooltip="Add image"
+              aria-label="Add image"
+              onClick={() => void importImages()}
+            >
+              <ImageSquare aria-hidden="true" weight="regular" />
+            </button>
+            <button
+              className="chat-attachment-icon-button"
+              type="button"
+              data-tooltip="Capture window"
+              aria-label="Capture window"
+              aria-expanded={captureMenuOpen}
+              onClick={() => void openCaptureMenu()}
+            >
+              <Monitor aria-hidden="true" weight="regular" />
+            </button>
           </div>
           <button
             className="chat-send-button"
             type="submit"
             aria-label="Send message"
-            disabled={!draft.trim() || isThinking || isProviderStatusPending(providers.snapshot)}
+            disabled={
+              (!draft.trim() && !projectContextPrefix.trim()) ||
+              isThinking ||
+              isProviderStatusPending(providers.snapshot)
+            }
           >
             <span aria-hidden="true">↑</span>
           </button>
