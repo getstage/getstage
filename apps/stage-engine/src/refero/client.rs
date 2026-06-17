@@ -5,6 +5,10 @@
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use std::sync::{
+    Arc,
+    atomic::{AtomicUsize, Ordering},
+};
 use thiserror::Error;
 
 use crate::config::ReferoConfig;
@@ -14,6 +18,7 @@ pub struct ReferoClient {
     http: reqwest::Client,
     mcp_url: String,
     auth_configured: bool,
+    call_count: Arc<AtomicUsize>,
 }
 
 impl ReferoClient {
@@ -39,6 +44,7 @@ impl ReferoClient {
             http,
             mcp_url,
             auth_configured: token.is_some(),
+            call_count: Arc::new(AtomicUsize::new(0)),
         })
     }
 
@@ -50,11 +56,27 @@ impl ReferoClient {
         self.auth_configured
     }
 
+    pub fn with_fresh_call_counter(&self) -> Self {
+        Self {
+            http: self.http.clone(),
+            mcp_url: self.mcp_url.clone(),
+            auth_configured: self.auth_configured,
+            call_count: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+
+    pub fn call_count(&self) -> usize {
+        self.call_count.load(Ordering::Relaxed)
+    }
+
     pub async fn call_tool(
         &self,
         tool_name: &str,
         arguments: Value,
     ) -> Result<Value, ReferoClientError> {
+        let call_number = self.call_count.fetch_add(1, Ordering::Relaxed) + 1;
+        tracing::info!(tool_name, call_number, "Refero MCP tool call");
+
         let request = JsonRpcRequest {
             jsonrpc: "2.0",
             id: 1,

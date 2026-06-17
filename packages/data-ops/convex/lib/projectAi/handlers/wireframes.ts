@@ -9,7 +9,11 @@ import {
 import { setLastProviderId } from "../domain/contextStore";
 import { findLatestArtifact } from "../domain/latestArtifact";
 import { getArtifactRecord, getRunRecord } from "../domain/records";
-import { createRunRecord, findRunningRunForProjectModule } from "../domain/runStore";
+import {
+  completeRunRecord,
+  createRunRecord,
+  findRunningRunForProjectModule,
+} from "../domain/runStore";
 import { normalizeOptional } from "../domain/normalize";
 import { resolveAssetContentJson } from "../domain/researchContent";
 import { now } from "../domain/time";
@@ -190,9 +194,11 @@ export async function completeWireframesRunHandler(
     });
   }
 
+  const completedAt = args.runId ? await completeRunRecord(ctx, args.runId) : now();
+
   return {
     artifactId: String(artifactId),
-    completedAt: now(),
+    completedAt,
   };
 }
 

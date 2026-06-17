@@ -307,7 +307,9 @@ impl WorkflowError {
 fn user_message(error: &WorkflowError) -> String {
     match error {
         WorkflowError::InvalidRequest(message) => message.clone(),
-        WorkflowError::Provider(_) => unreachable!("provider errors use ProviderProcessError::to_engine_error"),
+        WorkflowError::Provider(_) => {
+            unreachable!("provider errors use ProviderProcessError::to_engine_error")
+        }
         WorkflowError::Convex(_) => "Stage strategy data could not be loaded or saved.".to_string(),
         WorkflowError::Serde(_) => {
             "The AI response did not match the Strategy artifact format.".to_string()

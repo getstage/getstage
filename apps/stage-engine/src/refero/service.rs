@@ -19,7 +19,7 @@ use super::parse::{
 };
 
 const MAX_REFERO_SEARCH_RESULTS: u8 = 4;
-const MAX_REFERO_IMAGE_FETCHES: usize = 15;
+const MAX_REFERO_IMAGE_FETCHES: usize = 5;
 
 #[derive(Clone, Debug)]
 pub struct ReferoService {
@@ -41,17 +41,49 @@ impl ReferoService {
         })
     }
 
+    pub fn with_fresh_call_counter(&self) -> Self {
+        Self {
+            client: self.client.with_fresh_call_counter(),
+        }
+    }
+
+    pub fn call_count(&self) -> usize {
+        self.client.call_count()
+    }
+
     pub async fn research_context_for_categories(
         &self,
         category_requests: &[ReferoCategorySearchRequest],
         flow_request: &ReferoSearchRequest,
     ) -> Result<ReferoContext, ReferoServiceError> {
+        let mut join_set = tokio::task::JoinSet::new();
+
+        for (index, request) in category_requests.iter().enumerate() {
+            let service = self.clone();
+            let request = request.clone();
+            join_set.spawn(async move {
+                let screens = service.search_screens_for_category(&request).await?;
+                Ok::<_, ReferoServiceError>((index, request, screens))
+            });
+        }
+
+        let mut indexed_results = Vec::with_capacity(category_requests.len());
+        while let Some(joined) = join_set.join_next().await {
+            let result = joined.map_err(|error| {
+                ReferoServiceError::Client(ReferoClientError::ToolCallFailed {
+                    message: format!("Refero category search task failed: {error}"),
+                })
+            })?;
+            indexed_results.push(result?);
+        }
+
+        indexed_results.sort_by_key(|(index, _, _)| *index);
+
         let mut category_searches = Vec::with_capacity(category_requests.len());
         let mut references = Vec::new();
         let mut seen_screen_ids = HashSet::new();
 
-        for request in category_requests {
-            let screens = self.search_screens_for_category(request).await?;
+        for (_index, request, screens) in indexed_results {
             let mut bucket = Vec::new();
 
             for mut screen in screens {
@@ -245,6 +277,14 @@ impl ReferoService {
         Ok(bytes)
     }
 
+    async fn fetch_screen_thumbnail_bytes(
+        &self,
+        screen_id: &str,
+    ) -> Result<Vec<u8>, ReferoServiceError> {
+        self.fetch_screen_image_with_size(screen_id, "thumbnail")
+            .await
+    }
+
     pub async fn hydrate_category_screen_images(
         &self,
         category_searches: &mut [ReferoCategorySearch],
@@ -256,8 +296,9 @@ impl ReferoService {
                 break;
             }
 
+            let mut fetched_for_category = false;
             for reference in bucket.references.iter_mut() {
-                if fetched >= MAX_REFERO_IMAGE_FETCHES {
+                if fetched >= MAX_REFERO_IMAGE_FETCHES || fetched_for_category {
                     break;
                 }
 
@@ -281,8 +322,12 @@ impl ReferoService {
                     continue;
                 }
 
+                if reference.image_url.is_some() || reference.thumbnail_url.is_some() {
+                    continue;
+                }
+
                 let screen_id = reference.id.clone();
-                let bytes = match self.fetch_screen_image_bytes(&screen_id).await {
+                let bytes = match self.fetch_screen_thumbnail_bytes(&screen_id).await {
                     Ok(bytes) => bytes,
                     Err(error) => {
                         tracing::warn!(screen_id = %screen_id, %error, "Refero screen image fetch failed");
@@ -292,8 +337,15 @@ impl ReferoService {
 
                 reference.raw_image_bytes = Some(bytes);
                 fetched += 1;
+                fetched_for_category = true;
             }
         }
+
+        tracing::info!(
+            refero_image_fetches = fetched,
+            refero_image_budget = MAX_REFERO_IMAGE_FETCHES,
+            "Refero image hydration completed"
+        );
 
         Ok(fetched)
     }

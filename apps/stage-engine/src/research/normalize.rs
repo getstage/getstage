@@ -190,10 +190,41 @@ fn normalize_target_users(object: &mut Map<String, Value>) {
         return;
     };
 
-    for user in users.iter_mut() {
+    let mut seen_users = std::collections::HashSet::new();
+    let mut index = 0;
+    users.retain_mut(|user| {
+        let user_index = index;
+        index += 1;
         let Some(user_object) = user.as_object_mut() else {
-            continue;
+            return false;
         };
+
+        let Some(name) = user_object
+            .get("name")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+        else {
+            return false;
+        };
+        let Some(role) = user_object
+            .get("role")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+        else {
+            return false;
+        };
+        let dedupe_key = format!(
+            "{}|{}",
+            name.to_ascii_lowercase(),
+            role.to_ascii_lowercase()
+        );
+        if !seen_users.insert(dedupe_key) {
+            return false;
+        }
 
         let id = user_object
             .get("id")
@@ -201,23 +232,9 @@ fn normalize_target_users(object: &mut Map<String, Value>) {
             .map(str::trim)
             .filter(|value| !value.is_empty())
             .map(str::to_string)
-            .unwrap_or_else(|| "target-user".to_string());
+            .unwrap_or_else(|| format!("target-user-{user_index}"));
         user_object.insert("id".to_string(), json!(id));
-
-        let name = user_object
-            .get("name")
-            .and_then(Value::as_str)
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .unwrap_or("User persona");
         user_object.insert("name".to_string(), json!(name));
-
-        let role = user_object
-            .get("role")
-            .and_then(Value::as_str)
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .unwrap_or("Role not specified");
         user_object.insert("role".to_string(), json!(role));
 
         let goals = user_object
@@ -295,7 +312,8 @@ fn normalize_target_users(object: &mut Map<String, Value>) {
         } else {
             user_object.remove("relevance");
         }
-    }
+        true
+    });
 }
 
 fn normalize_opportunities(object: &mut Map<String, Value>) {
@@ -307,9 +325,12 @@ fn normalize_opportunities(object: &mut Map<String, Value>) {
         return;
     };
 
-    for (index, opportunity) in opportunities.iter_mut().enumerate() {
+    let mut index = 0;
+    opportunities.retain_mut(|opportunity| {
+        let opportunity_index = index;
+        index += 1;
         let Some(opportunity_object) = opportunity.as_object_mut() else {
-            continue;
+            return false;
         };
 
         let id = opportunity_object
@@ -318,10 +339,10 @@ fn normalize_opportunities(object: &mut Map<String, Value>) {
             .map(str::trim)
             .filter(|value| !value.is_empty())
             .map(str::to_string)
-            .unwrap_or_else(|| format!("opportunity-{index}"));
+            .unwrap_or_else(|| format!("opportunity-{opportunity_index}"));
         opportunity_object.insert("id".to_string(), json!(id));
 
-        let description = opportunity_object
+        let Some(description) = opportunity_object
             .get("description")
             .and_then(|value| string_value(value))
             .filter(|value| !value.is_empty())
@@ -330,7 +351,9 @@ fn normalize_opportunities(object: &mut Map<String, Value>) {
                     .get("title")
                     .and_then(|value| string_value(value))
             })
-            .unwrap_or_else(|| "Opportunity".to_string());
+        else {
+            return false;
+        };
         opportunity_object.insert("description".to_string(), json!(description));
 
         let title = opportunity_object
@@ -356,7 +379,8 @@ fn normalize_opportunities(object: &mut Map<String, Value>) {
         } else {
             opportunity_object.remove("sourceSection");
         }
-    }
+        true
+    });
 }
 
 fn normalize_open_questions(object: &mut Map<String, Value>) {
@@ -506,21 +530,23 @@ fn normalize_competitive_analysis(object: &mut Map<String, Value>) {
 
             competitor_object.insert(
                 "strengths".to_string(),
-                json!(
+                json!(cap_string_array(
                     competitor_object
                         .get("strengths")
                         .and_then(|value| string_array(value))
-                        .unwrap_or_default()
-                ),
+                        .unwrap_or_default(),
+                    5,
+                )),
             );
             competitor_object.insert(
                 "weaknesses".to_string(),
-                json!(
+                json!(cap_string_array(
                     competitor_object
                         .get("weaknesses")
                         .and_then(|value| string_array(value))
-                        .unwrap_or_default()
-                ),
+                        .unwrap_or_default(),
+                    5,
+                )),
             );
             competitor_object.insert(
                 "sourceReferenceIds".to_string(),
@@ -540,17 +566,20 @@ fn normalize_competitive_analysis(object: &mut Map<String, Value>) {
         .get_mut("matrixRows")
         .and_then(Value::as_array_mut)
     {
-        for (index, row) in matrix_rows.iter_mut().enumerate() {
-            normalize_matrix_row(row, index);
-        }
+        let mut index = 0;
+        matrix_rows.retain_mut(|row| {
+            let valid = normalize_matrix_row(row, index);
+            index += 1;
+            valid
+        });
     } else {
         analysis_object.insert("matrixRows".to_string(), json!([]));
     }
 }
 
-fn normalize_matrix_row(row: &mut Value, index: usize) {
+fn normalize_matrix_row(row: &mut Value, index: usize) -> bool {
     let Some(row_object) = row.as_object_mut() else {
-        return;
+        return false;
     };
 
     let label = row_object
@@ -575,7 +604,10 @@ fn normalize_matrix_row(row: &mut Value, index: usize) {
                 .filter(|value| !value.is_empty())
                 .map(str::to_string)
         })
-        .unwrap_or_else(|| format!("Dimension {}", index + 1));
+        .filter(|value| !is_generic_matrix_label(value));
+    let Some(label) = label else {
+        return false;
+    };
 
     let id = row_object
         .get("id")
@@ -591,60 +623,70 @@ fn normalize_matrix_row(row: &mut Value, index: usize) {
     row_object.remove("description");
 
     let Some(cells) = row_object.get_mut("cells").and_then(Value::as_array_mut) else {
-        row_object.insert("cells".to_string(), json!([]));
-        return;
+        return false;
     };
 
-    for cell in cells.iter_mut() {
+    cells.retain_mut(|cell| {
         let Some(cell_object) = cell.as_object_mut() else {
-            continue;
+            return false;
         };
 
-        let competitor_id = cell_object
+        let Some(competitor_id) = cell_object
             .get("competitorId")
             .or_else(|| cell_object.get("competitor_id"))
             .and_then(Value::as_str)
             .map(str::trim)
             .filter(|value| !value.is_empty())
             .map(str::to_string)
-            .unwrap_or_else(|| "competitor-unknown".to_string());
+        else {
+            return false;
+        };
         cell_object.insert("competitorId".to_string(), json!(competitor_id));
         cell_object.remove("competitor_id");
 
-        let raw_score = cell_object
+        let Some(raw_score) = cell_object
             .get("score")
             .or_else(|| cell_object.get("rating"))
             .and_then(Value::as_str)
-            .unwrap_or("OK");
-        let score = normalize_matrix_score_label(raw_score);
+        else {
+            return false;
+        };
+        let Some(score) = normalize_matrix_score_label(raw_score) else {
+            return false;
+        };
         cell_object.insert("score".to_string(), json!(score));
         cell_object.remove("rating");
-
-        let note = cell_object
-            .get("note")
-            .or_else(|| cell_object.get("notes"))
-            .and_then(Value::as_str)
-            .map(str::trim)
-            .filter(|value| !value.is_empty());
-        if let Some(note) = note {
-            cell_object.insert("note".to_string(), json!(note));
-        } else {
-            cell_object.remove("note");
-        }
+        cell_object.remove("note");
         cell_object.remove("notes");
-    }
+        true
+    });
+
+    !cells.is_empty()
 }
 
-pub fn normalize_matrix_score_label(score: &str) -> &'static str {
+fn cap_string_array(items: Vec<String>, max_items: usize) -> Vec<String> {
+    items
+        .into_iter()
+        .map(|item| item.trim().to_string())
+        .filter(|item| !item.is_empty())
+        .take(max_items)
+        .collect()
+}
+
+fn is_generic_matrix_label(label: &str) -> bool {
+    let normalized = label.trim().to_ascii_lowercase();
+    normalized == "dimension"
+        || normalized
+            .strip_prefix("dimension ")
+            .is_some_and(|suffix| suffix.parse::<usize>().is_ok())
+}
+
+pub fn normalize_matrix_score_label(score: &str) -> Option<&'static str> {
     match score.trim().to_lowercase().as_str() {
-        "strong" => "Strong",
-        "ok" | "moderate" | "medium" | "average" => "OK",
-        "weak" | "low" | "poor" => "Weak",
-        "stronger" => "Strong",
-        other if other.eq_ignore_ascii_case("strong") => "Strong",
-        other if other.eq_ignore_ascii_case("ok") => "OK",
-        other if other.eq_ignore_ascii_case("weak") => "Weak",
-        _ => "OK",
+        "strong" | "stronger" => Some("Strong"),
+        "ok" | "moderate" | "medium" | "average" => Some("OK"),
+        "weak" | "low" | "poor" => Some("Weak"),
+        _ => None,
     }
 }
 
@@ -791,7 +833,7 @@ mod tests {
                 "competitors": [{ "id": "amazon", "name": "Amazon", "url": "https://www.amazon.com" }],
                 "matrixRows": [{
                     "dimension": "Mobile checkout",
-                    "cells": [{ "competitorId": "amazon", "rating": "strong", "notes": "Best in class" }]
+                    "cells": [{ "competitorId": "amazon", "rating": "strong", "notes": "Best in class: https://amazon.com" }]
                 }]
             }
         })
@@ -804,7 +846,107 @@ mod tests {
         let row = &object["competitiveAnalysis"]["matrixRows"][0];
         assert_eq!(row["label"], "Mobile checkout");
         assert_eq!(row["cells"][0]["score"], "Strong");
-        assert_eq!(row["cells"][0]["note"], "Best in class");
+        assert!(row["cells"][0].get("note").is_none());
+    }
+
+    #[test]
+    fn drops_generic_matrix_dimensions_instead_of_saving_placeholders() {
+        let mut object = json!({
+            "competitiveAnalysis": {
+                "competitors": [{ "id": "amazon", "name": "Amazon", "url": "https://www.amazon.com" }],
+                "matrixRows": [{
+                    "label": "Dimension 1",
+                    "cells": [{ "competitorId": "amazon", "score": "OK" }]
+                }]
+            }
+        })
+        .as_object()
+        .unwrap()
+        .clone();
+
+        normalize_research_artifact_fields(&mut object, &sample_input());
+
+        assert!(
+            object["competitiveAnalysis"]["matrixRows"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn keeps_matrix_cells_with_score_and_no_note() {
+        let mut object = json!({
+            "competitiveAnalysis": {
+                "competitors": [{ "id": "amazon", "name": "Amazon", "url": "https://www.amazon.com" }],
+                "matrixRows": [{
+                    "label": "Pricing clarity",
+                    "cells": [{ "competitorId": "amazon", "score": "OK" }]
+                }]
+            }
+        })
+        .as_object()
+        .unwrap()
+        .clone();
+
+        normalize_research_artifact_fields(&mut object, &sample_input());
+
+        let rows = object["competitiveAnalysis"]["matrixRows"]
+            .as_array()
+            .unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0]["cells"][0]["score"], "OK");
+    }
+
+    #[test]
+    fn strips_matrix_notes_and_keeps_score_only() {
+        let mut object = json!({
+            "competitiveAnalysis": {
+                "competitors": [{ "id": "amazon", "name": "Amazon", "url": "https://www.amazon.com" }],
+                "matrixRows": [{
+                    "label": "Navigation",
+                    "cells": [{
+                        "competitorId": "amazon",
+                        "score": "Strong",
+                        "note": "Multi-level dropdowns with dedicated B2B pathways"
+                    }]
+                }]
+            }
+        })
+        .as_object()
+        .unwrap()
+        .clone();
+
+        normalize_research_artifact_fields(&mut object, &sample_input());
+
+        let cell = &object["competitiveAnalysis"]["matrixRows"][0]["cells"][0];
+        assert_eq!(cell["score"], "Strong");
+        assert!(cell.get("note").is_none());
+    }
+
+    #[test]
+    fn drops_matrix_rows_with_missing_scores_instead_of_defaulting_to_ok() {
+        let mut object = json!({
+            "competitiveAnalysis": {
+                "competitors": [{ "id": "amazon", "name": "Amazon", "url": "https://www.amazon.com" }],
+                "matrixRows": [{
+                    "label": "Pricing clarity",
+                    "cells": [{ "competitorId": "amazon", "note": "Pricing is visible" }]
+                }]
+            }
+        })
+        .as_object()
+        .unwrap()
+        .clone();
+
+        normalize_research_artifact_fields(&mut object, &sample_input());
+
+        assert!(
+            object["competitiveAnalysis"]["matrixRows"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
@@ -854,7 +996,7 @@ mod tests {
                 "matrixRows": [{
                     "id": "matrix-onboarding",
                     "label": "B2B onboarding clarity",
-                    "cells": [{ "competitorId": "competitor-amazon", "score": "OK", "note": "Clear flow" }]
+                    "cells": [{ "competitorId": "competitor-amazon", "score": "OK", "note": "Clear flow: https://amazon.com" }]
                 }]
             },
             "targetUsers": [{

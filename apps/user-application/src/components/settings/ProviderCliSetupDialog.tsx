@@ -31,7 +31,11 @@ export function ProviderCliSetupDialog({
   const ready = issue === "ready";
 
   async function copyCommand(command: string) {
-    await navigator.clipboard.writeText(command);
+    const copied = await copyTextToClipboard(command);
+    if (!copied) {
+      return;
+    }
+
     setCopiedCommand(command);
     window.setTimeout(() => setCopiedCommand(null), 2000);
   }
@@ -88,9 +92,30 @@ export function ProviderCliSetupDialog({
                   <button
                     type="button"
                     onClick={() => void copyCommand(step.command!)}
-                    className="shrink-0 rounded-[5px] bg-[#404040] px-[8px] py-[4px] text-[11px] font-medium text-white hover:bg-[#525252]"
+                    aria-label={copiedCommand === step.command ? "Copied" : "Copy command"}
+                    className="inline-flex shrink-0 items-center gap-[4px] rounded-[5px] bg-[#404040] px-[8px] py-[4px] text-[11px] font-medium text-white hover:bg-[#525252]"
                   >
-                    {copiedCommand === step.command ? "Copied" : "Copy"}
+                    {copiedCommand === step.command ? (
+                      <>
+                        <svg
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          className="h-[12px] w-[12px] text-[#86EFAC]"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M3.5 8L6.5 11L12.5 5"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        Copied
+                      </>
+                    ) : (
+                      "Copy"
+                    )}
                   </button>
                 </div>
               ) : null}
@@ -135,4 +160,30 @@ export function ProviderCliSetupDialog({
       </div>
     </div>
   );
+}
+
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Electron dev / restricted contexts may block Clipboard API — fall back below.
+  }
+
+  try {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    return copied;
+  } catch {
+    return false;
+  }
 }

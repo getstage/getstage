@@ -33,6 +33,7 @@ export class SidecarSupervisor {
   private idleShutdownHoldCount = 0;
   private idleShutdownTimer: ReturnType<typeof setTimeout> | null = null;
   private stopPromise: Promise<EngineStatus> | null = null;
+  private startPromise: Promise<EngineStatus> | null = null;
 
   getStatus(): EngineStatus {
     return { ...this.status };
@@ -80,12 +81,40 @@ export class SidecarSupervisor {
       await this.stopPromise;
     }
 
-    if (this.status.state === "ready" || this.status.state === "starting") {
-      logDesktopDebug(`sidecar start joined existing state=${this.status.state} port=${this.status.port}`);
-      this.markEngineActivity();
-      return this.getStatus();
+    if (this.status.state === "ready") {
+      const readiness = await fetchReadiness(this.status.port);
+      if (!readiness?.ready) {
+        logDesktopWarn(
+          "stage-engine",
+          `cached ready state is stale on port ${this.status.port}; restarting Stage Engine`,
+        );
+        await this.resetUnresponsiveReadyState();
+      } else {
+        logDesktopDebug(
+          `sidecar start joined existing state=ready port=${this.status.port}`,
+        );
+        this.markEngineActivity();
+        return this.getStatus();
+      }
     }
 
+    if (this.startPromise) {
+      logDesktopDebug(
+        `sidecar start joined in-flight startup port=${this.status.port}`,
+      );
+      this.markEngineActivity();
+      return this.startPromise;
+    }
+
+    this.startPromise = this.bootSidecar();
+    try {
+      return await this.startPromise;
+    } finally {
+      this.startPromise = null;
+    }
+  }
+
+  private async bootSidecar(): Promise<EngineStatus> {
     const startedAt = Date.now();
     const port = getSidecarPort();
     this.status = { adopted: false, pid: null, port, state: "starting" };
@@ -166,6 +195,34 @@ export class SidecarSupervisor {
     }
 
     return this.getStatus();
+  }
+
+  private async resetUnresponsiveReadyState() {
+    this.clearIdleShutdownTimer();
+
+    const child = this.child;
+    this.child = null;
+
+    if (child && child.exitCode === null && child.signalCode === null) {
+      child.kill("SIGTERM");
+      const exited = await Promise.race([
+        waitForExit(child).then(() => true),
+        delay(SHUTDOWN_TIMEOUT_MS).then(() => false),
+      ]);
+
+      if (!exited && child.exitCode === null && child.signalCode === null) {
+        child.kill("SIGKILL");
+        await waitForExit(child);
+      }
+    }
+
+    this.status = {
+      adopted: false,
+      error: `Stage Engine is not responding on port ${this.status.port}.`,
+      pid: null,
+      port: this.status.port,
+      state: "stopped",
+    };
   }
 
   async stop() {

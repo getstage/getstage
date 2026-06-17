@@ -12,7 +12,11 @@ import {
   mapLatestArtifactResponse,
 } from "../domain/latestArtifact";
 import { getArtifactRecord, getContextRecord, getRunRecord } from "../domain/records";
-import { createRunRecord, findRunningRunForProjectModule } from "../domain/runStore";
+import {
+  completeRunRecord,
+  createRunRecord,
+  findRunningRunForProjectModule,
+} from "../domain/runStore";
 import { normalizeList, normalizeOptional } from "../domain/normalize";
 import { now } from "../domain/time";
 import { projectAiProviderId } from "../domain/validators";
@@ -197,9 +201,11 @@ export async function completeStrategyRunHandler(
     });
   }
 
+  const completedAt = args.runId ? await completeRunRecord(ctx, args.runId) : now();
+
   return {
     artifactId: String(artifactId),
-    completedAt: now(),
+    completedAt,
   };
 }
 

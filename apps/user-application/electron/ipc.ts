@@ -38,6 +38,7 @@ import {
 import { fetchEngineJsonAuthed } from "./helpers/engine-request";
 import { logDesktopDebug, logDesktopInfo } from "./helpers/desktop-log";
 import { fetchEngineJson } from "./helpers/sidecar";
+import { delay } from "./helpers/time";
 import { closeCompanionWindow, openCompanionFromTray, setCompanionWindowInteractive } from "./windows";
 import type { SidecarSupervisor } from "./sidecar";
 import type { DesktopAuthController } from "./auth";
@@ -49,6 +50,8 @@ import {
 } from "./helpers/auto-update";
 
 const activeRunStreams = new Map<string, AbortController>();
+const RUN_EVENT_STREAM_RECONNECT_DELAY_MS = 1_000;
+const RUN_EVENT_STREAM_MAX_MS = 45 * 60 * 1000;
 
 function sendRunEventToRenderer(sender: WebContents, runEvent: RunEvent) {
   if (sender.isDestroyed()) {
@@ -460,70 +463,96 @@ async function streamRunEventsToRenderer(args: {
   const controller = new AbortController();
   activeRunStreams.set(args.runId, controller);
   let sawTerminalEvent = false;
+  const streamDeadline = Date.now() + RUN_EVENT_STREAM_MAX_MS;
 
   args.sidecarSupervisor.holdIdleShutdown();
 
   try {
-    const response = await fetch(
-      `http://127.0.0.1:${args.port}/v1/runs/${encodeURIComponent(args.runId)}/events`,
-      {
-        headers: { authorization: `Bearer ${args.accessToken}` },
-        signal: controller.signal,
-      },
-    );
-
-    if (!response.ok || !response.body) {
-      throw new Error(`Run event stream failed with ${response.status}.`);
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (!controller.signal.aborted) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-
-      args.sidecarSupervisor.markEngineActivity();
-      buffer += decoder.decode(value, { stream: true });
-      const blocks = buffer.split(/\r?\n\r?\n/);
-      buffer = blocks.pop() ?? "";
-
-      for (const block of blocks) {
-        const runEvent = parseRunEventBlock(block);
-        if (!runEvent) {
-          continue;
-        }
-        logRunEvent(runEvent);
-        if (!sendRunEventToRenderer(args.sender, runEvent)) {
-          controller.abort();
-          break;
-        }
-
-        if (
-          runEvent.type === "run_completed" ||
-          runEvent.type === "run_failed" ||
-          runEvent.type === "run_cancelled"
-        ) {
-          sawTerminalEvent = true;
-          controller.abort();
-          break;
+    while (!controller.signal.aborted && !sawTerminalEvent && Date.now() < streamDeadline) {
+      try {
+        sawTerminalEvent = await readRunEventStream(args, controller);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error("[stage-engine] run event stream failed", error);
         }
       }
-    }
-  } catch (error) {
-    if (!controller.signal.aborted) {
-      console.error("[stage-engine] run event stream failed", error);
+
+      if (!controller.signal.aborted && !sawTerminalEvent && Date.now() < streamDeadline) {
+        await delay(RUN_EVENT_STREAM_RECONNECT_DELAY_MS);
+      }
     }
   } finally {
     if (!sawTerminalEvent && !controller.signal.aborted) {
-      emitSyntheticRunFailed(args, "The research run ended before Stage received a final status.");
+      console.warn(
+        `[stage-engine] run event stream ended without terminal event runId=${args.runId}; Convex run status remains source of truth`,
+      );
     }
     activeRunStreams.delete(args.runId);
     args.sidecarSupervisor.releaseIdleShutdown();
   }
+}
+
+async function readRunEventStream(
+  args: {
+    sidecarSupervisor: SidecarSupervisor;
+    accessToken: string;
+    port: number;
+    runId: string;
+    sender: WebContents;
+  },
+  controller: AbortController,
+) {
+  const response = await fetch(
+    `http://127.0.0.1:${args.port}/v1/runs/${encodeURIComponent(args.runId)}/events`,
+    {
+      headers: { authorization: `Bearer ${args.accessToken}` },
+      signal: controller.signal,
+    },
+  );
+
+  if (!response.ok || !response.body) {
+    throw new Error(`Run event stream failed with ${response.status}.`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (!controller.signal.aborted) {
+    const { done, value } = await reader.read();
+    if (done) {
+      return false;
+    }
+
+    args.sidecarSupervisor.markEngineActivity();
+    buffer += decoder.decode(value, { stream: true });
+    const blocks = buffer.split(/\r?\n\r?\n/);
+    buffer = blocks.pop() ?? "";
+
+    for (const block of blocks) {
+      const runEvent = parseRunEventBlock(block);
+      if (!runEvent) {
+        continue;
+      }
+
+      logRunEvent(runEvent);
+      if (!sendRunEventToRenderer(args.sender, runEvent)) {
+        controller.abort();
+        return false;
+      }
+
+      if (
+        runEvent.type === "run_completed" ||
+        runEvent.type === "run_failed" ||
+        runEvent.type === "run_cancelled"
+      ) {
+        controller.abort();
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 function parseRunEventBlock(block: string) {
@@ -552,35 +581,6 @@ function parseRunEventBlock(block: string) {
   }
 
   return parsed.data;
-}
-
-function emitSyntheticRunFailed(
-  args: {
-    runId: string;
-    providerId: ProviderId;
-    sender: WebContents;
-  },
-  detail: string,
-) {
-  const event = runEventSchema.parse({
-    apiVersion: "v1",
-    type: "run_failed",
-    runId: args.runId,
-    providerId: args.providerId,
-    createdAt: Date.now(),
-    error: {
-      code: "io_error",
-      message: "The selected AI provider could not finish the research run.",
-      providerId: args.providerId,
-      retryable: true,
-      detail,
-    },
-  } satisfies RunEvent);
-
-  console.error(`[stage-engine] ${JSON.stringify(event)}`);
-  if (!sendRunEventToRenderer(args.sender, event)) {
-    return;
-  }
 }
 
 function logRunEvent(event: RunEvent) {

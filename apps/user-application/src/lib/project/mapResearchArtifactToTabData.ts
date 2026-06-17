@@ -35,6 +35,7 @@ function mapRecognizedPatterns(patterns: string[]) {
 export function mapResearchArtifactToTabData(artifact: ResearchArtifact): ResearchTabData {
   const competitors: ResearchCompetitor[] = artifact.competitiveAnalysis.competitors.map(
     (competitor, index) => ({
+      id: competitor.id,
       name: competitor.name,
       url: competitor.url ?? "",
       mark: competitorMark(competitor.name, competitor.mark ?? undefined),
@@ -46,13 +47,15 @@ export function mapResearchArtifactToTabData(artifact: ResearchArtifact): Resear
     }),
   );
 
-  const competitorIds = artifact.competitiveAnalysis.competitors.map((competitor) => competitor.id);
   const competitiveMatrixRows = artifact.competitiveAnalysis.matrixRows.map((row) => ({
     label: row.label,
-    values: competitorIds.map((competitorId) => {
-      const cell = row.cells.find((entry) => entry.competitorId === competitorId);
-      return cell?.score ?? "OK";
-    }),
+    cells: row.cells
+      .filter((cell) => cell.score === "Strong" || cell.score === "OK" || cell.score === "Weak")
+      .map((cell) => ({
+        competitorId: cell.competitorId,
+        score: cell.score,
+        note: cell.note?.trim() ?? "",
+      })),
   }));
 
   const uiPatternGroups: UiPatternGroupWithPatterns[] = artifact.uiPatterns.map((group) => ({
