@@ -262,13 +262,6 @@ pub fn repair_competitive_analysis(
                 .or_insert_with(|| json!([]));
             if let Some(source_ids) = source_ids.as_array_mut() {
                 source_ids.retain(|id| id.as_str().is_some_and(|id| valid_source_ids.contains(id)));
-                if source_ids.is_empty() {
-                    for key in ["positioning", "summary"] {
-                        competitor.remove(key);
-                    }
-                    competitor.insert("strengths".to_string(), json!([]));
-                    competitor.insert("weaknesses".to_string(), json!([]));
-                }
             }
         }
     }
@@ -356,21 +349,94 @@ pub fn validate_competitive_analysis(
         .get("competitiveAnalysis")
         .and_then(Value::as_object)
         .ok_or_else(|| anyhow::anyhow!("competitiveAnalysis was missing or invalid"))?;
-    let competitor_ids = analysis
+    let competitors = analysis
         .get("competitors")
         .and_then(Value::as_array)
-        .map(|competitors| {
-            competitors
-                .iter()
-                .filter_map(|competitor| competitor.get("id").and_then(Value::as_str))
-                .collect::<HashSet<_>>()
-        })
-        .unwrap_or_default();
-    if competitor_ids.is_empty() {
+        .map(Vec::as_slice)
+        .unwrap_or(&[]);
+    if competitors.is_empty() {
         anyhow::bail!("competitiveAnalysis contained no valid competitors");
     }
 
+    // Fail-closed: every competitor card must carry at least one piece of substantive
+    // content. A card with no positioning, summary, strengths, or weaknesses renders
+    // as a blank tile in the UI — same effective failure mode as an empty matrix.
+    for competitor in competitors {
+        let Some(competitor) = competitor.as_object() else {
+            continue;
+        };
+        let name = competitor
+            .get("name")
+            .and_then(Value::as_str)
+            .or_else(|| competitor.get("id").and_then(Value::as_str))
+            .unwrap_or("(unnamed)");
+        if !competitor_has_content(competitor) {
+            anyhow::bail!(
+                "competitor `{name}` has no positioning, summary, strengths, or weaknesses"
+            );
+        }
+    }
+
     Ok(())
+}
+
+fn competitor_has_content(competitor: &Map<String, Value>) -> bool {
+    let has_text = |key: &str| {
+        competitor
+            .get(key)
+            .and_then(Value::as_str)
+            .map(|value| !value.trim().is_empty())
+            .unwrap_or(false)
+    };
+    let has_items = |key: &str| {
+        competitor
+            .get(key)
+            .and_then(Value::as_array)
+            .map(|items| !items.is_empty())
+            .unwrap_or(false)
+    };
+    has_text("positioning")
+        || has_text("summary")
+        || has_items("strengths")
+        || has_items("weaknesses")
+}
+
+/// Drop positioning/summary/strengths/weaknesses for competitors with no source IDs.
+/// Only safe to call after a repair-style prompt that explicitly requires every claim
+/// to reference a returned sourceReference id. NEVER call this on a main-run artifact —
+/// the main prompt does not enforce source grounding, so empty sourceReferenceIds is
+/// expected, not a signal that the content is fabricated.
+pub fn drop_unsourced_competitor_content(object: &mut Map<String, Value>) {
+    let Some(analysis) = object
+        .get_mut("competitiveAnalysis")
+        .and_then(Value::as_object_mut)
+    else {
+        return;
+    };
+    let Some(competitors) = analysis
+        .get_mut("competitors")
+        .and_then(Value::as_array_mut)
+    else {
+        return;
+    };
+    for competitor in competitors {
+        let Some(competitor) = competitor.as_object_mut() else {
+            continue;
+        };
+        let has_sources = competitor
+            .get("sourceReferenceIds")
+            .and_then(Value::as_array)
+            .map(|ids| !ids.is_empty())
+            .unwrap_or(false);
+        if has_sources {
+            continue;
+        }
+        for key in ["positioning", "summary"] {
+            competitor.remove(key);
+        }
+        competitor.insert("strengths".to_string(), json!([]));
+        competitor.insert("weaknesses".to_string(), json!([]));
+    }
 }
 
 pub fn competitive_analysis_needs_repair(object: &Map<String, Value>) -> bool {
@@ -599,12 +665,14 @@ mod tests {
                     {
                         "id": "competitor-squarespace-com",
                         "name": "Squarespace",
-                        "url": "https://www.squarespace.com"
+                        "url": "https://www.squarespace.com",
+                        "positioning": "Premium template-driven site builder."
                     },
                     {
                         "id": "competitor-amazon-com",
                         "name": "Amazon",
-                        "url": "https://www.amazon.com"
+                        "url": "https://www.amazon.com",
+                        "positioning": "Marketplace giant with self-serve seller tools."
                     }
                 ],
                 "matrixRows": [{
@@ -693,7 +761,10 @@ mod tests {
                 "competitors": [{
                     "id": "competitor-shopify-com",
                     "name": "Shopify",
-                    "url": "https://shopify.com"
+                    "url": "https://shopify.com",
+                    "positioning": "Commerce platform for independent merchants.",
+                    "strengths": ["Mature payments stack"],
+                    "weaknesses": ["Theme system feels dated"]
                 }],
                 "matrixRows": [{
                     "id": "pricing",
@@ -721,5 +792,128 @@ mod tests {
 
         validate_competitive_analysis(&object, &input).unwrap();
         assert!(!competitive_analysis_needs_repair(&object));
+    }
+
+    #[test]
+    fn main_run_keeps_competitor_content_without_source_ids() {
+        // Regression: the main research prompt never instructs the LLM to populate
+        // `sourceReferenceIds`, so empty source IDs are expected. The main path
+        // (`repair_competitive_analysis`) must NOT wipe competitor content based on
+        // that absence — only the explicit repair pass does that, via
+        // `drop_unsourced_competitor_content`.
+        let mut object = Map::from_iter([(
+            "competitiveAnalysis".to_string(),
+            json!({
+                "competitors": [{
+                    "id": "competitor-shopify-com",
+                    "name": "Shopify",
+                    "url": "https://shopify.com",
+                    "positioning": "Commerce platform for independent merchants.",
+                    "strengths": ["Mature payments stack"],
+                    "weaknesses": ["Theme system feels dated"]
+                }],
+                "matrixRows": [{
+                    "id": "pricing",
+                    "label": "Pricing clarity",
+                    "cells": [{ "competitorId": "competitor-shopify-com", "score": "OK" }]
+                }],
+                "sourceReferences": []
+            }),
+        )]);
+        let input = ResearchInput {
+            project_id: "p1".to_string(),
+            project_name: "Test".to_string(),
+            client_name: None,
+            industry: "Retail".to_string(),
+            website: Some("https://shopify.com".to_string()),
+            project_brief: None,
+            competitor_urls: vec!["https://shopify.com".to_string()],
+            target_users: None,
+            additional_notes: None,
+            uploaded_asset_ids: vec![],
+        };
+
+        repair_competitive_analysis(&mut object, &input);
+
+        let competitor = &object["competitiveAnalysis"]["competitors"][0];
+        assert_eq!(
+            competitor["positioning"], "Commerce platform for independent merchants.",
+            "positioning was wiped on main-run path",
+        );
+        assert_eq!(
+            competitor["strengths"].as_array().unwrap().len(),
+            1,
+            "strengths were reset on main-run path",
+        );
+        assert_eq!(
+            competitor["weaknesses"].as_array().unwrap().len(),
+            1,
+            "weaknesses were reset on main-run path",
+        );
+        validate_competitive_analysis(&object, &input).unwrap();
+    }
+
+    #[test]
+    fn repair_path_drops_unsourced_competitor_content() {
+        // The repair prompt explicitly requires every claim to reference a source id.
+        // `drop_unsourced_competitor_content` enforces that — competitors without any
+        // sourceReferenceIds get their content cleared so it can be regenerated.
+        let mut object = Map::from_iter([(
+            "competitiveAnalysis".to_string(),
+            json!({
+                "competitors": [{
+                    "id": "competitor-shopify-com",
+                    "name": "Shopify",
+                    "positioning": "Hallucinated claim.",
+                    "strengths": ["Unsupported strength"],
+                    "weaknesses": ["Unsupported weakness"],
+                    "sourceReferenceIds": []
+                }]
+            }),
+        )]);
+
+        drop_unsourced_competitor_content(&mut object);
+
+        let competitor = &object["competitiveAnalysis"]["competitors"][0];
+        assert!(competitor.get("positioning").is_none());
+        assert_eq!(competitor["strengths"].as_array().unwrap().len(), 0);
+        assert_eq!(competitor["weaknesses"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn validation_rejects_empty_competitor_card() {
+        // Fail-closed: a competitor with no content is the same effective failure as an
+        // empty matrix — the UI renders a blank card. Surface it as a validation error
+        // instead of silently saving a degraded artifact.
+        let object = Map::from_iter([(
+            "competitiveAnalysis".to_string(),
+            json!({
+                "competitors": [{
+                    "id": "competitor-shopify-com",
+                    "name": "Shopify",
+                    "url": "https://shopify.com"
+                }],
+                "matrixRows": []
+            }),
+        )]);
+        let input = ResearchInput {
+            project_id: "p1".to_string(),
+            project_name: "Test".to_string(),
+            client_name: None,
+            industry: "Retail".to_string(),
+            website: Some("https://shopify.com".to_string()),
+            project_brief: None,
+            competitor_urls: vec!["https://shopify.com".to_string()],
+            target_users: None,
+            additional_notes: None,
+            uploaded_asset_ids: vec![],
+        };
+
+        let error = validate_competitive_analysis(&object, &input).unwrap_err();
+        let message = error.to_string();
+        assert!(
+            message.contains("Shopify") && message.contains("no positioning"),
+            "expected fail-closed message for empty card, got: {message}",
+        );
     }
 }

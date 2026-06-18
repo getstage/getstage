@@ -405,6 +405,7 @@ impl ResearchWorkflow {
         crate::research::normalize::normalize_research_artifact_fields(object, input);
         filter_competitive_analysis(object, input);
         let report = crate::research::competitive::repair_competitive_analysis(object, input);
+        crate::research::competitive::drop_unsourced_competitor_content(object);
         crate::research::competitive::append_competitive_quality_warnings(object, &report);
         crate::research::competitive::validate_competitive_analysis(object, input)?;
         Ok(())
