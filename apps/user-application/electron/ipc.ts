@@ -48,10 +48,14 @@ import {
   getDesktopUpdateStatusForRenderer,
   installAvailableUpdate,
 } from "./helpers/auto-update";
+import {
+  PROVIDER_STATUS_TIMEOUT_MS,
+  PROVIDER_UPDATE_TIMEOUT_MS,
+  RUN_EVENT_STREAM_MAX_MS,
+  RUN_EVENT_STREAM_RECONNECT_DELAY_MS,
+} from "./helpers/engine-constants";
 
 const activeRunStreams = new Map<string, AbortController>();
-const RUN_EVENT_STREAM_RECONNECT_DELAY_MS = 1_000;
-const RUN_EVENT_STREAM_MAX_MS = 45 * 60 * 1000;
 
 function sendRunEventToRenderer(sender: WebContents, runEvent: RunEvent) {
   if (sender.isDestroyed()) {
@@ -129,6 +133,7 @@ export function registerIpcHandlers({
         fetchEngineJson<unknown>({
           path: "/v1/providers",
           port: status.port,
+          timeoutMs: PROVIDER_STATUS_TIMEOUT_MS,
         }),
       );
 
@@ -148,6 +153,7 @@ export function registerIpcHandlers({
           method: "POST",
           path: "/v1/providers/refresh",
           port: status.port,
+          timeoutMs: PROVIDER_STATUS_TIMEOUT_MS,
         }),
       );
 
@@ -168,6 +174,7 @@ export function registerIpcHandlers({
           method: "POST",
           path: `/v1/providers/${parsedProviderId}/update`,
           port: status.port,
+          timeoutMs: PROVIDER_UPDATE_TIMEOUT_MS,
         }),
       );
 

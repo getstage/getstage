@@ -5,6 +5,13 @@ import type { Readable } from "node:stream";
 import { app } from "electron";
 import { augmentPathForProviderClis } from "./cli-path";
 import { shouldLogDesktopVerbose } from "./desktop-log";
+import {
+  ENGINE_DEFAULT_PORT,
+  ENGINE_READINESS_ATTEMPTS,
+  ENGINE_READINESS_INTERVAL_MS,
+  ENGINE_READINESS_TIMEOUT_MS,
+  ENGINE_REQUEST_TIMEOUT_MS,
+} from "./engine-constants";
 import { delay } from "./time";
 
 export type SidecarChildProcess = ChildProcessByStdio<null, Readable, Readable>;
@@ -15,19 +22,11 @@ type ReadinessResponse = {
   service: string;
 };
 
-export const DEFAULT_PORT = 48_221;
-// First `cargo run` can take minutes while dependencies compile.
-export const READINESS_ATTEMPTS = 240;
-export const READINESS_INTERVAL_MS = 500;
-export const READINESS_TIMEOUT_MS = 350;
-export const SHUTDOWN_TIMEOUT_MS = 1_500;
-export const ENGINE_REQUEST_TIMEOUT_MS = 2_000;
-
 export function getSidecarPort() {
   const raw = process.env.STAGE_ENGINE_PORT;
-  const parsed = raw ? Number.parseInt(raw, 10) : DEFAULT_PORT;
+  const parsed = raw ? Number.parseInt(raw, 10) : ENGINE_DEFAULT_PORT;
 
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_PORT;
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : ENGINE_DEFAULT_PORT;
 }
 
 export function getSidecarEnv(port: number): NodeJS.ProcessEnv {
@@ -60,7 +59,7 @@ export function findStageEngineManifest() {
 
 export async function fetchReadiness(port: number): Promise<ReadinessResponse | null> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), READINESS_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), ENGINE_READINESS_TIMEOUT_MS);
 
   try {
     const response = await fetch(`http://127.0.0.1:${port}/v1/readiness`, {
@@ -114,20 +113,28 @@ export async function fetchEngineJson<T>(args: {
     }
 
     return (await response.json()) as T;
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(
+        `Stage Engine request timed out after ${args.timeoutMs ?? ENGINE_REQUEST_TIMEOUT_MS}ms.`,
+      );
+    }
+
+    throw error;
   } finally {
     clearTimeout(timeout);
   }
 }
 
 export async function waitForReadiness(port: number) {
-  for (let attempt = 0; attempt < READINESS_ATTEMPTS; attempt += 1) {
+  for (let attempt = 0; attempt < ENGINE_READINESS_ATTEMPTS; attempt += 1) {
     const readiness = await fetchReadiness(port);
 
     if (readiness?.apiVersion === "v1" && readiness.ready) {
       return readiness;
     }
 
-    await delay(READINESS_INTERVAL_MS);
+    await delay(ENGINE_READINESS_INTERVAL_MS);
   }
 
   throw new Error(`Stage Engine did not become ready on port ${port}.`);

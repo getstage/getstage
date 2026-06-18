@@ -4,8 +4,6 @@ import { dirname } from "node:path";
 import type { EngineStatus } from "@shared/models/desktop";
 import { getPackagedStageEngineBinaryPath } from "./helpers/stage-engine-binary";
 import {
-  DEFAULT_PORT,
-  SHUTDOWN_TIMEOUT_MS,
   fetchReadiness,
   findStageEngineManifest,
   getSidecarEnv,
@@ -15,18 +13,20 @@ import {
   waitForExit,
   waitForReadiness,
 } from "./helpers/sidecar";
+import {
+  ENGINE_DEFAULT_PORT,
+  ENGINE_IDLE_SHUTDOWN_MS,
+  ENGINE_SHUTDOWN_TIMEOUT_MS,
+} from "./helpers/engine-constants";
 import { logDesktopDebug, logDesktopInfo, logDesktopWarn } from "./helpers/desktop-log";
 import { delay } from "./helpers/time";
-
-/** Stop spawned engine after this idle period once no engine IPC or active streams remain. */
-export const ENGINE_IDLE_SHUTDOWN_MS = 7 * 60 * 1000;
 
 export class SidecarSupervisor {
   private child: SidecarChildProcess | null = null;
   private status: EngineStatus = {
     adopted: false,
     pid: null,
-    port: DEFAULT_PORT,
+    port: ENGINE_DEFAULT_PORT,
     state: "idle",
   };
   private lastEngineActivityAt = 0;
@@ -207,7 +207,7 @@ export class SidecarSupervisor {
       child.kill("SIGTERM");
       const exited = await Promise.race([
         waitForExit(child).then(() => true),
-        delay(SHUTDOWN_TIMEOUT_MS).then(() => false),
+        delay(ENGINE_SHUTDOWN_TIMEOUT_MS).then(() => false),
       ]);
 
       if (!exited && child.exitCode === null && child.signalCode === null) {
@@ -253,7 +253,7 @@ export class SidecarSupervisor {
 
     const exited = await Promise.race([
       waitForExit(child).then(() => true),
-      delay(SHUTDOWN_TIMEOUT_MS).then(() => false),
+      delay(ENGINE_SHUTDOWN_TIMEOUT_MS).then(() => false),
     ]);
 
     if (!exited && child.exitCode === null && child.signalCode === null) {
