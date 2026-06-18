@@ -123,6 +123,8 @@ Required competitiveAnalysis matrix shape:
 
 targetUsers rules:
 - Exactly 2 personas max.
+- Every persona must include id, name, role, context, goals[], and frustrations[].
+- role: short job/decision role label, e.g. "Retail Operations Manager".
 - goals[] and frustrations[]: one short sentence each (max 15 words).
 - context: one short sentence (max 15 words).
 

@@ -17,6 +17,7 @@ import { useSaveResearchArtifact } from "@/hooks/project/research/useSaveResearc
 import { useResearchTab } from "@/hooks/project";
 import { applyResearchTabEdits } from "@/lib/project/applyResearchTabEdits";
 import { RESEARCH_RUN_FAILED_USER_MESSAGE } from "@/lib/engine/formatRunError";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 import { CompanySnapshot } from "./CompanySnapshot";
 import { CompetitiveAnalysis } from "./CompetitiveAnalysis";
@@ -103,9 +104,9 @@ export function ResearchTab({
       try {
         await clearForRerun({ projectId: project.id as Id<"projects"> });
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Could not clear research and strategy.";
-        setRunError(message);
+        setRunError(
+          toUserFacingErrorMessage(error, "Could not clear the previous Research and Strategy."),
+        );
         throw error;
       }
     }
@@ -113,12 +114,8 @@ export function ResearchTab({
     try {
       await research.startResearch(input, providerId);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : RESEARCH_RUN_FAILED_USER_MESSAGE;
-      if (!(error instanceof Error)) {
-        console.error("[stage-engine] research start failed", error);
-      }
-      setRunError(message);
+      console.error("[stage-engine] research start failed", error);
+      setRunError(toUserFacingErrorMessage(error, RESEARCH_RUN_FAILED_USER_MESSAGE));
     }
   }
 
@@ -181,7 +178,7 @@ export function ResearchTab({
         setSummaryDraft([]);
       }
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "Could not save research changes.");
+      setSaveError(toUserFacingErrorMessage(error, "Could not save your Research changes."));
       throw error;
     } finally {
       setIsSaving(false);

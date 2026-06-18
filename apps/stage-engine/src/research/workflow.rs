@@ -668,7 +668,10 @@ impl WorkflowError {
 fn user_message(error: &WorkflowError) -> String {
     match error {
         WorkflowError::InvalidRequest(message) => message.clone(),
-        WorkflowError::IncompleteArtifact(message) => message.clone(),
+        WorkflowError::IncompleteArtifact(_) => {
+            "Research finished but the result was incomplete. Please run Research again."
+                .to_string()
+        }
         WorkflowError::Provider(_) => {
             unreachable!("provider errors use ProviderProcessError::to_engine_error")
         }

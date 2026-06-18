@@ -208,15 +208,13 @@ fn normalize_target_users(object: &mut Map<String, Value>) {
         else {
             return false;
         };
-        let Some(role) = user_object
+        let role = user_object
             .get("role")
             .and_then(Value::as_str)
             .map(str::trim)
             .filter(|value| !value.is_empty())
             .map(str::to_string)
-        else {
-            return false;
-        };
+            .unwrap_or_else(|| name.clone());
         let dedupe_key = format!(
             "{}|{}",
             name.to_ascii_lowercase(),
@@ -983,6 +981,33 @@ mod tests {
                 .any(|value| value.as_str().unwrap().contains("Uses mobile"))
         );
         assert_eq!(object["openQuestions"][0], "Which EU markets?");
+    }
+
+    #[test]
+    fn preserves_target_users_without_role() {
+        let mut object = json!({
+            "targetUsers": [{
+                "id": "retail-ops-manager",
+                "name": "Retail Operations Manager",
+                "context": "Manages wholesale buyers, approvals, catalogs, and repeat orders.",
+                "goals": ["Approve qualified buyers without manual back-and-forth."],
+                "frustrations": ["Approval status is scattered across email and spreadsheets."]
+            }]
+        })
+        .as_object()
+        .unwrap()
+        .clone();
+
+        normalize_research_artifact_fields(&mut object, &sample_input());
+
+        assert_eq!(
+            object["targetUsers"][0]["name"],
+            "Retail Operations Manager"
+        );
+        assert_eq!(
+            object["targetUsers"][0]["role"],
+            "Retail Operations Manager"
+        );
     }
 
     #[test]

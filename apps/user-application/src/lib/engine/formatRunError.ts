@@ -32,6 +32,12 @@ function looksLikeProviderSessionLimit(text: string) {
   return /session limit|rate limit|usage limit|hit your session limit|resets \d/i.test(text);
 }
 
+function looksLikeTechnicalResearchFailure(text: string) {
+  return /Research artifact is incomplete|missing required section|competitiveAnalysis\.|Update on nonexistent document|already in progress for this project|Could not find public function/i.test(
+    text,
+  );
+}
+
 function looksLikeProviderAuthFailure(text: string) {
   if (looksLikeProviderSessionLimit(text)) {
     return false;
@@ -93,6 +99,17 @@ export function toEngineErrorUserMessage(
 
   if (error.code === "not_authenticated" || looksLikeProviderAuthFailure(text)) {
     return `${label} is not logged in. Run \`${loginCmd}\` in Terminal, then open Settings → Integrations and refresh.`;
+  }
+
+  if (looksLikeTechnicalResearchFailure(text)) {
+    return fallback;
+  }
+
+  if (error.code === "internal_error") {
+    if (error.message?.trim() && !looksLikeTechnicalResearchFailure(error.message)) {
+      return error.message;
+    }
+    return fallback;
   }
 
   if (isProviderSetupError(error) && error.message?.trim()) {
