@@ -50,8 +50,6 @@ export async function createArtifactRecord(
         completedAt: timestamp,
         updatedAt: timestamp,
       });
-    } else {
-      await ctx.db.delete(args.runId);
     }
   }
 
