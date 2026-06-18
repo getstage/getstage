@@ -208,6 +208,13 @@ impl ResearchWorkflow {
                 collect_with_timeout(provider_context, sink.clone(), cancel_rx.clone()).await?;
             let ProviderProcessOutcome::Completed(final_text) = outcome else {
                 tracing::info!(run_id = %run_id, "research provider run cancelled");
+                self.mark_research_cancelled(
+                    &auth_token,
+                    project_id,
+                    convex_run_id.as_deref(),
+                    &uploaded_research_asset_keys,
+                )
+                .await;
                 return Ok(());
             };
 
@@ -249,6 +256,20 @@ impl ResearchWorkflow {
                     Ok(CompetitiveRepairOutcome::Completed) => {}
                     Ok(CompetitiveRepairOutcome::Cancelled) => {
                         tracing::info!(run_id = %run_id, "competitive repair cancelled");
+                        self.mark_research_cancelled(
+                            &auth_token,
+                            project_id,
+                            convex_run_id.as_deref(),
+                            &uploaded_research_asset_keys,
+                        )
+                        .await;
+                        sink.send(RunEvent::RunCancelled {
+                            api_version,
+                            run_id: run_id.clone(),
+                            provider_id,
+                            created_at: now_millis(),
+                            reason: Some("Run cancelled by user.".to_string()),
+                        });
                         return Ok(());
                     }
                     Err(error) => {
@@ -368,6 +389,35 @@ impl ResearchWorkflow {
             .refero()
             .with_token(token)
             .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))
+    }
+
+    async fn mark_research_cancelled(
+        &self,
+        auth_token: &str,
+        project_id: &str,
+        convex_run_id: Option<&str>,
+        uploaded_research_asset_keys: &[String],
+    ) {
+        if let Err(error) = self
+            .repository
+            .fail_research_run(
+                auth_token,
+                project_id,
+                convex_run_id,
+                "Run cancelled by user.",
+            )
+            .await
+        {
+            tracing::warn!(%error, "failed to mark cancelled Convex research run failed");
+        }
+
+        if let Err(error) = self
+            .repository
+            .cleanup_research_asset_keys(auth_token, project_id, uploaded_research_asset_keys)
+            .await
+        {
+            tracing::warn!(%error, "failed to clean up cancelled research assets");
+        }
     }
 
     async fn repair_competitive_analysis_once(
