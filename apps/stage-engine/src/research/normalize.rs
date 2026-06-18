@@ -94,11 +94,12 @@ fn normalize_summary_array(items: Vec<Value>) -> Vec<String> {
 }
 
 fn normalize_company_snapshot(object: &mut Map<String, Value>) {
-    let snapshot = match object.remove("companySnapshot") {
+    let mut snapshot = match object.remove("companySnapshot") {
         Some(Value::Array(rows)) => normalize_company_snapshot_rows(rows),
         Some(Value::Object(map)) => company_snapshot_from_object(map),
         _ => vec![],
     };
+    sort_company_snapshot_rows(&mut snapshot);
 
     object.insert("companySnapshot".to_string(), json!(snapshot));
 }
@@ -128,8 +129,8 @@ fn company_snapshot_from_object(map: Map<String, Value>) -> Vec<Value> {
     let known_fields = [
         ("name", "Company"),
         ("company", "Company"),
-        ("website", "Website"),
         ("industry", "Industry"),
+        ("website", "Website"),
         ("description", "Description"),
         ("client", "Client"),
         ("clientName", "Client"),
@@ -182,6 +183,29 @@ fn company_snapshot_from_object(map: Map<String, Value>) -> Vec<Value> {
     }
 
     rows
+}
+
+fn sort_company_snapshot_rows(rows: &mut Vec<Value>) {
+    rows.sort_by_key(|row| {
+        row.get("label")
+            .and_then(Value::as_str)
+            .map(company_snapshot_label_rank)
+            .unwrap_or(usize::MAX)
+    });
+}
+
+fn company_snapshot_label_rank(label: &str) -> usize {
+    match label.trim().to_ascii_lowercase().as_str() {
+        "company" | "client" => 0,
+        "industry" => 1,
+        "product" | "project focus" | "primary product surface" => 2,
+        "target user" | "target users" | "audience" => 3,
+        "platform" => 4,
+        "stage" => 5,
+        "context" | "description" | "strategic context" => 6,
+        "website" => 7,
+        _ => 50,
+    }
 }
 
 fn normalize_target_users(object: &mut Map<String, Value>) {
@@ -822,6 +846,15 @@ mod tests {
                 .iter()
                 .any(|row| row["label"] == "Company" && row["value"] == "Shopify")
         );
+        let labels = object["companySnapshot"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|row| row["label"].as_str().unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(labels[0], "Company");
+        assert_eq!(labels[1], "Industry");
+        assert_eq!(labels[2], "Website");
     }
 
     #[test]

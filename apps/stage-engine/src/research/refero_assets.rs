@@ -76,7 +76,7 @@ fn build_ui_pattern_group(
     bucket: &ReferoCategorySearch,
     image_keys: &HashMap<String, String>,
 ) -> Value {
-    let recognized_patterns = collect_recognized_patterns(&bucket.references);
+    let recognized_patterns = collect_recognized_patterns(bucket.category, &bucket.references);
     let pattern_count_label = if recognized_patterns.is_empty() {
         None
     } else {
@@ -158,15 +158,116 @@ fn build_group_summary(
     ))
 }
 
-fn collect_recognized_patterns(references: &[ReferoReference]) -> Vec<String> {
+fn collect_recognized_patterns(
+    category: ReferoUiPatternCategory,
+    references: &[ReferoReference],
+) -> Vec<String> {
     let mut seen = HashSet::new();
-
-    references
+    let mut patterns = references
         .iter()
         .flat_map(|reference| reference.tags.iter())
-        .filter_map(|tag| seen.insert(tag.clone()).then(|| tag.clone()))
-        .take(3)
-        .collect()
+        .filter_map(|tag| normalize_pattern_label(tag))
+        .filter_map(|tag| {
+            let key = tag.to_ascii_lowercase();
+            seen.insert(key).then_some(tag)
+        })
+        .take(4)
+        .collect::<Vec<_>>();
+
+    for fallback in category_pattern_fallbacks(category) {
+        if patterns.len() >= 4 {
+            break;
+        }
+        if seen.insert(fallback.to_ascii_lowercase()) {
+            patterns.push(fallback.to_string());
+        }
+    }
+
+    patterns
+}
+
+fn normalize_pattern_label(label: &str) -> Option<String> {
+    let trimmed = label.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let lower = trimmed.to_ascii_lowercase();
+    if matches!(
+        lower.as_str(),
+        "homepage"
+            | "landing page"
+            | "pricing"
+            | "checkout"
+            | "dashboard"
+            | "onboarding"
+            | "web"
+            | "desktop"
+            | "mobile"
+            | "b2b"
+            | "e-commerce"
+            | "ecommerce"
+    ) {
+        return None;
+    }
+
+    Some(title_case_pattern(trimmed))
+}
+
+fn title_case_pattern(label: &str) -> String {
+    label
+        .split(|c: char| c == '_' || c == '-' || c.is_whitespace())
+        .filter(|part| !part.is_empty())
+        .map(|part| {
+            let mut chars = part.chars();
+            match chars.next() {
+                Some(first) => {
+                    format!(
+                        "{}{}",
+                        first.to_uppercase(),
+                        chars.as_str().to_ascii_lowercase()
+                    )
+                }
+                None => String::new(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn category_pattern_fallbacks(category: ReferoUiPatternCategory) -> &'static [&'static str] {
+    match category {
+        ReferoUiPatternCategory::Onboarding => &[
+            "Guided Setup Steps",
+            "Progressive Disclosure",
+            "Account Request Clarity",
+            "Checklist Based Progress",
+        ],
+        ReferoUiPatternCategory::Homepage => &[
+            "Outcome Led Hero",
+            "Segmented Navigation",
+            "Proof Near Primary CTA",
+            "Product Value Blocks",
+        ],
+        ReferoUiPatternCategory::Pricing => &[
+            "Plan Comparison Cards",
+            "Decision Support Near CTA",
+            "Transparent Package Hierarchy",
+            "Trust Cues Near Commitment",
+        ],
+        ReferoUiPatternCategory::Checkout => &[
+            "Mobile Order Review",
+            "Persistent Totals",
+            "Low Friction Payment Steps",
+            "Business Terms Visibility",
+        ],
+        ReferoUiPatternCategory::Dashboard => &[
+            "Task First Dashboard",
+            "Approval Queue Prominence",
+            "Operational Status Cards",
+            "Quick Action Header",
+        ],
+    }
 }
 
 async fn upload_reference_image(
@@ -317,7 +418,7 @@ mod tests {
     }
 
     #[test]
-    fn collect_recognized_patterns_dedupes_and_caps_at_three() {
+    fn collect_recognized_patterns_dedupes_and_caps_at_four() {
         let references = vec![
             sample_screen("uuid-a", ReferoUiPatternCategory::Onboarding, "Shopify"),
             ReferoReference {
@@ -332,11 +433,12 @@ mod tests {
         ];
 
         assert_eq!(
-            collect_recognized_patterns(&references),
+            collect_recognized_patterns(ReferoUiPatternCategory::Onboarding, &references),
             vec![
                 "Checklist".to_string(),
-                "Progressive disclosure".to_string(),
+                "Progressive Disclosure".to_string(),
                 "Wizard".to_string(),
+                "Stepper".to_string(),
             ]
         );
     }

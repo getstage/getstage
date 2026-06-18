@@ -28,8 +28,90 @@ function joinSentences(sentences: string[]) {
     .join(". ");
 }
 
-function mapRecognizedPatterns(patterns: string[]) {
-  return patterns.map((pattern) => [pattern, ""] as const);
+function companySnapshotRank(label: string) {
+  switch (label.trim().toLowerCase()) {
+    case "company":
+    case "client":
+      return 0;
+    case "industry":
+      return 1;
+    case "product":
+    case "project focus":
+    case "primary product surface":
+      return 2;
+    case "target user":
+    case "target users":
+    case "audience":
+      return 3;
+    case "platform":
+      return 4;
+    case "stage":
+      return 5;
+    case "context":
+    case "description":
+    case "strategic context":
+      return 6;
+    case "website":
+      return 7;
+    default:
+      return 50;
+  }
+}
+
+function sortCompanySnapshotRows(rows: ResearchArtifact["companySnapshot"]) {
+  return [...rows].sort((a, b) => companySnapshotRank(a.label) - companySnapshotRank(b.label));
+}
+
+function mapRecognizedPatterns(
+  patterns: string[],
+  group: ResearchArtifact["uiPatterns"][number],
+) {
+  const exampleProducts = Array.from(
+    new Set(
+      group.examples
+        .map((example) => example.sourceProduct?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ).slice(0, 2);
+  const sourceLabel =
+    exampleProducts.length > 0 ? ` in ${exampleProducts.join(" and ")} references` : " across the Refero references";
+
+  return patterns.map((pattern) => {
+    const body = patternBody(pattern, group.title, sourceLabel);
+    return [pattern, body] as const;
+  });
+}
+
+function patternBody(pattern: string, groupTitle: string, sourceLabel: string) {
+  const text = pattern.toLowerCase();
+  const category = groupTitle.toLowerCase();
+
+  if (text.includes("hero") || text.includes("headline") || text.includes("outcome")) {
+    return `Lead with the user outcome before feature detail${sourceLabel}.`;
+  }
+  if (text.includes("wizard") || text.includes("step") || text.includes("setup") || text.includes("guided")) {
+    return `Break setup into clear next actions so users always know what to do next${sourceLabel}.`;
+  }
+  if (text.includes("card") || text.includes("grid")) {
+    return `Use compact cards to make options and status easy to scan${sourceLabel}.`;
+  }
+  if (text.includes("approval") || text.includes("queue")) {
+    return `Surface approval work as a first-class workflow, not hidden admin detail${sourceLabel}.`;
+  }
+  if (text.includes("mobile") || text.includes("checkout") || text.includes("cart")) {
+    return `Keep review, totals, and submission visible for repeat mobile decisions${sourceLabel}.`;
+  }
+  if (text.includes("trust") || text.includes("proof") || text.includes("security")) {
+    return `Place reassurance close to high-intent actions${sourceLabel}.`;
+  }
+  if (text.includes("pricing") || text.includes("comparison") || text.includes("plan")) {
+    return `Compare choices in a structured layout before asking for commitment${sourceLabel}.`;
+  }
+  if (text.includes("navigation") || text.includes("segmented")) {
+    return `Separate entry points by user intent so people can self-route quickly${sourceLabel}.`;
+  }
+
+  return `Useful ${category} pattern detected from the Refero reference set.`;
 }
 
 export function mapResearchArtifactToTabData(artifact: ResearchArtifact): ResearchTabData {
@@ -68,7 +150,7 @@ export function mapResearchArtifactToTabData(artifact: ResearchArtifact): Resear
         return src && fullSrc ? { src, fullSrc } : null;
       })
       .filter((image): image is { src: string; fullSrc: string } => Boolean(image)),
-    recognizedPatterns: mapRecognizedPatterns(group.recognizedPatterns),
+    recognizedPatterns: mapRecognizedPatterns(group.recognizedPatterns, group),
   }));
 
   const targetUsers: ResearchTargetUser[] = artifact.targetUsers.map((user) => ({
@@ -89,7 +171,7 @@ export function mapResearchArtifactToTabData(artifact: ResearchArtifact): Resear
 
   return {
     summary: artifact.summary,
-    companySnapshot: artifact.companySnapshot.map((row) => [row.label, row.value] as const),
+    companySnapshot: sortCompanySnapshotRows(artifact.companySnapshot).map((row) => [row.label, row.value] as const),
     competitors,
     competitiveMatrixRows,
     uiPatternGroups,
