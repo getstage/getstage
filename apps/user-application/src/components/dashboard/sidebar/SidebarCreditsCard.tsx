@@ -15,14 +15,22 @@ type SidebarCreditsCardProps = {
   collapsed: boolean;
   onTopUp: () => void;
   onManagePlan: () => void;
+  creditsRemaining?: number;
+  creditLimit?: number;
+  creditUsedPercent?: number;
 };
 
 export function SidebarCreditsCard({
   collapsed,
   onTopUp,
   onManagePlan,
+  creditsRemaining = CREDIT_REMAINING,
+  creditLimit = CREDIT_LIMIT,
+  creditUsedPercent = CREDIT_USED_PERCENT,
 }: SidebarCreditsCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const isOutOfCredits = creditsRemaining <= 0;
+  const usedPercent = isOutOfCredits ? 100 : Math.min(100, Math.max(0, creditUsedPercent));
 
   if (collapsed) {
     return null;
@@ -81,21 +89,21 @@ export function SidebarCreditsCard({
           <div className="flex items-end justify-between gap-3">
             <div className="flex min-w-0 flex-col gap-[4px]">
               <p className="text-[16px] font-semibold leading-[1.2] tracking-[-0.16px] text-[#0A0A0A]">
-                {CREDIT_REMAINING.toLocaleString()}
+                {creditsRemaining.toLocaleString()}
               </p>
               <p className="truncate text-[12px] font-medium leading-[1.5] text-[#737373]">
-                of {CREDIT_LIMIT.toLocaleString()} credits
+                of {creditLimit.toLocaleString()} credits
               </p>
             </div>
             <p className="shrink-0 text-[11px] font-medium leading-[1.5] text-[#737373]">
-              {CREDIT_USED_PERCENT}% used
+              {usedPercent}% used
             </p>
           </div>
 
           <div className="h-[7px] w-full overflow-hidden rounded-[4px] bg-[#E5E5E5]">
             <div
               className="h-full rounded-[4px] bg-[#3B368E]"
-              style={{ width: `${CREDIT_USED_PERCENT}%` }}
+              style={{ width: `${usedPercent}%` }}
             />
           </div>
 
