@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProviderId } from "@stage/data-ops/contracts";
-import { useQuery } from "convex/react";
-import type { Id } from "@stage/data-ops/convex/data-model";
 import { useDesktopAuth } from "@/lib/auth";
-import { api } from "@/lib/convexApi";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
@@ -20,11 +17,6 @@ import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 
 const RESEARCH_PROMPT = "Generate project research from the current Stage project context.";
 const RESEARCH_RUN_MAX_MS = 45 * 60 * 1000;
-const RESEARCH_RUNNING_RUN_STALE_MS = 60 * 60 * 1000;
-
-function isFreshRunningRun(run: { status: string; startedAt: number }) {
-  return run.status === "running" && Date.now() - run.startedAt <= RESEARCH_RUNNING_RUN_STALE_MS;
-}
 
 export function useResearchRun(projectId: string) {
   const { isAuthenticated } = useDesktopAuth();
@@ -38,33 +30,16 @@ export function useResearchRun(projectId: string) {
   const [lastRunDurationSeconds, setLastRunDurationSeconds] = useState<number | null>(null);
   const runStartedAtRef = useRef<number | null>(null);
 
-  const runs = useQuery(
-    api.projectAi.listRuns,
-    isAuthenticated && projectId
-      ? { projectId: projectId as Id<"projects">, module: "research" }
-      : "skip",
-  );
-
   const activeRunId = providerRun.activeRunId;
   const activeRunEvents = providerRun.activeRunEvents;
   const hasTerminalEvent = providerRun.hasTerminalEvent;
   const resetActiveRun = providerRun.resetActiveRun;
 
-  const activeConvexRunningRun = useMemo(
-    () => runs?.find(isFreshRunningRun) ?? null,
-    [runs],
-  );
-
-  const convexResearchRunning = activeConvexRunningRun !== null;
-
   const isRunning = useMemo(
     () =>
       !runEnded &&
-      (providerRun.startRun.isPending ||
-        providerRun.isRunActive ||
-        convexResearchRunning),
+      (providerRun.startRun.isPending || providerRun.isRunActive),
     [
-      convexResearchRunning,
       providerRun.isRunActive,
       providerRun.startRun.isPending,
       runEnded,
@@ -113,19 +88,6 @@ export function useResearchRun(projectId: string) {
       setRunEnded(true);
     }
   }, [hasTerminalEvent, runEnded]);
-
-  useEffect(() => {
-    if (!activeConvexRunningRun) {
-      return;
-    }
-
-    runStartedAtRef.current = activeConvexRunningRun.startedAt;
-    setRunEnded(false);
-    setError(null);
-    setElapsedSeconds(
-      Math.max(0, Math.floor((Date.now() - activeConvexRunningRun.startedAt) / 1000)),
-    );
-  }, [activeConvexRunningRun]);
 
   useEffect(() => {
     if (!isRunning || runEnded || hasTerminalEvent) {
