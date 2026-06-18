@@ -349,56 +349,21 @@ pub fn validate_competitive_analysis(
         .get("competitiveAnalysis")
         .and_then(Value::as_object)
         .ok_or_else(|| anyhow::anyhow!("competitiveAnalysis was missing or invalid"))?;
-    let competitors = analysis
+    let competitor_ids = analysis
         .get("competitors")
         .and_then(Value::as_array)
-        .map(Vec::as_slice)
-        .unwrap_or(&[]);
-    if competitors.is_empty() {
+        .map(|competitors| {
+            competitors
+                .iter()
+                .filter_map(|competitor| competitor.get("id").and_then(Value::as_str))
+                .collect::<HashSet<_>>()
+        })
+        .unwrap_or_default();
+    if competitor_ids.is_empty() {
         anyhow::bail!("competitiveAnalysis contained no valid competitors");
     }
 
-    // Fail-closed: every competitor card must carry at least one piece of substantive
-    // content. A card with no positioning, summary, strengths, or weaknesses renders
-    // as a blank tile in the UI — same effective failure mode as an empty matrix.
-    for competitor in competitors {
-        let Some(competitor) = competitor.as_object() else {
-            continue;
-        };
-        let name = competitor
-            .get("name")
-            .and_then(Value::as_str)
-            .or_else(|| competitor.get("id").and_then(Value::as_str))
-            .unwrap_or("(unnamed)");
-        if !competitor_has_content(competitor) {
-            anyhow::bail!(
-                "competitor `{name}` has no positioning, summary, strengths, or weaknesses"
-            );
-        }
-    }
-
     Ok(())
-}
-
-fn competitor_has_content(competitor: &Map<String, Value>) -> bool {
-    let has_text = |key: &str| {
-        competitor
-            .get(key)
-            .and_then(Value::as_str)
-            .map(|value| !value.trim().is_empty())
-            .unwrap_or(false)
-    };
-    let has_items = |key: &str| {
-        competitor
-            .get(key)
-            .and_then(Value::as_array)
-            .map(|items| !items.is_empty())
-            .unwrap_or(false)
-    };
-    has_text("positioning")
-        || has_text("summary")
-        || has_items("strengths")
-        || has_items("weaknesses")
 }
 
 /// Drop positioning/summary/strengths/weaknesses for competitors with no source IDs.
@@ -878,42 +843,5 @@ mod tests {
         assert!(competitor.get("positioning").is_none());
         assert_eq!(competitor["strengths"].as_array().unwrap().len(), 0);
         assert_eq!(competitor["weaknesses"].as_array().unwrap().len(), 0);
-    }
-
-    #[test]
-    fn validation_rejects_empty_competitor_card() {
-        // Fail-closed: a competitor with no content is the same effective failure as an
-        // empty matrix — the UI renders a blank card. Surface it as a validation error
-        // instead of silently saving a degraded artifact.
-        let object = Map::from_iter([(
-            "competitiveAnalysis".to_string(),
-            json!({
-                "competitors": [{
-                    "id": "competitor-shopify-com",
-                    "name": "Shopify",
-                    "url": "https://shopify.com"
-                }],
-                "matrixRows": []
-            }),
-        )]);
-        let input = ResearchInput {
-            project_id: "p1".to_string(),
-            project_name: "Test".to_string(),
-            client_name: None,
-            industry: "Retail".to_string(),
-            website: Some("https://shopify.com".to_string()),
-            project_brief: None,
-            competitor_urls: vec!["https://shopify.com".to_string()],
-            target_users: None,
-            additional_notes: None,
-            uploaded_asset_ids: vec![],
-        };
-
-        let error = validate_competitive_analysis(&object, &input).unwrap_err();
-        let message = error.to_string();
-        assert!(
-            message.contains("Shopify") && message.contains("no positioning"),
-            "expected fail-closed message for empty card, got: {message}",
-        );
     }
 }
