@@ -343,9 +343,6 @@ pub fn validate_complete_research_artifact(
         if artifact.competitive_analysis.competitors.is_empty() {
             missing.push("competitiveAnalysis.competitors");
         }
-        if artifact.competitive_analysis.matrix_rows.is_empty() {
-            missing.push("competitiveAnalysis.matrixRows");
-        }
     }
 
     if missing.is_empty() {
@@ -477,6 +474,23 @@ mod tests {
 
         validate_complete_research_artifact(&artifact, &input)
             .expect("complete artifact should pass validation");
+    }
+
+    #[test]
+    fn validate_complete_research_artifact_accepts_empty_competitive_matrix() {
+        let input = sample_research_input();
+        let mut artifact = sample_research_artifact(json!([
+            {
+                "id": "opportunity-1",
+                "title": "Guided setup",
+                "description": "Guided setup can reduce competitor onboarding friction.",
+                "sourceSection": "competitiveAnalysis"
+            }
+        ]));
+        artifact.competitive_analysis.matrix_rows = vec![];
+
+        validate_complete_research_artifact(&artifact, &input)
+            .expect("matrix rows are best-effort and should not block saving research");
     }
 
     fn sample_research_input() -> ResearchInput {

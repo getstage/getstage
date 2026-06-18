@@ -29,6 +29,12 @@ use tokio::time::{Duration, timeout};
 
 const RESEARCH_PROVIDER_TIMEOUT: Duration = Duration::from_secs(300);
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum CompetitiveRepairOutcome {
+    Completed,
+    Cancelled,
+}
+
 #[derive(Clone, Debug)]
 pub struct ResearchWorkflow {
     repository: ResearchRepository,
@@ -229,7 +235,7 @@ impl ResearchWorkflow {
                     "research-competitive-repair",
                     "Repair incomplete competitive evidence",
                 );
-                if let Err(error) = self
+                match self
                     .repair_competitive_analysis_once(
                         api_version,
                         &run_id,
@@ -240,13 +246,20 @@ impl ResearchWorkflow {
                     )
                     .await
                 {
-                    tracing::error!(
-                        run_id = %run_id,
-                        project_id,
-                        %error,
-                        "competitive repair failed; failing research run"
-                    );
-                    return Err(error);
+                    Ok(CompetitiveRepairOutcome::Completed) => {}
+                    Ok(CompetitiveRepairOutcome::Cancelled) => {
+                        tracing::info!(run_id = %run_id, "competitive repair cancelled");
+                        return Ok(());
+                    }
+                    Err(error) => {
+                        tracing::error!(
+                            run_id = %run_id,
+                            project_id,
+                            %error,
+                            "competitive repair failed; failing research run"
+                        );
+                        return Err(error);
+                    }
                 }
                 self.tool_completed(
                     api_version,
@@ -365,7 +378,7 @@ impl ResearchWorkflow {
         input: &crate::models::research::ResearchInput,
         artifact: &mut serde_json::Value,
         cancel_rx: tokio::sync::watch::Receiver<bool>,
-    ) -> Result<(), WorkflowError> {
+    ) -> Result<CompetitiveRepairOutcome, WorkflowError> {
         let mut repair_request = request.clone();
         repair_request.prompt = build_competitive_repair_prompt(artifact, input);
         repair_request.context.source = Some("section:competitiveAnalysis".to_string());
@@ -379,12 +392,13 @@ impl ResearchWorkflow {
             cancel_rx,
         )
         .await?;
-        let ProviderProcessOutcome::Completed(final_text) = outcome else {
-            return Ok(());
+        let final_text = match outcome {
+            ProviderProcessOutcome::Completed(final_text) => final_text,
+            ProviderProcessOutcome::Cancelled => return Ok(CompetitiveRepairOutcome::Cancelled),
         };
         let response = extract_json_object(&final_text)?;
         let Some(object) = artifact.as_object_mut() else {
-            return Ok(());
+            return Ok(CompetitiveRepairOutcome::Completed);
         };
 
         if let Some(analysis) = response.get("competitiveAnalysis") {
@@ -408,7 +422,7 @@ impl ResearchWorkflow {
         crate::research::competitive::drop_unsourced_competitor_content(object);
         crate::research::competitive::append_competitive_quality_warnings(object, &report);
         crate::research::competitive::validate_competitive_analysis(object, input)?;
-        Ok(())
+        Ok(CompetitiveRepairOutcome::Completed)
     }
 
     async fn run_section_regenerate(
