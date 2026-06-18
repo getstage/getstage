@@ -12,6 +12,7 @@ import {
 import { useSidebarSearch } from "@/hooks/dashboard/useSidebarSearch";
 import { SidebarAccountMenu } from "./sidebar/SidebarAccountMenu";
 import { SidebarCollapseControl } from "./sidebar/SidebarCollapseControl";
+import { SidebarCreditsCard } from "./sidebar/SidebarCreditsCard";
 import { SidebarNavigation } from "./sidebar/SidebarNavigation";
 import { SidebarProjectList } from "./sidebar/SidebarProjectList";
 import { SidebarSearch } from "./sidebar/SidebarSearch";
@@ -43,10 +44,19 @@ export function StageSidebar({
   const activeProjectId = getActiveProjectId(pathname);
   const search = useSidebarSearch(projects, collapsed);
 
+  function openSubscriptions() {
+    sessionStorage.setItem("stage:subscriptions-back-label", "Back to dashboard");
+    void navigate({ to: "/subscriptions" });
+  }
+
+  function openBilling() {
+    void navigate({ to: "/settings/billing" });
+  }
+
   return (
     <nav
       className={cn(
-        "stage-sidebar relative flex h-full min-h-0 shrink-0 flex-col rounded-[8px] bg-[#f5f5f5] pb-[clamp(8px,2vh,16px)] pt-[clamp(8px,2vh,14px)] transition-[width,padding] duration-200 ease-out",
+        "stage-sidebar relative flex h-full min-h-0 shrink-0 flex-col overflow-y-auto overflow-x-hidden overscroll-contain rounded-[8px] bg-[#f5f5f5] pb-[clamp(8px,2vh,16px)] pt-[clamp(8px,2vh,14px)] transition-[width,padding] duration-200 ease-out [-webkit-overflow-scrolling:touch]",
         collapsed ? "w-[60px] items-center px-[14px]" : "w-[240px] px-[12px]",
       )}
     >
@@ -57,53 +67,61 @@ export function StageSidebar({
           onCollapsedChange={onCollapsedChange}
         />
 
-        <div className={cn("sidebar-scroll-area flex min-h-0 w-full flex-1 flex-col gap-[clamp(14px,4vh,28px)] overflow-y-auto overflow-x-hidden overscroll-contain pr-[2px] [-webkit-overflow-scrolling:touch]", collapsed && "w-[40px] items-center px-[4px] pr-[4px]")}>
-          <div className={cn("flex w-full shrink-0 flex-col gap-[clamp(10px,2.5vh,16px)]", collapsed && "items-center")}>
-            <SidebarSearch
-              collapsed={collapsed}
-              canExpand={canExpand}
-              searchQuery={search.searchQuery}
-              matchingProjects={search.matchingProjects}
-              compactSearchProjects={search.compactSearchProjects}
-              normalizedSearchQuery={search.normalizedSearchQuery}
-              showSearchPreview={search.showSearchPreview}
-              isCompactSearchOpen={search.isCompactSearchOpen}
-              onSearchQueryChange={search.setSearchQuery}
-              onSearchFocusedChange={search.setIsSearchFocused}
-              onCompactSearchOpenChange={search.setIsCompactSearchOpen}
-              onCollapsedChange={onCollapsedChange}
-              onOpenProject={(projectId) => openSidebarProject(navigate, search.resetSearch, projectId)}
-              onViewAllProjects={() => viewAllSidebarProjects(navigate, search.resetSearch)}
-            />
-
-            <SidebarNavigation
-              collapsed={collapsed}
-              pathname={pathname}
-              onNavigate={(routeKey) => navigateSidebarRoute(navigate, routeKey)}
-            />
-          </div>
-
-          <SidebarProjectList
+        <div className={cn("flex w-full shrink-0 flex-col gap-[clamp(10px,2.5vh,16px)]", collapsed && "items-center")}>
+          <SidebarSearch
             collapsed={collapsed}
-            projects={projects}
-            activeProjectId={activeProjectId}
+            canExpand={canExpand}
+            searchQuery={search.searchQuery}
+            matchingProjects={search.matchingProjects}
+            compactSearchProjects={search.compactSearchProjects}
+            normalizedSearchQuery={search.normalizedSearchQuery}
+            showSearchPreview={search.showSearchPreview}
+            isCompactSearchOpen={search.isCompactSearchOpen}
+            onSearchQueryChange={search.setSearchQuery}
+            onSearchFocusedChange={search.setIsSearchFocused}
+            onCompactSearchOpenChange={search.setIsCompactSearchOpen}
+            onCollapsedChange={onCollapsedChange}
             onOpenProject={(projectId) => openSidebarProject(navigate, search.resetSearch, projectId)}
-            onCreateProject={() => openSidebarCreateProject(navigate)}
+            onViewAllProjects={() => viewAllSidebarProjects(navigate, search.resetSearch)}
+          />
+
+          <SidebarNavigation
+            collapsed={collapsed}
+            pathname={pathname}
+            onNavigate={(routeKey) => navigateSidebarRoute(navigate, routeKey)}
           />
         </div>
+
+        <SidebarProjectList
+          collapsed={collapsed}
+          projects={projects}
+          activeProjectId={activeProjectId}
+          onOpenProject={(projectId) => openSidebarProject(navigate, search.resetSearch, projectId)}
+          onCreateProject={() => openSidebarCreateProject(navigate)}
+        />
       </div>
 
-      <SidebarAccountMenu
-        collapsed={collapsed}
-        canExpand={canExpand}
-        accountInitials={accountInitials}
-        accountLabel={accountLabel}
-        accountAvatarUrl={accountAvatarUrl}
-        accountMeta={accountMeta}
-        onCollapsedChange={onCollapsedChange}
-        onOpenSettings={() => openSidebarSettings(navigate)}
-        onLogOut={() => logoutFromSidebar(navigate, () => desktop.auth.logout())}
-      />
+      <div className={cn("mt-auto flex w-full shrink-0 flex-col gap-[clamp(8px,2vh,16px)] pt-[clamp(8px,2vh,16px)]", collapsed && "items-center")}>
+        <SidebarCreditsCard
+          collapsed={collapsed}
+          onTopUp={openSubscriptions}
+          onManagePlan={openBilling}
+        />
+
+        {!collapsed ? <div className="h-px w-full shrink-0 bg-[#E5E5E5]" /> : null}
+
+        <SidebarAccountMenu
+          collapsed={collapsed}
+          canExpand={canExpand}
+          accountInitials={accountInitials}
+          accountLabel={accountLabel}
+          accountAvatarUrl={accountAvatarUrl}
+          accountMeta={accountMeta}
+          onCollapsedChange={onCollapsedChange}
+          onOpenSettings={() => openSidebarSettings(navigate)}
+          onLogOut={() => logoutFromSidebar(navigate, () => desktop.auth.logout())}
+        />
+      </div>
     </nav>
   );
 }
