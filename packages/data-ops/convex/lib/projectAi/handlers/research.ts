@@ -52,7 +52,17 @@ export async function createResearchRunHandler(
       };
     }
 
-    throw new Error("A research run is already in progress for this project.");
+    if (externalRunId) {
+      const timestamp = now();
+      await ctx.db.patch(existingRunning._id, {
+        status: "failed",
+        errorMessage: "Run was replaced after Stage restarted before a final status.",
+        completedAt: timestamp,
+        updatedAt: timestamp,
+      });
+    } else {
+      throw new Error("A research run is already in progress for this project.");
+    }
   }
 
   await deletePreviousResearchArtifacts(ctx, args.projectId);
