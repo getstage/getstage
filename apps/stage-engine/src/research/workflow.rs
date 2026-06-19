@@ -451,6 +451,7 @@ impl ResearchWorkflow {
             return Ok(CompetitiveRepairOutcome::Completed);
         };
 
+        let updated_competitive = response.get("competitiveAnalysis").is_some();
         if let Some(analysis) = response.get("competitiveAnalysis") {
             object.insert("competitiveAnalysis".to_string(), analysis.clone());
         }
@@ -469,7 +470,9 @@ impl ResearchWorkflow {
         crate::research::normalize::normalize_research_artifact_fields(object, input);
         filter_competitive_analysis(object, input);
         let report = crate::research::competitive::repair_competitive_analysis(object, input);
-        crate::research::competitive::drop_unsourced_competitor_content(object);
+        if updated_competitive {
+            crate::research::competitive::drop_unsourced_competitor_content(object);
+        }
         crate::research::competitive::append_competitive_quality_warnings(object, &report);
         crate::research::competitive::validate_competitive_analysis(object, input)?;
         Ok(CompetitiveRepairOutcome::Completed)
