@@ -1,16 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAction } from "convex/react";
 import { useDesktopSession } from "@/hooks/engine/useDesktopSession";
 import { useDesktopUpdate } from "@/hooks/useDesktopUpdate";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
+import { useStageWidgetVisibility } from "@/hooks/companion/useStageWidgetVisibility";
 import { api } from "@/lib/convexApi";
 import { CANCELLATION_FORM_URL } from "@/lib/settings/accountConstants";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 import { DeleteAccountDialog } from "./DeleteAccountDialog";
 import { SettingsCard, SettingsRow } from "./SettingsPrimitives";
 import { cn } from "@/lib/utils";
-
-const ALLOW_STAGE_WIDGET_EVERYWHERE_KEY = "stage:allow-widget-everywhere";
 
 export function AccountPanel() {
   const desktop = useDesktopBridge();
@@ -24,19 +23,12 @@ export function AccountPanel() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
-  const [allowStageWidgetEverywhere, setAllowStageWidgetEverywhere] = useState(true);
+  const { enabled: allowStageWidgetEverywhere, setEnabled: setAllowStageWidgetEverywhere } =
+    useStageWidgetVisibility();
   const desktopSession = session.data ?? null;
-
-  useEffect(() => {
-    const savedValue = window.localStorage.getItem(ALLOW_STAGE_WIDGET_EVERYWHERE_KEY);
-    if (savedValue !== null) {
-      setAllowStageWidgetEverywhere(savedValue === "true");
-    }
-  }, []);
 
   function updateAllowStageWidgetEverywhere(nextValue: boolean) {
     setAllowStageWidgetEverywhere(nextValue);
-    window.localStorage.setItem(ALLOW_STAGE_WIDGET_EVERYWHERE_KEY, String(nextValue));
   }
 
   async function openDesktopLogin() {
