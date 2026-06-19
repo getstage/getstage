@@ -73,9 +73,13 @@ function configureAutoUpdaterFeed() {
     return;
   }
 
-  logUpdateWarning(
-    "No STAGE_DESKTOP_UPDATES_URL or STAGE_UPDATE_GITHUB_TOKEN — update checks may fail on a private repo.",
-  );
+  autoUpdater.setFeedURL({
+    provider: "github",
+    owner: GITHUB_OWNER,
+    repo: GITHUB_REPO,
+    private: false,
+  });
+  logUpdate("using public GitHub releases feed");
   feedConfigured = true;
 }
 
