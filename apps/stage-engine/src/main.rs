@@ -1,4 +1,5 @@
 mod app;
+mod chat;
 mod config;
 mod convex_store;
 mod exports;

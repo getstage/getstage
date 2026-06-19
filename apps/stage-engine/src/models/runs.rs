@@ -76,6 +76,7 @@ pub struct RunAttachment {
     pub name: Option<String>,
     pub url: Option<String>,
     pub mime_type: Option<String>,
+    pub local_path: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

@@ -165,6 +165,57 @@ export async function listProjectsHandler(ctx: QueryCtx) {
   return Promise.all(sortedProjects.map((project) => buildApiProjectSummary(project)));
 }
 
+export const searchProjectsForChatArgs = {
+  search: v.string(),
+  limit: v.optional(v.number()),
+};
+export const searchProjectsForChatReturns = v.array(v.object({
+  projectId: v.string(),
+  projectName: v.string(),
+  clientName: v.string(),
+  status: projectStatusValidator,
+  updatedAt: v.number(),
+}));
+
+export async function searchProjectsForChatHandler(
+  ctx: QueryCtx,
+  args: { search: string; limit?: number },
+) {
+  const user = await requireAuthUser(ctx);
+  const limit = Math.max(1, Math.min(args.limit ?? 10, 200));
+  const search = args.search.trim().toLocaleLowerCase();
+  const projects = await ctx.db
+    .query("projects")
+    .withIndex("by_user_updatedAt", (q) => q.eq("userId", user._id))
+    .order("desc")
+    .take(200);
+  const matches = projects
+    .filter((project) => {
+      if (!search) return true;
+      return project.name.toLocaleLowerCase().includes(search) ||
+        project.clientName.toLocaleLowerCase().includes(search);
+    })
+    .sort((left, right) => {
+      if (!search) return right.updatedAt - left.updatedAt;
+      const leftName = left.name.toLocaleLowerCase();
+      const rightName = right.name.toLocaleLowerCase();
+      const leftClient = left.clientName.toLocaleLowerCase();
+      const rightClient = right.clientName.toLocaleLowerCase();
+      const leftRank = leftName.startsWith(search) ? 0 : leftClient.startsWith(search) ? 1 : 2;
+      const rightRank = rightName.startsWith(search) ? 0 : rightClient.startsWith(search) ? 1 : 2;
+      return leftRank - rightRank || right.updatedAt - left.updatedAt;
+    })
+    .slice(0, limit);
+
+  return matches.map((project) => ({
+    projectId: String(project._id),
+    projectName: project.name,
+    clientName: project.clientName,
+    status: project.status,
+    updatedAt: project.updatedAt,
+  }));
+}
+
 export const getProjectArgs = {
   projectId: v.string(),
 };

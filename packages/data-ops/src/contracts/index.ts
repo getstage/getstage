@@ -12,6 +12,7 @@ export * from "./figma-export";
 export * from "./delivery-export";
 export * from "./wireframes";
 export * from "./assets";
+export * from "./chat-context";
 export * from "./moodboard";
 export * from "./research";
 export * from "./strategy";

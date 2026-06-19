@@ -25,7 +25,6 @@ export function VoiceControlBar({ state, onStateChange }: VoiceControlBarProps) 
   });
   const isProcessing = voice.isTranscribing || state === "processing";
   const isChatOpen = state === "thinking" || state === "response";
-  const isCompanionWindow = new URLSearchParams(window.location.search).get("stageWindow") === "companion";
   const waveformLevels = voice.waveformLevels.length > 0
     ? voice.waveformLevels.slice(-5)
     : [0.7, 0.36, 0.54, 0.86, 0.7];
@@ -54,26 +53,32 @@ export function VoiceControlBar({ state, onStateChange }: VoiceControlBarProps) 
       <div
         className={`voice-control-bar ${showExpandedChrome ? "voice-control-bar-active" : "voice-control-bar-idle"}`}
         data-state={voice.status === "failed" ? "error" : isProcessing ? "processing" : voice.isRecording ? "recording" : state}
-        onMouseEnter={() => {
-          if (!isCompanionWindow && state === "idle") void onStateChange("listening");
-        }}
-        onMouseLeave={() => {
-          if (openingChatRef.current || isCompanionWindow || isBarPinned || state !== "listening") {
-            return;
-          }
-          void onStateChange("idle");
-        }}
-        onFocus={() => {
-          if (!isCompanionWindow && state === "idle") void onStateChange("listening");
-        }}
       >
       {state === "idle" && !isBarPinned ? (
-        <button
-          className="voice-idle-hit-area"
-          type="button"
-          aria-label="Open Stage voice control"
-          onClick={() => void onStateChange("listening")}
-        />
+        <>
+          <button
+            className="voice-choice-button voice-choice-button-primary"
+            type="button"
+            aria-label="Open Stage voice control"
+            onClick={() => void voice.start()}
+          >
+            <img src="/logos/voice.svg" alt="" aria-hidden="true" />
+          </button>
+          <button
+            className="voice-choice-button voice-choice-button-secondary"
+            type="button"
+            aria-label="Open Stage chat"
+            onPointerDown={() => {
+              openingChatRef.current = true;
+            }}
+            onClick={() => {
+              openingChatRef.current = true;
+              void onStateChange("thinking");
+            }}
+          >
+            <img src="/logos/chat.svg" alt="" aria-hidden="true" />
+          </button>
+        </>
       ) : (
         <>
           <button
@@ -130,7 +135,7 @@ export function VoiceControlBar({ state, onStateChange }: VoiceControlBarProps) 
             className="voice-record-button"
             type="button"
             onClick={() => void voice.stopAndTranscribe()}
-            aria-label={voice.isRecording ? "Submit voice input" : "Start voice input"}
+            aria-label={voice.isRecording ? "Submit voice input" : "Stop and submit voice input"}
             disabled={isProcessing}
             title={voice.error ?? undefined}
           >

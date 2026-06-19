@@ -7,6 +7,12 @@ export const listProjects = query({
   handler: handlers.listProjectsHandler,
 });
 
+export const searchProjectsForChat = query({
+  args: handlers.searchProjectsForChatArgs,
+  returns: handlers.searchProjectsForChatReturns,
+  handler: handlers.searchProjectsForChatHandler,
+});
+
 export const getProject = query({
   args: handlers.getProjectArgs,
   returns: handlers.getProjectReturns,

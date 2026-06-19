@@ -74,7 +74,7 @@ export function SidebarAccountMenu({
   return (
     <div
       ref={userMenuRef}
-      className={cn("relative mt-[clamp(8px,2vh,16px)] flex w-full shrink-0 flex-col gap-[clamp(4px,1.5vh,8px)]", collapsed && "items-center")}
+      className={cn("relative flex w-full shrink-0 flex-col gap-[clamp(4px,1.5vh,8px)]", collapsed && "items-center")}
     >
       <button
         type="button"

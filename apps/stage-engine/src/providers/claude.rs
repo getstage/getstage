@@ -58,25 +58,40 @@ pub async fn run_claude_collect(
 }
 
 fn claude_args(context: &ProviderRunContext) -> Vec<String> {
-    let tools = if research_web_tools_enabled(context) {
-        "WebSearch,WebFetch"
-    } else {
-        ""
-    };
+    let allowed_reads = context
+        .request
+        .attachments
+        .iter()
+        .filter_map(|attachment| attachment.local_path.as_ref())
+        .map(|path| format!("Read({path})"))
+        .collect::<Vec<_>>();
+    let mut tools = Vec::new();
+    let mut allowed_tools = Vec::new();
+    if research_web_tools_enabled(context) {
+        tools.extend(["WebSearch", "WebFetch"]);
+        allowed_tools.extend(["WebSearch".to_string(), "WebFetch".to_string()]);
+    }
+    if !allowed_reads.is_empty() {
+        tools.push("Read");
+        allowed_tools.extend(allowed_reads);
+    }
+
     let mut args = vec![
         "--print".to_string(),
         "--output-format".to_string(),
         "text".to_string(),
         "--no-session-persistence".to_string(),
         "--tools".to_string(),
-        tools.to_string(),
+        tools.join(","),
+        "--permission-mode".to_string(),
+        "dontAsk".to_string(),
         "--model".to_string(),
         claude_model_id(&context.request.model_id).to_string(),
     ];
 
-    if !tools.is_empty() {
+    if !allowed_tools.is_empty() {
         args.push("--allowedTools".to_string());
-        args.push(tools.to_string());
+        args.push(allowed_tools.join(","));
     }
 
     apply_claude_run_options(&mut args, &context.request.model_options);
@@ -104,7 +119,7 @@ fn claude_model_id(model_id: &str) -> &str {
 mod tests {
     use super::{claude_args, claude_model_id};
     use crate::models::providers::ProviderId;
-    use crate::models::runs::{RunMode, StartRunRequest};
+    use crate::models::runs::{RunAttachment, RunAttachmentKind, RunMode, StartRunRequest};
     use crate::providers::adapter::ProviderRunContext;
 
     fn sample_context(prompt: &str) -> ProviderRunContext {
@@ -165,5 +180,26 @@ mod tests {
         let tools_index = args.iter().position(|arg| arg == "--tools").unwrap();
         assert_eq!(args[tools_index + 1], "");
         assert!(!args.contains(&"--allowedTools".to_string()));
+    }
+
+    #[test]
+    fn claude_args_allows_read_for_explicit_attachments() {
+        let mut context = sample_context("Critique this layout.");
+        context.request.mode = RunMode::Critique;
+        context.request.attachments.push(RunAttachment {
+            id: "image-1".to_string(),
+            kind: RunAttachmentKind::Image,
+            name: Some("layout.png".to_string()),
+            url: None,
+            mime_type: Some("image/png".to_string()),
+            local_path: Some("/tmp/layout.png".to_string()),
+        });
+
+        let args = claude_args(&context);
+        assert!(args.windows(2).any(|pair| pair == ["--tools", "Read"]));
+        assert!(
+            args.windows(2)
+                .any(|pair| pair == ["--allowedTools", "Read(/tmp/layout.png)"])
+        );
     }
 }

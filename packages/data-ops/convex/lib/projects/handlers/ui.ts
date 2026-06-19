@@ -13,7 +13,7 @@ import {
   upsertClient,
 } from "../../../_helpers";
 import { buildProject, buildProjectWithAccess, recomputeProjectState } from "../../../domain/projects/readModel";
-import { createProjectForUser } from "../domain/projectService";
+import { buildProjectSearchText, createProjectForUser } from "../domain/projectService";
 import { deleteProjectWithDependents } from "../domain/delete";
 import { now } from "../../../helpers/time";
 import {
@@ -190,6 +190,13 @@ export async function updateHandler(
 
   if (nextName !== undefined) changed("name", nextName, project.name);
   if (nextClientName !== undefined) changed("clientName", nextClientName, project.clientName);
+  if (nextName !== undefined || nextClientName !== undefined) {
+    changed(
+      "searchText",
+      buildProjectSearchText(nextName ?? project.name, nextClientName ?? project.clientName),
+      project.searchText,
+    );
+  }
   if (clientEmailArg.provided) changed("clientEmail", clientEmailArg.value, project.clientEmail);
   changed("clientAvatarUrl", resolvedClientAvatarUrl, project.clientAvatarUrl);
   if (projectImage.provided) {

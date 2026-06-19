@@ -88,6 +88,13 @@ fn codex_args(context: &ProviderRunContext) -> Vec<String> {
         args.push(model_id);
     }
 
+    for attachment in &context.request.attachments {
+        if let Some(local_path) = attachment.local_path.as_ref() {
+            args.push("--image".to_string());
+            args.push(local_path.clone());
+        }
+    }
+
     args
 }
 
@@ -110,7 +117,7 @@ fn codex_model_id(model_id: &str) -> Option<&str> {
 mod tests {
     use super::{codex_args, codex_model_id};
     use crate::models::providers::ProviderId;
-    use crate::models::runs::{RunMode, StartRunRequest};
+    use crate::models::runs::{RunAttachment, RunAttachmentKind, RunMode, StartRunRequest};
     use crate::providers::adapter::ProviderRunContext;
 
     fn sample_context() -> ProviderRunContext {
@@ -134,6 +141,25 @@ mod tests {
     fn codex_args_includes_skip_git_repo_check_for_desktop_runs() {
         let args = codex_args(&sample_context());
         assert!(args.iter().any(|arg| arg == "--skip-git-repo-check"));
+    }
+
+    #[test]
+    fn codex_args_includes_local_images() {
+        let mut context = sample_context();
+        context.request.attachments.push(RunAttachment {
+            id: "image-1".to_string(),
+            kind: RunAttachmentKind::Image,
+            name: Some("layout.png".to_string()),
+            url: None,
+            mime_type: Some("image/png".to_string()),
+            local_path: Some("/tmp/layout.png".to_string()),
+        });
+
+        let args = codex_args(&context);
+        assert!(
+            args.windows(2)
+                .any(|pair| pair == ["--image", "/tmp/layout.png"])
+        );
     }
 
     #[test]

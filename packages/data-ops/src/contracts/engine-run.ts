@@ -56,6 +56,7 @@ export const startRunRequestSchema = z.object({
     name: z.string().min(1).optional(),
     url: z.string().url().optional(),
     mimeType: z.string().min(1).optional(),
+    localPath: z.string().min(1).optional(),
   })).default([]),
 });
 
