@@ -79,6 +79,10 @@ function getDesktopLogFilePath() {
   return cachedLogFilePath;
 }
 
+export function getDesktopLogFilePathForUser() {
+  return getDesktopLogFilePath();
+}
+
 function appendDesktopLogLine(level: ConsoleMethod, args: unknown[]) {
   if (hasDisabledFileSink) {
     return;
