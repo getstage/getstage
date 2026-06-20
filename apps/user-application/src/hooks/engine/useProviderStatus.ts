@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   ProviderId,
@@ -79,6 +79,28 @@ export function useProviderUpdate() {
       void queryClient.invalidateQueries({ queryKey: engineQueryKeys.providers() });
     },
   });
+}
+
+export function useProviderUpdates() {
+  const { providerList } = useProviderStatus();
+  const providerUpdate = useProviderUpdate();
+
+  const providersWithUpdates = useMemo(
+    () => providerList.providers.filter((provider) => provider.updateAvailable === true),
+    [providerList.providers],
+  );
+
+  const updateAll = useCallback(async () => {
+    for (const provider of providersWithUpdates) {
+      await providerUpdate.mutateAsync(provider.id);
+    }
+  }, [providersWithUpdates, providerUpdate]);
+
+  return {
+    providersWithUpdates,
+    isUpdating: providerUpdate.isPending,
+    updateAll,
+  };
 }
 
 export function useProviderRefresh() {
