@@ -26,6 +26,7 @@ import {
   chatAttachmentTargetSchema,
   importChatImageBytesRequestSchema,
   companionStateSchema,
+  companionWidgetSettingsSchema,
   desktopSessionSchema,
   engineStatusSchema,
   permissionKindSchema,
@@ -46,6 +47,10 @@ import {
   openPermissionSystemSettings,
   requestMicrophoneAccess,
 } from "./helpers/permissions";
+import {
+  getCompanionWidgetSettings,
+  saveCompanionWidgetSettings,
+} from "./helpers/companion-preferences";
 import { fetchEngineJsonAuthed } from "./helpers/engine-request";
 import { logDesktopDebug, logDesktopInfo } from "./helpers/desktop-log";
 import { fetchEngineJson } from "./helpers/sidecar";
@@ -362,6 +367,21 @@ export function registerIpcHandlers({
 
     setCompanionWindowInteractive(interactive);
     return { ok: true };
+  });
+
+  ipcMain.handle(IPC_CHANNELS.companionGetWidgetSettings, () => {
+    return companionWidgetSettingsSchema.parse(getCompanionWidgetSettings());
+  });
+
+  ipcMain.handle(IPC_CHANNELS.companionSetWidgetSettings, async (_event, settings: unknown) => {
+    const parsedSettings = companionWidgetSettingsSchema.parse(settings);
+    const savedSettings = await saveCompanionWidgetSettings(parsedSettings);
+
+    if (!savedSettings.allowEverywhere) {
+      closeCompanionWindow();
+    }
+
+    return savedSettings;
   });
 
   ipcMain.handle(IPC_CHANNELS.windowToggleMaximize, (event) => {

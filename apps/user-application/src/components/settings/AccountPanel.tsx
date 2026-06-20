@@ -90,6 +90,25 @@ export function AccountPanel() {
 
   return (
     <div className="flex flex-col gap-[22px]">
+      <SettingsCard>
+        <SettingsRow className="px-[20px] py-[18px]">
+          <div className="flex items-center justify-between gap-[20px]">
+            <div className="min-w-0">
+              <h2 className="text-[15px] font-semibold leading-none text-[#171717]">
+                Allow Stage widget everywhere
+              </h2>
+              <p className="mt-[6px] text-[12px] font-normal leading-[1.5] text-[#525252]">
+                Manage where you want to see your widget.
+              </p>
+            </div>
+            <StageWidgetToggle
+              checked={allowStageWidgetEverywhere}
+              onCheckedChange={updateAllowStageWidgetEverywhere}
+            />
+          </div>
+        </SettingsRow>
+      </SettingsCard>
+
       {isDesktop ? (
         <SettingsCard title="Desktop app">
           <SettingsRow>
@@ -134,25 +153,6 @@ export function AccountPanel() {
             >
               {desktopSession?.hasAccessToken ? "Refresh session" : "Log in with Stage"}
             </button>
-          </div>
-        </SettingsRow>
-      </SettingsCard>
-
-      <SettingsCard>
-        <SettingsRow className="px-[20px] py-[18px]">
-          <div className="flex items-center justify-between gap-[20px]">
-            <div className="min-w-0">
-              <h2 className="text-[15px] font-semibold leading-none text-[#171717]">
-                Allow Stage widget everywhere
-              </h2>
-              <p className="mt-[6px] text-[12px] font-normal leading-[1.5] text-[#525252]">
-                Manage where you want to see your widget.
-              </p>
-            </div>
-            <StageWidgetToggle
-              checked={allowStageWidgetEverywhere}
-              onCheckedChange={updateAllowStageWidgetEverywhere}
-            />
           </div>
         </SettingsRow>
       </SettingsCard>

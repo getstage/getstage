@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import type {
   CompanionState,
+  CompanionWidgetSettings,
   DesktopSession,
   DesktopShortcutSettings,
   DesktopShortcutSettingsResult,
@@ -85,6 +86,10 @@ const stageDesktop = {
       ipcRenderer.invoke(IPC_CHANNELS.companionSetState, state),
     setInteractive: (interactive: boolean) =>
       ipcRenderer.invoke(IPC_CHANNELS.companionSetInteractive, interactive),
+    getWidgetSettings: (): Promise<CompanionWidgetSettings> =>
+      ipcRenderer.invoke(IPC_CHANNELS.companionGetWidgetSettings),
+    setWidgetSettings: (settings: CompanionWidgetSettings): Promise<CompanionWidgetSettings> =>
+      ipcRenderer.invoke(IPC_CHANNELS.companionSetWidgetSettings, settings),
   },
   voice: {
     getStatus: (providerPreferences?: { claude: boolean; codex: boolean }) =>

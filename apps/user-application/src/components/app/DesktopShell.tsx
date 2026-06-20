@@ -28,7 +28,7 @@ const SHORTCUT_DEBOUNCE_MS = 400;
 
 export function DesktopShell({ children, hideCompanion = false }: DesktopShellProps) {
   const isCompanionWindow = new URLSearchParams(window.location.search).get("stageWindow") === "companion";
-  const companion = useCompanionState(isCompanionWindow ? "listening" : "idle");
+  const companion = useCompanionState("idle");
   const { enabled: allowStageWidgetEverywhere } = useStageWidgetVisibility();
   const companionStateRef = useRef(companion.state);
   companionStateRef.current = companion.state;

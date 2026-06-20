@@ -109,6 +109,14 @@ export const companionStateSchema = z.enum([
   "error",
 ]);
 
+export const companionWidgetSettingsSchema = z.object({
+  allowEverywhere: z.boolean(),
+});
+
+export const DEFAULT_COMPANION_WIDGET_SETTINGS = {
+  allowEverywhere: true,
+} satisfies z.infer<typeof companionWidgetSettingsSchema>;
+
 export const engineStatusStateSchema = z.enum([
   "idle",
   "starting",
@@ -197,6 +205,7 @@ export type PermissionKind = z.infer<typeof permissionKindSchema>;
 export type PermissionState = z.infer<typeof permissionStateSchema>;
 export type DesktopPermissionStatus = z.infer<typeof desktopPermissionStatusSchema>;
 export type CompanionState = z.infer<typeof companionStateSchema>;
+export type CompanionWidgetSettings = z.infer<typeof companionWidgetSettingsSchema>;
 export type EngineStatusState = z.infer<typeof engineStatusStateSchema>;
 export type EngineStatus = z.infer<typeof engineStatusSchema>;
 export type VoiceTranscriptionStatus = z.infer<typeof voiceTranscriptionStatusSchema>;
