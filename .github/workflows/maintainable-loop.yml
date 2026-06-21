@@ -32,6 +32,20 @@ jobs:
           ref: work
           fetch-depth: 0
 
+      - name: Skip if today already produced a PR
+        id: dedupe
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch="loop/maintainable-$(date -u +%F)"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          if [ -n "$(gh pr list --head "$branch" --state all --json number -q '.[].number')" ]; then
+            echo "Today's branch $branch already has a PR — skipping this run."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup Node + pnpm
         uses: actions/setup-node@v4
         with:
@@ -45,6 +59,7 @@ jobs:
         run: gh label create auto-fix --description "Loop may auto-address Greptile review comments" --color "5319e7" 2>/dev/null || true
 
       - name: Run maintainable-code loop
+        if: steps.dedupe.outputs.skip == 'false'
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -66,7 +81,7 @@ jobs:
                  - HOW TO TEST IT MANUALLY — exact steps to confirm the change is good
                    (which screen/flow to open, what to click, what you should see)
                  - anything skipped and why (tag @WDieben for items needing a human decision)
-            6. Create a new branch `loop/maintainable-<YYYY-MM-DD>`, commit (message prefixed
+            6. Create a new branch named exactly `${{ steps.dedupe.outputs.branch }}`, commit (message prefixed
                "[auto-fix]"), push, and open a PR into `work` with the report as the body.
                Add the `auto-fix` label. Do NOT merge. Do NOT target main.
             7. If there is nothing safe to do, open no PR and just say so.
