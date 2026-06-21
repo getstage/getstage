@@ -1,7 +1,12 @@
-import { useEffect, useState, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Helmet } from "react-helmet-async";
 import "@/styles/stage-v2-tokens.css";
 import "@/styles/stage-v2-landing.css";
+
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 const DEFAULT_SITE_URL = "https://usestage.com";
 const LANDING_TITLE = "Stage - The AI workspace for designers";
@@ -407,7 +412,7 @@ export function StageV2LandingPage() {
                   </header>
                   <div className="feature-visual">
                     <div className="bezel">
-                      <div className="bezel-core demo-placeholder"></div>
+                      <ProjectsShowcase />
                     </div>
                   </div>
                 </article>
@@ -620,6 +625,136 @@ export function StageV2LandingPage() {
           </footer>
       </div>
     </>
+  );
+}
+
+function ProjectsShowcase() {
+  const showcaseRef = useRef<HTMLDivElement | null>(null);
+  const firstImageRef = useRef<HTMLImageElement | null>(null);
+  const secondImageRef = useRef<HTMLImageElement | null>(null);
+
+  useGSAP(
+    () => {
+      const showcase = showcaseRef.current;
+      const firstImage = firstImageRef.current;
+      const secondImage = secondImageRef.current;
+      if (!showcase || !firstImage || !secondImage) return;
+
+      gsap.set(firstImage, {
+        autoAlpha: 1,
+        scale: 1,
+        xPercent: 0,
+        yPercent: 0,
+        transformOrigin: "center center",
+      });
+      gsap.set(secondImage, {
+        autoAlpha: 1,
+        scale: 1,
+        xPercent: 105,
+        yPercent: 0,
+        transformOrigin: "center center",
+      });
+
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        gsap.set(secondImage, { autoAlpha: 0 });
+        return;
+      }
+
+      const timeline = gsap.timeline({ repeat: -1, paused: true });
+      timeline
+        .to(firstImage, {
+          scale: 1.13,
+          yPercent: 6,
+          duration: 1.15,
+          ease: "power2.inOut",
+        })
+        .to({}, { duration: 0.55 })
+        .to(firstImage, {
+          scale: 1.16,
+          yPercent: -7,
+          duration: 1.35,
+          ease: "power2.inOut",
+        })
+        .to({}, { duration: 0.55 })
+        .to(firstImage, {
+          xPercent: -105,
+          duration: 0.72,
+          ease: "power3.inOut",
+        })
+        .to(
+          secondImage,
+          {
+            xPercent: 0,
+            duration: 0.72,
+            ease: "power3.inOut",
+          },
+          "<",
+        )
+        .to(secondImage, {
+          scale: 1.17,
+          xPercent: 7,
+          yPercent: -9,
+          duration: 1.05,
+          ease: "power2.inOut",
+        })
+        .to(secondImage, {
+          xPercent: -7,
+          duration: 1.55,
+          ease: "power2.inOut",
+        })
+        .to({}, { duration: 0.65 })
+        .set(firstImage, { scale: 1, xPercent: 105, yPercent: 0 })
+        .to(secondImage, {
+          xPercent: -105,
+          duration: 0.72,
+          ease: "power3.inOut",
+        })
+        .to(
+          firstImage,
+          {
+            xPercent: 0,
+            duration: 0.72,
+            ease: "power3.inOut",
+          },
+          "<",
+        )
+        .set(secondImage, { scale: 1, xPercent: 105, yPercent: 0 });
+
+      const trigger = ScrollTrigger.create({
+        trigger: showcase,
+        start: "top 90%",
+        end: "bottom 10%",
+        onEnter: () => timeline.play(),
+        onEnterBack: () => timeline.play(),
+        onLeave: () => timeline.pause(),
+        onLeaveBack: () => timeline.pause(),
+      });
+
+      return () => {
+        trigger.kill();
+        timeline.kill();
+      };
+    },
+    { scope: showcaseRef },
+  );
+
+  return (
+    <div ref={showcaseRef} className="projects-showcase" aria-label="Stage projects interface showcase">
+      <img
+        ref={firstImageRef}
+        className="projects-showcase-image"
+        src="/stage-v2-lp/graphics/projects-1.webp"
+        alt="Stage projects overview"
+        loading="lazy"
+      />
+      <img
+        ref={secondImageRef}
+        className="projects-showcase-image"
+        src="/stage-v2-lp/graphics/projects-2.webp"
+        alt="Stage project timeline overview"
+        loading="lazy"
+      />
+    </div>
   );
 }
 
