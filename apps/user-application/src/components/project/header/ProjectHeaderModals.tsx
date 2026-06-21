@@ -534,9 +534,9 @@ function PhasesModal({
                   type="button"
                   aria-label={`Remove ${phase.name}`}
                   onClick={() => removePhase(phase.id)}
-                  className="text-[#EF4444]"
+                  className="flex h-[14px] w-[14px] shrink-0 cursor-pointer items-center justify-center"
                 >
-                  <TrashIcon />
+                  <img src="/logos/trash.svg" alt="" aria-hidden="true" className="h-[14px] w-[14px]" />
                 </button>
               </div>
             ))}
@@ -699,14 +699,6 @@ function CloseIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[16px] w-[16px]">
       <path d="M4.25 4.25l7.5 7.5M11.75 4.25l-7.5 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function TrashIcon() {
-  return (
-    <svg viewBox="0 0 14 14" fill="none" aria-hidden="true" className="h-[14px] w-[14px]">
-      <path d="M4.75 3.5V2.75c0-.55.45-1 1-1h2.5c.55 0 1 .45 1 1v.75M2.75 3.5h8.5M10.5 3.5l-.45 7.22c-.04.62-.55 1.11-1.17 1.11H5.12c-.62 0-1.13-.49-1.17-1.11L3.5 3.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
