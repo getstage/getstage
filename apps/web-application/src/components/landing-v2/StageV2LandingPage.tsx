@@ -425,7 +425,7 @@ export function StageV2LandingPage() {
                   </header>
                   <div className="feature-visual">
                     <div className="bezel">
-                      <div className="bezel-core demo-placeholder"></div>
+                      <ResearchShowcase />
                     </div>
                   </div>
                 </article>
@@ -693,7 +693,7 @@ function ProjectsShowcase() {
         .to(secondImage, {
           scale: 1.17,
           xPercent: 7,
-          yPercent: -9,
+          yPercent: -15,
           duration: 1.05,
           ease: "power2.inOut",
         })
@@ -752,6 +752,89 @@ function ProjectsShowcase() {
         className="projects-showcase-image"
         src="/stage-v2-lp/graphics/projects-2.webp"
         alt="Stage project timeline overview"
+        loading="lazy"
+      />
+    </div>
+  );
+}
+
+function ResearchShowcase() {
+  const showcaseRef = useRef<HTMLDivElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+
+  useGSAP(
+    () => {
+      const showcase = showcaseRef.current;
+      const image = imageRef.current;
+      if (!showcase || !image) return;
+
+      gsap.set(image, {
+        scale: 1,
+        xPercent: 0,
+        yPercent: 0,
+        transformOrigin: "center center",
+      });
+
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      const timeline = gsap.timeline({ repeat: -1, paused: true });
+      timeline
+        .to(image, {
+          scale: 1.3,
+          xPercent: 15,
+          yPercent: -9,
+          duration: 1.25,
+          ease: "power2.inOut",
+        })
+        .to({}, { duration: 0.9 })
+        .to(image, {
+          xPercent: 0,
+          yPercent: -15,
+          duration: 1.4,
+          ease: "power2.inOut",
+        })
+        .to({}, { duration: 0.9 })
+        .to(image, {
+          xPercent: -15,
+          yPercent: -15,
+          duration: 1.4,
+          ease: "power2.inOut",
+        })
+        .to({}, { duration: 1 })
+        .to(image, {
+          scale: 1,
+          xPercent: 0,
+          yPercent: 0,
+          duration: 0.85,
+          ease: "power3.inOut",
+        })
+        .to({}, { duration: 0.45 });
+
+      const trigger = ScrollTrigger.create({
+        trigger: showcase,
+        start: "top 90%",
+        end: "bottom 10%",
+        onEnter: () => timeline.play(),
+        onEnterBack: () => timeline.play(),
+        onLeave: () => timeline.pause(),
+        onLeaveBack: () => timeline.pause(),
+      });
+
+      return () => {
+        trigger.kill();
+        timeline.kill();
+      };
+    },
+    { scope: showcaseRef },
+  );
+
+  return (
+    <div ref={showcaseRef} className="research-showcase" aria-label="Stage research interface showcase">
+      <img
+        ref={imageRef}
+        className="research-showcase-image"
+        src="/stage-v2-lp/graphics/research.webp"
+        alt="Stage research workspace"
         loading="lazy"
       />
     </div>
