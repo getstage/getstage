@@ -780,35 +780,35 @@ function ResearchShowcase() {
       const timeline = gsap.timeline({ repeat: -1, paused: true });
       timeline
         .to(image, {
-          scale: 1.3,
-          xPercent: 15,
-          yPercent: -9,
-          duration: 1.25,
-          ease: "power2.inOut",
+          scale: 1.38,
+          xPercent: 19,
+          yPercent: -19,
+          duration: 1,
+          ease: "power3.inOut",
         })
-        .to({}, { duration: 0.9 })
+        .to({}, { duration: 0.55 })
         .to(image, {
           xPercent: 0,
-          yPercent: -15,
-          duration: 1.4,
-          ease: "power2.inOut",
+          yPercent: -19,
+          duration: 1.05,
+          ease: "power3.inOut",
         })
-        .to({}, { duration: 0.9 })
+        .to({}, { duration: 0.55 })
         .to(image, {
-          xPercent: -15,
-          yPercent: -15,
-          duration: 1.4,
-          ease: "power2.inOut",
+          xPercent: -19,
+          yPercent: -19,
+          duration: 1.05,
+          ease: "power3.inOut",
         })
-        .to({}, { duration: 1 })
+        .to({}, { duration: 0.65 })
         .to(image, {
           scale: 1,
           xPercent: 0,
           yPercent: 0,
-          duration: 0.85,
+          duration: 0.72,
           ease: "power3.inOut",
         })
-        .to({}, { duration: 0.45 });
+        .to({}, { duration: 0.35 });
 
       const trigger = ScrollTrigger.create({
         trigger: showcase,
