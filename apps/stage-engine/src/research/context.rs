@@ -20,14 +20,12 @@ pub fn build_refero_category_search_requests(
 }
 
 pub fn build_refero_flow_search_request(input: &ResearchInput) -> ReferoSearchRequest {
-    let mut query_parts = vec![
+    // Refero is a design-screenshot search; the client's own name is semantic noise
+    // that drags results toward unrelated products. Search on industry + flow intent only.
+    let query_parts = [
         input.industry.clone(),
         "B2B buyer approval onboarding checkout subscription flow".to_string(),
     ];
-
-    if let Some(client_name) = input.client_name.as_deref() {
-        query_parts.push(client_name.to_string());
-    }
 
     ReferoSearchRequest {
         query: query_parts.join(" "),
@@ -52,11 +50,8 @@ fn build_category_query(input: &ResearchInput, category: ReferoUiPatternCategory
         }
     };
 
-    let mut query_parts = vec![input.industry.clone(), pattern.to_string()];
-
-    if let Some(client_name) = input.client_name.as_deref() {
-        query_parts.push(client_name.to_string());
-    }
+    // Industry + UI-pattern intent only — never the client name (see flow search note).
+    let query_parts = [input.industry.clone(), pattern.to_string()];
 
     query_parts.join(" ")
 }
@@ -69,10 +64,10 @@ mod tests {
     fn sample_input() -> ResearchInput {
         ResearchInput {
             project_id: "proj-1".to_string(),
-            project_name: "Shopify B2B".to_string(),
-            client_name: Some("Shopify".to_string()),
+            project_name: "Example B2B".to_string(),
+            client_name: Some("Northwind Traders".to_string()),
             industry: "E-commerce".to_string(),
-            website: Some("www.shopify.com".to_string()),
+            website: Some("www.example.com".to_string()),
             project_brief: None,
             competitor_urls: vec![],
             target_users: None,
@@ -89,5 +84,24 @@ mod tests {
         assert!(requests[0].query.contains("onboarding"));
         assert_eq!(requests[0].category, ReferoUiPatternCategory::Onboarding);
         assert_eq!(requests[0].limit, 4);
+    }
+
+    #[test]
+    fn refero_queries_exclude_client_name() {
+        // The client name must never pollute a Refero design search.
+        let input = sample_input(); // client_name = "Northwind Traders"
+        for request in build_refero_category_search_requests(&input) {
+            assert!(
+                !request.query.contains("Northwind"),
+                "category query leaked client name: {}",
+                request.query
+            );
+        }
+        assert!(
+            !build_refero_flow_search_request(&input)
+                .query
+                .contains("Northwind"),
+            "flow query leaked client name"
+        );
     }
 }
