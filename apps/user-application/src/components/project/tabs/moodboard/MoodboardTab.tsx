@@ -302,8 +302,8 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
       );
   }
 
-  if (mode === "ai" && moodboard.isImporting) {
-    return <MoodboardGeneratingState />;
+  if (moodboard.isImporting && (mode === "ai" || mode === "figma")) {
+    return <MoodboardGeneratingState mode={mode} />;
   }
 
   return (
@@ -353,6 +353,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
                   <FigmaLinkPanel
                     compact={false}
                     disabled={moodboard.isImporting}
+                    loading={moodboard.isImporting}
                     value={figmaLink}
                     onChange={setFigmaLink}
                     onSubmit={handleFigmaImport}
@@ -408,6 +409,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
                 <FigmaLinkPanel
                   compact
                   disabled={moodboard.isImporting}
+                  loading={moodboard.isImporting}
                   value={figmaLink}
                   onChange={setFigmaLink}
                   onSubmit={handleFigmaImport}
@@ -548,14 +550,16 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
   );
 }
 
-function MoodboardGeneratingState() {
+function MoodboardGeneratingState({ mode }: { mode: "ai" | "figma" }) {
+  const isFigmaImport = mode === "figma";
+
   return (
     <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="rounded-[8px] bg-white px-[44px] py-[44px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="flex min-h-[520px] items-center justify-center">
           <div className="flex w-full max-w-[282px] flex-col items-center gap-6">
             <img
-              src="/logos/dashboard/moodboard.svg"
+              src={isFigmaImport ? "/logos/integrations/figma.svg" : "/logos/dashboard/moodboard.svg"}
               alt=""
               aria-hidden="true"
               className="h-[37px] w-[37px]"
@@ -563,19 +567,27 @@ function MoodboardGeneratingState() {
 
             <div className="flex w-full flex-col items-center gap-2">
               <p className="text-center text-[16px] font-semibold leading-none text-[#171717]">
-                Generating Moodboard
+                {isFigmaImport ? "Importing from Figma" : "Generating Moodboard"}
               </p>
               <p className="text-center text-[13px] font-medium leading-[1.5] text-[#525252]">
-                Finding visual references that match your search and preparing them for review.
+                {isFigmaImport
+                  ? "Collecting images from your Figma file and preparing them for review."
+                  : "Finding visual references that match your search and preparing them for review."}
               </p>
             </div>
 
             <div className="flex w-full flex-col items-center gap-2">
-              <MoodboardLoadingStep icon="/logos/check.svg" label="Search query prepared" />
-              <MoodboardLoadingStep icon="/logos/check.svg" label="Refero search started" />
+              <MoodboardLoadingStep
+                icon="/logos/check.svg"
+                label={isFigmaImport ? "Figma link validated" : "Search query prepared"}
+              />
+              <MoodboardLoadingStep
+                icon="/logos/check.svg"
+                label={isFigmaImport ? "Figma import started" : "Refero search started"}
+              />
               <MoodboardLoadingStep
                 icon="/logos/loader.svg"
-                label="Collecting visual references"
+                label={isFigmaImport ? "Collecting Figma images" : "Collecting visual references"}
                 spinning
               />
               <MoodboardLoadingStep icon="/logos/unchecked.svg" label="Preparing moodboard" />
