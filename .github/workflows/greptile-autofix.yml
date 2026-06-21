@@ -1,0 +1,80 @@
+name: Greptile auto-fix loop
+
+# When Greptile reviews a PR, Claude reads its comments, fixes them, typechecks,
+# and pushes back to the PR branch. Greptile re-reviews -> loop, capped at 3 rounds.
+# Claude NEVER merges; a human always does that.
+#
+# IMPORTANT:
+# - pull_request_review workflows only fire from the repo's DEFAULT branch,
+#   so this file must live on the default branch (we set default = work).
+# - Auth uses a Claude subscription token (CLAUDE_CODE_OAUTH_TOKEN), NOT an API key.
+#   Generate locally with `claude setup-token`, then add it as a repo secret.
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  autofix:
+    # Only run for: Greptile's reviews, on PRs explicitly opted in with the "auto-fix" label.
+    if: >-
+      github.event.review.user.login == 'greptile-apps[bot]' &&
+      contains(github.event.pull_request.labels.*.name, 'auto-fix')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Round-cap guard (max 3 auto-fix rounds)
+        id: guard
+        run: |
+          base="origin/${{ github.event.pull_request.base.ref }}"
+          count=$(git log --grep='\[auto-fix\]' --oneline "${base}..HEAD" | wc -l | tr -d ' ')
+          echo "auto-fix commits so far: ${count}"
+          if [ "${count}" -ge 3 ]; then echo "stop=true" >> "$GITHUB_OUTPUT"; else echo "stop=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Escalate to human (cap reached)
+        if: steps.guard.outputs.stop == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr comment ${{ github.event.pull_request.number }} --body "🤖 @WDieben — auto-fix hit its 3-round cap and needs a human. Greptile still has open comments on this PR."
+
+      - name: Setup Node + pnpm
+        if: steps.guard.outputs.stop == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        if: steps.guard.outputs.stop == 'false'
+        run: corepack enable
+
+      - name: Install dependencies
+        if: steps.guard.outputs.stop == 'false'
+        run: pnpm install --frozen-lockfile
+
+      - name: Address Greptile review with Claude
+        if: steps.guard.outputs.stop == 'false'
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Uses your Claude subscription, not API billing.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Greptile (greptile-apps[bot]) just reviewed PR #${{ github.event.pull_request.number }}.
+            - Read its review and inline comments (use the gh CLI).
+            - Address ONLY the issues it raised, scope-locked to the files it commented on. Do not refactor anything else.
+            - Prefer changing or deleting code over adding. No new arbitrary [#hex] Tailwind, no magic constants, no secrets in code or logs.
+            - Run `pnpm run typecheck`. Only commit if it passes.
+            - Commit with the message prefixed "[auto-fix]" and push to this PR branch.
+            - If a comment cannot be satisfied safely, or you are not confident the change is correct, do NOT guess — leave a PR comment that tags `@WDieben`, explains the uncertainty, and skip that item.
+          claude_args: |
+            {
+              "model": "claude-sonnet-4-6"
+            }
