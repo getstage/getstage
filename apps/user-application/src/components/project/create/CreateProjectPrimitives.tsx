@@ -16,6 +16,7 @@ export function CreateProjectStepShell({
   headerGapClassName = "gap-[10px]",
   titleClassName = "w-full",
   descriptionClassName = "w-[261px]",
+  onStepSelect,
   children,
 }: {
   title: string;
@@ -24,6 +25,7 @@ export function CreateProjectStepShell({
   headerGapClassName?: string;
   titleClassName?: string;
   descriptionClassName?: string;
+  onStepSelect?: (stepIndex: number) => void;
   children: ReactNode;
 }) {
   return (
@@ -44,17 +46,26 @@ export function CreateProjectStepShell({
           className="flex shrink-0 items-center gap-[4px]"
           aria-label={`Step ${activeStepIndex + 1} of 5`}
         >
-          {CREATE_PROJECT_PROGRESS_STEPS.map((step) => (
-            <span
-              key={step}
-              className={cn(
-                "h-[6px] w-[32px] rounded-[2px]",
-                step <= activeStepIndex
-                  ? "bg-gradient-to-r from-[#8d87ff] via-[rgba(141,135,255,0.75)] to-[#8d87ff]"
-                  : "bg-[#e7e6fd]",
-              )}
-            />
-          ))}
+          {CREATE_PROJECT_PROGRESS_STEPS.map((step) => {
+            const canGoBack = step < activeStepIndex && Boolean(onStepSelect);
+
+            return (
+              <button
+                key={step}
+                type="button"
+                disabled={!canGoBack}
+                onClick={() => onStepSelect?.(step)}
+                aria-label={canGoBack ? `Go back to step ${step + 1}` : `Step ${step + 1}`}
+                className={cn(
+                  "h-[6px] w-[32px] rounded-[2px] transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8d87ff] focus-visible:ring-offset-2",
+                  step <= activeStepIndex
+                    ? "bg-gradient-to-r from-[#8d87ff] via-[rgba(141,135,255,0.75)] to-[#8d87ff]"
+                    : "bg-[#e7e6fd]",
+                  canGoBack ? "cursor-pointer hover:opacity-70" : "cursor-default",
+                )}
+              />
+            );
+          })}
         </div>
       </div>
 

@@ -14,6 +14,12 @@ export function CreateProjectView() {
   const navigate = useNavigate();
   const flow = useCreateProjectFlow();
   const { draftState, draft } = flow;
+  const creationSteps = ["basic", "client", "type", "timeline", "roadmap"] as const;
+
+  function goBackToStep(stepIndex: number) {
+    const targetStep = creationSteps[stepIndex];
+    if (targetStep) flow.setStep(targetStep);
+  }
 
   if (flow.step === "success") {
     return (
@@ -96,6 +102,7 @@ export function CreateProjectView() {
                 onClearAvatar={() => draftState.setClientAvatar(null)}
                 onPickClientPhoto={() => draftState.fileInputRef.current?.click()}
                 onContinue={flow.continueFromClientDetails}
+                onStepSelect={goBackToStep}
                 inputRef={draftState.fileInputRef}
               />
             ) : flow.step === "type" ? (
@@ -103,6 +110,7 @@ export function CreateProjectView() {
                 selectedProjectType={draft.projectType}
                 onProjectTypeChange={draftState.setProjectType}
                 onContinue={() => flow.setStep("timeline")}
+                onStepSelect={goBackToStep}
               />
             ) : flow.step === "timeline" ? (
               <TimelineStep
@@ -118,6 +126,7 @@ export function CreateProjectView() {
                   flow.setTimelineError(null);
                 }}
                 onContinue={flow.continueFromTimeline}
+                onStepSelect={goBackToStep}
               />
             ) : (
               <RoadmapStep
@@ -132,6 +141,7 @@ export function CreateProjectView() {
                 onNewPhaseNameChange={flow.setNewPhaseName}
                 onAddPhase={flow.addManualPhase}
                 onCreateProject={() => void onCreateProject()}
+                onStepSelect={goBackToStep}
                 isCreating={flow.isCreatingProject}
                 error={flow.createError}
               />
