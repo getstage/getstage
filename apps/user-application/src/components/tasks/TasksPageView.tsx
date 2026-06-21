@@ -96,6 +96,7 @@ export function TasksPageView() {
           dragOverColumn={board.dragOverColumn}
           dropBeforeTaskId={board.dropBeforeTaskId}
           onOpenTask={(taskId) => {
+            if (board.shouldSuppressTaskOpen()) return;
             void navigate({
               to: "/tasks/$taskId",
               params: { taskId },

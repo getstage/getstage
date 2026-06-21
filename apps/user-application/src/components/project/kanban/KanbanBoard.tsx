@@ -83,13 +83,14 @@ export function KanbanBoard({
                         board.setAssignSearch("");
                       }}
                       onToggle={() => board.toggleTaskCompletion(task.id)}
-                      onOpen={() =>
+                      onOpen={() => {
+                        if (board.shouldSuppressTaskOpen()) return;
                         void navigate({
                           to: "/tasks/$taskId",
                           params: { taskId: task.id },
                           search: { from: "project", projectId },
                         })
-                      }
+                      }}
                     />
                     {board.assignTaskId === task.id ? (
                       <KanbanAssignCard
