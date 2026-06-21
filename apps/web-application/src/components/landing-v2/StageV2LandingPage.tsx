@@ -451,7 +451,7 @@ export function StageV2LandingPage() {
                   </header>
                   <div className="feature-visual">
                     <div className="bezel">
-                      <div className="bezel-core demo-placeholder"></div>
+                      <FeedbackShowcase />
                     </div>
                   </div>
                 </article>
@@ -918,6 +918,82 @@ function StrategyToScreensShowcase() {
         className="strategy-showcase-image"
         src="/stage-v2-lp/graphics/strategy-to-screens.webp"
         alt="Stage strategy and generated screens workspace"
+        loading="lazy"
+      />
+    </div>
+  );
+}
+
+function FeedbackShowcase() {
+  const showcaseRef = useRef<HTMLDivElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+
+  useGSAP(
+    () => {
+      const showcase = showcaseRef.current;
+      const image = imageRef.current;
+      if (!showcase || !image) return;
+
+      gsap.set(image, {
+        scale: 1,
+        xPercent: 0,
+        yPercent: 0,
+        transformOrigin: "center center",
+      });
+
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      const timeline = gsap.timeline({ repeat: -1, paused: true });
+      timeline
+        .to(image, {
+          scale: 1.3,
+          xPercent: 15,
+          yPercent: -15,
+          duration: 1.05,
+          ease: "power3.inOut",
+        })
+        .to({}, { duration: 0.75 })
+        .to(image, {
+          xPercent: -15,
+          yPercent: -15,
+          duration: 1.35,
+          ease: "power3.inOut",
+        })
+        .to({}, { duration: 0.85 })
+        .to(image, {
+          scale: 1,
+          xPercent: 0,
+          yPercent: 0,
+          duration: 0.75,
+          ease: "power3.inOut",
+        })
+        .to({}, { duration: 0.35 });
+
+      const trigger = ScrollTrigger.create({
+        trigger: showcase,
+        start: "top 90%",
+        end: "bottom 10%",
+        onEnter: () => timeline.play(),
+        onEnterBack: () => timeline.play(),
+        onLeave: () => timeline.pause(),
+        onLeaveBack: () => timeline.pause(),
+      });
+
+      return () => {
+        trigger.kill();
+        timeline.kill();
+      };
+    },
+    { scope: showcaseRef },
+  );
+
+  return (
+    <div ref={showcaseRef} className="feedback-showcase" aria-label="Stage client feedback showcase">
+      <img
+        ref={imageRef}
+        className="feedback-showcase-image"
+        src="/stage-v2-lp/graphics/feedback.webp"
+        alt="Stage client feedback workspace"
         loading="lazy"
       />
     </div>

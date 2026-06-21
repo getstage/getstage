@@ -403,7 +403,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 .projects-showcase,
 .research-showcase,
-.strategy-showcase {
+.strategy-showcase,
+.feedback-showcase {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 10;
@@ -415,14 +416,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 .feature-visual:has(.projects-showcase) .bezel,
 .feature-visual:has(.research-showcase) .bezel,
-.feature-visual:has(.strategy-showcase) .bezel {
+.feature-visual:has(.strategy-showcase) .bezel,
+.feature-visual:has(.feedback-showcase) .bezel {
   padding: 0;
   overflow: hidden;
 }
 
 .projects-showcase-image,
 .research-showcase-image,
-.strategy-showcase-image {
+.strategy-showcase-image,
+.feedback-showcase-image {
   position: absolute;
   inset: 0;
   width: 100%;
