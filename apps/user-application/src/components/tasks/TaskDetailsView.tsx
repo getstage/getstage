@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { parseConvexTaskId } from "@stage/data-ops";
 import { DeleteTaskModal } from "@/components/tasks/DeleteTaskModal";
+import { TaskDetailsEditor } from "@/components/tasks/TaskDetailsEditor";
 import { KanbanAssignCard } from "@/components/project/kanban/KanbanAssignCard";
 import { AddProjectMemberDialog } from "@/components/project/kanban/AddProjectMemberDialog";
 import {
@@ -290,8 +291,7 @@ function TaskDetailEditor({
     }, 900);
   }
 
-  function handleContentChange(event: ChangeEvent<HTMLTextAreaElement>) {
-    const next = event.target.value;
+  function handleContentChange(next: string) {
     setContent(next);
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
@@ -610,12 +610,10 @@ function TaskDetailEditor({
               <label className="mb-[12px] flex flex-col gap-[8px]">
                 <span className="text-[13px] font-medium leading-none text-[#525252]">Details</span>
               </label>
-              <textarea
+              <TaskDetailsEditor
                 value={content}
                 onChange={handleContentChange}
-                placeholder="Add notes, context, and full task details…"
-                className="min-h-[280px] w-full resize-y border-0 bg-transparent text-[13px] font-normal leading-[1.5] text-[#262626] outline-none placeholder:text-[#a3a3a3]"
-                aria-label="Task details"
+                members={membersQuery.data}
               />
 
               {task.attachments.length > 0 ? (
