@@ -16,9 +16,15 @@ permissions:
   contents: write
   pull-requests: write
 
+# Stop a same-day schedule + manual run from colliding on the dated branch name.
+concurrency:
+  group: maintainable-loop
+  cancel-in-progress: true
+
 jobs:
   maintain:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout work (default branch)
         uses: actions/checkout@v4
