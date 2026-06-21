@@ -438,7 +438,7 @@ export function StageV2LandingPage() {
                   </header>
                   <div className="feature-visual">
                     <div className="bezel">
-                      <div className="bezel-core demo-placeholder"></div>
+                      <StrategyToScreensShowcase />
                     </div>
                   </div>
                 </article>
@@ -835,6 +835,89 @@ function ResearchShowcase() {
         className="research-showcase-image"
         src="/stage-v2-lp/graphics/research.webp"
         alt="Stage research workspace"
+        loading="lazy"
+      />
+    </div>
+  );
+}
+
+function StrategyToScreensShowcase() {
+  const showcaseRef = useRef<HTMLDivElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+
+  useGSAP(
+    () => {
+      const showcase = showcaseRef.current;
+      const image = imageRef.current;
+      if (!showcase || !image) return;
+
+      gsap.set(image, {
+        scale: 1,
+        xPercent: 0,
+        yPercent: 0,
+        transformOrigin: "center center",
+      });
+
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      const timeline = gsap.timeline({ repeat: -1, paused: true });
+      timeline
+        .to(image, {
+          scale: 1.42,
+          xPercent: 21,
+          yPercent: 0,
+          duration: 1.05,
+          ease: "power2.inOut",
+        })
+        .to({}, { duration: 0.35 })
+        .to(image, {
+          xPercent: -21,
+          yPercent: 0,
+          duration: 1.1,
+          ease: "power2.inOut",
+        })
+        .to({}, { duration: 0.4 })
+        .to(image, {
+          xPercent: 0,
+          yPercent: -21,
+          duration: 1.15,
+          ease: "power2.inOut",
+        })
+        .to({}, { duration: 0.8 })
+        .to(image, {
+          scale: 1,
+          xPercent: 0,
+          yPercent: 0,
+          duration: 0.9,
+          ease: "power3.inOut",
+        })
+        .to({}, { duration: 0.45 });
+
+      const trigger = ScrollTrigger.create({
+        trigger: showcase,
+        start: "top 90%",
+        end: "bottom 10%",
+        onEnter: () => timeline.play(),
+        onEnterBack: () => timeline.play(),
+        onLeave: () => timeline.pause(),
+        onLeaveBack: () => timeline.pause(),
+      });
+
+      return () => {
+        trigger.kill();
+        timeline.kill();
+      };
+    },
+    { scope: showcaseRef },
+  );
+
+  return (
+    <div ref={showcaseRef} className="strategy-showcase" aria-label="Stage strategy to screens showcase">
+      <img
+        ref={imageRef}
+        className="strategy-showcase-image"
+        src="/stage-v2-lp/graphics/strategy-to-screens.webp"
+        alt="Stage strategy and generated screens workspace"
         loading="lazy"
       />
     </div>
