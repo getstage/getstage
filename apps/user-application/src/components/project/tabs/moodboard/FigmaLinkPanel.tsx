@@ -15,7 +15,7 @@ export function GenerateWithAiButton({
       onClick={onClick}
     >
       <GenerateWithAiIcon />
-      Search Refero
+      Generate with AI
     </button>
   );
 }
@@ -23,12 +23,14 @@ export function GenerateWithAiButton({
 export function FigmaLinkPanel({
   compact,
   disabled,
+  loading = false,
   value,
   onChange,
   onSubmit,
 }: {
   compact: boolean;
   disabled?: boolean;
+  loading?: boolean;
   value: string;
   onChange: (value: string) => void;
   onSubmit: () => void;
@@ -55,11 +57,19 @@ export function FigmaLinkPanel({
           <button
             type="button"
             disabled={disabled}
-            className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
             onClick={onSubmit}
           >
-            Import
+            {loading ? (
+              <>
+                <img src="/logos/loader.svg" alt="" aria-hidden="true" className="h-[14px] w-[14px] animate-spin" />
+                Importing...
+              </>
+            ) : (
+              "Import"
+            )}
           </button>
+          {loading ? <span className="sr-only" role="status">Importing images from Figma</span> : null}
         </div>
       </div>
     </div>
