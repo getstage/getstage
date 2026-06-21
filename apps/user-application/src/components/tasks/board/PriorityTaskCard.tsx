@@ -20,11 +20,20 @@ export function PriorityTaskCard({
   return (
     <div
       onPointerDown={onPointerDown}
+      onClick={onOpen}
+      role={onOpen ? "button" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onKeyDown={(event) => {
+        if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          onOpen?.();
+        }
+      }}
       className={cn(
         "group/task relative select-none rounded-[8px] bg-gradient-to-b from-white to-[#FAFAFA] p-[clamp(12px,2vw,16px)] transition-[opacity,transform,box-shadow]",
         dragging
-          ? "rotate-[-2deg] cursor-grabbing shadow-[0_8px_22px_rgba(10,10,10,0.14)]"
-          : "cursor-grab shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:shadow-[0_2px_8px_rgba(10,10,10,0.08)] active:cursor-grabbing",
+          ? "origin-top-left rotate-[-2deg] cursor-grabbing shadow-[0_8px_22px_rgba(10,10,10,0.14)]"
+          : "cursor-pointer shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] outline-none hover:shadow-[0_2px_8px_rgba(10,10,10,0.08)] focus-visible:ring-2 focus-visible:ring-[#8d87ff]",
       )}
     >
       {onDelete ? (
@@ -74,17 +83,9 @@ export function PriorityTaskCard({
               </svg>
             ) : null}
           </button>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpen?.();
-            }}
-            onPointerDown={(event) => event.stopPropagation()}
-            className="min-w-0 flex-1 cursor-pointer truncate text-left text-[13px] font-medium leading-[1.25] text-[#171717] outline-none hover:underline focus-visible:underline"
-          >
+          <span className="min-w-0 flex-1 truncate text-left text-[13px] font-medium leading-[1.25] text-[#171717]">
             {item.task.title}
-          </button>
+          </span>
         </div>
         <p className="line-clamp-2 text-[12px] font-normal leading-[1.5] text-[#525252]">
           {item.task.summary || item.task.content}
