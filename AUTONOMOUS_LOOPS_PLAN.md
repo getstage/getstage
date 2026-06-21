@@ -123,6 +123,7 @@ AI fills it in → **you approve** → loop runs.
 ## 9. Maintainable checklist (verifier ticks Security + Verify boxes; builder cannot)
 
 **General:** file < ~400 lines · no new `: any` · no new `window.alert/prompt` · `<img>` has `alt` · clickable = `<button>` · tokens not `[#hex]` · no magic constants · derive don't mirror state.
+**Minimalism ([Ponytail](https://github.com/DietrichGebert/ponytail)):** builder runs the plugin (decision ladder; "change, don't add"); `/ponytail-review` delete-list applied before PR. Minimalism only — never trims security/data-loss/a11y, and does **not** replace the test/verify gate.
 **Electron / Convex / Rust:** see §5 architecture gate.
 **Verify gate (Opus 4.8 high / GPT-5.5 high):** re-checked EVERY box and tried to **refute** · signed off OR returned fix-list → iterate.
 **Ship:** PR opened → Greptile passes · validated on **testing DB** · human merge · git tag · (later, gated) prod DB.

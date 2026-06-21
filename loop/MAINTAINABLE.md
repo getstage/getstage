@@ -10,11 +10,12 @@
 - Every behavioral change **rides a test** that proves the old behavior still holds (green-baseline rule).
 - **Exclude generated files** (`*.gen.ts`, `convex/_generated/**`) — never hand-edit.
 - Scope-lock: touch only the files listed in the item.
+- **Minimalism enforced by [Ponytail](https://github.com/DietrichGebert/ponytail)** — builder runs with the plugin (`/plugin install ponytail@ponytail`) so it follows the decision ladder (YAGNI → stdlib → existing dep → one line → minimal code). `/ponytail-review` runs on the diff and its **delete-list must be applied before the PR**. Ponytail is minimalism only — it does **not** verify correctness, so it never replaces the test/verify gate. Security · data-loss · a11y are never trimmed.
 
 ## ALWAYS-ON GATE (verifier ticks Security; builder cannot)
 **Security:** no secrets in code/logs · inputs validated (zod/contracts) · authz server-side (Convex) · Electron `contextIsolation/sandbox` intact + one `contextBridge` method per IPC + `ipcMain.handle` validates payload · Rust engine loopback + token + `Schema.parse` · no new exec/network/file surface.
 **Maintainable:** tokens not `[#hex]` · no magic constants · derive don't mirror · file ≤400 · `<img>` has `alt` · clickable = `<button>`.
-**Verify cmd (must pass):** `pnpm run typecheck` · `engine:clippy`+`engine:test` · e2e/visual (once Phase 0 done) · the maintainability greps below.
+**Verify cmd (must pass):** `pnpm run typecheck` · `engine:clippy`+`engine:test` · e2e/visual (once Phase 0 done) · `/ponytail-review` delete-list clean · the maintainability greps below.
 
 ---
 
