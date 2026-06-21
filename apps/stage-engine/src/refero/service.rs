@@ -19,7 +19,8 @@ use super::parse::{
 };
 
 const MAX_REFERO_SEARCH_RESULTS: u8 = 4;
-const MAX_REFERO_IMAGE_FETCHES: usize = 5;
+// Full-res screenshot per kept screen (5 categories x 4), so the UI never shows a blurry thumbnail.
+const MAX_REFERO_IMAGE_FETCHES: usize = 20;
 
 #[derive(Clone, Debug)]
 pub struct ReferoService {
@@ -217,6 +218,41 @@ impl ReferoService {
             .collect())
     }
 
+    /// Look up each competitor's own screens in Refero (one concurrent search per competitor),
+    /// preserving input order. This is the bot-proof evidence the model scores the competitive
+    /// matrix from, instead of crawling competitors' live sites.
+    pub async fn competitor_screen_evidence(
+        &self,
+        requests: &[(String, ReferoSearchRequest)],
+    ) -> Result<Vec<(String, Vec<ReferoReference>)>, ReferoServiceError> {
+        let mut join_set = tokio::task::JoinSet::new();
+        for (index, (name, request)) in requests.iter().enumerate() {
+            let service = self.clone();
+            let name = name.clone();
+            let request = request.clone();
+            join_set.spawn(async move {
+                let screens = service.search_screens(&request).await;
+                (index, name, screens)
+            });
+        }
+
+        let mut indexed = Vec::with_capacity(requests.len());
+        while let Some(joined) = join_set.join_next().await {
+            let (index, name, screens) = joined.map_err(|error| {
+                ReferoServiceError::Client(ReferoClientError::ToolCallFailed {
+                    message: format!("Refero competitor search task failed: {error}"),
+                })
+            })?;
+            indexed.push((index, name, screens?));
+        }
+
+        indexed.sort_by_key(|(index, _, _)| *index);
+        Ok(indexed
+            .into_iter()
+            .map(|(_, name, screens)| (name, screens))
+            .collect())
+    }
+
     pub async fn fetch_screen_image_bytes(
         &self,
         screen_id: &str,
@@ -277,14 +313,6 @@ impl ReferoService {
         Ok(bytes)
     }
 
-    async fn fetch_screen_thumbnail_bytes(
-        &self,
-        screen_id: &str,
-    ) -> Result<Vec<u8>, ReferoServiceError> {
-        self.fetch_screen_image_with_size(screen_id, "thumbnail")
-            .await
-    }
-
     pub async fn hydrate_category_screen_images(
         &self,
         category_searches: &mut [ReferoCategorySearch],
@@ -292,52 +320,29 @@ impl ReferoService {
         let mut fetched = 0usize;
 
         for bucket in category_searches.iter_mut() {
-            if fetched >= MAX_REFERO_IMAGE_FETCHES {
-                break;
-            }
-
-            let mut fetched_for_category = false;
             for reference in bucket.references.iter_mut() {
-                if fetched >= MAX_REFERO_IMAGE_FETCHES || fetched_for_category {
+                if fetched >= MAX_REFERO_IMAGE_FETCHES {
                     break;
                 }
-
-                if reference.kind != ReferoReferenceKind::Screen {
+                // Refero search only yields a low-res thumbnail_url; fetch the full-res screenshot.
+                // Skip flows, already-hydrated screens, and synthetic ids (no real uuid to fetch).
+                if reference.kind != ReferoReferenceKind::Screen
+                    || reference.raw_image_bytes.is_some()
+                    || reference.image_url.is_some()
+                    || is_synthetic_reference_id(&reference.id)
+                {
                     continue;
                 }
 
-                if is_synthetic_reference_id(&reference.id) {
-                    tracing::warn!(
-                        screen_id = %reference.id,
-                        category = %reference
-                            .ui_pattern_category
-                            .map(|category| category.as_str())
-                            .unwrap_or("unknown"),
-                        "Skipping Refero image fetch because search result had no real screen id"
-                    );
-                    continue;
-                }
-
-                if reference.raw_image_bytes.is_some() {
-                    continue;
-                }
-
-                if reference.image_url.is_some() || reference.thumbnail_url.is_some() {
-                    continue;
-                }
-
-                let screen_id = reference.id.clone();
-                let bytes = match self.fetch_screen_thumbnail_bytes(&screen_id).await {
-                    Ok(bytes) => bytes,
-                    Err(error) => {
-                        tracing::warn!(screen_id = %screen_id, %error, "Refero screen image fetch failed");
-                        continue;
+                match self.fetch_screen_image_bytes(&reference.id).await {
+                    Ok(bytes) => {
+                        reference.raw_image_bytes = Some(bytes);
+                        fetched += 1;
                     }
-                };
-
-                reference.raw_image_bytes = Some(bytes);
-                fetched += 1;
-                fetched_for_category = true;
+                    Err(error) => {
+                        tracing::warn!(screen_id = %reference.id, %error, "Refero screen image fetch failed");
+                    }
+                }
             }
         }
 

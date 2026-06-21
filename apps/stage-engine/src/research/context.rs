@@ -2,6 +2,7 @@ use crate::models::refero::{
     ReferoCategorySearchRequest, ReferoPlatform, ReferoSearchRequest, ReferoUiPatternCategory,
 };
 use crate::models::research::ResearchInput;
+use crate::research::competitive::allowed_competitor_names;
 
 const CATEGORY_SCREEN_LIMIT: u8 = 4;
 
@@ -33,6 +34,26 @@ pub fn build_refero_flow_search_request(input: &ResearchInput) -> ReferoSearchRe
         limit: 4,
         tags: vec!["competitive-analysis".to_string()],
     }
+}
+
+/// One Refero screen search per competitor, paired with its display name. Searching Refero for the
+/// competitor's own product surfaces real screenshots (bot-proof) to ground the competitive matrix,
+/// instead of crawling their live site — which large sites gate behind bot/JS checks.
+pub fn build_refero_competitor_search_requests(
+    input: &ResearchInput,
+) -> Vec<(String, ReferoSearchRequest)> {
+    allowed_competitor_names(input)
+        .into_iter()
+        .map(|name| {
+            let request = ReferoSearchRequest {
+                query: name.clone(),
+                platform: ReferoPlatform::Web,
+                limit: CATEGORY_SCREEN_LIMIT,
+                tags: Vec::new(),
+            };
+            (name, request)
+        })
+        .collect()
 }
 
 fn build_category_query(input: &ResearchInput, category: ReferoUiPatternCategory) -> String {
@@ -102,6 +123,24 @@ mod tests {
                 .query
                 .contains("Northwind"),
             "flow query leaked client name"
+        );
+    }
+
+    #[test]
+    fn builds_one_refero_search_per_competitor() {
+        let mut input = sample_input();
+        input.competitor_urls = vec![
+            "https://www.amazon.com".to_string(),
+            "https://www.squarespace.com".to_string(),
+        ];
+
+        let requests = build_refero_competitor_search_requests(&input);
+        let names: Vec<&str> = requests.iter().map(|(name, _)| name.as_str()).collect();
+
+        assert_eq!(names, vec!["Amazon", "Squarespace"]);
+        assert!(
+            requests.iter().all(|(name, request)| &request.query == name),
+            "each competitor search must query its own product name"
         );
     }
 }

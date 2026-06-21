@@ -25,6 +25,16 @@ pub fn allowed_competitive_targets(input: &ResearchInput) -> Vec<String> {
         .collect()
 }
 
+/// Display names for the allowed competitors (e.g. `["Squarespace", "Amazon"]`), used to look up
+/// each competitor's real screens in Refero instead of crawling their (often bot-gated) live site.
+pub fn allowed_competitor_names(input: &ResearchInput) -> Vec<String> {
+    allowed_competitive_targets(input)
+        .iter()
+        .filter_map(|url| competitive_host(url))
+        .map(|host| competitor_display_name(&host))
+        .collect()
+}
+
 pub fn format_competitive_targets_for_prompt(input: &ResearchInput) -> String {
     let targets = allowed_competitive_targets(input);
     if targets.is_empty() {

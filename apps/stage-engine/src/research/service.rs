@@ -4,7 +4,10 @@ use crate::models::refero::ReferoContext;
 use crate::models::research::ResearchInput;
 use crate::refero::service::{ReferoService, ReferoServiceError};
 
-use super::context::{build_refero_category_search_requests, build_refero_flow_search_request};
+use super::context::{
+    build_refero_category_search_requests, build_refero_competitor_search_requests,
+    build_refero_flow_search_request,
+};
 use super::prompt::build_research_prompt;
 
 #[derive(Clone, Debug)]
@@ -30,11 +33,16 @@ impl ResearchService {
     ) -> Result<ResearchPromptBundle, ResearchServiceError> {
         let category_requests = build_refero_category_search_requests(&input);
         let flow_request = build_refero_flow_search_request(&input);
+        let competitor_requests = build_refero_competitor_search_requests(&input);
         let refero_context = self
             .refero
             .research_context_for_categories(&category_requests, &flow_request)
             .await?;
-        let prompt = build_research_prompt(&input, &refero_context);
+        let competitor_evidence = self
+            .refero
+            .competitor_screen_evidence(&competitor_requests)
+            .await?;
+        let prompt = build_research_prompt(&input, &refero_context, &competitor_evidence);
 
         Ok(ResearchPromptBundle {
             input,

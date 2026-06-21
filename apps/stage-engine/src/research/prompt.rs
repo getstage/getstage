@@ -1,9 +1,15 @@
-use crate::models::refero::{ReferoContext, ReferoReferenceKind, ReferoUiPatternCategory};
+use crate::models::refero::{
+    ReferoContext, ReferoReference, ReferoReferenceKind, ReferoUiPatternCategory,
+};
 use crate::models::research::ResearchInput;
 
 use super::competitive::{competitive_rules_for_prompt, format_competitive_targets_for_prompt};
 
-pub fn build_research_prompt(input: &ResearchInput, refero_context: &ReferoContext) -> String {
+pub fn build_research_prompt(
+    input: &ResearchInput,
+    refero_context: &ReferoContext,
+    competitor_evidence: &[(String, Vec<ReferoReference>)],
+) -> String {
     let competitive_targets = format_competitive_targets_for_prompt(input);
     let competitive_rules = competitive_rules_for_prompt(input);
 
@@ -44,6 +50,38 @@ pub fn build_research_prompt(input: &ResearchInput, refero_context: &ReferoConte
         .collect::<Vec<_>>()
         .join("\n");
 
+    let competitor_evidence_lines = if competitor_evidence
+        .iter()
+        .all(|(_, screens)| screens.is_empty())
+    {
+        "No Refero competitor screens found — fall back to web evidence for the matrix.".to_string()
+    } else {
+        competitor_evidence
+            .iter()
+            .map(|(name, screens)| {
+                let screen_lines = screens
+                    .iter()
+                    .filter(|reference| reference.kind == ReferoReferenceKind::Screen)
+                    .map(|reference| {
+                        let screen_type = reference.screen_type.as_deref().unwrap_or("screen");
+                        match reference.summary.as_deref() {
+                            Some(summary) if !summary.is_empty() => {
+                                format!("  - {} ({}) — {}", reference.title, screen_type, summary)
+                            }
+                            _ => format!("  - {} ({})", reference.title, screen_type),
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                if screen_lines.is_empty() {
+                    format!("- {name}: no Refero screens found.")
+                } else {
+                    format!("- {name}:\n{}", screen_lines.join("\n"))
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+
     format!(
         r#"You are generating the Stage Research artifact.
 
@@ -71,6 +109,9 @@ Allowed competitive sites (and ONLY these):
 {competitive_targets}
 
 {competitive_rules}
+
+Real competitor UI evidence (from Refero — actual product screenshots, bot-proof; PREFER this over web fetch when scoring the competitive matrix):
+{competitor_evidence_lines}
 
 Web research rules:
 - Use web search/fetch to inspect only the project website and allowed competitive sites.
@@ -118,6 +159,7 @@ Required competitiveAnalysis matrix shape:
 ```
 - Use the 7 matrix labels from the competitive rules (Navigation, Onboarding, Visual Style, Content Hierarchy, Mobile Experience, Dashboard Layout, Data Visualization).
 - Every matrix cell MUST have `competitorId` and `score` ("Strong" | "OK" | "Weak").
+- Score each competitor from the Real competitor UI evidence (Refero) above — it is reliable visual evidence and does not need a fetched URL. Only give a low score when the real screens show a genuine UX weakness, never because a live page failed to load or was bot-gated.
 - Matrix `note` must be omitted. Cells are score-only (Strong / OK / Weak).
 - Never put URLs or multi-sentence notes in matrix cells.
 
@@ -154,6 +196,7 @@ The JSON must use:
         additional_notes = input.additional_notes.as_deref().unwrap_or("Not provided."),
         competitive_targets = competitive_targets,
         competitive_rules = competitive_rules,
+        competitor_evidence_lines = competitor_evidence_lines,
         category_lines = if category_lines.is_empty() {
             "No Refero category searches returned.".to_string()
         } else {

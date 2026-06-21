@@ -16,7 +16,6 @@ use crate::refero::service::ReferoService;
 use crate::research::competitive::{
     competitive_analysis_needs_repair, filter_competitive_analysis,
 };
-use crate::research::prompt::build_research_prompt;
 use crate::research::refero_assets::{apply_engine_ui_patterns, persist_refero_context_images};
 use crate::research::section::{
     build_competitive_repair_prompt, build_opportunities_prompt, build_section_regenerate_prompt,
@@ -192,7 +191,6 @@ impl ResearchWorkflow {
                 "Refero images persisted to R2"
             );
 
-            bundle.prompt = build_research_prompt(&input, &bundle.refero_context);
             self.tool_completed(api_version, &run_id, provider_id, &sink, "refero-context");
 
             request.prompt = bundle.prompt;
