@@ -10,6 +10,7 @@ import { KanbanAssignCard } from "./KanbanAssignCard";
 import { AddProjectMemberDialog } from "./AddProjectMemberDialog";
 import { KanbanTaskCard } from "./KanbanTaskCard";
 import { KanbanTaskSkeleton } from "./KanbanTaskSkeleton";
+import { useTaskDragFeedback } from "@/hooks/useTaskDragFeedback";
 
 export function KanbanBoard({
   phases,
@@ -25,6 +26,7 @@ export function KanbanBoard({
   const navigate = useNavigate();
   const board = useKanbanBoard(phases, projectId);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  useTaskDragFeedback(Boolean(board.activeDrag));
 
   return (
     <div className="relative">

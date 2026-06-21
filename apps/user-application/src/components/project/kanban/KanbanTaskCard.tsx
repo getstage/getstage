@@ -50,7 +50,7 @@ export function KanbanTaskCard({
       onPointerDown={onPointerDown}
       className={`select-none rounded-[8px] bg-gradient-to-b from-white to-[#FAFAFA] p-4 transition-[opacity,transform,box-shadow] ${
         dragging
-          ? "cursor-grabbing shadow-[0_8px_22px_rgba(10,10,10,0.14)]"
+          ? "rotate-[-2deg] cursor-grabbing shadow-[0_8px_22px_rgba(10,10,10,0.14)]"
           : "cursor-grab shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:shadow-[0_2px_8px_rgba(10,10,10,0.08)] active:cursor-grabbing"
       } ${dimmed ? "opacity-50" : ""}`}
     >
