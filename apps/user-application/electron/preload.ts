@@ -2,10 +2,14 @@ import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import type {
   CompanionState,
+  CompanionWidgetSettings,
   DesktopSession,
   DesktopShortcutSettings,
   DesktopShortcutSettingsResult,
   DesktopUpdateStatus,
+  CaptureWindowRequest,
+  ChatAttachmentTarget,
+  ImportChatImageBytesRequest,
   IntegrationOAuthResult,
   PermissionKind,
 } from "@shared/models/desktop";
@@ -82,6 +86,10 @@ const stageDesktop = {
       ipcRenderer.invoke(IPC_CHANNELS.companionSetState, state),
     setInteractive: (interactive: boolean) =>
       ipcRenderer.invoke(IPC_CHANNELS.companionSetInteractive, interactive),
+    getWidgetSettings: (): Promise<CompanionWidgetSettings> =>
+      ipcRenderer.invoke(IPC_CHANNELS.companionGetWidgetSettings),
+    setWidgetSettings: (settings: CompanionWidgetSettings): Promise<CompanionWidgetSettings> =>
+      ipcRenderer.invoke(IPC_CHANNELS.companionSetWidgetSettings, settings),
   },
   voice: {
     getStatus: (providerPreferences?: { claude: boolean; codex: boolean }) =>
@@ -118,8 +126,17 @@ const stageDesktop = {
   },
   screen: {
     getActiveApp: () => ipcRenderer.invoke(IPC_CHANNELS.screenGetActiveApp),
-    captureActiveWindow: () =>
-      ipcRenderer.invoke(IPC_CHANNELS.screenCaptureActiveWindow),
+    listWindowSources: () => ipcRenderer.invoke(IPC_CHANNELS.screenListWindowSources),
+    captureWindow: (request: CaptureWindowRequest) =>
+      ipcRenderer.invoke(IPC_CHANNELS.screenCaptureActiveWindow, request),
+  },
+  chat: {
+    importImages: (request: ChatAttachmentTarget) =>
+      ipcRenderer.invoke(IPC_CHANNELS.chatImportImages, request),
+    importImageBytes: (request: ImportChatImageBytesRequest) =>
+      ipcRenderer.invoke(IPC_CHANNELS.chatImportImageBytes, request),
+    deleteAttachments: (request: ChatAttachmentTarget) =>
+      ipcRenderer.invoke(IPC_CHANNELS.chatDeleteAttachments, request),
   },
   permissions: {
     getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.permissionsGetStatus),

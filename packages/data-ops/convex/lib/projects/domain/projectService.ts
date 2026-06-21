@@ -49,6 +49,10 @@ function requireNonEmptyTrimmedString(value: string, field: string) {
   return normalized;
 }
 
+export function buildProjectSearchText(name: string, clientName: string) {
+  return `${name} ${clientName}`.trim().toLocaleLowerCase();
+}
+
 function normalizePhaseInputs(phases?: Array<{ name: string; tasks?: string[] }>) {
   if (!phases) {
     return [];
@@ -246,6 +250,7 @@ export async function createProjectForUser(
   const projectId = await ctx.db.insert("projects", {
     userId: user._id,
     name: projectName,
+    searchText: buildProjectSearchText(projectName, clientName),
     clientName,
     clientEmail: nextClientEmail,
     clientAvatarUrl: nextClientAvatarUrl,

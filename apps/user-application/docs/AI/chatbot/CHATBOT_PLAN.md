@@ -1,6 +1,6 @@
 # Stage Chatbot Plan
 
-Last updated: 2026-06-07
+Last updated: 2026-06-14
 
 This document is the single source of truth for the current Stage chatbot work.
 Keep everything chatbot-related here instead of splitting it across multiple
@@ -13,9 +13,13 @@ Users must be able to use voice, open chat quickly, continue recent chats, and
 resize the chat panel when they need more room. Technical provider details must
 not leak into the UI.
 
-## Scope For This Build
+The next product boundary is a project-aware design companion. A user working
+in Figma or a browser can pin `@Limora`, attach or capture the visible design,
+and ask Stage to critique it against Limora's real brief, strategy, phases,
+tasks, and latest AI artifacts. Stage must ask for a project instead of guessing
+when a critique or project-dependent request has no pinned project.
 
-Build now:
+## Current Shipped Scope
 
 - Safe voice/chat errors: no raw OpenRouter/provider text in the UI.
 - Clean chat output: readable paragraphs, bullets, and bold text where needed.
@@ -26,13 +30,128 @@ Build now:
 - Chat history: save chats locally, open latest chat, create a new chat, and
   show recent chats in Stage style.
 
+## Next Build: Project-Aware Vision Chat
+
+Build in branch `feat/stage-chat-project-context-vision`:
+
+- One pinned Stage project per chat, selected through `@project`.
+- Searchable, access-controlled project picker.
+- Project-required request guard: image critique and project-dependent prompts
+  do not call the AI until the user selects a project.
+- Authoritative, bounded project context loaded from Convex by Stage Engine.
+- Paste, drag-and-drop, and file-picker image attachments.
+- Visible, user-confirmed current-window capture for Figma Desktop and browser
+  windows. Never capture continuously or silently.
+- Text critique and design directions grounded in the selected project.
+- Local-first screenshot storage under Electron `userData`; delete attachments
+  with the owning chat.
+- Provider image delivery for Codex and Claude.
+
 Do later:
 
-- Outside-Stage / Figma topbar integration.
-- Project-aware design critique from Figma or another active app.
-- Screenshot capture plus pinned project context.
+- Generated redesign images or annotated screenshots.
+- Multiple pinned projects in one chat.
+- Cloud-synced chat history or R2 screenshot storage.
+- Automatic browser-tab identification.
 - Any artifact mutation from chat. Chat may suggest actions later, but must not
   silently save project changes.
+
+## Large Database And Fast Search Strategy
+
+Stage must not load a user's full project database into the renderer or provider
+prompt. Fast `@project` lookup and rich project context are separate read paths.
+
+### 1. Fast `@project` lookup
+
+Add normalized searchable fields to projects:
+
+- `searchName`: lowercase normalized project name.
+- `searchText`: bounded normalized project name plus client name.
+
+Add Convex indexes:
+
+- `projects.by_user_search_name` on `[userId, searchName]` for exact and
+  deterministic project resolution.
+- A Convex search index over `searchText`, filtered by `userId`, for prefix/text
+  suggestions.
+
+Expose a paginated `searchProjectsForChat` query:
+
+- Minimum query length: 1 character after `@`.
+- Return at most 10 lightweight project references.
+- Include project ID, name, client name, status, and updated time only.
+- Never fetch phases, tasks, or artifacts for picker suggestions.
+- Debounce renderer requests and cancel stale searches.
+- Resolve a selected project by ID, never by name.
+- Backfill existing projects in bounded batches with
+  `maintenance:backfillProjectSearchText` after deployment.
+
+For an empty `@` query, return a small indexed list of recently updated active
+projects. Never collect and sort every project in memory.
+
+### 2. Bounded authoritative chat context
+
+The first production slice uses one access-controlled, bounded Convex query per
+chat run. It reads the selected project by ID, capped phase/task summaries, and
+the latest artifact per module through compound indexes. It never scans the
+user's full database and is simpler to keep correct because every answer uses
+authoritative current records.
+
+Add a materialized `projectChatContexts` snapshot only after measurements show
+the bounded query is too slow. A snapshot requires complete invalidation across
+every project, phase, task, AI context, run, and artifact mutation; introducing
+it before that contract exists risks fast but stale answers.
+
+Future snapshot shape:
+
+The snapshot would contain:
+
+- Project identity and summary.
+- Current phase plus compact phase summaries.
+- Open, overdue, and recently completed task summaries.
+- Project AI context and brief.
+- Latest relevant artifact summaries for research, strategy, moodboard, flows,
+  wireframes, and delivery.
+- Source update timestamps and truncation/omission counts.
+- `contextVersion`, `createdAt`, and `updatedAt`.
+
+Add indexes:
+
+- `projectChatContexts.by_project` on `[projectId]`.
+- `projectChatContexts.by_user_updated_at` on `[userId, updatedAt]`.
+
+Update or mark the snapshot stale when project, phase, task, AI context, run, or
+artifact mutations complete. Rebuild asynchronously after writes where
+possible. On chat read, return the existing snapshot immediately; rebuild only
+when missing or stale beyond the accepted freshness window.
+
+This avoids the current anti-pattern of collecting all artifacts for a project
+and sorting them in memory. Add compound indexes such as
+`projectAiArtifacts.by_project_module_created_at` and query only the latest
+bounded records required for the snapshot.
+
+### 3. Bounded context and targeted drill-down
+
+- Keep provider-ready context below 80,000 characters.
+- Prefer summaries over full artifact JSON or Markdown.
+- Include explicit omitted-item counts so the model knows the view is bounded.
+- Treat all project content as untrusted reference data inside clear
+  delimiters.
+- Add targeted indexed drill-down queries later for questions that need a
+  specific task or artifact; do not expand the default snapshot.
+- Cache the last resolved snapshot in Stage Engine by project ID and
+  `contextVersion` for the active chat run only.
+
+### 4. Scale acceptance targets
+
+- `@project` suggestions return within 250 ms at p95 for a user with 10,000
+  projects.
+- Loading a pinned project's context uses one bounded, access-controlled query
+  in the normal path.
+- Provider-ready context remains below 100 KB.
+- No chat query performs an unbounded `.collect()` across a user's projects,
+  tasks, runs, or artifacts.
+- Access is validated by project ID before returning picker results or context.
 
 ## Naming Rules
 
@@ -101,6 +220,7 @@ const desktopShortcutSettingsSchema = z.object({
 ```txt
 Electron main
   owns global shortcut registration
+  owns local image attachment storage and window capture
   validates shortcut settings with Zod
   stores shortcut settings under app userData
   sends shortcut intent events to renderer
@@ -108,24 +228,35 @@ Electron main
 Preload
   exposes narrow voice settings IPC methods
   exposes shortcut event subscriptions
+  exposes narrow image import, preview, delete, and capture IPC
 
 Renderer
   owns chat UI, resize state, and chat history UI
   validates persisted chats with Zod
+  owns @project picker and pinned-project presentation
   renders clean chat content
   inserts voice transcript into the active chat composer
+
+Convex
+  owns access-controlled project search
+  owns the bounded authoritative project-context query
+
+Stage Engine
+  loads the selected project's bounded context
+  builds a grounded provider prompt
+  resolves validated local image attachments for provider vision
 ```
 
 ## Build Order
 
-1. Create and maintain this `CHATBOT_PLAN.md`.
-2. Add shared Zod contracts for shortcut settings and chat storage.
-3. Fix OpenRouter/provider error leaking.
-4. Improve chat rendering and streaming display.
-5. Make chat panel resizable with local size persistence.
-6. Add editable keyboard shortcuts in Settings.
-7. Persist chats locally and support latest chat/new chat/recent chats.
-8. Run lints/type checks for changed files.
+1. Add indexed project search and bounded chat-context contracts/read model.
+2. Add `@project` picker, per-chat pinning, and missing-project guard.
+3. Add local image attachment store plus paste, drop, and upload UX.
+4. Add visible window-source selection and on-send capture.
+5. Add Stage Engine chat-context loading and grounded prompt construction.
+6. Add Codex and Claude image delivery.
+7. Add scale, access-control, attachment-lifecycle, and end-to-end tests.
+8. Update this plan, `PROJECT_STATUS.md`, and the linked Notion task with proof.
 
 ## Acceptance Criteria
 
@@ -139,6 +270,13 @@ Renderer
 - Chat shortcut opens the latest chat or creates an empty chat if none exists.
 - Recent chats are visible from the Stage chat UI.
 - All persisted chat and shortcut data is Zod-validated before use.
+- Typing `@` returns fast, access-controlled project suggestions.
+- A selected project remains pinned to its chat and is resolved by project ID.
+- Project-dependent requests without a project are blocked before provider use.
+- Image critique uses the selected project's bounded Convex context.
+- Screenshots can be pasted, dropped, uploaded, or captured with confirmation.
+- Screenshots remain local and are deleted with their owning chat.
+- Normal project-context loading never scans the user's complete database.
 
 ## Audit Table
 
@@ -154,3 +292,4 @@ Renderer
 | 8 | Shortcut settings UI | `apps/user-application/src/components/settings/ShortcutsPanel.tsx`, `apps/user-application/src/components/settings/SettingsPageView.tsx`, `apps/user-application/src/routes/_authed/settings.shortcuts.tsx`, `apps/user-application/src/lib/settings/settingsTabs.ts`, `apps/user-application/src/models/settings/settings.ts` | Added Settings -> Shortcuts with shortcut recorder, save/reset actions, and registration conflict feedback. | Users need to customize voice and chat keyboard shortcuts. | Done locally | Needs route/typecheck verification. |
 | 9 | Router registration | `apps/user-application/src/routeTree.gen.ts` | Added `/settings/shortcuts` to the generated route tree because the router generator CLI is not available in this app. | TypeScript route types must know about the new Settings route. | Done locally | `pnpm --dir apps/user-application exec tsr generate` failed because `tsr` is not installed. |
 | 10 | Verification | Changed files | Ran IDE lints and `pnpm --dir apps/user-application typecheck`. | Confirm TypeScript and visible diagnostics are clean after the chatbot changes. | Done locally | Typecheck passed; ReadLints reported no errors on changed files. |
+| 11 | Project-aware vision chat | Renderer, Electron, Convex, Stage Engine, provider adapters, this plan, linked Notion task, `PROJECT_STATUS.md` | Added pinned `@project` context, guarded project-dependent prompts, local image lifecycle, visible window capture, provider vision, and bounded Convex search/context architecture. | Stage chat must critique visible work against authoritative project information without loading a user's full database. | Done locally | Typecheck, build, Convex dev codegen, Rust check, and focused Rust tests pass; no push, merge, tag, or release without Werner approval. |

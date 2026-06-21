@@ -22,7 +22,11 @@ import {
 import { putSignedR2Upload } from "./helpers/r2-upload";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import {
+  captureWindowRequestSchema,
+  chatAttachmentTargetSchema,
+  importChatImageBytesRequestSchema,
   companionStateSchema,
+  companionWidgetSettingsSchema,
   desktopSessionSchema,
   engineStatusSchema,
   permissionKindSchema,
@@ -31,10 +35,22 @@ import {
   type DesktopSession,
 } from "@shared/models/desktop";
 import {
+  assertLocalChatAttachmentPaths,
+  captureWindowSource,
+  deleteChatAttachments,
+  importChatImages,
+  importChatImageBytes,
+  listWindowCaptureSources,
+} from "./helpers/chat-attachments";
+import {
   getDesktopPermissionStatus,
   openPermissionSystemSettings,
   requestMicrophoneAccess,
 } from "./helpers/permissions";
+import {
+  getCompanionWidgetSettings,
+  saveCompanionWidgetSettings,
+} from "./helpers/companion-preferences";
 import { fetchEngineJsonAuthed } from "./helpers/engine-request";
 import { logDesktopDebug, logDesktopInfo } from "./helpers/desktop-log";
 import { fetchEngineJson } from "./helpers/sidecar";
@@ -185,6 +201,7 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IPC_CHANNELS.engineStartRun, async (event, request: unknown) => {
     const parsedRequest = startRunRequestSchema.parse(request);
+    await assertLocalChatAttachmentPaths(parsedRequest.attachments);
     logDesktopInfo(
       "stage-engine",
       `run request provider=${parsedRequest.providerId} mode=${parsedRequest.mode} projectId=${parsedRequest.context.projectId ?? "none"}`,
@@ -352,6 +369,21 @@ export function registerIpcHandlers({
     return { ok: true };
   });
 
+  ipcMain.handle(IPC_CHANNELS.companionGetWidgetSettings, () => {
+    return companionWidgetSettingsSchema.parse(getCompanionWidgetSettings());
+  });
+
+  ipcMain.handle(IPC_CHANNELS.companionSetWidgetSettings, async (_event, settings: unknown) => {
+    const parsedSettings = companionWidgetSettingsSchema.parse(settings);
+    const savedSettings = await saveCompanionWidgetSettings(parsedSettings);
+
+    if (!savedSettings.allowEverywhere) {
+      closeCompanionWindow();
+    }
+
+    return savedSettings;
+  });
+
   ipcMain.handle(IPC_CHANNELS.windowToggleMaximize, (event) => {
     const window = BrowserWindow.fromWebContents(event.sender);
 
@@ -376,8 +408,24 @@ export function registerIpcHandlers({
     };
   });
 
-  ipcMain.handle(IPC_CHANNELS.screenCaptureActiveWindow, () => {
-    throw new Error("Screen capture is not implemented yet.");
+  ipcMain.handle(IPC_CHANNELS.screenListWindowSources, async () => {
+    return listWindowCaptureSources();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.screenCaptureActiveWindow, async (_event, request: unknown) => {
+    return captureWindowSource(captureWindowRequestSchema.parse(request));
+  });
+
+  ipcMain.handle(IPC_CHANNELS.chatImportImages, async (_event, request: unknown) => {
+    return importChatImages(chatAttachmentTargetSchema.parse(request));
+  });
+
+  ipcMain.handle(IPC_CHANNELS.chatImportImageBytes, async (_event, request: unknown) => {
+    return importChatImageBytes(importChatImageBytesRequestSchema.parse(request));
+  });
+
+  ipcMain.handle(IPC_CHANNELS.chatDeleteAttachments, async (_event, request: unknown) => {
+    return deleteChatAttachments(chatAttachmentTargetSchema.parse(request));
   });
 
   ipcMain.handle(IPC_CHANNELS.permissionsGetStatus, (): DesktopPermissionStatus => {

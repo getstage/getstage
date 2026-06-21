@@ -7,6 +7,7 @@ use tokio::sync::{RwLock, broadcast, watch};
 use tokio::time::{Duration, sleep};
 use uuid::Uuid;
 
+use crate::chat::workflow::ChatWorkflow;
 use crate::flows::workflow::FlowsWorkflow;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::providers::ProviderId;
@@ -95,6 +96,7 @@ pub struct RunManager {
     api_version: &'static str,
     runs: Arc<RwLock<HashMap<String, ActiveRun>>>,
     project_run_dedupe: Arc<RwLock<HashMap<ProjectRunDedupeKey, String>>>,
+    chat: Option<Arc<ChatWorkflow>>,
     research: Option<Arc<ResearchWorkflow>>,
     strategy: Option<Arc<StrategyWorkflow>>,
     styleguide: Option<Arc<StyleguideWorkflow>>,
@@ -106,6 +108,7 @@ pub struct RunManager {
 impl RunManager {
     pub fn new(
         api_version: &'static str,
+        chat: Option<Arc<ChatWorkflow>>,
         research: Option<Arc<ResearchWorkflow>>,
         strategy: Option<Arc<StrategyWorkflow>>,
         styleguide: Option<Arc<StyleguideWorkflow>>,
@@ -117,6 +120,7 @@ impl RunManager {
             api_version,
             runs: Arc::new(RwLock::new(HashMap::new())),
             project_run_dedupe: Arc::new(RwLock::new(HashMap::new())),
+            chat,
             research,
             strategy,
             styleguide,
@@ -188,6 +192,7 @@ impl RunManager {
         let api_version = self.api_version;
         let runs = Arc::clone(&self.runs);
         let project_run_dedupe = Arc::clone(&self.project_run_dedupe);
+        let chat = self.chat.clone();
         let research = self.research.clone();
         let strategy = self.strategy.clone();
         let styleguide = self.styleguide.clone();
@@ -242,6 +247,20 @@ impl RunManager {
                     );
                 }
                 sink.send(error_event);
+            } else if matches!(context.request.mode, RunMode::Chat) {
+                if let Some(chat) = chat {
+                    chat.run(
+                        api_version,
+                        context.run_id.clone(),
+                        context.request.clone(),
+                        auth_token,
+                        sink,
+                        cancel_rx,
+                    )
+                    .await;
+                } else {
+                    run_provider(context.clone(), sink, cancel_rx).await;
+                }
             } else if matches!(context.request.mode, RunMode::Research) {
                 if let Some(research) = research {
                     research

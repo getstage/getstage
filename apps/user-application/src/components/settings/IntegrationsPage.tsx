@@ -28,6 +28,7 @@ import { isProviderCliReady } from "@/lib/settings/providerCliSetup";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 import type { IntegrationRowModel } from "@/types/settings/integrations";
 import { ProviderCliSetupDialog } from "./ProviderCliSetupDialog";
+import { ProviderUpdatesBanner } from "./ProviderUpdatesBanner";
 import { SettingsIcon } from "./SettingsIcons";
 
 export function IntegrationsPage() {
@@ -218,6 +219,8 @@ export function IntegrationsPage() {
             {isRefreshing ? "Checking..." : "Refresh"}
           </button>
         </header>
+
+        <ProviderUpdatesBanner />
 
         <IntegrationGroup title="AI defaults">
           <div className="rounded-[8px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">

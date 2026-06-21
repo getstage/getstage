@@ -14,6 +14,7 @@ import { registerIpcHandlers } from "./ipc";
 import { registerVoiceHandlers } from "./voice";
 import { installSafeDesktopLogging, logDesktopDebug } from "./helpers/desktop-log";
 import { fetchEngineJson } from "./helpers/sidecar";
+import { loadCompanionWidgetSettings } from "./helpers/companion-preferences";
 import { providerListResponseSchema } from "@stage/data-ops/contracts";
 import { createSidecarSupervisor } from "./sidecar";
 import { checkForUpdates, initAutoUpdates, scheduleAutomaticUpdateCheckIfDue } from "./helpers/auto-update";
@@ -203,9 +204,10 @@ function registerRendererMediaPermissions() {
   );
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   const readyAt = Date.now();
   logDesktopDebug(`app ready packaged=${app.isPackaged ? "yes" : "no"}`);
+  await loadCompanionWidgetSettings();
 
   if (app.isPackaged) {
     installRendererProtocol(join(__dirname, "../renderer"));
