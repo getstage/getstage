@@ -15,6 +15,7 @@ export function TimelineStep({
   onStartDateChange,
   onEndDateChange,
   onContinue,
+  onStepSelect,
 }: {
   startDate: string;
   endDate: string;
@@ -22,6 +23,7 @@ export function TimelineStep({
   onStartDateChange: (value: string) => void;
   onEndDateChange: (value: string) => void;
   onContinue: () => void;
+  onStepSelect: (stepIndex: number) => void;
 }) {
   const canContinue = timelineFormSchema.safeParse({ startDate, endDate }).success;
 
@@ -32,6 +34,7 @@ export function TimelineStep({
       activeStepIndex={3}
       headerGapClassName="gap-[24px]"
       descriptionClassName="w-full"
+      onStepSelect={onStepSelect}
     >
       <form
         className="flex w-full flex-col items-start gap-[12px]"

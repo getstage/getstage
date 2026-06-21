@@ -12,10 +12,12 @@ export function ProjectTypeStep({
   selectedProjectType,
   onProjectTypeChange,
   onContinue,
+  onStepSelect,
 }: {
   selectedProjectType: ProjectType | null;
   onProjectTypeChange: (projectType: ProjectType) => void;
   onContinue: () => void;
+  onStepSelect: (stepIndex: number) => void;
 }) {
   return (
     <CreateProjectStepShell
@@ -25,6 +27,7 @@ export function ProjectTypeStep({
       headerGapClassName="gap-[24px]"
       titleClassName="w-[200px]"
       descriptionClassName="w-full"
+      onStepSelect={onStepSelect}
     >
       <form
         className="flex w-full flex-col items-start gap-[12px]"

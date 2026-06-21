@@ -75,7 +75,11 @@ export function SidebarProjectList({
                   collapsed
                     ? "w-[32px] justify-center gap-0 rounded-[6px] px-0"
                     : "w-full justify-start gap-[8px] rounded-[6px] px-[12px]",
-                  isActive ? "bg-white shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.15)]" : "bg-[#f5f5f5] hover:bg-[#ebebeb]",
+                  isActive
+                    ? collapsed
+                      ? "bg-transparent shadow-none"
+                      : "bg-white shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.15)]"
+                    : "bg-[#f5f5f5] hover:bg-[#ebebeb]",
                 )}
               >
                 <SidebarRoundAvatar

@@ -22,6 +22,7 @@ export function RoadmapStep({
   onNewPhaseNameChange,
   onAddPhase,
   onCreateProject,
+  onStepSelect,
   isCreating,
   error,
 }: {
@@ -36,6 +37,7 @@ export function RoadmapStep({
   onNewPhaseNameChange: (name: string) => void;
   onAddPhase: () => void;
   onCreateProject: () => void;
+  onStepSelect: (stepIndex: number) => void;
   isCreating: boolean;
   error: string | null;
 }) {
@@ -49,9 +51,10 @@ export function RoadmapStep({
     <CreateProjectStepShell
       title="Build your roadmap"
       description="How do you want to structure this project?"
-      activeStepIndex={mode === "smart" ? 4 : 3}
+      activeStepIndex={4}
       headerGapClassName="gap-[24px]"
       descriptionClassName="w-full"
+      onStepSelect={onStepSelect}
     >
       <form
         className="flex w-full flex-col items-start gap-[12px]"
