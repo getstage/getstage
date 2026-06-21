@@ -6,14 +6,9 @@ import type { ProjectType } from "@/types";
 export const CREATE_PROJECT_PROGRESS_STEPS = [0, 1, 2, 3, 4] as const;
 
 export const CREATE_PROJECT_TYPE_VALUES: ProjectType[] = [
-  "branding",
   "web-design",
-  "product-design",
   "app-design",
-  "packaging",
-  "motion-design",
-  "illustration",
-  "other",
+  "web-app",
 ];
 
 export const SMART_ROADMAP_PHASES = ["Research", "Architecture", "Design", "Development", "Testing"];
