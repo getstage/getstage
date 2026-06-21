@@ -11,10 +11,10 @@ type Props = {
 };
 
 const BLOCK_COMMANDS = [
-  { id: "heading" as const, label: "Heading 1", hint: "Large section heading", icon: "H1" },
-  { id: "paragraph" as const, label: "Body text", hint: "Plain text paragraph", icon: "T" },
-  { id: "bullet" as const, label: "Bulleted list", hint: "Create a simple list", icon: "•" },
-  { id: "mention" as const, label: "Mention member", hint: "Notify a teammate in context", icon: "@" },
+  { id: "heading" as const, label: "Heading 1", icon: "H1" },
+  { id: "paragraph" as const, label: "Body text", icon: "T" },
+  { id: "bullet" as const, label: "Bulleted list", icon: "•" },
+  { id: "mention" as const, label: "Mention member", icon: "@" },
 ];
 
 let nextBlockId = 1;
@@ -202,7 +202,6 @@ export function TaskDetailsEditor({ value, members, onChange }: Props) {
             <SlashMenu
               options={options}
               selectedIndex={selectedIndex}
-              isMentionMode={isMentionMode}
               onSelect={selectOption}
             />
           ) : null}
@@ -215,37 +214,30 @@ export function TaskDetailsEditor({ value, members, onChange }: Props) {
 function SlashMenu({
   options,
   selectedIndex,
-  isMentionMode,
   onSelect,
 }: {
-  options: Array<{ id: string; label: string; hint?: string; icon?: string; member?: ProjectMember }>;
+  options: Array<{ id: string; label: string; icon?: string; member?: ProjectMember }>;
   selectedIndex: number;
-  isMentionMode: boolean;
   onSelect: (index: number) => void;
 }) {
   return (
-    <div className="absolute left-0 top-[calc(100%+6px)] z-40 w-[240px] rounded-[8px] border-2 border-[rgba(0,0,0,0.05)] bg-white p-[6px] shadow-[0_8px_24px_rgba(10,10,10,0.12)]">
-      <p className="px-[8px] pb-[4px] pt-[2px] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#a3a3a3]">
-        {isMentionMode ? "Team members" : "Basic blocks"}
-      </p>
-      {options.length ? options.map((option, index) => (
-        <button
-          key={option.id}
-          type="button"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => onSelect(index)}
-          className={`flex w-full items-center gap-[8px] rounded-[6px] px-[8px] py-[6px] text-left transition-colors ${index === selectedIndex ? "bg-[#f5f5f5]" : "hover:bg-[#f5f5f5]"}`}
-        >
-          <span className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-[5px] border border-[#e5e5e5] bg-white text-[11px] font-semibold text-[#525252]">
-            {option.member ? memberLabel(option.member).charAt(0).toUpperCase() : option.icon}
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate text-[12px] font-medium leading-[1.2] text-[#171717]">{option.label}</span>
-            {option.hint ? <span className="mt-[2px] block text-[10px] leading-[1.2] text-[#737373]">{option.hint}</span> : null}
-          </span>
-        </button>
-      )) : <p className="px-[8px] py-[10px] text-[12px] text-[#737373]">No matching members</p>}
-      <p className="mt-[3px] border-t border-[#eeeeee] px-[8px] pt-[5px] text-[9px] text-[#a3a3a3]">↑↓ navigate · Enter select · Esc close</p>
+    <div className="absolute left-0 top-[calc(100%+6px)] z-40 w-[212px] rounded-[8px] bg-[#f5f5f5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+      <div className="rounded-[6px] bg-white p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        {options.length ? options.map((option, index) => (
+          <button
+            key={option.id}
+            type="button"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => onSelect(index)}
+            className={`flex h-[32px] w-full items-center gap-[8px] rounded-[6px] px-[8px] text-left text-[13px] font-medium leading-none text-[#171717] outline-none transition-colors ${index === selectedIndex ? "bg-[#f5f5f5]" : "hover:bg-[#f5f5f5]"}`}
+          >
+            <span className="flex w-[18px] shrink-0 items-center justify-center text-[11px] font-semibold text-[#737373]">
+              {option.member ? memberLabel(option.member).charAt(0).toUpperCase() : option.icon}
+            </span>
+            <span className="min-w-0 truncate">{option.label}</span>
+          </button>
+        )) : <p className="px-[8px] py-[8px] text-[12px] font-medium text-[#737373]">No matching members</p>}
+      </div>
     </div>
   );
 }
