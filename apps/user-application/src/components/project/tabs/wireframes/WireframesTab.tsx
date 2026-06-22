@@ -126,6 +126,7 @@ export function WireframesTab({
           <TypeChooser
             selectedSource={brandSource}
             onSelect={setBrandSource}
+            onBack={() => setStep("choose-kind")}
             onContinue={continueFromSource}
           />
         </CanvasShell>
@@ -194,6 +195,17 @@ export function WireframesTab({
           wireframeKind={wireframeKind ?? "lofi"}
           screens={screens}
           selectedCount={selectedCount}
+          onBack={() => {
+            if (brandSource === "brand-kit") {
+              setStep("brand-kit");
+              return;
+            }
+            if (brandSource === "style-guide") {
+              setStep("style-guide");
+              return;
+            }
+            setStep("choose-type");
+          }}
           onChangeType={() => setStep("choose-kind")}
           onAddBrandKit={() => {
             setWireframeKind("hifi");
