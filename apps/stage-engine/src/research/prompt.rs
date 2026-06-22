@@ -163,6 +163,10 @@ Required competitiveAnalysis matrix shape:
 - Matrix `note` must be omitted. Cells are score-only (Strong / OK / Weak).
 - Never put URLs or multi-sentence notes in matrix cells.
 
+summary rules:
+- Return summary as a JSON array of 3-5 short bullet strings (one sentence each, max 20 words). Never a single bullet, never a headline/body object.
+- Cover, in order: what was benchmarked, the dominant UI pattern across the competitors, the biggest UX gap, and the headline opportunity for {project_name}.
+
 targetUsers rules:
 - Exactly 2 personas max.
 - Every persona must include id, name, role, context, goals[], and frustrations[].

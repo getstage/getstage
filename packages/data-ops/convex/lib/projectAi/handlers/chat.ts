@@ -8,7 +8,8 @@ import { aiArtifactStatus, aiModule, type AiModule } from "../domain/validators"
 
 const MAX_PHASES = 30;
 const MAX_TASKS = 100;
-const ARTIFACT_EXCERPT_CHARS = 4_000;
+const MAX_ARTIFACTS_PER_MODULE = 5;
+const ARTIFACT_EXCERPT_CHARS = 12_000;
 const MODULES: AiModule[] = [
   "research",
   "strategy",
@@ -121,7 +122,7 @@ export async function getChatProjectContextHandler(
             q.eq("projectId", project._id).eq("module", module),
           )
           .order("desc")
-          .take(1),
+          .take(MAX_ARTIFACTS_PER_MODULE),
       ),
     ),
   ]);
@@ -185,16 +186,22 @@ export async function getChatProjectContextHandler(
     })));
   }
 
-  const artifacts = artifactResults.flat().map((artifact) => ({
-    id: String(artifact._id),
-    module: artifact.module,
-    kind: artifact.kind,
-    title: artifact.title,
-    summary: truncate(artifact.summary, 1_000),
-    status: artifact.status,
-    excerpt: artifactExcerpt(artifact),
-    updatedAt: artifact.updatedAt,
-  }));
+  const artifacts = MODULES.flatMap((_module, moduleIndex) => {
+    const moduleArtifacts = artifactResults[moduleIndex] ?? [];
+    return moduleArtifacts.map((artifact, indexInModule) => {
+      const isNewestInModule = indexInModule === 0;
+      return {
+        id: String(artifact._id),
+        module: artifact.module,
+        kind: artifact.kind,
+        title: artifact.title,
+        summary: isNewestInModule ? truncate(artifact.summary, 1_000) : undefined,
+        status: artifact.status,
+        excerpt: isNewestInModule ? artifactExcerpt(artifact) : undefined,
+        updatedAt: artifact.updatedAt,
+      };
+    });
+  });
 
   return {
     apiVersion: "v1" as const,

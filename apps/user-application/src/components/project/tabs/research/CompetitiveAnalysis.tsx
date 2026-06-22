@@ -9,7 +9,7 @@ type CompetitiveAnalysisProps = {
   competitors: ResearchCompetitor[];
   matrixRows: Array<{
     label: string;
-    cells: Array<{ competitorId: string; score: string; note: string }>;
+    cells: Array<{ competitorId: string; score: string }>;
   }>;
   onViewChange: (view: "card" | "matrix") => void;
   onCompetitorsChange?: (competitors: ResearchCompetitor[]) => void;
@@ -87,7 +87,7 @@ function CompetitiveMatrix({
   competitors: ResearchCompetitor[];
   matrixRows: Array<{
     label: string;
-    cells: Array<{ competitorId: string; score: string; note: string }>;
+    cells: Array<{ competitorId: string; score: string }>;
   }>;
 }) {
   const gridTemplate = `220px repeat(${competitors.length}, minmax(130px, 1fr))`;
@@ -118,7 +118,7 @@ function CompetitiveMatrix({
               return (
                 <div key={`${row.label}-${competitor.id}`} className="border-r border-[#E8E8E8] px-4 py-3 last:border-r-0">
                   {cell ? (
-                    <MatrixCell score={cell.score} note={cell.note} />
+                    <MatrixCell score={cell.score} />
                   ) : (
                     <span className="text-[12px] font-medium leading-[1.25] text-[#9CA3AF]">N/A</span>
                   )}
@@ -132,15 +132,18 @@ function CompetitiveMatrix({
   );
 }
 
-function MatrixCell({ score }: { score: string; note: string }) {
-  const color =
+function MatrixCell({ score }: { score: string }) {
+  const palette =
     score === "Strong"
-      ? "#16A34A"
+      ? { color: "#16A34A", background: "#DCFCE7" }
       : score === "Weak"
-        ? "#EF4444"
-        : "#F97316";
+        ? { color: "#DC2626", background: "#FEE2E2" }
+        : { color: "#EA580C", background: "#FFEDD5" };
   return (
-    <span className="text-[12px] font-medium leading-[1.25]" style={{ color }}>
+    <span
+      className="inline-flex items-center rounded-full px-2 py-[3px] text-[12px] font-medium leading-[1.25]"
+      style={{ color: palette.color, backgroundColor: palette.background }}
+    >
       {score}
     </span>
   );

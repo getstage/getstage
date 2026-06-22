@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import type { ProjectMember } from "@/hooks/convex-data";
+import { Avatar } from "@/components/ui/Avatar";
+import { useSettingsOverviewQuery, type ProjectMember } from "@/hooks/convex-data";
 
 type BlockType = "heading" | "paragraph" | "bullet";
 type Block = { id: number; type: BlockType; text: string };
@@ -16,6 +17,9 @@ const BLOCK_COMMANDS = [
   { id: "bullet" as const, label: "Bulleted list", icon: "•" },
   { id: "mention" as const, label: "Mention member", icon: "@" },
 ];
+
+const SLASH_TRIGGER_PATTERN = /(?:^|\s)\/([^\s/]*)$/;
+const MENTION_TRIGGER_PATTERN = /(?:^|\s)@([^\s@]*)$/;
 
 let nextBlockId = 1;
 
@@ -39,6 +43,10 @@ function memberLabel(member: ProjectMember) {
   return member.name?.trim() || member.email?.trim() || "Team member";
 }
 
+function hasOpenEditorTrigger(text: string) {
+  return SLASH_TRIGGER_PATTERN.test(text) || MENTION_TRIGGER_PATTERN.test(text);
+}
+
 export function TaskDetailsEditor({ value, members, onChange }: Props) {
   const [blocks, setBlocks] = useState(() => parseBlocks(value));
   const [activeBlockId, setActiveBlockId] = useState<number | null>(null);
@@ -55,20 +63,24 @@ export function TaskDetailsEditor({ value, members, onChange }: Props) {
   }, [value]);
 
   const activeBlock = blocks.find((block) => block.id === activeBlockId);
-  const slashMatch = activeBlock?.text.match(/(?:^|\s)\/([^\s/]*)$/);
+  const slashMatch = activeBlock?.text.match(SLASH_TRIGGER_PATTERN);
+  const mentionMatch = activeBlock?.text.match(MENTION_TRIGGER_PATTERN);
   const slashQuery = slashMatch?.[1].toLocaleLowerCase() ?? "";
-  const isMentionMode = slashQuery === "mention";
+  const mentionQuery = mentionMatch?.[1].toLocaleLowerCase() ?? "";
+  const isMentionMode = Boolean(mentionMatch) || slashQuery === "mention";
   const options = useMemo(() => {
     if (isMentionMode) {
-      return members.map((member) => ({ id: member.userId, label: memberLabel(member), member }));
+      return members
+        .map((member) => ({ id: member.userId, label: memberLabel(member), member }))
+        .filter((option) => option.label.toLocaleLowerCase().includes(mentionQuery));
     }
     return BLOCK_COMMANDS.filter((command) =>
       `${command.label} ${command.id}`.toLocaleLowerCase().includes(slashQuery),
     );
-  }, [isMentionMode, members, slashQuery]);
-  const isMenuOpen = Boolean(activeBlock && slashMatch);
+  }, [isMentionMode, members, mentionQuery, slashQuery]);
+  const isMenuOpen = Boolean(activeBlock && (slashMatch || mentionMatch));
 
-  useEffect(() => setSelectedIndex(0), [slashQuery, activeBlockId]);
+  useEffect(() => setSelectedIndex(0), [slashQuery, mentionQuery, activeBlockId]);
 
   function commit(next: Block[]) {
     isLocalChangeRef.current = true;
@@ -85,7 +97,15 @@ export function TaskDetailsEditor({ value, members, onChange }: Props) {
   }
 
   function replaceSlash(block: Block, replacement: string) {
-    const text = block.text.replace(/(?:^|\s)\/[^\s/]*$/, (match) => {
+    const text = block.text.replace(SLASH_TRIGGER_PATTERN, (match) => {
+      const prefix = match.startsWith(" ") ? " " : "";
+      return `${prefix}${replacement}`;
+    });
+    return text;
+  }
+
+  function replaceMention(block: Block, replacement: string) {
+    const text = block.text.replace(MENTION_TRIGGER_PATTERN, (match) => {
       const prefix = match.startsWith(" ") ? " " : "";
       return `${prefix}${replacement}`;
     });
@@ -100,7 +120,12 @@ export function TaskDetailsEditor({ value, members, onChange }: Props) {
     if ("member" in option) {
       const next = blocks.map((item) =>
         item.id === block.id
-          ? { ...item, text: replaceSlash(item, `@${option.label} `) }
+          ? {
+              ...item,
+              text: mentionMatch
+                ? replaceMention(item, `@${option.label} `)
+                : replaceSlash(item, `@${option.label} `),
+            }
           : item,
       );
       setActiveBlockId(null);
@@ -183,11 +208,11 @@ export function TaskDetailsEditor({ value, members, onChange }: Props) {
               else inputRefs.current.delete(block.id);
             }}
             value={block.text}
-            onFocus={() => block.text.match(/(?:^|\s)\/[^\s/]*$/) && setActiveBlockId(block.id)}
+            onFocus={() => hasOpenEditorTrigger(block.text) && setActiveBlockId(block.id)}
             onChange={(event) => {
               const text = event.target.value;
               const next = blocks.map((item) => item.id === block.id ? { ...item, text } : item);
-              setActiveBlockId(text.match(/(?:^|\s)\/[^\s/]*$/) ? block.id : null);
+              setActiveBlockId(hasOpenEditorTrigger(text) ? block.id : null);
               commit(next);
             }}
             onKeyDown={(event) => handleKeyDown(event, block, index)}
@@ -220,6 +245,9 @@ function SlashMenu({
   selectedIndex: number;
   onSelect: (index: number) => void;
 }) {
+  const settingsOverviewQuery = useSettingsOverviewQuery();
+  const profile = settingsOverviewQuery.data?.profile;
+
   return (
     <div className="absolute left-0 top-[calc(100%+6px)] z-40 w-[212px] rounded-[8px] bg-[#f5f5f5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="rounded-[6px] bg-white p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -231,13 +259,34 @@ function SlashMenu({
             onClick={() => onSelect(index)}
             className={`flex h-[32px] w-full items-center gap-[8px] rounded-[6px] px-[8px] text-left text-[13px] font-medium leading-none text-[#171717] outline-none transition-colors ${index === selectedIndex ? "bg-[#f5f5f5]" : "hover:bg-[#f5f5f5]"}`}
           >
-            <span className="flex w-[18px] shrink-0 items-center justify-center text-[11px] font-semibold text-[#737373]">
-              {option.member ? memberLabel(option.member).charAt(0).toUpperCase() : option.icon}
-            </span>
+            {option.member ? (
+              <Avatar
+                name={option.label}
+                src={getMemberAvatarUrl(option.member, profile)}
+                className="h-[18px] w-[18px] text-[10px]"
+              />
+            ) : (
+              <span className="flex w-[18px] shrink-0 items-center justify-center text-[11px] font-semibold text-[#737373]">
+                {option.icon}
+              </span>
+            )}
             <span className="min-w-0 truncate">{option.label}</span>
           </button>
         )) : <p className="px-[8px] py-[8px] text-[12px] font-medium text-[#737373]">No matching members</p>}
       </div>
     </div>
   );
+}
+
+function getMemberAvatarUrl(
+  member: ProjectMember,
+  profile: { id: string; email: string; avatarUrl: string | null } | undefined,
+) {
+  if (!profile?.avatarUrl) return undefined;
+
+  if (member.userId === profile.id || member.email === profile.email) {
+    return profile.avatarUrl;
+  }
+
+  return undefined;
 }

@@ -47,7 +47,7 @@ export type ResearchTabData = {
   competitors: ResearchCompetitor[];
   competitiveMatrixRows: Array<{
     label: string;
-    cells: Array<{ competitorId: string; score: string; note: string }>;
+    cells: Array<{ competitorId: string; score: string }>;
   }>;
   uiPatternGroups: UiPatternGroupWithPatterns[];
   targetUsers: ResearchTargetUser[];

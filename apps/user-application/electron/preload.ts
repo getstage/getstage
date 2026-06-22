@@ -43,6 +43,9 @@ const stageDesktop = {
       };
     },
   },
+  clipboard: {
+    writeText: (text: string) => ipcRenderer.invoke(IPC_CHANNELS.clipboardWriteText, text),
+  },
   engine: {
     getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.engineGetStatus),
     listProviders: () => ipcRenderer.invoke(IPC_CHANNELS.engineListProviders),

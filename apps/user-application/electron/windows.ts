@@ -94,6 +94,9 @@ export function createMainWindow() {
     mainWindow.webContents.on(
       "console-message",
       (_event, level, message, line, sourceId) => {
+        if (message.includes("[vite] hot updated")) {
+          return;
+        }
         const prefix =
           level === 3 ? "[renderer error]" : level === 2 ? "[renderer warn]" : "[renderer]";
         console.log(`${prefix} ${message} (${sourceId}:${line})`);

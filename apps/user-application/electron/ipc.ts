@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, resolve, sep } from "node:path";
-import { app, BrowserWindow, dialog, ipcMain, shell, type WebContents } from "electron";
+import { app, BrowserWindow, clipboard, dialog, ipcMain, shell, type WebContents } from "electron";
 import {
   cancelRunResponseSchema,
   createFigmaExportRequestSchema,
@@ -131,6 +131,13 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IPC_CHANNELS.authGetAccessToken, async (): Promise<string | null> => {
     return authController.getAccessToken();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.clipboardWriteText, (_event, text: unknown) => {
+    if (typeof text !== "string") {
+      throw new Error("Clipboard text must be a string.");
+    }
+    clipboard.writeText(text);
   });
 
   ipcMain.handle(IPC_CHANNELS.engineGetStatus, async () => {

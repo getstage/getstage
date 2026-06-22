@@ -4,6 +4,7 @@ export const IPC_CHANNELS = {
   authGetSession: "auth:get-session",
   authGetAccessToken: "auth:get-access-token",
   authSessionChanged: "auth:session-changed",
+  clipboardWriteText: "clipboard:write-text",
   engineGetStatus: "engine:get-status",
   engineListProviders: "engine:list-providers",
   engineRefreshProviders: "engine:refresh-providers",

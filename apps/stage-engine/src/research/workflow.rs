@@ -13,13 +13,11 @@ use crate::providers::adapter::{ProviderRunContext, run_provider_collect, smoke_
 use crate::providers::process::{ProviderProcessError, ProviderProcessOutcome};
 use crate::providers::service::assert_provider_ready_for_run;
 use crate::refero::service::ReferoService;
-use crate::research::competitive::{
-    competitive_analysis_needs_repair, filter_competitive_analysis,
-};
+use crate::research::competitive::filter_competitive_analysis;
 use crate::research::refero_assets::{apply_engine_ui_patterns, persist_refero_context_images};
 use crate::research::section::{
-    build_competitive_repair_prompt, build_opportunities_prompt, build_section_regenerate_prompt,
-    merge_research_section, parse_research_section,
+    build_opportunities_prompt, build_section_regenerate_prompt, merge_research_section,
+    parse_research_section,
 };
 use crate::research::service::ResearchService;
 use crate::runs::RunEventSink;
@@ -27,12 +25,6 @@ use serde_json::json;
 use tokio::time::{Duration, timeout};
 
 const RESEARCH_PROVIDER_TIMEOUT: Duration = Duration::from_secs(300);
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum CompetitiveRepairOutcome {
-    Completed,
-    Cancelled,
-}
 
 #[derive(Clone, Debug)]
 pub struct ResearchWorkflow {
@@ -225,69 +217,8 @@ impl ResearchWorkflow {
             let mut raw_artifact = extract_research_artifact(&final_text)?;
             apply_engine_ui_patterns(&mut raw_artifact, &bundle.refero_context, &image_keys);
             let refero_context = serde_json::to_value(&bundle.refero_context)?;
-            let mut artifact =
+            let artifact =
                 enrich_research_artifact(raw_artifact, &input, refero_context, now_millis())?;
-
-            if artifact
-                .as_object()
-                .is_some_and(competitive_analysis_needs_repair)
-            {
-                self.tool_started(
-                    api_version,
-                    &run_id,
-                    provider_id,
-                    &sink,
-                    "research-competitive-repair",
-                    "Repair incomplete competitive evidence",
-                );
-                match self
-                    .repair_competitive_analysis_once(
-                        api_version,
-                        &run_id,
-                        &request,
-                        &input,
-                        &mut artifact,
-                        cancel_rx.clone(),
-                    )
-                    .await
-                {
-                    Ok(CompetitiveRepairOutcome::Completed) => {}
-                    Ok(CompetitiveRepairOutcome::Cancelled) => {
-                        tracing::info!(run_id = %run_id, "competitive repair cancelled");
-                        self.mark_research_cancelled(
-                            &auth_token,
-                            project_id,
-                            convex_run_id.as_deref(),
-                            &uploaded_research_asset_keys,
-                        )
-                        .await;
-                        sink.send(RunEvent::RunCancelled {
-                            api_version,
-                            run_id: run_id.clone(),
-                            provider_id,
-                            created_at: now_millis(),
-                            reason: Some("Run cancelled by user.".to_string()),
-                        });
-                        return Ok(());
-                    }
-                    Err(error) => {
-                        tracing::error!(
-                            run_id = %run_id,
-                            project_id,
-                            %error,
-                            "competitive repair failed; failing research run"
-                        );
-                        return Err(error);
-                    }
-                }
-                self.tool_completed(
-                    api_version,
-                    &run_id,
-                    provider_id,
-                    &sink,
-                    "research-competitive-repair",
-                );
-            }
 
             let parsed_artifact =
                 serde_json::from_value::<crate::models::research::ResearchArtifact>(
@@ -418,64 +349,6 @@ impl ResearchWorkflow {
         }
     }
 
-    async fn repair_competitive_analysis_once(
-        &self,
-        api_version: &'static str,
-        run_id: &str,
-        request: &StartRunRequest,
-        input: &crate::models::research::ResearchInput,
-        artifact: &mut serde_json::Value,
-        cancel_rx: tokio::sync::watch::Receiver<bool>,
-    ) -> Result<CompetitiveRepairOutcome, WorkflowError> {
-        let mut repair_request = request.clone();
-        repair_request.prompt = build_competitive_repair_prompt(artifact, input);
-        repair_request.context.source = Some("section:competitiveAnalysis".to_string());
-        let outcome = collect_with_timeout(
-            ProviderRunContext {
-                api_version,
-                run_id: format!("{run_id}-competitive-repair"),
-                request: repair_request,
-            },
-            RunEventSink::detached(),
-            cancel_rx,
-        )
-        .await?;
-        let final_text = match outcome {
-            ProviderProcessOutcome::Completed(final_text) => final_text,
-            ProviderProcessOutcome::Cancelled => return Ok(CompetitiveRepairOutcome::Cancelled),
-        };
-        let response = extract_json_object(&final_text)?;
-        let Some(object) = artifact.as_object_mut() else {
-            return Ok(CompetitiveRepairOutcome::Completed);
-        };
-
-        let updated_competitive = response.get("competitiveAnalysis").is_some();
-        if let Some(analysis) = response.get("competitiveAnalysis") {
-            object.insert("competitiveAnalysis".to_string(), analysis.clone());
-        }
-        if let Some(repair_sources) = response
-            .get("sourceReferences")
-            .and_then(serde_json::Value::as_array)
-        {
-            let sources = object
-                .entry("sourceReferences".to_string())
-                .or_insert_with(|| json!([]));
-            if let Some(sources) = sources.as_array_mut() {
-                sources.extend(repair_sources.iter().cloned());
-            }
-        }
-
-        crate::research::normalize::normalize_research_artifact_fields(object, input);
-        filter_competitive_analysis(object, input);
-        let report = crate::research::competitive::repair_competitive_analysis(object, input);
-        if updated_competitive {
-            crate::research::competitive::drop_unsourced_competitor_content(object);
-        }
-        crate::research::competitive::append_competitive_quality_warnings(object, &report);
-        crate::research::competitive::validate_competitive_analysis(object, input)?;
-        Ok(CompetitiveRepairOutcome::Completed)
-    }
-
     async fn run_section_regenerate(
         &self,
         api_version: &'static str,
@@ -538,6 +411,7 @@ impl ResearchWorkflow {
             filter_competitive_analysis(object, &input);
             let repair_report =
                 crate::research::competitive::repair_competitive_analysis(object, &input);
+            crate::research::competitive::complete_competitive_matrix(object);
             crate::research::competitive::append_competitive_quality_warnings(
                 object,
                 &repair_report,

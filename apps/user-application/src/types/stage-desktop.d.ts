@@ -43,6 +43,9 @@ export type StageDesktopApi = {
     getAccessToken: () => Promise<string | null>;
     onSessionChanged: (callback: (session: DesktopSession | null) => void) => () => void;
   };
+  clipboard: {
+    writeText: (text: string) => Promise<void>;
+  };
   engine: {
     getStatus: () => Promise<EngineStatus>;
     listProviders: () => Promise<ProviderListResponse>;

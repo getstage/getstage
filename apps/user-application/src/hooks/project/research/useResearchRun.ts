@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "convex/react";
 import type { ProviderId } from "@stage/data-ops/contracts";
+import type { Id } from "@stage/data-ops/convex/data-model";
+import { api } from "@/lib/convexApi";
 import { useDesktopAuth } from "@/lib/auth";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
@@ -35,16 +38,41 @@ export function useResearchRun(projectId: string) {
   const hasTerminalEvent = providerRun.hasTerminalEvent;
   const resetActiveRun = providerRun.resetActiveRun;
 
+  // The in-memory active run is lost when the Research tab unmounts (navigating away).
+  // Convex is the durable truth: a research run sits at status "running" until the engine
+  // marks it completed/failed, so reading it keeps the generating state honest on return.
+  const researchRuns = useQuery(
+    api.projectAi.listRuns,
+    isAuthenticated && projectId
+      ? { projectId: projectId as Id<"projects">, module: "research" }
+      : "skip",
+  );
+  const persistedRunningRun = useMemo(
+    () => researchRuns?.find((run) => run.status === "running") ?? null,
+    [researchRuns],
+  );
+
   const isRunning = useMemo(
     () =>
       !runEnded &&
-      (providerRun.startRun.isPending || providerRun.isRunActive),
+      (providerRun.startRun.isPending ||
+        providerRun.isRunActive ||
+        persistedRunningRun !== null),
     [
       providerRun.isRunActive,
       providerRun.startRun.isPending,
+      persistedRunningRun,
       runEnded,
     ],
   );
+
+  // After a remount the local start timestamp is gone; seed it from the persisted run so
+  // the elapsed timer resumes from the real start instead of restarting at zero.
+  useEffect(() => {
+    if (persistedRunningRun && runStartedAtRef.current === null) {
+      runStartedAtRef.current = persistedRunningRun.startedAt;
+    }
+  }, [persistedRunningRun]);
 
   useEffect(() => {
     if (!isRunning || runStartedAtRef.current === null) {

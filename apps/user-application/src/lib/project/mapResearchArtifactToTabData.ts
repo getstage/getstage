@@ -77,9 +77,25 @@ function mapRecognizedPatterns(
     exampleProducts.length > 0 ? ` in ${exampleProducts.join(" and ")} references` : " across the Refero references";
 
   return patterns.map((pattern) => {
-    const body = patternBody(pattern, group.title, sourceLabel);
-    return [pattern, body] as const;
+    const parsed = splitRecognizedPattern(pattern);
+    const body = parsed.body ?? patternBody(parsed.title, group.title, sourceLabel);
+    return [parsed.title, body] as const;
   });
+}
+
+function splitRecognizedPattern(pattern: string) {
+  const separator = " — ";
+  const separatorIndex = pattern.indexOf(separator);
+  if (separatorIndex === -1) {
+    return { title: pattern.trim() };
+  }
+
+  const title = pattern.slice(0, separatorIndex).trim();
+  const body = pattern.slice(separatorIndex + separator.length).trim();
+  return {
+    title: title || pattern.trim(),
+    body: body || undefined,
+  };
 }
 
 function patternBody(pattern: string, groupTitle: string, sourceLabel: string) {
@@ -136,7 +152,6 @@ export function mapResearchArtifactToTabData(artifact: ResearchArtifact): Resear
       .map((cell) => ({
         competitorId: cell.competitorId,
         score: cell.score,
-        note: cell.note?.trim() ?? "",
       })),
   }));
 

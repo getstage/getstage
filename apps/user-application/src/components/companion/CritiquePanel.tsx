@@ -435,7 +435,8 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
 
   async function submitMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const nextPrompt = [projectContextPrefix.trim(), draft.trim()].filter(Boolean).join(" ");
+    const projectTag = activeChat.project ? `@${activeChat.project.projectName}` : "";
+    const nextPrompt = [projectTag, projectContextPrefix.trim(), draft.trim()].filter(Boolean).join(" ");
 
     if (!nextPrompt || isThinking || isProviderStatusPending(providers.snapshot)) {
       return;
@@ -807,7 +808,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
           );
         })}
         {!activeChat.project && messages.length === 0 ? (
-          <p className="chat-context-tip"><strong>Tip:</strong> Type @ to add project context</p>
+          <p className="chat-context-tip"><strong>Tip:</strong> Type @ to add project context. Then ask about research, strategy, wireframes, or assets — Stage sees the full history.</p>
         ) : null}
       </div>
 

@@ -57,24 +57,19 @@ pub fn build_refero_competitor_search_requests(
 }
 
 fn build_category_query(input: &ResearchInput, category: ReferoUiPatternCategory) -> String {
+    // Lead with the concrete UI pattern — that is what makes each category distinct and
+    // pulls a different region of Refero's index. Leading every query with the same
+    // industry phrase made all five collide and return the same generic screens. Industry
+    // stays only as a light trailing qualifier (and never the client name — see flow note).
     let pattern = match category {
-        ReferoUiPatternCategory::Onboarding => {
-            "B2B wholesale signup onboarding setup wizard account request"
-        }
-        ReferoUiPatternCategory::Homepage => {
-            "B2B wholesale marketing homepage landing hero product"
-        }
-        ReferoUiPatternCategory::Pricing => "B2B pricing page plan comparison subscription tiers",
-        ReferoUiPatternCategory::Checkout => "B2B mobile checkout payment order review cart",
-        ReferoUiPatternCategory::Dashboard => {
-            "B2B wholesale dashboard admin catalog approval queue"
-        }
+        ReferoUiPatternCategory::Onboarding => "account signup onboarding wizard first run",
+        ReferoUiPatternCategory::Homepage => "marketing homepage hero sections",
+        ReferoUiPatternCategory::Pricing => "pricing page plans comparison table",
+        ReferoUiPatternCategory::Checkout => "mobile checkout payment order summary",
+        ReferoUiPatternCategory::Dashboard => "orders analytics dashboard overview",
     };
 
-    // Industry + UI-pattern intent only — never the client name (see flow search note).
-    let query_parts = [input.industry.clone(), pattern.to_string()];
-
-    query_parts.join(" ")
+    format!("{pattern} {}", input.industry.trim())
 }
 
 #[cfg(test)]
@@ -139,7 +134,9 @@ mod tests {
 
         assert_eq!(names, vec!["Amazon", "Squarespace"]);
         assert!(
-            requests.iter().all(|(name, request)| &request.query == name),
+            requests
+                .iter()
+                .all(|(name, request)| &request.query == name),
             "each competitor search must query its own product name"
         );
     }

@@ -2,7 +2,7 @@ use anyhow::Context;
 
 use crate::models::chat::ChatProjectContext;
 
-const MAX_CONTEXT_CHARS: usize = 80_000;
+const MAX_CONTEXT_CHARS: usize = 150_000;
 
 pub fn build_grounded_chat_prompt(
     user_prompt: &str,
@@ -53,12 +53,12 @@ mod tests {
                 project_id: "p1".to_string(),
                 project_name: "Limora".to_string(),
                 client_name: "Limora".to_string(),
-                status: "active".to_string(),
-                updated_at: 1,
-                r#type: "web-app".to_string(),
-                progress: 20.0,
-                start_date: 1,
-                end_date: 2,
+status: "active".to_string(),
+            updated_at: 1.0,
+            r#type: "web-app".to_string(),
+            progress: 20.0,
+            start_date: 1.0,
+            end_date: 2.0,
             },
             brief: Some("Build a designer AI platform.".to_string()),
             notes: None,
@@ -70,7 +70,7 @@ mod tests {
                 tasks: false,
                 artifacts: false,
             },
-            updated_at: 1,
+            updated_at: 1.0,
         };
 
         let prompt = build_grounded_chat_prompt("Critique this layout.", &context)
