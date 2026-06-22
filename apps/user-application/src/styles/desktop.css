@@ -1,6 +1,6 @@
 /* ============================================================
    COMPANION UI — kept as vanilla CSS (not part of dashboard redesign)
-   Companion components: CompanionOrb, VoiceControlBar, CritiquePanel
+   Companion components: VoiceControlBar, CritiquePanel
    ============================================================ */
 
 .stage-desktop-shell {
@@ -38,7 +38,6 @@ a,
 [role="button"],
 .chat-panel,
 .critique-panel,
-.companion-orb,
 .voice-control-bar {
   -webkit-app-region: no-drag;
 }
@@ -86,69 +85,6 @@ a,
 
 .project-tab-menu::-webkit-scrollbar-track {
   background: transparent;
-}
-
-.companion-orb {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  padding: 0;
-  border: 2px solid #292853;
-  border-radius: 50%;
-  background: #111121;
-  box-shadow:
-    0 20px 42px rgb(17 17 33 / 18%),
-    0 0 0 1px rgb(255 255 255 / 18%) inset;
-  cursor: pointer;
-}
-
-.companion-orb-tooltip {
-  position: absolute;
-  right: calc(100% + 12px);
-  top: 50%;
-  width: max-content;
-  padding: 7px 10px;
-  border: 1px solid #262626;
-  border-radius: 6px;
-  background: #111121;
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1;
-  opacity: 0;
-  pointer-events: none;
-  transform: translate(4px, -50%);
-  transition:
-    opacity 140ms ease,
-    transform 140ms ease;
-}
-
-.companion-orb:hover .companion-orb-tooltip,
-.companion-orb:focus-visible .companion-orb-tooltip {
-  opacity: 1;
-  transform: translate(0, -50%);
-}
-
-.companion-orb-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 39px;
-  height: 39px;
-  border-radius: 50%;
-  background: #ffffff;
-}
-
-.companion-orb-mark img {
-  display: block;
-  width: 21px;
-  height: 26px;
-  filter: invert(1);
 }
 
 .voice-control-bar-shell {

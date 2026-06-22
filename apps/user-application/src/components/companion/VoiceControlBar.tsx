@@ -115,7 +115,7 @@ export function VoiceControlBar({ state, onStateChange }: VoiceControlBarProps) 
             }}
             aria-label="Open Stage chat"
           >
-            <img src="/logos/chat.svg" alt="" aria-hidden="true" />
+            <img src="/logos/stage.svg" alt="" aria-hidden="true" />
           </button>
           <button
             className="voice-wave-button"

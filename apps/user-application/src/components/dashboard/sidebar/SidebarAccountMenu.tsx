@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { sidebarLabelClassName } from "@/lib/dashboard/sidebarNav";
 import { cn } from "@/lib/utils";
+import { FEEDBACK_TALLY_URL } from "@/lib/settings/accountConstants";
+import { openExternalLink } from "@/lib/settings/openExternalLink";
 import { SidebarRoundAvatar } from "./SidebarRoundAvatar";
 
 export function SidebarAccountMenu({
@@ -79,6 +81,7 @@ export function SidebarAccountMenu({
       <button
         type="button"
         aria-label="Help & Feedback"
+        onClick={() => void openExternalLink(FEEDBACK_TALLY_URL)}
         className={cn(
           "flex h-[32px] items-center overflow-hidden bg-[#f5f5f5] text-[#525252] transition-[width,padding,gap,background-color] duration-200 ease-out hover:bg-[#ebebeb]",
           "cursor-pointer",
