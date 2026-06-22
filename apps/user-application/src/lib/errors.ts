@@ -23,6 +23,15 @@ const MODULE_LOAD_PATTERN =
 const PROJECT_UPGRADE_REQUIRED_PATTERN =
   /free plan includes up to \d+ projects|upgrade to pro to create (another project|more projects?|projects)|project limit/i;
 
+const RESEARCH_SAVE_FAILURE_PATTERN =
+  /Update on nonexistent document|Server Error|ConvexError|Could not find public function|called by client/i;
+
+const RESEARCH_ALREADY_RUNNING_PATTERN =
+  /research run is already in progress|already in progress for this project/i;
+
+const RESEARCH_INCOMPLETE_ARTIFACT_PATTERN =
+  /Research artifact is incomplete|missing required section|competitiveAnalysis\.|companySnapshot|opportunities|targetUsers/i;
+
 function extractErrorMessage(error: unknown): string | null {
   if (typeof error === "string") {
     return error.trim();
@@ -117,6 +126,14 @@ export function toUserFacingErrorMessage(error: unknown, fallback: string): stri
 
   if (PROJECT_UPGRADE_REQUIRED_PATTERN.test(message)) {
     return "You've reached the 1-project limit on the Free plan. Upgrade to Pro to create another project.";
+  }
+
+  if (RESEARCH_ALREADY_RUNNING_PATTERN.test(message)) {
+    return "A previous Research run was still finishing in the background. Wait a few seconds, then try again.";
+  }
+
+  if (RESEARCH_SAVE_FAILURE_PATTERN.test(message) || RESEARCH_INCOMPLETE_ARTIFACT_PATTERN.test(message)) {
+    return fallback;
   }
 
   if (isUnsafeUserMessage(message)) {

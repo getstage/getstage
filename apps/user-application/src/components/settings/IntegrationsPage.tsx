@@ -28,6 +28,7 @@ import { isProviderCliReady } from "@/lib/settings/providerCliSetup";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 import type { IntegrationRowModel } from "@/types/settings/integrations";
 import { ProviderCliSetupDialog } from "./ProviderCliSetupDialog";
+import { ProviderUpdatesBanner } from "./ProviderUpdatesBanner";
 import { SettingsIcon } from "./SettingsIcons";
 
 export function IntegrationsPage() {
@@ -41,15 +42,6 @@ export function IntegrationsPage() {
   const [aiDefaultsOpen, setAiDefaultsOpen] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement>(null);
-  const didMountProviderRefresh = useRef(false);
-
-  useEffect(() => {
-    if (didMountProviderRefresh.current) {
-      return;
-    }
-    didMountProviderRefresh.current = true;
-    void providerRefresh.mutateAsync();
-  }, [providerRefresh]);
 
   const nativeConnectionStatus = useConvexQuery(
     api.integrations.contentPlatforms.getNativeConnectionStatus,
@@ -71,13 +63,13 @@ export function IntegrationsPage() {
 
   const providerRows = useMemo(
     () =>
-      (providers.data?.providers ?? []).map((provider) =>
+      providers.providerList.providers.map((provider) =>
         providerToIntegrationRow(
           provider,
           providerPreferences.isProviderEnabled(provider.id),
         ),
       ),
-    [providerPreferences, providers.data?.providers],
+    [providerPreferences, providers.providerList.providers],
   );
   const nativeIntegrationRows = useMemo(
     () => [
@@ -95,8 +87,8 @@ export function IntegrationsPage() {
   const integrationRows = [...providerRows, ...nativeIntegrationRows];
   const connectedIntegrations = integrationRows.filter((integration) => integration.connected);
   const availableIntegrations = integrationRows.filter((integration) => !integration.connected);
-  const showProviderCliRestartHint = hasMissingProviderCli(providers.data?.providers);
-  const isRefreshing = providers.isFetching || providerRefresh.isPending;
+  const showProviderCliRestartHint = hasMissingProviderCli(providers.providerList.providers);
+  const isRefreshing = providerRefresh.isPending;
   const selectedDefaultModel = chatDefaults.selectedModel;
 
   useEffect(() => {
@@ -154,7 +146,12 @@ export function IntegrationsPage() {
           return;
         }
 
-        const provider = providers.data?.providers.find(
+        if (integration.status === "checking" || integration.status === "error") {
+          await providerRefresh.mutateAsync();
+          return;
+        }
+
+        const provider = providers.providerList.providers.find(
           (entry) => entry.id === integration.providerId,
         );
         if (!isProviderCliReady(provider)) {
@@ -222,6 +219,8 @@ export function IntegrationsPage() {
             {isRefreshing ? "Checking..." : "Refresh"}
           </button>
         </header>
+
+        <ProviderUpdatesBanner />
 
         <IntegrationGroup title="AI defaults">
           <div className="rounded-[8px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -329,7 +328,7 @@ export function IntegrationsPage() {
       {setupDialogProviderId ? (
         <ProviderCliSetupDialog
           providerId={setupDialogProviderId}
-          provider={providers.data?.providers.find((entry) => entry.id === setupDialogProviderId)}
+          provider={providers.providerList.providers.find((entry) => entry.id === setupDialogProviderId)}
           isRefreshing={isRefreshing}
           onClose={() => setSetupDialogProviderId(null)}
           onRefresh={() => void providerRefresh.mutateAsync()}
@@ -357,6 +356,7 @@ function ProviderCliRestartBanner({ message }: { message: string }) {
 function getIntegrationActionLabel(integration: IntegrationRowModel) {
   if (integration.providerId) {
     if (integration.connected) return "Disconnect";
+    if (integration.status === "checking" || integration.status === "error") return "Refresh";
     if (integration.status !== "ready") return "Set up";
     return "Connect";
   }

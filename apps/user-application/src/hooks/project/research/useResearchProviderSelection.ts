@@ -40,7 +40,7 @@ export function useResearchProviderSelection() {
 
   const providerOptions = useMemo((): ResearchProviderOption[] => {
     return RESEARCH_PROVIDERS.map((id) => {
-      const entry = providers.data?.providers.find((provider) => provider.id === id);
+      const entry = providers.providerList.providers.find((provider) => provider.id === id);
       const enabled = providerPreferences.isProviderEnabled(id);
       const ready = entry?.status === "ready";
 
@@ -57,7 +57,7 @@ export function useResearchProviderSelection() {
             : undefined,
       };
     });
-  }, [providerPreferences, providers.data?.providers]);
+  }, [providerPreferences, providers.providerList.providers]);
 
   useEffect(() => {
     if (initialized) {

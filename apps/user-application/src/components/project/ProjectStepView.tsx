@@ -153,6 +153,7 @@ export function ProjectStepView({
             project={project}
             onGoToResearch={() => onGoToTab("research")}
             onGoToStrategy={() => onGoToTab("strategy")}
+            onGoToFlows={() => onGoToTab("flows")}
             onGoToAssets={() => onGoToTab("assets")}
           />
         ) : null}
@@ -171,7 +172,7 @@ function ProjectTabFallback({ label }: { label: string }) {
 }
 
 function getBlockedProjectStep(activeTab: StepTab, stepStatus: ProjectStepStatus): StepTab | null {
-  if (activeTab === "research") {
+  if (activeTab === "research" || activeTab === "assets") {
     return null;
   }
 

@@ -59,9 +59,13 @@ pub async fn run_codex_collect(
 }
 
 fn codex_args(context: &ProviderRunContext) -> Vec<String> {
-    let mut args = vec![
-        "--ask-for-approval".to_string(),
-        "never".to_string(),
+    let mut args = vec!["--ask-for-approval".to_string(), "never".to_string()];
+
+    if research_web_search_enabled(context) {
+        args.push("--search".to_string());
+    }
+
+    args.extend([
         "exec".to_string(),
         "--color".to_string(),
         "never".to_string(),
@@ -69,7 +73,7 @@ fn codex_args(context: &ProviderRunContext) -> Vec<String> {
         "read-only".to_string(),
         // Desktop chat/research often runs outside a git checkout (packaged app cwd).
         "--skip-git-repo-check".to_string(),
-    ];
+    ]);
 
     if let Some(working_directory) = context.request.working_directory.as_ref() {
         args.push("--cd".to_string());
@@ -92,6 +96,14 @@ fn codex_args(context: &ProviderRunContext) -> Vec<String> {
     }
 
     args
+}
+
+fn research_web_search_enabled(context: &ProviderRunContext) -> bool {
+    context.request.mode == crate::models::runs::RunMode::Research
+        && !matches!(
+            context.request.context.source.as_deref(),
+            Some("provider-preflight" | "research-opportunities" | "section:opportunities")
+        )
 }
 
 fn codex_model_id(model_id: &str) -> Option<&str> {
@@ -158,5 +170,22 @@ mod tests {
     #[test]
     fn codex_model_id_should_keep_provider_owned_model_ids() {
         assert_eq!(codex_model_id("gpt-5.1-codex"), Some("gpt-5.1-codex"));
+    }
+
+    #[test]
+    fn codex_research_enables_live_web_search() {
+        let mut context = sample_context();
+        context.request.mode = RunMode::Research;
+        let args = codex_args(&context);
+        assert!(args.contains(&"--search".to_string()));
+    }
+
+    #[test]
+    fn codex_opportunities_pass_disables_live_web_search() {
+        let mut context = sample_context();
+        context.request.mode = RunMode::Research;
+        context.request.context.source = Some("section:opportunities".to_string());
+        let args = codex_args(&context);
+        assert!(!args.contains(&"--search".to_string()));
     }
 }

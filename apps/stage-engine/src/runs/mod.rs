@@ -63,6 +63,14 @@ pub struct RunEventSink {
 }
 
 impl RunEventSink {
+    pub(crate) fn detached() -> Self {
+        let (events, _) = broadcast::channel(1);
+        Self {
+            events,
+            history: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
     pub fn send(&self, event: RunEvent) {
         match self.history.lock() {
             Ok(mut history) => history.push(event.clone()),

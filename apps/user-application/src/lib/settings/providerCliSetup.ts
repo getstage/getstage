@@ -15,18 +15,17 @@ export function getProviderCliSetupSteps(providerId: ProviderId): ProviderCliSet
     return [
       {
         title: "Install Claude Code",
-        command: "npm i -g @anthropic-ai/claude-code",
-        detail: "Run this in Terminal. Homebrew installs work too after you quit and reopen Stage.",
+        command: "curl -fsSL https://claude.ai/install.sh | bash",
+        detail: "Run this in Terminal. This is Claude's recommended native installer.",
       },
       {
         title: "Log in",
         command: "claude auth login",
-        detail: "Finish the browser sign-in, then run claude auth status to confirm loggedIn is true.",
+        detail: "Finish the browser sign-in, then run `claude auth status` to confirm loggedIn is true.",
       },
       {
-        title: "Refresh Stage",
-        detail:
-          "Quit Stage completely (Cmd+Q), reopen the app, open Settings → Integrations, and click Refresh.",
+        title: "Refresh status",
+        detail: "Return to Stage, open Settings → Integrations, and click Refresh.",
       },
     ];
   }
@@ -34,8 +33,8 @@ export function getProviderCliSetupSteps(providerId: ProviderId): ProviderCliSet
   return [
     {
       title: "Install Codex CLI",
-      command: "npm i -g @openai/codex",
-      detail: "Run this in Terminal.",
+      command: "curl -fsSL https://chatgpt.com/codex/install.sh | sh",
+      detail: "Run this in Terminal. This is Codex's standalone installer for macOS and Linux.",
     },
     {
       title: "Sign in with ChatGPT",
@@ -44,9 +43,8 @@ export function getProviderCliSetupSteps(providerId: ProviderId): ProviderCliSet
         "Open Codex in Terminal and sign in with your ChatGPT account. API key only is not enough for Research or Voice.",
     },
     {
-      title: "Refresh Stage",
-      detail:
-        "Quit Stage completely (Cmd+Q), reopen the app, open Settings → Integrations, and click Refresh.",
+      title: "Refresh status",
+      detail: "Return to Stage, open Settings → Integrations, and click Refresh.",
     },
   ];
 }

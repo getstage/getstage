@@ -15,7 +15,7 @@
 | **P3** | Export E2E + Convex deploy | Notion live test, Figma plugin publish, Paper live write |
 | **P1 local review** | Project-aware Stage chat: `@project`, bounded Convex context, screenshots, confirmed window capture | `apps/user-application/docs/AI/chatbot/CHATBOT_PLAN.md`; branch `feat/stage-chat-project-context-vision` |
 
-**Current desktop version (work branch):** `0.1.68`
+**Current desktop version (work branch):** `0.1.70`
 
 ---
 

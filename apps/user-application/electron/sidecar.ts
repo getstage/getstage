@@ -4,8 +4,6 @@ import { dirname } from "node:path";
 import type { EngineStatus } from "@shared/models/desktop";
 import { getPackagedStageEngineBinaryPath } from "./helpers/stage-engine-binary";
 import {
-  DEFAULT_PORT,
-  SHUTDOWN_TIMEOUT_MS,
   fetchReadiness,
   findStageEngineManifest,
   getSidecarEnv,
@@ -15,24 +13,27 @@ import {
   waitForExit,
   waitForReadiness,
 } from "./helpers/sidecar";
+import {
+  ENGINE_DEFAULT_PORT,
+  ENGINE_IDLE_SHUTDOWN_MS,
+  ENGINE_SHUTDOWN_TIMEOUT_MS,
+} from "./helpers/engine-constants";
 import { logDesktopDebug, logDesktopInfo, logDesktopWarn } from "./helpers/desktop-log";
 import { delay } from "./helpers/time";
-
-/** Stop spawned engine after this idle period once no engine IPC or active streams remain. */
-export const ENGINE_IDLE_SHUTDOWN_MS = 7 * 60 * 1000;
 
 export class SidecarSupervisor {
   private child: SidecarChildProcess | null = null;
   private status: EngineStatus = {
     adopted: false,
     pid: null,
-    port: DEFAULT_PORT,
+    port: ENGINE_DEFAULT_PORT,
     state: "idle",
   };
   private lastEngineActivityAt = 0;
   private idleShutdownHoldCount = 0;
   private idleShutdownTimer: ReturnType<typeof setTimeout> | null = null;
   private stopPromise: Promise<EngineStatus> | null = null;
+  private startPromise: Promise<EngineStatus> | null = null;
 
   getStatus(): EngineStatus {
     return { ...this.status };
@@ -80,12 +81,40 @@ export class SidecarSupervisor {
       await this.stopPromise;
     }
 
-    if (this.status.state === "ready" || this.status.state === "starting") {
-      logDesktopDebug(`sidecar start joined existing state=${this.status.state} port=${this.status.port}`);
-      this.markEngineActivity();
-      return this.getStatus();
+    if (this.status.state === "ready") {
+      const readiness = await fetchReadiness(this.status.port);
+      if (!readiness?.ready) {
+        logDesktopWarn(
+          "stage-engine",
+          `cached ready state is stale on port ${this.status.port}; restarting Stage Engine`,
+        );
+        await this.resetUnresponsiveReadyState();
+      } else {
+        logDesktopDebug(
+          `sidecar start joined existing state=ready port=${this.status.port}`,
+        );
+        this.markEngineActivity();
+        return this.getStatus();
+      }
     }
 
+    if (this.startPromise) {
+      logDesktopDebug(
+        `sidecar start joined in-flight startup port=${this.status.port}`,
+      );
+      this.markEngineActivity();
+      return this.startPromise;
+    }
+
+    this.startPromise = this.bootSidecar();
+    try {
+      return await this.startPromise;
+    } finally {
+      this.startPromise = null;
+    }
+  }
+
+  private async bootSidecar(): Promise<EngineStatus> {
     const startedAt = Date.now();
     const port = getSidecarPort();
     this.status = { adopted: false, pid: null, port, state: "starting" };
@@ -168,6 +197,34 @@ export class SidecarSupervisor {
     return this.getStatus();
   }
 
+  private async resetUnresponsiveReadyState() {
+    this.clearIdleShutdownTimer();
+
+    const child = this.child;
+    this.child = null;
+
+    if (child && child.exitCode === null && child.signalCode === null) {
+      child.kill("SIGTERM");
+      const exited = await Promise.race([
+        waitForExit(child).then(() => true),
+        delay(ENGINE_SHUTDOWN_TIMEOUT_MS).then(() => false),
+      ]);
+
+      if (!exited && child.exitCode === null && child.signalCode === null) {
+        child.kill("SIGKILL");
+        await waitForExit(child);
+      }
+    }
+
+    this.status = {
+      adopted: false,
+      error: `Stage Engine is not responding on port ${this.status.port}.`,
+      pid: null,
+      port: this.status.port,
+      state: "stopped",
+    };
+  }
+
   async stop() {
     if (!this.stopPromise) {
       this.stopPromise = this.runStop().finally(() => {
@@ -196,7 +253,7 @@ export class SidecarSupervisor {
 
     const exited = await Promise.race([
       waitForExit(child).then(() => true),
-      delay(SHUTDOWN_TIMEOUT_MS).then(() => false),
+      delay(ENGINE_SHUTDOWN_TIMEOUT_MS).then(() => false),
     ]);
 
     if (!exited && child.exitCode === null && child.signalCode === null) {

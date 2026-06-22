@@ -6,6 +6,7 @@ import type {
   ChatImageAttachment,
   ImportChatImageBytesRequest,
   CompanionState,
+  CompanionWidgetSettings,
   DesktopPermissionStatus,
   DesktopSession,
   DesktopShortcutSettings,
@@ -42,6 +43,9 @@ export type StageDesktopApi = {
     getAccessToken: () => Promise<string | null>;
     onSessionChanged: (callback: (session: DesktopSession | null) => void) => () => void;
   };
+  clipboard: {
+    writeText: (text: string) => Promise<void>;
+  };
   engine: {
     getStatus: () => Promise<EngineStatus>;
     listProviders: () => Promise<ProviderListResponse>;
@@ -60,6 +64,8 @@ export type StageDesktopApi = {
     hide: () => Promise<void>;
     setState: (state: CompanionState) => Promise<void>;
     setInteractive: (interactive: boolean) => Promise<void>;
+    getWidgetSettings: () => Promise<CompanionWidgetSettings>;
+    setWidgetSettings: (settings: CompanionWidgetSettings) => Promise<CompanionWidgetSettings>;
   };
   voice: {
     getStatus: (providerPreferences?: {

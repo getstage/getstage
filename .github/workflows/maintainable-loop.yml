@@ -1,0 +1,76 @@
+name: Maintainable-code loop
+
+# Nightly robot that works the loop/MAINTAINABLE.md backlog SAFELY:
+#  - picks one or more low-risk items, makes minimal changes
+#  - verifies they still compile (typecheck) before proposing anything
+#  - opens a PR with a detailed report (what changed, why, HOW TO TEST it)
+#  - NEVER merges, NEVER touches main/production. A human approves every merge.
+# Auth: your Claude subscription (CLAUDE_CODE_OAUTH_TOKEN), not API billing.
+
+on:
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC nightly
+  workflow_dispatch: {} # also runnable on demand from the Actions tab
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Stop a same-day schedule + manual run from colliding on the dated branch name.
+concurrency:
+  group: maintainable-loop
+  cancel-in-progress: true
+
+jobs:
+  maintain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout work (default branch)
+        uses: actions/checkout@v4
+        with:
+          ref: work
+          fetch-depth: 0
+
+      - name: Setup Node + pnpm
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+
+      - name: Ensure auto-fix label exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh label create auto-fix --description "Loop may auto-address Greptile review comments" --color "5319e7" 2>/dev/null || true
+
+      - name: Run maintainable-code loop
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are the nightly maintainable-code loop for this repo. Work SAFELY and minimally.
+
+            1. Read loop/MAINTAINABLE.md. Pick the next one or more UNCHECKED items that are
+               LOW-RISK and mechanically verifiable (e.g. [#hex] -> design token, add <img alt>,
+               dedupe a constant). SKIP behavioral/refactor items that need e2e tests we do not
+               have yet (file splits, state changes) — leave them unchecked and note why.
+            2. Make the change MINIMALLY: change/delete over add, scope-locked to that item's files,
+               no new arbitrary [#hex], no magic constants, no secrets. Never edit generated files.
+            3. Run `pnpm run typecheck`. If it does not pass, fix or revert — never propose red code.
+            4. If at any point you are NOT confident a change is correct and safe, do NOT guess:
+               leave it out and record it as a question for the human.
+            5. Write a DETAILED report to loop/runs/RUN-<YYYY-MM-DD>.md AND use it as the PR body.
+               The report MUST include, per change:
+                 - what changed and why (file:line)
+                 - HOW TO TEST IT MANUALLY — exact steps to confirm the change is good
+                   (which screen/flow to open, what to click, what you should see)
+                 - anything skipped and why (tag @WDieben for items needing a human decision)
+            6. Create a new branch `loop/maintainable-<YYYY-MM-DD>`, commit (message prefixed
+               "[auto-fix]"), push, and open a PR into `work` with the report as the body.
+               Add the `auto-fix` label. Do NOT merge. Do NOT target main.
+            7. If there is nothing safe to do, open no PR and just say so.
+          claude_args: |
+            {
+              "model": "claude-opus-4-8"
+            }

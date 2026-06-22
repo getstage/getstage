@@ -94,11 +94,12 @@ fn normalize_summary_array(items: Vec<Value>) -> Vec<String> {
 }
 
 fn normalize_company_snapshot(object: &mut Map<String, Value>) {
-    let snapshot = match object.remove("companySnapshot") {
+    let mut snapshot = match object.remove("companySnapshot") {
         Some(Value::Array(rows)) => normalize_company_snapshot_rows(rows),
         Some(Value::Object(map)) => company_snapshot_from_object(map),
         _ => vec![],
     };
+    sort_company_snapshot_rows(&mut snapshot);
 
     object.insert("companySnapshot".to_string(), json!(snapshot));
 }
@@ -128,8 +129,8 @@ fn company_snapshot_from_object(map: Map<String, Value>) -> Vec<Value> {
     let known_fields = [
         ("name", "Company"),
         ("company", "Company"),
-        ("website", "Website"),
         ("industry", "Industry"),
+        ("website", "Website"),
         ("description", "Description"),
         ("client", "Client"),
         ("clientName", "Client"),
@@ -184,16 +185,68 @@ fn company_snapshot_from_object(map: Map<String, Value>) -> Vec<Value> {
     rows
 }
 
+fn sort_company_snapshot_rows(rows: &mut Vec<Value>) {
+    rows.sort_by_key(|row| {
+        row.get("label")
+            .and_then(Value::as_str)
+            .map(company_snapshot_label_rank)
+            .unwrap_or(usize::MAX)
+    });
+}
+
+fn company_snapshot_label_rank(label: &str) -> usize {
+    match label.trim().to_ascii_lowercase().as_str() {
+        "company" | "client" => 0,
+        "industry" => 1,
+        "product" | "project focus" | "primary product surface" => 2,
+        "target user" | "target users" | "audience" => 3,
+        "platform" => 4,
+        "stage" => 5,
+        "context" | "description" | "strategic context" => 6,
+        "website" => 7,
+        _ => 50,
+    }
+}
+
 fn normalize_target_users(object: &mut Map<String, Value>) {
     let Some(users) = object.get_mut("targetUsers").and_then(Value::as_array_mut) else {
         object.insert("targetUsers".to_string(), json!([]));
         return;
     };
 
-    for user in users.iter_mut() {
+    let mut seen_users = std::collections::HashSet::new();
+    let mut index = 0;
+    users.retain_mut(|user| {
+        let user_index = index;
+        index += 1;
         let Some(user_object) = user.as_object_mut() else {
-            continue;
+            return false;
         };
+
+        let Some(name) = user_object
+            .get("name")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+        else {
+            return false;
+        };
+        let role = user_object
+            .get("role")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+            .unwrap_or_else(|| name.clone());
+        let dedupe_key = format!(
+            "{}|{}",
+            name.to_ascii_lowercase(),
+            role.to_ascii_lowercase()
+        );
+        if !seen_users.insert(dedupe_key) {
+            return false;
+        }
 
         let id = user_object
             .get("id")
@@ -201,23 +254,9 @@ fn normalize_target_users(object: &mut Map<String, Value>) {
             .map(str::trim)
             .filter(|value| !value.is_empty())
             .map(str::to_string)
-            .unwrap_or_else(|| "target-user".to_string());
+            .unwrap_or_else(|| format!("target-user-{user_index}"));
         user_object.insert("id".to_string(), json!(id));
-
-        let name = user_object
-            .get("name")
-            .and_then(Value::as_str)
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .unwrap_or("User persona");
         user_object.insert("name".to_string(), json!(name));
-
-        let role = user_object
-            .get("role")
-            .and_then(Value::as_str)
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .unwrap_or("Role not specified");
         user_object.insert("role".to_string(), json!(role));
 
         let goals = user_object
@@ -295,7 +334,8 @@ fn normalize_target_users(object: &mut Map<String, Value>) {
         } else {
             user_object.remove("relevance");
         }
-    }
+        true
+    });
 }
 
 fn normalize_opportunities(object: &mut Map<String, Value>) {
@@ -307,9 +347,12 @@ fn normalize_opportunities(object: &mut Map<String, Value>) {
         return;
     };
 
-    for (index, opportunity) in opportunities.iter_mut().enumerate() {
+    let mut index = 0;
+    opportunities.retain_mut(|opportunity| {
+        let opportunity_index = index;
+        index += 1;
         let Some(opportunity_object) = opportunity.as_object_mut() else {
-            continue;
+            return false;
         };
 
         let id = opportunity_object
@@ -318,10 +361,10 @@ fn normalize_opportunities(object: &mut Map<String, Value>) {
             .map(str::trim)
             .filter(|value| !value.is_empty())
             .map(str::to_string)
-            .unwrap_or_else(|| format!("opportunity-{index}"));
+            .unwrap_or_else(|| format!("opportunity-{opportunity_index}"));
         opportunity_object.insert("id".to_string(), json!(id));
 
-        let description = opportunity_object
+        let Some(description) = opportunity_object
             .get("description")
             .and_then(|value| string_value(value))
             .filter(|value| !value.is_empty())
@@ -330,7 +373,9 @@ fn normalize_opportunities(object: &mut Map<String, Value>) {
                     .get("title")
                     .and_then(|value| string_value(value))
             })
-            .unwrap_or_else(|| "Opportunity".to_string());
+        else {
+            return false;
+        };
         opportunity_object.insert("description".to_string(), json!(description));
 
         let title = opportunity_object
@@ -356,7 +401,8 @@ fn normalize_opportunities(object: &mut Map<String, Value>) {
         } else {
             opportunity_object.remove("sourceSection");
         }
-    }
+        true
+    });
 }
 
 fn normalize_open_questions(object: &mut Map<String, Value>) {
@@ -504,23 +550,50 @@ fn normalize_competitive_analysis(object: &mut Map<String, Value>) {
                 .unwrap_or("Competitor");
             competitor_object.insert("name".to_string(), json!(name));
 
+            // The model often emits the competitor URL as `website` (or `site`) instead of
+            // `url`. Competitor filtering keys on `url`, so without this coalesce the whole
+            // (correct) competitor — strengths, weaknesses, matrix scores — gets dropped and
+            // replaced by an empty shell. Map it to `url` so the real data survives.
+            let url = [
+                "url",
+                "website",
+                "websiteUrl",
+                "websiteURL",
+                "site",
+                "homepage",
+            ]
+            .iter()
+            .find_map(|key| {
+                competitor_object
+                    .get(*key)
+                    .and_then(Value::as_str)
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+            })
+            .map(str::to_string);
+            if let Some(url) = url {
+                competitor_object.insert("url".to_string(), json!(url));
+            }
+
             competitor_object.insert(
                 "strengths".to_string(),
-                json!(
+                json!(cap_string_array(
                     competitor_object
                         .get("strengths")
                         .and_then(|value| string_array(value))
-                        .unwrap_or_default()
-                ),
+                        .unwrap_or_default(),
+                    5,
+                )),
             );
             competitor_object.insert(
                 "weaknesses".to_string(),
-                json!(
+                json!(cap_string_array(
                     competitor_object
                         .get("weaknesses")
                         .and_then(|value| string_array(value))
-                        .unwrap_or_default()
-                ),
+                        .unwrap_or_default(),
+                    5,
+                )),
             );
             competitor_object.insert(
                 "sourceReferenceIds".to_string(),
@@ -540,17 +613,20 @@ fn normalize_competitive_analysis(object: &mut Map<String, Value>) {
         .get_mut("matrixRows")
         .and_then(Value::as_array_mut)
     {
-        for (index, row) in matrix_rows.iter_mut().enumerate() {
-            normalize_matrix_row(row, index);
-        }
+        let mut index = 0;
+        matrix_rows.retain_mut(|row| {
+            let valid = normalize_matrix_row(row, index);
+            index += 1;
+            valid
+        });
     } else {
         analysis_object.insert("matrixRows".to_string(), json!([]));
     }
 }
 
-fn normalize_matrix_row(row: &mut Value, index: usize) {
+fn normalize_matrix_row(row: &mut Value, index: usize) -> bool {
     let Some(row_object) = row.as_object_mut() else {
-        return;
+        return false;
     };
 
     let label = row_object
@@ -575,7 +651,10 @@ fn normalize_matrix_row(row: &mut Value, index: usize) {
                 .filter(|value| !value.is_empty())
                 .map(str::to_string)
         })
-        .unwrap_or_else(|| format!("Dimension {}", index + 1));
+        .filter(|value| !is_generic_matrix_label(value));
+    let Some(label) = label else {
+        return false;
+    };
 
     let id = row_object
         .get("id")
@@ -591,60 +670,70 @@ fn normalize_matrix_row(row: &mut Value, index: usize) {
     row_object.remove("description");
 
     let Some(cells) = row_object.get_mut("cells").and_then(Value::as_array_mut) else {
-        row_object.insert("cells".to_string(), json!([]));
-        return;
+        return false;
     };
 
-    for cell in cells.iter_mut() {
+    cells.retain_mut(|cell| {
         let Some(cell_object) = cell.as_object_mut() else {
-            continue;
+            return false;
         };
 
-        let competitor_id = cell_object
+        let Some(competitor_id) = cell_object
             .get("competitorId")
             .or_else(|| cell_object.get("competitor_id"))
             .and_then(Value::as_str)
             .map(str::trim)
             .filter(|value| !value.is_empty())
             .map(str::to_string)
-            .unwrap_or_else(|| "competitor-unknown".to_string());
+        else {
+            return false;
+        };
         cell_object.insert("competitorId".to_string(), json!(competitor_id));
         cell_object.remove("competitor_id");
 
-        let raw_score = cell_object
+        let Some(raw_score) = cell_object
             .get("score")
             .or_else(|| cell_object.get("rating"))
             .and_then(Value::as_str)
-            .unwrap_or("OK");
-        let score = normalize_matrix_score_label(raw_score);
+        else {
+            return false;
+        };
+        let Some(score) = normalize_matrix_score_label(raw_score) else {
+            return false;
+        };
         cell_object.insert("score".to_string(), json!(score));
         cell_object.remove("rating");
-
-        let note = cell_object
-            .get("note")
-            .or_else(|| cell_object.get("notes"))
-            .and_then(Value::as_str)
-            .map(str::trim)
-            .filter(|value| !value.is_empty());
-        if let Some(note) = note {
-            cell_object.insert("note".to_string(), json!(note));
-        } else {
-            cell_object.remove("note");
-        }
+        cell_object.remove("note");
         cell_object.remove("notes");
-    }
+        true
+    });
+
+    !cells.is_empty()
 }
 
-pub fn normalize_matrix_score_label(score: &str) -> &'static str {
+fn cap_string_array(items: Vec<String>, max_items: usize) -> Vec<String> {
+    items
+        .into_iter()
+        .map(|item| item.trim().to_string())
+        .filter(|item| !item.is_empty())
+        .take(max_items)
+        .collect()
+}
+
+fn is_generic_matrix_label(label: &str) -> bool {
+    let normalized = label.trim().to_ascii_lowercase();
+    normalized == "dimension"
+        || normalized
+            .strip_prefix("dimension ")
+            .is_some_and(|suffix| suffix.parse::<usize>().is_ok())
+}
+
+pub fn normalize_matrix_score_label(score: &str) -> Option<&'static str> {
     match score.trim().to_lowercase().as_str() {
-        "strong" => "Strong",
-        "ok" | "moderate" | "medium" | "average" => "OK",
-        "weak" | "low" | "poor" => "Weak",
-        "stronger" => "Strong",
-        other if other.eq_ignore_ascii_case("strong") => "Strong",
-        other if other.eq_ignore_ascii_case("ok") => "OK",
-        other if other.eq_ignore_ascii_case("weak") => "Weak",
-        _ => "OK",
+        "strong" | "stronger" => Some("Strong"),
+        "ok" | "moderate" | "medium" | "average" => Some("OK"),
+        "weak" | "low" | "poor" => Some("Weak"),
+        _ => None,
     }
 }
 
@@ -728,156 +817,5 @@ fn string_array(value: &Value) -> Option<Vec<String>> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::models::research::ResearchInput;
-    use serde_json::json;
-
-    fn sample_input() -> ResearchInput {
-        ResearchInput {
-            project_id: "project_123".to_string(),
-            project_name: "Shopify".to_string(),
-            client_name: Some("Lumen Apps".to_string()),
-            industry: "E-commerce".to_string(),
-            website: Some("https://www.shopify.com".to_string()),
-            project_brief: Some("Brief".to_string()),
-            competitor_urls: vec!["https://www.amazon.com".to_string()],
-            target_users: None,
-            additional_notes: None,
-            uploaded_asset_ids: vec![],
-        }
-    }
-
-    #[test]
-    fn normalizes_claude_shaped_summary_and_company_snapshot() {
-        let mut object = json!({
-            "summary": {
-                "headline": "B2B Wholesale UX",
-                "body": "Key findings for European mid-market retailers."
-            },
-            "companySnapshot": {
-                "name": "Shopify",
-                "website": "https://www.shopify.com",
-                "industry": "E-commerce",
-                "keyStrengths": ["Large ecosystem", "B2B accounts"],
-                "keyWeaknesses": ["Plus gate"]
-            }
-        })
-        .as_object()
-        .unwrap()
-        .clone();
-
-        normalize_research_artifact_fields(&mut object, &sample_input());
-
-        assert_eq!(object["title"], "B2B Wholesale UX");
-        assert_eq!(object["summary"][0], "B2B Wholesale UX");
-        assert_eq!(
-            object["summary"][1],
-            "Key findings for European mid-market retailers."
-        );
-        assert!(
-            object["companySnapshot"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|row| row["label"] == "Company" && row["value"] == "Shopify")
-        );
-    }
-
-    #[test]
-    fn normalizes_claude_shaped_matrix_rows() {
-        let mut object = json!({
-            "competitiveAnalysis": {
-                "competitors": [{ "id": "amazon", "name": "Amazon", "url": "https://www.amazon.com" }],
-                "matrixRows": [{
-                    "dimension": "Mobile checkout",
-                    "cells": [{ "competitorId": "amazon", "rating": "strong", "notes": "Best in class" }]
-                }]
-            }
-        })
-        .as_object()
-        .unwrap()
-        .clone();
-
-        normalize_research_artifact_fields(&mut object, &sample_input());
-
-        let row = &object["competitiveAnalysis"]["matrixRows"][0];
-        assert_eq!(row["label"], "Mobile checkout");
-        assert_eq!(row["cells"][0]["score"], "Strong");
-        assert_eq!(row["cells"][0]["note"], "Best in class");
-    }
-
-    #[test]
-    fn normalizes_target_users_and_open_questions() {
-        let mut object = json!({
-            "targetUsers": [{
-                "id": "persona-1",
-                "name": "Elena",
-                "role": "Wholesale Manager",
-                "goals": ["Approve accounts"],
-                "painPoints": ["Slow onboarding"],
-                "behaviours": ["Uses mobile"],
-                "quote": "I need my price visible"
-            }],
-            "openQuestions": [
-                { "id": "oq-1", "question": "Which EU markets?", "priority": "high" }
-            ]
-        })
-        .as_object()
-        .unwrap()
-        .clone();
-
-        normalize_research_artifact_fields(&mut object, &sample_input());
-
-        assert_eq!(
-            object["targetUsers"][0]["frustrations"][0],
-            "Slow onboarding"
-        );
-        assert!(
-            object["targetUsers"][0]["assumptions"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|value| value.as_str().unwrap().contains("Uses mobile"))
-        );
-        assert_eq!(object["openQuestions"][0], "Which EU markets?");
-    }
-
-    #[test]
-    fn preserves_codex_shaped_artifact() {
-        let mut object = json!({
-            "title": "Shopify B2B Wholesale Research",
-            "summary": ["Line one", "Line two"],
-            "companySnapshot": [{ "label": "Company", "value": "Shopify" }],
-            "competitiveAnalysis": {
-                "competitors": [{ "id": "competitor-amazon", "name": "Amazon", "url": "https://www.amazon.com" }],
-                "matrixRows": [{
-                    "id": "matrix-onboarding",
-                    "label": "B2B onboarding clarity",
-                    "cells": [{ "competitorId": "competitor-amazon", "score": "OK", "note": "Clear flow" }]
-                }]
-            },
-            "targetUsers": [{
-                "id": "target-user-1",
-                "name": "Elena",
-                "role": "Manager",
-                "goals": ["Approve"],
-                "frustrations": ["Slow"],
-                "assumptions": []
-            }],
-            "openQuestions": ["What markets?"]
-        })
-        .as_object()
-        .unwrap()
-        .clone();
-
-        normalize_research_artifact_fields(&mut object, &sample_input());
-
-        assert_eq!(object["title"], "Shopify B2B Wholesale Research");
-        assert_eq!(object["summary"][0], "Line one");
-        assert_eq!(
-            object["competitiveAnalysis"]["matrixRows"][0]["cells"][0]["score"],
-            "OK"
-        );
-    }
-}
+#[path = "../testing/research/normalize.rs"]
+mod tests;

@@ -212,7 +212,7 @@ a,
 
 .voice-control-bar-idle:hover,
 .voice-control-bar-idle:focus-within {
-  width: 70px;
+  width: 76px;
   height: 35px;
 }
 
@@ -244,7 +244,7 @@ a,
 .voice-choice-button {
   width: 30px;
   height: 30px;
-  padding: 7px;
+  padding: 6px;
   opacity: 0;
   pointer-events: none;
   transform: scale(0.92);
@@ -260,8 +260,8 @@ a,
 
 .voice-choice-button img {
   display: block;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   opacity: 0.72;
   transition: opacity 140ms ease;
 }
@@ -326,8 +326,8 @@ a,
 }
 
 .voice-stage-button img {
-  width: 14px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
   display: block;
 }
 

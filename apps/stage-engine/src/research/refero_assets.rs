@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use anyhow::Context;
 use serde_json::{Value, json};
@@ -76,11 +76,15 @@ fn build_ui_pattern_group(
     bucket: &ReferoCategorySearch,
     image_keys: &HashMap<String, String>,
 ) -> Value {
-    let recognized_patterns = collect_recognized_patterns(&bucket.references);
+    let recognized_patterns = collect_recognized_patterns(bucket.category, &bucket.references);
     let pattern_count_label = if recognized_patterns.is_empty() {
         None
     } else {
-        Some(format!("{} patterns", recognized_patterns.len()))
+        Some(format!(
+            "{} recognized patterns from {} Refero screens",
+            recognized_patterns.len(),
+            bucket.references.len()
+        ))
     };
 
     let examples = bucket
@@ -128,45 +132,208 @@ fn build_group_summary(
     category: ReferoUiPatternCategory,
     references: &[ReferoReference],
 ) -> Option<String> {
-    if let Some(summary) = references
-        .iter()
-        .filter_map(|reference| reference.summary.as_deref())
-        .find(|summary| !summary.is_empty())
-    {
-        return Some(summary.to_string());
-    }
-
-    let products: Vec<_> = references
-        .iter()
-        .filter_map(|reference| reference.product_name.as_deref())
-        .collect::<HashSet<_>>()
-        .into_iter()
-        .take(3)
-        .collect();
-
-    if products.is_empty() {
-        return Some(format!(
-            "Refero {} screens for this brief.",
-            category.display_title().to_lowercase()
-        ));
-    }
-
-    Some(format!(
-        "{} patterns from {}.",
-        category.display_title(),
-        products.join(", ")
-    ))
+    Some(category_summary(category, &reference_evidence(references)))
 }
 
-fn collect_recognized_patterns(references: &[ReferoReference]) -> Vec<String> {
-    let mut seen = HashSet::new();
-
-    references
-        .iter()
-        .flat_map(|reference| reference.tags.iter())
-        .filter_map(|tag| seen.insert(tag.clone()).then(|| tag.clone()))
-        .take(3)
+fn collect_recognized_patterns(
+    category: ReferoUiPatternCategory,
+    references: &[ReferoReference],
+) -> Vec<String> {
+    let evidence = reference_evidence(references);
+    category_pattern_insights(category, &evidence)
+        .into_iter()
+        .map(|(title, body)| format!("{title} — {body}"))
         .collect()
+}
+
+fn reference_evidence(references: &[ReferoReference]) -> String {
+    let mut products = references
+        .iter()
+        .filter_map(|reference| reference.product_name.as_deref())
+        .map(str::trim)
+        .filter(|product| !product.is_empty())
+        .collect::<Vec<_>>();
+    products.sort_unstable();
+    products.dedup();
+
+    if products.is_empty() {
+        return "the selected Refero screens".to_string();
+    }
+
+    match products.as_slice() {
+        [one] => format!("screens from {one}"),
+        [one, two] => format!("screens from {one} and {two}"),
+        [one, two, three, ..] => format!("screens from {one}, {two}, and {three}"),
+        [] => "the selected Refero screens".to_string(),
+    }
+}
+
+fn category_summary(category: ReferoUiPatternCategory, evidence: &str) -> String {
+    match category {
+        ReferoUiPatternCategory::Onboarding => {
+            format!(
+                "Refero onboarding {evidence} show how first-run setup is broken into visible, low-risk decisions."
+            )
+        }
+        ReferoUiPatternCategory::Homepage => {
+            format!(
+                "Refero homepage {evidence} show how marketing pages frame value, proof, and primary action hierarchy."
+            )
+        }
+        ReferoUiPatternCategory::Pricing => {
+            format!(
+                "Refero pricing {evidence} show how plan comparison, billing details, and commitment cues are arranged."
+            )
+        }
+        ReferoUiPatternCategory::Checkout => {
+            format!(
+                "Refero checkout {evidence} show how review, payment, totals, and submission stay close together."
+            )
+        }
+        ReferoUiPatternCategory::Dashboard => {
+            format!(
+                "Refero dashboard {evidence} show how activity, status, and next actions are prioritized after login."
+            )
+        }
+    }
+}
+
+fn category_pattern_insights(
+    category: ReferoUiPatternCategory,
+    evidence: &str,
+) -> Vec<(&'static str, String)> {
+    match category {
+        ReferoUiPatternCategory::Onboarding => vec![
+            (
+                "Single-purpose setup step",
+                format!(
+                    "{evidence} show setup working best when each screen asks for one decision, then defers account, catalog, and approval complexity."
+                ),
+            ),
+            (
+                "Visible progress cue",
+                format!(
+                    "{evidence} use checklist, stepper, or completion states to show where the user is and what remains before the account is usable."
+                ),
+            ),
+            (
+                "Low-risk first action",
+                format!(
+                    "{evidence} suggest starting with a reversible action like invite, sample catalog, or verification before asking for heavy configuration."
+                ),
+            ),
+            (
+                "Contextual help near fields",
+                format!(
+                    "{evidence} keep business-specific guidance close to fields instead of forcing users into a separate help center."
+                ),
+            ),
+        ],
+        ReferoUiPatternCategory::Homepage => vec![
+            (
+                "Outcome-led hero",
+                format!(
+                    "{evidence} lead with the outcome first, then support it with product visuals, proof, and a single primary CTA."
+                ),
+            ),
+            (
+                "Segmented entry paths",
+                format!(
+                    "{evidence} separate entry paths so users can self-route without reading the full marketing page."
+                ),
+            ),
+            (
+                "Proof beside action",
+                format!(
+                    "{evidence} place proof or trust cues near the CTA so commitment is supported at the decision point."
+                ),
+            ),
+            (
+                "Section rhythm",
+                format!(
+                    "{evidence} alternate explanation, visual example, and action blocks so the page stays scannable."
+                ),
+            ),
+        ],
+        ReferoUiPatternCategory::Pricing => vec![
+            (
+                "Comparison-first plan grid",
+                format!(
+                    "{evidence} use side-by-side cards or tables so price, limits, and included capabilities can be compared before commitment."
+                ),
+            ),
+            (
+                "Billing detail near CTA",
+                format!(
+                    "{evidence} keep currency, billing cadence, discounts, and trial language close to the plan button to reduce hesitation."
+                ),
+            ),
+            (
+                "Progressive feature depth",
+                format!(
+                    "{evidence} show the most important differences first, then let detailed feature rows expand below for proof."
+                ),
+            ),
+            (
+                "FAQ at decision point",
+                format!(
+                    "{evidence} answer cancellation, payment, and plan-switching doubts directly under the comparison."
+                ),
+            ),
+        ],
+        ReferoUiPatternCategory::Checkout => vec![
+            (
+                "Persistent order summary",
+                format!(
+                    "{evidence} keep totals, shipping, tax, and item count visible while users edit payment or address details."
+                ),
+            ),
+            (
+                "Short payment path",
+                format!(
+                    "{evidence} reduce the path to review, payment, and confirmation so repeat buyers can complete faster."
+                ),
+            ),
+            (
+                "Error prevention before submit",
+                format!(
+                    "{evidence} surface missing address, invalid payment, or unavailable item states before the final CTA."
+                ),
+            ),
+            (
+                "Business terms visibility",
+                format!(
+                    "{evidence} point to exposing approval status, payment terms, and purchase-order context near final review."
+                ),
+            ),
+        ],
+        ReferoUiPatternCategory::Dashboard => vec![
+            (
+                "Activity-first landing",
+                format!(
+                    "{evidence} open on recent activity, pending work, and store status so users understand what changed first."
+                ),
+            ),
+            (
+                "Operational status cards",
+                format!(
+                    "{evidence} use compact cards for sales, sessions, orders, and setup progress so the page is readable at a glance."
+                ),
+            ),
+            (
+                "Left-rail workflow map",
+                format!(
+                    "{evidence} use a persistent sidebar to make store, orders, products, analytics, and marketing feel connected."
+                ),
+            ),
+            (
+                "Primary action stays visible",
+                format!(
+                    "{evidence} keep the next commercial action, such as design site, upgrade, or manage store, visible above the fold."
+                ),
+            ),
+        ],
+    }
 }
 
 async fn upload_reference_image(
@@ -283,145 +450,5 @@ fn wire_refero_images_in_source_references(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::models::refero::ReferoPlatform;
-
-    fn sample_screen(
-        id: &str,
-        category: ReferoUiPatternCategory,
-        product: &str,
-    ) -> ReferoReference {
-        ReferoReference {
-            id: id.to_string(),
-            kind: ReferoReferenceKind::Screen,
-            title: format!("Screen {id}"),
-            product_name: Some(product.to_string()),
-            product_url: None,
-            platform: ReferoPlatform::Web,
-            source_url: None,
-            thumbnail_url: Some(format!("https://images.refero.design/screenshots/{id}.png")),
-            image_url: None,
-            summary: None,
-            tags: vec![
-                "Checklist".to_string(),
-                "Progressive disclosure".to_string(),
-            ],
-            screen_type: None,
-            flow_type: None,
-            step_count: None,
-            style_type: None,
-            ui_pattern_category: Some(category),
-            raw_image_bytes: None,
-        }
-    }
-
-    #[test]
-    fn collect_recognized_patterns_dedupes_and_caps_at_three() {
-        let references = vec![
-            sample_screen("uuid-a", ReferoUiPatternCategory::Onboarding, "Shopify"),
-            ReferoReference {
-                tags: vec![
-                    "Progressive disclosure".to_string(),
-                    "Wizard".to_string(),
-                    "Stepper".to_string(),
-                    "Extra".to_string(),
-                ],
-                ..sample_screen("uuid-b", ReferoUiPatternCategory::Onboarding, "Stripe")
-            },
-        ];
-
-        assert_eq!(
-            collect_recognized_patterns(&references),
-            vec![
-                "Checklist".to_string(),
-                "Progressive disclosure".to_string(),
-                "Wizard".to_string(),
-            ]
-        );
-    }
-
-    #[test]
-    fn builds_distinct_ui_pattern_groups_per_category() {
-        let context = ReferoContext {
-            query: "onboarding | pricing".to_string(),
-            references: vec![],
-            category_searches: vec![
-                ReferoCategorySearch {
-                    category: ReferoUiPatternCategory::Onboarding,
-                    query: "onboarding".to_string(),
-                    references: vec![sample_screen(
-                        "uuid-onboard",
-                        ReferoUiPatternCategory::Onboarding,
-                        "Shopify",
-                    )],
-                },
-                ReferoCategorySearch {
-                    category: ReferoUiPatternCategory::Pricing,
-                    query: "pricing".to_string(),
-                    references: vec![sample_screen(
-                        "uuid-pricing",
-                        ReferoUiPatternCategory::Pricing,
-                        "Stripe",
-                    )],
-                },
-            ],
-            fetched_at: 1,
-        };
-
-        let mut keys = HashMap::new();
-        keys.insert(
-            "uuid-onboard".to_string(),
-            "research/proj/uuid-onboard.png".to_string(),
-        );
-        keys.insert(
-            "uuid-pricing".to_string(),
-            "research/proj/uuid-pricing.png".to_string(),
-        );
-
-        let groups = build_ui_patterns_from_refero(&context, &keys);
-        let array = groups.as_array().expect("ui patterns array");
-        assert_eq!(array.len(), 2);
-        assert_eq!(array[0]["title"], "Onboarding");
-        assert_eq!(array[0]["examples"][0]["sourceReferenceId"], "uuid-onboard");
-        assert_eq!(
-            array[0]["examples"][0]["thumbnailUrl"],
-            "https://images.refero.design/screenshots/uuid-onboard.png"
-        );
-        assert_eq!(array[1]["examples"][0]["sourceReferenceId"], "uuid-pricing");
-        assert_ne!(
-            array[0]["examples"][0]["imageUrl"],
-            array[1]["examples"][0]["imageUrl"]
-        );
-    }
-
-    #[test]
-    fn uses_refero_thumbnail_when_r2_image_key_is_missing() {
-        let context = ReferoContext {
-            query: "onboarding".to_string(),
-            references: vec![],
-            category_searches: vec![ReferoCategorySearch {
-                category: ReferoUiPatternCategory::Onboarding,
-                query: "onboarding".to_string(),
-                references: vec![sample_screen(
-                    "uuid-onboard",
-                    ReferoUiPatternCategory::Onboarding,
-                    "Shopify",
-                )],
-            }],
-            fetched_at: 1,
-        };
-
-        let groups = build_ui_patterns_from_refero(&context, &HashMap::new());
-        let example = &groups.as_array().expect("ui patterns array")[0]["examples"][0];
-        let image_url = &example["imageUrl"];
-        assert_eq!(
-            image_url,
-            "https://images.refero.design/screenshots/uuid-onboard.png"
-        );
-        assert_eq!(
-            example["thumbnailUrl"],
-            "https://images.refero.design/screenshots/uuid-onboard.png"
-        );
-    }
-}
+#[path = "../testing/research/refero_assets.rs"]
+mod tests;

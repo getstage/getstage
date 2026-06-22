@@ -1,4 +1,5 @@
 export type ResearchCompetitor = {
+  id: string;
   name: string;
   url: string;
   mark: string;
@@ -44,7 +45,10 @@ export type ResearchTabData = {
   summary: string[];
   companySnapshot: ReadonlyArray<readonly [string, string]>;
   competitors: ResearchCompetitor[];
-  competitiveMatrixRows: Array<{ label: string; values: string[] }>;
+  competitiveMatrixRows: Array<{
+    label: string;
+    cells: Array<{ competitorId: string; score: string }>;
+  }>;
   uiPatternGroups: UiPatternGroupWithPatterns[];
   targetUsers: ResearchTargetUser[];
   opportunities: string[];

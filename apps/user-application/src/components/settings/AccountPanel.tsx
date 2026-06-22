@@ -1,16 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAction } from "convex/react";
 import { useDesktopSession } from "@/hooks/engine/useDesktopSession";
 import { useDesktopUpdate } from "@/hooks/useDesktopUpdate";
 import { useDesktopBridge } from "@/hooks/useDesktopBridge";
+import { useStageWidgetVisibility } from "@/hooks/companion/useStageWidgetVisibility";
 import { api } from "@/lib/convexApi";
 import { CANCELLATION_FORM_URL } from "@/lib/settings/accountConstants";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 import { DeleteAccountDialog } from "./DeleteAccountDialog";
 import { SettingsCard, SettingsRow } from "./SettingsPrimitives";
 import { cn } from "@/lib/utils";
-
-const ALLOW_STAGE_WIDGET_EVERYWHERE_KEY = "stage:allow-widget-everywhere";
 
 export function AccountPanel() {
   const desktop = useDesktopBridge();
@@ -24,19 +23,12 @@ export function AccountPanel() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
-  const [allowStageWidgetEverywhere, setAllowStageWidgetEverywhere] = useState(true);
+  const { enabled: allowStageWidgetEverywhere, setEnabled: setAllowStageWidgetEverywhere } =
+    useStageWidgetVisibility();
   const desktopSession = session.data ?? null;
-
-  useEffect(() => {
-    const savedValue = window.localStorage.getItem(ALLOW_STAGE_WIDGET_EVERYWHERE_KEY);
-    if (savedValue !== null) {
-      setAllowStageWidgetEverywhere(savedValue === "true");
-    }
-  }, []);
 
   function updateAllowStageWidgetEverywhere(nextValue: boolean) {
     setAllowStageWidgetEverywhere(nextValue);
-    window.localStorage.setItem(ALLOW_STAGE_WIDGET_EVERYWHERE_KEY, String(nextValue));
   }
 
   async function openDesktopLogin() {
@@ -98,6 +90,25 @@ export function AccountPanel() {
 
   return (
     <div className="flex flex-col gap-[22px]">
+      <SettingsCard>
+        <SettingsRow className="px-[20px] py-[18px]">
+          <div className="flex items-center justify-between gap-[20px]">
+            <div className="min-w-0">
+              <h2 className="text-[15px] font-semibold leading-none text-[#171717]">
+                Allow Stage widget everywhere
+              </h2>
+              <p className="mt-[6px] text-[12px] font-normal leading-[1.5] text-[#525252]">
+                Manage where you want to see your widget.
+              </p>
+            </div>
+            <StageWidgetToggle
+              checked={allowStageWidgetEverywhere}
+              onCheckedChange={updateAllowStageWidgetEverywhere}
+            />
+          </div>
+        </SettingsRow>
+      </SettingsCard>
+
       {isDesktop ? (
         <SettingsCard title="Desktop app">
           <SettingsRow>
@@ -142,25 +153,6 @@ export function AccountPanel() {
             >
               {desktopSession?.hasAccessToken ? "Refresh session" : "Log in with Stage"}
             </button>
-          </div>
-        </SettingsRow>
-      </SettingsCard>
-
-      <SettingsCard>
-        <SettingsRow className="px-[20px] py-[18px]">
-          <div className="flex items-center justify-between gap-[20px]">
-            <div className="min-w-0">
-              <h2 className="text-[15px] font-semibold leading-none text-[#171717]">
-                Allow Stage widget everywhere
-              </h2>
-              <p className="mt-[6px] text-[12px] font-normal leading-[1.5] text-[#525252]">
-                Manage where you want to see your widget.
-              </p>
-            </div>
-            <StageWidgetToggle
-              checked={allowStageWidgetEverywhere}
-              onCheckedChange={updateAllowStageWidgetEverywhere}
-            />
           </div>
         </SettingsRow>
       </SettingsCard>

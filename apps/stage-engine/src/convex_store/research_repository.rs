@@ -4,7 +4,7 @@ use serde::Deserialize;
 use serde_json::{Value as JsonValue, json};
 
 use crate::config::ConvexConfig;
-use crate::models::research::ResearchInput;
+use crate::models::research::{ResearchArtifact, ResearchInput};
 
 use super::value::{args, function_result_to_json};
 
@@ -223,6 +223,30 @@ impl ResearchRepository {
         function_result_to_json(result).map(|_| ())
     }
 
+    pub async fn cleanup_research_asset_keys(
+        &self,
+        token: &str,
+        project_id: &str,
+        keys: &[String],
+    ) -> anyhow::Result<()> {
+        if keys.is_empty() {
+            return Ok(());
+        }
+
+        let mut client = self.authenticated_client(token).await?;
+        for key in keys {
+            let mut args = args();
+            args.insert("projectId".to_string(), Value::from(project_id.to_string()));
+            args.insert("key".to_string(), Value::from(key.to_string()));
+            client
+                .mutation("projectAi:cleanupResearchRunAsset", args)
+                .await
+                .with_context(|| format!("failed to clean up research asset {key}"))?;
+        }
+
+        Ok(())
+    }
+
     async fn authenticated_client(&self, token: &str) -> anyhow::Result<ConvexClient> {
         if token.trim().is_empty() {
             bail!("missing desktop auth token for Convex");
@@ -289,8 +313,55 @@ pub fn enrich_research_artifact(
     crate::research::normalize::normalize_research_artifact_fields(object, input);
     normalize_competitive_matrix_scores(object);
     crate::research::competitive::filter_competitive_analysis(object, input);
+    let repair_report = crate::research::competitive::repair_competitive_analysis(object, input);
+    crate::research::competitive::complete_competitive_matrix(object);
+    crate::research::competitive::append_competitive_quality_warnings(object, &repair_report);
+    crate::research::competitive::validate_competitive_analysis(object, input)?;
 
     Ok(JsonValue::Object(object.clone()))
+}
+
+pub fn validate_complete_research_artifact(
+    artifact: &ResearchArtifact,
+    input: &ResearchInput,
+) -> anyhow::Result<()> {
+    let mut missing = Vec::new();
+
+    if artifact.summary.is_empty() {
+        missing.push("summary");
+    }
+    if artifact.company_snapshot.is_empty() {
+        missing.push("companySnapshot");
+    }
+    if artifact.target_users.is_empty() {
+        missing.push("targetUsers");
+    }
+    if artifact.opportunities.is_empty() {
+        missing.push("opportunities");
+    }
+
+    if !crate::research::competitive::allowed_competitive_targets(input).is_empty() {
+        if artifact.competitive_analysis.competitors.is_empty() {
+            missing.push("competitiveAnalysis.competitors");
+        } else if artifact
+            .competitive_analysis
+            .competitors
+            .iter()
+            .any(|competitor| competitor.strengths.is_empty() || competitor.weaknesses.is_empty())
+        {
+            // Card view is only useful when every competitor has both sides filled.
+            missing.push("competitiveAnalysis.competitors strengths/weaknesses");
+        }
+    }
+
+    if missing.is_empty() {
+        return Ok(());
+    }
+
+    bail!(
+        "Research artifact is incomplete; missing required section(s): {}",
+        missing.join(", ")
+    );
 }
 
 fn normalize_competitive_matrix_scores(object: &mut serde_json::Map<String, JsonValue>) {
@@ -327,8 +398,9 @@ fn normalize_competitive_matrix_scores(object: &mut serde_json::Map<String, Json
             };
             if let Some(normalized) = normalize_matrix_score(score) {
                 cell_object.insert("score".to_string(), json!(normalized));
-            } else if cell_object.get("score").is_none() {
-                let fallback = crate::research::normalize::normalize_matrix_score_label(score);
+            } else if let Some(fallback) =
+                crate::research::normalize::normalize_matrix_score_label(score)
+            {
                 cell_object.insert("score".to_string(), json!(fallback));
             }
         }
@@ -379,5 +451,111 @@ fn summary_text(artifact: &JsonValue) -> Option<String> {
             (!trimmed.is_empty()).then(|| trimmed.to_string())
         }
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn validate_complete_research_artifact_rejects_empty_opportunities() {
+        let input = sample_research_input();
+        let artifact = sample_research_artifact(json!([]));
+
+        let error = validate_complete_research_artifact(&artifact, &input)
+            .expect_err("empty opportunities must fail validation");
+
+        assert!(error.to_string().contains("opportunities"));
+    }
+
+    #[test]
+    fn validate_complete_research_artifact_accepts_required_sections() {
+        let input = sample_research_input();
+        let artifact = sample_research_artifact(json!([
+            {
+                "id": "opportunity-1",
+                "title": "Guided setup",
+                "description": "Guided setup can reduce competitor onboarding friction.",
+                "sourceSection": "competitiveAnalysis"
+            }
+        ]));
+
+        validate_complete_research_artifact(&artifact, &input)
+            .expect("complete artifact should pass validation");
+    }
+
+    #[test]
+    fn validate_complete_research_artifact_accepts_empty_competitive_matrix() {
+        let input = sample_research_input();
+        let mut artifact = sample_research_artifact(json!([
+            {
+                "id": "opportunity-1",
+                "title": "Guided setup",
+                "description": "Guided setup can reduce competitor onboarding friction.",
+                "sourceSection": "competitiveAnalysis"
+            }
+        ]));
+        artifact.competitive_analysis.matrix_rows = vec![];
+
+        validate_complete_research_artifact(&artifact, &input)
+            .expect("matrix rows are best-effort and should not block saving research");
+    }
+
+    fn sample_research_input() -> ResearchInput {
+        ResearchInput {
+            project_id: "project-1".to_string(),
+            project_name: "Stage".to_string(),
+            client_name: Some("Stage".to_string()),
+            industry: "SaaS".to_string(),
+            website: Some("https://example.com".to_string()),
+            project_brief: Some("Build a better onboarding flow.".to_string()),
+            competitor_urls: vec!["https://competitor.example".to_string()],
+            target_users: Some("Designers".to_string()),
+            additional_notes: None,
+            uploaded_asset_ids: vec![],
+        }
+    }
+
+    fn sample_research_artifact(opportunities: JsonValue) -> ResearchArtifact {
+        serde_json::from_value(json!({
+            "apiVersion": "v1",
+            "artifactKind": "researchArtifact",
+            "projectId": "project-1",
+            "title": "Stage Research",
+            "summary": ["Stage needs clearer onboarding."],
+            "companySnapshot": [{ "label": "Company", "value": "Stage" }],
+            "competitiveAnalysis": {
+                "competitors": [{
+                    "id": "competitor-example",
+                    "name": "Competitor",
+                    "url": "https://competitor.example",
+                    "strengths": ["Clear onboarding checklist"],
+                    "weaknesses": ["Dense dashboard layout"]
+                }],
+                "matrixRows": [{
+                    "id": "matrix-onboarding",
+                    "label": "Onboarding",
+                    "cells": [{
+                        "competitorId": "competitor-example",
+                        "score": "OK"
+                    }]
+                }]
+            },
+            "uiPatterns": [],
+            "targetUsers": [{
+                "id": "target-user-1",
+                "name": "Mia",
+                "role": "Designer",
+                "goals": ["Ship better flows."],
+                "frustrations": ["Slow setup blocks review."],
+                "context": "Works on client portals."
+            }],
+            "opportunities": opportunities,
+            "openQuestions": [],
+            "sourceReferences": [],
+            "generatedAt": 1
+        }))
+        .expect("sample research artifact should parse")
     }
 }

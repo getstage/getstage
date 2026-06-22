@@ -47,3 +47,7 @@ apps/user-application/resources/runtime-secrets.env
 
 # Local sibling repo used outside the app deploy
 agent-mode/
+
+# MCP server configs are local-only; each contributor opts in via the README.
+.mcp.json
+**/.mcp.json

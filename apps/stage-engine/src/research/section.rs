@@ -53,6 +53,45 @@ Keep IDs stable when possible. For list sections, preserve stable `id` fields wh
     )
 }
 
+pub fn build_opportunities_prompt(artifact: &Value, input: &ResearchInput) -> String {
+    format!(
+        r#"You are generating strategic product opportunities from an already validated Stage Research artifact.
+
+Return one valid JSON object with exactly this shape:
+{{"opportunities":[{{"id":"opportunity-1","title":"Short label","description":"One sentence max 25 words.","sourceSection":"competitiveAnalysis"}}]}}
+
+Rules:
+- You are advising how **{project_name}** (client: {client_name}) can win vs competitors — NOT comparing competitors to each other.
+- Use only findings present in the validated Research artifact below.
+- Return 3–5 opportunities max.
+- title: 2–4 words (e.g. "Conversational onboarding").
+- description: exactly ONE sentence, max 25 words. State the gap + why it matters for this product.
+- Example tone: "Onboarding is weak across competitors — mostly static forms. Guided setup would differentiate {project_name}."
+- Never invent facts, competitors, user needs, or evidence.
+- If the validated Research does not support an opportunity, omit it.
+- Return no markdown and no text outside the JSON object.
+
+Project goals from Convex:
+- Project: {project_name}
+- Client: {client_name}
+- Industry: {industry}
+- Brief: {project_brief}
+- Target users: {target_users}
+- Additional notes: {additional_notes}
+
+Validated Research artifact:
+{artifact}
+"#,
+        project_name = input.project_name,
+        client_name = input.client_name.as_deref().unwrap_or("the client"),
+        industry = input.industry,
+        project_brief = input.project_brief.as_deref().unwrap_or("Not provided."),
+        target_users = input.target_users.as_deref().unwrap_or("Not provided."),
+        additional_notes = input.additional_notes.as_deref().unwrap_or("Not provided."),
+        artifact = serde_json::to_string_pretty(artifact).unwrap_or_else(|_| "{}".to_string()),
+    )
+}
+
 pub fn merge_research_section(
     artifact: &mut Value,
     section: &str,

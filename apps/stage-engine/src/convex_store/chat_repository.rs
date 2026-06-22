@@ -78,7 +78,9 @@ impl ChatRepository {
         if needs_new_client {
             let mut client = ConvexClient::new(&self.deployment_url)
                 .await
-                .with_context(|| format!("failed to connect to Convex at {}", self.deployment_url))?;
+                .with_context(|| {
+                    format!("failed to connect to Convex at {}", self.deployment_url)
+                })?;
             client.set_auth(Some(token.to_string())).await;
             *cache = Some(CachedConvexClient {
                 auth_token: token.to_string(),

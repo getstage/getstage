@@ -17,7 +17,7 @@ use crate::refero::parse::{infer_image_mime, is_synthetic_reference_id, looks_li
 use crate::refero::service::{ReferoService, infer_refero_file_name};
 use crate::runs::RunEventSink;
 
-const MOODBOARD_IMPORT_LIMIT: u8 = 9;
+const MOODBOARD_IMPORT_LIMIT: u8 = 3;
 const MAX_URL_IMAGE_BYTES: u64 = 10 * 1024 * 1024;
 
 #[derive(Clone, Debug)]
@@ -361,25 +361,6 @@ async fn fetch_refero_screen_bytes(
     refero: &ReferoService,
     screen: &ReferoReference,
 ) -> Option<Vec<u8>> {
-    if !is_synthetic_reference_id(&screen.id) {
-        match refero.fetch_screen_image_bytes(&screen.id).await {
-            Ok(bytes) if looks_like_image_bytes(&bytes) => return Some(bytes),
-            Ok(_) => {
-                tracing::warn!(
-                    screen_id = %screen.id,
-                    "Refero MCP returned non-image bytes for moodboard import"
-                );
-            }
-            Err(error) => {
-                tracing::warn!(
-                    screen_id = %screen.id,
-                    %error,
-                    "Moodboard Refero MCP image fetch failed; trying CDN URLs"
-                );
-            }
-        }
-    }
-
     for url in [screen.image_url.as_deref(), screen.thumbnail_url.as_deref()] {
         let Some(url) = url.filter(|value| value.starts_with("https://")) else {
             continue;
@@ -400,6 +381,25 @@ async fn fetch_refero_screen_bytes(
                     source_url = %url,
                     %error,
                     "Moodboard Refero CDN image fetch failed"
+                );
+            }
+        }
+    }
+
+    if !is_synthetic_reference_id(&screen.id) {
+        match refero.fetch_screen_image_bytes(&screen.id).await {
+            Ok(bytes) if looks_like_image_bytes(&bytes) => return Some(bytes),
+            Ok(_) => {
+                tracing::warn!(
+                    screen_id = %screen.id,
+                    "Refero MCP returned non-image bytes for moodboard import"
+                );
+            }
+            Err(error) => {
+                tracing::warn!(
+                    screen_id = %screen.id,
+                    %error,
+                    "Moodboard Refero MCP image fetch failed after CDN URLs"
                 );
             }
         }

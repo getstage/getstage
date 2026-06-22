@@ -11,7 +11,7 @@ pub struct ChatProjectContext {
     pub tasks: Vec<ChatTask>,
     pub artifacts: Vec<ChatArtifact>,
     pub truncated: ChatTruncatedFlags,
-    pub updated_at: u64,
+    pub updated_at: f64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -21,11 +21,11 @@ pub struct ChatProject {
     pub project_name: String,
     pub client_name: String,
     pub status: String,
-    pub updated_at: u64,
+    pub updated_at: f64,
     pub r#type: String,
     pub progress: f64,
-    pub start_date: u64,
-    pub end_date: u64,
+    pub start_date: f64,
+    pub end_date: f64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -35,8 +35,8 @@ pub struct ChatPhase {
     pub name: String,
     pub status: String,
     pub progress: f64,
-    pub task_count: u64,
-    pub included_task_count: u64,
+    pub task_count: f64,
+    pub included_task_count: f64,
     pub tasks_truncated: bool,
 }
 
@@ -50,8 +50,8 @@ pub struct ChatTask {
     pub status: String,
     pub summary: Option<String>,
     pub priority: Option<String>,
-    pub due_date: Option<u64>,
-    pub updated_at: u64,
+    pub due_date: Option<f64>,
+    pub updated_at: f64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -64,7 +64,7 @@ pub struct ChatArtifact {
     pub summary: Option<String>,
     pub status: String,
     pub excerpt: Option<String>,
-    pub updated_at: u64,
+    pub updated_at: f64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

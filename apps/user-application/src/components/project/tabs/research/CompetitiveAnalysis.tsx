@@ -1,4 +1,5 @@
 import type { ResearchCompetitor } from "@/types/project/researchTab";
+import { BrandLogo } from "@/components/shared/BrandLogo";
 import { SectionTitle } from "./ResearchPrimitives";
 import { CardIcon, MatrixIcon } from "./researchIcons";
 
@@ -6,7 +7,10 @@ type CompetitiveAnalysisProps = {
   isEditing: boolean;
   view: "card" | "matrix";
   competitors: ResearchCompetitor[];
-  matrixRows: Array<{ label: string; values: string[] }>;
+  matrixRows: Array<{
+    label: string;
+    cells: Array<{ competitorId: string; score: string }>;
+  }>;
   onViewChange: (view: "card" | "matrix") => void;
   onCompetitorsChange?: (competitors: ResearchCompetitor[]) => void;
 };
@@ -81,12 +85,17 @@ function CompetitiveMatrix({
   matrixRows,
 }: {
   competitors: ResearchCompetitor[];
-  matrixRows: Array<{ label: string; values: string[] }>;
+  matrixRows: Array<{
+    label: string;
+    cells: Array<{ competitorId: string; score: string }>;
+  }>;
 }) {
+  const gridTemplate = `220px repeat(${competitors.length}, minmax(130px, 1fr))`;
+  const minWidth = 220 + competitors.length * 130;
   return (
     <div className="w-full overflow-x-auto rounded-[8px] pb-1">
-      <div className="min-w-[820px] overflow-hidden rounded-[8px] border border-[#D9D9D9] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        <div className="grid grid-cols-[220px_repeat(4,minmax(130px,1fr))] border-b border-[#D9D9D9]">
+      <div className="overflow-hidden rounded-[8px] border border-[#D9D9D9] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]" style={{ minWidth }}>
+        <div className="grid border-b border-[#D9D9D9]" style={{ gridTemplateColumns: gridTemplate }}>
           <div className="border-r border-[#D9D9D9] bg-[#FBFBFB] px-4 py-3" />
           {competitors.map((competitor) => (
             <div key={competitor.name} className="flex items-center gap-2 border-r border-[#D9D9D9] bg-[#FBFBFB] px-4 py-3 last:border-r-0">
@@ -98,16 +107,24 @@ function CompetitiveMatrix({
         {matrixRows.map((row, rowIndex) => (
           <div
             key={row.label}
-            className={`grid grid-cols-[220px_repeat(4,minmax(130px,1fr))] ${rowIndex < matrixRows.length - 1 ? "border-b border-[#E8E8E8]" : ""}`}
+            className={`grid ${rowIndex < matrixRows.length - 1 ? "border-b border-[#E8E8E8]" : ""}`}
+            style={{ gridTemplateColumns: gridTemplate }}
           >
             <div className="border-r border-[#E8E8E8] bg-[#FBFBFB] px-4 py-3 text-[12px] font-medium leading-[1.25] text-[#171717]">
               {row.label}
             </div>
-            {row.values.map((value, index) => (
-              <div key={`${row.label}-${competitors[index]?.name ?? index}`} className="border-r border-[#E8E8E8] px-4 py-3 last:border-r-0">
-                <MatrixScore value={value} />
-              </div>
-            ))}
+            {competitors.map((competitor) => {
+              const cell = row.cells.find((entry) => entry.competitorId === competitor.id);
+              return (
+                <div key={`${row.label}-${competitor.id}`} className="border-r border-[#E8E8E8] px-4 py-3 last:border-r-0">
+                  {cell ? (
+                    <MatrixCell score={cell.score} />
+                  ) : (
+                    <span className="text-[12px] font-medium leading-[1.25] text-[#9CA3AF]">N/A</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
@@ -115,13 +132,30 @@ function CompetitiveMatrix({
   );
 }
 
-function MatrixScore({ value }: { value: string }) {
-  const color = value === "Strong" ? "#16A34A" : value === "Weak" ? "#EF4444" : "#F97316";
+function MatrixCell({ score }: { score: string }) {
+  const palette =
+    score === "Strong"
+      ? { color: "#16A34A", background: "#DCFCE7" }
+      : score === "Weak"
+        ? { color: "#DC2626", background: "#FEE2E2" }
+        : { color: "#EA580C", background: "#FFEDD5" };
   return (
-    <span className="text-[12px] font-medium leading-[1.25]" style={{ color }}>
-      {value}
+    <span
+      className="inline-flex items-center rounded-full px-2 py-[3px] text-[12px] font-medium leading-[1.25]"
+      style={{ color: palette.color, backgroundColor: palette.background }}
+    >
+      {score}
     </span>
   );
+}
+
+function competitorPositioning(competitor: ResearchCompetitor) {
+  const tagline = competitor.tagline.trim();
+  const note = competitor.note.trim();
+  if (tagline && note && tagline !== note) {
+    return `${tagline} — ${note}`;
+  }
+  return tagline || note;
 }
 
 function CompetitorCard({
@@ -133,6 +167,8 @@ function CompetitorCard({
   isEditing: boolean;
   onChange?: (patch: Partial<ResearchCompetitor>) => void;
 }) {
+  const positioning = competitorPositioning(competitor);
+
   return (
     <article className="rounded-[10px] bg-[#FAFAFA] p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex h-full flex-col gap-4 rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -157,11 +193,11 @@ function CompetitorCard({
             aria-label={`${competitor.name} positioning`}
             className="h-[31px] w-full rounded-[6px] bg-[#F5F5F5] px-3 text-[13px] font-medium leading-[1.25] text-[#404040] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)]"
           />
-        ) : (
-          <p className="text-[13px] font-medium leading-[1.25] text-[#404040]">
-            "{competitor.tagline}" - {competitor.note}
+        ) : positioning ? (
+          <p className="break-words text-[13px] font-medium leading-[1.45] text-[#404040]">
+            {positioning}
           </p>
-        )}
+        ) : null}
         <FindingList title="Strengths" tone="good" items={competitor.strengths} isEditing={isEditing} onItemsChange={(strengths) => onChange?.({ strengths })} />
         <FindingList title="Weaknesses" tone="bad" items={competitor.weaknesses} isEditing={isEditing} onItemsChange={(weaknesses) => onChange?.({ weaknesses })} />
       </div>
@@ -170,23 +206,15 @@ function CompetitorCard({
 }
 
 function LogoMark({ competitor, compact = false }: { competitor: ResearchCompetitor; compact?: boolean }) {
-  const sizeClass = compact ? "h-[18px] w-[18px] rounded-[2px]" : "h-9 w-9 rounded-[8px]";
-
-  if (competitor.name === "Stripe") {
-    return (
-      <div className={`flex items-center justify-center ${sizeClass}`} style={{ background: competitor.color }}>
-        <div className={`${compact ? "h-[7px] w-[10px]" : "h-[14px] w-[20px]"} -skew-x-12 rounded-[2px] bg-white`} />
-      </div>
-    );
-  }
-
   return (
-    <div
-      className={`flex items-center justify-center text-[10px] font-semibold leading-[1.25] text-white ${sizeClass}`}
-      style={{ background: competitor.color }}
-    >
-      <span className={compact ? "scale-[0.7]" : ""}>{competitor.mark}</span>
-    </div>
+    <BrandLogo
+      url={competitor.url}
+      name={competitor.name}
+      fallbackColor={competitor.color}
+      fallbackMark={competitor.mark}
+      size={compact ? 18 : 36}
+      rounded={compact ? "rounded-[2px]" : "rounded-[8px]"}
+    />
   );
 }
 
@@ -216,7 +244,7 @@ function FindingList({
           className="mt-[7px] min-h-[78px] w-full resize-y rounded-[6px] bg-[#F5F5F5] px-3 py-2 text-[12px] font-medium leading-[1.45] text-[#262626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.15)]"
         />
       ) : (
-        <ul className="list-disc space-y-[7px] pl-[28px] pr-3 pt-[7px] text-[12px] font-medium leading-[1.25] text-[#262626]">
+        <ul className="list-disc space-y-[7px] break-words pl-[28px] pr-3 pt-[7px] text-[12px] font-medium leading-[1.45] text-[#262626]">
           {items.map((item) => (
             <li key={item}>{item}</li>
           ))}

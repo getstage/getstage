@@ -107,9 +107,9 @@ export function useAvailableChatModels() {
   const providers = useProviderStatus();
 
   return useMemo(() => {
-    const fromProviders = chatModelsFromProviders(providers.data?.providers);
+    const fromProviders = chatModelsFromProviders(providers.providerList.providers);
     return fromProviders.length > 0 ? fromProviders : chatModels;
-  }, [providers.data?.providers]);
+  }, [providers.providerList.providers]);
 }
 
 function isReasoningEffort(value: unknown): value is ReasoningEffort {

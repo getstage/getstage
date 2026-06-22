@@ -83,7 +83,7 @@ export function useProjectShareLink({ projectId, detail, open }: UseProjectShare
     if (!shareUrl) return;
 
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      await window.stageDesktop.clipboard.writeText(shareUrl);
       setCopied(true);
 
       if (copyTimeoutRef.current !== undefined) {

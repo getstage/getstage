@@ -23,6 +23,7 @@ type WireframesTabProps = {
   project: Project;
   onGoToResearch?: () => void;
   onGoToStrategy?: () => void;
+  onGoToFlows?: () => void;
   onGoToAssets: () => void;
 };
 
@@ -30,6 +31,7 @@ export function WireframesTab({
   project,
   onGoToResearch,
   onGoToStrategy,
+  onGoToFlows,
   onGoToAssets,
 }: WireframesTabProps) {
   const wireframesTab = useWireframesTab({ id: project.id, name: project.name });
@@ -134,6 +136,7 @@ export function WireframesTab({
           <WireframeKindChooser
             selectedKind={wireframeKind}
             onSelect={setWireframeKind}
+            onBack={onGoToFlows}
             onContinue={() => {
               if (wireframeKind) {
                 setBrandSource(null);

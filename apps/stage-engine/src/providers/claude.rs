@@ -65,33 +65,52 @@ fn claude_args(context: &ProviderRunContext) -> Vec<String> {
         .filter_map(|attachment| attachment.local_path.as_ref())
         .map(|path| format!("Read({path})"))
         .collect::<Vec<_>>();
-    let tools = if allowed_reads.is_empty() { "" } else { "Read" };
+    let mut tools = Vec::new();
+    let mut allowed_tools = Vec::new();
+    if research_web_tools_enabled(context) {
+        tools.extend(["WebSearch", "WebFetch"]);
+        allowed_tools.extend(["WebSearch".to_string(), "WebFetch".to_string()]);
+    }
+    if !allowed_reads.is_empty() {
+        tools.push("Read");
+        allowed_tools.extend(allowed_reads);
+    }
+
     let mut args = vec![
         "--print".to_string(),
         "--output-format".to_string(),
         "text".to_string(),
         "--no-session-persistence".to_string(),
         "--tools".to_string(),
-        tools.to_string(),
+        tools.join(","),
         "--permission-mode".to_string(),
         "dontAsk".to_string(),
         "--model".to_string(),
         claude_model_id(&context.request.model_id).to_string(),
     ];
 
-    if !allowed_reads.is_empty() {
+    if !allowed_tools.is_empty() {
         args.push("--allowedTools".to_string());
-        args.push(allowed_reads.join(","));
+        args.push(allowed_tools.join(","));
     }
 
     apply_claude_run_options(&mut args, &context.request.model_options);
     args
 }
 
+fn research_web_tools_enabled(context: &ProviderRunContext) -> bool {
+    context.request.mode == crate::models::runs::RunMode::Research
+        && !matches!(
+            context.request.context.source.as_deref(),
+            Some("provider-preflight" | "research-opportunities" | "section:opportunities")
+        )
+}
+
 fn claude_model_id(model_id: &str) -> &str {
     match model_id {
-        "claude-sonnet" => "sonnet",
-        "claude-opus" => "opus",
+        "claude-opus" | "claude-opus-4.8" | "claude-opus-4.7" => "opus",
+        "claude-sonnet" | "claude-sonnet-4.6" => "sonnet",
+        "claude-haiku-4.5" => "haiku",
         other => other,
     }
 }
@@ -123,6 +142,12 @@ mod tests {
     #[test]
     fn claude_model_id_should_map_stage_fallback_sonnet_alias() {
         assert_eq!(claude_model_id("claude-sonnet"), "sonnet");
+        assert_eq!(claude_model_id("claude-sonnet-4.6"), "sonnet");
+    }
+
+    #[test]
+    fn claude_model_id_should_map_stage_fallback_opus_alias() {
+        assert_eq!(claude_model_id("claude-opus-4.8"), "opus");
     }
 
     #[test]
@@ -141,8 +166,26 @@ mod tests {
     }
 
     #[test]
+    fn claude_research_enables_only_web_research_tools() {
+        let args = claude_args(&sample_context("research"));
+        assert!(args.contains(&"WebSearch,WebFetch".to_string()));
+        assert!(args.contains(&"--allowedTools".to_string()));
+    }
+
+    #[test]
+    fn claude_opportunities_pass_disables_web_tools() {
+        let mut context = sample_context("opportunities");
+        context.request.context.source = Some("section:opportunities".to_string());
+        let args = claude_args(&context);
+        let tools_index = args.iter().position(|arg| arg == "--tools").unwrap();
+        assert_eq!(args[tools_index + 1], "");
+        assert!(!args.contains(&"--allowedTools".to_string()));
+    }
+
+    #[test]
     fn claude_args_allows_read_for_explicit_attachments() {
         let mut context = sample_context("Critique this layout.");
+        context.request.mode = RunMode::Critique;
         context.request.attachments.push(RunAttachment {
             id: "image-1".to_string(),
             kind: RunAttachmentKind::Image,

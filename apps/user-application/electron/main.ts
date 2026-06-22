@@ -12,7 +12,9 @@ import { findStageIntegrationUrl } from "./helpers/integrations";
 import { createDesktopIntegrationsController } from "./integrations";
 import { registerIpcHandlers } from "./ipc";
 import { registerVoiceHandlers } from "./voice";
+import { installSafeDesktopLogging, logDesktopDebug } from "./helpers/desktop-log";
 import { fetchEngineJson } from "./helpers/sidecar";
+import { loadCompanionWidgetSettings } from "./helpers/companion-preferences";
 import { providerListResponseSchema } from "@stage/data-ops/contracts";
 import { createSidecarSupervisor } from "./sidecar";
 import { checkForUpdates, initAutoUpdates, scheduleAutomaticUpdateCheckIfDue } from "./helpers/auto-update";
@@ -29,6 +31,7 @@ loadLocalEnv();
 registerRendererProtocolSchemes();
 
 app.setName("Stage");
+installSafeDesktopLogging();
 if (process.platform === "darwin") {
   app.dock?.show();
   const archLabel = process.arch === "arm64" ? "Apple Silicon" : "Intel";
@@ -47,16 +50,7 @@ const authCallbackServer = createDesktopAuthCallbackServer({
 });
 const sidecarSupervisor = createSidecarSupervisor();
 const isDevelopment = !app.isPackaged;
-const shouldLogDesktopDebug =
-  process.env.STAGE_DESKTOP_DEBUG === "1" ||
-  (isDevelopment && process.env.STAGE_DESKTOP_DEBUG !== "0");
 let sidecarStoppedForQuit = false;
-
-function debugDesktop(message: string) {
-  if (shouldLogDesktopDebug) {
-    console.info(`[stage-desktop:debug] ${message}`);
-  }
-}
 
 function installApplicationMenu() {
   const isMac = process.platform === "darwin";
@@ -210,13 +204,14 @@ function registerRendererMediaPermissions() {
   );
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   const readyAt = Date.now();
-  debugDesktop(`app ready packaged=${app.isPackaged ? "yes" : "no"}`);
+  logDesktopDebug(`app ready packaged=${app.isPackaged ? "yes" : "no"}`);
+  await loadCompanionWidgetSettings();
 
   if (app.isPackaged) {
     installRendererProtocol(join(__dirname, "../renderer"));
-    debugDesktop("renderer protocol installed");
+    logDesktopDebug("renderer protocol installed");
   }
 
   registerRendererMediaPermissions();
@@ -262,7 +257,7 @@ app.whenReady().then(() => {
 
   createMainWindow();
   destroyOrphanCompanionWindows();
-  debugDesktop(`main window requested after ${Date.now() - readyAt}ms; sidecar deferred until first engine IPC`);
+  logDesktopDebug(`main window requested after ${Date.now() - readyAt}ms; sidecar deferred until first engine IPC`);
   void installStageTrayIfEnabled();
 
   app.on("activate", () => {

@@ -17,6 +17,7 @@ import { useSaveResearchArtifact } from "@/hooks/project/research/useSaveResearc
 import { useResearchTab } from "@/hooks/project";
 import { applyResearchTabEdits } from "@/lib/project/applyResearchTabEdits";
 import { RESEARCH_RUN_FAILED_USER_MESSAGE } from "@/lib/engine/formatRunError";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 import { CompanySnapshot } from "./CompanySnapshot";
 import { CompetitiveAnalysis } from "./CompetitiveAnalysis";
@@ -103,9 +104,9 @@ export function ResearchTab({
       try {
         await clearForRerun({ projectId: project.id as Id<"projects"> });
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Could not clear research and strategy.";
-        setRunError(message);
+        setRunError(
+          toUserFacingErrorMessage(error, "Could not clear the previous Research and Strategy."),
+        );
         throw error;
       }
     }
@@ -113,12 +114,8 @@ export function ResearchTab({
     try {
       await research.startResearch(input, providerId);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : RESEARCH_RUN_FAILED_USER_MESSAGE;
-      if (!(error instanceof Error)) {
-        console.error("[stage-engine] research start failed", error);
-      }
-      setRunError(message);
+      console.error("[stage-engine] research start failed", error);
+      setRunError(toUserFacingErrorMessage(error, RESEARCH_RUN_FAILED_USER_MESSAGE));
     }
   }
 
@@ -181,7 +178,7 @@ export function ResearchTab({
         setSummaryDraft([]);
       }
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "Could not save research changes.");
+      setSaveError(toUserFacingErrorMessage(error, "Could not save your Research changes."));
       throw error;
     } finally {
       setIsSaving(false);
@@ -256,7 +253,12 @@ export function ResearchTab({
 
   if (!research.hasArtifact || !research.data) {
     if (isRunBusy) {
-      return <ResearchGeneratingState usingMockData={research.usingMockData} />;
+      return (
+        <ResearchGeneratingState
+          usingMockData={research.usingMockData}
+          elapsedSeconds={research.elapsedSeconds}
+        />
+      );
     }
 
     return (
@@ -285,11 +287,23 @@ export function ResearchTab({
   const tabData = isEditing && draftTabData ? draftTabData : research.data.tabData;
 
   if (regeneratingSection) {
-    return <ResearchGeneratingState mode="regenerate" section={regeneratingSection} usingMockData={false} />;
+    return (
+      <ResearchGeneratingState
+        mode="regenerate"
+        section={regeneratingSection}
+        usingMockData={false}
+        elapsedSeconds={research.elapsedSeconds}
+      />
+    );
   }
 
   if (isRunBusy) {
-    return <ResearchGeneratingState usingMockData={research.usingMockData} />;
+    return (
+      <ResearchGeneratingState
+        usingMockData={research.usingMockData}
+        elapsedSeconds={research.elapsedSeconds}
+      />
+    );
   }
 
   return (
@@ -444,13 +458,16 @@ function ResearchGeneratingState({
   usingMockData,
   mode = "generate",
   section,
+  elapsedSeconds = 0,
 }: {
   usingMockData: boolean;
   mode?: "generate" | "regenerate";
   section?: ResearchArtifactSection;
+  elapsedSeconds?: number;
 }) {
   const isRegenerating = mode === "regenerate";
   const sectionLabel = section ? RESEARCH_SECTION_LABELS[section] : "Research";
+  const elapsedLabel = formatResearchElapsed(elapsedSeconds);
 
   return (
     <section className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -474,6 +491,9 @@ function ResearchGeneratingState({
                   : usingMockData
                   ? "Building a test research report from the project context. The results will appear here when the run completes."
                   : "Analysing the market, competitors, UI patterns, target users, and product opportunities."}
+              </p>
+              <p className="text-center text-[12px] font-medium leading-[1.5] text-[#737373]">
+                Elapsed: {elapsedLabel}
               </p>
             </div>
 
@@ -503,6 +523,12 @@ function delay(ms: number) {
   return new Promise<void>((resolve) => {
     window.setTimeout(resolve, ms);
   });
+}
+
+function formatResearchElapsed(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
 }
 
 function ResearchLoadingStep({

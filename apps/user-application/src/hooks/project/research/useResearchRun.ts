@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ProviderId, RunEvent } from "@stage/data-ops/contracts";
 import { useQuery } from "convex/react";
-import { useQueryClient } from "@tanstack/react-query";
+import type { ProviderId } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
-import { useDesktopAuth } from "@/lib/auth";
 import { api } from "@/lib/convexApi";
-import { engineQueryKeys } from "@/hooks/engine/queryKeys";
+import { useDesktopAuth } from "@/lib/auth";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
@@ -21,22 +19,9 @@ import { assertProviderPreflightReady } from "@/lib/engine/providerPreflight";
 import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 
 const RESEARCH_PROMPT = "Generate project research from the current Stage project context.";
-
-/** If IPC stream dies immediately, unblock the UI within ~20s. */
-const RESEARCH_EVENT_STALL_MS = 20_000;
-const RESEARCH_RUN_MAX_MS = 20 * 60 * 1000;
-
-function hasTerminalRunEvent(events: RunEvent[]) {
-  return events.some(
-    (event) =>
-      event.type === "run_completed" ||
-      event.type === "run_failed" ||
-      event.type === "run_cancelled",
-  );
-}
+const RESEARCH_RUN_MAX_MS = 45 * 60 * 1000;
 
 export function useResearchRun(projectId: string) {
-  const queryClient = useQueryClient();
   const { isAuthenticated } = useDesktopAuth();
   const providerRun = useProviderRun({ projectId, mode: "research" });
   const providerPreferences = useProviderPreferences();
@@ -44,30 +29,76 @@ export function useResearchRun(projectId: string) {
   const chatDefaults = useChatDefaults();
   const [error, setError] = useState<string | null>(null);
   const [runEnded, setRunEnded] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [lastRunDurationSeconds, setLastRunDurationSeconds] = useState<number | null>(null);
   const runStartedAtRef = useRef<number | null>(null);
 
-  const runs = useQuery(
+  const activeRunId = providerRun.activeRunId;
+  const activeRunEvents = providerRun.activeRunEvents;
+  const hasTerminalEvent = providerRun.hasTerminalEvent;
+  const resetActiveRun = providerRun.resetActiveRun;
+
+  // The in-memory active run is lost when the Research tab unmounts (navigating away).
+  // Convex is the durable truth: a research run sits at status "running" until the engine
+  // marks it completed/failed, so reading it keeps the generating state honest on return.
+  const researchRuns = useQuery(
     api.projectAi.listRuns,
     isAuthenticated && projectId
       ? { projectId: projectId as Id<"projects">, module: "research" }
       : "skip",
   );
-
-  const convexResearchRunning = useMemo(
-    () => runs?.some((run) => run.status === "running") ?? false,
-    [runs],
+  const persistedRunningRun = useMemo(
+    () => researchRuns?.find((run) => run.status === "running") ?? null,
+    [researchRuns],
   );
-
-  const activeRunId = providerRun.activeRunId;
-  const activeRunEvents = providerRun.activeRunEvents;
-  const hasTerminalEvent = providerRun.hasTerminalEvent;
 
   const isRunning = useMemo(
     () =>
       !runEnded &&
-      (providerRun.isRunActive || convexResearchRunning),
-    [convexResearchRunning, providerRun.isRunActive, runEnded],
+      (providerRun.startRun.isPending ||
+        providerRun.isRunActive ||
+        persistedRunningRun !== null),
+    [
+      providerRun.isRunActive,
+      providerRun.startRun.isPending,
+      persistedRunningRun,
+      runEnded,
+    ],
   );
+
+  // After a remount the local start timestamp is gone; seed it from the persisted run so
+  // the elapsed timer resumes from the real start instead of restarting at zero.
+  useEffect(() => {
+    if (persistedRunningRun && runStartedAtRef.current === null) {
+      runStartedAtRef.current = persistedRunningRun.startedAt;
+    }
+  }, [persistedRunningRun]);
+
+  useEffect(() => {
+    if (!isRunning || runStartedAtRef.current === null) {
+      return;
+    }
+
+    const tick = () => {
+      if (runStartedAtRef.current) {
+        setElapsedSeconds(Math.floor((Date.now() - runStartedAtRef.current) / 1000));
+      }
+    };
+
+    tick();
+    const interval = window.setInterval(tick, 1000);
+    return () => window.clearInterval(interval);
+  }, [isRunning]);
+
+  useEffect(() => {
+    if (!hasTerminalEvent || runStartedAtRef.current === null) {
+      return;
+    }
+
+    const duration = Math.floor((Date.now() - runStartedAtRef.current) / 1000);
+    setLastRunDurationSeconds(duration);
+    setElapsedSeconds(duration);
+  }, [hasTerminalEvent]);
 
   useEffect(() => {
     const failedEvent = activeRunEvents.find((event) => event.type === "run_failed");
@@ -80,16 +111,6 @@ export function useResearchRun(projectId: string) {
     setError(toRunFailureUserMessage(failedEvent, RESEARCH_RUN_FAILED_USER_MESSAGE));
   }, [activeRunEvents]);
 
-  const failRun = useCallback(
-    (logMessage: string) => {
-      console.error(logMessage);
-      setRunEnded(true);
-      setError(RESEARCH_RUN_FAILED_USER_MESSAGE);
-      providerRun.resetActiveRun();
-    },
-    [providerRun],
-  );
-
   useEffect(() => {
     if (hasTerminalEvent && !runEnded) {
       setRunEnded(true);
@@ -97,42 +118,28 @@ export function useResearchRun(projectId: string) {
   }, [hasTerminalEvent, runEnded]);
 
   useEffect(() => {
-    if (!activeRunId || runEnded || hasTerminalEvent) {
+    if (!isRunning || runEnded || hasTerminalEvent) {
       return;
     }
 
-    runStartedAtRef.current = Date.now();
-
-    const stallTimer = window.setTimeout(() => {
-      const events =
-        queryClient.getQueryData<RunEvent[]>(engineQueryKeys.runEvents(activeRunId)) ?? [];
-
-      if (hasTerminalRunEvent(events)) {
-        return;
-      }
-
-      if (events.length === 0) {
-        failRun(
-          "[stage-engine] research run stalled: no events received (Electron main process likely out of date — restart pnpm dev)",
-        );
-      }
-    }, RESEARCH_EVENT_STALL_MS);
-
     const maxTimer = window.setTimeout(() => {
-      failRun("[stage-engine] research run watchdog: exceeded maximum duration");
+      console.error("[stage-engine] research run watchdog: exceeded maximum duration");
+      setRunEnded(true);
+      setError(RESEARCH_RUN_FAILED_USER_MESSAGE);
+      resetActiveRun();
     }, RESEARCH_RUN_MAX_MS);
 
     return () => {
-      window.clearTimeout(stallTimer);
       window.clearTimeout(maxTimer);
     };
-  }, [activeRunId, failRun, hasTerminalEvent, queryClient, runEnded]);
+  }, [hasTerminalEvent, isRunning, resetActiveRun, runEnded]);
 
   const startResearch = useCallback(
     async (providerId: ProviderId) => {
       setError(null);
       setRunEnded(false);
-      runStartedAtRef.current = null;
+      runStartedAtRef.current = Date.now();
+      setElapsedSeconds(0);
 
       assertProviderPreflightReady({
         providerId,
@@ -175,6 +182,8 @@ export function useResearchRun(projectId: string) {
     cancelResearch,
     isStarting: providerRun.startRun.isPending,
     isRunning,
+    elapsedSeconds,
+    lastRunDurationSeconds,
     activeRunId: providerRun.activeRunId,
     runEvents: activeRunEvents,
     error:

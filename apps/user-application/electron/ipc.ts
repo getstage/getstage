@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, resolve, sep } from "node:path";
-import { app, BrowserWindow, dialog, ipcMain, shell, type WebContents } from "electron";
+import { app, BrowserWindow, clipboard, dialog, ipcMain, shell, type WebContents } from "electron";
 import {
   cancelRunResponseSchema,
   createFigmaExportRequestSchema,
@@ -26,6 +26,7 @@ import {
   chatAttachmentTargetSchema,
   importChatImageBytesRequestSchema,
   companionStateSchema,
+  companionWidgetSettingsSchema,
   desktopSessionSchema,
   engineStatusSchema,
   permissionKindSchema,
@@ -46,9 +47,14 @@ import {
   openPermissionSystemSettings,
   requestMicrophoneAccess,
 } from "./helpers/permissions";
+import {
+  getCompanionWidgetSettings,
+  saveCompanionWidgetSettings,
+} from "./helpers/companion-preferences";
 import { fetchEngineJsonAuthed } from "./helpers/engine-request";
 import { logDesktopDebug, logDesktopInfo } from "./helpers/desktop-log";
 import { fetchEngineJson } from "./helpers/sidecar";
+import { delay } from "./helpers/time";
 import { closeCompanionWindow, openCompanionFromTray, setCompanionWindowInteractive } from "./windows";
 import type { SidecarSupervisor } from "./sidecar";
 import type { DesktopAuthController } from "./auth";
@@ -58,6 +64,12 @@ import {
   getDesktopUpdateStatusForRenderer,
   installAvailableUpdate,
 } from "./helpers/auto-update";
+import {
+  PROVIDER_STATUS_TIMEOUT_MS,
+  PROVIDER_UPDATE_TIMEOUT_MS,
+  RUN_EVENT_STREAM_MAX_MS,
+  RUN_EVENT_STREAM_RECONNECT_DELAY_MS,
+} from "./helpers/engine-constants";
 
 const activeRunStreams = new Map<string, AbortController>();
 
@@ -121,6 +133,13 @@ export function registerIpcHandlers({
     return authController.getAccessToken();
   });
 
+  ipcMain.handle(IPC_CHANNELS.clipboardWriteText, (_event, text: unknown) => {
+    if (typeof text !== "string") {
+      throw new Error("Clipboard text must be a string.");
+    }
+    clipboard.writeText(text);
+  });
+
   ipcMain.handle(IPC_CHANNELS.engineGetStatus, async () => {
     return withDebugTiming("engine:get-status", async () =>
       engineStatusSchema.parse(await sidecarSupervisor.getLiveStatus()),
@@ -137,6 +156,7 @@ export function registerIpcHandlers({
         fetchEngineJson<unknown>({
           path: "/v1/providers",
           port: status.port,
+          timeoutMs: PROVIDER_STATUS_TIMEOUT_MS,
         }),
       );
 
@@ -156,6 +176,7 @@ export function registerIpcHandlers({
           method: "POST",
           path: "/v1/providers/refresh",
           port: status.port,
+          timeoutMs: PROVIDER_STATUS_TIMEOUT_MS,
         }),
       );
 
@@ -176,6 +197,7 @@ export function registerIpcHandlers({
           method: "POST",
           path: `/v1/providers/${parsedProviderId}/update`,
           port: status.port,
+          timeoutMs: PROVIDER_UPDATE_TIMEOUT_MS,
         }),
       );
 
@@ -354,6 +376,21 @@ export function registerIpcHandlers({
     return { ok: true };
   });
 
+  ipcMain.handle(IPC_CHANNELS.companionGetWidgetSettings, () => {
+    return companionWidgetSettingsSchema.parse(getCompanionWidgetSettings());
+  });
+
+  ipcMain.handle(IPC_CHANNELS.companionSetWidgetSettings, async (_event, settings: unknown) => {
+    const parsedSettings = companionWidgetSettingsSchema.parse(settings);
+    const savedSettings = await saveCompanionWidgetSettings(parsedSettings);
+
+    if (!savedSettings.allowEverywhere) {
+      closeCompanionWindow();
+    }
+
+    return savedSettings;
+  });
+
   ipcMain.handle(IPC_CHANNELS.windowToggleMaximize, (event) => {
     const window = BrowserWindow.fromWebContents(event.sender);
 
@@ -488,70 +525,96 @@ async function streamRunEventsToRenderer(args: {
   const controller = new AbortController();
   activeRunStreams.set(args.runId, controller);
   let sawTerminalEvent = false;
+  const streamDeadline = Date.now() + RUN_EVENT_STREAM_MAX_MS;
 
   args.sidecarSupervisor.holdIdleShutdown();
 
   try {
-    const response = await fetch(
-      `http://127.0.0.1:${args.port}/v1/runs/${encodeURIComponent(args.runId)}/events`,
-      {
-        headers: { authorization: `Bearer ${args.accessToken}` },
-        signal: controller.signal,
-      },
-    );
-
-    if (!response.ok || !response.body) {
-      throw new Error(`Run event stream failed with ${response.status}.`);
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (!controller.signal.aborted) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-
-      args.sidecarSupervisor.markEngineActivity();
-      buffer += decoder.decode(value, { stream: true });
-      const blocks = buffer.split(/\r?\n\r?\n/);
-      buffer = blocks.pop() ?? "";
-
-      for (const block of blocks) {
-        const runEvent = parseRunEventBlock(block);
-        if (!runEvent) {
-          continue;
-        }
-        logRunEvent(runEvent);
-        if (!sendRunEventToRenderer(args.sender, runEvent)) {
-          controller.abort();
-          break;
-        }
-
-        if (
-          runEvent.type === "run_completed" ||
-          runEvent.type === "run_failed" ||
-          runEvent.type === "run_cancelled"
-        ) {
-          sawTerminalEvent = true;
-          controller.abort();
-          break;
+    while (!controller.signal.aborted && !sawTerminalEvent && Date.now() < streamDeadline) {
+      try {
+        sawTerminalEvent = await readRunEventStream(args, controller);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error("[stage-engine] run event stream failed", error);
         }
       }
-    }
-  } catch (error) {
-    if (!controller.signal.aborted) {
-      console.error("[stage-engine] run event stream failed", error);
+
+      if (!controller.signal.aborted && !sawTerminalEvent && Date.now() < streamDeadline) {
+        await delay(RUN_EVENT_STREAM_RECONNECT_DELAY_MS);
+      }
     }
   } finally {
     if (!sawTerminalEvent && !controller.signal.aborted) {
-      emitSyntheticRunFailed(args, "The research run ended before Stage received a final status.");
+      console.warn(
+        `[stage-engine] run event stream ended without terminal event runId=${args.runId}; Convex run status remains source of truth`,
+      );
     }
     activeRunStreams.delete(args.runId);
     args.sidecarSupervisor.releaseIdleShutdown();
   }
+}
+
+async function readRunEventStream(
+  args: {
+    sidecarSupervisor: SidecarSupervisor;
+    accessToken: string;
+    port: number;
+    runId: string;
+    sender: WebContents;
+  },
+  controller: AbortController,
+) {
+  const response = await fetch(
+    `http://127.0.0.1:${args.port}/v1/runs/${encodeURIComponent(args.runId)}/events`,
+    {
+      headers: { authorization: `Bearer ${args.accessToken}` },
+      signal: controller.signal,
+    },
+  );
+
+  if (!response.ok || !response.body) {
+    throw new Error(`Run event stream failed with ${response.status}.`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (!controller.signal.aborted) {
+    const { done, value } = await reader.read();
+    if (done) {
+      return false;
+    }
+
+    args.sidecarSupervisor.markEngineActivity();
+    buffer += decoder.decode(value, { stream: true });
+    const blocks = buffer.split(/\r?\n\r?\n/);
+    buffer = blocks.pop() ?? "";
+
+    for (const block of blocks) {
+      const runEvent = parseRunEventBlock(block);
+      if (!runEvent) {
+        continue;
+      }
+
+      logRunEvent(runEvent);
+      if (!sendRunEventToRenderer(args.sender, runEvent)) {
+        controller.abort();
+        return false;
+      }
+
+      if (
+        runEvent.type === "run_completed" ||
+        runEvent.type === "run_failed" ||
+        runEvent.type === "run_cancelled"
+      ) {
+        controller.abort();
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 function parseRunEventBlock(block: string) {
@@ -580,35 +643,6 @@ function parseRunEventBlock(block: string) {
   }
 
   return parsed.data;
-}
-
-function emitSyntheticRunFailed(
-  args: {
-    runId: string;
-    providerId: ProviderId;
-    sender: WebContents;
-  },
-  detail: string,
-) {
-  const event = runEventSchema.parse({
-    apiVersion: "v1",
-    type: "run_failed",
-    runId: args.runId,
-    providerId: args.providerId,
-    createdAt: Date.now(),
-    error: {
-      code: "io_error",
-      message: "The selected AI provider could not finish the research run.",
-      providerId: args.providerId,
-      retryable: true,
-      detail,
-    },
-  } satisfies RunEvent);
-
-  console.error(`[stage-engine] ${JSON.stringify(event)}`);
-  if (!sendRunEventToRenderer(args.sender, event)) {
-    return;
-  }
 }
 
 function logRunEvent(event: RunEvent) {

@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, type ReactNode } from "react";
 import type { CompanionState } from "@shared/models/desktop";
 import { CompanionOrb } from "@/components/companion/CompanionOrb";
+import { useStageWidgetVisibility } from "@/hooks/companion/useStageWidgetVisibility";
 import { useCompanionState } from "@/hooks/useCompanionState";
 import {
   STAGE_SHORTCUT_OPEN_CHAT,
@@ -27,7 +28,8 @@ const SHORTCUT_DEBOUNCE_MS = 400;
 
 export function DesktopShell({ children, hideCompanion = false }: DesktopShellProps) {
   const isCompanionWindow = new URLSearchParams(window.location.search).get("stageWindow") === "companion";
-  const companion = useCompanionState(isCompanionWindow ? "listening" : "idle");
+  const companion = useCompanionState("idle");
+  const { enabled: allowStageWidgetEverywhere } = useStageWidgetVisibility();
   const companionStateRef = useRef(companion.state);
   companionStateRef.current = companion.state;
   const pendingVoiceShortcutRef = useRef(false);
@@ -190,7 +192,7 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
   return (
     <div className="stage-desktop-shell min-h-dvh">
       {children}
-      {!hideCompanion ? (
+      {!hideCompanion || allowStageWidgetEverywhere ? (
         <>
           <CompanionOrb state={companion.state} />
           <Suspense fallback={null}>
