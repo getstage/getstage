@@ -207,7 +207,8 @@ a,
   width: 76px;
   height: 17px;
   gap: 0;
-  padding: 0 2px 0 4px;
+  justify-content: space-between;
+  padding: 0 4px;
 }
 
 .voice-control-bar-idle:hover,
