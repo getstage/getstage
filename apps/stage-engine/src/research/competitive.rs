@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use serde_json::{Map, Value, json};
 
@@ -22,6 +22,16 @@ pub fn allowed_competitive_targets(input: &ResearchInput) -> Vec<String> {
         .filter(|website| !website.is_empty() && !website.eq_ignore_ascii_case("unknown"))
         .map(str::to_string)
         .into_iter()
+        .collect()
+}
+
+/// Display names for the allowed competitors (e.g. `["Squarespace", "Amazon"]`), used to look up
+/// each competitor's real screens in Refero instead of crawling their (often bot-gated) live site.
+pub fn allowed_competitor_names(input: &ResearchInput) -> Vec<String> {
+    allowed_competitive_targets(input)
+        .iter()
+        .filter_map(|url| competitive_host(url))
+        .map(|host| competitor_display_name(&host))
         .collect()
 }
 
@@ -196,6 +206,95 @@ pub fn ensure_competitive_competitors(object: &mut Map<String, Value>, input: &R
     }
 }
 
+/// The fixed UI/UX dimensions the matrix always compares. Keeping these canonical
+/// guarantees a clean, consistent matrix shape regardless of what the model returns.
+pub const CANONICAL_MATRIX_ROWS: &[&str] = &[
+    "Navigation",
+    "Onboarding",
+    "Visual Style",
+    "Content Hierarchy",
+    "Mobile Experience",
+    "Dashboard Layout",
+    "Data Visualization",
+];
+
+/// Guarantee a complete, clean matrix: exactly the canonical rows, with a score for
+/// every competitor in every row. Scores the model already gave are preserved (matched
+/// by row label); any gap defaults to "OK" so the UI never shows "N/A" for a real
+/// competitor. No-op when there are no competitors (keeps the empty-state honest).
+pub fn complete_competitive_matrix(object: &mut Map<String, Value>) {
+    let Some(analysis) = object
+        .get_mut("competitiveAnalysis")
+        .and_then(Value::as_object_mut)
+    else {
+        return;
+    };
+
+    let competitor_ids = analysis
+        .get("competitors")
+        .and_then(Value::as_array)
+        .map(|competitors| {
+            competitors
+                .iter()
+                .filter_map(|competitor| competitor.get("id").and_then(Value::as_str))
+                .map(str::to_string)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    if competitor_ids.is_empty() {
+        return;
+    }
+
+    // Existing scores keyed by (lowercased row label, competitorId).
+    let mut existing: HashMap<(String, String), String> = HashMap::new();
+    if let Some(rows) = analysis.get("matrixRows").and_then(Value::as_array) {
+        for row in rows {
+            let Some(label_key) = row
+                .get("label")
+                .and_then(Value::as_str)
+                .map(|label| label.trim().to_ascii_lowercase())
+            else {
+                continue;
+            };
+            let Some(cells) = row.get("cells").and_then(Value::as_array) else {
+                continue;
+            };
+            for cell in cells {
+                if let (Some(id), Some(score)) = (
+                    cell.get("competitorId").and_then(Value::as_str),
+                    cell.get("score").and_then(Value::as_str),
+                ) {
+                    existing.insert((label_key.clone(), id.to_string()), score.to_string());
+                }
+            }
+        }
+    }
+
+    let rows = CANONICAL_MATRIX_ROWS
+        .iter()
+        .map(|label| {
+            let label_key = label.to_ascii_lowercase();
+            let cells = competitor_ids
+                .iter()
+                .map(|id| {
+                    let score = existing
+                        .get(&(label_key.clone(), id.clone()))
+                        .map(String::as_str)
+                        .unwrap_or("OK");
+                    json!({ "competitorId": id, "score": score })
+                })
+                .collect::<Vec<_>>();
+            json!({
+                "id": format!("matrix-{}", label_key.replace(' ', "-")),
+                "label": label,
+                "cells": cells,
+            })
+        })
+        .collect::<Vec<_>>();
+
+    analysis.insert("matrixRows".to_string(), json!(rows));
+}
+
 pub struct CompetitiveRepairReport {
     pub unsupported_cells_removed: usize,
 }
@@ -364,84 +463,6 @@ pub fn validate_competitive_analysis(
     }
 
     Ok(())
-}
-
-/// Drop positioning/summary/strengths/weaknesses for competitors with no source IDs.
-/// Only safe to call after a repair-style prompt that explicitly requires every claim
-/// to reference a returned sourceReference id. NEVER call this on a main-run artifact —
-/// the main prompt does not enforce source grounding, so empty sourceReferenceIds is
-/// expected, not a signal that the content is fabricated.
-pub fn drop_unsourced_competitor_content(object: &mut Map<String, Value>) {
-    let Some(analysis) = object
-        .get_mut("competitiveAnalysis")
-        .and_then(Value::as_object_mut)
-    else {
-        return;
-    };
-    let Some(competitors) = analysis
-        .get_mut("competitors")
-        .and_then(Value::as_array_mut)
-    else {
-        return;
-    };
-    for competitor in competitors {
-        let Some(competitor) = competitor.as_object_mut() else {
-            continue;
-        };
-        let has_sources = competitor
-            .get("sourceReferenceIds")
-            .and_then(Value::as_array)
-            .map(|ids| !ids.is_empty())
-            .unwrap_or(false);
-        if has_sources {
-            continue;
-        }
-        for key in ["positioning", "summary"] {
-            competitor.remove(key);
-        }
-        competitor.insert("strengths".to_string(), json!([]));
-        competitor.insert("weaknesses".to_string(), json!([]));
-    }
-}
-
-pub fn competitive_analysis_needs_repair(object: &Map<String, Value>) -> bool {
-    let Some(analysis) = object.get("competitiveAnalysis").and_then(Value::as_object) else {
-        return true;
-    };
-    let competitor_ids = analysis
-        .get("competitors")
-        .and_then(Value::as_array)
-        .map(|competitors| {
-            competitors
-                .iter()
-                .filter_map(|competitor| competitor.get("id").and_then(Value::as_str))
-                .collect::<HashSet<_>>()
-        })
-        .unwrap_or_default();
-    if competitor_ids.is_empty() {
-        return false;
-    }
-
-    let Some(rows) = analysis.get("matrixRows").and_then(Value::as_array) else {
-        return true;
-    };
-    if rows.is_empty() {
-        return true;
-    }
-
-    rows.iter().any(|row| {
-        let cell_ids = row
-            .get("cells")
-            .and_then(Value::as_array)
-            .map(|cells| {
-                cells
-                    .iter()
-                    .filter_map(|cell| cell.get("competitorId").and_then(Value::as_str))
-                    .collect::<HashSet<_>>()
-            })
-            .unwrap_or_default();
-        cell_ids != competitor_ids
-    })
 }
 
 fn competitor_id_from_host(host: &str) -> String {
@@ -756,7 +777,6 @@ mod tests {
         };
 
         validate_competitive_analysis(&object, &input).unwrap();
-        assert!(!competitive_analysis_needs_repair(&object));
     }
 
     #[test]
@@ -819,29 +839,64 @@ mod tests {
     }
 
     #[test]
-    fn repair_path_drops_unsourced_competitor_content() {
-        // The repair prompt explicitly requires every claim to reference a source id.
-        // `drop_unsourced_competitor_content` enforces that — competitors without any
-        // sourceReferenceIds get their content cleared so it can be regenerated.
+    fn complete_matrix_backfills_missing_cells_with_ok_and_keeps_scores() {
         let mut object = Map::from_iter([(
             "competitiveAnalysis".to_string(),
             json!({
-                "competitors": [{
-                    "id": "competitor-shopify-com",
-                    "name": "Shopify",
-                    "positioning": "Hallucinated claim.",
-                    "strengths": ["Unsupported strength"],
-                    "weaknesses": ["Unsupported weakness"],
-                    "sourceReferenceIds": []
+                "competitors": [
+                    { "id": "competitor-squarespace-com", "name": "Squarespace", "url": "https://www.squarespace.com" },
+                    { "id": "competitor-amazon-com", "name": "Amazon", "url": "https://www.amazon.com" }
+                ],
+                "matrixRows": [{
+                    "id": "matrix-navigation",
+                    "label": "Navigation",
+                    "cells": [{ "competitorId": "competitor-squarespace-com", "score": "Strong" }]
                 }]
             }),
         )]);
 
-        drop_unsourced_competitor_content(&mut object);
+        complete_competitive_matrix(&mut object);
 
-        let competitor = &object["competitiveAnalysis"]["competitors"][0];
-        assert!(competitor.get("positioning").is_none());
-        assert_eq!(competitor["strengths"].as_array().unwrap().len(), 0);
-        assert_eq!(competitor["weaknesses"].as_array().unwrap().len(), 0);
+        let rows = object["competitiveAnalysis"]["matrixRows"]
+            .as_array()
+            .unwrap();
+        // Exactly the canonical rows, in order.
+        assert_eq!(rows.len(), CANONICAL_MATRIX_ROWS.len());
+        assert_eq!(rows[0]["label"], "Navigation");
+
+        // Every row has a cell for every competitor — never an omitted (N/A) cell.
+        for row in rows {
+            assert_eq!(row["cells"].as_array().unwrap().len(), 2);
+        }
+
+        // The score the model gave is preserved; the missing competitor defaults to OK.
+        let nav_cells = rows[0]["cells"].as_array().unwrap();
+        let squarespace = nav_cells
+            .iter()
+            .find(|cell| cell["competitorId"] == "competitor-squarespace-com")
+            .unwrap();
+        let amazon = nav_cells
+            .iter()
+            .find(|cell| cell["competitorId"] == "competitor-amazon-com")
+            .unwrap();
+        assert_eq!(squarespace["score"], "Strong");
+        assert_eq!(amazon["score"], "OK");
+    }
+
+    #[test]
+    fn complete_matrix_is_noop_without_competitors() {
+        let mut object = Map::from_iter([(
+            "competitiveAnalysis".to_string(),
+            json!({ "competitors": [], "matrixRows": [] }),
+        )]);
+
+        complete_competitive_matrix(&mut object);
+
+        assert!(
+            object["competitiveAnalysis"]["matrixRows"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
     }
 }

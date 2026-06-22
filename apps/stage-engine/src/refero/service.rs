@@ -8,7 +8,7 @@ use thiserror::Error;
 use crate::helpers::time::now_millis;
 use crate::models::refero::{
     ReferoCategorySearch, ReferoCategorySearchRequest, ReferoContext, ReferoPlatform,
-    ReferoReference, ReferoReferenceKind, ReferoSearchRequest,
+    ReferoReference, ReferoReferenceKind, ReferoSearchRequest, ReferoUiPatternCategory,
 };
 
 use super::client::{ReferoClient, ReferoClientError};
@@ -18,8 +18,12 @@ use super::parse::{
     string_field,
 };
 
-const MAX_REFERO_SEARCH_RESULTS: u8 = 4;
-const MAX_REFERO_IMAGE_FETCHES: usize = 5;
+const MAX_REFERO_SEARCH_RESULTS: u8 = 12;
+// Full-res screenshot per kept screen (5 categories x 4), so the UI never shows a blurry thumbnail.
+const MAX_REFERO_IMAGE_FETCHES: usize = 20;
+// Pull a wider candidate pool per category, then keep only the screens that actually match
+// the category — so off-topic top hits get dropped instead of shown.
+const CATEGORY_CANDIDATE_POOL: u8 = 12;
 
 #[derive(Clone, Debug)]
 pub struct ReferoService {
@@ -145,10 +149,15 @@ impl ReferoService {
         let search = ReferoSearchRequest {
             query: request.query.clone(),
             platform: request.platform,
-            limit: request.limit,
-            tags: vec![request.category.as_str().to_string()],
+            limit: CATEGORY_CANDIDATE_POOL,
+            tags: Vec::new(),
         };
-        self.search_screens(&search).await
+        let candidates = self.search_screens(&search).await?;
+        Ok(keep_screens_matching_category(
+            candidates,
+            request.category,
+            usize::from(request.limit),
+        ))
     }
 
     pub async fn search_screens(
@@ -217,6 +226,41 @@ impl ReferoService {
             .collect())
     }
 
+    /// Look up each competitor's own screens in Refero (one concurrent search per competitor),
+    /// preserving input order. This is the bot-proof evidence the model scores the competitive
+    /// matrix from, instead of crawling competitors' live sites.
+    pub async fn competitor_screen_evidence(
+        &self,
+        requests: &[(String, ReferoSearchRequest)],
+    ) -> Result<Vec<(String, Vec<ReferoReference>)>, ReferoServiceError> {
+        let mut join_set = tokio::task::JoinSet::new();
+        for (index, (name, request)) in requests.iter().enumerate() {
+            let service = self.clone();
+            let name = name.clone();
+            let request = request.clone();
+            join_set.spawn(async move {
+                let screens = service.search_screens(&request).await;
+                (index, name, screens)
+            });
+        }
+
+        let mut indexed = Vec::with_capacity(requests.len());
+        while let Some(joined) = join_set.join_next().await {
+            let (index, name, screens) = joined.map_err(|error| {
+                ReferoServiceError::Client(ReferoClientError::ToolCallFailed {
+                    message: format!("Refero competitor search task failed: {error}"),
+                })
+            })?;
+            indexed.push((index, name, screens?));
+        }
+
+        indexed.sort_by_key(|(index, _, _)| *index);
+        Ok(indexed
+            .into_iter()
+            .map(|(_, name, screens)| (name, screens))
+            .collect())
+    }
+
     pub async fn fetch_screen_image_bytes(
         &self,
         screen_id: &str,
@@ -277,14 +321,6 @@ impl ReferoService {
         Ok(bytes)
     }
 
-    async fn fetch_screen_thumbnail_bytes(
-        &self,
-        screen_id: &str,
-    ) -> Result<Vec<u8>, ReferoServiceError> {
-        self.fetch_screen_image_with_size(screen_id, "thumbnail")
-            .await
-    }
-
     pub async fn hydrate_category_screen_images(
         &self,
         category_searches: &mut [ReferoCategorySearch],
@@ -292,52 +328,28 @@ impl ReferoService {
         let mut fetched = 0usize;
 
         for bucket in category_searches.iter_mut() {
-            if fetched >= MAX_REFERO_IMAGE_FETCHES {
-                break;
-            }
-
-            let mut fetched_for_category = false;
             for reference in bucket.references.iter_mut() {
-                if fetched >= MAX_REFERO_IMAGE_FETCHES || fetched_for_category {
+                if fetched >= MAX_REFERO_IMAGE_FETCHES {
                     break;
                 }
-
-                if reference.kind != ReferoReferenceKind::Screen {
+                // Refero search only yields a low-res thumbnail_url; fetch the full-res screenshot.
+                // Skip flows, already-hydrated screens, and synthetic ids (no real uuid to fetch).
+                if reference.kind != ReferoReferenceKind::Screen
+                    || reference.raw_image_bytes.is_some()
+                    || is_synthetic_reference_id(&reference.id)
+                {
                     continue;
                 }
 
-                if is_synthetic_reference_id(&reference.id) {
-                    tracing::warn!(
-                        screen_id = %reference.id,
-                        category = %reference
-                            .ui_pattern_category
-                            .map(|category| category.as_str())
-                            .unwrap_or("unknown"),
-                        "Skipping Refero image fetch because search result had no real screen id"
-                    );
-                    continue;
-                }
-
-                if reference.raw_image_bytes.is_some() {
-                    continue;
-                }
-
-                if reference.image_url.is_some() || reference.thumbnail_url.is_some() {
-                    continue;
-                }
-
-                let screen_id = reference.id.clone();
-                let bytes = match self.fetch_screen_thumbnail_bytes(&screen_id).await {
-                    Ok(bytes) => bytes,
-                    Err(error) => {
-                        tracing::warn!(screen_id = %screen_id, %error, "Refero screen image fetch failed");
-                        continue;
+                match self.fetch_screen_image_bytes(&reference.id).await {
+                    Ok(bytes) => {
+                        reference.raw_image_bytes = Some(bytes);
+                        fetched += 1;
                     }
-                };
-
-                reference.raw_image_bytes = Some(bytes);
-                fetched += 1;
-                fetched_for_category = true;
+                    Err(error) => {
+                        tracing::warn!(screen_id = %reference.id, %error, "Refero screen image fetch failed");
+                    }
+                }
             }
         }
 
@@ -348,6 +360,125 @@ impl ReferoService {
         );
 
         Ok(fetched)
+    }
+}
+
+/// Turn Refero's fuzzy result list into a clean, on-category, varied set:
+/// 1. rank by how strongly each screen matches the category (page type weighs most),
+/// 2. drop off-category screens once any real match exists,
+/// 3. prefer one screen per product so a category never shows four near-identical screens
+///    from the same site (falling back to fill only if that leaves us short).
+/// Falls back to the raw candidates only when nothing matches at all, so a category is
+/// never empty purely because Refero's metadata was sparse.
+fn keep_screens_matching_category(
+    candidates: Vec<ReferoReference>,
+    category: ReferoUiPatternCategory,
+    limit: usize,
+) -> Vec<ReferoReference> {
+    let keywords = category_keywords(category);
+
+    let mut scored: Vec<(i32, usize, ReferoReference)> = candidates
+        .into_iter()
+        .enumerate()
+        .map(|(index, reference)| (category_score(&reference, keywords), index, reference))
+        .collect();
+    // Best score first; Refero's original order breaks ties (stable preference).
+    scored.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+
+    let any_relevant = scored.first().is_some_and(|(score, _, _)| *score > 0);
+
+    let mut chosen = Vec::new();
+    let mut seen_products = HashSet::new();
+    let mut leftovers = Vec::new();
+    for (score, _, reference) in scored {
+        if any_relevant && score == 0 {
+            continue; // off-category — only kept if nothing real matched
+        }
+        let product = reference
+            .product_name
+            .as_deref()
+            .unwrap_or_default()
+            .to_ascii_lowercase();
+        if product.is_empty() || seen_products.insert(product) {
+            chosen.push(reference);
+            if chosen.len() >= limit {
+                return chosen;
+            }
+        } else {
+            leftovers.push(reference);
+        }
+    }
+    for reference in leftovers {
+        if chosen.len() >= limit {
+            break;
+        }
+        chosen.push(reference);
+    }
+    chosen
+}
+
+/// Relevance score for a screen against a category. `page_types` (Refero's own screen
+/// classification, surfaced as `screen_type`) is the strongest signal, then tags, then
+/// free text — so a screen actually classified as "Checkout" outranks one that merely
+/// mentions the word.
+fn category_score(reference: &ReferoReference, keywords: &[&str]) -> i32 {
+    let mut score = 0;
+    if let Some(screen_type) = &reference.screen_type {
+        let lower = screen_type.to_ascii_lowercase();
+        if keywords.iter().any(|keyword| lower.contains(keyword)) {
+            score += 3;
+        }
+    }
+    let tags = reference
+        .tags
+        .iter()
+        .map(|tag| tag.to_ascii_lowercase())
+        .collect::<Vec<_>>()
+        .join(" ");
+    if keywords.iter().any(|keyword| tags.contains(keyword)) {
+        score += 2;
+    }
+    let text = format!(
+        "{} {}",
+        reference.title.to_ascii_lowercase(),
+        reference
+            .summary
+            .as_deref()
+            .unwrap_or("")
+            .to_ascii_lowercase()
+    );
+    if keywords.iter().any(|keyword| text.contains(keyword)) {
+        score += 1;
+    }
+    score
+}
+
+fn category_keywords(category: ReferoUiPatternCategory) -> &'static [&'static str] {
+    match category {
+        ReferoUiPatternCategory::Onboarding => &[
+            "onboard",
+            "sign up",
+            "signup",
+            "sign-up",
+            "register",
+            "setup",
+            "wizard",
+            "get started",
+            "welcome",
+            "create account",
+        ],
+        ReferoUiPatternCategory::Homepage => &["home", "landing", "hero", "marketing"],
+        ReferoUiPatternCategory::Pricing => &["pricing", "plan", "subscription", "tier", "billing"],
+        ReferoUiPatternCategory::Checkout => &["checkout", "cart", "payment", "order", "purchase"],
+        ReferoUiPatternCategory::Dashboard => &[
+            "dashboard",
+            "admin",
+            "console",
+            "analytics",
+            "overview",
+            "panel",
+            "report",
+        ],
     }
 }
 
@@ -456,4 +587,79 @@ pub enum ReferoServiceError {
 
 pub fn infer_refero_file_name(reference_id: &str, mime_type: &str) -> String {
     format!("{reference_id}.{}", infer_extension(mime_type))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn screen(title: &str, screen_type: Option<&str>) -> ReferoReference {
+        ReferoReference {
+            id: title.to_string(),
+            kind: ReferoReferenceKind::Screen,
+            title: title.to_string(),
+            product_name: None,
+            product_url: None,
+            platform: ReferoPlatform::Web,
+            source_url: None,
+            thumbnail_url: None,
+            image_url: None,
+            summary: None,
+            tags: Vec::new(),
+            screen_type: screen_type.map(str::to_string),
+            flow_type: None,
+            step_count: None,
+            style_type: None,
+            ui_pattern_category: None,
+            raw_image_bytes: None,
+        }
+    }
+
+    #[test]
+    fn keeps_only_category_matching_screens() {
+        let candidates = vec![
+            screen("Checkout payment", Some("Checkout")),
+            screen("Course catalog", Some("Browse")),
+            screen("Cart review", Some("Cart")),
+        ];
+
+        let kept = keep_screens_matching_category(candidates, ReferoUiPatternCategory::Checkout, 4);
+        let titles: Vec<&str> = kept
+            .iter()
+            .map(|reference| reference.title.as_str())
+            .collect();
+
+        assert_eq!(titles, vec!["Checkout payment", "Cart review"]);
+    }
+
+    #[test]
+    fn falls_back_to_candidates_when_nothing_matches() {
+        let candidates = vec![screen("Mystery screen", None)];
+
+        let kept = keep_screens_matching_category(candidates, ReferoUiPatternCategory::Pricing, 4);
+
+        assert_eq!(kept.len(), 1);
+    }
+
+    #[test]
+    fn prefers_one_screen_per_product_for_variety() {
+        let with_product = |title: &str, product: &str| ReferoReference {
+            product_name: Some(product.to_string()),
+            ..screen(title, Some("Checkout"))
+        };
+        let candidates = vec![
+            with_product("Checkout A", "ShopOne"),
+            with_product("Checkout B", "ShopOne"),
+            with_product("Checkout C", "ShopTwo"),
+        ];
+
+        let kept = keep_screens_matching_category(candidates, ReferoUiPatternCategory::Checkout, 2);
+        let products: Vec<&str> = kept
+            .iter()
+            .filter_map(|reference| reference.product_name.as_deref())
+            .collect();
+
+        // Two different products, not the same site twice.
+        assert_eq!(products, vec!["ShopOne", "ShopTwo"]);
+    }
 }

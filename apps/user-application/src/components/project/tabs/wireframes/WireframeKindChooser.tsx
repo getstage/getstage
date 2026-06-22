@@ -1,13 +1,15 @@
 import type { ReactNode } from "react";
 import type { WireframeKind, WireframeKindChoice } from "@/types/project/wireframesTab";
-import { ArrowRightIcon, HifiWireframeIcon, LofiWireframeIcon } from "./wireframesIcons";
+import { ArrowLeftIcon, ArrowRightIcon, HifiWireframeIcon, LofiWireframeIcon } from "./wireframesIcons";
 
 export function WireframeKindChooser({
   selectedKind,
+  onBack,
   onSelect,
   onContinue,
 }: {
   selectedKind: WireframeKindChoice;
+  onBack?: () => void;
   onSelect: (kind: WireframeKind) => void;
   onContinue: () => void;
 }) {
@@ -17,6 +19,16 @@ export function WireframeKindChooser({
     <div className="flex w-[357px] flex-col gap-[6px]">
       <div>
         <div className="flex w-[357px] flex-col gap-1 px-3 pb-3 pt-2">
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              className="mb-2 inline-flex w-fit items-center gap-1 text-[12px] font-medium leading-none text-[#737373] transition-colors hover:text-[#171717]"
+            >
+              <ArrowLeftIcon />
+              Back
+            </button>
+          ) : null}
           <p className="text-[13px] font-semibold leading-[1.5] text-[#0A0A0A]">
             Create Wireframe
           </p>

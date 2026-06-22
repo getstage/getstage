@@ -1,5 +1,6 @@
 pub mod app_secrets;
 pub mod asset_upload;
+pub mod chat_repository;
 pub mod flows_repository;
 pub mod moodboard_repository;
 pub mod research_repository;

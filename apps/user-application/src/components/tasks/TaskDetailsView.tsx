@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { parseConvexTaskId } from "@stage/data-ops";
 import { DeleteTaskModal } from "@/components/tasks/DeleteTaskModal";
+import { TaskDetailsEditor } from "@/components/tasks/TaskDetailsEditor";
 import { KanbanAssignCard } from "@/components/project/kanban/KanbanAssignCard";
 import { AddProjectMemberDialog } from "@/components/project/kanban/AddProjectMemberDialog";
 import {
@@ -290,8 +291,7 @@ function TaskDetailEditor({
     }, 900);
   }
 
-  function handleContentChange(event: ChangeEvent<HTMLTextAreaElement>) {
-    const next = event.target.value;
+  function handleContentChange(next: string) {
     setContent(next);
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
@@ -610,12 +610,10 @@ function TaskDetailEditor({
               <label className="mb-[12px] flex flex-col gap-[8px]">
                 <span className="text-[13px] font-medium leading-none text-[#525252]">Details</span>
               </label>
-              <textarea
+              <TaskDetailsEditor
                 value={content}
                 onChange={handleContentChange}
-                placeholder="Add notes, context, and full task details…"
-                className="min-h-[280px] w-full resize-y border-0 bg-transparent text-[13px] font-normal leading-[1.5] text-[#262626] outline-none placeholder:text-[#a3a3a3]"
-                aria-label="Task details"
+                members={membersQuery.data}
               />
 
               {task.attachments.length > 0 ? (
@@ -688,7 +686,7 @@ function TaskActionsMenu({
         onClick={onComplete}
         className="flex w-full items-center gap-[8px] rounded-[6px] px-[8px] py-[6px] text-left text-[12px] font-medium leading-none text-[#262626] transition-colors hover:bg-[#f5f5f5]"
       >
-        <CheckIcon />
+        <CompletionIcon completed={isCompleted} />
         {isCompleted ? "Mark as incomplete" : "Mark as completed"}
       </button>
       <div className="h-px w-full bg-[#e5e5e5]" />
@@ -787,10 +785,19 @@ function MaskedIcon({ src, className }: { src: string; className: string }) {
   );
 }
 
-function CheckIcon() {
+function CompletionIcon({ completed }: { completed: boolean }) {
   return (
-    <svg viewBox="0 0 14 14" fill="none" aria-hidden="true" className="h-[14px] w-[14px] shrink-0">
-      <path d="M3 7.1 5.7 9.8 11 4.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <span
+      aria-hidden="true"
+      className={`flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-[3px] border transition-colors ${
+        completed
+          ? "border-[#171717] bg-[#171717] text-white"
+          : "border-[#a3a3a3] bg-white text-transparent"
+      }`}
+    >
+      <svg viewBox="0 0 12 12" fill="none" className="h-[10px] w-[10px]">
+        <path d="M2.5 6 5 8.5 9.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
   );
 }

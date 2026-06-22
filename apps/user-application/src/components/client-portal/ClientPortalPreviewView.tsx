@@ -4,6 +4,7 @@ import { parseConvexId } from "@stage/data-ops";
 import { useLiveProject } from "@/hooks/project";
 import { useSettingsOverviewQuery } from "@/hooks/convex-data";
 import type { Phase, Task } from "@/models/project/project";
+import { useTaskDragFeedback } from "@/hooks/useTaskDragFeedback";
 
 type PreviewStatus = "backlog" | "todo" | "in-progress" | "done" | "revision";
 type PreviewTask = Omit<Task, "status"> & { status?: PreviewStatus };
@@ -190,6 +191,7 @@ function PreviewBoard({ phases }: { phases: PreviewPhase[] }) {
   const [dropBeforeTaskId, setDropBeforeTaskId] = useState<string | null>(null);
   const [pendingRevisionMove, setPendingRevisionMove] = useState<PendingRevisionMove>(null);
   const [isRevisionDetailsOpen, setIsRevisionDetailsOpen] = useState(false);
+  useTaskDragFeedback(Boolean(activeDrag));
 
   useEffect(() => setColumns(initialColumns), [initialColumns]);
 
@@ -371,7 +373,7 @@ function PreviewTaskCard({
     return (
       <div
         onPointerDown={onPointerDown}
-        className={`select-none rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[16px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${dragging ? "cursor-grabbing shadow-[0_8px_22px_rgba(10,10,10,0.14)]" : "cursor-grab active:cursor-grabbing"}`}
+        className={`select-none rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[16px] transition-[transform,box-shadow] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${dragging ? "origin-top-left rotate-[-2deg] cursor-grabbing shadow-[0_8px_22px_rgba(10,10,10,0.14)]" : "cursor-grab active:cursor-grabbing"}`}
       >
         <div className="flex flex-col gap-[12px]">
           <span className="w-fit rounded-[2px] bg-[#f5f5f5] px-[6px] py-[2px] text-[12px] font-normal leading-none text-[#525252]">
@@ -409,7 +411,7 @@ function PreviewTaskCard({
   return (
     <div
       onPointerDown={onPointerDown}
-      className={`select-none rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[clamp(12px,2vw,16px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${dragging ? "cursor-grabbing shadow-[0_8px_22px_rgba(10,10,10,0.14)]" : "cursor-grab active:cursor-grabbing"}`}
+      className={`select-none rounded-[8px] bg-gradient-to-b from-white to-[#fafafa] p-[clamp(12px,2vw,16px)] transition-[transform,box-shadow] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${dragging ? "origin-top-left rotate-[-2deg] cursor-grabbing shadow-[0_8px_22px_rgba(10,10,10,0.14)]" : "cursor-grab active:cursor-grabbing"}`}
     >
       <div className="flex flex-col gap-[12px]">
         <span className={`w-fit rounded-[2px] px-[6px] py-[2px] text-[12px] font-normal leading-[1.25] ${isRevision ? TAG_COLORS.Submitted : TAG_COLORS[phaseName] ?? TAG_COLORS.Submitted}`}>

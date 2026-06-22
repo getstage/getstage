@@ -3,6 +3,7 @@ import { PRIORITY_COLUMNS, type PriorityTask, type TaskPriority } from "@/lib/ta
 import { PriorityTaskCard } from "./PriorityTaskCard";
 import { TaskSkeleton } from "./TaskSkeleton";
 import { cn } from "@/lib/utils";
+import { useTaskDragFeedback } from "@/hooks/useTaskDragFeedback";
 
 export function TasksPriorityBoard({
   columns,
@@ -31,6 +32,8 @@ export function TasksPriorityBoard({
   onDeleteTask: (task: PriorityTask) => void;
   onStartDragging: (event: PointerEvent<HTMLDivElement>, taskId: string) => void;
 }) {
+  useTaskDragFeedback(Boolean(activeDrag));
+
   return (
     <div className="relative">
       <div className="grid grid-cols-1 gap-1 overflow-visible rounded-[10px] bg-[#F5F5F5] p-1 md:grid-cols-2 xl:grid-cols-4">

@@ -22,6 +22,7 @@ export function RoadmapStep({
   onNewPhaseNameChange,
   onAddPhase,
   onCreateProject,
+  onStepSelect,
   isCreating,
   error,
 }: {
@@ -36,6 +37,7 @@ export function RoadmapStep({
   onNewPhaseNameChange: (name: string) => void;
   onAddPhase: () => void;
   onCreateProject: () => void;
+  onStepSelect: (stepIndex: number) => void;
   isCreating: boolean;
   error: string | null;
 }) {
@@ -49,9 +51,10 @@ export function RoadmapStep({
     <CreateProjectStepShell
       title="Build your roadmap"
       description="How do you want to structure this project?"
-      activeStepIndex={mode === "smart" ? 4 : 3}
+      activeStepIndex={4}
       headerGapClassName="gap-[24px]"
       descriptionClassName="w-full"
+      onStepSelect={onStepSelect}
     >
       <form
         className="flex w-full flex-col items-start gap-[12px]"
@@ -112,16 +115,22 @@ function SmartRoadmapPreview({ phases }: { phases: string[] }) {
     <div className="flex w-full flex-col items-start rounded-[8px] bg-white p-[12px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]">
       <div className="flex w-full flex-col items-start justify-center">
         {phases.map((phase, index) => (
-          <div key={phase} className="flex items-start justify-center gap-[8px]">
-            <div className="flex shrink-0 flex-col items-center justify-center">
-              <div className={cn("flex items-center pl-px", index === 0 ? "pt-[4px]" : "")}>
-                <span className="flex shrink-0 items-center overflow-hidden rounded-full bg-[#2f2a7d] p-[4px]">
+          <div
+            key={phase}
+            className={cn(
+              "relative grid grid-cols-[15px_auto] items-start gap-[8px]",
+              index < phases.length - 1 ? "h-[42px]" : "h-[20px]",
+            )}
+          >
+            <div className="mt-[3px] flex h-[14px] w-[15px] shrink-0 items-center justify-center">
+                <span className="flex h-[14px] w-[14px] items-center justify-center rounded-full bg-[#2f2a7d]">
                   <span className="h-[6px] w-[6px] rounded-full bg-[#fafafa]" />
                 </span>
-              </div>
-              {index < phases.length - 1 ? <div className="h-[28px] w-px bg-[#2f2a7d]" /> : null}
             </div>
-            <p className={cn("whitespace-nowrap text-[13px] font-medium leading-[1.5] text-[#0a0a0a]", index > 0 ? "pt-[3px]" : "")}>
+            {index < phases.length - 1 ? (
+              <div className="absolute left-[7px] top-[17px] h-[28px] w-px bg-[#2f2a7d]" />
+            ) : null}
+            <p className="whitespace-nowrap text-[13px] font-medium leading-[20px] text-[#0a0a0a]">
               {phase}
             </p>
           </div>

@@ -51,10 +51,13 @@ export function useTasksBoard() {
   const [dropBeforeTaskId, setDropBeforeTaskId] = useState<string | null>(null);
   const dragOriginRef = useRef<{ x: number; y: number } | null>(null);
   const suppressTaskOpenRef = useRef(false);
+  const pendingDragCleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     setColumns(liveColumns);
   }, [liveColumns]);
+
+  useEffect(() => () => pendingDragCleanupRef.current?.(), []);
 
   useEffect(() => {
     if (!activeDrag) return;
@@ -206,22 +209,43 @@ export function useTasksBoard() {
     if (!item) return;
 
     const rect = event.currentTarget.getBoundingClientRect();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    event.preventDefault();
-    dragOriginRef.current = { x: event.clientX, y: event.clientY };
+    const origin = { x: event.clientX, y: event.clientY };
+    dragOriginRef.current = origin;
     suppressTaskOpenRef.current = false;
+    pendingDragCleanupRef.current?.();
 
-    setActiveDrag({
-      ...item,
-      id: taskId,
-      width: rect.width,
-      height: rect.height,
-      pointerOffsetX: event.clientX - rect.left,
-      pointerOffsetY: event.clientY - rect.top,
-      x: event.clientX,
-      y: event.clientY,
-    });
-    setDropBeforeTaskId(null);
+    const cleanup = () => {
+      window.removeEventListener("pointermove", activateDrag);
+      window.removeEventListener("pointerup", cancelPendingDrag);
+      window.removeEventListener("pointercancel", cancelPendingDrag);
+      pendingDragCleanupRef.current = null;
+    };
+    const cancelPendingDrag = () => {
+      cleanup();
+      dragOriginRef.current = null;
+    };
+    const activateDrag = (moveEvent: globalThis.PointerEvent) => {
+      if (Math.hypot(moveEvent.clientX - origin.x, moveEvent.clientY - origin.y) <= 5) return;
+      cleanup();
+      moveEvent.preventDefault();
+      suppressTaskOpenRef.current = true;
+      setActiveDrag({
+        ...item,
+        id: taskId,
+        width: rect.width,
+        height: rect.height,
+        pointerOffsetX: origin.x - rect.left,
+        pointerOffsetY: origin.y - rect.top,
+        x: moveEvent.clientX,
+        y: moveEvent.clientY,
+      });
+      setDropBeforeTaskId(null);
+    };
+
+    window.addEventListener("pointermove", activateDrag);
+    window.addEventListener("pointerup", cancelPendingDrag, { once: true });
+    window.addEventListener("pointercancel", cancelPendingDrag, { once: true });
+    pendingDragCleanupRef.current = cleanup;
   }
 
   return {
@@ -233,5 +257,6 @@ export function useTasksBoard() {
     toggleTaskCompletion,
     handleDeleteTask,
     startDragging,
+    shouldSuppressTaskOpen: () => suppressTaskOpenRef.current,
   };
 }

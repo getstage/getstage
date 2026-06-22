@@ -12,10 +12,12 @@ export function ProjectTypeStep({
   selectedProjectType,
   onProjectTypeChange,
   onContinue,
+  onStepSelect,
 }: {
   selectedProjectType: ProjectType | null;
   onProjectTypeChange: (projectType: ProjectType) => void;
   onContinue: () => void;
+  onStepSelect: (stepIndex: number) => void;
 }) {
   return (
     <CreateProjectStepShell
@@ -25,6 +27,7 @@ export function ProjectTypeStep({
       headerGapClassName="gap-[24px]"
       titleClassName="w-[200px]"
       descriptionClassName="w-full"
+      onStepSelect={onStepSelect}
     >
       <form
         className="flex w-full flex-col items-start gap-[12px]"
@@ -34,7 +37,7 @@ export function ProjectTypeStep({
         }}
       >
         <FormCard title="Project Type" titleWeight="semibold" bodyPaddingClassName="p-[4px]">
-          <div className="grid w-full grid-cols-2 gap-[4px]">
+          <div className="grid w-full grid-cols-3 gap-[4px]">
             {PROJECT_TYPES.filter((option) => CREATE_PROJECT_TYPE_VALUES.includes(option.value)).map((option) => {
               const selected = option.value === selectedProjectType;
               const iconSrc = PROJECT_TYPE_ICONS[option.value];
@@ -46,7 +49,7 @@ export function ProjectTypeStep({
                   onClick={() => onProjectTypeChange(option.value)}
                   aria-pressed={selected}
                   className={cn(
-                    "flex min-h-[74px] min-w-0 cursor-pointer items-center justify-center gap-[8px] overflow-hidden rounded-[6px] border px-[12px] py-[22px] text-[12px] font-medium leading-[1.25] transition-colors",
+                    "flex min-w-0 cursor-pointer items-center justify-center gap-[8px] overflow-hidden rounded-[6px] border px-[12px] py-[44px] text-[12px] font-medium leading-none transition-colors",
                     selected
                       ? "border-[#dbd9fc] bg-[#e7e6fd] text-[#16115a]"
                       : "border-transparent bg-[#f5f5f5] text-[#525252] hover:bg-[#eeeeee] hover:text-[#171717]",

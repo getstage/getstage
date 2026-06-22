@@ -1,7 +1,11 @@
+use std::collections::HashMap;
+
 use anyhow::{Context, bail};
 use serde::Deserialize;
 
 use crate::config::FigmaConfig;
+
+use super::models::FIGMA_API_BASE_URL;
 
 const MAX_FIGMA_IMPORTS: usize = 12;
 
@@ -46,7 +50,8 @@ impl FigmaService {
 
         let link = parse_figma_link(figma_url)?;
         let node_ids = if let Some(node_id) = &link.node_id {
-            vec![node_id.clone()]
+            self.fetch_selected_node_import_ids(access_token, &link.file_key, node_id)
+                .await?
         } else {
             self.fetch_top_level_node_ids(access_token, &link.file_key)
                 .await?
@@ -92,7 +97,7 @@ impl FigmaService {
         access_token: &str,
         file_key: &str,
     ) -> anyhow::Result<Vec<String>> {
-        let file_url = format!("https://api.figma.com/v1/files/{file_key}?depth=2");
+        let file_url = format!("{FIGMA_API_BASE_URL}/files/{file_key}?depth=2");
         let file = self
             .http
             .get(file_url)
@@ -112,6 +117,44 @@ impl FigmaService {
         Ok(node_ids)
     }
 
+    async fn fetch_selected_node_import_ids(
+        &self,
+        access_token: &str,
+        file_key: &str,
+        node_id: &str,
+    ) -> anyhow::Result<Vec<String>> {
+        let nodes_url =
+            format!("{FIGMA_API_BASE_URL}/files/{file_key}/nodes?ids={node_id}&depth=2");
+        let nodes = self
+            .http
+            .get(nodes_url)
+            .bearer_auth(access_token.trim())
+            .send()
+            .await
+            .context("failed to fetch selected Figma node")?;
+        let nodes = require_figma_success(nodes, "Figma selected node request")
+            .await?
+            .json::<FigmaNodesResponse>()
+            .await
+            .context("failed to parse selected Figma node response")?;
+
+        let Some(node) = nodes.nodes.get(node_id) else {
+            return Ok(vec![node_id.to_string()]);
+        };
+
+        let mut node_ids: Vec<String> = node
+            .document
+            .children
+            .iter()
+            .map(|child| child.id.clone())
+            .take(MAX_FIGMA_IMPORTS)
+            .collect();
+        if node_ids.is_empty() {
+            node_ids.push(node_id.to_string());
+        }
+        Ok(node_ids)
+    }
+
     async fn fetch_image_urls(
         &self,
         access_token: &str,
@@ -120,7 +163,7 @@ impl FigmaService {
     ) -> anyhow::Result<FigmaImageResponse> {
         let ids = node_ids.join(",");
         let image_url =
-            format!("https://api.figma.com/v1/images/{file_key}?ids={ids}&format=png&scale=2");
+            format!("{FIGMA_API_BASE_URL}/images/{file_key}?ids={ids}&format=png&scale=2");
         let response = self
             .http
             .get(image_url)
@@ -180,6 +223,17 @@ struct FigmaFileResponse {
 }
 
 #[derive(Debug, Deserialize)]
+struct FigmaNodesResponse {
+    #[serde(default)]
+    nodes: HashMap<String, FigmaNodeDocument>,
+}
+
+#[derive(Debug, Deserialize)]
+struct FigmaNodeDocument {
+    document: FigmaNode,
+}
+
+#[derive(Debug, Deserialize)]
 struct FigmaNode {
     id: String,
     #[serde(rename = "type")]
@@ -191,9 +245,9 @@ struct FigmaNode {
 #[derive(Debug, Deserialize)]
 struct FigmaImageResponse {
     #[serde(default)]
-    images: std::collections::HashMap<String, Option<String>>,
+    images: HashMap<String, Option<String>>,
     #[serde(default)]
-    node_names: std::collections::HashMap<String, String>,
+    node_names: HashMap<String, String>,
 }
 
 fn collect_frame_ids(root: &FigmaNode, out: &mut Vec<String>) {

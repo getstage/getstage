@@ -5,7 +5,7 @@
 /* ============================================================
    STAGE DESIGN SYSTEM (Desktop)
    Ported from app/src/styles/globals.css
-   DM Sans (body) + SF Pro Display (headings)
+   Inter for body text, controls, and headings
    Light mode only. Lavender purple accent.
    ============================================================ */
 
@@ -52,10 +52,10 @@
   --shadow-stage-field: 0 0.45px 1px rgb(10 10 10 / 25%);
 
   /* ---- Typography ---- */
-  --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
-  --font-body: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
 
-  /* Override Tailwind default font to use DM Sans */
+  /* Override Tailwind's default sans family with the Stage app font. */
   --default-font-family: var(--font-body);
 }
 
@@ -82,6 +82,11 @@ body {
   overflow: hidden;
   line-height: 1.5;
   font-size: 15px;
+}
+
+html.stage-task-dragging,
+html.stage-task-dragging * {
+  cursor: grabbing !important;
 }
 
 #root {

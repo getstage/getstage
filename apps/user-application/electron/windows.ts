@@ -1,6 +1,7 @@
 import {
   app,
   BrowserWindow,
+  screen,
   shell,
   type BrowserWindow as BrowserWindowType,
   type HandlerDetails,
@@ -9,8 +10,10 @@ import { join } from "node:path";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import { rendererAppUrl } from "./helpers/renderer-protocol";
 import { onMainWindowReady } from "./helpers/auto-update";
+import { getCompanionWidgetSettings } from "./helpers/companion-preferences";
 
 let mainWindow: BrowserWindowType | null = null;
+let companionWindow: BrowserWindowType | null = null;
 
 function denyWindowOpen(window: BrowserWindowType) {
   window.webContents.setWindowOpenHandler((details: HandlerDetails) => {
@@ -91,6 +94,9 @@ export function createMainWindow() {
     mainWindow.webContents.on(
       "console-message",
       (_event, level, message, line, sourceId) => {
+        if (message.includes("[vite] hot updated")) {
+          return;
+        }
         const prefix =
           level === 3 ? "[renderer error]" : level === 2 ? "[renderer warn]" : "[renderer]";
         console.log(`${prefix} ${message} (${sourceId}:${line})`);
@@ -114,6 +120,10 @@ export function getMainWindow() {
 
 function isLegacyCompanionWindow(window: BrowserWindowType) {
   if (window === mainWindow) {
+    return false;
+  }
+
+  if (window === companionWindow) {
     return false;
   }
 
@@ -178,7 +188,82 @@ function ensureDockVisible() {
   }
 }
 
-export function openCompanionFromTray() {
+function getCompanionWindowBounds() {
+  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  return display.workArea;
+}
+
+function positionCompanionWindow(window: BrowserWindowType) {
+  const { x, y, width, height } = getCompanionWindowBounds();
+  window.setBounds({ x, y, width, height }, false);
+}
+
+function configureCompanionWindow(window: BrowserWindowType) {
+  window.setAlwaysOnTop(true, "floating");
+  window.setIgnoreMouseEvents(true, { forward: true });
+
+  if (process.platform === "darwin") {
+    window.setVisibleOnAllWorkspaces(true, {
+      visibleOnFullScreen: true,
+    });
+  }
+}
+
+function createCompanionWindow() {
+  if (companionWindow && !companionWindow.isDestroyed()) {
+    positionCompanionWindow(companionWindow);
+    return companionWindow;
+  }
+
+  const { x, y, width, height } = getCompanionWindowBounds();
+  companionWindow = new BrowserWindow({
+    x,
+    y,
+    width,
+    height,
+    show: false,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    skipTaskbar: true,
+    hasShadow: false,
+    title: "Stage Companion",
+    backgroundColor: "#00000000",
+    webPreferences: {
+      preload: join(__dirname, "../preload/index.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      backgroundThrottling: false,
+    },
+  });
+
+  configureCompanionWindow(companionWindow);
+  denyWindowOpen(companionWindow);
+  loadRenderer(companionWindow, { stageWindow: "companion" });
+
+  companionWindow.once("ready-to-show", () => {
+    if (!companionWindow || companionWindow.isDestroyed()) {
+      return;
+    }
+
+    positionCompanionWindow(companionWindow);
+    configureCompanionWindow(companionWindow);
+    companionWindow.showInactive();
+  });
+
+  companionWindow.on("closed", () => {
+    companionWindow = null;
+  });
+
+  return companionWindow;
+}
+
+function openMainWindowFromCompanionEntry() {
   ensureDockVisible();
   const window = getMainWindow() ?? createMainWindow();
   if (window.isMinimized()) {
@@ -186,6 +271,18 @@ export function openCompanionFromTray() {
   }
   window.show();
   window.focus();
+  return window;
+}
+
+export function openCompanionFromTray() {
+  if (!getCompanionWidgetSettings().allowEverywhere) {
+    return openMainWindowFromCompanionEntry();
+  }
+
+  const window = createCompanionWindow();
+  positionCompanionWindow(window);
+  configureCompanionWindow(window);
+  window.showInactive();
   return window;
 }
 
@@ -198,6 +295,11 @@ export function openCompanionForLatestChatShortcut() {
 }
 
 export function closeCompanionWindow() {
+  if (companionWindow && !companionWindow.isDestroyed()) {
+    companionWindow.destroy();
+    companionWindow = null;
+  }
+
   destroyOrphanCompanionWindows();
 }
 
@@ -205,6 +307,10 @@ export function shouldSuppressMainWindowActivation() {
   return false;
 }
 
-export function setCompanionWindowInteractive(_interactive: boolean) {
-  // Companion overlays are no longer created. Kept as a no-op for preload compatibility.
+export function setCompanionWindowInteractive(interactive: boolean) {
+  if (!companionWindow || companionWindow.isDestroyed()) {
+    return;
+  }
+
+  companionWindow.setIgnoreMouseEvents(!interactive, { forward: true });
 }

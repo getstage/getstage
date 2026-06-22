@@ -92,34 +92,6 @@ Validated Research artifact:
     )
 }
 
-pub fn build_competitive_repair_prompt(artifact: &Value, input: &ResearchInput) -> String {
-    format!(
-        r#"Repair only the incomplete competitive analysis in this validated Stage Research artifact.
-
-Return one valid JSON object with exactly these keys:
-{{"competitiveAnalysis":{{"competitors":[],"matrixRows":[]}},"sourceReferences":[]}}
-
-Rules:
-- Use web search/fetch only for the allowed competitor sites below.
-- Inspect at most the homepage plus three relevant pages per site.
-- Return all existing valid competitive findings plus repaired missing findings.
-- Every competitor claim must reference a returned website sourceReference id.
-- Every matrix cell must include a Strong/OK/Weak score. Do not include notes — they are stripped from the final artifact, so any text you add is wasted tokens.
-- Never invent facts, sources, competitors, dimensions, scores, or placeholder values.
-- If evidence is insufficient for a cell, omit that cell.
-- Return no markdown and no text outside the JSON object.
-
-Allowed competitors:
-{competitors}
-
-Current validated artifact:
-{artifact}
-"#,
-        competitors = crate::research::competitive::format_competitive_targets_for_prompt(input),
-        artifact = serde_json::to_string_pretty(artifact).unwrap_or_else(|_| "{}".to_string()),
-    )
-}
-
 pub fn merge_research_section(
     artifact: &mut Value,
     section: &str,

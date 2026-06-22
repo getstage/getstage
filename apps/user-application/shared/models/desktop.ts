@@ -52,6 +52,34 @@ export const captureResultSchema = z.object({
   source: z.enum(["screen", "window", "region"]),
 });
 
+export const chatImageAttachmentSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1).max(240),
+  mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]),
+  localPath: z.string().min(1),
+  previewDataUrl: z.string().startsWith("data:image/"),
+});
+
+export const captureWindowSourceSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1).max(240),
+  previewDataUrl: z.string().startsWith("data:image/"),
+});
+
+export const chatAttachmentTargetSchema = z.object({
+  chatId: z.string().regex(/^chat-[a-zA-Z0-9-]+$/),
+});
+
+export const captureWindowRequestSchema = chatAttachmentTargetSchema.extend({
+  sourceId: z.string().min(1),
+});
+
+export const importChatImageBytesRequestSchema = chatAttachmentTargetSchema.extend({
+  name: z.string().min(1).max(240),
+  mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]),
+  bytes: z.instanceof(Uint8Array).refine((bytes) => bytes.byteLength <= 10 * 1024 * 1024),
+});
+
 export const permissionKindSchema = z.enum([
   "screen-recording",
   "microphone",
@@ -80,6 +108,14 @@ export const companionStateSchema = z.enum([
   "response",
   "error",
 ]);
+
+export const companionWidgetSettingsSchema = z.object({
+  allowEverywhere: z.boolean(),
+});
+
+export const DEFAULT_COMPANION_WIDGET_SETTINGS = {
+  allowEverywhere: true,
+} satisfies z.infer<typeof companionWidgetSettingsSchema>;
 
 export const engineStatusStateSchema = z.enum([
   "idle",
@@ -160,10 +196,16 @@ export type DesktopAuthWebHandoff = z.infer<typeof desktopAuthWebHandoffSchema>;
 export type DesktopAuthIdentity = z.infer<typeof desktopAuthIdentitySchema>;
 export type ActiveAppInfo = z.infer<typeof activeAppInfoSchema>;
 export type CaptureResult = z.infer<typeof captureResultSchema>;
+export type ChatImageAttachment = z.infer<typeof chatImageAttachmentSchema>;
+export type CaptureWindowSource = z.infer<typeof captureWindowSourceSchema>;
+export type ChatAttachmentTarget = z.infer<typeof chatAttachmentTargetSchema>;
+export type CaptureWindowRequest = z.infer<typeof captureWindowRequestSchema>;
+export type ImportChatImageBytesRequest = z.infer<typeof importChatImageBytesRequestSchema>;
 export type PermissionKind = z.infer<typeof permissionKindSchema>;
 export type PermissionState = z.infer<typeof permissionStateSchema>;
 export type DesktopPermissionStatus = z.infer<typeof desktopPermissionStatusSchema>;
 export type CompanionState = z.infer<typeof companionStateSchema>;
+export type CompanionWidgetSettings = z.infer<typeof companionWidgetSettingsSchema>;
 export type EngineStatusState = z.infer<typeof engineStatusStateSchema>;
 export type EngineStatus = z.infer<typeof engineStatusSchema>;
 export type VoiceTranscriptionStatus = z.infer<typeof voiceTranscriptionStatusSchema>;

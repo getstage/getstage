@@ -401,6 +401,50 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border-radius: 14px;
 }
 
+.projects-showcase,
+.research-showcase,
+.strategy-showcase,
+.feedback-showcase {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--surface-card);
+  isolation: isolate;
+}
+
+.feature-visual:has(.projects-showcase) .bezel,
+.feature-visual:has(.research-showcase) .bezel,
+.feature-visual:has(.strategy-showcase) .bezel,
+.feature-visual:has(.feedback-showcase) .bezel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.projects-showcase-image,
+.research-showcase-image,
+.strategy-showcase-image,
+.feedback-showcase-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .projects-showcase-image:first-child {
+    opacity: 1;
+  }
+
+  .projects-showcase-image:last-child {
+    opacity: 0;
+  }
+}
+
 .demo-meta {
   display: inline-flex; align-items: center; gap: 8px;
   margin-top: 12px;
@@ -1515,7 +1559,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 @media (max-width: 880px) {
   .hero {
-    padding: 112px 0 40px;
+    padding: 120px 0 48px;
     background: var(--surface-canvas);
   }
 
@@ -1523,32 +1567,63 @@ button { font: inherit; color: inherit; cursor: pointer; }
     display: none;
   }
 
+  .hero-inner {
+    align-items: center;
+  }
+
   .hero-copy {
+    width: 100%;
     max-width: 680px;
+    text-align: center;
   }
 
   .hero-title {
-    max-width: 620px;
-    font-size: clamp(36px, 6.2vw, 48px);
-    line-height: 1.08;
+    max-width: 16ch;
+    margin: 0 auto 16px;
+    font-size: 44px;
+    line-height: 1.1;
+    letter-spacing: 0;
+  }
+
+  .hero-title br {
+    display: none;
   }
 
   .hero-sub {
-    max-width: 520px;
-    font-size: clamp(16px, 2.4vw, 19px);
-    line-height: 1.48;
+    max-width: 34rem;
+    margin: 0 auto;
+    font-size: 18px;
+    line-height: 1.5;
+  }
+
+  .hero-visual {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 40px;
+  }
+
+  .happ-mobile {
+    width: min(100%, 560px);
+    margin: 0 auto;
   }
 
   .section-title {
-    font-size: clamp(34px, 5.8vw, 46px);
+    font-size: 42px;
+    line-height: 1.1;
+    letter-spacing: 0;
   }
 
   .feature-title {
-    font-size: clamp(24px, 3.4vw, 30px);
+    font-size: 28px;
+    line-height: 1.18;
+    letter-spacing: 0;
   }
 
   .footer-headline {
-    font-size: clamp(38px, 7vw, 52px);
+    font-size: 44px;
+    line-height: 1.1;
+    letter-spacing: 0;
     max-width: 620px;
   }
 
@@ -1565,6 +1640,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
   .feature-sub {
     max-width: 560px;
+    font-size: 15px;
+    line-height: 1.6;
   }
 
   .demo-placeholder {
@@ -1608,7 +1685,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 @media (max-width: 640px) {
   .container {
-    padding: 0 16px;
+    padding: 0 20px;
   }
 
   .nav {
@@ -1635,28 +1712,31 @@ button { font: inherit; color: inherit; cursor: pointer; }
   }
 
   .hero {
-    padding: 112px 0 0;
+    padding: 116px 0 28px;
   }
 
   .hero-title {
-    font-size: clamp(34px, 9.4vw, 40px);
-    line-height: 1.08;
-    margin-bottom: 14px;
+    max-width: 14ch;
+    font-size: 36px;
+    line-height: 1.12;
+    margin-bottom: 16px;
+    letter-spacing: 0;
   }
 
   .hero-sub {
-    font-size: clamp(15px, 4.2vw, 17px);
-    line-height: 1.5;
-    margin-bottom: 0;
+    max-width: 30rem;
+    font-size: 16px;
+    line-height: 1.55;
   }
 
   .hero-visual {
-    margin-top: 42px;
-    padding-bottom: 28px;
+    margin-top: 36px;
+    padding-bottom: 0;
   }
 
   .happ-mobile {
-    width: min(100%, 390px);
+    width: 100%;
+    max-width: 440px;
     margin: 0 auto;
   }
 
@@ -1666,6 +1746,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
   .logobar-label {
     font-size: 13px;
+    line-height: 1.4;
+    text-align: center;
     margin-bottom: 20px;
   }
 
@@ -1673,9 +1755,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
     display: flex;
     justify-content: center;
     gap: 14px;
-    font-size: clamp(16px, 4.4vw, 19px);
-    line-height: 1.15;
-    max-width: 340px;
+    font-size: 17px;
+    line-height: 1.2;
+    max-width: 360px;
     margin: 0 auto;
   }
 
@@ -1690,22 +1772,32 @@ button { font: inherit; color: inherit; cursor: pointer; }
   }
 
   .features {
-    padding: 64px 0 48px;
+    padding: 72px 0 56px;
   }
 
   .features-stack {
-    gap: 64px;
+    gap: 72px;
+  }
+
+  .feature,
+  .feature-flip {
+    gap: 18px;
+  }
+
+  .feature-head {
+    max-width: 34rem;
   }
 
   .feature-title {
-    font-size: clamp(22px, 6.4vw, 26px);
-    line-height: 1.16;
-    margin-bottom: 10px;
+    font-size: 24px;
+    line-height: 1.2;
+    letter-spacing: 0;
+    margin-bottom: 12px;
   }
 
   .feature-sub {
-    font-size: clamp(14px, 3.8vw, 15px);
-    line-height: 1.55;
+    font-size: 15px;
+    line-height: 1.6;
   }
 
   .bezel-core {
@@ -1713,12 +1805,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
   }
 
   .pricing {
-    padding: 64px 0 48px;
+    padding: 72px 0 56px;
   }
 
   .section-title {
-    font-size: clamp(30px, 8.8vw, 38px);
-    line-height: 1.08;
+    font-size: 34px;
+    line-height: 1.12;
+    letter-spacing: 0;
   }
 
   .billing-toggle {
@@ -1739,13 +1832,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
   }
 
   .price-num {
-    font-size: clamp(32px, 9vw, 36px);
+    font-size: 36px;
   }
 
   .price-per,
   .price-desc,
   .price-feats li {
-    font-size: 13px;
+    font-size: 14px;
+    line-height: 1.5;
   }
 
   .footer {
@@ -1758,12 +1852,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
     align-items: center;
     text-align: center;
     gap: 24px;
-    padding-bottom: 72px;
+    padding-bottom: 64px;
   }
 
   .footer-headline {
-    font-size: clamp(32px, 9vw, 40px);
-    line-height: 1.08;
+    max-width: 14ch;
+    font-size: 34px;
+    line-height: 1.12;
+    letter-spacing: 0;
     margin: 0 auto;
   }
 
@@ -1782,8 +1878,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   }
 
   .hero-title {
-    font-size: clamp(30px, 9.2vw, 34px);
-    line-height: 1.08;
+    font-size: 32px;
+    line-height: 1.14;
   }
 
   .hero-sub {
@@ -1791,15 +1887,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
   }
 
   .section-title {
-    font-size: 29px;
+    font-size: 31px;
+    line-height: 1.14;
   }
 
   .feature-title {
-    font-size: 21px;
+    font-size: 23px;
   }
 
   .footer-headline {
-    font-size: 30px;
+    font-size: 31px;
   }
 
   .billing-toggle {

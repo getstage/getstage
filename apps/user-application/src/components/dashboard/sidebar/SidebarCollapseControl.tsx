@@ -23,12 +23,19 @@ export function SidebarCollapseControl({
           aria-label={canExpand ? "Expand sidebar" : "Stage"}
           aria-disabled={!canExpand}
         >
-          <img
-            src="/apple-touch-icon.png"
-            alt=""
+          <span
             aria-hidden="true"
-            className={cn("h-[22px] w-[22px] transition-opacity duration-150", canExpand && "group-hover:opacity-0")}
-          />
+            className={cn(
+              "relative h-[32px] w-[29px] overflow-hidden transition-opacity duration-150",
+              canExpand && "group-hover:opacity-0",
+            )}
+          >
+            <img
+              src={stageLogo}
+              alt=""
+              className="absolute left-0 top-0 h-[32px] w-auto max-w-none"
+            />
+          </span>
           {canExpand ? (
             <img
               src="/logos/dashboard/close.svg"

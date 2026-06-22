@@ -32,6 +32,7 @@ export function ClientDetailsStep({
   onClearAvatar,
   onPickClientPhoto,
   onContinue,
+  onStepSelect,
   inputRef,
 }: {
   clientMode: string;
@@ -50,6 +51,7 @@ export function ClientDetailsStep({
   onClearAvatar: () => void;
   onPickClientPhoto: () => void;
   onContinue: () => void;
+  onStepSelect: (stepIndex: number) => void;
   inputRef: RefObject<HTMLInputElement | null>;
 }) {
   const canContinue = clientDetailsFormSchema.safeParse({
@@ -64,6 +66,7 @@ export function ClientDetailsStep({
       title="Client Details"
       description="Who is this project for?"
       activeStepIndex={1}
+      onStepSelect={onStepSelect}
     >
       <form
         className="flex w-full flex-col items-start gap-[16px]"

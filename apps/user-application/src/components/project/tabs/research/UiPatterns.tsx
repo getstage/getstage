@@ -153,8 +153,8 @@ function UiPatternGroup({
               className="group rounded-[8px] bg-white p-2 text-left shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-transform hover:-translate-y-px"
               aria-label={`Open ${group.title} reference ${originalIndex + 1}`}
             >
-              <div className="aspect-[1920/1325] overflow-hidden rounded-[4px]">
-                <img src={image.src} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-[1.01]" />
+              <div className="aspect-[1920/1325] overflow-hidden rounded-[4px] bg-[#F5F5F5]">
+                <img src={image.src} alt="" className="h-full w-full object-contain transition-transform group-hover:scale-[1.01]" />
               </div>
             </button>
           ))}

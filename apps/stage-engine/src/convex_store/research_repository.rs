@@ -314,6 +314,7 @@ pub fn enrich_research_artifact(
     normalize_competitive_matrix_scores(object);
     crate::research::competitive::filter_competitive_analysis(object, input);
     let repair_report = crate::research::competitive::repair_competitive_analysis(object, input);
+    crate::research::competitive::complete_competitive_matrix(object);
     crate::research::competitive::append_competitive_quality_warnings(object, &repair_report);
     crate::research::competitive::validate_competitive_analysis(object, input)?;
 
@@ -342,6 +343,14 @@ pub fn validate_complete_research_artifact(
     if !crate::research::competitive::allowed_competitive_targets(input).is_empty() {
         if artifact.competitive_analysis.competitors.is_empty() {
             missing.push("competitiveAnalysis.competitors");
+        } else if artifact
+            .competitive_analysis
+            .competitors
+            .iter()
+            .any(|competitor| competitor.strengths.is_empty() || competitor.weaknesses.is_empty())
+        {
+            // Card view is only useful when every competitor has both sides filled.
+            missing.push("competitiveAnalysis.competitors strengths/weaknesses");
         }
     }
 
@@ -520,7 +529,9 @@ mod tests {
                 "competitors": [{
                     "id": "competitor-example",
                     "name": "Competitor",
-                    "url": "https://competitor.example"
+                    "url": "https://competitor.example",
+                    "strengths": ["Clear onboarding checklist"],
+                    "weaknesses": ["Dense dashboard layout"]
                 }],
                 "matrixRows": [{
                     "id": "matrix-onboarding",
