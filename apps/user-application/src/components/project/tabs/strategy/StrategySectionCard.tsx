@@ -36,6 +36,7 @@ export function StrategySectionCard({
   section,
   showDivider,
   isEditing,
+  isRegenerating = false,
   onSectionChange,
   onEmojiChange,
   onApprove,
@@ -44,6 +45,7 @@ export function StrategySectionCard({
   section: StrategySection;
   showDivider: boolean;
   isEditing: boolean;
+  isRegenerating?: boolean;
   onSectionChange: (section: StrategySection) => void;
   onEmojiChange: (emoji: string) => void;
   onApprove: () => void;
@@ -160,7 +162,8 @@ export function StrategySectionCard({
                 <button
                   type="button"
                   onClick={onApprove}
-                  className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[4px] border border-[#34D399] bg-gradient-to-b from-[#10B981] to-[#059669] px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#ECFDF5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:opacity-95"
+                  disabled={isRegenerating}
+                  className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[4px] border border-[#34D399] bg-gradient-to-b from-[#10B981] to-[#059669] px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#ECFDF5] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <CheckIcon />
                   Approve & Save
@@ -168,10 +171,11 @@ export function StrategySectionCard({
                 <button
                   type="button"
                   onClick={onRegenerate}
-                  className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#F5F3FF]"
+                  disabled={isRegenerating}
+                  className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#7C3AED] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#F5F3FF] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <RegenerateIcon />
-                  Regenerate with AI
+                  {isRegenerating ? "Regenerating…" : "Regenerate with AI"}
                 </button>
               </div>
             ) : null}

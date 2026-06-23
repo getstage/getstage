@@ -60,7 +60,6 @@ export function StrategyTab({
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false);
   const [isFullStrategyRegenerating, setIsFullStrategyRegenerating] = useState(false);
-  const [regeneratingSectionId, setRegeneratingSectionId] = useState<string | null>(null);
   const latestSectionsRef = useRef<StrategySection[]>([]);
   const lastPersistedEmojiSectionsRef = useRef<StrategySection[]>([]);
   const emojiSaveQueueRef = useRef(Promise.resolve());
@@ -74,6 +73,9 @@ export function StrategyTab({
   const isRunBusy = strategy.isRunning || strategy.isStarting;
   const saveStrategyArtifact = useSaveStrategyArtifact(project.id);
   const regenerateSection = useStrategySectionRegenerate(project.id);
+  const regeneratingSectionId = regenerateSection.isRegenerating
+    ? regenerateSection.activeSectionId
+    : null;
   const {
     resolvedProviderId,
     providerOptions,
@@ -236,14 +238,11 @@ export function StrategyTab({
     }
 
     setRunError(null);
-    setRegeneratingSectionId(sectionId);
 
     try {
-      await regenerateSection(sectionId, runProviderId);
+      await regenerateSection.regenerate(sectionId, runProviderId);
     } catch (error) {
       setRunError(error instanceof Error ? error.message : "Could not regenerate Strategy.");
-    } finally {
-      setRegeneratingSectionId(null);
     }
   }
 
@@ -558,6 +557,7 @@ export function StrategyTab({
                 section={section}
                 showDivider={index > 0}
                 isEditing={isEditing}
+                isRegenerating={regeneratingSectionId === section.id}
                 onSectionChange={(nextSection) => updateEditSection(section.id, nextSection)}
                 onEmojiChange={(emoji) => void updateSectionEmoji(section.id, emoji)}
                 onApprove={() => void approveSection(section.id)}

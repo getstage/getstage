@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use crate::convex_store::research_repository::{extract_json_object, extract_strategy_artifact};
-use crate::convex_store::strategy_repository::{StrategyRepository, normalize_strategy_artifact};
+use crate::convex_store::strategy_repository::{
+    StrategyRepository, normalize_strategy_artifact, validate_strategy_artifact,
+};
 use crate::helpers::time::now_millis;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::runs::{RunEvent, RunStatus, StartRunRequest};
@@ -211,8 +213,10 @@ impl StrategyWorkflow {
         let section_patch = extract_json_object(&final_text)?;
         merge_strategy_section(&mut artifact, section_id, section_patch)?;
         if let Some(object) = artifact.as_object_mut() {
-            object.insert("generatedAt".to_string(), json!(now_millis()));
+            let generated_at = i64::try_from(now_millis()).unwrap_or(i64::MAX);
+            object.insert("generatedAt".to_string(), json!(generated_at));
         }
+        validate_strategy_artifact(&artifact).map_err(map_strategy_provider_error)?;
 
         self.repository
             .update_strategy_artifact(auth_token, project_id, &artifact_id, &artifact)

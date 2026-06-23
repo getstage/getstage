@@ -83,7 +83,7 @@ export function ProjectStepView({
   onGoToTab,
   onAutoStartHandled,
 }: ProjectStepViewProps) {
-  const shouldCheckResearchArtifact = artifactQueriesEnabled && activeTab !== "research";
+  const shouldCheckResearchArtifact = artifactQueriesEnabled;
   const shouldCheckStrategyArtifact =
     artifactQueriesEnabled &&
     (activeTab === "moodboard" ||

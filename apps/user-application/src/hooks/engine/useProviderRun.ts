@@ -4,7 +4,7 @@ import type { RunEvent, StartRunRequest } from "@stage/data-ops/contracts";
 import { engineQueryKeys } from "./queryKeys";
 import { useDesktopBridge } from "../useDesktopBridge";
 
-type ActiveRunSnapshot = { runId: string };
+type ActiveRunSnapshot = { runId: string; source?: string };
 
 export function useProviderRunEvents(runId: string | null) {
   return useQuery({
@@ -34,9 +34,12 @@ export function useProviderRun(scope?: ProviderRunScope) {
   const startRun = useMutation({
     mutationKey: activeRunKey ?? undefined,
     mutationFn: (request: StartRunRequest) => desktop.engine.startRun(request),
-    onSuccess: (data, _variables, _context) => {
+    onSuccess: (data, variables, _context) => {
       if (activeRunKey) {
-        queryClient.setQueryData<ActiveRunSnapshot>(activeRunKey, { runId: data.runId });
+        queryClient.setQueryData<ActiveRunSnapshot>(activeRunKey, {
+          runId: data.runId,
+          source: variables.context.source,
+        });
       }
     },
   });
@@ -57,6 +60,7 @@ export function useProviderRun(scope?: ProviderRunScope) {
     : null;
 
   const activeRunId = startRun.data?.runId ?? cachedActiveRun?.runId ?? null;
+  const activeRunSource = startRun.variables?.context.source ?? cachedActiveRun?.source ?? null;
   const activeRunEventsQuery = useProviderRunEvents(activeRunId);
 
   const activeRunEvents = activeRunEventsQuery.data ?? [];
@@ -81,6 +85,7 @@ export function useProviderRun(scope?: ProviderRunScope) {
     cancelRun,
     resetActiveRun,
     activeRunId,
+    activeRunSource,
     activeRunEvents,
     hasTerminalEvent,
     isRunActive,

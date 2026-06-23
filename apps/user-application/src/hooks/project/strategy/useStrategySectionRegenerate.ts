@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ProviderId } from "@stage/data-ops/contracts";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
@@ -8,20 +8,41 @@ import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
 import { assertProviderPreflightReady } from "@/lib/engine/providerPreflight";
 import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 
+function sectionIdFromSource(source: string | null) {
+  return source?.startsWith("section:") ? source.slice("section:".length) : null;
+}
+
 export function useStrategySectionRegenerate(projectId: string) {
   const providerRun = useProviderRun({ projectId, mode: "strategy-section" });
   const providerPreferences = useProviderPreferences();
   const providers = useProviderStatus();
   const chatDefaults = useChatDefaults();
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
 
-  return useCallback(
+  const isRegenerating = providerRun.isStarting || providerRun.isRunActive;
+  const persistedSectionId = sectionIdFromSource(providerRun.activeRunSource);
+  const visibleActiveSectionId = activeSectionId ?? persistedSectionId;
+
+  useEffect(() => {
+    if (!isRegenerating && activeSectionId) {
+      setActiveSectionId(null);
+    }
+  }, [isRegenerating, activeSectionId]);
+
+  const regenerate = useCallback(
     async (sectionId: string, providerId: ProviderId) => {
+      if (isRegenerating) {
+        return;
+      }
+
       assertProviderPreflightReady({
         providerId,
         snapshot: providers.snapshot,
         isEnabled: providerPreferences.isProviderEnabled(providerId),
         context: "run",
       });
+
+      setActiveSectionId(sectionId);
 
       await providerRun.startRun.mutateAsync({
         providerId,
@@ -38,10 +59,20 @@ export function useStrategySectionRegenerate(projectId: string) {
     },
     [
       chatDefaults.defaults,
+      isRegenerating,
       projectId,
       providerPreferences,
       providerRun.startRun,
       providers.snapshot,
     ],
   );
+
+  return {
+    regenerate,
+    isRegenerating,
+    activeSectionId: isRegenerating ? visibleActiveSectionId : null,
+    error: providerRun.startRun.isError
+      ? "Could not regenerate Strategy section."
+      : null,
+  };
 }

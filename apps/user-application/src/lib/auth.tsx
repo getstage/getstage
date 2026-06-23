@@ -6,27 +6,14 @@ type DesktopAuthState = {
   isLoading: boolean;
 };
 
+type ElectronAuthValue = DesktopAuthState & {
+  fetchAccessToken: () => Promise<string | null>;
+};
+
+const ElectronAuthContext = createContext<ElectronAuthValue | null>(null);
 const DesktopAuthContext = createContext<DesktopAuthState | null>(null);
 
-export function DesktopAuthProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated, isLoading } = useElectronAuthForConvex();
-
-  return (
-    <DesktopAuthContext.Provider value={{ isAuthenticated, isLoading }}>
-      {children}
-    </DesktopAuthContext.Provider>
-  );
-}
-
-export function useDesktopAuth() {
-  const value = useContext(DesktopAuthContext);
-  if (!value) {
-    throw new Error("useDesktopAuth must be used within DesktopAuthProvider.");
-  }
-  return value;
-}
-
-export function useElectronAuthForConvex() {
+export function ElectronAuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<DesktopSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -61,10 +48,37 @@ export function useElectronAuthForConvex() {
   }, []);
 
   const fetchAccessToken = useCallback(() => window.stageDesktop.auth.getAccessToken(), []);
+  const isAuthenticated = Boolean(session?.hasAccessToken);
 
-  return {
-    isLoading,
-    isAuthenticated: Boolean(session?.hasAccessToken),
-    fetchAccessToken,
-  };
+  return (
+    <ElectronAuthContext.Provider value={{ isAuthenticated, isLoading, fetchAccessToken }}>
+      {children}
+    </ElectronAuthContext.Provider>
+  );
+}
+
+export function DesktopAuthProvider({ children }: { children: ReactNode }) {
+  const auth = useElectronAuthForConvex();
+
+  return (
+    <DesktopAuthContext.Provider value={{ isAuthenticated: auth.isAuthenticated, isLoading: auth.isLoading }}>
+      {children}
+    </DesktopAuthContext.Provider>
+  );
+}
+
+export function useDesktopAuth() {
+  const value = useContext(DesktopAuthContext);
+  if (!value) {
+    throw new Error("useDesktopAuth must be used within DesktopAuthProvider.");
+  }
+  return value;
+}
+
+export function useElectronAuthForConvex() {
+  const value = useContext(ElectronAuthContext);
+  if (!value) {
+    throw new Error("useElectronAuthForConvex must be used within ElectronAuthProvider.");
+  }
+  return value;
 }
