@@ -5,6 +5,12 @@ import { requireProjectAccess } from "../../../_helpers";
 import { decryptSecret } from "../../../lib/credentialVault";
 import { createArtifactRecord } from "../domain/artifactStore";
 import { findLatestArtifact } from "../domain/latestArtifact";
+import { getRunRecord } from "../domain/records";
+import {
+  completeRunRecord,
+  createRunRecord,
+  findRunningRunForProjectModule,
+} from "../domain/runStore";
 import { normalizeOptional } from "../domain/normalize";
 import { now } from "../domain/time";
 
@@ -72,6 +78,102 @@ export async function saveMoodboardArtifactHandler(
   });
 
   return { artifactId: String(artifactId), savedAt: timestamp };
+}
+
+/**
+ * Persist a moodboard import as a "running" run so the tab can restore the
+ * generating state after it unmounts (leaving/returning to the tab). The engine
+ * owns the lifecycle: it marks the run completed/failed when the import ends.
+ */
+export const createMoodboardRunArgs = {
+  projectId: v.id("projects"),
+  title: v.string(),
+  externalRunId: v.optional(v.string()),
+};
+
+export async function createMoodboardRunHandler(
+  ctx: MutationCtx,
+  args: {
+    projectId: Id<"projects">;
+    title: string;
+    externalRunId?: string;
+  },
+) {
+  const { user } = await requireProjectAccess(ctx, args.projectId);
+  const existingRunning = await findRunningRunForProjectModule(ctx, args.projectId, "moodboard");
+
+  if (existingRunning) {
+    const externalRunId = normalizeOptional(args.externalRunId);
+    if (externalRunId && existingRunning.externalRunId === externalRunId) {
+      return { runId: String(existingRunning._id), startedAt: existingRunning.startedAt };
+    }
+
+    const timestamp = now();
+    await ctx.db.patch(existingRunning._id, {
+      status: "failed",
+      errorMessage: "Run was replaced after Stage restarted before a final status.",
+      completedAt: timestamp,
+      updatedAt: timestamp,
+    });
+  }
+
+  const runId = await createRunRecord(ctx, {
+    userId: user._id,
+    projectId: args.projectId,
+    module: "moodboard",
+    title: args.title,
+    status: "running",
+    trigger: "user",
+    externalRunId: args.externalRunId,
+  });
+
+  return { runId: String(runId), startedAt: now() };
+}
+
+export const completeMoodboardRunArgs = {
+  projectId: v.id("projects"),
+  runId: v.id("projectAiRuns"),
+};
+
+export async function completeMoodboardRunHandler(
+  ctx: MutationCtx,
+  args: { projectId: Id<"projects">; runId: Id<"projectAiRuns"> },
+) {
+  await requireProjectAccess(ctx, args.projectId);
+  const run = await getRunRecord(ctx, args.runId);
+  if (run.projectId !== args.projectId) {
+    throw new Error("Run not found.");
+  }
+
+  const completedAt = await completeRunRecord(ctx, args.runId);
+  return { completedAt };
+}
+
+export const failMoodboardRunArgs = {
+  projectId: v.id("projects"),
+  runId: v.id("projectAiRuns"),
+  errorMessage: v.string(),
+};
+
+export async function failMoodboardRunHandler(
+  ctx: MutationCtx,
+  args: { projectId: Id<"projects">; runId: Id<"projectAiRuns">; errorMessage: string },
+) {
+  await requireProjectAccess(ctx, args.projectId);
+  const run = await getRunRecord(ctx, args.runId);
+  if (run.projectId !== args.projectId) {
+    throw new Error("Run not found.");
+  }
+
+  const timestamp = now();
+  await ctx.db.patch(args.runId, {
+    status: "failed",
+    errorMessage: args.errorMessage.trim() || "Moodboard import failed.",
+    completedAt: timestamp,
+    updatedAt: timestamp,
+  });
+
+  return { failedAt: timestamp };
 }
 
 export const getConnectedFigmaAccessTokenArgs = {

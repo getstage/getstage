@@ -16,13 +16,23 @@ export async function listRunsHandler(
   args: { projectId: Id<"projects">; module?: AiModule },
 ) {
   await requireProjectAccess(ctx, args.projectId);
-  const runs = await ctx.db
-    .query("projectAiRuns")
-    .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-    .collect();
+  const moduleFilter = args.module;
+  // When a module is requested, read only that module's recent runs via the
+  // by_project_module index instead of loading the project's entire run history.
+  const runs = moduleFilter
+    ? await ctx.db
+        .query("projectAiRuns")
+        .withIndex("by_project_module", (q) =>
+          q.eq("projectId", args.projectId).eq("module", moduleFilter),
+        )
+        .order("desc")
+        .take(50)
+    : await ctx.db
+        .query("projectAiRuns")
+        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .collect();
 
   return runs
-    .filter((run) => !args.module || run.module === args.module)
     .sort((a, b) => b.startedAt - a.startedAt)
     .map((run) => ({
       id: String(run._id),

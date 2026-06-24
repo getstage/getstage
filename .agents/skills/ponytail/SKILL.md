@@ -67,3 +67,22 @@ Ponytail is minimalism **only**. It does **not** verify correctness, so it never
 3. Did I grep for an existing helper/token before writing new code?
 4. Ran `/ponytail-review`; applied the delete-list.
 5. Security / data-loss / a11y left intact by the trimming.
+
+## Plan before architecture (production)
+
+**Do not ship multi-file refactors with a one-line bugfix.** If the user reports a UI flash or loading gap:
+
+1. Name the smallest failing gate (one condition, one hook return).
+2. Propose the diff in a plan; wait for approval on anything beyond ~2 lines or 2 files.
+3. **Stop** when the symptom is fixed — do not add prefetch layers, new auth, router loaders, or helper files unless explicitly requested.
+
+**If you skip this:** you risk auth swaps, duplicate query layers, and router config churn that do not fix the bug but do increase regression surface (wrong empty states, broken preload, type hacks like `undefined!`).
+
+### Convex `useQuery` tri-state (loading vs empty)
+
+`record === undefined` means **still waiting** — not "no data". Only after Convex answers:
+
+- `null` → no artifact (show configure / empty state)
+- object → has artifact (show content)
+
+Never render empty/configure UI while `record === undefined`. Loading gate: `record === undefined` ⇒ loading, independent of `queryEnabled`.

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { RunEvent } from "@stage/data-ops/contracts";
-import { useMutation as useConvexMutation } from "convex/react";
+import type { Id } from "@stage/data-ops/convex/data-model";
+import { useMutation as useConvexMutation, useQuery } from "convex/react";
+import { useDesktopAuth } from "@/lib/auth";
 import {
   tabStateToMoodboardArtifact,
   type MoodboardBoardState,
@@ -20,6 +22,9 @@ const MOODBOARD_IMPORT_PROVIDER = "codex";
 const MOODBOARD_IMPORT_MODEL = "codex-default";
 const STYLEGUIDE_PROVIDER = "codex";
 const STYLEGUIDE_MODEL = "codex-default";
+// Mirror the server's STALE_RUNNING_RUN_MS so a crashed engine can't pin the
+// generating screen on a run that will never reach a terminal status.
+const MOODBOARD_RUN_STALE_MS = 60 * 60 * 1000;
 
 function latestTerminalRunEvent(events: RunEvent[]) {
   for (let index = events.length - 1; index >= 0; index -= 1) {
@@ -85,6 +90,29 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
   const [importRunEnded, setImportRunEnded] = useState(false);
   const [styleGuideRunEnded, setStyleGuideRunEnded] = useState(false);
   const [styleGuideCompletedAt, setStyleGuideCompletedAt] = useState<number | null>(null);
+
+  // The in-memory active run is lost when the Moodboard tab unmounts (leaving the tab).
+  // Convex is the durable truth: the engine keeps a moodboard run at status "running"
+  // until the import ends, so reading it restores the generating screen on return.
+  const { isAuthenticated } = useDesktopAuth();
+  const moodboardRuns = useQuery(
+    api.projectAi.listRuns,
+    isAuthenticated && projectId
+      ? { projectId: projectId as Id<"projects">, module: "moodboard" }
+      : "skip",
+  );
+  const hasPersistedRunningRun = useMemo(
+    () =>
+      (moodboardRuns ?? []).some(
+        (run) =>
+          run.status === "running" &&
+          Date.now() - run.startedAt < MOODBOARD_RUN_STALE_MS,
+      ),
+    [moodboardRuns],
+  );
+  // `undefined` means the query is still loading (tri-state), NOT "no runs". Treat that
+  // window as loading so the tab never flashes the setup screen before Convex answers.
+  const isRunsLoading = isAuthenticated && Boolean(projectId) && moodboardRuns === undefined;
 
   const data = moodboardArtifact.data;
   const terminalImportEvent = useMemo(
@@ -331,7 +359,7 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
 
   return {
     data,
-    isLoading: moodboardArtifact.isLoading,
+    isLoading: moodboardArtifact.isLoading || isRunsLoading,
     hasArtifact: data !== null,
     parseError: moodboardArtifact.parseError,
     saveBoard,
@@ -342,7 +370,14 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
     generateWithAi,
     isImporting:
       !importRunEnded &&
-      (providerRun.startRun.isPending || providerRun.isRunActive),
+      (providerRun.startRun.isPending ||
+        providerRun.isRunActive ||
+        hasPersistedRunningRun),
+    // Figma vs Refero label for the generating screen. After a remount the in-memory
+    // source may be gone (restored from Convex), so default to the Refero ("ai") label.
+    generatingMode: (providerRun.activeRunSource === "figma" ? "figma" : "ai") as
+      | "ai"
+      | "figma",
     runEvents: providerRun.activeRunEvents,
     acceptUploads: MOODBOARD_IMAGE_ACCEPT,
     generateStyleGuide,

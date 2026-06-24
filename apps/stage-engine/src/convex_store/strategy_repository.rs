@@ -355,6 +355,29 @@ pub fn normalize_strategy_artifact(
     Ok(JsonValue::Object(object.clone()))
 }
 
+pub fn validate_strategy_artifact(artifact: &JsonValue) -> anyhow::Result<()> {
+    let object = artifact
+        .as_object()
+        .context("strategy artifact was not an object")?;
+    required_text(object.get("apiVersion"), "strategy artifact apiVersion")
+        .and_then(|value| require_literal(&value, "v1", "strategy artifact apiVersion"))?;
+    required_text(object.get("artifactKind"), "strategy artifact kind")
+        .and_then(|value| require_literal(&value, "strategyArtifact", "strategy artifact kind"))?;
+    required_text(object.get("projectId"), "strategy artifact project id")?;
+    required_text(object.get("title"), "strategy artifact title")?;
+    validate_non_negative_integer(object.get("generatedAt"), "strategy artifact generatedAt")?;
+
+    let sections = object
+        .get("sections")
+        .and_then(JsonValue::as_array)
+        .context("strategy artifact missing sections array")?;
+    for section in sections {
+        validate_strategy_section(section)?;
+    }
+
+    Ok(())
+}
+
 fn normalize_section(section: &JsonValue, spec: &SectionSpec) -> anyhow::Result<JsonValue> {
     let _source = section
         .as_object()
@@ -400,6 +423,40 @@ fn normalize_section(section: &JsonValue, spec: &SectionSpec) -> anyhow::Result<
     }
 
     Ok(JsonValue::Object(normalized))
+}
+
+fn validate_strategy_section(section: &JsonValue) -> anyhow::Result<()> {
+    let object = section
+        .as_object()
+        .context("strategy section was not an object")?;
+    required_text(object.get("id"), "strategy section id")?;
+    required_text(object.get("title"), "strategy section title")?;
+    let status = required_text(object.get("status"), "strategy section status")?;
+    if status != "approved" && status != "action" {
+        bail!("strategy section status was invalid");
+    }
+
+    let kind = required_text(object.get("kind"), "strategy section kind")?;
+    match kind.as_str() {
+        "plain" | "paragraph" => {
+            validate_optional_string_array(object.get("body"), "strategy section body")?;
+        }
+        "principles" => {
+            validate_optional_principles(object.get("principles"))?;
+        }
+        "table" => {
+            validate_optional_table(object.get("table"))?;
+        }
+        "cards" => {
+            validate_optional_cards(object.get("cards"))?;
+        }
+        "boxes" => {
+            validate_optional_boxes(object.get("boxes"))?;
+        }
+        _ => bail!("unsupported strategy section kind `{kind}`"),
+    }
+
+    Ok(())
 }
 
 fn normalize_body(section: &JsonValue) -> anyhow::Result<Vec<JsonValue>> {
@@ -640,6 +697,129 @@ fn optional_text(value: Option<&JsonValue>) -> Option<String> {
         .map(ToOwned::to_owned)
 }
 
+fn require_literal(value: &str, expected: &str, label: &str) -> anyhow::Result<()> {
+    if value == expected {
+        return Ok(());
+    }
+
+    bail!("{label} was invalid")
+}
+
+fn validate_non_negative_integer(value: Option<&JsonValue>, label: &str) -> anyhow::Result<()> {
+    let Some(value) = value else {
+        bail!("{label} was missing");
+    };
+
+    if value.as_u64().is_some() || value.as_i64().is_some_and(|number| number >= 0) {
+        return Ok(());
+    }
+
+    bail!("{label} was invalid")
+}
+
+fn validate_optional_string_array(value: Option<&JsonValue>, label: &str) -> anyhow::Result<()> {
+    let Some(value) = value else {
+        return Ok(());
+    };
+    let array = value
+        .as_array()
+        .with_context(|| format!("{label} was not an array"))?;
+    for item in array {
+        required_text(Some(item), label)?;
+    }
+    Ok(())
+}
+
+fn validate_required_string_array(value: Option<&JsonValue>, label: &str) -> anyhow::Result<()> {
+    let value = value.with_context(|| format!("{label} was missing"))?;
+    let array = value
+        .as_array()
+        .with_context(|| format!("{label} was not an array"))?;
+    if array.is_empty() {
+        bail!("{label} was empty");
+    }
+    for item in array {
+        required_text(Some(item), label)?;
+    }
+    Ok(())
+}
+
+fn validate_optional_principles(value: Option<&JsonValue>) -> anyhow::Result<()> {
+    let Some(value) = value else {
+        return Ok(());
+    };
+    let principles = value
+        .as_array()
+        .context("strategy principles was not an array")?;
+    for principle in principles {
+        let object = principle
+            .as_object()
+            .context("strategy principle was not an object")?;
+        required_text(object.get("title"), "strategy principle title")?;
+        required_text(object.get("body"), "strategy principle body")?;
+        if object.contains_key("research") {
+            required_text(object.get("research"), "strategy principle research")?;
+        }
+    }
+    Ok(())
+}
+
+fn validate_optional_table(value: Option<&JsonValue>) -> anyhow::Result<()> {
+    let Some(value) = value else {
+        return Ok(());
+    };
+    let rows = value
+        .as_array()
+        .context("strategy table was not an array")?;
+    for row in rows {
+        let cells = row
+            .as_array()
+            .context("strategy table row was not an array")?;
+        if cells.len() != 2 {
+            bail!("strategy table row did not contain 2 cells");
+        }
+        required_text(cells.first(), "strategy table row label")?;
+        required_text(cells.get(1), "strategy table row value")?;
+    }
+    Ok(())
+}
+
+fn validate_optional_cards(value: Option<&JsonValue>) -> anyhow::Result<()> {
+    let Some(value) = value else {
+        return Ok(());
+    };
+    let cards = value
+        .as_array()
+        .context("strategy cards was not an array")?;
+    for card in cards {
+        let object = card
+            .as_object()
+            .context("strategy card was not an object")?;
+        required_text(object.get("title"), "strategy card title")?;
+        required_text(object.get("objective"), "strategy card objective")?;
+        required_text(object.get("kpi"), "strategy card KPI")?;
+        required_text(object.get("keyElement"), "strategy card key element")?;
+    }
+    Ok(())
+}
+
+fn validate_optional_boxes(value: Option<&JsonValue>) -> anyhow::Result<()> {
+    let Some(value) = value else {
+        return Ok(());
+    };
+    let boxes = value
+        .as_array()
+        .context("strategy boxes was not an array")?;
+    for box_entry in boxes {
+        let object = box_entry
+            .as_object()
+            .context("strategy box was not an object")?;
+        required_text(object.get("title"), "strategy box title")?;
+        validate_required_string_array(object.get("bullets"), "strategy box bullets")?;
+    }
+    Ok(())
+}
+
 fn summary_text(artifact: &JsonValue) -> String {
     let Some(sections) = artifact.get("sections").and_then(JsonValue::as_array) else {
         return "Strategy generated.".to_string();
@@ -737,5 +917,51 @@ mod tests {
         let error = normalize_strategy_artifact(artifact, &sample_input(), 123).unwrap_err();
 
         assert!(error.to_string().contains("missing"));
+    }
+
+    #[test]
+    fn validate_strategy_artifact_accepts_custom_sections() {
+        let artifact = json!({
+            "apiVersion": "v1",
+            "artifactKind": "strategyArtifact",
+            "projectId": "project_123",
+            "title": "Project Strategy",
+            "generatedAt": 123,
+            "sections": [
+                {
+                    "id": "custom-1",
+                    "title": "Custom Section",
+                    "status": "approved",
+                    "kind": "paragraph",
+                    "body": ["A manually added section."]
+                }
+            ]
+        });
+
+        validate_strategy_artifact(&artifact).unwrap();
+    }
+
+    #[test]
+    fn validate_strategy_artifact_rejects_unparseable_sections() {
+        let artifact = json!({
+            "apiVersion": "v1",
+            "artifactKind": "strategyArtifact",
+            "projectId": "project_123",
+            "title": "Project Strategy",
+            "generatedAt": 123,
+            "sections": [
+                {
+                    "id": "pages",
+                    "title": "Key Pages & Objectives",
+                    "status": "action",
+                    "kind": "cards",
+                    "cards": [{ "title": "Dashboard", "objective": "Return visits", "kpi": "DAU" }]
+                }
+            ]
+        });
+
+        let error = validate_strategy_artifact(&artifact).unwrap_err();
+
+        assert!(error.to_string().contains("key element"));
     }
 }

@@ -19,7 +19,7 @@ mac:
   icon: build/icon.icns
   extendInfo:
     NSMicrophoneUsageDescription: Stage uses your microphone for voice notes and dictation.
-  artifactName: "${productName}-${version}-${arch}.${ext}"
+  artifactName: "${productName}-${arch}.${ext}"
   target:
     - dmg
     - zip
@@ -28,7 +28,7 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
   gatekeeperAssess: false
 dmg:
-  title: "${productName} ${version}"
+  title: "${productName}"
 publish:
   provider: github
   owner: getstage

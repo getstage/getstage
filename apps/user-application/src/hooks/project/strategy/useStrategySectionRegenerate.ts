@@ -8,14 +8,25 @@ import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
 import { assertProviderPreflightReady } from "@/lib/engine/providerPreflight";
 import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 
+function sectionIdFromSource(source: string | null) {
+  return source?.startsWith("section:") ? source.slice("section:".length) : null;
+}
+
 export function useStrategySectionRegenerate(projectId: string) {
   const providerRun = useProviderRun({ projectId, mode: "strategy-section" });
   const providerPreferences = useProviderPreferences();
   const providers = useProviderStatus();
   const chatDefaults = useChatDefaults();
 
-  return useCallback(
+  const isRegenerating = providerRun.isStarting || providerRun.isRunActive;
+  const visibleActiveSectionId = sectionIdFromSource(providerRun.activeRunSource);
+
+  const regenerate = useCallback(
     async (sectionId: string, providerId: ProviderId) => {
+      if (isRegenerating) {
+        return;
+      }
+
       assertProviderPreflightReady({
         providerId,
         snapshot: providers.snapshot,
@@ -38,10 +49,20 @@ export function useStrategySectionRegenerate(projectId: string) {
     },
     [
       chatDefaults.defaults,
+      isRegenerating,
       projectId,
       providerPreferences,
       providerRun.startRun,
       providers.snapshot,
     ],
   );
+
+  return {
+    regenerate,
+    isRegenerating,
+    activeSectionId: isRegenerating ? visibleActiveSectionId : null,
+    error: providerRun.startRun.isError
+      ? "Could not regenerate Strategy section."
+      : null,
+  };
 }

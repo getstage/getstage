@@ -1,6 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, type ReactNode } from "react";
 import type { CompanionState } from "@shared/models/desktop";
-import { CompanionOrb } from "@/components/companion/CompanionOrb";
 import { useStageWidgetVisibility } from "@/hooks/companion/useStageWidgetVisibility";
 import { useCompanionState } from "@/hooks/useCompanionState";
 import {
@@ -194,7 +193,6 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
       {children}
       {!hideCompanion || allowStageWidgetEverywhere ? (
         <>
-          <CompanionOrb state={companion.state} />
           <Suspense fallback={null}>
             <VoiceControlBar state={companion.state} onStateChange={companion.setState} />
             <CritiquePanel state={companion.state} onStateChange={companion.setState} />

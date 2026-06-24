@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import type { Id } from "../../../_generated/dataModel";
+import { strategyArtifactSchema } from "../../../../src/contracts/strategy";
 import type { MutationCtx, QueryCtx } from "../../../_generated/server";
 import { requireProjectAccess, requireProjectAccessOrNull } from "../../../_helpers";
 import {
@@ -167,8 +168,6 @@ export async function completeStrategyRunHandler(
     }
   }
 
-  await deletePreviousStrategyArtifacts(ctx, args.projectId);
-
   let contentJson = args.contentJson;
   if (args.researchArtifactId) {
     try {
@@ -179,6 +178,9 @@ export async function completeStrategyRunHandler(
       // Keep original contentJson if parsing fails.
     }
   }
+  validateStrategyArtifactContentJson(contentJson);
+
+  await deletePreviousStrategyArtifacts(ctx, args.projectId);
 
   const artifactId = await createArtifactRecord(ctx, {
     userId: user._id,
@@ -266,7 +268,7 @@ export async function updateStrategyArtifactHandler(
     throw new Error("Artifact is not a strategy artifact.");
   }
 
-  JSON.parse(args.contentJson);
+  validateStrategyArtifactContentJson(args.contentJson);
 
   const timestamp = now();
   await ctx.db.patch(args.artifactId, {
@@ -301,4 +303,8 @@ export async function getLatestStrategyArtifactHandler(
   }
 
   return mapLatestArtifactResponse(latest, latest.contentJson ?? null);
+}
+
+function validateStrategyArtifactContentJson(contentJson: string) {
+  strategyArtifactSchema.parse(JSON.parse(contentJson) as unknown);
 }

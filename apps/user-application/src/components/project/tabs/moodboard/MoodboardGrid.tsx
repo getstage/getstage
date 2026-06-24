@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { MoodboardItem } from "@/data/fixtures/project/moodboardTabFixtures";
+import { PhotoLightbox } from "@/components/project/PhotoLightbox";
 import { CheckIcon } from "./moodboardIcons";
 
 function isRenderableImageSrc(value: string | null | undefined) {
@@ -65,27 +66,41 @@ export function MoodboardGrid({
         })}
       </div>
       {previewItem ? (
-        <MoodboardImagePreview item={previewItem} onClose={() => setPreviewItem(null)} />
+        <MoodboardItemLightbox item={previewItem} onClose={() => setPreviewItem(null)} />
       ) : null}
     </>
   );
 }
 
-function MoodboardGridImage({
+function MoodboardItemLightbox({
   item,
-  fit = "cover",
-  preferFull = false,
+  onClose,
 }: {
   item: MoodboardItem;
-  fit?: "cover" | "contain";
-  preferFull?: boolean;
+  onClose: () => void;
 }) {
-  const sources = useMemo(() => uniqueSources(item, preferFull), [item, preferFull]);
+  const src = uniqueSources(item, true)[0];
+  if (!src) {
+    return null;
+  }
+
+  return (
+    <PhotoLightbox
+      src={src}
+      label={item.title ?? "Reference preview"}
+      originalSrc={item.sourceUrl ?? undefined}
+      onClose={onClose}
+    />
+  );
+}
+
+function MoodboardGridImage({ item }: { item: MoodboardItem }) {
+  const sources = useMemo(() => uniqueSources(item, false), [item]);
   const [sourceIndex, setSourceIndex] = useState(0);
 
   useEffect(() => {
     setSourceIndex(0);
-  }, [item.id, item.image, item.thumbnailUrl, item.imageUrl, preferFull]);
+  }, [item.id, item.image, item.thumbnailUrl, item.imageUrl]);
 
   const src = sources[sourceIndex];
 
@@ -97,70 +112,15 @@ function MoodboardGridImage({
     );
   }
 
-  const className = preferFull
-    ? "max-h-[min(640px,calc(100vh-160px))] max-w-[min(960px,calc(100vw-64px))] w-auto h-auto rounded-[4px] object-contain"
-    : `h-full w-full rounded-[4px] ${fit === "contain" ? "object-contain" : "object-cover"}`;
-
   return (
     <img
       src={src}
       alt=""
-      className={className}
+      className="h-full w-full rounded-[4px] object-cover"
       onError={() => {
         setSourceIndex((current) => current + 1);
       }}
     />
-  );
-}
-
-function MoodboardImagePreview({
-  item,
-  onClose,
-}: {
-  item: MoodboardItem;
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-label={item.title ? `${item.title} fullscreen preview` : "Moodboard fullscreen preview"}
-      onMouseDown={onClose}
-    >
-      <div
-        className="relative flex max-h-[92vh] w-full max-w-[min(980px,94vw)] flex-col gap-3 rounded-[8px] bg-[#0A0A0A] p-3 shadow-[0_16px_60px_rgba(0,0,0,0.32)]"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0 truncate text-[13px] font-medium leading-[1.25] text-[#FAFAFA]">
-            {item.title ?? "Moodboard reference"}
-          </div>
-          <button
-            type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-[#FAFAFA] transition-colors hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
-            onClick={onClose}
-            aria-label="Close fullscreen preview"
-          >
-            <CloseIcon />
-          </button>
-        </div>
-        <div className="flex w-full items-center justify-center overflow-hidden rounded-[6px] bg-[#171717] p-2">
-          <MoodboardGridImage item={item} fit="contain" preferFull />
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -172,10 +132,3 @@ function FullscreenIcon() {
   );
 }
 
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true" className="h-4 w-4">
-      <path d="M4.5 4.5 11.5 11.5M11.5 4.5 4.5 11.5" />
-    </svg>
-  );
-}

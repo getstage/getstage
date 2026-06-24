@@ -302,8 +302,14 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
       );
   }
 
-  if (moodboard.isImporting && (mode === "ai" || mode === "figma")) {
-    return <MoodboardGeneratingState mode={mode} />;
+  if (moodboard.isImporting) {
+    return <MoodboardGeneratingState mode={moodboard.generatingMode} />;
+  }
+
+  // Until the artifact and run queries resolve we don't know if an import is in
+  // flight, so hold instead of flashing the setup screen (tri-state: loading ≠ empty).
+  if (moodboard.isLoading) {
+    return null;
   }
 
   return (
