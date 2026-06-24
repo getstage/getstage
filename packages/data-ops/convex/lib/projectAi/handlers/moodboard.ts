@@ -13,6 +13,7 @@ import {
 } from "../domain/runStore";
 import { normalizeOptional } from "../domain/normalize";
 import { now } from "../domain/time";
+import type { AiModule } from "../domain/validators";
 
 /**
  * Save the moodboard board structure (references + directions + uploaded files)
@@ -81,26 +82,23 @@ export async function saveMoodboardArtifactHandler(
 }
 
 /**
- * Persist a moodboard import as a "running" run so the tab can restore the
- * generating state after it unmounts (leaving/returning to the tab). The engine
- * owns the lifecycle: it marks the run completed/failed when the import ends.
+ * Persist an AI run as "running" so the tab can restore its generating state after it
+ * unmounts. If a stale "running" run for the same module exists, it's failed first
+ * (unless it's the same externalRunId, which is treated as idempotent). The engine owns
+ * the lifecycle and marks the run completed/failed when the work ends.
  */
-export const createMoodboardRunArgs = {
-  projectId: v.id("projects"),
-  title: v.string(),
-  externalRunId: v.optional(v.string()),
-};
-
-export async function createMoodboardRunHandler(
+async function createRunningModuleRun(
   ctx: MutationCtx,
   args: {
     projectId: Id<"projects">;
+    module: AiModule;
     title: string;
+    inputSummary?: string;
     externalRunId?: string;
   },
 ) {
   const { user } = await requireProjectAccess(ctx, args.projectId);
-  const existingRunning = await findRunningRunForProjectModule(ctx, args.projectId, "moodboard");
+  const existingRunning = await findRunningRunForProjectModule(ctx, args.projectId, args.module);
 
   if (existingRunning) {
     const externalRunId = normalizeOptional(args.externalRunId);
@@ -120,14 +118,37 @@ export async function createMoodboardRunHandler(
   const runId = await createRunRecord(ctx, {
     userId: user._id,
     projectId: args.projectId,
-    module: "moodboard",
+    module: args.module,
     title: args.title,
     status: "running",
     trigger: "user",
+    inputSummary: args.inputSummary,
     externalRunId: args.externalRunId,
   });
 
   return { runId: String(runId), startedAt: now() };
+}
+
+export const createMoodboardRunArgs = {
+  projectId: v.id("projects"),
+  title: v.string(),
+  externalRunId: v.optional(v.string()),
+};
+
+export async function createMoodboardRunHandler(
+  ctx: MutationCtx,
+  args: {
+    projectId: Id<"projects">;
+    title: string;
+    externalRunId?: string;
+  },
+) {
+  return createRunningModuleRun(ctx, {
+    projectId: args.projectId,
+    module: "moodboard",
+    title: args.title,
+    externalRunId: args.externalRunId,
+  });
 }
 
 export const completeMoodboardRunArgs = {
@@ -198,36 +219,13 @@ export async function createStyleguideRunHandler(
     externalRunId?: string;
   },
 ) {
-  const { user } = await requireProjectAccess(ctx, args.projectId);
-  const existingRunning = await findRunningRunForProjectModule(ctx, args.projectId, "styleguide");
-
-  if (existingRunning) {
-    const externalRunId = normalizeOptional(args.externalRunId);
-    if (externalRunId && existingRunning.externalRunId === externalRunId) {
-      return { runId: String(existingRunning._id), startedAt: existingRunning.startedAt };
-    }
-
-    const timestamp = now();
-    await ctx.db.patch(existingRunning._id, {
-      status: "failed",
-      errorMessage: "Run was replaced after Stage restarted before a final status.",
-      completedAt: timestamp,
-      updatedAt: timestamp,
-    });
-  }
-
-  const runId = await createRunRecord(ctx, {
-    userId: user._id,
+  return createRunningModuleRun(ctx, {
     projectId: args.projectId,
     module: "styleguide",
     title: args.title,
-    status: "running",
-    trigger: "user",
     inputSummary: args.directionId,
     externalRunId: args.externalRunId,
   });
-
-  return { runId: String(runId), startedAt: now() };
 }
 
 export const getConnectedFigmaAccessTokenArgs = {
