@@ -176,6 +176,60 @@ export async function failMoodboardRunHandler(
   return { failedAt: timestamp };
 }
 
+/**
+ * Persist a style-guide generation as a "running" run (module "styleguide") so the
+ * moodboard tab can restore the generating screen after it unmounts. `directionId` is
+ * stored in inputSummary so the tab knows which direction to re-open. Completion/failure
+ * reuse completeMoodboardRun/failMoodboardRun, which are module-agnostic.
+ */
+export const createStyleguideRunArgs = {
+  projectId: v.id("projects"),
+  title: v.string(),
+  directionId: v.string(),
+  externalRunId: v.optional(v.string()),
+};
+
+export async function createStyleguideRunHandler(
+  ctx: MutationCtx,
+  args: {
+    projectId: Id<"projects">;
+    title: string;
+    directionId: string;
+    externalRunId?: string;
+  },
+) {
+  const { user } = await requireProjectAccess(ctx, args.projectId);
+  const existingRunning = await findRunningRunForProjectModule(ctx, args.projectId, "styleguide");
+
+  if (existingRunning) {
+    const externalRunId = normalizeOptional(args.externalRunId);
+    if (externalRunId && existingRunning.externalRunId === externalRunId) {
+      return { runId: String(existingRunning._id), startedAt: existingRunning.startedAt };
+    }
+
+    const timestamp = now();
+    await ctx.db.patch(existingRunning._id, {
+      status: "failed",
+      errorMessage: "Run was replaced after Stage restarted before a final status.",
+      completedAt: timestamp,
+      updatedAt: timestamp,
+    });
+  }
+
+  const runId = await createRunRecord(ctx, {
+    userId: user._id,
+    projectId: args.projectId,
+    module: "styleguide",
+    title: args.title,
+    status: "running",
+    trigger: "user",
+    inputSummary: args.directionId,
+    externalRunId: args.externalRunId,
+  });
+
+  return { runId: String(runId), startedAt: now() };
+}
+
 export const getConnectedFigmaAccessTokenArgs = {
   projectId: v.id("projects"),
 };

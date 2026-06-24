@@ -225,6 +225,7 @@ const aiRunModule = v.union(
   v.literal("strategy"),
   v.literal("flows"),
   v.literal("moodboard"),
+  v.literal("styleguide"),
   v.literal("generate"),
   v.literal("delivery"),
 );

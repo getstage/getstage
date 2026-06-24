@@ -5,6 +5,7 @@ export const aiModule = v.union(
   v.literal("strategy"),
   v.literal("flows"),
   v.literal("moodboard"),
+  v.literal("styleguide"),
   v.literal("generate"),
   v.literal("delivery"),
 );
@@ -47,5 +48,6 @@ export type AiModule =
   | "strategy"
   | "flows"
   | "moodboard"
+  | "styleguide"
   | "generate"
   | "delivery";

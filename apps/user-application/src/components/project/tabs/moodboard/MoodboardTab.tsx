@@ -136,16 +136,49 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
     return getStyleGuideForDirection(moodboard.data.tabData, directionId) ?? defaultStyleGuide;
   })();
 
+  // Restore the style-guide generating screen after a tab remount: the durable "running"
+  // styleguide run carries the directionId, so we re-open generating for that direction.
+  useEffect(() => {
+    const directionId = moodboard.runningStyleGuideDirectionId;
+    if (!directionId || !moodboard.data) {
+      return;
+    }
+    const name = moodboard.data.tabData.directions.find(
+      (direction) => direction.id === directionId,
+    )?.name;
+    if (!name) {
+      return;
+    }
+    setActiveStyleGuideDirectionName(name);
+    setView("generating-style-guide");
+  }, [moodboard.runningStyleGuideDirectionId, moodboard.data]);
+
   useEffect(() => {
     if (view !== "generating-style-guide" || !activeStyleGuideDirectionName) {
       return;
     }
-    if (!moodboard.styleGuideCompletedAt) {
-      return;
+    const directionId = moodboard.data?.tabData.directions.find(
+      (direction) => direction.name === activeStyleGuideDirectionName,
+    )?.id;
+    const hasSavedGuide =
+      directionId && moodboard.data
+        ? Boolean(getStyleGuideForDirection(moodboard.data.tabData, directionId))
+        : false;
+    // Warm path: the terminal event set styleGuideCompletedAt. Remount/cold path: the
+    // durable run is no longer "running" and the direction now has a saved style guide.
+    const completed =
+      moodboard.styleGuideCompletedAt !== null ||
+      (!moodboard.isGeneratingStyleGuide && hasSavedGuide);
+    if (completed) {
+      setView("style-guide");
     }
-
-    setView("style-guide");
-  }, [activeStyleGuideDirectionName, moodboard.styleGuideCompletedAt, view]);
+  }, [
+    activeStyleGuideDirectionName,
+    moodboard.styleGuideCompletedAt,
+    moodboard.isGeneratingStyleGuide,
+    moodboard.data,
+    view,
+  ]);
 
   function persistBoard(nextItems: MoodboardItem[], nextFolders: Direction[], nextUploadedFiles = uploadedFiles) {
     void moodboard

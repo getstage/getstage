@@ -45,6 +45,8 @@ impl StyleguideWorkflow {
         let provider_id = request.provider_id;
         let project_id = request.context.project_id.clone();
         let direction_id = request.context.direction_id.clone();
+        let auth_token_for_failure = auth_token.clone();
+        let mut convex_run_id: Option<String> = None;
 
         tracing::info!(
             run_id = %run_id,
@@ -65,6 +67,13 @@ impl StyleguideWorkflow {
             let direction_id = direction_id.as_deref().ok_or_else(|| {
                 WorkflowError::InvalidRequest("Missing direction id for Style Guide.".to_string())
             })?;
+
+            // Persist the run as "running" so the moodboard tab can restore the generating
+            // screen (for this direction) after it unmounts. Terminal status is written below.
+            convex_run_id = self
+                .moodboard_repository
+                .create_styleguide_run(&auth_token, project_id, &run_id, direction_id)
+                .await?;
 
             self.tool_started(
                 api_version,
@@ -201,6 +210,10 @@ impl StyleguideWorkflow {
                 .save_moodboard_artifact(&auth_token, project_id, &artifact)
                 .await?;
 
+            self.moodboard_repository
+                .complete_moodboard_run(&auth_token, project_id, convex_run_id.as_deref())
+                .await?;
+
             sink.send(RunEvent::RunCompleted {
                 api_version,
                 run_id: run_id.clone(),
@@ -222,6 +235,23 @@ impl StyleguideWorkflow {
                 error = %error,
                 "styleguide workflow failed"
             );
+
+            if let (Some(token), Some(project_id)) =
+                (auth_token_for_failure.as_deref(), project_id.as_deref())
+            {
+                if let Err(mark_failed_error) = self
+                    .moodboard_repository
+                    .fail_moodboard_run(
+                        token,
+                        project_id,
+                        convex_run_id.as_deref(),
+                        &error.to_string(),
+                    )
+                    .await
+                {
+                    tracing::warn!(%mark_failed_error, "failed to mark Convex styleguide run failed");
+                }
+            }
 
             sink.send(RunEvent::RunFailed {
                 api_version,

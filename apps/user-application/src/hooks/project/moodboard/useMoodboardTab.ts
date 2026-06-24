@@ -114,6 +114,24 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
   // window as loading so the tab never flashes the setup screen before Convex answers.
   const isRunsLoading = isAuthenticated && Boolean(projectId) && moodboardRuns === undefined;
 
+  // Same durable read for style-guide generation: the engine keeps a "styleguide" run at
+  // status "running" (with directionId in inputSummary) until it ends, so the tab can
+  // restore the generating screen for that direction after it unmounts.
+  const styleguideRuns = useQuery(
+    api.projectAi.listRuns,
+    isAuthenticated && projectId
+      ? { projectId: projectId as Id<"projects">, module: "styleguide" }
+      : "skip",
+  );
+  const runningStyleGuideDirectionId = useMemo(() => {
+    const run = (styleguideRuns ?? []).find(
+      (entry) =>
+        entry.status === "running" &&
+        Date.now() - entry.startedAt < MOODBOARD_RUN_STALE_MS,
+    );
+    return run?.inputSummary ?? null;
+  }, [styleguideRuns]);
+
   const data = moodboardArtifact.data;
   const terminalImportEvent = useMemo(
     () => latestTerminalRunEvent(providerRun.activeRunEvents),
@@ -355,7 +373,10 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
 
   const isStyleGuideRunActive =
     !styleGuideRunEnded &&
-    (isGeneratingStyleGuide || styleguideRun.startRun.isPending || styleguideRun.isRunActive);
+    (isGeneratingStyleGuide ||
+      styleguideRun.startRun.isPending ||
+      styleguideRun.isRunActive ||
+      runningStyleGuideDirectionId !== null);
 
   return {
     data,
@@ -383,6 +404,7 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
     generateStyleGuide,
     regenerateStyleGuide,
     isGeneratingStyleGuide: isStyleGuideRunActive,
+    runningStyleGuideDirectionId,
     styleGuideCompletedAt,
     error:
       error ??

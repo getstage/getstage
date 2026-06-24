@@ -145,6 +145,11 @@ export const failMoodboardRun = mutation({
   handler: moodboardHandlers.failMoodboardRunHandler,
 });
 
+export const createStyleguideRun = mutation({
+  args: moodboardHandlers.createStyleguideRunArgs,
+  handler: moodboardHandlers.createStyleguideRunHandler,
+});
+
 export const getConnectedFigmaAccessToken = query({
   args: moodboardHandlers.getConnectedFigmaAccessTokenArgs,
   handler: moodboardHandlers.getConnectedFigmaAccessTokenHandler,
