@@ -45,9 +45,14 @@ jobs:
         run: gh label create auto-fix --description "Loop may auto-address Greptile review comments" --color "5319e7" 2>/dev/null || true
 
       - name: Run maintainable-code loop
-        uses: anthropics/claude-code-action@v1
+        uses: anomalyco/opencode/github@latest
+        env:
+          # Add this secret in repo Settings → Secrets and variables → Actions.
+          # Paste the sk-... key from your OpenCode (Anomaly) dashboard.
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # TODO confirm exact model id with `opencode` `/models` (opencode-go provider).
+          model: opencode-go/glm-5.2-high
           prompt: |
             You are the nightly maintainable-code loop for this repo. Work SAFELY and minimally.
 
@@ -70,7 +75,3 @@ jobs:
                "[auto-fix]"), push, and open a PR into `work` with the report as the body.
                Add the `auto-fix` label. Do NOT merge. Do NOT target main.
             7. If there is nothing safe to do, open no PR and just say so.
-          claude_args: |
-            {
-              "model": "claude-opus-4-8"
-            }
