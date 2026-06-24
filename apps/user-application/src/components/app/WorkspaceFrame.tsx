@@ -50,7 +50,7 @@ export function WorkspaceFrame({
           className="flex min-w-0 flex-1 flex-col self-stretch overflow-hidden rounded-[8px] border border-[#f5f5f5] bg-white"
         >
           <DesktopUpdateBanner />
-          <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+          <div className="stage-window-scroll min-h-0 flex-1 overflow-auto">{children}</div>
         </main>
       </div>
     </div>

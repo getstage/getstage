@@ -101,12 +101,12 @@ export function SidebarAccountMenu({
       <div className="relative w-full">
         {isUserMenuOpen && !collapsed ? (
           <div
-            className="absolute bottom-[44px] left-0 z-50 w-full rounded-[8px] bg-[#F5F5F5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+            className="absolute bottom-[44px] left-0 z-50 w-full rounded-[10px] border border-[#E5E5E5] bg-white p-[8px] shadow-[0_18px_42px_rgba(10,10,10,0.12),0_0.45px_0.5px_rgba(10,10,10,0.25)]"
             role="menu"
             aria-label="Account menu"
           >
-            <div className="rounded-[6px] bg-white p-[8px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-              <div className="px-[4px] pb-[8px] pt-[2px]">
+            <div>
+              <div className="px-[10px] pb-[8px] pt-[2px]">
                 <p className="truncate text-[13px] font-semibold leading-[1.25] text-[#0A0A0A]">
                   {accountLabel}
                 </p>
@@ -119,18 +119,18 @@ export function SidebarAccountMenu({
                   type="button"
                   role="menuitem"
                   onClick={openSettings}
-                  className="flex h-[32px] w-full cursor-pointer items-center rounded-[6px] px-[8px] text-left text-[13px] font-medium leading-none text-[#171717] outline-none transition-colors hover:bg-[#F5F5F5]"
+                  className="flex h-[28px] w-full cursor-pointer items-center rounded-[6px] px-[10px] text-left text-[12px] font-medium leading-[1.25] text-[#262626] outline-none transition-colors hover:bg-[#F5F5F5]"
                 >
                   Settings
                 </button>
               </div>
-              <div className="border-t border-[#E5E5E5] pt-[2px]">
+              <div className="mt-[2px] border-t border-[#E5E5E5] pt-[2px]">
                 <button
                   type="button"
                   role="menuitem"
                   onClick={() => void logOut()}
                   disabled={isLoggingOut}
-                  className="flex h-[32px] w-full cursor-pointer items-center rounded-[6px] px-[8px] text-left text-[13px] font-medium leading-none text-[#171717] outline-none transition-colors hover:bg-[#F5F5F5] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-[28px] w-full cursor-pointer items-center rounded-[6px] px-[10px] text-left text-[12px] font-medium leading-[1.25] text-[#262626] outline-none transition-colors hover:bg-[#F5F5F5] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isLoggingOut ? "Logging out…" : "Log out"}
                 </button>

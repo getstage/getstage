@@ -1,5 +1,5 @@
 import { PrimaryButton } from "./WireframePrimitives";
-import { ArrowLeftIcon, ArrowRightIcon, MonitorIcon } from "./wireframesIcons";
+import { ArrowRightIcon, MonitorIcon } from "./wireframesIcons";
 
 type StyleDirection = {
   id: string;
@@ -12,13 +12,11 @@ export function StyleGuideStep({
   directions,
   selectedDirectionId,
   onSelectDirection,
-  onBack,
   onContinue,
 }: {
   directions: StyleDirection[];
   selectedDirectionId: string | null;
   onSelectDirection: (directionId: string) => void;
-  onBack: () => void;
   onContinue: () => void;
 }) {
   return (
@@ -61,14 +59,6 @@ export function StyleGuideStep({
           <ArrowRightIcon />
         </PrimaryButton>
 
-        <button
-          type="button"
-          onClick={onBack}
-          className="mt-2 inline-flex items-center gap-2 text-[13px] font-medium leading-[1.25] text-[#525252] transition-colors hover:text-[#171717]"
-        >
-          <ArrowLeftIcon />
-          Back
-        </button>
       </div>
     </div>
   );

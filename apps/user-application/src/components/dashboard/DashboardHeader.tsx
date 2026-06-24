@@ -158,7 +158,7 @@ function PeriodMenu({
                 role="menuitemradio"
                 aria-checked={isSelected}
                 onClick={() => onSelect(option.label)}
-                className="grid h-[28px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-[10px] rounded-[6px] px-[10px] text-left text-[12px] font-normal leading-[1.25] text-[#262626] outline-none transition-colors hover:bg-[#f5f5f5] focus-visible:bg-[#f5f5f5]"
+                className="grid h-[28px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-[10px] rounded-[6px] px-[10px] text-left text-[12px] font-medium leading-[1.25] text-[#262626] outline-none transition-colors hover:bg-[#f5f5f5] focus-visible:bg-[#f5f5f5]"
                 style={{ fontFamily: INTER_FONT_FAMILY }}
               >
                 <span className="truncate">{option.label}</span>
