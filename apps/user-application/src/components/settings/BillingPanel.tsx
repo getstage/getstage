@@ -3,7 +3,17 @@ import { settingsSnapshot } from "@/data/settings/settingsSnapshot";
 import { SettingsIcon } from "./SettingsIcons";
 import { SaveButton, SettingsCard, SettingsRow } from "./SettingsPrimitives";
 
-const CREDIT_PACKS = [
+type CreditPack = {
+  credits: string;
+  name: string;
+  description: string;
+  action: string;
+  eyebrow?: string;
+  badge?: string;
+  featured?: boolean;
+};
+
+const CREDIT_PACKS: readonly CreditPack[] = [
   {
     credits: "2,500 Credits",
     name: "Small",
@@ -26,7 +36,7 @@ const CREDIT_PACKS = [
     description: "~ 3 months of extra usage",
     action: "Add Large Pack for $60",
   },
-] as const;
+];
 
 const PURCHASES = [
   { id: "top-up-1", amount: "$15", date: "12/07/2025" },
