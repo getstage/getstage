@@ -17,6 +17,8 @@ export const settingsSnapshot = settingsSnapshotSchema.parse({
     billingCycle: "Monthly",
     renewsOn: "24/05/2026",
     paymentMethod: "Visa Mastercard",
+    creditsUsed: 2_890,
+    creditsTotal: 5_000,
   },
   clients: [
     {

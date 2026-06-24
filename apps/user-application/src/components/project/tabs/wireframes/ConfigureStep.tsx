@@ -6,6 +6,7 @@ export function ConfigureStep({
   wireframeKind,
   screens,
   selectedCount,
+  onBack,
   onChangeType,
   onAddBrandKit,
   onToggle,
@@ -14,6 +15,7 @@ export function ConfigureStep({
   wireframeKind: WireframeKind;
   screens: ScreenItem[];
   selectedCount: number;
+  onBack: () => void;
   onChangeType: () => void;
   onAddBrandKit: () => void;
   onToggle: (id: string) => void;
@@ -71,7 +73,11 @@ export function ConfigureStep({
             placeholder="ex. sticky header with primary CTA, wide hero, keep forms short, mobile-first density..."
           />
         </label>
-        <div className="mt-6 flex justify-end">
+        <div className="mt-6 flex justify-end gap-[6px]">
+          <SecondaryButton size="action" onClick={onBack}>
+            <ArrowLeftIcon />
+            Back
+          </SecondaryButton>
           <PrimaryButton onClick={onGenerate}>
             Generate {selectedCount} Wireframes
             <ArrowRightIcon />
