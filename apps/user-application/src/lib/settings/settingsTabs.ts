@@ -3,7 +3,7 @@ import type { SettingsTab } from "@/models/settings/settings";
 
 export const SETTINGS_TABS: Array<{ key: SettingsTab; label: string; icon: string }> = [
   { key: "profile", label: "Profile", icon: "profile" },
-  { key: "billing", label: "Billing & Credits", icon: "billing" },
+  { key: "billing", label: "Plans & Billing", icon: "billing" },
   { key: "clients", label: "Clients", icon: "clients" },
   { key: "shortcuts", label: "Shortcuts", icon: "shortcuts" },
   { key: "account", label: "Account", icon: "account" },

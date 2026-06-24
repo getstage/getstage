@@ -353,7 +353,6 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
                   <FigmaLinkPanel
                     compact={false}
                     disabled={moodboard.isImporting}
-                    loading={moodboard.isImporting}
                     value={figmaLink}
                     onChange={setFigmaLink}
                     onSubmit={handleFigmaImport}
@@ -409,7 +408,6 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
                 <FigmaLinkPanel
                   compact
                   disabled={moodboard.isImporting}
-                  loading={moodboard.isImporting}
                   value={figmaLink}
                   onChange={setFigmaLink}
                   onSubmit={handleFigmaImport}

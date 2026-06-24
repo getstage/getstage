@@ -102,7 +102,7 @@ A run is "**verified**" only when 1–5 pass **and** the verifier signs off.
 ## Maintainable: <the §9 boxes>
 ## Verifier: Opus 4.8 high (fallback GPT-5.5 high)
 ## STOP condition: <when to halt and report instead of guessing>
-## Est. cost: <iterations × model>
+## Est. cost: <iterations × model> 
 ```
 AI fills it in → **you approve** → loop runs.
 

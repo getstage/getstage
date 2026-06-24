@@ -1,6 +1,6 @@
 # Research root cause analysis — 14 June 2026
 
-**Notion target:** https://app.notion.com/p/3758714fd557804196b8d7543121d81f?v=55c8714fd55782158820088e203de89b&p=37f8714fd55780db8e0ceeac74a075a2&pm=s
+**Notion target:** https://app.notion.com/p/3758714fd557804196b8d7543121d81f?v=55c8714fd55782158820088e203de89b&p=37f8714fd55780db8e0ceeac74a075a2&pm=s  
 **Page ID:** `37f8714f-d557-80db-8e0c-eeac74a075a2`
 
 **Status:** In progress · **Severity:** High · **Area:** Research / stage-engine

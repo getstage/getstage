@@ -30,8 +30,6 @@ export const billingSettingsSchema = z.object({
   billingCycle: z.string(),
   renewsOn: z.string(),
   paymentMethod: z.string(),
-  creditsUsed: z.number(),
-  creditsTotal: z.number().positive(),
 });
 
 export const clientSettingsSchema = z.object({

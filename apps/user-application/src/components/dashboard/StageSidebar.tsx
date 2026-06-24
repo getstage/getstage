@@ -109,7 +109,7 @@ export function StageSidebar({
         <SidebarCreditsCard
           collapsed={collapsed}
           creditsRemaining={0}
-          onTopUp={openBilling}
+          onTopUp={() => setIsCreditsExhaustedModalOpen(true)}
           onManagePlan={openBilling}
         />
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ArrowLeftIcon, ArrowRightIcon, BookOpenIcon, UploadFromDeviceIcon } from "./wireframesIcons";
+import { ArrowRightIcon, BookOpenIcon, UploadFromDeviceIcon } from "./wireframesIcons";
 
 export type BrandSource = "style-guide" | "brand-kit";
 export type BrandSourceChoice = BrandSource | null;
@@ -7,12 +7,10 @@ export type BrandSourceChoice = BrandSource | null;
 export function TypeChooser({
   selectedSource,
   onSelect,
-  onBack,
   onContinue,
 }: {
   selectedSource: BrandSourceChoice;
   onSelect: (source: BrandSource) => void;
-  onBack: () => void;
   onContinue: (source: BrandSource) => void;
 }) {
   const canContinue = selectedSource !== null;
@@ -21,14 +19,6 @@ export function TypeChooser({
     <div className="flex w-[357px] flex-col gap-[6px]">
       <div>
         <div className="flex w-[357px] flex-col gap-1 px-3 pb-3 pt-2">
-          <button
-            type="button"
-            onClick={onBack}
-            className="mb-2 inline-flex w-fit items-center gap-1 text-[12px] font-medium leading-none text-[#737373] transition-colors hover:text-[#171717]"
-          >
-            <ArrowLeftIcon />
-            Back
-          </button>
           <p className="text-[13px] font-semibold leading-[1.5] text-[#0A0A0A]">
             Brand Source
           </p>
