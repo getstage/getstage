@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { setProjectBackDestination } from "@/lib/projectBackDestination";
+import { useToggleTaskCompletionMutation } from "@/hooks/convex-data";
 import type { CSSProperties } from "react";
 import type { DashboardChartPoint, DashboardProject, DashboardTask } from "@/models/dashboard/dashboard";
 import type { DashboardPeriod } from "./DashboardHeader";
@@ -22,7 +23,7 @@ const LABEL_TOP = 304;
 const BAR_GAP = 2;
 const GRID_BLEED_X = 100;
 const INDICATOR_TOP = 68;
-const PROJECT_CARD_WIDTH = 286;
+const PROJECT_CARD_WIDTH = 187;
 
 function estimateTimelineLabelWidth(label: string) {
   return label.length * 7 + 4;
@@ -53,6 +54,7 @@ export function ActivityTimelineChart({
   period: DashboardPeriod;
 }) {
   const navigate = useNavigate();
+  const toggleTaskCompletion = useToggleTaskCompletionMutation();
   const gradientId = useId().replace(/:/g, "");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [width, setWidth] = useState(0);
@@ -169,6 +171,15 @@ export function ActivityTimelineChart({
   );
   const activeProjects = activeIndex === null ? [] : (projectsByPointIndex[activeIndex] ?? []);
   const hoveredProject = activeProjects.find((project) => project.id === hoveredProjectId);
+  const indicatorBubbleWidth = getAvatarBubbleWidth(activeProjects.length);
+  const indicatorBubbleLeft = activeBar
+    ? Math.min(
+        Math.max(0, activeBar.x + activeBar.width / 2 - indicatorBubbleWidth / 2),
+        Math.max(0, width - indicatorBubbleWidth),
+      )
+    : 0;
+  const showHoverCardOnLeft =
+    indicatorBubbleLeft + indicatorBubbleWidth + 8 + PROJECT_CARD_WIDTH > width;
 
   return (
     <div
@@ -258,46 +269,61 @@ export function ActivityTimelineChart({
 
       {activeBar && activeBar.height > 0 && activeProjects.length > 0 ? (
         <div
-          className="absolute z-20 flex items-center rounded-full bg-[#e7e6fd] p-[4px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.35)]"
+          className="absolute z-20"
           style={{
-            left: Math.min(
-              activeBar.x + activeBar.width / 2 + 10,
-              Math.max(0, width - getAvatarBubbleWidth(activeProjects.length)),
-            ),
-            top: Math.max(0, PLOT_BASE_Y - activeBar.height - 12),
+            left: indicatorBubbleLeft,
+            top: Math.max(0, PLOT_BASE_Y - activeBar.height - 40),
           }}
         >
-          <div className="relative flex isolate items-center">
-            {activeProjects.map((project, index) => (
-              <ProjectBadge
-                key={project.id}
-                accentColor={project.accentColor}
-                label={project.logoLabel}
-                imageUrl={project.projectImageUrl}
-                onClick={() => {
-                  setProjectBackDestination({ href: "/", label: "Back to dashboard" });
+          <div className="relative" onPointerLeave={() => setHoveredProjectId(null)}>
+            <div className="flex items-center overflow-hidden rounded-full bg-[#E7E6FD] p-[4px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.35)]">
+              <div className="flex isolate items-center">
+                {activeProjects.map((project, index) => (
+                  <ProjectBadge
+                    key={project.id}
+                    accentColor={project.accentColor}
+                    label={project.logoLabel}
+                    imageUrl={project.projectImageUrl}
+                    onClick={() => {
+                      setProjectBackDestination({ href: "/", label: "Back to dashboard" });
+                      void navigate({
+                        to: "/project/$projectId",
+                        params: { projectId: project.id },
+                      });
+                    }}
+                    onPointerEnter={() => setHoveredProjectId(project.id)}
+                    onFocus={() => setHoveredProjectId(project.id)}
+                    onBlur={() => setHoveredProjectId(null)}
+                    className={cn(
+                      "focus-visible:ring-2 focus-visible:ring-[#3b368e] focus-visible:ring-offset-2",
+                      index < activeProjects.length - 1 && "mr-[-13px]",
+                    )}
+                    style={{
+                      zIndex: hoveredProjectId === project.id
+                        ? activeProjects.length + 1
+                        : activeProjects.length - index,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            {hoveredProject ? (
+              <ProjectHoverCard
+                project={hoveredProject}
+                tasks={getProjectTasks(hoveredProject, tasks)}
+                placement={showHoverCardOnLeft ? "left" : "right"}
+                onTaskClick={(task) => {
                   void navigate({
-                    to: "/project/$projectId",
-                    params: { projectId: project.id },
+                    to: "/tasks/$taskId",
+                    params: { taskId: task.id },
+                    search: {
+                      from: "tasks",
+                      projectId: task.projectId,
+                    },
                   });
                 }}
-                onPointerEnter={() => setHoveredProjectId(project.id)}
-                onFocus={() => setHoveredProjectId(project.id)}
-                onPointerLeave={() => setHoveredProjectId(null)}
-                onBlur={() => setHoveredProjectId(null)}
-                className={cn(
-                  "focus-visible:ring-2 focus-visible:ring-[#3b368e] focus-visible:ring-offset-2",
-                  index < activeProjects.length - 1 && "mr-[-13px]",
-                )}
-                style={{
-                  zIndex: hoveredProjectId === project.id
-                    ? activeProjects.length + 1
-                    : activeProjects.length - index,
-                }}
+                onTaskToggle={(task) => toggleTaskCompletion.mutate(task.id)}
               />
-            ))}
-            {hoveredProject ? (
-              <ProjectHoverCard project={hoveredProject} tasks={getProjectTasks(hoveredProject, tasks)} />
             ) : null}
           </div>
         </div>
@@ -419,38 +445,100 @@ function ProjectBadge({
   );
 }
 
-function ProjectHoverCard({ project, tasks }: { project: DashboardProject; tasks: DashboardTask[] }) {
+function ProjectHoverCard({
+  project,
+  tasks,
+  placement,
+  onTaskClick,
+  onTaskToggle,
+}: {
+  project: DashboardProject;
+  tasks: DashboardTask[];
+  placement: "left" | "right";
+  onTaskClick: (task: DashboardTask) => void;
+  onTaskToggle: (task: DashboardTask) => void;
+}) {
   return (
     <div
-      className="absolute bottom-[calc(100%+20px)] left-1/2 -translate-x-1/2 rounded-[12px] border border-[#e5e5e5] bg-white px-[16px] py-[14px] text-left shadow-[0px_18px_45px_rgba(10,10,10,0.12)]"
+      className={cn(
+        "absolute top-0 z-10 flex flex-col gap-[8px] overflow-hidden rounded-[4px] border-[0.5px] border-solid border-[#D4D4D4] bg-white p-[6px] text-left",
+        placement === "right"
+          ? "left-[calc(100%+8px)]"
+          : "right-[calc(100%+8px)]",
+      )}
       style={{ width: PROJECT_CARD_WIDTH }}
     >
-      <div className="text-[13px] font-medium leading-[1.35] text-[#8a8a8a]">
-        {formatProjectRange(project)}
+      <div className="flex min-w-0 flex-col items-start gap-[4px]">
+        <div
+          className="flex h-[24px] w-[24px] shrink-0 items-center justify-center overflow-hidden text-[9px] font-semibold text-white"
+          style={{ background: project.projectImageUrl ? "#ffffff" : project.accentColor }}
+        >
+          {project.projectImageUrl ? (
+            <img
+              src={project.projectImageUrl}
+              alt=""
+              aria-hidden="true"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            project.logoLabel
+          )}
+        </div>
+        <div className="flex min-w-0 flex-col items-start gap-[2px]">
+          <div className="max-w-full truncate text-[13px] font-medium leading-[1.2] text-[#0A0A0A]">
+            {project.name}
+          </div>
+          <div className="max-w-full truncate text-[12px] font-medium leading-[1.5] text-[#737373]">
+            {formatProjectRange(project)}
+          </div>
+        </div>
       </div>
-      <div className="mt-[8px] text-[16px] font-semibold leading-[1.25] text-[#111121]">{project.name}</div>
-      {project.clientName ? (
-        <div className="mt-[8px] text-[14px] font-medium leading-[1.35] text-[#8a8a8a]">{project.clientName}</div>
-      ) : null}
-      {project.phaseName ? (
-        <div className="mt-[8px] text-[14px] font-medium leading-[1.35] text-[#8a8a8a]">{project.phaseName}</div>
-      ) : null}
-      <div className="mt-[14px] border-t border-[#e5e5e5] pt-[12px]">
+
+      <div className="flex min-w-0 flex-col items-start gap-[2px] border-t-[0.5px] border-solid border-[#D4D4D4] pt-[8px] text-[12px] font-medium leading-[1.5] text-[#4B4B4B]">
+        {project.clientName ? (
+          <div className="max-w-full truncate">
+            {project.clientName}
+          </div>
+        ) : null}
+        {project.phaseName ? (
+          <div className="max-w-full truncate">
+            {project.phaseName}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="border-t-[0.5px] border-solid border-[#D4D4D4] pt-[8px]">
         {tasks.length > 0 ? (
-          <div className="flex flex-col gap-[10px]">
+          <div className="flex flex-col gap-[2px]">
             {tasks.map((task) => (
-              <div key={task.id} className="flex min-w-0 items-center gap-[9px] text-[13px] font-medium leading-[1.35] text-[#1f1f33]">
-                <span className="h-[7px] w-[7px] shrink-0 rounded-[2px] border border-[#1f1f33]" />
-                <span className="min-w-0 flex-1 truncate">{task.title}</span>
-                <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-[#a8a1ff]" />
+              <div
+                key={task.id}
+                className="flex min-w-0 items-center gap-[6px] text-[12px] font-medium leading-[1.5] text-[#4B4B4B]"
+              >
+                <button
+                  type="button"
+                  onClick={() => onTaskToggle(task)}
+                  className="flex h-[12px] w-[12px] shrink-0 items-center justify-center"
+                  aria-label={`Complete ${task.title}`}
+                >
+                  <span className="h-[7px] w-[7px] rounded-[2px] border border-[#4B4B4B] transition-colors hover:border-[#0A0A0A]" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onTaskClick(task)}
+                  className="min-w-0 flex-1 truncate text-left transition-colors hover:text-[#0A0A0A] focus-visible:text-[#0A0A0A]"
+                >
+                  {task.title}
+                </button>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-[13px] font-medium leading-[1.35] text-[#8a8a8a]">No tasks in this phase.</div>
+          <div className="text-[12px] font-normal leading-[1.5] text-[#A3A3A3]">
+            No tasks in this phase.
+          </div>
         )}
       </div>
-      <span className="absolute bottom-[-8px] left-1/2 h-[16px] w-[16px] -translate-x-1/2 rotate-45 border-b border-r border-[#e5e5e5] bg-white" />
     </div>
   );
 }

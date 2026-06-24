@@ -129,26 +129,15 @@ summary,
   cursor: pointer;
 }
 
-/* ============================================================
-   SCROLLBAR (subtle, premium feel)
-   ============================================================ */
-
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Keep every scroll surface functional while hiding native scrollbar chrome. */
+* {
+  scrollbar-width: none !important;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-tertiary);
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* ============================================================

@@ -114,25 +114,27 @@ export function SidebarAccountMenu({
                   {accountMeta}
                 </p>
               </div>
-              <div className="h-px bg-[#E5E5E5]" />
-              <button
-                type="button"
-                role="menuitem"
-                onClick={openSettings}
-                className="mt-[4px] flex h-[32px] w-full cursor-pointer items-center rounded-[6px] px-[8px] text-left text-[13px] font-medium leading-none text-[#171717] outline-none transition-colors hover:bg-[#F5F5F5]"
-              >
-                Settings
-              </button>
-              <div className="my-[4px] h-px bg-[#E5E5E5]" />
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => void logOut()}
-                disabled={isLoggingOut}
-                className="flex h-[32px] w-full cursor-pointer items-center rounded-[6px] px-[8px] text-left text-[13px] font-medium leading-none text-[#171717] outline-none transition-colors hover:bg-[#F5F5F5] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isLoggingOut ? "Logging out…" : "Log out"}
-              </button>
+              <div className="border-t border-[#E5E5E5] pt-[2px]">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={openSettings}
+                  className="flex h-[32px] w-full cursor-pointer items-center rounded-[6px] px-[8px] text-left text-[13px] font-medium leading-none text-[#171717] outline-none transition-colors hover:bg-[#F5F5F5]"
+                >
+                  Settings
+                </button>
+              </div>
+              <div className="border-t border-[#E5E5E5] pt-[2px]">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => void logOut()}
+                  disabled={isLoggingOut}
+                  className="flex h-[32px] w-full cursor-pointer items-center rounded-[6px] px-[8px] text-left text-[13px] font-medium leading-none text-[#171717] outline-none transition-colors hover:bg-[#F5F5F5] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isLoggingOut ? "Logging out…" : "Log out"}
+                </button>
+              </div>
             </div>
           </div>
         ) : null}

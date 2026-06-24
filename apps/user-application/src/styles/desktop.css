@@ -448,7 +448,15 @@ a,
   border-radius: 8px;
   background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
   box-shadow: 0 0.45px 1px rgb(10 10 10 / 25%);
+  font-family: var(--font-body);
   z-index: 45;
+}
+
+.chat-panel button,
+.chat-panel input,
+.chat-panel select,
+.chat-panel textarea {
+  font-family: inherit;
 }
 
 .chat-history-popover {

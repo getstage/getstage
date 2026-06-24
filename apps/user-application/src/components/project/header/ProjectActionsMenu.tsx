@@ -12,7 +12,7 @@ export function ProjectActionsMenu({
 
   return (
     <div
-      className="absolute right-0 top-[35px] z-40 flex w-[212px] flex-col gap-[8px] rounded-[8px] border-2 border-[rgba(0,0,0,0.05)] bg-gradient-to-b from-white to-[#FAFAFA] p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+      className="absolute right-0 top-[35px] z-40 flex w-[212px] flex-col rounded-[8px] border-2 border-[rgba(0,0,0,0.05)] bg-gradient-to-b from-white to-[#FAFAFA] p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
       role="menu"
       aria-label="Project actions"
     >
@@ -23,18 +23,14 @@ export function ProjectActionsMenu({
         <ProjectActionItem onSelect={() => onAction("phases")}>Add or remove phases</ProjectActionItem>
       </div>
 
-      <div className="h-px w-full bg-[#E5E5E5]" />
-
-      <div className="flex w-full flex-col items-start">
+      <div className="flex w-full flex-col items-start border-t border-[#E5E5E5] pt-[2px]">
         <ProjectActionItem onSelect={() => onAction("pause")}>{pauseLabel}</ProjectActionItem>
         {projectStatus !== "completed" ? (
           <ProjectActionItem onSelect={() => onAction("complete")}>Complete Project</ProjectActionItem>
         ) : null}
       </div>
 
-      <div className="h-px w-full bg-[#E5E5E5]" />
-
-      <div className="flex w-full flex-col items-start">
+      <div className="flex w-full flex-col items-start border-t border-[#E5E5E5] pt-[2px]">
         <ProjectActionItem destructive onSelect={() => onAction("delete")}>
           Delete Project
         </ProjectActionItem>
