@@ -28,6 +28,7 @@ let feedConfigured = false;
 let initialAutoCheckScheduled = false;
 let lastAutomaticCheckAt = 0;
 let availableUpdateVersion: string | null = null;
+let prepareQuitForUpdate: (() => Promise<void> | void) | null = null;
 
 type GithubReleaseResponse = {
   html_url?: unknown;
@@ -111,6 +112,10 @@ function clearAvailableUpdate() {
   broadcastUpdateStatus();
 }
 
+export function setUpdateQuitPreparation(handler: () => Promise<void> | void) {
+  prepareQuitForUpdate = handler;
+}
+
 function parseVersion(version: string) {
   return version
     .replace(/^v/i, "")
@@ -169,6 +174,13 @@ async function promptRestartToUpdate(version: string) {
   });
 
   if (response === 0) {
+    if (prepareQuitForUpdate) {
+      try {
+        await prepareQuitForUpdate();
+      } catch (error: unknown) {
+        logUpdateWarning(error instanceof Error ? error.message : "update quit preparation failed");
+      }
+    }
     autoUpdater.quitAndInstall();
   }
 }

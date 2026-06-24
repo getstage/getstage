@@ -17,7 +17,12 @@ import { fetchEngineJson } from "./helpers/sidecar";
 import { loadCompanionWidgetSettings } from "./helpers/companion-preferences";
 import { providerListResponseSchema } from "@stage/data-ops/contracts";
 import { createSidecarSupervisor } from "./sidecar";
-import { checkForUpdates, initAutoUpdates, scheduleAutomaticUpdateCheckIfDue } from "./helpers/auto-update";
+import {
+  checkForUpdates,
+  initAutoUpdates,
+  scheduleAutomaticUpdateCheckIfDue,
+  setUpdateQuitPreparation,
+} from "./helpers/auto-update";
 import {
   createMainWindow,
   destroyOrphanCompanionWindows,
@@ -51,6 +56,21 @@ const authCallbackServer = createDesktopAuthCallbackServer({
 const sidecarSupervisor = createSidecarSupervisor();
 const isDevelopment = !app.isPackaged;
 let sidecarStoppedForQuit = false;
+
+async function stopRuntimeForQuit() {
+  if (sidecarStoppedForQuit) {
+    return;
+  }
+
+  authCallbackServer.stop();
+  try {
+    await sidecarSupervisor.stop();
+  } finally {
+    sidecarStoppedForQuit = true;
+  }
+}
+
+setUpdateQuitPreparation(stopRuntimeForQuit);
 
 function installApplicationMenu() {
   const isMac = process.platform === "darwin";
@@ -280,9 +300,7 @@ app.on("before-quit", (event) => {
   }
 
   event.preventDefault();
-  authCallbackServer.stop();
-  sidecarSupervisor.stop().finally(() => {
-    sidecarStoppedForQuit = true;
+  stopRuntimeForQuit().finally(() => {
     app.quit();
   });
 });
