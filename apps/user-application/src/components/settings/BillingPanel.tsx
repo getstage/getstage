@@ -36,6 +36,7 @@ const PURCHASES = [
 export function BillingPanel() {
   const navigate = useNavigate();
   const { billing } = settingsSnapshot;
+  const creditsUsedPercentage = (billing.creditsUsed / billing.creditsTotal) * 100;
 
   function openSubscriptions() {
     sessionStorage.setItem("stage:subscriptions-back-label", "Back to billing & credits");
@@ -108,13 +109,13 @@ export function BillingPanel() {
           <SettingsRow className="flex flex-col gap-[12px]">
             <div className="flex items-end justify-between">
               <div className="flex flex-col gap-[4px]">
-                <p className="text-[16px] font-semibold leading-[1.2] tracking-[-0.16px] text-[#0A0A0A]">2,890</p>
-                <p className="text-[12px] font-medium leading-[1.5] text-[#737373]">of 5,000 credits</p>
+                <p className="text-[16px] font-semibold leading-[1.2] tracking-[-0.16px] text-[#0A0A0A]">{billing.creditsUsed.toLocaleString("en-US")}</p>
+                <p className="text-[12px] font-medium leading-[1.5] text-[#737373]">of {billing.creditsTotal.toLocaleString("en-US")} credits</p>
               </div>
-              <p className="text-[11px] font-medium leading-[1.5] text-[#737373]">55% used</p>
+              <p className="text-[11px] font-medium leading-[1.5] text-[#737373]">{Math.round(creditsUsedPercentage)}% used</p>
             </div>
             <div className="h-[7px] w-full overflow-hidden rounded-[4px] bg-[#E5E5E5]">
-              <div className="h-full w-[65.62%] rounded-[4px] bg-[#3B368E]" />
+              <div className="h-full rounded-[4px] bg-[#3B368E]" style={{ width: `${creditsUsedPercentage}%` }} />
             </div>
           </SettingsRow>
         </SettingsCard>
