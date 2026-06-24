@@ -395,7 +395,6 @@ export function StageV2LandingPage() {
                   <li><img src="https://unpkg.com/simple-icons@v13/icons/openai.svg" alt="Codex" /><span>Codex</span></li>
                   <li><img src="https://unpkg.com/simple-icons@v13/icons/figma.svg" alt="Figma" /><span>Figma</span></li>
                   <li><img src="https://unpkg.com/simple-icons@v13/icons/notion.svg" alt="Notion" /><span>Notion</span></li>
-                  <li><img src="/stage-v2-lp/assets/icons/stitch.svg" alt="Stitch" /><span>Stitch</span></li>
                 </ul>
               </div>
             </section>

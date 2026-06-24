@@ -1,17 +1,15 @@
-import { PanelTitle, PrimaryButton, SecondaryButton } from "./WireframePrimitives";
-import { ArrowLeftIcon, ArrowRightIcon, TrashIcon, UploadFromDeviceIcon } from "./wireframesIcons";
+import { PanelTitle, PrimaryButton } from "./WireframePrimitives";
+import { ArrowRightIcon, TrashIcon, UploadFromDeviceIcon } from "./wireframesIcons";
 
 export function BrandKitStep({
   hasBrandKit,
   onUpload,
   onRemove,
-  onBack,
   onContinue,
 }: {
   hasBrandKit: boolean;
   onUpload: () => void;
   onRemove: () => void;
-  onBack: () => void;
   onContinue: () => void;
 }) {
   return (
@@ -60,16 +58,10 @@ export function BrandKitStep({
           </div>
         </div>
       ) : null}
-      <div className="flex gap-[6px]">
-        <SecondaryButton size="action" onClick={onBack}>
-          <ArrowLeftIcon />
-          Back
-        </SecondaryButton>
-        <PrimaryButton disabled={!hasBrandKit} onClick={onContinue} className="flex-1">
-          Continue
-          <ArrowRightIcon />
-        </PrimaryButton>
-      </div>
+      <PrimaryButton disabled={!hasBrandKit} onClick={onContinue} className="w-full">
+        Continue
+        <ArrowRightIcon />
+      </PrimaryButton>
     </div>
   );
 }

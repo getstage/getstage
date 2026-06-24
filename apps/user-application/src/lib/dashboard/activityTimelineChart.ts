@@ -118,10 +118,13 @@ export function formatProjectRange(project: DashboardProject) {
 }
 
 export function getProjectTasks(project: DashboardProject, tasks: DashboardTask[]) {
-  const now = Date.now();
   return tasks
-    .filter((task) => task.projectName === project.name && !task.isCompleted)
-    .filter((task) => (task.dueDate ?? task.updatedAt) >= now)
-    .sort((a, b) => (a.dueDate ?? a.updatedAt) - (b.dueDate ?? b.updatedAt))
+    .filter((task) => (task.projectId === project.id || (!task.projectId && task.projectName === project.name)) && !task.isCompleted)
+    .sort((a, b) => {
+      if (a.dueDate && b.dueDate) return a.dueDate - b.dueDate;
+      if (a.dueDate) return -1;
+      if (b.dueDate) return 1;
+      return b.updatedAt - a.updatedAt;
+    })
     .slice(0, 3);
 }

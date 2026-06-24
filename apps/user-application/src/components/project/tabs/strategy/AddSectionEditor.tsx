@@ -21,8 +21,9 @@ export function AddSectionEditor({
         <input
           value={title}
           onChange={(event) => onTitleChange(event.target.value)}
-          aria-label="New strategy section title"
-          className="h-[31px] w-[145px] rounded-[4px] bg-[#F5F5F5] px-3 text-[15px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] outline-none"
+          placeholder="Section title..."
+          aria-label="New section title"
+          className="h-[31px] w-[145px] rounded-[4px] bg-[#F5F5F5] px-3 text-[13px] font-medium leading-[1.4] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#525252]"
         />
       </div>
       <div className="flex min-h-[164px] flex-col justify-between rounded-[8px] bg-[#F5F5F5] p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">

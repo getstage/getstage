@@ -12,10 +12,10 @@ import {
   buildDashboardMetricsFromSummaries,
   buildDashboardPipelineFromSummaries,
   buildDashboardRevenue,
-  buildDashboardTasks,
   buildSidebarProjectsFromSummaries,
 } from "@/lib/dashboard/projectContextDashboard";
-import { useProjectsQuery } from "@/hooks/convex-data";
+import { useProjectsQuery, useUserTasksQuery } from "@/hooks/convex-data";
+import type { DashboardTask } from "@/models/dashboard/dashboard";
 
 const DEFAULT_DASHBOARD_PERIOD: DashboardPeriod = "This month";
 
@@ -65,6 +65,7 @@ function isInPeriod(timestamp: number | undefined, period: DashboardPeriod) {
 export function DashboardContextView() {
   const navigate = useNavigate();
   const projectsQuery = useProjectsQuery();
+  const tasksQuery = useUserTasksQuery({ limit: 200 });
   const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>(DEFAULT_DASHBOARD_PERIOD);
   const projects = projectsQuery.data ?? [];
   const selectedProjectSummary = projects.find((project) => project.status === "active") ?? projects[0] ?? null;
@@ -80,7 +81,28 @@ export function DashboardContextView() {
         : "Connect Stage to load live project data.";
   const dashboardMetrics = buildDashboardMetricsFromSummaries(projects);
   const dashboardChart = buildDashboardChart(null, selectedPeriod);
-  const dashboardTasks = buildDashboardTasks(null);
+  const allDashboardTasks = useMemo<DashboardTask[]>(() => {
+    const projectsById = new Map(projects.map((project) => [project.id, project]));
+
+    return (tasksQuery.data ?? []).map((task) => {
+      const project = projectsById.get(task.projectId);
+      return {
+        id: task.id,
+        title: task.title,
+        projectId: task.projectId,
+        projectName: project?.name ?? "Untitled project",
+        projectImageUrl: project?.projectImageUrl,
+        dueDate: task.dueDate,
+        updatedAt: task.updatedAt,
+        isCompleted: task.isCompleted,
+      };
+    });
+  }, [projects, tasksQuery.data]);
+  const dashboardTasks = useMemo(() => ({
+    recentActivity: [...allDashboardTasks]
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, 3),
+  }), [allDashboardTasks]);
   const projectImageByName = useMemo(
     () =>
       new Map(
@@ -92,8 +114,10 @@ export function DashboardContextView() {
     [projects],
   );
   const periodDashboardTasks = useMemo(() => ({
-    upcomingTasks: dashboardTasks.upcomingTasks
-      .filter((task) => isInPeriod(task.dueDate ?? task.updatedAt, selectedPeriod))
+    upcomingTasks: allDashboardTasks
+      .filter((task) => !task.isCompleted && isInPeriod(task.dueDate ?? task.updatedAt, selectedPeriod))
+      .sort((a, b) => (a.dueDate ?? a.updatedAt) - (b.dueDate ?? b.updatedAt))
+      .slice(0, 3)
       .map((task) => ({
         ...task,
         projectImageUrl: task.projectImageUrl ?? projectImageByName.get(task.projectName),
@@ -104,7 +128,7 @@ export function DashboardContextView() {
         ...task,
         projectImageUrl: task.projectImageUrl ?? projectImageByName.get(task.projectName),
       })),
-  }), [dashboardTasks.recentActivity, dashboardTasks.upcomingTasks, projectImageByName, selectedPeriod]);
+  }), [allDashboardTasks, dashboardTasks.recentActivity, projectImageByName, selectedPeriod]);
   const dashboardPipeline = buildDashboardPipelineFromSummaries(projects);
   const dashboardRevenue = buildDashboardRevenue(null);
   const timelineProjects = buildSidebarProjectsFromSummaries(projects);
@@ -132,7 +156,7 @@ export function DashboardContextView() {
           <ActivityTimelineChart
             points={dashboardChart}
             projects={timelineProjects}
-            tasks={[...periodDashboardTasks.upcomingTasks, ...periodDashboardTasks.recentActivity]}
+            tasks={allDashboardTasks}
             period={selectedPeriod}
           />
         )}

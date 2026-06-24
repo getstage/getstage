@@ -53,7 +53,7 @@ export function StrategyTab({
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editSections, setEditSections] = useState<StrategySection[]>([]);
-  const [draftTitle, setDraftTitle] = useState("Enter Title Here");
+  const [draftTitle, setDraftTitle] = useState("");
   const [draftBody, setDraftBody] = useState("");
   const [runError, setRunError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -271,6 +271,20 @@ export function StrategyTab({
     )));
   }
 
+  function startAddingSection() {
+    setDraftTitle("");
+    setDraftBody("");
+    setSaveError(null);
+    setIsAdding(true);
+  }
+
+  function cancelAddingSection() {
+    setDraftTitle("");
+    setDraftBody("");
+    setSaveError(null);
+    setIsAdding(false);
+  }
+
   function updateSectionEmoji(sectionId: string, emoji: string) {
     if (isEditing) {
       setEditSections((current) => current.map((section) => (
@@ -307,8 +321,13 @@ export function StrategyTab({
   }
 
   async function saveDraftSection() {
-    const title = draftTitle.trim() || "Untitled Strategy Section";
-    const body = draftBody.trim() || "Write here...";
+    const title = draftTitle.trim();
+    const body = draftBody.trim();
+    if (!title || !body) {
+      setSaveError("Add a section title and body.");
+      return;
+    }
+
     const baseSections = isEditing ? editSections : sections;
     const nextSections = [
       ...baseSections,
@@ -326,7 +345,7 @@ export function StrategyTab({
       if (isEditing) {
         setEditSections(cloneSections(nextSections));
       }
-      setDraftTitle("Enter Title Here");
+      setDraftTitle("");
       setDraftBody("");
       setIsAdding(false);
     } catch {
@@ -560,6 +579,9 @@ export function StrategyTab({
                 isRegenerating={regeneratingSectionId === section.id}
                 onSectionChange={(nextSection) => updateEditSection(section.id, nextSection)}
                 onEmojiChange={(emoji) => void updateSectionEmoji(section.id, emoji)}
+                onDelete={section.id.startsWith("custom-")
+                  ? () => setEditSections((current) => current.filter((item) => item.id !== section.id))
+                  : undefined}
                 onApprove={() => void approveSection(section.id)}
                 onRegenerate={() => void handleRegenerateSection(section.id)}
               />
@@ -573,15 +595,16 @@ export function StrategyTab({
               onTitleChange={setDraftTitle}
               onBodyChange={setDraftBody}
               onSave={saveDraftSection}
-              onCancel={() => setIsAdding(false)}
+              onCancel={cancelAddingSection}
             />
           ) : null}
 
-          <div className={cn("flex flex-wrap items-center justify-between gap-4", isEditing && "opacity-50")}>
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <button
               type="button"
-              onClick={() => setIsAdding(true)}
-              className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-[6px] py-2 pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#F5F5F5]"
+              onClick={startAddingSection}
+              disabled={isAdding || isRunBusy}
+              className="inline-flex h-8 items-center gap-2 rounded-[6px] text-[13px] font-medium leading-[1.25] text-[#525252] transition-colors hover:text-[#171717] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <PlusIcon />
               Add Section

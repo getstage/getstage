@@ -49,7 +49,7 @@ export function ProjectTypeStep({
                   onClick={() => onProjectTypeChange(option.value)}
                   aria-pressed={selected}
                   className={cn(
-                    "flex min-w-0 cursor-pointer items-center justify-center gap-[8px] overflow-hidden rounded-[6px] border px-[12px] py-[44px] text-[12px] font-medium leading-none transition-colors",
+                    "flex min-w-0 cursor-pointer items-center justify-center gap-[8px] rounded-[6px] border px-[12px] py-[44px] text-[12px] font-medium leading-[1.25] transition-colors",
                     selected
                       ? "border-[#dbd9fc] bg-[#e7e6fd] text-[#16115a]"
                       : "border-transparent bg-[#f5f5f5] text-[#525252] hover:bg-[#eeeeee] hover:text-[#171717]",

@@ -39,6 +39,7 @@ export function StrategySectionCard({
   isRegenerating = false,
   onSectionChange,
   onEmojiChange,
+  onDelete,
   onApprove,
   onRegenerate,
 }: {
@@ -48,6 +49,7 @@ export function StrategySectionCard({
   isRegenerating?: boolean;
   onSectionChange: (section: StrategySection) => void;
   onEmojiChange: (emoji: string) => void;
+  onDelete?: () => void;
   onApprove: () => void;
   onRegenerate: () => void;
 }) {
@@ -141,6 +143,17 @@ export function StrategySectionCard({
             </h2>
           </div>
           <StatusPill status={section.status} />
+          {isEditing && onDelete ? (
+            <button
+              type="button"
+              onClick={onDelete}
+              aria-label={`Delete ${title.label}`}
+              title="Delete section"
+              className="ml-auto flex h-[28px] w-[28px] shrink-0 cursor-pointer items-center justify-center rounded-[5px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.18)] transition-colors hover:bg-[#FEF2F2]"
+            >
+              <img src="/logos/trash.svg" alt="" aria-hidden="true" className="h-[14px] w-[14px]" />
+            </button>
+          ) : null}
         </div>
         <div
           className={`grid transition-[grid-template-rows,opacity] duration-200 ${

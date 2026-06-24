@@ -84,6 +84,15 @@ body {
   font-size: 15px;
 }
 
+button,
+input,
+textarea,
+select,
+option {
+  font-family: var(--font-body);
+  letter-spacing: 0;
+}
+
 html.stage-task-dragging,
 html.stage-task-dragging * {
   cursor: grabbing !important;
@@ -129,10 +138,7 @@ summary,
   cursor: pointer;
 }
 
-/* ============================================================
-   SCROLLBAR (subtle, premium feel)
-   ============================================================ */
-
+/* Keep native scrollbars subtle on internal controls and lists. */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -143,12 +149,23 @@ summary,
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
   border-radius: 3px;
+  background: var(--color-border);
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-tertiary);
+}
+
+/* The main workspace scrolls, but its window-level scrollbar stays hidden. */
+.stage-window-scroll {
+  scrollbar-width: none;
+}
+
+.stage-window-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* ============================================================

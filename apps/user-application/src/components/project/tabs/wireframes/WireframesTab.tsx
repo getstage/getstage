@@ -126,7 +126,6 @@ export function WireframesTab({
           <TypeChooser
             selectedSource={brandSource}
             onSelect={setBrandSource}
-            onBack={() => setStep("choose-kind")}
             onContinue={continueFromSource}
           />
         </CanvasShell>
@@ -163,10 +162,6 @@ export function WireframesTab({
             }))}
           selectedDirectionId={styleDirectionId}
           onSelectDirection={setStyleDirectionId}
-          onBack={() => {
-            setBrandSource(null);
-            setStep("choose-type");
-          }}
           onContinue={() => {
             if (styleDirectionId) {
               setStep("configure");
@@ -181,10 +176,6 @@ export function WireframesTab({
             hasBrandKit={hasBrandKit}
             onUpload={() => setHasBrandKit(true)}
             onRemove={() => setHasBrandKit(false)}
-            onBack={() => {
-              setBrandSource(null);
-              setStep("choose-type");
-            }}
             onContinue={() => setStep("configure")}
           />
         </CanvasShell>
@@ -195,17 +186,6 @@ export function WireframesTab({
           wireframeKind={wireframeKind ?? "lofi"}
           screens={screens}
           selectedCount={selectedCount}
-          onBack={() => {
-            if (brandSource === "brand-kit") {
-              setStep("brand-kit");
-              return;
-            }
-            if (brandSource === "style-guide") {
-              setStep("style-guide");
-              return;
-            }
-            setStep("choose-type");
-          }}
           onChangeType={() => setStep("choose-kind")}
           onAddBrandKit={() => {
             setWireframeKind("hifi");
