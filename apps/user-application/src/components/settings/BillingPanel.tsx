@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { settingsSnapshot } from "@/data/settings/settingsSnapshot";
+import type { BillingSettings } from "@/models/settings/settings";
 import { SettingsIcon } from "./SettingsIcons";
 import { SaveButton, SettingsCard, SettingsRow } from "./SettingsPrimitives";
 
@@ -26,11 +27,6 @@ const CREDIT_PACKS = [
     description: "~ 3 months of extra usage",
     action: "Add Large Pack for $60",
   },
-] as const;
-
-const PURCHASES = [
-  { id: "top-up-1", amount: "$15", date: "12/07/2025" },
-  { id: "top-up-2", amount: "$15", date: "12/07/2025" },
 ] as const;
 
 export function BillingPanel() {
@@ -163,7 +159,7 @@ export function BillingPanel() {
           </div>
         </SettingsCard>
 
-        <PurchaseHistory />
+        <PurchaseHistory purchases={billing.purchases} />
       </section>
     </div>
   );
@@ -187,7 +183,7 @@ function PlanDetail({ label, value }: { label: string; value: string }) {
   );
 }
 
-function PurchaseHistory() {
+function PurchaseHistory({ purchases }: { purchases: BillingSettings["purchases"] }) {
   const columns = "grid-cols-[repeat(5,minmax(0,1fr))]";
 
   return (
@@ -198,7 +194,9 @@ function PurchaseHistory() {
         ))}
       </div>
       <div className="rounded-[8px] bg-gradient-to-b from-white to-[#FAFAFA] px-[16px] py-[16px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        {PURCHASES.map((purchase, index) => (
+        {purchases.length === 0 ? (
+          <p className="text-[13px] text-[#737373]">No purchases yet.</p>
+        ) : purchases.map((purchase, index) => (
           <div
             key={purchase.id}
             className={`grid ${columns} items-center gap-[24px] ${index > 0 ? "mt-[20px] border-t border-[#E5E5E5] pt-[20px]" : ""}`}

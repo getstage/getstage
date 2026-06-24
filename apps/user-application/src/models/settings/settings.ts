@@ -32,6 +32,7 @@ export const billingSettingsSchema = z.object({
   paymentMethod: z.string(),
   creditsUsed: z.number(),
   creditsTotal: z.number().positive(),
+  purchases: z.array(z.object({ id: z.string(), amount: z.string(), date: z.string() })),
 });
 
 export const clientSettingsSchema = z.object({

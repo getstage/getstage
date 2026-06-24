@@ -19,6 +19,7 @@ export const settingsSnapshot = settingsSnapshotSchema.parse({
     paymentMethod: "Visa Mastercard",
     creditsUsed: 2_890,
     creditsTotal: 5_000,
+    purchases: [],
   },
   clients: [
     {
