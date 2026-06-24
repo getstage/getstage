@@ -102,7 +102,7 @@ export function ProjectStepView({
   const flowsArtifact = useFlowsArtifact(project.id, { enabled: shouldCheckFlowsArtifact });
   const wireframesArtifact = useWireframesArtifact(project.id, { enabled: shouldCheckWireframesArtifact });
   const stepStatus: ProjectStepStatus = {
-    research: activeTab === "research" || researchArtifact.hasArtifact,
+    research: activeTab === "research" || researchArtifact.hasArtifact || researchArtifact.isLoading,
     strategy: activeTab === "strategy" || strategyArtifact.hasArtifact,
     moodboard: activeTab === "moodboard" || moodboardArtifact.hasArtifact,
     flows: activeTab === "flows" || flowsArtifact.hasArtifact,

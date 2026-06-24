@@ -3,9 +3,18 @@ import { useState } from "react";
 type PhotoLightboxProps = {
   src: string;
   onClose: () => void;
+  /** Header label. Defaults to the Research wording. */
+  label?: string;
+  /** Target for "Open original". Defaults to the displayed image src. */
+  originalSrc?: string;
 };
 
-export function PhotoLightbox({ src, onClose }: PhotoLightboxProps) {
+export function PhotoLightbox({
+  src,
+  onClose,
+  label = "Refero screen preview",
+  originalSrc,
+}: PhotoLightboxProps) {
   const [zoom, setZoom] = useState(1);
   const canZoomIn = zoom < 2;
   const canZoomOut = zoom > 1;
@@ -15,7 +24,7 @@ export function PhotoLightbox({ src, onClose }: PhotoLightboxProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-[#0A0A0A]/80 p-4 backdrop-blur-[6px]"
       role="dialog"
       aria-modal="true"
-      aria-label="Research reference preview"
+      aria-label={label}
     >
       <button
         type="button"
@@ -25,7 +34,7 @@ export function PhotoLightbox({ src, onClose }: PhotoLightboxProps) {
       />
       <div className="relative flex h-[calc(100vh-32px)] w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[10px] bg-[#111111] shadow-[0_24px_90px_rgba(0,0,0,0.45)]">
         <div className="flex h-11 shrink-0 items-center justify-between border-b border-white/10 bg-[#171717] px-3">
-          <p className="text-[12px] font-medium text-white/75">Refero screen preview</p>
+          <p className="text-[12px] font-medium text-white/75">{label}</p>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -47,7 +56,7 @@ export function PhotoLightbox({ src, onClose }: PhotoLightboxProps) {
               +
             </button>
             <a
-              href={src}
+              href={originalSrc ?? src}
               target="_blank"
               rel="noreferrer"
               className="h-7 rounded-[5px] bg-white px-2 py-[7px] text-[12px] font-medium leading-none text-[#111111]"

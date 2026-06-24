@@ -130,6 +130,21 @@ export const saveMoodboardArtifact = mutation({
   handler: moodboardHandlers.saveMoodboardArtifactHandler,
 });
 
+export const createMoodboardRun = mutation({
+  args: moodboardHandlers.createMoodboardRunArgs,
+  handler: moodboardHandlers.createMoodboardRunHandler,
+});
+
+export const completeMoodboardRun = mutation({
+  args: moodboardHandlers.completeMoodboardRunArgs,
+  handler: moodboardHandlers.completeMoodboardRunHandler,
+});
+
+export const failMoodboardRun = mutation({
+  args: moodboardHandlers.failMoodboardRunArgs,
+  handler: moodboardHandlers.failMoodboardRunHandler,
+});
+
 export const getConnectedFigmaAccessToken = query({
   args: moodboardHandlers.getConnectedFigmaAccessTokenArgs,
   handler: moodboardHandlers.getConnectedFigmaAccessTokenHandler,

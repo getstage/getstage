@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { RunEvent } from "@stage/data-ops/contracts";
-import { useMutation as useConvexMutation } from "convex/react";
+import type { Id } from "@stage/data-ops/convex/data-model";
+import { useMutation as useConvexMutation, useQuery } from "convex/react";
+import { useDesktopAuth } from "@/lib/auth";
 import {
   tabStateToMoodboardArtifact,
   type MoodboardBoardState,
@@ -85,6 +87,21 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
   const [importRunEnded, setImportRunEnded] = useState(false);
   const [styleGuideRunEnded, setStyleGuideRunEnded] = useState(false);
   const [styleGuideCompletedAt, setStyleGuideCompletedAt] = useState<number | null>(null);
+
+  // The in-memory active run is lost when the Moodboard tab unmounts (leaving the tab).
+  // Convex is the durable truth: the engine keeps a moodboard run at status "running"
+  // until the import ends, so reading it restores the generating screen on return.
+  const { isAuthenticated } = useDesktopAuth();
+  const moodboardRuns = useQuery(
+    api.projectAi.listRuns,
+    isAuthenticated && projectId
+      ? { projectId: projectId as Id<"projects">, module: "moodboard" }
+      : "skip",
+  );
+  const hasPersistedRunningRun = useMemo(
+    () => (moodboardRuns ?? []).some((run) => run.status === "running"),
+    [moodboardRuns],
+  );
 
   const data = moodboardArtifact.data;
   const terminalImportEvent = useMemo(
@@ -342,7 +359,14 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
     generateWithAi,
     isImporting:
       !importRunEnded &&
-      (providerRun.startRun.isPending || providerRun.isRunActive),
+      (providerRun.startRun.isPending ||
+        providerRun.isRunActive ||
+        hasPersistedRunningRun),
+    // Figma vs Refero label for the generating screen. After a remount the in-memory
+    // source may be gone (restored from Convex), so default to the Refero ("ai") label.
+    generatingMode: (providerRun.activeRunSource === "figma" ? "figma" : "ai") as
+      | "ai"
+      | "figma",
     runEvents: providerRun.activeRunEvents,
     acceptUploads: MOODBOARD_IMAGE_ACCEPT,
     generateStyleGuide,

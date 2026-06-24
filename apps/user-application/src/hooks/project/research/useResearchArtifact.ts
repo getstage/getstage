@@ -81,7 +81,7 @@ export function useResearchArtifact(
 
   return {
     data,
-    isLoading: isAuthLoading || (enabled && Boolean(projectId) && record === undefined),
+    isLoading: isAuthLoading || (queryEnabled && record === undefined),
     hasArtifact: data !== null,
     parseError,
     parseErrorMessage: parseError

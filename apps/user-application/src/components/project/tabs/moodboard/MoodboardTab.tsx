@@ -302,8 +302,8 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
       );
   }
 
-  if (moodboard.isImporting && (mode === "ai" || mode === "figma")) {
-    return <MoodboardGeneratingState mode={mode} />;
+  if (moodboard.isImporting) {
+    return <MoodboardGeneratingState mode={moodboard.generatingMode} />;
   }
 
   return (

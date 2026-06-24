@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import type { ProviderId } from "@stage/data-ops/contracts";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
@@ -17,17 +17,9 @@ export function useStrategySectionRegenerate(projectId: string) {
   const providerPreferences = useProviderPreferences();
   const providers = useProviderStatus();
   const chatDefaults = useChatDefaults();
-  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
 
   const isRegenerating = providerRun.isStarting || providerRun.isRunActive;
-  const persistedSectionId = sectionIdFromSource(providerRun.activeRunSource);
-  const visibleActiveSectionId = activeSectionId ?? persistedSectionId;
-
-  useEffect(() => {
-    if (!isRegenerating && activeSectionId) {
-      setActiveSectionId(null);
-    }
-  }, [isRegenerating, activeSectionId]);
+  const visibleActiveSectionId = sectionIdFromSource(providerRun.activeRunSource);
 
   const regenerate = useCallback(
     async (sectionId: string, providerId: ProviderId) => {
@@ -41,8 +33,6 @@ export function useStrategySectionRegenerate(projectId: string) {
         isEnabled: providerPreferences.isProviderEnabled(providerId),
         context: "run",
       });
-
-      setActiveSectionId(sectionId);
 
       await providerRun.startRun.mutateAsync({
         providerId,

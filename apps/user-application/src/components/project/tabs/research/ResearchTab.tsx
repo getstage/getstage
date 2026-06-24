@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 import { CompanySnapshot } from "./CompanySnapshot";
 import { CompetitiveAnalysis } from "./CompetitiveAnalysis";
 import { Opportunities } from "./Opportunities";
-import { PhotoLightbox } from "./PhotoLightbox";
+import { PhotoLightbox } from "@/components/project/PhotoLightbox";
 import { AddSectionEditor } from "../strategy/AddSectionEditor";
 import { CustomSections } from "./CustomSections";
 import { NotionParentPageDialog } from "./NotionParentPageDialog";

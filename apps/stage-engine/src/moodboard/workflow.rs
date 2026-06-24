@@ -54,6 +54,8 @@ impl MoodboardWorkflow {
     ) {
         let provider_id = request.provider_id;
         let project_id = request.context.project_id.clone();
+        let auth_token_for_failure = auth_token.clone();
+        let mut convex_run_id: Option<String> = None;
 
         tracing::info!(
             run_id = %run_id,
@@ -77,6 +79,13 @@ impl MoodboardWorkflow {
                     "Moodboard import needs a query or Figma link.".to_string(),
                 ));
             }
+
+            // Persist the run as "running" so the tab can restore the generating
+            // screen after it unmounts. The terminal status is written below.
+            convex_run_id = self
+                .repository
+                .create_moodboard_run(&auth_token, project_id, &run_id, "Generate moodboard")
+                .await?;
 
             self.tool_started(
                 api_version,
@@ -138,6 +147,10 @@ impl MoodboardWorkflow {
                 .save_moodboard_artifact(&auth_token, project_id, &artifact)
                 .await?;
 
+            self.repository
+                .complete_moodboard_run(&auth_token, project_id, convex_run_id.as_deref())
+                .await?;
+
             sink.send(RunEvent::RunCompleted {
                 api_version,
                 run_id: run_id.clone(),
@@ -152,6 +165,23 @@ impl MoodboardWorkflow {
 
         if let Err(error) = result {
             tracing::error!(run_id = %run_id, error = %error, "moodboard import workflow failed");
+            if let (Some(token), Some(project_id)) =
+                (auth_token_for_failure.as_deref(), project_id.as_deref())
+            {
+                if let Err(mark_failed_error) = self
+                    .repository
+                    .fail_moodboard_run(
+                        token,
+                        project_id,
+                        convex_run_id.as_deref(),
+                        &error.to_string(),
+                    )
+                    .await
+                {
+                    tracing::warn!(%mark_failed_error, "failed to mark Convex moodboard run failed");
+                }
+            }
+
             sink.send(RunEvent::RunFailed {
                 api_version,
                 run_id,
@@ -361,31 +391,8 @@ async fn fetch_refero_screen_bytes(
     refero: &ReferoService,
     screen: &ReferoReference,
 ) -> Option<Vec<u8>> {
-    for url in [screen.image_url.as_deref(), screen.thumbnail_url.as_deref()] {
-        let Some(url) = url.filter(|value| value.starts_with("https://")) else {
-            continue;
-        };
-
-        match fetch_importable_image_url(url).await {
-            Ok(image) => {
-                tracing::info!(
-                    screen_id = %screen.id,
-                    source_url = %url,
-                    "Moodboard Refero image loaded from search CDN URL"
-                );
-                return Some(image.bytes);
-            }
-            Err(error) => {
-                tracing::warn!(
-                    screen_id = %screen.id,
-                    source_url = %url,
-                    %error,
-                    "Moodboard Refero CDN image fetch failed"
-                );
-            }
-        }
-    }
-
+    // Prefer the full-resolution MCP screenshot (image_size=full), matching Research.
+    // The search CDN URLs are only low-res `_thumb.jpg` previews, so use them as a fallback.
     if !is_synthetic_reference_id(&screen.id) {
         match refero.fetch_screen_image_bytes(&screen.id).await {
             Ok(bytes) if looks_like_image_bytes(&bytes) => return Some(bytes),
@@ -399,7 +406,32 @@ async fn fetch_refero_screen_bytes(
                 tracing::warn!(
                     screen_id = %screen.id,
                     %error,
-                    "Moodboard Refero MCP image fetch failed after CDN URLs"
+                    "Moodboard Refero MCP full-image fetch failed; falling back to CDN URLs"
+                );
+            }
+        }
+    }
+
+    for url in [screen.image_url.as_deref(), screen.thumbnail_url.as_deref()] {
+        let Some(url) = url.filter(|value| value.starts_with("https://")) else {
+            continue;
+        };
+
+        match fetch_importable_image_url(url).await {
+            Ok(image) => {
+                tracing::info!(
+                    screen_id = %screen.id,
+                    source_url = %url,
+                    "Moodboard Refero image loaded from search CDN URL fallback"
+                );
+                return Some(image.bytes);
+            }
+            Err(error) => {
+                tracing::warn!(
+                    screen_id = %screen.id,
+                    source_url = %url,
+                    %error,
+                    "Moodboard Refero CDN image fetch failed"
                 );
             }
         }
