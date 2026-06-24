@@ -3,10 +3,6 @@ use serde_json::Value;
 use crate::models::strategy::StrategyInput;
 
 const STRATEGY_SHAPE_EXAMPLE: &str = r#"{
-  "apiVersion": "v1",
-  "artifactKind": "strategyArtifact",
-  "projectId": "PROJECT_ID",
-  "researchArtifactId": "RESEARCH_ARTIFACT_ID",
   "title": "Project Strategy",
   "sections": [
     {
