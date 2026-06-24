@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type PhotoLightboxProps = {
   src: string;
@@ -18,6 +18,17 @@ export function PhotoLightbox({
   const [zoom, setZoom] = useState(1);
   const canZoomIn = zoom < 2;
   const canZoomOut = zoom > 1;
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   return (
     <div

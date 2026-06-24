@@ -22,6 +22,9 @@ const MOODBOARD_IMPORT_PROVIDER = "codex";
 const MOODBOARD_IMPORT_MODEL = "codex-default";
 const STYLEGUIDE_PROVIDER = "codex";
 const STYLEGUIDE_MODEL = "codex-default";
+// Mirror the server's STALE_RUNNING_RUN_MS so a crashed engine can't pin the
+// generating screen on a run that will never reach a terminal status.
+const MOODBOARD_RUN_STALE_MS = 60 * 60 * 1000;
 
 function latestTerminalRunEvent(events: RunEvent[]) {
   for (let index = events.length - 1; index >= 0; index -= 1) {
@@ -99,7 +102,12 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
       : "skip",
   );
   const hasPersistedRunningRun = useMemo(
-    () => (moodboardRuns ?? []).some((run) => run.status === "running"),
+    () =>
+      (moodboardRuns ?? []).some(
+        (run) =>
+          run.status === "running" &&
+          Date.now() - run.startedAt < MOODBOARD_RUN_STALE_MS,
+      ),
     [moodboardRuns],
   );
   // `undefined` means the query is still loading (tri-state), NOT "no runs". Treat that

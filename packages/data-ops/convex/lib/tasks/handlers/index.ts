@@ -5,6 +5,7 @@ import {
   getAttachmentsForTask,
   requirePhaseAccess,
   requireProjectAccess,
+  requireProjectAccessOrNull,
   requireTaskAccess,
 } from "../../../_helpers";
 import { addTaskForUser, toggleTaskForUser } from "../../../domain/projects/service";
@@ -20,7 +21,14 @@ export async function getProjectMembersHandler(
   ctx: QueryCtx,
   { projectId }: { projectId: Id<"projects"> },
 ) {
-  const { user } = await requireProjectAccess(ctx, projectId);
+  // The dashboard can query members for a project that no longer exists (e.g. a
+  // create flow that didn't finish). Return empty instead of throwing so the UI
+  // doesn't crash with "Project not found".
+  const access = await requireProjectAccessOrNull(ctx, projectId);
+  if (!access) {
+    return [];
+  }
+  const { user } = access;
 
   const collaborators = await ctx.db
     .query("projectCollaborators")
