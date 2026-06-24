@@ -15,6 +15,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  id-token: write # anomalyco/opencode/github uses OIDC token exchange by default
 
 # Stop a same-day schedule + manual run from colliding on the dated branch name.
 concurrency:
@@ -50,9 +51,13 @@ jobs:
           # Add this secret in repo Settings → Secrets and variables → Actions.
           # Paste the sk-... key from your OpenCode (Anomaly) dashboard.
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          # Lets the action create the branch, push, and open the PR.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           # TODO confirm exact model id with `opencode` `/models` (opencode-go provider).
           model: opencode-go/glm-5.2-high
+          # Don't share the session — avoids leaking env vars (incl. the API key) into PR comments.
+          share: false
           prompt: |
             You are the nightly maintainable-code loop for this repo. Work SAFELY and minimally.
 
