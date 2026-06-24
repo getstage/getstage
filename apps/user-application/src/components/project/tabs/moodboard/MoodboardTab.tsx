@@ -306,6 +306,12 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
     return <MoodboardGeneratingState mode={moodboard.generatingMode} />;
   }
 
+  // Until the artifact and run queries resolve we don't know if an import is in
+  // flight, so hold instead of flashing the setup screen (tri-state: loading ≠ empty).
+  if (moodboard.isLoading) {
+    return null;
+  }
+
   return (
     <>
       <UpstreamStaleBanner

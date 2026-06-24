@@ -102,6 +102,9 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
     () => (moodboardRuns ?? []).some((run) => run.status === "running"),
     [moodboardRuns],
   );
+  // `undefined` means the query is still loading (tri-state), NOT "no runs". Treat that
+  // window as loading so the tab never flashes the setup screen before Convex answers.
+  const isRunsLoading = isAuthenticated && Boolean(projectId) && moodboardRuns === undefined;
 
   const data = moodboardArtifact.data;
   const terminalImportEvent = useMemo(
@@ -348,7 +351,7 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
 
   return {
     data,
-    isLoading: moodboardArtifact.isLoading,
+    isLoading: moodboardArtifact.isLoading || isRunsLoading,
     hasArtifact: data !== null,
     parseError: moodboardArtifact.parseError,
     saveBoard,
