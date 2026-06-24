@@ -57,7 +57,7 @@ export function BasicDetailsStep({
             />
           </Field>
 
-          <Field label="Project Image" secondaryLabel="(Optional)">
+          <Field label="Project Logo" secondaryLabel="(Optional)">
             <input
               ref={inputRef}
               type="file"

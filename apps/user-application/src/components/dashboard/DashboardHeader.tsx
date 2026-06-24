@@ -13,6 +13,8 @@ const PERIOD_OPTIONS = [
   { label: "All time", group: 2 },
 ] as const;
 
+const INTER_FONT_FAMILY = '"Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif';
+
 export type DashboardPeriod = typeof PERIOD_OPTIONS[number]["label"];
 
 export function DashboardHeader({
@@ -139,23 +141,25 @@ function PeriodMenu({
     <div
       role="menu"
       aria-label="Period"
-      className="absolute right-0 top-[42px] z-50 flex w-[min(220px,calc(100vw-48px))] flex-col rounded-[12px] border border-[#e5e5e5] bg-white px-[10px] pb-[10px] pt-[14px] shadow-[0_18px_42px_rgba(10,10,10,0.12),0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+      className="absolute right-0 top-[42px] z-50 flex w-[min(190px,calc(100vw-48px))] flex-col rounded-[10px] border border-[#e5e5e5] bg-white px-[8px] pb-[8px] pt-[10px] shadow-[0_18px_42px_rgba(10,10,10,0.12),0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+      style={{ fontFamily: INTER_FONT_FAMILY }}
     >
-      <p className="px-[18px] pb-[8px] text-[13px] font-medium leading-[1.25] text-[#8a8a8a]">Period</p>
-      <div className="flex flex-col gap-[6px]">
+      <p className="px-[10px] pb-[4px] text-[12px] font-medium leading-[1.25] text-[#8a8a8a]">Period</p>
+      <div className="flex flex-col gap-[2px]">
         {PERIOD_OPTIONS.map((option, index) => {
           const previous = PERIOD_OPTIONS[index - 1];
           const showDivider = previous && previous.group !== option.group;
           const isSelected = option.label === selectedPeriod;
 
           return (
-            <div key={option.label} className={showDivider ? "border-t border-[#e5e5e5] pt-[6px]" : undefined}>
+            <div key={option.label} className={showDivider ? "border-t border-[#e5e5e5] pt-[2px]" : undefined}>
               <button
                 type="button"
                 role="menuitemradio"
                 aria-checked={isSelected}
                 onClick={() => onSelect(option.label)}
-                className="grid h-[28px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-[14px] rounded-[6px] px-[18px] text-left text-[13px] font-medium leading-[1.25] text-[#1d1d31] outline-none transition-colors hover:bg-[#f5f5f5] focus-visible:bg-[#f5f5f5]"
+                className="grid h-[28px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-[10px] rounded-[6px] px-[10px] text-left text-[12px] font-normal leading-[1.25] text-[#262626] outline-none transition-colors hover:bg-[#f5f5f5] focus-visible:bg-[#f5f5f5]"
+                style={{ fontFamily: INTER_FONT_FAMILY }}
               >
                 <span className="truncate">{option.label}</span>
                 {isSelected ? <span className="h-[6px] w-[6px] rounded-full bg-[#8d87ff]" aria-hidden="true" /> : null}

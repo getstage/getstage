@@ -20,6 +20,10 @@ export function CustomSections({ sections, isEditing, onSectionsChange }: Custom
     );
   }
 
+  function deleteSection(index: number) {
+    onSectionsChange?.(sections.filter((_, sectionIndex) => sectionIndex !== index));
+  }
+
   return (
     <section className="flex flex-col gap-2">
       <SectionTitle>Additional Sections</SectionTitle>
@@ -31,12 +35,24 @@ export function CustomSections({ sections, isEditing, onSectionsChange }: Custom
           >
             {isEditing ? (
               <div className="flex flex-col gap-2">
-                <input
-                  value={section.title}
-                  onChange={(event) => updateSection(index, { title: event.target.value })}
-                  aria-label={`${section.title} title`}
-                  className="h-[25px] rounded-[5px] bg-white px-2 text-[13px] font-semibold leading-[1.25] text-[#171717]"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    value={section.title}
+                    onChange={(event) => updateSection(index, { title: event.target.value })}
+                    placeholder="Section title..."
+                    aria-label={`${section.title || "Custom section"} title`}
+                    className="h-[28px] min-w-0 flex-1 rounded-[5px] bg-white px-2 text-[13px] font-semibold leading-[1.25] text-[#171717] outline-none placeholder:text-[#A3A3A3]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => deleteSection(index)}
+                    aria-label={`Delete ${section.title || "custom section"}`}
+                    title="Delete section"
+                    className="flex h-[28px] w-[28px] shrink-0 cursor-pointer items-center justify-center rounded-[5px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.18)] transition-colors hover:bg-[#FEF2F2]"
+                  >
+                    <img src="/logos/trash.svg" alt="" aria-hidden="true" className="h-[14px] w-[14px]" />
+                  </button>
+                </div>
                 <textarea
                   value={section.body}
                   onChange={(event) => updateSection(index, { body: event.target.value })}
