@@ -131,9 +131,6 @@ export async function completeResearchRunHandler(
 
   assertCompleteResearchArtifact(args.contentJson);
 
-  await deletePreviousResearchArtifacts(ctx, args.projectId);
-  await deletePreviousStrategyArtifacts(ctx, args.projectId);
-
   const artifactId = await createArtifactRecord(ctx, {
     userId: user._id,
     projectId: args.projectId,
