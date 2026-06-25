@@ -6,12 +6,7 @@ import { useWireframeDeliveryExport } from "@/hooks/project/assets/useWireframeD
 import { useProjectAssetUploads } from "@/hooks/project/useProjectAssetUploads";
 import { api } from "@/lib/convexApi";
 import type { Project } from "@/models/project/project";
-import type {
-  AssetView,
-  DocumentAssetRow,
-  UploadedAssetRow,
-  WireframeAssetCard,
-} from "@/types/project/assetsTab";
+import type { AssetView, WireframeAssetCard } from "@/types/project/assetsTab";
 import { AssetCard } from "./AssetCard";
 import { AssetCategoryTabs } from "./AssetCategoryTabs";
 import { DocumentsGrid } from "./DocumentsGrid";
@@ -19,12 +14,7 @@ import { ExportOptionsDialog } from "./ExportOptionsDialog";
 import { UploadDropzone } from "./UploadDropzone";
 import { UploadedGrid } from "./UploadedGrid";
 
-type AssetsTabProps = {
-  project: Project;
-  onGoToTab?: (tab: NonNullable<DocumentAssetRow["sourceModule"]>) => void;
-};
-
-export function AssetsTab({ project, onGoToTab }: AssetsTabProps) {
+export function AssetsTab({ project }: { project: Project }) {
   const [activeView, setActiveView] = useState<AssetView>("wireframes");
   const [exportAsset, setExportAsset] = useState<WireframeAssetCard | null>(null);
 
@@ -39,34 +29,6 @@ export function AssetsTab({ project, onGoToTab }: AssetsTabProps) {
   const { wireframeAssets, documents } = assetsTab.tabData;
 
   const sectionTitle = assetsTab.categories.find((category) => category.id === activeView)?.label ?? "Documents";
-
-  const handleOpenDocument = (document: DocumentAssetRow) => {
-    if (!document.sourceModule) {
-      return;
-    }
-
-    onGoToTab?.(document.sourceModule);
-  };
-
-  const handleOpenUpload = async (upload: UploadedAssetRow) => {
-    if (!upload.file || !upload.mimeType) {
-      return;
-    }
-
-    const bytes = new Uint8Array(await upload.file.arrayBuffer());
-    if (window.stageDesktop?.storage?.openLocalFile) {
-      await window.stageDesktop.storage.openLocalFile({
-        fileName: upload.title,
-        mimeType: upload.mimeType,
-        bytes,
-      });
-      return;
-    }
-
-    const url = URL.createObjectURL(upload.file);
-    window.open(url, "_blank", "noopener,noreferrer");
-    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-  };
 
   return (
     <section className="flex w-full flex-col gap-[18px]">
@@ -93,12 +55,8 @@ export function AssetsTab({ project, onGoToTab }: AssetsTabProps) {
             </div>
           </div>
 
-          {activeView === "documents" ? (
-            <DocumentsGrid documents={documents} onOpenDocument={handleOpenDocument} />
-          ) : null}
-          {activeView === "uploaded" ? (
-            <UploadedGrid uploads={uploads.uploadedAssets} onOpenUpload={(upload) => void handleOpenUpload(upload)} />
-          ) : null}
+          {activeView === "documents" ? <DocumentsGrid documents={documents} /> : null}
+          {activeView === "uploaded" ? <UploadedGrid uploads={uploads.uploadedAssets} /> : null}
 
           {activeView === "wireframes" ? (
             <div className="grid gap-1 lg:grid-cols-3">

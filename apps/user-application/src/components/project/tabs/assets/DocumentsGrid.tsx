@@ -1,21 +1,13 @@
 import type { DocumentAssetRow } from "@/types/project/assetsTab";
 import { CalendarIcon, ResearchReportIcon } from "./assetsIcons";
 
-type DocumentsGridProps = {
-  documents: DocumentAssetRow[];
-  onOpenDocument: (document: DocumentAssetRow) => void;
-};
-
-export function DocumentsGrid({ documents, onOpenDocument }: DocumentsGridProps) {
+export function DocumentsGrid({ documents }: { documents: DocumentAssetRow[] }) {
   return (
     <div className="grid gap-1 lg:grid-cols-2">
       {documents.map((document) => (
-        <button
+        <article
           key={document.id}
-          type="button"
-          disabled={!document.sourceModule}
-          onClick={() => onOpenDocument(document)}
-          className="group flex min-h-[70px] w-full items-start justify-between rounded-[8px] bg-white p-4 text-left shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA] disabled:cursor-default disabled:hover:bg-white"
+          className="flex min-h-[70px] items-start justify-between rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
         >
           <div className="flex min-w-0 items-start gap-3">
             <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px] bg-[#DBEAFE] p-1 text-[#1D4ED8]">
@@ -40,7 +32,7 @@ export function DocumentsGrid({ documents, onOpenDocument }: DocumentsGridProps)
               </div>
             </div>
           </div>
-        </button>
+        </article>
       ))}
     </div>
   );

@@ -510,48 +510,6 @@ export function registerIpcHandlers({
       bytes: bytes instanceof Uint8Array ? bytes : bytes,
     });
   });
-
-  ipcMain.handle(IPC_CHANNELS.storageOpenLocalFile, async (_event, request: unknown) => {
-    if (!request || typeof request !== "object") {
-      throw new Error("Local file open request is required.");
-    }
-
-    const { fileName, mimeType, bytes } = request as {
-      fileName?: unknown;
-      mimeType?: unknown;
-      bytes?: unknown;
-    };
-
-    if (typeof fileName !== "string" || fileName.trim().length === 0) {
-      throw new Error("Local file name is required.");
-    }
-
-    if (typeof mimeType !== "string" || mimeType.trim().length === 0) {
-      throw new Error("Local file mime type is required.");
-    }
-
-    if (!(bytes instanceof Uint8Array) && !Array.isArray(bytes)) {
-      throw new Error("Local file bytes are required.");
-    }
-
-    const safeName = basename(fileName).replace(/[^\w .()[\]-]/g, "_");
-    const directory = resolve(app.getPath("temp"), "stage-upload-previews");
-    const filePath = resolve(directory, `${Date.now()}-${safeName}`);
-
-    if (!filePath.startsWith(`${directory}${sep}`)) {
-      throw new Error("Invalid local file path.");
-    }
-
-    await mkdir(directory, { recursive: true });
-    await writeFile(filePath, Buffer.from(bytes instanceof Uint8Array ? bytes : bytes));
-
-    const errorMessage = await shell.openPath(filePath);
-    if (errorMessage) {
-      throw new Error(errorMessage);
-    }
-
-    return { ok: true, path: filePath };
-  });
 }
 
 async function streamRunEventsToRenderer(args: {

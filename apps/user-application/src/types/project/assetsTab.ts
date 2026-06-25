@@ -1,5 +1,4 @@
 import type { ProjectAsset } from "@/models/project/project";
-import type { ProjectTab } from "@/models/project/project";
 import type { WireframeRenderableSection } from "@/types/project/wireframesTab";
 
 export type AssetView = "wireframes" | "documents" | "uploaded";
@@ -10,10 +9,6 @@ export type UploadedAssetRow = {
   date: string;
   status: "uploading" | "uploaded" | "failed";
   error?: string;
-  openUrl?: string;
-  r2ObjectKey?: string;
-  file?: File;
-  mimeType?: string;
 };
 
 export type WireframeAssetCard = ProjectAsset & {
@@ -51,8 +46,6 @@ export type DocumentAssetRow = {
   status: string;
   statusClass: string;
   date: string;
-  sourceModule?: Extract<ProjectTab, "research" | "strategy">;
-  artifactId?: string;
 };
 
 export type AssetsTabStats = {
