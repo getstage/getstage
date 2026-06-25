@@ -109,6 +109,11 @@ export type StageDesktopApi = {
       mimeType: string;
       bytes: Uint8Array;
     }) => Promise<{ ok: true; status: number }>;
+    openLocalFile: (request: {
+      fileName: string;
+      mimeType: string;
+      bytes: Uint8Array;
+    }) => Promise<{ ok: true; path: string }>;
   };
   updates: {
     getStatus: () => Promise<DesktopUpdateStatus>;

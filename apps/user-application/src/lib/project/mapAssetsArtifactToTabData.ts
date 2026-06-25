@@ -40,6 +40,11 @@ export function mapDocumentAssetToRow(document: DocumentAsset): DocumentAssetRow
     status: DOCUMENT_STATUS_LABELS[document.status],
     statusClass: DOCUMENT_STATUS_CLASSES[document.status],
     date: document.dateLabel,
+    sourceModule:
+      document.sourceModule === "research" || document.sourceModule === "strategy"
+        ? document.sourceModule
+        : undefined,
+    artifactId: document.artifactId,
   };
 }
 

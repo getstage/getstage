@@ -1,7 +1,12 @@
-import type { UploadedAssetRow } from "@/types/project/assetsTab";
 import { CalendarIcon, PdfIcon } from "./assetsIcons";
+import type { UploadedAssetRow } from "@/types/project/assetsTab";
 
-export function UploadedGrid({ uploads }: { uploads: UploadedAssetRow[] }) {
+type UploadedGridProps = {
+  uploads: UploadedAssetRow[];
+  onOpenUpload: (upload: UploadedAssetRow) => void;
+};
+
+export function UploadedGrid({ uploads, onOpenUpload }: UploadedGridProps) {
   if (uploads.length === 0) {
     return (
       <p className="px-4 pb-4 text-[13px] font-medium leading-[1.25] text-[#737373]">
@@ -13,9 +18,19 @@ export function UploadedGrid({ uploads }: { uploads: UploadedAssetRow[] }) {
   return (
     <div className="grid gap-1 lg:grid-cols-2">
       {uploads.map((upload) => (
-        <article
+        <button
           key={upload.id}
-          className="flex min-h-[54px] items-start justify-between rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+          type="button"
+          aria-disabled={!upload.openUrl || upload.status === "failed"}
+          onClick={(event) => {
+            if (!upload.openUrl || upload.status === "failed") {
+              event.preventDefault();
+              return;
+            }
+
+            onOpenUpload(upload);
+          }}
+          className="group flex min-h-[54px] w-full items-start justify-between rounded-[8px] bg-white p-4 text-left shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA] aria-disabled:cursor-default aria-disabled:hover:bg-white"
         >
           <div className="flex min-w-0 items-start gap-3">
             <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px] bg-[#E5E5E5] p-1 text-[#525252]">
@@ -48,7 +63,7 @@ export function UploadedGrid({ uploads }: { uploads: UploadedAssetRow[] }) {
               </div>
             </div>
           </div>
-        </article>
+        </button>
       ))}
     </div>
   );

@@ -171,6 +171,11 @@ const stageDesktop = {
       mimeType: string;
       bytes: Uint8Array;
     }) => ipcRenderer.invoke(IPC_CHANNELS.storagePutR2Upload, request),
+    openLocalFile: (request: {
+      fileName: string;
+      mimeType: string;
+      bytes: Uint8Array;
+    }) => ipcRenderer.invoke(IPC_CHANNELS.storageOpenLocalFile, request),
   },
   updates: {
     getStatus: (): Promise<DesktopUpdateStatus> =>

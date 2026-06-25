@@ -1,5 +1,5 @@
 import { useMutation as useConvexMutation } from "convex/react";
-import { useState, type ChangeEvent, type DragEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { api } from "@/lib/convexApi";
 import {
   getNormalizedMimeType,
@@ -16,6 +16,16 @@ export function useProjectAssetUploads(onUploaded?: () => void, projectId?: stri
 
   const [uploadedAssets, setUploadedAssets] = useState<UploadedAssetRow[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
+  const openUrlsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    return () => {
+      for (const openUrl of openUrlsRef.current) {
+        URL.revokeObjectURL(openUrl);
+      }
+      openUrlsRef.current.clear();
+    };
+  }, []);
 
   async function uploadFiles(files: FileList | File[]) {
     const fileArray = Array.from(files);
@@ -24,6 +34,11 @@ export function useProjectAssetUploads(onUploaded?: () => void, projectId?: stri
     const drafts = fileArray.map((file) => {
       const sizeError = getProjectAssetSizeError(file);
       const validationError = sizeError ?? validateUploadFile("project-asset", file);
+      const openUrl = validationError ? undefined : URL.createObjectURL(file);
+      if (openUrl) {
+        openUrlsRef.current.add(openUrl);
+      }
+
       return {
         id: `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
         title: file.name,
@@ -31,10 +46,12 @@ export function useProjectAssetUploads(onUploaded?: () => void, projectId?: stri
         status: validationError ? ("failed" as const) : ("uploading" as const),
         error: validationError ?? undefined,
         mimeType: getNormalizedMimeType(file),
+        openUrl,
+        file: validationError ? undefined : file,
       };
     });
 
-    setUploadedAssets((current) => [...drafts.map(({ mimeType: _mimeType, ...row }) => row), ...current]);
+    setUploadedAssets((current) => [...drafts, ...current]);
     onUploaded?.();
 
     await Promise.all(
@@ -44,7 +61,7 @@ export function useProjectAssetUploads(onUploaded?: () => void, projectId?: stri
         if (!file) return;
 
         try {
-          await uploadFileToR2({
+          const key = await uploadFileToR2({
             generateUploadUrl: r2GenerateUploadUrl,
             syncMetadata: r2SyncMetadata,
             purpose: "project-asset",
@@ -52,7 +69,9 @@ export function useProjectAssetUploads(onUploaded?: () => void, projectId?: stri
             scopeId: projectId,
           });
           setUploadedAssets((current) =>
-            current.map((asset) => (asset.id === draft.id ? { ...asset, status: "uploaded" } : asset)),
+            current.map((asset) =>
+              asset.id === draft.id ? { ...asset, status: "uploaded", r2ObjectKey: key } : asset,
+            ),
           );
         } catch (error) {
           setUploadedAssets((current) =>
