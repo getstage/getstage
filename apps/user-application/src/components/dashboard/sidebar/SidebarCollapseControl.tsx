@@ -47,7 +47,7 @@ export function SidebarCollapseControl({
         </button>
       ) : (
         <div className="flex items-center gap-[2px]">
-          <img src={stageLogo} alt="Stage" className="h-[22px] w-auto" />
+          <img src="/logos/logotype.svg" alt="Stage" className="h-[22px] w-auto" />
         </div>
       )}
       {!collapsed ? (
