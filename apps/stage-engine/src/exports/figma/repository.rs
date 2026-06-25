@@ -70,7 +70,7 @@ impl FigmaExportRepository {
             "pairingCodeHash".to_string(),
             Value::from(input.pairing_code_hash),
         );
-        mutation_args.insert("pairingExpiresAt".to_string(), Value::from(expires_at));
+        mutation_args.insert("pairingExpiresAt".to_string(), Value::from(expires_at as f64));
         mutation_args.insert(
             "exportKind".to_string(),
             Value::from(input.export_kind.to_string()),

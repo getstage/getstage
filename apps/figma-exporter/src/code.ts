@@ -88,25 +88,52 @@ figma.ui.onmessage = async (message: { type?: string; pairingCode?: string }) =>
     figma.viewport.scrollAndZoomIntoView([root]);
     notifyUi("success", "Stage export completed. You can close this plugin.");
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Figma export failed.";
-    for (const node of createdNodes.reverse()) {
-      if (!node.removed) node.remove();
+    var errorMessage = friendlyError(error instanceof Error ? error.message : "");
+    for (var i = createdNodes.length - 1; i >= 0; i--) {
+      if (!createdNodes[i].removed) createdNodes[i].remove();
     }
     if (claimToken) {
       try {
         await postJson("/api/v1/figma-export/fail", {
-          claimToken,
-          errorMessage: message,
+          claimToken: claimToken,
+          errorMessage: errorMessage,
         });
-      } catch {
+      } catch (e) {
         // Keep the original canvas-write error visible to the user.
       }
     }
-    notifyUi("error", message);
+    notifyUi("error", errorMessage);
   } finally {
-    stopHeartbeat?.();
+    if (stopHeartbeat) stopHeartbeat();
   }
 };
+
+function friendlyError(rawMessage: string): string {
+  if (!rawMessage) return "Something went wrong. Please try the export again from Stage.";
+  var msg = rawMessage.toLowerCase();
+  if (msg.indexOf("open a figjam board") !== -1) {
+    return "This export needs a FigJam board. Open a FigJam board in Figma and run the plugin again.";
+  }
+  if (msg.indexOf("open a figma design file") !== -1) {
+    return "This export needs a Figma Design file. Open a Figma Design file (not FigJam) and run the plugin again.";
+  }
+  if (msg.indexOf("pairing code is invalid or expired") !== -1) {
+    return "The pairing code expired. Click Send to FigJam in Stage to get a new code.";
+  }
+  if (msg.indexOf("same account") !== -1) {
+    return "The Figma account in this file does not match the one connected to Stage. Reconnect Figma in Stage Settings.";
+  }
+  if (msg.indexOf("already completed") !== -1) {
+    return "This export was already completed. Start a new export from Stage.";
+  }
+  if (msg.indexOf("connect figma") !== -1) {
+    return "Figma is not connected. Connect Figma in Stage Settings before exporting.";
+  }
+  if (msg.indexOf("artifact") !== -1 || msg.indexOf("flows") !== -1 || msg.indexOf("wireframe") !== -1) {
+    return "The project content could not be found. Regenerate it in Stage and try again.";
+  }
+  return "The export could not be completed. Please try again from Stage.";
+}
 
 async function executeFigmaWritePlan(plan: FigmaWritePlan) {
   if (figma.editorType !== "figma") {

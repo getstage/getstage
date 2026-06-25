@@ -298,13 +298,13 @@ async fn drive_process_loop(
                     Ok(Some(status)) if status.success() => {
                         let _ = child.wait().await;
                         drain_pending_lines(context, events, line_rx, sink, capture_multiline_stderr).await;
-                        sink.flush_stderr(capture_multiline_stderr);
+                        sink.flush_stderr(context, capture_multiline_stderr);
                         return Ok(ProviderProcessOutcome::Completed(std::mem::take(&mut sink.final_text)));
                     }
                     Ok(Some(status)) => {
                         let _ = child.wait().await;
                         drain_pending_lines(context, events, line_rx, sink, capture_multiline_stderr).await;
-                        sink.flush_stderr(capture_multiline_stderr);
+                        sink.flush_stderr(context, capture_multiline_stderr);
                         return Err(provider_exit_error(
                             binary,
                             status,

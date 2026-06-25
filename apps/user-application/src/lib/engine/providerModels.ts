@@ -13,7 +13,7 @@ export function providerModelToChatModel(model: ProviderModel, providerId: Provi
     description:
       model.source === "provider"
         ? "Reported by your local provider"
-        : "Fallback until provider models refresh",
+        : providerId === "claude" ? "Claude model" : "OpenAI model",
     badge: model.source === "provider" && model.isDefault ? "Live" : undefined,
   };
 }

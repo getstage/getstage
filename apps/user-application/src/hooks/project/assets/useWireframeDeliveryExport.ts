@@ -40,7 +40,9 @@ export function useWireframeDeliveryExport(projectId: string) {
         return result;
       } catch (exportError) {
         const nextError =
-          exportError instanceof Error ? exportError.message : `Could not export to ${option}.`;
+          exportError instanceof Error
+            ? formatDeliveryExportError(exportError.message)
+            : `Could not export to ${option}.`;
         setError(nextError);
         throw exportError;
       } finally {
@@ -61,4 +63,11 @@ export function useWireframeDeliveryExport(projectId: string) {
       setError(null);
     },
   };
+}
+
+function formatDeliveryExportError(message: string) {
+  return message
+    .replace(/^Error invoking remote method '[^']+': Error:\s*/, "")
+    .replace(/^Stage Engine request failed with \d+:\s*/, "")
+    .replace(/^Stage Engine request failed with \d+\.\s*/, "");
 }

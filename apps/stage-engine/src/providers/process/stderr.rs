@@ -62,8 +62,14 @@ pub(super) struct StderrArtifactCapture {
 }
 
 impl StderrArtifactCapture {
-    pub(super) fn ingest(&mut self, line: &str, final_text: &mut String, capture_multiline: bool) {
-        if looks_like_json_artifact_line(line) {
+    pub(super) fn ingest(
+        &mut self,
+        line: &str,
+        final_text: &mut String,
+        capture_multiline: bool,
+        expected_kind: Option<&str>,
+    ) {
+        if looks_like_json_artifact_line(line, expected_kind) {
             self.pending = None;
             append_output(final_text, line.trim());
             return;
@@ -81,14 +87,17 @@ impl StderrArtifactCapture {
             }
             buffer.push_str(line);
 
-            if is_complete_json_object(buffer) && buffer.contains("\"artifactKind\"") {
+            if is_complete_json_object(buffer)
+                && buffer.contains("\"artifactKind\"")
+                && expected_kind.is_some_and(|kind| buffer.contains(kind))
+            {
                 let completed = self.pending.take().expect("pending stderr json buffer");
                 append_output(final_text, completed.trim());
             }
         }
     }
 
-    pub(super) fn flush(&mut self, final_text: &mut String, capture_multiline: bool) {
+    pub(super) fn flush(&mut self, final_text: &mut String, capture_multiline: bool, expected_kind: Option<&str>) {
         if !capture_multiline {
             return;
         }
@@ -98,7 +107,10 @@ impl StderrArtifactCapture {
         };
 
         let trimmed = pending.trim();
-        if is_complete_json_object(trimmed) && trimmed.contains("\"artifactKind\"") {
+        if is_complete_json_object(trimmed)
+            && trimmed.contains("\"artifactKind\"")
+            && expected_kind.is_some_and(|kind| trimmed.contains(kind))
+        {
             append_output(final_text, trimmed);
         }
     }
@@ -114,7 +126,7 @@ mod tests {
         let mut final_text = String::new();
         let line = r#"{"apiVersion":"v1","artifactKind":"strategyArtifact","sections":[{"id":"direction","kind":"plain","body":["Go"]}]}"#;
 
-        capture.ingest(line, &mut final_text, true);
+        capture.ingest(line, &mut final_text, true, Some("strategyArtifact"));
 
         assert!(final_text.contains("strategyArtifact"));
     }
@@ -132,7 +144,7 @@ mod tests {
         ];
 
         for line in lines {
-            capture.ingest(line, &mut final_text, true);
+            capture.ingest(line, &mut final_text, true, Some("strategyArtifact"));
         }
 
         assert!(final_text.contains("strategyArtifact"));
@@ -140,15 +152,28 @@ mod tests {
     }
 
     #[test]
+    fn stderr_capture_skips_mismatched_artifact_kind() {
+        let mut capture = StderrArtifactCapture::default();
+        let mut final_text = String::new();
+        let line = r#"{"apiVersion":"v1","artifactKind":"strategyArtifact","sections":[]}"#;
+
+        // During a styleguide run (expected_kind = None), echoed strategy JSON must NOT be captured.
+        capture.ingest(line, &mut final_text, true, None);
+
+        assert!(final_text.is_empty());
+    }
+
+    #[test]
     fn stderr_capture_skips_multiline_capture_for_chat_mode() {
         let mut capture = StderrArtifactCapture::default();
         let mut final_text = String::new();
 
-        capture.ingest("{", &mut final_text, false);
+        capture.ingest("{", &mut final_text, false, Some("strategyArtifact"));
         capture.ingest(
             r#"  "artifactKind": "strategyArtifact""#,
             &mut final_text,
             false,
+            Some("strategyArtifact"),
         );
 
         assert!(final_text.is_empty());

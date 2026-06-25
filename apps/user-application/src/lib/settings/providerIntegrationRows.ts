@@ -1,4 +1,5 @@
 import type { ProviderStatusRecord } from "@stage/data-ops/contracts";
+import type { PaperConnectionStatusResponse } from "@stage/data-ops/contracts";
 import type { IntegrationRowModel } from "@/types/settings/integrations";
 import { PROVIDER_CLI_MISSING_ROW_NOTE } from "@/lib/settings/providerCliHints";
 
@@ -83,6 +84,26 @@ export function googleSheetsIntegrationToRow(
     connected,
     detail: googleSheetsConnectionDetail(connection),
     status: connection?.status ?? "disconnected",
+  };
+}
+
+export function paperIntegrationToRow(
+  connection: PaperConnectionStatusResponse | null,
+  checking: boolean,
+): IntegrationRowModel {
+  const connected = connection?.ready === true;
+
+  return {
+    id: "paper",
+    nativeIntegrationId: "paper",
+    name: "Paper",
+    description: "Local design canvas export",
+    icon: "paper",
+    connected,
+    detail: checking
+      ? "Checking local Paper Desktop MCP..."
+      : connection?.message ?? "Open Paper Desktop with a target file",
+    status: checking ? "checking" : (connection?.status ?? "not-ready"),
   };
 }
 

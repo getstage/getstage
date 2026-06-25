@@ -17,6 +17,7 @@ import {
   type FlowPanelTab,
 } from "@/types/project/flowsTab";
 import { AddFlowModal } from "./AddFlowModal";
+import { FigJamExportDialog } from "./FigJamExportDialog";
 import { FlowHeaderActions } from "./FlowHeaderActions";
 import { FlowRow } from "./FlowRow";
 import { FlowIcon, ScreenIcon } from "./flowsIcons";
@@ -309,36 +310,14 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
               {uiError ?? figJamExport.error}
             </div>
           ) : null}
-          {figJamExport.request ? (
-            <div className="rounded-[8px] bg-[#EEF2FF] px-3 py-2 text-[12px] font-medium leading-[1.5] text-[#3730A3]">
-              {figJamExport.job?.status === "completed" ? (
-                <span>
-                  FigJam flow map exported.
-                  {figJamExport.job.destinationUrl ? (
-                    <>
-                      {" "}
-                      <a
-                        href={figJamExport.job.destinationUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="underline"
-                      >
-                        Open in FigJam
-                      </a>
-                    </>
-                  ) : null}
-                </span>
-              ) : (
-                <span>
-                  Open a FigJam board, run the Stage Exporter plugin, and enter code{" "}
-                  <strong className="font-mono tracking-[0.15em]">
-                    {figJamExport.request.pairingCode}
-                  </strong>
-                  . Status: {figJamExport.job?.status ?? figJamExport.request.status}.
-                </span>
-              )}
-            </div>
-          ) : null}
+          <FigJamExportDialog
+            open={figJamExport.request !== null}
+            onOpenChange={(open) => { if (!open) figJamExport.clearResult(); }}
+            request={figJamExport.request}
+            jobStatus={figJamExport.job?.status}
+            destinationUrl={figJamExport.job?.destinationUrl}
+            errorMessage={figJamExport.job?.errorMessage}
+          />
           <div className="flex flex-wrap items-end justify-between gap-5">
             <div className="min-w-0">
               <h2 className="font-heading text-[15px] font-medium leading-[1.25] text-[#171717]">

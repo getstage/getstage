@@ -6,7 +6,13 @@ const generatingRows = [
   { label: "Extract Anti-Pattern", state: "idle", delay: "560ms" },
 ] as const;
 
-export function StyleGuideGenerating({ mode = "generate" }: { mode?: "generate" | "regenerate" }) {
+export function StyleGuideGenerating({
+  mode = "generate",
+  previewUrl = null,
+}: {
+  mode?: "generate" | "regenerate";
+  previewUrl?: string | null;
+}) {
   const isRegenerating = mode === "regenerate";
 
   return (
@@ -32,21 +38,30 @@ export function StyleGuideGenerating({ mode = "generate" }: { mode?: "generate" 
       <div className="isolate flex flex-col items-center justify-center">
         <div className="z-[2] mb-[-28px] flex flex-col items-center">
           <div className="relative mb-[-8px] h-[113px] w-[187px] overflow-hidden rounded-t-[6px] bg-gradient-to-b from-[#F5F5F5] to-[#D4D4D4] shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
-            <span
-              aria-hidden="true"
-              className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-white/70 to-transparent"
-              style={{ animation: "style-guide-card-sheen 1.9s ease-in-out infinite" }}
-            />
+            {previewUrl ? (
+              <img
+                src={previewUrl}
+                alt=""
+                aria-hidden="true"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span
+                aria-hidden="true"
+                className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-white/70 to-transparent"
+                style={{ animation: "style-guide-card-sheen 1.9s ease-in-out infinite" }}
+              />
+            )}
           </div>
           <div
             className="flex w-[281px] items-center justify-center gap-2 overflow-hidden rounded-[6px] bg-[#FAFAFA] px-3 py-2 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
             style={{ animation: "style-guide-panel-rise 360ms cubic-bezier(.2,.8,.2,1) both" }}
           >
             <img
-              src={isRegenerating ? "/logos/dashboard/moodboard.svg" : "/logos/stage.svg"}
+              src="/logos/stage.svg"
               alt=""
               aria-hidden="true"
-              className={`${isRegenerating ? "h-[15px] w-[15px]" : "h-[14px] w-[11px] brightness-0"} shrink-0`}
+              className="h-[14px] w-[11px] shrink-0 brightness-0"
             />
             <span className="text-[12px] font-medium leading-[1.25] text-[#171717]">
               {isRegenerating ? "Regenerating style guide..." : "Stage is creating..."}

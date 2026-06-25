@@ -28,6 +28,7 @@ import type {
   CreateFigmaExportResponse,
   CreateFigJamExportRequest,
   CreatePaperExportResponse,
+  PaperConnectionStatusResponse,
   SaveCodeExportResponse,
   WireframeDeliveryRequest,
   VoiceTranscriptResponse,
@@ -56,6 +57,7 @@ export type StageDesktopApi = {
     createFigmaExport: (request: CreateFigmaExportRequest) => Promise<CreateFigmaExportResponse>;
     createFigJamExport: (request: CreateFigJamExportRequest) => Promise<CreateFigmaExportResponse>;
     exportWireframeCode: (request: WireframeDeliveryRequest) => Promise<SaveCodeExportResponse>;
+    getPaperStatus: () => Promise<PaperConnectionStatusResponse>;
     createPaperExport: (request: WireframeDeliveryRequest) => Promise<CreatePaperExportResponse>;
     onRunEvent: (callback: (event: RunEvent) => void) => () => void;
   };

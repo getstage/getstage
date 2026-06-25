@@ -31,8 +31,8 @@ export function useFlowsFigJamExport(projectId: string) {
         setRequest(response);
         return response;
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Could not send flows to FigJam.";
-        setError(message);
+        console.error("[FigJam export] failed:", err);
+        setError("Could not send flows to FigJam. Please try again.");
         throw err;
       } finally {
         if (inFlightRef.current === exportPromise) inFlightRef.current = null;

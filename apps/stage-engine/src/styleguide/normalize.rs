@@ -104,10 +104,41 @@ pub fn merge_style_guide_into_artifact(
 
 pub fn direction_reference_metadata(reference: &JsonValue) -> JsonMap<String, JsonValue> {
     let mut metadata = JsonMap::new();
-    for key in ["id", "title", "source", "sourceUrl"] {
+    for key in [
+        "id",
+        "title",
+        "source",
+        "sourceUrl",
+        "imageUrl",
+        "thumbnailUrl",
+        "imageAssetKey",
+        "thumbnailAssetKey",
+        "uploadedAssetId",
+    ] {
         if let Some(value) = reference.get(key) {
             metadata.insert(key.to_string(), value.clone());
         }
     }
     metadata
 }
+
+pub fn reference_has_visual_input(reference: &JsonValue) -> bool {
+    [
+        "imageUrl",
+        "thumbnailUrl",
+        "imageAssetKey",
+        "thumbnailAssetKey",
+    ]
+    .iter()
+    .any(|key| {
+        reference
+            .get(key)
+            .and_then(JsonValue::as_str)
+            .map(|value| !value.trim().is_empty())
+            .unwrap_or(false)
+    })
+}
+
+#[cfg(test)]
+#[path = "../testing/styleguide/normalize.rs"]
+mod tests;

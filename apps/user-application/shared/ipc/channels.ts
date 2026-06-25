@@ -14,6 +14,7 @@ export const IPC_CHANNELS = {
   engineCreateFigmaExport: "engine:create-figma-export",
   engineCreateFigJamExport: "engine:create-figjam-export",
   engineExportWireframeCode: "engine:export-wireframe-code",
+  engineGetPaperStatus: "engine:get-paper-status",
   engineCreatePaperExport: "engine:create-paper-export",
   engineRunEvent: "engine:run-event",
   companionShow: "companion:show",

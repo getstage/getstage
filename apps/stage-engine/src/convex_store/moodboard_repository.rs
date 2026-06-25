@@ -161,6 +161,41 @@ impl MoodboardRepository {
         function_result_to_json(result).map(|_| ())
     }
 
+    pub async fn create_styleguide_run(
+        &self,
+        token: &str,
+        project_id: &str,
+        external_run_id: &str,
+        direction_id: &str,
+    ) -> anyhow::Result<Option<String>> {
+        let mut client = self.authenticated_client(token).await?;
+        let mut args = args();
+        args.insert("projectId".to_string(), Value::from(project_id.to_string()));
+        args.insert(
+            "title".to_string(),
+            Value::from("Generate style guide".to_string()),
+        );
+        args.insert(
+            "directionId".to_string(),
+            Value::from(direction_id.to_string()),
+        );
+        args.insert(
+            "externalRunId".to_string(),
+            Value::from(external_run_id.to_string()),
+        );
+
+        let result = client
+            .mutation("projectAi:createStyleguideRun", args)
+            .await
+            .context("failed to create styleguide run in Convex")?;
+        let json = function_result_to_json(result)?;
+
+        Ok(json
+            .get("runId")
+            .and_then(JsonValue::as_str)
+            .map(ToOwned::to_owned))
+    }
+
     pub async fn fetch_connected_figma_access_token(
         &self,
         token: &str,

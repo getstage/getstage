@@ -7,29 +7,38 @@ use crate::convex_store::strategy_repository::StrategyRepository;
 use crate::helpers::provider_json::extract_style_guide;
 use crate::helpers::time::now_millis;
 use crate::models::errors::{EngineError, EngineErrorCode};
-use crate::models::runs::{RunEvent, RunStatus, StartRunRequest};
+use crate::models::runs::{RunAttachment, RunAttachmentKind, RunEvent, RunStatus, StartRunRequest};
 use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
 use crate::providers::process::ProviderProcessOutcome;
+use crate::providers::command::provider_cli_working_directory;
+use crate::refero::parse::{infer_image_mime, looks_like_image_bytes};
 use crate::runs::RunEventSink;
 use crate::styleguide::normalize::{
     direction_reference_metadata, merge_style_guide_into_artifact, normalize_style_guide,
+    reference_has_visual_input,
 };
 use crate::styleguide::prompt::build_styleguide_prompt;
+
+const STYLEGUIDE_MAX_IMAGE_ATTACHMENTS: usize = 6;
+const STYLEGUIDE_MAX_IMAGE_BYTES: usize = 2 * 1024 * 1024;
 
 #[derive(Clone, Debug)]
 pub struct StyleguideWorkflow {
     moodboard_repository: MoodboardRepository,
     strategy_repository: StrategyRepository,
+    r2_public_base_url: Option<String>,
 }
 
 impl StyleguideWorkflow {
     pub fn new(
         moodboard_repository: MoodboardRepository,
         strategy_repository: StrategyRepository,
+        r2_public_base_url: Option<String>,
     ) -> Self {
         Self {
             moodboard_repository,
             strategy_repository,
+            r2_public_base_url,
         }
     }
 
@@ -45,6 +54,8 @@ impl StyleguideWorkflow {
         let provider_id = request.provider_id;
         let project_id = request.context.project_id.clone();
         let direction_id = request.context.direction_id.clone();
+        let auth_token_for_failure = auth_token.clone();
+        let mut convex_run_id: Option<String> = None;
 
         tracing::info!(
             run_id = %run_id,
@@ -65,6 +76,13 @@ impl StyleguideWorkflow {
             let direction_id = direction_id.as_deref().ok_or_else(|| {
                 WorkflowError::InvalidRequest("Missing direction id for Style Guide.".to_string())
             })?;
+
+            // Persist the run as "running" so the moodboard tab can restore the generating
+            // screen (for this direction) after it unmounts. Terminal status is written below.
+            convex_run_id = self
+                .moodboard_repository
+                .create_styleguide_run(&auth_token, project_id, &run_id, direction_id)
+                .await?;
 
             self.tool_started(
                 api_version,
@@ -133,12 +151,20 @@ impl StyleguideWorkflow {
                                     .get("isInMoodboard")
                                     .and_then(JsonValue::as_bool)
                                     .unwrap_or(true)
+                                && reference_has_visual_input(entry)
                         })
                         .map(direction_reference_metadata)
                         .map(JsonValue::Object)
                         .collect::<Vec<_>>()
                 })
                 .unwrap_or_default();
+
+            if references.is_empty() {
+                return Err(WorkflowError::InvalidRequest(
+                    "Add at least one image to this Direction before generating a style guide."
+                        .to_string(),
+                ));
+            }
 
             let strategy_artifact = self
                 .strategy_repository
@@ -160,6 +186,20 @@ impl StyleguideWorkflow {
                 .or(strategy_input.as_ref().map(|input| input.project_name.as_str()))
                 .unwrap_or("Project");
 
+            let image_attachments = self
+                .fetch_reference_images(&references)
+                .await
+                .unwrap_or_default();
+            let has_attached_images = !image_attachments.is_empty();
+            if has_attached_images {
+                tracing::info!(
+                    run_id = %run_id,
+                    count = image_attachments.len(),
+                    "fetched moodboard reference images for styleguide provider run"
+                );
+                request.attachments.extend(image_attachments);
+            }
+
             request.prompt = build_styleguide_prompt(
                 project_name,
                 direction_name,
@@ -171,6 +211,7 @@ impl StyleguideWorkflow {
                     .as_ref()
                     .map(|input| input.research_artifact_json.as_str()),
                 &references,
+                has_attached_images,
             );
 
             let provider_context = ProviderRunContext {
@@ -201,6 +242,10 @@ impl StyleguideWorkflow {
                 .save_moodboard_artifact(&auth_token, project_id, &artifact)
                 .await?;
 
+            self.moodboard_repository
+                .complete_moodboard_run(&auth_token, project_id, convex_run_id.as_deref())
+                .await?;
+
             sink.send(RunEvent::RunCompleted {
                 api_version,
                 run_id: run_id.clone(),
@@ -222,6 +267,23 @@ impl StyleguideWorkflow {
                 error = %error,
                 "styleguide workflow failed"
             );
+
+            if let (Some(token), Some(project_id)) =
+                (auth_token_for_failure.as_deref(), project_id.as_deref())
+            {
+                if let Err(mark_failed_error) = self
+                    .moodboard_repository
+                    .fail_moodboard_run(
+                        token,
+                        project_id,
+                        convex_run_id.as_deref(),
+                        &error.to_string(),
+                    )
+                    .await
+                {
+                    tracing::warn!(%mark_failed_error, "failed to mark Convex styleguide run failed");
+                }
+            }
 
             sink.send(RunEvent::RunFailed {
                 api_version,
@@ -269,6 +331,118 @@ impl StyleguideWorkflow {
             status: RunStatus::Completed,
         });
     }
+
+    async fn fetch_reference_images(
+        &self,
+        references: &[JsonValue],
+    ) -> Result<Vec<RunAttachment>, WorkflowError> {
+        let working_dir = provider_cli_working_directory()
+            .map_err(|error| WorkflowError::InvalidRequest(format!(
+                "Could not prepare provider working directory: {error}"
+            )))?;
+
+        let mut attachments = Vec::new();
+        for (index, reference) in references.iter().take(STYLEGUIDE_MAX_IMAGE_ATTACHMENTS).enumerate() {
+            let Some(url) = resolve_reference_image_url(reference, self.r2_public_base_url.as_deref())
+            else {
+                continue;
+            };
+
+            let bytes = match fetch_image_bytes(&url).await {
+                Ok(bytes) if looks_like_image_bytes(&bytes) => bytes,
+                _ => {
+                    tracing::warn!(url = %url, "could not fetch or validate reference image");
+                    continue;
+                }
+            };
+
+            if bytes.len() > STYLEGUIDE_MAX_IMAGE_BYTES {
+                tracing::warn!(
+                    url = %url,
+                    size = bytes.len(),
+                    "skipping oversize reference image"
+                );
+                continue;
+            }
+
+            let mime_type = infer_image_mime(&bytes);
+            let extension = crate::refero::parse::infer_extension(mime_type);
+            let file_name = format!("styleguide-ref-{index}.{extension}");
+            let file_path = working_dir.join(&file_name);
+
+            if let Err(error) = tokio::fs::write(&file_path, &bytes).await {
+                tracing::warn!(%error, "could not write reference image to temp file");
+                continue;
+            }
+
+            attachments.push(RunAttachment {
+                id: format!("styleguide-ref-{index}"),
+                kind: RunAttachmentKind::Image,
+                name: Some(file_name),
+                url: Some(url),
+                mime_type: Some(mime_type.to_string()),
+                local_path: Some(file_path.to_string_lossy().to_string()),
+            });
+        }
+
+        Ok(attachments)
+    }
+}
+
+fn resolve_reference_image_url(
+    reference: &JsonValue,
+    r2_public_base_url: Option<&str>,
+) -> Option<String> {
+    for field in ["thumbnailUrl", "imageUrl"] {
+        if let Some(url) = reference
+            .get(field)
+            .and_then(JsonValue::as_str)
+            .filter(|value| value.starts_with("https://") && !value.trim().is_empty())
+        {
+            return Some(url.to_string());
+        }
+    }
+
+    let base = r2_public_base_url
+        .filter(|base| !base.trim().is_empty())?
+        .trim_end_matches('/');
+
+    for field in ["thumbnailAssetKey", "imageAssetKey"] {
+        if let Some(key) = reference
+            .get(field)
+            .and_then(JsonValue::as_str)
+            .filter(|value| !value.trim().is_empty())
+        {
+            return Some(format!("{base}/{key}"));
+        }
+    }
+
+    None
+}
+
+async fn fetch_image_bytes(url: &str) -> Result<Vec<u8>, WorkflowError> {
+    let response = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::limited(3))
+        .build()
+        .map_err(|error| {
+            WorkflowError::InvalidRequest(format!("Could not prepare image fetch: {error}"))
+        })?
+        .get(url)
+        .send()
+        .await
+        .map_err(|error| {
+            WorkflowError::InvalidRequest(format!("Could not fetch reference image: {error}"))
+        })?
+        .error_for_status()
+        .map_err(|error| {
+            WorkflowError::InvalidRequest(format!("Reference image fetch failed: {error}"))
+        })?;
+
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|error| WorkflowError::InvalidRequest(format!("Could not read image bytes: {error}")))?;
+    Ok(bytes.to_vec())
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -303,5 +477,67 @@ impl WorkflowError {
             retryable: !matches!(self, WorkflowError::InvalidRequest(_)),
             detail: Some(self.to_string()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::resolve_reference_image_url;
+    use serde_json::json;
+
+    #[test]
+    fn resolves_public_thumbnail_url_first() {
+        let reference = json!({
+            "thumbnailUrl": "https://cdn.example.com/thumb.jpg",
+            "imageUrl": "https://cdn.example.com/full.jpg",
+            "imageAssetKey": "moodboard/projects/abc/upload/uuid.jpg",
+        });
+
+        let url = resolve_reference_image_url(&reference, Some("https://assets-testing.getstage.co"));
+        assert_eq!(url.as_deref(), Some("https://cdn.example.com/thumb.jpg"));
+    }
+
+    #[test]
+    fn resolves_public_image_url_when_no_thumbnail_url() {
+        let reference = json!({
+            "imageUrl": "https://cdn.example.com/full.jpg",
+            "imageAssetKey": "moodboard/projects/abc/upload/uuid.jpg",
+        });
+
+        let url = resolve_reference_image_url(&reference, Some("https://assets-testing.getstage.co"));
+        assert_eq!(url.as_deref(), Some("https://cdn.example.com/full.jpg"));
+    }
+
+    #[test]
+    fn constructs_url_from_asset_key_when_no_public_url() {
+        let reference = json!({
+            "imageUrl": "moodboard/projects/abc/upload/uuid.jpg",
+            "imageAssetKey": "moodboard/projects/abc/upload/uuid.jpg",
+            "thumbnailAssetKey": "moodboard/projects/abc/upload/uuid-thumb.jpg",
+        });
+
+        let url = resolve_reference_image_url(&reference, Some("https://assets-testing.getstage.co"));
+        assert_eq!(
+            url.as_deref(),
+            Some("https://assets-testing.getstage.co/moodboard/projects/abc/upload/uuid-thumb.jpg")
+        );
+    }
+
+    #[test]
+    fn returns_none_when_no_url_and_no_base() {
+        let reference = json!({
+            "imageUrl": "moodboard/projects/abc/upload/uuid.jpg",
+            "imageAssetKey": "moodboard/projects/abc/upload/uuid.jpg",
+        });
+
+        let url = resolve_reference_image_url(&reference, None);
+        assert!(url.is_none());
+    }
+
+    #[test]
+    fn returns_none_when_reference_has_no_image_fields() {
+        let reference = json!({ "id": "ref-1", "title": "No image" });
+        let url = resolve_reference_image_url(&reference, Some("https://assets-testing.getstage.co"));
+        assert!(url.is_none());
     }
 }

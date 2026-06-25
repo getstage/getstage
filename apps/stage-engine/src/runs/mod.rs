@@ -28,7 +28,9 @@ const COMPLETED_RUN_RETENTION: Duration = Duration::from_secs(300);
 type ProjectRunDedupeKey = (String, RunMode, Option<String>);
 
 fn project_run_dedupe_key(request: &StartRunRequest) -> Option<ProjectRunDedupeKey> {
-    if request.context.source.is_some() {
+    // Moodboard imports always set a source (figma/url/refero), but we still want
+    // one import at a time per project to avoid last-write-wins artifact races.
+    if request.context.source.is_some() && request.mode != RunMode::Moodboard {
         return None;
     }
 
