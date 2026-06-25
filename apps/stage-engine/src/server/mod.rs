@@ -29,6 +29,7 @@ pub fn router(state: AppState) -> Router {
         .route("/v1/exports/figma", post(exports::create_figma_export))
         .route("/v1/exports/figjam", post(exports::create_figjam_export))
         .route("/v1/exports/code", post(exports::create_code_export))
+        .route("/v1/exports/paper/status", get(exports::paper_connection_status))
         .route("/v1/exports/paper", post(exports::create_paper_export))
         .with_state(state)
 }

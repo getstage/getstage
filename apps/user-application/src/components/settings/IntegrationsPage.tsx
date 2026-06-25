@@ -22,11 +22,13 @@ import type { ProviderId } from "@stage/data-ops/contracts";
 import {
   googleSheetsIntegrationToRow,
   nativeIntegrationToRow,
+  paperIntegrationToRow,
   providerToIntegrationRow,
 } from "@/lib/settings/providerIntegrationRows";
 import { isProviderCliReady } from "@/lib/settings/providerCliSetup";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 import type { IntegrationRowModel } from "@/types/settings/integrations";
+import type { PaperConnectionStatusResponse } from "@stage/data-ops/contracts";
 import { ProviderCliSetupDialog } from "./ProviderCliSetupDialog";
 import { ProviderUpdatesBanner } from "./ProviderUpdatesBanner";
 import { SettingsIcon } from "./SettingsIcons";
@@ -41,6 +43,8 @@ export function IntegrationsPage() {
   const [setupDialogProviderId, setSetupDialogProviderId] = useState<ProviderId | null>(null);
   const [aiDefaultsOpen, setAiDefaultsOpen] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [paperStatus, setPaperStatus] = useState<PaperConnectionStatusResponse | null>(null);
+  const [paperStatusPending, setPaperStatusPending] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement>(null);
 
   const nativeConnectionStatus = useConvexQuery(
@@ -75,11 +79,14 @@ export function IntegrationsPage() {
     () => [
       nativeIntegrationToRow("figma", nativeConnectionStatus?.figma ?? null),
       nativeIntegrationToRow("notion", nativeConnectionStatus?.notion ?? null),
+      paperIntegrationToRow(paperStatus, paperStatusPending),
       googleSheetsIntegrationToRow(sheetConnectionStatus?.googleSheet ?? null),
     ],
     [
       nativeConnectionStatus?.figma,
       nativeConnectionStatus?.notion,
+      paperStatus,
+      paperStatusPending,
       sheetConnectionStatus?.googleSheet,
     ],
   );
@@ -88,8 +95,33 @@ export function IntegrationsPage() {
   const connectedIntegrations = integrationRows.filter((integration) => integration.connected);
   const availableIntegrations = integrationRows.filter((integration) => !integration.connected);
   const showProviderCliRestartHint = hasMissingProviderCli(providers.providerList.providers);
-  const isRefreshing = providerRefresh.isPending;
+  const isRefreshing = providerRefresh.isPending || paperStatusPending;
   const selectedDefaultModel = chatDefaults.selectedModel;
+
+  async function refreshPaperStatus() {
+    if (!window.stageDesktop?.engine?.getPaperStatus) return;
+
+    setPaperStatusPending(true);
+    try {
+      setPaperStatus(await window.stageDesktop.engine.getPaperStatus());
+    } catch (error) {
+      setPaperStatus({
+        apiVersion: "v1",
+        ready: false,
+        status: "not-ready",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Could not check Paper Desktop.",
+      });
+    } finally {
+      setPaperStatusPending(false);
+    }
+  }
+
+  async function refreshIntegrations() {
+    await Promise.all([providerRefresh.mutateAsync(), refreshPaperStatus()]);
+  }
 
   useEffect(() => {
     if (!modelMenuOpen) {
@@ -118,6 +150,10 @@ export function IntegrationsPage() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [modelMenuOpen]);
+
+  useEffect(() => {
+    void refreshPaperStatus();
+  }, []);
 
   useEffect(() => {
     if (!window.stageDesktop?.integrations?.onOAuthCompleted) {
@@ -180,6 +216,11 @@ export function IntegrationsPage() {
         return;
       }
 
+      if (integration.nativeIntegrationId === "paper") {
+        await refreshPaperStatus();
+        return;
+      }
+
       if (integration.nativeIntegrationId === "google-sheets") {
         if (integration.connected) {
           await disconnectSheet({ sourceType: "google_sheet" });
@@ -213,7 +254,7 @@ export function IntegrationsPage() {
           <button
             type="button"
             disabled={isRefreshing}
-            onClick={() => void providerRefresh.mutateAsync()}
+            onClick={() => void refreshIntegrations()}
             className="inline-flex h-[32px] items-center justify-center rounded-[6px] bg-[#F5F5F5] px-[12px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors enabled:hover:bg-[#ECECEC] disabled:cursor-wait disabled:text-[#737373]"
           >
             {isRefreshing ? "Checking..." : "Refresh"}
@@ -360,6 +401,7 @@ function getIntegrationActionLabel(integration: IntegrationRowModel) {
     if (integration.status !== "ready") return "Set up";
     return "Connect";
   }
+  if (integration.nativeIntegrationId === "paper") return "Refresh";
   return integration.connected ? "Disconnect" : "Connect";
 }
 

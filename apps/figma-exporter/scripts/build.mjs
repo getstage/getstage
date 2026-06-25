@@ -9,7 +9,7 @@ await build({
   outfile: new URL("../dist/code.js", import.meta.url).pathname,
   bundle: true,
   format: "iife",
-  target: "es2022",
+  target: "es2017",
   define: {
     __STAGE_API_BASE__: JSON.stringify(apiBase.replace(/\/$/, "")),
   },

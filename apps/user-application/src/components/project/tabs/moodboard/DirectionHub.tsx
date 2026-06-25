@@ -11,6 +11,7 @@ export type Direction = {
 export function DirectionHub({
   directions,
   items,
+  editingDirectionName,
   onNewDirection,
   onAll,
   onRenameDirection,
@@ -18,6 +19,7 @@ export function DirectionHub({
 }: {
   directions: Direction[];
   items: MoodboardItem[];
+  editingDirectionName?: string;
   onNewDirection: () => void;
   onAll: () => void;
   onRenameDirection: (previousName: string, nextName: string) => void;
@@ -42,6 +44,7 @@ export function DirectionHub({
           <DirectionCard
             key={direction.name}
             direction={direction}
+            initialEditing={direction.name === editingDirectionName}
             count={items.filter((item) => item.folder === direction.name).length}
             images={items.filter((item) => item.folder === direction.name).slice(0, 6)}
             onRename={(nextName) => onRenameDirection(direction.name, nextName)}
@@ -57,16 +60,18 @@ function DirectionCard({
   direction,
   count,
   images,
+  initialEditing = false,
   onRename,
   onGenerate,
 }: {
   direction: Direction;
   count: number;
   images: MoodboardItem[];
+  initialEditing?: boolean;
   onRename: (nextName: string) => void;
   onGenerate: () => void;
 }) {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(initialEditing);
   const [draftName, setDraftName] = useState(direction.name);
 
   function commitRename() {
@@ -89,7 +94,7 @@ function DirectionCard({
             key={`${direction.name}-${item.id}-${index}`}
             className="relative min-h-0 overflow-hidden rounded-[4px] border border-[#E5E5E5]"
           >
-            <img src={item.image} alt="" className="h-full w-full object-cover" />
+            <img src={item.thumbnailUrl ?? item.image} alt="" className="h-full w-full object-cover" />
             {index === 1 ? <div className="absolute inset-0 bg-black/35" /> : null}
           </div>
         )) : (

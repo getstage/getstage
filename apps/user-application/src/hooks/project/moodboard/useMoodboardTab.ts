@@ -8,22 +8,19 @@ import {
   type MoodboardBoardState,
   type MoodboardBoardItem,
 } from "@/lib/project/moodboardBoardState";
+import type { MoodboardStyleGuide, ProviderId } from "@stage/data-ops/contracts";
 import { api } from "@/lib/convexApi";
-import { MOODBOARD_IMAGE_ACCEPT, uploadFileToR2 } from "@/lib/r2Uploads";
+import { MOODBOARD_IMAGE_ACCEPT, createImageThumbnail, uploadFileToR2 } from "@/lib/r2Uploads";
 import { readFileAsDataUrl } from "@/lib/utils";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
+import { useProjectAiProvider } from "@/hooks/project";
 import { formatRunFailedEvent } from "@/lib/engine/formatRunError";
+import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import type { Project } from "@/models/project/project";
 import { useMoodboardArtifact } from "./useMoodboardArtifact";
 import { useSaveMoodboardArtifact } from "./useSaveMoodboardArtifact";
 
-const MOODBOARD_IMPORT_PROVIDER = "codex";
-const MOODBOARD_IMPORT_MODEL = "codex-default";
-const STYLEGUIDE_PROVIDER = "codex";
-const STYLEGUIDE_MODEL = "codex-default";
-// Mirror the server's STALE_RUNNING_RUN_MS so a crashed engine can't pin the
-// generating screen on a run that will never reach a terminal status.
 const MOODBOARD_RUN_STALE_MS = 60 * 60 * 1000;
 
 function latestTerminalRunEvent(events: RunEvent[]) {
@@ -79,6 +76,7 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
   const projectId = project.id;
   const moodboardArtifact = useMoodboardArtifact(projectId);
   const saveArtifact = useSaveMoodboardArtifact(projectId);
+  const aiProvider = useProjectAiProvider(projectId);
   const providerRun = useProviderRun({ projectId, mode: "moodboard" });
   const styleguideRun = useProviderRun({ projectId, mode: "styleguide" });
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
@@ -86,10 +84,10 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingStyleGuide, setIsGeneratingStyleGuide] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string>();
   const [importRunEnded, setImportRunEnded] = useState(false);
   const [styleGuideRunEnded, setStyleGuideRunEnded] = useState(false);
-  const [styleGuideCompletedAt, setStyleGuideCompletedAt] = useState<number | null>(null);
+  const [styleGuideCompletedAt, setStyleGuideCompletedAt] = useState<number>();
 
   // The in-memory active run is lost when the Moodboard tab unmounts (leaving the tab).
   // Convex is the durable truth: the engine keeps a moodboard run at status "running"
@@ -129,8 +127,12 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
         entry.status === "running" &&
         Date.now() - entry.startedAt < MOODBOARD_RUN_STALE_MS,
     );
-    return run?.inputSummary ?? null;
+    return run?.inputSummary;
   }, [styleguideRuns]);
+  // Still loading the styleguide runs — hold the tab so it doesn't flash the setup
+  // screen before we know a style guide is generating.
+  const isStyleGuideRunsLoading =
+    isAuthenticated && Boolean(projectId) && styleguideRuns === undefined;
 
   const data = moodboardArtifact.data;
   const terminalImportEvent = useMemo(
@@ -150,7 +152,7 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
     setImportRunEnded(true);
 
     if (terminalImportEvent.type === "run_completed") {
-      setError(null);
+      setError(undefined);
       providerRun.resetActiveRun();
       return;
     }
@@ -173,7 +175,7 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
     setIsGeneratingStyleGuide(false);
 
     if (terminalStyleGuideEvent.type === "run_completed") {
-      setError(null);
+      setError(undefined);
       setStyleGuideCompletedAt(Date.now());
       styleguideRun.resetActiveRun();
       return;
@@ -195,7 +197,7 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
   const saveBoard = useCallback(
     async (state: MoodboardBoardState) => {
       setIsSaving(true);
-      setError(null);
+      setError(undefined);
       try {
         const artifact = tabStateToMoodboardArtifact(
           project,
@@ -213,6 +215,32 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
     [project, saveArtifact, data],
   );
 
+  const saveStyleGuide = useCallback(
+    async (
+      directionId: string,
+      editedGuide: MoodboardStyleGuide,
+      boardState: MoodboardBoardState,
+    ) => {
+      setIsSaving(true);
+      setError(undefined);
+      try {
+        const currentStyleGuides = data?.tabData.styleGuides ?? [];
+        const mergedStyleGuides = [
+          ...currentStyleGuides.filter((guide) => guide.directionId !== directionId),
+          editedGuide,
+        ];
+        const artifact = tabStateToMoodboardArtifact(project, boardState, mergedStyleGuides);
+        await saveArtifact(artifact);
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "Could not save style guide.");
+        throw caught;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [project, saveArtifact, data],
+  );
+
   const uploadFiles = useCallback(
     async (files: FileList | File[]): Promise<MoodboardUploadResult> => {
       const fileArray = Array.from(files).filter((file) => file.type.startsWith("image/"));
@@ -221,11 +249,11 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
       }
 
       setIsUploading(true);
-      setError(null);
+      setError(undefined);
       try {
         const uploaded = await Promise.all(
           fileArray.map(async (file) => {
-            const [key, previewUrl] = await Promise.all([
+            const [key, previewUrl, thumbResult] = await Promise.all([
               uploadFileToR2({
                 generateUploadUrl: r2GenerateUploadUrl,
                 syncMetadata: r2SyncMetadata,
@@ -234,7 +262,19 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
                 scopeId: projectId,
               }),
               readFileAsDataUrl(file),
+              createImageThumbnail(file).catch(() => null),
             ]);
+
+            const thumbKey = thumbResult
+              ? await uploadFileToR2({
+                  generateUploadUrl: r2GenerateUploadUrl,
+                  syncMetadata: r2SyncMetadata,
+                  purpose: "moodboard-upload",
+                  file: thumbResult.file,
+                  scopeId: projectId,
+                }).catch(() => null)
+              : null;
+
             const id = `upload-${key.replace(/[^a-zA-Z0-9]+/g, "-")}`;
             return {
               item: {
@@ -243,8 +283,8 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
                 image: previewUrl,
                 imageUrl: previewUrl,
                 imageAssetKey: key,
-                thumbnailUrl: previewUrl,
-                thumbnailAssetKey: key,
+                thumbnailUrl: thumbResult?.dataUrl ?? previewUrl,
+                thumbnailAssetKey: thumbKey ?? key,
                 source: "upload" as const,
                 uploadedAssetId: key,
                 folder: null,
@@ -272,7 +312,7 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
         setIsUploading(false);
       }
     },
-    [projectId, r2GenerateUploadUrl, r2SyncMetadata],
+    [projectId, r2GenerateUploadUrl, r2SyncMetadata, createImageThumbnail],
   );
 
   const importFigmaLink = useCallback(
@@ -282,13 +322,18 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
         throw new Error("Paste a Figma link or image URL.");
       }
 
+      const providerId = aiProvider.resolvedProviderId;
+      if (!providerId) {
+        throw new Error("Choose a connected provider before importing. Enable one in Settings → Integrations.");
+      }
+
       const normalizedUrl = normalizeExternalUrl(trimmed);
       const source = isFigmaUrl(trimmed) ? "figma" : "url";
-      setError(null);
+      setError(undefined);
       setImportRunEnded(false);
       await providerRun.startRun.mutateAsync({
-        providerId: MOODBOARD_IMPORT_PROVIDER,
-        modelId: MOODBOARD_IMPORT_MODEL,
+        providerId,
+        modelId: resolveRunModelId(providerId, "codex-default"),
         prompt: trimmed,
         mode: "moodboard",
         context: { projectId, source },
@@ -300,7 +345,7 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
         modelOptions: [],
       });
     },
-    [projectId, providerRun.startRun],
+    [projectId, providerRun.startRun, aiProvider.resolvedProviderId],
   );
 
   const generateWithAi = useCallback(
@@ -310,11 +355,16 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
         throw new Error("Enter a Refero search query.");
       }
 
-      setError(null);
+      const providerId = aiProvider.resolvedProviderId;
+      if (!providerId) {
+        throw new Error("Choose a connected provider before generating. Enable one in Settings → Integrations.");
+      }
+
+      setError(undefined);
       setImportRunEnded(false);
       await providerRun.startRun.mutateAsync({
-        providerId: MOODBOARD_IMPORT_PROVIDER,
-        modelId: MOODBOARD_IMPORT_MODEL,
+        providerId,
+        modelId: resolveRunModelId(providerId, "codex-default"),
         prompt: trimmed,
         mode: "moodboard",
         context: { projectId, source: "refero" },
@@ -322,11 +372,13 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
         modelOptions: [],
       });
     },
-    [projectId, providerRun.startRun],
+    [projectId, providerRun.startRun, aiProvider.resolvedProviderId],
   );
 
+  // The provider is chosen up front (style-guide popup) and passed down as an owned
+  // value, so there is no "maybe a provider" to resolve here.
   const generateStyleGuide = useCallback(
-    async (directionId: string) => {
+    async (directionId: string, providerId: ProviderId) => {
       if (!data) {
         throw new Error("Create a moodboard before generating a style guide.");
       }
@@ -336,12 +388,12 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
 
       setIsGeneratingStyleGuide(true);
       setStyleGuideRunEnded(false);
-      setStyleGuideCompletedAt(null);
-      setError(null);
+      setStyleGuideCompletedAt(undefined);
+      setError(undefined);
       try {
         await styleguideRun.startRun.mutateAsync({
-          providerId: STYLEGUIDE_PROVIDER,
-          modelId: STYLEGUIDE_MODEL,
+          providerId,
+          modelId: resolveRunModelId(providerId, "codex-default"),
           prompt: "Generate style guide for this moodboard direction.",
           mode: "styleguide",
           context: { projectId, directionId },
@@ -355,20 +407,19 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
         throw caught;
       }
     },
-    [
-      data,
-      isGeneratingStyleGuide,
-      projectId,
-      styleguideRun.isRunActive,
-      styleguideRun.startRun,
-    ],
+    [data, isGeneratingStyleGuide, projectId, styleguideRun.isRunActive, styleguideRun.startRun],
   );
 
+  // Regenerate has no popup, so it resolves the active provider itself.
   const regenerateStyleGuide = useCallback(
     async (directionId: string) => {
-      await generateStyleGuide(directionId);
+      const providerId = aiProvider.resolvedProviderId;
+      if (!providerId) {
+        throw new Error("Choose a connected provider before generating a style guide. Enable one in Settings → Integrations.");
+      }
+      await generateStyleGuide(directionId, providerId);
     },
-    [generateStyleGuide],
+    [generateStyleGuide, aiProvider.resolvedProviderId],
   );
 
   const isStyleGuideRunActive =
@@ -376,19 +427,24 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
     (isGeneratingStyleGuide ||
       styleguideRun.startRun.isPending ||
       styleguideRun.isRunActive ||
-      runningStyleGuideDirectionId !== null);
+      runningStyleGuideDirectionId !== undefined);
 
   return {
     data,
-    isLoading: moodboardArtifact.isLoading || isRunsLoading,
+    isLoading: moodboardArtifact.isLoading || isRunsLoading || isStyleGuideRunsLoading,
     hasArtifact: data !== null,
     parseError: moodboardArtifact.parseError,
     saveBoard,
+    saveStyleGuide,
     isSaving,
     uploadFiles,
     isUploading,
     importFigmaLink,
     generateWithAi,
+    providerOptions: aiProvider.providerOptions,
+    selectedProviderId: aiProvider.selectedProviderId,
+    selectProvider: aiProvider.selectProvider,
+    resolvedProviderId: aiProvider.resolvedProviderId,
     isImporting:
       !importRunEnded &&
       (providerRun.startRun.isPending ||

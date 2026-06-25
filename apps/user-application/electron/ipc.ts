@@ -8,6 +8,7 @@ import {
   createFigJamExportRequestSchema,
   createCodeExportResponseSchema,
   createPaperExportResponseSchema,
+  paperConnectionStatusResponseSchema,
   saveCodeExportResponseSchema,
   wireframeDeliveryRequestSchema,
   providerIdSchema,
@@ -335,6 +336,18 @@ export function registerIpcHandlers({
       directoryPath,
       fileCount: bundle.files.length,
     });
+  });
+
+  ipcMain.handle(IPC_CHANNELS.engineGetPaperStatus, async () => {
+    sidecarSupervisor.markEngineActivity();
+    const status = await sidecarSupervisor.start();
+    const payload = await fetchEngineJson<unknown>({
+      method: "GET",
+      path: "/v1/exports/paper/status",
+      port: status.port,
+      timeoutMs: 10_000,
+    });
+    return paperConnectionStatusResponseSchema.parse(payload);
   });
 
   ipcMain.handle(IPC_CHANNELS.engineCreatePaperExport, async (_event, request: unknown) => {

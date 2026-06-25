@@ -136,9 +136,11 @@ export function ProjectStepView({
         ) : null}
         {!blockedStep && activeTab === "moodboard" ? (
           <MoodboardTab
+            key={project.id}
             project={project}
             onGoToResearch={() => onGoToTab("research")}
             onGoToStrategy={() => onGoToTab("strategy")}
+            onGoToFlows={() => onGoToTab("flows")}
           />
         ) : null}
         {!blockedStep && activeTab === "flows" ? (

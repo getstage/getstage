@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { MoodboardUploadedFile } from "@stage/data-ops/contracts";
+import type { MoodboardUploadedFile, ProviderId } from "@stage/data-ops/contracts";
+import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategyRunDialog";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import {
   defaultStyleGuide,
@@ -8,6 +9,7 @@ import {
 } from "@/data/fixtures/project/moodboardTabFixtures";
 import { useMoodboardTab } from "@/hooks/project";
 import { getStyleGuideForDirection } from "@/lib/project/mapMoodboardArtifactToTabData";
+import { directionIdFromName } from "@/lib/project/moodboardBoardState";
 import type { Project } from "@/models/project/project";
 import { DirectionHub, type Direction } from "./DirectionHub";
 import { DirectionToggle } from "./DirectionToggle";
@@ -39,9 +41,10 @@ type MoodboardTabProps = {
   project: Project;
   onGoToResearch?: () => void;
   onGoToStrategy?: () => void;
+  onGoToFlows: () => void;
 };
 
-export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: MoodboardTabProps) {
+export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFlows }: MoodboardTabProps) {
   const moodboard = useMoodboardTab({ id: project.id, name: project.name });
   const [mode, setMode] = useState<MoodboardMode>("upload");
   const [hasUploadedFiles, setHasUploadedFiles] = useState(false);
@@ -51,14 +54,17 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
   const [items, setItems] = useState<MoodboardItem[]>(createFallbackItems);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [folders, setFolders] = useState<Direction[]>([]);
-  const [activeFolder, setActiveFolder] = useState<string | null>(null);
+  const [activeFolder, setActiveFolder] = useState<string>();
   const [draftFolderName, setDraftFolderName] = useState("");
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [isFolderMenuOpen, setIsFolderMenuOpen] = useState(false);
   const [figmaLink, setFigmaLink] = useState("");
   const [referoQuery, setReferoQuery] = useState("");
-  const [activeStyleGuideDirectionName, setActiveStyleGuideDirectionName] = useState<string | null>(null);
+  const [activeStyleGuideDirectionName, setActiveStyleGuideDirectionName] = useState<string>();
+  const [styleGuideDialogDirection, setStyleGuideDialogDirection] = useState<string>();
   const [styleGuideGeneratingMode, setStyleGuideGeneratingMode] = useState<"generate" | "regenerate">("generate");
+  const [isEditingStyleGuide, setIsEditingStyleGuide] = useState(false);
+  const [newDirectionName, setNewDirectionName] = useState<string>();
   const directionMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -84,14 +90,21 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
         .map((reference) => reference.folder)
         .filter((folder): folder is string => Boolean(folder)),
     );
+    // Derive hasStyleGuide from the styleGuides array (single source of truth) rather
+    // than the stored direction flag, which drifts and gets stuck on "View".
+    const styleGuideDirectionIds = new Set(
+      tabData.styleGuides.map((styleGuide) => styleGuide.directionId),
+    );
+    const directionHasStyleGuide = (name: string) =>
+      styleGuideDirectionIds.has(directionIdFromName(name));
     setFolders(
       tabData.directions
         .filter((direction) =>
-          !isLegacyAutoDirection(direction.name, usedDirectionNames, direction.hasStyleGuide),
+          !isLegacyAutoDirection(direction.name, usedDirectionNames, directionHasStyleGuide(direction.name)),
         )
         .map((direction) => ({
           name: direction.name,
-          hasStyleGuide: direction.hasStyleGuide,
+          hasStyleGuide: directionHasStyleGuide(direction.name),
         })),
     );
     setSelectedIds((current) => {
@@ -104,22 +117,22 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
 
   const hasMoodboard = items.some((item) => item.isInMoodboard);
   const folderNames = folders.map((folder) => folder.name);
-  const hasStagedItems = items.some((item) => !item.isInMoodboard);
-  const showImportGrid = hasStagedItems && (mode === "figma" || mode === "ai" || mode === "upload");
-  const showMoodboardGrid = hasMoodboard && !showImportGrid;
-  const showGrid = showImportGrid || showMoodboardGrid;
+  const showGrid = items.length > 0;
+  // The All grid shows moodboard images and newly-staged candidates together: staged
+  // items are always visible (badged in the grid), moodboard items honour the active
+  // direction filter. Staging a new image no longer hides what's already saved.
   const visibleItems = items.filter((item) => {
-    if (showImportGrid) return !item.isInMoodboard;
-    if (!item.isInMoodboard) return false;
+    if (!item.isInMoodboard) {
+      return true;
+    }
     return activeFolder ? item.folder === activeFolder : true;
   });
   const selectedVisibleItems = visibleItems.filter((item) => selectedIds.has(item.id));
   const selectedVisibleIds = new Set(selectedVisibleItems.map((item) => item.id));
-  const canAddToMoodboard = selectedVisibleItems.length > 0;
-  const showSelectionActions = (hasMoodboard || showImportGrid) && selectedVisibleItems.length > 0;
-  const deleteButtonLabel = selectedVisibleItems.some((item) => item.isInMoodboard)
-    ? "Delete from Moodboard"
-    : "Delete selected";
+  const selectedStagedItems = selectedVisibleItems.filter((item) => !item.isInMoodboard);
+  const canAddToMoodboard = selectedStagedItems.length > 0;
+  const showSelectionActions = selectedVisibleItems.length > 0;
+  const deleteButtonLabel = "Delete selected";
   const activeStyleGuide = (() => {
     if (!activeStyleGuideDirectionName || !moodboard.data) {
       return defaultStyleGuide;
@@ -167,7 +180,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
     // Warm path: the terminal event set styleGuideCompletedAt. Remount/cold path: the
     // durable run is no longer "running" and the direction now has a saved style guide.
     const completed =
-      moodboard.styleGuideCompletedAt !== null ||
+      moodboard.styleGuideCompletedAt !== undefined ||
       (!moodboard.isGeneratingStyleGuide && hasSavedGuide);
     if (completed) {
       setView("style-guide");
@@ -252,7 +265,24 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
     setItems(nextItems);
     setActiveFolder((current) => (current === previousName ? name : current));
     setActiveStyleGuideDirectionName((current) => (current === previousName ? name : current));
+    setNewDirectionName(undefined);
     persistBoard(nextItems, nextFolders);
+  }
+
+  // Create an empty direction in place and keep the user in the Direction Hub (the card
+  // opens in name-edit mode). Previously this jumped back to the board/upload screen.
+  function createNewDirection() {
+    const base = "New Direction";
+    let name = base;
+    let counter = 2;
+    while (folders.some((folder) => folder.name === name)) {
+      name = `${base} ${counter}`;
+      counter += 1;
+    }
+    const nextFolders = [...folders, { name }];
+    setFolders(nextFolders);
+    setNewDirectionName(name);
+    persistBoard(items, nextFolders);
   }
 
   async function handleUpload(files: FileList) {
@@ -268,6 +298,24 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
     } catch {
       // Error is surfaced through moodboard.error.
     }
+  }
+
+  function deleteUploadedFile(fileId: string) {
+    const file = uploadedFiles.find((item) => item.id === fileId);
+    if (!file) return;
+
+    const nextUploadedFiles = uploadedFiles.filter((item) => item.id !== fileId);
+    const nextItems = items.filter(
+      (item) =>
+        item.id !== fileId &&
+        (!file.uploadedAssetId || item.uploadedAssetId !== file.uploadedAssetId),
+    );
+
+    setUploadedFiles(nextUploadedFiles);
+    setHasUploadedFiles(nextUploadedFiles.length > 0);
+    setItems(nextItems);
+    setSelectedIds((current) => new Set([...current].filter((id) => nextItems.some((item) => item.id === id))));
+    persistBoard(nextItems, folders, nextUploadedFiles);
   }
 
   async function handleFigmaImport() {
@@ -290,33 +338,84 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
     }
   }
 
-  async function generateStyleGuide(direction: string) {
+  // "View Style Guide" (a guide already exists) opens the saved guide directly and
+  // starts no run. "Generate Style Guide" (no guide yet) opens the provider popup.
+  function handleDirectionStyleGuide(direction: string) {
+    const folder = folders.find((entry) => entry.name === direction);
+    if (folder?.hasStyleGuide) {
+      setActiveStyleGuideDirectionName(direction);
+      setView("style-guide");
+      return;
+    }
+    setStyleGuideDialogDirection(direction);
+  }
+
+  async function runStyleGuide(direction: string, providerId: ProviderId) {
     setActiveStyleGuideDirectionName(direction);
     setStyleGuideGeneratingMode("generate");
     setView("generating-style-guide");
 
     const directionId = moodboard.data?.tabData.directions.find((item) => item.name === direction)?.id;
-
-    if (directionId) {
-      try {
-        await moodboard.generateStyleGuide(directionId);
-      } catch {
-        setView("hub");
-      }
+    if (!directionId) {
+      setView("hub");
       return;
     }
 
-    setView("hub");
+    try {
+      await moodboard.generateStyleGuide(directionId, providerId);
+    } catch {
+      setView("hub");
+    }
   }
 
-  if (view === "generating-style-guide") {
-    return <StyleGuideGenerating mode={styleGuideGeneratingMode} />;
+  // Show the generating screen straight from the durable run too, so a remount doesn't
+  // flash the board for a frame before the restore effect sets `view`.
+  const generatingPreviewUrl = (() => {
+    if (!activeStyleGuideDirectionName || !moodboard.data) {
+      return undefined;
+    }
+    const directionId = moodboard.data.tabData.directions.find(
+      (direction) => direction.name === activeStyleGuideDirectionName,
+    )?.id;
+    if (!directionId) {
+      return undefined;
+    }
+    const firstRef = moodboard.data.tabData.references.find(
+      (reference) => reference.directionId === directionId && reference.isInMoodboard,
+    );
+    return firstRef?.thumbnailUrl ?? firstRef?.imageUrl ?? firstRef?.image;
+  })();
+
+  if (view === "generating-style-guide" || moodboard.runningStyleGuideDirectionId !== undefined) {
+    return <StyleGuideGenerating mode={styleGuideGeneratingMode} previewUrl={generatingPreviewUrl} />;
   }
 
   if (view === "style-guide") {
     return (
         <StyleGuideView
           styleGuide={activeStyleGuide}
+          isEditing={isEditingStyleGuide}
+          onEdit={() => setIsEditingStyleGuide(true)}
+          onSave={(editedGuide) => {
+            const directionId = moodboard.data?.tabData.directions.find(
+              (item) => item.name === activeStyleGuideDirectionName,
+            )?.id;
+            if (!directionId) {
+              return;
+            }
+            void moodboard
+              .saveStyleGuide(directionId, editedGuide, {
+                mode,
+                items,
+                directions: folders,
+                uploadedFiles,
+              })
+              .then(() => setIsEditingStyleGuide(false))
+              .catch(() => {
+                // Error is surfaced through moodboard.error.
+              });
+          }}
+          onCancel={() => setIsEditingStyleGuide(false)}
           onBack={() => setView("hub")}
           onRegenerate={() => {
             const directionId = moodboard.data?.tabData.directions.find(
@@ -325,6 +424,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
             if (!directionId) {
               return;
             }
+            setIsEditingStyleGuide(false);
             setStyleGuideGeneratingMode("regenerate");
             setView("generating-style-guide");
             void moodboard.regenerateStyleGuide(directionId).catch(() => {
@@ -359,14 +459,11 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
         <DirectionHub
           directions={folders}
           items={items.filter((item) => item.isInMoodboard)}
+          editingDirectionName={newDirectionName}
           onAll={() => setView("board")}
-          onNewDirection={() => {
-            setView("board");
-            setIsFolderMenuOpen(true);
-            setIsCreatingFolder(true);
-          }}
+          onNewDirection={createNewDirection}
           onRenameDirection={renameDirection}
-          onGenerateStyleGuide={generateStyleGuide}
+          onGenerateStyleGuide={handleDirectionStyleGuide}
         />
       ) : !showGrid ? (
         <div className="flex min-h-[420px] flex-1 items-center justify-center rounded-[8px] bg-white p-[clamp(24px,4.3vw,44px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -415,7 +512,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
                   disabled={moodboard.isUploading}
                   onUpload={handleUpload}
                 />
-                {hasUploadedFiles ? <UploadedFilesList files={uploadedFiles} /> : null}
+                {hasUploadedFiles ? <UploadedFilesList files={uploadedFiles} onDelete={deleteUploadedFile} /> : null}
               </div>
             ) : null}
             {moodboard.error ? (
@@ -436,7 +533,16 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
                   onClick={() => setMode("ai")}
                 />
               </div>
-              {mode === "ai" ? (
+              {mode === "upload" ? (
+                <div className="mx-auto flex w-full max-w-[496px] flex-col gap-3">
+                  <UploadDropzone
+                    accept={moodboard.acceptUploads}
+                    disabled={moodboard.isUploading}
+                    onUpload={handleUpload}
+                  />
+                  {hasUploadedFiles ? <UploadedFilesList files={uploadedFiles} onDelete={deleteUploadedFile} /> : null}
+                </div>
+              ) : mode === "ai" ? (
                 <GenerateWithAiPanel
                   compact
                   disabled={moodboard.isImporting}
@@ -466,7 +572,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
             <div className="flex flex-wrap items-center justify-between gap-3">
               <DirectionToggle
                 activeView="all"
-                onAll={() => setActiveFolder(null)}
+                onAll={() => setActiveFolder(undefined)}
                 onDirectionHub={() => setView("hub")}
               />
 
@@ -480,21 +586,23 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
                     className="inline-flex h-8 cursor-pointer items-center justify-center rounded-[6px] bg-white px-3 text-[12px] font-medium leading-none text-[#EF4444] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA]"
                     onClick={() => {
                       if (selectedVisibleIds.size === 0) return;
-                      const nextItems = items.flatMap((item) => {
-                        if (!selectedVisibleIds.has(item.id)) {
-                          return [item];
-                        }
-
-                        if (item.isInMoodboard) {
-                          return [{ ...item, isInMoodboard: false, folder: null }];
-                        }
-
-                        return [];
-                      });
+                      const removedAssetIds = new Set(
+                        selectedVisibleItems
+                          .map((item) => item.uploadedAssetId)
+                          .filter((id): id is string => Boolean(id)),
+                      );
+                      const nextItems = items.filter((item) => !selectedVisibleIds.has(item.id));
+                      const nextUploadedFiles = uploadedFiles.filter(
+                        (file) =>
+                          !selectedVisibleIds.has(file.id) &&
+                          (!file.uploadedAssetId || !removedAssetIds.has(file.uploadedAssetId)),
+                      );
+                      setUploadedFiles(nextUploadedFiles);
+                      setHasUploadedFiles(nextUploadedFiles.length > 0);
                       setItems(nextItems);
                       setSelectedIds(new Set());
                       closeDirectionMenu();
-                      persistBoard(nextItems, folders);
+                      persistBoard(nextItems, folders, nextUploadedFiles);
                     }}
                   >
                     {deleteButtonLabel}
@@ -521,7 +629,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
                         );
                         setFolders(nextFolders);
                         setItems(nextItems);
-                        setActiveFolder(null);
+                        setActiveFolder(undefined);
                         closeDirectionMenu();
                         persistBoard(nextItems, nextFolders);
                       }}
@@ -541,7 +649,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
                         );
                         setFolders(nextFolders);
                         setItems(nextItems);
-                        setActiveFolder(null);
+                        setActiveFolder(undefined);
                         closeDirectionMenu();
                         persistBoard(nextItems, nextFolders);
                       }}
@@ -582,9 +690,33 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy }: Moodbo
             setHasFigmaImportResults(false);
             persistBoard(nextItems, folders);
           }}
+          onGoToFlows={onGoToFlows}
         />
       ) : null}
       </section>
+
+      <GenerateStrategyRunDialog
+        open={styleGuideDialogDirection !== undefined}
+        onOpenChange={(open) => {
+          if (!open) {
+            setStyleGuideDialogDirection(undefined);
+          }
+        }}
+        title="Generate Style Guide"
+        description="Turn this direction into a style guide. Choose a provider, then start the run."
+        confirmLabel="Generate Style Guide"
+        isSubmitting={moodboard.isGeneratingStyleGuide}
+        providerOptions={moodboard.providerOptions}
+        selectedProviderId={moodboard.selectedProviderId}
+        onSelectProvider={moodboard.selectProvider}
+        onConfirm={(providerId) => {
+          const direction = styleGuideDialogDirection;
+          setStyleGuideDialogDirection(undefined);
+          if (direction) {
+            void runStyleGuide(direction, providerId);
+          }
+        }}
+      />
     </>
   );
 }

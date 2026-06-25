@@ -7,7 +7,7 @@ use crate::models::runs::RunEvent;
 use crate::providers::adapter::ProviderRunContext;
 use crate::runs::RunEventSink;
 
-use super::heuristics::should_suppress_stderr_warning;
+use super::heuristics::{expected_artifact_kind, should_suppress_stderr_warning};
 use super::stderr::{StderrArtifactCapture, StderrDiagnostics, append_output};
 
 const PROCESS_DRAIN_GRACE: std::time::Duration = std::time::Duration::from_millis(25);
@@ -43,6 +43,7 @@ impl LineSink {
         capture_multiline_stderr: bool,
         line: ProcessLine,
     ) {
+        let expected_kind = expected_artifact_kind(context.request.mode);
         match line.stream {
             StreamName::Stdout => {
                 self.emitted_stdout = true;
@@ -64,6 +65,7 @@ impl LineSink {
                     &line.text,
                     &mut self.final_text,
                     capture_multiline_stderr,
+                    expected_kind,
                 );
                 self.stderr_diag.record(&line.text);
 
@@ -94,9 +96,10 @@ impl LineSink {
         }
     }
 
-    pub(super) fn flush_stderr(&mut self, capture_multiline_stderr: bool) {
+    pub(super) fn flush_stderr(&mut self, context: &ProviderRunContext, capture_multiline_stderr: bool) {
+        let expected_kind = expected_artifact_kind(context.request.mode);
         self.stderr_capture
-            .flush(&mut self.final_text, capture_multiline_stderr);
+            .flush(&mut self.final_text, capture_multiline_stderr, expected_kind);
     }
 }
 

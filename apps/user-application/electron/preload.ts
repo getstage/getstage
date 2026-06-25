@@ -18,6 +18,7 @@ import type {
   CreateFigmaExportResponse,
   CreateFigJamExportRequest,
   CreatePaperExportResponse,
+  PaperConnectionStatusResponse,
   SaveCodeExportResponse,
   WireframeDeliveryRequest,
   RunEvent,
@@ -67,6 +68,8 @@ const stageDesktop = {
       request: WireframeDeliveryRequest,
     ): Promise<SaveCodeExportResponse> =>
       ipcRenderer.invoke(IPC_CHANNELS.engineExportWireframeCode, request),
+    getPaperStatus: (): Promise<PaperConnectionStatusResponse> =>
+      ipcRenderer.invoke(IPC_CHANNELS.engineGetPaperStatus),
     createPaperExport: (
       request: WireframeDeliveryRequest,
     ): Promise<CreatePaperExportResponse> =>

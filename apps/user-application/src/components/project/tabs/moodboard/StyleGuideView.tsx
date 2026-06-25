@@ -1,25 +1,44 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { defaultStyleGuide } from "@/mock/project/moodboard";
 import type { MoodboardStyleGuideViewData } from "@/types/project/moodboardTab";
 import { EditIcon, PlusIcon, RegenerateIcon } from "./moodboardIcons";
 
 type TypographyRow = MoodboardStyleGuideViewData["typography"]["rows"][number];
+type AtmosphereMetric = MoodboardStyleGuideViewData["atmosphere"][number];
 
 export function StyleGuideView({
   styleGuide = defaultStyleGuide,
   onBack: _onBack,
   onRegenerate,
+  isEditing = false,
+  onEdit,
+  onSave,
+  onCancel,
 }: {
   styleGuide?: MoodboardStyleGuideViewData;
   onBack: () => void;
   onRegenerate: () => void;
+  isEditing?: boolean;
+  onEdit?: () => void;
+  onSave?: (guide: MoodboardStyleGuideViewData) => void;
+  onCancel?: () => void;
 }) {
   const [previewSize, setPreviewSize] = useState(styleGuide.typography.previewSize);
   const [fontFamily, setFontFamily] = useState(styleGuide.typography.fontFamily);
   const [customRows, setCustomRows] = useState<TypographyRow[]>([]);
+  const [draftAtmosphere, setDraftAtmosphere] = useState<AtmosphereMetric[]>(styleGuide.atmosphere);
   const previewProgress = ((previewSize - 12) / (48 - 12)) * 100;
   const renderedRows = [...styleGuide.typography.rows, ...customRows];
   const componentSwatches = Array.from({ length: styleGuide.componentSwatchCount }, (_, index) => index);
+
+  useEffect(() => {
+    if (isEditing) {
+      setPreviewSize(styleGuide.typography.previewSize);
+      setFontFamily(styleGuide.typography.fontFamily);
+      setCustomRows([]);
+      setDraftAtmosphere(styleGuide.atmosphere);
+    }
+  }, [isEditing, styleGuide]);
 
   function addTypographyRow() {
     const weight = previewSize >= 15 ? "Semi-Bold" : "Medium";
@@ -36,6 +55,28 @@ export function StyleGuideView({
     ]);
   }
 
+  function handleSave() {
+    if (!onSave) return;
+    onSave({
+      ...styleGuide,
+      atmosphere: draftAtmosphere,
+      typography: {
+        ...styleGuide.typography,
+        fontFamily,
+        previewSize,
+        rows: [...styleGuide.typography.rows, ...customRows],
+      },
+    });
+  }
+
+  function handleCancel() {
+    setPreviewSize(styleGuide.typography.previewSize);
+    setFontFamily(styleGuide.typography.fontFamily);
+    setCustomRows([]);
+    setDraftAtmosphere(styleGuide.atmosphere);
+    onCancel?.();
+  }
+
   return (
     <section className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex items-end justify-between gap-3 p-4">
@@ -46,14 +87,27 @@ export function StyleGuideView({
           </p>
         </div>
         <div className="flex items-center gap-1">
-          <HeaderButton>
-            <EditIcon />
-            Edit
-          </HeaderButton>
-          <HeaderButton onClick={onRegenerate}>
-            <RegenerateIcon />
-            Regenerate
-          </HeaderButton>
+          {isEditing ? (
+            <>
+              <HeaderButton onClick={handleSave}>
+                Save
+              </HeaderButton>
+              <HeaderButton onClick={handleCancel}>
+                Cancel
+              </HeaderButton>
+            </>
+          ) : (
+            <>
+              <HeaderButton onClick={onEdit}>
+                <EditIcon />
+                Edit
+              </HeaderButton>
+              <HeaderButton onClick={onRegenerate}>
+                <RegenerateIcon />
+                Regenerate
+              </HeaderButton>
+            </>
+          )}
           <button
             className="inline-flex h-8 items-center gap-2 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] pl-3 pr-[10px] text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
             type="button"
@@ -68,8 +122,19 @@ export function StyleGuideView({
         <div className="flex flex-col gap-11">
           <StyleSection title="Atmosphere">
             <div className="grid gap-2 lg:grid-cols-3">
-              {styleGuide.atmosphere.map((metric) => (
-                <AtmosphereMetric key={metric.label} {...metric} />
+              {styleGuide.atmosphere.map((metric, index) => (
+                <AtmosphereMetric
+                  key={metric.label}
+                  {...(isEditing ? draftAtmosphere[index] ?? metric : metric)}
+                  editable={isEditing}
+                  onPositionChange={(position) =>
+                    setDraftAtmosphere((current) =>
+                      current.map((entry, entryIndex) =>
+                        entryIndex === index ? { ...entry, position } : entry,
+                      ),
+                    )
+                  }
+                />
               ))}
             </div>
           </StyleSection>
@@ -240,12 +305,16 @@ function AtmosphereMetric({
   color,
   tint,
   position,
+  editable = false,
+  onPositionChange,
 }: {
   label: string;
   value: string;
   color: string;
   tint: string;
   position: number;
+  editable?: boolean;
+  onPositionChange?: (position: number) => void;
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-2">
@@ -254,6 +323,17 @@ function AtmosphereMetric({
         <div className="absolute left-0 top-[5px] h-[6px] rounded-full" style={{ width: `${position}%`, backgroundColor: color }} />
         <span className="absolute top-0 h-4 w-4 rounded-full" style={{ left: `calc(${position}% - 8px)`, backgroundColor: color }} />
         <span className="absolute left-0 top-0 h-4 w-4 rounded-full" style={{ backgroundColor: color }} />
+        {editable ? (
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={position}
+            onChange={(event) => onPositionChange?.(Number(event.target.value))}
+            className="absolute inset-0 h-4 w-full cursor-pointer opacity-0"
+            aria-label={label}
+          />
+        ) : null}
       </div>
       <div className="flex items-center justify-between text-[13px] font-medium leading-none">
         <span className="text-[#171717]">{label}</span>
