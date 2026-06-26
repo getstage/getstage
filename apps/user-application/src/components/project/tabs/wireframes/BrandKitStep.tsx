@@ -8,6 +8,7 @@ export function BrandKitStep({
   files,
   accept,
   isUploading,
+  error,
   onUploadFiles,
   onRemove,
   onContinue,
@@ -15,6 +16,7 @@ export function BrandKitStep({
   files: BrandKitFile[];
   accept: string;
   isUploading: boolean;
+  error: string | null;
   onUploadFiles: (files: FileList | File[]) => void;
   onRemove: (id: string) => void;
   onContinue: () => void;
@@ -109,6 +111,9 @@ export function BrandKitStep({
           ) : null}
         </div>
       ))}
+      {error ? (
+        <p className="text-[12px] font-medium leading-[1.3] text-[#EF4444]">{error}</p>
+      ) : null}
       <PrimaryButton
         disabled={!hasUploadedFile || isUploading}
         onClick={onContinue}

@@ -187,6 +187,7 @@ export function WireframesTab({
             files={brandKit.files}
             accept={brandKit.accept}
             isUploading={brandKit.isUploading}
+            error={brandKit.error}
             onUploadFiles={brandKit.uploadFiles}
             onRemove={brandKit.removeFile}
             onContinue={() => {

@@ -107,29 +107,29 @@ impl WireframesWorkflow {
                 )
                 .await?;
 
-            // For a brand-kit Hi-Fi run, fetch the uploaded brand kit files and attach them
-            // so the model derives palette/typography/logo from the real brand kit. A flaky
-            // file is skipped (logged), not fatal; the prompt only claims an attachment when
-            // at least one file actually made it through.
-            let brand_kit_attachments =
-                if matches!(brand_source, Some(WireframeBrandSource::BrandKit))
-                    && !brand_kit_keys.is_empty()
-                {
-                    self.fetch_brand_kit_attachments(&brand_kit_keys)
-                        .await
-                        .unwrap_or_default()
-                } else {
-                    Vec::new()
-                };
-            let brand_kit_attached = !brand_kit_attachments.is_empty();
-            if brand_kit_attached {
+            // For a brand-kit Hi-Fi run, fetch the uploaded brand kit files and attach them so
+            // the model derives palette/typography/logo from the real brand kit. The user
+            // uploaded files expecting them used, so if none can be loaded (R2 base unset,
+            // expired URLs, 404s) we fail loudly rather than silently produce a generic result.
+            let brand_kit_requested = matches!(brand_source, Some(WireframeBrandSource::BrandKit))
+                && !brand_kit_keys.is_empty();
+            let brand_kit_attached = if brand_kit_requested {
+                let attachments = self.fetch_brand_kit_attachments(&brand_kit_keys).await?;
+                if attachments.is_empty() {
+                    return Err(WorkflowError::InvalidRequest(
+                        "Could not load the uploaded brand kit files. Check R2 configuration and the uploads, then try again.".to_string(),
+                    ));
+                }
                 tracing::info!(
                     run_id = %run_id,
-                    count = brand_kit_attachments.len(),
+                    count = attachments.len(),
                     "attached brand kit files for wireframes provider run"
                 );
-                request.attachments.extend(brand_kit_attachments);
-            }
+                request.attachments.extend(attachments);
+                true
+            } else {
+                false
+            };
 
             request.prompt = build_wireframes_prompt(
                 &input,
@@ -323,11 +323,15 @@ impl WireframesWorkflow {
 
 fn resolve_brand_kit_url(key: &str, r2_public_base_url: Option<&str>) -> Option<String> {
     let trimmed = key.trim();
-    if trimmed.is_empty() {
+    // Default-deny: accept only a relative R2 object key, never a caller-supplied URL,
+    // absolute path, or traversal. Otherwise a run could make the local engine fetch
+    // arbitrary or internal network URLs (SSRF).
+    if trimmed.is_empty()
+        || trimmed.contains("://")
+        || trimmed.starts_with('/')
+        || trimmed.contains("..")
+    {
         return None;
-    }
-    if trimmed.starts_with("https://") || trimmed.starts_with("http://") {
-        return Some(trimmed.to_string());
     }
 
     let base = r2_public_base_url

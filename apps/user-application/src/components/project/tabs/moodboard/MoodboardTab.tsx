@@ -429,7 +429,16 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
     return firstRef?.thumbnailUrl ?? firstRef?.imageUrl ?? firstRef?.image;
   })();
 
-  if (view === "generating-style-guide" || moodboard.runningStyleGuideDirectionId !== undefined) {
+  // Only restore the generating screen from a durable run when its direction still exists —
+  // a deleted direction would otherwise show an orphaned generating state until the run ends.
+  const runningDirectionStillExists =
+    moodboard.runningStyleGuideDirectionId !== undefined &&
+    (moodboard.data?.tabData.directions.some(
+      (direction) => direction.id === moodboard.runningStyleGuideDirectionId,
+    ) ??
+      false);
+
+  if (view === "generating-style-guide" || runningDirectionStillExists) {
     return <StyleGuideGenerating mode={styleGuideGeneratingMode} previewUrl={generatingPreviewUrl} />;
   }
 

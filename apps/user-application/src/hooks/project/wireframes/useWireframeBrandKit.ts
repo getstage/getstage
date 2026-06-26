@@ -16,6 +16,10 @@ export type BrandKitFile = {
   | { status: "failed"; error: string }
 );
 
+// Must match the engine's MAX_BRAND_KIT_FILES (wireframes/mod.rs): the run only fetches this
+// many, so the UI caps here too rather than showing extra files that would be silently dropped.
+const MAX_BRAND_KIT_FILES = 4;
+
 function makeId(file: File) {
   return `brand-kit-${file.name}-${file.size}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -38,6 +42,7 @@ export function useWireframeBrandKit(projectId: string) {
   const [localFiles, setLocalFiles] = useState<BrandKitFile[]>([]);
   // Keys removed in this session, hidden until the reactive query catches up.
   const [removedKeys, setRemovedKeys] = useState<Set<string>>(new Set());
+  const [error, setError] = useState<string | null>(null);
 
   const files = useMemo<BrandKitFile[]>(() => {
     // The tracked row appears at upload-URL time (before bytes finish), so a persisted row
@@ -69,9 +74,23 @@ export function useWireframeBrandKit(projectId: string) {
       const fileArray = Array.from(incoming);
       if (fileArray.length === 0) return;
 
-      const drafts = fileArray.map((file) => {
-        const validationError = validateUploadFile("wireframe-brand-kit", file);
+      const slots = Math.max(
+        0,
+        MAX_BRAND_KIT_FILES - files.filter((file) => file.status !== "failed").length,
+      );
+      const drafts = fileArray.map((file, index) => {
         const base = { id: makeId(file), name: file.name, sizeBytes: file.size };
+        if (index >= slots) {
+          return {
+            draft: {
+              ...base,
+              status: "failed" as const,
+              error: `You can attach up to ${MAX_BRAND_KIT_FILES} brand kit files.`,
+            },
+            file,
+          };
+        }
+        const validationError = validateUploadFile("wireframe-brand-kit", file);
         return validationError
           ? { draft: { ...base, status: "failed" as const, error: validationError }, file }
           : { draft: { ...base, status: "uploading" as const }, file };
@@ -116,20 +135,30 @@ export function useWireframeBrandKit(projectId: string) {
         }),
       );
     },
-    [projectId, r2GenerateUploadUrl, r2SyncMetadata],
+    [files, projectId, r2GenerateUploadUrl, r2SyncMetadata],
   );
 
   const removeFile = useCallback(
     async (id: string) => {
       const target = files.find((entry) => entry.id === id);
-      setLocalFiles((current) => current.filter((entry) => entry.id !== id));
-      if (target?.status === "uploaded" && projectId) {
+      if (!target) return;
+
+      // In-flight/failed rows have no committed R2 object — just drop them locally.
+      if (target.status !== "uploaded") {
+        setLocalFiles((current) => current.filter((entry) => entry.id !== id));
+        return;
+      }
+      if (!projectId) return;
+
+      setError(null);
+      try {
+        await r2DeleteBrandKit({ projectId: projectId as Id<"projects">, key: target.key });
+        // Hide only after the delete succeeds, so a failed delete never leaves a hidden
+        // record that a later listWireframeBrandKit resurrects pointing at a 404 object.
         setRemovedKeys((current) => new Set(current).add(target.key));
-        try {
-          await r2DeleteBrandKit({ projectId: projectId as Id<"projects">, key: target.key });
-        } catch {
-          // Best-effort: if the delete fails, the hourly prune cron collects it within 24h.
-        }
+        setLocalFiles((current) => current.filter((entry) => entry.id !== id));
+      } catch (caught) {
+        setError(toUserFacingErrorMessage(caught, "Could not remove this file. Try again."));
       }
     },
     [files, projectId, r2DeleteBrandKit],
@@ -148,5 +177,6 @@ export function useWireframeBrandKit(projectId: string) {
     uploadedKeys,
     isUploading,
     hasUploadedFile: uploadedKeys.length > 0,
+    error,
   };
 }
