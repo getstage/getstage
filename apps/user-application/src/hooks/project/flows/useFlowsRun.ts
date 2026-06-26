@@ -7,6 +7,7 @@ import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import { formatRunFailedEvent } from "@/lib/engine/formatRunError";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
 import { assertProviderPreflightReady } from "@/lib/engine/providerPreflight";
 import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
@@ -192,6 +193,8 @@ export function useFlowsRun(projectId: string) {
     runEvents: activeRunEvents,
     error:
       error ??
-      (providerRun.startRun.error instanceof Error ? FLOWS_RUN_FAILED_USER_MESSAGE : null),
+      (providerRun.startRun.error
+        ? toUserFacingErrorMessage(providerRun.startRun.error, FLOWS_RUN_FAILED_USER_MESSAGE)
+        : null),
   };
 }

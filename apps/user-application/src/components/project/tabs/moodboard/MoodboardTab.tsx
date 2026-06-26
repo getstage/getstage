@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { MoodboardUploadedFile, ProviderId } from "@stage/data-ops/contracts";
+import type { MoodboardStyleGuide, MoodboardUploadedFile, ProviderId } from "@stage/data-ops/contracts";
 import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategyRunDialog";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import {
@@ -117,6 +117,14 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
 
   const hasMoodboard = items.some((item) => item.isInMoodboard);
   const folderNames = folders.map((folder) => folder.name);
+  // Uploaded-file rows can preview/open their image by borrowing the board item that
+  // shares the same uploaded asset (PDFs have no item, so previewUrl stays undefined).
+  const uploadedFilesWithPreview = uploadedFiles.map((file) => ({
+    ...file,
+    previewUrl: items.find(
+      (item) => Boolean(item.uploadedAssetId) && item.uploadedAssetId === file.uploadedAssetId,
+    )?.image,
+  }));
   const showGrid = items.length > 0;
   // The All grid shows moodboard images and newly-staged candidates together: staged
   // items are always visible (badged in the grid), moodboard items honour the active
@@ -132,7 +140,11 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
   const selectedStagedItems = selectedVisibleItems.filter((item) => !item.isInMoodboard);
   const canAddToMoodboard = selectedStagedItems.length > 0;
   const showSelectionActions = selectedVisibleItems.length > 0;
-  const deleteButtonLabel = "Delete selected";
+  const canRemoveFromActiveDirection =
+    Boolean(activeFolder) &&
+    selectedVisibleItems.length > 0 &&
+    selectedVisibleItems.every((item) => item.isInMoodboard && item.folder === activeFolder);
+  const deleteButtonLabel = canRemoveFromActiveDirection ? "Remove from Direction" : "Delete selected";
   const activeStyleGuide = (() => {
     if (!activeStyleGuideDirectionName || !moodboard.data) {
       return defaultStyleGuide;
@@ -193,13 +205,19 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
     view,
   ]);
 
-  function persistBoard(nextItems: MoodboardItem[], nextFolders: Direction[], nextUploadedFiles = uploadedFiles) {
+  function persistBoard(
+    nextItems: MoodboardItem[],
+    nextFolders: Direction[],
+    nextUploadedFiles = uploadedFiles,
+    nextStyleGuides?: MoodboardStyleGuide[],
+  ) {
     void moodboard
       .saveBoard({
         mode,
         items: nextItems,
         directions: nextFolders,
         uploadedFiles: nextUploadedFiles,
+        styleGuides: nextStyleGuides,
       })
       .catch(() => {
         // Error is surfaced through moodboard.error; keep local board state intact.
@@ -260,13 +278,38 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
     const nextItems = items.map((item) =>
       item.folder === previousName ? { ...item, folder: name } : item,
     );
+    const previousDirectionId = directionIdFromName(previousName);
+    const nextDirectionId = directionIdFromName(name);
+    const nextStyleGuides = moodboard.data?.tabData.styleGuides.map((guide) =>
+      guide.directionId === previousDirectionId ? { ...guide, directionId: nextDirectionId } : guide,
+    );
 
     setFolders(nextFolders);
     setItems(nextItems);
     setActiveFolder((current) => (current === previousName ? name : current));
     setActiveStyleGuideDirectionName((current) => (current === previousName ? name : current));
     setNewDirectionName(undefined);
-    persistBoard(nextItems, nextFolders);
+    persistBoard(nextItems, nextFolders, uploadedFiles, nextStyleGuides);
+  }
+
+  function deleteDirection(name: string) {
+    if (!window.confirm(`Delete "${name}"? Images will stay in All. Its Style Guide will be removed.`)) return;
+
+    const nextFolders = folders.filter((folder) => folder.name !== name);
+    const nextItems = items.map((item) =>
+      item.folder === name ? { ...item, folder: null, directionId: null } : item,
+    );
+    const removedDirectionId = directionIdFromName(name);
+    const nextStyleGuides = moodboard.data?.tabData.styleGuides.filter(
+      (guide) => guide.directionId !== removedDirectionId,
+    );
+
+    setFolders(nextFolders);
+    setItems(nextItems);
+    setActiveFolder((current) => (current === name ? undefined : current));
+    setActiveStyleGuideDirectionName((current) => (current === name ? undefined : current));
+    setNewDirectionName(undefined);
+    persistBoard(nextItems, nextFolders, uploadedFiles, nextStyleGuides);
   }
 
   // Create an empty direction in place and keep the user in the Direction Hub (the card
@@ -461,8 +504,14 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
           items={items.filter((item) => item.isInMoodboard)}
           editingDirectionName={newDirectionName}
           onAll={() => setView("board")}
+          onOpenDirection={(name) => {
+            setActiveFolder(name);
+            setSelectedIds(new Set());
+            setView("board");
+          }}
           onNewDirection={createNewDirection}
           onRenameDirection={renameDirection}
+          onDeleteDirection={deleteDirection}
           onGenerateStyleGuide={handleDirectionStyleGuide}
         />
       ) : !showGrid ? (
@@ -512,7 +561,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
                   disabled={moodboard.isUploading}
                   onUpload={handleUpload}
                 />
-                {hasUploadedFiles ? <UploadedFilesList files={uploadedFiles} onDelete={deleteUploadedFile} /> : null}
+                {hasUploadedFiles ? <UploadedFilesList files={uploadedFilesWithPreview} onDelete={deleteUploadedFile} /> : null}
               </div>
             ) : null}
             {moodboard.error ? (
@@ -540,7 +589,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
                     disabled={moodboard.isUploading}
                     onUpload={handleUpload}
                   />
-                  {hasUploadedFiles ? <UploadedFilesList files={uploadedFiles} onDelete={deleteUploadedFile} /> : null}
+                  {hasUploadedFiles ? <UploadedFilesList files={uploadedFilesWithPreview} onDelete={deleteUploadedFile} /> : null}
                 </div>
               ) : mode === "ai" ? (
                 <GenerateWithAiPanel
@@ -570,11 +619,20 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
 
           <div className="relative flex flex-col gap-2 rounded-[10px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <DirectionToggle
-                activeView="all"
-                onAll={() => setActiveFolder(undefined)}
-                onDirectionHub={() => setView("hub")}
-              />
+              <div className="flex flex-wrap items-center gap-2">
+                <DirectionToggle
+                  activeView="all"
+                  onAll={() => setActiveFolder(undefined)}
+                  onDirectionHub={() => setView("hub")}
+                />
+                {activeFolder ? (
+                  <ActiveDirectionBar
+                    name={activeFolder}
+                    onRename={(next) => renameDirection(activeFolder, next)}
+                    onDelete={() => deleteDirection(activeFolder)}
+                  />
+                ) : null}
+              </div>
 
               {showSelectionActions ? (
                 <div
@@ -586,6 +644,18 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
                     className="inline-flex h-8 cursor-pointer items-center justify-center rounded-[6px] bg-white px-3 text-[12px] font-medium leading-none text-[#EF4444] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA]"
                     onClick={() => {
                       if (selectedVisibleIds.size === 0) return;
+                      if (canRemoveFromActiveDirection) {
+                        const nextItems = items.map((item) =>
+                          selectedVisibleIds.has(item.id)
+                            ? { ...item, folder: null, directionId: null }
+                            : item,
+                        );
+                        setItems(nextItems);
+                        setSelectedIds(new Set());
+                        closeDirectionMenu();
+                        persistBoard(nextItems, folders);
+                        return;
+                      }
                       const removedAssetIds = new Set(
                         selectedVisibleItems
                           .map((item) => item.uploadedAssetId)
@@ -718,6 +788,80 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
         }}
       />
     </>
+  );
+}
+
+// Shown in the board header when viewing a single direction, so its name is visible
+// and editable in place (people otherwise lose track of which direction they opened).
+function ActiveDirectionBar({
+  name,
+  onRename,
+  onDelete,
+}: {
+  name: string;
+  onRename: (nextName: string) => void;
+  onDelete: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draftName, setDraftName] = useState(name);
+
+  useEffect(() => {
+    setDraftName(name);
+    setEditing(false);
+  }, [name]);
+
+  function commitRename() {
+    const nextName = draftName.trim();
+    if (!nextName || nextName === name) {
+      setDraftName(name);
+      setEditing(false);
+      return;
+    }
+    onRename(nextName);
+    setEditing(false);
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {editing ? (
+        <input
+          value={draftName}
+          onChange={(event) => setDraftName(event.target.value)}
+          onBlur={commitRename}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") commitRename();
+            if (event.key === "Escape") {
+              setDraftName(name);
+              setEditing(false);
+            }
+          }}
+          autoFocus
+          className="h-[27px] w-[180px] min-w-0 rounded-[6px] bg-white px-2 text-[14px] font-semibold leading-[1.25] text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] outline-none"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            setDraftName(name);
+            setEditing(true);
+          }}
+          className="inline-flex h-[27px] items-center gap-1.5 rounded-[6px] px-1.5 text-[14px] font-semibold leading-[1.25] text-[#171717] transition-colors hover:bg-[#F5F5F5]"
+          aria-label={`Rename ${name}`}
+        >
+          <span className="max-w-[200px] truncate">{name}</span>
+          <svg viewBox="0 0 14 14" fill="none" className="h-[13px] w-[13px] text-[#737373]" aria-hidden="true">
+            <path d="M9 2.5 11.5 5 5 11.5H2.5V9L9 2.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+          </svg>
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={onDelete}
+        className="inline-flex h-[27px] items-center justify-center rounded-[6px] bg-white px-2.5 text-[12px] font-medium leading-none text-[#EF4444] shadow-[0_0.45px_1px_rgba(10,10,10,0.2)] transition-colors hover:bg-[#FEF2F2]"
+      >
+        Delete direction
+      </button>
+    </div>
   );
 }
 

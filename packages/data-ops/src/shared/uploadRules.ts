@@ -12,7 +12,8 @@ export type UploadPurpose =
   | "moodboard-upload"
   | "moodboard-refero"
   | "moodboard-figma"
-  | "moodboard-url";
+  | "moodboard-url"
+  | "wireframe-brand-kit";
 
 type UploadRule = {
   allowedMimeTypes: string[];
@@ -101,6 +102,38 @@ export const UPLOAD_RULES: Record<UploadPurpose, UploadRule> = {
     ],
     allowedExtensions: [".jpg", ".jpeg", ".png", ".webp", ".pdf", ".doc", ".docx", ".txt"],
     maxBytes: 5 * 1024 * 1024,
+  },
+  "wireframe-brand-kit": {
+    // Brand kit for a Hi-Fi run: logo/one-pager/fonts. Capped small on purpose so people
+    // compress before importing — big files upload slowly and the model only needs the gist.
+    allowedMimeTypes: [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "image/svg+xml",
+      "application/pdf",
+      "font/ttf",
+      "font/otf",
+      "font/woff",
+      "font/woff2",
+      "application/font-sfnt",
+      "application/octet-stream",
+    ],
+    allowedExtensions: [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".webp",
+      ".gif",
+      ".svg",
+      ".pdf",
+      ".ttf",
+      ".otf",
+      ".woff",
+      ".woff2",
+    ],
+    maxBytes: 10 * 1024 * 1024,
   },
   "project-asset": {
     allowedMimeTypes: [

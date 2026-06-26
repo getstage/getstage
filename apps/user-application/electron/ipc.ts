@@ -111,6 +111,13 @@ async function withDebugTiming<T>(label: string, task: () => Promise<T>): Promis
   }
 }
 
+function isEngineTransportError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /fetch failed|failed to fetch|network request failed|load failed|econnrefused/i.test(
+    message,
+  );
+}
+
 export function registerIpcHandlers({
   authController,
   integrationsController,
@@ -214,25 +221,52 @@ export function registerIpcHandlers({
       "stage-engine",
       `run request provider=${parsedRequest.providerId} mode=${parsedRequest.mode} projectId=${parsedRequest.context.projectId ?? "none"}`,
     );
-    sidecarSupervisor.markEngineActivity();
-    const status = await withDebugTiming("engine:start-run sidecar-start", () =>
-      sidecarSupervisor.start(),
-    );
-    const { data: payload, accessToken } = await withDebugTiming("engine:start-run fetch", () =>
-      fetchEngineJsonAuthed<unknown>({
-        authController,
-        method: "POST",
-        path: "/v1/runs",
-        port: status.port,
-        body: parsedRequest,
-      }),
-    );
+
+    async function startRunAttempt(label: string) {
+      sidecarSupervisor.markEngineActivity();
+      const status = await withDebugTiming(`${label} sidecar-start`, () =>
+        sidecarSupervisor.start(),
+      );
+      const result = await withDebugTiming(`${label} fetch`, () =>
+        fetchEngineJsonAuthed<unknown>({
+          authController,
+          method: "POST",
+          path: "/v1/runs",
+          port: status.port,
+          body: parsedRequest,
+        }),
+      );
+      return { ...result, port: status.port };
+    }
+
+    let runPayload: Awaited<ReturnType<typeof startRunAttempt>>;
+    try {
+      runPayload = await startRunAttempt("engine:start-run");
+    } catch (error) {
+      if (!isEngineTransportError(error)) {
+        throw error;
+      }
+
+      const liveStatus = await sidecarSupervisor.getLiveStatus();
+      if (liveStatus.state !== "failed") {
+        throw error;
+      }
+
+      logDesktopInfo(
+        "stage-engine",
+        "run start could not reach local engine; restarting sidecar and retrying once",
+      );
+      await withDebugTiming("engine:start-run recovery-stop", () => sidecarSupervisor.stop());
+      runPayload = await startRunAttempt("engine:start-run retry");
+    }
+
+    const { data: payload, accessToken, port } = runPayload;
     const response = startRunResponseSchema.parse(payload);
 
     void streamRunEventsToRenderer({
       sidecarSupervisor,
       accessToken,
-      port: status.port,
+      port,
       runId: response.runId,
       providerId: parsedRequest.providerId,
       sender: event.sender,

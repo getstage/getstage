@@ -49,11 +49,13 @@ export class SidecarSupervisor {
       return this.getStatus();
     }
 
-    this.child = null;
+    // Keep the child handle (don't null it) so a frozen-but-alive engine can still
+    // be reaped by stop() before a restart — otherwise it holds the port and the
+    // retry's fresh engine can't bind, and the user is forced to restart Stage.
     this.status = {
-      adopted: false,
+      adopted: this.status.adopted,
       error: `Stage Engine is not responding on port ${this.status.port}.`,
-      pid: null,
+      pid: this.status.pid,
       port: this.status.port,
       state: "failed",
     };

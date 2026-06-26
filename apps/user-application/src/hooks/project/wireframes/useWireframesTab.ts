@@ -39,6 +39,7 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
       brandSource: WireframeBrandSource | null;
       screens: ScreenItem[];
       styleDirectionId?: string | null;
+      brandKitKeys: string[];
       providerId?: ProviderId;
     }): Promise<WireframesArtifactRecord | null> => {
       setError(null);
@@ -55,6 +56,7 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
         await wireframesRun.startWireframes(
           runProviderId,
           buildRunSource(input.wireframeKind, input.brandSource, input.styleDirectionId),
+          input.brandKitKeys,
         );
       } catch (runError) {
         const message =

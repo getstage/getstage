@@ -1,6 +1,7 @@
 use anyhow::{Context, bail};
 use serde_json::{Map as JsonMap, Value as JsonValue, json};
 
+use super::{MAX_BLOCKS_PER_SECTION, MAX_SECTIONS_PER_SCREEN};
 use crate::models::wireframes::{WireframeBrandSource, WireframeKind, WireframesInput};
 
 const ALLOWED_BLOCK_KINDS: &[&str] = &[
@@ -22,8 +23,6 @@ const ALLOWED_BLOCK_KINDS: &[&str] = &[
     "navigation",
 ];
 const ALLOWED_EMPHASIS: &[&str] = &["primary", "secondary", "tertiary"];
-const MAX_SECTIONS_PER_SCREEN: usize = 8;
-const MAX_BLOCKS_PER_SECTION: usize = 8;
 
 pub fn normalize_wireframes_artifact(
     artifact: JsonValue,

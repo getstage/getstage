@@ -14,7 +14,7 @@ import { MOODBOARD_IMAGE_ACCEPT, createImageThumbnail, uploadFileToR2 } from "@/
 import { readFileAsDataUrl } from "@/lib/utils";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProjectAiProvider } from "@/hooks/project";
-import { formatRunFailedEvent } from "@/lib/engine/formatRunError";
+import { formatRunFailedEvent, toRunFailureUserMessage } from "@/lib/engine/formatRunError";
 import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import type { Project } from "@/models/project/project";
@@ -40,12 +40,10 @@ function latestTerminalRunEvent(events: RunEvent[]) {
 
 function moodboardImportErrorMessage(event: Extract<RunEvent, { type: "run_failed" }>) {
   console.error(formatRunFailedEvent(event));
-  const message = event.error.message?.trim();
-  if (message) {
-    return message;
-  }
-
-  return "Moodboard import failed. Check that Stage Engine is running and Refero/Figma are configured.";
+  return toRunFailureUserMessage(
+    event,
+    "Moodboard import failed. Try again. If it keeps happening, restart Stage.",
+  );
 }
 
 function normalizeExternalUrl(value: string) {
@@ -184,8 +182,10 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
     if (terminalStyleGuideEvent.type === "run_failed") {
       console.error(formatRunFailedEvent(terminalStyleGuideEvent));
       setError(
-        terminalStyleGuideEvent.error.message?.trim() ||
+        toRunFailureUserMessage(
+          terminalStyleGuideEvent,
           "Style guide generation failed. Check Stage Engine and your AI provider setup.",
+        ),
       );
       styleguideRun.resetActiveRun();
       return;
@@ -202,7 +202,7 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
         const artifact = tabStateToMoodboardArtifact(
           project,
           state,
-          data?.tabData.styleGuides ?? [],
+          state.styleGuides ?? data?.tabData.styleGuides ?? [],
         );
         await saveArtifact(artifact);
       } catch (caught) {
@@ -403,7 +403,7 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
       } catch (caught) {
         setIsGeneratingStyleGuide(false);
         setStyleGuideRunEnded(true);
-        setError(caught instanceof Error ? caught.message : "Could not start style guide generation.");
+        setError(toUserFacingErrorMessage(caught, "Could not start style guide generation."));
         throw caught;
       }
     },

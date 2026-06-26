@@ -7,6 +7,7 @@ import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import { formatRunFailedEvent } from "@/lib/engine/formatRunError";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
 import { assertProviderPreflightReady } from "@/lib/engine/providerPreflight";
 import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
@@ -130,7 +131,7 @@ export function useWireframesRun(projectId: string) {
   }, [activeRunId, failRun, hasTerminalEvent, queryClient, runEnded]);
 
   const startWireframes = useCallback(
-    async (providerId: ProviderId, source?: string) => {
+    async (providerId: ProviderId, source?: string, brandKitKeys: string[] = []) => {
       if (isRunning || providerRun.startRun.isPending) return;
 
       const lockKey = source ? `${projectId}:${source}` : projectId;
@@ -157,7 +158,11 @@ export function useWireframesRun(projectId: string) {
           modelId: resolveRunModelId(providerId, chatDefaults.defaults.modelId),
           prompt: WIREFRAMES_PROMPT,
           mode: "wireframes",
-          context: source ? { projectId, source } : { projectId },
+          context: {
+            projectId,
+            ...(source ? { source } : {}),
+            ...(brandKitKeys.length > 0 ? { brandKitKeys } : {}),
+          },
           attachments: [],
           modelOptions: buildRunModelOptions(chatDefaults.defaults),
         });
@@ -198,8 +203,8 @@ export function useWireframesRun(projectId: string) {
     terminalEvent,
     error:
       error ??
-      (providerRun.startRun.error instanceof Error
-        ? WIREFRAMES_RUN_FAILED_USER_MESSAGE
+      (providerRun.startRun.error
+        ? toUserFacingErrorMessage(providerRun.startRun.error, WIREFRAMES_RUN_FAILED_USER_MESSAGE)
         : null),
   };
 }

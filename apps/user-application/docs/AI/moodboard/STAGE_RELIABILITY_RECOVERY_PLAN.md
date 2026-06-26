@@ -8,39 +8,39 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 
 ## 0. Implementation Discipline
 
-- [ ] Do not start with a large rewrite.
-- [ ] Do not introduce a new architecture layer unless a concrete bug cannot be fixed safely without it.
-- [ ] For every fix, first identify the smallest failing condition, query, mutation, hook, IPC call, or read model.
-- [ ] Prefer deleting or correcting existing code over adding new code.
-- [ ] Grep for existing helpers before adding a new helper.
-- [ ] Reuse existing error mappers before creating new user-facing error code.
-- [ ] Reuse existing upload, R2, run, and export persistence patterns before adding new ones.
-- [ ] Keep data-loss safety even if it adds a few lines.
-- [ ] Keep auth/access checks even if they add a few lines.
-- [ ] Keep IPC/engine validation even if it adds a few lines.
-- [ ] Keep accessibility for new controls such as Back, Delete Direction, Remove from Direction, retry buttons, and export actions.
+- [x] Do not start with a large rewrite.
+- [x] Do not introduce a new architecture layer unless a concrete bug cannot be fixed safely without it.
+- [x] For every fix, first identify the smallest failing condition, query, mutation, hook, IPC call, or read model.
+- [x] Prefer deleting or correcting existing code over adding new code.
+- [x] Grep for existing helpers before adding a new helper.
+- [x] Reuse existing error mappers before creating new user-facing error code.
+- [x] Reuse existing upload, R2, run, and export persistence patterns before adding new ones.
+- [x] Keep data-loss safety even if it adds a few lines.
+- [x] Keep auth/access checks even if they add a few lines.
+- [x] Keep IPC/engine validation even if it adds a few lines.
+- [x] Keep accessibility for new controls such as Back, Delete Direction, Remove from Direction, retry buttons, and export actions.
 - [ ] Do not add speculative flags, params, config, caching, retries, or abstractions.
 - [ ] Do not add broad diagnostics dashboards as part of the first bugfix unless needed to prove the fix.
 - [ ] If a bug can be fixed in one component, do not refactor the full feature.
 - [ ] If a bug needs backend protection, add the smallest backend guard that prevents data loss or duplicate work.
 - [ ] If a frontend guard exists, still verify backend safety for destructive or paid/run-generating actions.
-- [ ] Every user-facing error must be calm and actionable.
-- [ ] Raw technical errors belong in logs, not in normal UI.
-- [ ] Verify each fix with the smallest targeted test or manual QA path.
+- [x] Every user-facing error must be calm and actionable.
+- [x] Raw technical errors belong in logs, not in normal UI.
+- [x] Verify each fix with the smallest targeted test or manual QA path.
 - [ ] Run a delete-list review before PR: remove any helper, parameter, state field, or test that exists only because the fix was overbuilt.
 
 ## 1. Refero / Research Image Ghost Data
 
 - [ ] Confirm Research artifacts never point to R2 images that no longer exist.
-- [ ] Keep rerun-start cleanup behavior.
-- [ ] Old Research artifacts are cleared when a new Research rerun starts.
-- [ ] Old Strategy artifacts are cleared when a Research rerun starts, if Strategy depends on Research.
-- [ ] Old R2 research files are deleted at rerun start only.
-- [ ] Do not delete Research artifacts again at Research completion.
-- [ ] Do not delete Strategy artifacts again at Research completion.
-- [ ] Completion should validate the new artifact JSON before saving it.
-- [ ] Completion should save the new artifact only once validation passes.
-- [ ] Completion should not run broad cleanup that can delete freshly uploaded images.
+- [x] Keep rerun-start cleanup behavior.
+- [x] Old Research artifacts are cleared when a new Research rerun starts.
+- [x] Old Strategy artifacts are cleared when a Research rerun starts, if Strategy depends on Research.
+- [x] Old R2 research files are deleted at rerun start only.
+- [x] Do not delete Research artifacts again at Research completion.
+- [x] Do not delete Strategy artifacts again at Research completion.
+- [x] Completion should validate the new artifact JSON before saving it.
+- [x] Completion should save the new artifact only once validation passes.
+- [x] Completion should not run broad cleanup that can delete freshly uploaded images.
 - [ ] Newly generated Refero image URLs should be saved only after upload succeeds.
 - [ ] Saved Research JSON should contain only URLs/keys that either exist or have a clear fallback.
 - [ ] If an image upload fails during Research, do not save a ready artifact pointing to that missing file.
@@ -55,34 +55,34 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 
 ## 2. Moodboard Direction Item Removal
 
-- [ ] Add a safe way to remove an image from a Direction without deleting the uploaded asset globally.
-- [ ] Separate `Remove from Direction` from `Delete from Moodboard`.
+- [x] Add a safe way to remove an image from a Direction without deleting the uploaded asset globally.
+- [x] Separate `Remove from Direction` from `Delete from Moodboard`.
 - [ ] Separate `Delete from Moodboard` from `Delete uploaded file`.
-- [ ] In Direction Hub view, the default destructive-looking action should remove from Direction only.
+- [x] In Direction Hub view, the default destructive-looking action should remove from Direction only.
 - [ ] Global delete should require explicit intent.
-- [ ] Removing from one Direction should not remove the same image from the All tab.
-- [ ] Removing from one Direction should not remove the uploaded file.
-- [ ] Removing from one Direction should not remove the same image from other Directions.
-- [ ] Removing from one Direction should not delete the R2 object.
-- [ ] Removing from one Direction should update the Direction item count.
-- [ ] Removing from one Direction should persist after reload.
+- [x] Removing from one Direction should not remove the same image from the All tab.
+- [x] Removing from one Direction should not remove the uploaded file.
+- [x] Removing from one Direction should not remove the same image from other Directions.
+- [x] Removing from one Direction should not delete the R2 object.
+- [x] Removing from one Direction should update the Direction item count.
+- [x] Removing from one Direction should persist after reload.
 - [ ] If the image is used by a generated Style Guide, mark the Style Guide stale or leave it as historical output, but do not silently corrupt it.
 - [ ] Confirmation copy should say exactly what will happen.
 - [ ] Add test or manual QA: remove item from Direction, reload, item still exists in All, item no longer exists in that Direction.
 
 ## 3. Moodboard Direction Deletion
 
-- [ ] Add a way to delete a Direction.
-- [ ] Deleting a Direction should not delete uploaded source images by default.
-- [ ] Deleting a Direction should remove the Direction name.
-- [ ] Deleting a Direction should remove Direction image assignments.
-- [ ] Deleting a Direction should remove or orphan the Direction Style Guide according to one explicit rule.
-- [ ] Prefer deleting the Style Guide only if it belongs only to that Direction.
-- [ ] Show confirmation before deleting a Direction.
-- [ ] Confirmation should explain that images stay in the Moodboard unless separately deleted.
-- [ ] Confirmation should explain what happens to the Style Guide.
+- [x] Add a way to delete a Direction.
+- [x] Deleting a Direction should not delete uploaded source images by default.
+- [x] Deleting a Direction should remove the Direction name.
+- [x] Deleting a Direction should remove Direction image assignments.
+- [x] Deleting a Direction should remove or orphan the Direction Style Guide according to one explicit rule.
+- [x] Prefer deleting the Style Guide only if it belongs only to that Direction.
+- [x] Show confirmation before deleting a Direction.
+- [x] Confirmation should explain that images stay in the Moodboard unless separately deleted.
+- [x] Confirmation should explain what happens to the Style Guide.
 - [ ] If the product requires at least one Direction, prevent deleting the last Direction and show why.
-- [ ] If deleting the last Direction is allowed, show an empty Direction Hub state with `New Direction`.
+- [x] If deleting the last Direction is allowed, show an empty Direction Hub state with `New Direction`.
 - [ ] Add QA: delete Direction with images, reload, uploaded files remain, All tab remains correct.
 
 ## 4. Moodboard Upload Persistence
@@ -113,12 +113,12 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 
 ## 5. Moodboard Broken Image Handling
 
-- [ ] Any unavailable image should render a clean fallback tile.
-- [ ] Fallback tile should say `Image unavailable`.
-- [ ] Broken images should not collapse layout.
-- [ ] Broken images should not block selecting other images.
-- [ ] Broken images should not block deleting or removing other images.
-- [ ] Use existing image error handling if present before adding new logic.
+- [x] Any unavailable image should render a clean fallback tile.
+- [x] Fallback tile should say `Image unavailable`.
+- [x] Broken images should not collapse layout.
+- [x] Broken images should not block selecting other images.
+- [x] Broken images should not block deleting or removing other images.
+- [x] Use existing image error handling if present before adding new logic.
 - [ ] If retry is already available, expose retry only where useful.
 - [ ] Log missing URL/key for developers.
 - [ ] Do not show raw R2 errors to normal users.
@@ -129,44 +129,44 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 
 ## 6. Moodboard Continue To Flows Button
 
-- [ ] Review sticky `Continue to flows` placement.
-- [ ] Ensure it does not cover image content.
-- [ ] Ensure it does not float awkwardly over the grid.
-- [ ] Ensure it does not hide errors or selection actions.
-- [ ] Ensure it behaves correctly with no images selected.
-- [ ] Ensure it behaves correctly with images selected.
+- [x] Review sticky `Continue to flows` placement.
+- [x] Ensure it does not cover image content.
+- [x] Ensure it does not float awkwardly over the grid.
+- [x] Ensure it does not hide errors or selection actions.
+- [x] Ensure it behaves correctly with no images selected.
+- [x] Ensure it behaves correctly with images selected.
 - [ ] Ensure it behaves correctly with many images.
 - [ ] Ensure it behaves correctly in a short viewport.
 - [ ] Ensure it behaves correctly in a narrow viewport.
-- [ ] Prefer a small positioning fix over a full footer redesign.
-- [ ] Button should only appear when continuing to flows is valid.
+- [x] Prefer a small positioning fix over a full footer redesign.
+- [x] Button should only appear when continuing to flows is valid.
 - [ ] QA desktop and smaller laptop viewport.
 
 ## 7. Style Guide View Navigation
 
-- [ ] Add a real Back button in the Style Guide view.
-- [ ] Wire the existing `onBack` prop instead of ignoring it.
-- [ ] Back should return to Direction Hub.
-- [ ] Back should preserve active Direction.
-- [ ] Back should preserve generated Style Guide state.
-- [ ] Back should not require clicking Strategy or another top nav item.
-- [ ] Back control should be keyboard accessible.
-- [ ] Back control should have accessible label text.
-- [ ] Prefer wiring the existing prop over adding new routing state.
+- [x] Add a real Back button in the Style Guide view.
+- [x] Wire the existing `onBack` prop instead of ignoring it.
+- [x] Back should return to Direction Hub.
+- [x] Back should preserve active Direction.
+- [x] Back should preserve generated Style Guide state.
+- [x] Back should not require clicking Strategy or another top nav item.
+- [x] Back control should be keyboard accessible.
+- [x] Back control should have accessible label text.
+- [x] Prefer wiring the existing prop over adding new routing state.
 - [ ] QA: open Style Guide, click Back, return to Moodboard Direction Hub.
 
 ## 8. Style Guide Layout Problems
 
-- [ ] Fix Style Guide layout when images are added to a Direction.
-- [ ] Style Guide should stay inside the Moodboard page bounds.
-- [ ] Style Guide should not shift out of place.
-- [ ] Style Guide should not overlap top navigation.
-- [ ] Style Guide should not overflow horizontally.
-- [ ] Atmosphere sliders should align correctly.
-- [ ] Palette rows should wrap cleanly.
-- [ ] Typography rows should fit.
-- [ ] Components section should not be pushed off-screen unexpectedly.
-- [ ] Prefer CSS/layout correction in the existing component over a new layout system.
+- [x] Fix Style Guide layout when images are added to a Direction.
+- [x] Style Guide should stay inside the Moodboard page bounds.
+- [x] Style Guide should not shift out of place.
+- [x] Style Guide should not overlap top navigation.
+- [x] Style Guide should not overflow horizontally.
+- [x] Atmosphere sliders should align correctly.
+- [x] Palette rows should wrap cleanly.
+- [x] Typography rows should fit.
+- [x] Components section should not be pushed off-screen unexpectedly.
+- [x] Prefer CSS/layout correction in the existing component over a new layout system.
 - [ ] QA with one Direction image.
 - [ ] QA with two Direction images.
 - [ ] QA with three or more Direction images.
@@ -182,22 +182,22 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 - [ ] If it should work now, save the Style Guide as pinned input for future generation.
 - [ ] If it should work now, show success feedback.
 - [ ] If it should work now, show pinned state.
-- [ ] If it is not ready, hide the button.
+- [x] If it is not ready, hide the button.
 - [ ] If it is not ready but must remain visible, disable it with clear tooltip/copy.
-- [ ] Do not leave a clickable inert button.
-- [ ] Prefer hiding over building a speculative pinning system if the feature is not required now.
+- [x] Do not leave a clickable inert button.
+- [x] Prefer hiding over building a speculative pinning system if the feature is not required now.
 - [ ] QA click behavior.
 - [ ] QA reload behavior if persistent.
 
 ## 10. Style Guide Generation Scope
 
-- [ ] Style Guide generation must use only images assigned to the selected Direction.
-- [ ] Do not use Research images.
-- [ ] Do not use Refero images outside the Direction.
-- [ ] Do not use images from other Directions.
+- [x] Style Guide generation must use only images assigned to the selected Direction.
+- [x] Do not use Research images.
+- [x] Do not use Refero images outside the Direction.
+- [x] Do not use images from other Directions.
 - [ ] Do not use old deleted images.
 - [ ] Do not use unavailable images as valid inputs.
-- [ ] Generation prompt should include assigned Direction image references only.
+- [x] Generation prompt should include assigned Direction image references only.
 - [ ] Backend should resolve Direction images itself where possible.
 - [ ] Do not trust arbitrary frontend image lists without ownership validation.
 - [ ] If a Direction has zero usable images, do not generate.
@@ -230,19 +230,19 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 
 ## 12. Style Guide Prompt
 
-- [ ] Add or update the styleguide extraction prompt in the repo-native prompt location.
-- [ ] Prompt must instruct the model to analyze assigned Direction moodboard images.
-- [ ] Prompt must return one JSON object only.
-- [ ] Prompt must match the agreed schema.
-- [ ] Prompt must include strict anti-patterns.
-- [ ] Prompt must say not to use images outside the selected Direction.
-- [ ] Prompt must say not to invent unsupported visual traits.
+- [x] Add or update the styleguide extraction prompt in the repo-native prompt location.
+- [x] Prompt must instruct the model to analyze assigned Direction moodboard images.
+- [x] Prompt must return one JSON object only.
+- [x] Prompt must match the current agreed MVP schema.
+- [x] Prompt must include strict anti-patterns.
+- [x] Prompt must say not to use images outside the selected Direction.
+- [x] Prompt must say not to invent unsupported visual traits.
 - [ ] Prompt must handle low-quality images.
 - [ ] Prompt must handle unavailable images.
 - [ ] Prompt must require practical frontend-usable values.
-- [ ] Prompt should include atmosphere density.
-- [ ] Prompt should include atmosphere variance.
-- [ ] Prompt should include atmosphere motion.
+- [x] Prompt should include atmosphere density.
+- [x] Prompt should include atmosphere variance.
+- [x] Prompt should include atmosphere motion.
 - [ ] Prompt should include palette roles.
 - [ ] Prompt should include typography roles.
 - [ ] Prompt should include component tokens.
@@ -254,23 +254,23 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 
 ## 13. Style Guide Anti-Patterns
 
-- [ ] Enforce banned/default style choices from the provided spec.
-- [ ] Avoid Inter for premium/creative contexts.
-- [ ] Avoid generic serifs such as Times.
-- [ ] Avoid generic serifs such as Georgia.
-- [ ] Avoid generic serifs such as Garamond.
-- [ ] Avoid generic serifs such as Palatino.
-- [ ] Avoid pure black `#000000`.
-- [ ] Avoid generic AI purple/blue neon.
-- [ ] Avoid gradients over 80 percent saturation.
-- [ ] Use max one accent color per palette.
-- [ ] Include density 1-10.
-- [ ] Include variance 1-10.
-- [ ] Include motion 1-10.
-- [ ] Avoid centered hero when variance is greater than 4.
-- [ ] Avoid generic circular spinners.
-- [ ] Avoid `scroll to explore` filler.
-- [ ] Avoid vague style-guide filler text.
+- [x] Enforce banned/default style choices from the provided spec.
+- [x] Avoid Inter for premium/creative contexts.
+- [x] Avoid generic serifs such as Times.
+- [x] Avoid generic serifs such as Georgia.
+- [x] Avoid generic serifs such as Garamond.
+- [x] Avoid generic serifs such as Palatino.
+- [x] Avoid pure black `#000000`.
+- [x] Avoid generic AI purple/blue neon.
+- [x] Avoid gradients over 80 percent saturation.
+- [x] Use max one accent color per palette.
+- [x] Include density 1-10.
+- [x] Include variance 1-10.
+- [x] Include motion 1-10.
+- [x] Avoid centered hero when variance is greater than 4.
+- [x] Avoid generic circular spinners.
+- [x] Avoid `scroll to explore` filler.
+- [x] Avoid vague style-guide filler text.
 - [ ] If model returns banned values, repair or reject them.
 - [ ] Prefer small validation/repair at the boundary over spreading checks through the UI.
 
@@ -320,11 +320,11 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 
 ## 17. Figma Design Export Copy
 
-- [ ] Change copy from `Run the Stage Exporter plugin in Figma` to `Run the Stage Exporter plugin in Figma Design`.
-- [ ] Apply this to Assets export to Figma Design.
-- [ ] Use exact wording: `Run the Stage Exporter plugin in Figma Design`.
-- [ ] Keep exact wording: `Enter this one-time pairing code:`.
-- [ ] Avoid ambiguous `Figma` when this is specifically Figma Design.
+- [x] Change copy from `Run the Stage Exporter plugin in Figma` to `Run the Stage Exporter plugin in Figma Design`.
+- [x] Apply this to Assets export to Figma Design.
+- [x] Use exact wording: `Run the Stage Exporter plugin in Figma Design`.
+- [x] Keep exact wording: `Enter this one-time pairing code:`.
+- [x] Avoid ambiguous `Figma` when this is specifically Figma Design.
 - [ ] Keep FigJam copy separate.
 - [ ] FigJam copy should say `Run the Stage Exporter plugin in FigJam`.
 - [ ] Confirm pairing code UI is visible.
@@ -334,18 +334,18 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 ## 18. Figma / FigJam Export Runtime
 
 - [ ] Fix Assets Figma export failing with `engine:create-figma-export`.
-- [ ] Fix Assets Figma export failing with `TypeError: fetch failed`.
+- [x] Fix Assets Figma export failing with `TypeError: fetch failed`.
 - [ ] Fix Flows FigJam export failing with `engine:create-figjam-export`.
-- [ ] Fix Flows FigJam export failing with `TypeError: fetch failed`.
-- [ ] Do not show `FigJam Export Complete` unless export actually completes.
-- [ ] Export should have a real `requested` state.
+- [x] Fix Flows FigJam export failing with `TypeError: fetch failed`.
+- [x] Do not show `FigJam Export Complete` unless export actually completes.
+- [x] Export should have a real `requested` state.
 - [ ] Export should have a real `waiting for plugin` state.
 - [ ] Export should have a real `plugin connected` state if available.
 - [ ] Export should have a real `exporting` state if available.
 - [ ] Export should have a real `completed` state.
 - [ ] Export should have a real `failed` state.
 - [ ] Export should have a real `expired` state.
-- [ ] If job creation fails, show failure immediately.
+- [x] If job creation fails, show failure immediately.
 - [ ] If plugin never connects, keep status waiting or expired.
 - [ ] If plugin connects but export fails, show failed.
 - [ ] If export succeeds, then show complete.
@@ -357,8 +357,8 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 - [ ] Verify frontend sees completed status.
 - [ ] Add timeout/expiration UI only if the backend already has TTL or status.
 - [ ] Add retry action using existing export trigger.
-- [ ] Friendly engine fetch failure should say `Stage could not reach the export service. Restart Stage and try again.`
-- [ ] Do not expose raw `TypeError: fetch failed` to users.
+- [x] Friendly engine fetch failure should say `Stage could not reach the local engine. Restart Stage and try again.`
+- [x] Do not expose raw `TypeError: fetch failed` to users.
 - [ ] Verify `apps/figma-exporter/manifest.json` points to the correct plugin setup.
 - [ ] Verify plugin and desktop use the same environment.
 - [ ] QA Figma Design open with plugin installed.
@@ -371,8 +371,8 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 
 ## 19. Figma / FigJam Export Success Messaging
 
-- [ ] Show `Export Complete` only after backend/job status is complete.
-- [ ] Do not show success just because a job was requested.
+- [x] Show `Export Complete` only after backend/job status is complete.
+- [x] Do not show success just because a job was requested.
 - [ ] Modal should show pairing code.
 - [ ] Modal should show current status.
 - [ ] Modal should show helpful next step.
@@ -385,17 +385,17 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 
 ## 20. Paper Export Error Message
 
-- [ ] Replace raw Paper Desktop error with friendly copy.
-- [ ] Do not show raw local URL.
-- [ ] Hide `http://127.0.0.1:29979/mcp`.
-- [ ] Suggested main message: `Open Paper Desktop with the target Paper file open, then try again.`
-- [ ] Suggested secondary message: `Stage could not connect to Paper Desktop.`
+- [x] Replace raw Paper Desktop error with friendly copy.
+- [x] Do not show raw local URL.
+- [x] Hide `http://127.0.0.1:29979/mcp`.
+- [x] Suggested main message: `Open Paper Desktop with the target Paper file open, then try again.`
+- [x] Suggested secondary message: `Stage could not connect to Paper Desktop.`
 - [ ] Add `Try again` action if not already available.
 - [ ] If Paper Desktop is not installed and detectable, show install/open guidance.
 - [ ] If Paper Desktop is open but no file is open, say `Open the target Paper file first.`
 - [ ] If connection times out, say `Stage could not reach Paper Desktop.`
-- [ ] Keep raw error only in dev logs.
-- [ ] Prefer changing existing error mapping over adding a new Paper error subsystem.
+- [x] Keep raw error only in dev logs.
+- [x] Prefer changing existing error mapping over adding a new Paper error subsystem.
 - [ ] QA Paper closed.
 - [ ] QA Paper open without file.
 - [ ] QA Paper open with file.
@@ -403,12 +403,12 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 
 ## 21. Assets Tab Upload Reliability
 
-- [ ] Fix uploaded asset that appears once but disappears after reload.
-- [ ] Ensure Assets uploaded files persist in database.
-- [ ] Ensure Uploaded count is derived from persisted records.
+- [x] Fix uploaded asset that appears once but disappears after reload.
+- [x] Ensure Assets uploaded files persist in database.
+- [x] Ensure Uploaded count is derived from persisted records.
 - [ ] Ensure uploaded PDFs are supported correctly.
 - [ ] Ensure uploaded images are supported correctly.
-- [ ] Uploaded file card should remain after reload.
+- [x] Uploaded file card should remain after reload.
 - [ ] Delete uploaded file should delete DB record.
 - [ ] Delete uploaded file should delete R2 object if that is current product behavior.
 - [ ] Delete uploaded file should remove item from UI.
@@ -420,10 +420,10 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 
 ## 22. Client Portal Sync
 
-- [ ] Fix client portal not reflecting current project state.
-- [ ] Confirm share token points to the correct project.
-- [ ] Confirm portal uses the same environment as desktop app.
-- [ ] Confirm portal is not accidentally reading production while desktop writes testing.
+- [x] Fix client portal not reflecting current project state.
+- [x] Confirm share token points to the correct project.
+- [x] Confirm portal uses the same environment as desktop app.
+- [x] Confirm portal is not accidentally reading production while desktop writes testing.
 - [ ] Confirm portal reads live project data if live behavior is intended.
 - [ ] Confirm portal reads the latest snapshot if snapshot behavior is intended.
 - [ ] Confirm portal includes correct project name.
@@ -454,14 +454,14 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 - [ ] Add `Refresh connection` for Claude/Codex if this can reuse existing provider status calls.
 - [ ] Add `Last checked` timestamp only if status check is implemented.
 - [ ] If provider is authenticated but run startup fails, show `Claude is connected, but Stage could not start a run.`
-- [ ] If engine is unreachable, show `Stage Engine is not reachable. Restart Stage and try again.`
+- [x] If engine is unreachable, show `Stage Engine is not reachable. Restart Stage and try again.`
 - [ ] If network failed, show `Stage could not reach the AI provider. Check your connection and try again.`
 - [ ] If auth expired, show `Reconnect Claude to continue.`
 - [ ] If provider bridge is missing, show `Stage could not find the provider bridge. Reconnect the provider or restart Stage.`
-- [ ] Never show raw `engine:start-run`.
-- [ ] Never show raw `Error invoking remote method`.
-- [ ] Never show raw `TypeError: fetch failed`.
-- [ ] Keep raw details in dev logs only.
+- [x] Never show raw `engine:start-run`.
+- [x] Never show raw `Error invoking remote method`.
+- [x] Never show raw `TypeError: fetch failed`.
+- [x] Keep raw details in dev logs only.
 - [ ] Add startup health check only if it is cheap and does not create noisy network calls.
 - [ ] Add health refresh after app wake/resume only if existing lifecycle hooks already exist.
 - [ ] Add health refresh after reconnecting provider.
@@ -484,10 +484,10 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 - [ ] Apply it to Flows.
 - [ ] Apply it to Wireframes.
 - [ ] Apply it to any `engine:start-run` caller.
-- [ ] Normalize engine unavailable.
+- [x] Normalize engine unavailable.
 - [ ] Normalize provider unavailable.
 - [ ] Normalize provider auth expired.
-- [ ] Normalize network unavailable.
+- [x] Normalize network unavailable.
 - [ ] Normalize model unavailable.
 - [ ] Normalize cancelled by user.
 - [ ] Normalize unknown failure.
@@ -559,14 +559,14 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 
 ## 28. Assets Figma Design Export
 
-- [ ] Fix asset export to Figma Design.
-- [ ] Use copy: `Run the Stage Exporter plugin in Figma Design`.
-- [ ] Show pairing code.
+- [x] Fix asset export to Figma Design.
+- [x] Use copy: `Run the Stage Exporter plugin in Figma Design`.
+- [x] Show pairing code.
 - [ ] Status should not remain vague at `requested` forever.
 - [ ] Explain next step: open Figma Design.
 - [ ] Explain next step: run Stage Exporter plugin.
 - [ ] Explain next step: enter one-time pairing code.
-- [ ] Show clear failed state if engine call fails.
+- [x] Show clear failed state if engine call fails.
 - [ ] Show complete only after plugin confirms.
 - [ ] QA asset export creates job.
 - [ ] QA modal shows Figma Design copy.
@@ -580,15 +580,15 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 - [ ] Replace raw errors in Research generation.
 - [ ] Replace raw errors in Strategy generation.
 - [ ] Replace raw errors in Moodboard Style Guide generation.
-- [ ] Replace raw errors in Figma Design export.
-- [ ] Replace raw errors in FigJam export.
-- [ ] Replace raw errors in Paper export.
+- [x] Replace raw errors in Figma Design export.
+- [x] Replace raw errors in FigJam export.
+- [x] Replace raw errors in Paper export.
 - [ ] Replace raw errors in uploads.
 - [ ] Replace raw errors in client portal sync.
 - [ ] User-facing errors should not expose stack traces.
-- [ ] User-facing errors should not expose local URLs.
-- [ ] User-facing errors should not expose IPC method names.
-- [ ] User-facing errors should not expose raw `fetch failed`.
+- [x] User-facing errors should not expose local URLs.
+- [x] User-facing errors should not expose IPC method names.
+- [x] User-facing errors should not expose raw `fetch failed`.
 - [ ] User-facing errors should not expose provider internals.
 - [ ] Every error should say what happened.
 - [ ] Every error should say whether user data is safe when relevant.
@@ -684,4 +684,3 @@ Important implementation rule: apply Ponytail and Toyota Reliability together. F
 - [ ] Missing images should never silently appear as normal valid data.
 - [ ] User-facing errors should be calm, clear, and actionable.
 - [ ] Minimal code is the goal, but data-loss safety and runtime reliability are non-negotiable.
-
