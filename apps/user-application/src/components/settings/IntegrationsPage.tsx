@@ -350,6 +350,11 @@ export function IntegrationsPage() {
                     actionLabel={getIntegrationActionLabel(integration)}
                     busy={busyIntegrationId === integration.id}
                     onAction={() => void handleIntegrationAction(integration)}
+                    onHelp={
+                      integration.nativeIntegrationId === "figma"
+                        ? () => setFigmaSetupOpen(true)
+                        : undefined
+                    }
                   />
                 ))
               ) : (
@@ -370,6 +375,11 @@ export function IntegrationsPage() {
                     actionLabel={getIntegrationActionLabel(integration)}
                     busy={isRefreshing || busyIntegrationId === integration.id}
                     onAction={() => void handleIntegrationAction(integration)}
+                    onHelp={
+                      integration.nativeIntegrationId === "figma"
+                        ? () => setFigmaSetupOpen(true)
+                        : undefined
+                    }
                   />
                 ))
               ) : (
@@ -420,10 +430,11 @@ function FigmaExporterSetupDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const steps = [
-    "Download the Stage Exporter manifest.",
-    "In Figma, open the Figma menu, then Plugins > Development.",
-    "Choose Import plugin from manifest and select the downloaded file.",
-    "When you export from Stage, run Stage Exporter and enter the pairing code.",
+    "Download the Stage Exporter plugin zip file.",
+    "Extract the zip — it contains manifest.json and a dist folder. Keep them together.",
+    "In Figma Desktop, open the Figma menu, then Plugins → Development → Import plugin from manifest.",
+    "Select the manifest.json from the extracted folder (not from Downloads directly).",
+    "When you export from Stage, run Stage Exporter in Figma and enter the pairing code.",
   ];
 
   return (
@@ -443,10 +454,10 @@ function FigmaExporterSetupDialog({
               </span>
               <div className="min-w-0">
                 <Dialog.Title className="text-[15px] font-medium leading-[1.25] text-[#0A0A0A]">
-                  Figma is connected
+                  Set up Stage Exporter for Figma
                 </Dialog.Title>
                 <Dialog.Description className="mt-1 text-[13px] font-medium leading-[1.45] text-[#525252]">
-                  Install the Stage Exporter plugin once, then use the pairing code shown during export.
+                  Install the plugin once in Figma Desktop, then use the pairing code shown during export.
                 </Dialog.Description>
               </div>
             </div>
@@ -475,11 +486,11 @@ function FigmaExporterSetupDialog({
 
           <div className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
             <a
-              href="/figma-exporter-manifest.json"
-              download="manifest.json"
+              href="/stage-exporter-plugin-v0.1.zip"
+              download="stage-exporter-plugin-v0.1.zip"
               className="inline-flex h-[34px] items-center justify-center rounded-[6px] bg-[#171717] px-3 text-[13px] font-medium leading-none text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#2A2A2A]"
             >
-              Download manifest.json
+              Download plugin (.zip)
             </a>
             <Dialog.Close asChild>
               <button
@@ -783,11 +794,13 @@ function IntegrationListRow({
   actionLabel,
   busy = false,
   onAction,
+  onHelp,
 }: {
   integration: IntegrationRowModel;
   actionLabel: string;
   busy?: boolean;
   onAction: () => void;
+  onHelp?: () => void;
 }) {
   return (
     <div className="flex w-full items-start justify-between gap-[12px] rounded-[6px] bg-white text-left">
@@ -799,8 +812,20 @@ function IntegrationListRow({
           />
         </span>
         <span className="min-w-0">
-          <span className="block truncate text-[13px] font-medium leading-[1.2] text-[#171717]">
-            {integration.name}
+          <span className="flex items-center gap-[6px]">
+            <span className="truncate text-[13px] font-medium leading-[1.2] text-[#171717]">
+              {integration.name}
+            </span>
+            {onHelp ? (
+              <button
+                type="button"
+                aria-label={`How to use ${integration.name}`}
+                onClick={onHelp}
+                className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full bg-[#F5F5F5] text-[11px] font-medium leading-none text-[#737373] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC] hover:text-[#171717]"
+              >
+                i
+              </button>
+            ) : null}
           </span>
           <span className="mt-[2px] block text-[12px] font-normal leading-[1.35] text-[#525252]">
             {integration.description}

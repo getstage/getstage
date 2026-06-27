@@ -5,24 +5,30 @@ use crate::helpers::provider_json::extract_wireframes_artifact;
 use crate::helpers::time::now_millis;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::providers::ProviderId;
-use crate::models::runs::{RunEvent, RunStatus, StartRunRequest};
+use crate::models::runs::{RunAttachment, RunAttachmentKind, RunEvent, RunStatus, StartRunRequest};
 use crate::models::wireframes::{WireframeBrandSource, WireframeKind};
 use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
+use crate::providers::command::provider_cli_working_directory;
 use crate::providers::process::ProviderProcessOutcome;
 use crate::runs::RunEventSink;
 use crate::wireframes::normalize::normalize_wireframes_artifact;
 use crate::wireframes::prompt::build_wireframes_prompt;
+use crate::wireframes::{MAX_BRAND_KIT_BYTES, MAX_BRAND_KIT_FILES};
 
 const GENERATED_AT_LABEL: &str = "just now";
 
 #[derive(Clone, Debug)]
 pub struct WireframesWorkflow {
     repository: WireframesRepository,
+    r2_public_base_url: Option<String>,
 }
 
 impl WireframesWorkflow {
-    pub fn new(repository: WireframesRepository) -> Self {
-        Self { repository }
+    pub fn new(repository: WireframesRepository, r2_public_base_url: Option<String>) -> Self {
+        Self {
+            repository,
+            r2_public_base_url,
+        }
     }
 
     pub async fn run(
@@ -59,6 +65,7 @@ impl WireframesWorkflow {
             .as_deref()
             .and_then(parse_style_direction_from_source)
             .map(ToOwned::to_owned);
+        let brand_kit_keys = request.context.brand_kit_keys.clone().unwrap_or_default();
 
         tracing::info!(
             run_id = %run_id,
@@ -100,12 +107,37 @@ impl WireframesWorkflow {
                 )
                 .await?;
 
+            // For a brand-kit Hi-Fi run, fetch the uploaded brand kit files and attach them so
+            // the model derives palette/typography/logo from the real brand kit. The user
+            // uploaded files expecting them used, so if none can be loaded (R2 base unset,
+            // expired URLs, 404s) we fail loudly rather than silently produce a generic result.
+            let brand_kit_requested = matches!(brand_source, Some(WireframeBrandSource::BrandKit))
+                && !brand_kit_keys.is_empty();
+            let brand_kit_attached = if brand_kit_requested {
+                let attachments = self.fetch_brand_kit_attachments(&brand_kit_keys).await?;
+                if attachments.is_empty() {
+                    return Err(WorkflowError::InvalidRequest(
+                        "Could not load the uploaded brand kit files. Check R2 configuration and the uploads, then try again.".to_string(),
+                    ));
+                }
+                tracing::info!(
+                    run_id = %run_id,
+                    count = attachments.len(),
+                    "attached brand kit files for wireframes provider run"
+                );
+                request.attachments.extend(attachments);
+                true
+            } else {
+                false
+            };
+
             request.prompt = build_wireframes_prompt(
                 &input,
                 wireframe_kind,
                 brand_source,
                 style_direction_id.as_deref(),
                 None,
+                brand_kit_attached,
             );
             let provider_context = ProviderRunContext {
                 api_version,
@@ -235,6 +267,119 @@ impl WireframesWorkflow {
             status: RunStatus::Completed,
         });
     }
+
+    async fn fetch_brand_kit_attachments(
+        &self,
+        keys: &[String],
+    ) -> Result<Vec<RunAttachment>, WorkflowError> {
+        let working_dir = provider_cli_working_directory().map_err(|error| {
+            WorkflowError::InvalidRequest(format!(
+                "Could not prepare provider working directory: {error}"
+            ))
+        })?;
+
+        let mut attachments = Vec::new();
+        for (index, key) in keys.iter().take(MAX_BRAND_KIT_FILES).enumerate() {
+            let Some(url) = resolve_brand_kit_url(key, self.r2_public_base_url.as_deref()) else {
+                tracing::warn!(key = %key, "could not resolve brand kit url");
+                continue;
+            };
+
+            let bytes = match fetch_url_bytes(&url).await {
+                Ok(bytes) => bytes,
+                Err(error) => {
+                    tracing::warn!(url = %url, %error, "could not fetch brand kit file");
+                    continue;
+                }
+            };
+
+            if bytes.len() > MAX_BRAND_KIT_BYTES {
+                tracing::warn!(url = %url, size = bytes.len(), "skipping oversize brand kit file");
+                continue;
+            }
+
+            let extension = extension_from_key(key);
+            let file_name = format!("brand-kit-{index}.{extension}");
+            let file_path = working_dir.join(&file_name);
+
+            if let Err(error) = tokio::fs::write(&file_path, &bytes).await {
+                tracing::warn!(%error, "could not write brand kit file to temp file");
+                continue;
+            }
+
+            attachments.push(RunAttachment {
+                id: format!("brand-kit-{index}"),
+                kind: brand_kit_attachment_kind(extension),
+                name: Some(file_name),
+                url: Some(url),
+                mime_type: None,
+                local_path: Some(file_path.to_string_lossy().to_string()),
+            });
+        }
+
+        Ok(attachments)
+    }
+}
+
+fn resolve_brand_kit_url(key: &str, r2_public_base_url: Option<&str>) -> Option<String> {
+    let trimmed = key.trim();
+    // Default-deny: accept only a relative R2 object key, never a caller-supplied URL,
+    // absolute path, or traversal. Otherwise a run could make the local engine fetch
+    // arbitrary or internal network URLs (SSRF).
+    if trimmed.is_empty()
+        || trimmed.contains("://")
+        || trimmed.starts_with('/')
+        || trimmed.contains("..")
+    {
+        return None;
+    }
+
+    let base = r2_public_base_url
+        .filter(|base| !base.trim().is_empty())?
+        .trim_end_matches('/');
+    Some(format!("{base}/{trimmed}"))
+}
+
+fn extension_from_key(key: &str) -> &str {
+    key.rsplit('/')
+        .next()
+        .and_then(|name| name.rsplit_once('.'))
+        .map(|(_, ext)| ext)
+        .filter(|ext| {
+            !ext.is_empty() && ext.len() <= 5 && ext.chars().all(|c| c.is_ascii_alphanumeric())
+        })
+        .unwrap_or("bin")
+}
+
+fn brand_kit_attachment_kind(extension: &str) -> RunAttachmentKind {
+    match extension.to_ascii_lowercase().as_str() {
+        "jpg" | "jpeg" | "png" | "webp" | "gif" | "svg" => RunAttachmentKind::Image,
+        _ => RunAttachmentKind::Document,
+    }
+}
+
+async fn fetch_url_bytes(url: &str) -> Result<Vec<u8>, WorkflowError> {
+    let response = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::limited(3))
+        .build()
+        .map_err(|error| {
+            WorkflowError::InvalidRequest(format!("Could not prepare brand kit fetch: {error}"))
+        })?
+        .get(url)
+        .send()
+        .await
+        .map_err(|error| {
+            WorkflowError::InvalidRequest(format!("Could not fetch brand kit file: {error}"))
+        })?
+        .error_for_status()
+        .map_err(|error| {
+            WorkflowError::InvalidRequest(format!("Brand kit fetch failed: {error}"))
+        })?;
+
+    let bytes = response.bytes().await.map_err(|error| {
+        WorkflowError::InvalidRequest(format!("Could not read brand kit bytes: {error}"))
+    })?;
+    Ok(bytes.to_vec())
 }
 
 fn parse_kind_from_source(source: &str) -> Option<&str> {

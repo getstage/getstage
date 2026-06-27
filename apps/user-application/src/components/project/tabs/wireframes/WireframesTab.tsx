@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import {
   createSeedConfigureScreens,
@@ -6,6 +6,7 @@ import {
   WIREFRAMES_RESULTS_PREVIEW_LIMIT,
 } from "@/data/fixtures/project/wireframesTabFixtures";
 import { useMoodboardArtifact, useWireframesTab } from "@/hooks/project";
+import { useWireframeBrandKit } from "@/hooks/project/wireframes";
 import { buildResultCards } from "@/lib/project/mapWireframesArtifactToTabData";
 import type { Project } from "@/models/project/project";
 import type { WireframeKindChoice, WireframeStep } from "@/types/project/wireframesTab";
@@ -35,35 +36,44 @@ export function WireframesTab({
   onGoToAssets,
 }: WireframesTabProps) {
   const wireframesTab = useWireframesTab({ id: project.id, name: project.name });
+  const brandKit = useWireframeBrandKit(project.id);
   const moodboard = useMoodboardArtifact(project.id);
   const seedScreens = useMemo(() => createSeedConfigureScreens(), []);
   const [step, setStep] = useState<WireframeStep>("choose-kind");
   const [wireframeKind, setWireframeKind] = useState<WireframeKindChoice>(null);
   const [brandSource, setBrandSource] = useState<BrandSourceChoice>(null);
   const [styleDirectionId, setStyleDirectionId] = useState<string | null>(null);
-  const [hasBrandKit, setHasBrandKit] = useState(false);
   const [screens, setScreens] = useState(seedScreens);
-  const [generatedAt, setGeneratedAt] = useState<number | undefined>();
-  const [generatedAtLabel, setGeneratedAtLabel] = useState(MOCK_WIREFRAMES_GENERATED_AT_LABEL);
+  // Results metadata is read live from the artifact so a fresh run (e.g. a Hi-Fi conversion)
+  // always reflects the latest generation instead of stale mirrored state.
   const generatedScreens = wireframesTab.data?.tabData.generatedScreens ?? [];
+  const generatedAt = wireframesTab.data?.tabData.generatedAt;
+  const generatedAtLabel =
+    wireframesTab.data?.tabData.generatedAtLabel ?? MOCK_WIREFRAMES_GENERATED_AT_LABEL;
   const selectedCount = screens.filter((screen) => screen.selected).length;
 
+  // Restore state from the saved artifact ONCE per project (on first load / tab return).
+  // After that the user owns the step + chosen kind — re-running on every reactive data
+  // tick would bounce a Lo-Fi→Hi-Fi conversion straight back to the Lo-Fi results.
+  const hydratedProjectRef = useRef<string | null>(null);
   useEffect(() => {
+    if (hydratedProjectRef.current === project.id) {
+      return;
+    }
     if (!wireframesTab.data?.tabData) {
       return;
     }
 
     const { tabData } = wireframesTab.data;
+    hydratedProjectRef.current = project.id;
     setWireframeKind(tabData.wireframeKind);
     setBrandSource(tabData.brandSource);
     setStyleDirectionId(tabData.styleDirectionId);
     setScreens(tabData.configureScreens);
-    setGeneratedAt(tabData.generatedAt);
-    setGeneratedAtLabel(tabData.generatedAtLabel);
     if (tabData.generatedScreens.length > 0) {
       setStep("results");
     }
-  }, [wireframesTab.data]);
+  }, [project.id, wireframesTab.data]);
 
   function continueFromSource(source: BrandSource) {
     setBrandSource(source);
@@ -82,6 +92,7 @@ export function WireframesTab({
         wireframeKind: wireframeKind ?? "lofi",
         brandSource,
         styleDirectionId: brandSource === "style-guide" ? styleDirectionId : null,
+        brandKitKeys: brandSource === "brand-kit" ? brandKit.uploadedKeys : [],
         screens,
       });
     } catch {
@@ -173,10 +184,16 @@ export function WireframesTab({
       {step === "brand-kit" ? (
         <CanvasShell centered>
           <BrandKitStep
-            hasBrandKit={hasBrandKit}
-            onUpload={() => setHasBrandKit(true)}
-            onRemove={() => setHasBrandKit(false)}
-            onContinue={() => setStep("configure")}
+            files={brandKit.files}
+            accept={brandKit.accept}
+            isUploading={brandKit.isUploading}
+            error={brandKit.error}
+            onUploadFiles={brandKit.uploadFiles}
+            onRemove={brandKit.removeFile}
+            onContinue={() => {
+              setBrandSource("brand-kit");
+              setStep("configure");
+            }}
           />
         </CanvasShell>
       ) : null}

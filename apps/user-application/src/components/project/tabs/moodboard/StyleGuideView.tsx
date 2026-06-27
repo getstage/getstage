@@ -8,7 +8,7 @@ type AtmosphereMetric = MoodboardStyleGuideViewData["atmosphere"][number];
 
 export function StyleGuideView({
   styleGuide = defaultStyleGuide,
-  onBack: _onBack,
+  onBack,
   onRegenerate,
   isEditing = false,
   onEdit,
@@ -79,14 +79,17 @@ export function StyleGuideView({
 
   return (
     <section className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <div className="flex items-end justify-between gap-3 p-4">
-        <div className="min-w-0">
-          <h2 className="text-[15px] font-medium leading-[1.25] text-[#0A0A0A]">{styleGuide.title}</h2>
-          <p className="mt-1 text-[12px] font-medium leading-[1.5] text-[#525252]">
-            {styleGuide.subtitle ?? "Brand Handbook for your project"}
-          </p>
+      <div className="flex flex-wrap items-end justify-between gap-3 p-4">
+        <div className="flex min-w-0 items-start gap-2">
+          <HeaderButton onClick={onBack}>Back</HeaderButton>
+          <div className="min-w-0">
+            <h2 className="text-[15px] font-medium leading-[1.25] text-[#0A0A0A]">{styleGuide.title}</h2>
+            <p className="mt-1 text-[12px] font-medium leading-[1.5] text-[#525252]">
+              {styleGuide.subtitle ?? "Brand Handbook for your project"}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center justify-end gap-1">
           {isEditing ? (
             <>
               <HeaderButton onClick={handleSave}>
@@ -108,18 +111,11 @@ export function StyleGuideView({
               </HeaderButton>
             </>
           )}
-          <button
-            className="inline-flex h-8 items-center gap-2 rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] pl-3 pr-[10px] text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
-            type="button"
-          >
-            Pin to Generate
-            <PlusIcon className="h-[15px] w-[15px]" />
-          </button>
         </div>
       </div>
 
-      <div className="rounded-[8px] bg-white p-11 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-        <div className="flex flex-col gap-11">
+      <div className="overflow-hidden rounded-[8px] bg-white p-5 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] sm:p-7 lg:p-11">
+        <div className="flex min-w-0 flex-col gap-11">
           <StyleSection title="Atmosphere">
             <div className="grid gap-2 lg:grid-cols-3">
               {styleGuide.atmosphere.map((metric, index) => (
@@ -142,7 +138,7 @@ export function StyleGuideView({
           <Divider />
 
           <StyleSection title="Color Palette">
-            <div className="grid gap-3 lg:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {styleGuide.colorPalettes.map((group) => (
                 <div key={group.label} className="min-w-0">
                   <div className="mb-2 flex h-5 items-center justify-between gap-2">
@@ -196,7 +192,7 @@ export function StyleGuideView({
                       className="absolute inset-0 h-4 w-full cursor-pointer opacity-0"
                     />
                   </label>
-                  <div className="flex items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-1">
                     <MetaPill>{previewSize}px</MetaPill>
                     <label className="inline-flex h-5 items-center justify-center gap-[6px] rounded-[4px] border border-[#E5E5E5] bg-[#F5F5F5] px-2 py-[2px] text-[13px] font-medium leading-none text-[#171717]">
                       <select
@@ -204,9 +200,11 @@ export function StyleGuideView({
                         onChange={(event) => setFontFamily(event.target.value)}
                         className="cursor-pointer appearance-none bg-transparent pr-[18px] outline-none"
                       >
-                        <option>Inter</option>
-                        <option>Arial</option>
-                        <option>Georgia</option>
+                        {[fontFamily, "Geist", "Fraunces", "Space Grotesk", "Satoshi", "Geist Mono"]
+                          .filter((font, index, all) => Boolean(font) && all.indexOf(font) === index)
+                          .map((font) => (
+                            <option key={font}>{font}</option>
+                          ))}
                       </select>
                       <span className="pointer-events-none -ml-[18px]">
                         <ChevronDown />
@@ -230,9 +228,9 @@ export function StyleGuideView({
                     <TypographyRow key={row.id} row={row} fontFamily={fontFamily} padded={index !== 0} />
                   ))}
                 </div>
-                <div className="flex min-w-0 flex-col items-start gap-4 whitespace-nowrap text-[#171717]">
+                <div className="flex min-w-0 flex-col items-start gap-4 text-[#171717]">
                   {styleGuide.typography.weightSamples.map((row) => (
-                    <p key={row.label} className={`${row.className} leading-none`}>
+                    <p key={row.label} className={`${row.className} max-w-full leading-tight`}>
                       {row.label}
                     </p>
                   ))}
@@ -267,7 +265,7 @@ export function StyleGuideView({
 function HeaderButton({ children, onClick }: { children: ReactNode; onClick?: () => void }) {
   return (
     <button
-      className="inline-flex h-8 items-center gap-2 rounded-[6px] bg-white pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
+      className="inline-flex h-8 shrink-0 items-center gap-2 rounded-[6px] bg-white pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
       type="button"
       onClick={onClick}
     >
@@ -345,7 +343,7 @@ function AtmosphereMetric({
 
 function ColorPill({ hex, color }: { hex: string; color: string }) {
   return (
-    <div className="inline-flex h-5 items-center justify-center gap-3 rounded-full border border-[#E5E5E5] bg-[#F5F5F5] py-[2px] pl-2 pr-[2px]">
+    <div className="inline-flex h-5 shrink-0 items-center justify-center gap-3 rounded-full border border-[#E5E5E5] bg-[#F5F5F5] py-[2px] pl-2 pr-[2px]">
       <span className="text-[13px] font-medium leading-none text-[#171717]">{hex}</span>
       <span
         aria-hidden="true"
@@ -385,7 +383,7 @@ function TypographyRow({
 }) {
   return (
     <div className={`flex flex-col gap-2 rounded-[6px] ${padded ? "py-3" : "pb-3"}`}>
-      <p className={`${row.className} leading-none text-[#171717]`} style={{ fontFamily, fontSize: row.size }}>
+      <p className={`${row.className} max-w-full leading-tight text-[#171717]`} style={{ fontFamily, fontSize: row.size }}>
         Build something that people want.
       </p>
       <div className="flex flex-wrap gap-2 text-[13px] font-medium leading-none text-[#525252]">
@@ -412,7 +410,7 @@ function SampleButton({ className }: { className: string }) {
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center rounded-full px-[37px] py-3 text-[15px] font-medium leading-none ${className}`}
+      className={`inline-flex max-w-full items-center justify-center rounded-full px-[clamp(18px,4vw,37px)] py-3 text-[15px] font-medium leading-none ${className}`}
     >
       Button
     </button>

@@ -1,8 +1,9 @@
 import { v } from "convex/values";
 import type { DataModel } from "../../_generated/dataModel";
 import { internalMutation, mutation, query } from "../../_generated/server";
+import { requireProjectAccess } from "../../helpers/access/projectAccess";
 import { requireAuthUser } from "../../helpers/auth/requireAuthUser";
-import { keyBelongsToUser } from "../../helpers/r2/keys";
+import { buildPublicAssetUrl, keyBelongsToUser } from "../../helpers/r2/keys";
 import { now } from "../../helpers/time";
 import {
   collectReferencedKeysForUser,
@@ -29,6 +30,7 @@ const uploadPurposeValidator = v.union(
   v.literal("moodboard-refero"),
   v.literal("moodboard-figma"),
   v.literal("moodboard-url"),
+  v.literal("wireframe-brand-kit"),
 );
 
 export const { syncMetadata } = r2.clientApi<DataModel>({
@@ -81,6 +83,98 @@ export const generateUploadUrlForApi = internalMutation({
       mimeType: args.mimeType,
       scopeId: args.scopeId,
     });
+  },
+});
+
+export const listProjectAssets = query({
+  args: {
+    projectId: v.id("projects"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireProjectAccess(ctx, args.projectId);
+    const prefix = `project-assets/projects/${args.projectId}/users/${user._id}/files/`;
+    const limit = args.limit ?? 100;
+    const uploads = await ctx.db
+      .query("uploadedAssets")
+      .withIndex("by_user_createdAt", (q) => q.eq("userId", user._id))
+      .collect();
+
+    return uploads
+      .filter((upload) => upload.purpose === "project-asset" && upload.key.startsWith(prefix))
+      .slice(-limit)
+      .reverse()
+      .map((upload) => ({
+        id: upload.key,
+        title: upload.fileName,
+        createdAt: upload.createdAt,
+        url: buildPublicAssetUrl(upload.key),
+        mimeType: upload.mimeType,
+      }));
+  },
+});
+
+export const deleteProjectAsset = mutation({
+  args: {
+    projectId: v.id("projects"),
+    key: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireProjectAccess(ctx, args.projectId);
+    const prefix = `project-assets/projects/${args.projectId}/users/${user._id}/files/`;
+    if (!args.key.startsWith(prefix)) {
+      throw new Error("This asset does not belong to the project.");
+    }
+    // Best-effort R2 delete + tracked-record removal (reuses the shared helper).
+    await deleteOldR2Asset(ctx, args.key);
+    return { ok: true as const };
+  },
+});
+
+// Restores the brand kit on return to the Wireframes tab: the upload is tracked in
+// `uploadedAssets`, so reading it back means a closed/reopened tab still shows the file
+// instead of losing it to local state. (The hourly prune cron still collects truly
+// abandoned uploads after 24h.)
+export const listWireframeBrandKit = query({
+  args: {
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireProjectAccess(ctx, args.projectId);
+    const prefix = `wireframes/projects/${args.projectId}/users/${user._id}/brand-kit/`;
+    const uploads = await ctx.db
+      .query("uploadedAssets")
+      .withIndex("by_user_createdAt", (q) => q.eq("userId", user._id))
+      .collect();
+
+    return uploads
+      .filter((upload) => upload.purpose === "wireframe-brand-kit" && upload.key.startsWith(prefix))
+      .reverse()
+      .map((upload) => ({
+        key: upload.key,
+        name: upload.fileName,
+        sizeBytes: upload.fileSize,
+        createdAt: upload.createdAt,
+      }));
+  },
+});
+
+// Brand kit files are transient (consumed by a Hi-Fi wireframes run, never attached to an
+// artifact), so the hourly prune cron eventually collects them. This lets the UI delete one
+// immediately when the user removes it, instead of leaving it pending for up to 24h.
+export const deleteWireframeBrandKit = mutation({
+  args: {
+    projectId: v.id("projects"),
+    key: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireProjectAccess(ctx, args.projectId);
+    const prefix = `wireframes/projects/${args.projectId}/users/${user._id}/brand-kit/`;
+    if (!args.key.startsWith(prefix)) {
+      throw new Error("This brand kit file does not belong to the project.");
+    }
+    await deleteOldR2Asset(ctx, args.key);
+    return { ok: true as const };
   },
 });
 

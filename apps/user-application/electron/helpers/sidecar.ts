@@ -22,6 +22,19 @@ type ReadinessResponse = {
   service: string;
 };
 
+function isStageEngineReadiness(value: unknown): value is ReadinessResponse {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+  return (
+    record.apiVersion === "v1" &&
+    typeof record.ready === "boolean" &&
+    record.service === "stage-engine"
+  );
+}
+
 export function getSidecarPort() {
   const raw = process.env.STAGE_ENGINE_PORT;
   const parsed = raw ? Number.parseInt(raw, 10) : ENGINE_DEFAULT_PORT;
@@ -75,7 +88,8 @@ export async function fetchReadiness(port: number): Promise<ReadinessResponse | 
       return null;
     }
 
-    return (await response.json()) as ReadinessResponse;
+    const payload = await response.json();
+    return isStageEngineReadiness(payload) ? payload : null;
   } catch {
     return null;
   } finally {

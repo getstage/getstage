@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 import type { ExportOption, WireframeAssetCard } from "@/types/project/assetsTab";
 
 export function useWireframeDeliveryExport(projectId: string) {
@@ -39,10 +40,10 @@ export function useWireframeDeliveryExport(projectId: string) {
         const result = await promise;
         return result;
       } catch (exportError) {
-        const nextError =
-          exportError instanceof Error
-            ? formatDeliveryExportError(exportError.message)
-            : `Could not export to ${option}.`;
+        const nextError = toUserFacingErrorMessage(
+          exportError instanceof Error ? formatDeliveryExportError(exportError.message) : exportError,
+          `Could not export to ${option}.`,
+        );
         setError(nextError);
         throw exportError;
       } finally {

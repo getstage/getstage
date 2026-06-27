@@ -22,15 +22,15 @@ const STYLE_GUIDE_SHAPE_EXAMPLE: &str = r##"{
     }
   ],
   "typography": {
-    "fontFamily": "Inter",
+    "fontFamily": "Geist",
     "previewSize": 28,
     "rows": [
       { "id": "21-semibold", "size": 21, "weight": "Semi-Bold", "className": "text-[21px] font-semibold", "lineHeight": "100%" },
       { "id": "13-medium", "size": 13, "weight": "Medium", "className": "text-[13px] font-medium", "lineHeight": "100%" }
     ],
     "weightSamples": [
-      { "label": "Inter - Bold", "className": "text-[24px] font-bold" },
-      { "label": "Inter - Regular", "className": "text-[20px] font-normal" }
+      { "label": "Geist - Bold", "className": "text-[24px] font-bold" },
+      { "label": "Geist - Regular", "className": "text-[20px] font-normal" }
     ]
   },
   "componentSwatchCount": 6
@@ -81,6 +81,15 @@ Return ONE JSON object only (no markdown fences, no commentary) matching this sh
 Rules:
 - Derive palette, typography, atmosphere sliders, and component tone from the assigned Direction moodboard images.
 - Do not derive visual style from research images or images outside this Direction.
+- Avoid default or generic visual choices unless the assigned images clearly support them.
+- Avoid pure black #000000; use a near-black with visible tone when dark ink is needed.
+- Avoid generic AI purple/blue neon palettes and gradients over 80% saturation.
+- Use at most one strong accent color per palette group.
+- Avoid generic serif defaults such as Times, Georgia, Garamond, and Palatino.
+- Avoid Inter for premium or creative visual directions unless the images strongly imply a plain utility app.
+- Include useful atmosphere coverage: Density, Variance, and Motion should be represented when possible.
+- If Variance is above 4/10, do not recommend centered-hero visual language in labels or samples.
+- Do not include vague filler such as "scroll to explore" or generic circular spinner guidance.
 - atmosphere.position is 0-100 (slider position).
 - colorPalettes.colors must contain 8-11 hex colors from light to dark.
 - typography.rows need stable string ids, Tailwind-like className strings, and lineHeight like "100%" or "150%".

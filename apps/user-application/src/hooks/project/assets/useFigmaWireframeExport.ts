@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import type { CreateFigmaExportResponse } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { api } from "@/lib/convexApi";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 import type { WireframeAssetCard } from "@/types/project/assetsTab";
 
 export function useFigmaWireframeExport(projectId: string) {
@@ -35,9 +36,7 @@ export function useFigmaWireframeExport(projectId: string) {
         setRequest(result);
         return result;
       } catch (exportError) {
-        const message =
-          exportError instanceof Error ? exportError.message : "Could not start Figma export.";
-        setError(message);
+        setError(toUserFacingErrorMessage(exportError, "Could not start Figma export."));
         throw exportError;
       } finally {
         if (inFlightRef.current === promise) {

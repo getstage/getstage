@@ -41,6 +41,8 @@ pub struct RunContext {
     pub phase_id: Option<String>,
     pub task_id: Option<String>,
     pub source: Option<String>,
+    #[serde(default)]
+    pub brand_kit_keys: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

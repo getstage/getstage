@@ -46,9 +46,8 @@ impl PaperClient {
         html: &str,
     ) -> anyhow::Result<Option<String>> {
         let session = self.start_session().await.map_err(|error| {
-            anyhow::anyhow!(
-                "Paper Desktop is not ready. Open the target Paper file and try again: {error}"
-            )
+            tracing::debug!(%error, "paper desktop session start failed");
+            anyhow::anyhow!("Open Paper Desktop with the target Paper file open, then try again.")
         })?;
         let tools = session.list_tools().await?;
         let create_artboard = require_tool(&tools, "create_artboard")?;
@@ -89,14 +88,15 @@ impl PaperClient {
     pub async fn connection_status(&self) -> PaperConnectionStatus {
         match self.check_connection().await {
             Ok(status) => status,
-            Err(error) => PaperConnectionStatus {
-                ready: false,
-                message: format!(
-                    "Open Paper Desktop with a target Paper file, then refresh. {error}"
-                ),
-                file_name: None,
-                page_name: None,
-            },
+            Err(error) => {
+                tracing::debug!(%error, "paper desktop connection check failed");
+                PaperConnectionStatus {
+                    ready: false,
+                    message: "Open Paper Desktop with a target Paper file, then refresh.".to_string(),
+                    file_name: None,
+                    page_name: None,
+                }
+            }
         }
     }
 

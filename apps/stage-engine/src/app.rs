@@ -63,9 +63,10 @@ impl AppState {
             config.r2_public_base_url.clone(),
         ));
         let flows = Arc::new(FlowsWorkflow::new(FlowsRepository::new(&config.convex)));
-        let wireframes = Arc::new(WireframesWorkflow::new(WireframesRepository::new(
-            &config.convex,
-        )));
+        let wireframes = Arc::new(WireframesWorkflow::new(
+            WireframesRepository::new(&config.convex),
+            config.r2_public_base_url.clone(),
+        ));
         let chat = Arc::new(ChatWorkflow::new(ChatRepository::new(&config.convex)));
 
         Ok(Self {

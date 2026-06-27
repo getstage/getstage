@@ -56,7 +56,23 @@ export function AssetsTab({ project }: { project: Project }) {
           </div>
 
           {activeView === "documents" ? <DocumentsGrid documents={documents} /> : null}
-          {activeView === "uploaded" ? <UploadedGrid uploads={uploads.uploadedAssets} /> : null}
+          {activeView === "uploaded" ? (
+            <>
+              {uploads.deleteError ? (
+                <p className="mx-4 mb-1 rounded-[6px] bg-[#FEF2F2] p-2 text-[12px] font-medium leading-[1.25] text-[#991B1B]">
+                  {uploads.deleteError}
+                </p>
+              ) : null}
+              <UploadedGrid
+                uploads={uploads.uploadedAssets}
+                onDelete={(key) => {
+                  if (window.confirm("Delete this file? This removes it from the project.")) {
+                    void uploads.deleteAsset(key);
+                  }
+                }}
+              />
+            </>
+          ) : null}
 
           {activeView === "wireframes" ? (
             <div className="grid gap-1 lg:grid-cols-3">

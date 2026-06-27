@@ -28,6 +28,7 @@ let feedConfigured = false;
 let initialAutoCheckScheduled = false;
 let lastAutomaticCheckAt = 0;
 let availableUpdateVersion: string | null = null;
+let updateDownloaded = false;
 let prepareQuitForUpdate: (() => Promise<void> | void) | null = null;
 
 type GithubReleaseResponse = {
@@ -89,6 +90,7 @@ function getDesktopUpdateStatus(): DesktopUpdateStatus {
     currentVersion: app.getVersion(),
     availableVersion: availableUpdateVersion ?? undefined,
     isChecking: checkInFlight,
+    downloaded: updateDownloaded,
   };
 }
 
@@ -109,6 +111,7 @@ function markUpdateAvailable(version: string) {
 
 function clearAvailableUpdate() {
   availableUpdateVersion = null;
+  updateDownloaded = false;
   broadcastUpdateStatus();
 }
 
@@ -362,14 +365,10 @@ export async function checkForUpdates(options: UpdateCheckOptions = {}) {
     }
 
     markUpdateAvailable(nextVersion);
-    logUpdate(`update available: ${nextVersion}`);
-
-    const shouldDownload = await promptDownloadUpdate(nextVersion);
-    if (!shouldDownload) {
-      return getDesktopUpdateStatus();
-    }
-
-    await downloadUpdateVersion(nextVersion);
+    // autoDownload is enabled, so checkForUpdates() has already started fetching the
+    // update in the background. The `update-downloaded` handler then offers a restart,
+    // and autoInstallOnAppQuit applies it on next quit if the user dismisses that prompt.
+    logUpdate(`update available: ${nextVersion}; downloading in background`);
   } catch (error: unknown) {
     logUpdateWarning(error instanceof Error ? error.message : "unknown update check error");
     if (manual) {
@@ -389,8 +388,25 @@ export async function checkForUpdates(options: UpdateCheckOptions = {}) {
   return getDesktopUpdateStatus();
 }
 
+async function applyDownloadedUpdate() {
+  if (prepareQuitForUpdate) {
+    try {
+      await prepareQuitForUpdate();
+    } catch (error: unknown) {
+      logUpdateWarning(error instanceof Error ? error.message : "update quit preparation failed");
+    }
+  }
+  autoUpdater.quitAndInstall();
+}
+
 export async function installAvailableUpdate() {
   if (!app.isPackaged) {
+    return getDesktopUpdateStatus();
+  }
+
+  // Already downloaded in the background → restart straight into it, no re-download.
+  if (updateDownloaded) {
+    await applyDownloadedUpdate();
     return getDesktopUpdateStatus();
   }
 
@@ -462,8 +478,10 @@ export function initAutoUpdates() {
   }
 
   configureAutoUpdaterFeed();
-  autoUpdater.autoDownload = false;
-  autoUpdater.autoInstallOnAppQuit = false;
+  // Silent background updates (like Chrome / VS Code): download automatically and
+  // install on next quit, so users never have to manually delete + re-download.
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
 
   if (!shouldLogDesktopVerbose()) {
     autoUpdater.logger = {
@@ -483,6 +501,12 @@ export function initAutoUpdates() {
 
   autoUpdater.on("update-downloaded", (info) => {
     logUpdate(`downloaded ${info.version}`);
+    updateDownloaded = true;
+    if (typeof info.version === "string") {
+      markUpdateAvailable(info.version);
+    } else {
+      broadcastUpdateStatus();
+    }
     void promptRestartToUpdate(info.version);
   });
 

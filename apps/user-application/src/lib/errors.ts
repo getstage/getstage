@@ -17,7 +17,11 @@ export const SESSION_EXPIRED_USER_MESSAGE =
 
 const SESSION_EXPIRED_PATTERN =
   /DesktopSessionExpiredError|session expired|please sign in again|please log in again|log in again|stage desktop session is not connected|not authenticated|unauthenticated|authentication required|invalid (auth|jwt|token)|token expired|failed with 401|failed with 403|access denied|forbidden/i;
-const NETWORK_PATTERN = /failed to fetch|network ?error|load failed|network request failed/i;
+const NETWORK_PATTERN =
+  /failed to fetch|fetch failed|network ?error|load failed|network request failed|econnrefused|enotfound|etimedout|socket hang up/i;
+const ENGINE_REMOTE_PATTERN =
+  /Error invoking remote method 'engine:[^']+'|Stage Engine request failed|stage engine/i;
+const ENGINE_START_PATTERN = /engine:start-run/i;
 const MODULE_LOAD_PATTERN =
   /does not provide an export|failed to fetch dynamically imported module|cannot find module|module not found|importing a module script failed|error loading dynamically imported module|\/@fs\//i;
 const PROJECT_UPGRADE_REQUIRED_PATTERN =
@@ -114,6 +118,18 @@ export function toUserFacingErrorMessage(error: unknown, fallback: string): stri
 
   if (isSessionExpiredErrorMessage(message)) {
     return SESSION_EXPIRED_USER_MESSAGE;
+  }
+
+  if (ENGINE_START_PATTERN.test(message) && NETWORK_PATTERN.test(message)) {
+    return "Stage Engine is not reachable. Restart Stage and try again.";
+  }
+
+  if (ENGINE_REMOTE_PATTERN.test(message) && NETWORK_PATTERN.test(message)) {
+    return "Stage could not reach the local engine. Restart Stage and try again.";
+  }
+
+  if (ENGINE_REMOTE_PATTERN.test(message)) {
+    return fallback;
   }
 
   if (NETWORK_PATTERN.test(message)) {

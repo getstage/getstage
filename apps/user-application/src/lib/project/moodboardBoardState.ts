@@ -35,6 +35,7 @@ export type MoodboardBoardState = {
   items: MoodboardBoardItem[];
   directions: MoodboardBoardDirection[];
   uploadedFiles: MoodboardUploadedFile[];
+  styleGuides?: MoodboardStyleGuide[];
 };
 
 /**

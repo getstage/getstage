@@ -7,6 +7,7 @@ import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import { formatRunFailedEvent, STRATEGY_RUN_FAILED_USER_MESSAGE, toRunFailureUserMessage } from "@/lib/engine/formatRunError";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
 import { assertProviderPreflightReady } from "@/lib/engine/providerPreflight";
 import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
@@ -204,6 +205,8 @@ export function useStrategyRun(projectId: string) {
     runEvents: activeRunEvents,
     error:
       error ??
-      (providerRun.startRun.error instanceof Error ? STRATEGY_RUN_FAILED_USER_MESSAGE : null),
+      (providerRun.startRun.error
+        ? toUserFacingErrorMessage(providerRun.startRun.error, STRATEGY_RUN_FAILED_USER_MESSAGE)
+        : null),
   };
 }
