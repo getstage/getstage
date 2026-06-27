@@ -12,11 +12,13 @@ export function StyleGuideStep({
   directions,
   selectedDirectionId,
   onSelectDirection,
+  onGenerateStyleGuide,
   onContinue,
 }: {
   directions: StyleDirection[];
   selectedDirectionId: string | null;
   onSelectDirection: (directionId: string) => void;
+  onGenerateStyleGuide: () => void;
   onContinue: () => void;
 }) {
   return (
@@ -32,7 +34,7 @@ export function StyleGuideStep({
         </div>
 
         <div className="flex w-full flex-col items-center gap-2 py-3">
-          <div className="grid w-full gap-2 lg:grid-cols-3">
+          <div className="flex w-full flex-wrap justify-center gap-2">
             {directions.map((direction) => (
               <StyleDirectionCard
                 key={direction.id}
@@ -44,20 +46,28 @@ export function StyleGuideStep({
             ))}
           </div>
           {directions.length === 0 ? (
-            <p className="py-12 text-[13px] font-medium text-[#737373]">
-              Generate a Moodboard Style Guide before creating Hi-Fi wireframes.
-            </p>
+            <div className="flex flex-col items-center gap-3 py-12">
+              <p className="max-w-[357px] text-center text-[13px] font-medium text-[#737373]">
+                You don&apos;t have a style guide yet. Generate one in the Moodboard Direction Hub.
+              </p>
+              <PrimaryButton onClick={onGenerateStyleGuide} className="w-[357px] max-w-full">
+                Generate a Style Guide
+                <ArrowRightIcon />
+              </PrimaryButton>
+            </div>
           ) : null}
         </div>
 
-        <PrimaryButton
-          onClick={onContinue}
-          disabled={!selectedDirectionId}
-          className="w-[357px] max-w-full"
-        >
-          Continue
-          <ArrowRightIcon />
-        </PrimaryButton>
+        {directions.length > 0 ? (
+          <PrimaryButton
+            onClick={onContinue}
+            disabled={!selectedDirectionId}
+            className="w-[357px] max-w-full"
+          >
+            Continue
+            <ArrowRightIcon />
+          </PrimaryButton>
+        ) : null}
 
       </div>
     </div>
@@ -77,7 +87,7 @@ function StyleDirectionCard({
 }) {
   return (
     <article
-      className={`flex h-[336px] min-w-0 flex-col rounded-[8px] bg-[#FAFAFA] p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity ${
+      className={`flex h-[336px] w-[360px] max-w-full flex-col rounded-[8px] bg-[#FAFAFA] p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity ${
         anySelected && !selected ? "opacity-50" : "opacity-100"
       }`}
     >

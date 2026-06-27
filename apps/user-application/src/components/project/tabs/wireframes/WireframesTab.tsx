@@ -25,6 +25,7 @@ type WireframesTabProps = {
   onGoToResearch?: () => void;
   onGoToStrategy?: () => void;
   onGoToFlows?: () => void;
+  onGoToMoodboard: () => void;
   onGoToAssets: () => void;
 };
 
@@ -33,6 +34,7 @@ export function WireframesTab({
   onGoToResearch,
   onGoToStrategy,
   onGoToFlows,
+  onGoToMoodboard,
   onGoToAssets,
 }: WireframesTabProps) {
   const wireframesTab = useWireframesTab({ id: project.id, name: project.name });
@@ -173,6 +175,7 @@ export function WireframesTab({
             }))}
           selectedDirectionId={styleDirectionId}
           onSelectDirection={setStyleDirectionId}
+          onGenerateStyleGuide={onGoToMoodboard}
           onContinue={() => {
             if (styleDirectionId) {
               setStep("configure");
@@ -212,7 +215,7 @@ export function WireframesTab({
           onToggle={(id) =>
             setScreens((current) =>
               current.map((screen) =>
-                screen.id === id && !screen.required ? { ...screen, selected: !screen.selected } : screen,
+                screen.id === id ? { ...screen, selected: !screen.selected } : screen,
               ),
             )
           }

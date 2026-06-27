@@ -156,6 +156,7 @@ export function ProjectStepView({
             onGoToResearch={() => onGoToTab("research")}
             onGoToStrategy={() => onGoToTab("strategy")}
             onGoToFlows={() => onGoToTab("flows")}
+            onGoToMoodboard={() => onGoToTab("moodboard")}
             onGoToAssets={() => onGoToTab("assets")}
           />
         ) : null}
