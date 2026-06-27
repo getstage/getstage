@@ -1,6 +1,34 @@
 use crate::models::runs::RunMode;
 
-pub(super) fn looks_like_json_artifact_line(text: &str) -> bool {
+pub(super) fn expected_artifact_kind(mode: RunMode) -> Option<&'static str> {
+    match mode {
+        RunMode::Research => Some("researchArtifact"),
+        RunMode::Strategy => Some("strategyArtifact"),
+        RunMode::Flows => Some("flowsArtifact"),
+        RunMode::Wireframes => Some("wireframesArtifact"),
+        RunMode::Styleguide
+        | RunMode::Moodboard
+        | RunMode::Chat
+        | RunMode::Generation
+        | RunMode::Voice
+        | RunMode::Critique => None,
+    }
+}
+
+pub(super) fn looks_like_json_artifact_line(text: &str, expected_kind: Option<&str>) -> bool {
+    let trimmed = text.trim();
+    if !trimmed.starts_with('{') || !trimmed.ends_with('}') || !trimmed.contains("\"artifactKind\"") {
+        return false;
+    }
+    match expected_kind {
+        Some(kind) => trimmed.contains(kind),
+        None => false,
+    }
+}
+
+/// Looser check used for stderr warning suppression — matches any line that looks
+/// like a JSON artifact regardless of kind (echoed input context should be suppressed too).
+fn looks_like_any_json_artifact_line(text: &str) -> bool {
     let trimmed = text.trim();
     trimmed.starts_with('{') && trimmed.ends_with('}') && trimmed.contains("\"artifactKind\"")
 }
@@ -63,7 +91,7 @@ pub(super) fn should_suppress_stderr_warning(text: &str) -> bool {
         return true;
     }
 
-    if looks_like_json_artifact_line(text) {
+    if looks_like_any_json_artifact_line(text) {
         return true;
     }
 
@@ -217,6 +245,27 @@ mod tests {
         assert!(!looks_like_provider_auth_failure(
             "You've hit your session limit · resets 6:50pm (Europe/Amsterdam)"
         ));
+    }
+
+    #[test]
+    fn looks_like_json_artifact_line_matches_expected_kind() {
+        let line = r#"{"apiVersion":"v1","artifactKind":"strategyArtifact","sections":[]}"#;
+        assert!(looks_like_json_artifact_line(line, Some("strategyArtifact")));
+        assert!(!looks_like_json_artifact_line(line, Some("researchArtifact")));
+    }
+
+    #[test]
+    fn looks_like_json_artifact_line_rejects_any_kind_when_none_expected() {
+        let line = r#"{"apiVersion":"v1","artifactKind":"strategyArtifact","sections":[]}"#;
+        assert!(!looks_like_json_artifact_line(line, None));
+    }
+
+    #[test]
+    fn expected_artifact_kind_maps_modes_to_their_output_kind() {
+        assert_eq!(expected_artifact_kind(RunMode::Strategy), Some("strategyArtifact"));
+        assert_eq!(expected_artifact_kind(RunMode::Research), Some("researchArtifact"));
+        assert_eq!(expected_artifact_kind(RunMode::Styleguide), None);
+        assert_eq!(expected_artifact_kind(RunMode::Moodboard), None);
     }
 
     #[test]

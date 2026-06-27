@@ -9,6 +9,9 @@ export type UploadedAssetRow = {
   date: string;
   status: "uploading" | "uploaded" | "failed";
   error?: string;
+  /** Public preview/open URL for persisted assets (null until known). */
+  url?: string | null;
+  mimeType?: string;
 };
 
 export type WireframeAssetCard = ProjectAsset & {

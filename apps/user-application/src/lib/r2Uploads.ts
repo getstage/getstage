@@ -10,6 +10,7 @@ export const AVATAR_ACCEPT = ".jpg,.jpeg,.png,.webp";
 export const PROJECT_MARKER_ACCEPT = ".jpg,.jpeg,.png,.webp";
 export const PORTAL_LOGO_ACCEPT = ".jpg,.jpeg,.png,.webp,.svg";
 export const MOODBOARD_IMAGE_ACCEPT = ".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif";
+export const WIREFRAME_BRAND_KIT_ACCEPT = ".jpg,.jpeg,.png,.webp,.gif,.svg,.pdf,.ttf,.otf,.woff,.woff2";
 
 type MutationFn = ReturnType<typeof useMutation<FunctionReference<"mutation">>>;
 
@@ -130,6 +131,37 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number)
   return new Promise<Blob | null>((resolve) => {
     canvas.toBlob(resolve, type, quality);
   });
+}
+
+export async function createImageThumbnail(file: File, maxEdgePx = 400): Promise<{
+  file: File;
+  dataUrl: string;
+}> {
+  const dataUrl = await readFileAsDataUrl(file);
+  const image = await loadImage(dataUrl);
+  const scale = Math.min(1, maxEdgePx / Math.max(image.naturalWidth, image.naturalHeight));
+  const width = Math.max(1, Math.round(image.naturalWidth * scale));
+  const height = Math.max(1, Math.round(image.naturalHeight * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Could not prepare this image.");
+  }
+
+  context.drawImage(image, 0, 0, width, height);
+  const blob = await canvasToBlob(canvas, "image/jpeg", 0.8);
+  if (!blob) {
+    throw new Error("Could not create thumbnail.");
+  }
+
+  const thumbName = file.name.replace(/\.[^.]+$/, "") + "-thumb.jpg";
+  const thumbFile = new File([blob], thumbName, { type: "image/jpeg" });
+  const thumbDataUrl = await readFileAsDataUrl(thumbFile);
+  return { file: thumbFile, dataUrl: thumbDataUrl };
 }
 
 async function convertRasterImageToWebP(file: File) {

@@ -8,6 +8,7 @@ pub struct AppConfig {
     pub paper: PaperConfig,
     pub figma: FigmaConfig,
     pub convex: ConvexConfig,
+    pub r2_public_base_url: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -43,6 +44,9 @@ impl AppConfig {
             paper: PaperConfig::from_env(),
             figma: FigmaConfig::from_env(),
             convex: ConvexConfig::from_env(),
+            r2_public_base_url: std::env::var("R2_PUBLIC_BASE_URL")
+                .ok()
+                .filter(|value| !value.trim().is_empty()),
         })
     }
 

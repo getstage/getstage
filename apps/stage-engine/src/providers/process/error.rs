@@ -206,7 +206,9 @@ pub(super) fn provider_exit_error(
     }
 
     let stdout_trimmed = stdout_text.trim();
-    if !stdout_trimmed.is_empty() {
+    // On failure, skip captured JSON artifacts — they may be echoed input context
+    // (e.g. a strategyArtifact JSON the provider was given), not actual output.
+    if !stdout_trimmed.is_empty() && !stdout_trimmed.starts_with('{') {
         parts.push(truncate_line(stdout_trimmed, stderr_diag_max_chars()));
     }
 
@@ -240,6 +242,23 @@ mod tests {
             EngineErrorCode::NotAuthenticated
         ));
         assert!(engine_error.message.contains("claude auth login"));
+    }
+
+    #[test]
+    fn provider_exit_error_skips_json_artifact_stdout_on_failure() {
+        let diag = StderrDiagnostics::default();
+        let error = provider_exit_error(
+            "codex",
+            std::process::Command::new("false")
+                .status()
+                .expect("false exits"),
+            &diag,
+            r#"{"apiVersion":"v1","artifactKind":"strategyArtifact","sections":[]}"#,
+        );
+
+        let message = error.to_engine_error(ProviderId::Codex).message;
+        assert!(!message.contains("strategyArtifact"));
+        assert!(!message.contains("artifactKind"));
     }
 
     #[test]

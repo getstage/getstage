@@ -4,7 +4,8 @@ use crate::exports::figma::models::{GeneratedScreen, WireframesArtifact};
 use crate::exports::figma::repository::FigmaExportRepository;
 
 use super::models::{
-    CodeExportFile, CodeExportResponse, PaperExportResponse, WireframeDeliveryRequest,
+    CodeExportFile, CodeExportResponse, PaperConnectionStatusResponse, PaperExportResponse,
+    WireframeDeliveryRequest,
 };
 use super::paper::PaperClient;
 
@@ -57,7 +58,7 @@ impl DeliveryExportService {
                 &format!("{} Wireframe", screen.title),
                 1440,
                 1000,
-                &compile_body(&screen),
+                &compile_paper_html(&screen),
             )
             .await?;
         Ok(PaperExportResponse {
@@ -66,6 +67,18 @@ impl DeliveryExportService {
             artboard_id,
             message: "Wireframe exported to the open Paper file.".to_string(),
         })
+    }
+
+    pub async fn paper_connection_status(&self) -> PaperConnectionStatusResponse {
+        let status = self.paper.connection_status().await;
+        PaperConnectionStatusResponse {
+            api_version: "v1",
+            ready: status.ready,
+            status: if status.ready { "ready" } else { "not-ready" },
+            message: status.message,
+            file_name: status.file_name,
+            page_name: status.page_name,
+        }
     }
 
     async fn load_screen(
@@ -128,6 +141,41 @@ fn compile_body(screen: &GeneratedScreen) -> String {
         .collect::<String>();
     format!(
         "<main><header><p>Stage wireframe</p><h1>{}</h1></header>{sections}</main>",
+        escape(&screen.title)
+    )
+}
+
+fn compile_paper_html(screen: &GeneratedScreen) -> String {
+    let sections = screen
+        .sections
+        .iter()
+        .map(|section| {
+            let blocks = section
+                .blocks
+                .iter()
+                .map(|block| {
+                    let label = block.copy_slots.get("headline").unwrap_or(&block.intent);
+                    let height = match block.emphasis.as_str() {
+                        "primary" => 188,
+                        "tertiary" => 76,
+                        _ => 116,
+                    };
+                    format!(
+                        "<article style=\"min-height:{height}px;background:#fafafa;border:1px solid #d4d4d4;border-radius:10px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:24px;\"><strong style=\"color:#171717;font-size:17px;line-height:1.35;font-weight:650;\">{}</strong><span style=\"flex:0 0 auto;color:#737373;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;\">{}</span></article>",
+                        escape(label),
+                        escape(&block.kind)
+                    )
+                })
+                .collect::<String>();
+            format!(
+                "<section style=\"margin-top:28px;\"><h2 style=\"margin:0 0 12px;color:#262626;font-size:18px;font-weight:700;\">{}</h2><div style=\"display:grid;gap:12px;\">{blocks}</div></section>",
+                escape(&section.title)
+            )
+        })
+        .collect::<String>();
+
+    format!(
+        "<div style=\"width:1440px;min-height:1000px;background:#f5f5f5;padding:48px;color:#171717;font-family:Inter,Arial,sans-serif;\"><div style=\"min-height:904px;background:#ffffff;border:1px solid #d4d4d4;border-radius:16px;padding:40px;box-shadow:0 24px 70px rgba(15,23,42,0.10);\"><p style=\"margin:0;color:#737373;font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;\">Stage wireframe</p><h1 style=\"margin:8px 0 0;color:#171717;font-size:34px;line-height:1.15;font-weight:750;\">{}</h1>{sections}</div></div>",
         escape(&screen.title)
     )
 }

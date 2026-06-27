@@ -1,4 +1,5 @@
-import { useMutation as useConvexMutation } from "convex/react";
+import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
+import type { Id } from "@stage/data-ops/convex/data-model";
 import { useState, type ChangeEvent, type DragEvent } from "react";
 import { api } from "@/lib/convexApi";
 import {
@@ -8,14 +9,33 @@ import {
   validateUploadFile,
 } from "@/lib/r2Uploads";
 import { formatUploadDate, getProjectAssetSizeError } from "@/lib/project/assetsTab";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 import type { UploadedAssetRow } from "@/types/project/assetsTab";
 
 export function useProjectAssetUploads(onUploaded?: () => void, projectId?: string) {
   const r2GenerateUploadUrl = useConvexMutation(api.r2.generateUploadUrl);
   const r2SyncMetadata = useConvexMutation(api.r2.syncMetadata);
+  const r2DeleteProjectAsset = useConvexMutation(api.r2.deleteProjectAsset);
+  const persistedAssets = useConvexQuery(
+    api.r2.listProjectAssets,
+    projectId ? { projectId: projectId as Id<"projects"> } : "skip",
+  );
 
   const [uploadedAssets, setUploadedAssets] = useState<UploadedAssetRow[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const persistedRows = (persistedAssets ?? []).map((asset) => ({
+    id: asset.id,
+    title: asset.title,
+    date: formatUploadDate(asset.createdAt),
+    status: "uploaded" as const,
+    url: asset.url,
+    mimeType: asset.mimeType,
+  }));
+  const mergedAssets = [
+    ...uploadedAssets,
+    ...persistedRows.filter((asset) => !uploadedAssets.some((current) => current.id === asset.id)),
+  ];
 
   async function uploadFiles(files: FileList | File[]) {
     const fileArray = Array.from(files);
@@ -44,7 +64,7 @@ export function useProjectAssetUploads(onUploaded?: () => void, projectId?: stri
         if (!file) return;
 
         try {
-          await uploadFileToR2({
+          const key = await uploadFileToR2({
             generateUploadUrl: r2GenerateUploadUrl,
             syncMetadata: r2SyncMetadata,
             purpose: "project-asset",
@@ -52,7 +72,9 @@ export function useProjectAssetUploads(onUploaded?: () => void, projectId?: stri
             scopeId: projectId,
           });
           setUploadedAssets((current) =>
-            current.map((asset) => (asset.id === draft.id ? { ...asset, status: "uploaded" } : asset)),
+            current.map((asset) =>
+              asset.id === draft.id ? { ...asset, id: key, status: "uploaded" } : asset,
+            ),
           );
         } catch (error) {
           setUploadedAssets((current) =>
@@ -61,7 +83,7 @@ export function useProjectAssetUploads(onUploaded?: () => void, projectId?: stri
                 ? {
                     ...asset,
                     status: "failed",
-                    error: error instanceof Error ? error.message : "Upload failed.",
+                    error: toUserFacingErrorMessage(error, "Upload failed. Please try again."),
                   }
                 : asset,
             ),
@@ -69,6 +91,21 @@ export function useProjectAssetUploads(onUploaded?: () => void, projectId?: stri
         }
       }),
     );
+  }
+
+  async function deleteAsset(key: string) {
+    if (!projectId) return;
+    setDeleteError(null);
+    const previous = uploadedAssets;
+    // Optimistically drop any in-flight row; persisted rows disappear when the
+    // reactive listProjectAssets query updates after the mutation succeeds.
+    setUploadedAssets((current) => current.filter((asset) => asset.id !== key));
+    try {
+      await r2DeleteProjectAsset({ projectId: projectId as Id<"projects">, key });
+    } catch (error) {
+      setUploadedAssets(previous);
+      setDeleteError(toUserFacingErrorMessage(error, "Could not delete that file. Please try again."));
+    }
   }
 
   function handleDrop(event: DragEvent<HTMLLabelElement>) {
@@ -84,11 +121,13 @@ export function useProjectAssetUploads(onUploaded?: () => void, projectId?: stri
 
   return {
     accept: PROJECT_ASSET_ACCEPT,
-    uploadedAssets,
+    uploadedAssets: mergedAssets,
     isDragActive,
     setIsDragActive,
     handleDrop,
     handleInputChange,
     uploadFiles,
+    deleteAsset,
+    deleteError,
   };
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import { CopyButton } from "@/components/ui/CopyButton";
 import { EXPORT_OPTIONS } from "@/lib/project/assetsTab";
 import type { CreateFigmaExportResponse } from "@stage/data-ops/contracts";
 import type { ExportOption, ExportOptionConfig, WireframeAssetCard } from "@/types/project/assetsTab";
@@ -103,11 +104,14 @@ export function ExportOptionsDialog({
                   </div>
                 ) : (
                   <>
-                    <p className="font-medium text-[#171717]">Run the Stage Exporter plugin in Figma</p>
+                    <p className="font-medium text-[#171717]">Run the Stage Exporter plugin in Figma Design</p>
                     <p className="mt-1 text-[#525252]">Enter this one-time pairing code:</p>
-                    <p className="mt-2 font-mono text-[20px] font-semibold tracking-[0.18em] text-[#171717]">
-                      {exportRequest.pairingCode}
-                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="font-mono text-[20px] font-semibold tracking-[0.18em] text-[#171717]">
+                        {exportRequest.pairingCode}
+                      </span>
+                      <CopyButton value={exportRequest.pairingCode} />
+                    </div>
                     <p className="mt-2 text-[#737373]">
                       Status: {exportJob?.status ?? exportRequest.status}
                     </p>

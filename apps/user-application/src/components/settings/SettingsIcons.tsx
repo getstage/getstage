@@ -77,6 +77,11 @@ export function SettingsIcon({ name, className = "h-[18px] w-[18px]" }: IconProp
     sheet: (
       <img src="/logos/integrations/google-sheets.svg" alt="" aria-hidden="true" className={className} />
     ),
+    paper: (
+      <svg {...common} stroke="none" fill="currentColor">
+        <path d="M16.5 12.2h-4.7V6.5H6.1v5.7h5.7v4.7H4.4V6.5h1.7V4.6h10.4v7.6Z" />
+      </svg>
+    ),
     copy: (
       <img src="/logos/dashboard/copy.svg" alt="" aria-hidden="true" className={className} />
     ),

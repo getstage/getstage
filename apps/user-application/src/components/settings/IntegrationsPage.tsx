@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import {
   useAction as useConvexAction,
   useConvexAuth,
@@ -22,11 +23,13 @@ import type { ProviderId } from "@stage/data-ops/contracts";
 import {
   googleSheetsIntegrationToRow,
   nativeIntegrationToRow,
+  paperIntegrationToRow,
   providerToIntegrationRow,
 } from "@/lib/settings/providerIntegrationRows";
 import { isProviderCliReady } from "@/lib/settings/providerCliSetup";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 import type { IntegrationRowModel } from "@/types/settings/integrations";
+import type { PaperConnectionStatusResponse } from "@stage/data-ops/contracts";
 import { ProviderCliSetupDialog } from "./ProviderCliSetupDialog";
 import { ProviderUpdatesBanner } from "./ProviderUpdatesBanner";
 import { SettingsIcon } from "./SettingsIcons";
@@ -40,7 +43,11 @@ export function IntegrationsPage() {
   const [busyIntegrationId, setBusyIntegrationId] = useState<string | null>(null);
   const [setupDialogProviderId, setSetupDialogProviderId] = useState<ProviderId | null>(null);
   const [aiDefaultsOpen, setAiDefaultsOpen] = useState(false);
+  const [figmaSetupOpen, setFigmaSetupOpen] = useState(false);
+  const [paperSetupMessage, setPaperSetupMessage] = useState<string | null>(null);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [paperStatus, setPaperStatus] = useState<PaperConnectionStatusResponse | null>(null);
+  const [paperStatusPending, setPaperStatusPending] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement>(null);
 
   const nativeConnectionStatus = useConvexQuery(
@@ -75,11 +82,14 @@ export function IntegrationsPage() {
     () => [
       nativeIntegrationToRow("figma", nativeConnectionStatus?.figma ?? null),
       nativeIntegrationToRow("notion", nativeConnectionStatus?.notion ?? null),
+      paperIntegrationToRow(paperStatus, paperStatusPending),
       googleSheetsIntegrationToRow(sheetConnectionStatus?.googleSheet ?? null),
     ],
     [
       nativeConnectionStatus?.figma,
       nativeConnectionStatus?.notion,
+      paperStatus,
+      paperStatusPending,
       sheetConnectionStatus?.googleSheet,
     ],
   );
@@ -88,8 +98,41 @@ export function IntegrationsPage() {
   const connectedIntegrations = integrationRows.filter((integration) => integration.connected);
   const availableIntegrations = integrationRows.filter((integration) => !integration.connected);
   const showProviderCliRestartHint = hasMissingProviderCli(providers.providerList.providers);
-  const isRefreshing = providerRefresh.isPending;
+  const isRefreshing = providerRefresh.isPending || paperStatusPending;
   const selectedDefaultModel = chatDefaults.selectedModel;
+
+  async function refreshPaperStatus(showSetupOnFailure = false) {
+    if (!window.stageDesktop?.engine?.getPaperStatus) return;
+
+    setPaperStatusPending(true);
+    try {
+      const status = await window.stageDesktop.engine.getPaperStatus();
+      setPaperStatus(status);
+      if (showSetupOnFailure && !status.ready) {
+        setPaperSetupMessage(status.message);
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Could not check Paper Desktop.";
+      setPaperStatus({
+        apiVersion: "v1",
+        ready: false,
+        status: "not-ready",
+        message,
+      });
+      if (showSetupOnFailure) {
+        setPaperSetupMessage(message);
+      }
+    } finally {
+      setPaperStatusPending(false);
+    }
+  }
+
+  async function refreshIntegrations() {
+    await Promise.all([providerRefresh.mutateAsync(), refreshPaperStatus()]);
+  }
 
   useEffect(() => {
     if (!modelMenuOpen) {
@@ -120,6 +163,10 @@ export function IntegrationsPage() {
   }, [modelMenuOpen]);
 
   useEffect(() => {
+    void refreshPaperStatus();
+  }, []);
+
+  useEffect(() => {
     if (!window.stageDesktop?.integrations?.onOAuthCompleted) {
       return;
     }
@@ -132,6 +179,11 @@ export function IntegrationsPage() {
 
       if (result.status === "error") {
         window.alert(`Could not connect ${result.provider === "figma" ? "Figma" : "Notion"}.`);
+        return;
+      }
+
+      if (result.provider === "figma") {
+        setFigmaSetupOpen(true);
       }
     });
   }, []);
@@ -180,6 +232,11 @@ export function IntegrationsPage() {
         return;
       }
 
+      if (integration.nativeIntegrationId === "paper") {
+        await refreshPaperStatus(true);
+        return;
+      }
+
       if (integration.nativeIntegrationId === "google-sheets") {
         if (integration.connected) {
           await disconnectSheet({ sourceType: "google_sheet" });
@@ -213,7 +270,7 @@ export function IntegrationsPage() {
           <button
             type="button"
             disabled={isRefreshing}
-            onClick={() => void providerRefresh.mutateAsync()}
+            onClick={() => void refreshIntegrations()}
             className="inline-flex h-[32px] items-center justify-center rounded-[6px] bg-[#F5F5F5] px-[12px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors enabled:hover:bg-[#ECECEC] disabled:cursor-wait disabled:text-[#737373]"
           >
             {isRefreshing ? "Checking..." : "Refresh"}
@@ -293,6 +350,11 @@ export function IntegrationsPage() {
                     actionLabel={getIntegrationActionLabel(integration)}
                     busy={busyIntegrationId === integration.id}
                     onAction={() => void handleIntegrationAction(integration)}
+                    onHelp={
+                      integration.nativeIntegrationId === "figma"
+                        ? () => setFigmaSetupOpen(true)
+                        : undefined
+                    }
                   />
                 ))
               ) : (
@@ -313,6 +375,11 @@ export function IntegrationsPage() {
                     actionLabel={getIntegrationActionLabel(integration)}
                     busy={isRefreshing || busyIntegrationId === integration.id}
                     onAction={() => void handleIntegrationAction(integration)}
+                    onHelp={
+                      integration.nativeIntegrationId === "figma"
+                        ? () => setFigmaSetupOpen(true)
+                        : undefined
+                    }
                   />
                 ))
               ) : (
@@ -338,7 +405,170 @@ export function IntegrationsPage() {
           }}
         />
       ) : null}
+
+      <FigmaExporterSetupDialog
+        open={figmaSetupOpen}
+        onOpenChange={setFigmaSetupOpen}
+      />
+
+      <PaperSetupDialog
+        open={paperSetupMessage !== null}
+        message={paperSetupMessage}
+        onOpenChange={(open) => {
+          if (!open) setPaperSetupMessage(null);
+        }}
+      />
     </div>
+  );
+}
+
+function FigmaExporterSetupDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const steps = [
+    "Download the Stage Exporter plugin zip file.",
+    "Extract the zip — it contains manifest.json and a dist folder. Keep them together.",
+    "In Figma Desktop, open the Figma menu, then Plugins → Development → Import plugin from manifest.",
+    "Select the manifest.json from the extracted folder (not from Downloads directly).",
+    "When you export from Stage, run Stage Exporter in Figma and enter the pairing code.",
+  ];
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-[rgba(10,10,10,0.22)]" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100svh-32px)] w-[calc(100vw-32px)] max-w-[640px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25),0_18px_55px_rgba(10,10,10,0.22)] outline-none">
+          <div className="p-3">
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+                <img
+                  src="/logos/integrations/figma.svg"
+                  alt=""
+                  aria-hidden="true"
+                  className="h-5 w-[14px]"
+                />
+              </span>
+              <div className="min-w-0">
+                <Dialog.Title className="text-[15px] font-medium leading-[1.25] text-[#0A0A0A]">
+                  Set up Stage Exporter for Figma
+                </Dialog.Title>
+                <Dialog.Description className="mt-1 text-[13px] font-medium leading-[1.45] text-[#525252]">
+                  Install the plugin once in Figma Desktop, then use the pairing code shown during export.
+                </Dialog.Description>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] sm:grid-cols-[minmax(0,0.95fr)_minmax(240px,1.05fr)]">
+            <ol className="grid content-start gap-3">
+              {steps.map((step, index) => (
+                <li key={step} className="grid grid-cols-[24px_minmax(0,1fr)] gap-3">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#F5F5F5] text-[12px] font-semibold leading-none text-[#171717]">
+                    {index + 1}
+                  </span>
+                  <span className="pt-[3px] text-[13px] font-medium leading-[1.45] text-[#404040]">
+                    {step}
+                  </span>
+                </li>
+              ))}
+            </ol>
+
+            <img
+              src="/images/integrations/figma-integration.webp"
+              alt="Figma menu showing Plugins, Development, and Import plugin from manifest"
+              className="aspect-[1.36] w-full rounded-[8px] border border-[#E5E5E5] object-cover"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <a
+              href="/stage-exporter-plugin-v0.1.zip"
+              download="stage-exporter-plugin-v0.1.zip"
+              className="inline-flex h-[34px] items-center justify-center rounded-[6px] bg-[#171717] px-3 text-[13px] font-medium leading-none text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#2A2A2A]"
+            >
+              Download plugin (.zip)
+            </a>
+            <Dialog.Close asChild>
+              <button
+                type="button"
+                className="inline-flex h-[34px] items-center justify-center rounded-[6px] bg-white px-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA]"
+              >
+                Done
+              </button>
+            </Dialog.Close>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+function PaperSetupDialog({
+  open,
+  message,
+  onOpenChange,
+}: {
+  open: boolean;
+  message: string | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const steps = [
+    "Install Paper Desktop.",
+    "Log in to the Paper account you want to export into.",
+    "Open the target Paper file, then come back to Stage and refresh.",
+  ];
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-[rgba(10,10,10,0.22)]" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-[460px] -translate-x-1/2 -translate-y-1/2 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25),0_18px_55px_rgba(10,10,10,0.22)] outline-none">
+          <div className="p-3">
+            <Dialog.Title className="text-[15px] font-medium leading-[1.25] text-[#0A0A0A]">
+              Connect Paper Desktop first
+            </Dialog.Title>
+            <Dialog.Description className="mt-1 text-[13px] font-medium leading-[1.45] text-[#525252]">
+              First, please install the app and log in. Stage exports into the Paper file you have open.
+            </Dialog.Description>
+          </div>
+
+          <div className="rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+            <ol className="grid gap-3">
+              {steps.map((step, index) => (
+                <li key={step} className="grid grid-cols-[24px_minmax(0,1fr)] gap-3">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#F5F5F5] text-[12px] font-semibold leading-none text-[#171717]">
+                    {index + 1}
+                  </span>
+                  <span className="pt-[3px] text-[13px] font-medium leading-[1.45] text-[#404040]">
+                    {step}
+                  </span>
+                </li>
+              ))}
+            </ol>
+            {message ? (
+              <p className="mt-3 rounded-[6px] bg-[#FAFAFA] p-2 text-[12px] font-medium leading-[1.45] text-[#737373]">
+                {message}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex justify-end p-3">
+            <Dialog.Close asChild>
+              <button
+                type="button"
+                className="inline-flex h-[34px] items-center justify-center rounded-[6px] bg-white px-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA]"
+              >
+                Got it
+              </button>
+            </Dialog.Close>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -360,6 +590,7 @@ function getIntegrationActionLabel(integration: IntegrationRowModel) {
     if (integration.status !== "ready") return "Set up";
     return "Connect";
   }
+  if (integration.nativeIntegrationId === "paper") return "Refresh";
   return integration.connected ? "Disconnect" : "Connect";
 }
 
@@ -563,11 +794,13 @@ function IntegrationListRow({
   actionLabel,
   busy = false,
   onAction,
+  onHelp,
 }: {
   integration: IntegrationRowModel;
   actionLabel: string;
   busy?: boolean;
   onAction: () => void;
+  onHelp?: () => void;
 }) {
   return (
     <div className="flex w-full items-start justify-between gap-[12px] rounded-[6px] bg-white text-left">
@@ -579,8 +812,20 @@ function IntegrationListRow({
           />
         </span>
         <span className="min-w-0">
-          <span className="block truncate text-[13px] font-medium leading-[1.2] text-[#171717]">
-            {integration.name}
+          <span className="flex items-center gap-[6px]">
+            <span className="truncate text-[13px] font-medium leading-[1.2] text-[#171717]">
+              {integration.name}
+            </span>
+            {onHelp ? (
+              <button
+                type="button"
+                aria-label={`How to use ${integration.name}`}
+                onClick={onHelp}
+                className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full bg-[#F5F5F5] text-[11px] font-medium leading-none text-[#737373] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC] hover:text-[#171717]"
+              >
+                i
+              </button>
+            ) : null}
           </span>
           <span className="mt-[2px] block text-[12px] font-normal leading-[1.35] text-[#525252]">
             {integration.description}

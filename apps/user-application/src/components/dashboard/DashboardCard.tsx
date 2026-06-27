@@ -48,17 +48,14 @@ export function DashboardCard({
 
 type CardTabProps = {
   label: string;
-  onClick?: () => void;
 };
 
-export function CardTab({ label, onClick }: CardTabProps) {
+export function CardTab({ label }: CardTabProps) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="shrink-0 rounded-control bg-surface-muted py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-none text-ink-subtle shadow-stage-hairline transition-all duration-150 hover:text-ink"
+    <span
+      className="pointer-events-none shrink-0 rounded-control bg-surface-muted py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-none text-ink-subtle shadow-stage-hairline"
     >
       {label}
-    </button>
+    </span>
   );
 }

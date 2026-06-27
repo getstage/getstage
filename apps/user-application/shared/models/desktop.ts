@@ -181,6 +181,8 @@ export const desktopUpdateStatusSchema = z.object({
   currentVersion: z.string(),
   availableVersion: z.string().optional(),
   isChecking: z.boolean(),
+  /** True once the available update has finished downloading in the background. */
+  downloaded: z.boolean().optional(),
 });
 
 export type DesktopUpdateStatus = z.infer<typeof desktopUpdateStatusSchema>;

@@ -67,7 +67,16 @@ const CHAT_VIEWPORT_TOP_INSET = 52;
 
 function selectInitialChat(): StageChat {
   const store = readStageChatStore();
-  return store.chats.find((chat) => chat.id === store.activeChatId) ?? store.chats[0] ?? createEmptyStageChat();
+  return stripDraftProject(store.chats.find((chat) => chat.id === store.activeChatId) ?? store.chats[0] ?? createEmptyStageChat());
+}
+
+function stripDraftProject(chat: StageChat): StageChat {
+  if (!chat.project) {
+    return chat;
+  }
+
+  const { project: _project, ...rest } = chat;
+  return rest;
 }
 
 export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
@@ -83,6 +92,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const panelSize = { width: PANEL_WIDTH, height: PANEL_HEIGHT };
   const [draft, setDraft] = useState("");
   const [projectContextPrefix, setProjectContextPrefix] = useState("");
+  const [selectedProject, setSelectedProject] = useState<ChatProjectReference | undefined>();
   const [draftAttachments, setDraftAttachments] = useState<StageChatAttachment[]>([]);
   const [captureSources, setCaptureSources] = useState<CaptureWindowSource[]>([]);
   const [captureMenuOpen, setCaptureMenuOpen] = useState(false);
@@ -132,7 +142,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
         return Number(rightName.startsWith(search)) - Number(leftName.startsWith(search));
       });
   }, [projectMention, rawProjectMatches]);
-  const activeProjectId = activeChat.project?.projectId ?? "";
+  const activeProjectId = selectedProject?.projectId ?? "";
   const providerRun = useProviderRun(
     activeProjectId ? { projectId: activeProjectId, mode: "chat" } : undefined,
   );
@@ -169,6 +179,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const selectedSpeedLabel = responseSpeeds.find((speed) => speed.id === selectedSpeed)?.label ?? "Default";
   const runStarted = providerRun.activeRunEvents.some((event) => event.type === "run_started");
   const thinkingMessage = getPendingResponseMessage({ pendingSeconds, runStarted });
+
   const visibleModels = useMemo(() => {
     if (activeProvider === "favorites") {
       return availableModels.filter((model) => favoriteModelIds.includes(model.id));
@@ -209,7 +220,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       return;
     }
 
-    const currentChat = activeChatRef.current;
+    const currentChat = stripDraftProject(activeChatRef.current);
     const nextChat = {
       ...currentChat,
       title: currentChat.title === "New chat"
@@ -435,13 +446,13 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
 
   async function submitMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const projectTag = activeChat.project ? `@${activeChat.project.projectName}` : "";
+    const projectTag = selectedProject ? `@${selectedProject.projectName}` : "";
     const nextPrompt = [projectTag, projectContextPrefix.trim(), draft.trim()].filter(Boolean).join(" ");
 
     if (!nextPrompt || isThinking || isProviderStatusPending(providers.snapshot)) {
       return;
     }
-    if (!activeChat.project && requiresProjectContext(nextPrompt, draftAttachments.length > 0)) {
+    if (!selectedProject && requiresProjectContext(nextPrompt, draftAttachments.length > 0)) {
       setInputNotice("Select a project with @project before asking Stage to inspect or critique project work.");
       return;
     }
@@ -544,17 +555,19 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   }
 
   function openChat(chat: StageChat) {
+    const cleanChat = stripDraftProject(chat);
     activeResponseMessageIdRef.current = null;
-    activeChatRef.current = chat;
-    nonPersistentMessagesRef.current = chat.messages === messages ? null : chat.messages;
+    activeChatRef.current = cleanChat;
+    nonPersistentMessagesRef.current = cleanChat.messages === messages ? null : cleanChat.messages;
     setIsThinking(false);
-    setActiveChat(chat);
-    setMessages(chat.messages);
+    setActiveChat(cleanChat);
+    setMessages(cleanChat.messages);
     setDraft("");
     setProjectContextPrefix("");
+    setSelectedProject(undefined);
     setDraftAttachments([]);
     setInputNotice("");
-    upsertStageChat(chat);
+    upsertStageChat(cleanChat);
   }
 
   function openLatestChat() {
@@ -588,10 +601,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     const mentionMatch = draft.match(/(?:^|\s)@[^@\n]*$/);
     const mentionStart = mentionMatch?.index ?? draft.length;
     const prefix = draft.slice(0, mentionStart).trimEnd();
-    const nextChat = { ...activeChatRef.current, project, updatedAt: Date.now() };
-    activeChatRef.current = nextChat;
-    setActiveChat(nextChat);
-    upsertStageChat(nextChat);
+    setSelectedProject(project);
     setProjectContextPrefix(prefix);
     setDraft("");
     setInputNotice("");
@@ -599,10 +609,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   }
 
   function removeProjectContext() {
-    const nextChat = { ...activeChatRef.current, project: undefined, updatedAt: Date.now() };
-    activeChatRef.current = nextChat;
-    setActiveChat(nextChat);
-    upsertStageChat(nextChat);
+    setSelectedProject(undefined);
     setDraft((current) => [projectContextPrefix, current].filter(Boolean).join(" "));
     setProjectContextPrefix("");
     window.requestAnimationFrame(() => textareaRef.current?.focus());
@@ -807,7 +814,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
             </div>
           );
         })}
-        {!activeChat.project && messages.length === 0 ? (
+        {!selectedProject && messages.length === 0 ? (
           <p className="chat-context-tip"><strong>Tip:</strong> Type @ to add project context. Then ask about research, strategy, wireframes, or assets — Stage sees the full history.</p>
         ) : null}
       </div>
@@ -888,6 +895,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
               >
                 {attachment.previewDataUrl ? <img src={attachment.previewDataUrl} alt={attachment.name} /> : null}
                 <span>{attachment.name}</span>
+                <span className="chat-attachment-remove-icon" aria-hidden="true">×</span>
               </button>
             ))}
           </div>
@@ -897,29 +905,25 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
           {projectContextPrefix ? (
             <span className="chat-context-prefix">{projectContextPrefix}</span>
           ) : null}
-          {activeChat.project ? (
-            <button
+          {selectedProject ? (
+            <span
               className="chat-context-chip"
-              type="button"
-              title="Remove project context"
-              aria-label={`Remove ${activeChat.project.projectName} project context`}
-              onClick={removeProjectContext}
+              title={`${selectedProject.projectName} project context`}
             >
-              <span>@{activeChat.project.projectName}</span>
-              <span aria-hidden="true">×</span>
-            </button>
+              <span>@{selectedProject.projectName}</span>
+            </span>
           ) : null}
           <textarea
             ref={textareaRef}
             aria-label="Message Stage"
-            placeholder={activeChat.project || projectContextPrefix ? "" : inputPlaceholder}
+            placeholder={selectedProject || projectContextPrefix ? "" : inputPlaceholder}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             rows={1}
             onKeyDown={(event) => {
               if (
                 event.key === "Backspace" &&
-                activeChat.project &&
+                selectedProject &&
                 draft.length === 0 &&
                 event.currentTarget.selectionStart === 0 &&
                 event.currentTarget.selectionEnd === 0

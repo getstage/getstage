@@ -127,6 +127,7 @@ const uploadPurpose = v.union(
   v.literal("moodboard-refero"),
   v.literal("moodboard-figma"),
   v.literal("moodboard-url"),
+  v.literal("wireframe-brand-kit"),
 );
 
 const subscriptionStatus = v.union(
@@ -225,6 +226,7 @@ const aiRunModule = v.union(
   v.literal("strategy"),
   v.literal("flows"),
   v.literal("moodboard"),
+  v.literal("styleguide"),
   v.literal("generate"),
   v.literal("delivery"),
 );

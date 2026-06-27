@@ -31,6 +31,15 @@ export const createPaperExportResponseSchema = z.object({
   message: z.string().min(1),
 });
 
+export const paperConnectionStatusResponseSchema = z.object({
+  apiVersion: z.literal("v1"),
+  ready: z.boolean(),
+  status: z.enum(["ready", "not-ready"]),
+  message: z.string().min(1),
+  fileName: z.string().min(1).optional(),
+  pageName: z.string().min(1).optional(),
+});
+
 export const createFigJamExportRequestSchema = z.object({
   projectId: z.string().min(1),
   artifactId: z.string().min(1),
@@ -40,4 +49,5 @@ export type WireframeDeliveryRequest = z.infer<typeof wireframeDeliveryRequestSc
 export type CreateCodeExportResponse = z.infer<typeof createCodeExportResponseSchema>;
 export type SaveCodeExportResponse = z.infer<typeof saveCodeExportResponseSchema>;
 export type CreatePaperExportResponse = z.infer<typeof createPaperExportResponseSchema>;
+export type PaperConnectionStatusResponse = z.infer<typeof paperConnectionStatusResponseSchema>;
 export type CreateFigJamExportRequest = z.infer<typeof createFigJamExportRequestSchema>;

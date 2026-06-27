@@ -29,12 +29,12 @@ export function resolvePortalShareUrl({
   shareToken?: string | null;
   shareUrl?: string | null;
 }) {
-  if (shareUrl) {
-    return shareUrl;
-  }
-
   if (shareToken) {
     return buildAbsoluteUrl(buildPortalPath(shareToken));
+  }
+
+  if (shareUrl) {
+    return rebaseUrlToCurrentOrigin(shareUrl);
   }
 
   return "";

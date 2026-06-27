@@ -96,7 +96,7 @@ export async function createFigmaCanvasExportJobHandler(
       .collect()
   ).sort((a, b) => b.updatedAt - a.updatedAt)[0];
 
-  if (existing && existing.status !== "completed") {
+  if (existing) {
     await ctx.db.patch(existing._id, {
       figmaAccountId: connection.accountId,
       exportKind: args.exportKind,
@@ -113,13 +113,6 @@ export async function createFigmaCanvasExportJobHandler(
     return {
       jobId: String(existing._id),
       status: "requested" as const,
-    };
-  }
-
-  if (existing) {
-    return {
-      jobId: String(existing._id),
-      status: "completed" as const,
     };
   }
 

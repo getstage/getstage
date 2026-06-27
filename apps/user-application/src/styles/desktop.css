@@ -913,12 +913,12 @@ a,
 
 .chat-context-prefix {
   flex: 0 0 auto;
-  padding-top: 2px;
+  padding-top: 1px;
   color: #262626;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 1.45;
-  white-space: pre-wrap;
+  line-height: 1.5;
+  white-space: pre;
 }
 
 .chat-input-bar textarea {
@@ -932,9 +932,9 @@ a,
   resize: none;
   background: transparent;
   color: #262626;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 1.2;
+  line-height: 1.5;
   overflow-y: hidden;
   overflow-x: hidden;
   white-space: pre-wrap;
@@ -988,28 +988,23 @@ a,
   display: inline-flex;
   align-items: center;
   flex: 0 1 auto;
-  gap: 5px;
   max-width: 180px;
-  min-height: 22px;
-  padding: 2px 6px;
+  min-height: 20px;
+  padding: 0 5px;
   border: 0 !important;
-  border-radius: 5px;
-  background: #e9e9e9 !important;
+  border-radius: 6px;
+  background: #d8d3ff !important;
   box-shadow: none;
-  color: #404040;
-  line-height: 1.25;
+  color: #090549;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
 }
 
 .chat-compose-field .chat-context-chip span:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.chat-compose-field .chat-context-chip span:last-child {
-  flex: 0 0 auto;
-  color: #737373;
-  font-size: 12px;
 }
 
 .chat-context-tip strong {
@@ -1219,11 +1214,12 @@ a,
   display: flex;
   align-items: center;
   gap: 5px;
-  max-width: 150px;
-  padding: 3px 6px 3px 3px;
+  max-width: 164px;
+  padding: 3px 7px 3px 3px;
 }
 
 .chat-attachment-list img {
+  flex: 0 0 auto;
   width: 26px;
   height: 26px;
   border-radius: 4px;
@@ -1231,9 +1227,21 @@ a,
 }
 
 .chat-attachment-list span {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.chat-attachment-remove-icon {
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  color: #737373;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  opacity: 0.72;
 }
 
 .chat-history-delete-button {

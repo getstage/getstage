@@ -35,6 +35,10 @@ export const runContextSchema = z.object({
   phaseId: z.string().min(1).optional(),
   taskId: z.string().min(1).optional(),
   source: z.string().min(1).optional(),
+  // R2 object keys for brand kit files uploaded ahead of a Hi-Fi wireframes run.
+  // The engine resolves these to public URLs, downloads them, and attaches them so
+  // the model derives palette/typography/logo from the real brand kit.
+  brandKitKeys: z.array(z.string().min(1)).optional(),
 });
 
 export const runModelOptionSelectionSchema = z.object({

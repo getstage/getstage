@@ -22,6 +22,19 @@ type ReadinessResponse = {
   service: string;
 };
 
+function isStageEngineReadiness(value: unknown): value is ReadinessResponse {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+  return (
+    record.apiVersion === "v1" &&
+    typeof record.ready === "boolean" &&
+    record.service === "stage-engine"
+  );
+}
+
 export function getSidecarPort() {
   const raw = process.env.STAGE_ENGINE_PORT;
   const parsed = raw ? Number.parseInt(raw, 10) : ENGINE_DEFAULT_PORT;
@@ -35,11 +48,16 @@ export function getSidecarEnv(port: number): NodeJS.ProcessEnv {
     process.env.VITE_CONVEX_URL ??
     (app.isPackaged ? undefined : "https://reliable-bullfrog-917.convex.cloud");
 
+  const r2PublicBaseUrl =
+    process.env.R2_PUBLIC_BASE_URL ??
+    (app.isPackaged ? undefined : "https://assets-testing.getstage.co");
+
   return {
     ...process.env,
     PATH: augmentPathForProviderClis(process.env.PATH),
     STAGE_ENGINE_PORT: String(port),
     ...(convexUrl ? { CONVEX_URL: convexUrl } : {}),
+    ...(r2PublicBaseUrl ? { R2_PUBLIC_BASE_URL: r2PublicBaseUrl } : {}),
   };
 }
 
@@ -70,7 +88,8 @@ export async function fetchReadiness(port: number): Promise<ReadinessResponse | 
       return null;
     }
 
-    return (await response.json()) as ReadinessResponse;
+    const payload = await response.json();
+    return isStageEngineReadiness(payload) ? payload : null;
   } catch {
     return null;
   } finally {
@@ -109,7 +128,12 @@ export async function fetchEngineJson<T>(args: {
     });
 
     if (!response.ok) {
-      throw new Error(`Stage Engine request failed with ${response.status}.`);
+      const body = (await response.text()).trim();
+      throw new Error(
+        body
+          ? `Stage Engine request failed with ${response.status}: ${body}`
+          : `Stage Engine request failed with ${response.status}.`,
+      );
     }
 
     return (await response.json()) as T;

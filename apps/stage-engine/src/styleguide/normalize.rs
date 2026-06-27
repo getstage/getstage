@@ -1,6 +1,48 @@
 use serde_json::{Map as JsonMap, Value as JsonValue, json};
 use uuid::Uuid;
 
+/// Fonts the styleguide spec forbids as generated defaults (premium/creative work).
+/// Matched case-insensitively against the model's `typography.fontFamily`.
+const BANNED_FONT_FAMILIES: &[&str] = &[
+    "inter",
+    "times",
+    "times new roman",
+    "georgia",
+    "garamond",
+    "palatino",
+];
+
+/// Non-banned default used when the model returns a banned/empty font family.
+const DEFAULT_FONT_FAMILY: &str = "Geist";
+
+fn is_banned_font_family(name: &str) -> bool {
+    let normalized = name.trim().to_lowercase();
+    BANNED_FONT_FAMILIES
+        .iter()
+        .any(|banned| normalized == *banned)
+}
+
+/// Repair banned/empty `typography.fontFamily` at the boundary so the UI never
+/// renders a banned font even if the model ignores the prompt's anti-pattern rules.
+fn repair_banned_typography(object: &mut JsonMap<String, JsonValue>) {
+    let Some(typography) = object
+        .get_mut("typography")
+        .and_then(JsonValue::as_object_mut)
+    else {
+        return;
+    };
+
+    let needs_default = typography
+        .get("fontFamily")
+        .and_then(JsonValue::as_str)
+        .map(|family| family.trim().is_empty() || is_banned_font_family(family))
+        .unwrap_or(true);
+
+    if needs_default {
+        typography.insert("fontFamily".to_string(), json!(DEFAULT_FONT_FAMILY));
+    }
+}
+
 pub fn normalize_style_guide(
     mut raw: JsonValue,
     direction_id: &str,
@@ -20,7 +62,7 @@ pub fn normalize_style_guide(
             "atmosphere": [],
             "colorPalettes": [],
             "typography": {
-                "fontFamily": "Inter",
+                "fontFamily": DEFAULT_FONT_FAMILY,
                 "previewSize": 28,
                 "rows": [],
                 "weightSamples": []
@@ -55,6 +97,8 @@ pub fn normalize_style_guide(
     if !object.contains_key("componentSwatchCount") {
         object.insert("componentSwatchCount".to_string(), json!(6));
     }
+
+    repair_banned_typography(object);
 
     raw
 }
@@ -104,10 +148,41 @@ pub fn merge_style_guide_into_artifact(
 
 pub fn direction_reference_metadata(reference: &JsonValue) -> JsonMap<String, JsonValue> {
     let mut metadata = JsonMap::new();
-    for key in ["id", "title", "source", "sourceUrl"] {
+    for key in [
+        "id",
+        "title",
+        "source",
+        "sourceUrl",
+        "imageUrl",
+        "thumbnailUrl",
+        "imageAssetKey",
+        "thumbnailAssetKey",
+        "uploadedAssetId",
+    ] {
         if let Some(value) = reference.get(key) {
             metadata.insert(key.to_string(), value.clone());
         }
     }
     metadata
 }
+
+pub fn reference_has_visual_input(reference: &JsonValue) -> bool {
+    [
+        "imageUrl",
+        "thumbnailUrl",
+        "imageAssetKey",
+        "thumbnailAssetKey",
+    ]
+    .iter()
+    .any(|key| {
+        reference
+            .get(key)
+            .and_then(JsonValue::as_str)
+            .map(|value| !value.trim().is_empty())
+            .unwrap_or(false)
+    })
+}
+
+#[cfg(test)]
+#[path = "../testing/styleguide/normalize.rs"]
+mod tests;

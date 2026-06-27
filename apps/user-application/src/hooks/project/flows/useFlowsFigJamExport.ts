@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import type { CreateFigmaExportResponse } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { api } from "@/lib/convexApi";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 
 export function useFlowsFigJamExport(projectId: string) {
   const [request, setRequest] = useState<CreateFigmaExportResponse | null>(null);
@@ -31,8 +32,8 @@ export function useFlowsFigJamExport(projectId: string) {
         setRequest(response);
         return response;
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Could not send flows to FigJam.";
-        setError(message);
+        console.error("[FigJam export] failed:", err);
+        setError(toUserFacingErrorMessage(err, "Could not send flows to FigJam. Please try again."));
         throw err;
       } finally {
         if (inFlightRef.current === exportPromise) inFlightRef.current = null;

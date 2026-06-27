@@ -46,6 +46,11 @@ export function MoodboardGrid({
               >
                 <MoodboardGridImage item={item} />
                 {isSelected ? <div className="absolute inset-0 rounded-[4px] bg-black/50" /> : null}
+                {!item.isInMoodboard ? (
+                  <span className="pointer-events-none absolute bottom-2 left-2 rounded-[4px] bg-[#7B76DF] px-[6px] py-[2px] text-[10px] font-semibold leading-none text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.35)]">
+                    New
+                  </span>
+                ) : null}
               </button>
               <span className={`pointer-events-none absolute left-[19px] top-[18px] flex h-5 w-5 items-center justify-center rounded-full p-[2px] ${
                 isSelected ? "bg-[#FAFAFA]" : "bg-[#E5E5E5]"

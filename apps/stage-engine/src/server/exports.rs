@@ -4,7 +4,8 @@ use axum::{Json, response::IntoResponse};
 
 use crate::app::AppState;
 use crate::exports::delivery::models::{
-    CodeExportResponse, PaperExportResponse, WireframeDeliveryRequest,
+    CodeExportResponse, PaperConnectionStatusResponse, PaperExportResponse,
+    WireframeDeliveryRequest,
 };
 use crate::exports::figma::models::CreateFigJamExportRequest;
 use crate::exports::figma::models::{CreateFigmaExportRequest, CreateFigmaExportResponse};
@@ -96,6 +97,12 @@ pub async fn create_paper_export(
             tracing::warn!(%error, "failed to create Paper export");
             (StatusCode::BAD_REQUEST, error.to_string())
         })
+}
+
+pub async fn paper_connection_status(
+    State(state): State<AppState>,
+) -> Json<PaperConnectionStatusResponse> {
+    Json(state.delivery_exports.paper_connection_status().await)
 }
 
 fn bearer_token(headers: &HeaderMap) -> Option<String> {

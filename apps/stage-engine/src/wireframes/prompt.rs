@@ -63,6 +63,7 @@ pub fn build_wireframes_prompt(
     brand_source: Option<WireframeBrandSource>,
     style_direction_id: Option<&str>,
     layout_preference: Option<&str>,
+    brand_kit_attached: bool,
 ) -> String {
     let research_block = input
         .research_artifact_json
@@ -92,12 +93,15 @@ pub fn build_wireframes_prompt(
     let kind_str = kind.as_str();
     let brand_source_line = match brand_source {
         Some(WireframeBrandSource::StyleGuide) => {
-            "Brand source: style-guide (apply moodboard styleGuides[].palette/typography for Hi-Fi)."
+            "Brand source: style-guide (apply moodboard styleGuides[].palette/typography for Hi-Fi).".to_string()
+        }
+        Some(WireframeBrandSource::BrandKit) if brand_kit_attached => {
+            "Brand source: brand-kit. Brand kit files are attached to this run — Read them and derive the palette, typography, and logo usage from the brand kit. Populate brandTokens on every screen from those choices and set brandTokens.paletteRef = \"brand-kit\".".to_string()
         }
         Some(WireframeBrandSource::BrandKit) => {
-            "Brand source: brand-kit (assume brand kit tokens will be applied downstream; set brandTokens.paletteRef = \"brand-kit\")."
+            "Brand source: brand-kit (no brand kit file was readable; infer conservative brand tokens and set brandTokens.paletteRef = \"brand-kit\").".to_string()
         }
-        None => "Brand source: none (Lo-Fi structural only).",
+        None => "Brand source: none (Lo-Fi structural only).".to_string(),
     };
     let layout_block = layout_preference
         .map(|pref| format!("Layout preference: {pref}\n"))

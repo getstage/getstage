@@ -1,6 +1,6 @@
 import type { ProviderId } from "@stage/data-ops/contracts";
 
-export type NativeIntegrationId = "figma" | "notion" | "google-sheets";
+export type NativeIntegrationId = "figma" | "notion" | "google-sheets" | "paper";
 
 export type IntegrationRowModel = {
   id: string;

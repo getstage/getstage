@@ -5,11 +5,20 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::config::PaperConfig;
+use crate::refero::parse::unwrap_mcp_tool_result;
 
 #[derive(Clone, Debug)]
 pub struct PaperClient {
     http: reqwest::Client,
     mcp_url: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct PaperConnectionStatus {
+    pub ready: bool,
+    pub message: String,
+    pub file_name: Option<String>,
+    pub page_name: Option<String>,
 }
 
 impl PaperClient {
@@ -37,9 +46,8 @@ impl PaperClient {
         html: &str,
     ) -> anyhow::Result<Option<String>> {
         let session = self.start_session().await.map_err(|error| {
-            anyhow::anyhow!(
-                "Paper Desktop is not ready. Open the target Paper file and try again: {error}"
-            )
+            tracing::debug!(%error, "paper desktop session start failed");
+            anyhow::anyhow!("Open Paper Desktop with the target Paper file open, then try again.")
         })?;
         let tools = session.list_tools().await?;
         let create_artboard = require_tool(&tools, "create_artboard")?;
@@ -50,7 +58,7 @@ impl PaperClient {
         if supports(create_artboard, "styles") {
             artboard_args.insert(
                 "styles".to_string(),
-                json!({ "width": width, "height": height }),
+                json!({ "width": format!("{width}px"), "height": format!("{height}px") }),
             );
         } else {
             insert_if_supported(&mut artboard_args, create_artboard, "width", json!(width));
@@ -59,21 +67,68 @@ impl PaperClient {
         let created = session
             .call_tool("create_artboard", json!(artboard_args))
             .await?;
-        let artboard_id = find_string_field(&created, &["nodeId", "artboardId", "id"]);
+        let artboard_id =
+            find_string_field(&created, &["nodeId", "artboardId", "id"]).ok_or_else(|| {
+                anyhow::anyhow!("Paper created an artboard but did not return a node id.")
+            })?;
 
         let mut html_args = BTreeMap::new();
         insert_if_supported(&mut html_args, write_html, "html", json!(html));
         insert_if_supported(&mut html_args, write_html, "mode", json!("insert-children"));
-        if let Some(artboard_id) = artboard_id.as_deref() {
-            for key in ["targetNodeId", "nodeId", "parentId", "artboardId"] {
-                if supports(write_html, key) {
-                    html_args.insert(key.to_string(), json!(artboard_id));
-                    break;
-                }
+        for key in ["targetNodeId", "nodeId", "parentId", "artboardId"] {
+            if supports(write_html, key) {
+                html_args.insert(key.to_string(), json!(&artboard_id));
+                break;
             }
         }
         session.call_tool("write_html", json!(html_args)).await?;
-        Ok(artboard_id)
+        Ok(Some(artboard_id))
+    }
+
+    pub async fn connection_status(&self) -> PaperConnectionStatus {
+        match self.check_connection().await {
+            Ok(status) => status,
+            Err(error) => {
+                tracing::debug!(%error, "paper desktop connection check failed");
+                PaperConnectionStatus {
+                    ready: false,
+                    message: "Open Paper Desktop with a target Paper file, then refresh.".to_string(),
+                    file_name: None,
+                    page_name: None,
+                }
+            }
+        }
+    }
+
+    async fn check_connection(&self) -> anyhow::Result<PaperConnectionStatus> {
+        let session = self.start_session().await?;
+        let tools = session.list_tools().await?;
+        require_tool(&tools, "create_artboard")?;
+        require_tool(&tools, "write_html")?;
+
+        let info = if tools.iter().any(|tool| tool.name == "get_basic_info") {
+            session.call_tool("get_basic_info", json!({})).await.ok()
+        } else {
+            None
+        };
+
+        let file_name = info
+            .as_ref()
+            .and_then(|value| find_string_field(value, &["fileName", "name"]));
+        let page_name = info
+            .as_ref()
+            .and_then(|value| find_string_field(value, &["pageName", "currentPageName"]));
+        let target = file_name
+            .as_deref()
+            .map(|name| format!("Connected to {name}."))
+            .unwrap_or_else(|| "Connected to the open Paper file.".to_string());
+
+        Ok(PaperConnectionStatus {
+            ready: true,
+            message: target,
+            file_name,
+            page_name,
+        })
     }
 
     async fn start_session(&self) -> anyhow::Result<PaperSession> {
@@ -138,11 +193,20 @@ impl PaperSession {
     }
 
     async fn call_tool(&self, name: &str, arguments: Value) -> anyhow::Result<Value> {
-        self.call(
-            "tools/call",
-            json!({ "name": name, "arguments": arguments }),
-        )
-        .await
+        let result = self
+            .call(
+                "tools/call",
+                json!({ "name": name, "arguments": arguments }),
+            )
+            .await?;
+        if result
+            .get("isError")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        {
+            anyhow::bail!("Paper `{name}` failed: {}", tool_result_text(&result));
+        }
+        Ok(unwrap_mcp_tool_result(&result))
     }
 
     async fn call(&self, method: &'static str, params: Value) -> anyhow::Result<Value> {
@@ -224,6 +288,22 @@ fn find_string_field(value: &Value, names: &[&str]) -> Option<String> {
             .find_map(|value| find_string_field(value, names)),
         _ => None,
     }
+}
+
+fn tool_result_text(value: &Value) -> String {
+    value
+        .get("content")
+        .and_then(Value::as_array)
+        .and_then(|content| {
+            content.iter().find_map(|item| {
+                item.get("text")
+                    .and_then(Value::as_str)
+                    .map(str::trim)
+                    .filter(|text| !text.is_empty())
+                    .map(ToOwned::to_owned)
+            })
+        })
+        .unwrap_or_else(|| "Paper returned a tool error without details.".to_string())
 }
 
 #[derive(Debug, Deserialize)]
