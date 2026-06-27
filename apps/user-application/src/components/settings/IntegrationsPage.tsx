@@ -30,6 +30,7 @@ import { isProviderCliReady } from "@/lib/settings/providerCliSetup";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 import type { IntegrationRowModel } from "@/types/settings/integrations";
 import type { PaperConnectionStatusResponse } from "@stage/data-ops/contracts";
+import { SetupStepsDialog } from "@/components/ui/SetupStepsDialog";
 import { ProviderCliSetupDialog } from "./ProviderCliSetupDialog";
 import { ProviderUpdatesBanner } from "./ProviderUpdatesBanner";
 import { SettingsIcon } from "./SettingsIcons";
@@ -516,59 +517,19 @@ function PaperSetupDialog({
   message: string | null;
   onOpenChange: (open: boolean) => void;
 }) {
-  const steps = [
-    "Install Paper Desktop.",
-    "Log in to the Paper account you want to export into.",
-    "Open the target Paper file, then come back to Stage and refresh.",
-  ];
-
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-[rgba(10,10,10,0.22)]" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-[460px] -translate-x-1/2 -translate-y-1/2 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25),0_18px_55px_rgba(10,10,10,0.22)] outline-none">
-          <div className="p-3">
-            <Dialog.Title className="text-[15px] font-medium leading-[1.25] text-[#0A0A0A]">
-              Connect Paper Desktop first
-            </Dialog.Title>
-            <Dialog.Description className="mt-1 text-[13px] font-medium leading-[1.45] text-[#525252]">
-              First, please install the app and log in. Stage exports into the Paper file you have open.
-            </Dialog.Description>
-          </div>
-
-          <div className="rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-            <ol className="grid gap-3">
-              {steps.map((step, index) => (
-                <li key={step} className="grid grid-cols-[24px_minmax(0,1fr)] gap-3">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#F5F5F5] text-[12px] font-semibold leading-none text-[#171717]">
-                    {index + 1}
-                  </span>
-                  <span className="pt-[3px] text-[13px] font-medium leading-[1.45] text-[#404040]">
-                    {step}
-                  </span>
-                </li>
-              ))}
-            </ol>
-            {message ? (
-              <p className="mt-3 rounded-[6px] bg-[#FAFAFA] p-2 text-[12px] font-medium leading-[1.45] text-[#737373]">
-                {message}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="flex justify-end p-3">
-            <Dialog.Close asChild>
-              <button
-                type="button"
-                className="inline-flex h-[34px] items-center justify-center rounded-[6px] bg-white px-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA]"
-              >
-                Got it
-              </button>
-            </Dialog.Close>
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <SetupStepsDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Connect Paper Desktop first"
+      description="First, please install the app and log in. Stage exports into the Paper file you have open."
+      steps={[
+        "Install Paper Desktop.",
+        "Log in to the Paper account you want to export into.",
+        "Open the target Paper file, then come back to Stage and refresh.",
+      ]}
+      note={message}
+    />
   );
 }
 

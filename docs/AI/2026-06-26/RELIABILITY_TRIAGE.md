@@ -152,11 +152,60 @@ Decided fine; not in the pain list. Left as-is.
 
 ---
 
+## P1 — Capture: full-screen + Screen Recording permission copy
+**Problem:** Chat capture could only grab a single window; no whole-screen option, and macOS
+hides screen sources until Screen Recording is granted with no explanation.
+**Status:** ✅ done & typechecks; 🔁 manual QA.
+
+**Done this session:**
+- ✅ `chat-attachments.ts`: `listWindowCaptureSources` now lists **screens + windows** (screens
+  first, named "Entire screen" / "Screen N"); `captureWindowSource` resolves both kinds.
+- ✅ `desktop.ts`: `captureWindowSourceSchema` gains `kind: "window" | "screen"`.
+- ✅ `permissions.ts`: reports live **screen-recording** state via `getMediaAccessStatus("screen")`.
+- ✅ `CritiquePanel.tsx`: picker relabelled "Capture a screen or window"; when the source list is
+  empty and the permission isn't granted, opens a **SetupStepsDialog** (numbered steps + **Open
+  System Settings** deep-link to Privacy_ScreenCapture) instead of an empty grid — modelled on the
+  Figma/Paper integration dialogs per partner request.
+- ✅ **Ponytail reuse:** extracted `components/ui/SetupStepsDialog.tsx` (Radix dialog shell + numbered
+  steps + optional note/primary action), pointed `IntegrationsPage` `PaperSetupDialog` at it (net
+  −40 lines), and reused it for the screen-capture permission flow — one dialog, two callers.
+- ✅ **Regression fix:** `getSources` *throws* ("Failed to get sources") on macOS without Screen
+  Recording, which first leaked as a raw IPC error and broke the whole picker. Now `safeGetSources`
+  swallows it per-type (one blocked kind can't kill the list), and `errors.ts`
+  `SCREEN_CAPTURE_PERMISSION_PATTERN` maps any residual capture error to the same plain guidance.
+
+**Acceptance:** Open capture menu → "Entire screen" appears and attaches; with permission off,
+the banner explains and opens the right macOS setting.
+
+---
+
+## P0a follow-up — Research/Refero returns identical output for same-industry projects
+**Problem:** Two "SaaS" projects produced the **exact same** Refero screens AND pattern
+descriptions (partner items #13/#14).
+**Status:** ✅ query divergence shipped + engine tests pass; richer divergence needs config signal.
+
+**Root cause:** `build_category_query` (and the flow query) were built from **pattern + industry
+only**. Same industry → identical search strings → identical Refero screens → identical
+AI-written pattern descriptions (which are derived from those screens). Confirmed against
+`research/context.rs`, `refero/service.rs`, `research/workflow.rs:217`, `refero_assets.rs`.
+
+**Done this session (`research/context.rs`):**
+- ✅ Added `project_descriptor()` — mines a few salient keywords from the **brief / target users /
+  notes** the user already provides (deduped, generic SaaS filler + client name removed) and
+  appends them to each category query and the flow query, so two SaaS projects pull different
+  regions of Refero's index.
+- ✅ Test `same_industry_projects_diverge_via_descriptor` proves two SaaS briefs no longer collide.
+
+**Remaining lever (matches partner's own note):** divergence is only as strong as the signal in
+brief/target-users/notes. If those are blank for both projects, queries still fall back to
+pattern+industry. → **collect richer detail in the research config flow** (separate UX task).
+
+---
+
 ## Still pending (next sessions)
 - ⏳ **Styleguide V2** schema + kill Inter/banned defaults at the boundary (engine `prompt.rs`
   + UI dropdown/renderer/mock). Spec captured from partner: 7 sections, W3C DTCG, opus model.
-- ⏳ **Capture**: friendly Screen Recording permission copy + full-screen capture option.
-- ⏳ **Uploaded assets**: clickable → preview/details dialog + delete (checklist #1, not yet done).
+- ⏳ **Research config flow**: collect more project-specific detail to feed Refero divergence (above).
 - ⏳ **Styleguide View** back-button to match app nav.
 - ⏳ Billing live-data wiring; **credits/pricing** → [BILLING_CREDITS.md](./BILLING_CREDITS.md).
 - ⏳ **Emails → Resend + Convex** → [EMAILS_RESEND.md](./EMAILS_RESEND.md).
