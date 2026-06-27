@@ -87,9 +87,8 @@ export function ClientPortalPreviewView() {
               {portalBranding?.logoUrl ? (
                 <img src={portalBranding.logoUrl} alt="" className="h-[22px] w-[22px] rounded-full object-cover" />
               ) : (
-                <img src="/apple-touch-icon.png" alt="" className="h-[22px] w-[22px]" />
+                <img src="/logos/logotype.svg" alt="Stage" className="h-[22px] w-auto" />
               )}
-              <span className="font-heading text-[19px] font-semibold leading-[1.25] text-black">Stage</span>
             </div>
             <span className="justify-self-end whitespace-nowrap rounded-[8px] bg-[#fff7ed] px-[8px] py-[4px] text-[12px] font-medium leading-[1.5] text-[#ea580c]">
               You're in Preview Mode

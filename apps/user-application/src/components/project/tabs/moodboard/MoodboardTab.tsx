@@ -467,7 +467,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
         />
       ) : !showGrid ? (
         <div className="flex min-h-[420px] flex-1 items-center justify-center rounded-[8px] bg-white p-[clamp(24px,4.3vw,44px)] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-          <div className="flex w-full max-w-[611px] flex-col items-start gap-6">
+          <div className="flex w-full max-w-full flex-col items-start gap-6">
             {mode === "figma" || mode === "ai" ? (
               <div className="flex w-full flex-col gap-6">
                 <div className="flex flex-wrap items-start gap-[6px]">
@@ -497,24 +497,24 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
                 )}
               </div>
             ) : (
-              <div className="flex flex-wrap items-start gap-[6px]">
-                <ModeToggle mode={mode} onModeChange={setMode} />
-                <GenerateWithAiButton
-                  disabled={moodboard.isImporting}
-                  onClick={() => setMode("ai")}
-                />
+              <div className="flex w-fit max-w-full flex-col gap-6">
+                <div className="flex flex-wrap items-start gap-[6px]">
+                  <ModeToggle mode={mode} onModeChange={setMode} />
+                  <GenerateWithAiButton
+                    disabled={moodboard.isImporting}
+                    onClick={() => setMode("ai")}
+                  />
+                </div>
+                <div className="flex w-full flex-col gap-3">
+                  <UploadDropzone
+                    accept={moodboard.acceptUploads}
+                    disabled={moodboard.isUploading}
+                    onUpload={handleUpload}
+                  />
+                  {hasUploadedFiles ? <UploadedFilesList files={uploadedFiles} onDelete={deleteUploadedFile} /> : null}
+                </div>
               </div>
             )}
-            {mode === "upload" ? (
-              <div className="flex w-full flex-col gap-3">
-                <UploadDropzone
-                  accept={moodboard.acceptUploads}
-                  disabled={moodboard.isUploading}
-                  onUpload={handleUpload}
-                />
-                {hasUploadedFiles ? <UploadedFilesList files={uploadedFiles} onDelete={deleteUploadedFile} /> : null}
-              </div>
-            ) : null}
             {moodboard.error ? (
               <p className="text-[12px] font-medium leading-[1.25] text-[#EF4444]">
                 {moodboard.error}
@@ -526,39 +526,59 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
         <div className="flex flex-col gap-2">
           <div className="rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
             <div className="flex flex-col gap-6">
-              <div className="flex flex-wrap items-start gap-[6px]">
-                <ModeToggle mode={mode} onModeChange={setMode} />
-                <GenerateWithAiButton
-                  disabled={moodboard.isImporting}
-                  onClick={() => setMode("ai")}
-                />
-              </div>
               {mode === "upload" ? (
-                <div className="mx-auto flex w-full max-w-[496px] flex-col gap-3">
-                  <UploadDropzone
-                    accept={moodboard.acceptUploads}
-                    disabled={moodboard.isUploading}
-                    onUpload={handleUpload}
-                  />
-                  {hasUploadedFiles ? <UploadedFilesList files={uploadedFiles} onDelete={deleteUploadedFile} /> : null}
+                <div className="flex w-fit max-w-full flex-col gap-6">
+                  <div className="flex flex-wrap items-start gap-[6px]">
+                    <ModeToggle mode={mode} onModeChange={setMode} />
+                    <GenerateWithAiButton
+                      disabled={moodboard.isImporting}
+                      onClick={() => setMode("ai")}
+                    />
+                  </div>
+                  <div className="flex w-full flex-col gap-3">
+                    <UploadDropzone
+                      accept={moodboard.acceptUploads}
+                      disabled={moodboard.isUploading}
+                      onUpload={handleUpload}
+                    />
+                    {hasUploadedFiles ? <UploadedFilesList files={uploadedFiles} onDelete={deleteUploadedFile} /> : null}
+                  </div>
                 </div>
               ) : mode === "ai" ? (
-                <GenerateWithAiPanel
-                  compact
-                  disabled={moodboard.isImporting}
-                  value={referoQuery}
-                  onChange={setReferoQuery}
-                  onSubmit={handleGenerateWithAi}
-                />
+                <>
+                  <div className="flex flex-wrap items-start gap-[6px]">
+                    <ModeToggle mode={mode} onModeChange={setMode} />
+                    <GenerateWithAiButton
+                      disabled={moodboard.isImporting}
+                      onClick={() => setMode("ai")}
+                    />
+                  </div>
+                  <GenerateWithAiPanel
+                    compact
+                    disabled={moodboard.isImporting}
+                    value={referoQuery}
+                    onChange={setReferoQuery}
+                    onSubmit={handleGenerateWithAi}
+                  />
+                </>
               ) : (
-                <FigmaLinkPanel
-                  compact
-                  disabled={moodboard.isImporting}
-                  loading={moodboard.isImporting}
-                  value={figmaLink}
-                  onChange={setFigmaLink}
-                  onSubmit={handleFigmaImport}
-                />
+                <>
+                  <div className="flex flex-wrap items-start gap-[6px]">
+                    <ModeToggle mode={mode} onModeChange={setMode} />
+                    <GenerateWithAiButton
+                      disabled={moodboard.isImporting}
+                      onClick={() => setMode("ai")}
+                    />
+                  </div>
+                  <FigmaLinkPanel
+                    compact
+                    disabled={moodboard.isImporting}
+                    loading={moodboard.isImporting}
+                    value={figmaLink}
+                    onChange={setFigmaLink}
+                    onSubmit={handleFigmaImport}
+                  />
+                </>
               )}
               {moodboard.error ? (
                 <p className="text-[12px] font-medium leading-[1.25] text-[#EF4444]">

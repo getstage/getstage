@@ -358,9 +358,8 @@ a,
 .stage-mark {
   display: block;
   flex: 0 0 auto;
-  width: 14px;
-  height: 17px;
-  filter: invert(1);
+  width: 72px;
+  height: 23px;
   object-fit: contain;
 }
 
@@ -369,8 +368,8 @@ a,
 }
 
 .stage-mark-small {
-  width: 10px;
-  height: 12px;
+  width: 52px;
+  height: 17px;
 }
 
 .chat-panel {
