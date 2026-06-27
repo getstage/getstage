@@ -234,8 +234,12 @@ export function WireframesTab({
           cards={generatedCards}
           onExportToFigma={onGoToAssets}
           onConvert={() => {
+            // Hi-Fi can be driven by an uploaded brand kit OR an existing style guide,
+            // so send the user to the Brand Source chooser instead of forcing brand kit.
             setWireframeKind("hifi");
-            setStep("brand-kit");
+            setBrandSource(null);
+            setStyleDirectionId(null);
+            setStep("choose-type");
           }}
         />
       ) : null}

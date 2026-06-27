@@ -32,9 +32,16 @@ export function useProjectAssetUploads(onUploaded?: () => void, projectId?: stri
     url: asset.url,
     mimeType: asset.mimeType,
   }));
+  // Only keep local rows that the backend doesn't represent yet: in-flight uploads and
+  // client-side failures. A finished local row has no public URL or mime type, so we drop
+  // it in favour of its persisted twin (which carries both — needed to open/preview it).
+  const inFlightRows = uploadedAssets.filter((asset) => asset.status !== "uploaded");
+  // While a local row is still uploading, the reactive query may already return the finished
+  // upload — shadow that persisted twin by name so the row reads "Uploading" → "Uploaded"
+  // as one entry instead of flashing both at once.
   const mergedAssets = [
-    ...uploadedAssets,
-    ...persistedRows.filter((asset) => !uploadedAssets.some((current) => current.id === asset.id)),
+    ...inFlightRows,
+    ...persistedRows.filter((asset) => !inFlightRows.some((current) => current.title === asset.title)),
   ];
 
   async function uploadFiles(files: FileList | File[]) {
