@@ -21,8 +21,11 @@ const NETWORK_PATTERN =
   /failed to fetch|fetch failed|network ?error|load failed|network request failed|econnrefused|enotfound|etimedout|socket hang up/i;
 const ENGINE_REMOTE_PATTERN =
   /Error invoking remote method 'engine:[^']+'|Stage Engine request failed|stage engine/i;
+// Match only the permission signals: listing sources is the one call that fails purely from a
+// missing Screen Recording grant ("Failed to get sources"). Capture-time failures (stale/invalid
+// source id) are NOT permission and must fall through to their own friendly fallback.
 const SCREEN_CAPTURE_PERMISSION_PATTERN =
-  /screen:list-window-sources|screen:capture|failed to get sources/i;
+  /screen:list-window-sources|failed to get sources/i;
 const ENGINE_START_PATTERN = /engine:start-run/i;
 const MODULE_LOAD_PATTERN =
   /does not provide an export|failed to fetch dynamically imported module|cannot find module|module not found|importing a module script failed|error loading dynamically imported module|\/@fs\//i;

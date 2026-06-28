@@ -32,17 +32,10 @@ export function useProjectAssetUploads(onUploaded?: () => void, projectId?: stri
     url: asset.url,
     mimeType: asset.mimeType,
   }));
-  // Only keep local rows that the backend doesn't represent yet: in-flight uploads and
-  // client-side failures. A finished local row has no public URL or mime type, so we drop
-  // it in favour of its persisted twin (which carries both — needed to open/preview it).
-  const inFlightRows = uploadedAssets.filter((asset) => asset.status !== "uploaded");
-  // While a local row is still uploading, the reactive query may already return the finished
-  // upload — shadow that persisted twin by name so the row reads "Uploading" → "Uploaded"
-  // as one entry instead of flashing both at once.
-  const mergedAssets = [
-    ...inFlightRows,
-    ...persistedRows.filter((asset) => !inFlightRows.some((current) => current.title === asset.title)),
-  ];
+  // `uploadedAssets` only ever holds in-flight ("uploading") and failed rows — a successful
+  // upload is removed (see uploadFiles) so the reactive listProjectAssets query is the single
+  // owner of every persisted asset. No name-based dedup, so two same-named files coexist.
+  const mergedAssets = [...uploadedAssets, ...persistedRows];
 
   async function uploadFiles(files: FileList | File[]) {
     const fileArray = Array.from(files);
@@ -71,18 +64,16 @@ export function useProjectAssetUploads(onUploaded?: () => void, projectId?: stri
         if (!file) return;
 
         try {
-          const key = await uploadFileToR2({
+          await uploadFileToR2({
             generateUploadUrl: r2GenerateUploadUrl,
             syncMetadata: r2SyncMetadata,
             purpose: "project-asset",
             file,
             scopeId: projectId,
           });
-          setUploadedAssets((current) =>
-            current.map((asset) =>
-              asset.id === draft.id ? { ...asset, id: key, status: "uploaded" } : asset,
-            ),
-          );
+          // Done — drop the local draft and let the persisted query render the finished asset
+          // (uploadFileToR2 has already synced metadata, so the persisted row exists by now).
+          setUploadedAssets((current) => current.filter((asset) => asset.id !== draft.id));
         } catch (error) {
           setUploadedAssets((current) =>
             current.map((asset) =>

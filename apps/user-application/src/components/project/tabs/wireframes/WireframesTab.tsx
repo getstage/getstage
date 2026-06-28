@@ -226,7 +226,7 @@ export function WireframesTab({
           onToggle={(id) =>
             setScreens((current) =>
               current.map((screen) =>
-                screen.id === id ? { ...screen, selected: !screen.selected } : screen,
+                screen.id === id && !screen.required ? { ...screen, selected: !screen.selected } : screen,
               ),
             )
           }

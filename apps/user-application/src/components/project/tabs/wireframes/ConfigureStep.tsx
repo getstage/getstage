@@ -89,7 +89,8 @@ export function ScreenRow({ screen, onToggle }: { screen: ScreenItem; onToggle: 
         <button
           type="button"
           onClick={onToggle}
-          className="flex min-w-0 flex-1 items-start gap-[6px] text-left"
+          disabled={screen.required}
+          className="flex min-w-0 flex-1 items-start gap-[6px] text-left disabled:cursor-default"
           aria-pressed={screen.selected}
         >
           <span

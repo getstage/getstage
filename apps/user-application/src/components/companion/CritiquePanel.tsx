@@ -635,12 +635,14 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     try {
       const sources = await window.stageDesktop.screen.listWindowSources();
 
-      // macOS hides every capture source until Screen Recording is granted, so an empty
-      // list almost always means the permission is off. Walk the user through enabling it
-      // with the setup dialog instead of opening an empty picker.
+      // macOS hides every capture source until Screen Recording is granted, so an empty list
+      // there usually means the permission is off. Only open the guided dialog for the macOS
+      // blocked-but-fixable states — on Windows/Linux the permission reads "unknown" and the
+      // dialog's System Settings deep-link is a no-op, so fall through to the empty picker.
       if (sources.length === 0) {
         const status = await window.stageDesktop.permissions.getStatus();
-        if (status["screen-recording"] !== "granted") {
+        const screenRecording = status["screen-recording"];
+        if (screenRecording === "denied" || screenRecording === "not-determined") {
           setScreenPermissionDialogOpen(true);
           return;
         }
