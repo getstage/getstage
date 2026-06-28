@@ -63,6 +63,7 @@ export const chatImageAttachmentSchema = z.object({
 export const captureWindowSourceSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1).max(240),
+  kind: z.enum(["window", "screen"]).default("window"),
   previewDataUrl: z.string().startsWith("data:image/"),
 });
 

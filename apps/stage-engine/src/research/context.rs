@@ -22,11 +22,16 @@ pub fn build_refero_category_search_requests(
 
 pub fn build_refero_flow_search_request(input: &ResearchInput) -> ReferoSearchRequest {
     // Refero is a design-screenshot search; the client's own name is semantic noise
-    // that drags results toward unrelated products. Search on industry + flow intent only.
-    let query_parts = [
+    // that drags results toward unrelated products. Search on industry + flow intent,
+    // plus the project descriptor so two same-industry projects don't share one flow query.
+    let mut query_parts = vec![
         input.industry.clone(),
         "B2B buyer approval onboarding checkout subscription flow".to_string(),
     ];
+    let descriptor = project_descriptor(input);
+    if !descriptor.is_empty() {
+        query_parts.push(descriptor);
+    }
 
     ReferoSearchRequest {
         query: query_parts.join(" "),
@@ -69,7 +74,68 @@ fn build_category_query(input: &ResearchInput, category: ReferoUiPatternCategory
         ReferoUiPatternCategory::Dashboard => "orders analytics dashboard overview",
     };
 
-    format!("{pattern} {}", input.industry.trim())
+    // Two same-industry projects (e.g. both "SaaS") otherwise produce identical queries and
+    // get back the exact same screens. Appending a short, project-specific descriptor mined
+    // from the brief/target-users/notes pulls each project toward its own corner of the index.
+    let descriptor = project_descriptor(input);
+    if descriptor.is_empty() {
+        format!("{pattern} {}", input.industry.trim())
+    } else {
+        format!("{pattern} {} {descriptor}", input.industry.trim())
+    }
+}
+
+/// Words too generic to differentiate one project's design search from another's. Dropping
+/// them keeps the descriptor focused on what actually makes a project distinct.
+const DESCRIPTOR_STOPWORDS: &[&str] = &[
+    "with", "that", "this", "have", "from", "your", "their", "they", "them", "will", "would",
+    "should", "into", "about", "more", "than", "then", "when", "what", "which", "while", "where",
+    "users", "user", "product", "products", "platform", "app", "apps", "application", "website",
+    "site", "service", "services", "company", "business", "customer", "customers", "team", "teams",
+    "build", "building", "make", "making", "want", "need", "needs", "looking", "help", "helps",
+    "using", "based", "across", "also", "like", "design", "designs", "page", "pages", "screen",
+    "screens", "tool", "tools", "software", "solution", "solutions", "manage", "management",
+];
+
+fn is_descriptor_stopword(word: &str) -> bool {
+    DESCRIPTOR_STOPWORDS.contains(&word)
+}
+
+/// A short, project-specific qualifier so two same-industry projects don't collapse to the
+/// same Refero query. We mine the free text the user already gave us — brief, target users,
+/// notes — for the first few salient keywords (deduped, generic filler removed). The client
+/// name stays excluded (semantic noise, see flow note). If none of those fields are filled in,
+/// this is empty and we fall back to the pattern+industry query — so richer divergence depends
+/// on the project's brief/notes being filled out in the research config flow.
+fn project_descriptor(input: &ResearchInput) -> String {
+    use std::collections::HashSet;
+
+    const MAX_KEYWORDS: usize = 5;
+    let mut seen: HashSet<String> = HashSet::new();
+    let mut keywords: Vec<String> = Vec::new();
+
+    let sources = [
+        input.project_brief.as_deref(),
+        input.target_users.as_deref(),
+        input.additional_notes.as_deref(),
+    ];
+
+    for text in sources.into_iter().flatten() {
+        for raw in text.split(|c: char| !c.is_alphanumeric()) {
+            let word = raw.to_lowercase();
+            if word.len() < 4 || is_descriptor_stopword(&word) {
+                continue;
+            }
+            if seen.insert(word.clone()) {
+                keywords.push(word);
+                if keywords.len() >= MAX_KEYWORDS {
+                    return keywords.join(" ");
+                }
+            }
+        }
+    }
+
+    keywords.join(" ")
 }
 
 #[cfg(test)]
@@ -119,6 +185,38 @@ mod tests {
                 .contains("Northwind"),
             "flow query leaked client name"
         );
+    }
+
+    #[test]
+    fn same_industry_projects_diverge_via_descriptor() {
+        // The reported bug: two "SaaS" projects returned identical Refero output. With distinct
+        // briefs/notes, the category + flow queries must no longer be identical.
+        let mut a = sample_input();
+        a.industry = "SaaS".to_string();
+        a.project_brief = Some("Invoicing and expense tracking for freelance designers".to_string());
+
+        let mut b = sample_input();
+        b.industry = "SaaS".to_string();
+        b.project_brief = Some("Shift scheduling and payroll for restaurant staff".to_string());
+
+        let queries_a: Vec<String> = build_refero_category_search_requests(&a)
+            .into_iter()
+            .map(|request| request.query)
+            .collect();
+        let queries_b: Vec<String> = build_refero_category_search_requests(&b)
+            .into_iter()
+            .map(|request| request.query)
+            .collect();
+
+        assert_ne!(queries_a, queries_b, "same-industry projects collided");
+        assert_ne!(
+            build_refero_flow_search_request(&a).query,
+            build_refero_flow_search_request(&b).query,
+            "flow queries collided"
+        );
+        // Descriptor stays free of generic filler and the client name.
+        assert!(queries_a[0].contains("invoicing"));
+        assert!(!queries_a[0].contains("Northwind"));
     }
 
     #[test]

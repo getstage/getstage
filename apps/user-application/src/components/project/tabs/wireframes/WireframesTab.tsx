@@ -1,15 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "convex/react";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import {
   createSeedConfigureScreens,
   MOCK_WIREFRAMES_GENERATED_AT_LABEL,
   WIREFRAMES_RESULTS_PREVIEW_LIMIT,
 } from "@/data/fixtures/project/wireframesTabFixtures";
-import { useMoodboardArtifact, useWireframesTab } from "@/hooks/project";
+import { useAssetsTab, useMoodboardArtifact, useWireframesTab } from "@/hooks/project";
+import { useFigmaWireframeExport } from "@/hooks/project/assets/useFigmaWireframeExport";
+import { useWireframeDeliveryExport } from "@/hooks/project/assets/useWireframeDeliveryExport";
 import { useWireframeBrandKit } from "@/hooks/project/wireframes";
+import { api } from "@/lib/convexApi";
 import { buildResultCards } from "@/lib/project/mapWireframesArtifactToTabData";
 import type { Project } from "@/models/project/project";
+import type { WireframeAssetCard } from "@/types/project/assetsTab";
 import type { WireframeKindChoice, WireframeStep } from "@/types/project/wireframesTab";
+import { ExportOptionsDialog } from "../assets/ExportOptionsDialog";
 import { BrandKitStep } from "./BrandKitStep";
 import { CanvasShell } from "./CanvasShell";
 import { ConfigureStep } from "./ConfigureStep";
@@ -25,7 +31,7 @@ type WireframesTabProps = {
   onGoToResearch?: () => void;
   onGoToStrategy?: () => void;
   onGoToFlows?: () => void;
-  onGoToAssets: () => void;
+  onGoToMoodboard: () => void;
 };
 
 export function WireframesTab({
@@ -33,11 +39,18 @@ export function WireframesTab({
   onGoToResearch,
   onGoToStrategy,
   onGoToFlows,
-  onGoToAssets,
+  onGoToMoodboard,
 }: WireframesTabProps) {
   const wireframesTab = useWireframesTab({ id: project.id, name: project.name });
   const brandKit = useWireframeBrandKit(project.id);
   const moodboard = useMoodboardArtifact(project.id);
+  // Reuse the Assets export pipeline so the same Export dialog drives both tabs.
+  const assetsTab = useAssetsTab({ id: project.id, name: project.name });
+  const wireframeAssets = assetsTab.tabData.wireframeAssets;
+  const figmaExport = useFigmaWireframeExport(project.id);
+  const deliveryExport = useWireframeDeliveryExport(project.id);
+  const nativeConnections = useQuery(api.integrations.contentPlatforms.getNativeConnectionStatus, {});
+  const [exportAsset, setExportAsset] = useState<WireframeAssetCard | null>(null);
   const seedScreens = useMemo(() => createSeedConfigureScreens(), []);
   const [step, setStep] = useState<WireframeStep>("choose-kind");
   const [wireframeKind, setWireframeKind] = useState<WireframeKindChoice>(null);
@@ -173,6 +186,7 @@ export function WireframesTab({
             }))}
           selectedDirectionId={styleDirectionId}
           onSelectDirection={setStyleDirectionId}
+          onGenerateStyleGuide={onGoToMoodboard}
           onContinue={() => {
             if (styleDirectionId) {
               setStep("configure");
@@ -232,13 +246,42 @@ export function WireframesTab({
         <ResultsGrid
           wireframeKind={wireframeKind ?? "lofi"}
           cards={generatedCards}
-          onExportToFigma={onGoToAssets}
+          onExport={(cardId) =>
+            setExportAsset(wireframeAssets.find((asset) => asset.id === cardId) ?? null)
+          }
           onConvert={() => {
+            // Hi-Fi can be driven by an uploaded brand kit OR an existing style guide,
+            // so send the user to the Brand Source chooser instead of forcing brand kit.
             setWireframeKind("hifi");
-            setStep("brand-kit");
+            setBrandSource(null);
+            setStyleDirectionId(null);
+            setStep("choose-type");
           }}
         />
       ) : null}
+
+      <ExportOptionsDialog
+        asset={exportAsset}
+        figmaConnected={nativeConnections?.figma?.status === "active"}
+        exportRequest={figmaExport.request}
+        exportJob={figmaExport.job}
+        exportError={figmaExport.error}
+        deliveryMessage={deliveryExport.message}
+        deliveryError={deliveryExport.error}
+        isExporting={figmaExport.isExporting || deliveryExport.isExporting}
+        onExportFigma={async (asset) => {
+          await figmaExport.startExport(asset);
+        }}
+        onExportDelivery={deliveryExport.startExport}
+        open={exportAsset !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setExportAsset(null);
+            figmaExport.reset();
+            deliveryExport.reset();
+          }
+        }}
+      />
     </section>
   );
 }

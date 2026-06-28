@@ -156,7 +156,7 @@ export function ProjectStepView({
             onGoToResearch={() => onGoToTab("research")}
             onGoToStrategy={() => onGoToTab("strategy")}
             onGoToFlows={() => onGoToTab("flows")}
-            onGoToAssets={() => onGoToTab("assets")}
+            onGoToMoodboard={() => onGoToTab("moodboard")}
           />
         ) : null}
         {!blockedStep && activeTab === "assets" ? <AssetsTab project={project} /> : null}

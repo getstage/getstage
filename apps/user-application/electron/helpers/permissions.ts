@@ -32,10 +32,19 @@ function getMicrophonePermissionState(): PermissionState {
   return mapMediaAccessStatus(systemPreferences.getMediaAccessStatus("microphone"));
 }
 
+function getScreenRecordingPermissionState(): PermissionState {
+  if (process.platform !== "darwin") {
+    return "unknown";
+  }
+
+  return mapMediaAccessStatus(systemPreferences.getMediaAccessStatus("screen"));
+}
+
 export function getDesktopPermissionStatus(): DesktopPermissionStatus {
   return {
     ...defaultPermissionStatus,
     microphone: getMicrophonePermissionState(),
+    "screen-recording": getScreenRecordingPermissionState(),
   };
 }
 

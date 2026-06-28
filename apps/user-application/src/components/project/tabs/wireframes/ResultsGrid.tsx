@@ -5,19 +5,19 @@ import type {
   WireframeKind,
 } from "@/types/project/wireframesTab";
 import { Badge, SecondaryButton } from "./WireframePrimitives";
-import { ArrowRightIcon, FigmaIcon, ImageIcon, SparkleIcon } from "./wireframesIcons";
+import { ArrowRightIcon, ImageIcon, SparkleIcon } from "./wireframesIcons";
 import { WireframeBlockPreview } from "./WireframeBlockPreview";
 
 export function ResultsGrid({
   wireframeKind,
   cards,
   onConvert,
-  onExportToFigma,
+  onExport,
 }: {
   wireframeKind: WireframeKind;
   cards: WireframeResultCard[];
   onConvert: () => void;
-  onExportToFigma: () => void;
+  onExport: (cardId: string) => void;
 }) {
   const title = wireframeKind === "hifi" ? "Hi-Fi Wireframes" : "Lo-Fi Wireframes";
 
@@ -37,7 +37,7 @@ export function ResultsGrid({
           <WireframeCard
             key={`${card.id}-${index}`}
             card={card}
-            onExportToFigma={onExportToFigma}
+            onExport={() => onExport(card.id)}
           />
         ))}
       </div>
@@ -47,10 +47,10 @@ export function ResultsGrid({
 
 export function WireframeCard({
   card,
-  onExportToFigma,
+  onExport,
 }: {
   card: WireframeResultCard;
-  onExportToFigma: () => void;
+  onExport: () => void;
 }) {
   const [, setRelativeTimeTick] = useState(0);
   const sections = card.sections ?? [];
@@ -91,26 +91,13 @@ export function WireframeCard({
               {generatedAtLabel}
             </p>
           </div>
-          {card.figmaUrl ? (
-            <a
-              href={card.figmaUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-8 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[6px] bg-[#F5F5F5] px-3 text-[13px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EDEDED]"
-            >
-              <FigmaIcon />
-              Open in Figma
-            </a>
-          ) : (
-            <button
-              type="button"
-              onClick={onExportToFigma}
-              className="inline-flex h-8 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[6px] bg-[#F5F5F5] px-3 text-[13px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EDEDED]"
-            >
-              <FigmaIcon />
-              Open in Figma
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onExport}
+            className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[6px] border border-[#D4D4D4] bg-[#F5F5F5] px-3 text-[13px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EDEDED]"
+          >
+            Export
+          </button>
         </div>
       </div>
     </article>

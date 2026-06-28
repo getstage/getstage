@@ -247,7 +247,11 @@ export function ResearchConfigureStep({
                 />
               </FormField>
 
-              <FormField label="Project Brief or Context" error={fieldErrors.projectBrief}>
+              <FormField
+                label="Project Brief or Context"
+                hint="Be specific — what the product does, who it's for, and what makes it different. The clearer this is, the more tailored (and less generic) your research references will be."
+                error={fieldErrors.projectBrief}
+              >
                 <div className="flex h-[114px] w-full flex-col justify-between rounded-[6px] bg-[#F5F5F5] px-3 py-[10px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
                   <textarea
                     value={values.projectBrief}
@@ -405,16 +409,21 @@ export function ResearchConfigureStep({
 
 function FormField({
   label,
+  hint,
   error,
   children,
 }: {
   label: string;
+  hint?: string;
   error?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex w-full flex-col gap-2">
       <p className="text-[13px] font-medium leading-none text-[#171717]">{label}</p>
+      {hint ? (
+        <p className="max-w-[385px] text-[12px] font-medium leading-[1.5] text-[#737373]">{hint}</p>
+      ) : null}
       {children}
       {error ? <FieldError message={error} /> : null}
     </div>
