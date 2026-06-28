@@ -1,6 +1,6 @@
 {
   "name": "Stage Exporter",
-  "id": "stage-wireframe-exporter",
+  "id": "1652796428495766813",
   "api": "1.0.0",
   "main": "dist/code.js",
   "ui": "dist/ui.html",

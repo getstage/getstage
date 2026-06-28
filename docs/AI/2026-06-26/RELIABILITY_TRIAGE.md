@@ -205,7 +205,12 @@ pattern+industry. → **collect richer detail in the research config flow** (sep
 ## Still pending (next sessions)
 - ⏳ **Styleguide V2** schema + kill Inter/banned defaults at the boundary (engine `prompt.rs`
   + UI dropdown/renderer/mock). Spec captured from partner: 7 sections, W3C DTCG, opus model.
-- ⏳ **Research config flow**: collect more project-specific detail to feed Refero divergence (above).
+- ✅ **Research config flow**: the config step already collects Industry / Website / Project
+  Brief / Competitors / Additional notes, and `project_descriptor` mixes brief+notes keywords
+  into Refero queries → divergence. Considered done; a richer guided brief is optional future work.
+- ⏳ **Edit Workflow (#12)**: "Edit Workflow" button under "Add or remove phases" → checklist to
+  tick which phases (Overview/Research/Strategy/Moodboard/Flows/Wireframes/Assets); most don't
+  need Flows. Maybe also in project-creation. Big — phases are interconnected; needs a design call.
 - ⏳ **Styleguide View** back-button to match app nav.
 - ⏳ Billing live-data wiring; **credits/pricing** → [BILLING_CREDITS.md](./BILLING_CREDITS.md).
 - ⏳ **Emails → Resend + Convex** → [EMAILS_RESEND.md](./EMAILS_RESEND.md).

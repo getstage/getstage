@@ -2,6 +2,7 @@ import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import { getAttachmentsForTask, getPortalConfigByProjectId } from "../../_helpers";
 import { resolveAssetUrl } from "../../r2";
+import { WORKFLOW_STEPS } from "../../../src/contracts/desktop-api/project";
 
 type ReaderCtx = QueryCtx | MutationCtx;
 
@@ -101,6 +102,7 @@ export async function buildApiProjectDetail(
     startDate: project.startDate,
     endDate: project.endDate,
     progress: project.progress,
+    enabledSteps: project.enabledSteps ?? [...WORKFLOW_STEPS],
     accessRole,
     phaseCount: stats.phaseCount,
     taskCount: stats.taskCount,

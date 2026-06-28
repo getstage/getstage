@@ -72,6 +72,9 @@ export const wireframeGeneratedScreenSchema = z.object({
   goal: z.string().optional(),
   sections: z.array(wireframeSectionSchema).default([]),
   brandTokens: wireframeBrandTokensSchema.optional(),
+  // Hi-Fi source of truth: a self-contained HTML fragment that renders this
+  // screen as a final design. Absent for Lo-Fi (block-only) screens.
+  html: z.string().optional(),
 });
 
 export const wireframesStatsSchema = z.object({

@@ -1,10 +1,25 @@
 use serde_json::{Map as JsonMap, Value as JsonValue, json};
 use uuid::Uuid;
 
-/// Fonts the styleguide spec forbids as generated defaults (premium/creative work).
-/// Matched case-insensitively against the model's `typography.fontFamily`.
+/// Fonts the styleguide spec forbids as generated defaults — the ubiquitous system /
+/// AI-default sans-serifs and generic serifs that make every output look the same.
+/// Matched case-insensitively against the first family in `typography.fontFamily`.
 const BANNED_FONT_FAMILIES: &[&str] = &[
+    // Generic sans / system defaults
     "inter",
+    "helvetica",
+    "helvetica neue",
+    "arial",
+    "roboto",
+    "open sans",
+    "lato",
+    "system-ui",
+    "ui-sans-serif",
+    "sans-serif",
+    "system",
+    "-apple-system",
+    "segoe ui",
+    // Generic serifs
     "times",
     "times new roman",
     "georgia",
@@ -15,11 +30,22 @@ const BANNED_FONT_FAMILIES: &[&str] = &[
 /// Non-banned default used when the model returns a banned/empty font family.
 const DEFAULT_FONT_FAMILY: &str = "Geist";
 
+/// Reduce a CSS-style `fontFamily` to its primary family token: take the first entry
+/// of a comma-separated stack, strip surrounding quotes, trim, and lowercase. This way
+/// stacks like `"Inter, sans-serif"` are still recognised as their banned head font.
+fn primary_font_token(name: &str) -> String {
+    name.split(',')
+        .next()
+        .unwrap_or("")
+        .trim()
+        .trim_matches(|c| c == '"' || c == '\'')
+        .trim()
+        .to_lowercase()
+}
+
 fn is_banned_font_family(name: &str) -> bool {
-    let normalized = name.trim().to_lowercase();
-    BANNED_FONT_FAMILIES
-        .iter()
-        .any(|banned| normalized == *banned)
+    let primary = primary_font_token(name);
+    BANNED_FONT_FAMILIES.iter().any(|banned| primary == *banned)
 }
 
 /// Repair banned/empty `typography.fontFamily` at the boundary so the UI never

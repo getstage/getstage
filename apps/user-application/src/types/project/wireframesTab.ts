@@ -56,6 +56,9 @@ export type WireframeGeneratedScreen = {
   figmaUrl?: string;
   goal?: string;
   sections?: WireframeRenderableSection[];
+  // Hi-Fi source of truth: a self-contained HTML fragment rendering this screen
+  // as a final design. Absent for Lo-Fi (block-only) screens.
+  html?: string;
 };
 
 export type WireframesTabData = {

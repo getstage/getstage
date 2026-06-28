@@ -4,7 +4,7 @@ import type {
   SaveClientProfileInput,
   SaveProjectProfileInput,
 } from "@/hooks/project";
-import { PROJECT_PAGE_TABS } from "@/lib/project/projectTabs";
+import { getEnabledProjectTabs } from "@/lib/project/projectTabs";
 import type { Phase, Project, ProjectTab } from "@/models/project/project";
 import type { ProjectModal, ProjectTimeline } from "@/types/project/projectHeader";
 import { ProjectActionsMenu } from "./header/ProjectActionsMenu";
@@ -24,6 +24,8 @@ export function ProjectHeader({
   onSaveClientProfile,
   onSaveTimeline,
   onSavePhases,
+  enabledSteps,
+  onSaveWorkflow,
   onPauseProject,
   onCompleteProject,
   onDeleteProject,
@@ -43,6 +45,8 @@ export function ProjectHeader({
   onSaveClientProfile: (input: SaveClientProfileInput) => Promise<void>;
   onSaveTimeline: (timeline: ProjectTimeline) => Promise<void>;
   onSavePhases: (phases: Phase[], deleteTasksInRemovedPhases?: boolean) => Promise<void>;
+  enabledSteps: readonly string[];
+  onSaveWorkflow: (enabledSteps: string[]) => Promise<void>;
   onPauseProject: () => Promise<void>;
   onCompleteProject: () => Promise<void>;
   onDeleteProject: () => Promise<void>;
@@ -130,7 +134,7 @@ export function ProjectHeader({
         <div className="min-w-0 max-w-full overflow-hidden">
           <div className="project-tab-menu w-fit max-w-full overflow-x-auto rounded-[8px] bg-[#F5F5F5] p-[2px]">
             <div className="flex w-max items-start gap-[8px]">
-              {PROJECT_PAGE_TABS.map((tab) => {
+              {getEnabledProjectTabs(enabledSteps).map((tab) => {
                 const isActive = tab.key === activeTab;
                 return (
                   <button
@@ -192,6 +196,8 @@ export function ProjectHeader({
           onSaveClientProfile={onSaveClientProfile}
           onSaveTimeline={onSaveTimeline}
           onSavePhases={onSavePhases}
+          enabledSteps={enabledSteps}
+          onSaveWorkflow={onSaveWorkflow}
           onPauseProject={onPauseProject}
           onCompleteProject={onCompleteProject}
           onDeleteProject={onDeleteProject}

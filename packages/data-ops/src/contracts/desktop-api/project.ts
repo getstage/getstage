@@ -14,6 +14,27 @@ export const projectTypeSchema = z.enum([
 
 export const projectStatusSchema = z.enum(["active", "paused", "completed"]);
 
+export const projectStepSchema = z.enum([
+  "overview",
+  "research",
+  "strategy",
+  "moodboard",
+  "flows",
+  "wireframes",
+  "assets",
+]);
+
+// The steps a project can toggle on/off. "overview" is the always-on project home and is
+// never part of this set. Absent enabledSteps resolves to all of these (every step on).
+export const WORKFLOW_STEPS = [
+  "research",
+  "strategy",
+  "moodboard",
+  "flows",
+  "wireframes",
+  "assets",
+] as const satisfies readonly z.infer<typeof projectStepSchema>[];
+
 export const projectSummarySchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -38,9 +59,13 @@ export const projectDetailSchema = projectSummarySchema.extend({
   shareToken: z.string().optional(),
   shareUrl: z.string().url().optional(),
   portalEnabled: z.boolean().optional(),
+  // Workflow steps enabled for this project (excludes the always-on "overview").
+  // Resolved at the read boundary, so consumers always get a concrete array.
+  enabledSteps: z.array(projectStepSchema),
 });
 
 export type ProjectType = z.infer<typeof projectTypeSchema>;
 export type ProjectStatus = z.infer<typeof projectStatusSchema>;
+export type ProjectStep = z.infer<typeof projectStepSchema>;
 export type ProjectSummary = z.infer<typeof projectSummarySchema>;
 export type ProjectDetail = z.infer<typeof projectDetailSchema>;

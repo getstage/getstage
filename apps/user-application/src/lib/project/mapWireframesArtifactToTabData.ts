@@ -48,6 +48,7 @@ export function mapWireframesArtifactToTabData(artifact: WireframesArtifact): Wi
       figmaUrl: screen.figmaUrl,
       goal: screen.goal,
       sections: screen.sections,
+      html: screen.html,
     })),
   };
 }
@@ -57,6 +58,7 @@ export type WireframeResultCard = ScreenItem & {
   generatedAt?: number;
   goal?: string;
   sections?: WireframeGeneratedScreen["sections"];
+  html?: string;
   figmaUrl?: string;
 };
 
@@ -80,6 +82,7 @@ export function buildResultCards(
         generatedAt,
         goal: generated?.goal,
         sections: generated?.sections,
+        html: generated?.html,
         figmaUrl: generated?.figmaUrl,
       };
     });

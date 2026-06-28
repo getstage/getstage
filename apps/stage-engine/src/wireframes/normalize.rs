@@ -155,6 +155,14 @@ fn normalize_screen(screen: &JsonValue, generated_at_label: &str) -> Option<Json
     {
         entry.insert("brandTokens".to_string(), brand_tokens);
     }
+    if let Some(html) = object
+        .get("html")
+        .and_then(JsonValue::as_str)
+        .map(str::trim)
+        .filter(|html| !html.is_empty())
+    {
+        entry.insert("html".to_string(), json!(html));
+    }
 
     let raw_sections = object
         .get("sections")

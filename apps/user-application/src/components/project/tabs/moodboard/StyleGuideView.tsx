@@ -79,17 +79,23 @@ export function StyleGuideView({
 
   return (
     <section className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <div className="flex flex-wrap items-end justify-between gap-3 p-4">
-        <div className="flex min-w-0 items-start gap-2">
-          <HeaderButton onClick={onBack}>Back</HeaderButton>
+      <div className="flex flex-col gap-3 p-4">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex w-fit cursor-pointer items-center gap-[8px] text-[13px] font-medium leading-[1.5] text-[#A3A3A3] transition-colors hover:text-[#737373]"
+        >
+          <img src="/logos/back.svg" alt="" aria-hidden="true" className="h-[16px] w-[16px] shrink-0" />
+          Back to moodboard
+        </button>
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
             <h2 className="text-[15px] font-medium leading-[1.25] text-[#0A0A0A]">{styleGuide.title}</h2>
             <p className="mt-1 text-[12px] font-medium leading-[1.5] text-[#525252]">
               {styleGuide.subtitle ?? "Brand Handbook for your project"}
             </p>
           </div>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-1">
+          <div className="flex flex-wrap items-center justify-end gap-1">
           {isEditing ? (
             <>
               <HeaderButton onClick={handleSave}>
@@ -111,6 +117,7 @@ export function StyleGuideView({
               </HeaderButton>
             </>
           )}
+          </div>
         </div>
       </div>
 

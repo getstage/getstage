@@ -7,6 +7,10 @@ import type {
 import { Badge, SecondaryButton } from "./WireframePrimitives";
 import { ArrowRightIcon, ImageIcon, SparkleIcon } from "./wireframesIcons";
 import { WireframeBlockPreview } from "./WireframeBlockPreview";
+import {
+  WireframeHtmlPreviewDialog,
+  WireframeHtmlThumbnail,
+} from "./WireframeHtmlPreview";
 
 export function ResultsGrid({
   wireframeKind,
@@ -53,8 +57,11 @@ export function WireframeCard({
   onExport: () => void;
 }) {
   const [, setRelativeTimeTick] = useState(0);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const sections = card.sections ?? [];
   const hasBlocks = sections.some((section) => section.blocks.length > 0);
+  const html = card.html?.trim();
+  const hasHtml = Boolean(html);
   const generatedAtLabel = card.generatedAt
     ? formatRelativeTime(card.generatedAt)
     : card.date;
@@ -71,9 +78,28 @@ export function WireframeCard({
 
   return (
     <article className="flex h-[336px] flex-col rounded-[8px] bg-white p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <div className="flex min-h-0 flex-1 items-center justify-center rounded-[6px] bg-[#E5E5E5] p-2 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-        {hasBlocks ? <WireframeBlockPreview sections={sections} /> : <ImageIcon />}
-      </div>
+      {hasHtml && html ? (
+        <button
+          type="button"
+          onClick={() => setPreviewOpen(true)}
+          title="Open full preview"
+          className="flex min-h-0 flex-1 cursor-pointer items-stretch justify-center overflow-hidden rounded-[6px] bg-[#E5E5E5] p-2 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-shadow hover:shadow-[0_0.45px_2px_rgba(10,10,10,0.35)]"
+        >
+          <WireframeHtmlThumbnail html={html} />
+        </button>
+      ) : (
+        <div className="flex min-h-0 flex-1 items-center justify-center rounded-[6px] bg-[#E5E5E5] p-2 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+          {hasBlocks ? <WireframeBlockPreview sections={sections} /> : <ImageIcon />}
+        </div>
+      )}
+      {hasHtml && html ? (
+        <WireframeHtmlPreviewDialog
+          html={html}
+          title={`${card.title} Wireframe`}
+          open={previewOpen}
+          onOpenChange={setPreviewOpen}
+        />
+      ) : null}
       <div className="shrink-0 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
