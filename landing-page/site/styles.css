@@ -78,9 +78,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* More prominent nav CTA (radius inherited from .btn → --radius-md) */
 .nav .btn-primary {
-  height: 40px;
-  padding: 0 18px;
-  font-size: 14px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
   font-weight: 600;
   box-shadow:
     var(--shadow-button),
@@ -113,24 +113,33 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 
 .hero-inner { display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
-.hero-copy { max-width: 760px; }
+.hero-copy { max-width: 880px; }
 .hero-title {
   font-family: var(--font-mid);
   font-weight: 600;
-  font-size: clamp(28px, 3.2vw, 44px);
-  line-height: 1.1;
-  letter-spacing: -0.015em;
+  /* Slightly reduced vs. the reference so the longer Stage headline fits
+     cleanly on two lines without a third line or an orphan word. */
+  font-size: clamp(30px, 4.2vw, 46px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
   color: var(--fg-strong);
-  margin: 0 0 16px;
+  margin: 0;
+  text-wrap: balance;
 }
-.hero-sub {
-  font-size: clamp(17px, 1.5vw, 20px);
-  line-height: 1.5;
-  color: var(--fg-muted);
-  max-width: 560px;
-  margin: 0 0 28px;
+
+/* Hero CTA — uses the standard primary button (purple), sized up as the
+   page's main action so it reads larger than the nav CTA. */
+.hero-ctas {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  justify-content: flex-start;
+  margin-top: clamp(18px, 2.2vw, 28px);
 }
-.hero-ctas { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-start; }
+.btn-hero { height: 48px; padding: 0 22px; font-size: 16px; }
+.btn-ico { display: block; flex-shrink: 0; }
+.btn:focus-visible {
+  outline: 2px solid var(--brand-600, #463fba);
+  outline-offset: 2px;
+}
 
 .hero-visual { width: 100%; max-width: 1200px; margin: 56px auto 0; }
 .hero-hint {
@@ -324,6 +333,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
   transition: filter 150ms ease-out;
 }
 .logobar-list li:hover img { filter: grayscale(1) opacity(0.95); }
+/* Optical correction: the Paper mark has an empty bottom-right quadrant,
+   so it reads smaller and leaves a larger apparent gap before its label. */
+.logobar-list li img.is-paper { transform: scale(1.12); margin-right: -3px; }
 
 /* ═══ FEATURES ══════════════════════════════════════════════ */
 .features { padding: 120px 0 80px; }
@@ -393,12 +405,20 @@ button { font: inherit; color: inherit; cursor: pointer; }
   border-radius: 0;
 }
 .demo-placeholder {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 9;
   min-height: 0;
   padding: 0;
   background: #EFEEE9;
   border: 0;
   border-radius: 14px;
+}
+.feature-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 14px;
+  background: #EFEEE9;
 }
 
 .demo-meta {
@@ -740,6 +760,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .nav-links { display: none; }
   .hero { padding: 64px 0 16px; }
   .hero-visual { margin-top: 40px; }
+  .hero-title { font-size: clamp(26px, 7vw, 34px); }
+  .hero-ctas { width: 100%; flex-wrap: nowrap; flex-direction: column; align-items: stretch; }
+  .btn-hero { width: 100%; }
   .features-stack { gap: 64px; }
   .pricing { padding: 64px 0 48px; }
   .footer { padding: 72px 0 48px; }

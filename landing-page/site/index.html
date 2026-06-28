@@ -34,8 +34,10 @@
       <div class="hero-grad" aria-hidden="true"></div>
       <div class="container hero-inner">
         <div class="hero-copy reveal">
-          <h1 class="hero-title">The AI workspace for<br/>product &amp; web designers.</h1>
-          <p class="hero-sub">It takes care of the process so you can focus on the pixels.</p>
+          <h1 class="hero-title">Stage is your design agent for<br/>building products people love.</h1>
+          <div class="hero-ctas">
+            <a class="btn btn-primary btn-hero" href="#start">Start 14-day free trial<svg class="btn-ico" width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 8h9m0 0L8.5 4m4 4-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          </div>
         </div>
 
         <!-- Interactive Stage Dashboard mockup (recreated from the Figma source). -->
@@ -138,7 +140,7 @@
           <li><img src="https://unpkg.com/simple-icons@v13/icons/openai.svg" alt="Codex" /><span>Codex</span></li>
           <li><img src="https://unpkg.com/simple-icons@v13/icons/figma.svg" alt="Figma" /><span>Figma</span></li>
           <li><img src="https://unpkg.com/simple-icons@v13/icons/notion.svg" alt="Notion" /><span>Notion</span></li>
-          <li><img src="assets/icons/stitch.svg" alt="Stitch" /><span>Stitch</span></li>
+          <li><img class="is-paper" src="assets/icons/paper.svg" alt="Paper" /><span>Paper</span></li>
         </ul>
       </div>
     </section>
@@ -154,9 +156,8 @@
             <p class="feature-sub">Track phases, tasks, and timelines the way designers actually work. See every project at a glance and know what's next.</p>
           </header>
           <div class="feature-visual">
-            <div class="bezel">
-              <div class="bezel-core demo-placeholder"></div>
-            </div>
+            <video class="feature-video" src="assets/videos/stage-1.mp4"
+                   autoplay muted loop playsinline preload="metadata"></video>
           </div>
         </article>
 
@@ -167,35 +168,32 @@
             <p class="feature-sub">Drop a URL and Stage analyzes competitors, positioning, and patterns - then turns it into a strategy you can approve.</p>
           </header>
           <div class="feature-visual">
-            <div class="bezel">
-              <div class="bezel-core demo-placeholder"></div>
-            </div>
+            <video class="feature-video" src="assets/videos/stage-2.mp4"
+                   autoplay muted loop playsinline preload="metadata"></video>
           </div>
         </article>
 
         <!-- Feature 3 -->
         <article class="feature reveal">
           <header class="feature-head">
-            <h2 class="feature-title">From strategy to screens.</h2>
-            <p class="feature-sub">Turn your approved strategy into brand concepts and wireframes, then push it straight to Figma when you're ready.</p>
+            <h2 class="feature-title">Direction before design.</h2>
+            <p class="feature-sub">Explore moodboards, lock a visual direction, then turn it into flows and wireframes you can actually build from.</p>
           </header>
           <div class="feature-visual">
-            <div class="bezel">
-              <div class="bezel-core demo-placeholder"></div>
-            </div>
+            <video class="feature-video" src="assets/videos/stage-3.mp4"
+                   autoplay muted loop playsinline preload="metadata"></video>
           </div>
         </article>
 
         <!-- Feature 4 -->
         <article class="feature reveal feature-flip">
           <header class="feature-head">
-            <h2 class="feature-title">Share work your way.</h2>
-            <p class="feature-sub">Give clients a clean, branded space to see progress, leave feedback, and approve deliverables - no more status emails.</p>
+            <h2 class="feature-title">Hand off your way.</h2>
+            <p class="feature-sub">Push your work to Figma, code, or Paper, connect your own AI and tools, then hand the whole project off in one click.</p>
           </header>
           <div class="feature-visual">
-            <div class="bezel">
-              <div class="bezel-core demo-placeholder"></div>
-            </div>
+            <video class="feature-video" src="assets/videos/stage-4.mp4"
+                   autoplay muted loop playsinline preload="metadata"></video>
           </div>
         </article>
 
@@ -206,7 +204,7 @@
     <section id="pricing" class="pricing">
       <div class="container">
         <header class="pricing-head reveal">
-          <h2 class="section-title">Simple pricing.<br/>Scales with your studio.</h2>
+          <h2 class="section-title">Pricing that fits how you build.</h2>
           <div class="billing-toggle" role="tablist" aria-label="Billing period">
             <button class="bt-opt is-active" role="tab" aria-selected="true" data-period="monthly">Monthly</button>
             <button class="bt-opt" role="tab" aria-selected="false" data-period="yearly">Yearly <span class="bt-save">Save 17%</span></button>
@@ -221,20 +219,20 @@
             </header>
             <div class="price-body">
               <div class="price-amount">
-                <span class="price-num" data-monthly="$9" data-yearly="$7">$9</span>
+                <span class="price-num" data-monthly="$19" data-yearly="$16">$19</span>
                 <span class="price-per">/month</span>
               </div>
-              <p class="price-desc">For solo designers getting started.</p>
+              <p class="price-desc">For builders shipping their first real products.</p>
             </div>
             <ul class="price-feats" role="list">
-              <li><img src="assets/icons/projects.svg" alt="" />3 active projects</li>
-              <li><img src="assets/icons/connect.svg" alt="" />Connect claude, figma, notion &amp; more</li>
-              <li><img src="assets/icons/portal.svg" alt="" />Client portal (Stage branding)</li>
-              <li><img src="assets/icons/storage.svg" alt="" />Unlimited file storage</li>
-              <li><img src="assets/icons/ai.svg" alt="" />Full AI workflow access</li>
-              <li><img src="assets/icons/support.svg" alt="" />Standard support</li>
+              <li><img src="assets/icons/seats.svg" alt="" />1 seat</li>
+              <li><img src="assets/icons/ai.svg" alt="" />Full design workflow</li>
+              <li><img src="assets/icons/projects.svg" alt="" />5,000 credits/mo (~20 projects)</li>
+              <li><img src="assets/icons/connect.svg" alt="" />Bring your own Claude or Codex</li>
+              <li><img src="assets/icons/storage.svg" alt="" />No second AI bill</li>
+              <li><img src="assets/icons/portal.svg" alt="" />Standard client portal</li>
             </ul>
-            <a class="btn btn-secondary btn-block" href="#start">Get Started</a>
+            <a class="btn btn-secondary btn-block" href="#start">Start 14-Day Trial</a>
           </article>
 
           <!-- Pro -->
@@ -245,27 +243,27 @@
             </header>
             <div class="price-body">
               <div class="price-amount">
-                <span class="price-num" data-monthly="$19" data-yearly="$16">$19</span>
+                <span class="price-num" data-monthly="$29" data-yearly="$24">$29</span>
                 <span class="price-per">/month</span>
               </div>
-              <p class="price-desc">For freelancers who need full control.</p>
+              <p class="price-desc">For founders who build constantly.</p>
             </div>
             <ul class="price-feats" role="list">
-              <li><img src="assets/icons/projects.svg" alt="" />Unlimited projects</li>
-              <li><img src="assets/icons/connect.svg" alt="" />Connect claude, figma, notion &amp; more</li>
-              <li><img src="assets/icons/portal.svg" alt="" />Custom client portal</li>
-              <li><img src="assets/icons/storage.svg" alt="" />Unlimited file storage</li>
-              <li><img src="assets/icons/ai.svg" alt="" />Full AI workflow access</li>
+              <li><img src="assets/icons/ai.svg" alt="" />Everything in Start</li>
+              <li><img src="assets/icons/projects.svg" alt="" />10,000 credits/mo (~40 projects)</li>
+              <li><img src="assets/icons/connect.svg" alt="" />Unlimited projects</li>
+              <li><img src="assets/icons/portal.svg" alt="" />Custom portal, your brand &amp; domain</li>
+              <li><img src="assets/icons/storage.svg" alt="" />Top up credits anytime</li>
               <li><img src="assets/icons/support.svg" alt="" />Priority support</li>
             </ul>
-            <a class="btn btn-primary btn-block" href="#start">Start 7-Day Trial</a>
+            <a class="btn btn-primary btn-block" href="#start">Start 14-Day Trial</a>
           </article>
 
           <!-- Studio -->
           <article class="price-card">
             <header class="price-head">
-              <h3 class="price-name">Studio</h3>
-              <span class="price-tag">Team Plan</span>
+              <h3 class="price-name">Team</h3>
+              <span class="price-tag">Team</span>
             </header>
             <div class="price-body">
               <div class="price-row">
@@ -282,17 +280,17 @@
                   <button type="button" class="seat-btn seat-inc" aria-label="Add seat">+</button>
                 </div>
               </div>
-              <p class="price-desc">For design teams and studios.</p>
+              <p class="price-desc">For small teams building together.</p>
             </div>
             <ul class="price-feats" role="list">
-              <li><img src="assets/icons/seats.svg" alt="" />3 seats included</li>
-              <li><img src="assets/icons/projects.svg" alt="" />Unlimited projects</li>
-              <li><img src="assets/icons/portal.svg" alt="" />Custom client portal</li>
-              <li><img src="assets/icons/connect.svg" alt="" />Shared workspace &amp; integrations</li>
-              <li><img src="assets/icons/roles.svg" alt="" />Role permissions (owner, designer, viewer)</li>
+              <li><img src="assets/icons/ai.svg" alt="" />Everything in Pro</li>
+              <li><img src="assets/icons/seats.svg" alt="" />3 seats, $15/mo per extra</li>
+              <li><img src="assets/icons/projects.svg" alt="" />18,000 pooled credits/mo (~70 projects)</li>
+              <li><img src="assets/icons/connect.svg" alt="" />Shared project workspace</li>
+              <li><img src="assets/icons/storage.svg" alt="" />Top up credits anytime</li>
               <li><img src="assets/icons/support.svg" alt="" />Priority support</li>
             </ul>
-            <a class="btn btn-secondary btn-block" href="#sales">Start 7-Day Trial</a>
+            <a class="btn btn-secondary btn-block" href="#sales">Start 14-Day Trial</a>
           </article>
         </div>
       </div>
