@@ -1,12 +1,7 @@
-import { useEffect, useRef, useState, type PointerEvent } from "react";
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useEffect, useState, type PointerEvent } from "react";
 import { Helmet } from "react-helmet-async";
 import "@/styles/stage-v2-tokens.css";
 import "@/styles/stage-v2-landing.css";
-
-gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 const DEFAULT_SITE_URL = "https://usestage.com";
 const LANDING_TITLE = "Stage - The AI workspace for designers";
@@ -226,7 +221,6 @@ export function StageV2LandingPage() {
     });
   }
 
-  const studioPrice = billingPeriod === "yearly" ? 41 + (studioSeats - 3) * 12 : 49 + (studioSeats - 3) * 15;
   const pricePeriod = billingPeriod === "yearly" ? "/month, billed yearly" : "/month";
 
   return (
@@ -271,8 +265,15 @@ export function StageV2LandingPage() {
               <div className="hero-grad" aria-hidden="true"></div>
               <div className="container hero-inner">
                 <div className="hero-copy reveal">
-                  <h1 className="hero-title">The AI workspace for<br />product &amp; web designers.</h1>
-                  <p className="hero-sub">It takes care of the process so you can focus on the pixels.</p>
+                  <h1 className="hero-title">Stage is your design agent for<br />building products people love.</h1>
+                  <div className="hero-ctas">
+                    <a className="btn btn-primary btn-hero" href="/auth">
+                      Start 14-day free trial
+                      <svg className="btn-ico" width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M3.5 8h9m0 0L8.5 4m4 4-4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </a>
+                  </div>
                 </div>
         
                 {/* Interactive Stage Dashboard mockup (recreated from the Figma source). */}
@@ -321,7 +322,7 @@ export function StageV2LandingPage() {
                           <button className="htab" role="tab" tabIndex={-1}><img src="/stage-v2-lp/assets/hero/tab-strategy.svg" alt="" width="13" height="13"/> Strategy</button>
                           <button className="htab" role="tab" tabIndex={-1}><img src="/stage-v2-lp/assets/hero/tab-moodboard.svg" alt="" width="13" height="13"/> Moodboard</button>
                           <button className="htab" role="tab" tabIndex={-1}><img src="/stage-v2-lp/assets/hero/tab-flows.svg" alt="" width="13" height="13"/> Flows</button>
-                          <button className="htab" role="tab" tabIndex={-1}><img src="/stage-v2-lp/assets/hero/tab-generate.svg" alt="" width="13" height="13"/> Wireframes</button>
+                          <button className="htab" role="tab" tabIndex={-1}><img src="/stage-v2-lp/assets/hero/tab-generate.svg" alt="" width="13" height="13"/> Generate</button>
                           <button className="htab" role="tab" tabIndex={-1}><img src="/stage-v2-lp/assets/hero/tab-assets.svg" alt="" width="13" height="13"/> Assets</button>
                         </div>
                       </header>
@@ -395,6 +396,7 @@ export function StageV2LandingPage() {
                   <li><img src="https://unpkg.com/simple-icons@v13/icons/openai.svg" alt="Codex" /><span>Codex</span></li>
                   <li><img src="https://unpkg.com/simple-icons@v13/icons/figma.svg" alt="Figma" /><span>Figma</span></li>
                   <li><img src="https://unpkg.com/simple-icons@v13/icons/notion.svg" alt="Notion" /><span>Notion</span></li>
+                  <li><img className="is-paper" src="/stage-v2-lp/assets/icons/paper.svg" alt="Paper" /><span>Paper</span></li>
                 </ul>
               </div>
             </section>
@@ -410,9 +412,7 @@ export function StageV2LandingPage() {
                     <p className="feature-sub">Track phases, tasks, and timelines the way designers actually work. See every project at a glance and know what's next.</p>
                   </header>
                   <div className="feature-visual">
-                    <div className="bezel">
-                      <ProjectsShowcase />
-                    </div>
+                    <video className="feature-video" src="/stage-v2-lp/assets/videos/stage-1.mp4" autoPlay muted loop playsInline preload="metadata" />
                   </div>
                 </article>
         
@@ -423,35 +423,29 @@ export function StageV2LandingPage() {
                     <p className="feature-sub">Drop a URL and Stage analyzes competitors, positioning, and patterns - then turns it into a strategy you can approve.</p>
                   </header>
                   <div className="feature-visual">
-                    <div className="bezel">
-                      <ResearchShowcase />
-                    </div>
+                    <video className="feature-video" src="/stage-v2-lp/assets/videos/stage-2.mp4" autoPlay muted loop playsInline preload="metadata" />
                   </div>
                 </article>
         
                 {/* Feature 3 */}
                 <article className="feature reveal">
                   <header className="feature-head">
-                    <h2 className="feature-title">From strategy to screens.</h2>
-                    <p className="feature-sub">Turn your approved strategy into brand concepts and wireframes, then push it straight to Figma when you're ready.</p>
+                    <h2 className="feature-title">Direction before design.</h2>
+                    <p className="feature-sub">Explore moodboards, lock a visual direction, then turn it into flows and wireframes you can actually build from.</p>
                   </header>
                   <div className="feature-visual">
-                    <div className="bezel">
-                      <StrategyToScreensShowcase />
-                    </div>
+                    <video className="feature-video" src="/stage-v2-lp/assets/videos/stage-3.mp4" autoPlay muted loop playsInline preload="metadata" />
                   </div>
                 </article>
         
                 {/* Feature 4 */}
                 <article className="feature reveal feature-flip">
                   <header className="feature-head">
-                    <h2 className="feature-title">Share work your way.</h2>
-                    <p className="feature-sub">Give clients a clean, branded space to see progress, leave feedback, and approve deliverables - no more status emails.</p>
+                    <h2 className="feature-title">Hand off your way.</h2>
+                    <p className="feature-sub">Push your work to Figma, code, or Paper, connect your own AI and tools, then hand the whole project off in one click.</p>
                   </header>
                   <div className="feature-visual">
-                    <div className="bezel">
-                      <FeedbackShowcase />
-                    </div>
+                    <video className="feature-video" src="/stage-v2-lp/assets/videos/stage-4.mp4" autoPlay muted loop playsInline preload="metadata" />
                   </div>
                 </article>
         
@@ -462,7 +456,7 @@ export function StageV2LandingPage() {
             <section id="pricing" className="pricing">
               <div className="container">
                 <header className="pricing-head reveal">
-                  <h2 className="section-title">Simple pricing.<br />Scales with your studio.</h2>
+                  <h2 className="section-title">Pricing that fits how you build.</h2>
                   <div className="billing-toggle" role="tablist" aria-label="Billing period">
                     <button
                       className={`bt-opt ${billingPeriod === "monthly" ? "is-active" : ""}`}
@@ -493,20 +487,20 @@ export function StageV2LandingPage() {
                     </header>
                     <div className="price-body">
                       <div className="price-amount">
-                        <span className="price-num">{billingPeriod === "yearly" ? "$7" : "$9"}</span>
+                        <span className="price-num">{billingPeriod === "yearly" ? "$16" : "$19"}</span>
                         <span className="price-per">{pricePeriod}</span>
                       </div>
-                      <p className="price-desc">For solo designers getting started.</p>
+                      <p className="price-desc">For builders shipping their first real products.</p>
                     </div>
                     <ul className="price-feats" role="list">
-                      <li><img src="/stage-v2-lp/assets/icons/projects.svg" alt="" />3 active projects</li>
-                      <li><img src="/stage-v2-lp/assets/icons/connect.svg" alt="" />Connect claude, figma, notion &amp; more</li>
-                      <li><img src="/stage-v2-lp/assets/icons/portal.svg" alt="" />Client portal (Stage branding)</li>
-                      <li><img src="/stage-v2-lp/assets/icons/storage.svg" alt="" />Unlimited file storage</li>
-                      <li><img src="/stage-v2-lp/assets/icons/ai.svg" alt="" />Full AI workflow access</li>
-                      <li><img src="/stage-v2-lp/assets/icons/support.svg" alt="" />Standard support</li>
+                      <li><img src="/stage-v2-lp/assets/icons/seats.svg" alt="" />1 seat</li>
+                      <li><img src="/stage-v2-lp/assets/icons/ai.svg" alt="" />Full design workflow</li>
+                      <li><img src="/stage-v2-lp/assets/icons/projects.svg" alt="" />5,000 credits/mo (~20 projects)</li>
+                      <li><img src="/stage-v2-lp/assets/icons/connect.svg" alt="" />Bring your own Claude or Codex</li>
+                      <li><img src="/stage-v2-lp/assets/icons/storage.svg" alt="" />No second AI bill</li>
+                      <li><img src="/stage-v2-lp/assets/icons/portal.svg" alt="" />Standard client portal</li>
                     </ul>
-                    <a className="btn btn-secondary btn-block" href="/auth">Get Started</a>
+                    <a className="btn btn-secondary btn-block" href="/auth">Start 14-Day Trial</a>
                   </article>
         
                   {/* Pro */}
@@ -517,32 +511,32 @@ export function StageV2LandingPage() {
                     </header>
                     <div className="price-body">
                       <div className="price-amount">
-                        <span className="price-num">{billingPeriod === "yearly" ? "$16" : "$19"}</span>
+                        <span className="price-num">{billingPeriod === "yearly" ? "$24" : "$29"}</span>
                         <span className="price-per">{pricePeriod}</span>
                       </div>
                       <p className="price-desc">For freelancers who need full control.</p>
                     </div>
                     <ul className="price-feats" role="list">
-                      <li><img src="/stage-v2-lp/assets/icons/projects.svg" alt="" />Unlimited projects</li>
-                      <li><img src="/stage-v2-lp/assets/icons/connect.svg" alt="" />Connect claude, figma, notion &amp; more</li>
-                      <li><img src="/stage-v2-lp/assets/icons/portal.svg" alt="" />Custom client portal</li>
-                      <li><img src="/stage-v2-lp/assets/icons/storage.svg" alt="" />Unlimited file storage</li>
-                      <li><img src="/stage-v2-lp/assets/icons/ai.svg" alt="" />Full AI workflow access</li>
+                      <li><img src="/stage-v2-lp/assets/icons/ai.svg" alt="" />Everything in Start</li>
+                      <li><img src="/stage-v2-lp/assets/icons/projects.svg" alt="" />10,000 credits/mo (~40 projects)</li>
+                      <li><img src="/stage-v2-lp/assets/icons/connect.svg" alt="" />Unlimited projects</li>
+                      <li><img src="/stage-v2-lp/assets/icons/portal.svg" alt="" />Custom portal, your brand &amp; domain</li>
+                      <li><img src="/stage-v2-lp/assets/icons/storage.svg" alt="" />Top up credits anytime</li>
                       <li><img src="/stage-v2-lp/assets/icons/support.svg" alt="" />Priority support</li>
                     </ul>
-                    <a className="btn btn-primary btn-block" href="/auth">Start 7-Day Trial</a>
+                    <a className="btn btn-primary btn-block" href="/auth">Start 14-Day Trial</a>
                   </article>
         
-                  {/* Studio */}
+                  {/* Team */}
                   <article className="price-card">
                     <header className="price-head">
-                      <h3 className="price-name">Studio</h3>
-                      <span className="price-tag">Team Plan</span>
+                      <h3 className="price-name">Team</h3>
+                      <span className="price-tag">Team</span>
                     </header>
                     <div className="price-body">
                       <div className="price-row">
                         <div className="price-amount">
-                          <span className="price-num is-studio-price">{`$${studioPrice}`}</span>
+                          <span className="price-num is-studio-price">{billingPeriod === "yearly" ? "$41" : "$49"}</span>
                           <span className="price-per">{pricePeriod}</span>
                         </div>
                         <div className="seat-stepper" role="group" aria-label="Seats"
@@ -554,17 +548,17 @@ export function StageV2LandingPage() {
                           <button type="button" className="seat-btn seat-inc" aria-label="Add seat" onClick={() => setStudioSeats((seats) => seats + 1)}>+</button>
                         </div>
                       </div>
-                      <p className="price-desc">For design teams and studios.</p>
+                      <p className="price-desc">For small teams building together.</p>
                     </div>
                     <ul className="price-feats" role="list">
-                      <li><img src="/stage-v2-lp/assets/icons/seats.svg" alt="" />3 seats included</li>
-                      <li><img src="/stage-v2-lp/assets/icons/projects.svg" alt="" />Unlimited projects</li>
-                      <li><img src="/stage-v2-lp/assets/icons/portal.svg" alt="" />Custom client portal</li>
-                      <li><img src="/stage-v2-lp/assets/icons/connect.svg" alt="" />Shared workspace &amp; integrations</li>
-                      <li><img src="/stage-v2-lp/assets/icons/roles.svg" alt="" />Role permissions (owner, designer, viewer)</li>
+                      <li><img src="/stage-v2-lp/assets/icons/ai.svg" alt="" />Everything in Pro</li>
+                      <li><img src="/stage-v2-lp/assets/icons/seats.svg" alt="" />3 seats, $15/mo per extra</li>
+                      <li><img src="/stage-v2-lp/assets/icons/projects.svg" alt="" />18,000 pooled credits/mo (~70 projects)</li>
+                      <li><img src="/stage-v2-lp/assets/icons/connect.svg" alt="" />Shared project workspace</li>
+                      <li><img src="/stage-v2-lp/assets/icons/storage.svg" alt="" />Top up credits anytime</li>
                       <li><img src="/stage-v2-lp/assets/icons/support.svg" alt="" />Priority support</li>
                     </ul>
-                    <a className="btn btn-secondary btn-block" href="/auth">Start 7-Day Trial</a>
+                    <a className="btn btn-secondary btn-block" href="/auth">Start 14-Day Trial</a>
                   </article>
                 </div>
               </div>
@@ -624,378 +618,6 @@ export function StageV2LandingPage() {
           </footer>
       </div>
     </>
-  );
-}
-
-function ProjectsShowcase() {
-  const showcaseRef = useRef<HTMLDivElement | null>(null);
-  const firstImageRef = useRef<HTMLImageElement | null>(null);
-  const secondImageRef = useRef<HTMLImageElement | null>(null);
-
-  useGSAP(
-    () => {
-      const showcase = showcaseRef.current;
-      const firstImage = firstImageRef.current;
-      const secondImage = secondImageRef.current;
-      if (!showcase || !firstImage || !secondImage) return;
-
-      gsap.set(firstImage, {
-        autoAlpha: 1,
-        scale: 1,
-        xPercent: 0,
-        yPercent: 0,
-        transformOrigin: "center center",
-      });
-      gsap.set(secondImage, {
-        autoAlpha: 1,
-        scale: 1,
-        xPercent: 105,
-        yPercent: 0,
-        transformOrigin: "center center",
-      });
-
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        gsap.set(secondImage, { autoAlpha: 0 });
-        return;
-      }
-
-      const timeline = gsap.timeline({ repeat: -1, paused: true });
-      timeline
-        .to(firstImage, {
-          scale: 1.13,
-          yPercent: 6,
-          duration: 1.15,
-          ease: "power2.inOut",
-        })
-        .to({}, { duration: 0.55 })
-        .to(firstImage, {
-          scale: 1.16,
-          yPercent: -7,
-          duration: 1.35,
-          ease: "power2.inOut",
-        })
-        .to({}, { duration: 0.55 })
-        .to(firstImage, {
-          xPercent: -105,
-          duration: 0.72,
-          ease: "power3.inOut",
-        })
-        .to(
-          secondImage,
-          {
-            xPercent: 0,
-            duration: 0.72,
-            ease: "power3.inOut",
-          },
-          "<",
-        )
-        .to(secondImage, {
-          scale: 1.17,
-          xPercent: 7,
-          yPercent: -15,
-          duration: 1.05,
-          ease: "power2.inOut",
-        })
-        .to(secondImage, {
-          xPercent: -7,
-          duration: 1.55,
-          ease: "power2.inOut",
-        })
-        .to({}, { duration: 0.65 })
-        .set(firstImage, { scale: 1, xPercent: 105, yPercent: 0 })
-        .to(secondImage, {
-          xPercent: -105,
-          duration: 0.72,
-          ease: "power3.inOut",
-        })
-        .to(
-          firstImage,
-          {
-            xPercent: 0,
-            duration: 0.72,
-            ease: "power3.inOut",
-          },
-          "<",
-        )
-        .set(secondImage, { scale: 1, xPercent: 105, yPercent: 0 });
-
-      const trigger = ScrollTrigger.create({
-        trigger: showcase,
-        start: "top 90%",
-        end: "bottom 10%",
-        onEnter: () => timeline.play(),
-        onEnterBack: () => timeline.play(),
-        onLeave: () => timeline.pause(),
-        onLeaveBack: () => timeline.pause(),
-      });
-
-      return () => {
-        trigger.kill();
-        timeline.kill();
-      };
-    },
-    { scope: showcaseRef },
-  );
-
-  return (
-    <div ref={showcaseRef} className="projects-showcase" aria-label="Stage projects interface showcase">
-      <img
-        ref={firstImageRef}
-        className="projects-showcase-image"
-        src="/stage-v2-lp/graphics/projects-1.webp"
-        alt="Stage projects overview"
-        loading="lazy"
-      />
-      <img
-        ref={secondImageRef}
-        className="projects-showcase-image"
-        src="/stage-v2-lp/graphics/projects-2.webp"
-        alt="Stage project timeline overview"
-        loading="lazy"
-      />
-    </div>
-  );
-}
-
-function ResearchShowcase() {
-  const showcaseRef = useRef<HTMLDivElement | null>(null);
-  const imageRef = useRef<HTMLImageElement | null>(null);
-
-  useGSAP(
-    () => {
-      const showcase = showcaseRef.current;
-      const image = imageRef.current;
-      if (!showcase || !image) return;
-
-      gsap.set(image, {
-        scale: 1,
-        xPercent: 0,
-        yPercent: 0,
-        transformOrigin: "center center",
-      });
-
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-      const timeline = gsap.timeline({ repeat: -1, paused: true });
-      timeline
-        .to(image, {
-          scale: 1.38,
-          xPercent: 19,
-          yPercent: -19,
-          duration: 1,
-          ease: "power3.inOut",
-        })
-        .to({}, { duration: 0.55 })
-        .to(image, {
-          xPercent: 0,
-          yPercent: -19,
-          duration: 1.05,
-          ease: "power3.inOut",
-        })
-        .to({}, { duration: 0.55 })
-        .to(image, {
-          xPercent: -19,
-          yPercent: -19,
-          duration: 1.05,
-          ease: "power3.inOut",
-        })
-        .to({}, { duration: 0.65 })
-        .to(image, {
-          scale: 1,
-          xPercent: 0,
-          yPercent: 0,
-          duration: 0.72,
-          ease: "power3.inOut",
-        })
-        .to({}, { duration: 0.35 });
-
-      const trigger = ScrollTrigger.create({
-        trigger: showcase,
-        start: "top 90%",
-        end: "bottom 10%",
-        onEnter: () => timeline.play(),
-        onEnterBack: () => timeline.play(),
-        onLeave: () => timeline.pause(),
-        onLeaveBack: () => timeline.pause(),
-      });
-
-      return () => {
-        trigger.kill();
-        timeline.kill();
-      };
-    },
-    { scope: showcaseRef },
-  );
-
-  return (
-    <div ref={showcaseRef} className="research-showcase" aria-label="Stage research interface showcase">
-      <img
-        ref={imageRef}
-        className="research-showcase-image"
-        src="/stage-v2-lp/graphics/research.webp"
-        alt="Stage research workspace"
-        loading="lazy"
-      />
-    </div>
-  );
-}
-
-function StrategyToScreensShowcase() {
-  const showcaseRef = useRef<HTMLDivElement | null>(null);
-  const imageRef = useRef<HTMLImageElement | null>(null);
-
-  useGSAP(
-    () => {
-      const showcase = showcaseRef.current;
-      const image = imageRef.current;
-      if (!showcase || !image) return;
-
-      gsap.set(image, {
-        scale: 1,
-        xPercent: 0,
-        yPercent: 0,
-        transformOrigin: "center center",
-      });
-
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-      const timeline = gsap.timeline({ repeat: -1, paused: true });
-      timeline
-        .to(image, {
-          scale: 1.42,
-          xPercent: 21,
-          yPercent: 0,
-          duration: 1.05,
-          ease: "power2.inOut",
-        })
-        .to({}, { duration: 0.35 })
-        .to(image, {
-          xPercent: -21,
-          yPercent: 0,
-          duration: 1.1,
-          ease: "power2.inOut",
-        })
-        .to({}, { duration: 0.4 })
-        .to(image, {
-          xPercent: 0,
-          yPercent: -21,
-          duration: 1.15,
-          ease: "power2.inOut",
-        })
-        .to({}, { duration: 0.8 })
-        .to(image, {
-          scale: 1,
-          xPercent: 0,
-          yPercent: 0,
-          duration: 0.9,
-          ease: "power3.inOut",
-        })
-        .to({}, { duration: 0.45 });
-
-      const trigger = ScrollTrigger.create({
-        trigger: showcase,
-        start: "top 90%",
-        end: "bottom 10%",
-        onEnter: () => timeline.play(),
-        onEnterBack: () => timeline.play(),
-        onLeave: () => timeline.pause(),
-        onLeaveBack: () => timeline.pause(),
-      });
-
-      return () => {
-        trigger.kill();
-        timeline.kill();
-      };
-    },
-    { scope: showcaseRef },
-  );
-
-  return (
-    <div ref={showcaseRef} className="strategy-showcase" aria-label="Stage strategy to screens showcase">
-      <img
-        ref={imageRef}
-        className="strategy-showcase-image"
-        src="/stage-v2-lp/graphics/strategy-to-screens.webp"
-        alt="Stage strategy and generated screens workspace"
-        loading="lazy"
-      />
-    </div>
-  );
-}
-
-function FeedbackShowcase() {
-  const showcaseRef = useRef<HTMLDivElement | null>(null);
-  const imageRef = useRef<HTMLImageElement | null>(null);
-
-  useGSAP(
-    () => {
-      const showcase = showcaseRef.current;
-      const image = imageRef.current;
-      if (!showcase || !image) return;
-
-      gsap.set(image, {
-        scale: 1,
-        xPercent: 0,
-        yPercent: 0,
-        transformOrigin: "center center",
-      });
-
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-      const timeline = gsap.timeline({ repeat: -1, paused: true });
-      timeline
-        .to(image, {
-          scale: 1.3,
-          xPercent: 15,
-          yPercent: -15,
-          duration: 1.05,
-          ease: "power3.inOut",
-        })
-        .to({}, { duration: 0.75 })
-        .to(image, {
-          xPercent: -15,
-          yPercent: -15,
-          duration: 1.35,
-          ease: "power3.inOut",
-        })
-        .to({}, { duration: 0.85 })
-        .to(image, {
-          scale: 1,
-          xPercent: 0,
-          yPercent: 0,
-          duration: 0.75,
-          ease: "power3.inOut",
-        })
-        .to({}, { duration: 0.35 });
-
-      const trigger = ScrollTrigger.create({
-        trigger: showcase,
-        start: "top 90%",
-        end: "bottom 10%",
-        onEnter: () => timeline.play(),
-        onEnterBack: () => timeline.play(),
-        onLeave: () => timeline.pause(),
-        onLeaveBack: () => timeline.pause(),
-      });
-
-      return () => {
-        trigger.kill();
-        timeline.kill();
-      };
-    },
-    { scope: showcaseRef },
-  );
-
-  return (
-    <div ref={showcaseRef} className="feedback-showcase" aria-label="Stage client feedback showcase">
-      <img
-        ref={imageRef}
-        className="feedback-showcase-image"
-        src="/stage-v2-lp/graphics/feedback.webp"
-        alt="Stage client feedback workspace"
-        loading="lazy"
-      />
-    </div>
   );
 }
 
