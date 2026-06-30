@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { Link } from "@tanstack/react-router";
 import { DownstreamStepsDialog } from "@/components/project/DownstreamStepsDialog";
 import { ResearchRerunDialog } from "@/components/project/ResearchRerunDialog";
 import { useAfterUpstreamRunPrompt } from "@/hooks/project/useAfterUpstreamRunPrompt";
@@ -56,6 +58,7 @@ export function ResearchTab({
   const [isRerunDialogOpen, setIsRerunDialogOpen] = useState(false);
   const [regeneratingSection, setRegeneratingSection] = useState<ResearchArtifactSection | null>(null);
   const [isGenerateStrategyDialogOpen, setIsGenerateStrategyDialogOpen] = useState(false);
+  const [isNotionConnectDialogOpen, setIsNotionConnectDialogOpen] = useState(false);
 
   const research = useResearchTab(project);
   const clearForRerun = useClearResearchAndStrategyForRerun(project.id);
@@ -400,6 +403,10 @@ export function ResearchTab({
               isRunBusy={isRunBusy}
               onExportToNotion={() => {
                 notionExport.setExportError(null);
+                if (!notionExport.isNotionConnected) {
+                  setIsNotionConnectDialogOpen(true);
+                  return;
+                }
                 void notionExport.exportToNotion();
               }}
               isExporting={notionExport.isExporting}
@@ -420,6 +427,35 @@ export function ResearchTab({
         isSubmitting={notionExport.isExporting}
         errorMessage={notionExport.exportError}
       />
+      <Dialog.Root open={isNotionConnectDialogOpen} onOpenChange={setIsNotionConnectDialogOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-[rgba(10,10,10,0.22)]" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-24px)] max-w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-[12px] bg-white p-5 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] outline-none">
+            <Dialog.Title className="text-[15px] font-medium leading-none text-[#171717]">
+              Connect Notion
+            </Dialog.Title>
+            <Dialog.Description className="mt-3 text-[13px] font-medium leading-[1.5] text-[#525252]">
+              Connect Notion before exporting this research report.
+            </Dialog.Description>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsNotionConnectDialogOpen(false)}
+                className="inline-flex h-[37px] items-center rounded-[6px] bg-[#F5F5F5] px-3 text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] hover:bg-[#ECECEC]"
+              >
+                Cancel
+              </button>
+              <Link
+                to="/integrations"
+                onClick={() => setIsNotionConnectDialogOpen(false)}
+                className="inline-flex h-[37px] items-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-3 text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+              >
+                Open integrations
+              </Link>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
       <GenerateStrategyRunDialog
         open={isGenerateStrategyDialogOpen}
         onOpenChange={setIsGenerateStrategyDialogOpen}

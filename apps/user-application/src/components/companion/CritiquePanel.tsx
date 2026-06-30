@@ -703,8 +703,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       <header className="chat-panel-header">
         <div className="chat-panel-drag-region" {...dragHandlers}>
         <div className="chat-panel-title">
-          <img className="stage-mark" src="/logos/stage.svg" alt="" aria-hidden="true" />
-          <strong>Stage</strong>
+          <img className="stage-mark" src="/logos/logotype.svg" alt="" aria-hidden="true" />
         </div>
         </div>
         <div className="chat-panel-actions">
@@ -809,8 +808,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
                 <span>You</span>
               ) : (
                 <div className="chat-message-label">
-                  <img className="stage-mark stage-mark-small" src="/logos/stage.svg" alt="" aria-hidden="true" />
-                  <strong>Stage</strong>
+                  <img className="stage-mark stage-mark-small" src="/logos/logotype.svg" alt="" aria-hidden="true" />
                 </div>
               )}
               {isPendingStageMessage ? (
