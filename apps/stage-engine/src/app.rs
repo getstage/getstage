@@ -10,6 +10,7 @@ use crate::convex_store::moodboard_repository::MoodboardRepository;
 use crate::convex_store::research_repository::ResearchRepository;
 use crate::convex_store::strategy_repository::StrategyRepository;
 use crate::convex_store::wireframes_repository::WireframesRepository;
+use crate::convex_store::asset_upload::ConvexAssetUploader;
 use crate::exports::delivery::paper::PaperClient;
 use crate::exports::delivery::service::DeliveryExportService;
 use crate::exports::figma::repository::FigmaExportRepository;
@@ -83,9 +84,11 @@ impl AppState {
                 Some(flows),
                 Some(wireframes),
             )),
-            figma_exports: Arc::new(FigmaExportService::new(FigmaExportRepository::new(
-                &config.convex,
-            ))),
+            figma_exports: Arc::new(FigmaExportService::new(
+                FigmaExportRepository::new(&config.convex),
+                ConvexAssetUploader::new(config.convex.deployment_url.clone()),
+                config.r2_public_base_url.clone(),
+            )),
             delivery_exports: Arc::new(DeliveryExportService::new(
                 FigmaExportRepository::new(&config.convex),
                 PaperClient::new(&config.paper)?,

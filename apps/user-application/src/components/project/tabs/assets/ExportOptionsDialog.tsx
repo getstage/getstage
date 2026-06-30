@@ -48,6 +48,8 @@ export function ExportOptionsDialog({
   );
   const option = options.find((item) => item.id === selectedOption) ?? options[2];
   const message = exportError ?? deliveryError ?? exportJob?.errorMessage;
+  const isPreparingFigmaExport =
+    selectedOption === "figma" && isExporting && !exportRequest && !message;
 
   async function handleExport() {
     if (!asset) return;
@@ -126,6 +128,12 @@ export function ExportOptionsDialog({
               </p>
             ) : null}
 
+            {isPreparingFigmaExport ? (
+              <p className="mx-3 mt-3 rounded-[6px] bg-[#F5F3FF] p-2 text-[12px] text-[#4C1D95]" role="status">
+                Preparing the Hi-Fi preview for Figma. Large wireframes can take up to a minute.
+              </p>
+            ) : null}
+
             {message ? (
               <p className="mx-3 mt-3 rounded-[6px] bg-[#FEF2F2] p-2 text-[12px] text-[#991B1B]">
                 {message}
@@ -150,7 +158,7 @@ export function ExportOptionsDialog({
                 aria-label={asset ? `${option.actionLabel} ${asset.title}` : option.actionLabel}
               >
                 <img src={option.iconSrc} alt="" className="h-[15px] w-[15px] shrink-0 object-contain" />
-                {isExporting ? "Starting..." : option.actionLabel}
+                {isPreparingFigmaExport ? "Preparing..." : isExporting ? "Starting..." : option.actionLabel}
               </button>
             </div>
           </div>

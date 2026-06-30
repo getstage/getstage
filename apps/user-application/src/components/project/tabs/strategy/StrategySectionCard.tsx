@@ -41,6 +41,7 @@ export function StrategySectionCard({
   onEmojiChange,
   onDelete,
   onApprove,
+  onUnapprove,
   onRegenerate,
 }: {
   section: StrategySection;
@@ -51,6 +52,7 @@ export function StrategySectionCard({
   onEmojiChange: (emoji: string) => void;
   onDelete?: () => void;
   onApprove: () => void;
+  onUnapprove: () => void;
   onRegenerate: () => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -189,6 +191,17 @@ export function StrategySectionCard({
                 >
                   <RegenerateIcon />
                   {isRegenerating ? "Regenerating…" : "Regenerate with AI"}
+                </button>
+              </div>
+            ) : null}
+            {!isEditing && section.status === "approved" ? (
+              <div className="flex flex-wrap items-center gap-1">
+                <button
+                  type="button"
+                  onClick={onUnapprove}
+                  className="inline-flex h-[27px] cursor-pointer items-center gap-2 rounded-[4px] bg-white px-3 py-[6px] text-[12px] font-medium leading-[1.25] text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#F5F5F5]"
+                >
+                  Un-approve
                 </button>
               </div>
             ) : null}

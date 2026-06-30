@@ -48,6 +48,7 @@ export function useAssetsTab(
         source: "AI Generated",
         priority: screen.priority,
         figmaUrl: screen.figmaUrl,
+        html: screen.html,
         sections: screen.sections,
       })) ?? [];
 

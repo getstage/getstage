@@ -36,6 +36,12 @@ export function useWireframeBrandKit(projectId: string) {
     api.r2.listWireframeBrandKit,
     projectId ? { projectId: projectId as Id<"projects"> } : "skip",
   );
+  // True only while we are still fetching the durable brand kit list from Convex,
+  // so callers can distinguish "no files yet because the query is loading" from
+  // "no files because the user never uploaded any". Without this a brand-kit run
+  // started right after a tab remount would silently send zero keys and the
+  // engine would fall back to generic tokens with no error.
+  const isPersistedLoading = persisted === undefined && Boolean(projectId);
 
   // Local rows track in-flight uploads (uploading/failed) and, on success, mirror the
   // persisted key so the reactive query and local state dedupe to a single row.
@@ -176,6 +182,7 @@ export function useWireframeBrandKit(projectId: string) {
     removeFile,
     uploadedKeys,
     isUploading,
+    isLoading: isPersistedLoading,
     hasUploadedFile: uploadedKeys.length > 0,
     error,
   };

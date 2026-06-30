@@ -37,11 +37,13 @@ export function SecondaryButton({
   onClick,
   purple,
   size = "compact",
+  disabled,
 }: {
   children: ReactNode;
   onClick?: () => void;
   purple?: boolean;
   size?: "compact" | "action";
+  disabled?: boolean;
 }) {
   const heightClass = size === "action" ? "h-[38px]" : "h-[32px]";
 
@@ -49,7 +51,8 @@ export function SecondaryButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex ${heightClass} items-center justify-center gap-2 rounded-[6px] bg-white pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA] ${
+      disabled={disabled}
+      className={`inline-flex ${heightClass} items-center justify-center gap-2 rounded-[6px] bg-white pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-50 ${
         purple ? "text-[#7C3AED]" : "text-[#525252]"
       }`}
     >

@@ -6,6 +6,12 @@ pub struct WireframeDeliveryRequest {
     pub project_id: String,
     pub artifact_id: String,
     pub screen_id: String,
+    #[serde(default)]
+    pub hifi_preview_data_url: Option<String>,
+    #[serde(default)]
+    pub hifi_preview_width: Option<u16>,
+    #[serde(default)]
+    pub hifi_preview_height: Option<u16>,
 }
 
 #[derive(Clone, Debug, Serialize)]

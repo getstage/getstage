@@ -1,22 +1,7 @@
-import { useEffect, useState } from "react";
 import { DoneCircleIcon, PendingIcon, SpinnerIcon } from "./wireframesIcons";
 
-function formatElapsed(totalSeconds: number): string {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-}
-
-export function GeneratingStep() {
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-
-  useEffect(() => {
-    const startedAt = Date.now();
-    const intervalId = window.setInterval(() => {
-      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
-    }, 1000);
-    return () => window.clearInterval(intervalId);
-  }, []);
+export function GeneratingStep({ mode = "generate" }: { mode?: "generate" | "regenerate" }) {
+  const isRegenerate = mode === "regenerate";
 
   return (
     <div className="flex w-[330px] flex-col items-center gap-6 text-center">
@@ -29,19 +14,20 @@ export function GeneratingStep() {
         />
       </div>
       <div className="flex w-full flex-col items-center gap-2">
-        <h2 className="text-[16px] font-semibold leading-[1.25] text-[#171717]">Creating Wireframe</h2>
+        <h2 className="text-[16px] font-semibold leading-[1.25] text-[#171717]">
+          {isRegenerate ? "Regenerating Wireframes" : "Creating Wireframe"}
+        </h2>
         <p className="w-[282px] text-[13px] font-medium leading-[1.5] text-[#525252]">
-          Hold tight, we&apos;re building your wireframes based on the moodboard and
+          {isRegenerate
+            ? "Hold tight, we\u2019re rebuilding the selected screens with your current brand context."
+            : "Hold tight, we\u2019re building your wireframes based on the moodboard and flows."}
         </p>
-        <span className="mt-1 font-mono text-[13px] font-medium tabular-nums leading-[1.5] text-[#737373]">
-          Elapsed {formatElapsed(elapsedSeconds)}
-        </span>
       </div>
       <div className="flex flex-col items-start gap-2 text-[13px] font-medium leading-[1.5] text-[#525252]">
         <ProgressRow done label="Scanned Moodboard" />
         <ProgressRow done label="Scanned Flows" />
-        <ProgressRow loading label="Creating Layouts" />
-        <ProgressRow label="Create Wireframes" />
+        <ProgressRow loading label={isRegenerate ? "Regenerating Screens" : "Creating Layouts"} />
+        <ProgressRow label={isRegenerate ? "Updating Wireframes" : "Create Wireframes"} />
       </div>
     </div>
   );

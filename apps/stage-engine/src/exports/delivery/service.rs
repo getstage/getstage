@@ -52,13 +52,20 @@ impl DeliveryExportService {
         request: WireframeDeliveryRequest,
     ) -> anyhow::Result<PaperExportResponse> {
         let screen = self.load_screen(token, &request).await?;
+        let width = request.hifi_preview_width.unwrap_or(1440).max(1);
+        let height = request.hifi_preview_height.unwrap_or(1000).max(1000);
         let artboard_id = self
             .paper
             .write_wireframe(
                 &format!("{} Wireframe", screen.title),
-                1440,
-                1000,
-                &compile_paper_html(&screen),
+                width,
+                height,
+                &compile_paper_html(
+                    &screen,
+                    request.hifi_preview_data_url.as_deref(),
+                    width,
+                    height,
+                ),
             )
             .await?;
         Ok(PaperExportResponse {
@@ -107,12 +114,29 @@ impl DeliveryExportService {
 }
 
 fn compile_html(screen: &GeneratedScreen) -> String {
+    // Hi-Fi screens carry a finished, self-contained HTML fragment with its own
+    // <style>; the code export is simply that design wrapped in a document with a
+    // minimal reset (matching the in-app preview) so the file renders identically.
+    // Lo-Fi screens compile their gray-block outline from `sections`/`blocks`.
+    let (css, body) = match hifi_fragment(screen) {
+        Some(fragment) => (RESET_CSS, fragment.to_string()),
+        None => (CSS, compile_body(screen)),
+    };
     format!(
         "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{}</title><style>{}</style></head><body>{}</body></html>\n",
         escape(&screen.title),
-        CSS,
-        compile_body(screen)
+        css,
+        body
     )
+}
+
+// Returns the Hi-Fi HTML fragment when the screen has a non-empty one.
+fn hifi_fragment(screen: &GeneratedScreen) -> Option<&str> {
+    screen
+        .html
+        .as_deref()
+        .map(str::trim)
+        .filter(|fragment| !fragment.is_empty())
 }
 
 fn compile_body(screen: &GeneratedScreen) -> String {
@@ -145,7 +169,19 @@ fn compile_body(screen: &GeneratedScreen) -> String {
     )
 }
 
-fn compile_paper_html(screen: &GeneratedScreen) -> String {
+fn compile_paper_html(
+    screen: &GeneratedScreen,
+    hifi_preview_data_url: Option<&str>,
+    width: u16,
+    height: u16,
+) -> String {
+    if let Some(data_url) = hifi_preview_data_url.filter(|value| !value.trim().is_empty()) {
+        return format!(
+            "<div style=\"width:{width}px;min-height:{height}px;background:#ffffff;\"><img src=\"{}\" width=\"{width}\" height=\"{height}\" style=\"display:block;width:{width}px;height:{height}px;object-fit:contain;\" /></div>",
+            escape(data_url)
+        );
+    }
+
     let sections = screen
         .sections
         .iter()
@@ -208,14 +244,35 @@ fn slug(value: &str) -> String {
     }
 }
 
+// Minimal reset for Hi-Fi code exports. Mirrors the in-app preview document
+// (WireframeHtmlPreview.buildWireframePreviewDocument) so the exported file
+// renders identically to what the user previews in Stage.
+const RESET_CSS: &str = "*,*::before,*::after{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;color:#171717;background:#ffffff}img{max-width:100%}";
+
 const CSS: &str = "*{box-sizing:border-box}body{margin:0;background:#f5f5f5;color:#171717;font-family:Inter,system-ui,sans-serif}main{max-width:1440px;margin:0 auto;padding:40px}header,section{margin-bottom:24px}h1,h2,p{margin:0}header p{color:#737373;font-size:12px;text-transform:uppercase;letter-spacing:.12em}header h1{margin-top:8px;font-size:32px}.blocks{display:grid;gap:8px;margin-top:12px}.block{min-height:140px;padding:24px;border:1px solid #d4d4d4;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:space-between}.block.primary{min-height:240px}.block.tertiary{min-height:80px}.block span{color:#737373;font-size:11px;text-transform:uppercase}";
 
 #[cfg(test)]
 mod tests {
-    use super::slug;
+    use super::{GeneratedScreen, compile_html, slug};
 
     #[test]
     fn slug_should_create_safe_directory_name() {
         assert_eq!(slug("Home / Landing"), "home-landing-wireframe");
+    }
+
+    #[test]
+    fn compile_html_should_emit_the_hifi_fragment_verbatim() {
+        let screen = GeneratedScreen {
+            id: "home".to_string(),
+            title: "Homepage".to_string(),
+            sections: Vec::new(),
+            html: Some("<div class=\"hero\"><h1>Ship faster</h1></div>".to_string()),
+        };
+
+        let document = compile_html(&screen);
+
+        assert!(document.contains("<div class=\"hero\"><h1>Ship faster</h1></div>"));
+        // The block-layout scaffolding must not appear for a Hi-Fi screen.
+        assert!(!document.contains("Stage wireframe"));
     }
 }

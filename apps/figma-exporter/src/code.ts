@@ -15,6 +15,15 @@ type FigmaWritePlan = {
   }>;
 };
 
+type HifiFigmaWritePlan = {
+  apiVersion: "v1";
+  kind: "hifi-wireframe";
+  name: string;
+  width: number;
+  height: number;
+  imageUrl: string;
+};
+
 type FigJamWritePlan = {
   apiVersion: "v1";
   kind: "figjam-flow-map";
@@ -27,7 +36,7 @@ type FigJamWritePlan = {
   }>;
 };
 
-type CanvasWritePlan = FigmaWritePlan | FigJamWritePlan;
+type CanvasWritePlan = FigmaWritePlan | HifiFigmaWritePlan | FigJamWritePlan;
 
 type ClaimResponse = {
   jobId: string;
@@ -65,13 +74,17 @@ figma.ui.onmessage = async (message: { type?: string; pairingCode?: string }) =>
       "working",
       claim.writePlan.kind === "figjam-flow-map"
         ? "Creating editable FigJam flow map..."
-        : "Creating editable Figma layers...",
+        : claim.writePlan.kind === "hifi-wireframe"
+          ? "Placing Hi-Fi wireframe image..."
+          : "Creating editable Figma layers...",
     );
 
     const execution =
       claim.writePlan.kind === "figjam-flow-map"
         ? await executeFigJamWritePlan(claim.writePlan)
-        : await executeFigmaWritePlan(claim.writePlan);
+        : claim.writePlan.kind === "hifi-wireframe"
+          ? await executeHifiFigmaWritePlan(claim.writePlan)
+          : await executeFigmaWritePlan(claim.writePlan);
     const root = execution.root;
     createdNodes = execution.nodes;
     const fileKey = figma.fileKey;
@@ -116,6 +129,9 @@ function friendlyError(rawMessage: string): string {
   }
   if (msg.indexOf("open a figma design file") !== -1) {
     return "This export needs a Figma Design file. Open a Figma Design file (not FigJam) and run the plugin again.";
+  }
+  if (msg.indexOf("image") !== -1 || msg.indexOf("fetch") !== -1) {
+    return "The Hi-Fi preview image could not be loaded. Republish the Stage Exporter plugin with the latest manifest, then try again.";
   }
   if (msg.indexOf("pairing code is invalid or expired") !== -1) {
     return "The pairing code expired. Click Send to FigJam in Stage to get a new code.";
@@ -211,6 +227,27 @@ async function executeFigmaWritePlan(plan: FigmaWritePlan) {
       block.appendChild(kind);
     }
   }
+
+  return { root, nodes: [root] };
+}
+
+async function executeHifiFigmaWritePlan(plan: HifiFigmaWritePlan) {
+  if (figma.editorType !== "figma") {
+    throw new Error("Open a Figma Design file for this wireframe export.");
+  }
+
+  const image = await figma.createImageAsync(plan.imageUrl);
+  const root = figma.createFrame();
+  root.name = plan.name;
+  root.resize(plan.width, plan.height);
+  root.clipsContent = true;
+  root.fills = [
+    {
+      type: "IMAGE",
+      imageHash: image.hash,
+      scaleMode: "FILL",
+    },
+  ];
 
   return { root, nodes: [root] };
 }

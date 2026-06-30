@@ -32,6 +32,10 @@ import {
   SaveIcon,
 } from "./strategyIcons";
 
+// Matches the engine run source that regenerates only not-yet-approved sections,
+// leaving approved sections untouched (apps/stage-engine/src/strategy/section.rs).
+const REGENERATE_UNAPPROVED_SOURCE = "sections:unapproved";
+
 type StrategyTabProps = {
   project: Pick<Project, "id" | "name" | "clientName">;
   onGoToResearch: () => void;
@@ -154,7 +158,7 @@ export function StrategyTab({
   async function handleGenerateStrategy(
     input?: ValidatedStrategyGenerateInput,
     providerId?: ProviderId,
-    options?: { isFullRegenerate?: boolean },
+    options?: { isFullRegenerate?: boolean; regenerateUnapprovedOnly?: boolean },
   ) {
     setRunError(null);
 
@@ -165,7 +169,11 @@ export function StrategyTab({
     }
 
     try {
-      await strategy.startStrategy(input, providerId);
+      await strategy.startStrategy(
+        input,
+        providerId,
+        options?.regenerateUnapprovedOnly ? { source: REGENERATE_UNAPPROVED_SOURCE } : undefined,
+      );
     } catch (error) {
       setRunError(error instanceof Error ? error.message : "Could not generate Strategy.");
       if (options?.isFullRegenerate) {
@@ -217,6 +225,18 @@ export function StrategyTab({
   async function approveSection(sectionId: string) {
     const nextSections = sections.map((section) =>
       section.id === sectionId ? { ...section, status: "approved" as const } : section,
+    );
+
+    try {
+      await persistSections(nextSections);
+    } catch {
+      // saveError already set
+    }
+  }
+
+  async function unapproveSection(sectionId: string) {
+    const nextSections = sections.map((section) =>
+      section.id === sectionId ? { ...section, status: "action" as const } : section,
     );
 
     try {
@@ -583,6 +603,7 @@ export function StrategyTab({
                   ? () => setEditSections((current) => current.filter((item) => item.id !== section.id))
                   : undefined}
                 onApprove={() => void approveSection(section.id)}
+                onUnapprove={() => void unapproveSection(section.id)}
                 onRegenerate={() => void handleRegenerateSection(section.id)}
               />
             ))}
@@ -648,7 +669,13 @@ export function StrategyTab({
         onOpenChange={setIsRegenerateDialogOpen}
         initialValues={regenerateFormInitialValues}
         isSubmitting={isRunBusy}
-        onSubmit={(input, providerId) => void handleGenerateStrategy(input, providerId, { isFullRegenerate: true })}
+        approvedSectionCount={approvedCount}
+        onSubmit={(input, providerId) =>
+          void handleGenerateStrategy(input, providerId, {
+            isFullRegenerate: true,
+            regenerateUnapprovedOnly: approvedCount > 0,
+          })
+        }
         providerOptions={providerOptions}
         selectedProviderId={selectedProviderId}
         onSelectProvider={selectProvider}

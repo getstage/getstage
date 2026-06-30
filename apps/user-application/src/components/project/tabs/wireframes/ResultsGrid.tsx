@@ -1,11 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { WireframeResultCard } from "@/lib/project/mapWireframesArtifactToTabData";
 import { formatRelativeTime } from "@/lib/utils";
-import type {
-  WireframeKind,
-} from "@/types/project/wireframesTab";
-import { Badge, SecondaryButton } from "./WireframePrimitives";
-import { ArrowRightIcon, ImageIcon, SparkleIcon } from "./wireframesIcons";
+import type { WireframeKind } from "@/types/project/wireframesTab";
+import { Badge, PrimaryButton, SecondaryButton } from "./WireframePrimitives";
+import { ArrowRightIcon, CheckIcon, ImageIcon, SparkleIcon } from "./wireframesIcons";
 import { WireframeBlockPreview } from "./WireframeBlockPreview";
 import {
   WireframeHtmlPreviewDialog,
@@ -17,31 +15,83 @@ export function ResultsGrid({
   cards,
   onConvert,
   onExport,
+  isGenerating = false,
+  regenerateMode = false,
+  selectedRegenerateIds,
+  regeneratingScreenIds,
+  onStartRegenerate,
+  onCancelRegenerate,
+  onToggleRegenerateSelection,
+  onConfirmRegenerate,
+  // Optional slot rendered above the grid during regenerate mode. The parent
+  // owns the source picker + style-direction select so this grid stays a pure
+  // presentation component; the confirm reads whatever state the parent wired
+  // through onConfirmRegenerate.
+  regeneratePicker = null,
 }: {
   wireframeKind: WireframeKind;
   cards: WireframeResultCard[];
   onConvert: () => void;
   onExport: (cardId: string) => void;
+  isGenerating?: boolean;
+  regenerateMode?: boolean;
+  selectedRegenerateIds: Set<string>;
+  regeneratingScreenIds?: string[] | null;
+  onStartRegenerate: () => void;
+  onCancelRegenerate: () => void;
+  onToggleRegenerateSelection: (cardId: string) => void;
+  onConfirmRegenerate: () => void;
+  regeneratePicker?: ReactNode;
 }) {
   const title = wireframeKind === "hifi" ? "Hi-Fi Wireframes" : "Lo-Fi Wireframes";
+  const selectedCount = selectedRegenerateIds.size;
+  const regeneratingSet = new Set(regeneratingScreenIds ?? []);
 
   return (
     <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex items-end justify-between gap-4 p-4">
         <h2 className="text-[15px] font-medium leading-[1.25] text-[#171717]">{title}</h2>
-        {wireframeKind === "lofi" ? (
-          <SecondaryButton purple onClick={onConvert}>
-            Convert to High-fi
-            <ArrowRightIcon />
-          </SecondaryButton>
-        ) : null}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {wireframeKind === "hifi" ? (
+            regenerateMode ? (
+              <>
+                <SecondaryButton onClick={onCancelRegenerate}>Cancel</SecondaryButton>
+                <PrimaryButton
+                  onClick={onConfirmRegenerate}
+                  disabled={selectedCount === 0 || isGenerating}
+                >
+                  Regenerate {selectedCount > 0 ? selectedCount : ""} screen
+                  {selectedCount === 1 ? "" : "s"}
+                  <ArrowRightIcon />
+                </PrimaryButton>
+              </>
+            ) : (
+              <SecondaryButton purple onClick={onStartRegenerate} disabled={isGenerating}>
+                Regenerate
+              </SecondaryButton>
+            )
+          ) : null}
+          {wireframeKind === "lofi" ? (
+            <SecondaryButton purple onClick={onConvert} disabled={isGenerating}>
+              Convert to High-fi
+              <ArrowRightIcon />
+            </SecondaryButton>
+          ) : null}
+        </div>
       </div>
+      {regenerateMode && regeneratePicker ? (
+        <div className="px-4 pb-4">{regeneratePicker}</div>
+      ) : null}
       <div className="grid gap-1 lg:grid-cols-3">
         {cards.map((card, index) => (
           <WireframeCard
             key={`${card.id}-${index}`}
             card={card}
             onExport={() => onExport(card.id)}
+            regenerateMode={regenerateMode}
+            isSelected={selectedRegenerateIds.has(card.id)}
+            isRegenerating={regeneratingSet.has(card.id)}
+            onToggleRegenerate={() => onToggleRegenerateSelection(card.id)}
           />
         ))}
       </div>
@@ -52,9 +102,17 @@ export function ResultsGrid({
 export function WireframeCard({
   card,
   onExport,
+  regenerateMode = false,
+  isSelected = false,
+  isRegenerating = false,
+  onToggleRegenerate,
 }: {
   card: WireframeResultCard;
   onExport: () => void;
+  regenerateMode?: boolean;
+  isSelected?: boolean;
+  isRegenerating?: boolean;
+  onToggleRegenerate?: () => void;
 }) {
   const [, setRelativeTimeTick] = useState(0);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -76,23 +134,54 @@ export function WireframeCard({
     return () => window.clearInterval(intervalId);
   }, [card.generatedAt]);
 
+  const preview = hasHtml && html ? (
+    <WireframeHtmlThumbnail html={html} />
+  ) : hasBlocks ? (
+    <WireframeBlockPreview sections={sections} />
+  ) : (
+    <ImageIcon />
+  );
+
   return (
-    <article className="flex h-[336px] flex-col rounded-[8px] bg-white p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      {hasHtml && html ? (
+    <article
+      className={`flex h-[336px] flex-col rounded-[8px] bg-white p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${
+        isRegenerating ? "opacity-70" : ""
+      }`}
+    >
+      {regenerateMode ? (
+        <button
+          type="button"
+          onClick={onToggleRegenerate}
+          className={`relative flex min-h-0 flex-1 cursor-pointer items-stretch justify-center overflow-hidden rounded-[6px] p-2 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] ${
+            isSelected ? "bg-[#E7E6FD] ring-2 ring-[#7B76DF]" : "bg-[#E5E5E5]"
+          }`}
+        >
+          <span
+            className={`absolute left-3 top-3 flex h-4 w-4 items-center justify-center rounded-[4px] ${
+              isSelected ? "bg-[#0A0A0A] text-white" : "bg-white text-transparent"
+            }`}
+          >
+            <CheckIcon />
+          </span>
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[4px] bg-[#E5E5E5] p-2">
+            {preview}
+          </div>
+        </button>
+      ) : hasHtml && html ? (
         <button
           type="button"
           onClick={() => setPreviewOpen(true)}
           title="Open full preview"
           className="flex min-h-0 flex-1 cursor-pointer items-stretch justify-center overflow-hidden rounded-[6px] bg-[#E5E5E5] p-2 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-shadow hover:shadow-[0_0.45px_2px_rgba(10,10,10,0.35)]"
         >
-          <WireframeHtmlThumbnail html={html} />
+          {preview}
         </button>
       ) : (
         <div className="flex min-h-0 flex-1 items-center justify-center rounded-[6px] bg-[#E5E5E5] p-2 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
-          {hasBlocks ? <WireframeBlockPreview sections={sections} /> : <ImageIcon />}
+          {preview}
         </div>
       )}
-      {hasHtml && html ? (
+      {hasHtml && html && !regenerateMode ? (
         <WireframeHtmlPreviewDialog
           html={html}
           title={`${card.title} Wireframe`}
@@ -111,19 +200,22 @@ export function WireframeCard({
             </div>
             <div className="mt-[7px] flex items-center gap-2 text-[12px] font-medium leading-[1.5] text-[#737373]">
               <SparkleIcon />
-              AI Generated
+              {isRegenerating ? "Regenerating..." : "AI Generated"}
             </div>
             <p className="mt-[3px] text-[12px] font-medium leading-[1.5] text-[#737373]">
               {generatedAtLabel}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onExport}
-            className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[6px] border border-[#D4D4D4] bg-[#F5F5F5] px-3 text-[13px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EDEDED]"
-          >
-            Export
-          </button>
+          {!regenerateMode ? (
+            <button
+              type="button"
+              onClick={onExport}
+              disabled={isRegenerating}
+              className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[6px] border border-[#D4D4D4] bg-[#F5F5F5] px-3 text-[13px] font-medium leading-none text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#EDEDED] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Export
+            </button>
+          ) : null}
         </div>
       </div>
     </article>

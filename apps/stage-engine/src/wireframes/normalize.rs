@@ -121,6 +121,89 @@ pub fn normalize_wireframes_artifact(
     Ok(JsonValue::Object(normalized))
 }
 
+pub fn merge_regenerated_screens(
+    existing_artifact_json: &str,
+    partial_artifact: JsonValue,
+    screen_ids: &[String],
+) -> anyhow::Result<JsonValue> {
+    let existing = serde_json::from_str::<JsonValue>(existing_artifact_json)
+        .context("existing wireframes artifact is invalid")?;
+    let existing_object = existing
+        .as_object()
+        .context("existing wireframes artifact was not a JSON object")?;
+    let partial_object = partial_artifact
+        .as_object()
+        .context("regenerated wireframes artifact was not a JSON object")?;
+
+    let partial_screens = partial_object
+        .get("generatedScreens")
+        .and_then(JsonValue::as_array)
+        .cloned()
+        .unwrap_or_default();
+    if partial_screens.is_empty() {
+        bail!("The AI response did not contain regenerated wireframe screens.");
+    }
+
+    let existing_screens = existing_object
+        .get("generatedScreens")
+        .and_then(JsonValue::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let regen_ids: std::collections::HashSet<&str> =
+        screen_ids.iter().map(String::as_str).collect();
+
+    for screen_id in screen_ids {
+        let found = existing_screens
+            .iter()
+            .any(|screen| screen.get("id").and_then(JsonValue::as_str) == Some(screen_id.as_str()));
+        if !found {
+            bail!("Screen {screen_id} was not found in the existing wireframes artifact.");
+        }
+    }
+
+    for screen_id in screen_ids {
+        let regenerated = partial_screens
+            .iter()
+            .any(|screen| screen.get("id").and_then(JsonValue::as_str) == Some(screen_id.as_str()));
+        if !regenerated {
+            bail!("The AI response did not regenerate screen {screen_id}.");
+        }
+    }
+
+    let merged_screens = existing_screens
+        .into_iter()
+        .map(|screen| {
+            let Some(id) = screen.get("id").and_then(JsonValue::as_str) else {
+                return screen;
+            };
+            if !regen_ids.contains(id) {
+                return screen;
+            }
+            partial_screens
+                .iter()
+                .find(|candidate| candidate.get("id").and_then(JsonValue::as_str) == Some(id))
+                .cloned()
+                .unwrap_or(screen)
+        })
+        .collect::<Vec<_>>();
+
+    let mut merged = existing_object.clone();
+    merged.insert("generatedScreens".to_string(), JsonValue::Array(merged_screens));
+    for key in [
+        "wireframeKind",
+        "brandSource",
+        "styleDirectionId",
+        "generatedAt",
+        "generatedAtLabel",
+    ] {
+        if let Some(value) = partial_object.get(key) {
+            merged.insert(key.to_string(), value.clone());
+        }
+    }
+
+    Ok(JsonValue::Object(merged))
+}
+
 fn normalize_screen(screen: &JsonValue, generated_at_label: &str) -> Option<JsonValue> {
     let object = screen.as_object()?;
     let id = object.get("id").and_then(JsonValue::as_str)?.to_string();
@@ -259,3 +342,7 @@ fn normalize_block(block: &JsonValue, section_id: &str, index: usize) -> Option<
 
     Some(JsonValue::Object(entry))
 }
+
+#[cfg(test)]
+#[path = "../testing/wireframes/normalize.rs"]
+mod tests;

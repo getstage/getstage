@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Check, CaretRight, Plus, SignIn } from "@phosphor-icons/react";
+import { SignIn } from "@phosphor-icons/react";
 import { useQuery as useConvexQuery } from "convex/react";
 import { Helmet } from "react-helmet-async";
 import { useParams } from "@tanstack/react-router";
@@ -7,17 +6,9 @@ import { motion } from "motion/react";
 import { api } from "@/lib/convex";
 import { usePortalEdit } from "@/hooks/usePortalEdit";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
-import { buildPortalTaskPath } from "@/lib/portal";
 import { getPortalPreviewData } from "@/lib/portalPreview";
 import type { Phase } from "@/types";
-
-type PortalTask = Phase["tasks"][number];
-
-function formatDateShort(ms: number): string {
-  const d = new Date(ms);
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${months[d.getMonth()]} ${d.getDate()}`;
-}
+import { PortalBoard } from "./PortalBoard";
 
 export function ClientPortalPage() {
   const { token } = useParams({ from: "/portal/$token" });
@@ -28,10 +19,7 @@ export function ClientPortalPage() {
   const previewData = isPreview ? getPortalPreviewData() : null;
   const data = previewData ?? liveData;
   const isLoading = !isPreview && liveData === undefined;
-  const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
-  const { canEdit, user: editUser, toggleTask, addTask } = usePortalEdit(token, isPreview);
-  const [addTaskValue, setAddTaskValue] = useState("");
-  const [isAddingTask, setIsAddingTask] = useState(false);
+  const { user: editUser, requestRevision } = usePortalEdit(token, isPreview);
 
   if (isLoading) {
     return (
@@ -56,19 +44,7 @@ export function ClientPortalPage() {
 
   const { project, config } = data;
   const phases = project.phases as Phase[];
-  const selectedPhase =
-    phases.find((phase) => phase.id === selectedPhaseId) ??
-    phases.find((phase) => phase.status === "active") ??
-    phases[0] ??
-    null;
-  const previewSuffix = isPreview ? "?preview=1" : "";
-
-  if (!selectedPhase) {
-    return null;
-  }
-
   const progress = clampProgress(project.progress);
-  const completedCount = selectedPhase.tasks.filter((task) => task.isCompleted).length;
   const circumference = 2 * Math.PI * 30;
   const progressOffset = circumference - (progress / 100) * circumference;
 
@@ -142,114 +118,14 @@ export function ClientPortalPage() {
             </div>
           </section>
 
-          {/* Phase timeline bar */}
-          <section className="mt-10 px-0 sm:mt-14">
-            <div className="mx-auto max-w-[1200px] px-2 sm:px-4">
-              <div className="flex h-12 w-full overflow-hidden rounded-[12px] bg-border-subtle">
-                {phases.map((phase, index) => {
-                  const done = phase.tasks.filter((t) => t.isCompleted).length;
-                  const total = phase.tasks.length;
-                  const isCompleted = phase.status === "completed";
-                  const isActive = phase.status === "active";
-                  const isSelected = selectedPhase.id === phase.id;
-                  const progressPct = total > 0 ? Math.round((done / total) * 100) : 0;
-                  const isFirst = index === 0;
-                  const isLast = index === phases.length - 1;
-
-                  return (
-                    <button
-                      key={phase.id}
-                      type="button"
-                      onClick={() => setSelectedPhaseId(phase.id)}
-                      aria-pressed={isSelected}
-                      className={`relative flex flex-1 cursor-pointer items-center justify-center gap-2 overflow-hidden transition-all duration-150 hover:brightness-[0.94] ${isFirst ? "rounded-l-[12px]" : ""} ${isLast ? "rounded-r-[12px]" : ""} ${isSelected ? "z-[2]" : ""}`}
-                      style={{
-                        backgroundColor: isCompleted
-                          ? config.accentColor
-                          : isActive
-                            ? undefined
-                            : undefined,
-                        background: isActive
-                          ? `linear-gradient(90deg, ${config.accentColor} 0%, ${config.accentColor} ${progressPct}%, ${hexToRgba(config.accentColor, 0.12)} ${progressPct}%, ${hexToRgba(config.accentColor, 0.12)} 100%)`
-                          : isCompleted
-                            ? config.accentColor
-                            : undefined,
-                      }}
-                    >
-                      <span
-                        className={`whitespace-nowrap text-[13px] font-medium ${
-                          isCompleted || isActive ? "text-white/90" : "text-text-tertiary"
-                        }`}
-                      >
-                        {phase.name}
-                      </span>
-                      <span
-                        className={`text-[11px] ${
-                          isCompleted || isActive ? "text-white/60" : "text-text-tertiary"
-                        }`}
-                      >
-                        {done}/{total}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-
-          {/* Task checklist */}
-          <section className="mx-auto mt-8 w-full max-w-[640px] flex-1 sm:mt-10">
-            <header className="mb-5">
-              <h2 className="font-heading text-[20px] font-semibold text-text-primary">
-                {selectedPhase.name}
-              </h2>
-              <p className="text-[13px] text-text-secondary">
-                {completedCount} of {selectedPhase.tasks.length} complete
-              </p>
-            </header>
-
-            <div>
-              {selectedPhase.tasks.map((task) => (
-                <PortalTaskRow
-                  key={task.id}
-                  task={task}
-                  accentColor={config.accentColor}
-                  href={`${buildPortalTaskPath(token, task.id)}${previewSuffix}`}
-                  canEdit={canEdit}
-                  onToggle={() => void toggleTask(task.id)}
-                />
-              ))}
-
-              {canEdit ? (
-                <form
-                  className="flex items-center gap-3 border-t border-border-subtle px-1 py-2.5"
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    const title = addTaskValue.trim();
-                    if (!title || isAddingTask) return;
-                    setIsAddingTask(true);
-                    try {
-                      await addTask(selectedPhase.id, title);
-                      setAddTaskValue("");
-                    } finally {
-                      setIsAddingTask(false);
-                    }
-                  }}
-                >
-                  <span className="inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center">
-                    <Plus size={14} className="text-text-tertiary" />
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Add a task…"
-                    value={addTaskValue}
-                    onChange={(e) => setAddTaskValue(e.target.value)}
-                    disabled={isAddingTask}
-                    className="min-w-0 flex-1 border-0 bg-transparent p-0 text-[14px] text-text-primary placeholder:text-text-tertiary focus:outline-none"
-                  />
-                </form>
-              ) : null}
-            </div>
+          {/* Kanban board: client can drag a task into Revision and leave thoughts */}
+          <section className="mt-10 w-full sm:mt-14">
+            <PortalBoard
+              phases={phases}
+              accentColor={config.accentColor}
+              canRequestRevision={!isPreview}
+              onRequestRevision={requestRevision}
+            />
           </section>
         </motion.main>
 
@@ -281,81 +157,6 @@ export function ClientPortalPage() {
   );
 }
 
-function PortalTaskRow({
-  task,
-  accentColor,
-  href,
-  canEdit,
-  onToggle,
-}: {
-  task: PortalTask;
-  accentColor: string;
-  href: string;
-  canEdit: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <div className="group flex items-center gap-3 border-t border-border-subtle px-1 py-3 text-left transition-colors first:border-t-0 hover:bg-bg-subtle/70">
-      <button
-        type="button"
-        onClick={(e) => {
-          if (!canEdit) return;
-          e.preventDefault();
-          onToggle();
-        }}
-        disabled={!canEdit}
-        className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border ${canEdit ? "cursor-pointer" : "cursor-default"}`}
-        style={{
-          borderColor: task.isCompleted ? accentColor : "#D9D9D9",
-          backgroundColor: task.isCompleted ? accentColor : "transparent",
-        }}
-      >
-        {task.isCompleted ? <Check size={12} weight="bold" className="text-white" /> : null}
-      </button>
-      <a
-        href={href}
-        className={`min-w-0 flex-1 text-[14px] ${
-          task.isCompleted ? "text-text-tertiary line-through" : "text-text-primary"
-        }`}
-      >
-        {task.title}
-      </a>
-      {task.dueDate && !task.isCompleted ? (
-        <span className="shrink-0 text-[12px] text-text-tertiary">
-          {formatDateShort(task.dueDate)}
-        </span>
-      ) : null}
-      <a href={href}>
-        <CaretRight
-          size={14}
-          className="ml-auto shrink-0 text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100"
-        />
-      </a>
-    </div>
-  );
-}
-
 function clampProgress(value: number) {
   return Math.min(100, Math.max(0, Math.round(value)));
-}
-
-function hexToRgba(hex: string, alpha: number) {
-  const normalized = hex.replace("#", "");
-  const expandedHex =
-    normalized.length === 3
-      ? normalized
-          .split("")
-          .map((char) => `${char}${char}`)
-          .join("")
-      : normalized;
-
-  if (!/^[0-9a-fA-F]{6}$/.test(expandedHex)) {
-    return `rgba(232, 115, 74, ${alpha})`;
-  }
-
-  const red = parseInt(expandedHex.slice(0, 2), 16);
-  const green = parseInt(expandedHex.slice(2, 4), 16);
-  const blue = parseInt(expandedHex.slice(4, 6), 16);
-
-  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }

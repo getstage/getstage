@@ -53,6 +53,7 @@ const taskBoardStatusValidator = v.union(
   v.literal("todo"),
   v.literal("in-progress"),
   v.literal("done"),
+  v.literal("revision"),
 );
 
 export const projectSummaryReturn = v.object({
@@ -387,7 +388,7 @@ export async function createTaskHandler(
     priority?: "low" | "medium" | "high";
     summary?: string;
     content?: string;
-    boardStatus?: "backlog" | "todo" | "in-progress" | "done";
+    boardStatus?: "backlog" | "todo" | "in-progress" | "done" | "revision";
     isCompleted?: boolean;
   },
 ) {
@@ -455,7 +456,7 @@ export const setTaskKanbanColumnReturns = taskSummaryReturn;
 
 export async function setTaskKanbanColumnHandler(
   ctx: MutationCtx,
-  args: { taskId: string; boardStatus: "backlog" | "todo" | "in-progress" | "done" },
+  args: { taskId: string; boardStatus: "backlog" | "todo" | "in-progress" | "done" | "revision" },
 ) {
   const user = await requireAuthUser(ctx);
   const taskId = await normalizeTaskId(ctx, args.taskId);

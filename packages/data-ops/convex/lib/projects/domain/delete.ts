@@ -1,8 +1,6 @@
 import type { Doc } from "../../../_generated/dataModel";
 import type { MutationCtx } from "../../../_generated/server";
 import {
-  deleteClientAvatarIfUnused,
-  deleteClientIfUnused,
   deleteProjectMarkerImageIfUnused,
 } from "../../../_helpers";
 import { deleteGeneratedDesignsForProject } from "../../../integrations/stitch";
@@ -81,15 +79,9 @@ export async function deleteProjectWithDependents(
 
   await ctx.db.delete(project._id);
 
-  await deleteClientIfUnused(ctx, {
-    userId: project.userId,
-    name: project.clientName,
-  });
-
-  await deleteClientAvatarIfUnused(ctx, {
-    userId: project.userId,
-    avatarUrl: project.clientAvatarUrl,
-  });
+  // Deleting a project must NOT delete its client. Clients are standalone records
+  // managed in Settings → Clients; they persist (with their avatar) so history and
+  // future projects keep them. Project-specific marker images are still cleaned up below.
 
   await deleteProjectMarkerImageIfUnused(ctx, {
     userId: project.userId,

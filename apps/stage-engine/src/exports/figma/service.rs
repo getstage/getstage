@@ -2,25 +2,38 @@ use anyhow::{Context, bail};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
+use crate::convex_store::asset_upload::ConvexAssetUploader;
 use crate::helpers::time::now_millis;
 
 use super::models::{
     CreateFigJamExportRequest, CreateFigmaExportRequest, CreateFigmaExportResponse, CreateJobInput,
     FigJamWriteFlow, FigJamWritePlan, FigmaWriteBlock, FigmaWritePlan, FigmaWriteSection,
-    FlowsArtifact, GeneratedBlock, GeneratedScreen, WireframesArtifact,
+    FlowsArtifact, GeneratedBlock, GeneratedScreen, HifiFigmaWritePlan, WireframeFigmaWritePlan,
+    WireframesArtifact,
 };
 use super::repository::FigmaExportRepository;
 
 const PAIRING_TTL_MS: u128 = 10 * 60 * 1000;
+const WIREFRAME_EXPORT_WIDTH: u16 = 1440;
 
 #[derive(Clone, Debug)]
 pub struct FigmaExportService {
     repository: FigmaExportRepository,
+    asset_uploader: ConvexAssetUploader,
+    r2_public_base_url: Option<String>,
 }
 
 impl FigmaExportService {
-    pub fn new(repository: FigmaExportRepository) -> Self {
-        Self { repository }
+    pub fn new(
+        repository: FigmaExportRepository,
+        asset_uploader: ConvexAssetUploader,
+        r2_public_base_url: Option<String>,
+    ) -> Self {
+        Self {
+            repository,
+            asset_uploader,
+            r2_public_base_url,
+        }
     }
 
     pub async fn create_export(
@@ -46,7 +59,9 @@ impl FigmaExportService {
             .iter()
             .find(|screen| screen.id == request.screen_id)
             .context("selected wireframe screen was not found")?;
-        let write_plan = compile_write_plan(screen);
+        let write_plan = self
+            .compile_wireframe_write_plan(token, &request, screen)
+            .await?;
         let write_plan_json =
             serde_json::to_string(&write_plan).context("failed to serialize Figma write plan")?;
         let pairing_code = pairing_code();
@@ -136,6 +151,59 @@ impl FigmaExportService {
             status: job.status,
         })
     }
+
+    async fn compile_wireframe_write_plan(
+        &self,
+        token: &str,
+        request: &CreateFigmaExportRequest,
+        screen: &GeneratedScreen,
+    ) -> anyhow::Result<WireframeFigmaWritePlan> {
+        // Hi-Fi is driven by the desktop, exactly like the Paper export: if it
+        // rendered a preview PNG, place that image. We do NOT re-derive the
+        // decision from the engine's fetched `screen.html` — that copy can lag
+        // the desktop's and previously dropped the export to an empty Lo-Fi frame.
+        let Some(preview_png) = request
+            .hifi_preview_png
+            .as_ref()
+            .filter(|bytes| !bytes.is_empty())
+        else {
+            return Ok(WireframeFigmaWritePlan::Lofi(compile_write_plan(screen)));
+        };
+
+        let width = request
+            .hifi_preview_width
+            .filter(|value| *value > 0)
+            .context("Hi-Fi wireframe export is missing preview width.")?;
+        let height = request
+            .hifi_preview_height
+            .filter(|value| *value > 0)
+            .context("Hi-Fi wireframe export is missing preview height.")?;
+
+        let file_name = format!("{}-figma-export.png", slug(&screen.title));
+        let key = self
+            .asset_uploader
+            .upload_image(
+                token,
+                &request.project_id,
+                "generated-design",
+                &file_name,
+                "image/png",
+                preview_png,
+            )
+            .await
+            .context("failed to upload Hi-Fi wireframe preview image")?;
+        let image_url = resolve_public_asset_url(&key, self.r2_public_base_url.as_deref())
+            .context("R2 public asset URL is not configured for Hi-Fi Figma export")?;
+
+        Ok(WireframeFigmaWritePlan::Hifi(HifiFigmaWritePlan {
+            api_version: "v1",
+            kind: "hifi-wireframe",
+            name: format!("{} Wireframe", screen.title),
+            width,
+            height,
+            image_url,
+        }))
+    }
 }
 
 fn compile_write_plan(screen: &GeneratedScreen) -> FigmaWritePlan {
@@ -143,7 +211,7 @@ fn compile_write_plan(screen: &GeneratedScreen) -> FigmaWritePlan {
         api_version: "v1",
         kind: "wireframe",
         name: format!("{} Wireframe", screen.title),
-        width: 1440,
+        width: WIREFRAME_EXPORT_WIDTH,
         sections: screen
             .sections
             .iter()
@@ -170,6 +238,42 @@ fn compile_block(block: &GeneratedBlock) -> FigmaWriteBlock {
             "tertiary" => 80,
             _ => 140,
         },
+    }
+}
+
+fn resolve_public_asset_url(key: &str, r2_public_base_url: Option<&str>) -> Option<String> {
+    let trimmed = key.trim();
+    if trimmed.is_empty()
+        || trimmed.contains("://")
+        || trimmed.starts_with('/')
+        || trimmed.contains("..")
+    {
+        return None;
+    }
+
+    let base = r2_public_base_url
+        .filter(|base| !base.trim().is_empty())?
+        .trim_end_matches('/');
+    Some(format!("{base}/{trimmed}"))
+}
+
+fn slug(value: &str) -> String {
+    let value = value
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() {
+                character.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>();
+    let parts = value.split('-').filter(|part| !part.is_empty());
+    let slug = parts.collect::<Vec<_>>().join("-");
+    if slug.is_empty() {
+        "stage-wireframe".to_string()
+    } else {
+        slug
     }
 }
 
@@ -200,6 +304,7 @@ mod tests {
         let screen = GeneratedScreen {
             id: "home".to_string(),
             title: "Homepage".to_string(),
+            html: None,
             sections: vec![super::super::models::GeneratedSection {
                 id: "hero-section".to_string(),
                 title: "Hero".to_string(),
@@ -221,6 +326,17 @@ mod tests {
         assert_eq!(plan.name, "Homepage Wireframe");
         assert_eq!(plan.sections[0].blocks[0].label, "Build better products");
         assert_eq!(plan.sections[0].blocks[0].height, 240);
+    }
+
+    #[test]
+    fn resolve_public_asset_url_should_build_a_public_r2_url() {
+        assert_eq!(
+            resolve_public_asset_url(
+                "generated-designs/projects/p1/users/u1/images/id.png",
+                Some("https://assets-testing.getstage.co"),
+            ),
+            Some("https://assets-testing.getstage.co/generated-designs/projects/p1/users/u1/images/id.png".to_string())
+        );
     }
 
     #[test]

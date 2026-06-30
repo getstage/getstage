@@ -36,6 +36,7 @@ import {
   upsertStageChat,
 } from "@/lib/companion/stageChats";
 import { SetupStepsDialog } from "@/components/ui/SetupStepsDialog";
+import { useProviderRequired } from "@/components/app/ProviderRequiredDialog";
 import { STAGE_SHORTCUT_OPEN_CHAT } from "@/lib/companion/shortcutEvents";
 import type { StageChat, StageChatAttachment, StageChatMessage } from "@/models/companion/chat";
 import { useDesktopAuth } from "@/lib/auth";
@@ -150,6 +151,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   );
   const providerPreferences = useProviderPreferences();
   const providers = useProviderStatus();
+  const providerRequired = useProviderRequired();
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const reasoningPickerRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -500,6 +502,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     try {
       setIsThinking(true);
       if (preflight.state === "blocked") {
+        providerRequired.show(preflight.message);
         throw new Error(preflight.message);
       }
 

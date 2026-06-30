@@ -1,12 +1,13 @@
 import type { Phase, Task } from "@/models/project/project";
 
-export type KanbanStatus = "backlog" | "todo" | "in-progress" | "done";
+export type KanbanStatus = "backlog" | "todo" | "in-progress" | "done" | "revision";
 
 export const KANBAN_COLUMNS: { key: KanbanStatus; label: string }[] = [
   { key: "backlog", label: "Backlog" },
   { key: "todo", label: "To-do" },
   { key: "in-progress", label: "In-progress" },
   { key: "done", label: "Done" },
+  { key: "revision", label: "Revision" },
 ];
 
 export const PHASE_TAG_COLORS: Record<string, { bg: string; text: string }> = {
@@ -41,6 +42,7 @@ export function buildKanbanColumns(phases: Phase[]): Record<KanbanStatus, BoardT
     todo: [],
     "in-progress": [],
     done: [],
+    revision: [],
   };
 
   for (const phase of phases) {

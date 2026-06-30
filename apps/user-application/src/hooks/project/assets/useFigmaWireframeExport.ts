@@ -28,6 +28,7 @@ export function useFigmaWireframeExport(projectId: string) {
         projectId,
         artifactId: asset.artifactId,
         screenId: asset.screenId,
+        ...(asset.html?.trim() ? { hifiHtml: asset.html.trim() } : {}),
       });
       inFlightRef.current = promise;
 

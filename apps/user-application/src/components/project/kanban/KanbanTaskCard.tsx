@@ -116,6 +116,11 @@ export function KanbanTaskCard({
         <p className="line-clamp-2 text-[12px] font-normal leading-[1.5] text-[#525252]">
           {description || task.summary || "No description yet."}
         </p>
+        {task.revisionNote ? (
+          <p className="mt-1 line-clamp-3 rounded-[6px] bg-[#FEF3E2] p-2 text-[12px] font-normal leading-[1.5] text-[#92400E]">
+            Client revision: {task.revisionNote}
+          </p>
+        ) : null}
       </div>
     </div>
   );

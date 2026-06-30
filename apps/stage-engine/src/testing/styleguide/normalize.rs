@@ -40,7 +40,14 @@ fn reference_has_visual_input_requires_non_empty_visual_field() {
 
 #[test]
 fn banned_font_families_are_replaced_at_the_boundary() {
-    for banned in ["Inter", "Helvetica Neue", "Arial", "Roboto", "system-ui", "Times New Roman"] {
+    for banned in [
+        "Inter",
+        "Helvetica Neue",
+        "Arial",
+        "Roboto",
+        "system-ui",
+        "Times New Roman",
+    ] {
         let normalized = normalize_style_guide(
             json!({ "typography": { "fontFamily": banned } }),
             "dir_1",

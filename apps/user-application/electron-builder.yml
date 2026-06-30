@@ -14,6 +14,8 @@ extraResources:
     to: stage-engine/stage-engine
   - from: resources/runtime-secrets.env
     to: runtime-secrets.env
+  - from: public/apple-touch-icon.png
+    to: public/apple-touch-icon.png
 mac:
   category: public.app-category.productivity
   icon: build/icon.icns

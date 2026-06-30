@@ -6,6 +6,12 @@ pub struct CreateFigmaExportRequest {
     pub project_id: String,
     pub artifact_id: String,
     pub screen_id: String,
+    #[serde(default)]
+    pub hifi_preview_png: Option<Vec<u8>>,
+    #[serde(default)]
+    pub hifi_preview_width: Option<u16>,
+    #[serde(default)]
+    pub hifi_preview_height: Option<u16>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -37,6 +43,10 @@ pub struct GeneratedScreen {
     pub title: String,
     #[serde(default)]
     pub sections: Vec<GeneratedSection>,
+    // Hi-Fi source of truth: a self-contained HTML fragment rendering the final
+    // design. Absent for Lo-Fi screens, which compile from `sections`/`blocks`.
+    #[serde(default)]
+    pub html: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -66,6 +76,24 @@ pub struct FigmaWritePlan {
     pub name: String,
     pub width: u16,
     pub sections: Vec<FigmaWriteSection>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HifiFigmaWritePlan {
+    pub api_version: &'static str,
+    pub kind: &'static str,
+    pub name: String,
+    pub width: u16,
+    pub height: u16,
+    pub image_url: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(untagged)]
+pub enum WireframeFigmaWritePlan {
+    Lofi(FigmaWritePlan),
+    Hifi(HifiFigmaWritePlan),
 }
 
 #[derive(Clone, Debug, Deserialize)]

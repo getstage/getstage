@@ -1,23 +1,16 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useRef, useState } from "react";
+import {
+  buildWireframePreviewDocument,
+  WIREFRAME_DESIGN_WIDTH,
+} from "@shared/wireframePreviewDocument";
 
-// The width the generated design is authored for. Thumbnails render at this
-// width and scale down to fit their container so type stays legible.
-const DESIGN_WIDTH = 1280;
+const DESIGN_WIDTH = WIREFRAME_DESIGN_WIDTH;
 // A tall-enough viewport to show the top of any screen in the thumbnail; the
 // container clips the overflow.
 const THUMBNAIL_HEIGHT = 2400;
 
-// Wraps a model-generated HTML fragment into a standalone document. The fragment
-// carries its own <style>; we only add a minimal reset and a safe font fallback.
-export function buildWireframePreviewDocument(fragment: string): string {
-  return `<!doctype html><html><head><meta charset="utf-8" /><style>
-    *,*::before,*::after{box-sizing:border-box;}
-    html,body{margin:0;padding:0;}
-    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#171717;background:#ffffff;}
-    img{max-width:100%;}
-  </style></head><body>${fragment}</body></html>`;
-}
+export { buildWireframePreviewDocument };
 
 // A non-interactive, scaled-down render of the design used as a card thumbnail.
 // `sandbox=""` is the maximally locked posture: no scripts, no forms, no

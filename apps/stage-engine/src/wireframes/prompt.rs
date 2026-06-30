@@ -93,6 +93,7 @@ pub fn build_wireframes_prompt(
     style_direction_id: Option<&str>,
     layout_preference: Option<&str>,
     brand_kit_attached: bool,
+    regenerate_screen_ids: Option<&[String]>,
 ) -> String {
     let research_block = input
         .research_artifact_json
@@ -142,6 +143,15 @@ pub fn build_wireframes_prompt(
         WireframeKind::Hifi => HIFI_RULES,
         WireframeKind::Lofi => "",
     };
+    let regenerate_block = regenerate_screen_ids
+        .filter(|ids| !ids.is_empty())
+        .map(|ids| {
+            format!(
+                "- PARTIAL REGENERATION: Return generatedScreens[] containing ONLY these screen ids: {}. Keep each id stable. Use the previous wireframes artifact as reference for untouched structure.\n",
+                ids.join(", ")
+            )
+        })
+        .unwrap_or_default();
 
     format!(
         r#"<role>You are generating the Stage Wireframes artifact for a {kind_str} pass.</role>
@@ -156,7 +166,7 @@ pub fn build_wireframes_prompt(
 - copySlots are short strings (no markdown), filled from Strategy CTAs/value props when available.
 - One screen per generatedScreens[] entry; preserve every selected screen from the configure list.
 - {brand_source_line}
-{style_direction_block}{layout_block}</rules>
+{regenerate_block}{style_direction_block}{layout_block}</rules>
 
 <cognitive_steps>
 1. Restate each screen's goal in one sentence (set generatedScreens[].goal).
@@ -182,3 +192,7 @@ Saved strategy artifact JSON:
         strategy_artifact = input.strategy_artifact_json,
     )
 }
+
+#[cfg(test)]
+#[path = "../testing/wireframes/prompt.rs"]
+mod tests;

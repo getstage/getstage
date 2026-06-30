@@ -64,6 +64,8 @@ export async function getTasksForPhase(ctx: ReaderCtx, phase: Doc<"phases">) {
         isCompleted: task.isCompleted,
         content: task.content,
         dueDate: task.dueDate,
+        boardStatus: task.boardStatus,
+        revisionNote: task.revisionNote,
         assigneeIds,
         assignees,
         attachments: await getAttachmentsForTask(ctx, task._id),

@@ -6,6 +6,7 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { DesktopShell } from "@/components/app/DesktopShell";
+import { ProviderRequiredProvider } from "@/components/app/ProviderRequiredDialog";
 import { useDesktopSessionInvalidation } from "@/hooks/app/useDesktopSessionInvalidation";
 import { useProviderRunInvalidation } from "@/hooks/app/useProviderRunInvalidation";
 import { shouldHideCompanion } from "@/lib/app/chromeRules";
@@ -21,9 +22,11 @@ function RootLayout() {
   const location = useRouterState({ select: (state) => state.location });
 
   return (
-    <DesktopShell hideCompanion={shouldHideCompanion(location.pathname)}>
-      <Outlet />
-    </DesktopShell>
+    <ProviderRequiredProvider>
+      <DesktopShell hideCompanion={shouldHideCompanion(location.pathname)}>
+        <Outlet />
+      </DesktopShell>
+    </ProviderRequiredProvider>
   );
 }
 

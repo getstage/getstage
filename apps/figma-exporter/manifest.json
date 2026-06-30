@@ -8,7 +8,11 @@
   "documentAccess": "dynamic-page",
   "permissions": ["currentuser"],
   "networkAccess": {
-    "allowedDomains": ["https://reliable-bullfrog-917.convex.site"],
-    "reasoning": "Claims a short-lived Stage export job and reports its completion."
+    "allowedDomains": [
+      "https://reliable-bullfrog-917.convex.site",
+      "https://assets-testing.getstage.co",
+      "https://assets.getstage.co"
+    ],
+    "reasoning": "Claims Stage export jobs and loads Hi-Fi wireframe preview images from Stage R2."
   }
 }
