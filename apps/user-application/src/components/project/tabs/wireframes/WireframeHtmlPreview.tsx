@@ -18,6 +18,29 @@ export { buildWireframePreviewDocument };
 export function WireframeHtmlThumbnail({ html }: { html: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.2);
+  // Lazy-mount the iframe only when the card scrolls near the viewport. A 1440×2400
+  // iframe document is a full layout allocation per card; a results grid of 6–12
+  // cards would otherwise reserve ~12 fully-loaded docs simultaneously, pressuring
+  // memory on lower-end devices. `rootMargin` preloads a little before entry so the
+  // thumbnail is ready by the time it's visible.
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element || inView) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [inView]);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -33,20 +56,22 @@ export function WireframeHtmlThumbnail({ html }: { html: string }) {
 
   return (
     <div ref={containerRef} className="h-full w-full overflow-hidden rounded-[3px] bg-white">
-      <iframe
-        title="Wireframe preview"
-        srcDoc={buildWireframePreviewDocument(html)}
-        sandbox=""
-        scrolling="no"
-        tabIndex={-1}
-        aria-hidden
-        className="pointer-events-none origin-top-left border-0"
-        style={{
-          width: DESIGN_WIDTH,
-          height: THUMBNAIL_HEIGHT,
-          transform: `scale(${scale})`,
-        }}
-      />
+      {inView ? (
+        <iframe
+          title="Wireframe preview"
+          srcDoc={buildWireframePreviewDocument(html)}
+          sandbox=""
+          scrolling="no"
+          tabIndex={-1}
+          aria-hidden
+          className="pointer-events-none origin-top-left border-0"
+          style={{
+            width: DESIGN_WIDTH,
+            height: THUMBNAIL_HEIGHT,
+            transform: `scale(${scale})`,
+          }}
+        />
+      ) : null}
     </div>
   );
 }

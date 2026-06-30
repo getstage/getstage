@@ -165,6 +165,7 @@ pub fn build_wireframes_prompt(
 - Each generated screen MUST have 1-6 sections; each section MUST have 1-5 blocks.
 - copySlots are short strings (no markdown), filled from Strategy CTAs/value props when available.
 - One screen per generatedScreens[] entry; preserve every selected screen from the configure list.
+- configureScreens[].required: true ONLY for the 2-4 screens essential to the core funnel (e.g. the primary landing page). Default every other screen to required: false so the user can toggle it off — do not mark every screen required.
 - {brand_source_line}
 {regenerate_block}{style_direction_block}{layout_block}</rules>
 

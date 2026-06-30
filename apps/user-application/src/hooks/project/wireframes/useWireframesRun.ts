@@ -176,35 +176,59 @@ export function useWireframesRun(projectId: string) {
     }
   }, [persistedRunningRun]);
 
+  // Watchdog timers cover both an in-memory run (activeRunId) and a run recovered
+  // from Convex after reload (persistedRunningRun). For recovered runs we have no
+  // live event stream, so only the max-duration watchdog applies — if the engine
+  // crashed mid-run without updating Convex, this fails the UI instead of leaving
+  // "Generating…" stuck for ~20 minutes.
   useEffect(() => {
-    if (!activeRunId || runEnded || hasTerminalEvent) return;
+    const runId = activeRunId ?? persistedRunningRun?.id ?? null;
+    if (!runId || runEnded || hasTerminalEvent) return;
 
     if (runStartedAtRef.current === null) {
-      runStartedAtRef.current = Date.now();
+      runStartedAtRef.current = persistedRunningRun?.startedAt ?? Date.now();
     }
 
-    const stallTimer = window.setTimeout(() => {
-      const events =
-        queryClient.getQueryData<RunEvent[]>(engineQueryKeys.runEvents(activeRunId)) ?? [];
+    const remaining = WIREFRAMES_RUN_MAX_MS - (Date.now() - runStartedAtRef.current);
 
-      if (hasTerminalRunEvent(events)) return;
+    // Stall watchdog only makes sense for an in-memory run with an event stream.
+    const stallTimer = activeRunId
+      ? window.setTimeout(() => {
+          const events =
+            queryClient.getQueryData<RunEvent[]>(engineQueryKeys.runEvents(activeRunId)) ?? [];
 
-      if (events.length === 0) {
-        failRun(
-          "[stage-engine] wireframes run stalled: no events received (Electron main process likely out of date - restart pnpm dev)",
-        );
-      }
-    }, WIREFRAMES_EVENT_STALL_MS);
+          if (hasTerminalRunEvent(events)) return;
 
-    const maxTimer = window.setTimeout(() => {
+          if (events.length === 0) {
+            failRun(
+              "[stage-engine] wireframes run stalled: no events received (Electron main process likely out of date - restart pnpm dev)",
+            );
+          }
+        }, WIREFRAMES_EVENT_STALL_MS)
+      : null;
+
+    const maxTimer =
+      remaining > 0
+        ? window.setTimeout(() => {
+            failRun("[stage-engine] wireframes run watchdog: exceeded maximum duration");
+          }, remaining)
+        : null;
+
+    if (remaining <= 0) {
       failRun("[stage-engine] wireframes run watchdog: exceeded maximum duration");
-    }, WIREFRAMES_RUN_MAX_MS);
+    }
 
     return () => {
-      window.clearTimeout(stallTimer);
-      window.clearTimeout(maxTimer);
+      if (stallTimer) window.clearTimeout(stallTimer);
+      if (maxTimer) window.clearTimeout(maxTimer);
     };
-  }, [activeRunId, failRun, hasTerminalEvent, queryClient, runEnded]);
+  }, [activeRunId, failRun, hasTerminalEvent, persistedRunningRun, queryClient, runEnded]);
+
+  const cancelWireframes = useCallback(async () => {
+    const runId = providerRun.activeRunId ?? persistedRunningRun?.id ?? null;
+    if (!runId) return;
+    await providerRun.cancelRun.mutateAsync(runId);
+  }, [persistedRunningRun?.id, providerRun.activeRunId, providerRun.cancelRun]);
 
   const startWireframes = useCallback(
     async (
@@ -236,6 +260,12 @@ export function useWireframesRun(projectId: string) {
         const blockedMessage = getProviderPreflightError(preflightArgs);
         if (blockedMessage) providerRequired.show(blockedMessage);
         assertProviderPreflightReady(preflightArgs);
+
+        // startRun.data (and its cached activeRunId) keeps showing the PREVIOUS
+        // run's id/events until this new mutation resolves. Without clearing it,
+        // the previous run's terminal event trips the watchdog below and snaps
+        // runEnded back to true before any event for this run has arrived.
+        providerRun.resetActiveRun();
 
         await providerRun.startRun.mutateAsync({
           providerId,
@@ -272,11 +302,6 @@ export function useWireframesRun(projectId: string) {
       providers.snapshot,
     ],
   );
-
-  const cancelWireframes = useCallback(async () => {
-    if (!providerRun.activeRunId) return;
-    await providerRun.cancelRun.mutateAsync(providerRun.activeRunId);
-  }, [providerRun.activeRunId, providerRun.cancelRun]);
 
   return {
     startWireframes,

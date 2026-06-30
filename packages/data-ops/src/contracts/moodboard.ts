@@ -72,6 +72,9 @@ export const moodboardStyleGuideSchema = z.object({
   colorPalettes: z.array(moodboardColorPaletteSchema).default([]),
   typography: z.object({
     fontFamily: z.string().min(1),
+    // Additional brand font families the user added in the style-guide editor.
+    // Empty by default; the primary `fontFamily` is always the first preview.
+    fontFamilies: z.array(z.string().min(1)).default([]),
     previewSize: z.number().int().positive().default(28),
     rows: z.array(moodboardTypographyRowSchema).default([]),
     weightSamples: z.array(moodboardTypographyWeightSampleSchema).default([]),

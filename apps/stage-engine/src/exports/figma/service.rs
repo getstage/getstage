@@ -162,13 +162,16 @@ impl FigmaExportService {
         // rendered a preview PNG, place that image. We do NOT re-derive the
         // decision from the engine's fetched `screen.html` — that copy can lag
         // the desktop's and previously dropped the export to an empty Lo-Fi frame.
-        let Some(preview_png) = request
-            .hifi_preview_png
-            .as_ref()
-            .filter(|bytes| !bytes.is_empty())
+        let Some(data_url) = request
+            .hifi_preview_data_url
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
         else {
             return Ok(WireframeFigmaWritePlan::Lofi(compile_write_plan(screen)));
         };
+        let preview_png = decode_png_data_url(data_url)
+            .context("Hi-Fi wireframe preview image is not a valid data URL")?;
 
         let width = request
             .hifi_preview_width
@@ -188,7 +191,7 @@ impl FigmaExportService {
                 "generated-design",
                 &file_name,
                 "image/png",
-                preview_png,
+                &preview_png,
             )
             .await
             .context("failed to upload Hi-Fi wireframe preview image")?;
@@ -239,6 +242,18 @@ fn compile_block(block: &GeneratedBlock) -> FigmaWriteBlock {
             _ => 140,
         },
     }
+}
+
+fn decode_png_data_url(data_url: &str) -> anyhow::Result<Vec<u8>> {
+    use base64::Engine;
+    let encoded = data_url
+        .split_once(";base64,")
+        .map(|(_, payload)| payload)
+        .unwrap_or(data_url)
+        .trim();
+    base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .context("failed to base64-decode preview image")
 }
 
 fn resolve_public_asset_url(key: &str, r2_public_base_url: Option<&str>) -> Option<String> {

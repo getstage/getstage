@@ -12,10 +12,11 @@ use axum::{
 
 use crate::app::AppState;
 
-/// Max request body the engine will buffer. Hi-Fi Figma/code exports send the
-/// full HTML for every screen in one payload, which easily exceeds axum's 2 MB
-/// default and trips a 413. 64 MB leaves generous headroom for large projects.
-const MAX_REQUEST_BODY_BYTES: usize = 64 * 1024 * 1024;
+/// Max request body the engine will buffer. Hi-Fi exports send a base64 preview
+/// PNG plus the screen HTML in one payload, which exceeds axum's 2 MB default and
+/// trips a 413. A full-page screenshot is ~1-7 MB; 16 MB gives ~2x headroom while
+/// still rejecting runaway payloads.
+const MAX_REQUEST_BODY_BYTES: usize = 16 * 1024 * 1024;
 
 pub fn router(state: AppState) -> Router {
     Router::new()

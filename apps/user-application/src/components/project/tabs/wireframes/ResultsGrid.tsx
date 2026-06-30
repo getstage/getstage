@@ -43,14 +43,40 @@ export function ResultsGrid({
   onConfirmRegenerate: () => void;
   regeneratePicker?: ReactNode;
 }) {
-  const title = wireframeKind === "hifi" ? "Hi-Fi Wireframes" : "Lo-Fi Wireframes";
   const selectedCount = selectedRegenerateIds.size;
   const regeneratingSet = new Set(regeneratingScreenIds ?? []);
+  // A Hi-Fi artifact keeps each screen's Lo-Fi blocks alongside its rendered
+  // design, so the user can flip the whole grid back to the Lo-Fi view after
+  // converting. Lo-Fi-only artifacts have nothing to toggle to.
+  const canToggleFidelity = wireframeKind === "hifi" && cards.some((card) => card.html?.trim());
+  const [view, setView] = useState<WireframeKind>(wireframeKind);
+  const effectiveView = canToggleFidelity ? view : wireframeKind;
 
   return (
     <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <div className="flex items-end justify-between gap-4 p-4">
-        <h2 className="text-[15px] font-medium leading-[1.25] text-[#171717]">{title}</h2>
+      <div className="flex items-center justify-between gap-4 p-4">
+        {canToggleFidelity ? (
+          <div className="inline-flex rounded-[8px] bg-[#E5E5E5] p-[3px]">
+            {(["lofi", "hifi"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setView(option)}
+                className={`rounded-[6px] px-3 py-[6px] text-[13px] font-medium leading-[1.25] transition-colors ${
+                  effectiveView === option
+                    ? "bg-white text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+                    : "text-[#525252] hover:text-[#171717]"
+                }`}
+              >
+                {option === "hifi" ? "Hi-Fi" : "Lo-Fi"}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <h2 className="text-[15px] font-medium leading-[1.25] text-[#171717]">
+            {wireframeKind === "hifi" ? "Hi-Fi Wireframes" : "Lo-Fi Wireframes"}
+          </h2>
+        )}
         <div className="flex flex-wrap items-center justify-end gap-2">
           {wireframeKind === "hifi" ? (
             regenerateMode ? (
@@ -87,6 +113,7 @@ export function ResultsGrid({
           <WireframeCard
             key={`${card.id}-${index}`}
             card={card}
+            view={effectiveView}
             onExport={() => onExport(card.id)}
             regenerateMode={regenerateMode}
             isSelected={selectedRegenerateIds.has(card.id)}
@@ -101,6 +128,7 @@ export function ResultsGrid({
 
 export function WireframeCard({
   card,
+  view,
   onExport,
   regenerateMode = false,
   isSelected = false,
@@ -108,6 +136,7 @@ export function WireframeCard({
   onToggleRegenerate,
 }: {
   card: WireframeResultCard;
+  view: WireframeKind;
   onExport: () => void;
   regenerateMode?: boolean;
   isSelected?: boolean;
@@ -119,7 +148,9 @@ export function WireframeCard({
   const sections = card.sections ?? [];
   const hasBlocks = sections.some((section) => section.blocks.length > 0);
   const html = card.html?.trim();
-  const hasHtml = Boolean(html);
+  // The Lo-Fi view renders the block outline even when a Hi-Fi design exists,
+  // so converting to Hi-Fi never hides the Lo-Fi version the user can still check.
+  const hasHtml = view === "hifi" && Boolean(html);
   const generatedAtLabel = card.generatedAt
     ? formatRelativeTime(card.generatedAt)
     : card.date;
@@ -157,7 +188,7 @@ export function WireframeCard({
           }`}
         >
           <span
-            className={`absolute left-3 top-3 flex h-4 w-4 items-center justify-center rounded-[4px] ${
+            className={`absolute left-3 top-3 z-10 flex h-4 w-4 items-center justify-center rounded-[4px] ${
               isSelected ? "bg-[#0A0A0A] text-white" : "bg-white text-transparent"
             }`}
           >

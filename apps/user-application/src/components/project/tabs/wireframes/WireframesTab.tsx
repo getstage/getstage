@@ -98,6 +98,11 @@ export function WireframesTab({
   // tick would bounce a Lo-Fi→Hi-Fi conversion straight back to the Lo-Fi results.
   const hydratedProjectRef = useRef<string | null>(null);
   const isConvertingFromLofiRef = useRef(false);
+  // "Change source" in the regenerate picker borrows the same choose-type /
+  // style-guide / brand-kit steps Convert-to-Hi-Fi uses (real card picker,
+  // real upload UI) instead of a separate inline widget. This flag routes
+  // their onContinue back to the regenerate picker instead of starting a run.
+  const isChangingRegenerateSourceRef = useRef(false);
   useEffect(() => {
     if (hydratedProjectRef.current === project.id) {
       return;
@@ -133,6 +138,12 @@ export function WireframesTab({
     }
     isConvertingFromLofiRef.current = false;
     return true;
+  }
+
+  function applyRegenerateSourceChange(nextBrandSource: BrandSource) {
+    setRegenerateBrandSource(nextBrandSource);
+    setRegenerateStyleDirectionId(nextBrandSource === "style-guide" ? styleDirectionId : null);
+    setStep("results");
   }
 
   async function generateWireframes(overrides?: {
@@ -227,6 +238,11 @@ export function WireframesTab({
     [generatedAt, generatedAtLabel, generatedScreens, screens],
   );
 
+  const regenerateDirectionTitle =
+    regenerateBrandSource === "style-guide"
+      ? styleDirections.find((direction) => direction.id === regenerateStyleDirectionId)?.title
+      : null;
+
   return (
     <section className="w-full">
       <UpstreamStaleBanner
@@ -276,6 +292,11 @@ export function WireframesTab({
             if (!styleDirectionId) {
               return;
             }
+            if (isChangingRegenerateSourceRef.current) {
+              isChangingRegenerateSourceRef.current = false;
+              applyRegenerateSourceChange("style-guide");
+              return;
+            }
             if (finishConversionIfNeeded("style-guide")) {
               return;
             }
@@ -295,6 +316,11 @@ export function WireframesTab({
             onRemove={brandKit.removeFile}
             onContinue={() => {
               setBrandSource("brand-kit");
+              if (isChangingRegenerateSourceRef.current) {
+                isChangingRegenerateSourceRef.current = false;
+                applyRegenerateSourceChange("brand-kit");
+                return;
+              }
               if (finishConversionIfNeeded("brand-kit")) {
                 return;
               }
@@ -423,52 +449,25 @@ export function WireframesTab({
           regeneratePicker={
             regenerateMode ? (
               <div className="flex flex-wrap items-center gap-3 rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-                <TypeChooser
-                  variant="slim"
-                  selectedSource={regenerateBrandSource}
-                  onSelect={setRegenerateBrandSource}
-                  onContinue={() => undefined}
-                />
-                {regenerateBrandSource === "style-guide" ? (
-                  styleDirections.length === 0 ? (
-                    <button
-                      type="button"
-                      onClick={onGoToMoodboard}
-                      className="inline-flex h-9 items-center gap-2 rounded-[6px] bg-white px-3 text-[12px] font-medium text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#FAFAFA]"
-                    >
-                      Generate a Style Guide
-                    </button>
-                  ) : (
-                    <select
-                      value={regenerateStyleDirectionId ?? ""}
-                      onChange={(event) => setRegenerateStyleDirectionId(event.target.value)}
-                      className="h-9 rounded-[6px] border border-[#D4D4D4] bg-white px-2 text-[13px] font-medium text-[#171717]"
-                      aria-label="Style direction"
-                    >
-                      <option value="" disabled>
-                        Select a style direction
-                      </option>
-                      {styleDirections.map((direction) => (
-                        <option key={direction.id} value={direction.id}>
-                          {direction.title}
-                        </option>
-                      ))}
-                    </select>
-                  )
-                ) : null}
-                {regenerateBrandSource === "brand-kit" && brandKit.files.length > 0 ? (
-                  <span className="text-[12px] font-medium text-[#525252]">
-                    {brandKit.files.length} brand kit file
-                    {brandKit.files.length === 1 ? "" : "s"} attached
-                  </span>
-                ) : null}
-                {regenerateBrandSource === "brand-kit" &&
-                !brandKit.isLoading &&
-                brandKit.files.length === 0 ? (
-                  <span className="text-[12px] font-medium text-[#EF4444]">
-                    Upload at least one brand kit file, or switch to Style Guide.
-                  </span>
-                ) : null}
+                <span className="text-[12px] font-medium text-[#525252]">
+                  {regenerateBrandSource === "brand-kit"
+                    ? `Brand Kit${brandKit.files.length > 0 ? ` · ${brandKit.files.length} file${brandKit.files.length === 1 ? "" : "s"}` : ""}`
+                    : regenerateBrandSource === "style-guide"
+                      ? `Style Guide${regenerateDirectionTitle ? ` · ${regenerateDirectionTitle}` : ""}`
+                      : "No brand source selected"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    isChangingRegenerateSourceRef.current = true;
+                    setBrandSource(regenerateBrandSource);
+                    setStyleDirectionId(regenerateStyleDirectionId);
+                    setStep("choose-type");
+                  }}
+                  className="inline-flex h-9 items-center gap-2 rounded-[6px] border border-[#D4D4D4] bg-white px-3 text-[12px] font-medium text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] hover:bg-[#FAFAFA]"
+                >
+                  Change source
+                </button>
               </div>
             ) : null
           }

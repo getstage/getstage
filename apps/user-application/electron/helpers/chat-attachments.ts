@@ -81,7 +81,21 @@ async function safeGetSources(
 ): Promise<Electron.DesktopCapturerSource[]> {
   try {
     return await desktopCapturer.getSources(options);
-  } catch {
+  } catch (error) {
+    // macOS throws "Failed to get sources" when Screen Recording permission is
+    // missing — swallow that per-type so one blocked kind never kills the whole
+    // picker (the caller surfaces the friendly permission banner instead).
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("Failed to get sources")) {
+      return [];
+    }
+    // Anything else (API shape changes, Chromium-internal crashes, OOM) is a real
+    // bug — log it so we can distinguish structural failures from permission gaps
+    // without a debugger, then still return [] to keep the picker responsive.
+    console.error(
+      "[chat-attachments] desktopCapturer.getSources failed unexpectedly",
+      error,
+    );
     return [];
   }
 }

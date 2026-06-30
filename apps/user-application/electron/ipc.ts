@@ -312,7 +312,7 @@ export function registerIpcHandlers({
       );
       engineRequest = {
         ...baseRequest,
-        hifiPreviewPng: [...screenshot.png],
+        hifiPreviewDataUrl: `data:image/png;base64,${screenshot.png.toString("base64")}`,
         hifiPreviewWidth: screenshot.width,
         hifiPreviewHeight: screenshot.height,
       };
@@ -320,14 +320,16 @@ export function registerIpcHandlers({
 
     sidecarSupervisor.markEngineActivity();
     const status = await sidecarSupervisor.start();
-    const { data: payload } = await fetchEngineJsonAuthed<unknown>({
-      authController,
-      method: "POST",
-      path: "/v1/exports/figma",
-      port: status.port,
-      body: engineRequest,
-      timeoutMs: hifiHtml ? 120_000 : 10_000,
-    });
+    const { data: payload } = await withDebugTiming("figma-export:create", () =>
+      fetchEngineJsonAuthed<unknown>({
+        authController,
+        method: "POST",
+        path: "/v1/exports/figma",
+        port: status.port,
+        body: engineRequest,
+        timeoutMs: hifiHtml ? 120_000 : 10_000,
+      }),
+    );
     return createFigmaExportResponseSchema.parse(payload);
   });
 

@@ -95,6 +95,6 @@ export function ProviderRequiredProvider({ children }: { children: ReactNode }) 
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
-    </ProviderRequiredContext.Provider>
+  </ProviderRequiredContext.Provider>
   );
 }

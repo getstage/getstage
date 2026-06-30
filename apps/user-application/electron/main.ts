@@ -213,14 +213,21 @@ app.on("second-instance", (_event, argv) => {
 });
 
 function registerRendererMediaPermissions() {
-  const mediaPermissions = new Set(["media", "microphone", "audioCapture"]);
+  // `local-fonts` lets the style-guide editor enumerate the user's installed
+  // macOS fonts via the renderer's `queryLocalFonts()` (Local Font Access API).
+  const grantedPermissions = new Set([
+    "media",
+    "microphone",
+    "audioCapture",
+    "local-fonts",
+  ]);
 
   session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
-    callback(mediaPermissions.has(permission));
+    callback(grantedPermissions.has(permission));
   });
 
   session.defaultSession.setPermissionCheckHandler((_webContents, permission) =>
-    mediaPermissions.has(permission),
+    grantedPermissions.has(permission),
   );
 }
 

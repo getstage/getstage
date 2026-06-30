@@ -7,7 +7,7 @@ pub struct CreateFigmaExportRequest {
     pub artifact_id: String,
     pub screen_id: String,
     #[serde(default)]
-    pub hifi_preview_png: Option<Vec<u8>>,
+    pub hifi_preview_data_url: Option<String>,
     #[serde(default)]
     pub hifi_preview_width: Option<u16>,
     #[serde(default)]

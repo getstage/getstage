@@ -1,11 +1,20 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { defaultStyleGuide } from "@/mock/project/moodboard";
+import { BUNDLED_FONTS, listSystemFonts } from "@/lib/systemFonts";
 import type { MoodboardStyleGuideViewData } from "@/types/project/moodboardTab";
 import { EditIcon, PlusIcon, RegenerateIcon } from "./moodboardIcons";
 
 type TypographyRow = MoodboardStyleGuideViewData["typography"]["rows"][number];
 type AtmosphereMetric = MoodboardStyleGuideViewData["atmosphere"][number];
 type SwatchPalette = MoodboardStyleGuideViewData["colorPalettes"][number];
+
+// The brand's font families: the primary `fontFamily` plus any extra families
+// the user added. Older guides without `fontFamilies` fall back to the single
+// primary font.
+function initialFonts(guide: MoodboardStyleGuideViewData): string[] {
+  const families = guide.typography.fontFamilies;
+  return families.length > 0 ? families : [guide.typography.fontFamily];
+}
 
 // Each component swatch shows a different component type so the section is not
 // "always the same component"; combined with a per-swatch palette this gives the
@@ -31,12 +40,51 @@ export function StyleGuideView({
   onCancel?: () => void;
 }) {
   const [previewSize, setPreviewSize] = useState(styleGuide.typography.previewSize);
-  const [fontFamily, setFontFamily] = useState(styleGuide.typography.fontFamily);
-  const [customRows, setCustomRows] = useState<TypographyRow[]>([]);
+  const [fonts, setFonts] = useState<string[]>(() => initialFonts(styleGuide));
+  const [systemFonts, setSystemFonts] = useState<string[]>([]);
+  const [fontsLoaded, setFontsLoaded] = useState(false);
   const [draftAtmosphere, setDraftAtmosphere] = useState<AtmosphereMetric[]>(styleGuide.atmosphere);
   const [draftPalettes, setDraftPalettes] = useState<SwatchPalette[]>(styleGuide.colorPalettes);
   const previewProgress = ((previewSize - 12) / (48 - 12)) * 100;
-  const renderedRows = [...styleGuide.typography.rows, ...customRows];
+  // While editing, previews reflect the in-progress draft fonts/size; otherwise
+  // they mirror the saved guide so a freshly loaded guide is always current.
+  const renderFonts = isEditing ? fonts : initialFonts(styleGuide);
+  const renderSize = isEditing ? previewSize : styleGuide.typography.previewSize;
+  const primaryFont = renderFonts[0] ?? styleGuide.typography.fontFamily;
+  const renderedRows = styleGuide.typography.rows;
+
+  // Installed system fonts merged with the always-available brand fonts and the
+  // current selections, so every chosen family is selectable even if not installed.
+  const fontOptions = useMemo(() => {
+    const all = new Set<string>([...BUNDLED_FONTS, ...systemFonts, ...fonts]);
+    return [...all].sort((a, b) => a.localeCompare(b));
+  }, [systemFonts, fonts]);
+
+  // Lazily enumerate installed fonts on first use. Called directly from a user
+  // gesture (opening a font picker or clicking Add) so the Local Font Access API
+  // sees the activation. listSystemFonts never rejects.
+  const loadSystemFonts = useCallback(() => {
+    if (fontsLoaded) return;
+    setFontsLoaded(true);
+    void listSystemFonts().then(setSystemFonts);
+  }, [fontsLoaded]);
+
+  function updateFont(index: number, value: string) {
+    setFonts((current) => current.map((font, fontIndex) => (fontIndex === index ? value : font)));
+  }
+
+  function addFont() {
+    loadSystemFonts();
+    setFonts((current) => {
+      const used = new Set(current);
+      const next = fontOptions.find((font) => !used.has(font)) ?? current[0];
+      return [...current, next];
+    });
+  }
+
+  function removeFont(index: number) {
+    setFonts((current) => (current.length > 1 ? current.filter((_, i) => i !== index) : current));
+  }
   // While editing, the palette / component previews reflect the in-progress draft
   // so the user sees their color edits live before saving.
   const palettes = isEditing ? draftPalettes : styleGuide.colorPalettes;
@@ -62,27 +110,11 @@ export function StyleGuideView({
   useEffect(() => {
     if (isEditing) {
       setPreviewSize(styleGuide.typography.previewSize);
-      setFontFamily(styleGuide.typography.fontFamily);
-      setCustomRows([]);
+      setFonts(initialFonts(styleGuide));
       setDraftAtmosphere(styleGuide.atmosphere);
       setDraftPalettes(styleGuide.colorPalettes);
     }
   }, [isEditing, styleGuide]);
-
-  function addTypographyRow() {
-    const weight = previewSize >= 15 ? "Semi-Bold" : "Medium";
-    const id = `${previewSize}-${weight.toLowerCase()}-${customRows.length}`;
-    setCustomRows((current) => [
-      ...current,
-      {
-        id,
-        size: previewSize,
-        weight,
-        className: weight === "Semi-Bold" ? "font-semibold" : "font-medium",
-        lineHeight: previewSize <= 12 ? "150%" : "100%",
-      },
-    ]);
-  }
 
   function handleSave() {
     if (!onSave) return;
@@ -97,17 +129,16 @@ export function StyleGuideView({
       })),
       typography: {
         ...styleGuide.typography,
-        fontFamily,
+        fontFamily: fonts[0] ?? styleGuide.typography.fontFamily,
+        fontFamilies: fonts,
         previewSize,
-        rows: [...styleGuide.typography.rows, ...customRows],
       },
     });
   }
 
   function restoreDraftsFromOriginal() {
     setPreviewSize(styleGuide.typography.previewSize);
-    setFontFamily(styleGuide.typography.fontFamily);
-    setCustomRows([]);
+    setFonts(initialFonts(styleGuide));
     setDraftAtmosphere(styleGuide.atmosphere);
     setDraftPalettes(styleGuide.colorPalettes);
   }
@@ -183,7 +214,11 @@ export function StyleGuideView({
                   onPositionChange={(position) =>
                     setDraftAtmosphere((current) =>
                       current.map((entry, entryIndex) =>
-                        entryIndex === index ? { ...entry, position } : entry,
+                        // Keep the "x/10" label in sync with the slider position so the
+                        // number tracks the bar while dragging (and persists on save).
+                        entryIndex === index
+                          ? { ...entry, position, value: `${Math.round(position / 10)}/10` }
+                          : entry,
                       ),
                     )
                   }
@@ -255,67 +290,82 @@ export function StyleGuideView({
 
           <StyleSection title="Typography" titleWeight="font-medium">
             <div className="flex flex-col gap-11">
-              <div className="flex flex-col gap-4">
-                <p
-                  className="font-bold leading-none text-[#171717] transition-[font-size] duration-150"
-                  style={{ fontFamily, fontSize: previewSize }}
-                >
-                  Build something that people want.
-                </p>
-                <div className="flex flex-wrap items-center gap-4">
-                  <label className="relative h-4 w-full max-w-[468px] shrink-0 cursor-pointer" aria-label="Typography size">
-                    <div className="absolute left-0 right-0 top-[7px] h-[6px] rounded-full bg-[#E7E6FD]" />
-                    <div
-                      className="absolute left-0 top-[7px] h-[6px] rounded-full bg-[#6D67D3]"
-                      style={{ width: `${previewProgress}%` }}
-                    />
-                    <span
-                      className="absolute top-0 h-4 w-4 rounded-full bg-[#6D67D3] shadow-[0_0_0_2px_rgba(255,255,255,0.8)]"
-                      style={{ left: `calc(${previewProgress}% - 8px)` }}
-                    />
-                    <input
-                      type="range"
-                      min={12}
-                      max={48}
-                      value={previewSize}
-                      onChange={(event) => setPreviewSize(Number(event.target.value))}
-                      className="absolute inset-0 h-4 w-full cursor-pointer opacity-0"
-                    />
-                  </label>
-                  <div className="flex flex-wrap items-center gap-1">
-                    <MetaPill>{previewSize}px</MetaPill>
-                    <label className="inline-flex h-5 items-center justify-center gap-[6px] rounded-[4px] border border-[#E5E5E5] bg-[#F5F5F5] px-2 py-[2px] text-[13px] font-medium leading-none text-[#171717]">
-                      <select
-                        value={fontFamily}
-                        onChange={(event) => setFontFamily(event.target.value)}
-                        className="cursor-pointer appearance-none bg-transparent pr-[18px] outline-none"
-                      >
-                        {[fontFamily, "Geist", "Fraunces", "Space Grotesk", "Satoshi", "Geist Mono"]
-                          .filter((font, index, all) => Boolean(font) && all.indexOf(font) === index)
-                          .map((font) => (
-                            <option key={font}>{font}</option>
-                          ))}
-                      </select>
-                      <span className="pointer-events-none -ml-[18px]">
-                        <ChevronDown />
-                      </span>
-                    </label>
-                    <button
-                      type="button"
-                      className="inline-flex h-5 items-center justify-center gap-1 rounded-[4px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] py-[2px] pl-2 pr-[6px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
-                      onClick={addTypographyRow}
+              <div className="flex flex-col gap-6">
+                {/* One preview per brand font; the size slider lives on the first row and
+                    governs every preview. "Add" appends another font family. */}
+                {renderFonts.map((font, fontIndex) => (
+                  <div key={`${font}-${fontIndex}`} className="flex flex-col gap-4">
+                    <p
+                      className="font-bold leading-none text-[#171717] transition-[font-size] duration-150"
+                      style={{ fontFamily: font, fontSize: renderSize }}
                     >
-                      Add
-                      <PlusIcon className="h-3 w-3" />
-                    </button>
+                      Build something that people want.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-4">
+                      {fontIndex === 0 && isEditing ? (
+                        <label className="relative h-4 w-full max-w-[468px] shrink-0 cursor-pointer" aria-label="Typography size">
+                          <div className="absolute left-0 right-0 top-[7px] h-[6px] rounded-full bg-[#E7E6FD]" />
+                          <div
+                            className="absolute left-0 top-[7px] h-[6px] rounded-full bg-[#6D67D3]"
+                            style={{ width: `${previewProgress}%` }}
+                          />
+                          <span
+                            className="absolute top-0 h-4 w-4 rounded-full bg-[#6D67D3] shadow-[0_0_0_2px_rgba(255,255,255,0.8)]"
+                            style={{ left: `calc(${previewProgress}% - 8px)` }}
+                          />
+                          <input
+                            type="range"
+                            min={12}
+                            max={48}
+                            value={previewSize}
+                            onChange={(event) => setPreviewSize(Number(event.target.value))}
+                            className="absolute inset-0 h-4 w-full cursor-pointer opacity-0"
+                          />
+                        </label>
+                      ) : null}
+                      <div className="flex flex-wrap items-center gap-1">
+                        {fontIndex === 0 ? <MetaPill>{renderSize}px</MetaPill> : null}
+                        {isEditing ? (
+                          <FontPicker
+                            value={font}
+                            options={fontOptions}
+                            onOpen={loadSystemFonts}
+                            onChange={(next) => updateFont(fontIndex, next)}
+                          />
+                        ) : (
+                          <MetaPill>{font}</MetaPill>
+                        )}
+                        {isEditing && renderFonts.length > 1 ? (
+                          <button
+                            type="button"
+                            onClick={() => removeFont(fontIndex)}
+                            title="Remove this font"
+                            aria-label={`Remove ${font}`}
+                            className="inline-flex h-5 w-5 items-center justify-center rounded-[4px] border border-[#E5E5E5] bg-[#F5F5F5] text-[13px] leading-none text-[#737373] transition-colors hover:bg-[#ECECEC] hover:text-[#171717]"
+                          >
+                            ×
+                          </button>
+                        ) : null}
+                        {isEditing && fontIndex === renderFonts.length - 1 ? (
+                          <button
+                            type="button"
+                            className="inline-flex h-5 items-center justify-center gap-1 rounded-[4px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] py-[2px] pl-2 pr-[6px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+                            onClick={addFont}
+                          >
+                            Add
+                            <PlusIcon className="h-3 w-3" />
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
 
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="flex min-w-0 flex-col">
                   {renderedRows.map((row, index) => (
-                    <TypographyRow key={row.id} row={row} fontFamily={fontFamily} padded={index !== 0} />
+                    <TypographyRow key={row.id} row={row} fontFamily={primaryFont} padded={index !== 0} />
                   ))}
                 </div>
                 <div className="flex min-w-0 flex-col items-start gap-4 text-[#171717]">
@@ -500,6 +550,105 @@ function ChevronDown() {
   return (
     <svg viewBox="0 0 14 14" fill="none" aria-hidden="true" className="h-[14px] w-[14px] shrink-0 text-[#171717]">
       <path d="m4 5.5 3 3 3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// Searchable font dropdown. `onOpen` triggers system-font enumeration on the
+// opening click (a user gesture, required by the Local Font Access API); each
+// option renders in its own family so the list previews real typefaces.
+function FontPicker({
+  value,
+  options,
+  onChange,
+  onOpen,
+}: {
+  value: string;
+  options: string[];
+  onChange: (font: string) => void;
+  onOpen?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const filtered = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    return term ? options.filter((font) => font.toLowerCase().includes(term)) : options;
+  }, [options, query]);
+
+  function toggle() {
+    if (!open) {
+      onOpen?.();
+      setQuery("");
+    }
+    setOpen((current) => !current);
+  }
+
+  return (
+    <div className="relative inline-flex">
+      <button
+        type="button"
+        onClick={toggle}
+        className="inline-flex h-5 items-center gap-[6px] rounded-[4px] border border-[#E5E5E5] bg-[#F5F5F5] px-2 py-[2px] text-[13px] font-medium leading-none text-[#171717]"
+      >
+        <span className="max-w-[150px] truncate" style={{ fontFamily: value }}>
+          {value}
+        </span>
+        <ChevronDown />
+      </button>
+      {open ? (
+        <>
+          {/* Backdrop catches outside clicks to close the popover. */}
+          <button
+            type="button"
+            aria-hidden="true"
+            tabIndex={-1}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-40 cursor-default"
+          />
+          <div className="absolute left-0 top-[calc(100%+4px)] z-50 w-[240px] rounded-[8px] border border-[#E5E5E5] bg-white p-1 shadow-[0_8px_24px_rgba(10,10,10,0.12)]">
+            <input
+              autoFocus
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search fonts"
+              aria-label="Search fonts"
+              className="mb-1 h-7 w-full rounded-[6px] border border-[#E5E5E5] bg-[#F5F5F5] px-2 text-[13px] leading-none text-[#171717] outline-none focus:border-[#8d87ff]"
+            />
+            <div className="max-h-[220px] overflow-auto">
+              {filtered.length === 0 ? (
+                <p className="px-2 py-2 text-[12px] leading-none text-[#737373]">No fonts found</p>
+              ) : (
+                filtered.map((font) => (
+                  <button
+                    key={font}
+                    type="button"
+                    onClick={() => {
+                      onChange(font);
+                      setOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between gap-2 rounded-[6px] px-2 py-1.5 text-left text-[13px] leading-none transition-colors hover:bg-[#F5F5F5] ${
+                      font === value ? "text-[#171717]" : "text-[#404040]"
+                    }`}
+                  >
+                    <span className="truncate" style={{ fontFamily: font }}>
+                      {font}
+                    </span>
+                    {font === value ? <CheckIcon /> : null}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" aria-hidden="true" className="h-[14px] w-[14px] shrink-0 text-[#6D67D3]">
+      <path d="m3 7.5 2.5 2.5L11 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

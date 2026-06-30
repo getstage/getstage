@@ -130,6 +130,18 @@ fn compile_html(screen: &GeneratedScreen) -> String {
     )
 }
 
+// Paper's write_html honors inline styles but drops a top-level <style> block,
+// which our Hi-Fi fragments rely on — so an un-inlined fragment renders as a raw
+// text+image stack. Inlining folds those rules onto each element so Paper's
+// flex/inline-style model can rebuild the design as editable nodes. On the rare
+// parse failure we send the original markup rather than failing the export.
+fn inline_styles_for_paper(fragment: &str) -> String {
+    css_inline::inline(fragment).unwrap_or_else(|error| {
+        tracing::warn!(%error, "failed to inline CSS for Paper export; sending raw fragment");
+        fragment.to_string()
+    })
+}
+
 // Returns the Hi-Fi HTML fragment when the screen has a non-empty one.
 fn hifi_fragment(screen: &GeneratedScreen) -> Option<&str> {
     screen
@@ -175,6 +187,13 @@ fn compile_paper_html(
     width: u16,
     height: u16,
 ) -> String {
+    // Prefer the real Hi-Fi markup so Paper inserts editable nodes via write_html,
+    // matching the code-export path. Only fall back to a flat image when no
+    // fragment is available (mirrors compile_html's hifi_fragment/Lo-Fi split).
+    if let Some(fragment) = hifi_fragment(screen) {
+        return inline_styles_for_paper(fragment);
+    }
+
     if let Some(data_url) = hifi_preview_data_url.filter(|value| !value.trim().is_empty()) {
         return format!(
             "<div style=\"width:{width}px;min-height:{height}px;background:#ffffff;\"><img src=\"{}\" width=\"{width}\" height=\"{height}\" style=\"display:block;width:{width}px;height:{height}px;object-fit:contain;\" /></div>",
@@ -253,7 +272,23 @@ const CSS: &str = "*{box-sizing:border-box}body{margin:0;background:#f5f5f5;colo
 
 #[cfg(test)]
 mod tests {
-    use super::{GeneratedScreen, compile_html, slug};
+    use super::{GeneratedScreen, compile_html, inline_styles_for_paper, slug};
+
+    #[test]
+    fn inline_styles_for_paper_should_fold_style_block_rules_onto_elements() {
+        let fragment =
+            "<div class=\"hero\"><h1 class=\"title\">Ship faster</h1></div><style>.hero{display:flex;background:#101010}.title{color:#fff}</style>";
+
+        let inlined = inline_styles_for_paper(fragment);
+
+        // The class rules must ride on each element as inline styles, since Paper
+        // drops the <style> block but honors inline styles.
+        assert!(inlined.contains("display: flex"));
+        assert!(inlined.contains("background: #101010"));
+        assert!(inlined.contains("color: #fff"));
+        // The now-redundant <style> block must be gone.
+        assert!(!inlined.contains("<style>"));
+    }
 
     #[test]
     fn slug_should_create_safe_directory_name() {

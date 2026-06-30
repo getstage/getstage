@@ -8,7 +8,7 @@ export const wireframeDeliveryRequestSchema = z.object({
 
 export const createFigmaExportRequestSchema = wireframeDeliveryRequestSchema.extend({
   hifiHtml: z.string().min(1).optional(),
-  hifiPreviewPng: z.array(z.number().int().min(0).max(255)).optional(),
+  hifiPreviewDataUrl: z.string().startsWith("data:image/png;base64,").optional(),
   hifiPreviewWidth: z.number().int().positive().max(4096).optional(),
   hifiPreviewHeight: z.number().int().positive().max(4096).optional(),
 });

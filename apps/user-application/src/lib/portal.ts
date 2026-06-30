@@ -1,9 +1,17 @@
+const PUBLIC_SITE_URL =
+  import.meta.env.VITE_PUBLIC_SITE_URL ?? "https://getstage.co";
+
+function isDesktopContext() {
+  return typeof window !== "undefined" && Boolean(window.stageDesktop);
+}
+
 function buildAbsoluteUrl(pathname: string) {
   if (typeof window === "undefined") {
     return pathname;
   }
 
-  return new URL(pathname, window.location.origin).toString();
+  const base = isDesktopContext() ? PUBLIC_SITE_URL : window.location.origin;
+  return new URL(pathname, base).toString();
 }
 
 export function buildPortalPath(shareToken: string) {
@@ -12,6 +20,10 @@ export function buildPortalPath(shareToken: string) {
 
 export function rebaseUrlToCurrentOrigin(url: string) {
   if (typeof window === "undefined") {
+    return url;
+  }
+
+  if (isDesktopContext()) {
     return url;
   }
 
