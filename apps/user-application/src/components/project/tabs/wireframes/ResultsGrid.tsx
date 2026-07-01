@@ -3,6 +3,7 @@ import type { WireframeResultCard } from "@/lib/project/mapWireframesArtifactToT
 import { formatRelativeTime } from "@/lib/utils";
 import type { WireframeKind } from "@/types/project/wireframesTab";
 import { Badge, PrimaryButton, SecondaryButton } from "./WireframePrimitives";
+import { FidelityToggle } from "./FidelityToggle";
 import { ArrowRightIcon, CheckIcon, ImageIcon, SparkleIcon } from "./wireframesIcons";
 import { WireframeBlockPreview } from "./WireframeBlockPreview";
 import {
@@ -56,22 +57,7 @@ export function ResultsGrid({
     <div className="rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex items-center justify-between gap-4 p-4">
         {canToggleFidelity ? (
-          <div className="inline-flex rounded-[8px] bg-[#E5E5E5] p-[3px]">
-            {(["lofi", "hifi"] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setView(option)}
-                className={`rounded-[6px] px-3 py-[6px] text-[13px] font-medium leading-[1.25] transition-colors ${
-                  effectiveView === option
-                    ? "bg-white text-[#171717] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
-                    : "text-[#525252] hover:text-[#171717]"
-                }`}
-              >
-                {option === "hifi" ? "Hi-Fi" : "Lo-Fi"}
-              </button>
-            ))}
-          </div>
+          <FidelityToggle value={effectiveView} onChange={setView} />
         ) : (
           <h2 className="text-[15px] font-medium leading-[1.25] text-[#171717]">
             {wireframeKind === "hifi" ? "Hi-Fi Wireframes" : "Lo-Fi Wireframes"}

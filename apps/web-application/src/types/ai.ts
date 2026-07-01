@@ -1,4 +1,4 @@
-export type ProjectAiModule = "research" | "strategy" | "flows" | "moodboard" | "generate" | "delivery";
+export type ProjectAiModule = "research" | "strategy" | "flows" | "moodboard" | "styleguide" | "generate" | "delivery";
 
 export type ProjectAiContext = {
   projectId: string;

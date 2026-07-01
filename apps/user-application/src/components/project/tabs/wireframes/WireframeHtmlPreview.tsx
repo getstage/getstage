@@ -6,9 +6,6 @@ import {
 } from "@shared/wireframePreviewDocument";
 
 const DESIGN_WIDTH = WIREFRAME_DESIGN_WIDTH;
-// A tall-enough viewport to show the top of any screen in the thumbnail; the
-// container clips the overflow.
-const THUMBNAIL_HEIGHT = 2400;
 
 export { buildWireframePreviewDocument };
 
@@ -17,7 +14,11 @@ export { buildWireframePreviewDocument };
 // same-origin access — only the static markup and images render.
 export function WireframeHtmlThumbnail({ html }: { html: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.2);
+  // The iframe is sized to fill the card's preview band exactly (width-scaled,
+  // top-aligned) rather than a fixed tall viewport, so a design that is shorter
+  // than an arbitrary max no longer leaves a big white gap below it. Anything
+  // taller than the band is cropped by the container's `overflow-hidden`.
+  const [{ scale, designHeight }, setBox] = useState({ scale: 0.2, designHeight: DESIGN_WIDTH });
   // Lazy-mount the iframe only when the card scrolls near the viewport. A 1440×2400
   // iframe document is a full layout allocation per card; a results grid of 6–12
   // cards would otherwise reserve ~12 fully-loaded docs simultaneously, pressuring
@@ -47,8 +48,14 @@ export function WireframeHtmlThumbnail({ html }: { html: string }) {
     if (!element) return;
 
     const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width ?? 0;
-      if (width > 0) setScale(width / DESIGN_WIDTH);
+      const rect = entries[0]?.contentRect;
+      const width = rect?.width ?? 0;
+      const height = rect?.height ?? 0;
+      if (width <= 0 || height <= 0) return;
+      const nextScale = width / DESIGN_WIDTH;
+      // Design-space height that exactly fills the band; the iframe never extends
+      // past it, so there is no white area below the design.
+      setBox({ scale: nextScale, designHeight: height / nextScale });
     });
     observer.observe(element);
     return () => observer.disconnect();
@@ -67,7 +74,7 @@ export function WireframeHtmlThumbnail({ html }: { html: string }) {
           className="pointer-events-none origin-top-left border-0"
           style={{
             width: DESIGN_WIDTH,
-            height: THUMBNAIL_HEIGHT,
+            height: designHeight,
             transform: `scale(${scale})`,
           }}
         />

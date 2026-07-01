@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import type { CreateFigmaExportResponse } from "@stage/data-ops/contracts";
-import { CopyButton } from "@/components/ui/CopyButton";
+import { PairingCodeCopy } from "@/components/ui/CopyButton";
 
 type FigJamExportDialogProps = {
   open: boolean;
@@ -62,11 +62,11 @@ export function FigJamExportDialog({
               <Dialog.Description className="text-[13px] font-medium leading-[1.5] text-[#525252]">
                 Open a FigJam board, run the Stage Exporter plugin, and enter the pairing code below.
               </Dialog.Description>
-              <div className="mt-4 flex items-center justify-between gap-3 rounded-[8px] border border-[#E5E5E5] bg-[#F5F5F5] px-4 py-3">
-                <span className="font-mono text-[24px] font-semibold tracking-[0.2em] text-[#171717]">
-                  {request.pairingCode}
-                </span>
-                <CopyButton value={request.pairingCode} />
+              <div className="mt-4 rounded-[8px] border border-[#E5E5E5] bg-[#F5F5F5] px-4 py-3">
+                <PairingCodeCopy
+                  value={request.pairingCode}
+                  codeClassName="font-mono text-[24px] font-semibold tracking-[0.2em] text-[#171717]"
+                />
               </div>
               <div className="mt-3 flex items-center gap-2 text-[12px] font-medium leading-[1.5] text-[#737373]">
                 <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[#16A34A]" />

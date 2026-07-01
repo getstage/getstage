@@ -11,8 +11,9 @@
     "allowedDomains": [
       "https://reliable-bullfrog-917.convex.site",
       "https://assets-testing.getstage.co",
-      "https://assets.getstage.co"
+      "https://assets.getstage.co",
+      "https://images.unsplash.com"
     ],
-    "reasoning": "Claims Stage export jobs and loads Hi-Fi wireframe preview images from Stage R2."
+    "reasoning": "Claims Stage export jobs, loads Hi-Fi preview images from Stage R2, and rebuilds editable wireframes with their Unsplash photo layers."
   }
 }

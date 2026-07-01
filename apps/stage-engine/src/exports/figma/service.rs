@@ -8,13 +8,17 @@ use crate::helpers::time::now_millis;
 use super::models::{
     CreateFigJamExportRequest, CreateFigmaExportRequest, CreateFigmaExportResponse, CreateJobInput,
     FigJamWriteFlow, FigJamWritePlan, FigmaWriteBlock, FigmaWritePlan, FigmaWriteSection,
-    FlowsArtifact, GeneratedBlock, GeneratedScreen, HifiFigmaWritePlan, WireframeFigmaWritePlan,
-    WireframesArtifact,
+    FlowsArtifact, GeneratedBlock, GeneratedScreen, HifiFigmaWritePlan, NodesFigmaWritePlan,
+    WireframeFigmaWritePlan, WireframesArtifact,
 };
 use super::repository::FigmaExportRepository;
 
 const PAIRING_TTL_MS: u128 = 10 * 60 * 1000;
 const WIREFRAME_EXPORT_WIDTH: u16 = 1440;
+// Upper bound on editable-export layers. A rich full page walks to a few hundred
+// nodes; this caps a pathological or hostile payload well before it burdens
+// Convex storage or the plugin's node loop.
+const MAX_FIGMA_DOM_NODES: usize = 6000;
 
 #[derive(Clone, Debug)]
 pub struct FigmaExportService {
@@ -158,6 +162,28 @@ impl FigmaExportService {
         request: &CreateFigmaExportRequest,
         screen: &GeneratedScreen,
     ) -> anyhow::Result<WireframeFigmaWritePlan> {
+        // Best fidelity: the desktop walked the rendered DOM into an editable layer
+        // tree. Reject an over-sized payload (DoS guard) rather than forwarding an
+        // unbounded node list to Convex and the plugin.
+        if let Some(dom) = &request.hifi_figma_nodes
+            && !dom.nodes.is_empty()
+        {
+            if dom.nodes.len() > MAX_FIGMA_DOM_NODES {
+                bail!(
+                    "Hi-Fi wireframe has too many layers to export ({} > {MAX_FIGMA_DOM_NODES}).",
+                    dom.nodes.len()
+                );
+            }
+            return Ok(WireframeFigmaWritePlan::Nodes(NodesFigmaWritePlan {
+                api_version: "v1",
+                kind: "hifi-wireframe-nodes",
+                name: format!("{} Wireframe", screen.title),
+                width: dom.width.max(1),
+                height: dom.height.max(1),
+                nodes: dom.nodes.clone(),
+            }));
+        }
+
         // Hi-Fi is driven by the desktop, exactly like the Paper export: if it
         // rendered a preview PNG, place that image. We do NOT re-derive the
         // decision from the engine's fetched `screen.html` — that copy can lag
@@ -357,5 +383,24 @@ mod tests {
     #[test]
     fn hash_secret_should_match_case_insensitively() {
         assert_eq!(hash_secret("abcd1234"), hash_secret("ABCD1234"));
+    }
+
+    #[test]
+    fn hifi_figma_nodes_should_roundtrip_camel_case_fields() {
+        use super::super::models::{FigmaDomNode, HifiFigmaNodes};
+
+        // The desktop walker and the plugin both speak camelCase; the engine must
+        // deserialize and re-serialize the same shape (regression guard for the
+        // per-variant rename_all fix).
+        let json = r##"{"width":1440,"height":900,"nodes":[
+            {"type":"text","x":1,"y":2,"w":300,"text":"Hi","fontSize":18,"fontFamily":"Inter","fontWeight":600,"color":"#111111","align":"left"}
+        ]}"##;
+        let parsed: HifiFigmaNodes =
+            serde_json::from_str(json).expect("camelCase text node should deserialize");
+        assert!(matches!(parsed.nodes[0], FigmaDomNode::Text { .. }));
+
+        let out = serde_json::to_string(&parsed.nodes).expect("nodes should serialize");
+        assert!(out.contains("fontSize"), "expected camelCase field, got: {out}");
+        assert!(!out.contains("font_size"), "leaked snake_case field: {out}");
     }
 }

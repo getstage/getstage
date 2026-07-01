@@ -22,7 +22,10 @@ import {
   type RunEvent,
 } from "@stage/data-ops/contracts";
 import { putSignedR2Upload } from "./helpers/r2-upload";
-import { captureWireframeHtmlPng } from "./helpers/wireframe-screenshot";
+import {
+  captureWireframeFigmaNodes,
+  captureWireframeHtmlPng,
+} from "./helpers/wireframe-screenshot";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import {
   captureWindowRequestSchema,
@@ -307,15 +310,25 @@ export function registerIpcHandlers({
     let engineRequest: Record<string, unknown> = baseRequest;
 
     if (hifiHtml) {
-      const screenshot = await withDebugTiming("figma-export:render-hifi-preview", () =>
-        captureWireframeHtmlPng(hifiHtml),
+      // Prefer editable native layers: walk the rendered DOM into a node tree the
+      // plugin rebuilds as real text/rects/images. Fall back to the flattened
+      // screenshot only if extraction yields nothing usable.
+      const nodeTree = await withDebugTiming("figma-export:extract-nodes", () =>
+        captureWireframeFigmaNodes(hifiHtml).catch(() => null),
       );
-      engineRequest = {
-        ...baseRequest,
-        hifiPreviewDataUrl: `data:image/png;base64,${screenshot.png.toString("base64")}`,
-        hifiPreviewWidth: screenshot.width,
-        hifiPreviewHeight: screenshot.height,
-      };
+      if (nodeTree && nodeTree.nodes.length > 0) {
+        engineRequest = { ...baseRequest, hifiFigmaNodes: nodeTree };
+      } else {
+        const screenshot = await withDebugTiming("figma-export:render-hifi-preview", () =>
+          captureWireframeHtmlPng(hifiHtml),
+        );
+        engineRequest = {
+          ...baseRequest,
+          hifiPreviewDataUrl: `data:image/png;base64,${screenshot.png.toString("base64")}`,
+          hifiPreviewWidth: screenshot.width,
+          hifiPreviewHeight: screenshot.height,
+        };
+      }
     }
 
     sidecarSupervisor.markEngineActivity();
