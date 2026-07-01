@@ -7,6 +7,7 @@ description: TanStack Query (React Query) best practices for data fetching, cach
 
 ## Related skills (Stage monorepo / Convex)
 
+- **Convex ↔ TanStack Query adapter (live queries through TanStack Query):** `.agents/skills/convex-tanstack-query-adapter/SKILL.md`
 - **Convex backend & provider:** `.agents/skills/convex-quickstart/SKILL.md`
 - **Auth in Convex functions:** `.agents/skills/convex-setup-auth/SKILL.md`
 - **TanStack Router:** `.agents/skills/tanstack-router-best-practices/SKILL.md`

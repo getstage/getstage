@@ -7,6 +7,7 @@ description: TanStack Router best practices for type-safe routing, data loading,
 
 ## Related skills (Stage monorepo / Convex)
 
+- **Convex ↔ TanStack Query adapter (route loaders awaiting Convex queries):** `.agents/skills/convex-tanstack-query-adapter/SKILL.md`
 - **Convex backend & provider:** `.agents/skills/convex-quickstart/SKILL.md`
 - **Auth in Convex functions (`ctx.auth`):** `.agents/skills/convex-setup-auth/SKILL.md`
 - **TanStack Query:** `.agents/skills/tanstack-query-best-practices/SKILL.md`
