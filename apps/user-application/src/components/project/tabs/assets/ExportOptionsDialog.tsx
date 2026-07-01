@@ -1,6 +1,6 @@
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { CopyButton } from "@/components/ui/CopyButton";
+import { PairingCodeCopy } from "@/components/ui/CopyButton";
 import { EXPORT_OPTIONS } from "@/lib/project/assetsTab";
 import type { CreateFigmaExportResponse } from "@stage/data-ops/contracts";
 import type { ExportOption, ExportOptionConfig, WireframeAssetCard } from "@/types/project/assetsTab";
@@ -48,6 +48,8 @@ export function ExportOptionsDialog({
   );
   const option = options.find((item) => item.id === selectedOption) ?? options[2];
   const message = exportError ?? deliveryError ?? exportJob?.errorMessage;
+  const isPreparingFigmaExport =
+    selectedOption === "figma" && isExporting && !exportRequest && !message;
 
   async function handleExport() {
     if (!asset) return;
@@ -106,11 +108,8 @@ export function ExportOptionsDialog({
                   <>
                     <p className="font-medium text-[#171717]">Run the Stage Exporter plugin in Figma Design</p>
                     <p className="mt-1 text-[#525252]">Enter this one-time pairing code:</p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="font-mono text-[20px] font-semibold tracking-[0.18em] text-[#171717]">
-                        {exportRequest.pairingCode}
-                      </span>
-                      <CopyButton value={exportRequest.pairingCode} />
+                    <div className="mt-2">
+                      <PairingCodeCopy value={exportRequest.pairingCode} />
                     </div>
                     <p className="mt-2 text-[#737373]">
                       Status: {exportJob?.status ?? exportRequest.status}
@@ -123,6 +122,12 @@ export function ExportOptionsDialog({
             {deliveryMessage ? (
               <p className="mx-3 mt-3 rounded-[6px] bg-[#F0FDF4] p-2 text-[12px] text-[#166534]">
                 {deliveryMessage}
+              </p>
+            ) : null}
+
+            {isPreparingFigmaExport ? (
+              <p className="mx-3 mt-3 rounded-[6px] bg-[#F5F3FF] p-2 text-[12px] text-[#4C1D95]" role="status">
+                Preparing the Hi-Fi preview for Figma. Large wireframes can take up to a minute.
               </p>
             ) : null}
 
@@ -150,7 +155,7 @@ export function ExportOptionsDialog({
                 aria-label={asset ? `${option.actionLabel} ${asset.title}` : option.actionLabel}
               >
                 <img src={option.iconSrc} alt="" className="h-[15px] w-[15px] shrink-0 object-contain" />
-                {isExporting ? "Starting..." : option.actionLabel}
+                {isPreparingFigmaExport ? "Preparing..." : isExporting ? "Starting..." : option.actionLabel}
               </button>
             </div>
           </div>

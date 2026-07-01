@@ -1,6 +1,8 @@
 import { DoneCircleIcon, PendingIcon, SpinnerIcon } from "./wireframesIcons";
 
-export function GeneratingStep() {
+export function GeneratingStep({ mode = "generate" }: { mode?: "generate" | "regenerate" }) {
+  const isRegenerate = mode === "regenerate";
+
   return (
     <div className="flex w-[330px] flex-col items-center gap-6 text-center">
       <div className="flex h-11 w-11 items-center justify-center text-[#5B4FE0]">
@@ -12,16 +14,20 @@ export function GeneratingStep() {
         />
       </div>
       <div className="flex w-full flex-col items-center gap-2">
-        <h2 className="text-[16px] font-semibold leading-[1.25] text-[#171717]">Creating Wireframe</h2>
+        <h2 className="text-[16px] font-semibold leading-[1.25] text-[#171717]">
+          {isRegenerate ? "Regenerating Wireframes" : "Creating Wireframe"}
+        </h2>
         <p className="w-[282px] text-[13px] font-medium leading-[1.5] text-[#525252]">
-          Hold tight, we&apos;re building your wireframes based on the moodboard and
+          {isRegenerate
+            ? "Hold tight, we\u2019re rebuilding the selected screens with your current brand context."
+            : "Hold tight, we\u2019re building your wireframes based on the moodboard and flows."}
         </p>
       </div>
       <div className="flex flex-col items-start gap-2 text-[13px] font-medium leading-[1.5] text-[#525252]">
         <ProgressRow done label="Scanned Moodboard" />
         <ProgressRow done label="Scanned Flows" />
-        <ProgressRow loading label="Creating Layouts" />
-        <ProgressRow label="Create Wireframes" />
+        <ProgressRow loading label={isRegenerate ? "Regenerating Screens" : "Creating Layouts"} />
+        <ProgressRow label={isRegenerate ? "Updating Wireframes" : "Create Wireframes"} />
       </div>
     </div>
   );

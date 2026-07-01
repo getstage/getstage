@@ -86,7 +86,7 @@ Rules:
 - Avoid generic AI purple/blue neon palettes and gradients over 80% saturation.
 - Use at most one strong accent color per palette group.
 - Avoid generic serif defaults such as Times, Georgia, Garamond, and Palatino.
-- Avoid Inter for premium or creative visual directions unless the images strongly imply a plain utility app.
+- Never use these ubiquitous system/AI-default fonts as the typography.fontFamily: Inter, Helvetica, Arial, Roboto, Open Sans, Lato, system-ui, or any bare sans-serif/system stack. Choose a distinctive typeface that matches the Direction's images (e.g. Geist, Fraunces, Space Grotesk, Satoshi, or another characterful family).
 - Include useful atmosphere coverage: Density, Variance, and Motion should be represented when possible.
 - If Variance is above 4/10, do not recommend centered-hero visual language in labels or samples.
 - Do not include vague filler such as "scroll to explore" or generic circular spinner guidance.

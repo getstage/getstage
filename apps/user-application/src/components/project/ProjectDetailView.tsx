@@ -13,6 +13,7 @@ import { useSettingsOverviewQuery } from "@/hooks/convex-data";
 import { useProjectShareLink } from "@/hooks/useProjectShareLink";
 import { formatInputDate } from "@/lib/format";
 import { getProjectBackDestination } from "@/lib/projectBackDestination";
+import { WORKFLOW_STEPS } from "@stage/data-ops";
 import { formatRelativeTime } from "@/lib/utils";
 import type { Project, ProjectTab } from "@/models/project/project";
 
@@ -76,6 +77,17 @@ export function ProjectDetailView() {
   const [project, setProject] = useState<Project | null>(null);
   const [timeline, setTimeline] = useState<ProjectTimeline>({ start: "", end: "" });
   const projectBackDestination = getProjectBackDestination();
+  // The API resolves enabledSteps to a concrete array; `??` only covers the brief frame
+  // before the project detail has loaded (the header isn't shown then anyway).
+  const enabledSteps: readonly string[] = live.detail?.enabledSteps ?? WORKFLOW_STEPS;
+
+  // If the active step gets turned off via Edit Workflow, fall back to Overview so we
+  // never render a tab the project has disabled.
+  useEffect(() => {
+    if (activeTab !== "overview" && !enabledSteps.includes(activeTab)) {
+      setActiveTab("overview");
+    }
+  }, [activeTab, enabledSteps]);
 
   useEffect(() => {
     if (live.project) {
@@ -196,6 +208,8 @@ export function ProjectDetailView() {
               onSavePhases={(phases, deleteTasksInRemovedPhases) =>
                 runModalAction(() => actions.savePhases(phases, deleteTasksInRemovedPhases))
               }
+              enabledSteps={enabledSteps}
+              onSaveWorkflow={(steps) => runModalAction(() => actions.saveWorkflow(steps))}
               onPauseProject={() => runModalAction(() => actions.pauseProject())}
               onCompleteProject={() => runModalAction(() => actions.completeProject())}
               onDeleteProject={runDeleteAction}

@@ -35,6 +35,8 @@ import {
   subscribeToStageChats,
   upsertStageChat,
 } from "@/lib/companion/stageChats";
+import { SetupStepsDialog } from "@/components/ui/SetupStepsDialog";
+import { useProviderRequired } from "@/components/app/ProviderRequiredDialog";
 import { STAGE_SHORTCUT_OPEN_CHAT } from "@/lib/companion/shortcutEvents";
 import type { StageChat, StageChatAttachment, StageChatMessage } from "@/models/companion/chat";
 import { useDesktopAuth } from "@/lib/auth";
@@ -96,6 +98,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const [draftAttachments, setDraftAttachments] = useState<StageChatAttachment[]>([]);
   const [captureSources, setCaptureSources] = useState<CaptureWindowSource[]>([]);
   const [captureMenuOpen, setCaptureMenuOpen] = useState(false);
+  const [screenPermissionDialogOpen, setScreenPermissionDialogOpen] = useState(false);
   const [inputNotice, setInputNotice] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [pendingSeconds, setPendingSeconds] = useState(0);
@@ -148,6 +151,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   );
   const providerPreferences = useProviderPreferences();
   const providers = useProviderStatus();
+  const providerRequired = useProviderRequired();
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const reasoningPickerRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -498,6 +502,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
     try {
       setIsThinking(true);
       if (preflight.state === "blocked") {
+        providerRequired.show(preflight.message);
         throw new Error(preflight.message);
       }
 
@@ -632,10 +637,24 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
 
     try {
       const sources = await window.stageDesktop.screen.listWindowSources();
+
+      // macOS hides every capture source until Screen Recording is granted, so an empty list
+      // there usually means the permission is off. Only open the guided dialog for the macOS
+      // blocked-but-fixable states — on Windows/Linux the permission reads "unknown" and the
+      // dialog's System Settings deep-link is a no-op, so fall through to the empty picker.
+      if (sources.length === 0) {
+        const status = await window.stageDesktop.permissions.getStatus();
+        const screenRecording = status["screen-recording"];
+        if (screenRecording === "denied" || screenRecording === "not-determined") {
+          setScreenPermissionDialogOpen(true);
+          return;
+        }
+      }
+
       setCaptureSources(sources);
       setCaptureMenuOpen(true);
     } catch (error) {
-      setInputNotice(toUserFacingErrorMessage(error, "Stage could not list visible windows."));
+      setInputNotice(toUserFacingErrorMessage(error, "Stage could not list what's on screen."));
     }
   }
 
@@ -648,7 +667,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       setDraftAttachments((current) => [...current, attachment].slice(0, 5));
       setCaptureMenuOpen(false);
     } catch (error) {
-      setInputNotice(toUserFacingErrorMessage(error, "Stage could not capture that window."));
+      setInputNotice(toUserFacingErrorMessage(error, "Stage could not capture that screen or window."));
     }
   }
 
@@ -684,8 +703,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
       <header className="chat-panel-header">
         <div className="chat-panel-drag-region" {...dragHandlers}>
         <div className="chat-panel-title">
-          <img className="stage-mark" src="/logos/stage.svg" alt="" aria-hidden="true" />
-          <strong>Stage</strong>
+          <img className="stage-mark" src="/logos/logotype.svg" alt="" aria-hidden="true" />
         </div>
         </div>
         <div className="chat-panel-actions">
@@ -790,8 +808,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
                 <span>You</span>
               ) : (
                 <div className="chat-message-label">
-                  <img className="stage-mark stage-mark-small" src="/logos/stage.svg" alt="" aria-hidden="true" />
-                  <strong>Stage</strong>
+                  <img className="stage-mark stage-mark-small" src="/logos/logotype.svg" alt="" aria-hidden="true" />
                 </div>
               )}
               {isPendingStageMessage ? (
@@ -853,13 +870,13 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
           </div>
         ) : null}
         {captureMenuOpen ? (
-          <div className="chat-capture-picker" aria-label="Select window to capture">
+          <div className="chat-capture-picker" aria-label="Select a screen or window to capture">
             <div className="chat-capture-picker-header">
               <div>
-                <strong>Capture a window</strong>
+                <strong>Capture a screen or window</strong>
                 <span>Select what Stage should inspect</span>
               </div>
-              <button type="button" aria-label="Close window picker" onClick={() => setCaptureMenuOpen(false)}>
+              <button type="button" aria-label="Close capture picker" onClick={() => setCaptureMenuOpen(false)}>
                 <X aria-hidden="true" />
               </button>
             </div>
@@ -879,11 +896,29 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
                   <span className="chat-capture-name">{source.name}</span>
                 </button>
               )) : (
-                <p className="chat-capture-empty">No capturable windows are available.</p>
+                <p className="chat-capture-empty">No screens or windows are available to capture.</p>
               )}
             </div>
           </div>
         ) : null}
+        <SetupStepsDialog
+          open={screenPermissionDialogOpen}
+          onOpenChange={setScreenPermissionDialogOpen}
+          icon={<Monitor aria-hidden="true" weight="regular" />}
+          title="Allow screen capture"
+          description="macOS needs Screen Recording permission before Stage can capture your screen or app windows."
+          steps={[
+            "Open System Settings → Privacy & Security → Screen Recording.",
+            "Turn on Stage in the list.",
+            "Quit and reopen Stage so the change takes effect.",
+          ]}
+          primaryAction={{
+            label: "Open System Settings",
+            onClick: () =>
+              void window.stageDesktop.permissions.openSystemSettings("screen-recording"),
+          }}
+          closeLabel="Done"
+        />
         {draftAttachments.length > 0 ? (
           <div className="chat-attachment-list">
             {draftAttachments.map((attachment) => (
@@ -1100,8 +1135,8 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
             <button
               className="chat-attachment-icon-button"
               type="button"
-              data-tooltip="Capture window"
-              aria-label="Capture window"
+              data-tooltip="Capture screen or window"
+              aria-label="Capture screen or window"
               aria-expanded={captureMenuOpen}
               onClick={() => void openCaptureMenu()}
             >

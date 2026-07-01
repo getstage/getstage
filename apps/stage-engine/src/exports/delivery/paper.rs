@@ -92,7 +92,8 @@ impl PaperClient {
                 tracing::debug!(%error, "paper desktop connection check failed");
                 PaperConnectionStatus {
                     ready: false,
-                    message: "Open Paper Desktop with a target Paper file, then refresh.".to_string(),
+                    message: "Open Paper Desktop with a target Paper file, then refresh."
+                        .to_string(),
                     file_name: None,
                     page_name: None,
                 }

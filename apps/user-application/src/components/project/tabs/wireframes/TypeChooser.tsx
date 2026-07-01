@@ -8,11 +8,38 @@ export function TypeChooser({
   selectedSource,
   onSelect,
   onContinue,
+  variant = "full",
 }: {
   selectedSource: BrandSourceChoice;
   onSelect: (source: BrandSource) => void;
   onContinue: (source: BrandSource) => void;
+  // "slim" reuses the same toggle in a row, without the centered panel chrome
+  // and the big Continue button. Used by the regenerate flow so a user can
+  // re-pick the brand source inline above the results grid; the confirm is
+  // owned there by ResultsGrid's own action bar.
+  variant?: "full" | "slim";
 }) {
+  if (variant === "slim") {
+    return (
+      <div className="inline-flex rounded-[8px] bg-[#F5F5F5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <div className="grid grid-cols-2 gap-[4px]">
+          <TypeOption
+            active={selectedSource === "style-guide"}
+            icon={<BookOpenIcon className="h-4 w-4" />}
+            label="Style Guide"
+            onClick={() => onSelect("style-guide")}
+          />
+          <TypeOption
+            active={selectedSource === "brand-kit"}
+            icon={<UploadFromDeviceIcon className="h-4 w-4" />}
+            label="Brand Kit"
+            onClick={() => onSelect("brand-kit")}
+          />
+        </div>
+      </div>
+    );
+  }
+
   const canContinue = selectedSource !== null;
 
   return (

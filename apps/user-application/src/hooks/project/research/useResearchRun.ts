@@ -15,8 +15,12 @@ import {
 } from "@/lib/engine/formatRunError";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
-import { assertProviderPreflightReady } from "@/lib/engine/providerPreflight";
+import {
+  assertProviderPreflightReady,
+  getProviderPreflightError,
+} from "@/lib/engine/providerPreflight";
 import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
+import { useProviderRequired } from "@/components/app/ProviderRequiredDialog";
 
 const RESEARCH_PROMPT = "Generate project research from the current Stage project context.";
 const RESEARCH_RUN_MAX_MS = 45 * 60 * 1000;
@@ -26,6 +30,7 @@ export function useResearchRun(projectId: string) {
   const providerRun = useProviderRun({ projectId, mode: "research" });
   const providerPreferences = useProviderPreferences();
   const providers = useProviderStatus();
+  const providerRequired = useProviderRequired();
   const chatDefaults = useChatDefaults();
   const [error, setError] = useState<string | null>(null);
   const [runEnded, setRunEnded] = useState(false);
@@ -141,12 +146,15 @@ export function useResearchRun(projectId: string) {
       runStartedAtRef.current = Date.now();
       setElapsedSeconds(0);
 
-      assertProviderPreflightReady({
+      const preflightArgs = {
         providerId,
         snapshot: providers.snapshot,
         isEnabled: providerPreferences.isProviderEnabled(providerId),
-        context: "run",
-      });
+        context: "run" as const,
+      };
+      const blockedMessage = getProviderPreflightError(preflightArgs);
+      if (blockedMessage) providerRequired.show(blockedMessage);
+      assertProviderPreflightReady(preflightArgs);
 
       await providerRun.startRun.mutateAsync({
         providerId,
@@ -164,6 +172,7 @@ export function useResearchRun(projectId: string) {
       chatDefaults.defaults.responseSpeed,
       projectId,
       providerPreferences,
+      providerRequired,
       providerRun.startRun,
       providers.snapshot,
     ],

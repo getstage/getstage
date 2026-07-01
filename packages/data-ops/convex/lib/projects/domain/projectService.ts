@@ -518,7 +518,7 @@ export async function setTaskKanbanColumnForUser(
   args: {
     userId: Id<"users">;
     taskId: Id<"tasks">;
-    boardStatus: "backlog" | "todo" | "in-progress" | "done";
+    boardStatus: "backlog" | "todo" | "in-progress" | "done" | "revision";
   },
 ) {
   const { task, project } = await requireTaskAccessForUserId(ctx, {

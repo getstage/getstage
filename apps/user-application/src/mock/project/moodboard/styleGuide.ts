@@ -69,6 +69,7 @@ export const defaultStyleGuide: MoodboardStyleGuide = {
   ],
   typography: {
     fontFamily: "Geist",
+    fontFamilies: ["Geist"],
     previewSize: 28,
     rows: [
       { id: "21-semibold", size: 21, weight: "Semi-Bold", className: "text-[21px] font-semibold", lineHeight: "100%" },

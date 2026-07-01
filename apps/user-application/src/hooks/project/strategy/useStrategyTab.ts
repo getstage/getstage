@@ -53,7 +53,11 @@ export function useStrategyTab(project: Pick<Project, "id" | "name">) {
   const hasResearch = researchArtifact.hasArtifact && researchArtifact.data !== null;
 
   const startStrategy = useCallback(
-    async (input?: ValidatedStrategyGenerateInput, providerId?: ProviderId) => {
+    async (
+      input?: ValidatedStrategyGenerateInput,
+      providerId?: ProviderId,
+      options?: { source?: string },
+    ) => {
       if (strategyRun.isRunning || strategyRun.isStarting) {
         return;
       }
@@ -87,7 +91,7 @@ export function useStrategyTab(project: Pick<Project, "id" | "name">) {
         throw new Error("Connect Claude or Codex in Settings before generating Strategy.");
       }
 
-      await strategyRun.startStrategy(runProviderId);
+      await strategyRun.startStrategy(runProviderId, options);
     },
     [
       hasResearch,

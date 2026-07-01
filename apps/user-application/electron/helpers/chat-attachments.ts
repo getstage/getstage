@@ -63,32 +63,82 @@ async function persistImage(args: {
   });
 }
 
-export async function listWindowCaptureSources(): Promise<CaptureWindowSource[]> {
-  const sources = await desktopCapturer.getSources({
-    types: ["window"],
-    fetchWindowIcons: true,
-    thumbnailSize: THUMBNAIL_SIZE,
-  });
+// A whole-display source surfaces in the picker as "Entire screen" (or "Screen N" on
+// multi-monitor setups) so users can grab everything they see, not just one window.
+function screenSourceName(rawName: string, index: number, total: number): string {
+  if (total <= 1) {
+    return "Entire screen";
+  }
+  const trimmed = rawName.trim();
+  return trimmed.length > 0 && trimmed.toLowerCase() !== "entire screen" ? trimmed : `Screen ${index + 1}`;
+}
 
-  return sources
+// On macOS `desktopCapturer.getSources` throws ("Failed to get sources") when Screen
+// Recording permission is missing. Swallow that per-type so one blocked kind never kills
+// the whole picker — the caller surfaces the friendly permission banner instead of a raw error.
+async function safeGetSources(
+  options: Parameters<typeof desktopCapturer.getSources>[0],
+): Promise<Electron.DesktopCapturerSource[]> {
+  try {
+    return await desktopCapturer.getSources(options);
+  } catch (error) {
+    // macOS throws "Failed to get sources" when Screen Recording permission is
+    // missing — swallow that per-type so one blocked kind never kills the whole
+    // picker (the caller surfaces the friendly permission banner instead).
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("Failed to get sources")) {
+      return [];
+    }
+    // Anything else (API shape changes, Chromium-internal crashes, OOM) is a real
+    // bug — log it so we can distinguish structural failures from permission gaps
+    // without a debugger, then still return [] to keep the picker responsive.
+    console.error(
+      "[chat-attachments] desktopCapturer.getSources failed unexpectedly",
+      error,
+    );
+    return [];
+  }
+}
+
+export async function listWindowCaptureSources(): Promise<CaptureWindowSource[]> {
+  const [screens, windows] = await Promise.all([
+    safeGetSources({ types: ["screen"], thumbnailSize: THUMBNAIL_SIZE }),
+    safeGetSources({ types: ["window"], fetchWindowIcons: true, thumbnailSize: THUMBNAIL_SIZE }),
+  ]);
+
+  const screenSources = screens
+    .filter((source) => !source.thumbnail.isEmpty())
+    .map((source, index, all) => captureWindowSourceSchema.parse({
+      id: source.id,
+      name: screenSourceName(source.name, index, all.length),
+      kind: "screen",
+      previewDataUrl: source.thumbnail.toDataURL(),
+    }));
+
+  const windowSources = windows
     .filter((source) => !source.thumbnail.isEmpty() && !source.name.startsWith("Stage"))
     .slice(0, 20)
     .map((source) => captureWindowSourceSchema.parse({
       id: source.id,
       name: source.name,
+      kind: "window",
       previewDataUrl: source.thumbnail.toDataURL(),
     }));
+
+  // Screens first: "grab the whole screen" is the most common reach for review.
+  return [...screenSources, ...windowSources];
 }
 
 export async function captureWindowSource(input: CaptureWindowRequest): Promise<ChatImageAttachment> {
   const request = captureWindowRequestSchema.parse(input);
+  // Query both kinds so a screen id (`screen:…`) resolves the same way a window id does.
   const sources = await desktopCapturer.getSources({
-    types: ["window"],
+    types: ["screen", "window"],
     thumbnailSize: THUMBNAIL_SIZE,
   });
   const source = sources.find((candidate) => candidate.id === request.sourceId);
   if (!source || source.thumbnail.isEmpty()) {
-    throw new Error("The selected window is no longer available.");
+    throw new Error("That screen or window is no longer available.");
   }
 
   return persistImage({

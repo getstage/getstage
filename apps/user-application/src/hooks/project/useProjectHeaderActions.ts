@@ -216,6 +216,17 @@ export function useProjectHeaderActions({
     });
   }
 
+  async function saveWorkflow(enabledSteps: string[]) {
+    if (!detail) {
+      throw new Error("Project is not loaded yet.");
+    }
+
+    await updateProject.mutateAsync({
+      projectId,
+      enabledSteps,
+    });
+  }
+
   async function deleteProject() {
     onLeavingAfterDelete(true);
     try {
@@ -232,6 +243,7 @@ export function useProjectHeaderActions({
     saveClientProfile,
     saveTimeline,
     savePhases,
+    saveWorkflow,
     pauseProject,
     completeProject,
     deleteProject,

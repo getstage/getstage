@@ -97,7 +97,12 @@ impl StderrArtifactCapture {
         }
     }
 
-    pub(super) fn flush(&mut self, final_text: &mut String, capture_multiline: bool, expected_kind: Option<&str>) {
+    pub(super) fn flush(
+        &mut self,
+        final_text: &mut String,
+        capture_multiline: bool,
+        expected_kind: Option<&str>,
+    ) {
         if !capture_multiline {
             return;
         }

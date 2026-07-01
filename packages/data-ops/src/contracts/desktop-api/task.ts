@@ -7,6 +7,7 @@ export const taskBoardStatusSchema = z.enum([
   "todo",
   "in-progress",
   "done",
+  "revision",
 ]);
 
 export const taskAssigneeSchema = z.object({

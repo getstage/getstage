@@ -5,8 +5,12 @@ import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
-import { assertProviderPreflightReady } from "@/lib/engine/providerPreflight";
+import {
+  assertProviderPreflightReady,
+  getProviderPreflightError,
+} from "@/lib/engine/providerPreflight";
 import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
+import { useProviderRequired } from "@/components/app/ProviderRequiredDialog";
 
 function sectionIdFromSource(source: string | null) {
   return source?.startsWith("section:") ? source.slice("section:".length) : null;
@@ -16,6 +20,7 @@ export function useStrategySectionRegenerate(projectId: string) {
   const providerRun = useProviderRun({ projectId, mode: "strategy-section" });
   const providerPreferences = useProviderPreferences();
   const providers = useProviderStatus();
+  const providerRequired = useProviderRequired();
   const chatDefaults = useChatDefaults();
 
   const isRegenerating = providerRun.isStarting || providerRun.isRunActive;
@@ -27,12 +32,15 @@ export function useStrategySectionRegenerate(projectId: string) {
         return;
       }
 
-      assertProviderPreflightReady({
+      const preflightArgs = {
         providerId,
         snapshot: providers.snapshot,
         isEnabled: providerPreferences.isProviderEnabled(providerId),
-        context: "run",
-      });
+        context: "run" as const,
+      };
+      const blockedMessage = getProviderPreflightError(preflightArgs);
+      if (blockedMessage) providerRequired.show(blockedMessage);
+      assertProviderPreflightReady(preflightArgs);
 
       await providerRun.startRun.mutateAsync({
         providerId,
@@ -52,6 +60,7 @@ export function useStrategySectionRegenerate(projectId: string) {
       isRegenerating,
       projectId,
       providerPreferences,
+      providerRequired,
       providerRun.startRun,
       providers.snapshot,
     ],

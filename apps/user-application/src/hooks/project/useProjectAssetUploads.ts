@@ -32,10 +32,10 @@ export function useProjectAssetUploads(onUploaded?: () => void, projectId?: stri
     url: asset.url,
     mimeType: asset.mimeType,
   }));
-  const mergedAssets = [
-    ...uploadedAssets,
-    ...persistedRows.filter((asset) => !uploadedAssets.some((current) => current.id === asset.id)),
-  ];
+  // `uploadedAssets` only ever holds in-flight ("uploading") and failed rows — a successful
+  // upload is removed (see uploadFiles) so the reactive listProjectAssets query is the single
+  // owner of every persisted asset. No name-based dedup, so two same-named files coexist.
+  const mergedAssets = [...uploadedAssets, ...persistedRows];
 
   async function uploadFiles(files: FileList | File[]) {
     const fileArray = Array.from(files);
@@ -64,18 +64,16 @@ export function useProjectAssetUploads(onUploaded?: () => void, projectId?: stri
         if (!file) return;
 
         try {
-          const key = await uploadFileToR2({
+          await uploadFileToR2({
             generateUploadUrl: r2GenerateUploadUrl,
             syncMetadata: r2SyncMetadata,
             purpose: "project-asset",
             file,
             scopeId: projectId,
           });
-          setUploadedAssets((current) =>
-            current.map((asset) =>
-              asset.id === draft.id ? { ...asset, id: key, status: "uploaded" } : asset,
-            ),
-          );
+          // Done — drop the local draft and let the persisted query render the finished asset
+          // (uploadFileToR2 has already synced metadata, so the persisted row exists by now).
+          setUploadedAssets((current) => current.filter((asset) => asset.id !== draft.id));
         } catch (error) {
           setUploadedAssets((current) =>
             current.map((asset) =>

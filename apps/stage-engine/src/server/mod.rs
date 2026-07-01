@@ -6,10 +6,17 @@ pub mod status;
 
 use axum::{
     Router,
+    extract::DefaultBodyLimit,
     routing::{get, post},
 };
 
 use crate::app::AppState;
+
+/// Max request body the engine will buffer. Hi-Fi exports send a base64 preview
+/// PNG plus the screen HTML in one payload, which exceeds axum's 2 MB default and
+/// trips a 413. A full-page screenshot is ~1-7 MB; 16 MB gives ~2x headroom while
+/// still rejecting runaway payloads.
+const MAX_REQUEST_BODY_BYTES: usize = 16 * 1024 * 1024;
 
 pub fn router(state: AppState) -> Router {
     Router::new()
@@ -29,7 +36,11 @@ pub fn router(state: AppState) -> Router {
         .route("/v1/exports/figma", post(exports::create_figma_export))
         .route("/v1/exports/figjam", post(exports::create_figjam_export))
         .route("/v1/exports/code", post(exports::create_code_export))
-        .route("/v1/exports/paper/status", get(exports::paper_connection_status))
+        .route(
+            "/v1/exports/paper/status",
+            get(exports::paper_connection_status),
+        )
         .route("/v1/exports/paper", post(exports::create_paper_export))
+        .layer(DefaultBodyLimit::max(MAX_REQUEST_BODY_BYTES))
         .with_state(state)
 }

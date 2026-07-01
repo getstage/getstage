@@ -1,10 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMutation } from "convex/react";
 import { z } from "zod";
 
 import { useProjectsQuery, useSettingsOverviewQuery } from "@/hooks/convex-data";
 import { api } from "@/lib/convexApi";
+import { convexQueryKeys } from "@/lib/queryKeys";
+import {
+  PORTAL_LOGO_ACCEPT,
+  preparePortalLogoUpload,
+  uploadFileToR2,
+  type PreparedUpload,
+} from "@/lib/r2Uploads";
+import { Avatar } from "@/components/ui/Avatar";
 import { ClientPortalTabBar } from "./ClientPortalTabBar";
 
 const DEFAULT_BRAND_COLOR = "#030303";
@@ -15,13 +24,21 @@ const portalBrandingResultSchema = z.object({
 
 export function ClientPortalSettingsView() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const projectsQuery = useProjectsQuery();
   const previewProjectId = projectsQuery.data?.[0]?.id;
   const overview = useSettingsOverviewQuery();
   const updatePortalBranding = useMutation(api.settings.updatePortalBranding);
+  const generateUploadUrl = useMutation(api.r2.generateUploadUrl);
+  const syncMetadata = useMutation(api.r2.syncMetadata);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [pendingLogo, setPendingLogo] = useState<PreparedUpload | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingLogo, setIsSavingLogo] = useState(false);
   const hasPortalAccess = overview.data?.profile.plan === "pro";
 
   useEffect(() => {
@@ -29,6 +46,56 @@ export function ClientPortalSettingsView() {
       setBrandColor(overview.data.portalBranding.accentColor);
     }
   }, [overview.data?.portalBranding.accentColor]);
+
+  useEffect(() => {
+    setLogoUrl(overview.data?.portalBranding.logoUrl ?? null);
+    setPendingLogo(null);
+  }, [overview.data?.portalBranding.logoUrl]);
+
+  async function handleLogoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setLogoError(null);
+    try {
+      setPendingLogo(await preparePortalLogoUpload(file));
+    } catch (error) {
+      setLogoError(error instanceof Error ? error.message : "Could not prepare this logo.");
+    }
+  }
+
+  async function saveLogo() {
+    setIsSavingLogo(true);
+    setLogoError(null);
+    try {
+      if (!pendingLogo) {
+        const result = portalBrandingResultSchema.parse(
+          await updatePortalBranding({ logoUrl: null }),
+        );
+        setLogoUrl(result.logoUrl);
+        void queryClient.invalidateQueries({ queryKey: convexQueryKeys.settingsOverview });
+        return;
+      }
+
+      const logoKey = await uploadFileToR2({
+        generateUploadUrl,
+        syncMetadata,
+        purpose: "portal-logo",
+        file: pendingLogo.file,
+      });
+      const result = portalBrandingResultSchema.parse(
+        await updatePortalBranding({ logoKey }),
+      );
+      setLogoUrl(result.logoUrl);
+      setPendingLogo(null);
+      void queryClient.invalidateQueries({ queryKey: convexQueryKeys.settingsOverview });
+    } catch (error) {
+      setLogoError(error instanceof Error ? error.message : "Could not save portal logo.");
+    } finally {
+      setIsSavingLogo(false);
+    }
+  }
 
   async function saveBranding() {
     setIsSaving(true);
@@ -38,6 +105,7 @@ export function ClientPortalSettingsView() {
         await updatePortalBranding({ accentColor: brandColor }),
       );
       setBrandColor(result.accentColor);
+      void queryClient.invalidateQueries({ queryKey: convexQueryKeys.settingsOverview });
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Could not save portal branding.");
     } finally {
@@ -81,7 +149,22 @@ export function ClientPortalSettingsView() {
           </div>
 
           <div className={hasPortalAccess ? "flex flex-col gap-[4px]" : "pointer-events-none flex flex-col gap-[4px] blur-[10px]"}>
-            <LogoCard />
+            <LogoCard
+              inputRef={logoInputRef}
+              fallbackName={overview.data?.profile.name || overview.data?.profile.email || "Stage"}
+              logoUrl={pendingLogo?.previewUrl ?? logoUrl}
+              isSaving={isSavingLogo}
+              error={logoError}
+              hasPendingLogo={Boolean(pendingLogo)}
+              onLogoChange={handleLogoChange}
+              onUploadClick={() => logoInputRef.current?.click()}
+              onRemove={() => {
+                setPendingLogo(null);
+                setLogoUrl(null);
+                setLogoError(null);
+              }}
+              onSave={() => void saveLogo()}
+            />
             <BrandColorCard brandColor={brandColor} onBrandColorChange={setBrandColor} />
             <DomainCard />
             <div className="flex flex-col gap-[10px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] sm:flex-row sm:gap-[12px]">
@@ -122,24 +205,48 @@ export function ClientPortalSettingsView() {
   );
 }
 
-function LogoCard() {
+function LogoCard({
+  inputRef,
+  fallbackName,
+  logoUrl,
+  isSaving,
+  error,
+  hasPendingLogo,
+  onLogoChange,
+  onUploadClick,
+  onRemove,
+  onSave,
+}: {
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  fallbackName: string;
+  logoUrl: string | null;
+  isSaving: boolean;
+  error: string | null;
+  hasPendingLogo: boolean;
+  onLogoChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onUploadClick: () => void;
+  onRemove: () => void;
+  onSave: () => void;
+}) {
   return (
     <div className="flex items-end justify-between rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex min-w-0 flex-col gap-[24px]">
         <div className="flex flex-col gap-[16px]">
           <h3 className="text-[13px] font-medium text-[#171717]">Upload Your Logo</h3>
           <div className="flex flex-wrap items-center gap-[8px]">
-            <div className="flex h-[36px] w-[36px] items-center justify-center overflow-hidden rounded-full border border-[#e5e5e5] bg-[#171717] text-[10px] font-semibold text-white">
-              ST
-            </div>
-            <button className="flex items-center gap-[6px] px-[12px] py-[6px] text-[12px] font-medium text-[#525252]" type="button">
+            <Avatar name={fallbackName} src={logoUrl ?? undefined} size="md" className="h-[36px] w-[36px]" />
+            <input ref={inputRef} type="file" accept={PORTAL_LOGO_ACCEPT} className="hidden" onChange={onLogoChange} />
+            <button className="flex items-center gap-[6px] px-[12px] py-[6px] text-[12px] font-medium text-[#525252]" type="button" onClick={onUploadClick}>
               <img src="/logos/dashboard/upload.svg" alt="" aria-hidden="true" className="h-[16px] w-[16px] shrink-0" />
-              Reupload
+              {logoUrl ? "Reupload" : "Upload"}
             </button>
-            <button className="text-[12px] font-medium text-[#ef4444]" type="button">Remove</button>
+            {logoUrl ? <button className="text-[12px] font-medium text-[#ef4444]" type="button" onClick={onRemove}>Remove</button> : null}
           </div>
+          {error ? <p className="text-[12px] font-medium text-[#b91c1c]">{error}</p> : null}
         </div>
-        <SecondaryButton>Save</SecondaryButton>
+        <SecondaryButton disabled={isSaving || (!hasPendingLogo && logoUrl !== null)} onClick={onSave}>
+          {isSaving ? "Saving..." : "Save"}
+        </SecondaryButton>
       </div>
     </div>
   );
@@ -211,7 +318,6 @@ function BrandColorCard({
           </div>
         </div>
       </div>
-      <SecondaryButton>Save</SecondaryButton>
     </div>
   );
 }
@@ -229,7 +335,6 @@ function DomainCard() {
           <input className="h-[34px] w-full max-w-[290px] rounded-[6px] bg-[#f5f5f5] px-[12px] text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none" placeholder="ex. www.google.com" />
         </label>
       </div>
-      <SecondaryButton>Save</SecondaryButton>
     </div>
   );
 }
@@ -298,9 +403,22 @@ function PlanFeature({ children, iconSrc }: { children: string; iconSrc: string 
   );
 }
 
-function SecondaryButton({ children }: { children: string }) {
+function SecondaryButton({
+  children,
+  disabled,
+  onClick,
+}: {
+  children: string;
+  disabled?: boolean;
+  onClick?: () => void;
+}) {
   return (
-    <button className="w-fit rounded-[6px] bg-[#fafafa] px-[24px] py-[8px] text-[13px] font-medium text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]" type="button">
+    <button
+      className="w-fit rounded-[6px] bg-[#fafafa] px-[24px] py-[8px] text-[13px] font-medium text-[#525252] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] disabled:cursor-not-allowed disabled:opacity-60"
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+    >
       {children}
     </button>
   );

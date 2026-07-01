@@ -17,7 +17,8 @@ pub(super) fn expected_artifact_kind(mode: RunMode) -> Option<&'static str> {
 
 pub(super) fn looks_like_json_artifact_line(text: &str, expected_kind: Option<&str>) -> bool {
     let trimmed = text.trim();
-    if !trimmed.starts_with('{') || !trimmed.ends_with('}') || !trimmed.contains("\"artifactKind\"") {
+    if !trimmed.starts_with('{') || !trimmed.ends_with('}') || !trimmed.contains("\"artifactKind\"")
+    {
         return false;
     }
     match expected_kind {
@@ -250,8 +251,14 @@ mod tests {
     #[test]
     fn looks_like_json_artifact_line_matches_expected_kind() {
         let line = r#"{"apiVersion":"v1","artifactKind":"strategyArtifact","sections":[]}"#;
-        assert!(looks_like_json_artifact_line(line, Some("strategyArtifact")));
-        assert!(!looks_like_json_artifact_line(line, Some("researchArtifact")));
+        assert!(looks_like_json_artifact_line(
+            line,
+            Some("strategyArtifact")
+        ));
+        assert!(!looks_like_json_artifact_line(
+            line,
+            Some("researchArtifact")
+        ));
     }
 
     #[test]
@@ -262,8 +269,14 @@ mod tests {
 
     #[test]
     fn expected_artifact_kind_maps_modes_to_their_output_kind() {
-        assert_eq!(expected_artifact_kind(RunMode::Strategy), Some("strategyArtifact"));
-        assert_eq!(expected_artifact_kind(RunMode::Research), Some("researchArtifact"));
+        assert_eq!(
+            expected_artifact_kind(RunMode::Strategy),
+            Some("strategyArtifact")
+        );
+        assert_eq!(
+            expected_artifact_kind(RunMode::Research),
+            Some("researchArtifact")
+        );
         assert_eq!(expected_artifact_kind(RunMode::Styleguide), None);
         assert_eq!(expected_artifact_kind(RunMode::Moodboard), None);
     }

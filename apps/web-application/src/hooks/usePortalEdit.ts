@@ -1,4 +1,5 @@
-import { useQuery as useConvexQuery } from "convex/react";
+import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
+import type { Id } from "@stage/data-ops/convex/data-model";
 import { api } from "@/lib/convex";
 
 export function usePortalEdit(shareToken: string, isPreview: boolean) {
@@ -8,6 +9,7 @@ export function usePortalEdit(shareToken: string, isPreview: boolean) {
   );
   const canEdit = false;
   const user = access?.user ?? null;
+  const requestTaskRevision = useConvexMutation(api.portal.requestTaskRevision);
 
   async function toggleTask(taskId: string) {
     void taskId;
@@ -26,5 +28,16 @@ export function usePortalEdit(shareToken: string, isPreview: boolean) {
     void fields;
   }
 
-  return { canEdit, user, toggleTask, addTask, updateTask };
+  // Move a task into the Revision column with the client's thoughts. Disabled in
+  // preview, where there is no real project to write to.
+  async function requestRevision(taskId: string, note: string) {
+    if (isPreview) return;
+    await requestTaskRevision({
+      shareToken,
+      taskId: taskId as Id<"tasks">,
+      note,
+    });
+  }
+
+  return { canEdit, user, toggleTask, addTask, updateTask, requestRevision };
 }

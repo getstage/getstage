@@ -6,6 +6,20 @@ export const wireframeDeliveryRequestSchema = z.object({
   screenId: z.string().min(1),
 });
 
+export const createFigmaExportRequestSchema = wireframeDeliveryRequestSchema.extend({
+  hifiHtml: z.string().min(1).optional(),
+  hifiPreviewDataUrl: z.string().startsWith("data:image/png;base64,").optional(),
+  hifiPreviewWidth: z.number().int().positive().max(4096).optional(),
+  hifiPreviewHeight: z.number().int().positive().max(4096).optional(),
+});
+
+export const createPaperExportRequestSchema = wireframeDeliveryRequestSchema.extend({
+  hifiHtml: z.string().min(1).optional(),
+  hifiPreviewDataUrl: z.string().startsWith("data:image/png;base64,").optional(),
+  hifiPreviewWidth: z.number().int().positive().max(4096).optional(),
+  hifiPreviewHeight: z.number().int().positive().max(4096).optional(),
+});
+
 export const codeExportFileSchema = z.object({
   relativePath: z.string().min(1),
   content: z.string(),
@@ -46,6 +60,8 @@ export const createFigJamExportRequestSchema = z.object({
 });
 
 export type WireframeDeliveryRequest = z.infer<typeof wireframeDeliveryRequestSchema>;
+export type CreateFigmaExportRequest = z.infer<typeof createFigmaExportRequestSchema>;
+export type CreatePaperExportRequest = z.infer<typeof createPaperExportRequestSchema>;
 export type CreateCodeExportResponse = z.infer<typeof createCodeExportResponseSchema>;
 export type SaveCodeExportResponse = z.infer<typeof saveCodeExportResponseSchema>;
 export type CreatePaperExportResponse = z.infer<typeof createPaperExportResponseSchema>;

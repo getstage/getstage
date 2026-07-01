@@ -81,6 +81,14 @@ export const taskAssigneeSchema = z.object({
   email: z.string().nullable(),
 });
 
+export const taskBoardStatusSchema = z.enum([
+  "backlog",
+  "todo",
+  "in-progress",
+  "done",
+  "revision",
+]);
+
 export const taskSchema = z.object({
   id: z.string(),
   phaseId: z.string(),
@@ -88,6 +96,8 @@ export const taskSchema = z.object({
   isCompleted: z.boolean(),
   content: z.string().optional(),
   dueDate: z.number().optional(),
+  boardStatus: taskBoardStatusSchema.optional(),
+  revisionNote: z.string().optional(),
   assigneeIds: z.array(z.string()).optional(),
   assignees: z.array(taskAssigneeSchema).optional(),
   attachments: z.array(attachmentSchema),

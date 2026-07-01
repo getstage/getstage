@@ -20,6 +20,7 @@ export type UpdateProjectInput = {
   startDate?: number;
   endDate?: number;
   status?: "active" | "paused" | "completed";
+  enabledSteps?: string[];
 };
 
 export function useUpdateProjectMutation() {

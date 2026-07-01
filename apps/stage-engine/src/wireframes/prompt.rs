@@ -57,6 +57,35 @@ const WIREFRAMES_SHAPE_EXAMPLE: &str = r#"{
 
 const ALLOWED_BLOCK_KINDS: &str = "header, hero, feature-grid, testimonial, pricing-table, cta, form, logo-strip, footer, stat-strip, faq, media, text, list, table, navigation";
 
+// Hi-Fi mode turns each screen into a final, production-quality design carried
+// as a self-contained HTML fragment. The block outline is still produced (used
+// for Figma layer naming and as a Lo-Fi fallback), but `html` is the source of
+// truth for the visual design. These rules double as our anti-slop taste rubric.
+const HIFI_RULES: &str = r#"
+Hi-Fi mode — produce a FINAL DESIGN, not a wireframe:
+- For EACH generatedScreens[] entry, add an "html" field: a single, self-contained HTML fragment that renders that screen as a polished, production-quality web page.
+- Style everything with ONE <style> block at the top of the fragment (plain CSS) plus inline styles as needed. Do NOT use Tailwind, any CSS framework, <script>, or external <link> (a single Google Fonts <link> is allowed). The design MUST render on its own with no JavaScript.
+- Wrap everything in one root <div> — do not emit <html>, <head>, or <body> tags.
+- Still fill sections[]/blocks[] as the structural outline (used for Figma layer naming and Lo-Fi fallback); the "html" field is the source of truth for the visuals.
+
+Brand:
+- Derive the palette, typography, and tone from the moodboard styleGuides[] (or the attached brand kit). Apply real brand colors and fonts — never default grays/blues.
+- Set brandTokens.paletteRef and brandTokens.typographyRef to the source you used.
+
+Imagery:
+- Use topic-relevant placeholder photos via https://images.unsplash.com/...&q=80&w=1200, or branded gradient blocks. Never leave empty image boxes.
+
+Anti-slop taste rules (mandatory):
+- Cohesive system: one spacing scale, one corner radius, consistent shadows.
+- Strong typographic hierarchy and generous whitespace; avoid cramped, centered-everything layouts.
+- Realistic copy drawn from the strategy/research artifacts — no "Lorem ipsum" or placeholder filler.
+- Make each section visually distinct (alternating backgrounds, varied layout); avoid identical three-icon-card rows unless intentional.
+- Keep markup semantic and FLAT (header, section, h1-h3, p, ul, button) so it converts cleanly to Figma layers and exportable code. Avoid absolute positioning, transforms, and exotic CSS.
+- Ensure WCAG-AA text contrast.
+
+Pre-flight check before returning: confirm every Hi-Fi screen has a non-empty "html" using brand colors, real copy, and at least one image, and that no two sections look identical.
+"#;
+
 pub fn build_wireframes_prompt(
     input: &WireframesInput,
     kind: WireframeKind,
@@ -64,6 +93,7 @@ pub fn build_wireframes_prompt(
     style_direction_id: Option<&str>,
     layout_preference: Option<&str>,
     brand_kit_attached: bool,
+    regenerate_screen_ids: Option<&[String]>,
 ) -> String {
     let research_block = input
         .research_artifact_json
@@ -110,11 +140,18 @@ pub fn build_wireframes_prompt(
         .map(|id| format!("Selected moodboard style direction ID: {id}\n"))
         .unwrap_or_default();
     let hifi_extras = match kind {
-        WireframeKind::Hifi => {
-            "\nHi-Fi rules:\n- Populate brandTokens on each screen.\n- Choose blocks that match the moodboard pattern catalog when one is provided.\n"
-        }
+        WireframeKind::Hifi => HIFI_RULES,
         WireframeKind::Lofi => "",
     };
+    let regenerate_block = regenerate_screen_ids
+        .filter(|ids| !ids.is_empty())
+        .map(|ids| {
+            format!(
+                "- PARTIAL REGENERATION: Return generatedScreens[] containing ONLY these screen ids: {}. Keep each id stable. Use the previous wireframes artifact as reference for untouched structure.\n",
+                ids.join(", ")
+            )
+        })
+        .unwrap_or_default();
 
     format!(
         r#"<role>You are generating the Stage Wireframes artifact for a {kind_str} pass.</role>
@@ -128,8 +165,9 @@ pub fn build_wireframes_prompt(
 - Each generated screen MUST have 1-6 sections; each section MUST have 1-5 blocks.
 - copySlots are short strings (no markdown), filled from Strategy CTAs/value props when available.
 - One screen per generatedScreens[] entry; preserve every selected screen from the configure list.
+- configureScreens[].required: true ONLY for the 2-4 screens essential to the core funnel (e.g. the primary landing page). Default every other screen to required: false so the user can toggle it off — do not mark every screen required.
 - {brand_source_line}
-{style_direction_block}{layout_block}</rules>
+{regenerate_block}{style_direction_block}{layout_block}</rules>
 
 <cognitive_steps>
 1. Restate each screen's goal in one sentence (set generatedScreens[].goal).
@@ -155,3 +193,7 @@ Saved strategy artifact JSON:
         strategy_artifact = input.strategy_artifact_json,
     )
 }
+
+#[cfg(test)]
+#[path = "../testing/wireframes/prompt.rs"]
+mod tests;

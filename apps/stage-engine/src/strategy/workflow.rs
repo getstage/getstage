@@ -12,7 +12,8 @@ use crate::providers::process::ProviderProcessOutcome;
 use crate::runs::RunEventSink;
 use crate::strategy::prompt::build_strategy_prompt;
 use crate::strategy::section::{
-    build_section_regenerate_prompt, merge_strategy_section, parse_strategy_section,
+    REGENERATE_UNAPPROVED_SOURCE, build_section_regenerate_prompt, merge_strategy_section,
+    parse_strategy_section, unapproved_section_ids,
 };
 use serde_json::json;
 
@@ -69,6 +70,22 @@ impl StrategyWorkflow {
                 .fetch_strategy_input(&auth_token, project_id)
                 .await?;
             self.tool_completed(api_version, &run_id, provider_id, &sink, "stage-context");
+
+            if request.context.source.as_deref() == Some(REGENERATE_UNAPPROVED_SOURCE) {
+                return self
+                    .run_unapproved_regenerate(
+                        api_version,
+                        &run_id,
+                        provider_id,
+                        &auth_token,
+                        project_id,
+                        &input,
+                        &mut request,
+                        sink.clone(),
+                        cancel_rx,
+                    )
+                    .await;
+            }
 
             let section_id =
                 parse_strategy_section(request.context.source.as_deref()).map(str::to_string);
@@ -228,6 +245,87 @@ impl StrategyWorkflow {
             provider_id,
             created_at: now_millis(),
             final_text: Some(format!("Regenerated strategy section: {section_id}")),
+        });
+
+        Ok(())
+    }
+
+    /// Regenerate every not-yet-approved section in place, preserving approved
+    /// sections, their ids, and the artifact's order. Each section is regenerated
+    /// sequentially with the same per-section prompt used by single-section
+    /// regeneration; the artifact is saved once at the end.
+    #[allow(clippy::too_many_arguments)]
+    async fn run_unapproved_regenerate(
+        &self,
+        api_version: &'static str,
+        run_id: &str,
+        provider_id: crate::models::providers::ProviderId,
+        auth_token: &str,
+        project_id: &str,
+        input: &crate::models::strategy::StrategyInput,
+        request: &mut StartRunRequest,
+        sink: RunEventSink,
+        cancel_rx: tokio::sync::watch::Receiver<bool>,
+    ) -> Result<(), WorkflowError> {
+        let (artifact_id, mut artifact) = self
+            .repository
+            .fetch_latest_strategy_artifact(auth_token, project_id)
+            .await?
+            .ok_or_else(|| {
+                WorkflowError::InvalidRequest(
+                    "No saved strategy artifact to regenerate.".to_string(),
+                )
+            })?;
+
+        let section_ids = unapproved_section_ids(&artifact);
+        if section_ids.is_empty() {
+            sink.send(RunEvent::RunCompleted {
+                api_version,
+                run_id: run_id.to_string(),
+                provider_id,
+                created_at: now_millis(),
+                final_text: Some("All strategy sections are already approved.".to_string()),
+            });
+            return Ok(());
+        }
+
+        for section_id in &section_ids {
+            request.prompt = build_section_regenerate_prompt(section_id, &artifact, input);
+            let provider_context = ProviderRunContext {
+                api_version,
+                run_id: run_id.to_string(),
+                request: request.clone(),
+            };
+
+            let outcome =
+                run_provider_collect(provider_context, sink.clone(), cancel_rx.clone()).await?;
+            let ProviderProcessOutcome::Completed(final_text) = outcome else {
+                return Ok(());
+            };
+
+            let section_patch = extract_json_object(&final_text)?;
+            merge_strategy_section(&mut artifact, section_id, section_patch)?;
+        }
+
+        if let Some(object) = artifact.as_object_mut() {
+            let generated_at = i64::try_from(now_millis()).unwrap_or(i64::MAX);
+            object.insert("generatedAt".to_string(), json!(generated_at));
+        }
+        validate_strategy_artifact(&artifact).map_err(map_strategy_provider_error)?;
+
+        self.repository
+            .update_strategy_artifact(auth_token, project_id, &artifact_id, &artifact)
+            .await?;
+
+        let regenerated = section_ids.len();
+        sink.send(RunEvent::RunCompleted {
+            api_version,
+            run_id: run_id.to_string(),
+            provider_id,
+            created_at: now_millis(),
+            final_text: Some(format!(
+                "Regenerated {regenerated} unapproved strategy section(s)."
+            )),
         });
 
         Ok(())

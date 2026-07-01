@@ -96,10 +96,17 @@ impl LineSink {
         }
     }
 
-    pub(super) fn flush_stderr(&mut self, context: &ProviderRunContext, capture_multiline_stderr: bool) {
+    pub(super) fn flush_stderr(
+        &mut self,
+        context: &ProviderRunContext,
+        capture_multiline_stderr: bool,
+    ) {
         let expected_kind = expected_artifact_kind(context.request.mode);
-        self.stderr_capture
-            .flush(&mut self.final_text, capture_multiline_stderr, expected_kind);
+        self.stderr_capture.flush(
+            &mut self.final_text,
+            capture_multiline_stderr,
+            expected_kind,
+        );
     }
 }
 

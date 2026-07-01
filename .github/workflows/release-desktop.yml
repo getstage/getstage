@@ -3,9 +3,17 @@ name: Release Stage Desktop (macOS)
 on:
   push:
     tags:
-      - "v*"
+      - "v*" # testing track
+      - "prod-v*" # production track
   workflow_dispatch:
     inputs:
+      track:
+        description: Which environment to build (controls baked-in Convex/R2/auth URLs + secrets)
+        type: choice
+        options:
+          - testing
+          - production
+        default: testing
       publish_release:
         description: Upload to GitHub Releases (requires tag on ref or manual assets only)
         type: boolean
@@ -19,8 +27,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  resolve-environment:
+    name: Resolve environment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.pick.outputs.environment }}
+    steps:
+      - name: Pick environment from tag / dispatch input
+        id: pick
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ENVIRONMENT="${{ inputs.track }}"
+          elif [[ "${GITHUB_REF_NAME}" == prod-v* ]]; then
+            ENVIRONMENT="production"
+          else
+            ENVIRONMENT="testing"
+          fi
+          echo "Selected environment: ${ENVIRONMENT} (ref ${GITHUB_REF_NAME}, event ${{ github.event_name }})"
+          echo "environment=${ENVIRONMENT}" >> "$GITHUB_OUTPUT"
+
   build-macos:
     name: macOS ${{ matrix.arch }}
+    needs: resolve-environment
+    environment: ${{ needs.resolve-environment.outputs.environment }}
     runs-on: macos-14
     strategy:
       fail-fast: false
@@ -48,7 +77,8 @@ jobs:
         if: github.event_name == 'push'
         run: |
           PACKAGE_VERSION="$(node -p "require('./apps/user-application/package.json').version")"
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          TAG_VERSION="${GITHUB_REF_NAME#prod-}"
+          TAG_VERSION="${TAG_VERSION#v}"
           if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
             echo "::error::Desktop package version $PACKAGE_VERSION does not match tag $GITHUB_REF_NAME."
             exit 1
@@ -97,10 +127,20 @@ jobs:
       - name: Build Electron app
         run: pnpm --filter stage-user-application run build
 
+      - name: Require R2 public base URL for desktop build
+        run: |
+          if [ -z "$R2_PUBLIC_BASE_URL" ]; then
+            echo "::error::Set GitHub secret R2_PUBLIC_BASE_URL (public R2 custom domain, e.g. https://assets.getstage.co)"
+            exit 1
+          fi
+        env:
+          R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+
       - name: Write packaged runtime secrets
         env:
           REFERO_MCP_TOKEN: ${{ secrets.REFERO_MCP_TOKEN }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
         run: node apps/user-application/scripts/write-runtime-secrets.mjs
 
       - name: Package DMG (${{ matrix.arch }})

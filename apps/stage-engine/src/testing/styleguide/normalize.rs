@@ -37,3 +37,52 @@ fn reference_has_visual_input_requires_non_empty_visual_field() {
         "title": "Text-only reference"
     })));
 }
+
+#[test]
+fn banned_font_families_are_replaced_at_the_boundary() {
+    for banned in [
+        "Inter",
+        "Helvetica Neue",
+        "Arial",
+        "Roboto",
+        "system-ui",
+        "Times New Roman",
+    ] {
+        let normalized = normalize_style_guide(
+            json!({ "typography": { "fontFamily": banned } }),
+            "dir_1",
+            "Bold & Editorial",
+            None,
+            0,
+        );
+        assert_eq!(
+            normalized["typography"]["fontFamily"],
+            json!("Geist"),
+            "expected banned font {banned} to be replaced",
+        );
+    }
+}
+
+#[test]
+fn banned_head_of_a_font_stack_is_replaced() {
+    let normalized = normalize_style_guide(
+        json!({ "typography": { "fontFamily": "\"Inter\", system-ui, sans-serif" } }),
+        "dir_1",
+        "Bold & Editorial",
+        None,
+        0,
+    );
+    assert_eq!(normalized["typography"]["fontFamily"], json!("Geist"));
+}
+
+#[test]
+fn distinctive_font_family_is_preserved() {
+    let normalized = normalize_style_guide(
+        json!({ "typography": { "fontFamily": "Fraunces" } }),
+        "dir_1",
+        "Bold & Editorial",
+        None,
+        0,
+    );
+    assert_eq!(normalized["typography"]["fontFamily"], json!("Fraunces"));
+}

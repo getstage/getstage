@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Instant;
 
 use crate::convex_store::wireframes_repository::WireframesRepository;
 use crate::helpers::provider_json::extract_wireframes_artifact;
@@ -66,7 +67,13 @@ impl WireframesWorkflow {
             .and_then(parse_style_direction_from_source)
             .map(ToOwned::to_owned);
         let brand_kit_keys = request.context.brand_kit_keys.clone().unwrap_or_default();
+        let regenerate_screen_ids = request
+            .context
+            .source
+            .as_deref()
+            .and_then(parse_screens_from_source);
 
+        let workflow_started = Instant::now();
         tracing::info!(
             run_id = %run_id,
             provider_id = ?provider_id,
@@ -138,6 +145,7 @@ impl WireframesWorkflow {
                 style_direction_id.as_deref(),
                 None,
                 brand_kit_attached,
+                regenerate_screen_ids.as_deref(),
             );
             let provider_context = ProviderRunContext {
                 api_version,
@@ -151,14 +159,22 @@ impl WireframesWorkflow {
                 kind = wireframe_kind.as_str(),
                 "starting wireframes provider run"
             );
+            let provider_started = Instant::now();
             let outcome = run_provider_collect(provider_context, sink.clone(), cancel_rx).await?;
+            tracing::info!(
+                run_id = %run_id,
+                provider_id = ?provider_id,
+                kind = wireframe_kind.as_str(),
+                provider_elapsed_ms = provider_started.elapsed().as_millis(),
+                "wireframes provider run finished"
+            );
             let ProviderProcessOutcome::Completed(final_text) = outcome else {
                 tracing::info!(run_id = %run_id, "wireframes provider run cancelled");
                 return Ok(());
             };
 
             let raw_artifact = extract_wireframes_artifact(&final_text)?;
-            let artifact = normalize_wireframes_artifact(
+            let mut artifact = normalize_wireframes_artifact(
                 raw_artifact,
                 &input,
                 wireframe_kind,
@@ -167,6 +183,20 @@ impl WireframesWorkflow {
                 now_millis(),
                 GENERATED_AT_LABEL,
             )?;
+            if let Some(screen_ids) = regenerate_screen_ids.as_ref() {
+                let Some(existing_json) = input.existing_wireframes_artifact_json.as_deref() else {
+                    return Err(WorkflowError::InvalidRequest(
+                        "Cannot regenerate wireframe screens without an existing wireframes artifact."
+                            .to_string(),
+                    ));
+                };
+                artifact = crate::wireframes::normalize::merge_regenerated_screens(
+                    existing_json,
+                    artifact,
+                    screen_ids,
+                )
+                .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))?;
+            }
 
             self.repository
                 .complete_wireframes_run(
@@ -183,6 +213,7 @@ impl WireframesWorkflow {
                 run_id = %run_id,
                 provider_id = ?provider_id,
                 kind = wireframe_kind.as_str(),
+                total_elapsed_ms = workflow_started.elapsed().as_millis(),
                 "wireframes artifact saved to Convex"
             );
 
@@ -394,9 +425,20 @@ fn parse_style_direction_from_source(source: &str) -> Option<&str> {
     parse_token(source, "style-direction:")
 }
 
+fn parse_screens_from_source(source: &str) -> Option<Vec<String>> {
+    let raw = parse_token(source, "screens:")?;
+    let ids = raw
+        .split(';')
+        .map(str::trim)
+        .filter(|segment| !segment.is_empty())
+        .map(ToOwned::to_owned)
+        .collect::<Vec<_>>();
+    if ids.is_empty() { None } else { Some(ids) }
+}
+
 fn parse_token<'a>(source: &'a str, prefix: &str) -> Option<&'a str> {
     source
-        .split(|c: char| c == ',' || c == ';' || c.is_whitespace())
+        .split(',')
         .map(str::trim)
         .find(|segment| segment.starts_with(prefix))
         .map(|segment| &segment[prefix.len()..])
@@ -449,3 +491,7 @@ fn user_message(error: &WorkflowError) -> String {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "../testing/wireframes/workflow.rs"]
+mod tests;

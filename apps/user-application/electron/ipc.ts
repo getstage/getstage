@@ -7,6 +7,7 @@ import {
   createFigmaExportResponseSchema,
   createFigJamExportRequestSchema,
   createCodeExportResponseSchema,
+  createPaperExportRequestSchema,
   createPaperExportResponseSchema,
   paperConnectionStatusResponseSchema,
   saveCodeExportResponseSchema,
@@ -21,6 +22,10 @@ import {
   type RunEvent,
 } from "@stage/data-ops/contracts";
 import { putSignedR2Upload } from "./helpers/r2-upload";
+import {
+  captureWireframeFigmaNodes,
+  captureWireframeHtmlPng,
+} from "./helpers/wireframe-screenshot";
 import { IPC_CHANNELS } from "@shared/ipc/channels";
 import {
   captureWindowRequestSchema,
@@ -57,6 +62,7 @@ import { logDesktopDebug, logDesktopInfo } from "./helpers/desktop-log";
 import { fetchEngineJson } from "./helpers/sidecar";
 import { delay } from "./helpers/time";
 import { closeCompanionWindow, openCompanionFromTray, setCompanionWindowInteractive } from "./windows";
+import { installStageTray } from "./tray";
 import type { SidecarSupervisor } from "./sidecar";
 import type { DesktopAuthController } from "./auth";
 import type { DesktopIntegrationsController } from "./integrations";
@@ -300,16 +306,43 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IPC_CHANNELS.engineCreateFigmaExport, async (_event, request: unknown) => {
     const parsedRequest = createFigmaExportRequestSchema.parse(request);
+    const { hifiHtml, ...baseRequest } = parsedRequest;
+    let engineRequest: Record<string, unknown> = baseRequest;
+
+    if (hifiHtml) {
+      // Prefer editable native layers: walk the rendered DOM into a node tree the
+      // plugin rebuilds as real text/rects/images. Fall back to the flattened
+      // screenshot only if extraction yields nothing usable.
+      const nodeTree = await withDebugTiming("figma-export:extract-nodes", () =>
+        captureWireframeFigmaNodes(hifiHtml).catch(() => null),
+      );
+      if (nodeTree && nodeTree.nodes.length > 0) {
+        engineRequest = { ...baseRequest, hifiFigmaNodes: nodeTree };
+      } else {
+        const screenshot = await withDebugTiming("figma-export:render-hifi-preview", () =>
+          captureWireframeHtmlPng(hifiHtml),
+        );
+        engineRequest = {
+          ...baseRequest,
+          hifiPreviewDataUrl: `data:image/png;base64,${screenshot.png.toString("base64")}`,
+          hifiPreviewWidth: screenshot.width,
+          hifiPreviewHeight: screenshot.height,
+        };
+      }
+    }
+
     sidecarSupervisor.markEngineActivity();
     const status = await sidecarSupervisor.start();
-    const { data: payload } = await fetchEngineJsonAuthed<unknown>({
-      authController,
-      method: "POST",
-      path: "/v1/exports/figma",
-      port: status.port,
-      body: parsedRequest,
-      timeoutMs: 10_000,
-    });
+    const { data: payload } = await withDebugTiming("figma-export:create", () =>
+      fetchEngineJsonAuthed<unknown>({
+        authController,
+        method: "POST",
+        path: "/v1/exports/figma",
+        port: status.port,
+        body: engineRequest,
+        timeoutMs: hifiHtml ? 120_000 : 10_000,
+      }),
+    );
     return createFigmaExportResponseSchema.parse(payload);
   });
 
@@ -385,7 +418,22 @@ export function registerIpcHandlers({
   });
 
   ipcMain.handle(IPC_CHANNELS.engineCreatePaperExport, async (_event, request: unknown) => {
-    const parsedRequest = wireframeDeliveryRequestSchema.parse(request);
+    const parsedRequest = createPaperExportRequestSchema.parse(request);
+    const { hifiHtml, ...baseRequest } = parsedRequest;
+    let engineRequest: Record<string, unknown> = baseRequest;
+
+    if (hifiHtml) {
+      const screenshot = await withDebugTiming("paper-export:render-hifi-preview", () =>
+        captureWireframeHtmlPng(hifiHtml),
+      );
+      engineRequest = {
+        ...baseRequest,
+        hifiPreviewDataUrl: `data:image/png;base64,${screenshot.png.toString("base64")}`,
+        hifiPreviewWidth: screenshot.width,
+        hifiPreviewHeight: screenshot.height,
+      };
+    }
+
     sidecarSupervisor.markEngineActivity();
     const status = await sidecarSupervisor.start();
     const { data: payload } = await fetchEngineJsonAuthed<unknown>({
@@ -393,8 +441,8 @@ export function registerIpcHandlers({
       method: "POST",
       path: "/v1/exports/paper",
       port: status.port,
-      body: parsedRequest,
-      timeoutMs: 40_000,
+      body: engineRequest,
+      timeoutMs: hifiHtml ? 120_000 : 40_000,
     });
     return createPaperExportResponseSchema.parse(payload);
   });
@@ -431,7 +479,11 @@ export function registerIpcHandlers({
     const parsedSettings = companionWidgetSettingsSchema.parse(settings);
     const savedSettings = await saveCompanionWidgetSettings(parsedSettings);
 
-    if (!savedSettings.allowEverywhere) {
+    if (savedSettings.allowEverywhere) {
+      // The widget is on, so the tray must always be present as its entry point.
+      // installStageTray() is idempotent, so re-invoking here is safe.
+      installStageTray();
+    } else {
       closeCompanionWindow();
     }
 

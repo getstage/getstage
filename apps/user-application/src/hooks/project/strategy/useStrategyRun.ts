@@ -9,8 +9,12 @@ import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
 import { formatRunFailedEvent, STRATEGY_RUN_FAILED_USER_MESSAGE, toRunFailureUserMessage } from "@/lib/engine/formatRunError";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
-import { assertProviderPreflightReady } from "@/lib/engine/providerPreflight";
+import {
+  assertProviderPreflightReady,
+  getProviderPreflightError,
+} from "@/lib/engine/providerPreflight";
 import { resolveRunModelId } from "@/lib/engine/resolveRunModelId";
+import { useProviderRequired } from "@/components/app/ProviderRequiredDialog";
 
 const STRATEGY_PROMPT = "Generate project strategy from the current Stage research artifact.";
 
@@ -48,6 +52,7 @@ export function useStrategyRun(projectId: string) {
   const providerRun = useProviderRun({ projectId, mode: "strategy" });
   const providerPreferences = useProviderPreferences();
   const providers = useProviderStatus();
+  const providerRequired = useProviderRequired();
   const chatDefaults = useChatDefaults();
   const [error, setError] = useState<string | null>(null);
   const [runEnded, setRunEnded] = useState(false);
@@ -134,7 +139,7 @@ export function useStrategyRun(projectId: string) {
   }, [activeRunId, failRun, hasTerminalEvent, queryClient, runEnded]);
 
   const startStrategy = useCallback(
-    async (providerId: ProviderId) => {
+    async (providerId: ProviderId, options?: { source?: string }) => {
       if (isRunning || providerRun.startRun.isPending) {
         return;
       }
@@ -150,19 +155,22 @@ export function useStrategyRun(projectId: string) {
         setRunEnded(false);
         runStartedAtRef.current = null;
 
-        assertProviderPreflightReady({
+        const preflightArgs = {
           providerId,
           snapshot: providers.snapshot,
           isEnabled: providerPreferences.isProviderEnabled(providerId),
-          context: "run",
-        });
+          context: "run" as const,
+        };
+        const blockedMessage = getProviderPreflightError(preflightArgs);
+        if (blockedMessage) providerRequired.show(blockedMessage);
+        assertProviderPreflightReady(preflightArgs);
 
         await providerRun.startRun.mutateAsync({
           providerId,
           modelId: resolveRunModelId(providerId, chatDefaults.defaults.modelId),
           prompt: STRATEGY_PROMPT,
           mode: "strategy",
-          context: { projectId },
+          context: options?.source ? { projectId, source: options.source } : { projectId },
           attachments: [],
           modelOptions: buildRunModelOptions(chatDefaults.defaults),
         });
@@ -182,6 +190,7 @@ export function useStrategyRun(projectId: string) {
       isRunning,
       projectId,
       providerPreferences,
+      providerRequired,
       chatDefaults.defaults,
       providerRun.startRun,
       providers.snapshot,

@@ -352,6 +352,9 @@ export default defineSchema({
     startDate: v.number(),
     endDate: v.number(),
     progress: v.number(),
+    // Workflow steps the owner has enabled for this project (e.g. a project that
+    // skips "flows"). Absent = every step is enabled. "overview" is always shown.
+    enabledSteps: v.optional(v.array(v.string())),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -390,8 +393,12 @@ export default defineSchema({
         v.literal("todo"),
         v.literal("in-progress"),
         v.literal("done"),
+        v.literal("revision"),
       ),
     ),
+    // The client's revision thoughts, written from the portal when they drag a
+    // task into the Revision column. Absent until a revision is requested.
+    revisionNote: v.optional(v.string()),
     order: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),

@@ -1,6 +1,6 @@
 import { projectSchema } from "@/models/project/project";
 import type { Project } from "@/models/project/project";
-import type { ProjectDetail, ProjectSummary } from "@stage/data-ops";
+import { WORKFLOW_STEPS, type ProjectDetail, type ProjectSummary } from "@stage/data-ops";
 
 const now = Date.now();
 const ONE_HOUR = 60 * 60 * 1000;
@@ -427,6 +427,7 @@ export const mockProjectDetails: ProjectDetail[] = mockProjectSummaries.map((sum
     completedTaskCount,
     createdAt: summary.startDate,
     updatedAt: now - 2 * ONE_HOUR,
+    enabledSteps: [...WORKFLOW_STEPS],
   };
 });
 

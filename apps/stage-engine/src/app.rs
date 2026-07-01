@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::chat::workflow::ChatWorkflow;
 use crate::config::AppConfig;
 use crate::convex_store::app_secrets::AppSecretsRepository;
+use crate::convex_store::asset_upload::ConvexAssetUploader;
 use crate::convex_store::chat_repository::ChatRepository;
 use crate::convex_store::flows_repository::FlowsRepository;
 use crate::convex_store::moodboard_repository::MoodboardRepository;
@@ -83,9 +84,11 @@ impl AppState {
                 Some(flows),
                 Some(wireframes),
             )),
-            figma_exports: Arc::new(FigmaExportService::new(FigmaExportRepository::new(
-                &config.convex,
-            ))),
+            figma_exports: Arc::new(FigmaExportService::new(
+                FigmaExportRepository::new(&config.convex),
+                ConvexAssetUploader::new(config.convex.deployment_url.clone()),
+                config.r2_public_base_url.clone(),
+            )),
             delivery_exports: Arc::new(DeliveryExportService::new(
                 FigmaExportRepository::new(&config.convex),
                 PaperClient::new(&config.paper)?,

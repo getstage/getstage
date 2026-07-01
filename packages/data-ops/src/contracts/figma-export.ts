@@ -21,6 +21,15 @@ export const figmaWritePlanSchema = z.object({
   sections: z.array(figmaWriteSectionSchema),
 });
 
+export const hifiFigmaWritePlanSchema = z.object({
+  apiVersion: z.literal("v1"),
+  kind: z.literal("hifi-wireframe"),
+  name: z.string().min(1),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  imageUrl: z.string().url(),
+});
+
 export const figJamFlowStepSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
@@ -42,10 +51,11 @@ export const figJamWritePlanSchema = z.object({
 
 export const figmaCanvasWritePlanSchema = z.discriminatedUnion("kind", [
   figmaWritePlanSchema,
+  hifiFigmaWritePlanSchema,
   figJamWritePlanSchema,
 ]);
 
-export { wireframeDeliveryRequestSchema as createFigmaExportRequestSchema } from "./delivery-export";
+export { createFigmaExportRequestSchema } from "./delivery-export";
 
 export const createFigmaExportResponseSchema = z.object({
   apiVersion: z.literal("v1"),
@@ -56,7 +66,8 @@ export const createFigmaExportResponseSchema = z.object({
 });
 
 export type FigmaWritePlan = z.infer<typeof figmaWritePlanSchema>;
+export type HifiFigmaWritePlan = z.infer<typeof hifiFigmaWritePlanSchema>;
 export type FigJamWritePlan = z.infer<typeof figJamWritePlanSchema>;
 export type FigmaCanvasWritePlan = z.infer<typeof figmaCanvasWritePlanSchema>;
-export type { WireframeDeliveryRequest as CreateFigmaExportRequest } from "./delivery-export";
+export type { CreateFigmaExportRequest } from "./delivery-export";
 export type CreateFigmaExportResponse = z.infer<typeof createFigmaExportResponseSchema>;

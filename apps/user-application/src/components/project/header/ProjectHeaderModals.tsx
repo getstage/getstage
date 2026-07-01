@@ -5,7 +5,8 @@ import type {
   SaveClientProfileInput,
   SaveProjectProfileInput,
 } from "@/hooks/project";
-import type { Phase, Project } from "@/models/project/project";
+import type { Phase, Project, ProjectTab } from "@/models/project/project";
+import { PROJECT_PAGE_TABS, WORKFLOW_TABS } from "@/lib/project/projectTabs";
 import type { ProjectModal, ProjectTimeline } from "@/types/project/projectHeader";
 
 export function ProjectActionModal({
@@ -18,6 +19,8 @@ export function ProjectActionModal({
   onSaveClientProfile,
   onSaveTimeline,
   onSavePhases,
+  enabledSteps,
+  onSaveWorkflow,
   onPauseProject,
   onCompleteProject,
   onDeleteProject,
@@ -36,6 +39,8 @@ export function ProjectActionModal({
   onSaveClientProfile: (input: SaveClientProfileInput) => Promise<void>;
   onSaveTimeline: (timeline: ProjectTimeline) => Promise<void>;
   onSavePhases: (phases: Phase[], deleteTasksInRemovedPhases?: boolean) => Promise<void>;
+  enabledSteps: readonly string[];
+  onSaveWorkflow: (enabledSteps: string[]) => Promise<void>;
   onPauseProject: () => Promise<void>;
   onCompleteProject: () => Promise<void>;
   onDeleteProject: () => Promise<void>;
@@ -97,6 +102,14 @@ export function ProjectActionModal({
         ) : null}
         {modal === "phases" ? (
           <PhasesModal project={project} onSave={onSavePhases} error={modalError} onClose={onClose} />
+        ) : null}
+        {modal === "workflow" ? (
+          <WorkflowModal
+            enabledSteps={enabledSteps}
+            onSave={onSaveWorkflow}
+            error={modalError}
+            onClose={onClose}
+          />
         ) : null}
         {modal === "pause" ? (
           <ConfirmModal
@@ -566,6 +579,115 @@ function PhasesModal({
   );
 }
 
+function WorkflowModal({
+  enabledSteps,
+  onSave,
+  error,
+  onClose,
+}: {
+  enabledSteps: readonly string[];
+  onSave: (enabledSteps: string[]) => Promise<void>;
+  error: string | null;
+  onClose: () => void;
+}) {
+  const [selected, setSelected] = useState<Set<ProjectTab>>(
+    () => new Set(WORKFLOW_TABS.filter((tab) => enabledSteps.includes(tab.key)).map((tab) => tab.key)),
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    setSelected(new Set(WORKFLOW_TABS.filter((tab) => enabledSteps.includes(tab.key)).map((tab) => tab.key)));
+  }, [enabledSteps]);
+
+  function toggle(step: ProjectTab) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(step)) {
+        next.delete(step);
+      } else {
+        next.add(step);
+      }
+      return next;
+    });
+  }
+
+  async function save() {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onSave(WORKFLOW_TABS.filter((tab) => selected.has(tab.key)).map((tab) => tab.key));
+      onClose();
+    } catch {
+      // Parent sets error; keep modal open.
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <ModalShell
+      title="Edit Workflow"
+      action="Save"
+      isSubmitting={isSubmitting}
+      onAction={() => void save()}
+      onClose={onClose}
+    >
+      <div className="flex w-full flex-col gap-[12px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <p className="text-[12px] font-medium leading-[1.5] text-[#737373]">
+          Choose which steps appear for this project. Overview is always shown; turn off the steps
+          you don&apos;t need.
+        </p>
+        <div className="flex w-full flex-col gap-[4px]">
+          {PROJECT_PAGE_TABS.map((tab) => {
+            const locked = tab.key === "overview";
+            const isOn = locked || selected.has(tab.key);
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                role="checkbox"
+                aria-checked={isOn}
+                aria-disabled={locked}
+                disabled={locked}
+                onClick={() => !locked && toggle(tab.key)}
+                className={`flex w-full items-center justify-between rounded-[4px] bg-[#F5F5F5] px-[12px] py-[10px] text-left shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${
+                  locked ? "cursor-default" : "cursor-pointer hover:bg-[#ECECEC]"
+                }`}
+              >
+                <span className="flex items-center gap-[8px]">
+                  <span
+                    aria-hidden="true"
+                    className="h-[15px] w-[15px] shrink-0 bg-[#525252]"
+                    style={{
+                      WebkitMask: `url("${tab.iconSrc}") center / contain no-repeat`,
+                      mask: `url("${tab.iconSrc}") center / contain no-repeat`,
+                    }}
+                  />
+                  <span className="text-[13px] font-medium leading-none text-[#171717]">{tab.label}</span>
+                </span>
+                {locked ? (
+                  <span className="text-[11px] font-medium leading-none text-[#A3A3A3]">Always on</span>
+                ) : (
+                  <span
+                    className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[4px] border ${
+                      isOn
+                        ? "border-transparent bg-gradient-to-b from-[#7B76DF] to-[#463FBA]"
+                        : "border-[#D4D4D4] bg-white"
+                    }`}
+                  >
+                    {isOn ? <CheckIcon /> : null}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        {error ? <p className="text-[12px] font-medium text-[#b91c1c]">{error}</p> : null}
+      </div>
+    </ModalShell>
+  );
+}
+
 function ConfirmModal({
   title,
   description,
@@ -699,6 +821,14 @@ function CloseIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[16px] w-[16px]">
       <path d="M4.25 4.25l7.5 7.5M11.75 4.25l-7.5 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[11px] w-[11px] text-white">
+      <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

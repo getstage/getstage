@@ -3,8 +3,32 @@ use serde_json::{Value, json};
 
 use crate::models::strategy::StrategyInput;
 
+/// Run source that asks the workflow to regenerate every section that is not yet
+/// approved, leaving approved sections untouched.
+pub const REGENERATE_UNAPPROVED_SOURCE: &str = "sections:unapproved";
+
 pub fn parse_strategy_section(source: Option<&str>) -> Option<&str> {
     source.and_then(|value| value.strip_prefix("section:"))
+}
+
+/// Collect the ids of sections that are not approved, preserving artifact order.
+pub fn unapproved_section_ids(artifact: &Value) -> Vec<String> {
+    artifact
+        .get("sections")
+        .and_then(Value::as_array)
+        .map(|sections| {
+            sections
+                .iter()
+                .filter(|section| section.get("status").and_then(Value::as_str) != Some("approved"))
+                .filter_map(|section| {
+                    section
+                        .get("id")
+                        .and_then(Value::as_str)
+                        .map(str::to_string)
+                })
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 pub fn build_section_regenerate_prompt(
@@ -109,3 +133,7 @@ fn pretty_json(raw: &str) -> String {
         .and_then(|value| serde_json::to_string_pretty(&value))
         .unwrap_or_else(|_| raw.to_string())
 }
+
+#[cfg(test)]
+#[path = "../testing/strategy/section.rs"]
+mod tests;
