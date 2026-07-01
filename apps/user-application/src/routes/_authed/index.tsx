@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
+import { convexQuery } from "@convex-dev/react-query";
+import { api } from "@/lib/convexApi";
+import { TabLoadingState } from "@/components/project/tabs/TabLoadingState";
 
 const DashboardContextView = lazy(() =>
   import("@/components/app/DashboardContextView").then((module) => ({
@@ -8,21 +11,19 @@ const DashboardContextView = lazy(() =>
 );
 
 export const Route = createFileRoute("/_authed/")({
+  loader: async ({ context: { queryClient } }) => {
+    await Promise.all([
+      queryClient.ensureQueryData(convexQuery(api.desktop.listProjects, {})),
+      queryClient.ensureQueryData(convexQuery(api.desktop.listUserTasks, { limit: 200 })),
+    ]);
+  },
   component: DashboardRoute,
 });
 
 function DashboardRoute() {
   return (
-    <Suspense fallback={<RouteFallback label="Loading dashboard..." />}>
+    <Suspense fallback={<TabLoadingState label="Loading dashboard..." />}>
       <DashboardContextView />
     </Suspense>
-  );
-}
-
-function RouteFallback({ label }: { label: string }) {
-  return (
-    <div className="flex flex-1 items-center justify-center px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
-      <p className="text-[13px] font-medium text-[#737373]">{label}</p>
-    </div>
   );
 }

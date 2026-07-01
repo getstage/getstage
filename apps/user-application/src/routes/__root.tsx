@@ -1,17 +1,18 @@
 import {
   Outlet,
-  createRootRoute,
+  createRootRouteWithContext,
   type ErrorComponentProps,
   useRouter,
   useRouterState,
 } from "@tanstack/react-router";
+import type { QueryClient } from "@tanstack/react-query";
 import { DesktopShell } from "@/components/app/DesktopShell";
 import { ProviderRequiredProvider } from "@/components/app/ProviderRequiredDialog";
 import { useDesktopSessionInvalidation } from "@/hooks/app/useDesktopSessionInvalidation";
 import { useProviderRunInvalidation } from "@/hooks/app/useProviderRunInvalidation";
 import { shouldHideCompanion } from "@/lib/app/chromeRules";
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: RootLayout,
   errorComponent: RootErrorBoundary,
 });
