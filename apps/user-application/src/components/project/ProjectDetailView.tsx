@@ -138,23 +138,19 @@ export function ProjectDetailView() {
   if (!live.project) {
     return (
       <div className="flex min-h-[calc(100dvh-88px)] flex-1 items-center justify-center px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
-        {live.error ? (
-          <div className="flex flex-col items-center gap-[8px] text-center">
-            <p className="text-[14px] font-medium text-[#b91c1c]">
-              Could not load this project.
-            </p>
-            <button
-              type="button"
-              onClick={goBack}
-              className="inline-flex items-center gap-[8px] text-[13px] font-medium text-[#525252] underline"
-            >
-              <ArrowLeftIcon />
-              {projectBackDestination.label}
-            </button>
-          </div>
-        ) : (
-          <TabLoadingState label="Loading project…" />
-        )}
+        <div className="flex flex-col items-center gap-[8px] text-center">
+          <p className="text-[14px] font-medium text-[#b91c1c]">
+            Could not load this project.
+          </p>
+          <button
+            type="button"
+            onClick={goBack}
+            className="inline-flex items-center gap-[8px] text-[13px] font-medium text-[#525252] underline"
+          >
+            <ArrowLeftIcon />
+            {projectBackDestination.label}
+          </button>
+        </div>
       </div>
     );
   }

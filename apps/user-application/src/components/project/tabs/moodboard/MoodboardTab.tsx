@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { MoodboardStyleGuide, MoodboardUploadedFile, ProviderId } from "@stage/data-ops/contracts";
 import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategyRunDialog";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
@@ -92,7 +92,10 @@ type MoodboardTabProps = {
 
 export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFlows }: MoodboardTabProps) {
   const moodboard = useMoodboardTab({ id: project.id, name: project.name });
-  const initialMoodboardUi = getMoodboardUiFromTabData(moodboard.data?.tabData);
+  const initialMoodboardUi = useMemo(
+    () => getMoodboardUiFromTabData(moodboard.data?.tabData),
+    [moodboard.data?.tabData],
+  );
   const [mode, setMode] = useState<MoodboardMode>(() => initialMoodboardUi.mode);
   const [hasUploadedFiles, setHasUploadedFiles] = useState(() => initialMoodboardUi.hasUploadedFiles);
   const [hasFigmaImportResults, setHasFigmaImportResults] = useState(

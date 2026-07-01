@@ -91,16 +91,27 @@ export function WireframesTab({
     null,
   );
   const seedScreens = useMemo(() => createSeedConfigureScreens(), []);
-  const restoredUi = getRestoredWireframeUiState(
-    wireframesTab.data?.tabData,
-    wireframesTab.isGenerating,
-    seedScreens,
+  const hydratedProjectRef = useRef<string | null>(null);
+  const tabData = wireframesTab.data?.tabData;
+  const isGenerating = wireframesTab.isGenerating;
+  const [step, setStep] = useState<WireframeStep>(() =>
+    getRestoredWireframeUiState(tabData, isGenerating, seedScreens).step,
   );
-  const [step, setStep] = useState<WireframeStep>(() => restoredUi.step);
-  const [wireframeKind, setWireframeKind] = useState<WireframeKindChoice>(() => restoredUi.wireframeKind);
-  const [brandSource, setBrandSource] = useState<BrandSourceChoice>(() => restoredUi.brandSource);
-  const [styleDirectionId, setStyleDirectionId] = useState<string | null>(() => restoredUi.styleDirectionId);
-  const [screens, setScreens] = useState(() => restoredUi.screens);
+  const [wireframeKind, setWireframeKind] = useState<WireframeKindChoice>(() =>
+    getRestoredWireframeUiState(tabData, isGenerating, seedScreens).wireframeKind,
+  );
+  const [brandSource, setBrandSource] = useState<BrandSourceChoice>(() =>
+    getRestoredWireframeUiState(tabData, isGenerating, seedScreens).brandSource,
+  );
+  const [styleDirectionId, setStyleDirectionId] = useState<string | null>(() =>
+    getRestoredWireframeUiState(tabData, isGenerating, seedScreens).styleDirectionId,
+  );
+  const [screens, setScreens] = useState(() =>
+    getRestoredWireframeUiState(tabData, isGenerating, seedScreens).screens,
+  );
+  if (tabData && !wireframesTab.isRunsLoading) {
+    hydratedProjectRef.current = project.id;
+  }
   // Results metadata is read live from the artifact so a fresh run (e.g. a Hi-Fi conversion)
   // always reflects the latest generation instead of stale mirrored state.
   const generatedScreens = wireframesTab.data?.tabData.generatedScreens ?? [];
@@ -127,10 +138,6 @@ export function WireframesTab({
     [moodboard.data],
   );
 
-  // Restore state from the saved artifact ONCE per project (on first load / tab return).
-  // After that the user owns the step + chosen kind — re-running on every reactive data
-  // tick would bounce a Lo-Fi→Hi-Fi conversion straight back to the Lo-Fi results.
-  const hydratedProjectRef = useRef<string | null>(null);
   const isConvertingFromLofiRef = useRef(false);
   // "Change source" in the regenerate picker borrows the same choose-type /
   // style-guide / brand-kit steps Convert-to-Hi-Fi uses (real card picker,
