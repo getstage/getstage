@@ -433,11 +433,7 @@ fn parse_screens_from_source(source: &str) -> Option<Vec<String>> {
         .filter(|segment| !segment.is_empty())
         .map(ToOwned::to_owned)
         .collect::<Vec<_>>();
-    if ids.is_empty() {
-        None
-    } else {
-        Some(ids)
-    }
+    if ids.is_empty() { None } else { Some(ids) }
 }
 
 fn parse_token<'a>(source: &'a str, prefix: &str) -> Option<&'a str> {

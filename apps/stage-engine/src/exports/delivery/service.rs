@@ -276,8 +276,7 @@ mod tests {
 
     #[test]
     fn inline_styles_for_paper_should_fold_style_block_rules_onto_elements() {
-        let fragment =
-            "<div class=\"hero\"><h1 class=\"title\">Ship faster</h1></div><style>.hero{display:flex;background:#101010}.title{color:#fff}</style>";
+        let fragment = "<div class=\"hero\"><h1 class=\"title\">Ship faster</h1></div><style>.hero{display:flex;background:#101010}.title{color:#fff}</style>";
 
         let inlined = inline_styles_for_paper(fragment);
 

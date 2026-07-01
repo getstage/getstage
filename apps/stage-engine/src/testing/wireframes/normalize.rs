@@ -96,10 +96,12 @@ fn preserves_hifi_html_field() {
     assert_eq!(normalized["wireframeKind"], "hifi");
     assert_eq!(normalized["brandSource"], "style-guide");
     assert_eq!(normalized["styleDirectionId"], "direction_1");
-    assert!(normalized["generatedScreens"][0]["html"]
-        .as_str()
-        .unwrap()
-        .contains("Hi-Fi"));
+    assert!(
+        normalized["generatedScreens"][0]["html"]
+            .as_str()
+            .unwrap()
+            .contains("Hi-Fi")
+    );
 }
 
 #[test]
@@ -168,16 +170,18 @@ fn merges_regenerated_screens_into_existing_artifact() {
         "generatedAtLabel": "updated"
     });
 
-    let merged = merge_regenerated_screens(
-        &existing.to_string(),
-        partial,
-        &["homepage".to_string()],
-    )
-    .unwrap();
+    let merged =
+        merge_regenerated_screens(&existing.to_string(), partial, &["homepage".to_string()])
+            .unwrap();
 
     let screens = merged["generatedScreens"].as_array().unwrap();
     assert_eq!(screens.len(), 2);
-    assert!(screens[0]["html"].as_str().unwrap().contains("New homepage"));
+    assert!(
+        screens[0]["html"]
+            .as_str()
+            .unwrap()
+            .contains("New homepage")
+    );
     assert!(screens[1]["html"].as_str().unwrap().contains("Old pricing"));
     assert_eq!(merged["generatedAt"], 456);
     assert_eq!(merged["generatedAtLabel"], "updated");
@@ -192,16 +196,14 @@ fn rejects_merge_when_existing_screen_is_missing() {
         "generatedScreens": [sample_screen("pricing", None)]
     });
 
-    let error = merge_regenerated_screens(
-        &existing.to_string(),
-        partial,
-        &["pricing".to_string()],
-    )
-    .unwrap_err();
+    let error = merge_regenerated_screens(&existing.to_string(), partial, &["pricing".to_string()])
+        .unwrap_err();
 
-    assert!(error
-        .to_string()
-        .contains("was not found in the existing wireframes artifact"));
+    assert!(
+        error
+            .to_string()
+            .contains("was not found in the existing wireframes artifact")
+    );
 }
 
 #[test]
@@ -223,9 +225,11 @@ fn rejects_merge_when_partial_response_omits_requested_screen() {
     )
     .unwrap_err();
 
-    assert!(error
-        .to_string()
-        .contains("did not regenerate screen pricing"));
+    assert!(
+        error
+            .to_string()
+            .contains("did not regenerate screen pricing")
+    );
 }
 
 #[test]
@@ -235,14 +239,13 @@ fn rejects_merge_when_partial_screens_are_empty() {
     });
     let partial = json!({ "generatedScreens": [] });
 
-    let error = merge_regenerated_screens(
-        &existing.to_string(),
-        partial,
-        &["homepage".to_string()],
-    )
-    .unwrap_err();
+    let error =
+        merge_regenerated_screens(&existing.to_string(), partial, &["homepage".to_string()])
+            .unwrap_err();
 
-    assert!(error
-        .to_string()
-        .contains("did not contain regenerated wireframe screens"));
+    assert!(
+        error
+            .to_string()
+            .contains("did not contain regenerated wireframe screens")
+    );
 }

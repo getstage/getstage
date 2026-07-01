@@ -6,10 +6,7 @@ fn parses_kind_brand_and_style_direction_from_source() {
 
     assert_eq!(parse_kind_from_source(source), Some("hifi"));
     assert_eq!(parse_brand_source_from_source(source), Some("style-guide"));
-    assert_eq!(
-        parse_style_direction_from_source(source),
-        Some("dir_42")
-    );
+    assert_eq!(parse_style_direction_from_source(source), Some("dir_42"));
 }
 
 #[test]

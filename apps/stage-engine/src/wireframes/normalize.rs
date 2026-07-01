@@ -188,7 +188,10 @@ pub fn merge_regenerated_screens(
         .collect::<Vec<_>>();
 
     let mut merged = existing_object.clone();
-    merged.insert("generatedScreens".to_string(), JsonValue::Array(merged_screens));
+    merged.insert(
+        "generatedScreens".to_string(),
+        JsonValue::Array(merged_screens),
+    );
     for key in [
         "wireframeKind",
         "brandSource",
