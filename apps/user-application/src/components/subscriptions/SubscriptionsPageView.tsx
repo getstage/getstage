@@ -3,8 +3,10 @@ import { useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
 const MIN_STUDIO_SEATS = 3;
-const STUDIO_BASE_PRICE = 49;
-const STUDIO_EXTRA_SEAT_PRICE = 15;
+const STUDIO_MONTHLY_PRICE = 49;
+const STUDIO_YEARLY_PRICE = 41;
+const STUDIO_EXTRA_MONTHLY_SEAT_PRICE = 15;
+const STUDIO_EXTRA_YEARLY_SEAT_PRICE = 12;
 
 const PLAN_FEATURES = {
   start: [
@@ -36,11 +38,17 @@ const PLAN_FEATURES = {
 
 export function SubscriptionsPageView() {
   const navigate = useNavigate();
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
   const [studioSeats, setStudioSeats] = useState(MIN_STUDIO_SEATS);
+  const isYearly = billingPeriod === "yearly";
   const studioPrice = useMemo(
-    () => STUDIO_BASE_PRICE + Math.max(0, studioSeats - MIN_STUDIO_SEATS) * STUDIO_EXTRA_SEAT_PRICE,
-    [studioSeats],
+    () =>
+      (isYearly ? STUDIO_YEARLY_PRICE : STUDIO_MONTHLY_PRICE) +
+      Math.max(0, studioSeats - MIN_STUDIO_SEATS) *
+        (isYearly ? STUDIO_EXTRA_YEARLY_SEAT_PRICE : STUDIO_EXTRA_MONTHLY_SEAT_PRICE),
+    [isYearly, studioSeats],
   );
+  const pricePeriod = isYearly ? "/month, billed yearly" : "/month";
   const backLabel = getBackLabel();
 
   function goBack() {
@@ -71,13 +79,23 @@ export function SubscriptionsPageView() {
               <img src="/logos/stage.svg" alt="" aria-hidden="true" className="h-[23px] w-[19px] object-contain brightness-0" />
               <span className="text-[19px] font-semibold leading-none tracking-[-0.06em] text-black">Stage</span>
             </div>
-            <div>
-              <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0a0a0a]">
-                Want to connect Claude, Figma & Notion?
-              </h1>
-              <p className="mt-[10px] text-[13px] font-medium leading-[1.5] text-[#525252]">
-                Upgrade your workspace plan to unlock integrations.
-              </p>
+            <div className="flex flex-col gap-[20px] min-[720px]:flex-row min-[720px]:items-end min-[720px]:justify-between">
+              <div>
+                <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0a0a0a]">
+                  Want to connect Claude, Figma & Notion?
+                </h1>
+                <p className="mt-[10px] text-[13px] font-medium leading-[1.5] text-[#525252]">
+                  Upgrade your workspace plan to unlock integrations.
+                </p>
+              </div>
+              <div className="flex w-fit rounded-[8px] bg-[#f5f5f5] p-[2px]">
+                <BillingPeriodButton active={!isYearly} onClick={() => setBillingPeriod("monthly")}>
+                  Monthly
+                </BillingPeriodButton>
+                <BillingPeriodButton active={isYearly} onClick={() => setBillingPeriod("yearly")}>
+                  Yearly
+                </BillingPeriodButton>
+              </div>
             </div>
             </header>
           </div>
@@ -86,15 +104,16 @@ export function SubscriptionsPageView() {
             <div className="flex flex-col gap-[4px] min-[900px]:flex-row">
               <PlanCard
                 name="Start"
-                price={9}
-                description="For solo designers getting started."
+                price={isYearly ? 16 : 19}
+                pricePeriod={pricePeriod}
+                description="For builders shipping their first real products."
                 features={PLAN_FEATURES.start}
-                note="Billed $99/year when paid annually"
                 cta="Get Started"
               />
               <PlanCard
                 name="Pro"
-                price={19}
+                price={isYearly ? 24 : 29}
+                pricePeriod={pricePeriod}
                 description="For freelancers who need full control."
                 features={PLAN_FEATURES.pro}
                 cta="Start 7-Day Trial"
@@ -102,11 +121,11 @@ export function SubscriptionsPageView() {
                 primary
               />
               <PlanCard
-                name="Studio"
+                name="Team"
                 price={studioPrice}
-                description="For design teams and studios."
+                pricePeriod={pricePeriod}
+                description="For small teams building together."
                 features={PLAN_FEATURES.studio}
-                note="Billed $99/year when paid annually"
                 cta="Start 7-Day Trial"
                 meta="Team Plan"
                 seatControl={
@@ -136,6 +155,7 @@ function ArrowLeftIcon() {
 function PlanCard({
   name,
   price,
+  pricePeriod,
   description,
   features,
   note,
@@ -148,6 +168,7 @@ function PlanCard({
 }: {
   name: string;
   price: number;
+  pricePeriod: string;
   description: string;
   features: Array<{ iconSrc: string; label: string }>;
   note?: string;
@@ -181,7 +202,7 @@ function PlanCard({
       <div className="flex items-end justify-between gap-[12px]">
         <div className="min-w-0">
           <p className="text-[19px] font-semibold leading-none text-[#171717]">${price}</p>
-          <p className="mt-[3px] text-[13px] font-medium leading-none text-[#525252]">/month</p>
+          <p className="mt-[3px] text-[13px] font-medium leading-none text-[#525252]">{pricePeriod}</p>
           <p className="mt-[10px] text-[13px] font-normal leading-[1.35] text-[#525252]">{description}</p>
         </div>
         {seatControl}
@@ -207,6 +228,30 @@ function PlanCard({
         {cta}
       </button>
     </article>
+  );
+}
+
+function BillingPeriodButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        active
+          ? "rounded-[6px] bg-white px-[12px] py-[8px] text-[13px] font-medium leading-none text-[#0a0a0a] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
+          : "rounded-[6px] px-[12px] py-[8px] text-[13px] font-medium leading-none text-[#737373]"
+      }
+    >
+      {children}
+    </button>
   );
 }
 
