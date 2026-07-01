@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { z } from "zod";
 import { useDesktopAuth } from "@/lib/auth";
@@ -18,9 +19,11 @@ export type ProjectMember = z.infer<typeof projectMemberSchema>;
 
 export function useProjectMembersQuery(projectId: string | undefined) {
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
-  const members = useQuery(
-    api.tasks.getProjectMembers,
-    isAuthenticated && projectId ? { projectId: projectId as Id<"projects"> } : "skip",
+  const { data: members, isPending } = useQuery(
+    convexQuery(
+      api.tasks.getProjectMembers,
+      isAuthenticated && projectId ? { projectId: projectId as Id<"projects"> } : "skip",
+    ),
   );
   const data = useMemo<ProjectMember[] | undefined>(
     () => (members === undefined ? undefined : projectMembersSchema.parse(members)),
@@ -29,7 +32,7 @@ export function useProjectMembersQuery(projectId: string | undefined) {
 
   return {
     data: data ?? [],
-    isLoading: isAuthLoading || (isAuthenticated && Boolean(projectId) && members === undefined),
+    isLoading: isAuthLoading || (isAuthenticated && Boolean(projectId) && isPending),
     error: null,
   };
 }

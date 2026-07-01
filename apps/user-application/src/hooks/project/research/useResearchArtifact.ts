@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 import {
   formatResearchArtifactParseIssues,
   parseResearchArtifactContent,
@@ -47,9 +48,11 @@ export function useResearchArtifact(
   const { enabled = true } = options;
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
   const queryEnabled = enabled && isAuthenticated && Boolean(projectId);
-  const record = useQuery(
-    api.projectAi.getLatestResearchArtifact,
-    queryEnabled ? { projectId: projectId as Id<"projects"> } : "skip",
+  const { data: record, isPending } = useQuery(
+    convexQuery(
+      api.projectAi.getLatestResearchArtifact,
+      queryEnabled ? { projectId: projectId as Id<"projects"> } : "skip",
+    ),
   );
 
   const data = useMemo<ResearchArtifactRecord | null>(() => {
@@ -81,7 +84,7 @@ export function useResearchArtifact(
 
   return {
     data,
-    isLoading: isAuthLoading || (queryEnabled && record === undefined),
+    isLoading: isAuthLoading || (queryEnabled && isPending),
     hasArtifact: data !== null,
     parseError,
     parseErrorMessage: parseError

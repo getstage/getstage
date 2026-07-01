@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { RunEvent } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
-import { useMutation as useConvexMutation, useQuery } from "convex/react";
+import { useMutation as useConvexMutation } from "convex/react";
+import { useQuery as useTanstackQuery } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 import { useDesktopAuth } from "@/lib/auth";
 import {
   tabStateToMoodboardArtifact,
@@ -91,11 +93,14 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
   // Convex is the durable truth: the engine keeps a moodboard run at status "running"
   // until the import ends, so reading it restores the generating screen on return.
   const { isAuthenticated } = useDesktopAuth();
-  const moodboardRuns = useQuery(
-    api.projectAi.listRuns,
-    isAuthenticated && projectId
-      ? { projectId: projectId as Id<"projects">, module: "moodboard" }
-      : "skip",
+  const runsQueryEnabled = isAuthenticated && Boolean(projectId);
+  const { data: moodboardRuns, isPending: moodboardRunsPending } = useTanstackQuery(
+    convexQuery(
+      api.projectAi.listRuns,
+      runsQueryEnabled
+        ? { projectId: projectId as Id<"projects">, module: "moodboard" }
+        : "skip",
+    ),
   );
   const hasPersistedRunningRun = useMemo(
     () =>
@@ -106,18 +111,20 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
       ),
     [moodboardRuns],
   );
-  // `undefined` means the query is still loading (tri-state), NOT "no runs". Treat that
+  // `isPending` means the query is still loading (tri-state), NOT "no runs". Treat that
   // window as loading so the tab never flashes the setup screen before Convex answers.
-  const isRunsLoading = isAuthenticated && Boolean(projectId) && moodboardRuns === undefined;
+  const isRunsLoading = runsQueryEnabled && moodboardRunsPending;
 
   // Same durable read for style-guide generation: the engine keeps a "styleguide" run at
   // status "running" (with directionId in inputSummary) until it ends, so the tab can
   // restore the generating screen for that direction after it unmounts.
-  const styleguideRuns = useQuery(
-    api.projectAi.listRuns,
-    isAuthenticated && projectId
-      ? { projectId: projectId as Id<"projects">, module: "styleguide" }
-      : "skip",
+  const { data: styleguideRuns, isPending: styleguideRunsPending } = useTanstackQuery(
+    convexQuery(
+      api.projectAi.listRuns,
+      runsQueryEnabled
+        ? { projectId: projectId as Id<"projects">, module: "styleguide" }
+        : "skip",
+    ),
   );
   const runningStyleGuideDirectionId = useMemo(() => {
     const run = (styleguideRuns ?? []).find(
@@ -129,8 +136,7 @@ export function useMoodboardTab(project: Pick<Project, "id" | "name">) {
   }, [styleguideRuns]);
   // Still loading the styleguide runs — hold the tab so it doesn't flash the setup
   // screen before we know a style guide is generating.
-  const isStyleGuideRunsLoading =
-    isAuthenticated && Boolean(projectId) && styleguideRuns === undefined;
+  const isStyleGuideRunsLoading = runsQueryEnabled && styleguideRunsPending;
 
   const data = moodboardArtifact.data;
   const terminalImportEvent = useMemo(

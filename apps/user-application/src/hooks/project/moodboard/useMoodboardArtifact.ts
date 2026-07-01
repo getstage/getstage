@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 import { moodboardArtifactSchema, type MoodboardArtifact } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { useDesktopAuth } from "@/lib/auth";
@@ -31,9 +32,11 @@ export function useMoodboardArtifact(
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
   const queryEnabled =
     enabled && SHOULD_QUERY_PROJECT_AI_ARTIFACTS && isAuthenticated && Boolean(projectId);
-  const record = useQuery(
-    api.projectAi.getLatestMoodboardArtifact,
-    queryEnabled ? { projectId: projectId as Id<"projects"> } : "skip",
+  const { data: record, isPending } = useQuery(
+    convexQuery(
+      api.projectAi.getLatestMoodboardArtifact,
+      queryEnabled ? { projectId: projectId as Id<"projects"> } : "skip",
+    ),
   );
 
   const data = useMemo<MoodboardArtifactRecord | null>(() => {
@@ -62,7 +65,7 @@ export function useMoodboardArtifact(
 
   return {
     data,
-    isLoading: isAuthLoading || (queryEnabled && record === undefined),
+    isLoading: isAuthLoading || (queryEnabled && isPending),
     hasArtifact: data !== null,
     parseError: record !== undefined && record !== null && data === null,
   };

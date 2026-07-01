@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 import { assetsArtifactSchema, type AssetsArtifact } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { useDesktopAuth } from "@/lib/auth";
@@ -27,9 +28,11 @@ export function useAssetsArtifact(projectId: string | undefined) {
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
   const queryEnabled =
     SHOULD_QUERY_PROJECT_AI_ARTIFACTS && isAuthenticated && Boolean(projectId);
-  const record = useQuery(
-    api.projectAi.getLatestAssetsArtifact,
-    queryEnabled ? { projectId: projectId as Id<"projects"> } : "skip",
+  const { data: record, isPending } = useQuery(
+    convexQuery(
+      api.projectAi.getLatestAssetsArtifact,
+      queryEnabled ? { projectId: projectId as Id<"projects"> } : "skip",
+    ),
   );
 
   const data = useMemo<AssetsArtifactRecord | null>(() => {
@@ -58,7 +61,7 @@ export function useAssetsArtifact(projectId: string | undefined) {
 
   return {
     data,
-    isLoading: isAuthLoading || (queryEnabled && record === undefined),
+    isLoading: isAuthLoading || (queryEnabled && isPending),
     hasArtifact: data !== null,
     parseError: record !== undefined && record !== null && data === null,
   };

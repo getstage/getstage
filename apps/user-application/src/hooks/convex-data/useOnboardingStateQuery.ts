@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 import { z } from "zod";
 import { useDesktopAuth } from "@/lib/auth";
 import { api } from "@/lib/convexApi";
@@ -16,7 +17,9 @@ export type OnboardingState = z.infer<typeof onboardingStateSchema>;
 
 export function useOnboardingStateQuery() {
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
-  const onboardingState = useQuery(api.onboarding.getState, isAuthenticated ? {} : "skip");
+  const { data: onboardingState, isPending } = useQuery(
+    convexQuery(api.onboarding.getState, isAuthenticated ? {} : "skip"),
+  );
   const data = useMemo<OnboardingState | undefined>(
     () =>
       onboardingState === undefined
@@ -27,7 +30,7 @@ export function useOnboardingStateQuery() {
 
   return {
     data,
-    isLoading: isAuthLoading || (isAuthenticated && onboardingState === undefined),
+    isLoading: isAuthLoading || (isAuthenticated && isPending),
     error: null,
   };
 }

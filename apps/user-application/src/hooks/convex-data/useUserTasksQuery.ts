@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 import { taskSummarySchema, type TaskSummary } from "@stage/data-ops";
 import { z } from "zod";
 import { useDesktopAuth } from "@/lib/auth";
@@ -14,7 +15,12 @@ export type UseUserTasksQueryArgs = {
 export function useUserTasksQuery(args: UseUserTasksQueryArgs = {}) {
   const { limit } = args;
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
-  const tasks = useQuery(api.desktop.listUserTasks, isAuthenticated ? (limit ? { limit } : {}) : "skip");
+  const { data: tasks, isPending } = useQuery(
+    convexQuery(
+      api.desktop.listUserTasks,
+      isAuthenticated ? (limit ? { limit } : {}) : "skip",
+    ),
+  );
   const data = useMemo<TaskSummary[] | undefined>(
     () => tasks === undefined ? undefined : taskListSchema.parse(tasks),
     [tasks],
@@ -22,7 +28,7 @@ export function useUserTasksQuery(args: UseUserTasksQueryArgs = {}) {
 
   return {
     data,
-    isLoading: isAuthLoading || (isAuthenticated && tasks === undefined),
+    isLoading: isAuthLoading || (isAuthenticated && isPending),
     error: null,
   };
 }
