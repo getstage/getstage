@@ -251,9 +251,9 @@ impl StrategyWorkflow {
     }
 
     /// Regenerate every not-yet-approved section in place, preserving approved
-    /// (and custom-approved) sections, their ids, and the artifact's order.
-    /// Each section is regenerated sequentially with the same per-section prompt
-    /// used by single-section regeneration; the artifact is saved once at the end.
+    /// sections, their ids, and the artifact's order. Each section is regenerated
+    /// sequentially with the same per-section prompt used by single-section
+    /// regeneration; the artifact is saved once at the end.
     #[allow(clippy::too_many_arguments)]
     async fn run_unapproved_regenerate(
         &self,

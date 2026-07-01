@@ -207,29 +207,34 @@ fn rejects_merge_when_existing_screen_is_missing() {
 }
 
 #[test]
-fn rejects_merge_when_partial_response_omits_requested_screen() {
+fn keeps_existing_screen_when_partial_response_omits_a_requested_id() {
     let existing = json!({
         "generatedScreens": [
-            sample_screen("homepage", None),
-            sample_screen("pricing", None)
+            sample_screen("homepage", Some("old-home")),
+            sample_screen("pricing", Some("orig-pricing"))
         ]
     });
+    // The model returned only homepage even though pricing was also requested.
     let partial = json!({
-        "generatedScreens": [sample_screen("homepage", None)]
+        "generatedScreens": [sample_screen("homepage", Some("new-home"))]
     });
 
-    let error = merge_regenerated_screens(
+    let merged = merge_regenerated_screens(
         &existing.to_string(),
         partial,
         &["homepage".to_string(), "pricing".to_string()],
     )
-    .unwrap_err();
+    .expect("a partial response should merge what it returned, not fail");
 
-    assert!(
-        error
-            .to_string()
-            .contains("did not regenerate screen pricing")
-    );
+    let screens = merged["generatedScreens"].as_array().unwrap();
+    let by_id = |id: &str| {
+        screens
+            .iter()
+            .find(|screen| screen["id"] == id)
+            .and_then(|screen| screen["html"].as_str())
+    };
+    assert_eq!(by_id("homepage"), Some("new-home"), "returned screen is updated");
+    assert_eq!(by_id("pricing"), Some("orig-pricing"), "omitted screen is preserved");
 }
 
 #[test]

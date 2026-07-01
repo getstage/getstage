@@ -42,6 +42,7 @@ export type WireframeFigmaNode =
       color: string;
       align: string;
       lineHeight?: number;
+      multiline: boolean;
     }
   | {
       type: "image";
@@ -226,15 +227,22 @@ const WIREFRAME_FIGMA_WALKER = `(() => {
     if (text) {
       // Computed line-height resolves to px unless "normal"; carry it so Figma
       // matches the design's line spacing instead of ballooning multi-line text.
+      const fs = parseFloat(style.fontSize) || 16;
       const lh = parseFloat(style.lineHeight);
+      const lhPx = isFinite(lh) && lh > 0 ? lh : fs * 1.3;
+      // Whether the browser wrapped this to more than one line. Single-line text
+      // is exported without wrapping so a slightly wider Figma font can't push a
+      // phantom second line down onto the element below it.
+      const multiline = rect.height > lhPx * 1.5;
       nodes.push({
         type: "text", x: textX, y: textY, w: rect.width, text,
-        fontSize: parseFloat(style.fontSize) || 16,
+        fontSize: fs,
         fontFamily: family(style.fontFamily),
         fontWeight: parseInt(style.fontWeight, 10) || 400,
         color: toHex(style.color) || "#171717",
         align: style.textAlign || "left",
         lineHeight: isFinite(lh) && lh > 0 ? lh : undefined,
+        multiline: multiline,
       });
     }
   }
@@ -279,29 +287,38 @@ async function waitForWireframeRender(
   await withRenderTimeout(webContents.executeJavaScript(`
     new Promise((resolve) => {
       const afterPaint = () => requestAnimationFrame(() => requestAnimationFrame(resolve));
-      const images = Array.from(document.images || []);
-      if (images.length === 0) {
+      const waiters = [];
+      const settle = (el) => new Promise((r) => {
+        el.addEventListener("load", r, { once: true });
+        el.addEventListener("error", r, { once: true });
+      });
+
+      for (const image of Array.from(document.images || [])) {
+        if (!image.complete) waiters.push(settle(image));
+      }
+
+      // CSS background-image photos (HIFI_RULES allows Unsplash hero/card fills
+      // that never appear in document.images) — preload each URL so the capture
+      // waits for them instead of shooting blank slots.
+      const seen = new Set();
+      for (const el of document.querySelectorAll("*")) {
+        const bg = getComputedStyle(el).backgroundImage;
+        if (!bg || bg === "none") continue;
+        for (const match of bg.match(/url\\(([^)]+)\\)/g) || []) {
+          const url = match.slice(4, -1).replace(/['"]/g, "").trim();
+          if (!/^https?:/.test(url) || seen.has(url)) continue;
+          seen.add(url);
+          const preload = new Image();
+          waiters.push(settle(preload));
+          preload.src = url;
+        }
+      }
+
+      if (waiters.length === 0) {
         afterPaint();
         return;
       }
-
-      let pending = images.length;
-      const done = () => {
-        pending -= 1;
-        if (pending <= 0) {
-          afterPaint();
-        }
-      };
-
-      for (const image of images) {
-        if (image.complete) {
-          done();
-        } else {
-          image.addEventListener("load", done, { once: true });
-          image.addEventListener("error", done, { once: true });
-        }
-      }
-
+      Promise.all(waiters).then(afterPaint);
       setTimeout(afterPaint, 5000);
     })
   `));

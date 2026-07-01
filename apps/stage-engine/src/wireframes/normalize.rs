@@ -161,15 +161,9 @@ pub fn merge_regenerated_screens(
         }
     }
 
-    for screen_id in screen_ids {
-        let regenerated = partial_screens
-            .iter()
-            .any(|screen| screen.get("id").and_then(JsonValue::as_str) == Some(screen_id.as_str()));
-        if !regenerated {
-            bail!("The AI response did not regenerate screen {screen_id}.");
-        }
-    }
-
+    // A requested id the model omitted keeps its existing screen (via unwrap_or
+    // below) rather than discarding every regenerated screen — a partial response
+    // still lands the sections it did return.
     let merged_screens = existing_screens
         .into_iter()
         .map(|screen| {
