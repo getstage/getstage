@@ -65,6 +65,10 @@ pub enum FigmaDomNode {
         // leaves Figma's auto line height in place.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         line_height: Option<f64>,
+        // False when the browser rendered a single line; the plugin then disables
+        // wrapping so a wider Figma font can't spill a second line onto neighbours.
+        #[serde(default)]
+        multiline: bool,
     },
     #[serde(rename_all = "camelCase")]
     Image {

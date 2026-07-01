@@ -48,6 +48,7 @@ type FigmaDomNode =
       color: string;
       align: string;
       lineHeight?: number;
+      multiline?: boolean;
     }
   | {
       type: "image";
@@ -380,9 +381,17 @@ async function executeNodesFigmaWritePlan(plan: NodesFigmaWritePlan) {
           t.lineHeight = { value: node.lineHeight, unit: "PIXELS" };
         }
         t.characters = String(node.text || "");
-        t.textAutoResize = "HEIGHT";
         root.appendChild(t);
-        t.resize(clampSize(num(node.w, 1)), t.height);
+        // Left-aligned single-line text grows horizontally instead of wrapping,
+        // so a wider Figma font can't drop a phantom second line onto the element
+        // beneath it. Wrapped/centred text keeps its fixed-width box.
+        const leftAligned = !node.align || node.align === "left" || node.align === "start";
+        if (node.multiline === false && leftAligned) {
+          t.textAutoResize = "WIDTH_AND_HEIGHT";
+        } else {
+          t.textAutoResize = "HEIGHT";
+          t.resize(clampSize(num(node.w, 1)), t.height);
+        }
         t.x = num(node.x);
         t.y = num(node.y);
         t.fills = [{ type: "SOLID", color: rgb(node.color || "#171717") }];

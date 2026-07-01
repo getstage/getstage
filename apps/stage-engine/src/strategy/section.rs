@@ -4,7 +4,7 @@ use serde_json::{Value, json};
 use crate::models::strategy::StrategyInput;
 
 /// Run source that asks the workflow to regenerate every section that is not yet
-/// approved, leaving approved (and custom-approved) sections untouched.
+/// approved, leaving approved sections untouched.
 pub const REGENERATE_UNAPPROVED_SOURCE: &str = "sections:unapproved";
 
 pub fn parse_strategy_section(source: Option<&str>) -> Option<&str> {
