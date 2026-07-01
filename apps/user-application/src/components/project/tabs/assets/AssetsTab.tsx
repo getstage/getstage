@@ -15,6 +15,7 @@ import { DocumentsGrid } from "./DocumentsGrid";
 import { ExportOptionsDialog } from "./ExportOptionsDialog";
 import { UploadDropzone } from "./UploadDropzone";
 import { UploadedGrid } from "./UploadedGrid";
+import { TabLoadingState } from "../TabLoadingState";
 
 export function AssetsTab({ project }: { project: Project }) {
   const [activeView, setActiveView] = useState<AssetView>("wireframes");
@@ -38,6 +39,10 @@ export function AssetsTab({ project }: { project: Project }) {
     (asset) => asset.type === "hifi" && asset.html?.trim(),
   );
   const effectiveFidelity: WireframeKind = canToggleFidelity ? fidelityView : "lofi";
+
+  if (assetsTab.isLoading) {
+    return <TabLoadingState label="Loading assets…" />;
+  }
 
   return (
     <section className="flex w-full flex-col gap-[18px]">

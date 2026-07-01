@@ -23,6 +23,7 @@ import { StyleGuideGenerating } from "./StyleGuideGenerating";
 import { StyleGuideView } from "./StyleGuideView";
 import { DirectionIcon } from "./moodboardIcons";
 import { UploadDropzone } from "./UploadDropzone";
+import { TabLoadingState } from "../TabLoadingState";
 import { UploadedFilesList } from "./UploadedFilesList";
 
 type MoodboardView = "board" | "hub" | "generating-style-guide" | "style-guide";
@@ -494,7 +495,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
   // Until the artifact and run queries resolve we don't know if an import is in
   // flight, so hold instead of flashing the setup screen (tri-state: loading ≠ empty).
   if (moodboard.isLoading) {
-    return null;
+    return <TabLoadingState label="Loading moodboard…" />;
   }
 
   return (

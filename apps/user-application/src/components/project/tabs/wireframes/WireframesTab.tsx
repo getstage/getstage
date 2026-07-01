@@ -22,6 +22,7 @@ import { ConfigureStep } from "./ConfigureStep";
 import { GeneratingStep } from "./GeneratingStep";
 import { ResultsGrid } from "./ResultsGrid";
 import { StyleGuideStep } from "./StyleGuideStep";
+import { TabLoadingState } from "../TabLoadingState";
 import type { BrandSource, BrandSourceChoice } from "./TypeChooser";
 import { TypeChooser } from "./TypeChooser";
 import { WireframeKindChooser } from "./WireframeKindChooser";
@@ -242,6 +243,10 @@ export function WireframesTab({
     regenerateBrandSource === "style-guide"
       ? styleDirections.find((direction) => direction.id === regenerateStyleDirectionId)?.title
       : null;
+
+  if (wireframesTab.isLoading) {
+    return <TabLoadingState label="Loading wireframes…" />;
+  }
 
   return (
     <section className="w-full">
