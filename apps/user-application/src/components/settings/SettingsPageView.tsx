@@ -26,6 +26,9 @@ const IntegrationsPage = lazy(() =>
 const ProfilePanel = lazy(() =>
   import("./ProfilePanel").then((module) => ({ default: module.ProfilePanel })),
 );
+const TeamPanel = lazy(() =>
+  import("./TeamPanel").then((module) => ({ default: module.TeamPanel })),
+);
 
 export function SettingsPageView({
   initialTab = "profile",
@@ -53,6 +56,7 @@ export function SettingsPageView({
       <Suspense fallback={<SettingsLoadingState />}>
         {initialTab === "profile" ? <ProfilePanel /> : null}
         {initialTab === "billing" ? <BillingPanel /> : null}
+        {initialTab === "team" ? <TeamPanel /> : null}
         {initialTab === "clients" ? <ClientsPanel /> : null}
         {initialTab === "developer" ? <DeveloperPanel /> : null}
         {initialTab === "shortcuts" ? <ShortcutsPanel /> : null}
