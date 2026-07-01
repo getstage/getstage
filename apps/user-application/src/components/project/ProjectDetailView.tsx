@@ -16,11 +16,7 @@ import { getProjectBackDestination } from "@/lib/projectBackDestination";
 import { WORKFLOW_STEPS } from "@stage/data-ops";
 import { formatRelativeTime } from "@/lib/utils";
 import type { Project, ProjectTab } from "@/models/project/project";
-
-type ProjectTimeline = {
-  start: string;
-  end: string;
-};
+import { TabLoadingState } from "./tabs/TabLoadingState";
 
 type StepTab = Exclude<ProjectTab, "overview">;
 
@@ -74,9 +70,14 @@ export function ProjectDetailView() {
   const [pendingStrategyProviderId, setPendingStrategyProviderId] = useState<ProviderId | null>(
     null,
   );
-  const [project, setProject] = useState<Project | null>(null);
-  const [timeline, setTimeline] = useState<ProjectTimeline>({ start: "", end: "" });
   const projectBackDestination = getProjectBackDestination();
+  const timeline = useMemo(
+    () => ({
+      start: live.detail ? formatTimelineDate(live.detail.startDate) : "",
+      end: live.detail ? formatTimelineDate(live.detail.endDate) : "",
+    }),
+    [live.detail],
+  );
   // The API resolves enabledSteps to a concrete array; `??` only covers the brief frame
   // before the project detail has loaded (the header isn't shown then anyway).
   const enabledSteps: readonly string[] = live.detail?.enabledSteps ?? WORKFLOW_STEPS;
@@ -88,26 +89,6 @@ export function ProjectDetailView() {
       setActiveTab("overview");
     }
   }, [activeTab, enabledSteps]);
-
-  useEffect(() => {
-    if (live.project) {
-      setProject(live.project);
-      return;
-    }
-
-    if (!live.isLoading && live.isNotFound) {
-      setProject(null);
-    }
-  }, [live.project, live.isLoading, live.isNotFound]);
-
-  useEffect(() => {
-    if (live.detail) {
-      setTimeline({
-        start: formatTimelineDate(live.detail.startDate),
-        end: formatTimelineDate(live.detail.endDate),
-      });
-    }
-  }, [live.detail]);
 
   async function runModalAction(action: () => Promise<void>) {
     setModalError(null);
@@ -130,15 +111,15 @@ export function ProjectDetailView() {
   }
 
   const recentTasks = useMemo(() => {
-    if (!project) return [];
+    if (!live.project) return [];
     const tasks: Array<{ task: Project["phases"][0]["tasks"][0]; phaseName: string }> = [];
-    for (const phase of project.phases) {
+    for (const phase of live.project.phases) {
       for (const task of phase.tasks) {
         tasks.push({ task, phaseName: phase.name });
       }
     }
     return tasks.sort((a, b) => b.task.updatedAt - a.task.updatedAt).slice(0, 3);
-  }, [project]);
+  }, [live.project]);
 
   function goBack() {
     void navigate({ to: projectBackDestination.href as never });
@@ -150,7 +131,11 @@ export function ProjectDetailView() {
     setActiveTab("strategy");
   }
 
-  if (!project) {
+  if (live.isLoading) {
+    return <TabLoadingState label="Loading project…" />;
+  }
+
+  if (!live.project) {
     return (
       <div className="flex min-h-[calc(100dvh-88px)] flex-1 items-center justify-center px-[clamp(16px,7vw,100px)] py-[clamp(20px,4vw,44px)]">
         {live.error ? (
@@ -168,13 +153,13 @@ export function ProjectDetailView() {
             </button>
           </div>
         ) : (
-          <p className="text-[13px] font-medium text-[#737373]">
-            Loading project…
-          </p>
+          <TabLoadingState label="Loading project…" />
         )}
       </div>
     );
   }
+
+  const project = live.project;
 
   return (
     <>

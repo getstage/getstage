@@ -46,6 +46,9 @@ export const Route = createFileRoute("/_authed/project/$projectId")({
             convexQuery(api.projectAi.listRuns, { projectId, module: "styleguide" }),
           ),
           queryClient.ensureQueryData(
+            convexQuery(api.projectAi.listRuns, { projectId, module: "generate" }),
+          ),
+          queryClient.ensureQueryData(
             convexQuery(api.projectAi.getContext, { projectId }),
           ),
         ]

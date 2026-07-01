@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "convex/react";
 import type { ProviderId, RunEvent } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
-import { useQueryClient } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/convexApi";
 import { useDesktopAuth } from "@/lib/auth";
 import { engineQueryKeys } from "@/hooks/engine/queryKeys";
@@ -95,21 +95,23 @@ export function useWireframesRun(projectId: string) {
 
   // In-memory run state is lost on reload/tab remount. Convex keeps wireframes runs at
   // module "generate" with status "running" until the engine completes or fails them.
-  const wireframesRuns = useQuery(
-    api.projectAi.listRuns,
-    isAuthenticated && projectId
-      ? { projectId: projectId as Id<"projects">, module: "generate" }
-      : "skip",
+  const runsQueryEnabled = isAuthenticated && Boolean(projectId);
+  const { data: wireframesRuns, isPending: wireframesRunsPending } = useQuery(
+    convexQuery(
+      api.projectAi.listRuns,
+      runsQueryEnabled
+        ? { projectId: projectId as Id<"projects">, module: "generate" }
+        : "skip",
+    ),
   );
   const persistedRunningRun = useMemo(
     () =>
-      wireframesRuns?.find(
+      (wireframesRuns ?? []).find(
         (run) => run.status === "running" && isFreshRunningRun(run.startedAt),
       ) ?? null,
     [wireframesRuns],
   );
-  const isRunsLoading =
-    isAuthenticated && Boolean(projectId) && wireframesRuns === undefined;
+  const isRunsLoading = runsQueryEnabled && wireframesRunsPending;
 
   const isRunning = useMemo(
     () =>

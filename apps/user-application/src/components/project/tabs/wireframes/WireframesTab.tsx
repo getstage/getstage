@@ -14,7 +14,7 @@ import { api } from "@/lib/convexApi";
 import { buildResultCards } from "@/lib/project/mapWireframesArtifactToTabData";
 import type { Project } from "@/models/project/project";
 import type { WireframeAssetCard } from "@/types/project/assetsTab";
-import type { WireframeKindChoice, WireframeStep } from "@/types/project/wireframesTab";
+import type { WireframeKindChoice, WireframeStep, WireframesTabData } from "@/types/project/wireframesTab";
 import { ExportOptionsDialog } from "../assets/ExportOptionsDialog";
 import { BrandKitStep } from "./BrandKitStep";
 import { CanvasShell } from "./CanvasShell";
@@ -34,6 +34,34 @@ type WireframesTabProps = {
   onGoToFlows?: () => void;
   onGoToMoodboard: () => void;
 };
+
+function getRestoredWireframeUiState(
+  tabData: WireframesTabData | undefined,
+  isGenerating: boolean,
+  seedScreens: ReturnType<typeof createSeedConfigureScreens>,
+) {
+  if (!tabData) {
+    return {
+      step: "choose-kind" as WireframeStep,
+      wireframeKind: null as WireframeKindChoice,
+      brandSource: null as BrandSourceChoice,
+      styleDirectionId: null as string | null,
+      screens: seedScreens,
+    };
+  }
+
+  return {
+    step: (tabData.generatedScreens.length > 0
+      ? isGenerating
+        ? "generating"
+        : "results"
+      : "choose-kind") as WireframeStep,
+    wireframeKind: tabData.wireframeKind as WireframeKindChoice,
+    brandSource: tabData.brandSource as BrandSourceChoice,
+    styleDirectionId: tabData.styleDirectionId,
+    screens: tabData.configureScreens,
+  };
+}
 
 export function WireframesTab({
   project,
@@ -63,11 +91,16 @@ export function WireframesTab({
     null,
   );
   const seedScreens = useMemo(() => createSeedConfigureScreens(), []);
-  const [step, setStep] = useState<WireframeStep>("choose-kind");
-  const [wireframeKind, setWireframeKind] = useState<WireframeKindChoice>(null);
-  const [brandSource, setBrandSource] = useState<BrandSourceChoice>(null);
-  const [styleDirectionId, setStyleDirectionId] = useState<string | null>(null);
-  const [screens, setScreens] = useState(seedScreens);
+  const restoredUi = getRestoredWireframeUiState(
+    wireframesTab.data?.tabData,
+    wireframesTab.isGenerating,
+    seedScreens,
+  );
+  const [step, setStep] = useState<WireframeStep>(() => restoredUi.step);
+  const [wireframeKind, setWireframeKind] = useState<WireframeKindChoice>(() => restoredUi.wireframeKind);
+  const [brandSource, setBrandSource] = useState<BrandSourceChoice>(() => restoredUi.brandSource);
+  const [styleDirectionId, setStyleDirectionId] = useState<string | null>(() => restoredUi.styleDirectionId);
+  const [screens, setScreens] = useState(() => restoredUi.screens);
   // Results metadata is read live from the artifact so a fresh run (e.g. a Hi-Fi conversion)
   // always reflects the latest generation instead of stale mirrored state.
   const generatedScreens = wireframesTab.data?.tabData.generatedScreens ?? [];
@@ -244,7 +277,7 @@ export function WireframesTab({
       ? styleDirections.find((direction) => direction.id === regenerateStyleDirectionId)?.title
       : null;
 
-  if (wireframesTab.isLoading) {
+  if (wireframesTab.isLoading || wireframesTab.isRunsLoading) {
     return <TabLoadingState label="Loading wireframes…" />;
   }
 
