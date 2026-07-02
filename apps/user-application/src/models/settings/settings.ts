@@ -3,6 +3,7 @@ import { z } from "zod";
 export const settingsTabSchema = z.enum([
   "profile",
   "billing",
+  "team",
   "clients",
   "developer",
   "shortcuts",

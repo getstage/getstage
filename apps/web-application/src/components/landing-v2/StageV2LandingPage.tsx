@@ -7,6 +7,11 @@ const DEFAULT_SITE_URL = "https://usestage.com";
 const LANDING_TITLE = "Stage - The AI workspace for designers";
 const LANDING_DESCRIPTION =
   "Stage is the only tool where designers manage clients, run research, and generate designs in one place. Powered by your AI, not ours.";
+const TEAM_MIN_SEATS = 3;
+const TEAM_MONTHLY_PRICE = 49;
+const TEAM_YEARLY_PRICE = 41;
+const TEAM_EXTRA_MONTHLY_SEAT_PRICE = 15;
+const TEAM_EXTRA_YEARLY_SEAT_PRICE = 12;
 
 type HeroKanbanStatus = "backlog" | "todo" | "in-progress" | "done";
 type HeroTask = {
@@ -60,7 +65,7 @@ const HERO_INITIAL_COLUMNS: HeroColumns = {
 
 export function StageV2LandingPage() {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
-  const [studioSeats, setStudioSeats] = useState(3);
+  const [studioSeats, setStudioSeats] = useState(TEAM_MIN_SEATS);
   const [heroColumns, setHeroColumns] = useState<HeroColumns>(HERO_INITIAL_COLUMNS);
   const [activeHeroDrag, setActiveHeroDrag] = useState<HeroActiveDrag | null>(null);
   const [heroDragOverColumn, setHeroDragOverColumn] = useState<HeroKanbanStatus | null>(null);
@@ -222,6 +227,10 @@ export function StageV2LandingPage() {
   }
 
   const pricePeriod = billingPeriod === "yearly" ? "/month, billed yearly" : "/month";
+  const teamPrice =
+    (billingPeriod === "yearly" ? TEAM_YEARLY_PRICE : TEAM_MONTHLY_PRICE) +
+    Math.max(0, studioSeats - TEAM_MIN_SEATS) *
+      (billingPeriod === "yearly" ? TEAM_EXTRA_YEARLY_SEAT_PRICE : TEAM_EXTRA_MONTHLY_SEAT_PRICE);
 
   return (
     <>
@@ -536,14 +545,14 @@ export function StageV2LandingPage() {
                     <div className="price-body">
                       <div className="price-row">
                         <div className="price-amount">
-                          <span className="price-num is-studio-price">{billingPeriod === "yearly" ? "$41" : "$49"}</span>
+                          <span className="price-num is-studio-price">${teamPrice}</span>
                           <span className="price-per">{pricePeriod}</span>
                         </div>
                         <div className="seat-stepper" role="group" aria-label="Seats"
-                             data-min="3" data-seats="3"
-                             data-base-monthly="49" data-base-yearly="41"
-                             data-extra-monthly="15" data-extra-yearly="12">
-                          <button type="button" className="seat-btn seat-dec" aria-label="Remove seat" disabled={studioSeats <= 3} onClick={() => setStudioSeats((seats) => Math.max(3, seats - 1))}>-</button>
+                             data-min={TEAM_MIN_SEATS} data-seats={studioSeats}
+                             data-base-monthly={TEAM_MONTHLY_PRICE} data-base-yearly={TEAM_YEARLY_PRICE}
+                             data-extra-monthly={TEAM_EXTRA_MONTHLY_SEAT_PRICE} data-extra-yearly={TEAM_EXTRA_YEARLY_SEAT_PRICE}>
+                          <button type="button" className="seat-btn seat-dec" aria-label="Remove seat" disabled={studioSeats <= TEAM_MIN_SEATS} onClick={() => setStudioSeats((seats) => Math.max(TEAM_MIN_SEATS, seats - 1))}>-</button>
                           <span className="seat-count">{studioSeats}</span>
                           <button type="button" className="seat-btn seat-inc" aria-label="Add seat" onClick={() => setStudioSeats((seats) => seats + 1)}>+</button>
                         </div>
