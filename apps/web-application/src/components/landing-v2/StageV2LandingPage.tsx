@@ -1,4 +1,4 @@
-import { useEffect, useState, type PointerEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import "@/styles/stage-v2-tokens.css";
 import "@/styles/stage-v2-landing.css";
@@ -13,63 +13,13 @@ const TEAM_YEARLY_PRICE = 41;
 const TEAM_EXTRA_MONTHLY_SEAT_PRICE = 15;
 const TEAM_EXTRA_YEARLY_SEAT_PRICE = 12;
 
-type HeroKanbanStatus = "backlog" | "todo" | "in-progress" | "done";
-type HeroTask = {
-  id: string;
-  phase: "Research" | "Strategy" | "Identity" | "Guidelines";
-  title: string;
-  description: string;
-  done?: boolean;
-  assignee?: boolean;
-};
-type HeroColumns = Record<HeroKanbanStatus, HeroTask[]>;
-type HeroActiveDrag = {
-  task: HeroTask;
-  sourceColumn: HeroKanbanStatus;
-  width: number;
-  height: number;
-  pointerOffsetX: number;
-  pointerOffsetY: number;
-  x: number;
-  y: number;
-};
-
-const HERO_COLUMNS: { key: HeroKanbanStatus; label: string }[] = [
-  { key: "backlog", label: "Backlog" },
-  { key: "todo", label: "To-do" },
-  { key: "in-progress", label: "In-progress" },
-  { key: "done", label: "Done" },
-];
-
-const HERO_INITIAL_COLUMNS: HeroColumns = {
-  backlog: [
-    { id: "audit-ia", phase: "Research", title: "Audit current site IA", description: "Map every page, surface dead-ends, and list outdated copy.", assignee: true },
-    { id: "positioning", phase: "Strategy", title: "Draft positioning angles", description: "Three POVs: utility, lifestyle, prosumer. Pick one to validate.", assignee: true },
-    { id: "wordmark", phase: "Identity", title: "Wordmark exploration", description: "Six directions, low-fi. Mix custom and modified type." },
-  ],
-  todo: [
-    { id: "tokens", phase: "Guidelines", title: "Define color tokens", description: "Pull from product UI, name semantically, document contrast." },
-    { id: "findings", phase: "Strategy", title: "Approve research findings", description: "Walk stakeholders through, capture objections, finalize.", assignee: true },
-    { id: "grid", phase: "Identity", title: "Mark grid system", description: "Lock construction grid, optical adjustments, clear-space rules." },
-    { id: "type-ramp", phase: "Guidelines", title: "Type ramp & spacing", description: "Five sizes, vertical rhythm, hard limits at 13/15/20/32/56." },
-  ],
-  "in-progress": [
-    { id: "hero-v2", phase: "Identity", title: "Hero composition v2", description: "Tighter type, breathing room, one focal product cell." },
-    { id: "competitors", phase: "Research", title: "Competitor scan - 8 brands", description: "Tear down hero, CTA, and pricing patterns. Tag the unusual." },
-  ],
-  done: [
-    { id: "interviews", phase: "Research", title: "Stakeholder interviews", description: "Six conversations, themes captured, quotes archived in Notion.", done: true },
-    { id: "kickoff", phase: "Strategy", title: "Kickoff alignment", description: "Scope, timeline, comms. Signed off in Slack on Monday.", done: true },
-  ],
-};
 
 export function StageV2LandingPage() {
+  const heroVideoRef = useRef<HTMLVideoElement | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
   const [studioSeats, setStudioSeats] = useState(TEAM_MIN_SEATS);
-  const [heroColumns, setHeroColumns] = useState<HeroColumns>(HERO_INITIAL_COLUMNS);
-  const [activeHeroDrag, setActiveHeroDrag] = useState<HeroActiveDrag | null>(null);
-  const [heroDragOverColumn, setHeroDragOverColumn] = useState<HeroKanbanStatus | null>(null);
-  const [heroDropBeforeTaskId, setHeroDropBeforeTaskId] = useState<string | null>(null);
+  const [isHeroVideoMuted, setIsHeroVideoMuted] = useState(true);
+  const [hasHeroVideoEnded, setHasHeroVideoEnded] = useState(false);
   const canonicalUrl =
     typeof window === "undefined"
       ? DEFAULT_SITE_URL
@@ -81,7 +31,11 @@ export function StageV2LandingPage() {
 
   useEffect(() => {
     document.documentElement.classList.add("js");
-    return () => document.documentElement.classList.remove("js");
+    document.documentElement.classList.add("stage-v2-page");
+    return () => {
+      document.documentElement.classList.remove("js");
+      document.documentElement.classList.remove("stage-v2-page");
+    };
   }, []);
 
   useEffect(() => {
@@ -108,129 +62,33 @@ export function StageV2LandingPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!activeHeroDrag) return;
-    const draggedId = activeHeroDrag.task.id;
-
-    function handlePointerMove(event: globalThis.PointerEvent) {
-      setActiveHeroDrag((current) => current ? { ...current, x: event.clientX, y: event.clientY } : current);
-      const target = getHeroDropTargetFromPoint(event.clientX, event.clientY, draggedId);
-      setHeroDragOverColumn(target?.column ?? null);
-      setHeroDropBeforeTaskId(target?.beforeTaskId ?? null);
-    }
-
-    function handlePointerUp(event: globalThis.PointerEvent) {
-      const target = getHeroDropTargetFromPoint(event.clientX, event.clientY, draggedId);
-      if (target) {
-        moveHeroTask(draggedId, target.column, target.beforeTaskId);
-      }
-      setActiveHeroDrag(null);
-      setHeroDragOverColumn(null);
-      setHeroDropBeforeTaskId(null);
-    }
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp, { once: true });
-    window.addEventListener("pointercancel", handlePointerUp, { once: true });
-
-    return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-      window.removeEventListener("pointercancel", handlePointerUp);
-    };
-  }, [activeHeroDrag]);
-
-  function getHeroColumnFromPoint(x: number, y: number) {
-    const element = document.elementFromPoint(x, y);
-    const columnElement = element?.closest<HTMLElement>("[data-kanban-column]");
-    const status = columnElement?.dataset.kanbanColumn;
-    return HERO_COLUMNS.find((column) => column.key === status)?.key ?? null;
-  }
-
-  function getHeroDropTargetFromPoint(x: number, y: number, draggedId: string) {
-    const column = getHeroColumnFromPoint(x, y);
-    if (!column) return null;
-
-    const taskElements = Array.from(
-      document.querySelectorAll<HTMLElement>(`[data-kanban-column="${column}"] [data-kanban-task-id]`),
-    );
-    const beforeElement = taskElements.find((element) => {
-      if (element.dataset.kanbanTaskId === draggedId) return false;
-      const rect = element.getBoundingClientRect();
-      return y < rect.top + rect.height / 2;
-    });
-
-    return { column, beforeTaskId: beforeElement?.dataset.kanbanTaskId ?? null };
-  }
-
-  function findHeroTask(taskId: string) {
-    for (const column of HERO_COLUMNS) {
-      const task = heroColumns[column.key].find((item) => item.id === taskId);
-      if (task) return { task, sourceColumn: column.key };
-    }
-    return null;
-  }
-
-  function startHeroDragging(event: PointerEvent<HTMLElement>, taskId: string) {
-    if (event.button !== 0) return;
-    const item = findHeroTask(taskId);
-    if (!item) return;
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    event.preventDefault();
-
-    setActiveHeroDrag({
-      ...item,
-      width: rect.width,
-      height: rect.height,
-      pointerOffsetX: event.clientX - rect.left,
-      pointerOffsetY: event.clientY - rect.top,
-      x: event.clientX,
-      y: event.clientY,
-    });
-    setHeroDropBeforeTaskId(null);
-  }
-
-  function moveHeroTask(taskId: string, targetColumn: HeroKanbanStatus, beforeTaskId?: string | null) {
-    if (taskId === beforeTaskId) return;
-
-    setHeroColumns((current) => {
-      let movingTask: HeroTask | undefined;
-      const next = { ...current };
-
-      for (const column of HERO_COLUMNS) {
-        next[column.key] = current[column.key].filter((task) => {
-          if (task.id === taskId) {
-            movingTask = task;
-            return false;
-          }
-          return true;
-        });
-      }
-
-      if (!movingTask) return current;
-
-      const targetTasks = [...next[targetColumn]];
-      const updatedTask = { ...movingTask, done: targetColumn === "done" };
-      const insertionIndex = beforeTaskId ? targetTasks.findIndex((task) => task.id === beforeTaskId) : -1;
-
-      if (insertionIndex >= 0) {
-        targetTasks.splice(insertionIndex, 0, updatedTask);
-      } else {
-        targetTasks.push(updatedTask);
-      }
-
-      next[targetColumn] = targetTasks;
-      return next;
-    });
-  }
 
   const pricePeriod = billingPeriod === "yearly" ? "/month, billed yearly" : "/month";
   const teamPrice =
     (billingPeriod === "yearly" ? TEAM_YEARLY_PRICE : TEAM_MONTHLY_PRICE) +
     Math.max(0, studioSeats - TEAM_MIN_SEATS) *
       (billingPeriod === "yearly" ? TEAM_EXTRA_YEARLY_SEAT_PRICE : TEAM_EXTRA_MONTHLY_SEAT_PRICE);
+
+  function toggleHeroVideoSound() {
+    const video = heroVideoRef.current;
+    if (!video) return;
+
+    const nextMuted = !video.muted;
+    video.muted = nextMuted;
+    setIsHeroVideoMuted(nextMuted);
+    if (video.paused && !video.ended) {
+      void video.play().catch(() => {});
+    }
+  }
+
+  function replayHeroVideo() {
+    const video = heroVideoRef.current;
+    if (!video) return;
+
+    video.currentTime = 0;
+    setHasHeroVideoEnded(false);
+    void video.play().catch(() => {});
+  }
 
   return (
     <>
@@ -285,112 +143,42 @@ export function StageV2LandingPage() {
                   </div>
                 </div>
         
-                {/* Interactive Stage Dashboard mockup (recreated from the Figma source). */}
                 <div className="hero-visual reveal">
-                  <img className="happ-mobile" src="/hero/hero-mobile.webp" alt="Stage project workflow on mobile" />
-                  <div className="happ">
-                    {/* Sidebar (icon rail) */}
-                    <aside className="happ-rail">
-                      <div className="happ-rail-top">
-                        <a className="happ-logo" href="#top" aria-label="Stage"><img src="/stage-v2-lp/assets/hero/stage-logo.svg" alt="Stage" width="19" height="23"/></a>
-                        <button className="happ-pill happ-pill-search" tabIndex={-1} aria-label="Search"><img src="/stage-v2-lp/assets/hero/nav-search.svg" alt="" width="15" height="15"/></button>
-                        <nav className="happ-nav" aria-label="Sections">
-                          <button className="happ-pill" tabIndex={-1} aria-label="Home"><img src="/stage-v2-lp/assets/hero/nav-home.svg" alt="" width="15" height="15"/></button>
-                          <button className="happ-pill is-active" tabIndex={-1} aria-label="Projects"><img src="/stage-v2-lp/assets/hero/nav-projects.svg" alt="" width="15" height="15"/></button>
-                          <button className="happ-pill" tabIndex={-1} aria-label="Tasks"><img src="/stage-v2-lp/assets/hero/nav-tasks.svg" alt="" width="15" height="15"/></button>
-                          <button className="happ-pill" tabIndex={-1} aria-label="Eye"><img src="/stage-v2-lp/assets/hero/nav-eye.svg" alt="" width="15" height="15"/></button>
-                          <button className="happ-pill" tabIndex={-1} aria-label="Integrations"><img src="/stage-v2-lp/assets/hero/nav-integrations.svg" alt="" width="15" height="15"/></button>
-                          <button className="happ-pill" tabIndex={-1} aria-label="Profile"><img src="/stage-v2-lp/assets/hero/nav-profile.svg" alt="" width="15" height="15"/></button>
-                        </nav>
-                        <ul className="happ-projects" role="list">
-                          <li><img className="happ-pava" src="/stage-v2-lp/assets/hero/proj-baseframe.svg" alt="BaseFrame" width="20" height="20"/></li>
-                          <li><img className="happ-pava" src="/stage-v2-lp/assets/hero/proj-test.svg" alt="Test Project" width="20" height="20"/></li>
-                        </ul>
-                      </div>
-                      <div className="happ-rail-bottom">
-                        <button className="happ-pill" tabIndex={-1} aria-label="Help"><img src="/stage-v2-lp/assets/hero/nav-help.svg" alt="" width="15" height="15"/></button>
-                        <button className="happ-pill happ-pill-user" tabIndex={-1} aria-label="Account"><img className="happ-uava" src="/stage-v2-lp/assets/hero/user-pratik.png" alt="" width="24" height="24"/></button>
-                      </div>
-                    </aside>
-        
-                    {/* Main panel */}
-                    <section className="happ-main">
-                      <header className="happ-head">
-                        <div className="happ-title-row">
-                          <h2 className="happ-title">Apple Website Redesign</h2>
-                          <div className="happ-title-actions">
-                            <button className="happ-share" tabIndex={-1}>Share <img src="/stage-v2-lp/assets/hero/ic-share.svg" alt="" width="13" height="13"/></button>
-                            <button className="happ-more" tabIndex={-1} aria-label="More"><img src="/stage-v2-lp/assets/hero/ic-more.svg" alt="" width="15" height="15"/></button>
-                          </div>
-                        </div>
-                        <p className="happ-sub">Buy Stage</p>
-        
-                        <div className="happ-tabs" role="tablist">
-                          <button className="htab is-active" role="tab" tabIndex={-1}><img src="/stage-v2-lp/assets/hero/tab-overview.svg" alt="" width="13" height="13"/> Overview</button>
-                          <button className="htab" role="tab" tabIndex={-1}><img src="/stage-v2-lp/assets/hero/tab-research.svg" alt="" width="13" height="13"/> Research</button>
-                          <button className="htab" role="tab" tabIndex={-1}><img src="/stage-v2-lp/assets/hero/tab-strategy.svg" alt="" width="13" height="13"/> Strategy</button>
-                          <button className="htab" role="tab" tabIndex={-1}><img src="/stage-v2-lp/assets/hero/tab-moodboard.svg" alt="" width="13" height="13"/> Moodboard</button>
-                          <button className="htab" role="tab" tabIndex={-1}><img src="/stage-v2-lp/assets/hero/tab-flows.svg" alt="" width="13" height="13"/> Flows</button>
-                          <button className="htab" role="tab" tabIndex={-1}><img src="/stage-v2-lp/assets/hero/tab-generate.svg" alt="" width="13" height="13"/> Generate</button>
-                          <button className="htab" role="tab" tabIndex={-1}><img src="/stage-v2-lp/assets/hero/tab-assets.svg" alt="" width="13" height="13"/> Assets</button>
-                        </div>
-                      </header>
-        
-                      <div className={`kban ${activeHeroDrag ? "is-interacted" : ""}`}>
-                        <div className="kban-grid">
-                          {HERO_COLUMNS.map((column) => (
-                            <section
-                              key={column.key}
-                              className={`kcol ${column.key === "done" ? "kcol-done" : ""} ${heroDragOverColumn === column.key && activeHeroDrag ? "is-drop-over" : ""}`}
-                              data-kanban-column={column.key}
-                            >
-                              <div className="kcol-h">
-                                <span>{column.label}</span>
-                                {column.key !== "done" ? (
-                                  <button className="kadd" tabIndex={-1} aria-label="Add">
-                                    <img src="/stage-v2-lp/assets/hero/ic-plus.svg" alt="" width="12" height="12"/>
-                                  </button>
-                                ) : null}
-                              </div>
-                              <div className="kcol-stack">
-                                {heroColumns[column.key].map((task) => {
-                                  const isDragging = activeHeroDrag?.task.id === task.id;
-
-                                  if (isDragging) {
-                                    return heroDragOverColumn ? null : <HeroTaskSkeleton key={task.id} />;
-                                  }
-
-                                  return (
-                                    <div key={task.id} className="kitem" data-kanban-task-id={task.id}>
-                                      {activeHeroDrag && heroDragOverColumn === column.key && heroDropBeforeTaskId === task.id ? <HeroTaskSkeleton /> : null}
-                                      <HeroTaskCard
-                                        task={task}
-                                        dimmed={column.key === "done"}
-                                        onPointerDown={(event) => startHeroDragging(event, task.id)}
-                                      />
-                                    </div>
-                                  );
-                                })}
-                                {activeHeroDrag && heroDragOverColumn === column.key && heroDropBeforeTaskId === null ? <HeroTaskSkeleton /> : null}
-                              </div>
-                            </section>
-                          ))}
-                        </div>
-                        {activeHeroDrag ? (
-                          <div
-                            className="kcard-float"
-                            style={{
-                              left: activeHeroDrag.x - activeHeroDrag.pointerOffsetX,
-                              top: activeHeroDrag.y - activeHeroDrag.pointerOffsetY,
-                              width: activeHeroDrag.width,
-                              height: activeHeroDrag.height,
-                            }}
-                          >
-                            <HeroTaskCard task={{ ...activeHeroDrag.task, done: activeHeroDrag.sourceColumn === "done" }} dragging />
-                          </div>
-                        ) : null}
-                      </div>
-                    </section>
+                  <div className={`hero-video-wrap ${hasHeroVideoEnded ? "is-ended" : ""}`}>
+                    <video
+                      ref={heroVideoRef}
+                      className="hero-video"
+                      src="/stage-v2-lp/assets/videos/hero.mp4"
+                      poster="/stage-v2-lp/assets/videos/hero-poster.jpg"
+                      autoPlay
+                      muted
+                      playsInline
+                      preload="auto"
+                      onEnded={() => setHasHeroVideoEnded(true)}
+                      onPlay={() => setHasHeroVideoEnded(false)}
+                    />
+                    <button
+                      className={`hv-btn hv-sound ${isHeroVideoMuted ? "" : "is-on"}`}
+                      type="button"
+                      aria-label={isHeroVideoMuted ? "Unmute video" : "Mute video"}
+                      aria-pressed={!isHeroVideoMuted}
+                      onClick={toggleHeroVideoSound}
+                    >
+                      <svg className="hv-ico-muted" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" fill="currentColor" />
+                        <path d="m16 9.5 5 5m0-5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                      </svg>
+                      <svg className="hv-ico-sound" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" fill="currentColor" />
+                        <path d="M15 9.3a4 4 0 0 1 0 5.4M17.6 7a7.5 7.5 0 0 1 0 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                    <button className="hv-btn hv-replay" type="button" aria-label="Replay video" onClick={replayHeroVideo}>
+                      Replay
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M4 12a8 8 0 1 0 2.3-5.6M6 3v4h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -627,54 +415,5 @@ export function StageV2LandingPage() {
           </footer>
       </div>
     </>
-  );
-}
-
-function HeroTaskSkeleton() {
-  return <div className="kskeleton" />;
-}
-
-function HeroTaskCard({
-  task,
-  dimmed = false,
-  dragging = false,
-  onPointerDown,
-}: {
-  task: HeroTask;
-  dimmed?: boolean;
-  dragging?: boolean;
-  onPointerDown?: (event: PointerEvent<HTMLElement>) => void;
-}) {
-  return (
-    <article
-      className={`kcard ${dragging ? "is-floating" : ""} ${dimmed ? "is-dimmed" : ""}`}
-      onPointerDown={onPointerDown}
-    >
-      <header>
-        <span className={`ktag ktag-${task.phase.toLowerCase()}`}>{task.phase}</span>
-        {task.assignee ? (
-          <button className="kava-btn" type="button" tabIndex={-1} aria-label="Assigned to Pratik Singh">
-            <img className="kava" src="/stage-v2-lp/assets/hero/ava-card.png" alt="" width="20" height="20"/>
-          </button>
-        ) : (
-          <button className="kava-btn kava-empty" type="button" tabIndex={-1} aria-label="Assign task">
-            <img src="/stage-v2-lp/assets/hero/ic-uncheck.svg" alt="" width="12" height="12"/>
-          </button>
-        )}
-      </header>
-      <div className="kbody">
-        <div className="krow">
-          <button className={`kchk ${task.done ? "kchk-on" : ""}`} type="button" tabIndex={-1} aria-label={task.done ? "Completed" : "Not completed"}>
-            {task.done ? (
-              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            ) : null}
-          </button>
-          <b>{task.title}</b>
-        </div>
-        <p className="kdesc">{task.description}</p>
-      </div>
-    </article>
   );
 }
