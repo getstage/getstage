@@ -5,7 +5,7 @@
  * Components and routes only import from this file.
  */
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@/lib/convex";
@@ -29,15 +29,26 @@ const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
-  const user = useQuery(api.viewer.getIdentity, isAuthenticated ? {} : "skip");
-  const isLoading = authLoading || (isAuthenticated && user === undefined);
+  const { signOut } = useAuthActions();
+  const identity = useQuery(api.viewer.getIdentity, isAuthenticated ? {} : "skip");
+  const isLoading = authLoading || (isAuthenticated && identity === undefined);
+
+  useEffect(() => {
+    if (authLoading || !isAuthenticated || identity === undefined) {
+      return;
+    }
+
+    if (identity === null) {
+      void signOut();
+    }
+  }, [authLoading, identity, isAuthenticated, signOut]);
 
   return (
     <AuthContext.Provider
       value={{
-        user: isAuthenticated ? (user ?? null) : null,
+        user: identity ?? null,
         isLoading,
-        isAuthenticated,
+        isAuthenticated: isAuthenticated && identity !== null,
       }}
     >
       {children}

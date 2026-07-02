@@ -20,6 +20,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgentsIndexRouteImport } from './routes/agents/index'
 import { Route as PortalTokenRouteImport } from './routes/portal.$token'
 import { Route as HelpImportTransactionsViaGoogleSheetsRouteImport } from './routes/help/import-transactions-via-google-sheets'
+import { Route as DownloadMacRouteImport } from './routes/download.mac'
 import { Route as AuthDesktopRouteImport } from './routes/auth.desktop'
 import { Route as AgentsStitchRouteImport } from './routes/agents/stitch'
 import { Route as AgentsSkillsRouteImport } from './routes/agents/skills'
@@ -87,6 +88,11 @@ const HelpImportTransactionsViaGoogleSheetsRoute =
     path: '/help/import-transactions-via-google-sheets',
     getParentRoute: () => rootRouteImport,
   } as any)
+const DownloadMacRoute = DownloadMacRouteImport.update({
+  id: '/download/mac',
+  path: '/download/mac',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthDesktopRoute = AuthDesktopRouteImport.update({
   id: '/desktop',
   path: '/desktop',
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/agents/skills': typeof AgentsSkillsRoute
   '/agents/stitch': typeof AgentsStitchRoute
   '/auth/desktop': typeof AuthDesktopRoute
+  '/download/mac': typeof DownloadMacRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
   '/agents/': typeof AgentsIndexRoute
@@ -181,6 +188,7 @@ export interface FileRoutesByTo {
   '/agents/skills': typeof AgentsSkillsRoute
   '/agents/stitch': typeof AgentsStitchRoute
   '/auth/desktop': typeof AuthDesktopRoute
+  '/download/mac': typeof DownloadMacRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
   '/agents': typeof AgentsIndexRoute
@@ -206,6 +214,7 @@ export interface FileRoutesById {
   '/agents/skills': typeof AgentsSkillsRoute
   '/agents/stitch': typeof AgentsStitchRoute
   '/auth/desktop': typeof AuthDesktopRoute
+  '/download/mac': typeof DownloadMacRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
   '/agents/': typeof AgentsIndexRoute
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/agents/skills'
     | '/agents/stitch'
     | '/auth/desktop'
+    | '/download/mac'
     | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
     | '/agents/'
@@ -253,6 +263,7 @@ export interface FileRouteTypes {
     | '/agents/skills'
     | '/agents/stitch'
     | '/auth/desktop'
+    | '/download/mac'
     | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
     | '/agents'
@@ -277,6 +288,7 @@ export interface FileRouteTypes {
     | '/agents/skills'
     | '/agents/stitch'
     | '/auth/desktop'
+    | '/download/mac'
     | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
     | '/agents/'
@@ -295,6 +307,7 @@ export interface RootRouteChildren {
   OpenclawRoute: typeof OpenclawRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
+  DownloadMacRoute: typeof DownloadMacRoute
   HelpImportTransactionsViaGoogleSheetsRoute: typeof HelpImportTransactionsViaGoogleSheetsRoute
   PortalTokenRoute: typeof PortalTokenRouteWithChildren
 }
@@ -376,6 +389,13 @@ declare module '@tanstack/react-router' {
       path: '/help/import-transactions-via-google-sheets'
       fullPath: '/help/import-transactions-via-google-sheets'
       preLoaderRoute: typeof HelpImportTransactionsViaGoogleSheetsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download/mac': {
+      id: '/download/mac'
+      path: '/download/mac'
+      fullPath: '/download/mac'
+      preLoaderRoute: typeof DownloadMacRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/desktop': {
@@ -537,6 +557,7 @@ const rootRouteChildren: RootRouteChildren = {
   OpenclawRoute: OpenclawRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
+  DownloadMacRoute: DownloadMacRoute,
   HelpImportTransactionsViaGoogleSheetsRoute:
     HelpImportTransactionsViaGoogleSheetsRoute,
   PortalTokenRoute: PortalTokenRouteWithChildren,
