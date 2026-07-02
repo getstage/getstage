@@ -99,63 +99,29 @@
     });
   }
 
-  // ── Hero Kanban: drag & drop ─────────────────────────────
-  const kban = document.querySelector('.kban');
-  if (kban) {
-    const cards = kban.querySelectorAll('.kcard[draggable="true"]');
-    const cols  = kban.querySelectorAll('.kcol');
-    let dragging = null;
+  // ── Hero video: sound toggle + replay ────────────────────
+  const heroVideo = document.getElementById('heroVideo');
+  if (heroVideo) {
+    const wrap = document.getElementById('heroVideoWrap');
+    const soundBtn = document.getElementById('heroSoundBtn');
+    const replayBtn = document.getElementById('heroReplayBtn');
 
-    cards.forEach((card) => {
-      card.addEventListener('dragstart', (e) => {
-        dragging = card;
-        kban.classList.add('is-interacted');
-        card.classList.add('is-dragging');
-        try { e.dataTransfer.effectAllowed = 'move'; } catch (_) {}
-      });
-      card.addEventListener('dragend', () => {
-        card.classList.remove('is-dragging');
-        cols.forEach((c) => c.classList.remove('is-drop-over'));
-        dragging = null;
-      });
+    soundBtn.addEventListener('click', () => {
+      heroVideo.muted = !heroVideo.muted;
+      soundBtn.classList.toggle('is-on', !heroVideo.muted);
+      soundBtn.setAttribute('aria-pressed', String(!heroVideo.muted));
+      soundBtn.setAttribute('aria-label', heroVideo.muted ? 'Unmute video' : 'Mute video');
+      if (heroVideo.paused && !heroVideo.ended) heroVideo.play().catch(() => {});
     });
 
-    cols.forEach((col) => {
-      col.addEventListener('dragover', (e) => {
-        if (!dragging) return;
-        e.preventDefault();
-        try { e.dataTransfer.dropEffect = 'move'; } catch (_) {}
-        col.classList.add('is-drop-over');
-      });
-      col.addEventListener('dragleave', (e) => {
-        if (e.relatedTarget && col.contains(e.relatedTarget)) return;
-        col.classList.remove('is-drop-over');
-      });
-      col.addEventListener('drop', (e) => {
-        if (!dragging) return;
-        e.preventDefault();
-        col.classList.remove('is-drop-over');
-        const after = [...col.querySelectorAll('.kcard:not(.is-dragging)')]
-          .find((c) => {
-            const r = c.getBoundingClientRect();
-            return e.clientY < r.top + r.height / 2;
-          });
-        if (after) col.insertBefore(dragging, after);
-        else col.appendChild(dragging);
-
-        // Auto-tick when dropped into Done; uncheck when leaving Done
-        const chk = dragging.querySelector('.kchk');
-        if (chk) {
-          if (col.dataset.col === 'done') {
-            chk.classList.add('kchk-on');
-            chk.src = 'assets/hero/ic-check.svg';
-          } else {
-            chk.classList.remove('kchk-on');
-            chk.src = 'assets/hero/ic-uncheck.svg';
-          }
-        }
-      });
+    replayBtn.addEventListener('click', () => {
+      heroVideo.currentTime = 0;
+      wrap.classList.remove('is-ended');
+      heroVideo.play().catch(() => {});
     });
+
+    heroVideo.addEventListener('ended', () => wrap.classList.add('is-ended'));
+    heroVideo.addEventListener('play', () => wrap.classList.remove('is-ended'));
   }
 
   // ── Scroll reveal ─────────────────────────────────────────

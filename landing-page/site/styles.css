@@ -101,15 +101,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
   z-index: -1; pointer-events: none;
   border-radius: 0 0 28px 28px;
   overflow: hidden;
+  /* Built from the CTA's own indigo ramp (#7B76DF → #463FBA) — no red-leaning tints */
   background:
-    radial-gradient(60% 70% at 50% 100%, rgba(123,118,223,0.32) 0%, rgba(123,118,223,0.12) 45%, rgba(123,118,223,0) 75%),
+    radial-gradient(55% 45% at 50% 42%, rgba(123,118,223,0.10) 0%, rgba(123,118,223,0.04) 55%, rgba(123,118,223,0) 80%),
     linear-gradient(180deg,
       #F5F5F5 0%,
-      #F5F5F5 28%,
-      rgba(243,232,255,0.50) 55%,
-      rgba(157,151,248,0.28) 78%,
-      rgba(123,118,223,0.45) 92%,
-      rgba(98,92,200,0.55) 100%);
+      #F5F5F5 40%,
+      rgba(215,211,255,0.45) 66%,
+      rgba(123,118,223,0.25) 88%,
+      rgba(70,63,186,0.32) 100%);
 }
 
 .hero-inner { display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
@@ -141,7 +141,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   outline-offset: 2px;
 }
 
-.hero-visual { width: 100%; max-width: 1200px; margin: 56px auto 0; }
+.hero-visual { width: 100%; margin: 56px auto 0; }
 .hero-hint {
   margin: 14px 4px 0;
   font-size: var(--text-sm); color: var(--fg-subtle); font-weight: 500;
@@ -1111,351 +1111,70 @@ button { font: inherit; color: inherit; cursor: pointer; }
   image-rendering: -webkit-optimize-contrast;
 }
 
-/* Cap visual width slightly so 1024px-native source isn't blown up too far */
-.hero-visual { max-width: 1100px; }
+/* Hero video spans the full container width, left-aligned with the CTA */
+.hero-visual { max-width: none; }
 
-/* ═══ HERO PROJECT VIEW (Kanban) — pixel-recreated from Figma 862:62 ═══ */
-.happ {
-  display: flex; gap: 8px; align-items: stretch;
-  padding: 4px;
-  background: var(--neutral-100);
-  border-radius: 12px;
-  box-shadow:
-    0 1px 1px rgba(10,10,10,0.04),
-    0 24px 60px -24px rgba(70,63,186,0.22),
-    0 8px 24px -8px rgba(10,10,10,0.06);
-  width: 100%;
-  font-size: 13px;
-}
-
-/* ── Sidebar rail ── */
-.happ-rail {
-  display: flex; flex-direction: column; justify-content: space-between; align-items: center;
-  background: transparent;
-  padding: 14px 10px;
-  border-radius: 8px;
-  flex-shrink: 0;
-  width: 51px;
-}
-.happ-rail-top { display: flex; flex-direction: column; align-items: center; gap: 22px; }
-.happ-rail-bottom { display: flex; flex-direction: column; align-items: stretch; gap: 6px; width: 100%; }
-
-.happ-logo { display: grid; place-items: center; width: 19px; height: 23px; }
-.happ-logo img { display: block; width: 100%; height: 100%; }
-
-.happ-pill {
-  display: grid; place-items: center;
-  width: 27px; height: 27px;
-  padding: 0; border: 0; cursor: pointer;
-  background: var(--neutral-100);
-  border-radius: 6px;
-}
-.happ-pill img { display: block; }
-.happ-pill-search { background: #fff; box-shadow: 0 0.45px 0.5px rgba(10,10,10,0.15); }
-.happ-pill.is-active {
-  background: linear-gradient(180deg, #404040 0%, #0a0a0a 100%);
-  border: 1px solid #525252;
-  box-shadow: 0 0.45px 0.5px rgba(10,10,10,0.25);
-}
-.happ-pill.is-active img { filter: brightness(0) invert(1); }
-.happ-nav { display: flex; flex-direction: column; gap: 8px; }
-
-.happ-projects { display: flex; flex-direction: column; gap: 8px; padding: 4px 0; }
-.happ-pava { display: block; width: 20px; height: 20px; border-radius: 9999px; object-fit: cover; }
-
-.happ-pill-user { background: var(--neutral-100); padding: 0; }
-.happ-uava { display: block; width: 24px; height: 24px; border-radius: 9999px; object-fit: cover; }
-
-/* ── Main panel ── */
-.happ-main {
-  flex: 1 1 0; min-width: 0;
-  background: #fff;
-  border: 1px solid var(--neutral-100);
-  border-radius: 8px;
-  padding: 24px 32px 20px;
-  display: flex; flex-direction: column; gap: 18px;
-  overflow: clip;
-}
-
-/* Header */
-.happ-head { display: flex; flex-direction: column; gap: 14px; }
-
-.happ-back {
-  display: inline-flex; align-items: center; gap: 8px;
-  font-family: 'Inter', sans-serif;
-  font-weight: 500; font-size: 13px; line-height: 1.5;
-  color: var(--neutral-500);
-  text-decoration: none;
-  align-self: flex-start;
-}
-.happ-back img { display: block; }
-
-.happ-title-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.happ-title {
-  margin: 0;
-  font-family: 'Inter Mid', 'Inter', sans-serif;
-  font-weight: 600; font-size: 20px; line-height: 1.2;
-  color: var(--neutral-1100);
-  letter-spacing: 0;
-}
-.happ-title-actions { display: flex; align-items: center; gap: 6px; }
-.happ-share {
-  display: inline-flex; align-items: center; gap: 8px;
-  height: 27px; padding: 0 12px 0 10px;
-  background: var(--neutral-100);
-  border: 0; border-radius: 6px;
-  font-family: 'Inter', sans-serif; font-weight: 500; font-size: 13px;
-  color: var(--neutral-950);
-  box-shadow: 0 0.45px 0.5px rgba(10,10,10,0.25);
-  cursor: pointer;
-}
-.happ-share img { display: block; }
-.happ-more {
-  display: grid; place-items: center;
-  width: 27px; height: 27px;
-  background: transparent; border: 0; border-radius: 6px;
-  cursor: pointer;
-}
-.happ-more img { display: block; }
-.happ-sub {
-  margin: -6px 0 0;
-  font-family: 'Inter', sans-serif;
-  font-weight: 500; font-size: 13px; line-height: 1.2;
-  color: var(--neutral-700);
-}
-
-/* Tabs */
-.happ-tabs {
-  display: inline-flex; align-self: flex-start; flex-wrap: wrap;
-  gap: 2px; padding: 2px;
-  background: var(--neutral-100);
-  border-radius: 8px;
-}
-.htab {
-  display: inline-flex; align-items: center; gap: 8px;
-  height: 27px; padding: 0 12px 0 10px;
-  border: 0; border-radius: 6px;
-  background: transparent;
-  font-family: 'Inter', sans-serif; font-weight: 500; font-size: 13px;
-  color: var(--neutral-700);
-  cursor: pointer;
-}
-.htab img { display: block; opacity: 0.85; }
-.htab.is-active {
-  background: linear-gradient(180deg, #8d87ff 0%, #7b76df 100%);
-  color: var(--neutral-200);
-  box-shadow: 0 0.45px 0.5px rgba(10,10,10,0.25);
-}
-.htab.is-active img { filter: brightness(0) invert(1); opacity: 1; }
-
-/* Kanban */
-.kban {
-  background: var(--neutral-100);
-  border-radius: 10px;
-  padding: 4px;
-}
-.kban-grid {
-  display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
+/* ═══ HERO VIDEO ═══════════════════════════════════════════ */
+.hero-video-wrap {
   position: relative;
-  align-items: start;
-}
-.kcol { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.kcol-h {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px;
-  border-radius: 8px;
-}
-.kcol-h span:first-child {
-  font-family: 'Inter', sans-serif;
-  font-weight: 500; font-size: 14px; line-height: 1.2;
-  color: var(--neutral-1100);
-}
-.kadd {
-  display: grid; place-items: center;
-  width: 18px; height: 18px;
-  padding: 2px; border: 0; border-radius: 4px;
-  background: linear-gradient(180deg, #fff 0%, #fafafa 100%);
-  box-shadow: 0 0.45px 0.5px rgba(10,10,10,0.25);
-  cursor: pointer;
-}
-.kadd img { display: block; }
-
-/* Kanban card — draggable */
-.kcard {
-  display: flex; flex-direction: column; gap: 10px;
-  padding: 12px;
-  background: linear-gradient(180deg, #fff 0%, #fafafa 100%);
-  border-radius: 8px;
-  box-shadow: 0 0.45px 0.5px rgba(10,10,10,0.25);
-  cursor: -webkit-grab; cursor: grab;
-  user-select: none;
-  transition: box-shadow 150ms ease-out, transform 150ms ease-out;
-}
-.kcard, .kcard * { cursor: -webkit-grab; cursor: grab; }
-.kcard:active, .kcard:active * { cursor: -webkit-grabbing; cursor: grabbing; }
-.kcard:hover {
-  box-shadow:
-    0 0.45px 0.5px rgba(10,10,10,0.25),
-    0 4px 12px -4px rgba(10,10,10,0.10);
-}
-.kcard.is-dragging {
-  opacity: 0.4;
-  cursor: grabbing;
-}
-.kcard > header {
-  display: flex; align-items: center; justify-content: space-between;
-  min-height: 20px;
-}
-.ktag {
-  display: inline-flex; align-items: center;
-  padding: 2px 6px; border-radius: 2px;
-  font-family: 'Inter', sans-serif; font-weight: 400; font-size: 12px; line-height: 1;
-}
-.ktag-research   { background: #DCFCE7; color: #052E16; }
-.ktag-strategy   { background: #CFFAFE; color: #083344; }
-.ktag-identity   { background: #DBEAFE; color: #172554; }
-.ktag-guidelines { background: #F3E8FF; color: #3B0764; }
-
-.kava { display: block; width: 20px; height: 20px; border-radius: 9999px; object-fit: cover; }
-.kava-empty { display: block; width: 22px; height: 22px; border-radius: 9999px; }
-
-.krow { display: flex; align-items: center; gap: 6px; }
-.krow b {
-  flex: 1; min-width: 0;
-  font-family: 'Inter', sans-serif;
-  font-weight: 500; font-size: 13px; line-height: 1.2; color: var(--neutral-1000);
-}
-/* Checkbox — Figma uses a colored wrapper, the SVG glyph sits inside */
-.kchk {
-  display: inline-grid; place-items: center;
-  width: 16px; height: 16px; padding: 2px;
-  background: var(--neutral-300);
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-.kchk img { width: 12px; height: 12px; display: block; }
-.kchk-on { background: var(--neutral-1100); }
-
-.kdesc {
-  margin: 0;
-  font-family: 'Inter', sans-serif;
-  font-weight: 400; font-size: 12px; line-height: 1.5;
-  color: var(--neutral-800);
-}
-
-/* Drop zones */
-.kdrop {
-  border-radius: 8px;
-  height: 88px;
-  box-shadow: 0 0.45px 1px rgba(10,10,10,0.25);
-  transition: background 150ms ease-out, border-color 150ms ease-out;
-}
-.kdrop-active {
-  background: rgba(158,153,248,0.05);
-  border: 0.5px dashed #9e99f8;
-}
-.kdrop-quiet {
-  background: linear-gradient(180deg, #fff 0%, #fafafa 100%);
-  border: 0.5px dashed #a3a3a3;
-  opacity: 0.6;
-}
-
-/* Drop highlight when user drags over a column */
-.kcol.is-drop-over {
-  background: rgba(158,153,248,0.08);
-  border-radius: 8px;
-  outline: 1px dashed rgba(158,153,248,0.6);
-  outline-offset: -1px;
-}
-
-/* Ghost (visual reference card behind drag) */
-.kcard-ghost { opacity: 0.55; filter: saturate(0.85); }
-.kcard-ghost.is-hidden { display: none; }
-
-/* Done column dimmed */
-.kcol-done .kcol-h,
-.kcol-done .kcard { opacity: 0.5; }
-
-/* Floating dragged card (decorative, vanishes once user starts a real drag) */
-.kcard-drag {
-  position: absolute;
-  left: 35%; top: 56%;
-  width: 22%;
-  transform: rotate(-5.73deg);
-  transform-origin: center;
-  box-shadow:
-    0 0.45px 0.5px rgba(10,10,10,0.25),
-    0 12px 28px -8px rgba(10,10,10,0.18),
-    0 2px 6px rgba(10,10,10,0.08);
-  z-index: 5;
-  cursor: grabbing;
-  pointer-events: none;
-}
-.kban.is-interacted .kcard-drag,
-.kban.is-interacted .kcard-ghost,
-.kban.is-interacted .kdrop-active { display: none; }
-.kgrab {
-  position: absolute;
-  right: -8px; bottom: -8px;
-  width: 22px; height: 22px;
-  display: block;
-}
-
-.hero-visual:has(.happ) { max-width: 1200px; }
-
-@media (max-width: 1100px) {
-  .happ-main { padding: 20px 20px; }
-  .happ-tabs { flex-wrap: wrap; }
-}
-@media (max-width: 880px) {
-  .happ { flex-direction: column; }
-  .happ-rail { flex-direction: row; width: 100%; padding: 8px 12px; }
-  .happ-rail-top, .happ-rail-bottom { flex-direction: row; gap: 8px; }
-  .happ-projects { flex-direction: row; }
-  .happ-main { padding: 16px; }
-  .kban-grid { grid-template-columns: 1fr; }
-  .kcard-drag { display: none; }
-}
-
-/* Task ticker (Linear-style ID) preceding the title */
-.ktick {
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 11px;
-  letter-spacing: 0.02em;
-  color: var(--neutral-500);
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
-}
-
-/* Done column — keep checked-state cards readable but dimmed */
-.kcol-done .kcard b { text-decoration: line-through; text-decoration-color: var(--neutral-400); }
-
-/* Figma SVGs use var(--fill-0)/var(--stroke-0) — set sensible defaults
-   so icons aren't invisible on light backgrounds. */
-:root {
-  --fill-0: #525252;
-  --stroke-0: #525252;
-}
-/* Active states (dark gradient pills) need white icons */
-.happ-pill.is-active img,
-.htab.is-active img { filter: brightness(0) invert(1); }
-/* Checked checkbox — white check on dark wrapper */
-.kchk-on img { filter: brightness(0) invert(1); }
-
-/* ═══ MOBILE: swap interactive Kanban for static screenshot ════ */
-.happ-mobile {
-  display: none;
   width: 100%;
-  height: auto;
-  border-radius: 12px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #EFEEE9;
   box-shadow:
     0 1px 1px rgba(10,10,10,0.04),
     0 24px 60px -24px rgba(70,63,186,0.22),
     0 8px 24px -8px rgba(10,10,10,0.06);
 }
-@media (max-width: 880px) {
-  .happ { display: none !important; }
-  .happ-mobile { display: block; }
+.hero-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: #EFEEE9;
+}
+
+.hv-btn {
+  position: absolute;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  border: 0;
+  cursor: pointer;
+  color: #fff;
+  background: rgba(10,10,10,0.55);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: background 160ms ease, opacity 200ms ease, visibility 200ms ease;
+}
+.hv-btn:hover { background: rgba(10,10,10,0.75); }
+.hv-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* Sound toggle — always visible, top right */
+.hv-sound {
+  top: 14px; right: 14px;
+  width: 38px; height: 38px;
+  border-radius: var(--radius-full, 999px);
+}
+.hv-sound .hv-ico-sound { display: none; }
+.hv-sound.is-on .hv-ico-sound { display: block; }
+.hv-sound.is-on .hv-ico-muted { display: none; }
+
+/* Replay — bottom left, revealed on hover (or when the video ends) */
+.hv-replay {
+  left: 14px; bottom: 14px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  visibility: hidden;
+}
+.hero-video-wrap:hover .hv-replay,
+.hero-video-wrap.is-ended .hv-replay,
+.hv-replay:focus-visible { opacity: 1; visibility: visible; }
+
+@media (max-width: 640px) {
+  .hv-sound { top: 10px; right: 10px; width: 34px; height: 34px; }
+  .hv-replay { left: 10px; bottom: 10px; opacity: 1; visibility: visible; }
 }
