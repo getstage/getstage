@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import type { ChildProcessByStdio } from "node:child_process";
@@ -162,6 +163,33 @@ export async function waitForReadiness(port: number) {
   }
 
   throw new Error(`Stage Engine did not become ready on port ${port}.`);
+}
+
+/** Reap whatever is listening on the engine port (stale cargo run, zombie sidecar). */
+export function killProcessOnPort(port: number) {
+  if (process.platform === "win32") {
+    return;
+  }
+
+  try {
+    const output = execSync(`lsof -t -iTCP:${port} -sTCP:LISTEN`, { encoding: "utf8" }).trim();
+    if (!output) {
+      return;
+    }
+
+    for (const pidText of output.split("\n")) {
+      const pid = Number.parseInt(pidText, 10);
+      if (Number.isInteger(pid) && pid > 0) {
+        try {
+          process.kill(pid, "SIGTERM");
+        } catch {
+          // Process may have already exited.
+        }
+      }
+    }
+  } catch {
+    // Nothing listening on the port.
+  }
 }
 
 export function logSidecarOutput(streamName: "stdout" | "stderr", chunk: Buffer | string) {

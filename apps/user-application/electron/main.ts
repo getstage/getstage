@@ -32,7 +32,8 @@ import {
   shouldSuppressMainWindowActivation,
 } from "./windows";
 import { registerVoiceShortcuts } from "./voice/shortcuts";
-import { isStageBillingUrl } from "./helpers/billing";
+import { IPC_CHANNELS } from "@shared/ipc/channels";
+import { isStageBillingUrl, parseStageBillingReturnStatus } from "./helpers/billing";
 
 loadLocalEnv();
 registerRendererProtocolSchemes();
@@ -152,11 +153,13 @@ function handleDeepLinkUrl(url: string) {
   }
 
   if (isStageBillingUrl(url)) {
-    // Billing return: credits already synced via webhook + reactive queries;
-    // just bring Stage back to the front.
     const window = getMainWindow() ?? createMainWindow();
     window.show();
     window.focus();
+    const status = parseStageBillingReturnStatus(url);
+    if (status) {
+      window.webContents.send(IPC_CHANNELS.billingCheckoutReturn, { status });
+    }
     return;
   }
 

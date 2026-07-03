@@ -169,6 +169,21 @@ const stageDesktop = {
       };
     },
   },
+  billing: {
+    onCheckoutReturn: (callback: (payload: { status: "success" | "cancel" | "done" }) => void) => {
+      const listener = (
+        _event: Electron.IpcRendererEvent,
+        payload: { status: "success" | "cancel" | "done" },
+      ) => {
+        callback(payload);
+      };
+
+      ipcRenderer.on(IPC_CHANNELS.billingCheckoutReturn, listener);
+      return () => {
+        ipcRenderer.off(IPC_CHANNELS.billingCheckoutReturn, listener);
+      };
+    },
+  },
   storage: {
     putR2Upload: (request: {
       uploadUrl: string;

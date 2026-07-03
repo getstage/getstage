@@ -274,6 +274,14 @@ export function OnboardingPaywall({
           See All Plans
           <span aria-hidden="true">→</span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => void navigate({ to: "/settings/account" })}
+          className="mt-2 inline-flex w-full items-center justify-center text-[12px] font-medium text-text-secondary transition-opacity hover:opacity-80 focus:outline-none"
+        >
+          Manage or delete account
+        </button>
       </div>
     </div>
   );

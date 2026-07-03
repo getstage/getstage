@@ -146,17 +146,24 @@ async function loadSubscriptionByUserId(
   })) as StripeSubscriptionSummary[];
 
   const sorted = [...subscriptions].sort((a, b) => b.currentPeriodEnd - a.currentPeriodEnd);
-  const preferred =
-    sorted.find((subscription) => ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) ?? null;
-
-  if (!preferred) {
-    return null;
+  // Pick the newest active subscription whose price maps to a known tier. A leftover
+  // subscription from a reset/switched Stripe account (unknown price) must NOT mask a
+  // valid current one — otherwise the workspace stays gated after a real payment.
+  let preferred: StripeSubscriptionSummary | null = null;
+  let plan: Tier | null = null;
+  for (const subscription of sorted) {
+    if (!ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) {
+      continue;
+    }
+    const tier = resolveTier(subscription.priceId);
+    if (tier) {
+      preferred = subscription;
+      plan = tier;
+      break;
+    }
   }
 
-  const plan = resolveTier(preferred.priceId);
-  if (!plan) {
-    // Unrecognized price and not a legacy pro price: treat as no subscription so
-    // seat/credit enforcement fails closed.
+  if (!preferred || !plan) {
     return null;
   }
 
@@ -235,6 +242,38 @@ export const createCheckoutSessionArgs = {
 
 type TopupSize = "small" | "medium" | "large";
 
+// A customer id cached by the Stripe component can dangle if the Stripe account's
+// data was reset ("delete test data") or the API key now points at a different
+// account. Verify it still exists; if Stripe 404s it, mint a fresh customer in the
+// current account (idempotent on userId) so checkout self-heals instead of throwing.
+async function resolveUsableCustomerId(
+  ctx: ActionCtx,
+  sdk: Stripe,
+  viewer: ViewerContext,
+  customerId: string,
+): Promise<string> {
+  try {
+    const existing = await sdk.customers.retrieve(customerId);
+    if (!("deleted" in existing)) {
+      return customerId;
+    }
+  } catch (error) {
+    const isMissing =
+      error instanceof Stripe.errors.StripeError && error.code === "resource_missing";
+    if (!isMissing) {
+      throw error;
+    }
+  }
+
+  const fresh = await stripe.createCustomer(ctx, {
+    email: viewer.email || undefined,
+    name: viewer.name || undefined,
+    metadata: { userId: viewer.userIdString },
+    idempotencyKey: viewer.userIdString,
+  });
+  return fresh.customerId;
+}
+
 export async function createCheckoutSessionHandler(
   ctx: ActionCtx,
   args: {
@@ -260,6 +299,7 @@ export async function createCheckoutSessionHandler(
     email: viewer.email || undefined,
     name: viewer.name || undefined,
   });
+  const customerId = await resolveUsableCustomerId(ctx, sdk, viewer, customer.customerId);
 
   const baseMetadata: Record<string, string> = {
     scope: "stage_billing",
@@ -289,7 +329,7 @@ export async function createCheckoutSessionHandler(
 
     const session = await sdk.checkout.sessions.create({
       mode: "payment",
-      customer: customer.customerId,
+      customer: customerId,
       line_items: [{ price: topupPriceId, quantity: 1 }],
       success_url: urls.successUrl,
       cancel_url: urls.cancelUrl,
@@ -300,6 +340,13 @@ export async function createCheckoutSessionHandler(
     });
 
     return { sessionId: session.id, url: session.url };
+  }
+
+  const existingSubscription = await getCurrentSubscriptionSnapshot(ctx, viewer.userIdString);
+  if (existingSubscription) {
+    throw new Error(
+      "You already have an active Stage subscription. Manage it in Settings → Billing.",
+    );
   }
 
   // Subscription checkout (start / pro / team), optionally with a 14-day trial.
@@ -327,7 +374,7 @@ export async function createCheckoutSessionHandler(
 
   const session = await sdk.checkout.sessions.create({
     mode: "subscription",
-    customer: customer.customerId,
+    customer: customerId,
     line_items: [
       { price: priceId, quantity: 1 },
       ...(seatAddOnId ? [{ price: seatAddOnId, quantity: extraSeats }] : []),
@@ -353,22 +400,16 @@ export async function createCustomerPortalSessionHandler(
   args: { platform?: "web" | "desktop" },
 ): Promise<CustomerPortalSessionResponse> {
   const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
-  const subscriptions = (await ctx.runQuery(stripeComponent.public.listSubscriptionsByUserId, {
-    userId: viewer.userIdString,
-  })) as StripeSubscriptionSummary[];
-  const activeSubscription =
-    [...subscriptions]
-      .sort((a, b) => b.currentPeriodEnd - a.currentPeriodEnd)
-      .find((subscription) => ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) ?? null;
+  const subscription = await getCurrentSubscriptionSnapshot(ctx, viewer.userIdString);
 
-  if (!activeSubscription?.stripeCustomerId) {
+  if (!subscription?.stripeCustomerId) {
     throw new Error("No Stripe subscription found for this account.");
   }
 
   const { returnUrl } = getBillingUrls(args.platform);
 
   const session = await stripe.createCustomerPortalSession(ctx, {
-    customerId: activeSubscription.stripeCustomerId,
+    customerId: subscription.stripeCustomerId,
     returnUrl,
   });
 

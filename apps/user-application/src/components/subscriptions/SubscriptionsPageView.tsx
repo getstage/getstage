@@ -5,9 +5,17 @@ import type { ReactNode } from "react";
 import { api } from "@/lib/convexApi";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
+import { useSettingsOverviewQuery } from "@/hooks/convex-data";
 
 type Tier = "start" | "pro" | "team";
 type BillingCycle = "monthly" | "yearly";
+
+const PLAN_LABEL: Record<string, string> = {
+  start: "Start",
+  pro: "Pro",
+  team: "Team",
+  free: "Free",
+};
 
 const MIN_TEAM_SEATS = 3;
 const TEAM_MONTHLY_PRICE = 49;
@@ -41,12 +49,16 @@ const PLAN_FEATURES: Record<Tier, Array<{ iconSrc: string; label: string }>> = {
 
 export function SubscriptionsPageView() {
   const navigate = useNavigate();
+  const overview = useSettingsOverviewQuery();
   const createCheckoutSession = useConvexAction(api.billing.createCheckoutSession);
   const [billingPeriod, setBillingPeriod] = useState<BillingCycle>("monthly");
   const [teamSeats, setTeamSeats] = useState(MIN_TEAM_SEATS);
   const [pendingTier, setPendingTier] = useState<Tier | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const isYearly = billingPeriod === "yearly";
+  const isSubscribed = overview.data?.profile.plan !== "free";
+  const isTrialing = overview.data?.subscription?.status === "trialing";
+  const planLabel = PLAN_LABEL[overview.data?.profile.plan ?? "free"] ?? "Stage";
   const teamPrice = useMemo(
     () =>
       (isYearly ? TEAM_YEARLY_PRICE : TEAM_MONTHLY_PRICE) +
@@ -128,6 +140,26 @@ export function SubscriptionsPageView() {
             </header>
           </div>
 
+          {!overview.isLoading && isSubscribed ? (
+            <section className="mx-auto flex w-full max-w-[560px] flex-col items-center gap-[20px] rounded-[12px] bg-[#f5f5f5] px-[24px] py-[32px] text-center">
+              <h2 className="text-[21px] font-semibold leading-[1.2] text-[#0a0a0a]">
+                {isTrialing ? "Your trial has started" : "You're already on Stage"}
+              </h2>
+              <p className="text-[13px] font-medium leading-[1.5] text-[#525252]">
+                {isTrialing
+                  ? `You're on Stage ${planLabel}. Head back to the app and start your first project.`
+                  : `Your ${planLabel} plan is active. Manage billing in Settings.`}
+              </p>
+              <button
+                type="button"
+                onClick={() => void navigate({ to: "/projects" })}
+                className="inline-flex items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] px-[16px] py-[10px] text-[13px] font-medium leading-none text-[#fafafa]"
+              >
+                Open Stage
+              </button>
+            </section>
+          ) : (
+          <>
           <section className="mx-auto w-full rounded-[12px] bg-[#f5f5f5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
             <div className="flex flex-col gap-[4px] min-[900px]:flex-row">
               <PlanCard
@@ -183,6 +215,8 @@ export function SubscriptionsPageView() {
           <p className="text-center text-[13px] font-medium leading-[1.5] text-[#737373]">
             You connect your own AI provider (Claude, Codex). No usage limits from Stage.
           </p>
+          </>
+          )}
         </div>
       </div>
     </div>

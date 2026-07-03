@@ -14,3 +14,22 @@ export function isStageBillingUrl(value: string) {
     return false;
   }
 }
+
+export function parseStageBillingReturnStatus(
+  value: string,
+): "success" | "cancel" | "done" | null {
+  if (!isStageBillingUrl(value)) {
+    return null;
+  }
+
+  try {
+    const status = new URL(value).pathname.replace(/^\//, "");
+    if (status === "success" || status === "cancel" || status === "done") {
+      return status;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}

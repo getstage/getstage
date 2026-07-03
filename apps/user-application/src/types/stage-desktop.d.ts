@@ -106,6 +106,11 @@ export type StageDesktopApi = {
     getOAuthReturnUrl: (provider: "figma" | "notion") => Promise<string>;
     onOAuthCompleted: (callback: (result: IntegrationOAuthResult) => void) => () => void;
   };
+  billing: {
+    onCheckoutReturn: (
+      callback: (payload: { status: "success" | "cancel" | "done" }) => void,
+    ) => () => void;
+  };
   storage: {
     putR2Upload: (request: {
       uploadUrl: string;

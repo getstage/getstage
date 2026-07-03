@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 
@@ -22,7 +21,7 @@ export const Route = createFileRoute("/billing/return")({
 const COPY: Record<BillingStatus, { title: string; body: string }> = {
   success: {
     title: "Payment complete",
-    body: "Your credits are on the way. Return to Stage to keep designing — your balance updates automatically.",
+    body: "Your trial is active. Return to Stage to keep designing — your plan updates automatically.",
   },
   cancel: {
     title: "Checkout cancelled",
@@ -34,16 +33,20 @@ const COPY: Record<BillingStatus, { title: string; body: string }> = {
   },
 };
 
+function triggerStageDeepLink(url: string) {
+  const link = document.createElement("a");
+  link.href = url;
+  link.rel = "noopener";
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
 function BillingReturnPage() {
   const { status } = Route.useSearch();
   const copy = COPY[status];
   const deepLink = `stage://billing/${status}`;
-
-  useEffect(() => {
-    // Best-effort auto-refocus of the desktop app. If the browser blocks the
-    // programmatic protocol launch, the button below is the manual fallback.
-    window.location.href = deepLink;
-  }, [deepLink]);
 
   return (
     <>
@@ -60,14 +63,15 @@ function BillingReturnPage() {
           <p className="text-sm leading-relaxed text-neutral-500">{copy.body}</p>
         </div>
 
-        <a
-          href={deepLink}
+        <button
+          type="button"
+          onClick={() => triggerStageDeepLink(deepLink)}
           className="inline-flex items-center justify-center rounded-lg bg-accent px-5 py-3 text-sm font-medium text-white transition-colors hover:opacity-90"
         >
           Return to Stage
-        </a>
+        </button>
 
-        <p className="text-xs text-neutral-400">You can close this tab.</p>
+        <p className="text-xs text-neutral-400">You can close this tab after returning to Stage.</p>
       </main>
     </>
   );
