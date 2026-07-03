@@ -16,3 +16,13 @@ export const getReferoMcpToken = query({
     return token ? { token } : { token: null };
   },
 });
+
+export const getOpenRouterApiKey = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAuthUser(ctx);
+    const apiKey = getEnv("OPENROUTER_API_KEY")?.trim();
+
+    return apiKey ? { apiKey } : { apiKey: null };
+  },
+});

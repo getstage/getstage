@@ -1,6 +1,5 @@
 import { net } from "electron";
 import type { VoiceTranscriptionModel } from "@stage/data-ops/contracts";
-import { getOpenRouterApiKey } from "./secrets";
 import { readTranscriptText } from "./audio";
 
 const OPENROUTER_TRANSCRIPTIONS_URL = "https://openrouter.ai/api/v1/audio/transcriptions";
@@ -35,7 +34,7 @@ function readOpenRouterError(statusCode: number, body: string) {
   }
 
   if (statusCode === 401) {
-    return "OpenRouter rejected the API key. Check OPENROUTER_API_KEY in your desktop .env file.";
+    return "OpenRouter rejected the API key. Voice setup may be incomplete on this deployment.";
   }
   if (statusCode === 402) {
     return "OpenRouter credits are required for voice transcription.";
@@ -48,11 +47,12 @@ function readOpenRouterError(statusCode: number, body: string) {
 }
 
 export async function transcribeWithOpenRouter(input: {
+  apiKey: string;
   audioBase64: string;
   model: VoiceTranscriptionModel;
   language?: string;
 }): Promise<string> {
-  const apiKey = getOpenRouterApiKey();
+  const apiKey = input.apiKey.trim();
   if (!apiKey) {
     throw new Error(
       "Desktop voice transcription is not configured.",

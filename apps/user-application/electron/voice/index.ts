@@ -10,18 +10,23 @@ import { toUserFacingVoiceError } from "./errors";
 import { parseVoiceProviderPreferences, resolveVoiceTranscriptionStatus } from "./status";
 import { transcribeVoiceWithRouting } from "./route";
 import { getShortcutSettingsResult, updateShortcutSettings } from "./shortcuts";
+import type { DesktopAuthController } from "../auth";
 
 export type VoiceHandlerDependencies = {
+  authController: DesktopAuthController;
   listProviders: () => Promise<ProviderListResponse>;
 };
 
 export function registerVoiceHandlers(deps: VoiceHandlerDependencies) {
+  const getAccessToken = () => deps.authController.getAccessToken();
+
   ipcMain.removeHandler(IPC_CHANNELS.voiceGetStatus);
   ipcMain.handle(IPC_CHANNELS.voiceGetStatus, async (_event, rawPreferences: unknown) => {
     logDesktopInfo("stage-voice", "status requested");
     const status = await resolveVoiceTranscriptionStatus({
       cwd: process.cwd(),
       listProviders: deps.listProviders,
+      getAccessToken,
       providerPreferences: parseVoiceProviderPreferences(rawPreferences),
     });
 
@@ -40,6 +45,7 @@ export function registerVoiceHandlers(deps: VoiceHandlerDependencies) {
       const result = await transcribeVoiceWithRouting({
         rawInput,
         listProviders: deps.listProviders,
+        getAccessToken,
       });
       logDesktopInfo(
         "stage-voice",

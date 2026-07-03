@@ -21,6 +21,7 @@ import {
   type AuthCallbackResult,
   type PendingAuthAttempt,
 } from "./helpers/auth";
+import { clearAppSecretCache } from "./helpers/app-secrets";
 import { getDesktopApiBaseUrl } from "./helpers/desktop-api";
 import {
   clearStoredSession,
@@ -67,6 +68,7 @@ export class DesktopAuthController {
 
   async clearSession() {
     this.storedSession = null;
+    clearAppSecretCache();
     await clearStoredSession();
   }
 

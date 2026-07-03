@@ -261,6 +261,7 @@ app.whenReady().then(async () => {
   authCallbackServer.start();
   registerIpcHandlers({ authController, integrationsController, sidecarSupervisor });
   registerVoiceHandlers({
+    authController,
     listProviders: async () => {
       sidecarSupervisor.markEngineActivity();
       const status = await sidecarSupervisor.start();

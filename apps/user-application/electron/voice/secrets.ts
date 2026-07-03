@@ -1,16 +1,10 @@
-function readTrimmedEnv(name: string): string | null {
-  const value = process.env[name]?.trim();
-  return value && value.length > 0 ? value : null;
+import { resolveOpenRouterApiKey as resolveFromConvex } from "../helpers/app-secrets";
+
+export async function resolveOpenRouterApiKey(accessToken: string | null): Promise<string | null> {
+  return resolveFromConvex(accessToken);
 }
 
-export function getOpenRouterApiKey(): string | null {
-  return (
-    readTrimmedEnv("OPENROUTER_API_KEY") ??
-    readTrimmedEnv("openrouter_api_key") ??
-    readTrimmedEnv("STAGE_OPENROUTER_API_KEY")
-  );
-}
-
-export function isOpenRouterConfigured(): boolean {
-  return getOpenRouterApiKey() !== null;
+export async function isOpenRouterConfigured(accessToken: string | null): Promise<boolean> {
+  const apiKey = await resolveOpenRouterApiKey(accessToken);
+  return apiKey !== null;
 }

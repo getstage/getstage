@@ -9,16 +9,18 @@ import { readProviderConnectivity } from "./providers";
 export async function resolveVoiceTranscriptionStatus(input: {
   cwd: string;
   listProviders: () => Promise<ProviderListResponse>;
+  getAccessToken: () => Promise<string | null>;
   providerPreferences?: VoiceProviderPreferences;
 }): Promise<VoiceTranscriptionStatus> {
   const providers = await input.listProviders();
   const connectivity = readProviderConnectivity(providers, input.providerPreferences);
-  const route = decideVoiceRoute(connectivity);
+  const accessToken = await input.getAccessToken();
+  const openRouterReady = await isOpenRouterConfigured(accessToken);
+  const route = decideVoiceRoute(connectivity, openRouterReady);
   const chatgptCodexVoiceReady = connectivity.codexActive
     ? await probeChatGptCodexVoiceAuth(input.cwd)
     : false;
 
-  const openRouterReady = isOpenRouterConfigured();
   const canTranscribe =
     route?.provider === "openrouter"
       ? openRouterReady

@@ -11,7 +11,7 @@ import { decodeVoiceAudio } from "./audio";
 import { transcribeWithChatGptCodex } from "./chatgpt-codex";
 import { transcribeWithOpenRouter } from "./openrouter";
 import { parseVoiceProviderPreferences, type VoiceProviderPreferences } from "./providerPreferences";
-import { isOpenRouterConfigured } from "./secrets";
+import { resolveOpenRouterApiKey } from "./secrets";
 import { readProviderConnectivity, type ProviderConnectivity } from "./providers";
 
 export type VoiceRouteDecision = {
@@ -30,12 +30,15 @@ const OPENROUTER_ROUTE = {
   model: "mistralai/voxtral-mini-transcribe",
 } as const satisfies Pick<VoiceRouteDecision, "provider" | "model">;
 
-export function decideVoiceRoute(connectivity: ProviderConnectivity): VoiceRouteDecision | null {
+export function decideVoiceRoute(
+  connectivity: ProviderConnectivity,
+  openRouterAvailable: boolean,
+): VoiceRouteDecision | null {
   if (connectivity.codexActive) {
     return { ...CHATGPT_CODEX_ROUTE, reason: "codex-bridge" };
   }
 
-  if (connectivity.claudeActive && isOpenRouterConfigured()) {
+  if (connectivity.claudeActive && openRouterAvailable) {
     return { ...OPENROUTER_ROUTE, reason: "claude-openrouter" };
   }
 
@@ -43,8 +46,8 @@ export function decideVoiceRoute(connectivity: ProviderConnectivity): VoiceRoute
 }
 
 export function voiceRouteUnavailableMessage(connectivity: ProviderConnectivity): string {
-  if (connectivity.claudeActive && !isOpenRouterConfigured()) {
-    return "Voice transcription is not fully set up yet. Connect Codex with ChatGPT or finish desktop voice setup.";
+  if (connectivity.claudeActive) {
+    return "Voice transcription is not fully set up yet. Connect Codex with ChatGPT or sign in to load desktop voice setup.";
   }
 
   if (!connectivity.claudeActive && !connectivity.codexActive) {
@@ -87,6 +90,7 @@ function resolveConnectivity(
 export async function transcribeVoiceWithRouting(input: {
   rawInput: unknown;
   listProviders: () => Promise<ProviderListResponse>;
+  getAccessToken: () => Promise<string | null>;
 }): Promise<VoiceTranscriptResponse> {
   const parsedInput = voiceTranscriptionRequestSchema.parse(input.rawInput);
   const audioBuffer = decodeVoiceAudio(parsedInput);
@@ -97,17 +101,24 @@ export async function transcribeVoiceWithRouting(input: {
     throw new Error("Voice messages must include recorded audio.");
   }
 
+  const accessToken = await input.getAccessToken();
+  const openRouterApiKey = await resolveOpenRouterApiKey(accessToken);
   const preferences = parseVoiceProviderPreferences(parsedInput.context.providerPreferences);
   const providers = await input.listProviders();
   const connectivity = resolveConnectivity(providers, preferences);
-  const route = decideVoiceRoute(connectivity);
+  const route = decideVoiceRoute(connectivity, openRouterApiKey !== null);
 
   if (!route) {
     throw new Error(voiceRouteUnavailableMessage(connectivity));
   }
 
   if (route.provider === "openrouter") {
+    if (!openRouterApiKey) {
+      throw new Error("Desktop voice transcription is not configured.");
+    }
+
     const text = await transcribeWithOpenRouter({
+      apiKey: openRouterApiKey,
       audioBase64,
       model: route.model,
       language: parsedInput.language,
@@ -135,11 +146,12 @@ export async function transcribeVoiceWithRouting(input: {
       text,
     });
   } catch (primaryError) {
-    if (!connectivity.claudeActive || !isOpenRouterConfigured()) {
+    if (!connectivity.claudeActive || !openRouterApiKey) {
       throw primaryError;
     }
 
     const text = await transcribeWithOpenRouter({
+      apiKey: openRouterApiKey,
       audioBase64,
       model: OPENROUTER_ROUTE.model,
       language: parsedInput.language,
