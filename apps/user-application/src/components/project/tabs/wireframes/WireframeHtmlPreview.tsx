@@ -49,7 +49,10 @@ export function WireframeHtmlThumbnail({ html }: { html: string }) {
       const width = rect?.width ?? 0;
       const height = rect?.height ?? 0;
       if (width <= 0 || height <= 0) return;
-      setScale(Math.max(width / DESIGN_WIDTH, height / DESIGN_HEIGHT));
+      // Width-based scale + top-left anchoring makes the design fill the card
+      // width from the top; excess height is cropped by the overflow-hidden
+      // container instead of letterboxing with dead space.
+      setScale(width / DESIGN_WIDTH);
     });
     observer.observe(element);
     return () => observer.disconnect();
@@ -59,17 +62,19 @@ export function WireframeHtmlThumbnail({ html }: { html: string }) {
     <div ref={containerRef} className="relative h-full w-full overflow-hidden rounded-[3px] bg-white">
       {inView ? (
         <iframe
+          key={html.length + html.slice(0, 64)}
           title="Wireframe preview"
           srcDoc={buildWireframePreviewDocument(html)}
           sandbox=""
           scrolling="no"
           tabIndex={-1}
           aria-hidden
-          className="pointer-events-none absolute left-1/2 top-1/2 border-0"
+          className="pointer-events-none absolute left-0 top-0 border-0"
           style={{
             width: DESIGN_WIDTH,
             height: DESIGN_HEIGHT,
-            transform: `translate(-50%, -50%) scale(${scale})`,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
           }}
         />
       ) : null}
@@ -103,6 +108,7 @@ export function WireframeHtmlPreviewDialog({
             </Dialog.Close>
           </div>
           <iframe
+            key={html.length + html.slice(0, 64)}
             title={`${title} full preview`}
             srcDoc={buildWireframePreviewDocument(html)}
             sandbox=""

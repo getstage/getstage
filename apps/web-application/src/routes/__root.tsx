@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-router";
 import type { QueryClient } from "@tanstack/react-query";
 import { toUserFacingErrorMessage } from "@/lib/errors";
-import { getWebRouteLockRedirect } from "@/lib/webRoutePolicy";
+import { getLegacyBillingReturnRedirect, getWebRouteLockRedirect } from "@/lib/webRoutePolicy";
 
 type RouterContext = {
   queryClient: QueryClient;
@@ -14,6 +14,18 @@ type RouterContext = {
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   beforeLoad: ({ location }) => {
+    const legacyBillingStatus = getLegacyBillingReturnRedirect(
+      location.pathname,
+      location.search as Record<string, unknown>,
+    );
+    if (legacyBillingStatus) {
+      throw redirect({
+        to: "/billing/return",
+        search: { status: legacyBillingStatus },
+        replace: true,
+      });
+    }
+
     const lockRedirect = getWebRouteLockRedirect(location.pathname);
 
     if (lockRedirect) {

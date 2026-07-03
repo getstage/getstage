@@ -7,6 +7,7 @@ import { DesktopAuthProvider, ElectronAuthProvider, useElectronAuthForConvex } f
 import { convex } from "./lib/convex";
 import { queryClient } from "./lib/queryClient";
 import { router } from "./router";
+import { useRecordAppOpened } from "./hooks/useRecordAppOpened";
 import "./styles/globals.css";
 import "./styles/desktop.css";
 
@@ -21,12 +22,21 @@ if (!rootEl) {
   throw new Error("Missing root element.");
 }
 
+// Fires the app_downloaded email event once the desktop user is signed in.
+// Rendered inside DesktopAuthProvider + ConvexProviderWithAuth so both the auth
+// state and the mutation client are available.
+function RecordAppOpenedOnAuth() {
+  useRecordAppOpened();
+  return null;
+}
+
 ReactDOM.createRoot(rootEl).render(
   <React.StrictMode>
     <ElectronAuthProvider>
       <ConvexProviderWithAuth client={convex} useAuth={useElectronAuthForConvex}>
         <QueryClientProvider client={queryClient}>
           <DesktopAuthProvider>
+            <RecordAppOpenedOnAuth />
             <RouterProvider router={router} />
           </DesktopAuthProvider>
         </QueryClientProvider>

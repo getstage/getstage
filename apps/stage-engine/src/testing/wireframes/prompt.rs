@@ -51,3 +51,36 @@ fn omits_partial_regeneration_block_when_screen_ids_are_absent() {
 
     assert!(!prompt.contains("PARTIAL REGENERATION"));
 }
+
+#[test]
+fn regen_prompt_redacts_prior_html_and_forbids_reuse() {
+    let mut input = sample_input();
+    input.existing_wireframes_artifact_json = Some(
+        r#"{"generatedScreens":[{"id":"homepage","html":"<div class=\"lim-welcome\">SECRET_MARKUP</div>"},{"id":"pricing","html":"<div>PRICING_MARKUP</div>"}]}"#
+            .to_string(),
+    );
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        Some(&["homepage".to_string()]),
+    );
+
+    // Prior html for a requested screen must be stripped from the prompt payload.
+    assert!(
+        !prompt.contains("SECRET_MARKUP"),
+        "regen prompt leaked prior html for a requested screen"
+    );
+    // Non-regen screens are omitted from the prompt entirely.
+    assert!(
+        !prompt.contains("PRICING_MARKUP"),
+        "regen prompt included a screen that was not being regenerated"
+    );
+    assert!(prompt.contains("Do NOT reuse prior html"));
+    assert!(prompt.contains("homepage"));
+}
+

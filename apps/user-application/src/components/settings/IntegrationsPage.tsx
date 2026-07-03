@@ -487,8 +487,8 @@ function FigmaExporterSetupDialog({
 
           <div className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
             <a
-              href="/stage-exporter-plugin-v0.2.zip"
-              download="stage-exporter-plugin-v0.2.zip"
+              href="/stage-exporter-0.2.7.zip"
+              download="stage-exporter-0.2.7.zip"
               className="inline-flex h-[34px] items-center justify-center rounded-[6px] bg-[#171717] px-3 text-[13px] font-medium leading-none text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#2A2A2A]"
             >
               Download plugin (.zip)

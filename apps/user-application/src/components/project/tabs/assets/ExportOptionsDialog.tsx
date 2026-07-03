@@ -43,18 +43,46 @@ export function ExportOptionsDialog({
   ) => Promise<unknown>;
 }) {
   const [selectedOption, setSelectedOption] = useState<ExportOption>("figma");
+  const [preflightError, setPreflightError] = useState<string | null>(null);
   const options = EXPORT_OPTIONS.map((item) =>
     item.id === "figma" ? { ...item, connected: figmaConnected } : item,
   );
   const option = options.find((item) => item.id === selectedOption) ?? options[2];
-  const message = exportError ?? deliveryError ?? exportJob?.errorMessage;
+  const message = preflightError ?? exportError ?? deliveryError ?? exportJob?.errorMessage;
   const isPreparingFigmaExport =
     selectedOption === "figma" && isExporting && !exportRequest && !message;
 
   async function handleExport() {
     if (!asset) return;
-    if (selectedOption === "figma") await onExportFigma(asset);
-    else await onExportDelivery(selectedOption, asset);
+    setPreflightError(null);
+    if (selectedOption === "figma") {
+      await onExportFigma(asset);
+      return;
+    }
+    // Paper preflight: confirm the engine is reachable and Paper is connected
+    // before starting, so a down engine or closed Paper surfaces an actionable
+    // message immediately instead of a hung spinner or a raw error after the fact.
+    if (selectedOption === "paper") {
+      const getPaperStatus = window.stageDesktop?.engine?.getPaperStatus;
+      if (getPaperStatus) {
+        try {
+          const status = await getPaperStatus();
+          if (!status.ready) {
+            setPreflightError(
+              status.message ||
+                "Paper isn't connected. Open Paper Desktop on your target file, then export again.",
+            );
+            return;
+          }
+        } catch {
+          setPreflightError(
+            "Stage could not reach the local engine. Restart Stage and try again.",
+          );
+          return;
+        }
+      }
+    }
+    await onExportDelivery(selectedOption, asset);
   }
 
   return (

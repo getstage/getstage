@@ -22,6 +22,7 @@ import {
   trackDatafastGoalOnce,
 } from "@/lib/datafast";
 import { isProjectUpgradeRequiredError, toUserFacingErrorMessage } from "@/lib/errors";
+import { openExternalLink } from "@/lib/settings/openExternalLink";
 import { googleSheetsUrlSchema } from "@/lib/validation";
 import type { ClaudeConnectionSummary } from "@/types/settings";
 import type { ProjectType } from "@/types";
@@ -404,9 +405,12 @@ export function useOnboardingController({
 
     try {
       const result = await createCheckoutSession({
+        tier: "pro",
         billingCycle,
+        isTrial: true,
         source: "onboarding_paywall",
         ...getDatafastCheckoutMetadata(),
+        platform: "desktop",
       });
       if (!result.url) {
         throw new Error("Checkout URL missing.");
@@ -416,7 +420,7 @@ export function useOnboardingController({
         billing_cycle: billingCycle,
         plan: "pro",
       });
-      window.location.assign(result.url);
+      await openExternalLink(result.url);
     } catch {
       setCheckoutError("Could not start checkout. Please try again.");
       setIsCheckoutLoading(false);

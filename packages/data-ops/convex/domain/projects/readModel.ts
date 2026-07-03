@@ -49,13 +49,45 @@ export async function buildProjectWithAccess(
 }
 
 export async function listProjectsForUser(ctx: ReaderCtx, userId: Id<"users">) {
-  const projectDocs = await ctx.db
+  const ownedProjects = await ctx.db
     .query("projects")
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .collect();
 
-  const sortedProjectDocs = [...projectDocs].sort((a, b) => a.startDate - b.startDate);
-  return Promise.all(sortedProjectDocs.map((project) => buildProjectWithAccess(ctx, project, "owner")));
+  // Projects shared via workspace membership: every project owned by a workspace
+  // this user is an editor of. The owner's own projects always win over a shared
+  // duplicate, so track roles by project id.
+  const memberships = await ctx.db
+    .query("projectCollaborators")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+
+  const roleByProject = new Map<Id<"projects">, "owner" | "editor">();
+  for (const project of ownedProjects) {
+    roleByProject.set(project._id, "owner");
+  }
+
+  const sharedProjects: Doc<"projects">[] = [];
+  for (const membership of memberships) {
+    const ownerProjects = await ctx.db
+      .query("projects")
+      .withIndex("by_user", (q) => q.eq("userId", membership.ownerUserId))
+      .collect();
+    for (const project of ownerProjects) {
+      if (roleByProject.has(project._id)) continue;
+      roleByProject.set(project._id, "editor");
+      sharedProjects.push(project);
+    }
+  }
+
+  const allProjects = [...ownedProjects, ...sharedProjects].sort(
+    (a, b) => a.startDate - b.startDate,
+  );
+  return Promise.all(
+    allProjects.map((project) =>
+      buildProjectWithAccess(ctx, project, roleByProject.get(project._id) ?? "editor"),
+    ),
+  );
 }
 
 export async function recomputeProjectState(

@@ -5,10 +5,11 @@
  * Components and routes only import from this file.
  */
 
-import { createContext, useContext, useEffect, type ReactNode } from "react";
-import { useConvexAuth, useQuery } from "convex/react";
+import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@/lib/convex";
+import { getDatafastCheckoutMetadata } from "@/lib/datafast";
 
 export type AuthUser = {
   id: string;
@@ -42,6 +43,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void signOut();
     }
   }, [authLoading, identity, isAuthenticated, signOut]);
+
+  // Attach the DataFast visitor id to the user right after signup so the email
+  // engine can detect Mac vs Windows at send time (drives the download-reminder
+  // skip). The mutation is idempotent, and we only fire it once per session.
+  const attachDatafastVisitor = useMutation(api.emails.attachDatafastVisitor);
+  const datafastAttachedRef = useRef(false);
+  useEffect(() => {
+    if (authLoading || !isAuthenticated || identity === undefined || identity === null || datafastAttachedRef.current) {
+      return;
+    }
+    const { datafastVisitorId } = getDatafastCheckoutMetadata();
+    if (!datafastVisitorId) {
+      return;
+    }
+    datafastAttachedRef.current = true;
+    void attachDatafastVisitor({ datafastVisitorId }).catch((error) => {
+      console.error("[emails] attachDatafastVisitor failed", error);
+    });
+  }, [authLoading, isAuthenticated, identity, attachDatafastVisitor]);
 
   return (
     <AuthContext.Provider

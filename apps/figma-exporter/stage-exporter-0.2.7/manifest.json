@@ -1,0 +1,19 @@
+{
+  "name": "Stage Exporter",
+  "id": "1652796428495766813",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "editorType": ["figma", "figjam"],
+  "documentAccess": "dynamic-page",
+  "permissions": ["currentuser"],
+  "networkAccess": {
+    "allowedDomains": [
+      "https://reliable-bullfrog-917.convex.site",
+      "https://assets-testing.getstage.co",
+      "https://assets.getstage.co",
+      "https://images.unsplash.com"
+    ],
+    "reasoning": "Claims Stage export jobs, loads Hi-Fi preview images from Stage R2, and rebuilds editable wireframes with their Unsplash photo layers."
+  }
+}

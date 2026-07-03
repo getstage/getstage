@@ -63,7 +63,7 @@ export function AddProjectMemberDialog({
                 Add team member
               </Dialog.Title>
               <Dialog.Description className="text-[12px] font-medium leading-[1.5] text-[#737373]">
-                Invite an existing Stage user to collaborate on this project.
+                Invite an existing Stage user to your workspace. They'll get access to all your projects.
               </Dialog.Description>
             </div>
 

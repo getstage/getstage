@@ -162,7 +162,15 @@ export function useWireframesRun(projectId: string) {
 
     if (terminalEvent.type === "run_failed") {
       console.error(formatRunFailedEvent(terminalEvent));
-      setError(WIREFRAMES_RUN_FAILED_USER_MESSAGE);
+      // Surface the actionable engine message for a regen that produced nothing
+      // new (unchanged/empty html) instead of the generic failure copy, so the
+      // user knows to retry rather than assuming the whole run broke.
+      const detail = `${terminalEvent.error.message ?? ""} ${terminalEvent.error.detail ?? ""}`;
+      setError(
+        /unchanged|empty html/i.test(detail) && terminalEvent.error.message
+          ? terminalEvent.error.message
+          : WIREFRAMES_RUN_FAILED_USER_MESSAGE,
+      );
     }
   }, [terminalEvent]);
 

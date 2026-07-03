@@ -29,6 +29,7 @@ import type * as auth from "../auth.js";
 import type * as billing from "../billing.js";
 import type * as clients from "../clients.js";
 import type * as collaborators from "../collaborators.js";
+import type * as credits from "../credits.js";
 import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
 import type * as desktop from "../desktop.js";
@@ -43,6 +44,7 @@ import type * as domain_projects_apiReadModel from "../domain/projects/apiReadMo
 import type * as domain_projects_entitlement from "../domain/projects/entitlement.js";
 import type * as domain_projects_readModel from "../domain/projects/readModel.js";
 import type * as domain_projects_service from "../domain/projects/service.js";
+import type * as emails from "../emails.js";
 import type * as helpers_access_projectAccess from "../helpers/access/projectAccess.js";
 import type * as helpers_auth_requireAuthUser from "../helpers/auth/requireAuthUser.js";
 import type * as helpers_env from "../helpers/env.js";
@@ -73,8 +75,18 @@ import type * as integrations_stripeConnect from "../integrations/stripeConnect.
 import type * as lib_aiCredentials_handlers_index from "../lib/aiCredentials/handlers/index.js";
 import type * as lib_auth_handlers_index from "../lib/auth/handlers/index.js";
 import type * as lib_billing_handlers_index from "../lib/billing/handlers/index.js";
+import type * as lib_billing_handlers_webhooks from "../lib/billing/handlers/webhooks.js";
 import type * as lib_credentialVault from "../lib/credentialVault.js";
+import type * as lib_credits_priceConfig from "../lib/credits/priceConfig.js";
+import type * as lib_credits_service from "../lib/credits/service.js";
 import type * as lib_desktop_handlers_index from "../lib/desktop/handlers/index.js";
+import type * as lib_emails_client from "../lib/emails/client.js";
+import type * as lib_emails_config from "../lib/emails/config.js";
+import type * as lib_emails_handlers from "../lib/emails/handlers.js";
+import type * as lib_emails_platform from "../lib/emails/platform.js";
+import type * as lib_emails_sendStep from "../lib/emails/sendStep.js";
+import type * as lib_emails_subscriptionStatus from "../lib/emails/subscriptionStatus.js";
+import type * as lib_emails_unsubscribe from "../lib/emails/unsubscribe.js";
 import type * as lib_integrations_contentPlatforms_domain from "../lib/integrations/contentPlatforms/domain.js";
 import type * as lib_integrations_contentPlatforms_handlers_connections from "../lib/integrations/contentPlatforms/handlers/connections.js";
 import type * as lib_integrations_contentPlatforms_handlers_figmaJobs from "../lib/integrations/contentPlatforms/handlers/figmaJobs.js";
@@ -122,6 +134,7 @@ import type * as models_integrations_stitch from "../models/integrations/stitch.
 import type * as models_integrations_stripeConnect from "../models/integrations/stripeConnect.js";
 import type * as models_projects_validators from "../models/projects/validators.js";
 import type * as onboarding from "../onboarding.js";
+import type * as platform_inviteEmail from "../platform/inviteEmail.js";
 import type * as platform_rateLimits from "../platform/rateLimits.js";
 import type * as portal from "../portal.js";
 import type * as projectAi from "../projectAi.js";
@@ -133,6 +146,7 @@ import type * as tasks from "../tasks.js";
 import type * as userEmails from "../userEmails.js";
 import type * as users from "../users.js";
 import type * as viewer from "../viewer.js";
+import type * as workspaceMembers from "../workspaceMembers.js";
 
 import type {
   ApiFromModules,
@@ -162,6 +176,7 @@ declare const fullApi: ApiFromModules<{
   billing: typeof billing;
   clients: typeof clients;
   collaborators: typeof collaborators;
+  credits: typeof credits;
   crons: typeof crons;
   dashboard: typeof dashboard;
   desktop: typeof desktop;
@@ -176,6 +191,7 @@ declare const fullApi: ApiFromModules<{
   "domain/projects/entitlement": typeof domain_projects_entitlement;
   "domain/projects/readModel": typeof domain_projects_readModel;
   "domain/projects/service": typeof domain_projects_service;
+  emails: typeof emails;
   "helpers/access/projectAccess": typeof helpers_access_projectAccess;
   "helpers/auth/requireAuthUser": typeof helpers_auth_requireAuthUser;
   "helpers/env": typeof helpers_env;
@@ -206,8 +222,18 @@ declare const fullApi: ApiFromModules<{
   "lib/aiCredentials/handlers/index": typeof lib_aiCredentials_handlers_index;
   "lib/auth/handlers/index": typeof lib_auth_handlers_index;
   "lib/billing/handlers/index": typeof lib_billing_handlers_index;
+  "lib/billing/handlers/webhooks": typeof lib_billing_handlers_webhooks;
   "lib/credentialVault": typeof lib_credentialVault;
+  "lib/credits/priceConfig": typeof lib_credits_priceConfig;
+  "lib/credits/service": typeof lib_credits_service;
   "lib/desktop/handlers/index": typeof lib_desktop_handlers_index;
+  "lib/emails/client": typeof lib_emails_client;
+  "lib/emails/config": typeof lib_emails_config;
+  "lib/emails/handlers": typeof lib_emails_handlers;
+  "lib/emails/platform": typeof lib_emails_platform;
+  "lib/emails/sendStep": typeof lib_emails_sendStep;
+  "lib/emails/subscriptionStatus": typeof lib_emails_subscriptionStatus;
+  "lib/emails/unsubscribe": typeof lib_emails_unsubscribe;
   "lib/integrations/contentPlatforms/domain": typeof lib_integrations_contentPlatforms_domain;
   "lib/integrations/contentPlatforms/handlers/connections": typeof lib_integrations_contentPlatforms_handlers_connections;
   "lib/integrations/contentPlatforms/handlers/figmaJobs": typeof lib_integrations_contentPlatforms_handlers_figmaJobs;
@@ -255,6 +281,7 @@ declare const fullApi: ApiFromModules<{
   "models/integrations/stripeConnect": typeof models_integrations_stripeConnect;
   "models/projects/validators": typeof models_projects_validators;
   onboarding: typeof onboarding;
+  "platform/inviteEmail": typeof platform_inviteEmail;
   "platform/rateLimits": typeof platform_rateLimits;
   portal: typeof portal;
   projectAi: typeof projectAi;
@@ -266,6 +293,7 @@ declare const fullApi: ApiFromModules<{
   userEmails: typeof userEmails;
   users: typeof users;
   viewer: typeof viewer;
+  workspaceMembers: typeof workspaceMembers;
 }>;
 
 /**
@@ -900,6 +928,157 @@ export declare const components: {
         "action",
         "internal",
         { apiKey: string; quantity: number; stripeSubscriptionId: string },
+        null
+      >;
+    };
+  };
+  resend: {
+    lib: {
+      cancelEmail: FunctionReference<
+        "mutation",
+        "internal",
+        { emailId: string },
+        null
+      >;
+      cleanupAbandonedEmails: FunctionReference<
+        "mutation",
+        "internal",
+        { olderThan?: number },
+        null
+      >;
+      cleanupOldEmails: FunctionReference<
+        "mutation",
+        "internal",
+        { olderThan?: number },
+        null
+      >;
+      createManualEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          bcc?: Array<string> | string;
+          cc?: Array<string> | string;
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          replyTo?: Array<string>;
+          subject: string;
+          to: Array<string> | string;
+        },
+        string
+      >;
+      get: FunctionReference<
+        "query",
+        "internal",
+        { emailId: string },
+        {
+          bcc?: Array<string>;
+          bounced?: boolean;
+          cc?: Array<string>;
+          clicked?: boolean;
+          complained: boolean;
+          createdAt: number;
+          deliveryDelayed?: boolean;
+          errorMessage?: string;
+          failed?: boolean;
+          finalizedAt: number;
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          html?: string;
+          opened: boolean;
+          replyTo: Array<string>;
+          resendId?: string;
+          segment: number;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+          subject?: string;
+          template?: {
+            id: string;
+            variables?: Record<string, string | number>;
+          };
+          text?: string;
+          to: Array<string>;
+        } | null
+      >;
+      getStatus: FunctionReference<
+        "query",
+        "internal",
+        { emailId: string },
+        {
+          bounced: boolean;
+          clicked: boolean;
+          complained: boolean;
+          deliveryDelayed: boolean;
+          errorMessage: string | null;
+          failed: boolean;
+          opened: boolean;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+        } | null
+      >;
+      handleEmailEvent: FunctionReference<
+        "mutation",
+        "internal",
+        { event: any },
+        null
+      >;
+      sendEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          bcc?: Array<string>;
+          cc?: Array<string>;
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          html?: string;
+          options: {
+            apiKey: string;
+            initialBackoffMs: number;
+            onEmailEvent?: { fnHandle: string };
+            retryAttempts: number;
+            testMode: boolean;
+          };
+          replyTo?: Array<string>;
+          subject?: string;
+          template?: {
+            id: string;
+            variables?: Record<string, string | number>;
+          };
+          text?: string;
+          to: Array<string>;
+        },
+        string
+      >;
+      updateManualEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          emailId: string;
+          errorMessage?: string;
+          resendId?: string;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+        },
         null
       >;
     };

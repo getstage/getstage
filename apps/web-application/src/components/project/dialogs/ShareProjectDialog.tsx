@@ -19,16 +19,16 @@ type ShareProjectDialogProps = {
 
 function toUserFriendlyAddError(message: string) {
   switch (message) {
-    case "Active Stage subscription required to invite collaborators.":
+    case "Active Stage subscription required to invite members.":
       return "Upgrade to Stage Pro to add team members.";
-    case "This user needs an active Stage subscription before they can collaborate.":
-      return "This person needs an active Stage subscription before they can collaborate.";
     case "No user found with that email address.":
-      return "This person needs a Stage account before they can collaborate.";
-    case "This user is already a collaborator on this project.":
-      return "This person is already a team member on this project.";
-    case "You are already the owner of this project.":
-      return "You already own this project.";
+      return "This person needs a Stage account before you can add them.";
+    case "This user is already a member of your workspace.":
+      return "This person is already a member of your workspace.";
+    case "You are already the owner of this workspace.":
+      return "You already own this workspace.";
+    case "You've reached your workspace seat limit. Upgrade your plan to add more members.":
+      return "You've reached your workspace seat limit. Upgrade your plan to add more members.";
     default:
       return message;
   }
@@ -166,7 +166,7 @@ export function ShareProjectDialog({
                 ) : null}
               </div>
               <p className="mb-3 text-[13px] text-text-secondary">
-                Team members with an active subscription can open this project in the Stage workspace and collaborate there.
+                Team members can open every project in your workspace and collaborate there. Only you need an active subscription.
               </p>
 
               <div
@@ -207,13 +207,13 @@ export function ShareProjectDialog({
 
                 {!isPro ? (
                   <p className="mt-2 text-[12px] leading-5 text-destructive">
-                    Upgrade to Stage Pro to add team members. The invited person also needs an
-                    active Stage subscription before they can collaborate.
+                    Upgrade to Stage Pro to add team members. Invited members don't need their
+                    own subscription.
                   </p>
                 ) : (
                   <p className="mt-2 text-[12px] leading-5 text-text-secondary">
-                    Both you and the invited person need an active Stage subscription to
-                    collaborate.
+                    Invited members can collaborate on all your projects. They don't need their
+                    own subscription.
                   </p>
                 )}
               </div>

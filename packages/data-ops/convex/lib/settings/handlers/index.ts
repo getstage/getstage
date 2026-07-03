@@ -78,7 +78,7 @@ export async function getOverviewHandler(ctx: QueryCtx) {
     },
     subscription: subscription
       ? {
-          plan: subscription.plan,
+          plan: subscription.plan ?? "free",
           status: subscription.status,
           provider: subscription.provider,
           billingCycle: subscription.billingCycle,
@@ -162,7 +162,7 @@ export async function updatePortalBrandingHandler(
   const nextLogoUrl = args.logoKey ?? args.logoUrl;
 
   if (plan === "free" && nextLogoUrl !== undefined && nextLogoUrl !== null) {
-    throw new Error("Custom portal logos require Stage Pro.");
+    throw new Error("Custom portal logos require a paid Stage plan.");
   }
 
   if (nextLogoUrl !== undefined && user.defaultPortalLogoUrl) {

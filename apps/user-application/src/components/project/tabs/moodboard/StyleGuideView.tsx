@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { TextAa } from "@phosphor-icons/react";
 import { defaultStyleGuide } from "@/mock/project/moodboard";
-import { BUNDLED_FONTS, listSystemFonts } from "@/lib/systemFonts";
+import { SetupStepsDialog } from "@/components/ui/SetupStepsDialog";
+import {
+  BUNDLED_FONTS,
+  canListSystemFonts,
+  getLocalFontPermissionState,
+  hasSkippedSystemFonts,
+  listSystemFonts,
+  markSystemFontsSkipped,
+} from "@/lib/systemFonts";
 import type { MoodboardStyleGuideViewData } from "@/types/project/moodboardTab";
 import { EditIcon, PlusIcon, RegenerateIcon } from "./moodboardIcons";
 
@@ -43,6 +52,7 @@ export function StyleGuideView({
   const [fonts, setFonts] = useState<string[]>(() => initialFonts(styleGuide));
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [fontAccessDialogOpen, setFontAccessDialogOpen] = useState(false);
   const [draftAtmosphere, setDraftAtmosphere] = useState<AtmosphereMetric[]>(styleGuide.atmosphere);
   const [draftPalettes, setDraftPalettes] = useState<SwatchPalette[]>(styleGuide.colorPalettes);
   const previewProgress = ((previewSize - 12) / (48 - 12)) * 100;
@@ -60,14 +70,45 @@ export function StyleGuideView({
     return [...all].sort((a, b) => a.localeCompare(b));
   }, [systemFonts, fonts]);
 
-  // Lazily enumerate installed fonts on first use. Called directly from a user
-  // gesture (opening a font picker or clicking Add) so the Local Font Access API
-  // sees the activation. listSystemFonts never rejects.
-  const loadSystemFonts = useCallback(() => {
-    if (fontsLoaded) return;
+  const enumerateSystemFonts = useCallback(() => {
     setFontsLoaded(true);
     void listSystemFonts().then(setSystemFonts);
-  }, [fontsLoaded]);
+  }, []);
+
+  // Lazily enumerate installed fonts on first use. Called from a user gesture
+  // (opening the font picker or clicking Add). We explain the macOS prompt in
+  // Stage first; queryLocalFonts itself must still run from that same gesture.
+  const loadSystemFonts = useCallback(() => {
+    if (fontsLoaded) return;
+    if (!canListSystemFonts() || hasSkippedSystemFonts()) {
+      setFontsLoaded(true);
+      return;
+    }
+
+    void getLocalFontPermissionState().then((permission) => {
+      if (fontsLoaded) return;
+      if (permission === "granted") {
+        enumerateSystemFonts();
+        return;
+      }
+      if (permission === "denied") {
+        setFontsLoaded(true);
+        return;
+      }
+      setFontAccessDialogOpen(true);
+    });
+  }, [enumerateSystemFonts, fontsLoaded]);
+
+  const confirmSystemFontAccess = useCallback(() => {
+    enumerateSystemFonts();
+    setFontAccessDialogOpen(false);
+  }, [enumerateSystemFonts]);
+
+  const skipSystemFontAccess = useCallback(() => {
+    markSystemFontsSkipped();
+    setFontsLoaded(true);
+    setFontAccessDialogOpen(false);
+  }, []);
 
   function updateFont(index: number, value: string) {
     setFonts((current) => current.map((font, fontIndex) => (fontIndex === index ? value : font)));
@@ -155,6 +196,7 @@ export function StyleGuideView({
   }
 
   return (
+    <>
     <section className="flex w-full flex-col gap-1 rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
       <div className="flex flex-col gap-3 p-4">
         <button
@@ -408,6 +450,32 @@ export function StyleGuideView({
         </div>
       </div>
     </section>
+    <SetupStepsDialog
+      open={fontAccessDialogOpen}
+      onOpenChange={(open) => {
+        if (open) {
+          setFontAccessDialogOpen(true);
+          return;
+        }
+        if (!fontsLoaded) skipSystemFontAccess();
+        else setFontAccessDialogOpen(false);
+      }}
+      icon={<TextAa aria-hidden="true" weight="regular" />}
+      title="Show fonts installed on your Mac?"
+      description="Stage can list your Mac's installed fonts so you can pick the exact typeface for brand typography. macOS may show a privacy prompt next — Stage only reads font names."
+      steps={[
+        "Click Continue below.",
+        "If macOS asks for permission, choose Allow. The prompt should say Stage.",
+        "Pick a font from the expanded list in the typography editor.",
+      ]}
+      note="Built-in fonts like Geist and Fraunces work without this permission. If macOS shows a version number (for example 2.1.xxx) or mentions Apple Music, that is a different app — choose Don't Allow and contact support."
+      primaryAction={{
+        label: "Continue",
+        onClick: confirmSystemFontAccess,
+      }}
+      closeLabel="Built-in fonts only"
+    />
+    </>
   );
 }
 

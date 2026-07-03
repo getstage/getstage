@@ -401,7 +401,10 @@ export function WireframesTab({
 
       {step === "generating" ? (
         <CanvasShell centered>
-          <GeneratingStep mode={wireframesTab.isRegenerateRun ? "regenerate" : "generate"} />
+          <GeneratingStep
+            mode={wireframesTab.isRegenerateRun ? "regenerate" : "generate"}
+            screenCount={wireframesTab.regeneratingScreenIds?.length ?? selectedRegenerateIds.size}
+          />
         </CanvasShell>
       ) : null}
 

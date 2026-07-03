@@ -19,7 +19,11 @@ export function AssetCard({
 
   return (
     <article className="flex h-[240px] flex-col overflow-hidden rounded-[8px] bg-white p-[2px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] sm:h-[336px]">
-      <div className="flex min-h-0 flex-1 items-stretch justify-center overflow-hidden rounded-[6px] bg-[#E5E5E5] p-2 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+      <div
+        className={`flex min-h-0 flex-1 items-stretch justify-center overflow-hidden rounded-[6px] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] ${
+          showHtml && html ? "bg-white p-0" : "bg-[#E5E5E5] p-2"
+        }`}
+      >
         {showHtml && html ? (
           <WireframeHtmlThumbnail html={html} />
         ) : hasBlocks ? (

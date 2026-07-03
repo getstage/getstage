@@ -2,13 +2,28 @@
   "name": "stage-emails",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
+  "main": "./dist/render.js",
+  "types": "./dist/render.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/render.d.ts",
+      "default": "./dist/render.js"
+    }
+  },
   "scripts": {
     "dev": "email dev",
     "export": "email export --outDir out",
-    "preview": "email preview"
+    "preview": "email preview",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit"
   },
   "dependencies": {
     "@react-email/components": "^0.0.36",
+    "@react-email/render": "^2.0.10",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

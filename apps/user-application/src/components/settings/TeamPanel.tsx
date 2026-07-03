@@ -1,6 +1,11 @@
 import { useMemo, useState } from "react";
+import { useAction, useMutation } from "convex/react";
+import type { Id } from "@stage/data-ops/convex/data-model";
 import { Avatar } from "@/components/ui/Avatar";
-import { useSettingsOverviewQuery } from "@/hooks/convex-data";
+import { api } from "@/lib/convexApi";
+import { toUserFacingErrorMessage } from "@/lib/errors";
+import { inviteTeamMemberSchema } from "@/lib/validation";
+import { useSettingsOverviewQuery, useWorkspaceMembersQuery } from "@/hooks/convex-data";
 import { SettingsCard, SettingsRow } from "./SettingsPrimitives";
 
 type TeamMember = {
@@ -11,48 +16,82 @@ type TeamMember = {
   role: "Owner" | "Member";
 };
 
-type TeamInviteInput = {
-  email: string;
-};
-
+// Seats are display-only until Phase 3 enforces them server-side.
 const TEAM_LIMIT = 3;
-
-const SAMPLE_MEMBERS: TeamMember[] = [
-  {
-    id: "sample-1",
-    name: "Nina Palmer",
-    email: "nina@stage.test",
-    role: "Member",
-  },
-  {
-    id: "sample-2",
-    name: "Maria Chen",
-    email: "maria@stage.test",
-    role: "Member",
-  },
-];
 
 export function TeamPanel() {
   const overview = useSettingsOverviewQuery();
   const profile = overview.data?.profile;
-  const currentUser = useMemo<TeamMember>(() => ({
-    id: "current-user",
-    name: profile?.name ?? "You",
-    email: profile?.email ?? "Signed in user",
-    avatarUrl: profile?.avatarUrl ?? undefined,
-    role: "Owner",
-  }), [profile?.avatarUrl, profile?.email, profile?.name]);
-  const teamSettings = useMockTeamSettings(currentUser);
+  const members = useWorkspaceMembersQuery();
+  const addMember = useAction(api.workspaceMembers.add);
+  const removeMember = useMutation(api.workspaceMembers.remove);
+
   const [inviteEmail, setInviteEmail] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
-  const seatsLeft = TEAM_LIMIT - teamSettings.members.length;
-  const canInvite = seatsLeft > 0 && inviteEmail.trim().includes("@");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
-  function inviteMember() {
+  const rows = useMemo<TeamMember[]>(() => {
+    const owner: TeamMember = {
+      id: "current-user",
+      name: profile?.name ?? "You",
+      email: profile?.email ?? "Signed in user",
+      avatarUrl: profile?.avatarUrl ?? undefined,
+      role: "Owner",
+    };
+    const invited = members.data.map<TeamMember>((member) => ({
+      id: member._id,
+      name: member.name ?? member.email ?? "Team member",
+      email: member.email ?? "",
+      role: "Member",
+    }));
+    return [owner, ...invited];
+  }, [members.data, profile?.avatarUrl, profile?.email, profile?.name]);
+
+  const seatsLeft = TEAM_LIMIT - rows.length;
+
+  const emailInput = inviteEmail.trim();
+  const emailValidation = inviteTeamMemberSchema.safeParse({ email: emailInput });
+  const isEmailValid = emailInput.length > 0 && emailValidation.success;
+  const isEmailInvalid = emailInput.length > 0 && !emailValidation.success;
+  const emailErrorMessage = isEmailInvalid
+    ? emailValidation.error.issues[0]?.message ?? "Please enter a valid email address."
+    : null;
+  const canInvite = seatsLeft > 0 && isEmailValid && !isSubmitting;
+
+  async function inviteMember() {
     if (!canInvite) return;
-    teamSettings.invite({ email: inviteEmail.trim() });
-    setInviteEmail("");
-    setNotice("Team member added.");
+    const email = emailInput;
+    setIsSubmitting(true);
+    setNotice(null);
+    setErrorMessage(null);
+    try {
+      const result = await addMember({ email });
+      setInviteEmail("");
+      setNotice(
+        result.inviteSent
+          ? "Team member added."
+          : result.inviteError ?? "Team member added, but the invite email could not be sent.",
+      );
+    } catch (error) {
+      setErrorMessage(toUserFacingErrorMessage(error, "Could not add this team member."));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function removeTeamMember(memberId: string) {
+    setNotice(null);
+    setErrorMessage(null);
+    setRemovingId(memberId);
+    try {
+      await removeMember({ memberId: memberId as Id<"projectCollaborators"> });
+    } catch (error) {
+      setErrorMessage(toUserFacingErrorMessage(error, "Could not remove this team member."));
+    } finally {
+      setRemovingId(null);
+    }
   }
 
   return (
@@ -77,28 +116,32 @@ export function TeamPanel() {
                 onChange={(event) => {
                   setInviteEmail(event.target.value);
                   setNotice(null);
+                  setErrorMessage(null);
                 }}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter") inviteMember();
+                  if (event.key === "Enter" && canInvite) void inviteMember();
                 }}
-                disabled={seatsLeft <= 0}
+                disabled={seatsLeft <= 0 || isSubmitting}
                 placeholder="teammate@company.com"
+                aria-invalid={isEmailInvalid}
                 className="h-[30px] min-w-0 flex-1 rounded-[6px] bg-[#F5F5F5] px-[10px] text-[12px] font-medium leading-none text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none placeholder:text-[#737373] focus:bg-white disabled:cursor-not-allowed disabled:opacity-50"
               />
               <button
                 type="button"
-                onClick={inviteMember}
+                onClick={() => void inviteMember()}
                 disabled={!canInvite}
                 className="inline-flex h-[30px] shrink-0 items-center justify-center rounded-[6px] bg-gradient-to-b from-[#8D87FF] to-[#4B3DCB] px-[12px] text-[12px] font-medium leading-none text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Add
+                {isSubmitting ? "Adding…" : "Add"}
               </button>
             </div>
           </div>
+          {emailErrorMessage ? <p className="mt-[10px] text-[12px] font-medium leading-[1.5] text-[#b91c1c]">{emailErrorMessage}</p> : null}
           {notice ? <p className="mt-[10px] text-[12px] font-medium leading-[1.5] text-[#166534]">{notice}</p> : null}
+          {errorMessage ? <p className="mt-[10px] text-[12px] font-medium leading-[1.5] text-[#b91c1c]">{errorMessage}</p> : null}
         </SettingsRow>
 
-        {teamSettings.members.map((member) => (
+        {rows.map((member) => (
           <SettingsRow key={member.id}>
             <div className="flex items-center justify-between gap-[16px]">
               <div className="flex min-w-0 items-center gap-[12px]">
@@ -122,13 +165,11 @@ export function TeamPanel() {
                 {member.id !== "current-user" ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      teamSettings.remove(member.id);
-                      setNotice(null);
-                    }}
-                    className="rounded-[6px] bg-[#F5F5F5] px-[12px] py-[6px] text-[12px] font-medium leading-none text-[#b91c1c] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FEF2F2]"
+                    onClick={() => void removeTeamMember(member.id)}
+                    disabled={removingId === member.id}
+                    className="rounded-[6px] bg-[#F5F5F5] px-[12px] py-[6px] text-[12px] font-medium leading-none text-[#b91c1c] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#FEF2F2] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Remove
+                    {removingId === member.id ? "Removing…" : "Remove"}
                   </button>
                 ) : null}
               </div>
@@ -138,31 +179,4 @@ export function TeamPanel() {
       </div>
     </SettingsCard>
   );
-}
-
-function useMockTeamSettings(currentUser: TeamMember) {
-  const [members, setMembers] = useState<TeamMember[]>(SAMPLE_MEMBERS);
-
-  return {
-    members: useMemo(() => [currentUser, ...members], [currentUser, members]),
-    invite(input: TeamInviteInput) {
-      const name = input.email.split("@")[0]?.replace(/[._-]+/g, " ") || input.email;
-      setMembers((current) => [
-        ...current,
-        {
-          id: `invited-${Date.now()}`,
-          name: titleCase(name),
-          email: input.email,
-          role: "Member",
-        },
-      ]);
-    },
-    remove(memberId: string) {
-      setMembers((current) => current.filter((member) => member.id !== memberId));
-    },
-  };
-}
-
-function titleCase(value: string) {
-  return value.replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

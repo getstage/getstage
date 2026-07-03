@@ -10,10 +10,29 @@ const RUNTIME_ERROR_PATTERN =
 const AUTH_INVALID_CODE_PATTERN =
   /invalid code|invalid verification code|code must be 6 digits|expired code|verification code|incorrect code|could not verify code/i;
 
-const AUTH_INVALID_EMAIL_PATTERN = /valid email|email address/i;
+const AUTH_INVALID_EMAIL_PATTERN = /valid email|invalid email/i;
+const WORKSPACE_INVITE_USER_NOT_FOUND_PATTERN =
+  /no user found with that email address|no user found with that email/i;
+const INSUFFICIENT_CREDITS_PATTERN = /insufficient_credits/i;
 const AUTH_UNAVAILABLE_PATTERN = /auth|oauth|loops-otp|google|sign in|signin/i;
 export const SESSION_EXPIRED_USER_MESSAGE =
   "Your session expired. Please log in again.";
+
+// Global signal so any run hook that hits insufficient_credits can surface the
+// paywall without each call site wiring its own callback. StageSidebar listens.
+export const CREDITS_EXHAUSTED_EVENT = "stage-credits-exhausted";
+
+function signalCreditsExhausted() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.dispatchEvent(new CustomEvent(CREDITS_EXHAUSTED_EVENT));
+}
+
+export function isInsufficientCreditsError(error: unknown): boolean {
+  const message = extractErrorMessage(error);
+  return message ? INSUFFICIENT_CREDITS_PATTERN.test(message) : false;
+}
 
 const SESSION_EXPIRED_PATTERN =
   /DesktopSessionExpiredError|session expired|please sign in again|please log in again|log in again|stage desktop session is not connected|not authenticated|unauthenticated|authentication required|invalid (auth|jwt|token)|token expired|failed with 401|failed with 403|access denied|forbidden/i;
@@ -27,6 +46,7 @@ const ENGINE_REMOTE_PATTERN =
 const SCREEN_CAPTURE_PERMISSION_PATTERN =
   /screen:list-window-sources|failed to get sources/i;
 const ENGINE_START_PATTERN = /engine:start-run/i;
+const PAPER_RENDER_FAILURE_PATTERN = /UnknownVizError/i;
 const MODULE_LOAD_PATTERN =
   /does not provide an export|failed to fetch dynamically imported module|cannot find module|module not found|importing a module script failed|error loading dynamically imported module|\/@fs\//i;
 const PROJECT_UPGRADE_REQUIRED_PATTERN =
@@ -117,6 +137,15 @@ export function toUserFacingErrorMessage(error: unknown, fallback: string): stri
     return "That code didn't work. Enter the latest 6-digit code from your email and try again.";
   }
 
+  if (WORKSPACE_INVITE_USER_NOT_FOUND_PATTERN.test(message)) {
+    return "No Stage account found for that email. They need to sign up first, then you can add them.";
+  }
+
+  if (INSUFFICIENT_CREDITS_PATTERN.test(message)) {
+    signalCreditsExhausted();
+    return "You're out of AI credits. Top up or upgrade your plan to keep generating.";
+  }
+
   if (AUTH_INVALID_EMAIL_PATTERN.test(message)) {
     return "Please enter a valid email address.";
   }
@@ -127,6 +156,10 @@ export function toUserFacingErrorMessage(error: unknown, fallback: string): stri
 
   if (SCREEN_CAPTURE_PERMISSION_PATTERN.test(message)) {
     return "Stage needs Screen Recording permission to capture. Turn it on in System Settings → Privacy & Security → Screen Recording, then reopen Stage.";
+  }
+
+  if (PAPER_RENDER_FAILURE_PATTERN.test(message)) {
+    return "Paper could not render this design. Try regenerating the screen, then export again.";
   }
 
   if (ENGINE_START_PATTERN.test(message) && NETWORK_PATTERN.test(message)) {

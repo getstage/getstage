@@ -68,8 +68,14 @@ export function useWireframeDeliveryExport(projectId: string) {
 }
 
 function formatDeliveryExportError(message: string) {
-  return message
+  const cleaned = message
     .replace(/^Error invoking remote method '[^']+': Error:\s*/, "")
     .replace(/^Stage Engine request failed with \d+:\s*/, "")
     .replace(/^Stage Engine request failed with \d+\.\s*/, "");
+  // Paper render/write failures (UnknownVizError, write_html failures, Paper not
+  // open) otherwise surface as raw engine text. Map them to one actionable line.
+  if (/UnknownVizError/i.test(cleaned) || /Paper .*failed/i.test(cleaned) || /Open Paper Desktop/i.test(cleaned)) {
+    return "Paper could not render this design. Try regenerating the screen, then export again.";
+  }
+  return cleaned;
 }

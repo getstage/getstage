@@ -2,7 +2,9 @@ const PUBLIC_WEB_PATHS = new Set([
   "/",
   "/auth",
   "/auth/desktop",
+  "/billing/return",
   "/download/mac",
+  "/open",
   "/terms",
   "/privacy",
 ]);
@@ -33,4 +35,20 @@ export function getWebRouteLockRedirect(pathname: string) {
   }
 
   return "/" as const;
+}
+
+// Legacy Stripe success/cancel URLs point at /dashboard?billing=* (web checkout).
+// The web app locks /dashboard → /download/mac, which traps desktop users after
+// external-browser checkout. Send them to the public billing return page instead.
+export function getLegacyBillingReturnRedirect(
+  pathname: string,
+  search: Record<string, unknown>,
+): "success" | "cancel" | null {
+  if (pathname !== "/dashboard") {
+    return null;
+  }
+  if (search.billing === "success" || search.billing === "cancel") {
+    return search.billing;
+  }
+  return null;
 }

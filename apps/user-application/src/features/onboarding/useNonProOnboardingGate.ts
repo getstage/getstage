@@ -42,11 +42,11 @@ export function useNonProOnboardingGate() {
     }
 
     const projectCount = projectsQuery.data?.length ?? 0;
-    const isPro = settingsOverviewQuery.data?.profile.plan === "pro";
+    const isPaid = settingsOverviewQuery.data?.profile.plan !== "free";
     const isOnboardingCompleted =
       hasCompletedOnboarding || (onboardingStateQuery.data?.isCompleted ?? false);
 
-    if (isPro) {
+    if (isPaid) {
       setOnboardingOpen(false);
       return;
     }

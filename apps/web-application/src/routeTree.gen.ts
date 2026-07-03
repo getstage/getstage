@@ -21,6 +21,7 @@ import { Route as AgentsIndexRouteImport } from './routes/agents/index'
 import { Route as PortalTokenRouteImport } from './routes/portal.$token'
 import { Route as HelpImportTransactionsViaGoogleSheetsRouteImport } from './routes/help/import-transactions-via-google-sheets'
 import { Route as DownloadMacRouteImport } from './routes/download.mac'
+import { Route as BillingReturnRouteImport } from './routes/billing.return'
 import { Route as AuthDesktopRouteImport } from './routes/auth.desktop'
 import { Route as AgentsStitchRouteImport } from './routes/agents/stitch'
 import { Route as AgentsSkillsRouteImport } from './routes/agents/skills'
@@ -91,6 +92,11 @@ const HelpImportTransactionsViaGoogleSheetsRoute =
 const DownloadMacRoute = DownloadMacRouteImport.update({
   id: '/download/mac',
   path: '/download/mac',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BillingReturnRoute = BillingReturnRouteImport.update({
+  id: '/billing/return',
+  path: '/billing/return',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthDesktopRoute = AuthDesktopRouteImport.update({
@@ -165,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/agents/skills': typeof AgentsSkillsRoute
   '/agents/stitch': typeof AgentsStitchRoute
   '/auth/desktop': typeof AuthDesktopRoute
+  '/billing/return': typeof BillingReturnRoute
   '/download/mac': typeof DownloadMacRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
@@ -188,6 +195,7 @@ export interface FileRoutesByTo {
   '/agents/skills': typeof AgentsSkillsRoute
   '/agents/stitch': typeof AgentsStitchRoute
   '/auth/desktop': typeof AuthDesktopRoute
+  '/billing/return': typeof BillingReturnRoute
   '/download/mac': typeof DownloadMacRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
@@ -214,6 +222,7 @@ export interface FileRoutesById {
   '/agents/skills': typeof AgentsSkillsRoute
   '/agents/stitch': typeof AgentsStitchRoute
   '/auth/desktop': typeof AuthDesktopRoute
+  '/billing/return': typeof BillingReturnRoute
   '/download/mac': typeof DownloadMacRoute
   '/help/import-transactions-via-google-sheets': typeof HelpImportTransactionsViaGoogleSheetsRoute
   '/portal/$token': typeof PortalTokenRouteWithChildren
@@ -240,6 +249,7 @@ export interface FileRouteTypes {
     | '/agents/skills'
     | '/agents/stitch'
     | '/auth/desktop'
+    | '/billing/return'
     | '/download/mac'
     | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
@@ -263,6 +273,7 @@ export interface FileRouteTypes {
     | '/agents/skills'
     | '/agents/stitch'
     | '/auth/desktop'
+    | '/billing/return'
     | '/download/mac'
     | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
@@ -288,6 +299,7 @@ export interface FileRouteTypes {
     | '/agents/skills'
     | '/agents/stitch'
     | '/auth/desktop'
+    | '/billing/return'
     | '/download/mac'
     | '/help/import-transactions-via-google-sheets'
     | '/portal/$token'
@@ -307,6 +319,7 @@ export interface RootRouteChildren {
   OpenclawRoute: typeof OpenclawRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
+  BillingReturnRoute: typeof BillingReturnRoute
   DownloadMacRoute: typeof DownloadMacRoute
   HelpImportTransactionsViaGoogleSheetsRoute: typeof HelpImportTransactionsViaGoogleSheetsRoute
   PortalTokenRoute: typeof PortalTokenRouteWithChildren
@@ -396,6 +409,13 @@ declare module '@tanstack/react-router' {
       path: '/download/mac'
       fullPath: '/download/mac'
       preLoaderRoute: typeof DownloadMacRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/billing/return': {
+      id: '/billing/return'
+      path: '/billing/return'
+      fullPath: '/billing/return'
+      preLoaderRoute: typeof BillingReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/desktop': {
@@ -557,6 +577,7 @@ const rootRouteChildren: RootRouteChildren = {
   OpenclawRoute: OpenclawRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
+  BillingReturnRoute: BillingReturnRoute,
   DownloadMacRoute: DownloadMacRoute,
   HelpImportTransactionsViaGoogleSheetsRoute:
     HelpImportTransactionsViaGoogleSheetsRoute,

@@ -1,7 +1,17 @@
 import { DoneCircleIcon, PendingIcon, SpinnerIcon } from "./wireframesIcons";
 
-export function GeneratingStep({ mode = "generate" }: { mode?: "generate" | "regenerate" }) {
+export function GeneratingStep({
+  mode = "generate",
+  screenCount,
+}: {
+  mode?: "generate" | "regenerate";
+  screenCount?: number;
+}) {
   const isRegenerate = mode === "regenerate";
+  const regenerateSubtitle =
+    typeof screenCount === "number" && screenCount > 0
+      ? `Rebuilding ${screenCount} selected screen${screenCount === 1 ? "" : "s"} with your current brand context. Other screens stay as-is.`
+      : "Hold tight, we\u2019re rebuilding the selected screens with your current brand context.";
 
   return (
     <div className="flex w-[330px] flex-col items-center gap-6 text-center">
@@ -19,7 +29,7 @@ export function GeneratingStep({ mode = "generate" }: { mode?: "generate" | "reg
         </h2>
         <p className="w-[282px] text-[13px] font-medium leading-[1.5] text-[#525252]">
           {isRegenerate
-            ? "Hold tight, we\u2019re rebuilding the selected screens with your current brand context."
+            ? regenerateSubtitle
             : "Hold tight, we\u2019re building your wireframes based on the moodboard and flows."}
         </p>
       </div>

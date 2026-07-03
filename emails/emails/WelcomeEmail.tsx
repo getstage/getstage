@@ -53,7 +53,7 @@ export const WelcomeEmail = ({
 
     <Text style={s.paragraph}>
       Once you open the app, you'll finish setting up your account and start
-      your 7-day free trial. Your first project is 5 minutes away.
+      your 14-day free trial. Your first project is 5 minutes away.
     </Text>
 
     <Divider />

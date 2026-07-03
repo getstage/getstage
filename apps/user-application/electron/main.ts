@@ -25,12 +25,14 @@ import {
 } from "./helpers/auto-update";
 import {
   createMainWindow,
+  getMainWindow,
   destroyOrphanCompanionWindows,
   openCompanionForLatestChatShortcut,
   openCompanionForVoiceShortcut,
   shouldSuppressMainWindowActivation,
 } from "./windows";
 import { registerVoiceShortcuts } from "./voice/shortcuts";
+import { isStageBillingUrl } from "./helpers/billing";
 
 loadLocalEnv();
 registerRendererProtocolSchemes();
@@ -149,6 +151,15 @@ function handleDeepLinkUrl(url: string) {
     return;
   }
 
+  if (isStageBillingUrl(url)) {
+    // Billing return: credits already synced via webhook + reactive queries;
+    // just bring Stage back to the front.
+    const window = getMainWindow() ?? createMainWindow();
+    window.show();
+    window.focus();
+    return;
+  }
+
   if (integrationsController.handleCallbackUrl(url)) {
     return;
   }
@@ -164,7 +175,7 @@ function handleDeepLinkUrl(url: string) {
 }
 
 function findStageDeepLinkUrl(argv: string[]) {
-  return findStageAuthUrl(argv) ?? findStageIntegrationUrl(argv) ?? null;
+  return findStageAuthUrl(argv) ?? findStageIntegrationUrl(argv) ?? argv.find(isStageBillingUrl) ?? null;
 }
 
 if (!isDevelopment && !app.requestSingleInstanceLock()) {

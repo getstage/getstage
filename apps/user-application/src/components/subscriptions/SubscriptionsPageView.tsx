@@ -1,52 +1,58 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useAction as useConvexAction } from "convex/react";
 import type { ReactNode } from "react";
+import { api } from "@/lib/convexApi";
+import { toUserFacingErrorMessage } from "@/lib/errors";
+import { openExternalLink } from "@/lib/settings/openExternalLink";
 
-const MIN_STUDIO_SEATS = 3;
-const STUDIO_MONTHLY_PRICE = 49;
-const STUDIO_YEARLY_PRICE = 41;
-const STUDIO_EXTRA_MONTHLY_SEAT_PRICE = 15;
-const STUDIO_EXTRA_YEARLY_SEAT_PRICE = 12;
+type Tier = "start" | "pro" | "team";
+type BillingCycle = "monthly" | "yearly";
 
-const PLAN_FEATURES = {
+const MIN_TEAM_SEATS = 3;
+const TEAM_MONTHLY_PRICE = 49;
+const TEAM_YEARLY_PRICE = 41;
+const TEAM_EXTRA_MONTHLY_SEAT_PRICE = 15;
+const TEAM_EXTRA_YEARLY_SEAT_PRICE = 12;
+
+const PLAN_FEATURES: Record<Tier, Array<{ iconSrc: string; label: string }>> = {
   start: [
-    { iconSrc: "/logos/pricing/folder.svg", label: "3 active projects" },
-    { iconSrc: "/logos/pricing/connect.svg", label: "Connect Claude, Figma, Notion & more" },
-    { iconSrc: "/logos/pricing/portal.svg", label: "Client portal (Stage branding)" },
-    { iconSrc: "/logos/pricing/storage.svg", label: "Unlimited file storage" },
-    { iconSrc: "/logos/ai-workflow.svg", label: "Full AI workflow access" },
+    { iconSrc: "/logos/pricing/folder.svg", label: "1 seat, 5,000 credits/mo (~20 projects)" },
+    { iconSrc: "/logos/ai-workflow.svg", label: "Full design workflow" },
+    { iconSrc: "/logos/pricing/connect.svg", label: "Bring your own Claude or Codex" },
+    { iconSrc: "/logos/pricing/portal.svg", label: "Standard client portal" },
     { iconSrc: "/logos/support.svg", label: "Standard support" },
   ],
   pro: [
+    { iconSrc: "/logos/pricing/folder.svg", label: "10,000 credits/mo (~40 projects)" },
     { iconSrc: "/logos/pricing/folder.svg", label: "Unlimited projects" },
-    { iconSrc: "/logos/pricing/connect.svg", label: "Connect Claude, Figma, Notion & more" },
     { iconSrc: "/logos/pricing/portal.svg", label: "Custom client portal (your brand, your domain)" },
-    { iconSrc: "/logos/pricing/storage.svg", label: "Unlimited file storage" },
-    { iconSrc: "/logos/ai-workflow.svg", label: "Full AI workflow access" },
+    { iconSrc: "/logos/pricing/storage.svg", label: "Top up credits anytime" },
     { iconSrc: "/logos/support.svg", label: "Priority support" },
   ],
-  studio: [
+  team: [
     { iconSrc: "/logos/dashboard/clients.svg", label: "3 seats included" },
-    { iconSrc: "/logos/dashboard/account.svg", label: "Unlimited additional seats ($15/seat)" },
-    { iconSrc: "/logos/pricing/folder.svg", label: "Unlimited projects" },
-    { iconSrc: "/logos/pricing/portal.svg", label: "Custom client portal (your brand, your domain)" },
+    { iconSrc: "/logos/dashboard/account.svg", label: "Unlimited extra seats ($15/mo each)" },
+    { iconSrc: "/logos/pricing/folder.svg", label: "18,000 pooled credits/mo (~70 projects)" },
     { iconSrc: "/logos/pricing/connect.svg", label: "Shared workspace & integrations" },
-    { iconSrc: "/logos/permission.svg", label: "Role permissions (owner, designer, viewer)" },
     { iconSrc: "/logos/support.svg", label: "Priority support" },
   ],
 };
 
 export function SubscriptionsPageView() {
   const navigate = useNavigate();
-  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
-  const [studioSeats, setStudioSeats] = useState(MIN_STUDIO_SEATS);
+  const createCheckoutSession = useConvexAction(api.billing.createCheckoutSession);
+  const [billingPeriod, setBillingPeriod] = useState<BillingCycle>("monthly");
+  const [teamSeats, setTeamSeats] = useState(MIN_TEAM_SEATS);
+  const [pendingTier, setPendingTier] = useState<Tier | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const isYearly = billingPeriod === "yearly";
-  const studioPrice = useMemo(
+  const teamPrice = useMemo(
     () =>
-      (isYearly ? STUDIO_YEARLY_PRICE : STUDIO_MONTHLY_PRICE) +
-      Math.max(0, studioSeats - MIN_STUDIO_SEATS) *
-        (isYearly ? STUDIO_EXTRA_YEARLY_SEAT_PRICE : STUDIO_EXTRA_MONTHLY_SEAT_PRICE),
-    [isYearly, studioSeats],
+      (isYearly ? TEAM_YEARLY_PRICE : TEAM_MONTHLY_PRICE) +
+      Math.max(0, teamSeats - MIN_TEAM_SEATS) *
+        (isYearly ? TEAM_EXTRA_YEARLY_SEAT_PRICE : TEAM_EXTRA_MONTHLY_SEAT_PRICE),
+    [isYearly, teamSeats],
   );
   const pricePeriod = isYearly ? "/month, billed yearly" : "/month";
   const backLabel = getBackLabel();
@@ -56,8 +62,29 @@ export function SubscriptionsPageView() {
       window.history.back();
       return;
     }
-
     void navigate({ to: "/settings/billing" });
+  }
+
+  async function startTrial(tier: Tier, seats?: number) {
+    setCheckoutError(null);
+    setPendingTier(tier);
+    try {
+      const result = await createCheckoutSession({
+        kind: "subscription",
+        tier,
+        billingCycle: billingPeriod,
+        isTrial: true,
+        ...(seats !== undefined ? { seats } : {}),
+        platform: "desktop",
+      });
+      if (!result.url) {
+        throw new Error("Checkout URL missing.");
+      }
+      await openExternalLink(result.url);
+    } catch (error) {
+      setCheckoutError(toUserFacingErrorMessage(error, "Checkout could not be started. Please try again."));
+      setPendingTier(null);
+    }
   }
 
   return (
@@ -75,28 +102,28 @@ export function SubscriptionsPageView() {
             </button>
 
             <header className="flex w-full flex-col gap-[28px]">
-            <div className="flex items-center gap-[2px]">
-              <img src="/logos/stage.svg" alt="" aria-hidden="true" className="h-[23px] w-[19px] object-contain brightness-0" />
-              <span className="text-[19px] font-semibold leading-none tracking-[-0.06em] text-black">Stage</span>
-            </div>
-            <div className="flex flex-col gap-[20px] min-[720px]:flex-row min-[720px]:items-end min-[720px]:justify-between">
-              <div>
-                <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0a0a0a]">
-                  Want to connect Claude, Figma & Notion?
-                </h1>
-                <p className="mt-[10px] text-[13px] font-medium leading-[1.5] text-[#525252]">
-                  Upgrade your workspace plan to unlock integrations.
-                </p>
+              <div className="flex items-center gap-[2px]">
+                <img src="/logos/stage.svg" alt="" aria-hidden="true" className="h-[23px] w-[19px] object-contain brightness-0" />
+                <span className="text-[19px] font-semibold leading-none tracking-[-0.06em] text-black">Stage</span>
               </div>
-              <div className="flex w-fit rounded-[8px] bg-[#f5f5f5] p-[2px]">
-                <BillingPeriodButton active={!isYearly} onClick={() => setBillingPeriod("monthly")}>
-                  Monthly
-                </BillingPeriodButton>
-                <BillingPeriodButton active={isYearly} onClick={() => setBillingPeriod("yearly")}>
-                  Yearly
-                </BillingPeriodButton>
+              <div className="flex flex-col gap-[20px] min-[720px]:flex-row min-[720px]:items-end min-[720px]:justify-between">
+                <div>
+                  <h1 className="text-[21px] font-semibold leading-[1.2] text-[#0a0a0a]">
+                    Pick your Stage plan
+                  </h1>
+                  <p className="mt-[10px] text-[13px] font-medium leading-[1.5] text-[#525252]">
+                    14-day free trial. Card required, cancel anytime.
+                  </p>
+                </div>
+                <div className="flex w-fit rounded-[8px] bg-[#f5f5f5] p-[2px]">
+                  <BillingPeriodButton active={!isYearly} onClick={() => setBillingPeriod("monthly")}>
+                    Monthly
+                  </BillingPeriodButton>
+                  <BillingPeriodButton active={isYearly} onClick={() => setBillingPeriod("yearly")}>
+                    Yearly · Save 17%
+                  </BillingPeriodButton>
+                </div>
               </div>
-            </div>
             </header>
           </div>
 
@@ -108,7 +135,10 @@ export function SubscriptionsPageView() {
                 pricePeriod={pricePeriod}
                 description="For builders shipping their first real products."
                 features={PLAN_FEATURES.start}
-                cta="Get Started"
+                cta="Start 14-Day Trial"
+                onCtaClick={() => startTrial("start")}
+                ctaLoading={pendingTier === "start"}
+                ctaDisabled={pendingTier !== null}
               />
               <PlanCard
                 name="Pro"
@@ -116,28 +146,38 @@ export function SubscriptionsPageView() {
                 pricePeriod={pricePeriod}
                 description="For freelancers who need full control."
                 features={PLAN_FEATURES.pro}
-                cta="Start 7-Day Trial"
+                cta="Start 14-Day Trial"
                 popular
                 primary
+                onCtaClick={() => startTrial("pro")}
+                ctaLoading={pendingTier === "pro"}
+                ctaDisabled={pendingTier !== null}
               />
               <PlanCard
                 name="Team"
-                price={studioPrice}
+                price={teamPrice}
                 pricePeriod={pricePeriod}
                 description="For small teams building together."
-                features={PLAN_FEATURES.studio}
-                cta="Start 7-Day Trial"
+                features={PLAN_FEATURES.team}
+                cta="Start 14-Day Trial"
                 meta="Team Plan"
+                onCtaClick={() => startTrial("team", teamSeats)}
+                ctaLoading={pendingTier === "team"}
+                ctaDisabled={pendingTier !== null}
                 seatControl={
                   <SeatControl
-                    seats={studioSeats}
-                    onDecrease={() => setStudioSeats((seats) => Math.max(MIN_STUDIO_SEATS, seats - 1))}
-                    onIncrease={() => setStudioSeats((seats) => seats + 1)}
+                    seats={teamSeats}
+                    onDecrease={() => setTeamSeats((seats) => Math.max(MIN_TEAM_SEATS, seats - 1))}
+                    onIncrease={() => setTeamSeats((seats) => seats + 1)}
                   />
                 }
               />
             </div>
           </section>
+
+          {checkoutError ? (
+            <p className="text-center text-[12px] font-medium leading-[1.5] text-[#B91C1C]">{checkoutError}</p>
+          ) : null}
 
           <p className="text-center text-[13px] font-medium leading-[1.5] text-[#737373]">
             You connect your own AI provider (Claude, Codex). No usage limits from Stage.
@@ -164,6 +204,9 @@ function PlanCard({
   popular = false,
   primary = false,
   seatControl,
+  onCtaClick,
+  ctaLoading = false,
+  ctaDisabled = false,
   className,
 }: {
   name: string;
@@ -177,6 +220,9 @@ function PlanCard({
   popular?: boolean;
   primary?: boolean;
   seatControl?: ReactNode;
+  onCtaClick: () => void;
+  ctaLoading?: boolean;
+  ctaDisabled?: boolean;
   className?: string;
 }) {
   return (
@@ -219,13 +265,15 @@ function PlanCard({
 
       <button
         type="button"
+        onClick={onCtaClick}
+        disabled={ctaDisabled}
         className={
           primary
-            ? "flex w-full items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] px-[12px] py-[10px] text-[13px] font-medium leading-none text-[#fafafa] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)]"
-            : "flex w-full items-center justify-center rounded-[6px] bg-[linear-gradient(180deg,#ffffff_0%,#f5f5f5_100%)] px-[10px] py-[10px] text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]"
+            ? "flex w-full items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] px-[12px] py-[10px] text-[13px] font-medium leading-none text-[#fafafa] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)] disabled:opacity-60"
+            : "flex w-full items-center justify-center rounded-[6px] bg-[linear-gradient(180deg,#ffffff_0%,#f5f5f5_100%)] px-[10px] py-[10px] text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] disabled:opacity-60"
         }
       >
-        {cta}
+        {ctaLoading ? "Loading…" : cta}
       </button>
     </article>
   );
@@ -296,7 +344,7 @@ function SeatControl({
 }) {
   return (
     <div className="flex shrink-0 items-center rounded-[8px] bg-[#f5f5f5] p-[2px]">
-      <SeatButton label="Remove seat" disabled={seats <= MIN_STUDIO_SEATS} onClick={onDecrease}>
+      <SeatButton label="Remove seat" disabled={seats <= MIN_TEAM_SEATS} onClick={onDecrease}>
         -
       </SeatButton>
       <div className="flex h-[26px] min-w-[32px] items-center justify-center rounded-[6px] px-[10px] text-[13px] font-medium leading-none text-[#0a0a0a]">

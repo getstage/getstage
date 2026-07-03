@@ -23,6 +23,41 @@ export function canListSystemFonts(): boolean {
   return getQueryLocalFonts() !== undefined;
 }
 
+export type LocalFontPermissionState = "unsupported" | "granted" | "prompt" | "denied" | "unknown";
+
+/** Session flag: user chose bundled fonts only and should not be prompted again. */
+export const SYSTEM_FONTS_SKIPPED_STORAGE_KEY = "stage:system-fonts-skipped";
+
+/** Reads the browser local-fonts permission when the API is available. */
+export async function getLocalFontPermissionState(): Promise<LocalFontPermissionState> {
+  if (!getQueryLocalFonts()) return "unsupported";
+
+  try {
+    if (!("permissions" in navigator) || typeof navigator.permissions.query !== "function") {
+      return "unknown";
+    }
+
+    const status = await navigator.permissions.query({
+      name: "local-fonts" as PermissionName,
+    });
+
+    if (status.state === "granted") return "granted";
+    if (status.state === "denied") return "denied";
+    return "prompt";
+  } catch {
+    return "unknown";
+  }
+}
+
+export function hasSkippedSystemFonts(): boolean {
+  if (typeof sessionStorage === "undefined") return false;
+  return sessionStorage.getItem(SYSTEM_FONTS_SKIPPED_STORAGE_KEY) === "1";
+}
+
+export function markSystemFontsSkipped(): void {
+  sessionStorage.setItem(SYSTEM_FONTS_SKIPPED_STORAGE_KEY, "1");
+}
+
 /**
  * Lists installed font families via the Local Font Access API
  * (`window.queryLocalFonts`), available in the desktop (Electron) build where

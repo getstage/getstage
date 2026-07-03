@@ -45,6 +45,7 @@ export function mapWireframesArtifactToTabData(artifact: WireframesArtifact): Wi
       title: screen.title,
       priority: screen.priority,
       generatedAtLabel: screen.generatedAtLabel,
+      generatedAt: screen.generatedAt,
       figmaUrl: screen.figmaUrl,
       goal: screen.goal,
       sections: screen.sections,
@@ -79,7 +80,10 @@ export function buildResultCards(
       return {
         ...screen,
         date: generated?.generatedAtLabel ?? generatedAtLabel,
-        generatedAt,
+        // Per-screen timestamp so a partial regen only bumps the regenerated
+        // cards; fall back to the artifact time, then to the `date` label string
+        // (via WireframeCard) when neither numeric time exists.
+        generatedAt: generated?.generatedAt ?? generatedAt,
         goal: generated?.goal,
         sections: generated?.sections,
         html: generated?.html,

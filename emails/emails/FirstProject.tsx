@@ -27,7 +27,7 @@ export const FirstProject = ({
   >
     <Text style={s.greeting}>Hey {firstName},</Text>
     <Text style={s.lede}>
-      You're in - your 7-day trial is running. Let's make the most of it.
+      You're in - your 14-day trial is running. Let's make the most of it.
     </Text>
     <Text style={s.paragraph}>
       The fastest way to see what Stage can do: create your first project.

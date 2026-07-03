@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import type { DashboardProject } from "@/models/dashboard/dashboard";
 import { getActiveProjectId } from "@/lib/dashboard/sidebarNav";
@@ -11,6 +11,7 @@ import {
   viewAllSidebarProjects,
 } from "@/lib/dashboard/sidebarActions";
 import { useSidebarSearch } from "@/hooks/dashboard/useSidebarSearch";
+import { CREDITS_EXHAUSTED_EVENT } from "@/lib/errors";
 import { CreditsExhaustedModal } from "./sidebar/CreditsExhaustedModal";
 import { SidebarAccountMenu } from "./sidebar/SidebarAccountMenu";
 import { SidebarCollapseControl } from "./sidebar/SidebarCollapseControl";
@@ -46,6 +47,16 @@ export function StageSidebar({
   const activeProjectId = getActiveProjectId(pathname);
   const search = useSidebarSearch(projects, collapsed);
   const [isCreditsExhaustedModalOpen, setIsCreditsExhaustedModalOpen] = useState(false);
+
+  useEffect(() => {
+    function handleCreditsExhausted() {
+      setIsCreditsExhaustedModalOpen(true);
+    }
+    window.addEventListener(CREDITS_EXHAUSTED_EVENT, handleCreditsExhausted);
+    return () => {
+      window.removeEventListener(CREDITS_EXHAUSTED_EVENT, handleCreditsExhausted);
+    };
+  }, []);
 
   function openSubscriptions() {
     sessionStorage.setItem("stage:subscriptions-back-label", "Back to dashboard");
@@ -108,9 +119,9 @@ export function StageSidebar({
       <div className={cn("mt-auto flex w-full shrink-0 flex-col gap-[clamp(8px,2vh,16px)] pt-[clamp(8px,2vh,16px)]", collapsed && "items-center")}>
         <SidebarCreditsCard
           collapsed={collapsed}
-          creditsRemaining={0}
           onTopUp={openBilling}
           onManagePlan={openBilling}
+          onExhausted={() => setIsCreditsExhaustedModalOpen(true)}
         />
 
         {!collapsed ? <div className="h-px w-full shrink-0 bg-[#E5E5E5]" /> : null}

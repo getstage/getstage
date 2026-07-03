@@ -1,4 +1,5 @@
 import type { EngineError, ProviderId, RunEvent } from "@stage/data-ops/contracts";
+import { toUserFacingErrorMessage } from "@/lib/errors";
 
 /** Shown in the Research UI when a run fails. Technical detail goes to the dev terminal only. */
 export const RESEARCH_RUN_FAILED_USER_MESSAGE =
@@ -80,6 +81,15 @@ export function toEngineErrorUserMessage(
   fallback = CHAT_RUN_FAILED_USER_MESSAGE,
 ): string {
   const text = combinedErrorText(error);
+
+  // Out of credits: the engine wraps the Convex `insufficient_credits` throw as a
+  // generic internal_error, with the real cause in error.detail. Catch it here so
+  // the user sees a clear message (and the paywall opens) instead of the generic
+  // "context could not be loaded". toUserFacingErrorMessage fires the paywall event.
+  if (/insufficient_credits/i.test(text)) {
+    return toUserFacingErrorMessage(text, fallback);
+  }
+
   const label = providerLabel(error.providerId, text);
   const loginCmd = providerLoginCommand(error.providerId ?? (/claude/i.test(text) ? "claude" : "codex"));
 

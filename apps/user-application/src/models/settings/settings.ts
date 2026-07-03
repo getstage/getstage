@@ -80,7 +80,7 @@ export type SettingsSnapshot = z.infer<typeof settingsSnapshotSchema>;
 
 export const userRoleSchema = z.enum(["freelancer", "studio", "in-house", "agency"]);
 
-export const planSchema = z.enum(["free", "pro"]);
+export const planSchema = z.enum(["free", "start", "pro", "team"]);
 
 export const settingsOverviewSchema = z.object({
   profile: z.object({

@@ -49,7 +49,7 @@ export const DownloadReminder = ({
     />
 
     <Text style={s.paragraph}>
-      Once you open it, you'll set up your account and start your 7-day free
+      Once you open it, you'll set up your account and start your 14-day free
       trial. Everything runs locally on your Mac.
     </Text>
 

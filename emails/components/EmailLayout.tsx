@@ -34,6 +34,10 @@ export interface EmailLayoutProps {
 const DEFAULT_MARK = "https://getstage.co/email/stage-mark.png";
 const DEFAULT_UNSUBSCRIBE_URL = "{{unsubscribe_url}}";
 
+// Injected by renderStageEmail so the per-recipient unsubscribe URL reaches
+// EmailLayout without every template having to forward the prop explicitly.
+export const UnsubscribeUrlContext = React.createContext<string | undefined>(undefined);
+
 export const EmailLayout = ({
   preview,
   markUrl = DEFAULT_MARK,
@@ -42,8 +46,10 @@ export const EmailLayout = ({
   children,
   signoffLine,
   signature = "Adrien",
-  unsubscribeUrl = DEFAULT_UNSUBSCRIBE_URL,
+  unsubscribeUrl,
 }: EmailLayoutProps) => {
+  const resolvedUnsubscribeUrl =
+    unsubscribeUrl ?? React.useContext(UnsubscribeUrlContext) ?? DEFAULT_UNSUBSCRIBE_URL;
   return (
     <Html lang="en">
       <Head>
@@ -53,11 +59,13 @@ export const EmailLayout = ({
       <Preview>{preview}</Preview>
 
       <Body style={s.body}>
-        <Container style={s.container}>
-          {hero}
+      <Container style={s.container}>
+        {/* React 19 resolves two @types/react copies in this tree (ours + @react-email/components').
+            Cast at the handoff instead of pinning a repo-wide pnpm override. */}
+        {hero as any}
 
           <Section style={hero ? s.logoSection : s.logoSectionNoHero}>
-            {headerNode ?? (
+            {(headerNode ?? (
               <table
                 role="presentation"
                 cellPadding={0}
@@ -82,10 +90,10 @@ export const EmailLayout = ({
                   </tr>
                 </tbody>
               </table>
-            )}
+            )) as any}
           </Section>
 
-          {children}
+          {children as any}
 
           {signoffLine && <Text style={s.signoff}>{signoffLine}</Text>}
           <Text style={s.signature}>{signature}</Text>
@@ -98,7 +106,7 @@ export const EmailLayout = ({
               getstage.co
             </Link>
             {" · "}
-            <Link href={unsubscribeUrl} style={s.footerLink}>
+            <Link href={resolvedUnsubscribeUrl} style={s.footerLink}>
               Unsubscribe
             </Link>
           </Text>

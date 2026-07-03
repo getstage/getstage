@@ -23,6 +23,7 @@ import {
 import { normalizeOptional } from "../domain/normalize";
 import { now } from "../domain/time";
 import { projectAiProviderId } from "../domain/validators";
+import { CREDIT_COSTS, recordUsage, requireCredits } from "../../credits/service";
 
 export const createResearchRunArgs = {
   projectId: v.id("projects"),
@@ -40,7 +41,8 @@ export async function createResearchRunHandler(
     externalRunId?: string;
   },
 ) {
-  const { user } = await requireProjectAccess(ctx, args.projectId);
+  const { user, project } = await requireProjectAccess(ctx, args.projectId);
+  await requireCredits(ctx, project.userId, CREDIT_COSTS.researchFallback);
   const existingRunning = await findRunningRunForProjectModule(ctx, args.projectId, "research");
 
   if (existingRunning) {
@@ -120,7 +122,7 @@ export async function completeResearchRunHandler(
     providerId?: "claude" | "codex";
   },
 ) {
-  const { user } = await requireProjectAccess(ctx, args.projectId);
+  const { user, project } = await requireProjectAccess(ctx, args.projectId);
 
   if (args.runId) {
     const run = await getRunRecord(ctx, args.runId);
@@ -153,6 +155,15 @@ export async function completeResearchRunHandler(
   }
 
   const completedAt = args.runId ? await completeRunRecord(ctx, args.runId) : now();
+
+  // Charge Refero usage once the research artifact is saved. Idempotent on runId.
+  await recordUsage(ctx, {
+    ownerUserId: project.userId,
+    kind: "reference",
+    credits: CREDIT_COSTS.researchFallback,
+    userId: user._id,
+    runId: args.runId ? String(args.runId) : undefined,
+  });
 
   return {
     artifactId: String(artifactId),

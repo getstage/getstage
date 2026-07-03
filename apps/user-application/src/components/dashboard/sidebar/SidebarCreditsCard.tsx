@@ -1,36 +1,55 @@
-import { useState, type KeyboardEvent, type MouseEvent } from "react";
+import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { cn } from "@/lib/utils";
-
-const CREDIT_LIMIT = 5000;
-const CREDIT_REMAINING = 2890;
-const CREDIT_USED_PERCENT = 55;
-
-const CREDIT_USAGE_BREAKDOWN = [
-  { label: "Voice Board", value: "42%" },
-  { label: "Mood Board", value: "31%" },
-  { label: "References", value: "27%" },
-] as const;
+import { useCreditSummaryQuery, useSettingsOverviewQuery } from "@/hooks/convex-data";
+import {
+  formatSubscriptionPeriodDate,
+  subscriptionPeriodLabel,
+} from "@/lib/billing/subscriptionPeriodLabel";
 
 type SidebarCreditsCardProps = {
   collapsed: boolean;
   onTopUp: () => void;
   onManagePlan: () => void;
-  creditsRemaining?: number;
-  creditLimit?: number;
-  creditUsedPercent?: number;
+  onExhausted?: () => void;
 };
 
 export function SidebarCreditsCard({
   collapsed,
   onTopUp,
   onManagePlan,
-  creditsRemaining = CREDIT_REMAINING,
-  creditLimit = CREDIT_LIMIT,
-  creditUsedPercent = CREDIT_USED_PERCENT,
+  onExhausted,
 }: SidebarCreditsCardProps) {
+  const credits = useCreditSummaryQuery();
+  const overview = useSettingsOverviewQuery();
   const [isExpanded, setIsExpanded] = useState(false);
-  const isOutOfCredits = creditsRemaining <= 0;
-  const usedPercent = isOutOfCredits ? 100 : Math.min(100, Math.max(0, creditUsedPercent));
+
+  const remaining = credits.data?.total ?? 0;
+  const usedByKind = credits.data?.usedByKind ?? { voice: 0, moodboard: 0, reference: 0, other: 0 };
+  const usedTotal = usedByKind.voice + usedByKind.moodboard + usedByKind.reference + usedByKind.other;
+  const granted = remaining + usedTotal;
+  const usedPercent = granted > 0 ? Math.round((usedTotal / granted) * 100) : 0;
+  const isOutOfCredits = granted > 0 && remaining <= 0;
+  const isLoading = credits.isLoading;
+
+  // Voice = transcription; Visuals = Refero (moodboard + research references).
+  const visualsUsed = usedByKind.moodboard + usedByKind.reference;
+  const breakdown = [
+    { label: "Voice", value: usedByKind.voice },
+    { label: "Visuals", value: visualsUsed },
+  ];
+  const breakdownTotal = usedByKind.voice + visualsUsed;
+
+  const subscription = overview.data?.subscription ?? null;
+  const periodDate = subscription?.currentPeriodEnd
+    ? formatSubscriptionPeriodDate(subscription.currentPeriodEnd, "sidebar")
+    : null;
+  const periodLabel = subscription ? subscriptionPeriodLabel(subscription, "sidebar") : null;
+
+  useEffect(() => {
+    if (isOutOfCredits) {
+      onExhausted?.();
+    }
+  }, [isOutOfCredits, onExhausted]);
 
   if (collapsed) {
     return null;
@@ -44,7 +63,6 @@ export function SidebarCreditsCard({
     if (event.key !== "Enter" && event.key !== " ") {
       return;
     }
-
     event.preventDefault();
     toggleExpanded();
   }
@@ -89,21 +107,21 @@ export function SidebarCreditsCard({
           <div className="flex items-end justify-between gap-3">
             <div className="flex min-w-0 flex-col gap-[4px]">
               <p className="text-[16px] font-semibold leading-[1.2] tracking-[-0.16px] text-[#0A0A0A]">
-                {creditsRemaining.toLocaleString()}
+                {isLoading ? "—" : remaining.toLocaleString()}
               </p>
               <p className="truncate text-[12px] font-medium leading-[1.5] text-[#737373]">
-                of {creditLimit.toLocaleString()} credits
+                of {isLoading ? "—" : granted.toLocaleString()} credits
               </p>
             </div>
             <p className="shrink-0 text-[11px] font-medium leading-[1.5] text-[#737373]">
-              {usedPercent}% used
+              {isLoading ? "—" : `${usedPercent}% used`}
             </p>
           </div>
 
           <div className="h-[7px] w-full overflow-hidden rounded-[4px] bg-[#E5E5E5]">
             <div
               className="h-full rounded-[4px] bg-[#3B368E]"
-              style={{ width: `${usedPercent}%` }}
+              style={{ width: `${isOutOfCredits ? 100 : usedPercent}%` }}
             />
           </div>
 
@@ -116,30 +134,35 @@ export function SidebarCreditsCard({
             <div className="min-h-0 overflow-hidden">
               <div className="flex flex-col gap-[8px] pt-[2px]">
                 <div className="flex flex-col gap-[2px]">
-                  {CREDIT_USAGE_BREAKDOWN.map((item) => (
-                    <div key={item.label} className="flex items-center justify-between gap-3">
+                  {breakdown.map((item) => {
+                    const share = breakdownTotal > 0 ? Math.round((item.value / breakdownTotal) * 100) : 0;
+                    return (
+                      <div key={item.label} className="flex items-center justify-between gap-3">
+                        <p className="truncate text-[12px] font-medium leading-[1.5] text-[#737373]">
+                          {item.label}
+                        </p>
+                        <p className="shrink-0 text-[11px] font-medium leading-[1.5] text-[#262626]">
+                          {isLoading ? "—" : `${share}%`}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {periodDate && periodLabel ? (
+                  <>
+                    <div className="h-px w-full bg-[#E5E5E5]" />
+                    <div className="flex items-center justify-between gap-3">
                       <p className="truncate text-[12px] font-medium leading-[1.5] text-[#737373]">
-                        {item.label}
+                        {periodLabel}
                       </p>
                       <p className="shrink-0 text-[11px] font-medium leading-[1.5] text-[#262626]">
-                        {item.value}
+                        {periodDate}
                       </p>
                     </div>
-                  ))}
-                </div>
-
-                <div className="h-px w-full bg-[#E5E5E5]" />
-
-                <div className="flex items-center justify-between gap-3">
-                  <p className="truncate text-[12px] font-medium leading-[1.5] text-[#737373]">
-                    Renews
-                  </p>
-                  <p className="shrink-0 text-[11px] font-medium leading-[1.5] text-[#262626]">
-                    Jul 14
-                  </p>
-                </div>
-
-                <div className="h-px w-full bg-[#E5E5E5]" />
+                    <div className="h-px w-full bg-[#E5E5E5]" />
+                  </>
+                ) : null}
               </div>
             </div>
           </div>

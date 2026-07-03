@@ -37,7 +37,7 @@ export const TrialEnding = ({
     </Section>
 
     <Text style={s.paragraph}>
-      Quick heads up - your 7-day trial ends tomorrow. Your card on file will
+      Quick heads up - your 14-day trial ends tomorrow. Your card on file will
       be charged automatically and your plan kicks in. No interruption, your
       projects stay exactly where they are.
     </Text>
