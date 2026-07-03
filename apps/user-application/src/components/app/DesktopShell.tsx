@@ -21,11 +21,16 @@ const VoiceControlBar = lazy(() =>
 type DesktopShellProps = {
   children: ReactNode;
   hideCompanion?: boolean;
+  forceHideCompanion?: boolean;
 };
 
 const SHORTCUT_DEBOUNCE_MS = 400;
 
-export function DesktopShell({ children, hideCompanion = false }: DesktopShellProps) {
+export function DesktopShell({
+  children,
+  hideCompanion = false,
+  forceHideCompanion = false,
+}: DesktopShellProps) {
   const isCompanionWindow = new URLSearchParams(window.location.search).get("stageWindow") === "companion";
   const companion = useCompanionState("idle");
   const { enabled: allowStageWidgetEverywhere } = useStageWidgetVisibility();
@@ -191,7 +196,7 @@ export function DesktopShell({ children, hideCompanion = false }: DesktopShellPr
   return (
     <div className="stage-desktop-shell min-h-dvh">
       {children}
-      {!hideCompanion || allowStageWidgetEverywhere ? (
+      {!forceHideCompanion && (!hideCompanion || allowStageWidgetEverywhere) ? (
         <>
           <Suspense fallback={null}>
             <VoiceControlBar state={companion.state} onStateChange={companion.setState} />
