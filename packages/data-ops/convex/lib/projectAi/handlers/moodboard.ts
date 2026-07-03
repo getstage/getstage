@@ -14,6 +14,7 @@ import {
 import { normalizeOptional } from "../domain/normalize";
 import { now } from "../domain/time";
 import type { AiModule } from "../domain/validators";
+import { CREDIT_COSTS, recordUsage, requireCredits } from "../../credits/service";
 
 /**
  * Save the moodboard board structure (references + directions + uploaded files)
@@ -95,9 +96,13 @@ async function createRunningModuleRun(
     title: string;
     inputSummary?: string;
     externalRunId?: string;
+    precheckCredits?: number;
   },
 ) {
-  const { user } = await requireProjectAccess(ctx, args.projectId);
+  const { user, project } = await requireProjectAccess(ctx, args.projectId);
+  if (args.precheckCredits && args.precheckCredits > 0) {
+    await requireCredits(ctx, project.userId, args.precheckCredits);
+  }
   const existingRunning = await findRunningRunForProjectModule(ctx, args.projectId, args.module);
 
   if (existingRunning) {
@@ -148,6 +153,7 @@ export async function createMoodboardRunHandler(
     module: "moodboard",
     title: args.title,
     externalRunId: args.externalRunId,
+    precheckCredits: CREDIT_COSTS.moodboardFallback,
   });
 }
 
@@ -160,13 +166,26 @@ export async function completeMoodboardRunHandler(
   ctx: MutationCtx,
   args: { projectId: Id<"projects">; runId: Id<"projectAiRuns"> },
 ) {
-  await requireProjectAccess(ctx, args.projectId);
+  const { user, project } = await requireProjectAccess(ctx, args.projectId);
   const run = await getRunRecord(ctx, args.runId);
   if (run.projectId !== args.projectId) {
     throw new Error("Run not found.");
   }
 
   const completedAt = await completeRunRecord(ctx, args.runId);
+
+  // Only moodboard imports are metered; styleguide runs reuse this handler and
+  // must never be charged.
+  if (run.module === "moodboard") {
+    await recordUsage(ctx, {
+      ownerUserId: project.userId,
+      kind: "moodboard",
+      credits: CREDIT_COSTS.moodboardFallback,
+      userId: user._id,
+      runId: String(args.runId),
+    });
+  }
+
   return { completedAt };
 }
 

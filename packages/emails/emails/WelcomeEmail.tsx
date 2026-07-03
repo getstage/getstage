@@ -3,26 +3,27 @@ import * as React from "react";
 import { CTAButton, Divider, EmailLayout } from "../components/EmailLayout";
 import * as s from "../components/tokens";
 
-export interface DownloadReminderProps {
+export interface WelcomeEmailProps {
   firstName?: string;
   downloadUrl?: string;
   windowsWaitlistUrl?: string;
   markUrl?: string;
-  appleIconUrl?: string;
   heroUrl?: string;
+  appleIconUrl?: string;
 }
 
-export const DownloadReminder = ({
+export const WelcomeEmail = ({
   firstName = "there",
   downloadUrl = "https://getstage.co/download/mac",
   windowsWaitlistUrl = "https://forms.gle/7X47mM7NmzgoMjeV8",
   markUrl,
-  appleIconUrl = "https://getstage.co/email/apple-glyph-white.png",
   heroUrl = "https://getstage.co/email/stage-hero.png",
-}: DownloadReminderProps) => (
+  appleIconUrl = "https://getstage.co/email/apple-glyph-white.png",
+}: WelcomeEmailProps) => (
   <EmailLayout
-    preview="You haven't downloaded Stage yet - it takes 30 seconds."
+    preview="Welcome to Stage - download the Mac app to start your trial."
     markUrl={markUrl}
+    signoffLine="Talk soon,"
     hero={
       <Section style={s.heroSection}>
         <Img
@@ -36,11 +37,13 @@ export const DownloadReminder = ({
     }
   >
     <Text style={s.greeting}>Hey {firstName},</Text>
-    <Text style={s.lede}>You haven't downloaded Stage yet.</Text>
+    <Text style={s.lede}>Welcome to Stage - you just made the right call.</Text>
     <Text style={s.paragraph}>
-      You signed up for Stage yesterday but haven't downloaded the app yet. No
-      worries - it takes 30 seconds.
+      Stage is a design workspace that takes you from brief to wireframes,
+      powered by AI. Research, strategy, concepts, wireframes - all in one
+      place, with your own Claude or Codex doing the heavy lifting.
     </Text>
+    <Text style={s.paragraph}>Your next step: download Stage for Mac.</Text>
 
     <CTAButton
       href={downloadUrl}
@@ -49,13 +52,15 @@ export const DownloadReminder = ({
     />
 
     <Text style={s.paragraph}>
-      Once you open it, you'll set up your account and start your 7-day free
-      trial. Everything runs locally on your Mac.
+      Once you open the app, you'll finish setting up your account and start
+      your 14-day free trial. Your first project is 5 minutes away.
     </Text>
 
     <Divider />
 
-    <Text style={s.secondary}>Not on Mac?</Text>
+    <Text style={s.secondary}>
+      Quick heads up - Stage is a macOS app. If you're on Windows, no worries.
+    </Text>
     <Text style={s.secondaryLinkRow}>
       <Link href={windowsWaitlistUrl} style={s.textLink}>
         Join the Windows waitlist →
@@ -64,11 +69,11 @@ export const DownloadReminder = ({
   </EmailLayout>
 );
 
-DownloadReminder.PreviewProps = {
+WelcomeEmail.PreviewProps = {
   firstName: "Adrien",
   markUrl: "/static/stage-mark.svg",
-  appleIconUrl: "/static/apple-glyph-white.svg",
   heroUrl: "/static/stage-hero.png",
-} satisfies DownloadReminderProps;
+  appleIconUrl: "/static/apple-glyph-white.svg",
+} satisfies WelcomeEmailProps;
 
-export default DownloadReminder;
+export default WelcomeEmail;

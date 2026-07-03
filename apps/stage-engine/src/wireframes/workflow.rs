@@ -194,6 +194,7 @@ impl WireframesWorkflow {
                     existing_json,
                     artifact,
                     screen_ids,
+                    wireframe_kind,
                 )
                 .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))?;
             }
@@ -217,12 +218,18 @@ impl WireframesWorkflow {
                 "wireframes artifact saved to Convex"
             );
 
+            // Regen runs touch only the selected screens; a count-based message keeps
+            // the success copy honest instead of implying a full rebuild.
+            let final_text = match regenerate_screen_ids.as_ref() {
+                Some(ids) => format!("Updated {} wireframe screen(s).", ids.len()),
+                None => "Wireframes generated.".to_string(),
+            };
             sink.send(RunEvent::RunCompleted {
                 api_version,
                 run_id: run_id.clone(),
                 provider_id,
                 created_at: now_millis(),
-                final_text: Some("Wireframes generated.".to_string()),
+                final_text: Some(final_text),
             });
 
             Ok::<(), WorkflowError>(())

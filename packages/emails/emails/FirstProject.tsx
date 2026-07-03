@@ -4,7 +4,7 @@ import { CTAButton, Divider, EmailLayout } from "../components/EmailLayout";
 import * as s from "../components/tokens";
 import { SLACK_INVITE_URL } from "../components/links";
 
-export interface TrialEndingProps {
+export interface FirstProjectProps {
   firstName?: string;
   openAppUrl?: string;
   markUrl?: string;
@@ -13,20 +13,25 @@ export interface TrialEndingProps {
   workspaceImageUrl?: string;
 }
 
-export const TrialEnding = ({
+export const FirstProject = ({
   firstName = "there",
   openAppUrl = "https://getstage.co/open",
   markUrl,
   stageIconUrl = "https://getstage.co/email/stage-mark-white.png",
   slackUrl = SLACK_INVITE_URL,
   workspaceImageUrl = "https://getstage.co/email/stage-workspace.png",
-}: TrialEndingProps) => (
+}: FirstProjectProps) => (
   <EmailLayout
-    preview="Your trial ends tomorrow - here's what happens next."
+    preview="Create your first project in 5 minutes."
     markUrl={markUrl}
   >
     <Text style={s.greeting}>Hey {firstName},</Text>
-    <Text style={s.lede}>Your trial ends tomorrow.</Text>
+    <Text style={s.lede}>
+      You're in - your 14-day trial is running. Let's make the most of it.
+    </Text>
+    <Text style={s.paragraph}>
+      The fastest way to see what Stage can do: create your first project.
+    </Text>
 
     <Section style={s.sectionImageWrap}>
       <Img
@@ -36,39 +41,25 @@ export const TrialEnding = ({
       />
     </Section>
 
-    <Text style={s.paragraph}>
-      Quick heads up - your 7-day trial ends tomorrow. Your card on file will
-      be charged automatically and your plan kicks in. No interruption, your
-      projects stay exactly where they are.
+    <Text style={s.subheading}>Here's how (5 minutes):</Text>
+    <Text style={s.listItem}>1. Open Stage and hit "New Project"</Text>
+    <Text style={s.listItem}>
+      2. Paste a brief or describe what you're working on
     </Text>
-    <Text style={s.paragraph}>
-      If you want to cancel, you can do it in Settings before the trial ends.
-      No questions asked.
-    </Text>
-    <Text style={s.paragraph}>
-      But if Stage helped you move faster on even one project this week - the
-      research, the AI workflows, the client portal - it's already paying for
-      itself.
+    <Text style={s.listItem}>
+      3. Let the AI pull together research, references, and a starting direction
     </Text>
 
-    <Divider />
-
-    <Text style={s.subheading}>A few things you might not have tried yet:</Text>
-    <Text style={s.listItem}>
-      • Use the Mac shortcut to get instant AI feedback on whatever's on your
-      screen
-    </Text>
-    <Text style={s.listItem}>
-      • Generate multiple concept directions from a single brief
-    </Text>
-    <Text style={s.listItem}>
-      • Use the portal to collect client revisions in one place
+    <Text style={s.paragraph}>
+      That's it. Stage takes your brief and gives you a head start - competitor
+      research, visual references, and structure - so you're not starting from
+      a blank canvas.
     </Text>
 
     <CTAButton href={openAppUrl} label="Open Stage" iconUrl={stageIconUrl} />
 
     <Text style={s.paragraph}>
-      If you have any feedback or questions, just reply here. I read every one.
+      If you get stuck, just reply to this email. I read every one.
     </Text>
 
     <Divider />
@@ -83,11 +74,11 @@ export const TrialEnding = ({
   </EmailLayout>
 );
 
-TrialEnding.PreviewProps = {
+FirstProject.PreviewProps = {
   firstName: "Adrien",
   markUrl: "/static/stage-mark.svg",
   stageIconUrl: "/static/stage-mark-white.svg",
   workspaceImageUrl: "/static/stage-workspace.png",
-} satisfies TrialEndingProps;
+} satisfies FirstProjectProps;
 
-export default TrialEnding;
+export default FirstProject;

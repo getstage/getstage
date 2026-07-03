@@ -16,6 +16,15 @@ export const signInEmailSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address."),
 });
 
+export const inviteTeamMemberSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, "Enter an email address.")
+    .max(254, "Email is too long.")
+    .email("Please enter a valid email address."),
+});
+
 export const verificationCodeSchema = z.object({
   code: z
     .string()

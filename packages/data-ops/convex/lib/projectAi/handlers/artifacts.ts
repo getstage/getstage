@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import type { Id } from "../../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../../_generated/server";
-import { requireProjectAccess } from "../../../_helpers";
+import { requireProjectAccess, requireProjectAccessOrNull } from "../../../_helpers";
 import { deleteDownstreamArtifacts } from "../domain/artifactStore";
 import {
   findLatestArtifact,
@@ -26,7 +26,10 @@ async function latestArtifactHandler(
   kind: string,
   resolveContentJson?: (contentJson: string | null | undefined) => Promise<string | null>,
 ) {
-  await requireProjectAccess(ctx, args.projectId);
+  const access = await requireProjectAccessOrNull(ctx, args.projectId);
+  if (!access) {
+    return null;
+  }
   const latest = await findLatestArtifact(ctx, args.projectId, module, kind);
   if (!latest) {
     return null;

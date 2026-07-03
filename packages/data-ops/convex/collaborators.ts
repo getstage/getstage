@@ -2,7 +2,9 @@ import { action, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireProjectOwner } from "./_helpers";
 import { internal } from "./_generated/api";
-import { enforceProjectInviteRateLimit } from "./platform/rateLimits";
+import { enforceWorkspaceInviteRateLimit } from "./platform/rateLimits";
+import { sendInviteEmail, toInviteErrorMessage } from "./platform/inviteEmail";
+import { listWorkspaceMembers } from "./domain/collaborators/service";
 import type { Id } from "./_generated/dataModel";
 
 type AddedCollaboratorPayload = {
@@ -21,83 +23,6 @@ type AddCollaboratorResult = {
   inviteError?: string;
 };
 
-function getEnv(name: string) {
-  return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[
-    name
-  ];
-}
-
-function getProjectInviteTransactionalId() {
-  const transactionalId =
-    getEnv("LOOPS_INVITE_TRANSACTIONAL_ID") ??
-    getEnv("LOOPS_PROJECT_INVITE_TRANSACTIONAL_ID") ??
-    getEnv("AUTH_LOOPS_PROJECT_INVITE_TRANSACTIONAL_ID") ??
-    null;
-
-  if (!transactionalId) {
-    throw new Error("LOOPS_INVITE_TRANSACTIONAL_ID is not set");
-  }
-
-  return transactionalId;
-}
-
-function getLoopsApiKey() {
-  const apiKey = getEnv("AUTH_LOOPS_API_KEY") ?? getEnv("LOOPS_API_KEY");
-
-  if (!apiKey) {
-    throw new Error("AUTH_LOOPS_API_KEY is not set");
-  }
-
-  return apiKey;
-}
-
-function toInviteErrorMessage(error: unknown) {
-  if (!(error instanceof Error) || !error.message) {
-    return "Team member added, but the invite email could not be sent.";
-  }
-
-  const message = error.message.trim();
-  if (
-    message.startsWith("Too many project invites") ||
-    message.startsWith("You've sent too many project invites") ||
-    message.startsWith("An invite was already sent")
-  ) {
-    return message;
-  }
-
-  return "Team member added, but the invite email could not be sent.";
-}
-
-async function sendProjectInviteEmail(args: {
-  email: string;
-  inviterName: string;
-  projectName: string;
-  workspaceUrl: string;
-}) {
-  const response = await fetch("https://app.loops.so/api/v1/transactional", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${getLoopsApiKey()}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      transactionalId: getProjectInviteTransactionalId(),
-      email: args.email,
-      dataVariables: {
-        inviterName: args.inviterName,
-        projectName: args.projectName,
-        portalUrl: args.workspaceUrl,
-        workspaceUrl: args.workspaceUrl,
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to send project invite email: ${response.status} ${errorText}`);
-  }
-}
-
 export const add = action({
   args: {
     projectId: v.id("projects"),
@@ -110,13 +35,12 @@ export const add = action({
     )) as AddedCollaboratorPayload;
 
     try {
-      await enforceProjectInviteRateLimit(ctx, {
+      await enforceWorkspaceInviteRateLimit(ctx, {
         ownerId: collaborator.ownerId,
-        projectId: String(args.projectId),
         email: collaborator.recipientEmail,
       });
 
-      await sendProjectInviteEmail({
+      await sendInviteEmail({
         email: collaborator.recipientEmail,
         inviterName: collaborator.inviterName,
         projectName: collaborator.projectName,
@@ -144,10 +68,10 @@ export const remove = mutation({
     collaboratorId: v.id("projectCollaborators"),
   },
   handler: async (ctx, { projectId, collaboratorId }) => {
-    await requireProjectOwner(ctx, projectId);
+    const { user: owner } = await requireProjectOwner(ctx, projectId);
 
     const record = await ctx.db.get(collaboratorId);
-    if (!record || record.projectId !== projectId) {
+    if (!record || record.ownerUserId !== owner._id) {
       throw new Error("Collaborator not found.");
     }
 
@@ -160,25 +84,7 @@ export const listByProject = query({
     projectId: v.id("projects"),
   },
   handler: async (ctx, { projectId }) => {
-    await requireProjectOwner(ctx, projectId);
-
-    const collaborators = await ctx.db
-      .query("projectCollaborators")
-      .withIndex("by_project", (q) => q.eq("projectId", projectId))
-      .collect();
-
-    return Promise.all(
-      collaborators.map(async (collab) => {
-        const user = await ctx.db.get(collab.userId);
-        return {
-          _id: collab._id,
-          userId: collab.userId,
-          role: collab.role,
-          name: user?.name ?? null,
-          email: user?.email ?? null,
-          createdAt: collab.createdAt,
-        };
-      }),
-    );
+    const { user: owner } = await requireProjectOwner(ctx, projectId);
+    return listWorkspaceMembers(ctx, owner._id);
   },
 });

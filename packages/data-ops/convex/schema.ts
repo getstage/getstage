@@ -15,13 +15,53 @@ const userRole = v.union(
   v.literal("agency"),
 );
 
-const plan = v.union(v.literal("free"), v.literal("pro"));
+const plan = v.union(
+  v.literal("free"),
+  v.literal("start"),
+  v.literal("pro"),
+  v.literal("team"),
+);
 
 const billingProvider = v.union(
   v.literal("stripe"),
   v.literal("polar"),
   v.literal("creem"),
   v.literal("unknown"),
+);
+
+// Email drip engine — see lib/emails/config.ts for the flow definitions.
+const emailEventType = v.union(
+  v.literal("signed_up"),
+  v.literal("app_downloaded"),
+  v.literal("trial_started"),
+  v.literal("payment_confirmed"),
+);
+
+const emailFlow = v.union(
+  v.literal("trial"),
+  v.literal("retention"),
+);
+
+const emailStatus = v.union(
+  v.literal("pending"),
+  v.literal("sent"),
+  v.literal("skipped"),
+  v.literal("cancelled"),
+  v.literal("failed"),
+);
+
+// Mirrors StageEmailTemplate in emails/render.tsx — keep in sync.
+const stageEmailTemplate = v.union(
+  v.literal("welcome"),
+  v.literal("download_reminder"),
+  v.literal("first_project"),
+  v.literal("workflow_deep_dive"),
+  v.literal("client_portal"),
+  v.literal("trial_ending"),
+  v.literal("welcome_pro"),
+  v.literal("power_user_tips"),
+  v.literal("daily_workflow"),
+  v.literal("feedback"),
 );
 
 const paymentProvider = v.union(v.literal("stripe"), v.literal("unknown"));
@@ -320,11 +360,17 @@ export default defineSchema({
     onboardingProjectCreatedAt: v.optional(v.number()),
     onboardingPaywallSeenAt: v.optional(v.number()),
     firstPaymentEmailSentAt: v.optional(v.number()),
+    // Email drip engine: platform detection + app-download state + opt-out.
+    datafastVisitorId: v.optional(v.string()),
+    appDownloadedAt: v.optional(v.number()),
+    emailUnsubscribedAt: v.optional(v.number()),
+    emailUnsubscribeToken: v.optional(v.string()),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
   })
     .index("email", ["email"])
-    .index("phone", ["phone"]),
+    .index("phone", ["phone"])
+    .index("by_unsubscribe_token", ["emailUnsubscribeToken"]),
 
   clients: defineTable({
     userId: v.id("users"),
@@ -458,16 +504,58 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_project_screen", ["projectId", "stitchScreenId"]),
 
+  // Workspace membership. One row = one editor on ALL of ownerUserId's projects.
   projectCollaborators: defineTable({
-    projectId: v.id("projects"),
+    ownerUserId: v.id("users"),
     userId: v.id("users"),
     role: v.literal("editor"),
     addedBy: v.id("users"),
     createdAt: v.number(),
   })
-    .index("by_project", ["projectId"])
     .index("by_user", ["userId"])
-    .index("by_project_user", ["projectId", "userId"]),
+    .index("by_owner", ["ownerUserId"])
+    .index("by_owner_user", ["ownerUserId", "userId"]),
+
+  // Credit wallet per workspace owner. Team pools use ownerUserId = workspace
+  // owner, so members spend from the owner's single wallet. monthlyBalance resets
+  // on billing period; topupBalance persists across resets.
+  creditWallets: defineTable({
+    ownerUserId: v.id("users"),
+    monthlyBalance: v.number(),
+    topupBalance: v.number(),
+    trialCreditsGranted: v.optional(v.number()),
+    updatedAt: v.number(),
+  }).index("by_owner", ["ownerUserId"]),
+
+  // Append-only ledger. Every grant/usage row records balanceAfter for audit.
+  // idempotencyKey is unique per logical charge (runId:kind or an explicit key)
+  // so retries and Strict-Mode double-submits never double-charge.
+  creditLedger: defineTable({
+    walletId: v.id("creditWallets"),
+    delta: v.number(),
+    reason: v.union(
+      v.literal("monthly_grant"),
+      v.literal("trial_grant"),
+      v.literal("topup"),
+      v.literal("usage"),
+      v.literal("adjustment"),
+    ),
+    kind: v.union(
+      v.literal("voice"),
+      v.literal("moodboard"),
+      v.literal("reference"),
+      v.literal("other"),
+    ),
+    userId: v.id("users"),
+    runId: v.optional(v.string()),
+    idempotencyKey: v.optional(v.string()),
+    balanceAfter: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_wallet", ["walletId"])
+    .index("by_wallet_createdAt", ["walletId", "createdAt"])
+    .index("by_wallet_kind", ["walletId", "kind"])
+    .index("by_idempotencyKey", ["idempotencyKey"]),
 
   portalConfigs: defineTable({
     projectId: v.id("projects"),
@@ -836,4 +924,35 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_createdAt", ["createdAt"])
     .index("by_user_createdAt", ["userId", "createdAt"]),
+
+  // Audit + idempotency for the email drip engine. One row per (user, event);
+  // recordEmailEvent no-ops if a row already exists, so retries/double-clicks
+  // can't double-schedule.
+  emailEvents: defineTable({
+    userId: v.id("users"),
+    type: emailEventType,
+    createdAt: v.number(),
+    metadata: v.optional(v.string()),
+  })
+    .index("by_user_type", ["userId", "type"]),
+
+  // One row per planned email. status moves pending -> sent|skipped|cancelled|failed.
+  // scheduledFunctionId lets us cancel the Convex scheduler job on conversion/cancel.
+  scheduledEmails: defineTable({
+    userId: v.id("users"),
+    flow: emailFlow,
+    template: stageEmailTemplate,
+    status: emailStatus,
+    runAt: v.number(),
+    scheduledFunctionId: v.optional(v.string()),
+    resendEmailId: v.optional(v.string()),
+    skipReason: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    sentAt: v.optional(v.number()),
+  })
+    .index("by_user_flow", ["userId", "flow"])
+    .index("by_user_template", ["userId", "template"])
+    .index("by_status_runAt", ["status", "runAt"])
+    .index("by_resend_email_id", ["resendEmailId"]),
 });

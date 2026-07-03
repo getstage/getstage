@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { MoodboardStyleGuide, MoodboardUploadedFile, ProviderId } from "@stage/data-ops/contracts";
 import { GenerateStrategyRunDialog } from "@/components/project/GenerateStrategyRunDialog";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
@@ -11,6 +11,7 @@ import { useMoodboardTab } from "@/hooks/project";
 import { getStyleGuideForDirection } from "@/lib/project/mapMoodboardArtifactToTabData";
 import { directionIdFromName } from "@/lib/project/moodboardBoardState";
 import type { Project } from "@/models/project/project";
+import type { MoodboardTabData } from "@/types/project/moodboardTab";
 import { DirectionHub, type Direction } from "./DirectionHub";
 import { DirectionToggle } from "./DirectionToggle";
 import { FigmaLinkPanel, GenerateWithAiButton, GenerateWithAiPanel } from "./FigmaLinkPanel";
@@ -23,6 +24,7 @@ import { StyleGuideGenerating } from "./StyleGuideGenerating";
 import { StyleGuideView } from "./StyleGuideView";
 import { DirectionIcon } from "./moodboardIcons";
 import { UploadDropzone } from "./UploadDropzone";
+import { TabLoadingState } from "../TabLoadingState";
 import { UploadedFilesList } from "./UploadedFilesList";
 
 type MoodboardView = "board" | "hub" | "generating-style-guide" | "style-guide";
@@ -37,6 +39,50 @@ function isLegacyAutoDirection(name: string, usedDirectionNames: Set<string>, ha
   return LEGACY_AUTO_DIRECTION_NAMES.has(name) && !usedDirectionNames.has(name) && !hasStyleGuide;
 }
 
+function getMoodboardUiFromTabData(tabData: MoodboardTabData | undefined) {
+  if (!tabData) {
+    return {
+      mode: "upload" as MoodboardMode,
+      hasUploadedFiles: false,
+      hasFigmaImportResults: false,
+      uploadedFiles: [] as MoodboardUploadedFile[],
+      items: createFallbackItems(),
+      folders: [] as Direction[],
+    };
+  }
+
+  const usedDirectionNames = new Set(
+    tabData.references
+      .map((reference) => reference.folder)
+      .filter((folder): folder is string => Boolean(folder)),
+  );
+  const styleGuideDirectionIds = new Set(
+    tabData.styleGuides.map((styleGuide) => styleGuide.directionId),
+  );
+  const directionHasStyleGuide = (name: string) =>
+    styleGuideDirectionIds.has(directionIdFromName(name));
+
+  return {
+    mode: (tabData.importMode === "url" ? "figma" : (tabData.importMode ?? "upload")) as MoodboardMode,
+    hasUploadedFiles: tabData.uploadedFiles.length > 0,
+    hasFigmaImportResults:
+      (tabData.importMode === "figma" ||
+        tabData.importMode === "ai" ||
+        tabData.importMode === "url") &&
+      tabData.references.some((reference) => !reference.isInMoodboard),
+    uploadedFiles: tabData.uploadedFiles as MoodboardUploadedFile[],
+    items: tabData.references,
+    folders: tabData.directions
+      .filter((direction) =>
+        !isLegacyAutoDirection(direction.name, usedDirectionNames, directionHasStyleGuide(direction.name)),
+      )
+      .map((direction) => ({
+        name: direction.name,
+        hasStyleGuide: directionHasStyleGuide(direction.name),
+      })),
+  };
+}
+
 type MoodboardTabProps = {
   project: Project;
   onGoToResearch?: () => void;
@@ -46,14 +92,22 @@ type MoodboardTabProps = {
 
 export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFlows }: MoodboardTabProps) {
   const moodboard = useMoodboardTab({ id: project.id, name: project.name });
-  const [mode, setMode] = useState<MoodboardMode>("upload");
-  const [hasUploadedFiles, setHasUploadedFiles] = useState(false);
-  const [hasFigmaImportResults, setHasFigmaImportResults] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<MoodboardUploadedFile[]>([]);
+  const initialMoodboardUi = useMemo(
+    () => getMoodboardUiFromTabData(moodboard.data?.tabData),
+    [moodboard.data?.tabData],
+  );
+  const [mode, setMode] = useState<MoodboardMode>(() => initialMoodboardUi.mode);
+  const [hasUploadedFiles, setHasUploadedFiles] = useState(() => initialMoodboardUi.hasUploadedFiles);
+  const [hasFigmaImportResults, setHasFigmaImportResults] = useState(
+    () => initialMoodboardUi.hasFigmaImportResults,
+  );
+  const [uploadedFiles, setUploadedFiles] = useState<MoodboardUploadedFile[]>(
+    () => initialMoodboardUi.uploadedFiles,
+  );
   const [view, setView] = useState<MoodboardView>("board");
-  const [items, setItems] = useState<MoodboardItem[]>(createFallbackItems);
+  const [items, setItems] = useState<MoodboardItem[]>(() => initialMoodboardUi.items);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
-  const [folders, setFolders] = useState<Direction[]>([]);
+  const [folders, setFolders] = useState<Direction[]>(() => initialMoodboardUi.folders);
   const [activeFolder, setActiveFolder] = useState<string>();
   const [draftFolderName, setDraftFolderName] = useState("");
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -72,44 +126,18 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
       return;
     }
 
-    const { tabData } = moodboard.data;
-    setMode(
-      tabData.importMode === "url" ? "figma" : (tabData.importMode ?? "upload"),
-    );
-    setHasUploadedFiles(tabData.uploadedFiles.length > 0);
-    setHasFigmaImportResults(
-      (tabData.importMode === "figma" ||
-        tabData.importMode === "ai" ||
-        tabData.importMode === "url") &&
-        tabData.references.some((reference) => !reference.isInMoodboard),
-    );
-    setUploadedFiles(tabData.uploadedFiles);
-    setItems(tabData.references);
-    const usedDirectionNames = new Set(
-      tabData.references
-        .map((reference) => reference.folder)
-        .filter((folder): folder is string => Boolean(folder)),
-    );
-    // Derive hasStyleGuide from the styleGuides array (single source of truth) rather
-    // than the stored direction flag, which drifts and gets stuck on "View".
-    const styleGuideDirectionIds = new Set(
-      tabData.styleGuides.map((styleGuide) => styleGuide.directionId),
-    );
-    const directionHasStyleGuide = (name: string) =>
-      styleGuideDirectionIds.has(directionIdFromName(name));
-    setFolders(
-      tabData.directions
-        .filter((direction) =>
-          !isLegacyAutoDirection(direction.name, usedDirectionNames, directionHasStyleGuide(direction.name)),
-        )
-        .map((direction) => ({
-          name: direction.name,
-          hasStyleGuide: directionHasStyleGuide(direction.name),
-        })),
-    );
+    const nextUi = getMoodboardUiFromTabData(moodboard.data.tabData);
+    setMode(nextUi.mode);
+    setHasUploadedFiles(nextUi.hasUploadedFiles);
+    setHasFigmaImportResults(nextUi.hasFigmaImportResults);
+    setUploadedFiles(nextUi.uploadedFiles);
+    setItems(nextUi.items);
+    setFolders(nextUi.folders);
     setSelectedIds((current) => {
       const next = new Set(
-        [...current].filter((id) => tabData.references.some((reference) => reference.id === id)),
+        [...current].filter((id) =>
+          moodboard.data!.tabData.references.some((reference) => reference.id === id),
+        ),
       );
       return next;
     });
@@ -494,7 +522,7 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
   // Until the artifact and run queries resolve we don't know if an import is in
   // flight, so hold instead of flashing the setup screen (tri-state: loading ≠ empty).
   if (moodboard.isLoading) {
-    return null;
+    return <TabLoadingState label="Loading moodboard…" />;
   }
 
   return (

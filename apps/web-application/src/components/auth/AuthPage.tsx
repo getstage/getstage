@@ -3,14 +3,15 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth, useSignIn } from "@/lib/auth";
-import {
-  buildDesktopAuthHandoffUrl,
-  getPendingDesktopAuthRedirect,
-  isDesktopAuthRedirect,
-  storePendingDesktopAuthRedirect,
-} from "@/lib/desktopAuthRedirect";
+import { isDesktopAuthRedirect } from "@/lib/desktopAuthRedirect";
+import { authEmailSchema, authOtpSchema } from "@/lib/authValidation";
 import { toUserFacingErrorMessage } from "@/lib/errors";
-import { signInEmailSchema, verificationCodeSchema } from "@/lib/validation";
+import {
+  DEFAULT_POST_AUTH_PATH,
+  getStoredDesktopRedirect,
+  rememberDesktopRedirect,
+  resolvePostAuthRedirect,
+} from "@/lib/postAuthRedirect";
 import { isDemoAuthEnabledForHostname } from "@stage/data-ops/shared/demo-auth";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 import { cn } from "@/lib/utils";
@@ -18,48 +19,53 @@ import { cn } from "@/lib/utils";
 type Step = "email" | "code";
 type AuthMode = "signup" | "login";
 
-function toAuthRedirectTarget(value: string) {
-  if (typeof window === "undefined") {
-    return value;
+function continueAfterAuth(
+  redirectTo: string,
+  navigate: ReturnType<typeof useNavigate>,
+) {
+  const pendingDesktopRedirect = getStoredDesktopRedirect();
+  const target =
+    isDesktopAuthRedirect(redirectTo)
+      ? redirectTo
+      : isDesktopAuthRedirect(pendingDesktopRedirect)
+        ? pendingDesktopRedirect!
+        : redirectTo;
+
+  if (isDesktopAuthRedirect(target)) {
+    rememberDesktopRedirect(target);
+    console.info("[stage-desktop-auth] resuming desktop auth after sign-in");
+    window.location.assign(target);
+    return;
   }
 
-  try {
-    if (isDesktopAuthRedirect(value)) {
-      return new URL(value, window.location.origin).href;
-    }
-  } catch {
-    return value;
+  if (redirectTo === DEFAULT_POST_AUTH_PATH) {
+    navigate({ to: "/download/mac", replace: true });
+    return;
   }
 
-  return value;
+  navigate({ to: "/download/mac", replace: true });
 }
 
 export function AuthPage() {
   const navigate = useNavigate();
   const { desktop_redirect_uri, desktop_state, redirect } = useSearch({ from: "/auth" });
-  const pendingDesktopRedirect = getPendingDesktopAuthRedirect();
-  const desktopAuthRedirect =
-    desktop_redirect_uri && desktop_state
-      ? buildDesktopAuthHandoffUrl({
-          redirectUri: desktop_redirect_uri,
-          state: desktop_state,
-        })
-      : null;
-  const redirectTo = toAuthRedirectTarget(
-    desktopAuthRedirect ?? redirect ?? pendingDesktopRedirect ?? "/dashboard",
-  );
+  const redirectTo = resolvePostAuthRedirect({
+    desktopRedirectUri: desktop_redirect_uri,
+    desktopState: desktop_state,
+    redirect,
+    pendingDesktopRedirect: getStoredDesktopRedirect(),
+  });
 
   useEffect(() => {
-    if (desktopAuthRedirect) {
-      storePendingDesktopAuthRedirect(desktopAuthRedirect);
+    if (desktop_redirect_uri && desktop_state) {
+      rememberDesktopRedirect(redirectTo);
     }
-  }, [desktopAuthRedirect]);
+  }, [desktop_redirect_uri, desktop_state, redirectTo]);
   const { isAuthenticated } = useAuth();
   const signIn = useSignIn();
   const [step, setStep] = useState<Step>("email");
   const [authMode, setAuthMode] = useState<AuthMode>("signup");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -72,18 +78,7 @@ export function AuthPage() {
     if (isAuthenticated) {
       activeAuthFlowRef.current = null;
       setLoading(false);
-      if (isDesktopAuthRedirect(redirectTo)) {
-        storePendingDesktopAuthRedirect(redirectTo);
-        console.info("[stage-desktop-auth] resuming desktop auth after existing session");
-        window.location.assign(redirectTo);
-        return;
-      }
-      if (redirectTo === "/dashboard") {
-        setGoogleRedirecting(false);
-        navigate({ to: "/dashboard", replace: true });
-        return;
-      }
-      navigate({ to: redirectTo, replace: true });
+      continueAfterAuth(redirectTo, navigate);
     }
   }, [isAuthenticated, navigate, redirectTo]);
 
@@ -103,7 +98,7 @@ export function AuthPage() {
     }
 
     const formData = new FormData(e.currentTarget);
-    const parsed = signInEmailSchema.safeParse({
+    const parsed = authEmailSchema.safeParse({
       email: String(formData.get("email") ?? email),
     });
     if (!parsed.success) {
@@ -196,7 +191,7 @@ export function AuthPage() {
       return;
     }
 
-    const parsed = verificationCodeSchema.safeParse({ code: fullCode });
+    const parsed = authOtpSchema.safeParse({ code: fullCode });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Code must be 6 digits.");
       setCode(["", "", "", "", "", ""]);
@@ -212,18 +207,7 @@ export function AuthPage() {
       formData.set("email", email);
       formData.set("code", parsed.data.code);
       await signIn("loops-otp", formData);
-      if (isDesktopAuthRedirect(redirectTo)) {
-        storePendingDesktopAuthRedirect(redirectTo);
-        window.location.assign(redirectTo);
-        return;
-      }
-
-      if (redirectTo === "/dashboard") {
-        navigate({ to: "/dashboard", replace: true });
-        return;
-      }
-
-      navigate({ to: redirectTo, replace: true });
+      continueAfterAuth(redirectTo, navigate);
     } catch (error) {
       setError(
         toUserFacingErrorMessage(
@@ -257,7 +241,7 @@ export function AuthPage() {
     let redirected = false;
     try {
       if (isDesktopAuthRedirect(redirectTo)) {
-        storePendingDesktopAuthRedirect(redirectTo);
+        rememberDesktopRedirect(redirectTo);
         console.info("[stage-desktop-auth] starting google sign-in for desktop auth");
       }
 
@@ -290,16 +274,7 @@ export function AuthPage() {
     setLoading(true);
     try {
       await signIn("demo");
-      if (isDesktopAuthRedirect(redirectTo)) {
-        storePendingDesktopAuthRedirect(redirectTo);
-        window.location.assign(redirectTo);
-        return;
-      }
-      if (redirectTo === "/dashboard") {
-        navigate({ to: "/dashboard", replace: true });
-        return;
-      }
-      navigate({ to: redirectTo, replace: true });
+      continueAfterAuth(redirectTo, navigate);
     } catch (error) {
       setError(
         toUserFacingErrorMessage(
@@ -410,7 +385,7 @@ export function AuthPage() {
                             {authMode === "login" ? "Login with Stage" : "Sign up with Stage"}
                           </h1>
                           <p className="mt-1.5 text-[14px] leading-[1.5] font-medium text-[#525252] lg:mt-2.5 lg:text-[13px]">
-                            Enter your basic details to get started with Stage
+                            Enter your email to get a sign-in code
                           </p>
                         </div>
 
@@ -436,23 +411,6 @@ export function AuthPage() {
                                     "h-[38px] w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 text-[13px] font-normal text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none ring-0 transition-colors placeholder:text-[#737373] focus:border-[#D4D4D4] focus:bg-white focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 lg:text-[12px] lg:font-medium",
                                     error && step === "email" && "border-destructive/50",
                                   )}
-                                />
-                              </div>
-
-                              <div className="flex flex-col gap-2">
-                                <label
-                                  htmlFor="auth-password"
-                                  className="block text-[14px] leading-none font-medium text-[#171717] lg:text-[13px]"
-                                >
-                                  Enter Password
-                                </label>
-                                <input
-                                  id="auth-password"
-                                  type="password"
-                                  value={password}
-                                  onChange={(event) => setPassword(event.target.value)}
-                                  placeholder="heypr@tik15t0-1"
-                                  className="h-[38px] w-full rounded-[6px] border border-transparent bg-[#F5F5F5] px-3 text-[13px] font-normal text-[#171717] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none ring-0 transition-colors placeholder:text-[#737373] focus:border-[#D4D4D4] focus:bg-white focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 lg:text-[12px] lg:font-medium"
                                 />
                               </div>
                             </div>
@@ -596,7 +554,6 @@ export function AuthPage() {
                       onClick={() => {
                         setAuthMode(authMode === "login" ? "signup" : "login");
                         setError("");
-                        setPassword("");
                       }}
                       disabled={loading}
                       className="cursor-pointer text-[#0A0A0A] underline underline-offset-2 disabled:cursor-default disabled:opacity-50"

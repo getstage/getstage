@@ -68,6 +68,10 @@ export const wireframeGeneratedScreenSchema = z.object({
   title: z.string().min(1),
   priority: z.string().min(1),
   generatedAtLabel: z.string().min(1),
+  // Numeric ms timestamp for this specific screen. Partial regen updates only
+  // the regenerated screens' timestamps, so cards render honest per-screen times
+  // instead of the artifact-level time. Optional for legacy artifacts.
+  generatedAt: z.number().int().nonnegative().optional(),
   figmaUrl: z.string().url().optional(),
   goal: z.string().optional(),
   sections: z.array(wireframeSectionSchema).default([]),

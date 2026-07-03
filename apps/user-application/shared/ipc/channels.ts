@@ -42,6 +42,7 @@ export const IPC_CHANNELS = {
   shellOpenExternal: "shell:open-external",
   integrationsGetOAuthReturnUrl: "integrations:get-oauth-return-url",
   integrationOAuthCompleted: "integration:oauth-completed",
+  billingCheckoutReturn: "billing:checkout-return",
   updatesGetStatus: "updates:get-status",
   updatesCheck: "updates:check",
   updatesInstall: "updates:install",

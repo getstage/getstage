@@ -5,7 +5,7 @@ import { deleteGeneratedDesignsForProject } from "../integrations/stitch";
 import {
   deleteAllProjectAiData,
   deleteCollaboratorMembershipsForUser,
-  deleteProjectCollaboratorsForProject,
+  deleteWorkspaceMembershipsForOwner,
 } from "../lib/projectAi/domain/projectCleanup";
 
 async function deleteAttachmentTreeForProject(
@@ -224,10 +224,12 @@ export async function deleteWorkspaceDataForUser(
     }
     await deleteAttachmentTreeForProject(ctx, project._id);
     await deleteAllProjectAiData(ctx, project._id);
-    await deleteProjectCollaboratorsForProject(ctx, project._id);
     await ctx.db.delete(project._id);
   }
 
+  // Remove the workspace this user owned (their members) plus any workspaces
+  // they were a member of.
+  await deleteWorkspaceMembershipsForOwner(ctx, userId);
   await deleteCollaboratorMembershipsForUser(ctx, userId);
 
   const clients = await ctx.db

@@ -63,6 +63,18 @@ const websiteValueSchema = z
   .min(1, "Enter a website URL")
   .refine(isValidWebsite, "Enter a valid website such as acme.com or https://acme.com");
 
+const optionalWebsiteValueSchema = z
+  .string()
+  .trim()
+  .refine(
+    (value) => !value || isValidWebsite(value),
+    "Enter a valid website such as acme.com or https://acme.com",
+  )
+  .transform((value) => {
+    const normalized = normalizeWebsite(value);
+    return normalized || undefined;
+  });
+
 const industryValueSchema = z
   .string()
   .trim()
@@ -71,7 +83,7 @@ const industryValueSchema = z
 
 export const validatedResearchConfigureInputSchema = z.object({
   industry: industryValueSchema,
-  website: websiteValueSchema.transform(normalizeWebsite),
+  website: optionalWebsiteValueSchema.optional(),
   projectBrief: z.string().trim().min(1).max(MAX_BRIEF_LENGTH),
   competitorUrls: z.array(websiteValueSchema.transform(normalizeWebsite)).max(MAX_COMPETITORS),
   additionalNotes: z.string().trim().min(1).max(MAX_NOTES_LENGTH).optional(),
@@ -106,7 +118,7 @@ export function validateResearchConfigureForm(
     errors.industry = industryResult.error.issues[0]?.message;
   }
 
-  const websiteResult = websiteValueSchema.safeParse(values.website);
+  const websiteResult = optionalWebsiteValueSchema.safeParse(values.website);
   if (!websiteResult.success) {
     errors.website = websiteResult.error.issues[0]?.message;
   }
@@ -130,7 +142,7 @@ export function validateResearchConfigureForm(
     errors.competitorUrls = `Add up to ${MAX_COMPETITORS} competitors`;
   }
 
-  if (Object.keys(errors).length > 0 || !industryResult.success || !websiteResult.success) {
+  if (Object.keys(errors).length > 0 || !industryResult.success) {
     return { success: false, errors };
   }
 

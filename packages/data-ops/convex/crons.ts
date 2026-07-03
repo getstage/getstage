@@ -11,5 +11,11 @@ crons.hourly("normalize legacy uploaded assets", { minuteUTC: 7 }, internal.r2.n
 crons.hourly("prune stale pending uploads", { minuteUTC: 17 }, internal.r2.pruneStalePendingUploads, {
   limit: 100,
 });
+// Physically remove email drip rows that reached a terminal state > 30 days ago
+// (sent / skipped / cancelled / failed). Keeps scheduledEmails small.
+crons.hourly("prune finalized emails", { minuteUTC: 23 }, internal.emails.cleanupFinalizedEmails, {
+  olderThanDays: 30,
+  limit: 200,
+});
 
 export default crons;

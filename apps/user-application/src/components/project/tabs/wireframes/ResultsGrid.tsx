@@ -189,7 +189,7 @@ export function WireframeCard({
           type="button"
           onClick={() => setPreviewOpen(true)}
           title="Open full preview"
-          className="flex min-h-0 flex-1 cursor-pointer items-stretch justify-center overflow-hidden rounded-[6px] bg-[#E5E5E5] p-2 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-shadow hover:shadow-[0_0.45px_2px_rgba(10,10,10,0.35)]"
+          className="flex min-h-0 flex-1 cursor-pointer items-stretch justify-center overflow-hidden rounded-[6px] bg-white p-0 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-shadow hover:shadow-[0_0.45px_2px_rgba(10,10,10,0.35)]"
         >
           {preview}
         </button>

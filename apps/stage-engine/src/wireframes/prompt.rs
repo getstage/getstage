@@ -64,7 +64,7 @@ const ALLOWED_BLOCK_KINDS: &str = "header, hero, feature-grid, testimonial, pric
 const HIFI_RULES: &str = r#"
 Hi-Fi mode — produce a FINAL DESIGN, not a wireframe:
 - For EACH generatedScreens[] entry, add an "html" field: a single, self-contained HTML fragment that renders that screen as a polished, production-quality web page.
-- Style everything with ONE <style> block at the top of the fragment (plain CSS) plus inline styles as needed. Do NOT use Tailwind, any CSS framework, <script>, or external <link> (a single Google Fonts <link> is allowed). The design MUST render on its own with no JavaScript.
+- Style everything with ONE <style> block at the top of the fragment (plain CSS) plus inline styles as needed. Do NOT use Tailwind, any CSS framework, <script>, external <link> stylesheets, or @import. Use system font stacks inside the <style> block (e.g. font-family: 'Geist', system-ui, sans-serif). The design MUST render on its own with no JavaScript or external requests.
 - Wrap everything in one root <div> — do not emit <html>, <head>, or <body> tags.
 - Still fill sections[]/blocks[] as the structural outline (used for Figma layer naming and Lo-Fi fallback); the "html" field is the source of truth for the visuals.
 
@@ -85,6 +85,50 @@ Anti-slop taste rules (mandatory):
 
 Pre-flight check before returning: confirm every Hi-Fi screen has a non-empty "html" using brand colors, real copy, and at least one image, and that no two sections look identical.
 "#;
+
+// On partial regen, strip prior `html` from the prompt payload so the model
+// re-designs from strategy/moodboard context instead of copy-pasting the saved
+// markup. Only the requested screen ids are kept (without html); untouched screens
+// are omitted entirely (they are not being regenerated). The full artifact is still
+// merged server-side via WireframesInput — only the prompt payload is redacted.
+fn redact_regen_artifact(existing_json: &str, ids: &[&str]) -> String {
+    let Ok(mut value) = serde_json::from_str::<serde_json::Value>(existing_json) else {
+        return existing_json.to_string();
+    };
+    let Some(object) = value.as_object_mut() else {
+        return existing_json.to_string();
+    };
+    let id_set: std::collections::HashSet<&str> = ids.iter().copied().collect();
+    let screens = object
+        .get("generatedScreens")
+        .and_then(serde_json::Value::as_array)
+        .map(|screens| {
+            screens
+                .iter()
+                .filter(|screen| {
+                    screen
+                        .get("id")
+                        .and_then(serde_json::Value::as_str)
+                        .is_some_and(|id| id_set.contains(id))
+                })
+                .map(|screen| {
+                    let mut kept = serde_json::Map::new();
+                    for key in ["id", "title", "goal", "priority", "sections"] {
+                        if let Some(field) = screen.get(key) {
+                            kept.insert(key.to_string(), field.clone());
+                        }
+                    }
+                    serde_json::Value::Object(kept)
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    object.insert(
+        "generatedScreens".to_string(),
+        serde_json::Value::Array(screens),
+    );
+    serde_json::to_string(&value).unwrap_or_else(|_| existing_json.to_string())
+}
 
 pub fn build_wireframes_prompt(
     input: &WireframesInput,
@@ -114,8 +158,15 @@ pub fn build_wireframes_prompt(
         .existing_wireframes_artifact_json
         .as_deref()
         .map(|json| {
+            let payload = match regenerate_screen_ids.filter(|ids| !ids.is_empty()) {
+                Some(ids) => {
+                    let id_refs = ids.iter().map(String::as_str).collect::<Vec<_>>();
+                    redact_regen_artifact(json, &id_refs)
+                }
+                None => json.to_string(),
+            };
             format!(
-                "Previous wireframes artifact (regenerate; keep ids stable where possible):\n{json}\n\n"
+                "Previous wireframes artifact (regenerate; keep ids stable where possible):\n{payload}\n\n"
             )
         })
         .unwrap_or_default();
@@ -147,7 +198,7 @@ pub fn build_wireframes_prompt(
         .filter(|ids| !ids.is_empty())
         .map(|ids| {
             format!(
-                "- PARTIAL REGENERATION: Return generatedScreens[] containing ONLY these screen ids: {}. Keep each id stable. Use the previous wireframes artifact as reference for untouched structure.\n",
+                "- PARTIAL REGENERATION: Return generatedScreens[] containing ONLY these screen ids: {}. Re-design each returned screen from strategy/moodboard context. Do NOT reuse prior html markup or layout structure for these ids. Each returned screen MUST have a non-empty \"html\" that is materially different from the saved artifact (different section order, layout pattern, or visual rhythm).\n",
                 ids.join(", ")
             )
         })

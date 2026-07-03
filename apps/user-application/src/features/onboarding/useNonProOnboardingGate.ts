@@ -42,27 +42,20 @@ export function useNonProOnboardingGate() {
     }
 
     const projectCount = projectsQuery.data?.length ?? 0;
-    const isPro = settingsOverviewQuery.data?.profile.plan === "pro";
+    const isPaid = settingsOverviewQuery.data?.profile.plan !== "free";
     const isOnboardingCompleted =
       hasCompletedOnboarding || (onboardingStateQuery.data?.isCompleted ?? false);
 
-    if (isPro) {
+    if (isPaid) {
       setOnboardingOpen(false);
       return;
     }
 
-    if (isOnboardingCompleted) {
-      setOnboardingOpen(false);
-      return;
-    }
-
-    if (projectCount >= 1) {
-      setOnboardingInitialStep("paywall");
-      setOnboardingOpen(true);
-      return;
-    }
-
-    setOnboardingInitialStep("welcome");
+    // Free plan cannot use the app. Brand-new users still get the welcome flow
+    // (which ends at the paywall); anyone who already onboarded or has a project
+    // goes straight to the paywall. The paywall has no "continue free" exit — it
+    // requires starting a trial/subscription (see OnboardingPaywall).
+    setOnboardingInitialStep(isOnboardingCompleted || projectCount >= 1 ? "paywall" : "welcome");
     setOnboardingOpen(true);
   }, [
     hasCompletedOnboarding,

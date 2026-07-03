@@ -76,6 +76,15 @@ export function capitalize(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-export function formatPlanPrice(plan: "free" | "pro") {
-  return plan === "pro" ? "Yearly plan" : "Free plan";
+export function formatPlanPrice(plan: "free" | "start" | "pro" | "team") {
+  switch (plan) {
+    case "start":
+      return "Start plan";
+    case "pro":
+      return "Pro plan";
+    case "team":
+      return "Team plan";
+    default:
+      return "Free plan";
+  }
 }

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 import type { ProviderId } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { useDesktopAuth } from "@/lib/auth";
@@ -23,9 +24,11 @@ function pickSelectableProvider(
 
 export function useProjectAiProvider(projectId: string | undefined) {
   const { isAuthenticated } = useDesktopAuth();
-  const context = useQuery(
-    api.projectAi.getContext,
-    isAuthenticated && projectId ? { projectId: projectId as Id<"projects"> } : "skip",
+  const { data: context } = useQuery(
+    convexQuery(
+      api.projectAi.getContext,
+      isAuthenticated && projectId ? { projectId: projectId as Id<"projects"> } : "skip",
+    ),
   );
   const { selectedProviderId, selectProvider, providerOptions } = useResearchProviderSelection();
 

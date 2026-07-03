@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 import {
   phaseSummarySchema,
   projectDetailSchema,
@@ -102,9 +103,11 @@ export function useLiveProject(
 ): UseLiveProjectResult {
   const { enabled = true } = options;
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
-  const rawProjectData = useQuery(
-    api.desktop.getProjectData,
-    isAuthenticated && enabled && projectId ? { projectId } : "skip",
+  const { data: rawProjectData, isPending } = useQuery(
+    convexQuery(
+      api.desktop.getProjectData,
+      isAuthenticated && enabled && projectId ? { projectId } : "skip",
+    ),
   );
   const liveData = useMemo(() => {
     if (!rawProjectData) {
@@ -124,9 +127,9 @@ export function useLiveProject(
 
   const isLoading =
     isAuthLoading ||
-    (isAuthenticated && enabled && Boolean(projectId) && rawProjectData === undefined);
+    (isAuthenticated && enabled && Boolean(projectId) && isPending);
   const isNotFound =
-    isAuthenticated && enabled && Boolean(projectId) && rawProjectData === null;
+    isAuthenticated && enabled && Boolean(projectId) && rawProjectData === null && !isPending;
   const error = isNotFound ? new Error("Project not found.") : null;
 
   const project = useMemo<Project | null>(() => {

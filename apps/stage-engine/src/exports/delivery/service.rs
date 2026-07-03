@@ -135,8 +135,17 @@ fn compile_html(screen: &GeneratedScreen) -> String {
 // text+image stack. Inlining folds those rules onto each element so Paper's
 // flex/inline-style model can rebuild the design as editable nodes. On the rare
 // parse failure we send the original markup rather than failing the export.
+//
+// `load_remote_stylesheets(false)` is critical: the default inliner tries to FETCH
+// any external <link> stylesheet, but the `http` feature is off, so a fragment with
+// a Google-Fonts <link> errored and fell back to the raw <style>-stripped markup
+// (the raw-CSS-text artboard). Disabling remote loading inlines the local <style>
+// and skips the external <link> instead of erroring. No network at export time.
 fn inline_styles_for_paper(fragment: &str) -> String {
-    css_inline::inline(fragment).unwrap_or_else(|error| {
+    let inliner = css_inline::CSSInliner::options()
+        .load_remote_stylesheets(false)
+        .build();
+    inliner.inline(fragment).unwrap_or_else(|error| {
         tracing::warn!(%error, "failed to inline CSS for Paper export; sending raw fragment");
         fragment.to_string()
     })
@@ -308,5 +317,22 @@ mod tests {
         assert!(document.contains("<div class=\"hero\"><h1>Ship faster</h1></div>"));
         // The block-layout scaffolding must not appear for a Hi-Fi screen.
         assert!(!document.contains("Stage wireframe"));
+    }
+
+    #[test]
+    fn inline_styles_for_paper_skips_external_link_without_erroring() {
+        // A Hi-Fi fragment with an external Google-Fonts <link>. The default inliner
+        // tries to fetch it (http feature off) and errors, falling back to the raw
+        // <style>-carrying markup. The configured inliner must skip the <link> and
+        // still fold the local <style> rules onto elements.
+        let fragment = "<link href=\"https://fonts.googleapis.com/css2?family=Geist\" rel=\"stylesheet\"><div class=\"hero\"><h1 class=\"title\">Ship faster</h1></div><style>.hero{display:flex;background:#101010}.title{color:#fff}</style>";
+
+        let inlined = inline_styles_for_paper(fragment);
+
+        assert!(inlined.contains("style="), "expected inline styles on elements");
+        assert!(inlined.contains("display: flex"));
+        assert!(inlined.contains("color: #fff"));
+        // A raw fallback would keep the un-inlined <style> block; it must be gone.
+        assert!(!inlined.contains("<style>"));
     }
 }

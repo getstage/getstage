@@ -12,17 +12,12 @@ const projectTypeValues = [
   "other",
 ] as const;
 
-export const signInEmailSchema = z.object({
-  email: z.string().trim().email("Please enter a valid email address."),
-});
-
-export const verificationCodeSchema = z.object({
-  code: z
-    .string()
-    .trim()
-    .length(6, "Code must be 6 digits.")
-    .regex(/^\d{6}$/, "Digits only."),
-});
+export {
+  authEmailSchema,
+  authOtpSchema,
+  signInEmailSchema,
+  verificationCodeSchema,
+} from "@/lib/authValidation";
 
 export const profileNameSchema = z
   .string()

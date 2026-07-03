@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 import { z } from "zod";
 import { useDesktopAuth } from "@/lib/auth";
 import { api } from "@/lib/convexApi";
@@ -18,7 +19,9 @@ export type ClientSummary = z.infer<typeof clientSummarySchema>;
 
 export function useClientsQuery() {
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
-  const clients = useQuery(api.clients.listForCurrentUser, isAuthenticated ? {} : "skip");
+  const { data: clients, isPending } = useQuery(
+    convexQuery(api.clients.listForCurrentUser, isAuthenticated ? {} : "skip"),
+  );
   const data = useMemo<ClientSummary[] | undefined>(
     () => clients === undefined ? undefined : clientListSchema.parse(clients),
     [clients],
@@ -26,7 +29,7 @@ export function useClientsQuery() {
 
   return {
     data,
-    isLoading: isAuthLoading || (isAuthenticated && clients === undefined),
+    isLoading: isAuthLoading || (isAuthenticated && isPending),
     error: null,
   };
 }

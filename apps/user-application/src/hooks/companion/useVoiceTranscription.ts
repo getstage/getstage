@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useMutation as useConvexMutation } from "convex/react";
 import {
   isProviderEnabledInPreferences,
   readProviderPreferences,
 } from "@/lib/engine/providerPreferences";
+import { api } from "@/lib/convexApi";
 import { STAGE_SHORTCUT_TOGGLE_VOICE } from "@/lib/companion/shortcutEvents";
 import { useVoiceRecorder } from "./useVoiceRecorder";
 
@@ -26,6 +28,7 @@ export function useVoiceTranscription({
   onTranscript,
 }: UseVoiceTranscriptionOptions) {
   const recorder = useVoiceRecorder();
+  const recordVoiceUsageSelf = useConvexMutation(api.credits.recordVoiceUsageSelf);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const requestIdRef = useRef(0);
@@ -122,6 +125,20 @@ export function useVoiceTranscription({
         return;
       }
 
+      // Meter voice usage (ceil minutes * 5 credits) to the signed-in user's
+      // wallet — but ONLY for the OpenRouter → Mistral (Voxtral) route, which
+      // Stage pays for. The Codex route uses the user's own ChatGPT login and is
+      // never billed. Fire-and-forget, idempotent on the transcription id; a
+      // failure here must not block the transcript reaching the companion.
+      if (response.provider === "openrouter") {
+        void recordVoiceUsageSelf({
+          durationMs: recording.durationMs,
+          idempotencyKey: response.transcriptionId,
+        }).catch((meterError) => {
+          console.error("[stage-voice] Credit metering failed:", meterError);
+        });
+      }
+
       await onTranscript(response.text);
       setStatus("idle");
       await onStateChange("response");
@@ -141,7 +158,7 @@ export function useVoiceTranscription({
         busyRef.current = false;
       }
     }
-  }, [onStateChange, onTranscript, start]);
+  }, [onStateChange, onTranscript, start, recordVoiceUsageSelf]);
 
   const toggle = useCallback(async () => {
     if (recorderRef.current.isRecording) {

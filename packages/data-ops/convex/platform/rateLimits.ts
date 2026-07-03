@@ -4,7 +4,7 @@ import { normalizeEmailAddress } from "../userEmails";
 
 const OTP_EMAIL_WINDOW_MS = 15 * MINUTE;
 const HOUR = 60 * MINUTE;
-const PROJECT_INVITE_RECIPIENT_WINDOW_MS = 10 * MINUTE;
+const WORKSPACE_INVITE_RECIPIENT_WINDOW_MS = 10 * MINUTE;
 const API_REQUEST_WINDOW_MS = MINUTE;
 
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
@@ -19,17 +19,17 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     period: MINUTE,
     shards: 10,
   },
-  projectInvitesByOwner: {
+  workspaceInvitesByOwner: {
     kind: "fixed window",
     rate: 20,
     period: HOUR,
   },
-  projectInvitesByProjectRecipient: {
+  workspaceInvitesByRecipient: {
     kind: "fixed window",
     rate: 1,
-    period: PROJECT_INVITE_RECIPIENT_WINDOW_MS,
+    period: WORKSPACE_INVITE_RECIPIENT_WINDOW_MS,
   },
-  projectInvitesGlobal: {
+  workspaceInvitesGlobal: {
     kind: "fixed window",
     rate: 60,
     period: MINUTE,
@@ -85,32 +85,31 @@ export async function enforceOtpRequestRateLimit(
   }
 }
 
-export async function enforceProjectInviteRateLimit(
+export async function enforceWorkspaceInviteRateLimit(
   ctx: Parameters<typeof rateLimiter.limit>[0],
   args: {
     ownerId: string;
-    projectId: string;
     email: string;
   },
 ) {
-  const globalStatus = await rateLimiter.limit(ctx, "projectInvitesGlobal");
+  const globalStatus = await rateLimiter.limit(ctx, "workspaceInvitesGlobal");
   if (!globalStatus.ok) {
     throw new Error(
-      `Too many project invites are being sent right now. Please wait ${formatRetryAfter(globalStatus.retryAfter)} and try again.`,
+      `Too many invites are being sent right now. Please wait ${formatRetryAfter(globalStatus.retryAfter)} and try again.`,
     );
   }
 
-  const ownerStatus = await rateLimiter.limit(ctx, "projectInvitesByOwner", {
+  const ownerStatus = await rateLimiter.limit(ctx, "workspaceInvitesByOwner", {
     key: args.ownerId,
   });
   if (!ownerStatus.ok) {
     throw new Error(
-      `You've sent too many project invites recently. Please wait ${formatRetryAfter(ownerStatus.retryAfter)} and try again.`,
+      `You've sent too many invites recently. Please wait ${formatRetryAfter(ownerStatus.retryAfter)} and try again.`,
     );
   }
 
-  const recipientStatus = await rateLimiter.limit(ctx, "projectInvitesByProjectRecipient", {
-    key: `${args.projectId}:${normalizeRateLimitEmail(args.email)}`,
+  const recipientStatus = await rateLimiter.limit(ctx, "workspaceInvitesByRecipient", {
+    key: `${args.ownerId}:${normalizeRateLimitEmail(args.email)}`,
   });
   if (!recipientStatus.ok) {
     throw new Error(

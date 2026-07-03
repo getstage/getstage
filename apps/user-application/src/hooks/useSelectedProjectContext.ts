@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 import {
   phaseSummarySchema,
   projectContextSchema,
@@ -28,15 +29,19 @@ type SelectedProjectContextResult = {
 
 export function useSelectedProjectContext(): SelectedProjectContextResult {
   const { isAuthenticated, isLoading: isAuthLoading } = useDesktopAuth();
-  const rawProjects = useQuery(api.desktop.listProjects, isAuthenticated ? {} : "skip");
+  const { data: rawProjects, isPending: projectsPending } = useQuery(
+    convexQuery(api.desktop.listProjects, isAuthenticated ? {} : "skip"),
+  );
   const projects = useMemo(
     () => rawProjects === undefined ? undefined : z.array(projectSummarySchema).parse(rawProjects),
     [rawProjects],
   );
   const selectedProjectId = projects?.find((project) => project.status === "active")?.id ?? projects?.[0]?.id;
-  const rawProjectData = useQuery(
-    api.desktop.getProjectData,
-    isAuthenticated && selectedProjectId ? { projectId: selectedProjectId } : "skip",
+  const { data: rawProjectData, isPending: projectDataPending } = useQuery(
+    convexQuery(
+      api.desktop.getProjectData,
+      isAuthenticated && selectedProjectId ? { projectId: selectedProjectId } : "skip",
+    ),
   );
   const liveContext = useMemo<ProjectContext | null>(() => {
     if (!rawProjectData) {
@@ -73,7 +78,7 @@ export function useSelectedProjectContext(): SelectedProjectContextResult {
   const context = liveContext ?? selectedProjectContext;
   const isLoading =
     isAuthLoading ||
-    (isAuthenticated && (rawProjects === undefined || (Boolean(selectedProjectId) && rawProjectData === undefined)));
+    (isAuthenticated && (projectsPending || (Boolean(selectedProjectId) && projectDataPending)));
   const isFallback = !liveContext;
 
   return {

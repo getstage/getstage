@@ -1,15 +1,19 @@
 import { createHashHistory, createRouter } from "@tanstack/react-router";
+import { TabLoadingState } from "@/components/project/tabs/TabLoadingState";
+import { queryClient } from "@/lib/queryClient";
 import { routeTree } from "./routeTree.gen";
 
-// Packaged Electron loads via file://; hash routing keeps "/" and "/auth" working.
 const useHashHistory = import.meta.env.PROD;
 
 export const router = createRouter({
   routeTree,
-  ...(useHashHistory ? { history: createHashHistory() } : {}),
-  defaultPreload: false,
+  context: { queryClient },
+  defaultPendingComponent: () => <TabLoadingState />,
+  defaultPreload: "intent",
   defaultPreloadStaleTime: 30_000,
+  ...(useHashHistory ? { history: createHashHistory() } : {}),
 });
+
 declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;

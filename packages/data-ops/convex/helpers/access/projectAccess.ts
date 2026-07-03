@@ -35,25 +35,23 @@ async function resolveProjectAccess(
     return { user: args.user, project, role: "owner" };
   }
 
-  const collaborator = await ctx.db
+  // Editor access is workspace-level: a member of the project owner's workspace
+  // can edit all of that owner's projects. The owner's subscription covers the
+  // whole workspace, so members do NOT need their own subscription.
+  const membership = await ctx.db
     .query("projectCollaborators")
-    .withIndex("by_project_user", (q) =>
-      q.eq("projectId", args.projectId).eq("userId", args.user._id),
+    .withIndex("by_owner_user", (q) =>
+      q.eq("ownerUserId", project.userId).eq("userId", args.user._id),
     )
-    .unique();
+    .first();
 
-  if (!collaborator) {
+  if (!membership) {
     throw new Error("Not authorized.");
   }
 
   const ownerSubscription = await getCurrentSubscriptionSnapshot(ctx, String(project.userId));
   if (!ownerSubscription) {
     throw new Error("Not authorized. Project owner needs an active subscription.");
-  }
-
-  const subscription = await getCurrentSubscriptionSnapshot(ctx, String(args.user._id));
-  if (!subscription) {
-    throw new Error("Not authorized. Active subscription required.");
   }
 
   return { user: args.user, project, role: "editor" };

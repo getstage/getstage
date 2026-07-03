@@ -6,7 +6,6 @@ import {
 import { deleteGeneratedDesignsForProject } from "../../../integrations/stitch";
 import {
   deleteAllProjectAiData,
-  deleteProjectCollaboratorsForProject,
 } from "../../../lib/projectAi/domain/projectCleanup";
 import { now } from "../../../helpers/time";
 import { deleteOldR2Asset } from "../../../r2";
@@ -75,7 +74,6 @@ export async function deleteProjectWithDependents(
 
   await deleteGeneratedDesignsForProject(ctx, projectId);
   await deleteAllProjectAiData(ctx, projectId);
-  await deleteProjectCollaboratorsForProject(ctx, projectId);
 
   await ctx.db.delete(project._id);
 

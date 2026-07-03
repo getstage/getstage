@@ -8,6 +8,7 @@ import {
   useWireframesArtifact,
 } from "@/hooks/project";
 import type { Project, ProjectTab } from "@/models/project/project";
+import { TabLoadingState } from "./tabs/TabLoadingState";
 
 type StepTab = Exclude<ProjectTab, "overview">;
 
@@ -113,7 +114,7 @@ export function ProjectStepView({
 
   return (
     <div className="w-full pb-[120px] pt-7">
-      <Suspense fallback={<ProjectTabFallback label={PROJECT_STEP_LABELS[activeTab]} />}>
+      <Suspense fallback={<TabLoadingState label={`Loading ${PROJECT_STEP_LABELS[activeTab]}…`} />}>
         {blockedStep ? (
           <ProjectStepBlockedState
             currentTab={activeTab}
@@ -161,14 +162,6 @@ export function ProjectStepView({
         ) : null}
         {!blockedStep && activeTab === "assets" ? <AssetsTab project={project} /> : null}
       </Suspense>
-    </div>
-  );
-}
-
-function ProjectTabFallback({ label }: { label: string }) {
-  return (
-    <div className="flex min-h-[260px] items-center justify-center rounded-[12px] bg-[#f5f5f5] p-4">
-      <p className="text-[13px] font-medium text-[#737373]">Loading {label}...</p>
     </div>
   );
 }

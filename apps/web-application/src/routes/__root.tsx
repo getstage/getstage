@@ -1,16 +1,37 @@
 import {
   createRootRouteWithContext,
   Outlet,
+  redirect,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import type { QueryClient } from "@tanstack/react-query";
 import { toUserFacingErrorMessage } from "@/lib/errors";
+import { getLegacyBillingReturnRedirect, getWebRouteLockRedirect } from "@/lib/webRoutePolicy";
 
 type RouterContext = {
   queryClient: QueryClient;
 };
 
 export const Route = createRootRouteWithContext<RouterContext>()({
+  beforeLoad: ({ location }) => {
+    const legacyBillingStatus = getLegacyBillingReturnRedirect(
+      location.pathname,
+      location.search as Record<string, unknown>,
+    );
+    if (legacyBillingStatus) {
+      throw redirect({
+        to: "/billing/return",
+        search: { status: legacyBillingStatus },
+        replace: true,
+      });
+    }
+
+    const lockRedirect = getWebRouteLockRedirect(location.pathname);
+
+    if (lockRedirect) {
+      throw redirect({ to: lockRedirect, replace: true });
+    }
+  },
   component: RootLayout,
   errorComponent: RootErrorBoundary,
 });
@@ -43,9 +64,9 @@ function RootErrorBoundary({ error, reset }: ErrorComponentProps) {
           <button
             type="button"
             className="rounded-[10px] border border-border px-4 py-2 text-[14px] font-medium text-text-primary transition-colors hover:bg-bg-subtle"
-            onClick={() => window.location.assign("/dashboard")}
+            onClick={() => window.location.assign("/auth")}
           >
-            Go to dashboard
+            Go to sign in
           </button>
         </div>
       </div>

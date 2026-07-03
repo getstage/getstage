@@ -79,17 +79,17 @@ export async function deleteAllProjectAiData(
   }
 }
 
-export async function deleteProjectCollaboratorsForProject(
+export async function deleteWorkspaceMembershipsForOwner(
   ctx: MutationCtx,
-  projectId: Id<"projects">,
+  ownerUserId: Id<"users">,
 ) {
-  const collaborators = await ctx.db
+  const memberships = await ctx.db
     .query("projectCollaborators")
-    .withIndex("by_project", (q) => q.eq("projectId", projectId))
+    .withIndex("by_owner", (q) => q.eq("ownerUserId", ownerUserId))
     .collect();
 
-  for (const collaborator of collaborators) {
-    await ctx.db.delete(collaborator._id);
+  for (const membership of memberships) {
+    await ctx.db.delete(membership._id);
   }
 }
 

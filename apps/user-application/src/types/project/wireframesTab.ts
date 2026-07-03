@@ -53,6 +53,10 @@ export type WireframeGeneratedScreen = {
   title: string;
   priority: string;
   generatedAtLabel: string;
+  // Numeric ms timestamp for this specific screen. Partial regen only refreshes
+  // the regenerated screens, so cards render honest per-screen times. Optional
+  // for legacy artifacts that predate per-screen timestamps.
+  generatedAt?: number;
   figmaUrl?: string;
   goal?: string;
   sections?: WireframeRenderableSection[];

@@ -25,12 +25,15 @@ import {
 } from "./helpers/auto-update";
 import {
   createMainWindow,
+  getMainWindow,
   destroyOrphanCompanionWindows,
   openCompanionForLatestChatShortcut,
   openCompanionForVoiceShortcut,
   shouldSuppressMainWindowActivation,
 } from "./windows";
 import { registerVoiceShortcuts } from "./voice/shortcuts";
+import { IPC_CHANNELS } from "@shared/ipc/channels";
+import { isStageBillingUrl, parseStageBillingReturnStatus } from "./helpers/billing";
 
 loadLocalEnv();
 registerRendererProtocolSchemes();
@@ -149,6 +152,17 @@ function handleDeepLinkUrl(url: string) {
     return;
   }
 
+  if (isStageBillingUrl(url)) {
+    const window = getMainWindow() ?? createMainWindow();
+    window.show();
+    window.focus();
+    const status = parseStageBillingReturnStatus(url);
+    if (status) {
+      window.webContents.send(IPC_CHANNELS.billingCheckoutReturn, { status });
+    }
+    return;
+  }
+
   if (integrationsController.handleCallbackUrl(url)) {
     return;
   }
@@ -164,7 +178,7 @@ function handleDeepLinkUrl(url: string) {
 }
 
 function findStageDeepLinkUrl(argv: string[]) {
-  return findStageAuthUrl(argv) ?? findStageIntegrationUrl(argv) ?? null;
+  return findStageAuthUrl(argv) ?? findStageIntegrationUrl(argv) ?? argv.find(isStageBillingUrl) ?? null;
 }
 
 if (!isDevelopment && !app.requestSingleInstanceLock()) {

@@ -36,6 +36,14 @@ export async function requireProjectOwner(ctx: ReaderCtx, projectId: Id<"project
   return { user, project };
 }
 
+// Every user owns exactly one workspace: the set of projects they own plus the
+// members they invited (projectCollaborators rows keyed by ownerUserId). A user
+// MAY additionally be a member of other users' workspaces.
+export async function requireWorkspaceOwner(ctx: ReaderCtx) {
+  const owner = await requireAuthUser(ctx);
+  return { owner };
+}
+
 export async function requirePhaseOwner(ctx: ReaderCtx, phaseId: Id<"phases">) {
   const phase = await ctx.db.get(phaseId);
   if (!phase) {

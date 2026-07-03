@@ -28,11 +28,13 @@ export async function getProjectMembersHandler(
   if (!access) {
     return [];
   }
-  const { user } = access;
+  const { user, project } = access;
 
+  // Members are workspace-level: everyone with editor access to the owner's
+  // projects, not just this one.
   const collaborators = await ctx.db
     .query("projectCollaborators")
-    .withIndex("by_project", (q) => q.eq("projectId", projectId))
+    .withIndex("by_owner", (q) => q.eq("ownerUserId", project.userId))
     .collect();
 
   const members: Array<{

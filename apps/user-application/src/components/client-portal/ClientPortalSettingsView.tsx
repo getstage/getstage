@@ -39,7 +39,8 @@ export function ClientPortalSettingsView() {
   const [logoError, setLogoError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingLogo, setIsSavingLogo] = useState(false);
-  const hasPortalAccess = overview.data?.profile.plan === "pro";
+  const plan = overview.data?.profile.plan;
+  const hasPortalAccess = plan === "start" || plan === "pro" || plan === "team";
 
   useEffect(() => {
     if (overview.data?.portalBranding.accentColor) {

@@ -14,7 +14,7 @@ import { api } from "@/lib/convexApi";
 import { buildResultCards } from "@/lib/project/mapWireframesArtifactToTabData";
 import type { Project } from "@/models/project/project";
 import type { WireframeAssetCard } from "@/types/project/assetsTab";
-import type { WireframeKindChoice, WireframeStep } from "@/types/project/wireframesTab";
+import type { WireframeKindChoice, WireframeStep, WireframesTabData } from "@/types/project/wireframesTab";
 import { ExportOptionsDialog } from "../assets/ExportOptionsDialog";
 import { BrandKitStep } from "./BrandKitStep";
 import { CanvasShell } from "./CanvasShell";
@@ -22,6 +22,7 @@ import { ConfigureStep } from "./ConfigureStep";
 import { GeneratingStep } from "./GeneratingStep";
 import { ResultsGrid } from "./ResultsGrid";
 import { StyleGuideStep } from "./StyleGuideStep";
+import { TabLoadingState } from "../TabLoadingState";
 import type { BrandSource, BrandSourceChoice } from "./TypeChooser";
 import { TypeChooser } from "./TypeChooser";
 import { WireframeKindChooser } from "./WireframeKindChooser";
@@ -33,6 +34,34 @@ type WireframesTabProps = {
   onGoToFlows?: () => void;
   onGoToMoodboard: () => void;
 };
+
+function getRestoredWireframeUiState(
+  tabData: WireframesTabData | undefined,
+  isGenerating: boolean,
+  seedScreens: ReturnType<typeof createSeedConfigureScreens>,
+) {
+  if (!tabData) {
+    return {
+      step: "choose-kind" as WireframeStep,
+      wireframeKind: null as WireframeKindChoice,
+      brandSource: null as BrandSourceChoice,
+      styleDirectionId: null as string | null,
+      screens: seedScreens,
+    };
+  }
+
+  return {
+    step: (tabData.generatedScreens.length > 0
+      ? isGenerating
+        ? "generating"
+        : "results"
+      : "choose-kind") as WireframeStep,
+    wireframeKind: tabData.wireframeKind as WireframeKindChoice,
+    brandSource: tabData.brandSource as BrandSourceChoice,
+    styleDirectionId: tabData.styleDirectionId,
+    screens: tabData.configureScreens,
+  };
+}
 
 export function WireframesTab({
   project,
@@ -62,11 +91,27 @@ export function WireframesTab({
     null,
   );
   const seedScreens = useMemo(() => createSeedConfigureScreens(), []);
-  const [step, setStep] = useState<WireframeStep>("choose-kind");
-  const [wireframeKind, setWireframeKind] = useState<WireframeKindChoice>(null);
-  const [brandSource, setBrandSource] = useState<BrandSourceChoice>(null);
-  const [styleDirectionId, setStyleDirectionId] = useState<string | null>(null);
-  const [screens, setScreens] = useState(seedScreens);
+  const hydratedProjectRef = useRef<string | null>(null);
+  const tabData = wireframesTab.data?.tabData;
+  const isGenerating = wireframesTab.isGenerating;
+  const [step, setStep] = useState<WireframeStep>(() =>
+    getRestoredWireframeUiState(tabData, isGenerating, seedScreens).step,
+  );
+  const [wireframeKind, setWireframeKind] = useState<WireframeKindChoice>(() =>
+    getRestoredWireframeUiState(tabData, isGenerating, seedScreens).wireframeKind,
+  );
+  const [brandSource, setBrandSource] = useState<BrandSourceChoice>(() =>
+    getRestoredWireframeUiState(tabData, isGenerating, seedScreens).brandSource,
+  );
+  const [styleDirectionId, setStyleDirectionId] = useState<string | null>(() =>
+    getRestoredWireframeUiState(tabData, isGenerating, seedScreens).styleDirectionId,
+  );
+  const [screens, setScreens] = useState(() =>
+    getRestoredWireframeUiState(tabData, isGenerating, seedScreens).screens,
+  );
+  if (tabData && !wireframesTab.isRunsLoading) {
+    hydratedProjectRef.current = project.id;
+  }
   // Results metadata is read live from the artifact so a fresh run (e.g. a Hi-Fi conversion)
   // always reflects the latest generation instead of stale mirrored state.
   const generatedScreens = wireframesTab.data?.tabData.generatedScreens ?? [];
@@ -93,10 +138,6 @@ export function WireframesTab({
     [moodboard.data],
   );
 
-  // Restore state from the saved artifact ONCE per project (on first load / tab return).
-  // After that the user owns the step + chosen kind — re-running on every reactive data
-  // tick would bounce a Lo-Fi→Hi-Fi conversion straight back to the Lo-Fi results.
-  const hydratedProjectRef = useRef<string | null>(null);
   const isConvertingFromLofiRef = useRef(false);
   // "Change source" in the regenerate picker borrows the same choose-type /
   // style-guide / brand-kit steps Convert-to-Hi-Fi uses (real card picker,
@@ -243,6 +284,10 @@ export function WireframesTab({
       ? styleDirections.find((direction) => direction.id === regenerateStyleDirectionId)?.title
       : null;
 
+  if (wireframesTab.isLoading || wireframesTab.isRunsLoading) {
+    return <TabLoadingState label="Loading wireframes…" />;
+  }
+
   return (
     <section className="w-full">
       <UpstreamStaleBanner
@@ -356,7 +401,10 @@ export function WireframesTab({
 
       {step === "generating" ? (
         <CanvasShell centered>
-          <GeneratingStep mode={wireframesTab.isRegenerateRun ? "regenerate" : "generate"} />
+          <GeneratingStep
+            mode={wireframesTab.isRegenerateRun ? "regenerate" : "generate"}
+            screenCount={wireframesTab.regeneratingScreenIds?.length ?? selectedRegenerateIds.size}
+          />
         </CanvasShell>
       ) : null}
 

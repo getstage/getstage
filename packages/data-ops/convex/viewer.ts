@@ -1,13 +1,17 @@
 import { v } from "convex/values";
 import { internalQuery, query } from "./_generated/server";
-import { requireAuthUser } from "./_helpers";
+import { getAuthUser } from "./helpers/auth/requireAuthUser";
 import { getCurrentSubscriptionSnapshot } from "./billing";
 import { resolveAssetUrl } from "./r2";
 
 export const getIdentity = query({
   args: {},
   handler: async (ctx) => {
-    const user = await requireAuthUser(ctx);
+    const user = await getAuthUser(ctx);
+    if (!user) {
+      return null;
+    }
+
     const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
 
     return {

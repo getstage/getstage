@@ -23,6 +23,7 @@ import { FlowRow } from "./FlowRow";
 import { FlowIcon, ScreenIcon } from "./flowsIcons";
 import { ScreenFilter } from "./ScreenFilter";
 import { ScreensPanel } from "./ScreensPanel";
+import { TabLoadingState } from "../TabLoadingState";
 
 type FlowsTabProps = {
   project: Project;
@@ -262,6 +263,10 @@ export function FlowsTab({ project, onGoToResearch, onGoToStrategy }: FlowsTabPr
     } catch (error) {
       setUiError(error instanceof Error ? error.message : "Could not send flows to FigJam.");
     }
+  }
+
+  if (flowsTab.isLoading) {
+    return <TabLoadingState label="Loading flows…" />;
   }
 
   if (!artifactRecord && (flowsRun.isRunning || flowsRun.isStarting)) {

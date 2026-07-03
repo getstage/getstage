@@ -412,6 +412,11 @@ export const authCallbacks = {
         firstName: nameParts[0] || undefined,
         lastName: nameParts.slice(1).join(" ") || undefined,
       });
+      // Kick off the email drip engine (Flow A: welcome + download reminder).
+      await ctx.scheduler.runAfter(0, internal.emails.recordEmailEvent, {
+        userId,
+        type: "signed_up",
+      });
     }
 
     return userId;

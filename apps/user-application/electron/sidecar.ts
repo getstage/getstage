@@ -8,6 +8,7 @@ import {
   findStageEngineManifest,
   getSidecarEnv,
   getSidecarPort,
+  killProcessOnPort,
   logSidecarOutput,
   type SidecarChildProcess,
   waitForExit,
@@ -125,14 +126,12 @@ export class SidecarSupervisor {
     const existingReadiness = await fetchReadiness(port);
 
     if (existingReadiness?.ready) {
-      this.status = { adopted: true, pid: null, port, state: "ready" };
       logDesktopWarn(
         "stage-engine",
-        `using existing service on port ${port} — restart it after Rust changes (kill $(lsof -t -i:${port}))`,
+        `reaping stale engine on port ${port} before starting a fresh sidecar`,
       );
-      logDesktopDebug(`sidecar adopted existing service in ${Date.now() - startedAt}ms`);
-      this.markEngineActivity();
-      return this.getStatus();
+      killProcessOnPort(port);
+      await delay(500);
     }
 
     const packagedBinary = getPackagedStageEngineBinaryPath();
@@ -216,6 +215,8 @@ export class SidecarSupervisor {
         child.kill("SIGKILL");
         await waitForExit(child);
       }
+    } else if (this.status.adopted) {
+      killProcessOnPort(this.status.port);
     }
 
     this.status = {
@@ -241,8 +242,12 @@ export class SidecarSupervisor {
     this.clearIdleShutdownTimer();
 
     if (!this.child || this.status.adopted) {
+      if (this.status.adopted) {
+        killProcessOnPort(this.status.port);
+      }
       this.status = {
         ...this.status,
+        adopted: false,
         pid: null,
         state: this.status.state === "failed" ? "failed" : "stopped",
       };

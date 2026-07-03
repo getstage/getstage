@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { Helmet } from "react-helmet-async";
-import { useAuth } from "@/lib/auth";
+import { useAuth, useSignOut } from "@/lib/auth";
 import { desktopAuthWebHandoffSchema } from "@/lib/desktopAuthHandoff";
 import {
   buildDesktopAuthHandoffUrl,
@@ -17,6 +17,7 @@ import stageLogo from "@/assets/logos/stage-logo-light.png";
 type DesktopAuthSearch = {
   redirect_uri?: string;
   state?: string;
+  prompt?: string;
 };
 
 export const Route = createFileRoute("/auth/desktop")({
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/auth/desktop")({
     redirect_uri:
       typeof search.redirect_uri === "string" ? search.redirect_uri : undefined,
     state: typeof search.state === "string" ? search.state : undefined,
+    prompt: typeof search.prompt === "string" ? search.prompt : undefined,
   }),
 });
 
@@ -63,6 +65,14 @@ function getValidatedRedirectUri(value?: string) {
   }
 }
 
+function buildStageCallbackUrl(args: { redirectUri: URL; state: string; token: string }) {
+  const handoff = desktopAuthWebHandoffSchema.parse(args);
+  const callbackUrl = new URL(handoff.redirectUri);
+  callbackUrl.searchParams.set("code", handoff.token);
+  callbackUrl.searchParams.set("state", handoff.state);
+  return callbackUrl.toString();
+}
+
 function triggerCustomProtocolRedirect(url: string) {
   const link = document.createElement("a");
   link.href = url;
@@ -73,98 +83,150 @@ function triggerCustomProtocolRedirect(url: string) {
   link.remove();
 }
 
-function scheduleBrowserTabClose() {
-  window.setTimeout(() => {
-    window.close();
-  }, 600);
-}
-
-async function sendDesktopAuthHandoff(args: {
+function submitLocalDesktopAuthHandoff(args: {
   redirectUri: URL;
   state: string;
   token: string;
 }) {
   const handoff = desktopAuthWebHandoffSchema.parse(args);
 
-  if (isLocalDesktopCallbackUrl(handoff.redirectUri)) {
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = handoff.redirectUri.toString();
-    form.style.display = "none";
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = handoff.redirectUri.toString();
+  form.style.display = "none";
 
-    for (const [name, value] of [
-      ["code", handoff.token],
-      ["state", handoff.state],
-    ] as const) {
-      const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = name;
-      input.value = value;
-      form.appendChild(input);
-    }
-
-    document.body.appendChild(form);
-    form.submit();
-    return;
+  for (const [name, value] of [
+    ["code", handoff.token],
+    ["state", handoff.state],
+  ] as const) {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
   }
 
-  const callbackUrl = new URL(handoff.redirectUri);
-  callbackUrl.searchParams.set("code", handoff.token);
-  callbackUrl.searchParams.set("state", handoff.state);
-  const callback = callbackUrl.toString();
-
-  if (handoff.redirectUri.protocol === "stage:") {
-    triggerCustomProtocolRedirect(callback);
-    return;
-  }
-
-  window.location.assign(callback);
+  document.body.appendChild(form);
+  form.submit();
 }
 
-type DesktopAuthHandoffPhase = "preparing" | "connecting" | "opening" | "complete";
+type DesktopAuthHandoffPhase =
+  | "preparing"
+  | "connecting"
+  | "awaiting-open"
+  | "complete";
 
 function DesktopAuthPage() {
-  const { redirect_uri, state } = Route.useSearch();
+  const { redirect_uri, state, prompt } = Route.useSearch();
   const { isAuthenticated, isLoading } = useAuth();
+  const signOut = useSignOut();
   const authToken = useAuthToken();
   const [phase, setPhase] = useState<DesktopAuthHandoffPhase>("preparing");
   const [error, setError] = useState<string | null>(null);
+  const [stageCallbackUrl, setStageCallbackUrl] = useState<string | null>(null);
+  const [webSessionCleared, setWebSessionCleared] = useState(prompt !== "login");
   const didStartRef = useRef(false);
+  const didSignOutRef = useRef(false);
   const redirectUri = useMemo(() => getValidatedRedirectUri(redirect_uri), [redirect_uri]);
+  const usesStageProtocol = redirectUri?.protocol === "stage:";
 
   useEffect(() => {
-    if (!isAuthenticated || !authToken || !redirectUri || !state || didStartRef.current) {
+    if (prompt !== "login" || isLoading || didSignOutRef.current) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setWebSessionCleared(true);
+      return;
+    }
+
+    didSignOutRef.current = true;
+    console.info("[stage-desktop-auth] clearing stale web session for fresh desktop login");
+
+    void signOut()
+      .catch((signOutError) => {
+        console.error("[stage-desktop-auth] web sign-out failed", signOutError);
+      })
+      .finally(() => {
+        setWebSessionCleared(true);
+      });
+  }, [isAuthenticated, isLoading, prompt, signOut]);
+
+  useEffect(() => {
+    if (
+      !webSessionCleared ||
+      !isAuthenticated ||
+      !authToken ||
+      !redirectUri ||
+      !state ||
+      didStartRef.current
+    ) {
       return;
     }
 
     didStartRef.current = true;
     clearPendingDesktopAuthRedirect();
+
+    if (usesStageProtocol) {
+      try {
+        setStageCallbackUrl(
+          buildStageCallbackUrl({ redirectUri, state, token: authToken }),
+        );
+        setPhase("awaiting-open");
+        console.info("[stage-desktop-auth] waiting for user to open Stage Desktop");
+      } catch (handoffError) {
+        didStartRef.current = false;
+        setError(
+          handoffError instanceof Error
+            ? handoffError.message
+            : "Could not prepare the Stage Desktop handoff.",
+        );
+      }
+      return;
+    }
+
     setPhase("connecting");
     console.info("[stage-desktop-auth] handing off Convex Auth session");
 
-    sendDesktopAuthHandoff({ redirectUri, state, token: authToken })
-      .then(() => {
-        setPhase("opening");
-        console.info("[stage-desktop-auth] desktop auth callback accepted");
+    try {
+      if (isLocalDesktopCallbackUrl(redirectUri)) {
+        submitLocalDesktopAuthHandoff({ redirectUri, state, token: authToken });
+        return;
+      }
 
-        window.setTimeout(() => {
-          setPhase("complete");
-          scheduleBrowserTabClose();
-        }, 400);
-      })
-      .catch((error) => {
-        didStartRef.current = false;
-        setPhase("preparing");
-        setError(
-          error instanceof Error
-            ? error.message
-            : "Could not connect Stage Desktop.",
-        );
-      });
-  }, [authToken, isAuthenticated, redirectUri, state]);
+      const callback = buildStageCallbackUrl({ redirectUri, state, token: authToken });
+      window.location.assign(callback);
+    } catch (handoffError) {
+      didStartRef.current = false;
+      setPhase("preparing");
+      setError(
+        handoffError instanceof Error
+          ? handoffError.message
+          : "Could not connect Stage Desktop.",
+      );
+    }
+  }, [authToken, isAuthenticated, redirectUri, state, usesStageProtocol, webSessionCleared]);
 
-  if (isLoading) {
-    return <DesktopAuthStatus label="Checking your Stage session..." />;
+  const openStageDesktop = useCallback(() => {
+    if (!stageCallbackUrl) {
+      return;
+    }
+
+    triggerCustomProtocolRedirect(stageCallbackUrl);
+    setPhase("complete");
+    console.info("[stage-desktop-auth] desktop auth callback triggered by user");
+  }, [stageCallbackUrl]);
+
+  if (isLoading || (prompt === "login" && !webSessionCleared)) {
+    return (
+      <DesktopAuthStatus
+        label={
+          prompt === "login" && isAuthenticated
+            ? "Signing out of previous web session..."
+            : "Checking your Stage session..."
+        }
+      />
+    );
   }
 
   if (!isAuthenticated) {
@@ -194,8 +256,8 @@ function DesktopAuthPage() {
     ? "Desktop sign-in failed."
     : phase === "complete"
       ? "Stage Desktop connected"
-      : phase === "opening"
-        ? "Opening Stage Desktop..."
+      : phase === "awaiting-open"
+        ? "Open Stage Desktop"
         : phase === "connecting"
           ? "Connecting Stage Desktop..."
           : "Preparing desktop sign-in...";
@@ -204,19 +266,25 @@ function DesktopAuthPage() {
     <DesktopAuthStatus
       error={error}
       isComplete={phase === "complete"}
+      isAwaitingOpen={phase === "awaiting-open"}
       label={statusLabel}
+      onOpenStageDesktop={openStageDesktop}
     />
   );
 }
 
 function DesktopAuthStatus({
   error,
+  isAwaitingOpen = false,
   isComplete = false,
   label,
+  onOpenStageDesktop,
 }: {
   error?: string | null;
+  isAwaitingOpen?: boolean;
   isComplete?: boolean;
   label: string;
+  onOpenStageDesktop?: () => void;
 }) {
   return (
     <>
@@ -235,10 +303,25 @@ function DesktopAuthStatus({
             <p className="mt-3 text-[15px] leading-[1.6] text-text-secondary">
               {error}
             </p>
+          ) : isAwaitingOpen ? (
+            <>
+              <p className="mt-3 text-[15px] leading-[1.6] text-text-secondary">
+                Click below to return to Stage Desktop. macOS may ask you to confirm
+                opening Stage — choose <strong>Open</strong>.
+              </p>
+              <button
+                type="button"
+                className="mt-6 rounded-full bg-accent px-5 py-2.5 text-[14px] font-medium text-white transition hover:opacity-90"
+                onClick={onOpenStageDesktop}
+              >
+                Open Stage Desktop
+              </button>
+            </>
           ) : isComplete ? (
             <>
               <p className="mt-3 text-[15px] leading-[1.6] text-text-secondary">
-                Return to Stage Desktop. You can close this browser tab.
+                Return to Stage Desktop. You can close this browser tab once you are
+                signed in.
               </p>
               <button
                 type="button"

@@ -78,7 +78,7 @@ export async function getOverviewHandler(ctx: QueryCtx) {
     },
     subscription: subscription
       ? {
-          plan: subscription.plan,
+          plan: subscription.plan ?? "free",
           status: subscription.status,
           provider: subscription.provider,
           billingCycle: subscription.billingCycle,
@@ -162,7 +162,7 @@ export async function updatePortalBrandingHandler(
   const nextLogoUrl = args.logoKey ?? args.logoUrl;
 
   if (plan === "free" && nextLogoUrl !== undefined && nextLogoUrl !== null) {
-    throw new Error("Custom portal logos require Stage Pro.");
+    throw new Error("Custom portal logos require a paid Stage plan.");
   }
 
   if (nextLogoUrl !== undefined && user.defaultPortalLogoUrl) {
@@ -241,10 +241,17 @@ export async function deleteAccountHandler(ctx: ActionCtx, args: { confirmation:
       ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status) &&
       subscription.stripeSubscriptionId
     ) {
-      await stripe.cancelSubscription(ctx, {
-        stripeSubscriptionId: subscription.stripeSubscriptionId,
-        cancelAtPeriodEnd: false,
-      });
+      try {
+        await stripe.cancelSubscription(ctx, {
+          stripeSubscriptionId: subscription.stripeSubscriptionId,
+          cancelAtPeriodEnd: false,
+        });
+      } catch (error) {
+        // Best-effort: a stale/absent Stripe subscription (e.g. created against a
+        // different Stripe account or already canceled) must not block account
+        // deletion. Local billing state is torn down by deleteAccountData below.
+        console.error("deleteAccount: failed to cancel Stripe subscription", error);
+      }
     }
   }
 

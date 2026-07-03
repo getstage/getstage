@@ -1,4 +1,5 @@
 import { StripeSubscriptions, type StripeComponent } from "@convex-dev/stripe";
+import Stripe from "stripe";
 import { v } from "convex/values";
 import type { Id } from "../../../_generated/dataModel";
 import type { ActionCtx, MutationCtx, QueryCtx } from "../../../_generated/server";
@@ -6,9 +7,35 @@ import { components, internal } from "../../../_generated/api";
 import { requireAuthUser } from "../../../_helpers";
 import { getEnv, requireEnv, requireSiteUrl } from "../../../helpers/env";
 import { now } from "../../../helpers/time";
+import {
+  type BillingCycle,
+  type Tier,
+  billingCycleForPriceId,
+  configForPriceId,
+  priceIdForTier,
+  seatAddOnPriceId,
+  tierForPriceId,
+} from "../../credits/priceConfig";
 
 const stripeComponent = (components as { stripe: StripeComponent }).stripe;
 const stripe = new StripeSubscriptions(stripeComponent, {});
+
+// Fail closed on genuinely unknown price IDs, but keep legacy single-tier
+// subscribers (pre-tiers) recognized as pro so they don't lose access.
+const LEGACY_PRO_PRICE_ENVS = [
+  "STRIPE_PRICE_ID",
+  "STRIPE_YEARLY_PRICE_ID",
+  "STRIPE_MONTHLY_PRICE_ID",
+  "STRIPE_YEARLY_PRICE_LAUNCH_ID",
+];
+
+// Trial length in days. Locked: 14 days, all paid tiers. Card is required at
+// checkout by Stripe's default (we do NOT set payment_method_collection).
+export const TRIAL_DAYS = 14;
+
+// Statuses that count as "an active subscription exists" for portal access and
+// the first-payment email. Credit revocation on past_due/unpaid is handled
+// separately in the webhook handlers (fail closed for AI usage).
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set([
   "active",
   "trialing",
@@ -17,14 +44,36 @@ const ACTIVE_SUBSCRIPTION_STATUSES = new Set([
   "incomplete",
 ]);
 
+function resolveTier(priceId: string | null | undefined): Tier | null {
+  const tier = tierForPriceId(priceId);
+  if (tier) {
+    return tier;
+  }
+  const legacyIds = LEGACY_PRO_PRICE_ENVS.map((env) => getEnv(env)).filter(
+    (value): value is string => Boolean(value),
+  );
+  if (priceId && legacyIds.includes(priceId)) {
+    return "pro";
+  }
+  return null;
+}
+
+// Total purchased seats for a Team subscription. We bake the requested seat count
+// into subscription metadata at checkout (createCheckoutSession), and the Stripe
+// component syncs metadata, so this is readable from a query/mutation ctx. Falls
+// back to the tier's included seats when metadata is absent (legacy subs).
+function resolveSeats(subscription: StripeSubscriptionSummary): number {
+  const included = configForPriceId(subscription.priceId)?.includedSeats ?? 1;
+  const raw = Number((subscription.metadata as { seats?: unknown } | null | undefined)?.seats);
+  return Number.isFinite(raw) && raw > included ? Math.round(raw) : included;
+}
+
 type ViewerContext = {
   userId: Id<"users">;
   userIdString: string;
   email: string;
   name: string;
 };
-
-type BillingCycle = "monthly" | "yearly";
 
 type StripeSubscriptionSummary = {
   currentPeriodEnd: number;
@@ -33,10 +82,11 @@ type StripeSubscriptionSummary = {
   stripeCustomerId: string;
   stripeSubscriptionId: string;
   priceId: string;
+  metadata?: Record<string, unknown> | null;
 };
 
 type SubscriptionSnapshot = {
-  plan: "pro";
+  plan: Tier | null;
   provider: "stripe";
   status: string;
   billingCycle: BillingCycle;
@@ -47,6 +97,7 @@ type SubscriptionSnapshot = {
   stripeCustomerId: string;
   stripeSubscriptionId: string;
   stripePriceId: string;
+  seats: number;
 } | null;
 
 type CheckoutSessionResponse = {
@@ -67,55 +118,23 @@ function toMilliseconds(timestampSeconds: number) {
   return timestampSeconds * 1000;
 }
 
-function getBillingUrls() {
+function getBillingUrls(platform?: "web" | "desktop") {
   const siteUrl = requireSiteUrl();
+  if (platform === "desktop") {
+    // Desktop checkout opens in the external browser, so return to a PUBLIC page
+    // (no web auth) that deep-links back into the app. Never the auth-gated web
+    // dashboard — that traps the desktop user in a sign-in loop.
+    return {
+      successUrl: `${siteUrl}/billing/return?status=success`,
+      cancelUrl: `${siteUrl}/billing/return?status=cancel`,
+      returnUrl: `${siteUrl}/billing/return?status=done`,
+    };
+  }
   return {
     successUrl: `${siteUrl}/dashboard?billing=success`,
     cancelUrl: `${siteUrl}/dashboard?billing=cancel`,
     returnUrl: `${siteUrl}/settings?tab=billing`,
   };
-}
-
-function getYearlyPriceId() {
-  return (
-    getEnv("STRIPE_YEARLY_PRICE_LAUNCH_ID") ??
-    getEnv("STRIPE_YEARLY_PRICE_ID") ??
-    getEnv("STRIPE_PRICE_ID")
-  );
-}
-
-function getBillingCycleForPriceId(priceId: string | null | undefined): BillingCycle {
-  const monthlyPriceId = getEnv("STRIPE_MONTHLY_PRICE_ID");
-  if (monthlyPriceId && priceId === monthlyPriceId) {
-    return "monthly";
-  }
-
-  return "yearly";
-}
-
-function getPriceIdForBillingCycle(billingCycle: BillingCycle, explicitPriceId?: string) {
-  if (explicitPriceId) {
-    return explicitPriceId;
-  }
-
-  if (billingCycle === "monthly") {
-    const monthlyPriceId = getEnv("STRIPE_MONTHLY_PRICE_ID");
-    if (!monthlyPriceId) {
-      throw new Error("Monthly checkout is not configured yet.");
-    }
-    return monthlyPriceId;
-  }
-
-  const yearlyPriceId = getYearlyPriceId();
-  if (!yearlyPriceId) {
-    throw new Error("Yearly checkout is not configured yet.");
-  }
-
-  return yearlyPriceId;
-}
-
-function getLoopsEventApiKey() {
-  return getEnv("AUTH_LOOPS_API_KEY") ?? requireEnv("LOOPS_API_KEY");
 }
 
 async function loadSubscriptionByUserId(
@@ -127,18 +146,32 @@ async function loadSubscriptionByUserId(
   })) as StripeSubscriptionSummary[];
 
   const sorted = [...subscriptions].sort((a, b) => b.currentPeriodEnd - a.currentPeriodEnd);
-  const preferred =
-    sorted.find((subscription) => ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) ?? null;
+  // Pick the newest active subscription whose price maps to a known tier. A leftover
+  // subscription from a reset/switched Stripe account (unknown price) must NOT mask a
+  // valid current one — otherwise the workspace stays gated after a real payment.
+  let preferred: StripeSubscriptionSummary | null = null;
+  let plan: Tier | null = null;
+  for (const subscription of sorted) {
+    if (!ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) {
+      continue;
+    }
+    const tier = resolveTier(subscription.priceId);
+    if (tier) {
+      preferred = subscription;
+      plan = tier;
+      break;
+    }
+  }
 
-  if (!preferred) {
+  if (!preferred || !plan) {
     return null;
   }
 
   return {
-    plan: "pro" as const,
+    plan,
     provider: "stripe" as const,
     status: preferred.cancelAtPeriodEnd ? "cancelling" : preferred.status,
-    billingCycle: getBillingCycleForPriceId(preferred.priceId),
+    billingCycle: billingCycleForPriceId(preferred.priceId),
     currentPeriodEnd: toMilliseconds(preferred.currentPeriodEnd),
     cancelAtPeriodEnd: preferred.cancelAtPeriodEnd,
     paymentMethodBrand: null,
@@ -146,6 +179,7 @@ async function loadSubscriptionByUserId(
     stripeCustomerId: preferred.stripeCustomerId,
     stripeSubscriptionId: preferred.stripeSubscriptionId,
     stripePriceId: preferred.priceId,
+    seats: resolveSeats(preferred),
   };
 }
 
@@ -194,77 +228,188 @@ export async function getCurrentSubscriptionHandler(ctx: QueryCtx) {
 }
 
 export const createCheckoutSessionArgs = {
-  priceId: v.optional(v.string()),
+  kind: v.optional(v.union(v.literal("subscription"), v.literal("topup"))),
+  tier: v.optional(v.union(v.literal("start"), v.literal("pro"), v.literal("team"))),
   billingCycle: v.optional(v.union(v.literal("monthly"), v.literal("yearly"))),
+  isTrial: v.optional(v.boolean()),
+  seats: v.optional(v.number()),
+  topupSize: v.optional(v.union(v.literal("small"), v.literal("medium"), v.literal("large"))),
   source: v.optional(v.string()),
   datafastVisitorId: v.optional(v.string()),
   datafastSessionId: v.optional(v.string()),
+  platform: v.optional(v.union(v.literal("web"), v.literal("desktop"))),
 };
+
+type TopupSize = "small" | "medium" | "large";
+
+// A customer id cached by the Stripe component can dangle if the Stripe account's
+// data was reset ("delete test data") or the API key now points at a different
+// account. Verify it still exists; if Stripe 404s it, mint a fresh customer in the
+// current account (idempotent on userId) so checkout self-heals instead of throwing.
+async function resolveUsableCustomerId(
+  ctx: ActionCtx,
+  sdk: Stripe,
+  viewer: ViewerContext,
+  customerId: string,
+): Promise<string> {
+  try {
+    const existing = await sdk.customers.retrieve(customerId);
+    if (!("deleted" in existing)) {
+      return customerId;
+    }
+  } catch (error) {
+    const isMissing =
+      error instanceof Stripe.errors.StripeError && error.code === "resource_missing";
+    if (!isMissing) {
+      throw error;
+    }
+  }
+
+  const fresh = await stripe.createCustomer(ctx, {
+    email: viewer.email || undefined,
+    name: viewer.name || undefined,
+    metadata: { userId: viewer.userIdString },
+    idempotencyKey: viewer.userIdString,
+  });
+  return fresh.customerId;
+}
 
 export async function createCheckoutSessionHandler(
   ctx: ActionCtx,
   args: {
-    priceId?: string;
+    kind?: "subscription" | "topup";
+    tier?: Tier;
     billingCycle?: BillingCycle;
+    isTrial?: boolean;
+    seats?: number;
+    topupSize?: TopupSize;
     source?: string;
     datafastVisitorId?: string;
     datafastSessionId?: string;
+    platform?: "web" | "desktop";
   },
 ): Promise<CheckoutSessionResponse> {
   const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
-  const billingCycle = args.billingCycle ?? "yearly";
-  const priceId = getPriceIdForBillingCycle(billingCycle, args.priceId);
+  const kind = args.kind ?? "subscription";
+  const urls = getBillingUrls(args.platform);
+  const sdk = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
 
   const customer = await stripe.getOrCreateCustomer(ctx, {
     userId: viewer.userIdString,
     email: viewer.email || undefined,
     name: viewer.name || undefined,
   });
+  const customerId = await resolveUsableCustomerId(ctx, sdk, viewer, customer.customerId);
 
-  const urls = getBillingUrls();
+  const baseMetadata: Record<string, string> = {
+    scope: "stage_billing",
+    userId: viewer.userIdString,
+    ...(args.source ? { source: args.source } : {}),
+    ...(args.datafastVisitorId ? { datafast_visitor_id: args.datafastVisitorId } : {}),
+    ...(args.datafastSessionId ? { datafast_session_id: args.datafastSessionId } : {}),
+  };
 
-  const session = await stripe.createCheckoutSession(ctx, {
+  if (kind === "topup") {
+    const size = args.topupSize;
+    if (!size) {
+      throw new Error("topupSize is required for top-up checkout.");
+    }
+    const topupPriceId = getEnv(
+      size === "small"
+        ? "STRIPE_TOPUP_SMALL_PRICE_ID"
+        : size === "medium"
+          ? "STRIPE_TOPUP_MEDIUM_PRICE_ID"
+          : "STRIPE_TOPUP_LARGE_PRICE_ID",
+    );
+    if (!topupPriceId) {
+      throw new Error(`${size} top-up checkout is not configured yet.`);
+    }
+    const config = configForPriceId(topupPriceId);
+    const topupCredits = config?.topupCredits ?? 0;
+
+    const session = await sdk.checkout.sessions.create({
+      mode: "payment",
+      customer: customerId,
+      line_items: [{ price: topupPriceId, quantity: 1 }],
+      success_url: urls.successUrl,
+      cancel_url: urls.cancelUrl,
+      metadata: { ...baseMetadata, priceId: topupPriceId, kind: "topup" },
+      payment_intent_data: {
+        metadata: { ...baseMetadata, priceId: topupPriceId, kind: "topup", topupCredits: String(topupCredits) },
+      },
+    });
+
+    return { sessionId: session.id, url: session.url };
+  }
+
+  const existingSubscription = await getCurrentSubscriptionSnapshot(ctx, viewer.userIdString);
+  if (existingSubscription) {
+    throw new Error(
+      "You already have an active Stage subscription. Manage it in Settings → Billing.",
+    );
+  }
+
+  // Subscription checkout (start / pro / team), optionally with a 14-day trial.
+  const tier = args.tier ?? "pro";
+  const billingCycle = args.billingCycle ?? "yearly";
+  const priceId = priceIdForTier(tier, billingCycle);
+  const isTrial = args.isTrial ?? false;
+  const config = configForPriceId(priceId);
+  const includedSeats = config?.includedSeats ?? 1;
+  const requestedSeats = Math.max(includedSeats, Math.round(args.seats ?? includedSeats));
+  const extraSeats = Math.max(0, requestedSeats - includedSeats);
+
+  // Team: add the per-seat add-on line item for seats beyond the 3 included.
+  const seatAddOnId = extraSeats > 0 ? seatAddOnPriceId(billingCycle) : null;
+  if (extraSeats > 0 && !seatAddOnId) {
+    throw new Error("Team extra-seat checkout is not configured yet.");
+  }
+
+  const subscriptionMetadata: Record<string, string> = {
+    ...baseMetadata,
     priceId,
-    customerId: customer.customerId,
+    seats: String(requestedSeats),
+    ...(isTrial ? { isTrial: "true" } : {}),
+  };
+
+  const session = await sdk.checkout.sessions.create({
     mode: "subscription",
-    successUrl: urls.successUrl,
-    cancelUrl: urls.cancelUrl,
-    metadata: {
-      scope: "stage_billing",
-      ...(args.datafastVisitorId ? { datafast_visitor_id: args.datafastVisitorId } : {}),
-      ...(args.datafastSessionId ? { datafast_session_id: args.datafastSessionId } : {}),
-    },
-    subscriptionMetadata: {
-      userId: viewer.userIdString,
-      scope: "stage_billing",
+    customer: customerId,
+    line_items: [
+      { price: priceId, quantity: 1 },
+      ...(seatAddOnId ? [{ price: seatAddOnId, quantity: extraSeats }] : []),
+    ],
+    success_url: urls.successUrl,
+    cancel_url: urls.cancelUrl,
+    metadata: { ...baseMetadata, priceId, ...(isTrial ? { isTrial: "true" } : {}) },
+    subscription_data: {
+      metadata: subscriptionMetadata,
+      ...(isTrial ? { trial_period_days: TRIAL_DAYS } : {}),
     },
   });
 
-  return session;
+  return { sessionId: session.id, url: session.url };
 }
 
-export const createCustomerPortalSessionArgs = {};
+export const createCustomerPortalSessionArgs = {
+  platform: v.optional(v.union(v.literal("web"), v.literal("desktop"))),
+};
 
 export async function createCustomerPortalSessionHandler(
   ctx: ActionCtx,
+  args: { platform?: "web" | "desktop" },
 ): Promise<CustomerPortalSessionResponse> {
   const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
-  const subscriptions = (await ctx.runQuery(stripeComponent.public.listSubscriptionsByUserId, {
-    userId: viewer.userIdString,
-  })) as StripeSubscriptionSummary[];
-  const activeSubscription =
-    [...subscriptions]
-      .sort((a, b) => b.currentPeriodEnd - a.currentPeriodEnd)
-      .find((subscription) => ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) ?? null;
+  const subscription = await getCurrentSubscriptionSnapshot(ctx, viewer.userIdString);
 
-  if (!activeSubscription?.stripeCustomerId) {
+  if (!subscription?.stripeCustomerId) {
     throw new Error("No Stripe subscription found for this account.");
   }
 
-  const { returnUrl } = getBillingUrls();
+  const { returnUrl } = getBillingUrls(args.platform);
 
   const session = await stripe.createCustomerPortalSession(ctx, {
-    customerId: activeSubscription.stripeCustomerId,
+    customerId: subscription.stripeCustomerId,
     returnUrl,
   });
 
@@ -273,61 +418,13 @@ export async function createCustomerPortalSessionHandler(
 
 export const handleSuccessfulPaymentEventArgs = {};
 
-export async function handleSuccessfulPaymentEventHandler(ctx: ActionCtx) {
-  const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
-  const eventState = (await ctx.runQuery(internal.billing.getFirstPaymentEventState, {
-    userId: viewer.userId,
-  })) as FirstPaymentEventState;
-
-  if (!eventState.email) {
-    return { sent: false, reason: "missing_email" as const };
-  }
-
-  if (eventState.firstPaymentEmailSentAt) {
-    return { sent: false, reason: "already_sent" as const };
-  }
-
-  const subscriptions = (await ctx.runQuery(stripeComponent.public.listSubscriptionsByUserId, {
-    userId: viewer.userIdString,
-  })) as StripeSubscriptionSummary[];
-  const activeSubscription =
-    [...subscriptions]
-      .sort((a, b) => b.currentPeriodEnd - a.currentPeriodEnd)
-      .find((subscription) => ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) ?? null;
-
-  if (!activeSubscription?.stripeSubscriptionId) {
-    return { sent: false, reason: "no_active_subscription" as const };
-  }
-
-  const response = await fetch("https://app.loops.so/api/v1/events/send", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${getLoopsEventApiKey()}`,
-      "Content-Type": "application/json",
-      "Idempotency-Key":
-        `stage-first-payment:${viewer.userIdString}:${activeSubscription.stripeSubscriptionId}`,
-    },
-    body: JSON.stringify({
-      email: eventState.email,
-      eventName: "welcome_email",
-    }),
-  });
-
-  if (response.status === 409) {
-    await ctx.runMutation(internal.billing.markFirstPaymentEmailSent, {
-      userId: viewer.userId,
-    });
-    return { sent: false, reason: "already_sent" as const };
-  }
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to send first payment event: ${response.status} ${errorText}`);
-  }
-
-  await ctx.runMutation(internal.billing.markFirstPaymentEmailSent, {
-    userId: viewer.userId,
-  });
-
-  return { sent: true, reason: "sent" as const };
+export async function handleSuccessfulPaymentEventHandler(_ctx: ActionCtx) {
+  // Flow B ("Welcome to Pro" + retention) is now triggered server-side by the
+  // Stripe webhook in lib/billing/handlers/webhooks.ts via the payment_confirmed
+  // email event — which fires on real payments only (non-trial checkout + first
+  // post-trial invoice.paid), never on trial start. This client-side hook (still
+  // called from the checkout-success redirect in DashboardPage) is intentionally
+  // a no-op so we don't double-send the welcome. The Loops welcome_email call
+  // that lived here is removed; Resend now owns all marketing/drip email.
+  return { sent: false, reason: "handled_by_webhook" as const };
 }

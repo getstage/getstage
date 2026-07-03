@@ -170,9 +170,13 @@ fn merges_regenerated_screens_into_existing_artifact() {
         "generatedAtLabel": "updated"
     });
 
-    let merged =
-        merge_regenerated_screens(&existing.to_string(), partial, &["homepage".to_string()])
-            .unwrap();
+    let merged = merge_regenerated_screens(
+        &existing.to_string(),
+        partial,
+        &["homepage".to_string()],
+        WireframeKind::Hifi,
+    )
+    .unwrap();
 
     let screens = merged["generatedScreens"].as_array().unwrap();
     assert_eq!(screens.len(), 2);
@@ -196,8 +200,13 @@ fn rejects_merge_when_existing_screen_is_missing() {
         "generatedScreens": [sample_screen("pricing", None)]
     });
 
-    let error = merge_regenerated_screens(&existing.to_string(), partial, &["pricing".to_string()])
-        .unwrap_err();
+    let error = merge_regenerated_screens(
+        &existing.to_string(),
+        partial,
+        &["pricing".to_string()],
+        WireframeKind::Hifi,
+    )
+    .unwrap_err();
 
     assert!(
         error
@@ -207,7 +216,9 @@ fn rejects_merge_when_existing_screen_is_missing() {
 }
 
 #[test]
-fn keeps_existing_screen_when_partial_response_omits_a_requested_id() {
+fn lofi_keeps_existing_screen_when_partial_response_omits_a_requested_id() {
+    // Lo-Fi screens carry no html, so the unchanged/empty guard does not apply: a
+    // partial response merges what it returned and preserves the omitted screen.
     let existing = json!({
         "generatedScreens": [
             sample_screen("homepage", Some("old-home")),
@@ -223,6 +234,7 @@ fn keeps_existing_screen_when_partial_response_omits_a_requested_id() {
         &existing.to_string(),
         partial,
         &["homepage".to_string(), "pricing".to_string()],
+        WireframeKind::Lofi,
     )
     .expect("a partial response should merge what it returned, not fail");
 
@@ -244,9 +256,13 @@ fn rejects_merge_when_partial_screens_are_empty() {
     });
     let partial = json!({ "generatedScreens": [] });
 
-    let error =
-        merge_regenerated_screens(&existing.to_string(), partial, &["homepage".to_string()])
-            .unwrap_err();
+    let error = merge_regenerated_screens(
+        &existing.to_string(),
+        partial,
+        &["homepage".to_string()],
+        WireframeKind::Hifi,
+    )
+    .unwrap_err();
 
     assert!(
         error
@@ -254,3 +270,187 @@ fn rejects_merge_when_partial_screens_are_empty() {
             .contains("did not contain regenerated wireframe screens")
     );
 }
+
+#[test]
+fn merge_updates_only_regenerated_screen_timestamp() {
+    let existing = json!({
+        "generatedScreens": [
+            { "id": "homepage", "generatedAt": 100, "generatedAtLabel": "old", "html": "<div>Old home</div>" },
+            { "id": "pricing", "generatedAt": 100, "generatedAtLabel": "old", "html": "<div>Old pricing</div>" }
+        ]
+    });
+    // A freshly normalized partial screen carries the new numeric timestamp.
+    let partial = json!({
+        "generatedScreens": [
+            { "id": "homepage", "generatedAt": 999, "generatedAtLabel": "just now", "html": "<div>New home</div>" }
+        ],
+        "generatedAt": 999,
+        "generatedAtLabel": "just now"
+    });
+
+    let merged = merge_regenerated_screens(
+        &existing.to_string(),
+        partial,
+        &["homepage".to_string()],
+        WireframeKind::Hifi,
+    )
+    .unwrap();
+
+    let screens = merged["generatedScreens"].as_array().unwrap();
+    let field = |id: &str, key: &str| {
+        screens
+            .iter()
+            .find(|screen| screen["id"] == id)
+            .unwrap()[key]
+            .clone()
+    };
+    assert_eq!(field("homepage", "generatedAt"), json!(999), "regenerated screen gets new timestamp");
+    assert_eq!(field("pricing", "generatedAt"), json!(100), "untouched screen keeps old timestamp");
+}
+
+#[test]
+fn rejects_regen_when_html_is_unchanged() {
+    let existing = json!({
+        "generatedScreens": [{ "id": "homepage", "html": "<div>Same markup</div>" }]
+    });
+    let partial = json!({
+        "generatedScreens": [{ "id": "homepage", "html": "<div>Same markup</div>" }]
+    });
+
+    let error = merge_regenerated_screens(
+        &existing.to_string(),
+        partial,
+        &["homepage".to_string()],
+        WireframeKind::Hifi,
+    )
+    .unwrap_err();
+
+    assert!(error.to_string().contains("unchanged"));
+}
+
+#[test]
+fn accepts_regen_when_html_changed() {
+    let existing = json!({
+        "generatedScreens": [{ "id": "homepage", "html": "<div>Old layout</div>" }]
+    });
+    let partial = json!({
+        "generatedScreens": [{ "id": "homepage", "html": "<div>New layout entirely</div>" }]
+    });
+
+    let merged = merge_regenerated_screens(
+        &existing.to_string(),
+        partial,
+        &["homepage".to_string()],
+        WireframeKind::Hifi,
+    )
+    .unwrap();
+
+    assert!(
+        merged["generatedScreens"][0]["html"]
+            .as_str()
+            .unwrap()
+            .contains("New layout entirely")
+    );
+}
+
+#[test]
+fn rejects_regen_when_requested_id_omitted_and_unchanged() {
+    let existing = json!({
+        "generatedScreens": [
+            { "id": "homepage", "html": "<div>Home</div>" },
+            { "id": "pricing", "html": "<div>Pricing</div>" }
+        ]
+    });
+    // The model returned only homepage; pricing was requested but omitted, so it
+    // keeps its old html — that is an unchanged screen, not a silent success.
+    let partial = json!({
+        "generatedScreens": [{ "id": "homepage", "html": "<div>New home</div>" }]
+    });
+
+    let error = merge_regenerated_screens(
+        &existing.to_string(),
+        partial,
+        &["homepage".to_string(), "pricing".to_string()],
+        WireframeKind::Hifi,
+    )
+    .unwrap_err();
+
+    assert!(error.to_string().contains("unchanged"));
+}
+
+#[test]
+fn rejects_regen_when_html_is_empty() {
+    let existing = json!({
+        "generatedScreens": [{ "id": "homepage", "html": "<div>Home</div>" }]
+    });
+    let partial = json!({
+        "generatedScreens": [{ "id": "homepage", "html": "   " }]
+    });
+
+    let error = merge_regenerated_screens(
+        &existing.to_string(),
+        partial,
+        &["homepage".to_string()],
+        WireframeKind::Hifi,
+    )
+    .unwrap_err();
+
+    assert!(error.to_string().contains("empty html"));
+}
+
+#[test]
+fn validate_hifi_html_rejects_unstyled_or_raw_css() {
+    // Raw CSS text with no elements at all.
+    assert!(validate_hifi_html(".hero{color:#111}").is_err());
+    // Layout element but no styling.
+    assert!(validate_hifi_html("<div>No styles here</div>").is_err());
+    // Inline style is enough.
+    assert!(validate_hifi_html("<div style=\"color:#111\">Hi</div>").is_ok());
+    // A <style> block plus a semantic layout element.
+    assert!(validate_hifi_html("<style>.h{color:#111}</style><section>Hi</section>").is_ok());
+}
+
+#[test]
+fn normalize_rejects_hifi_screen_with_raw_css_html() {
+    let artifact = json!({
+        "generatedScreens": [sample_screen("homepage", Some(".lim-welcome{color:#111}"))]
+    });
+
+    let error = normalize_wireframes_artifact(
+        artifact,
+        &sample_input(),
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        123,
+        "just now",
+    )
+    .unwrap_err();
+
+    assert!(error.to_string().contains("Hi-Fi html"));
+}
+
+#[test]
+fn normalize_sets_per_screen_generated_at() {
+    let artifact = json!({
+        "generatedScreens": [sample_screen("homepage", None)]
+    });
+
+    let normalized = normalize_wireframes_artifact(
+        artifact,
+        &sample_input(),
+        WireframeKind::Lofi,
+        None,
+        None,
+        1_700_000_000_123,
+        "just now",
+    )
+    .unwrap();
+
+    assert_eq!(
+        normalized["generatedScreens"][0]["generatedAt"],
+        1_700_000_000_123_i64
+    );
+    assert_eq!(normalized["generatedScreens"][0]["generatedAtLabel"], "just now");
+}
+

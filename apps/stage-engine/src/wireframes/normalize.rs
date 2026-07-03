@@ -43,10 +43,14 @@ pub fn normalize_wireframes_artifact(
         .cloned()
         .unwrap_or_default();
 
-    let normalized_screens = raw_screens
-        .iter()
-        .filter_map(|screen| normalize_screen(screen, generated_at_label))
-        .collect::<Vec<_>>();
+    let mut normalized_screens = Vec::new();
+    for screen in &raw_screens {
+        if let Some(normalized) =
+            normalize_screen(screen, generated_at_label, generated_at, kind)?
+        {
+            normalized_screens.push(normalized);
+        }
+    }
 
     if normalized_screens.is_empty() {
         bail!("The AI response did not contain usable wireframe screens.");
@@ -125,6 +129,7 @@ pub fn merge_regenerated_screens(
     existing_artifact_json: &str,
     partial_artifact: JsonValue,
     screen_ids: &[String],
+    kind: WireframeKind,
 ) -> anyhow::Result<JsonValue> {
     let existing = serde_json::from_str::<JsonValue>(existing_artifact_json)
         .context("existing wireframes artifact is invalid")?;
@@ -163,23 +168,49 @@ pub fn merge_regenerated_screens(
 
     // A requested id the model omitted keeps its existing screen (via unwrap_or
     // below) rather than discarding every regenerated screen — a partial response
-    // still lands the sections it did return.
+    // still lands the sections it did return. The unchanged/empty check below then
+    // catches the case where nothing actually changed for a requested id.
     let merged_screens = existing_screens
-        .into_iter()
+        .iter()
         .map(|screen| {
             let Some(id) = screen.get("id").and_then(JsonValue::as_str) else {
-                return screen;
+                return screen.clone();
             };
             if !regen_ids.contains(id) {
-                return screen;
+                return screen.clone();
             }
             partial_screens
                 .iter()
                 .find(|candidate| candidate.get("id").and_then(JsonValue::as_str) == Some(id))
                 .cloned()
-                .unwrap_or(screen)
+                .unwrap_or_else(|| screen.clone())
         })
         .collect::<Vec<_>>();
+
+    // For Hi-Fi, a regen must materially change each requested screen. Reject an
+    // empty fragment or one identical to the pre-merge markup (the provider copied
+    // the prior html, or omitted the id entirely) so the run fails visibly instead
+    // of reporting success with no change. Lo-Fi screens carry no html, so skip.
+    if matches!(kind, WireframeKind::Hifi) {
+        let html_for = |screens: &[JsonValue], id: &str| -> String {
+            screens
+                .iter()
+                .find(|screen| screen.get("id").and_then(JsonValue::as_str) == Some(id))
+                .and_then(|screen| screen.get("html").and_then(JsonValue::as_str))
+                .unwrap_or("")
+                .to_string()
+        };
+        for screen_id in screen_ids {
+            let before = html_for(&existing_screens, screen_id);
+            let after = html_for(&merged_screens, screen_id);
+            if after.trim().is_empty() {
+                bail!("Regenerated screen {screen_id} has empty html.");
+            }
+            if !html_changed(&before, &after) {
+                bail!("Regenerated screen {screen_id} is unchanged. Retry regeneration.");
+            }
+        }
+    }
 
     let mut merged = existing_object.clone();
     merged.insert(
@@ -201,9 +232,42 @@ pub fn merge_regenerated_screens(
     Ok(JsonValue::Object(merged))
 }
 
-fn normalize_screen(screen: &JsonValue, generated_at_label: &str) -> Option<JsonValue> {
-    let object = screen.as_object()?;
-    let id = object.get("id").and_then(JsonValue::as_str)?.to_string();
+// Trim-insensitive equality: a regen that returns byte-identical markup (the
+// provider copy-pasted the prior fragment) counts as unchanged and is rejected.
+fn html_changed(before: &str, after: &str) -> bool {
+    before.trim() != after.trim()
+}
+
+// A Hi-Fi fragment must actually be a styled layout, not raw CSS text or a bare
+// string. Require some styling (a <style> block or inline style=) and at least
+// one layout element so the preview renders a design rather than unstyled text.
+fn validate_hifi_html(html: &str) -> anyhow::Result<()> {
+    let trimmed = html.trim();
+    if !trimmed.contains("<style") && !trimmed.contains("style=") {
+        bail!("Hi-Fi html must include a <style> block or inline styles.");
+    }
+    if !trimmed.contains("<div")
+        && !trimmed.contains("<header")
+        && !trimmed.contains("<main")
+        && !trimmed.contains("<section")
+    {
+        bail!("Hi-Fi html must include semantic layout elements (div/header/main/section).");
+    }
+    Ok(())
+}
+
+fn normalize_screen(
+    screen: &JsonValue,
+    generated_at_label: &str,
+    generated_at: u128,
+    kind: WireframeKind,
+) -> anyhow::Result<Option<JsonValue>> {
+    let Some(object) = screen.as_object() else {
+        return Ok(None);
+    };
+    let Some(id) = object.get("id").and_then(JsonValue::as_str).map(str::to_string) else {
+        return Ok(None);
+    };
     let title = object
         .get("title")
         .and_then(JsonValue::as_str)
@@ -223,6 +287,10 @@ fn normalize_screen(screen: &JsonValue, generated_at_label: &str) -> Option<Json
         "generatedAtLabel".to_string(),
         json!(generated_at_label.to_string()),
     );
+    entry.insert(
+        "generatedAt".to_string(),
+        json!(i64::try_from(generated_at).unwrap_or(i64::MAX)),
+    );
 
     if let Some(figma_url) = object.get("figmaUrl").and_then(JsonValue::as_str) {
         entry.insert("figmaUrl".to_string(), json!(figma_url));
@@ -241,6 +309,13 @@ fn normalize_screen(screen: &JsonValue, generated_at_label: &str) -> Option<Json
         .map(str::trim)
         .filter(|html| !html.is_empty())
     {
+        // Hi-Fi screens carry a self-contained design fragment; a fragment that is
+        // raw CSS text or has no styling/layout renders as unstyled text in the
+        // preview iframe. Reject it up front so the user retries instead of saving
+        // a broken artifact. Lo-Fi screens compile from blocks and skip this.
+        if matches!(kind, WireframeKind::Hifi) {
+            validate_hifi_html(html)?;
+        }
         entry.insert("html".to_string(), json!(html));
     }
 
@@ -259,7 +334,7 @@ fn normalize_screen(screen: &JsonValue, generated_at_label: &str) -> Option<Json
 
     entry.insert("sections".to_string(), JsonValue::Array(sections));
 
-    Some(JsonValue::Object(entry))
+    Ok(Some(JsonValue::Object(entry)))
 }
 
 fn normalize_section(section: &JsonValue, screen_id: &str, index: usize) -> Option<JsonValue> {
