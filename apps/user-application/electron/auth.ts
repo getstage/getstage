@@ -47,6 +47,9 @@ export class DesktopAuthController {
     const loginUrl = new URL(getDesktopAuthUrl());
     loginUrl.searchParams.set("state", state);
     loginUrl.searchParams.set("redirect_uri", getDesktopAuthRedirectUri());
+    // Force a fresh browser sign-in so a prior web session cannot silently reuse
+    // the wrong account after the user signed out of Stage Desktop.
+    loginUrl.searchParams.set("prompt", "login");
 
     logDesktopInfo("stage-auth", `opening desktop login at ${loginUrl.origin}${loginUrl.pathname}`);
     await shell.openExternal(loginUrl.toString());

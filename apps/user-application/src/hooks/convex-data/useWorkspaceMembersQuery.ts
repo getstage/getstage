@@ -28,7 +28,7 @@ export function useWorkspaceMembersQuery() {
   );
 
   return {
-    data: data ?? [],
+    data,
     isLoading: isAuthLoading || (isAuthenticated && isPending),
     error: null,
   };

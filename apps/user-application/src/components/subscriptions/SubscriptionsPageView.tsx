@@ -83,6 +83,7 @@ export function SubscriptionsPageView() {
       await openExternalLink(result.url);
     } catch (error) {
       setCheckoutError(toUserFacingErrorMessage(error, "Checkout could not be started. Please try again."));
+    } finally {
       setPendingTier(null);
     }
   }

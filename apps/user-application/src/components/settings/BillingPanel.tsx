@@ -11,6 +11,7 @@ import {
   subscriptionPeriodLabel,
 } from "@/lib/billing/subscriptionPeriodLabel";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
+import { UpgradePaywallModal } from "@/components/onboarding/UpgradePaywallModal";
 
 type TopupSize = "small" | "medium" | "large";
 
@@ -73,6 +74,7 @@ export function BillingPanel() {
   const [pendingTopup, setPendingTopup] = useState<TopupSize | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [showTopupGate, setShowTopupGate] = useState(false);
 
   const subscription = overview.data?.subscription ?? null;
   const plan = overview.data?.profile.plan ?? "free";
@@ -97,6 +99,10 @@ export function BillingPanel() {
   }
 
   async function buyTopup(size: TopupSize) {
+    if (isTrialing || !subscription) {
+      setShowTopupGate(true);
+      return;
+    }
     setActionError(null);
     setPendingTopup(size);
     try {
@@ -107,6 +113,7 @@ export function BillingPanel() {
       await openExternalLink(result.url);
     } catch (error) {
       setActionError(toUserFacingErrorMessage(error, "Checkout could not be started. Please try again."));
+    } finally {
       setPendingTopup(null);
     }
   }
@@ -122,6 +129,7 @@ export function BillingPanel() {
       await openExternalLink(result.url);
     } catch (error) {
       setActionError(toUserFacingErrorMessage(error, "Checkout could not be started. Please try again."));
+    } finally {
       setPortalLoading(false);
     }
   }
@@ -264,6 +272,16 @@ export function BillingPanel() {
 
         <PurchaseHistory purchases={purchases.data} isLoading={purchases.isLoading} />
       </section>
+
+      <UpgradePaywallModal
+        open={showTopupGate}
+        onClose={() => setShowTopupGate(false)}
+        onUpgrade={() => {
+          setShowTopupGate(false);
+          void openPortal();
+        }}
+        variant="topup"
+      />
     </div>
   );
 }

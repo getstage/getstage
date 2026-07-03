@@ -38,7 +38,7 @@ type OnboardingStepRendererProps = {
   claudeConnectionId: string | null;
   onContinue: () => void;
   onCreationDone: () => void;
-  onContinueFree: () => void;
+  onStartTrial: () => void;
   onClaudeActivated: () => void;
 };
 
@@ -53,7 +53,7 @@ export function OnboardingStepRenderer({
   checkoutError,
   claudeConnection,
   onContinue,
-  onContinueFree,
+  onStartTrial,
   onClaudeActivated,
 }: OnboardingStepRendererProps) {
   const { draft } = draftState;
@@ -346,7 +346,7 @@ export function OnboardingStepRenderer({
         <OnboardingStepMotion motionKey="paywall">
           <FigmaOnboardingFrame>
 	          <OnboardingPaywall
-	            onContinueFree={onContinueFree}
+	            onStartTrial={onStartTrial}
 	            isUpgradeLoading={isCheckoutLoading}
 	            upgradeError={checkoutError}
 	          />

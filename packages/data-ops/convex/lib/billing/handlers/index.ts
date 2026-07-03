@@ -295,7 +295,7 @@ export async function createCheckoutSessionHandler(
       cancel_url: urls.cancelUrl,
       metadata: { ...baseMetadata, priceId: topupPriceId, kind: "topup" },
       payment_intent_data: {
-        metadata: { ...baseMetadata, priceId: topupPriceId, topupCredits: String(topupCredits) },
+        metadata: { ...baseMetadata, priceId: topupPriceId, kind: "topup", topupCredits: String(topupCredits) },
       },
     });
 

@@ -9,7 +9,7 @@ type UpgradePaywallModalProps = {
   onUpgrade: () => void;
   isLoading?: boolean;
   errorMessage?: string | null;
-  variant?: "preview" | "general";
+  variant?: "preview" | "general" | "topup";
 };
 
 export function UpgradePaywallModal({
@@ -21,53 +21,83 @@ export function UpgradePaywallModal({
   variant = "preview",
 }: UpgradePaywallModalProps) {
   const content =
-    variant === "general"
+    variant === "topup"
       ? {
-          title: "Upgrade to Stage Pro",
-          headline: "Unlock the full workspace.",
+          title: "Start your subscription first",
+          headline: "Top-ups need an active plan.",
           description:
-            "Start checkout to unlock more projects, billing access, and the full Stage workspace.",
+            "Credit packs stack on top of a paid subscription. Your free trial converts to a paid plan automatically — after that you can top up anytime. To start now, manage your subscription.",
           features: [
             {
               icon: <TrendUp size={18} weight="fill" />,
-              title: "More projects",
-              description: "Move beyond the free limit and keep growing your workspace.",
-            },
-            {
-              icon: <LockKeyOpen size={18} weight="fill" />,
-              title: "Billing access",
-              description: "Enable subscriptions and manage your billing setup in Stripe.",
+              title: "Extra credits",
+              description: "Top-up packs add credits on top of your monthly balance.",
             },
             {
               icon: <CrownSimple size={18} weight="fill" />,
-              title: "Pro workspace",
-              description: "Unlock the paid workspace without routing through settings first.",
+              title: "Never expire",
+              description: "Purchased credits stack and carry over between cycles.",
+            },
+            {
+              icon: <LockKeyOpen size={18} weight="fill" />,
+              title: "Manage anytime",
+              description: "Change or cancel your plan from the customer portal.",
             },
           ],
+          primaryLabel: "Manage subscription",
+          secondaryLabel: "Got it",
         }
-      : {
-          title: "Unlock your dashboard",
-          headline: "Finish setup, then unlock Stage.",
-          description:
-            "You have seen the preview. Upgrade next to turn this into your live workspace and start tracking real projects, payments, and client work.",
-          features: [
-            {
-              icon: <TrendUp size={18} weight="fill" />,
-              title: "Live dashboard",
-              description: "Replace the preview with your real project and revenue data.",
-            },
-            {
-              icon: <LockKeyOpen size={18} weight="fill" />,
-              title: "Billing access",
-              description: "Enable subscription billing and unlock the full workspace.",
-            },
-            {
-              icon: <CrownSimple size={18} weight="fill" />,
-              title: "Next connectors",
-              description: "Stripe Connect and Google Sheets import come right after.",
-            },
-          ],
-        };
+      : variant === "general"
+        ? {
+            title: "Upgrade to Stage Pro",
+            headline: "Unlock the full workspace.",
+            description:
+              "Start checkout to unlock more projects, billing access, and the full Stage workspace.",
+            features: [
+              {
+                icon: <TrendUp size={18} weight="fill" />,
+                title: "More projects",
+                description: "Move beyond the free limit and keep growing your workspace.",
+              },
+              {
+                icon: <LockKeyOpen size={18} weight="fill" />,
+                title: "Billing access",
+                description: "Enable subscriptions and manage your billing setup in Stripe.",
+              },
+              {
+                icon: <CrownSimple size={18} weight="fill" />,
+                title: "Pro workspace",
+                description: "Unlock the paid workspace without routing through settings first.",
+              },
+            ],
+            primaryLabel: "Upgrade to continue",
+            secondaryLabel: "Keep exploring preview",
+          }
+        : {
+            title: "Unlock your dashboard",
+            headline: "Finish setup, then unlock Stage.",
+            description:
+              "You have seen the preview. Upgrade next to turn this into your live workspace and start tracking real projects, payments, and client work.",
+            features: [
+              {
+                icon: <TrendUp size={18} weight="fill" />,
+                title: "Live dashboard",
+                description: "Replace the preview with your real project and revenue data.",
+              },
+              {
+                icon: <LockKeyOpen size={18} weight="fill" />,
+                title: "Billing access",
+                description: "Enable subscription billing and unlock the full workspace.",
+              },
+              {
+                icon: <CrownSimple size={18} weight="fill" />,
+                title: "Next connectors",
+                description: "Stripe Connect and Google Sheets import come right after.",
+              },
+            ],
+            primaryLabel: "Upgrade to continue",
+            secondaryLabel: "Keep exploring preview",
+          };
 
   return (
     <Dialog.Root open={open} onOpenChange={onClose}>
@@ -113,10 +143,10 @@ export function UpgradePaywallModal({
             ) : null}
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
               <Button variant="secondary" onClick={onClose} className="w-full sm:w-auto">
-              Keep exploring preview
+                {content.secondaryLabel}
               </Button>
               <Button onClick={onUpgrade} isLoading={isLoading} className="w-full sm:w-auto">
-              Upgrade to continue
+                {content.primaryLabel}
               </Button>
             </div>
           </div>

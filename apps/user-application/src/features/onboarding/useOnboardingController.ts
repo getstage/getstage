@@ -368,14 +368,6 @@ export function useOnboardingController({
     }
   }
 
-  function handleContinueFree() {
-    const submission = pendingSubmission ?? buildPendingSubmission(!setProjectLater);
-    if (!pendingSubmission) {
-      setPendingSubmission(submission);
-    }
-    setStep("celebrating");
-  }
-
   async function handlePaywallUpgrade(billingCycle: "monthly" | "yearly") {
     const submission = pendingSubmission ?? buildPendingSubmission(!setProjectLater);
     if (!pendingSubmission) {
@@ -527,7 +519,6 @@ export function useOnboardingController({
     draftState,
     handleSelectField,
     handleContinue,
-    handleContinueFree,
     handlePaywallUpgrade,
     goBack,
     handleDoLater,

@@ -32,7 +32,11 @@ export function TeamPanel() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
-  const rows = useMemo<TeamMember[]>(() => {
+  const rows = useMemo<TeamMember[] | undefined>(() => {
+    if (members.data === undefined) {
+      return undefined;
+    }
+
     const owner: TeamMember = {
       id: "current-user",
       name: profile?.name ?? "You",
@@ -49,7 +53,7 @@ export function TeamPanel() {
     return [owner, ...invited];
   }, [members.data, profile?.avatarUrl, profile?.email, profile?.name]);
 
-  const seatsLeft = TEAM_LIMIT - rows.length;
+  const seatsLeft = rows ? TEAM_LIMIT - rows.length : 0;
 
   const emailInput = inviteEmail.trim();
   const emailValidation = inviteTeamMemberSchema.safeParse({ email: emailInput });
@@ -58,7 +62,7 @@ export function TeamPanel() {
   const emailErrorMessage = isEmailInvalid
     ? emailValidation.error.issues[0]?.message ?? "Please enter a valid email address."
     : null;
-  const canInvite = seatsLeft > 0 && isEmailValid && !isSubmitting;
+  const canInvite = rows !== undefined && seatsLeft > 0 && isEmailValid && !isSubmitting;
 
   async function inviteMember() {
     if (!canInvite) return;
@@ -141,7 +145,12 @@ export function TeamPanel() {
           {errorMessage ? <p className="mt-[10px] text-[12px] font-medium leading-[1.5] text-[#b91c1c]">{errorMessage}</p> : null}
         </SettingsRow>
 
-        {rows.map((member) => (
+        {members.isLoading ? (
+          <SettingsRow>
+            <p className="text-[12px] font-normal leading-[1.5] text-[#737373]">Loading team members…</p>
+          </SettingsRow>
+        ) : (
+          rows?.map((member) => (
           <SettingsRow key={member.id}>
             <div className="flex items-center justify-between gap-[16px]">
               <div className="flex min-w-0 items-center gap-[12px]">
@@ -175,7 +184,8 @@ export function TeamPanel() {
               </div>
             </div>
           </SettingsRow>
-        ))}
+          ))
+        )}
       </div>
     </SettingsCard>
   );

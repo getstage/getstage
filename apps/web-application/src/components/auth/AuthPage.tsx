@@ -23,10 +23,18 @@ function continueAfterAuth(
   redirectTo: string,
   navigate: ReturnType<typeof useNavigate>,
 ) {
-  if (isDesktopAuthRedirect(redirectTo)) {
-    rememberDesktopRedirect(redirectTo);
+  const pendingDesktopRedirect = getStoredDesktopRedirect();
+  const target =
+    isDesktopAuthRedirect(redirectTo)
+      ? redirectTo
+      : isDesktopAuthRedirect(pendingDesktopRedirect)
+        ? pendingDesktopRedirect!
+        : redirectTo;
+
+  if (isDesktopAuthRedirect(target)) {
+    rememberDesktopRedirect(target);
     console.info("[stage-desktop-auth] resuming desktop auth after sign-in");
-    window.location.assign(redirectTo);
+    window.location.assign(target);
     return;
   }
 

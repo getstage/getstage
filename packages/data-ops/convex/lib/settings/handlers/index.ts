@@ -241,10 +241,17 @@ export async function deleteAccountHandler(ctx: ActionCtx, args: { confirmation:
       ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status) &&
       subscription.stripeSubscriptionId
     ) {
-      await stripe.cancelSubscription(ctx, {
-        stripeSubscriptionId: subscription.stripeSubscriptionId,
-        cancelAtPeriodEnd: false,
-      });
+      try {
+        await stripe.cancelSubscription(ctx, {
+          stripeSubscriptionId: subscription.stripeSubscriptionId,
+          cancelAtPeriodEnd: false,
+        });
+      } catch (error) {
+        // Best-effort: a stale/absent Stripe subscription (e.g. created against a
+        // different Stripe account or already canceled) must not block account
+        // deletion. Local billing state is torn down by deleteAccountData below.
+        console.error("deleteAccount: failed to cancel Stripe subscription", error);
+      }
     }
   }
 

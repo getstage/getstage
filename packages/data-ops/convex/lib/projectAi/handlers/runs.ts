@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import type { Id } from "../../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../../_generated/server";
-import { requireProjectAccess } from "../../../_helpers";
+import { requireProjectAccess, requireProjectAccessOrNull } from "../../../_helpers";
 import { createRunRecord } from "../domain/runStore";
 import { now } from "../domain/time";
 import { aiModule, type AiModule } from "../domain/validators";
@@ -15,7 +15,10 @@ export async function listRunsHandler(
   ctx: QueryCtx,
   args: { projectId: Id<"projects">; module?: AiModule },
 ) {
-  await requireProjectAccess(ctx, args.projectId);
+  const access = await requireProjectAccessOrNull(ctx, args.projectId);
+  if (!access) {
+    return [];
+  }
   const moduleFilter = args.module;
   // When a module is requested, read only that module's recent runs via the
   // by_project_module index instead of loading the project's entire run history.

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import type { DashboardProject } from "@/models/dashboard/dashboard";
 import { getActiveProjectId } from "@/lib/dashboard/sidebarNav";
@@ -47,6 +47,9 @@ export function StageSidebar({
   const activeProjectId = getActiveProjectId(pathname);
   const search = useSidebarSearch(projects, collapsed);
   const [isCreditsExhaustedModalOpen, setIsCreditsExhaustedModalOpen] = useState(false);
+  const handleCreditsExhausted = useCallback(() => {
+    setIsCreditsExhaustedModalOpen(true);
+  }, []);
 
   useEffect(() => {
     function handleCreditsExhausted() {
@@ -121,7 +124,7 @@ export function StageSidebar({
           collapsed={collapsed}
           onTopUp={openBilling}
           onManagePlan={openBilling}
-          onExhausted={() => setIsCreditsExhaustedModalOpen(true)}
+          onExhausted={handleCreditsExhausted}
         />
 
         {!collapsed ? <div className="h-px w-full shrink-0 bg-[#E5E5E5]" /> : null}

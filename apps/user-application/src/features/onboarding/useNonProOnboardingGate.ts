@@ -51,18 +51,11 @@ export function useNonProOnboardingGate() {
       return;
     }
 
-    if (isOnboardingCompleted) {
-      setOnboardingOpen(false);
-      return;
-    }
-
-    if (projectCount >= 1) {
-      setOnboardingInitialStep("paywall");
-      setOnboardingOpen(true);
-      return;
-    }
-
-    setOnboardingInitialStep("welcome");
+    // Free plan cannot use the app. Brand-new users still get the welcome flow
+    // (which ends at the paywall); anyone who already onboarded or has a project
+    // goes straight to the paywall. The paywall has no "continue free" exit — it
+    // requires starting a trial/subscription (see OnboardingPaywall).
+    setOnboardingInitialStep(isOnboardingCompleted || projectCount >= 1 ? "paywall" : "welcome");
     setOnboardingOpen(true);
   }, [
     hasCompletedOnboarding,

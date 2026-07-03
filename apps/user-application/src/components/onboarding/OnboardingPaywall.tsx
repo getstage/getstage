@@ -63,7 +63,7 @@ export const PRO_PRICING: Record<
 };
 
 type OnboardingPaywallProps = {
-  onContinueFree: () => void;
+  onStartTrial: () => void;
   isUpgradeLoading: boolean;
   upgradeError: string | null;
 };
@@ -109,7 +109,7 @@ function PlanButton({
 }
 
 export function OnboardingPaywall({
-  onContinueFree,
+  onStartTrial,
   isUpgradeLoading,
   upgradeError,
 }: OnboardingPaywallProps) {
@@ -160,7 +160,7 @@ export function OnboardingPaywall({
               <p className="mt-4 text-[13px] font-medium text-text-secondary">
                 Billed $99/year when paid annually
               </p>
-              <PlanButton onClick={onContinueFree} disabled={isUpgradeLoading}>
+              <PlanButton onClick={onStartTrial} disabled={isUpgradeLoading}>
                 Continue with Start Plan
               </PlanButton>
             </div>
@@ -180,7 +180,7 @@ export function OnboardingPaywall({
               </div>
               <p className="mt-6 text-[13px] font-medium text-text-secondary">Everything in Start</p>
               <FeatureList features={PRO_FEATURES} />
-              <PlanButton onClick={onContinueFree} primary disabled={isUpgradeLoading}>
+              <PlanButton onClick={onStartTrial} primary disabled={isUpgradeLoading}>
                 Start 14-Day Trial
               </PlanButton>
               <p className="mt-3 text-center text-[13px] font-medium leading-[1.35] text-text-secondary">
@@ -197,7 +197,7 @@ export function OnboardingPaywall({
                 <span className="block text-[13px] font-medium text-text-secondary">/seat/month</span>
               </div>
               <FeatureList features={TEAM_FEATURES} />
-              <PlanButton onClick={onContinueFree} disabled={isUpgradeLoading}>
+              <PlanButton onClick={onStartTrial} disabled={isUpgradeLoading}>
                 Start 14-Day Trial
               </PlanButton>
             </div>
@@ -258,7 +258,7 @@ export function OnboardingPaywall({
 
           {upgradeError ? <p className="mt-4 text-[13px] text-destructive">{upgradeError}</p> : null}
 
-          <PlanButton onClick={onContinueFree} primary disabled={isUpgradeLoading}>
+          <PlanButton onClick={onStartTrial} primary disabled={isUpgradeLoading}>
             Start 14-Day Trial
           </PlanButton>
         </div>
