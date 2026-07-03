@@ -57,6 +57,7 @@
     }
   },
   "scripts": {
+    "prebuild": "pnpm --dir ../emails run build",
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",

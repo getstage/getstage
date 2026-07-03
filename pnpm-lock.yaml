@@ -267,34 +267,6 @@ importers:
         specifier: ^4.69.0
         version: 4.95.0
 
-  emails:
-    dependencies:
-      '@react-email/components':
-        specifier: ^0.0.36
-        version: 0.0.36(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
-      '@react-email/render':
-        specifier: ^2.0.10
-        version: 2.0.10(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
-      react:
-        specifier: ^19.0.0
-        version: 19.2.6
-      react-dom:
-        specifier: ^19.0.0
-        version: 19.2.6(react@19.2.6)
-    devDependencies:
-      '@react-email/preview-server':
-        specifier: ^4.3.2
-        version: 4.3.2(postcss@8.5.15)
-      '@types/react':
-        specifier: ^19.0.0
-        version: 19.2.15
-      react-email:
-        specifier: ^4.0.0
-        version: 4.3.2
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
   packages/data-ops:
     dependencies:
       '@auth/core':
@@ -338,7 +310,7 @@ importers:
         version: 6.12.4(@react-email/render@2.0.10(react-dom@19.2.6(react@19.2.6))(react@19.2.6))
       stage-emails:
         specifier: workspace:*
-        version: link:../../emails
+        version: link:../emails
       stripe:
         specifier: ^20.4.0
         version: 20.4.1(@types/node@24.12.4)
@@ -346,6 +318,34 @@ importers:
         specifier: 4.3.6
         version: 4.3.6
     devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/emails:
+    dependencies:
+      '@react-email/components':
+        specifier: ^0.0.36
+        version: 0.0.36(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@react-email/render':
+        specifier: ^2.0.10
+        version: 2.0.10(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.6
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.6(react@19.2.6)
+    devDependencies:
+      '@react-email/preview-server':
+        specifier: ^4.3.2
+        version: 4.3.2(postcss@8.5.15)
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.15
+      react-email:
+        specifier: ^4.0.0
+        version: 4.3.2
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
