@@ -5,6 +5,11 @@ import {
   formatSubscriptionPeriodDate,
   subscriptionPeriodLabel,
 } from "@/lib/billing/subscriptionPeriodLabel";
+import {
+  creditsUsedBarWidth,
+  formatCreditsAmount,
+  formatCreditsUsedLabel,
+} from "@/lib/billing/creditUsageDisplay";
 
 type SidebarCreditsCardProps = {
   collapsed: boolean;
@@ -27,8 +32,9 @@ export function SidebarCreditsCard({
   const usedByKind = credits.data?.usedByKind ?? { voice: 0, moodboard: 0, reference: 0, other: 0 };
   const usedTotal = usedByKind.voice + usedByKind.moodboard + usedByKind.reference + usedByKind.other;
   const granted = remaining + usedTotal;
-  const usedPercent = granted > 0 ? Math.round((usedTotal / granted) * 100) : 0;
   const isOutOfCredits = granted > 0 && remaining <= 0;
+  const usedLabel = formatCreditsUsedLabel(usedTotal, granted);
+  const usedBarWidth = isOutOfCredits ? 100 : creditsUsedBarWidth(usedTotal, granted);
   const isLoading = credits.isLoading;
 
   // Voice = transcription; Visuals = Refero (moodboard + research references).
@@ -36,8 +42,8 @@ export function SidebarCreditsCard({
   const breakdown = [
     { label: "Voice", value: usedByKind.voice },
     { label: "Visuals", value: visualsUsed },
+    ...(usedByKind.other > 0 ? [{ label: "Other", value: usedByKind.other }] : []),
   ];
-  const breakdownTotal = usedByKind.voice + visualsUsed;
 
   const subscription = overview.data?.subscription ?? null;
   const periodDate = subscription?.currentPeriodEnd
@@ -114,14 +120,14 @@ export function SidebarCreditsCard({
               </p>
             </div>
             <p className="shrink-0 text-[11px] font-medium leading-[1.5] text-[#737373]">
-              {isLoading ? "—" : `${usedPercent}% used`}
+              {isLoading ? "—" : usedLabel}
             </p>
           </div>
 
           <div className="h-[7px] w-full overflow-hidden rounded-[4px] bg-[#E5E5E5]">
             <div
               className="h-full rounded-[4px] bg-[#3B368E]"
-              style={{ width: `${isOutOfCredits ? 100 : usedPercent}%` }}
+              style={{ width: `${usedBarWidth}%` }}
             />
           </div>
 
@@ -134,19 +140,16 @@ export function SidebarCreditsCard({
             <div className="min-h-0 overflow-hidden">
               <div className="flex flex-col gap-[8px] pt-[2px]">
                 <div className="flex flex-col gap-[2px]">
-                  {breakdown.map((item) => {
-                    const share = breakdownTotal > 0 ? Math.round((item.value / breakdownTotal) * 100) : 0;
-                    return (
+                  {breakdown.map((item) => (
                       <div key={item.label} className="flex items-center justify-between gap-3">
                         <p className="truncate text-[12px] font-medium leading-[1.5] text-[#737373]">
                           {item.label}
                         </p>
                         <p className="shrink-0 text-[11px] font-medium leading-[1.5] text-[#262626]">
-                          {isLoading ? "—" : `${share}%`}
+                          {isLoading ? "—" : formatCreditsAmount(item.value)}
                         </p>
                       </div>
-                    );
-                  })}
+                    ))}
                 </div>
 
                 {periodDate && periodLabel ? (

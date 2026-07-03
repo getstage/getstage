@@ -10,6 +10,10 @@ import {
   formatSubscriptionPeriodDate,
   subscriptionPeriodLabel,
 } from "@/lib/billing/subscriptionPeriodLabel";
+import {
+  creditsUsedBarWidth,
+  formatCreditsUsedLabel,
+} from "@/lib/billing/creditUsageDisplay";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
 import { UpgradePaywallModal } from "@/components/onboarding/UpgradePaywallModal";
 
@@ -91,7 +95,8 @@ export function BillingPanel() {
   const usedByKind = credits.data?.usedByKind ?? { voice: 0, moodboard: 0, reference: 0, other: 0 };
   const usedTotal = usedByKind.voice + usedByKind.moodboard + usedByKind.reference + usedByKind.other;
   const granted = remaining + usedTotal;
-  const usedPercent = granted > 0 ? Math.round((usedTotal / granted) * 100) : 0;
+  const usedLabel = formatCreditsUsedLabel(usedTotal, granted);
+  const usedBarWidth = creditsUsedBarWidth(usedTotal, granted);
 
   function openSubscriptions() {
     sessionStorage.setItem("stage:subscriptions-back-label", "Back to billing & credits");
@@ -216,10 +221,10 @@ export function BillingPanel() {
                 <p className="text-[16px] font-semibold leading-[1.2] tracking-[-0.16px] text-[#0A0A0A]">{usedTotal.toLocaleString("en-US")}</p>
                 <p className="text-[12px] font-medium leading-[1.5] text-[#737373]">of {granted.toLocaleString("en-US")} credits used</p>
               </div>
-              <p className="text-[11px] font-medium leading-[1.5] text-[#737373]">{usedPercent}% used</p>
+              <p className="text-[11px] font-medium leading-[1.5] text-[#737373]">{usedLabel}</p>
             </div>
             <div className="h-[7px] w-full overflow-hidden rounded-[4px] bg-[#E5E5E5]">
-              <div className="h-full rounded-[4px] bg-[#3B368E]" style={{ width: `${usedPercent}%` }} />
+              <div className="h-full rounded-[4px] bg-[#3B368E]" style={{ width: `${usedBarWidth}%` }} />
             </div>
             <p className="text-[11px] font-medium leading-[1.5] text-[#737373]">
               {remaining.toLocaleString("en-US")} credits remaining · Credits don't roll over
