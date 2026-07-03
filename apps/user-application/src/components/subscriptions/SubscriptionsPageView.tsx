@@ -56,9 +56,8 @@ export function SubscriptionsPageView() {
   const [pendingTier, setPendingTier] = useState<Tier | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const isYearly = billingPeriod === "yearly";
-  const isSubscribed = overview.data?.profile.plan !== "free";
-  const isTrialing = overview.data?.subscription?.status === "trialing";
-  const planLabel = PLAN_LABEL[overview.data?.profile.plan ?? "free"] ?? "Stage";
+  const currentPlan = overview.data?.profile.plan;
+  const isSubscribed = currentPlan !== undefined && currentPlan !== "free";
   const teamPrice = useMemo(
     () =>
       (isYearly ? TEAM_YEARLY_PRICE : TEAM_MONTHLY_PRICE) +
@@ -77,15 +76,20 @@ export function SubscriptionsPageView() {
     void navigate({ to: "/settings/billing" });
   }
 
-  async function startTrial(tier: Tier, seats?: number) {
+  async function selectPlan(tier: Tier, seats?: number) {
     setCheckoutError(null);
     setPendingTier(tier);
+    const isCurrentPlan = isSubscribed && currentPlan === tier;
+    if (isCurrentPlan) {
+      setPendingTier(null);
+      return;
+    }
     try {
       const result = await createCheckoutSession({
         kind: "subscription",
         tier,
         billingCycle: billingPeriod,
-        isTrial: true,
+        isTrial: !isSubscribed,
         ...(seats !== undefined ? { seats } : {}),
         platform: "desktop",
       });
@@ -125,7 +129,9 @@ export function SubscriptionsPageView() {
                     Pick your Stage plan
                   </h1>
                   <p className="mt-[10px] text-[13px] font-medium leading-[1.5] text-[#525252]">
-                    14-day free trial. Card required, cancel anytime.
+                    {isSubscribed
+                      ? "Change plan anytime. Stripe handles proration on upgrades."
+                      : "14-day free trial. Card required, cancel anytime."}
                   </p>
                 </div>
                 <div className="flex w-fit rounded-[8px] bg-[#f5f5f5] p-[2px]">
@@ -140,26 +146,6 @@ export function SubscriptionsPageView() {
             </header>
           </div>
 
-          {!overview.isLoading && isSubscribed ? (
-            <section className="mx-auto flex w-full max-w-[560px] flex-col items-center gap-[20px] rounded-[12px] bg-[#f5f5f5] px-[24px] py-[32px] text-center">
-              <h2 className="text-[21px] font-semibold leading-[1.2] text-[#0a0a0a]">
-                {isTrialing ? "Your trial has started" : "You're already on Stage"}
-              </h2>
-              <p className="text-[13px] font-medium leading-[1.5] text-[#525252]">
-                {isTrialing
-                  ? `You're on Stage ${planLabel}. Head back to the app and start your first project.`
-                  : `Your ${planLabel} plan is active. Manage billing in Settings.`}
-              </p>
-              <button
-                type="button"
-                onClick={() => void navigate({ to: "/projects" })}
-                className="inline-flex items-center justify-center rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7b76df] to-[#463fba] px-[16px] py-[10px] text-[13px] font-medium leading-none text-[#fafafa]"
-              >
-                Open Stage
-              </button>
-            </section>
-          ) : (
-          <>
           <section className="mx-auto w-full rounded-[12px] bg-[#f5f5f5] p-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
             <div className="flex flex-col gap-[4px] min-[900px]:flex-row">
               <PlanCard
@@ -168,10 +154,10 @@ export function SubscriptionsPageView() {
                 pricePeriod={pricePeriod}
                 description="For builders shipping their first real products."
                 features={PLAN_FEATURES.start}
-                cta="Start 14-Day Trial"
-                onCtaClick={() => startTrial("start")}
+                cta={planCta("start", currentPlan, isSubscribed)}
+                onCtaClick={() => selectPlan("start")}
                 ctaLoading={pendingTier === "start"}
-                ctaDisabled={pendingTier !== null}
+                ctaDisabled={pendingTier !== null || (isSubscribed && currentPlan === "start")}
               />
               <PlanCard
                 name="Pro"
@@ -179,12 +165,12 @@ export function SubscriptionsPageView() {
                 pricePeriod={pricePeriod}
                 description="For freelancers who need full control."
                 features={PLAN_FEATURES.pro}
-                cta="Start 14-Day Trial"
+                cta={planCta("pro", currentPlan, isSubscribed)}
                 popular
                 primary
-                onCtaClick={() => startTrial("pro")}
+                onCtaClick={() => selectPlan("pro")}
                 ctaLoading={pendingTier === "pro"}
-                ctaDisabled={pendingTier !== null}
+                ctaDisabled={pendingTier !== null || (isSubscribed && currentPlan === "pro")}
               />
               <PlanCard
                 name="Team"
@@ -192,11 +178,11 @@ export function SubscriptionsPageView() {
                 pricePeriod={pricePeriod}
                 description="For small teams building together."
                 features={PLAN_FEATURES.team}
-                cta="Start 14-Day Trial"
+                cta={planCta("team", currentPlan, isSubscribed)}
                 meta="Team Plan"
-                onCtaClick={() => startTrial("team", teamSeats)}
+                onCtaClick={() => selectPlan("team", teamSeats)}
                 ctaLoading={pendingTier === "team"}
-                ctaDisabled={pendingTier !== null}
+                ctaDisabled={pendingTier !== null || (isSubscribed && currentPlan === "team")}
                 seatControl={
                   <SeatControl
                     seats={teamSeats}
@@ -215,12 +201,20 @@ export function SubscriptionsPageView() {
           <p className="text-center text-[13px] font-medium leading-[1.5] text-[#737373]">
             You connect your own AI provider (Claude, Codex). No usage limits from Stage.
           </p>
-          </>
-          )}
         </div>
       </div>
     </div>
   );
+}
+
+function planCta(tier: Tier, currentPlan: string | undefined, isSubscribed: boolean) {
+  if (isSubscribed && currentPlan === tier) {
+    return "Current plan";
+  }
+  if (isSubscribed) {
+    return `Switch to ${PLAN_LABEL[tier]}`;
+  }
+  return "Start 14-Day Trial";
 }
 
 function ArrowLeftIcon() {

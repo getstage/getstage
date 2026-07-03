@@ -2,11 +2,12 @@ import { Img, Link, Section, Text } from "@react-email/components";
 import * as React from "react";
 import { CTAButton, Divider, EmailLayout } from "../components/EmailLayout";
 import * as s from "../components/tokens";
-import { SLACK_INVITE_URL } from "../components/links";
+import { SLACK_INVITE_URL, STRIPE_BILLING_PORTAL_LOGIN_URL } from "../components/links";
 
 export interface TrialEndingProps {
   firstName?: string;
   openAppUrl?: string;
+  billingPortalUrl?: string;
   markUrl?: string;
   stageIconUrl?: string;
   slackUrl?: string;
@@ -16,6 +17,7 @@ export interface TrialEndingProps {
 export const TrialEnding = ({
   firstName = "there",
   openAppUrl = "https://getstage.co/open",
+  billingPortalUrl = STRIPE_BILLING_PORTAL_LOGIN_URL,
   markUrl,
   stageIconUrl = "https://getstage.co/email/stage-mark-white.png",
   slackUrl = SLACK_INVITE_URL,
@@ -42,8 +44,11 @@ export const TrialEnding = ({
       projects stay exactly where they are.
     </Text>
     <Text style={s.paragraph}>
-      If you want to cancel, you can do it in Settings before the trial ends.
-      No questions asked.
+      If you want to cancel, you can do it in the{" "}
+      <Link href={billingPortalUrl} style={s.textLink}>
+        billing portal
+      </Link>{" "}
+      before the trial ends. No questions asked.
     </Text>
     <Text style={s.paragraph}>
       But if Stage helped you move faster on even one project this week - the

@@ -74,7 +74,7 @@ export async function recordEmailEventHandler(
       createdAt: now(),
       updatedAt: now(),
     });
-    await ctx.scheduler.runAfter(step.delayMs / 1000, internal.emails.sendStep, { emailId });
+    await ctx.scheduler.runAfter(step.delayMs, internal.emails.sendStep, { emailId });
   }
 }
 

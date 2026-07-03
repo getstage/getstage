@@ -343,9 +343,10 @@ export async function createCheckoutSessionHandler(
   }
 
   const existingSubscription = await getCurrentSubscriptionSnapshot(ctx, viewer.userIdString);
-  if (existingSubscription) {
+  const isTrial = args.isTrial ?? false;
+  if (existingSubscription && isTrial) {
     throw new Error(
-      "You already have an active Stage subscription. Manage it in Settings → Billing.",
+      "You already have an active Stage subscription. Pick a different plan or manage billing in Settings.",
     );
   }
 
@@ -353,7 +354,7 @@ export async function createCheckoutSessionHandler(
   const tier = args.tier ?? "pro";
   const billingCycle = args.billingCycle ?? "yearly";
   const priceId = priceIdForTier(tier, billingCycle);
-  const isTrial = args.isTrial ?? false;
+  const grantTrial = isTrial && !existingSubscription;
   const config = configForPriceId(priceId);
   const includedSeats = config?.includedSeats ?? 1;
   const requestedSeats = Math.max(includedSeats, Math.round(args.seats ?? includedSeats));
@@ -369,7 +370,7 @@ export async function createCheckoutSessionHandler(
     ...baseMetadata,
     priceId,
     seats: String(requestedSeats),
-    ...(isTrial ? { isTrial: "true" } : {}),
+    ...(grantTrial ? { isTrial: "true" } : {}),
   };
 
   const session = await sdk.checkout.sessions.create({
@@ -381,10 +382,10 @@ export async function createCheckoutSessionHandler(
     ],
     success_url: urls.successUrl,
     cancel_url: urls.cancelUrl,
-    metadata: { ...baseMetadata, priceId, ...(isTrial ? { isTrial: "true" } : {}) },
+    metadata: { ...baseMetadata, priceId, ...(grantTrial ? { isTrial: "true" } : {}) },
     subscription_data: {
       metadata: subscriptionMetadata,
-      ...(isTrial ? { trial_period_days: TRIAL_DAYS } : {}),
+      ...(grantTrial ? { trial_period_days: TRIAL_DAYS } : {}),
     },
   });
 
