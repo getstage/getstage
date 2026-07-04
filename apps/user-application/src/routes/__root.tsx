@@ -24,7 +24,10 @@ function RootLayout() {
 
   return (
     <ProviderRequiredProvider>
-      <DesktopShell hideCompanion={shouldHideCompanion(location.pathname)}>
+      <DesktopShell
+        hideCompanion={shouldHideCompanion(location.pathname)}
+        forceHideCompanion={location.pathname === "/auth"}
+      >
         <Outlet />
       </DesktopShell>
     </ProviderRequiredProvider>

@@ -137,10 +137,13 @@ export function ProjectsOverviewView() {
               }
             }
             onOpenProjectDetails={(projectId) =>
-              void navigate({
-                to: "/project/$projectId/details",
-                params: { projectId },
-              })
+              {
+                setProjectBackDestination({ href: "/projects", label: "Back to projects" });
+                void navigate({
+                  to: "/project/$projectId",
+                  params: { projectId },
+                });
+              }
             }
           />
         </div>
