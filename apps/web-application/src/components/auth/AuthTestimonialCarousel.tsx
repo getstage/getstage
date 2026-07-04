@@ -27,6 +27,7 @@ const SIDE_TESTIMONIALS: [Testimonial, Testimonial] = [
     role: "Indie Founder",
     quote:
       "As a non-designer founder, I could never stick to one exact process. Stage gives me a repeatable workflow I can trust before I open Figma.",
+    avatarSrc: "/auth/maya-rodriguez.png",
   },
 ];
 
@@ -47,8 +48,10 @@ function TestimonialCard({
   return (
     <article
       className={cn(
-        "flex shrink-0 flex-col rounded-[12px] bg-white p-5 shadow-[0_12px_40px_rgba(15,23,42,0.12)]",
-        featured ? "w-[min(340px,78vw)]" : "w-[min(280px,62vw)]",
+        "flex shrink-0 flex-col rounded-[12px] bg-white shadow-[0_12px_40px_rgba(15,23,42,0.12)]",
+        featured
+          ? "w-[min(440px,78vw)] p-7"
+          : "w-[320px] bg-white/85 p-6 backdrop-blur-[1px]",
         className,
       )}
     >
@@ -65,15 +68,30 @@ function TestimonialCard({
           <div className="size-[52px] shrink-0 rounded-[8px] bg-[#F5F5F5]" aria-hidden="true" />
         )}
         <div className="min-w-0">
-          <p className="truncate text-[14px] font-medium leading-[1.2] text-[#0A0A0A]">
+          <p
+            className={cn(
+              "truncate font-semibold leading-[1.2] text-[#0A0A0A]",
+              featured ? "text-[16px]" : "text-[14px]",
+            )}
+          >
             {testimonial.name}
           </p>
-          <p className="truncate text-[13px] font-normal leading-[1.5] text-[#737373]">
+          <p
+            className={cn(
+              "truncate font-normal leading-[1.5] text-[#737373]",
+              featured ? "text-[15px]" : "text-[13px]",
+            )}
+          >
             {testimonial.role}
           </p>
         </div>
       </div>
-      <p className="mt-4 font-[family-name:var(--font-serif,'Iowan_Old_Style',Georgia,serif)] text-[14px] font-normal leading-[1.55] text-[#262626]">
+      <p
+        className={cn(
+          "mt-5 font-sans leading-[1.45] text-[#262626]",
+          featured ? "text-[17px] font-semibold" : "text-[15px] font-semibold opacity-80",
+        )}
+      >
         &ldquo;{testimonial.quote}&rdquo;
       </p>
     </article>
@@ -105,18 +123,23 @@ export function AuthTestimonialCarousel({
       <div
         className={cn(
           "absolute inset-0 flex items-center justify-center",
-          isMobile ? "px-3" : "px-6",
+          isMobile ? "px-3" : "px-0",
         )}
       >
-        <div className="flex items-stretch justify-center gap-3 lg:gap-4">
+        <div
+          className={cn(
+            "flex items-stretch justify-center",
+            isMobile ? "gap-3" : "gap-8",
+          )}
+        >
           <TestimonialCard
             testimonial={SIDE_TESTIMONIALS[0]}
-            className="hidden scale-[0.92] opacity-45 sm:flex"
+            className="hidden lg:flex"
           />
           <TestimonialCard testimonial={FEATURED} featured />
           <TestimonialCard
             testimonial={SIDE_TESTIMONIALS[1]}
-            className="hidden scale-[0.92] opacity-45 sm:flex"
+            className="hidden lg:flex"
           />
         </div>
       </div>
