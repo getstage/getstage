@@ -20,34 +20,55 @@ export function UpgradePaywallModal({
   errorMessage = null,
   variant = "preview",
 }: UpgradePaywallModalProps) {
+  if (variant === "topup") {
+    return (
+      <Dialog.Root open={open} onOpenChange={onClose}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/10 backdrop-blur-[5px]" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-[348px] -translate-x-1/2 -translate-y-1/2 rounded-[12px] bg-[#F5F5F5] px-[4px] pt-[4px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] outline-none">
+            <div className="flex flex-col items-center gap-[10px] px-[12px] py-[16px] text-center">
+              <img src="/logos/credits.svg" alt="" aria-hidden="true" className="h-[20px] w-[20px]" />
+              <div className="flex w-full flex-col items-center leading-[1.5]">
+                <Dialog.Title className="w-[min(240px,100%)] text-[15px] font-medium text-[#0A0A0A]">
+                  Start your subscription first
+                </Dialog.Title>
+                <Dialog.Description className="mt-[2px] w-[min(278px,100%)] text-[13px] font-normal text-[#525252]">
+                  Credit top-ups need an active paid plan. Start your subscription to add extra credits.
+                </Dialog.Description>
+              </div>
+            </div>
+
+            {errorMessage ? (
+              <div className="mx-[6px] mb-[6px] rounded-[8px] border border-[#FECACA] bg-[#FEF2F2] px-[10px] py-[8px] text-[12px] font-medium leading-[1.5] text-[#991B1B]">
+                {errorMessage}
+              </div>
+            ) : null}
+
+            <div className="flex w-full flex-col gap-[6px] p-[6px]">
+              <button
+                type="button"
+                onClick={onUpgrade}
+                disabled={isLoading}
+                className="w-full rounded-[6px] border border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-[12px] py-[8px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] disabled:cursor-not-allowed disabled:opacity-60 [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)]"
+              >
+                {isLoading ? "Opening..." : "Manage subscription"}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full rounded-[6px] border-[0.5px] border-[#D4D4D4] bg-white px-[12px] py-[8px] text-[13px] font-medium leading-none text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.05)]"
+              >
+                Got it
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+    );
+  }
+
   const content =
-    variant === "topup"
-      ? {
-          title: "Start your subscription first",
-          headline: "Top-ups need an active plan.",
-          description:
-            "Credit packs stack on top of a paid subscription. Your free trial converts to a paid plan automatically — after that you can top up anytime. To start now, manage your subscription.",
-          features: [
-            {
-              icon: <TrendUp size={18} weight="fill" />,
-              title: "Extra credits",
-              description: "Top-up packs add credits on top of your monthly balance.",
-            },
-            {
-              icon: <CrownSimple size={18} weight="fill" />,
-              title: "Never expire",
-              description: "Purchased credits stack and carry over between cycles.",
-            },
-            {
-              icon: <LockKeyOpen size={18} weight="fill" />,
-              title: "Manage anytime",
-              description: "Change or cancel your plan from the customer portal.",
-            },
-          ],
-          primaryLabel: "Manage subscription",
-          secondaryLabel: "Got it",
-        }
-      : variant === "general"
+    variant === "general"
         ? {
             title: "Upgrade to Stage Pro",
             headline: "Unlock the full workspace.",

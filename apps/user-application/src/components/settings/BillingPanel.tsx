@@ -25,7 +25,9 @@ type CreditPack = {
   price: number;
   name: string;
   description: string;
+  icon: string;
   eyebrow?: string;
+  badge?: string;
   featured?: boolean;
 };
 
@@ -37,6 +39,7 @@ const CREDIT_PACKS: readonly CreditPack[] = [
     price: 9,
     name: "Small",
     description: "A half month of extra usage",
+    icon: "/logos/credits.svg",
   },
   {
     size: "medium",
@@ -44,6 +47,7 @@ const CREDIT_PACKS: readonly CreditPack[] = [
     price: 19,
     name: "Medium",
     description: "Doubles your monthly credits",
+    icon: "/logos/two-sparkles.svg",
     eyebrow: "Most Popular",
     featured: true,
   },
@@ -53,7 +57,9 @@ const CREDIT_PACKS: readonly CreditPack[] = [
     price: 39,
     name: "Large",
     description: "~3 months of extra usage",
+    icon: "/logos/sparkles-3.svg",
     eyebrow: "Best Value",
+    badge: "Save ~30%",
   },
 ];
 
@@ -240,23 +246,35 @@ export function BillingPanel() {
             {CREDIT_PACKS.map((pack) => (
               <article
                 key={pack.name}
-                className={`flex min-w-0 flex-col gap-[12px] rounded-[8px] p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${
+                className={`flex min-h-[168px] min-w-0 flex-col justify-between rounded-[8px] p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] ${
                   pack.featured
                     ? "bg-[linear-gradient(180deg,rgba(158,153,248,0.05)_0%,#fff_100%)]"
                     : "bg-white"
                 }`}
               >
-                {pack.eyebrow ? (
-                  <div className="flex min-h-[20px] items-center justify-between gap-[6px] text-[13px] font-medium leading-[1.5] text-[#463FBA]">
-                    <span>{pack.eyebrow}</span>
+                <div className="flex flex-col gap-[8px]">
+                  <div className="flex min-h-[20px] items-start justify-between gap-[8px]">
+                    <CreditPackIcon src={pack.icon} accent={Boolean(pack.featured)} />
+                    {pack.eyebrow ? (
+                      <span className="bg-gradient-to-r from-[#463FBA] via-[rgba(70,63,186,0.75)] to-[#463FBA] bg-clip-text text-[13px] font-medium leading-[1.5] text-transparent">
+                        {pack.eyebrow}
+                      </span>
+                    ) : null}
                   </div>
-                ) : null}
-                <div className="flex flex-1 flex-col gap-[12px]">
-                  <div className="leading-[1.5] text-[#0A0A0A]">
-                    <p className="text-[14px] font-semibold">{pack.credits.toLocaleString("en-US")} Credits</p>
-                    <p className="text-[13px] font-medium">{pack.name}</p>
+                  <div className="flex flex-col gap-[12px] leading-[1.5]">
+                    <div className="text-[#0A0A0A]">
+                      <p className="text-[14px] font-semibold">{pack.credits.toLocaleString("en-US")} Credits</p>
+                      <div className="flex items-center gap-[4px]">
+                        <p className="text-[13px] font-medium">{pack.name}</p>
+                        {pack.badge ? (
+                          <p className="bg-gradient-to-r from-[#463FBA] via-[rgba(70,63,186,0.75)] to-[#463FBA] bg-clip-text text-[11px] font-medium text-transparent">
+                            ({pack.badge})
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                    <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">{pack.description}</p>
                   </div>
-                  <p className="text-[12px] font-normal leading-[1.5] text-[#525252]">{pack.description}</p>
                 </div>
                 <button
                   type="button"
@@ -288,6 +306,19 @@ export function BillingPanel() {
         variant="topup"
       />
     </div>
+  );
+}
+
+function CreditPackIcon({ src, accent }: { src: string; accent: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`h-[20px] w-[20px] shrink-0 ${accent ? "bg-[#4B3DCB]" : "bg-[#0A0A0A]"}`}
+      style={{
+        WebkitMask: `url("${src}") center / contain no-repeat`,
+        mask: `url("${src}") center / contain no-repeat`,
+      }}
+    />
   );
 }
 
