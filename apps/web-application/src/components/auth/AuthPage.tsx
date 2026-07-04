@@ -14,7 +14,6 @@ import {
 } from "@/lib/postAuthRedirect";
 import { isDemoAuthEnabledForHostname } from "@stage/data-ops/shared/demo-auth";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
-import { AuthTestimonialPanel } from "@/components/auth/AuthTestimonialPanel";
 import { cn } from "@/lib/utils";
 
 type Step = "email" | "code";
@@ -355,7 +354,13 @@ export function AuthPage() {
                 isLoginOtp && "lg:px-0",
               )}
             >
-              <AuthTestimonialPanel variant="mobile" className="lg:hidden" />
+              <div className="relative flex h-[400px] w-full shrink-0 items-center justify-center overflow-hidden rounded-[8px] lg:hidden">
+                <img
+                  src="/auth/auth-mobile.webp"
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              </div>
 
               <div
                 className={cn(
@@ -579,7 +584,13 @@ export function AuthPage() {
                 isLoginOtp && "lg:hidden",
               )}
             >
-              <AuthTestimonialPanel variant="desktop" className="h-full w-full" />
+              <div className="relative flex h-full w-full items-center justify-end overflow-hidden rounded-[8px]">
+                <img
+                  src="/auth/auth.webp"
+                  alt=""
+                  className="h-full max-h-full w-auto object-contain object-right"
+                />
+              </div>
             </section>
           </div>
         </div>
