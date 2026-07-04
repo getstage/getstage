@@ -31,6 +31,10 @@ yarn-error.log*
 # Local env / secrets — never commit real keys or signing credentials
 .env
 .env.*
+# ...but the web app's per-mode Convex URLs are public config (not secrets) —
+# commit them so production builds never fall back to a developer's .env.local.
+!apps/web-application/.env.production
+!apps/web-application/.env.testing
 apps/user-application/resources/runtime-secrets.env
 **/env.example
 

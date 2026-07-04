@@ -33,6 +33,32 @@ function looksLikeProviderSessionLimit(text: string) {
   return /session limit|rate limit|usage limit|hit your session limit|resets \d/i.test(text);
 }
 
+/** Short hint for Codex/Claude limit errors — no stderr dumps or nested JSON. */
+function sessionLimitHint(text: string) {
+  const tryAgain = text.match(/try again at ([^.)|]+)/i)?.[1]?.trim();
+  if (tryAgain) {
+    return `Try again at ${tryAgain}.`;
+  }
+
+  const reset = text.match(/resets ([^.)|]+)/i)?.[1]?.trim();
+  if (reset) {
+    return `Limit resets ${reset}.`;
+  }
+
+  if (/upgrade to plus/i.test(text)) {
+    return "Upgrade your Codex plan or wait until the limit resets.";
+  }
+
+  return null;
+}
+
+function sessionLimitUserMessage(label: string, text: string) {
+  const hint = sessionLimitHint(text);
+  return hint
+    ? `${label} usage limit reached. ${hint}`
+    : `${label} usage limit reached. Wait until the limit resets, then try again.`;
+}
+
 function looksLikeTechnicalResearchFailure(text: string) {
   return /Research artifact is incomplete|missing required section|competitiveAnalysis\.|Update on nonexistent document|already in progress for this project|Could not find public function/i.test(
     text,
@@ -99,12 +125,7 @@ export function toEngineErrorUserMessage(
   }
 
   if (looksLikeProviderSessionLimit(text)) {
-    const detail =
-      text.match(/You've hit your session limit[^]*$/i)?.[0]?.trim() ??
-      text.match(/session limit[^]*$/i)?.[0]?.trim();
-    return detail
-      ? `${label} session limit reached. Wait until the limit resets, then try again. (${detail})`
-      : `${label} session limit reached. Wait until the limit resets, then try again.`;
+    return sessionLimitUserMessage(label, text);
   }
 
   if (error.code === "not_authenticated" || looksLikeProviderAuthFailure(text)) {
@@ -138,6 +159,20 @@ export function toRunFailureUserMessage(
   fallback = CHAT_RUN_FAILED_USER_MESSAGE,
 ) {
   return toEngineErrorUserMessage(event.error, fallback);
+}
+
+/** Map a stored Convex run errorMessage (or raw engine text) to user-facing copy. */
+export function formatStoredRunErrorMessage(
+  raw: string | null | undefined,
+  fallback = RESEARCH_RUN_FAILED_USER_MESSAGE,
+) {
+  if (!raw?.trim()) {
+    return fallback;
+  }
+  return toEngineErrorUserMessage(
+    { code: "provider_process_failed", message: raw, detail: undefined, retryable: false },
+    fallback,
+  );
 }
 
 export function formatEngineError(error: EngineError): string {

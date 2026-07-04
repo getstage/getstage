@@ -5,6 +5,8 @@ import {
   isAuthFailureStatus,
 } from "../desktop-api/auth-failure";
 import type { DesktopAuthController } from "../auth";
+import { getDesktopAuthUrl } from "./auth";
+import { runtimeEnv } from "./runtime-env";
 
 export const PRODUCTION_DESKTOP_API_URL = "https://getstage.co/api/v1";
 export const TESTING_DESKTOP_API_URL = "https://testing.getstage.co/api/v1";
@@ -25,20 +27,37 @@ function inferDesktopApiBaseUrlFromAuthUrl(authUrl: string) {
   return null;
 }
 
+function convexCloudToSiteApiBase(convexUrl: string) {
+  const trimmed = convexUrl.trim().replace(/\/+$/, "");
+  if (trimmed.endsWith(".convex.cloud")) {
+    return `${trimmed.replace(".convex.cloud", ".convex.site")}/api/v1`;
+  }
+  return null;
+}
+
 export function getDesktopApiBaseUrl() {
-  if (process.env.STAGE_DESKTOP_API_URL?.trim()) {
-    return process.env.STAGE_DESKTOP_API_URL.replace(/\/+$/, "");
+  const override = runtimeEnv("STAGE_DESKTOP_API_URL");
+  if (override) {
+    return override.replace(/\/+$/, "");
   }
 
-  const authUrl = process.env.STAGE_DESKTOP_AUTH_URL?.trim();
-  if (authUrl) {
-    const inferred = inferDesktopApiBaseUrlFromAuthUrl(authUrl);
-    if (inferred) {
-      return inferred;
+  const authInferred = inferDesktopApiBaseUrlFromAuthUrl(getDesktopAuthUrl());
+  if (authInferred) {
+    return authInferred;
+  }
+
+  if (!app.isPackaged) {
+    const convexUrl = runtimeEnv("VITE_CONVEX_URL");
+    if (convexUrl) {
+      const fromConvex = convexCloudToSiteApiBase(convexUrl);
+      if (fromConvex) {
+        return fromConvex;
+      }
     }
+    return TESTING_DESKTOP_API_URL;
   }
 
-  return app.isPackaged ? PRODUCTION_DESKTOP_API_URL : TESTING_DESKTOP_API_URL;
+  return PRODUCTION_DESKTOP_API_URL;
 }
 
 type DesktopApiRequestArgs = {

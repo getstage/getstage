@@ -32,6 +32,8 @@ export function loadLocalEnv() {
   if (app.isPackaged) {
     loadEnvFile(join(process.resourcesPath, "runtime-secrets.env"));
   } else {
+    // Prefer app root over cwd — monorepo scripts may start Electron with cwd != user-application.
+    loadEnvFile(resolve(app.getAppPath(), ".env"));
     loadEnvFile(resolve(process.cwd(), ".env"));
   }
 

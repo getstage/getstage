@@ -72,9 +72,7 @@ impl ProviderProcessError {
 
                 if let Some(payload) = payload.as_deref() {
                     if looks_like_provider_session_limit(payload) {
-                        return format!(
-                            "{label} session limit reached. Wait until the limit resets, then try again. ({payload})"
-                        );
+                        return Self::session_limit_user_message(label, payload);
                     }
 
                     if looks_like_provider_auth_failure(payload) {
@@ -93,9 +91,7 @@ impl ProviderProcessError {
                 }
 
                 if looks_like_provider_session_limit(&detail) {
-                    return format!(
-                        "{label} session limit reached. Wait until the limit resets, then try again."
-                    );
+                    return Self::session_limit_user_message(label, &detail);
                 }
 
                 if looks_like_provider_auth_failure(&detail) {
@@ -114,6 +110,24 @@ impl ProviderProcessError {
                 )
             }
         }
+    }
+
+    fn session_limit_user_message(label: &str, text: &str) -> String {
+        if let Some(rest) = text.split("try again at ").nth(1) {
+            let when = rest.split([')', '|', '.']).next().unwrap_or(rest).trim();
+            if !when.is_empty() {
+                return format!("{label} usage limit reached. Try again at {when}.");
+            }
+        }
+
+        if let Some(rest) = text.split("resets ").nth(1) {
+            let when = rest.split([')', '|', '.']).next().unwrap_or(rest).trim();
+            if !when.is_empty() {
+                return format!("{label} usage limit reached. Limit resets {when}.");
+            }
+        }
+
+        format!("{label} usage limit reached. Wait until the limit resets, then try again.")
     }
 
     fn selected_model_from_text(text: &str) -> Option<&str> {
@@ -295,7 +309,7 @@ mod tests {
             engine_error.code,
             EngineErrorCode::ProviderProcessFailed
         ));
-        assert!(engine_error.message.contains("session limit reached"));
+        assert!(engine_error.message.contains("usage limit reached"));
         assert!(!engine_error.message.contains("auth login"));
         assert!(engine_error.retryable);
     }

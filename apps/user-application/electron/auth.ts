@@ -181,12 +181,27 @@ export class DesktopAuthController {
       throw new Error("Developer API keys cannot be used for desktop login.");
     }
 
-    logDesktopInfo("stage-auth", "verifying Convex Auth desktop token");
-    const response = await fetch(`${getDesktopApiBaseUrl()}/me`, {
-      headers: {
-        Authorization: `Bearer ${code}`,
-      },
-    });
+    const apiBase = getDesktopApiBaseUrl();
+    logDesktopInfo("stage-auth", `verifying Convex Auth desktop token against ${apiBase}/me`);
+
+    let response: Response;
+    try {
+      response = await fetch(`${apiBase}/me`, {
+        headers: {
+          Authorization: `Bearer ${code}`,
+        },
+      });
+    } catch (error) {
+      const detail =
+        error instanceof Error
+          ? [error.message, error.cause instanceof Error ? error.cause.message : ""]
+              .filter(Boolean)
+              .join(" — ")
+          : "Network request failed.";
+      throw new Error(
+        `Desktop auth token verification failed (${apiBase}/me): ${detail}`,
+      );
+    }
 
     if (!response.ok) {
       throw new Error(`Desktop auth token verification failed with ${response.status}.`);

@@ -38,8 +38,9 @@ export function authSessionPath() {
 }
 
 export function getDesktopAuthUrl() {
-  if (process.env.STAGE_DESKTOP_AUTH_URL) {
-    return process.env.STAGE_DESKTOP_AUTH_URL;
+  const override = process.env["STAGE_DESKTOP_AUTH_URL"];
+  if (typeof override === "string" && override.trim()) {
+    return override.trim();
   }
 
   return app.isPackaged ? PRODUCTION_DESKTOP_AUTH_URL : TESTING_DESKTOP_AUTH_URL;

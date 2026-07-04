@@ -20,6 +20,7 @@ export function useNonProOnboardingGate() {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [onboardingInitialStep, setOnboardingInitialStep] = useState<OnboardingStepId>("welcome");
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+  const [checkoutReturned, setCheckoutReturned] = useState(false);
 
   useEffect(() => {
     if (onboardingStateQuery.data?.isCompleted) {
@@ -55,10 +56,13 @@ export function useNonProOnboardingGate() {
     // (which ends at the paywall); anyone who already onboarded or has a project
     // goes straight to the paywall. The paywall has no "continue free" exit — it
     // requires starting a trial/subscription (see OnboardingPaywall).
-    setOnboardingInitialStep(isOnboardingCompleted || projectCount >= 1 ? "paywall" : "welcome");
+    setOnboardingInitialStep(
+      isOnboardingCompleted || projectCount >= 1 || checkoutReturned ? "paywall" : "welcome",
+    );
     setOnboardingOpen(true);
   }, [
     hasCompletedOnboarding,
+    checkoutReturned,
     session.isLoading,
     session.data?.hasAccessToken,
     projectsQuery.isLoading,
@@ -74,10 +78,15 @@ export function useNonProOnboardingGate() {
     setOnboardingOpen(false);
   }, []);
 
+  const notifyCheckoutReturned = useCallback(() => {
+    setCheckoutReturned(true);
+  }, []);
+
   return {
     onboardingOpen,
     onboardingInitialStep,
     userFirstName: session.data?.name?.split(" ")[0],
     onOnboardingComplete,
+    notifyCheckoutReturned,
   };
 }

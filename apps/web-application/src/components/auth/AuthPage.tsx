@@ -14,6 +14,7 @@ import {
 } from "@/lib/postAuthRedirect";
 import { isDemoAuthEnabledForHostname } from "@stage/data-ops/shared/demo-auth";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
+import { AuthTestimonialPanel } from "@/components/auth/AuthTestimonialPanel";
 import { cn } from "@/lib/utils";
 
 type Step = "email" | "code";
@@ -354,13 +355,7 @@ export function AuthPage() {
                 isLoginOtp && "lg:px-0",
               )}
             >
-              <div className="relative flex h-[400px] w-full shrink-0 items-center justify-center overflow-hidden rounded-[8px] lg:hidden">
-                <img
-                  src="/auth/auth-mobile.webp"
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              </div>
+              <AuthTestimonialPanel variant="mobile" className="lg:hidden" />
 
               <div
                 className={cn(
@@ -547,7 +542,7 @@ export function AuthPage() {
                 {step === "email" ? (
                   <div className="mt-4 flex justify-center gap-1 text-[14px] leading-[1.5] font-medium lg:mt-12 lg:text-[13px]">
                     <span className="text-[#525252]">
-                      {authMode === "login" ? "Need an account?" : "Already have a account?"}
+                      {authMode === "login" ? "Need an account?" : "Already have an account?"}
                     </span>
                     <button
                       type="button"
@@ -584,13 +579,7 @@ export function AuthPage() {
                 isLoginOtp && "lg:hidden",
               )}
             >
-              <div className="relative flex h-full w-full items-center justify-end overflow-hidden rounded-[8px]">
-                <img
-                  src="/auth/auth.webp"
-                  alt=""
-                  className="h-full max-h-full w-auto object-contain object-right"
-                />
-              </div>
+              <AuthTestimonialPanel variant="desktop" className="h-full w-full" />
             </section>
           </div>
         </div>
