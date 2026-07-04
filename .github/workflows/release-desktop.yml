@@ -3,8 +3,8 @@ name: Release Stage Desktop (macOS)
 on:
   push:
     tags:
-      - "v*" # testing track
-      - "prod-v*" # production track
+      - "v*" # testing track — CI artifacts only (no public GitHub Release)
+      - "prod-v*" # production track — public GitHub Release (Latest)
   workflow_dispatch:
     inputs:
       track:
@@ -178,7 +178,10 @@ jobs:
   publish-release:
     name: Publish GitHub Release
     needs: build-macos
-    if: github.event_name == 'push' || inputs.publish_release == true
+    # Testing tags (v*) stay internal: download DMGs from the workflow run artifacts.
+    if: >
+      (github.event_name == 'push' && startsWith(github.ref_name, 'prod-v')) ||
+      (github.event_name == 'workflow_dispatch' && inputs.publish_release == true && inputs.track == 'production')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -214,8 +217,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#prod-v}"
+          VERSION="${VERSION#v}"
+          TITLE="Stage ${VERSION}"
+
           gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1 \
-            || gh release create "$TAG" --repo "${{ github.repository }}" --draft --title "Stage $TAG"
+            || gh release create "$TAG" --repo "${{ github.repository }}" --draft --title "$TITLE"
 
           shopt -s nullglob
           assets=(release-assets/*)
@@ -225,4 +232,4 @@ jobs:
           fi
 
           gh release upload "$TAG" --repo "${{ github.repository }}" --clobber "${assets[@]}"
-          gh release edit "$TAG" --repo "${{ github.repository }}" --draft=false --title "Stage $TAG"
+          gh release edit "$TAG" --repo "${{ github.repository }}" --draft=false --latest --title "$TITLE"

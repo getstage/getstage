@@ -20,5 +20,9 @@ if (!convexUrl) {
   throw new Error("Missing VITE_CONVEX_URL in the desktop app environment.");
 }
 
+// Log the resolved backend so a wrong-environment build (testing vs production)
+// is visible in the console instead of surfacing as an opaque "Server Error".
+console.info("[stage] Convex deployment:", convexUrl);
+
 export const convex = new ConvexReactClient(convexUrl);
 export const api = anyApi;

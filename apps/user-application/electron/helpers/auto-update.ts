@@ -252,7 +252,7 @@ async function fetchLatestGithubRelease() {
 
   const release = (await response.json()) as GithubReleaseResponse;
   const tagName = typeof release.tag_name === "string" ? release.tag_name : "";
-  const version = tagName.replace(/^v/i, "");
+  const version = tagName.replace(/^prod-v/i, "").replace(/^v/i, "");
   const url = typeof release.html_url === "string" ? release.html_url : RELEASES_PAGE_URL;
 
   if (!version) {

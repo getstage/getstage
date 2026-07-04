@@ -1,6 +1,10 @@
 appId: co.getstage.desktop
 productName: Stage
 copyright: Copyright © Stage
+protocols:
+  - name: Stage
+    schemes:
+      - stage
 directories:
   output: release
   buildResources: build
