@@ -49,9 +49,7 @@ function TestimonialCard({
     <article
       className={cn(
         "flex shrink-0 flex-col rounded-[12px] bg-white shadow-[0_12px_40px_rgba(15,23,42,0.12)]",
-        featured
-          ? "w-[min(440px,78vw)] p-7"
-          : "w-[320px] bg-white/85 p-6 backdrop-blur-[1px]",
+        featured ? "w-[min(380px,78vw)] p-6" : "w-[300px] p-6",
         className,
       )}
     >
@@ -60,18 +58,18 @@ function TestimonialCard({
           <img
             src={testimonial.avatarSrc}
             alt=""
-            width={52}
-            height={52}
-            className="size-[52px] shrink-0 rounded-[8px] object-cover"
+            width={48}
+            height={48}
+            className="size-12 shrink-0 rounded-full object-cover"
           />
         ) : (
-          <div className="size-[52px] shrink-0 rounded-[8px] bg-[#F5F5F5]" aria-hidden="true" />
+          <div className="size-12 shrink-0 rounded-full bg-[#F5F5F5]" aria-hidden="true" />
         )}
         <div className="min-w-0">
           <p
             className={cn(
               "truncate font-semibold leading-[1.2] text-[#0A0A0A]",
-              featured ? "text-[16px]" : "text-[14px]",
+              featured ? "text-[15px]" : "text-[14px]",
             )}
           >
             {testimonial.name}
@@ -79,7 +77,7 @@ function TestimonialCard({
           <p
             className={cn(
               "truncate font-normal leading-[1.5] text-[#737373]",
-              featured ? "text-[15px]" : "text-[13px]",
+              featured ? "text-[14px]" : "text-[13px]",
             )}
           >
             {testimonial.role}
@@ -88,8 +86,8 @@ function TestimonialCard({
       </div>
       <p
         className={cn(
-          "mt-5 font-sans leading-[1.45] text-[#262626]",
-          featured ? "text-[17px] font-semibold" : "text-[15px] font-semibold opacity-80",
+          "mt-4 font-sans font-semibold leading-[1.5] text-[#171717]",
+          featured ? "text-[15px]" : "text-[14px] opacity-90",
         )}
       >
         &ldquo;{testimonial.quote}&rdquo;
@@ -120,18 +118,8 @@ export function AuthTestimonialCarousel({
         className="absolute inset-0 h-full w-full object-cover object-center"
       />
 
-      <div
-        className={cn(
-          "absolute inset-0 flex items-center justify-center",
-          isMobile ? "px-3" : "px-0",
-        )}
-      >
-        <div
-          className={cn(
-            "flex items-stretch justify-center",
-            isMobile ? "gap-3" : "gap-8",
-          )}
-        >
+      <div className="absolute inset-0 flex items-center justify-center px-0">
+        <div className="flex items-stretch justify-center gap-4">
           <TestimonialCard
             testimonial={SIDE_TESTIMONIALS[0]}
             className="hidden lg:flex"
