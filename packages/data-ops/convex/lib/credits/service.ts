@@ -1,5 +1,6 @@
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
+import { TRIAL_CREDIT_CAP } from "./priceConfig";
 
 type ReaderCtx = QueryCtx | MutationCtx;
 
@@ -175,6 +176,9 @@ export async function grantCredits(
   await ctx.db.patch(wallet._id, {
     monthlyBalance: newMonthly,
     topupBalance: newTopup,
+    // A monthly/trial grant starts a fresh billing period, so usage counters in
+    // the summary anchor to this moment. Top-ups and adjustments don't reset.
+    ...(isMonthlyReset ? { lastGrantedAt: timestamp } : {}),
     updatedAt: timestamp,
   });
 
@@ -282,35 +286,90 @@ export type CreditSummary = {
   total: number;
   monthly: number;
   topup: number;
+  // Real pool size for the current period: the plan's monthly allowance plus any
+  // paid top-ups. Drives the "X of Y credits" headline so it shows the true
+  // allowance (150 trial / 10000 Pro …) instead of a number derived from usage.
+  granted: number;
+  usedTotal: number;
   usedByKind: { voice: number; moodboard: number; reference: number; other: number };
 };
 
+// Usage shown in the card is scoped to the current billing period (since the
+// last monthly/trial grant), not all-time — otherwise the breakdown keeps growing
+// across renewals and stops matching the headline "used" figure.
 export async function getCreditSummaryForOwner(
   ctx: ReaderCtx,
   ownerUserId: Id<"users">,
+  monthlyAllowance = 0,
 ): Promise<CreditSummary> {
   const wallet = await getWalletForOwnerOrNull(ctx, ownerUserId);
   const usedByKind = { voice: 0, moodboard: 0, reference: 0, other: 0 };
 
   if (!wallet) {
-    return { total: 0, monthly: 0, topup: 0, usedByKind };
+    return { total: 0, monthly: 0, topup: 0, granted: 0, usedTotal: 0, usedByKind };
   }
 
+  const periodStart = wallet.lastGrantedAt ?? wallet._creationTime;
   const ledger = await ctx.db
     .query("creditLedger")
     .withIndex("by_wallet", (q) => q.eq("walletId", wallet._id))
     .collect();
 
   for (const row of ledger) {
-    if (row.reason === "usage") {
+    if (row.reason === "usage" && row.createdAt >= periodStart) {
       usedByKind[row.kind] += -row.delta;
     }
   }
 
+  const total = walletTotal(wallet);
+  const granted = monthlyAllowance + wallet.topupBalance;
+  const usedTotal = Math.max(0, granted - total);
+
   return {
-    total: walletTotal(wallet),
+    total,
     monthly: wallet.monthlyBalance,
     topup: wallet.topupBalance,
+    granted,
+    usedTotal,
     usedByKind,
   };
+}
+
+// One-off migration helper: cap a single trialing user's monthlyBalance to the
+// trial credit cap (150). Atomic + idempotent on `idempotencyKey` — a second run
+// for the same user is a no-op. Top-up balance is preserved. Returns the before
+// balance so the caller can report what changed.
+export async function capTrialWalletTo150Once(
+  ctx: MutationCtx,
+  args: { ownerUserId: Id<"users">; idempotencyKey: string },
+): Promise<{ status: "capped" | "already_capped"; before: number; after: number }> {
+  const existing = await findLedgerByKey(ctx, args.idempotencyKey);
+  if (existing) {
+    return { status: "already_capped", before: existing.balanceAfter, after: existing.balanceAfter };
+  }
+
+  const wallet = await getOrCreateWallet(ctx, args.ownerUserId);
+  const before = wallet.monthlyBalance;
+  const after = TRIAL_CREDIT_CAP;
+  const timestamp = Date.now();
+  const balanceAfter = after + wallet.topupBalance;
+
+  await ctx.db.patch(wallet._id, {
+    monthlyBalance: after,
+    lastGrantedAt: timestamp,
+    updatedAt: timestamp,
+  });
+
+  await ctx.db.insert("creditLedger", {
+    walletId: wallet._id,
+    delta: after - before,
+    reason: "adjustment",
+    kind: "other",
+    userId: args.ownerUserId,
+    idempotencyKey: args.idempotencyKey,
+    balanceAfter,
+    createdAt: timestamp,
+  });
+
+  return { status: "capped", before, after };
 }

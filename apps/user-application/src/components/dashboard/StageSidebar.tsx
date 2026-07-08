@@ -146,8 +146,8 @@ export function StageSidebar({
       <CreditsExhaustedModal
         open={isCreditsExhaustedModalOpen}
         onOpenChange={setIsCreditsExhaustedModalOpen}
-        onContinueStart={openSubscriptions}
-        onSeeOtherPlans={openSubscriptions}
+        onTopUp={openBilling}
+        onSeePlans={openSubscriptions}
       />
     </>
   );

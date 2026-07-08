@@ -1,15 +1,34 @@
-import { internalMutation, mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { components } from "./_generated/api";
 import { requireAuthUser, requireProjectAccess } from "./_helpers";
 import {
   CREDIT_COSTS,
+  capTrialWalletTo150Once,
   getCreditSummaryForOwner,
+  getWalletForOwnerOrNull,
   grantCredits,
   recordUsage,
   revokeCredits,
   reverseCredits,
 } from "./lib/credits/service";
+import { TRIAL_CREDIT_CAP, monthlyCreditsForTier, type Tier } from "./lib/credits/priceConfig";
+import { getCurrentSubscriptionSnapshot } from "./billing";
+
+// Monthly credit pool for the card: the trial cap while trialing, otherwise the
+// tier's monthly allotment. Free / no subscription → 0 (card shows an empty pool).
+function monthlyAllowanceForSubscription(subscription: {
+  status: string;
+  plan: Tier | null;
+} | null): number {
+  if (!subscription) {
+    return 0;
+  }
+  if (subscription.status === "trialing") {
+    return TRIAL_CREDIT_CAP;
+  }
+  return subscription.plan ? monthlyCreditsForTier(subscription.plan) : 0;
+}
 
 // Credit balance for the signed-in user's own workspace. Loading is undefined
 // (tri-state) on the client; this always resolves to a concrete summary.
@@ -17,7 +36,9 @@ export const getCreditSummary = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireAuthUser(ctx);
-    return getCreditSummaryForOwner(ctx, user._id);
+    const subscription = await getCurrentSubscriptionSnapshot(ctx, String(user._id));
+    const monthlyAllowance = monthlyAllowanceForSubscription(subscription);
+    return getCreditSummaryForOwner(ctx, user._id, monthlyAllowance);
   },
 });
 
@@ -113,6 +134,29 @@ export const grantCreditsForOwner = internalMutation({
       idempotencyKey: args.idempotencyKey,
     });
   },
+});
+
+// Read-only wallet snapshot for the trial-cap migration's dry run. Not exposed
+// to the client — only used internally by the capTrialingWalletsTo150 action.
+export const getWalletBalanceForOwner = internalQuery({
+  args: { ownerUserId: v.id("users") },
+  handler: async (ctx, args) => {
+    const wallet = await getWalletForOwnerOrNull(ctx, args.ownerUserId);
+    if (!wallet) {
+      return null;
+    }
+    return { monthlyBalance: wallet.monthlyBalance, topupBalance: wallet.topupBalance };
+  },
+});
+
+// Per-user atomic trial cap (150). Idempotent on idempotencyKey. Called once per
+// trialing user by the capTrialingWalletsTo150 action — never call directly.
+export const capTrialWalletTo150 = internalMutation({
+  args: {
+    ownerUserId: v.id("users"),
+    idempotencyKey: v.string(),
+  },
+  handler: async (ctx, args) => capTrialWalletTo150Once(ctx, args),
 });
 
 // Revoke all credits (subscription cancelled / dunning exhausted). Called by the

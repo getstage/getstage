@@ -11,6 +11,7 @@ import { ProviderRequiredProvider } from "@/components/app/ProviderRequiredDialo
 import { useDesktopSessionInvalidation } from "@/hooks/app/useDesktopSessionInvalidation";
 import { useProviderRunInvalidation } from "@/hooks/app/useProviderRunInvalidation";
 import { shouldHideCompanion } from "@/lib/app/chromeRules";
+import { clearDesktopSessionCache } from "@/lib/auth/session";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: RootLayout,
@@ -39,8 +40,13 @@ function RootErrorBoundary({ error, reset }: ErrorComponentProps) {
   console.error("[RootErrorBoundary]", error);
 
   async function signInAgain() {
-    await window.stageDesktop.auth.logout();
-    void router.navigate({ to: "/auth" });
+    clearDesktopSessionCache();
+    try {
+      await window.stageDesktop?.auth?.logout?.();
+    } catch (logoutError) {
+      console.error("[RootErrorBoundary] logout failed", logoutError);
+    }
+    void router.navigate({ to: "/auth", replace: true });
   }
 
   return (

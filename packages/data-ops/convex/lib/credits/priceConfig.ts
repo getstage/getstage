@@ -38,7 +38,7 @@ const TIER_INCLUDED_SEATS: Record<Tier, number> = {
 export const SEAT_ADDON_CREDITS = 5000;
 
 // Hard cap during trial (no full monthly grant until trial converts).
-export const TRIAL_CREDIT_CAP = 1500;
+export const TRIAL_CREDIT_CAP = 150;
 
 const TOPUP_CREDITS: Record<"small" | "medium" | "large", number> = {
   small: 3000,
@@ -173,4 +173,26 @@ export function seatAddOnPriceId(billingCycle: BillingCycle): string | null {
 
 export function billingCycleForPriceId(priceId: string | null | undefined): BillingCycle {
   return configForPriceId(priceId)?.billingCycle ?? "yearly";
+}
+
+const LEGACY_PRO_PRICE_ENVS = [
+  "STRIPE_PRICE_ID",
+  "STRIPE_YEARLY_PRICE_ID",
+  "STRIPE_MONTHLY_PRICE_ID",
+  "STRIPE_YEARLY_PRICE_LAUNCH_ID",
+];
+
+// Fail closed on unknown price IDs, but keep legacy single-tier subscribers recognized.
+export function resolveTier(priceId: string | null | undefined): Tier | null {
+  const tier = tierForPriceId(priceId);
+  if (tier) {
+    return tier;
+  }
+  const legacyIds = LEGACY_PRO_PRICE_ENVS.map((env) => getEnv(env)).filter(
+    (value): value is string => Boolean(value),
+  );
+  if (priceId && legacyIds.includes(priceId)) {
+    return "pro";
+  }
+  return null;
 }

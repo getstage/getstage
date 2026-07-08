@@ -91,6 +91,9 @@ function sendRunEventToRenderer(sender: WebContents, runEvent: RunEvent) {
 
 type RegisterIpcHandlersOptions = {
   authController: DesktopAuthController;
+  authCallbackServer: {
+    start: () => Promise<void>;
+  };
   integrationsController: DesktopIntegrationsController;
   sidecarSupervisor: SidecarSupervisor;
 };
@@ -126,10 +129,14 @@ function isEngineTransportError(error: unknown) {
 
 export function registerIpcHandlers({
   authController,
+  authCallbackServer,
   integrationsController,
   sidecarSupervisor,
 }: RegisterIpcHandlersOptions) {
   ipcMain.handle(IPC_CHANNELS.authOpenLogin, async () => {
+    if (!app.isPackaged) {
+      await authCallbackServer.start();
+    }
     await authController.openLogin();
   });
 

@@ -1,9 +1,15 @@
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/lib/auth";
+import {
+  GITHUB_RELEASES_LATEST,
+  macOsDmgDownloadUrl,
+  resolveMacDownloadUrl,
+} from "@/lib/macosDownload";
 import stageLogo from "@/assets/logos/stage-logo-light.png";
 
-export const MACOS_DOWNLOAD_URL = "https://github.com/getstage/getstage/releases/latest";
+/** @deprecated Use resolveMacDownloadUrl() for arch-specific DMG links. */
+export const MACOS_DOWNLOAD_URL = GITHUB_RELEASES_LATEST;
 
 export const Route = createFileRoute("/download/mac")({
   component: DownloadMacPage,
@@ -58,13 +64,24 @@ function DownloadMacPage() {
                   Your account is ready. Download the app to start your first project - faster
                   performance, native controls, and your entire design workflow in one place.
                 </p>
-                <a
-                  href={MACOS_DOWNLOAD_URL}
-                  className="mt-8 hidden h-[38px] w-full cursor-pointer items-center justify-center rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 text-[12px] font-semibold text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95 lg:inline-flex"
-                >
-                  <AppleIcon />
-                  <span className="ml-2.5">Download for macOS</span>
-                </a>
+                <div className="mt-8 hidden w-full flex-col items-start gap-2 lg:flex">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.location.assign(resolveMacDownloadUrl());
+                    }}
+                    className="inline-flex h-[38px] w-full cursor-pointer items-center justify-center rounded-[6px] border border-[#525252] bg-gradient-to-b from-[#404040] to-[#0A0A0A] px-3 text-[12px] font-semibold text-[#FAFAFA] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-opacity hover:opacity-95"
+                  >
+                    <AppleIcon />
+                    <span className="ml-2.5">Download for macOS</span>
+                  </button>
+                  <a
+                    href={macOsDmgDownloadUrl("x64")}
+                    className="text-[11px] font-medium text-[#737373] underline-offset-2 hover:text-[#525252] hover:underline"
+                  >
+                    Using an Intel Mac? Download the x64 build
+                  </a>
+                </div>
               </div>
             </section>
 

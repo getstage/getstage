@@ -92,9 +92,9 @@ export function BillingPanel() {
     : "Manage in customer portal";
 
   const remaining = credits.data?.total ?? 0;
+  const granted = credits.data?.granted ?? 0;
+  const usedTotal = credits.data?.usedTotal ?? 0;
   const usedByKind = credits.data?.usedByKind ?? { voice: 0, moodboard: 0, reference: 0, other: 0 };
-  const usedTotal = usedByKind.voice + usedByKind.moodboard + usedByKind.reference + usedByKind.other;
-  const granted = remaining + usedTotal;
   const usedLabel = formatCreditsUsedLabel(usedTotal, granted);
   const usedBarWidth = creditsUsedBarWidth(usedTotal, granted);
 

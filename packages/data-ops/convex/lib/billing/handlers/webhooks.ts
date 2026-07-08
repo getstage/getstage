@@ -13,6 +13,17 @@ import {
 // the function references and args.
 type WebhookCtx = GenericActionCtx<GenericDataModel>;
 
+type SyncedStripeSubscription = {
+  stripeSubscriptionId: string;
+  stripeCustomerId: string;
+  status: string;
+  currentPeriodEnd: number;
+  cancelAtPeriodEnd: boolean;
+  priceId: string;
+  userId?: string;
+  metadata?: Record<string, unknown> | null;
+};
+
 // Statuses that keep credits live. Anything else (past_due, unpaid, canceled,
 // incomplete) revokes credits so AI runs fail closed.
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
@@ -22,6 +33,38 @@ function asUserId(value: string | undefined | null): Id<"users"> | null {
     return null;
   }
   return value as Id<"users">;
+}
+
+function toMilliseconds(timestampSeconds: number) {
+  return timestampSeconds * 1000;
+}
+
+async function mirrorAppSubscription(
+  ctx: WebhookCtx,
+  stripeSubscriptionId: string,
+  fallback?: {
+    userId?: string | null;
+    metadata?: Record<string, unknown> | null;
+  },
+) {
+  const synced = (await ctx.runQuery(components.stripe.public.getSubscription, {
+    stripeSubscriptionId,
+  })) as SyncedStripeSubscription | null;
+
+  const userId = asUserId(synced?.userId ?? fallback?.userId);
+  if (!userId || !synced?.priceId) {
+    return;
+  }
+
+  await ctx.runMutation(internal.billing.syncSubscriptionMirror, {
+    userId,
+    stripeSubscriptionId: synced.stripeSubscriptionId,
+    stripeCustomerId: synced.stripeCustomerId,
+    stripePriceId: synced.priceId,
+    stripeStatus: synced.status,
+    currentPeriodEndMs: toMilliseconds(synced.currentPeriodEnd),
+    cancelAtPeriodEnd: synced.cancelAtPeriodEnd,
+  });
 }
 
 // Stripe SDK v20 moved the invoice→subscription link under
@@ -84,6 +127,12 @@ async function handleCheckoutCompleted(ctx: WebhookCtx, event: Stripe.Event) {
       type: "trial_started",
       metadata: eventId,
     });
+    if (typeof session.subscription === "string") {
+      await mirrorAppSubscription(ctx, session.subscription, {
+        userId,
+        metadata: session.metadata ?? undefined,
+      });
+    }
     return;
   }
 
@@ -100,11 +149,16 @@ async function handleCheckoutCompleted(ctx: WebhookCtx, event: Stripe.Event) {
     type: "payment_confirmed",
     metadata: eventId,
   });
+
+  if (typeof session.subscription === "string") {
+    await mirrorAppSubscription(ctx, session.subscription, {
+      userId,
+      metadata: session.metadata ?? undefined,
+    });
+  }
 }
 
-// invoice.paid — recurring renewal. Refills the monthly bucket to the tier
-// allotment; top-up balance is untouched. The first invoice is skipped because
-// checkout.session.completed already granted the initial balance.
+// invoice.paid — recurring renewal.
 async function handleInvoicePaid(ctx: WebhookCtx, event: Stripe.Event) {
   const invoice = event.data.object as Stripe.Invoice;
   const eventId = event.id;
@@ -154,6 +208,15 @@ async function handleInvoicePaid(ctx: WebhookCtx, event: Stripe.Event) {
   });
 }
 
+// customer.subscription.created — mirror readable plan/cycle into app subscriptions table.
+async function handleSubscriptionCreated(ctx: WebhookCtx, event: Stripe.Event) {
+  const subscription = event.data.object as Stripe.Subscription;
+  await mirrorAppSubscription(ctx, subscription.id, {
+    userId: subscription.metadata?.userId,
+    metadata: subscription.metadata,
+  });
+}
+
 // customer.subscription.updated — covers tier changes, seat-quantity changes, and
 // every failure transition (active → past_due/unpaid/canceled). Revokes credits
 // on failure; leaves monthly grants to invoice.paid on success.
@@ -177,8 +240,12 @@ async function handleSubscriptionUpdated(ctx: WebhookCtx, event: Stripe.Event) {
       ownerUserId: userId,
       idempotencyKey: eventId,
     });
-    return;
   }
+
+  await mirrorAppSubscription(ctx, subscription.id, {
+    userId,
+    metadata: subscription.metadata,
+  });
 
   // Tier changes and seat-quantity changes refill/adjust on the next invoice.paid
   // for the new price — no credit grant here.
@@ -201,6 +268,11 @@ async function handleSubscriptionDeleted(ctx: WebhookCtx, event: Stripe.Event) {
   await ctx.runMutation(internal.credits.revokeCreditsForOwner, {
     ownerUserId: userId,
     idempotencyKey: eventId,
+  });
+
+  await ctx.runMutation(internal.billing.markSubscriptionMirrorCanceled, {
+    userId,
+    stripeSubscriptionId: subscription.id,
   });
 }
 
@@ -255,6 +327,7 @@ async function handleChargeRefunded(ctx: WebhookCtx, event: Stripe.Event) {
 export const creditWebhookEvents = {
   "checkout.session.completed": handleCheckoutCompleted,
   "invoice.paid": handleInvoicePaid,
+  "customer.subscription.created": handleSubscriptionCreated,
   "customer.subscription.updated": handleSubscriptionUpdated,
   "customer.subscription.deleted": handleSubscriptionDeleted,
   "charge.refunded": handleChargeRefunded,

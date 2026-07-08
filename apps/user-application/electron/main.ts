@@ -258,8 +258,8 @@ app.whenReady().then(async () => {
   registerRendererMediaPermissions();
   initAutoUpdates();
   installApplicationMenu();
-  authCallbackServer.start();
-  registerIpcHandlers({ authController, integrationsController, sidecarSupervisor });
+  await authCallbackServer.start();
+  registerIpcHandlers({ authController, authCallbackServer, integrationsController, sidecarSupervisor });
   registerVoiceHandlers({
     authController,
     listProviders: async () => {

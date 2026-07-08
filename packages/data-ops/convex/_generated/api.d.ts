@@ -75,6 +75,7 @@ import type * as integrations_stripeConnect from "../integrations/stripeConnect.
 import type * as lib_aiCredentials_handlers_index from "../lib/aiCredentials/handlers/index.js";
 import type * as lib_auth_handlers_index from "../lib/auth/handlers/index.js";
 import type * as lib_billing_handlers_index from "../lib/billing/handlers/index.js";
+import type * as lib_billing_handlers_subscriptionMirror from "../lib/billing/handlers/subscriptionMirror.js";
 import type * as lib_billing_handlers_webhooks from "../lib/billing/handlers/webhooks.js";
 import type * as lib_credentialVault from "../lib/credentialVault.js";
 import type * as lib_credits_priceConfig from "../lib/credits/priceConfig.js";
@@ -222,6 +223,7 @@ declare const fullApi: ApiFromModules<{
   "lib/aiCredentials/handlers/index": typeof lib_aiCredentials_handlers_index;
   "lib/auth/handlers/index": typeof lib_auth_handlers_index;
   "lib/billing/handlers/index": typeof lib_billing_handlers_index;
+  "lib/billing/handlers/subscriptionMirror": typeof lib_billing_handlers_subscriptionMirror;
   "lib/billing/handlers/webhooks": typeof lib_billing_handlers_webhooks;
   "lib/credentialVault": typeof lib_credentialVault;
   "lib/credits/priceConfig": typeof lib_credits_priceConfig;

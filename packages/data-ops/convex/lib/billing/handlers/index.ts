@@ -14,20 +14,11 @@ import {
   configForPriceId,
   priceIdForTier,
   seatAddOnPriceId,
-  tierForPriceId,
+  resolveTier,
 } from "../../credits/priceConfig";
 
 const stripeComponent = (components as { stripe: StripeComponent }).stripe;
 const stripe = new StripeSubscriptions(stripeComponent, {});
-
-// Fail closed on genuinely unknown price IDs, but keep legacy single-tier
-// subscribers (pre-tiers) recognized as pro so they don't lose access.
-const LEGACY_PRO_PRICE_ENVS = [
-  "STRIPE_PRICE_ID",
-  "STRIPE_YEARLY_PRICE_ID",
-  "STRIPE_MONTHLY_PRICE_ID",
-  "STRIPE_YEARLY_PRICE_LAUNCH_ID",
-];
 
 // Trial length in days. Locked: 14 days, all paid tiers. Card is required at
 // checkout by Stripe's default (we do NOT set payment_method_collection).
@@ -43,20 +34,6 @@ const ACTIVE_SUBSCRIPTION_STATUSES = new Set([
   "unpaid",
   "incomplete",
 ]);
-
-function resolveTier(priceId: string | null | undefined): Tier | null {
-  const tier = tierForPriceId(priceId);
-  if (tier) {
-    return tier;
-  }
-  const legacyIds = LEGACY_PRO_PRICE_ENVS.map((env) => getEnv(env)).filter(
-    (value): value is string => Boolean(value),
-  );
-  if (priceId && legacyIds.includes(priceId)) {
-    return "pro";
-  }
-  return null;
-}
 
 // Total purchased seats for a Team subscription. We bake the requested seat count
 // into subscription metadata at checkout (createCheckoutSession), and the Stripe
@@ -369,6 +346,8 @@ export async function createCheckoutSessionHandler(
   const subscriptionMetadata: Record<string, string> = {
     ...baseMetadata,
     priceId,
+    tier,
+    billingCycle,
     seats: String(requestedSeats),
     ...(grantTrial ? { isTrial: "true" } : {}),
   };
@@ -382,7 +361,13 @@ export async function createCheckoutSessionHandler(
     ],
     success_url: urls.successUrl,
     cancel_url: urls.cancelUrl,
-    metadata: { ...baseMetadata, priceId, ...(grantTrial ? { isTrial: "true" } : {}) },
+    metadata: {
+      ...baseMetadata,
+      priceId,
+      tier,
+      billingCycle,
+      ...(grantTrial ? { isTrial: "true" } : {}),
+    },
     subscription_data: {
       metadata: subscriptionMetadata,
       ...(grantTrial ? { trial_period_days: TRIAL_DAYS } : {}),
@@ -417,6 +402,37 @@ export async function createCustomerPortalSessionHandler(
   return session;
 }
 
+export const endTrialNowArgs = {};
+
+// End the viewer's active trial immediately by setting trial_end to "now" on the
+// Stripe subscription. Stripe then finalizes the first paid invoice; the
+// `invoice.paid` webhook grants the full monthly allotment (e.g. 10,000 for Pro)
+// — so the user is unblocked within seconds of confirming. Idempotent in effect:
+// a non-trialing subscription is rejected, and Stripe no-ops a second trial_end.
+export async function endTrialNowHandler(
+  ctx: ActionCtx,
+): Promise<{ activated: boolean; plan: Tier | null }> {
+  const viewer = (await ctx.runQuery(internal.onboarding.getViewerContext, {})) as ViewerContext;
+  const subscription = await getCurrentSubscriptionSnapshot(ctx, viewer.userIdString);
+
+  if (!subscription) {
+    throw new Error("No subscription found to activate.");
+  }
+  if (subscription.status !== "trialing") {
+    throw new Error("Your trial is no longer active.");
+  }
+  if (!subscription.stripeSubscriptionId) {
+    throw new Error("Subscription is missing a Stripe id.");
+  }
+
+  const sdk = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
+  await sdk.subscriptions.update(subscription.stripeSubscriptionId, {
+    trial_end: "now",
+  });
+
+  return { activated: true, plan: subscription.plan };
+}
+
 export const handleSuccessfulPaymentEventArgs = {};
 
 export async function handleSuccessfulPaymentEventHandler(_ctx: ActionCtx) {
@@ -428,4 +444,155 @@ export async function handleSuccessfulPaymentEventHandler(_ctx: ActionCtx) {
   // a no-op so we don't double-send the welcome. The Loops welcome_email call
   // that lived here is removed; Resend now owns all marketing/drip email.
   return { sent: false, reason: "handled_by_webhook" as const };
+}
+
+export async function backfillSubscriptionMirrorsHandler(ctx: ActionCtx) {
+  const sdk = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
+  let startingAfter: string | undefined;
+  let mirrored = 0;
+
+  while (true) {
+    const page = await sdk.subscriptions.list({
+      status: "all",
+      limit: 100,
+      ...(startingAfter ? { starting_after: startingAfter } : {}),
+    });
+
+    for (const subscription of page.data) {
+      const userId = subscription.metadata?.userId;
+      const item = subscription.items.data[0];
+      const priceId = item?.price?.id;
+      if (!userId || !priceId) {
+        continue;
+      }
+
+      await ctx.runMutation(internal.billing.syncSubscriptionMirror, {
+        userId: userId as Id<"users">,
+        stripeSubscriptionId: subscription.id,
+        stripeCustomerId:
+          typeof subscription.customer === "string"
+            ? subscription.customer
+            : subscription.customer.id,
+        stripePriceId: priceId,
+        stripeStatus: subscription.status,
+        currentPeriodEndMs: (item?.current_period_end ?? 0) * 1000,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
+      });
+      mirrored += 1;
+    }
+
+    if (!page.has_more || page.data.length === 0) {
+      break;
+    }
+    startingAfter = page.data[page.data.length - 1]?.id;
+  }
+
+  return { mirrored };
+}
+
+export const capTrialingWalletsTo150Args = {
+  dryRun: v.optional(v.boolean()),
+};
+
+// One-off production migration: existing trialing users still carry the old 1500
+// trial grant. Cap each to 150 (the new TRIAL_CREDIT_CAP). Sources trialing subs
+// from Stripe (status === "trialing"), then dispatches the atomic per-user
+// mutation. Idempotent: a ledger row keyed `trial-cap-150-2026-07-08:{userId}`
+// guards every write, so re-running is safe and skips already-capped users.
+// dryRun=true only reports what would change — it writes nothing.
+export async function capTrialingWalletsTo150Handler(
+  ctx: ActionCtx,
+  args: { dryRun?: boolean },
+) {
+  const dryRun = args.dryRun ?? false;
+  const MIGRATION_KEY_PREFIX = "trial-cap-150-2026-07-08";
+  const sdk = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
+
+  const report = {
+    dryRun,
+    trialingFound: 0,
+    capped: 0,
+    alreadyCapped: 0,
+    skipped: 0,
+    entries: [] as Array<{
+      userId: string;
+      stripeSubscriptionId: string;
+      before: number | null;
+      after: number | null;
+      status: "capped" | "already_capped" | "skipped";
+    }>,
+  };
+
+  let startingAfter: string | undefined;
+  while (true) {
+    const page = await sdk.subscriptions.list({
+      status: "all",
+      limit: 100,
+      ...(startingAfter ? { starting_after: startingAfter } : {}),
+    });
+
+    for (const subscription of page.data) {
+      if (subscription.status !== "trialing") {
+        continue;
+      }
+      report.trialingFound += 1;
+
+      const userId = subscription.metadata?.userId;
+      if (!userId) {
+        report.skipped += 1;
+        report.entries.push({
+          userId: "(missing metadata)",
+          stripeSubscriptionId: subscription.id,
+          before: null,
+          after: null,
+          status: "skipped",
+        });
+        continue;
+      }
+
+      const idempotencyKey = `${MIGRATION_KEY_PREFIX}:${userId}`;
+
+      if (dryRun) {
+        const balance = await ctx.runQuery(internal.credits.getWalletBalanceForOwner, {
+          ownerUserId: userId as Id<"users">,
+        });
+        report.entries.push({
+          userId,
+          stripeSubscriptionId: subscription.id,
+          before: balance?.monthlyBalance ?? null,
+          after: 150,
+          status: "capped",
+        });
+        continue;
+      }
+
+      const result = await ctx.runMutation(internal.credits.capTrialWalletTo150, {
+        ownerUserId: userId as Id<"users">,
+        idempotencyKey,
+      });
+      if (result.status === "capped") {
+        report.capped += 1;
+      } else {
+        report.alreadyCapped += 1;
+      }
+      report.entries.push({
+        userId,
+        stripeSubscriptionId: subscription.id,
+        before: result.before,
+        after: result.after,
+        status: result.status,
+      });
+    }
+
+    if (!page.has_more || page.data.length === 0) {
+      break;
+    }
+    startingAfter = page.data[page.data.length - 1]?.id;
+  }
+
+  if (dryRun) {
+    report.capped = report.entries.filter((e) => e.status === "capped").length;
+  }
+
+  return report;
 }

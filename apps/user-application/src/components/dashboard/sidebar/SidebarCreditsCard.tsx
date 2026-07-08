@@ -29,12 +29,12 @@ export function SidebarCreditsCard({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const remaining = credits.data?.total ?? 0;
+  const granted = credits.data?.granted ?? 0;
+  const usedTotal = credits.data?.usedTotal ?? 0;
   const usedByKind = credits.data?.usedByKind ?? { voice: 0, moodboard: 0, reference: 0, other: 0 };
-  const usedTotal = usedByKind.voice + usedByKind.moodboard + usedByKind.reference + usedByKind.other;
-  const granted = remaining + usedTotal;
   const isOutOfCredits = granted > 0 && remaining <= 0;
   const usedLabel = formatCreditsUsedLabel(usedTotal, granted);
-  const usedBarWidth = isOutOfCredits ? 100 : creditsUsedBarWidth(usedTotal, granted);
+  const usedBarWidth = creditsUsedBarWidth(usedTotal, granted);
   const isLoading = credits.isLoading;
 
   // Voice = transcription; Visuals = Refero (moodboard + research references).

@@ -524,6 +524,10 @@ export default defineSchema({
     monthlyBalance: v.number(),
     topupBalance: v.number(),
     trialCreditsGranted: v.optional(v.number()),
+    // Anchor for "usage this period" in the credit summary. Set on each
+    // monthly/trial grant; usage rows with createdAt >= this count toward the
+    // current period. Absent on legacy wallets → falls back to _creationTime.
+    lastGrantedAt: v.optional(v.number()),
     updatedAt: v.number(),
   }).index("by_owner", ["ownerUserId"]),
 

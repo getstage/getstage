@@ -9,6 +9,8 @@ const creditSummarySchema = z.object({
   total: z.number(),
   monthly: z.number(),
   topup: z.number(),
+  granted: z.number(),
+  usedTotal: z.number(),
   usedByKind: z.object({
     voice: z.number(),
     moodboard: z.number(),
