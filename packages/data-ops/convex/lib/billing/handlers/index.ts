@@ -16,6 +16,7 @@ import {
   seatAddOnPriceId,
   resolveTier,
 } from "../../credits/priceConfig";
+import { cancelReasonFromStripeSubscription } from "./subscriptionMirror";
 
 const stripeComponent = (components as { stripe: StripeComponent }).stripe;
 const stripe = new StripeSubscriptions(stripeComponent, {});
@@ -466,6 +467,8 @@ export async function backfillSubscriptionMirrorsHandler(ctx: ActionCtx) {
         continue;
       }
 
+      const cancelReason = cancelReasonFromStripeSubscription(subscription);
+
       await ctx.runMutation(internal.billing.syncSubscriptionMirror, {
         userId: userId as Id<"users">,
         stripeSubscriptionId: subscription.id,
@@ -477,6 +480,7 @@ export async function backfillSubscriptionMirrorsHandler(ctx: ActionCtx) {
         stripeStatus: subscription.status,
         currentPeriodEndMs: (item?.current_period_end ?? 0) * 1000,
         cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
+        cancelReason,
       });
       mirrored += 1;
     }

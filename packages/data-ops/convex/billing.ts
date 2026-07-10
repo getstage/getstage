@@ -1,4 +1,4 @@
-import { action, internalMutation, internalQuery, query } from "./_generated/server";
+import { action, internalAction, internalMutation, internalQuery, query } from "./_generated/server";
 import * as handlers from "./lib/billing/handlers";
 import * as subscriptionMirror from "./lib/billing/handlers/subscriptionMirror";
 export { getCurrentSubscriptionSnapshot } from "./lib/billing/handlers";
@@ -13,12 +13,12 @@ export const markSubscriptionMirrorCanceled = internalMutation({
   handler: subscriptionMirror.markSubscriptionMirrorCanceledHandler,
 });
 
-export const backfillSubscriptionMirrors = action({
+export const backfillSubscriptionMirrors = internalAction({
   args: {},
   handler: handlers.backfillSubscriptionMirrorsHandler,
 });
 
-export const capTrialingWalletsTo150 = action({
+export const capTrialingWalletsTo150 = internalAction({
   args: handlers.capTrialingWalletsTo150Args,
   handler: handlers.capTrialingWalletsTo150Handler,
 });

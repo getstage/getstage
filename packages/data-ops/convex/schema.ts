@@ -582,6 +582,7 @@ export default defineSchema({
     billingCycle: v.union(v.literal("monthly"), v.literal("yearly")),
     currentPeriodEnd: v.number(),
     cancelAtPeriodEnd: v.optional(v.boolean()),
+    cancelReason: v.optional(v.string()),
     paymentMethodBrand: v.optional(v.string()),
     paymentMethodLast4: v.optional(v.string()),
     stripeCustomerId: v.optional(v.string()),

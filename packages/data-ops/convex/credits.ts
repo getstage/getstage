@@ -137,7 +137,7 @@ export const grantCreditsForOwner = internalMutation({
 });
 
 // Read-only wallet snapshot for the trial-cap migration's dry run. Not exposed
-// to the client — only used internally by the capTrialingWalletsTo150 action.
+// to the client — only used internally by the capTrialingWalletsTo150 internalAction.
 export const getWalletBalanceForOwner = internalQuery({
   args: { ownerUserId: v.id("users") },
   handler: async (ctx, args) => {
@@ -150,7 +150,7 @@ export const getWalletBalanceForOwner = internalQuery({
 });
 
 // Per-user atomic trial cap (150). Idempotent on idempotencyKey. Called once per
-// trialing user by the capTrialingWalletsTo150 action — never call directly.
+// trialing user by the capTrialingWalletsTo150 internalAction — never call directly.
 export const capTrialWalletTo150 = internalMutation({
   args: {
     ownerUserId: v.id("users"),

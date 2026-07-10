@@ -20,6 +20,16 @@ type AppSubscriptionStatus =
   | "canceled"
   | "expired";
 
+export function cancelReasonFromStripeSubscription(subscription: {
+  cancellation_details?: {
+    reason?: string | null;
+    feedback?: string | null;
+  } | null;
+}): string | undefined {
+  const details = subscription.cancellation_details;
+  return details?.feedback ?? details?.reason ?? undefined;
+}
+
 export const syncSubscriptionMirrorArgs = {
   userId: v.id("users"),
   stripeSubscriptionId: v.string(),
@@ -28,6 +38,7 @@ export const syncSubscriptionMirrorArgs = {
   stripeStatus: v.string(),
   currentPeriodEndMs: v.number(),
   cancelAtPeriodEnd: v.boolean(),
+  cancelReason: v.optional(v.string()),
 };
 
 function mapSubscriptionStatus(
@@ -92,6 +103,7 @@ export async function syncSubscriptionMirrorHandler(
     stripeStatus: string;
     currentPeriodEndMs: number;
     cancelAtPeriodEnd: boolean;
+    cancelReason?: string;
   },
 ) {
   const plan = resolvePlan(args.stripePriceId);
@@ -126,6 +138,7 @@ export async function syncSubscriptionMirrorHandler(
     stripeCustomerId: args.stripeCustomerId,
     stripeSubscriptionId: args.stripeSubscriptionId,
     stripePriceId: args.stripePriceId,
+    ...(args.cancelReason ? { cancelReason: args.cancelReason } : {}),
     updatedAt: timestamp,
   };
 
@@ -138,20 +151,24 @@ export async function syncSubscriptionMirrorHandler(
     });
   }
 
-  await ctx.db.patch(args.userId, {
-    plan,
-    updatedAt: timestamp,
-  });
+  const user = await ctx.db.get(args.userId);
+  if (user) {
+    await ctx.db.patch(args.userId, {
+      plan,
+      updatedAt: timestamp,
+    });
+  }
 }
 
 export const markSubscriptionMirrorCanceledArgs = {
   userId: v.id("users"),
   stripeSubscriptionId: v.string(),
+  cancelReason: v.optional(v.string()),
 };
 
 export async function markSubscriptionMirrorCanceledHandler(
   ctx: MutationCtx,
-  args: { userId: Id<"users">; stripeSubscriptionId: string },
+  args: { userId: Id<"users">; stripeSubscriptionId: string; cancelReason?: string },
 ) {
   const existing = await ctx.db
     .query("subscriptions")
@@ -167,10 +184,14 @@ export async function markSubscriptionMirrorCanceledHandler(
   const timestamp = now();
   await ctx.db.patch(match._id, {
     status: "canceled",
+    ...(args.cancelReason ? { cancelReason: args.cancelReason } : {}),
     updatedAt: timestamp,
   });
-  await ctx.db.patch(args.userId, {
-    plan: "free",
-    updatedAt: timestamp,
-  });
+  const user = await ctx.db.get(args.userId);
+  if (user) {
+    await ctx.db.patch(args.userId, {
+      plan: "free",
+      updatedAt: timestamp,
+    });
+  }
 }
