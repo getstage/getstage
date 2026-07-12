@@ -58,7 +58,6 @@ export function ClientDetailsStep({
     clientMode,
     clientName,
     clientEmail,
-    hasClientPhoto: Boolean(hasPendingAvatarFile || clientAvatar?.trim()),
   }).success;
 
   return (
@@ -107,7 +106,7 @@ export function ClientDetailsStep({
             />
           </Field>
 
-          <Field label="Client Photo">
+          <Field label="Client Photo" secondaryLabel="(Optional)">
             <input
               ref={inputRef}
               type="file"

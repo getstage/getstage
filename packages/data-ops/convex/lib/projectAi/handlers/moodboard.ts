@@ -4,6 +4,7 @@ import type { MutationCtx, QueryCtx } from "../../../_generated/server";
 import { requireProjectAccess } from "../../../_helpers";
 import { decryptSecret } from "../../../lib/credentialVault";
 import { createArtifactRecord } from "../domain/artifactStore";
+import { attachTrackedR2AssetsFromContentJson } from "../domain/attachArtifactAssets";
 import { findLatestArtifact } from "../domain/latestArtifact";
 import { getRunRecord } from "../domain/records";
 import {
@@ -64,6 +65,7 @@ export async function saveMoodboardArtifactHandler(
       updatedAt: timestamp,
     });
 
+    await attachTrackedR2AssetsFromContentJson(ctx, args.contentJson);
     return { artifactId: String(existing._id), savedAt: timestamp };
   }
 

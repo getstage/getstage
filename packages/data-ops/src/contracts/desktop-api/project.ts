@@ -41,6 +41,7 @@ export const projectSummarySchema = z.object({
   clientName: z.string(),
   projectImageUrl: z.string().optional(),
   type: projectTypeSchema,
+  typeOtherLabel: z.string().optional(),
   status: projectStatusSchema,
   startDate: z.number().int().nonnegative(),
   endDate: z.number().int().nonnegative(),

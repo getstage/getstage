@@ -50,6 +50,7 @@ export async function buildProjectPayloadFromDraft({
     clientEmail: draft.clientEmail.trim() || undefined,
     clientAvatarUrl,
     projectType: draft.projectType,
+    typeOtherLabel: draft.typeOtherLabel,
     method: draft.method,
     startDate: parseInputDate(draft.startDate),
     endDate: parseInputDate(draft.endDate),

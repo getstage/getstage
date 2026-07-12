@@ -111,6 +111,7 @@ fn claude_model_id(model_id: &str) -> &str {
         "claude-opus" | "claude-opus-4.8" | "claude-opus-4.7" => "opus",
         "claude-sonnet" | "claude-sonnet-4.6" => "sonnet",
         "claude-haiku-4.5" => "haiku",
+        "claude-fable" | "claude-fable-5" => "fable",
         other => other,
     }
 }

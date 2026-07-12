@@ -217,10 +217,14 @@ impl MoodboardWorkflow {
             let image_key =
                 upload_refero_screen_image(&refero, &uploader, auth_token, project_id, screen)
                     .await;
-            let image_url = image_key
+            // Prefer https CDN/render URLs for display fields. R2 keys belong in
+            // imageAssetKey so Convex can resolve them — putting a key in imageUrl
+            // leaves the UI with nothing usable if public/signed resolve 404s.
+            let image_url = screen
+                .image_url
                 .clone()
-                .or_else(|| screen.image_url.clone())
                 .or_else(|| screen.thumbnail_url.clone())
+                .or_else(|| image_key.clone())
                 .filter(|url| !url.trim().is_empty());
             let Some(image_url) = image_url else {
                 continue;
@@ -754,7 +758,7 @@ fn refero_moodboard_reference(
             .as_deref()
             .or(screen.image_url.as_deref())
             .filter(|url| url.starts_with("https://") && !url.trim().is_empty())
-            .unwrap_or(&image_key);
+            .unwrap_or(image_url.as_str());
         reference.insert("thumbnailUrl".to_string(), json!(thumbnail_fallback));
     } else if let Some(thumbnail_url) = screen
         .thumbnail_url
@@ -778,9 +782,12 @@ fn figma_moodboard_reference(
     image_key: Option<String>,
     order: usize,
 ) -> Value {
-    let image_url = image_key
-        .clone()
-        .unwrap_or_else(|| image.render_url.clone());
+    // Keep render_url in imageUrl for display; store R2 key only as asset key.
+    let image_url = if image.render_url.trim().is_empty() {
+        image_key.clone().unwrap_or_else(|| image.render_url.clone())
+    } else {
+        image.render_url.clone()
+    };
     let mut reference = serde_json::Map::new();
     reference.insert(
         "id".to_string(),
@@ -814,7 +821,13 @@ fn url_moodboard_reference(image: &UrlImportedImage, image_key: String) -> Value
         )),
     );
     reference.insert("title".to_string(), json!(image.title));
-    reference.insert("imageUrl".to_string(), json!(image_key.clone()));
+    // source_url is the displayable https; image_key is durable R2 identity only.
+    let display_url = if image.source_url.trim().is_empty() {
+        image_key.clone()
+    } else {
+        image.source_url.clone()
+    };
+    reference.insert("imageUrl".to_string(), json!(display_url));
     reference.insert("imageAssetKey".to_string(), json!(image_key.clone()));
     reference.insert("thumbnailUrl".to_string(), json!(image.source_url));
     reference.insert("thumbnailAssetKey".to_string(), json!(image_key));

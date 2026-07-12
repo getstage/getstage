@@ -34,6 +34,7 @@ export type UseProjectDraftResult = {
   setClientEmail: (value: string) => void;
   setClientAvatar: (value: string | null) => void;
   setProjectType: (value: ProjectType | null) => void;
+  setTypeOtherLabel: (value: string) => void;
   setMethod: (value: Method) => void;
   setAvatarUrlOpen: (open: boolean) => void;
   setAvatarUrlInput: (value: string) => void;
@@ -71,6 +72,7 @@ function createInitialDraft(): ProjectDraft {
     avatarUrlInput: "",
     avatarFetching: false,
     projectType: null,
+    typeOtherLabel: "",
     method: null,
     startDate: formatInputDate(today),
     endDate: formatInputDate(addDays(today, 30)),
@@ -183,7 +185,15 @@ export function useProjectDraft({
   }
 
   function setProjectType(value: ProjectType | null) {
-    setDraft((current) => ({ ...current, projectType: value }));
+    setDraft((current) => ({
+      ...current,
+      projectType: value,
+      typeOtherLabel: value === "other" ? current.typeOtherLabel : "",
+    }));
+  }
+
+  function setTypeOtherLabel(value: string) {
+    setDraft((current) => ({ ...current, typeOtherLabel: value }));
   }
 
   function setMethod(value: Method) {
@@ -392,6 +402,7 @@ export function useProjectDraft({
     setClientEmail,
     setClientAvatar,
     setProjectType,
+    setTypeOtherLabel,
     setMethod,
     setAvatarUrlOpen,
     setAvatarUrlInput,

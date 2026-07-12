@@ -180,7 +180,11 @@ export function DesktopShell({
     }
 
     async function setCompanionChatState(nextState: CompanionState) {
-      await companion.setState(nextState === "idle" ? "listening" : nextState);
+      // STA-7: closing chat must not remap idle → listening (that left the static expanded bar).
+      await companion.setState(nextState);
+      if (nextState === "idle") {
+        await window.stageDesktop.companion.hide();
+      }
     }
 
     return (

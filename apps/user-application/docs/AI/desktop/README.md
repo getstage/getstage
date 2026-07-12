@@ -10,4 +10,5 @@
 | **[`DESKTOP_PERFORMANCE.md`](./DESKTOP_PERFORMANCE.md)** | **Main doc** — speed, bugs, 2026-06-06 notes, IPC (later), action plan |
 | [`../infra/R2_PUBLIC_DOMAIN_AUDIT.md`](../infra/R2_PUBLIC_DOMAIN_AUDIT.md) | R2 custom domain + **desktop upload CORS** (`app://stage`) |
 | [`DESKTOP_RELEASE_AND_TESTING_PLAN.md`](./DESKTOP_RELEASE_AND_TESTING_PLAN.md) | DMG releases, testing phases |
+| [`DESKTOP_PUBLIC_BUNDLE_INVENTORY.md`](./DESKTOP_PUBLIC_BUNDLE_INVENTORY.md) | **What ships in public DMG** — SHIP / DO NOT BAKE / NOT WISE captions |
 | [`RELEASE_DESKTOP_STEPS.md`](./RELEASE_DESKTOP_STEPS.md) · [`PUSH_AND_BUNDLE_DESKTOP_RELEASE.md`](./PUSH_AND_BUNDLE_DESKTOP_RELEASE.md) | Release how-to |

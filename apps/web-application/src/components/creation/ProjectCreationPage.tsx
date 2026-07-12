@@ -164,10 +164,12 @@ function renderStepContent(creation: ProjectCreationState) {
       return (
         <ProjectTypeStep
           projectType={creation.projectType}
+          typeOtherLabel={creation.typeOtherLabel}
           canContinue={creation.canContinue}
           currentIndex={creation.currentIndex}
           steps={creation.steps}
           onProjectTypeChange={creation.setProjectType}
+          onTypeOtherLabelChange={creation.setTypeOtherLabel}
           onContinue={creation.handleContinue}
           onBack={creation.goBack}
         />

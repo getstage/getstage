@@ -17,6 +17,7 @@ type ProjectCreationFlowInput = {
   clientEmail: string;
   hasClientAvatar: boolean;
   projectType: ProjectType | null;
+  typeOtherLabel: string;
   method: "ai" | "manual" | null;
   startDate: string;
   endDate: string;
@@ -33,6 +34,7 @@ export function useProjectCreationFlow({
   clientName,
   clientEmail,
   projectType,
+  typeOtherLabel,
   method,
   startDate,
   endDate,
@@ -62,7 +64,10 @@ export function useProjectCreationFlow({
           clientEmail.trim().length > 0
         );
       case 3:
-        return projectType !== null;
+        return (
+          projectType !== null &&
+          (projectType !== "other" || typeOtherLabel.trim().length > 0)
+        );
       case 4:
         return Boolean(startDate && endDate);
       case 5:
@@ -81,6 +86,7 @@ export function useProjectCreationFlow({
     method,
     projectName,
     projectType,
+    typeOtherLabel,
     roadmapLength,
     startDate,
     step,
@@ -143,6 +149,10 @@ export function useProjectCreationFlow({
         const parsed = projectTypeSchema.safeParse(projectType);
         if (!parsed.success) {
           onError(parsed.error.issues[0]?.message ?? "Please choose a project type.");
+          return;
+        }
+        if (projectType === "other" && typeOtherLabel.trim().length === 0) {
+          onError("Please specify your project type.");
           return;
         }
         setStep(4);

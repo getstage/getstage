@@ -137,7 +137,9 @@ function PortalProjectsTable({
           projects.map((project, index) => {
             const initial = getInitial(project.name);
             const statusLabel = PROJECT_STATUS_LABEL[project.status];
-            const typeLabel = PROJECT_TYPE_LABEL[project.type];
+            const typeLabel = (project.type === "other" && project.typeOtherLabel?.trim()
+          ? project.typeOtherLabel.trim()
+          : PROJECT_TYPE_LABEL[project.type]);
             const createdLabel = formatCreatedAt(project.startDate);
 
             return (

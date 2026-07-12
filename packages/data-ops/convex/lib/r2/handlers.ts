@@ -6,6 +6,7 @@ import { requireAuthUser } from "../../helpers/auth/requireAuthUser";
 import { buildPublicAssetUrl, keyBelongsToUser } from "../../helpers/r2/keys";
 import { now } from "../../helpers/time";
 import {
+  attachTrackedR2Asset,
   collectReferencedKeysForUser,
   createTrackedUpload,
   deleteOldR2Asset,
@@ -189,12 +190,34 @@ export const pruneStalePendingUploads = internalMutation({
       .withIndex("by_createdAt", (q) => q.lt("createdAt", cutoff))
       .take(args.limit ?? 50);
 
+    const referencedByUser = new Map<string, Set<string>>();
+    let deletedCount = 0;
+    let attachedCount = 0;
+
     for (const upload of staleUploads) {
+      const userId = String(upload.userId);
+      let referencedKeys = referencedByUser.get(userId);
+      if (!referencedKeys) {
+        referencedKeys = await collectReferencedKeysForUser(ctx, userId);
+        referencedByUser.set(userId, referencedKeys);
+      }
+
+      // Still used by an artifact/profile/etc, but never detached from uploadedAssets.
+      // Attach (drop tracking row) instead of deleting the live R2 object.
+      if (referencedKeys.has(upload.key)) {
+        await attachTrackedR2Asset(ctx, { key: upload.key });
+        attachedCount += 1;
+        continue;
+      }
+
       await deleteOldR2Asset(ctx, upload.key);
+      deletedCount += 1;
     }
 
     return {
-      deletedCount: staleUploads.length,
+      deletedCount,
+      attachedCount,
+      scannedCount: staleUploads.length,
     };
   },
 });

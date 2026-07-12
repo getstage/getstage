@@ -89,7 +89,6 @@ export function ScreenRow({ screen, onToggle }: { screen: ScreenItem; onToggle: 
         <button
           type="button"
           onClick={onToggle}
-          disabled={screen.required}
           className="flex min-w-0 flex-1 items-start gap-[6px] text-left disabled:cursor-default"
           aria-pressed={screen.selected}
         >
@@ -112,7 +111,7 @@ export function ScreenRow({ screen, onToggle }: { screen: ScreenItem; onToggle: 
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
           <Badge tone="blue">{screen.kind}</Badge>
           <Badge tone="rose">{screen.priority}</Badge>
-          <Badge tone="stone">{screen.required ? "Required" : "Optional"}</Badge>
+          <Badge tone="stone">{screen.required ? "Recommended" : "Optional"}</Badge>
         </div>
       </div>
     </article>

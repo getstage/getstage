@@ -93,6 +93,7 @@ export async function createHandler(
     startMarkerImageUrl?: string;
     endMarkerImageUrl?: string;
     type: "branding" | "web-design" | "product-design" | "app-design" | "web-app" | "packaging" | "motion-design" | "illustration" | "other";
+    typeOtherLabel?: string;
     method: "ai" | "manual";
     startDate: number;
     endDate: number;

@@ -41,10 +41,6 @@ export async function createProjectFromDraft<TResult>({
     }
   }
 
-  if (draft.clientMode !== "existing" && !clientAvatarUrl) {
-    throw new Error("Upload a client photo to continue.");
-  }
-
   const projectImageUrl = draft.pendingProjectImageFile
     ? await uploadFileToR2({
         generateUploadUrl,
@@ -61,6 +57,7 @@ export async function createProjectFromDraft<TResult>({
     clientEmail: draft.clientEmail.trim(),
     clientAvatarUrl,
     projectType: draft.projectType,
+    typeOtherLabel: draft.typeOtherLabel,
     method: draft.method,
     startDate: parseInputDate(draft.startDate),
     endDate: parseInputDate(draft.endDate),

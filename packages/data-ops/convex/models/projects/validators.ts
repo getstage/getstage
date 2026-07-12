@@ -31,6 +31,7 @@ export const createProjectArgsValidator = {
   startMarkerImageUrl: v.optional(v.string()),
   endMarkerImageUrl: v.optional(v.string()),
   type: projectTypeValidator,
+  typeOtherLabel: v.optional(v.string()),
   method: v.union(v.literal("ai"), v.literal("manual")),
   startDate: v.number(),
   endDate: v.number(),

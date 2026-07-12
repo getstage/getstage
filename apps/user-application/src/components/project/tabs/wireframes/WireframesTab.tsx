@@ -389,7 +389,8 @@ export function WireframesTab({
           onToggle={(id) =>
             setScreens((current) =>
               current.map((screen) =>
-                screen.id === id && !screen.required ? { ...screen, selected: !screen.selected } : screen,
+                // STA-11: required = default-selected, not locked. Users must be able to untick.
+                screen.id === id ? { ...screen, selected: !screen.selected } : screen,
               ),
             )
           }

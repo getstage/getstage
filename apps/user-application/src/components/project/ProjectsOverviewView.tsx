@@ -64,7 +64,9 @@ export function ProjectsOverviewView() {
       [
         project.name,
         project.clientName,
-        PROJECT_TYPE_LABEL[project.type],
+        (project.type === "other" && project.typeOtherLabel?.trim()
+          ? project.typeOtherLabel.trim()
+          : PROJECT_TYPE_LABEL[project.type]),
         PROJECT_STATUS_LABEL[project.status],
       ]
         .join(" ")
@@ -222,7 +224,9 @@ function ProjectTableRow({
 }) {
   const statusLabel = PROJECT_STATUS_LABEL[project.status];
   const statusClassName = PROJECT_STATUS_CLASSNAME[project.status];
-  const typeLabel = PROJECT_TYPE_LABEL[project.type];
+  const typeLabel = (project.type === "other" && project.typeOtherLabel?.trim()
+          ? project.typeOtherLabel.trim()
+          : PROJECT_TYPE_LABEL[project.type]);
   const createdLabel = formatCreatedAt(project.startDate);
   const initial = getInitial(project.name);
 

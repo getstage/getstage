@@ -16,8 +16,8 @@ type ValidationContext = {
   hasProjectImage: boolean;
   clientName: string;
   clientEmail: string;
-  hasClientAvatar: boolean;
   projectType: ProjectType | null;
+  typeOtherLabel: string;
   activePhasesLength: number;
   startDate: string;
   endDate: string;
@@ -62,8 +62,8 @@ export function canContinue({
   projectName,
   clientName,
   clientEmail,
-  hasClientAvatar,
   projectType,
+  typeOtherLabel,
   activePhasesLength,
   startDate,
   endDate,
@@ -77,13 +77,15 @@ export function canContinue({
       return (
         setProjectLater ||
         (projectBasicsSchema.safeParse({ projectName }).success &&
-          clientInfoSchema.safeParse({ clientName, clientEmail }).success &&
-          hasClientAvatar)
+          clientInfoSchema.safeParse({ clientName, clientEmail }).success)
       );
     case "client":
       return clientInfoSchema.safeParse({ clientName, clientEmail }).success;
     case "project-type":
-      return projectTypeSchema.safeParse(projectType).success;
+      return (
+        projectTypeSchema.safeParse(projectType).success &&
+        (projectType !== "other" || typeOtherLabel.trim().length > 0)
+      );
     case "method":
       return method === "manual" ? activePhasesLength >= 2 : method !== null;
     case "timeline": {
@@ -108,8 +110,8 @@ export function getStepValidationError({
   projectName,
   clientName,
   clientEmail,
-  hasClientAvatar,
   projectType,
+  typeOtherLabel,
   activePhasesLength,
   startDate,
   endDate,
@@ -138,9 +140,6 @@ export function getStepValidationError({
           ? "Client email is required."
           : (clientEmailParsed.error.issues[0]?.message ?? "Please enter a valid email address.");
       }
-      if (!hasClientAvatar) {
-        return "Upload a client photo to continue.";
-      }
       return null;
     }
     case "client": {
@@ -158,9 +157,13 @@ export function getStepValidationError({
     }
     case "project-type": {
       const parsed = projectTypeSchema.safeParse(projectType);
-      return parsed.success
-        ? null
-        : (parsed.error.issues[0]?.message ?? "Please choose a project type.");
+      if (!parsed.success) {
+        return parsed.error.issues[0]?.message ?? "Please choose a project type.";
+      }
+      if (projectType === "other" && typeOtherLabel.trim().length === 0) {
+        return "Please specify your project type.";
+      }
+      return null;
     }
     case "method":
       if (!method) {

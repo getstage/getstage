@@ -108,8 +108,18 @@ export function CreateProjectView() {
             ) : flow.step === "type" ? (
               <ProjectTypeStep
                 selectedProjectType={draft.projectType}
+                typeOtherLabel={draft.typeOtherLabel}
                 onProjectTypeChange={draftState.setProjectType}
-                onContinue={() => flow.setStep("timeline")}
+                onTypeOtherLabelChange={draftState.setTypeOtherLabel}
+                onContinue={() => {
+                  if (
+                    draft.projectType === "other" &&
+                    draft.typeOtherLabel.trim().length === 0
+                  ) {
+                    return;
+                  }
+                  flow.setStep("timeline");
+                }}
                 onStepSelect={goBackToStep}
               />
             ) : flow.step === "timeline" ? (

@@ -9,6 +9,7 @@ export const CREATE_PROJECT_TYPE_VALUES: ProjectType[] = [
   "web-design",
   "app-design",
   "web-app",
+  "other",
 ];
 
 export const SMART_ROADMAP_PHASES = ["Research", "Architecture", "Design", "Development", "Testing"];
@@ -28,17 +29,11 @@ export const basicDetailsFormSchema = z.object({
   projectName: z.string().trim().min(1, "Project name is required."),
 });
 
-export const clientDetailsFormSchema = z
-  .object({
-    clientMode: z.enum(["new", "existing"]),
-    clientName: z.string().trim().min(1, "Client name is required."),
-    clientEmail: z.string().trim().min(1, "Client email is required.").email("Enter a valid client email."),
-    hasClientPhoto: z.boolean(),
-  })
-  .refine((value) => value.hasClientPhoto, {
-    path: ["hasClientPhoto"],
-    message: "Upload a client photo to continue.",
-  });
+export const clientDetailsFormSchema = z.object({
+  clientMode: z.enum(["new", "existing"]),
+  clientName: z.string().trim().min(1, "Client name is required."),
+  clientEmail: z.string().trim().min(1, "Client email is required.").email("Enter a valid client email."),
+});
 
 export const timelineFormSchema = z
   .object({

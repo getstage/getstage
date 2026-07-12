@@ -66,6 +66,7 @@ export async function buildApiProjectSummary(
       clientAvatarUrl ??
       undefined,
     type: project.type,
+    typeOtherLabel: project.typeOtherLabel,
     status: project.status,
     startDate: project.startDate,
     endDate: project.endDate,
@@ -98,6 +99,7 @@ export async function buildApiProjectDetail(
       clientAvatarUrl ??
       undefined,
     type: project.type,
+    typeOtherLabel: project.typeOtherLabel,
     status: project.status,
     startDate: project.startDate,
     endDate: project.endDate,

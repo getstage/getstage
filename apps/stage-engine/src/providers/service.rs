@@ -98,7 +98,7 @@ async fn provider_record(
                 enabled: true,
                 version,
                 status,
-                update_available: None,
+                update_available: Some(true),
                 update_status: ProviderUpdateStatus::Idle,
                 update_hint: Some(spec.update_hint.to_string()),
                 checked_at: now_millis(),
@@ -220,7 +220,7 @@ async fn missing_or_failed_provider(
         } else {
             ProviderStatus::Error
         },
-        update_available: None,
+        update_available: Some(false),
         update_status: ProviderUpdateStatus::Idle,
         update_hint: Some(spec.update_hint.to_string()),
         checked_at: now_millis(),

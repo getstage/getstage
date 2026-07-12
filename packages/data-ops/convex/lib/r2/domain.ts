@@ -5,6 +5,7 @@ import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import type { UploadPurpose } from "../../../src/shared/uploadRules";
 import { getUploadValidationError } from "../../../src/shared/uploadRules";
 import { getExtensionFromMimeType, isR2Key, keyBelongsToUser } from "../../helpers/r2/keys";
+import { collectR2KeysFromJson } from "../projectAi/domain/r2Keys";
 import { now } from "../../helpers/time";
 
 export const r2 = new R2(components.r2);
@@ -196,6 +197,28 @@ export async function collectReferencedKeysForUser(ctx: QueryCtx, userId: string
   for (const config of portalConfigs) {
     if (config.logoUrl && keyBelongsToUser(config.logoUrl, userId)) {
       referencedKeys.add(config.logoUrl);
+    }
+  }
+
+  // Moodboard/research (and other AI modules) store durable asset keys inside artifact JSON.
+  // Without this, prune treats those uploads as abandoned and deletes live images after 24h.
+  if (userRecord) {
+    for (const project of projects) {
+      const artifacts = await ctx.db
+        .query("projectAiArtifacts")
+        .withIndex("by_project", (q) => q.eq("projectId", project._id))
+        .collect();
+
+      for (const artifact of artifacts) {
+        if (!artifact.contentJson) {
+          continue;
+        }
+        try {
+          collectR2KeysFromJson(JSON.parse(artifact.contentJson), referencedKeys);
+        } catch {
+          // Ignore invalid JSON; reference collection is best-effort protection.
+        }
+      }
     }
   }
 

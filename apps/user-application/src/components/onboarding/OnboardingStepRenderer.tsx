@@ -176,7 +176,7 @@ export function OnboardingStepRenderer({
 
                   <div>
                     <FigmaLabel>
-                      Client photo
+                      Client photo <span className="text-[#737373]">(Optional)</span>
                     </FigmaLabel>
                     <button
                       type="button"
@@ -209,31 +209,43 @@ export function OnboardingStepRenderer({
             <FigmaStepHeader step={step} />
             <div className="mt-6">
               <FigmaSection label="Project Type" innerClassName="p-1">
-                <div className="grid grid-cols-2 gap-1">
-                  {PROJECT_TYPES.filter((option) =>
-                    FIGMA_PROJECT_TYPE_VALUES.includes(option.value),
-                  ).map((option) => {
-                    const iconSrc = PROJECT_TYPE_ICONS[option.value];
-                    const isSelected = draft.projectType === option.value;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => draftState.setProjectType(option.value)}
-                        className={cn(
-                          "flex h-[74px] min-w-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] border px-3 text-[12px] font-medium transition-colors focus:outline-none sm:h-[74px] md:h-[74px] lg:h-[74px]",
-                          isSelected
-                            ? "border-[#DBD9FC] bg-[#E7E6FD] text-[#16115A]"
-                            : "border-transparent bg-[#F5F5F5] text-[#525252]",
-                        )}
-                      >
-                        {iconSrc ? (
-                          <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 opacity-80" />
-                        ) : null}
-                        <span className="min-w-0 truncate">{option.label}</span>
-                      </button>
-                    );
-                  })}
+                <div className="flex flex-col gap-1">
+                  <div className="grid grid-cols-2 gap-1">
+                    {PROJECT_TYPES.filter((option) =>
+                      FIGMA_PROJECT_TYPE_VALUES.includes(option.value),
+                    ).map((option) => {
+                      const iconSrc = PROJECT_TYPE_ICONS[option.value];
+                      const isSelected = draft.projectType === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => draftState.setProjectType(option.value)}
+                          className={cn(
+                            "flex h-[74px] min-w-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] border px-3 text-[12px] font-medium transition-colors focus:outline-none sm:h-[74px] md:h-[74px] lg:h-[74px]",
+                            isSelected
+                              ? "border-[#DBD9FC] bg-[#E7E6FD] text-[#16115A]"
+                              : "border-transparent bg-[#F5F5F5] text-[#525252]",
+                          )}
+                        >
+                          {iconSrc ? (
+                            <img src={iconSrc} alt="" className="h-4 w-4 shrink-0 opacity-80" />
+                          ) : null}
+                          <span className="min-w-0 truncate">{option.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {draft.projectType === "other" ? (
+                    <input
+                      value={draft.typeOtherLabel}
+                      onChange={(event) => draftState.setTypeOtherLabel(event.target.value)}
+                      placeholder="Please specify your project type..."
+                      aria-label="Specify project type"
+                      autoFocus
+                      className={figmaFieldClass}
+                    />
+                  ) : null}
                 </div>
               </FigmaSection>
             </div>

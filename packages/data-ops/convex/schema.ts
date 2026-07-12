@@ -394,6 +394,8 @@ export default defineSchema({
     endMarkerImageUrl: v.optional(v.string()),
     projectImageUrl: v.optional(v.string()),
     type: projectType,
+    // Free-text label when type === "other" (STA-9).
+    typeOtherLabel: v.optional(v.string()),
     status: projectStatus,
     startDate: v.number(),
     endDate: v.number(),

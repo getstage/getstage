@@ -166,6 +166,7 @@ export async function createProjectForUser(
     startMarkerImageUrl?: string;
     endMarkerImageUrl?: string;
     type: Doc<"projects">["type"];
+    typeOtherLabel?: string;
     method: "ai" | "manual";
     startDate: number;
     endDate: number;
@@ -182,6 +183,10 @@ export async function createProjectForUser(
   const projectImageUrl = args.projectImageUrl?.trim() || undefined;
   const startMarkerImageUrl = args.startMarkerImageUrl?.trim() || undefined;
   const endMarkerImageUrl = args.endMarkerImageUrl?.trim() || undefined;
+  const typeOtherLabel =
+    args.type === "other"
+      ? requireNonEmptyTrimmedString(args.typeOtherLabel ?? "", "Project type")
+      : undefined;
 
   if (args.endDate < args.startDate) {
     throw new Error("End date must be on or after the start date.");
@@ -258,6 +263,7 @@ export async function createProjectForUser(
     startMarkerImageUrl,
     endMarkerImageUrl,
     type: args.type,
+    typeOtherLabel,
     status: "active",
     startDate: args.startDate,
     endDate: args.endDate,

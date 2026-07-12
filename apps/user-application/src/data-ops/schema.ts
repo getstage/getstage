@@ -117,6 +117,7 @@ export const projectSchema = z.object({
   endMarkerImageUrl: z.string().url().optional(),
   projectImageUrl: z.string().url().optional(),
   type: projectTypeSchema,
+  typeOtherLabel: z.string().optional(),
   status: projectStatusSchema,
   startDate: z.number(),
   endDate: z.number(),
@@ -223,28 +224,39 @@ export const revenueSummarySchema = z.object({
 
 // --- Input Schemas (validation for mutations) ---
 
-export const createProjectInputSchema = z.object({
-  name: z.string().min(1, "Project name is required"),
-  clientName: z.string().min(1, "Client name is required"),
-  clientEmail: z.string().email().optional(),
-  clientAvatarUrl: z.string().optional(),
-  projectImageUrl: z.string().optional(),
-  startMarkerImageUrl: z.string().optional(),
-  endMarkerImageUrl: z.string().optional(),
-  type: projectTypeSchema,
-  method: z.enum(["ai", "manual"]),
-  startDate: z.number(),
-  endDate: z.number(),
-  phases: z
-    .array(
-      z.object({
-        name: z.string().min(1, "Phase name is required"),
-        tasks: z.array(z.string().min(1, "Task name is required")).optional(),
-      }),
-    )
-    .min(2, "Select at least two phases.")
-    .optional(),
-});
+export const createProjectInputSchema = z
+  .object({
+    name: z.string().min(1, "Project name is required"),
+    clientName: z.string().min(1, "Client name is required"),
+    clientEmail: z.string().email().optional(),
+    clientAvatarUrl: z.string().optional(),
+    projectImageUrl: z.string().optional(),
+    startMarkerImageUrl: z.string().optional(),
+    endMarkerImageUrl: z.string().optional(),
+    type: projectTypeSchema,
+    typeOtherLabel: z.string().trim().min(1).optional(),
+    method: z.enum(["ai", "manual"]),
+    startDate: z.number(),
+    endDate: z.number(),
+    phases: z
+      .array(
+        z.object({
+          name: z.string().min(1, "Phase name is required"),
+          tasks: z.array(z.string().min(1, "Task name is required")).optional(),
+        }),
+      )
+      .min(2, "Select at least two phases.")
+      .optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.type === "other" && !value.typeOtherLabel?.trim()) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["typeOtherLabel"],
+        message: "Please specify your project type.",
+      });
+    }
+  });
 
 export const updateProjectInputSchema = projectSchema.partial().omit({
   id: true,

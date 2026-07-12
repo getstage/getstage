@@ -61,6 +61,7 @@ const projectBodyFieldsSchema = z.object({
   startMarkerImageUrl: optionalTrimmedString,
   endMarkerImageUrl: optionalTrimmedString,
   type: projectTypeSchema,
+  typeOtherLabel: optionalTrimmedString,
   method: z.enum(["ai", "manual"]).optional().default("manual"),
   startDate: z.number(),
   endDate: z.number(),
@@ -75,10 +76,17 @@ const projectBodyFieldsSchema = z.object({
     .optional(),
 });
 
-export const createProjectBodySchema = projectBodyFieldsSchema.refine(
-  projectDatesAreOrdered,
-  projectDateRangeError,
-);
+export const createProjectBodySchema = projectBodyFieldsSchema
+  .superRefine((value, context) => {
+    if (value.type === "other" && !value.typeOtherLabel?.trim()) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["typeOtherLabel"],
+        message: "Please specify your project type.",
+      });
+    }
+  })
+  .refine(projectDatesAreOrdered, projectDateRangeError);
 
 export const importProjectPlanBodySchema = projectBodyFieldsSchema
   .omit({ method: true })

@@ -759,6 +759,9 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
                         setActiveFolder(undefined);
                         closeDirectionMenu();
                         persistBoard(nextItems, nextFolders);
+                        // STA-16: after adding designs to a direction, land on Direction Hub
+                        // so style guide / direction files are discoverable.
+                        setView("hub");
                       }}
                       onCreateFolder={() => {
                         setIsCreatingFolder(true);
@@ -779,6 +782,9 @@ export function MoodboardTab({ project, onGoToResearch, onGoToStrategy, onGoToFl
                         setActiveFolder(undefined);
                         closeDirectionMenu();
                         persistBoard(nextItems, nextFolders);
+                        // STA-16: creating a Direction from selected designs should open
+                        // Direction Hub automatically (style guide entry point).
+                        setView("hub");
                       }}
                     />
                   ) : null}

@@ -43,6 +43,13 @@ export const chatModels: ChatModel[] = [
     badge: "New",
   },
   {
+    id: "claude-fable-5",
+    label: "Claude Fable 5",
+    provider: "anthropic",
+    description: "Anthropic Fable 5 frontier model",
+    badge: "New",
+  },
+  {
     id: "claude-sonnet-4.6",
     label: "Claude Sonnet 4.6",
     provider: "anthropic",
@@ -59,6 +66,25 @@ export const chatModels: ChatModel[] = [
     label: "Claude Opus 4.7",
     provider: "anthropic",
     description: "Previous flagship Claude",
+  },
+  {
+    id: "gpt-5.6-sol",
+    label: "GPT-5.6 Sol",
+    provider: "openai",
+    description: "Newest flagship OpenAI model",
+    badge: "New",
+  },
+  {
+    id: "gpt-5.6-terra",
+    label: "GPT-5.6 Terra",
+    provider: "openai",
+    description: "Balanced GPT-5.6 for everyday work",
+  },
+  {
+    id: "gpt-5.6-luna",
+    label: "GPT-5.6 Luna",
+    provider: "openai",
+    description: "Fast, cost-efficient GPT-5.6",
   },
   {
     id: "gpt-5.5",

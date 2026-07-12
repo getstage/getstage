@@ -1,6 +1,7 @@
 import type { Id } from "../../../_generated/dataModel";
 import type { MutationCtx } from "../../../_generated/server";
 import { deleteOldR2Asset } from "../../../r2";
+import { attachTrackedR2AssetsFromContentJson } from "./attachArtifactAssets";
 import type { AiModule } from "./validators";
 import { collectR2KeysFromJson } from "./r2Keys";
 import { normalizeOptional } from "./normalize";
@@ -52,6 +53,10 @@ export async function createArtifactRecord(
       });
     }
   }
+
+  // Artifact JSON can own durable R2 keys (moodboard/research). Attach them so the
+  // pending-upload prune cron does not delete live objects after 24h.
+  await attachTrackedR2AssetsFromContentJson(ctx, args.contentJson);
 
   return artifactId;
 }

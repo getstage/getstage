@@ -279,6 +279,9 @@ export function openCompanionFromTray() {
     return openMainWindowFromCompanionEntry();
   }
 
+  // STA-7: tray click always opens the voice companion. Keep the Dock icon
+  // visible so Stage never looks closed while the buddy is up.
+  ensureDockVisible();
   const window = createCompanionWindow();
   positionCompanionWindow(window);
   configureCompanionWindow(window);

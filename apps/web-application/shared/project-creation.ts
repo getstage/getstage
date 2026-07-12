@@ -28,6 +28,7 @@ export type ProjectDraft = {
   avatarUrlInput: string;
   avatarFetching: boolean;
   projectType: ProjectType | null;
+  typeOtherLabel: string;
   method: Method;
   startDate: string;
   endDate: string;
@@ -43,6 +44,7 @@ export type ProjectDraftActions = {
   setClientEmail: (value: string) => void;
   setClientAvatar: (value: string | null) => void;
   setProjectType: (value: ProjectType | null) => void;
+  setTypeOtherLabel: (value: string) => void;
   setMethod: (value: Method) => void;
   setAvatarUrlOpen: (open: boolean) => void;
   setAvatarUrlInput: (value: string) => void;
@@ -101,6 +103,7 @@ export function buildPreparedProjectPayload({
   clientEmail,
   clientAvatarUrl,
   projectType,
+  typeOtherLabel,
   method,
   startDate,
   endDate,
@@ -113,6 +116,7 @@ export function buildPreparedProjectPayload({
   clientEmail?: string;
   clientAvatarUrl?: string;
   projectType: ProjectType;
+  typeOtherLabel?: string;
   method: Exclude<Method, null>;
   startDate: number;
   endDate: number;
@@ -137,6 +141,8 @@ export function buildPreparedProjectPayload({
     clientEmail: clientEmail?.trim() || undefined,
     clientAvatarUrl,
     type: projectType,
+    typeOtherLabel:
+      projectType === "other" ? typeOtherLabel?.trim() || undefined : undefined,
     method,
     startDate,
     endDate,

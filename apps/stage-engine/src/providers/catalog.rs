@@ -36,14 +36,16 @@ pub fn fallback_models(provider_id: ProviderId) -> Vec<ProviderModel> {
     match provider_id {
         ProviderId::Claude => vec![
             claude_fallback_model("claude-opus-4.8", "Claude Opus 4.8", Some(true)),
+            claude_fallback_model("claude-fable-5", "Claude Fable 5", None),
             claude_fallback_model("claude-sonnet-4.6", "Claude Sonnet 4.6", None),
             claude_fallback_model("claude-haiku-4.5", "Claude Haiku 4.5", None),
             claude_fallback_model("claude-opus-4.7", "Claude Opus 4.7", None),
         ],
         ProviderId::Codex => vec![
+            codex_fallback_model("gpt-5.6-sol", "GPT-5.6 Sol", None),
+            codex_fallback_model("gpt-5.6-terra", "GPT-5.6 Terra", None),
+            codex_fallback_model("gpt-5.6-luna", "GPT-5.6 Luna", None),
             codex_fallback_model("gpt-5.5", "GPT-5.5", Some(true)),
-            codex_fallback_model("gpt-5.4", "GPT-5.4", None),
-            codex_fallback_model("gpt-5.4-mini", "GPT-5.4 Mini", None),
             ProviderModel {
                 id: "codex-default".to_string(),
                 label: "Codex Default".to_string(),
@@ -120,7 +122,7 @@ const CODEX_SPEC: ProviderRuntimeSpec = ProviderRuntimeSpec {
     label: "Codex",
     binary: "codex",
     version_args: &["--version"],
-    update_args: &["--upgrade"],
+    update_args: &["update"],
     auth_files: &[
         AuthFileSpec {
             env_home: Some("CODEX_HOME"),
@@ -132,5 +134,5 @@ const CODEX_SPEC: ProviderRuntimeSpec = ProviderRuntimeSpec {
         },
     ],
     setup_hint: "Install Codex CLI, run `codex`, and sign in with ChatGPT.",
-    update_hint: "Runs `codex --upgrade` when requested.",
+    update_hint: "Runs `codex update` when requested.",
 };
