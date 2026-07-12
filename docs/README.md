@@ -19,12 +19,6 @@ stage_mvp/
 │       ├── research|strategy|flows|moodboard|chatbot|...
 │       └── infra|integrations|client-portal|assets|wireframes
 │
-├── ARCHIVE (history only)
-│   └── docs/archive/
-│       ├── session-plans/         ← May 2025 monorepo/auth sessions (was docs/05-*, 30-05)
-│       ├── legacy/                ← pre-AI specs (was docs/pre, docs/frontend, docs/2026-*)
-│       └── ai-snapshots/          ← dated one-offs (04-06, 07-06, Greptile fixes)
-│
 └── IGNORE (not product)
     └── .agents/skills/, .claude/skills/   ← agent tooling
 ```
@@ -41,7 +35,6 @@ stage_mvp/
 | [`ARCHITECTURE.md`](../ARCHITECTURE.md) | 4 apps, data flows, branches |
 | [`AGENTS.md`](../AGENTS.md) | Agent/dev entry point |
 | [`R2_MIGRATION_FIXES.md`](../R2_MIGRATION_FIXES.md) | R2 storage migration rules |
-| [`BUILDPLAN.md`](../BUILDPLAN.md) | Full product vision (reference, not sprint status) |
 
 ### Desktop (`apps/user-application/docs/AI/desktop/`)
 
@@ -53,6 +46,7 @@ stage_mvp/
 | [`DESKTOP_PERFORMANCE.md`](../apps/user-application/docs/AI/desktop/DESKTOP_PERFORMANCE.md) | Performance, bugs, IPC backlog |
 | [`P1_FOCUS_ITEMS.md`](../apps/user-application/docs/AI/desktop/P1_FOCUS_ITEMS.md) | Current desktop focus |
 | [`DESKTOP_RELEASE_AND_TESTING_PLAN.md`](../apps/user-application/docs/AI/desktop/DESKTOP_RELEASE_AND_TESTING_PLAN.md) | DMG release phases |
+| [`DESKTOP_PUBLIC_BUNDLE_INVENTORY.md`](../apps/user-application/docs/AI/desktop/DESKTOP_PUBLIC_BUNDLE_INVENTORY.md) | What ships in public DMG (SHIP / DO NOT BAKE) |
 | [`RELEASE_DESKTOP_STEPS.md`](../apps/user-application/docs/AI/desktop/RELEASE_DESKTOP_STEPS.md) | Release steps |
 | [`PUSH_AND_BUNDLE_DESKTOP_RELEASE.md`](../apps/user-application/docs/AI/desktop/PUSH_AND_BUNDLE_DESKTOP_RELEASE.md) | Push + bundle |
 
@@ -88,16 +82,6 @@ stage_mvp/
 
 ---
 
-## ARCHIVE — do not read daily
-
-| Folder | Was | Contents |
-|--------|-----|----------|
-| [`archive/session-plans/`](./archive/session-plans/) | `apps/user-application/docs/05-*`, `30-05/` | May 2025 monorepo, auth, router, provider sessions |
-| [`archive/legacy/`](./archive/legacy/) | `docs/pre/`, `docs/frontend/`, dated `docs/*.md` | Early screen specs, Accelero sync, MLP doc, handoffs |
-| [`archive/ai-snapshots/`](./archive/ai-snapshots/) | Dated files under `AI/` | 04-06 kanban plans, 07-06 audit, Greptile PR fixes |
-
----
-
 ## IGNORE
 
 | Location | Note |
@@ -115,4 +99,4 @@ stage_mvp/
 | How is the system built? | `ARCHITECTURE.md` |
 | Desktop ship / energy / DMG? | `AI/desktop/README.md` + `!!!` plans |
 | How to build feature X? | `AI/<feature>/` DEV_STATUS + TESTING |
-| Old May session notes? | `docs/archive/session-plans/` |
+| What is in the public DMG? | `AI/desktop/DESKTOP_PUBLIC_BUNDLE_INVENTORY.md` |

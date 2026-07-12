@@ -16,16 +16,11 @@ stage_mvp/
 │   ├── PROJECT_STATUS.md          ← start here
 │   ├── ARCHITECTURE.md
 │   ├── AGENTS.md
+│   ├── R2_MIGRATION_FIXES.md
 │   └── apps/user-application/docs/AI/
 │       ├── desktop/               ← desktop ship (!!! plans + release)
 │       ├── research|strategy|flows|moodboard|chatbot|...
 │       └── infra|integrations|client-portal|assets|wireframes
-│
-├── ARCHIVE (history only)
-│   └── docs/archive/
-│       ├── session-plans/         ← was apps/user-application/docs/05-*, 30-05
-│       ├── legacy/                ← was docs/pre, docs/frontend, docs/2026-*
-│       └── ai-snapshots/          ← dated AI one-offs (04-06, 07-06, Greptile)
 │
 └── IGNORE (not product)
     └── .agents/skills/, .claude/skills/   ← agent tooling
@@ -33,7 +28,6 @@ stage_mvp/
 
 ## Ignore unless asked
 
-- `docs/archive/` — historical specs and session plans
 - Marketing / skills under `.agents/skills/` (not product code)
 
 ## Active !!! plans
@@ -45,6 +39,5 @@ stage_mvp/
 
 - Repo markdown for specs: **English**
 - Chat with Werner: **German**
-- Do not create new plan `.md` files without archiving or updating `PROJECT_STATUS.md`
-- New dated snapshots → `docs/archive/ai-snapshots/`
-- New session plans → `docs/archive/session-plans/`
+- Do not create new plan `.md` files without updating `PROJECT_STATUS.md`
+- Prefer updating living docs over adding dated snapshot `.md` files

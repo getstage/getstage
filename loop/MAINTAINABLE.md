@@ -1,7 +1,7 @@
 # Maintainable-Code Worklist
 
 > The **actionable backlog** the maintainable loop eats from. Categorised rationale lives in `apps/user-application/docs/PRE_LAUNCH_CLEANUP.md`; this is the *what/where/verify*.
-> Full rules & gates: `AUTONOMOUS_LOOPS_PLAN.md`. Each item is one PR-sized unit. **Loops stay OFF until Phase 0 (regression net) exists.**
+> Full rules & gates: this file + `loop/README.md`. Each item is one PR-sized unit. **Loops stay OFF until Phase 0 (regression net) exists.**
 
 ## PRIME DIRECTIVE
 **Change / refactor / delete code — do NOT add code or grow files.** A maintainable PR should usually end with **net-negative or flat line count**. If a fix needs new code, it's extracting a helper/hook out of an existing file, not bolting on.

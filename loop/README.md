@@ -2,7 +2,7 @@
 
 This directory is the **filesystem half of Notion** — the durable, git-tracked record of every autonomous loop run. Notion is the operating system for *information*; `loop/` is its source of truth in the repo, and the two stay in sync (run → `loop/runs/…` → pushed to a Notion entry).
 
-Design & rules: `../AUTONOMOUS_LOOPS_PLAN.md`.
+Design & rules: this folder + `MAINTAINABLE.md` (former `AUTONOMOUS_LOOPS_PLAN.md` removed).
 
 ## Layout
 ```
