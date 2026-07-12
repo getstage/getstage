@@ -85,8 +85,7 @@ Smoke included one chat session → engine stayed up (no idle shutdown in 0.1.56
 | **Greptile (Lumenapps)** | PR code review only |
 | **GitHub `getstage/getstage`** | Code + releases |
 | **This file + `ARCHITECTURE.md`** | Dev source of truth |
-| **`docs/README.md`** | Doc map (CURRENT / ARCHIVE / IGNORE) |
-| **`docs/archive/`** | Historical specs — not daily reading |
+| **`docs/README.md`** | Doc map (CURRENT / IGNORE) |
 
 ---
 
