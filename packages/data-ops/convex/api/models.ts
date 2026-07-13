@@ -2,6 +2,7 @@
  * Zod schemas for Hono REST (`/api/v1/*`). Convex-internal validators live in `convex/models/`.
  */
 import { z } from "zod";
+import { typeOtherLabelSchema } from "../../src/shared/typeOtherLabel";
 
 const trimmedString = (field: string) =>
   z.string().trim().min(1, `${field} is required`);
@@ -11,6 +12,8 @@ const optionalTrimmedString = z
   .trim()
   .transform((value) => value || undefined)
   .optional();
+
+export { typeOtherLabelSchema };
 
 export const projectIdParamSchema = z.object({
   id: trimmedString("Project ID"),
@@ -61,7 +64,7 @@ const projectBodyFieldsSchema = z.object({
   startMarkerImageUrl: optionalTrimmedString,
   endMarkerImageUrl: optionalTrimmedString,
   type: projectTypeSchema,
-  typeOtherLabel: optionalTrimmedString,
+  typeOtherLabel: typeOtherLabelSchema.optional(),
   method: z.enum(["ai", "manual"]).optional().default("manual"),
   startDate: z.number(),
   endDate: z.number(),
@@ -78,12 +81,15 @@ const projectBodyFieldsSchema = z.object({
 
 export const createProjectBodySchema = projectBodyFieldsSchema
   .superRefine((value, context) => {
-    if (value.type === "other" && !value.typeOtherLabel?.trim()) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["typeOtherLabel"],
-        message: "Please specify your project type.",
-      });
+    if (value.type === "other") {
+      const parsed = typeOtherLabelSchema.safeParse(value.typeOtherLabel ?? "");
+      if (!parsed.success) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["typeOtherLabel"],
+          message: parsed.error.issues[0]?.message ?? "Please specify your project type.",
+        });
+      }
     }
   })
   .refine(projectDatesAreOrdered, projectDateRangeError);

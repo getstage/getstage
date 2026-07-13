@@ -3,6 +3,7 @@ import {
   dateRangeInputSchema,
   projectBasicsSchema,
   projectTypeSchema,
+  typeOtherLabelSchema,
 } from "@/lib/validation";
 import type { Method } from "../../../shared/project-creation";
 import type { OnboardingStepId } from "./model";
@@ -84,7 +85,7 @@ export function canContinue({
     case "project-type":
       return (
         projectTypeSchema.safeParse(projectType).success &&
-        (projectType !== "other" || typeOtherLabel.trim().length > 0)
+        (projectType !== "other" || typeOtherLabelSchema.safeParse(typeOtherLabel).success)
       );
     case "method":
       return method === "manual" ? activePhasesLength >= 2 : method !== null;
@@ -160,8 +161,11 @@ export function getStepValidationError({
       if (!parsed.success) {
         return parsed.error.issues[0]?.message ?? "Please choose a project type.";
       }
-      if (projectType === "other" && typeOtherLabel.trim().length === 0) {
-        return "Please specify your project type.";
+      if (projectType === "other") {
+        const labelParsed = typeOtherLabelSchema.safeParse(typeOtherLabel);
+        if (!labelParsed.success) {
+          return labelParsed.error.issues[0]?.message ?? "Please specify your project type.";
+        }
       }
       return null;
     }

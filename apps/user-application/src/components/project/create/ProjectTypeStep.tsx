@@ -1,4 +1,5 @@
 import { PROJECT_TYPES, PROJECT_TYPE_ICONS } from "@/lib/constants";
+import { typeOtherLabelSchema } from "@/lib/validation";
 import type { ProjectType } from "@/types";
 import { CREATE_PROJECT_TYPE_VALUES } from "@/models/project/createProject";
 import {
@@ -27,7 +28,7 @@ export function ProjectTypeStep({
 }) {
   const canContinue =
     selectedProjectType !== null &&
-    (selectedProjectType !== "other" || typeOtherLabel.trim().length > 0);
+    (selectedProjectType !== "other" || typeOtherLabelSchema.safeParse(typeOtherLabel).success);
 
   return (
     <CreateProjectStepShell
@@ -97,6 +98,7 @@ export function ProjectTypeStep({
                 onChange={(event) => onTypeOtherLabelChange(event.target.value)}
                 placeholder="Please specify your project type..."
                 aria-label="Specify project type"
+                maxLength={60}
                 autoFocus
                 className={inputSurfaceClassName}
               />

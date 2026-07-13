@@ -43,6 +43,8 @@ export const projectTypeSchema = z.enum(projectTypeValues, {
   message: "Please choose your field of work.",
 });
 
+export { typeOtherLabelSchema } from "@stage/data-ops/shared/type-other-label";
+
 export const projectBasicsSchema = z.object({
   projectName: z
     .string()

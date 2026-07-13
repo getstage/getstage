@@ -7,6 +7,7 @@
  */
 
 import { z } from "zod";
+import { typeOtherLabelSchema } from "@/lib/validation";
 
 // --- Enums ---
 
@@ -249,12 +250,15 @@ export const createProjectInputSchema = z
       .optional(),
   })
   .superRefine((value, context) => {
-    if (value.type === "other" && !value.typeOtherLabel?.trim()) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["typeOtherLabel"],
-        message: "Please specify your project type.",
-      });
+    if (value.type === "other") {
+      const parsed = typeOtherLabelSchema.safeParse(value.typeOtherLabel ?? "");
+      if (!parsed.success) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["typeOtherLabel"],
+          message: parsed.error.issues[0]?.message ?? "Please specify your project type.",
+        });
+      }
     }
   });
 

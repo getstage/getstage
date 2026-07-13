@@ -9,6 +9,7 @@ import { RoadmapStep } from "./create/RoadmapStep";
 import { TimelineStep } from "./create/TimelineStep";
 import { useCreateProjectFlow } from "@/hooks/project/useCreateProjectFlow";
 import { setProjectBackDestination } from "@/lib/projectBackDestination";
+import { typeOtherLabelSchema } from "@/lib/validation";
 
 export function CreateProjectView() {
   const navigate = useNavigate();
@@ -114,7 +115,7 @@ export function CreateProjectView() {
                 onContinue={() => {
                   if (
                     draft.projectType === "other" &&
-                    draft.typeOtherLabel.trim().length === 0
+                    !typeOtherLabelSchema.safeParse(draft.typeOtherLabel).success
                   ) {
                     return;
                   }

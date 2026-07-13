@@ -14,6 +14,7 @@ import { assertProjectCreationAllowed } from "../../../domain/projects/entitleme
 import { buildProject, recomputeProjectState } from "../../../domain/projects/readModel";
 import { requireProjectAccessForUserId } from "../../../helpers/access/projectAccess";
 import { now } from "../../../helpers/time";
+import { requireTypeOtherLabel } from "../../../../src/shared/typeOtherLabel";
 
 export { requireProjectAccessForUserId };
 import {
@@ -184,9 +185,7 @@ export async function createProjectForUser(
   const startMarkerImageUrl = args.startMarkerImageUrl?.trim() || undefined;
   const endMarkerImageUrl = args.endMarkerImageUrl?.trim() || undefined;
   const typeOtherLabel =
-    args.type === "other"
-      ? requireNonEmptyTrimmedString(args.typeOtherLabel ?? "", "Project type")
-      : undefined;
+    args.type === "other" ? requireTypeOtherLabel(args.typeOtherLabel ?? "") : undefined;
 
   if (args.endDate < args.startDate) {
     throw new Error("End date must be on or after the start date.");
