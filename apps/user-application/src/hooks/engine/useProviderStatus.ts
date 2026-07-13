@@ -74,8 +74,18 @@ export function useProviderUpdate() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (providerId: ProviderId) => desktop.engine.updateProvider(providerId),
-    onSuccess: () => {
+    mutationFn: async (providerId: ProviderId) => {
+      const response = await desktop.engine.updateProvider(providerId);
+      if (response.status === "failed") {
+        throw new Error(
+          response.error?.message ??
+            response.message ??
+            `Could not update ${providerId}.`,
+        );
+      }
+      return response;
+    },
+    onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: engineQueryKeys.providers() });
     },
   });

@@ -47,6 +47,10 @@
       "types": "./dist/shared/uploadRules.d.ts",
       "default": "./dist/shared/uploadRules.js"
     },
+    "./shared/type-other-label": {
+      "types": "./dist/shared/typeOtherLabel.d.ts",
+      "default": "./dist/shared/typeOtherLabel.js"
+    },
     "./convex/api": {
       "types": "./convex/_generated/api.d.ts",
       "import": "./convex/_generated/api.js",

@@ -9,6 +9,9 @@ use crate::models::providers::{
 use crate::providers::auth::{LocalAuthProbe, probe_local_auth};
 use crate::providers::catalog::{ProviderRuntimeSpec, all_provider_specs, spec_by_route_id};
 use crate::providers::command::{command_detail, parse_version, run_command};
+use crate::providers::maintenance::{
+    invalidate_sense_cache, resolve_update_command, sense_update_available,
+};
 use crate::providers::models::{invalidate_stage_models_cache, resolve_provider_models};
 
 const VERSION_TIMEOUT: Duration = Duration::from_secs(4);
@@ -85,6 +88,8 @@ async fn provider_record(
             let models =
                 resolve_provider_models(spec, version.as_deref(), force_model_refresh).await;
             let message = provider_message(command_failed, authenticated, auth_status, &models);
+            let update_available =
+                sense_update_available(spec, version.as_deref(), force_model_refresh).await;
 
             ProviderStatusRecord {
                 id: spec.id,
@@ -98,7 +103,7 @@ async fn provider_record(
                 enabled: true,
                 version,
                 status,
-                update_available: Some(true),
+                update_available,
                 update_status: ProviderUpdateStatus::Idle,
                 update_hint: Some(spec.update_hint.to_string()),
                 checked_at: now_millis(),
@@ -136,9 +141,12 @@ async fn update_provider_with_spec(
     .ok()
     .and_then(|result| parse_version(&result.stdout).or_else(|| parse_version(&result.stderr)));
 
+    let update = resolve_update_command(spec).await;
+    let arg_refs: Vec<&str> = update.args.iter().map(String::as_str).collect();
+
     match run_command(
-        spec.binary,
-        spec.update_args,
+        &update.program,
+        &arg_refs,
         UPDATE_TIMEOUT,
         EngineErrorCode::RunTimeout,
     )
@@ -158,6 +166,7 @@ async fn update_provider_with_spec(
             });
 
             invalidate_stage_models_cache(spec.id).await;
+            invalidate_sense_cache(spec.id);
 
             ProviderUpdateResponse {
                 api_version,
@@ -165,7 +174,12 @@ async fn update_provider_with_spec(
                 status: ProviderUpdateStatus::Updated,
                 version_before,
                 version_after,
-                message: Some(format!("{} update command completed.", spec.label)),
+                message: Some(format!(
+                    "{} update completed (`{} {}`).",
+                    spec.label,
+                    update.program,
+                    update.args.join(" ")
+                )),
                 error: None,
             }
         }
@@ -178,7 +192,12 @@ async fn update_provider_with_spec(
             message: Some(format!("{} update command failed.", spec.label)),
             error: Some(EngineError {
                 code: EngineErrorCode::ProviderProcessFailed,
-                message: format!("{} update command exited unsuccessfully.", spec.label),
+                message: format!(
+                    "{} update exited unsuccessfully (`{} {}`).",
+                    spec.label,
+                    update.program,
+                    update.args.join(" ")
+                ),
                 provider_id: Some(spec.id),
                 retryable: true,
                 detail: command_detail(&result),
@@ -190,7 +209,12 @@ async fn update_provider_with_spec(
             status: ProviderUpdateStatus::Failed,
             version_before: version_before.clone(),
             version_after: version_before.clone(),
-            message: None,
+            message: Some(format!(
+                "{} update did not finish. Try `{} {}` in Terminal.",
+                spec.label,
+                update.program,
+                update.args.join(" ")
+            )),
             error: Some(with_provider_id(error, spec)),
         },
     }

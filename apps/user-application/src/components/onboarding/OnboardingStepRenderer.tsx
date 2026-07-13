@@ -242,6 +242,7 @@ export function OnboardingStepRenderer({
                       onChange={(event) => draftState.setTypeOtherLabel(event.target.value)}
                       placeholder="Please specify your project type..."
                       aria-label="Specify project type"
+                      maxLength={60}
                       autoFocus
                       className={figmaFieldClass}
                     />
