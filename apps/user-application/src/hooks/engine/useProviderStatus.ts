@@ -85,9 +85,6 @@ export function useProviderUpdate() {
       }
       return response;
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: engineQueryKeys.providers() });
-    },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: engineQueryKeys.providers() });
     },

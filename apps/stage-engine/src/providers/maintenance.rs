@@ -1,4 +1,6 @@
-use std::time::Duration;
+use std::collections::HashMap;
+use std::sync::{LazyLock, Mutex};
+use std::time::{Duration, Instant};
 
 use serde::Deserialize;
 
@@ -9,6 +11,16 @@ use crate::providers::command::{parse_version, run_command};
 
 const SENSE_TIMEOUT: Duration = Duration::from_secs(6);
 const WHICH_TIMEOUT: Duration = Duration::from_secs(2);
+const SENSE_CACHE_TTL: Duration = Duration::from_secs(10 * 60);
+
+struct SenseCacheEntry {
+    installed_version: String,
+    update_available: Option<bool>,
+    checked_at: Instant,
+}
+
+static SENSE_CACHE: LazyLock<Mutex<HashMap<ProviderId, SenseCacheEntry>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InstallSource {
@@ -40,15 +52,54 @@ struct HomebrewCaskPayload {
 /// - Homebrew → brew cask API for latest + `brew upgrade --cask …`
 /// - Native / npm / unknown → npm registry as the **version feed** (same semver
 ///   product releases), update via `claude update` / `codex update` or npm -g
+///
+/// Results are cached briefly so status polls do not hit `which` + HTTP every time.
 pub async fn sense_update_available(
     spec: ProviderRuntimeSpec,
     installed_version: Option<&str>,
+    force: bool,
 ) -> Option<bool> {
     let installed = installed_version?;
+
+    if !force
+        && let Ok(cache) = SENSE_CACHE.lock()
+        && let Some(entry) = cache.get(&spec.id)
+        && entry.installed_version == installed
+        && entry.checked_at.elapsed() < SENSE_CACHE_TTL
+    {
+        return entry.update_available;
+    }
+
+    let update_available = sense_update_available_uncached(spec, installed).await;
+
+    if let Ok(mut cache) = SENSE_CACHE.lock() {
+        cache.insert(
+            spec.id,
+            SenseCacheEntry {
+                installed_version: installed.to_string(),
+                update_available,
+                checked_at: Instant::now(),
+            },
+        );
+    }
+
+    update_available
+}
+
+async fn sense_update_available_uncached(
+    spec: ProviderRuntimeSpec,
+    installed: &str,
+) -> Option<bool> {
     let path = resolve_binary_path(spec.binary).await?;
     let source = detect_install_source(spec.id, &path);
     let latest = fetch_latest_version(spec, source).await?;
     Some(is_newer_version(&latest, installed))
+}
+
+pub fn invalidate_sense_cache(provider_id: ProviderId) {
+    if let Ok(mut cache) = SENSE_CACHE.lock() {
+        cache.remove(&provider_id);
+    }
 }
 
 pub async fn resolve_update_command(spec: ProviderRuntimeSpec) -> UpdateCommand {
@@ -229,10 +280,18 @@ fn version_parts(raw: &str) -> Option<[u64; 3]> {
         .unwrap_or("")
         .trim_matches('.');
 
-    let mut segments = numeric.split('.');
+    let mut segments = numeric.split('.').filter(|segment| !segment.is_empty());
     let major = segments.next()?.parse().ok()?;
-    let minor = segments.next()?.parse().ok()?;
-    let patch = segments.next()?.parse().ok()?;
+    let minor = segments
+        .next()
+        .unwrap_or("0")
+        .parse()
+        .ok()?;
+    let patch = segments
+        .next()
+        .unwrap_or("0")
+        .parse()
+        .ok()?;
     Some([major, minor, patch])
 }
 
@@ -274,5 +333,8 @@ mod tests {
     fn compares_versions() {
         assert!(is_newer_version("2.1.208", "2.1.207"));
         assert!(!is_newer_version("2.1.207", "2.1.207"));
+        assert!(is_newer_version("2.2", "2.1"));
+        assert!(is_newer_version("3", "2.9.9"));
+        assert!(!is_newer_version("2.1", "2.1.0"));
     }
 }

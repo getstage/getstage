@@ -9,7 +9,9 @@ use crate::models::providers::{
 use crate::providers::auth::{LocalAuthProbe, probe_local_auth};
 use crate::providers::catalog::{ProviderRuntimeSpec, all_provider_specs, spec_by_route_id};
 use crate::providers::command::{command_detail, parse_version, run_command};
-use crate::providers::maintenance::{resolve_update_command, sense_update_available};
+use crate::providers::maintenance::{
+    invalidate_sense_cache, resolve_update_command, sense_update_available,
+};
 use crate::providers::models::{invalidate_stage_models_cache, resolve_provider_models};
 
 const VERSION_TIMEOUT: Duration = Duration::from_secs(4);
@@ -86,7 +88,8 @@ async fn provider_record(
             let models =
                 resolve_provider_models(spec, version.as_deref(), force_model_refresh).await;
             let message = provider_message(command_failed, authenticated, auth_status, &models);
-            let update_available = sense_update_available(spec, version.as_deref()).await;
+            let update_available =
+                sense_update_available(spec, version.as_deref(), force_model_refresh).await;
 
             ProviderStatusRecord {
                 id: spec.id,
@@ -163,6 +166,7 @@ async fn update_provider_with_spec(
             });
 
             invalidate_stage_models_cache(spec.id).await;
+            invalidate_sense_cache(spec.id);
 
             ProviderUpdateResponse {
                 api_version,

@@ -81,16 +81,15 @@ const projectBodyFieldsSchema = z.object({
 
 export const createProjectBodySchema = projectBodyFieldsSchema
   .superRefine((value, context) => {
-    if (value.type === "other") {
-      const parsed = typeOtherLabelSchema.safeParse(value.typeOtherLabel ?? "");
-      if (!parsed.success) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["typeOtherLabel"],
-          message: parsed.error.issues[0]?.message ?? "Please specify your project type.",
-        });
-      }
+    // Field schema already validates present labels; only require one when type is other.
+    if (value.type !== "other" || value.typeOtherLabel) {
+      return;
     }
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["typeOtherLabel"],
+      message: "Please specify your project type.",
+    });
   })
   .refine(projectDatesAreOrdered, projectDateRangeError);
 
