@@ -75,15 +75,7 @@ export function useProviderUpdate() {
 
   return useMutation({
     mutationFn: async (providerId: ProviderId) => {
-      const response = await desktop.engine.updateProvider(providerId);
-      if (response.status === "failed") {
-        throw new Error(
-          response.error?.message ??
-            response.message ??
-            `Could not update ${providerId}.`,
-        );
-      }
-      return response;
+      return desktop.engine.updateProvider(providerId);
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: engineQueryKeys.providers() });
@@ -100,11 +92,30 @@ export function useProviderUpdates() {
     [providerList.providers],
   );
 
-  const updateAll = useCallback(async () => {
-    for (const provider of providersWithUpdates) {
-      await providerUpdate.mutateAsync(provider.id);
-    }
-  }, [providersWithUpdates, providerUpdate]);
+  const updateAll = useCallback(
+    async (hooks?: {
+      onStart?: (providerLabel: string, commandHint?: string) => void;
+      onResult?: (
+        providerLabel: string,
+        result: Awaited<ReturnType<typeof providerUpdate.mutateAsync>>,
+      ) => void;
+    }) => {
+      for (const provider of providersWithUpdates) {
+        hooks?.onStart?.(provider.label, provider.updateHint ?? undefined);
+        const result = await providerUpdate.mutateAsync(provider.id);
+        hooks?.onResult?.(provider.label, result);
+        if (result.status === "failed") {
+          throw new Error(
+            result.error?.detail ??
+              result.error?.message ??
+              result.message ??
+              `Could not update ${provider.label}.`,
+          );
+        }
+      }
+    },
+    [providersWithUpdates, providerUpdate],
+  );
 
   return {
     providersWithUpdates,

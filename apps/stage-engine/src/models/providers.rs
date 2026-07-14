@@ -137,5 +137,9 @@ pub struct ProviderUpdateResponse {
     pub version_before: Option<String>,
     pub version_after: Option<String>,
     pub message: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub command: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output: Option<String>,
     pub error: Option<EngineError>,
 }

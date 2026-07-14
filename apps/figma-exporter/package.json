@@ -1,9 +1,10 @@
 {
   "name": "@stage/figma-exporter",
   "private": true,
-  "version": "0.2.7",
+  "version": "0.2.13",
   "scripts": {
     "build": "node ./scripts/build.mjs",
+    "build:dev": "STAGE_API_BASE=https://reliable-bullfrog-917.convex.site node ./scripts/build.mjs",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

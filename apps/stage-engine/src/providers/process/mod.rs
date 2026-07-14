@@ -139,6 +139,7 @@ async fn warm_provider_auth(provider_id: ProviderId) -> bool {
         AUTH_WARMUP_TIMEOUT,
         EngineErrorCode::VersionTimeout,
         working_directory.as_deref(),
+        false,
     )
     .await;
 

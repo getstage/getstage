@@ -8,7 +8,7 @@ use crate::models::providers::{
 };
 use crate::providers::auth::{LocalAuthProbe, probe_local_auth};
 use crate::providers::catalog::{ProviderRuntimeSpec, all_provider_specs, spec_by_route_id};
-use crate::providers::command::{command_detail, parse_version, run_command};
+use crate::providers::command::{command_detail, parse_version, run_command, run_update_command};
 use crate::providers::maintenance::{
     invalidate_sense_cache, resolve_update_command, sense_update_available,
 };
@@ -143,8 +143,9 @@ async fn update_provider_with_spec(
 
     let update = resolve_update_command(spec).await;
     let arg_refs: Vec<&str> = update.args.iter().map(String::as_str).collect();
+    let command_label = format!("{} {}", update.program, update.args.join(" "));
 
-    match run_command(
+    match run_update_command(
         &update.program,
         &arg_refs,
         UPDATE_TIMEOUT,
@@ -174,12 +175,9 @@ async fn update_provider_with_spec(
                 status: ProviderUpdateStatus::Updated,
                 version_before,
                 version_after,
-                message: Some(format!(
-                    "{} update completed (`{} {}`).",
-                    spec.label,
-                    update.program,
-                    update.args.join(" ")
-                )),
+                message: Some(format!("{} update completed (`{command_label}`).", spec.label)),
+                command: Some(command_label),
+                output: truncate_command_output(&result),
                 error: None,
             }
         }
@@ -190,13 +188,13 @@ async fn update_provider_with_spec(
             version_before: version_before.clone(),
             version_after: version_before.clone(),
             message: Some(format!("{} update command failed.", spec.label)),
+            command: Some(command_label.clone()),
+            output: truncate_command_output(&result),
             error: Some(EngineError {
                 code: EngineErrorCode::ProviderProcessFailed,
                 message: format!(
-                    "{} update exited unsuccessfully (`{} {}`).",
-                    spec.label,
-                    update.program,
-                    update.args.join(" ")
+                    "{} update exited unsuccessfully (`{command_label}`).",
+                    spec.label
                 ),
                 provider_id: Some(spec.id),
                 retryable: true,
@@ -210,14 +208,30 @@ async fn update_provider_with_spec(
             version_before: version_before.clone(),
             version_after: version_before.clone(),
             message: Some(format!(
-                "{} update did not finish. Try `{} {}` in Terminal.",
-                spec.label,
-                update.program,
-                update.args.join(" ")
+                "{} update did not finish. Try `{command_label}` in Terminal.",
+                spec.label
             )),
+            command: Some(command_label),
+            output: error.detail.clone(),
             error: Some(with_provider_id(error, spec)),
         },
     }
+}
+
+fn truncate_command_output(result: &crate::providers::command::CommandProbe) -> Option<String> {
+    const MAX_BYTES: usize = 10_000;
+    let combined = [result.stderr.trim(), result.stdout.trim()]
+        .into_iter()
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n\n");
+    if combined.is_empty() {
+        return None;
+    }
+    if combined.len() <= MAX_BYTES {
+        return Some(combined);
+    }
+    Some(format!("{}…", &combined[..MAX_BYTES]))
 }
 
 async fn missing_or_failed_provider(

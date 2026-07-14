@@ -39,6 +39,7 @@ async fn probe_claude_cli_auth(binary: &str) -> Option<LocalAuthProbe> {
         AUTH_STATUS_TIMEOUT,
         EngineErrorCode::VersionTimeout,
         working_directory.as_deref(),
+        false,
     )
     .await
     .ok()?;

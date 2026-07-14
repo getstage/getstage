@@ -127,6 +127,10 @@ export const providerUpdateResponseSchema = z.object({
   versionBefore: z.string().min(1).nullable(),
   versionAfter: z.string().min(1).nullable(),
   message: z.string().min(1).nullish(),
+  /** Exact shell command that was run, e.g. `claude update`. */
+  command: z.string().min(1).nullish(),
+  /** Truncated stdout/stderr from the update command. */
+  output: z.string().min(1).nullish(),
   error: engineErrorSchema.nullish(),
 });
 

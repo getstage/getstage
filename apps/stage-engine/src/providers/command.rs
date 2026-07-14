@@ -27,6 +27,22 @@ fn apply_provider_cli_env(command: &mut Command) {
     }
 }
 
+/// Homebrew auto-update can hang GUI-spawned upgrades for minutes; Synara-style
+/// one-click updates should stay non-interactive and bounded.
+fn apply_update_command_env(command: &mut Command, binary: &str) {
+    apply_provider_cli_env(command);
+    if binary == "brew" {
+        command.env("HOMEBREW_NO_AUTO_UPDATE", "1");
+        command.env("HOMEBREW_NO_ENV_HINTS", "1");
+        command.env("HOMEBREW_NO_ANALYTICS", "1");
+        command.env("CI", "1");
+    }
+    if binary == "npm" {
+        command.env("npm_config_fund", "false");
+        command.env("npm_config_audit", "false");
+    }
+}
+
 pub fn configure_provider_process(command: &mut Command) {
     apply_provider_cli_env(command);
 }
@@ -37,7 +53,16 @@ pub async fn run_command(
     duration: Duration,
     timeout_code: EngineErrorCode,
 ) -> Result<CommandProbe, EngineError> {
-    run_command_in(binary, args, duration, timeout_code, None).await
+    run_command_in(binary, args, duration, timeout_code, None, false).await
+}
+
+pub async fn run_update_command(
+    binary: &str,
+    args: &[&str],
+    duration: Duration,
+    timeout_code: EngineErrorCode,
+) -> Result<CommandProbe, EngineError> {
+    run_command_in(binary, args, duration, timeout_code, None, true).await
 }
 
 pub async fn run_command_in(
@@ -46,10 +71,17 @@ pub async fn run_command_in(
     duration: Duration,
     timeout_code: EngineErrorCode,
     working_directory: Option<&Path>,
+    for_update: bool,
 ) -> Result<CommandProbe, EngineError> {
     let mut command = Command::new(binary);
     command.args(args);
-    apply_provider_cli_env(&mut command);
+    if for_update {
+        apply_update_command_env(&mut command, binary);
+    } else {
+        apply_provider_cli_env(&mut command);
+    }
+    // Critical: without this, a timed-out update keeps running and the UI looks stuck.
+    command.kill_on_drop(true);
     if let Some(working_directory) = working_directory {
         command.current_dir(working_directory);
     }
