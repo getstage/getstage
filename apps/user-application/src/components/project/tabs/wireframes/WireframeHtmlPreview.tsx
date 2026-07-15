@@ -11,11 +11,11 @@ const DESIGN_HEIGHT = 900;
 export { buildWireframePreviewDocument };
 
 // A non-interactive, scaled-down render of the design used as a card thumbnail.
-// `sandbox=""` is the maximally locked posture: no scripts, no forms, no
-// same-origin access — only the static markup and images render.
+// `sandbox="allow-same-origin"` lets us measure content height (no scripts).
 export function WireframeHtmlThumbnail({ html }: { html: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.2);
+  const [docHeight, setDocHeight] = useState(DESIGN_HEIGHT);
   // Lazy-mount the iframe only when the card scrolls near the viewport. A 1440×2400
   // iframe document is a full layout allocation per card; a results grid of 6–12
   // cards would otherwise reserve ~12 fully-loaded docs simultaneously, pressuring
@@ -48,15 +48,14 @@ export function WireframeHtmlThumbnail({ html }: { html: string }) {
       const rect = entries[0]?.contentRect;
       const width = rect?.width ?? 0;
       const height = rect?.height ?? 0;
-      if (width <= 0 || height <= 0) return;
-      // Width-based scale + top-left anchoring makes the design fill the card
-      // width from the top; excess height is cropped by the overflow-hidden
-      // container instead of letterboxing with dead space.
-      setScale(width / DESIGN_WIDTH);
+      if (width <= 0 || height <= 0 || docHeight <= 0) return;
+      // Cover the card slot: fill width and height, crop overflow. Avoids the
+      // white band under short pages when the iframe was taller than content.
+      setScale(Math.max(width / DESIGN_WIDTH, height / docHeight));
     });
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [docHeight]);
 
   return (
     <div ref={containerRef} className="relative h-full w-full overflow-hidden rounded-[3px] bg-white">
@@ -65,16 +64,41 @@ export function WireframeHtmlThumbnail({ html }: { html: string }) {
           key={html.length + html.slice(0, 64)}
           title="Wireframe preview"
           srcDoc={buildWireframePreviewDocument(html)}
-          sandbox=""
+          sandbox="allow-same-origin"
           scrolling="no"
           tabIndex={-1}
           aria-hidden
           className="pointer-events-none absolute left-0 top-0 border-0"
           style={{
             width: DESIGN_WIDTH,
-            height: DESIGN_HEIGHT,
+            height: docHeight,
             transform: `scale(${scale})`,
             transformOrigin: "top left",
+          }}
+          onLoad={(event) => {
+            try {
+              const doc = event.currentTarget.contentDocument;
+              if (!doc?.body) return;
+              // Models often set min-height:760px/100vh on nested shells. CSS
+              // collapse misses some; clear tall min-heights then measure.
+              for (const el of doc.body.querySelectorAll("*")) {
+                const style = doc.defaultView?.getComputedStyle(el);
+                if (!style) continue;
+                const minH = style.minHeight;
+                if (minH.endsWith("vh") || (parseFloat(minH) || 0) >= 480) {
+                  (el as HTMLElement).style.minHeight = "0";
+                  (el as HTMLElement).style.height = "auto";
+                }
+              }
+              const measured = Math.ceil(
+                Math.max(doc.body.scrollHeight, doc.documentElement?.scrollHeight ?? 0),
+              );
+              if (measured > 0) {
+                setDocHeight(Math.min(Math.max(measured, 1), 2400));
+              }
+            } catch {
+              // Measurement unavailable — keep DESIGN_HEIGHT fallback.
+            }
           }}
         />
       ) : null}

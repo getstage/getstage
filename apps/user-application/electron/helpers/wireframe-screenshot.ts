@@ -85,6 +85,7 @@ export async function captureWireframeHtmlPng(htmlFragment: string): Promise<Wir
       `data:text/html;charset=utf-8,${encodeURIComponent(document)}`,
     );
     await waitForWireframeRender(window.webContents);
+    await collapseViewportFillers(window);
     const height = await measureCaptureHeight(window);
     window.setContentSize(WIREFRAME_DESIGN_WIDTH, height);
     await waitForWireframeRender(window.webContents);
@@ -132,6 +133,7 @@ export async function captureWireframeFigmaNodes(
     const document = buildWireframePreviewDocument(trimmed);
     await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(document)}`);
     await waitForWireframeRender(window.webContents);
+    await collapseViewportFillers(window);
     const height = await measureCaptureHeight(window);
     window.setContentSize(WIREFRAME_DESIGN_WIDTH, height);
     await waitForWireframeRender(window.webContents);
@@ -218,11 +220,22 @@ const WIREFRAME_FIGMA_WALKER = `(() => {
       const opt = el.options && el.options[el.selectedIndex];
       text = ((opt && opt.text) || "").replace(/\\s+/g, " ").trim().slice(0, MAX_TEXT);
     }
+    const padL = parseFloat(style.paddingLeft) || 0;
+    const padT = parseFloat(style.paddingTop) || 0;
+    const padB = parseFloat(style.paddingBottom) || 0;
     if (text && isControl) {
       // Values sit inside the field: offset by left padding and vertically center.
       const fs = parseFloat(style.fontSize) || 16;
-      textX = x + (parseFloat(style.paddingLeft) || 0);
+      textX = x + padL;
       textY = y + Math.max(0, (rect.height - fs) / 2);
+    } else if (text && (padT > 0 || padL > 0)) {
+      // Padded leaf text (buttons, pills, chips): CSS content box starts after
+      // padding. Without this, Figma text sits on the top edge of the filled rect
+      // ("two parts": label stuck high, empty fill below).
+      const align = style.textAlign || "left";
+      const centered = align === "center" || align === "right" || align === "justify";
+      textX = centered ? x : x + padL;
+      textY = y + padT;
     }
     if (text) {
       // Computed line-height resolves to px unless "normal"; carry it so Figma
@@ -230,10 +243,9 @@ const WIREFRAME_FIGMA_WALKER = `(() => {
       const fs = parseFloat(style.fontSize) || 16;
       const lh = parseFloat(style.lineHeight);
       const lhPx = isFinite(lh) && lh > 0 ? lh : fs * 1.3;
-      // Whether the browser wrapped this to more than one line. Single-line text
-      // is exported without wrapping so a slightly wider Figma font can't push a
-      // phantom second line down onto the element below it.
-      const multiline = rect.height > lhPx * 1.5;
+      // Use content-box height so padding on buttons/pills doesn't look like wrap.
+      const contentH = Math.max(0, rect.height - padT - padB);
+      const multiline = contentH > lhPx * 1.5;
       nodes.push({
         type: "text", x: textX, y: textY, w: rect.width, text,
         fontSize: fs,
@@ -248,30 +260,102 @@ const WIREFRAME_FIGMA_WALKER = `(() => {
   }
   // Size the frame to the deepest layer's bottom, not the document height — a
   // short design in a taller viewport otherwise leaves a big white band below.
+  // Also drop near-full-frame white rects (duplicate of the root fill).
   let contentBottom = 0;
+  const filtered = [];
+  const rootW = Math.round(root.scrollWidth) || ${WIREFRAME_DESIGN_WIDTH};
   for (const node of nodes) {
     const h = node.type === "text" ? (node.fontSize || 16) * 1.5 : node.h || 0;
     const bottom = node.y + h;
     if (bottom > contentBottom) contentBottom = bottom;
   }
+  const frameH = Math.max(1, Math.ceil(contentBottom));
+  for (const node of nodes) {
+    if (node.type === "rect") {
+      const nearFullW = node.w >= rootW * 0.95;
+      const nearFullH = node.h >= frameH * 0.9 || node.h >= window.innerHeight * 0.9;
+      const fill = (node.fill || "").toLowerCase();
+      const isWhite = !fill || fill === "#ffffff" || fill === "#fff" || fill === "#fafafa";
+      if (nearFullW && nearFullH && isWhite && node.y <= 2) continue;
+    }
+    filtered.push(node);
+  }
   return {
-    width: Math.round(root.scrollWidth),
-    height: Math.max(1, Math.ceil(contentBottom)),
-    nodes,
+    width: rootW,
+    height: frameH,
+    nodes: filtered,
   };
 })()`;
 
+/** Strip 100vh / flex-centered empty shells so measure + export hug content. */
+async function collapseViewportFillers(window: BrowserWindow): Promise<void> {
+  await window.webContents.executeJavaScript(`(() => {
+    const vh = window.innerHeight;
+    const nearlyViewport = (px) => Math.abs(px - vh) < 4 || px >= vh - 1;
+    const targets = [document.documentElement, document.body, ...document.body.children];
+    for (const el of targets) {
+      if (!(el instanceof HTMLElement)) continue;
+      const style = getComputedStyle(el);
+      const minH = parseFloat(style.minHeight);
+      const h = parseFloat(style.height);
+      if (nearlyViewport(minH) || nearlyViewport(h) || el.getBoundingClientRect().height >= vh - 2) {
+        el.style.minHeight = "0";
+        el.style.height = "auto";
+        el.style.maxHeight = "none";
+      }
+      const display = style.display;
+      if ((display === "flex" || display === "grid") && el.getBoundingClientRect().height >= vh - 2) {
+        const direction = style.flexDirection || "row";
+        const isColumn = direction === "column" || direction === "column-reverse";
+        // Drop only the *vertical* centering that creates empty bands.
+        if (isColumn) {
+          if (style.justifyContent === "center" || style.justifyContent === "safe center") {
+            el.style.justifyContent = "flex-start";
+          }
+        } else if (style.alignItems === "center" || style.alignItems === "safe center") {
+          el.style.alignItems = "flex-start";
+        }
+        const padY = Math.max(parseFloat(style.paddingTop) || 0, parseFloat(style.paddingBottom) || 0);
+        if (padY < 24) {
+          el.style.paddingTop = "48px";
+          el.style.paddingBottom = "48px";
+        }
+      }
+    }
+    // Inline style attributes often set min-height:100vh harder than stylesheet rules.
+    for (const el of document.querySelectorAll("[style]")) {
+      if (!(el instanceof HTMLElement) || !el.style) continue;
+      const raw = el.getAttribute("style") || "";
+      if (/min-height\\s*:\\s*100vh/i.test(raw) || /height\\s*:\\s*100vh/i.test(raw)) {
+        el.style.minHeight = "0";
+        el.style.height = "auto";
+      }
+    }
+  })()`);
+}
+
 async function measureCaptureHeight(window: BrowserWindow): Promise<number> {
   const height = await window.webContents.executeJavaScript(`
-    Math.min(
-      ${MAX_CAPTURE_HEIGHT},
-      Math.max(
+    (() => {
+      let bottom = 0;
+      for (const el of document.body.querySelectorAll("*")) {
+        const style = getComputedStyle(el);
+        if (style.display === "none" || style.visibility === "hidden" || parseFloat(style.opacity) === 0) {
+          continue;
+        }
+        const rect = el.getBoundingClientRect();
+        if (rect.width < 1 || rect.height < 1) continue;
+        const candidate = rect.bottom + window.scrollY;
+        if (candidate > bottom) bottom = candidate;
+      }
+      const scroll = Math.max(
         document.documentElement.scrollHeight || 0,
         document.body.scrollHeight || 0,
-        document.documentElement.offsetHeight || 0,
-        document.body.offsetHeight || 0
-      )
-    )
+      );
+      // Prefer content-bottom; fall back to scrollHeight if walk found nothing.
+      const measured = bottom > 0 ? bottom : scroll;
+      return Math.min(${MAX_CAPTURE_HEIGHT}, Math.max(1, Math.ceil(measured + 8)));
+    })()
   `);
 
   if (typeof height !== "number" || !Number.isFinite(height) || height <= 0) {

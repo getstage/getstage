@@ -77,14 +77,47 @@ Imagery:
 
 Anti-slop taste rules (mandatory):
 - Cohesive system: one spacing scale, one corner radius, consistent shadows.
-- Strong typographic hierarchy and generous whitespace; avoid cramped, centered-everything layouts.
+- Strong typographic hierarchy with intentional spacing between sections (typically 48–96px) — not huge empty bands and not cramped, centered-everything layouts.
 - Realistic copy drawn from the strategy/research artifacts — no "Lorem ipsum" or placeholder filler.
 - Make each section visually distinct (alternating backgrounds, varied layout); avoid identical three-icon-card rows unless intentional.
 - Keep markup semantic and FLAT (header, section, h1-h3, p, ul, button) so it converts cleanly to Figma layers and exportable code. Avoid absolute positioning, transforms, and exotic CSS.
 - Ensure WCAG-AA text contrast.
 
-Pre-flight check before returning: confirm every Hi-Fi screen has a non-empty "html" using brand colors, real copy, and at least one image, and that no two sections look identical.
+Canvas / height rules (mandatory — Stage crops and exports by content height):
+- NEVER use min-height: 100vh, height: 100vh, or min-height: 100% on the root wrapper or on dialog/onboarding shells. Height must come from content.
+- Modal, form, invite, success, and step screens: content-sized card/panel with modest outer padding (32–64px). Do NOT vertically center a small card inside a full desktop viewport of empty white.
+- Marketing / long pages: stack sections tightly with consistent gaps; do not pad with large empty regions between sections.
+- Prefer one root <div> that wraps only real UI — no spacer divs whose only job is to fill the viewport.
+
+Pre-flight check before returning: confirm every Hi-Fi screen has a non-empty "html" using brand colors, real copy, and at least one image; no two sections look identical; and no screen relies on 100vh / empty viewport centering.
 "#;
+
+/// Leonxlnx/taste-skill (`design-taste-frontend` / tasteskill.dev), Stage-adapted.
+/// Injected into every Hi-Fi wireframes generation prompt.
+const TASTE_SKILL: &str = include_str!("../../skills/design-taste-frontend/SKILL.md");
+
+fn taste_skill_enabled() -> bool {
+    // Default ON for Hi-Fi. Set STAGE_WIREFRAMES_TASTE_SKILL=0 for A/B without skill.
+    !matches!(
+        std::env::var("STAGE_WIREFRAMES_TASTE_SKILL").as_deref(),
+        Ok("0") | Ok("false") | Ok("off")
+    )
+}
+
+fn hifi_prompt_extras() -> String {
+    let mut extras = String::from(HIFI_RULES);
+    if taste_skill_enabled() {
+        extras.push_str(
+            "\n\n<taste_skill source=\"Leonxlnx/taste-skill:design-taste-frontend\">\n",
+        );
+        extras.push_str(
+            "You MUST follow this Taste skill for every Hi-Fi html screen. It overrides generic AI defaults.\n\n",
+        );
+        extras.push_str(TASTE_SKILL);
+        extras.push_str("\n</taste_skill>\n");
+    }
+    extras
+}
 
 // On partial regen, strip prior `html` from the prompt payload so the model
 // re-designs from strategy/moodboard context instead of copy-pasting the saved
@@ -191,8 +224,8 @@ pub fn build_wireframes_prompt(
         .map(|id| format!("Selected moodboard style direction ID: {id}\n"))
         .unwrap_or_default();
     let hifi_extras = match kind {
-        WireframeKind::Hifi => HIFI_RULES,
-        WireframeKind::Lofi => "",
+        WireframeKind::Hifi => hifi_prompt_extras(),
+        WireframeKind::Lofi => String::new(),
     };
     let regenerate_block = regenerate_screen_ids
         .filter(|ids| !ids.is_empty())

@@ -35,6 +35,7 @@ stage_mvp/
 | [`ARCHITECTURE.md`](../ARCHITECTURE.md) | 4 apps, data flows, branches |
 | [`AGENTS.md`](../AGENTS.md) | Agent/dev entry point |
 | [`R2_MIGRATION_FIXES.md`](../R2_MIGRATION_FIXES.md) | R2 storage migration rules |
+| [`WIREFRAMES_QUALITY_PLAN.md`](./WIREFRAMES_QUALITY_PLAN.md) | Beat raw Claude: taste skill, design brief, local skills |
 
 ### Desktop (`apps/user-application/docs/AI/desktop/`)
 

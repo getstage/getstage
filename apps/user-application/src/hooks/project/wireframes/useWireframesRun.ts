@@ -10,7 +10,7 @@ import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
-import { formatRunFailedEvent } from "@/lib/engine/formatRunError";
+import { formatRunFailedEvent, toRunFailureUserMessage } from "@/lib/engine/formatRunError";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
 import {
@@ -162,15 +162,7 @@ export function useWireframesRun(projectId: string) {
 
     if (terminalEvent.type === "run_failed") {
       console.error(formatRunFailedEvent(terminalEvent));
-      // Surface the actionable engine message for a regen that produced nothing
-      // new (unchanged/empty html) instead of the generic failure copy, so the
-      // user knows to retry rather than assuming the whole run broke.
-      const detail = `${terminalEvent.error.message ?? ""} ${terminalEvent.error.detail ?? ""}`;
-      setError(
-        /unchanged|empty html/i.test(detail) && terminalEvent.error.message
-          ? terminalEvent.error.message
-          : WIREFRAMES_RUN_FAILED_USER_MESSAGE,
-      );
+      setError(toRunFailureUserMessage(terminalEvent, WIREFRAMES_RUN_FAILED_USER_MESSAGE));
     }
   }, [terminalEvent]);
 
