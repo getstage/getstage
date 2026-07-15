@@ -148,8 +148,13 @@ export function toEngineErrorUserMessage(
     return fallback;
   }
 
-  // Wireframes regen validation (empty/unchanged html) and similar request errors.
-  if (error.code === "invalid_request" && error.message?.trim()) {
+  // User-facing request errors (e.g. wireframes empty/unchanged html). Skip
+  // technical/internal payloads that share the same error code.
+  if (
+    error.code === "invalid_request" &&
+    error.message?.trim() &&
+    !looksLikeTechnicalResearchFailure(error.message)
+  ) {
     return error.message;
   }
 

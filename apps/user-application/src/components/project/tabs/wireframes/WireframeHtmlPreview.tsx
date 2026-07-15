@@ -64,6 +64,9 @@ export function WireframeHtmlThumbnail({ html }: { html: string }) {
           key={html.length + html.slice(0, 64)}
           title="Wireframe preview"
           srcDoc={buildWireframePreviewDocument(html)}
+          // allow-same-origin: needed to measure contentDocument height.
+          // Never add allow-scripts here — that combo would give the framed
+          // HTML full same-origin access to the parent app.
           sandbox="allow-same-origin"
           scrolling="no"
           tabIndex={-1}

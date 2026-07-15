@@ -298,6 +298,8 @@ async fn drive_process_loop(
                 sink.handle(context, events, capture_multiline_stderr, line);
                 if let Some(message) = fatal {
                     terminate_child(child).await;
+                    // Keep diagnostics collected up to the fatal line.
+                    sink.flush_stderr(context, capture_multiline_stderr);
                     return Err(ProviderProcessError::Io {
                         binary,
                         source: std::io::Error::other(format!(

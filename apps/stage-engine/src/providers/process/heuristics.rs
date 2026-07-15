@@ -49,11 +49,13 @@ pub(super) fn extract_provider_exit_payload(detail: &str) -> Option<String> {
 }
 
 pub(super) fn looks_like_provider_session_limit(text: &str) -> bool {
+    // Match explicit limit language only. Do NOT match bare "resets " — that
+    // word appears in benign CLI noise and, when used for live process kills,
+    // would abort healthy runs.
     let lower = text.to_lowercase();
     lower.contains("session limit")
         || lower.contains("rate limit")
         || lower.contains("usage limit")
-        || lower.contains("resets ")
 }
 
 /// Org/admin blocked Claude Code subscription — not fixable by `claude auth login`.
@@ -283,6 +285,13 @@ mod tests {
             "ERROR: You've hit your usage limit. Upgrade to Plus to continue using Codex, or try again at Jul 30th, 2026 1:50 PM.";
         assert!(looks_like_provider_session_limit(text));
         assert_eq!(fatal_provider_stderr_message(text), Some(text));
+    }
+
+    #[test]
+    fn benign_resets_noise_is_not_a_session_limit() {
+        let text = "Tool context resets between calls";
+        assert!(!looks_like_provider_session_limit(text));
+        assert_eq!(fatal_provider_stderr_message(text), None);
     }
 
     #[test]
