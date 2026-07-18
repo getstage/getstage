@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stage - The AI workspace for designers</title>
+  <meta name="description" content="Stage is the only tool where designers manage clients, run research, and generate designs in one place. Powered by your AI, not ours." />
+  <link rel="icon" type="image/svg+xml" href="assets/logo-mark.svg" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ─── NAV ──────────────────────────────────────────────── -->
+  <header class="nav-wrap">
+    <nav class="nav" aria-label="Primary">
+      <a class="nav-brand" href="#top" aria-label="Stage home">
+        <img src="assets/logo-mark.svg" alt="" width="22" height="22" />
+        <span class="wordmark">Stage</span>
+      </a>
+      <ul class="nav-links" role="list">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="#login">Login</a></li>
+      </ul>
+      <a class="btn btn-primary btn-sm" href="#start">Start for free</a>
+    </nav>
+  </header>
+
+  <main id="top">
+
+    <!-- ─── HERO ───────────────────────────────────────────── -->
+    <section class="hero">
+      <div class="hero-grad" aria-hidden="true"></div>
+      <div class="container hero-inner">
+        <div class="hero-copy reveal">
+          <h1 class="hero-title">Stage is your design agent for<br/>building products people love.</h1>
+          <div class="hero-ctas">
+            <a class="btn btn-primary btn-hero" href="#start">Start 14-day free trial<svg class="btn-ico" width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 8h9m0 0L8.5 4m4 4-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          </div>
+        </div>
+
+        <!-- Hero product video -->
+        <div class="hero-visual reveal">
+          <div class="hero-video-wrap" id="heroVideoWrap">
+            <video class="hero-video" id="heroVideo" src="assets/videos/hero.mp4"
+                   poster="assets/videos/hero-poster.jpg"
+                   autoplay muted playsinline preload="auto"></video>
+            <button class="hv-btn hv-sound" id="heroSoundBtn" type="button" aria-label="Unmute video" aria-pressed="false">
+              <svg class="hv-ico-muted" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" fill="currentColor"/><path d="m16 9.5 5 5m0-5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <svg class="hv-ico-sound" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" fill="currentColor"/><path d="M15 9.3a4 4 0 0 1 0 5.4M17.6 7a7.5 7.5 0 0 1 0 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+            <button class="hv-btn hv-replay" id="heroReplayBtn" type="button" aria-label="Replay video">
+              Replay
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.6M6 3v4h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── LOGO BAR ───────────────────────────────────────── -->
+    <section class="logobar">
+      <div class="container">
+        <p class="logobar-label">Trusted by designers using</p>
+        <ul class="logobar-list" role="list">
+          <li><img src="https://unpkg.com/simple-icons@v13/icons/claude.svg" alt="Claude" /><span>Claude</span></li>
+          <li><img src="https://unpkg.com/simple-icons@v13/icons/openai.svg" alt="Codex" /><span>Codex</span></li>
+          <li><img src="https://unpkg.com/simple-icons@v13/icons/figma.svg" alt="Figma" /><span>Figma</span></li>
+          <li><img src="https://unpkg.com/simple-icons@v13/icons/notion.svg" alt="Notion" /><span>Notion</span></li>
+          <li><img class="is-paper" src="assets/icons/paper.svg" alt="Paper" /><span>Paper</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ─── TESTIMONIALS ───────────────────────────────────── -->
+    <section class="testimonials" aria-label="Customer testimonials">
+      <div class="container">
+        <div class="tst-quote-block reveal">
+          <img class="tst-deco tst-deco-tl" src="assets/testimonials/quote.svg" alt="" aria-hidden="true" />
+          <blockquote class="tst-quote">
+            <p id="tstQuote">I work in 4-week sprints, so speed is everything. Stage runs the research, strategy, and direction in one place - I get to Figma in a fraction of the time.</p>
+          </blockquote>
+          <img class="tst-deco tst-deco-br" src="assets/testimonials/quote.svg" alt="" aria-hidden="true" />
+        </div>
+
+        <div class="tst-people reveal" role="tablist" aria-label="Choose a testimonial">
+          <button class="tst-person is-active" role="tab" aria-selected="true" data-i="0"
+                  data-quote="I work in 4-week sprints, so speed is everything. Stage runs the research, strategy, and direction in one place - I get to Figma in a fraction of the time.">
+            <span class="tst-prog" aria-hidden="true"><span class="tst-prog-fill"></span></span>
+            <span class="tst-photo"><img src="assets/testimonials/pratik.jpg" alt="" loading="lazy" /></span>
+            <img class="tst-logo tst-logo-sm" src="assets/testimonials/logo-baseframe.png" alt="Baseframe" loading="lazy" />
+            <span class="tst-name">Pratik Singh</span>
+            <span class="tst-role">Design Lead</span>
+          </button>
+
+          <button class="tst-person" role="tab" aria-selected="false" data-i="1"
+                  data-quote="Other AI tools race you to generic. I'd rather get the details right - Stage actually respects that and keeps up with me.">
+            <span class="tst-prog" aria-hidden="true"><span class="tst-prog-fill"></span></span>
+            <span class="tst-photo"><img src="assets/testimonials/dudu.jpg" alt="" loading="lazy" /></span>
+            <img class="tst-logo tst-logo-sm" src="assets/testimonials/logo-toolfolio.png" alt="Toolfolio" loading="lazy" />
+            <span class="tst-name">Dudu</span>
+            <span class="tst-role">Founder</span>
+          </button>
+
+          <button class="tst-person" role="tab" aria-selected="false" data-i="2"
+                  data-quote="Most designs fall apart when you build them. What comes out of Stage actually holds up in code - and that's rare.">
+            <span class="tst-prog" aria-hidden="true"><span class="tst-prog-fill"></span></span>
+            <span class="tst-photo"><img src="assets/testimonials/wessel.jpg" alt="" loading="lazy" /></span>
+            <img class="tst-logo" src="assets/logo-mark.svg" alt="Stage" />
+            <span class="tst-name">Wessel Dieben</span>
+            <span class="tst-role">Full-Stack Dev</span>
+          </button>
+
+          <button class="tst-person" role="tab" aria-selected="false" data-i="3"
+                  data-quote="I ship MVPs fast to test ideas, but I won't launch something ugly. Stage lets me move quick and still ship real, polished design.">
+            <span class="tst-prog" aria-hidden="true"><span class="tst-prog-fill"></span></span>
+            <span class="tst-photo"><img src="assets/testimonials/adrien.jpg" alt="" loading="lazy" /></span>
+            <img class="tst-logo" src="assets/testimonials/logo-logiaweb.png" alt="Logiaweb" loading="lazy" />
+            <span class="tst-name">Adrien Ninet</span>
+            <span class="tst-role">Founder &amp; Creator</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <div class="container"><span class="sect-rule" aria-hidden="true"></span></div>
+
+    <!-- ─── FEATURES ───────────────────────────────────────── -->
+    <section id="features" class="features">
+      <div class="container">
+        <header class="features-head reveal">
+          <h2 class="section-title">How great design gets made.</h2>
+        </header>
+      </div>
+      <div class="container features-stack">
+
+        <!-- Feature 1 -->
+        <article id="feature-projects" class="feature reveal">
+          <header class="feature-head">
+            <h2 class="feature-title">Every project, one place.</h2>
+            <p class="feature-sub">Track phases, tasks, and timelines the way designers actually work. See every project at a glance and know what's next.</p>
+          </header>
+          <div class="feature-visual">
+            <video class="feature-video" src="assets/videos/stage-1.mp4"
+                   autoplay muted loop playsinline preload="metadata"></video>
+          </div>
+        </article>
+
+        <!-- Feature 2 -->
+        <article id="feature-research" class="feature reveal feature-flip">
+          <header class="feature-head">
+            <h2 class="feature-title">Research, then strategy.</h2>
+            <p class="feature-sub">Drop a URL and Stage analyzes competitors, positioning, and patterns - then turns it into a strategy you can approve.</p>
+          </header>
+          <div class="feature-visual">
+            <video class="feature-video" src="assets/videos/stage-2.mp4"
+                   autoplay muted loop playsinline preload="metadata"></video>
+          </div>
+        </article>
+
+        <!-- Feature 3 -->
+        <article id="feature-direction" class="feature reveal">
+          <header class="feature-head">
+            <h2 class="feature-title">Direction before design.</h2>
+            <p class="feature-sub">Explore moodboards, lock a visual direction, then turn it into flows and wireframes you can actually build from.</p>
+          </header>
+          <div class="feature-visual">
+            <video class="feature-video" src="assets/videos/stage-3.mp4"
+                   autoplay muted loop playsinline preload="metadata"></video>
+          </div>
+        </article>
+
+        <!-- Feature 4 -->
+        <article id="feature-handoff" class="feature reveal feature-flip">
+          <header class="feature-head">
+            <h2 class="feature-title">Hand off your way.</h2>
+            <p class="feature-sub">Push your work to Figma, code, or Paper, connect your own AI and tools, then hand the whole project off in one click.</p>
+          </header>
+          <div class="feature-visual">
+            <video class="feature-video" src="assets/videos/stage-4.mp4"
+                   autoplay muted loop playsinline preload="metadata"></video>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <div class="container"><span class="sect-rule" aria-hidden="true"></span></div>
+
+    <!-- ─── PRICING ────────────────────────────────────────── -->
+    <section id="pricing" class="pricing">
+      <div class="container">
+        <header class="pricing-head reveal">
+          <h2 class="section-title">Pricing that fits how you build.</h2>
+          <div class="billing-toggle" role="tablist" aria-label="Billing period">
+            <button class="bt-opt is-active" role="tab" aria-selected="true" data-period="monthly">Monthly</button>
+            <button class="bt-opt" role="tab" aria-selected="false" data-period="yearly">Yearly <span class="bt-save">Save 17%</span></button>
+          </div>
+        </header>
+
+        <div class="price-grid reveal">
+          <!-- Start -->
+          <article class="price-card">
+            <header class="price-head">
+              <h3 class="price-name">Start</h3>
+            </header>
+            <div class="price-body">
+              <div class="price-amount">
+                <span class="price-num" data-monthly="$19" data-yearly="$16">$19</span>
+                <span class="price-per">/month</span>
+              </div>
+              <p class="price-desc">For builders shipping their first real products.</p>
+            </div>
+            <ul class="price-feats" role="list">
+              <li><img src="assets/icons/seats.svg" alt="" />1 seat</li>
+              <li><img src="assets/icons/ai.svg" alt="" />Full design workflow</li>
+              <li><img src="assets/icons/projects.svg" alt="" />5,000 credits/mo (~20 projects)</li>
+              <li><img src="assets/icons/connect.svg" alt="" />Bring your own Claude or Codex</li>
+              <li><img src="assets/icons/storage.svg" alt="" />No second AI bill</li>
+              <li><img src="assets/icons/portal.svg" alt="" />Standard client portal</li>
+            </ul>
+            <a class="btn btn-secondary btn-block" href="#start">Start 14-Day Trial</a>
+          </article>
+
+          <!-- Pro -->
+          <article class="price-card price-card-featured">
+            <header class="price-head">
+              <h3 class="price-name price-name-brand">Pro</h3>
+              <span class="price-tag price-tag-brand">Most Popular</span>
+            </header>
+            <div class="price-body">
+              <div class="price-amount">
+                <span class="price-num" data-monthly="$29" data-yearly="$24">$29</span>
+                <span class="price-per">/month</span>
+              </div>
+              <p class="price-desc">For founders who build constantly.</p>
+            </div>
+            <ul class="price-feats" role="list">
+              <li><img src="assets/icons/ai.svg" alt="" />Everything in Start</li>
+              <li><img src="assets/icons/projects.svg" alt="" />10,000 credits/mo (~40 projects)</li>
+              <li><img src="assets/icons/connect.svg" alt="" />Unlimited projects</li>
+              <li><img src="assets/icons/portal.svg" alt="" />Custom portal, your brand &amp; domain</li>
+              <li><img src="assets/icons/storage.svg" alt="" />Top up credits anytime</li>
+              <li><img src="assets/icons/support.svg" alt="" />Priority support</li>
+            </ul>
+            <a class="btn btn-primary btn-block" href="#start">Start 14-Day Trial</a>
+          </article>
+
+          <!-- Studio -->
+          <article class="price-card">
+            <header class="price-head">
+              <h3 class="price-name">Team</h3>
+              <span class="price-tag">Team</span>
+            </header>
+            <div class="price-body">
+              <div class="price-row">
+                <div class="price-amount">
+                  <span class="price-num is-studio-price">$49</span>
+                  <span class="price-per">/month</span>
+                </div>
+                <div class="seat-stepper" role="group" aria-label="Seats"
+                     data-min="3" data-seats="3"
+                     data-base-monthly="49" data-base-yearly="41"
+                     data-extra-monthly="15" data-extra-yearly="12">
+                  <button type="button" class="seat-btn seat-dec" aria-label="Remove seat" disabled>−</button>
+                  <span class="seat-count">3</span>
+                  <button type="button" class="seat-btn seat-inc" aria-label="Add seat">+</button>
+                </div>
+              </div>
+              <p class="price-desc">For small teams building together.</p>
+            </div>
+            <ul class="price-feats" role="list">
+              <li><img src="assets/icons/ai.svg" alt="" />Everything in Pro</li>
+              <li><img src="assets/icons/seats.svg" alt="" />3 seats, $15/mo per extra</li>
+              <li><img src="assets/icons/projects.svg" alt="" />18,000 pooled credits/mo (~70 projects)</li>
+              <li><img src="assets/icons/connect.svg" alt="" />Shared project workspace</li>
+              <li><img src="assets/icons/storage.svg" alt="" />Top up credits anytime</li>
+              <li><img src="assets/icons/support.svg" alt="" />Priority support</li>
+            </ul>
+            <a class="btn btn-secondary btn-block" href="#sales">Start 14-Day Trial</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── FAQ ─────────────────────────────────────────────── -->
+    <section id="faq" class="faq">
+      <div class="container faq-inner">
+        <header class="faq-head reveal">
+          <h2 class="section-title">Questions,<br/>answered.</h2>
+          <p class="faq-sub">Everything you need to know about Stage. Can't find an answer? <a href="mailto:hello@getstage.co">Talk to us.</a></p>
+        </header>
+
+        <div class="faq-list reveal" role="list">
+
+          <div class="faq-item" role="listitem">
+            <h3 class="faq-q-wrap">
+              <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a1">
+                <span class="faq-q-text">What exactly is Stage?</span>
+                <span class="faq-icon" aria-hidden="true"><span class="faq-icon-bar"></span><span class="faq-icon-bar faq-icon-bar-v"></span></span>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-a1" role="region">
+              <div class="faq-a-inner">
+                <p>Stage is one app for designing websites and apps. You tell it what you want to build, and it does the hard parts for you - all the way from the first idea to a finished design. No juggling a dozen different tools. Everything happens in one place.</p>
+                <button class="faq-video-card" type="button" data-video-open aria-haspopup="dialog" aria-label="Play the Stage walkthrough video">
+                  <span class="fvc-thumb">
+                    <img src="assets/videos/stage-walkthrough-poster.jpg" alt="" loading="lazy" />
+                    <span class="fvc-play" aria-hidden="true">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M8 5.5v13l11-6.5-11-6.5Z" fill="currentColor"/></svg>
+                    </span>
+                  </span>
+                  <span class="fvc-copy">
+                    <span class="fvc-title">Watch the full walkthrough</span>
+                    <span class="fvc-sub">See a whole design project run inside Stage - brief to Figma handoff - in under a minute.</span>
+                    <span class="fvc-cue">Play video<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 8h9m0 0L8.5 4m4 4-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item" role="listitem">
+            <h3 class="faq-q-wrap">
+              <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a2">
+                <span class="faq-q-text">Do I need my own AI subscription?</span>
+                <span class="faq-icon" aria-hidden="true"><span class="faq-icon-bar"></span><span class="faq-icon-bar faq-icon-bar-v"></span></span>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-a2" role="region">
+              <div class="faq-a-inner">
+                <p>You bring your own AI - connect the Claude or Codex plan you already pay for and Stage does the rest. There's no second AI bill and no marked-up tokens: you keep full control of your model, your keys, and your usage.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item" role="listitem">
+            <h3 class="faq-q-wrap">
+              <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a3">
+                <span class="faq-q-text">Which AI models does Stage support?</span>
+                <span class="faq-icon" aria-hidden="true"><span class="faq-icon-bar"></span><span class="faq-icon-bar faq-icon-bar-v"></span></span>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-a3" role="region">
+              <div class="faq-a-inner">
+                <p>Stage works with Claude and Codex today, and plugs into the tools you already use - Figma, Notion, and Paper. Connect an account once and every part of your workflow, from research to design, runs on the model you choose.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item" role="listitem">
+            <h3 class="faq-q-wrap">
+              <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a4">
+                <span class="faq-q-text">How does the client portal work?</span>
+                <span class="faq-icon" aria-hidden="true"><span class="faq-icon-bar"></span><span class="faq-icon-bar faq-icon-bar-v"></span></span>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-a4" role="region">
+              <div class="faq-a-inner">
+                <p>Every project comes with a shareable client portal where research, strategy, and designs live behind a single link. On Pro and Team plans you can make it your own - your brand, your domain - so handoffs look polished and stay in one place.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item" role="listitem">
+            <h3 class="faq-q-wrap">
+              <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a5">
+                <span class="faq-q-text">Can I try Stage before paying?</span>
+                <span class="faq-icon" aria-hidden="true"><span class="faq-icon-bar"></span><span class="faq-icon-bar faq-icon-bar-v"></span></span>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-a5" role="region">
+              <div class="faq-a-inner">
+                <p>Yes - every plan starts with a 14-day free trial, no credit card required. Explore the full design workflow, connect your own AI, and ship a real project before you decide. Cancel anytime, no questions asked.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item" role="listitem">
+            <h3 class="faq-q-wrap">
+              <button class="faq-q" type="button" aria-expanded="false" aria-controls="faq-a6">
+                <span class="faq-q-text">Is my work and client data private?</span>
+                <span class="faq-icon" aria-hidden="true"><span class="faq-icon-bar"></span><span class="faq-icon-bar faq-icon-bar-v"></span></span>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-a6" role="region">
+              <div class="faq-a-inner">
+                <p>Your projects are yours. Because you bring your own AI, prompts and designs run through your own model connection - not a shared pool - and Stage never trains on your work. Client data stays scoped to each project and its portal.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ─── FOOTER ───────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-cta reveal">
+        <h2 class="footer-headline">Your workflow.<br/>Your AI. Your rules.</h2>
+        <a class="btn btn-primary" href="#start">Start for free</a>
+      </div>
+
+      <div class="footer-cols">
+        <a class="footer-brand" href="#top" aria-label="Stage home">
+          <img src="assets/logo-mark.svg" alt="" width="22" height="22" />
+        </a>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <ul role="list">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="#login">Login</a></li>
+            <li><a href="#start">Sign up</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Workflow</h4>
+          <ul role="list">
+            <li><a href="#feature-projects">Projects</a></li>
+            <li><a href="#feature-research">Research &amp; strategy</a></li>
+            <li><a href="#feature-direction">Design direction</a></li>
+            <li><a href="#feature-handoff">Handoff</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Contact</h4>
+          <ul role="list">
+            <li><a href="mailto:hello@getstage.co">Email</a></li>
+            <li><a href="https://www.instagram.com/getstage.co/" target="_blank" rel="noopener">Instagram</a></li>
+            <li><a href="https://x.com/getstageco" target="_blank" rel="noopener">X (Twitter)</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <ul role="list">
+            <li><a href="#privacy">Privacy</a></li>
+            <li><a href="#terms">Terms</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ─── VIDEO LIGHTBOX ───────────────────────────────────── -->
+  <div class="video-modal" id="videoModal" aria-hidden="true">
+    <div class="video-modal-backdrop" data-video-close></div>
+    <div class="video-modal-dialog" role="dialog" aria-modal="true" aria-label="Stage product walkthrough">
+      <button class="video-modal-close" type="button" data-video-close aria-label="Close video">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <video class="video-modal-video" id="modalVideo"
+             src="assets/videos/stage-walkthrough.mp4"
+             poster="assets/videos/stage-walkthrough-poster.jpg"
+             playsinline controls preload="none"></video>
+    </div>
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
