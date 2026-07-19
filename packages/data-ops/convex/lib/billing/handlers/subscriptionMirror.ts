@@ -84,7 +84,7 @@ function resolveCancelReason(
   if (!cancelReason) {
     return undefined;
   }
-  if (status === "canceled" || status === "cancelling" || cancelAtPeriodEnd) {
+  if (status === "canceled" || cancelAtPeriodEnd) {
     return cancelReason;
   }
   return undefined;
@@ -159,6 +159,9 @@ export async function syncSubscriptionMirrorHandler(
 
   const trialStartedAt = args.trialStartedAtMs ?? match?.trialStartedAt;
 
+  // NOTE: db.replace below drops every field not listed here. When adding new
+  // optional fields to the `subscriptions` schema, also add them to this row
+  // (or copy them from `match` if they are managed externally like payment fields).
   const row = {
     userId: args.userId,
     provider: "stripe" as const,
