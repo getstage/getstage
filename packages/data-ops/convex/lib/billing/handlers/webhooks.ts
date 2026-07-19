@@ -2,7 +2,10 @@ import type Stripe from "stripe";
 import type { GenericActionCtx, GenericDataModel } from "convex/server";
 import { components, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
-import { cancelReasonFromStripeSubscription } from "./subscriptionMirror";
+import {
+  cancelReasonFromStripeSubscription,
+  trialStartedAtMsFromStripe,
+} from "./subscriptionMirror";
 import {
   TRIAL_CREDIT_CAP,
   configForPriceId,
@@ -47,6 +50,7 @@ async function mirrorAppSubscription(
     userId?: string | null;
     metadata?: Record<string, unknown> | null;
     cancelReason?: string;
+    trialStartedAtMs?: number;
   },
 ) {
   const synced = (await ctx.runQuery(components.stripe.public.getSubscription, {
@@ -67,6 +71,7 @@ async function mirrorAppSubscription(
     currentPeriodEndMs: toMilliseconds(synced.currentPeriodEnd),
     cancelAtPeriodEnd: synced.cancelAtPeriodEnd,
     cancelReason: fallback?.cancelReason,
+    trialStartedAtMs: fallback?.trialStartedAtMs,
   });
 }
 
@@ -217,6 +222,8 @@ async function handleSubscriptionCreated(ctx: WebhookCtx, event: Stripe.Event) {
   await mirrorAppSubscription(ctx, subscription.id, {
     userId: subscription.metadata?.userId,
     metadata: subscription.metadata,
+    cancelReason: cancelReasonFromStripeSubscription(subscription),
+    trialStartedAtMs: trialStartedAtMsFromStripe(subscription),
   });
 }
 
@@ -249,6 +256,7 @@ async function handleSubscriptionUpdated(ctx: WebhookCtx, event: Stripe.Event) {
     userId,
     metadata: subscription.metadata,
     cancelReason: cancelReasonFromStripeSubscription(subscription),
+    trialStartedAtMs: trialStartedAtMsFromStripe(subscription),
   });
 
   // Tier changes and seat-quantity changes refill/adjust on the next invoice.paid
