@@ -5,6 +5,10 @@
   "scripts": {
     "build": "node ./scripts/build.mjs",
     "build:dev": "STAGE_API_BASE=https://reliable-bullfrog-917.convex.site node ./scripts/build.mjs",
+    "package": "node ./scripts/package-zip.mjs",
+    "package:dev": "STAGE_API_BASE=https://reliable-bullfrog-917.convex.site node ./scripts/package-zip.mjs",
+    "release:zip": "pnpm run build && pnpm run package",
+    "release:zip:dev": "pnpm run build:dev && pnpm run package:dev",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

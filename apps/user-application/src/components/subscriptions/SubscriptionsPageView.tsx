@@ -51,9 +51,11 @@ export function SubscriptionsPageView() {
   const navigate = useNavigate();
   const overview = useSettingsOverviewQuery();
   const createCheckoutSession = useConvexAction(api.billing.createCheckoutSession);
+  const createCustomerPortalSession = useConvexAction(api.billing.createCustomerPortalSession);
   const [billingPeriod, setBillingPeriod] = useState<BillingCycle>("monthly");
   const [teamSeats, setTeamSeats] = useState(MIN_TEAM_SEATS);
   const [pendingTier, setPendingTier] = useState<Tier | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const isYearly = billingPeriod === "yearly";
   const currentPlan = overview.data?.profile.plan;
@@ -104,6 +106,24 @@ export function SubscriptionsPageView() {
     }
   }
 
+  async function openManageSubscription() {
+    setCheckoutError(null);
+    setPortalLoading(true);
+    try {
+      const result = await createCustomerPortalSession({ platform: "desktop" });
+      if (!result.url) {
+        throw new Error("Portal URL missing.");
+      }
+      await openExternalLink(result.url);
+    } catch (error) {
+      setCheckoutError(
+        toUserFacingErrorMessage(error, "Could not open subscription management. Please try again."),
+      );
+    } finally {
+      setPortalLoading(false);
+    }
+  }
+
   return (
     <div className="flex h-dvh w-full min-w-0 overflow-hidden bg-white">
       <div className="flex h-full w-full min-w-0 flex-col items-center overflow-auto px-[clamp(10px,3vw,56px)] pb-[clamp(18px,3vw,40px)] pt-[64px] min-[900px]:py-[clamp(14px,3vw,40px)]">
@@ -133,6 +153,19 @@ export function SubscriptionsPageView() {
                       ? "Change plan anytime. Stripe handles proration on upgrades."
                       : "14-day free trial. Card required, cancel anytime."}
                   </p>
+                  {isSubscribed ? (
+                    <p className="mt-[8px] text-[12px] font-medium leading-[1.5] text-[#a3a3a3]">
+                      Need invoices, cancel, or update your card?{" "}
+                      <button
+                        type="button"
+                        onClick={() => void openManageSubscription()}
+                        disabled={portalLoading}
+                        className="underline decoration-[#d4d4d4] underline-offset-[3px] transition-colors hover:text-[#737373] disabled:opacity-60"
+                      >
+                        {portalLoading ? "Opening…" : "Manage subscription"}
+                      </button>
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex w-fit rounded-[8px] bg-[#f5f5f5] p-[2px]">
                   <BillingPeriodButton active={!isYearly} onClick={() => setBillingPeriod("monthly")}>

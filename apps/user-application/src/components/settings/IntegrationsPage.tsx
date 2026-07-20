@@ -28,6 +28,7 @@ import {
 } from "@/lib/settings/providerIntegrationRows";
 import { isProviderCliReady } from "@/lib/settings/providerCliSetup";
 import { openExternalLink } from "@/lib/settings/openExternalLink";
+import { FIGMA_COMMUNITY_PLUGIN_URL } from "@/lib/settings/figmaPlugin";
 import type { IntegrationRowModel } from "@/types/settings/integrations";
 import type { PaperConnectionStatusResponse } from "@stage/data-ops/contracts";
 import { SetupStepsDialog } from "@/components/ui/SetupStepsDialog";
@@ -431,11 +432,9 @@ function FigmaExporterSetupDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const steps = [
-    "Download the Stage Exporter plugin zip file.",
-    "Extract the zip — it contains manifest.json and a dist folder. Keep them together.",
-    "In Figma Desktop, open the Figma menu, then Plugins → Development → Import plugin from manifest.",
-    "Select the manifest.json from the extracted folder (not from Downloads directly).",
-    "When you export from Stage, run Stage Exporter in Figma and enter the pairing code.",
+    "Open the Stage plugin on Figma Community (approved listing).",
+    "In Figma, install or run it once (Open in Figma / Try it out).",
+    "When you export from Stage, run Plugins → Stage and enter the pairing code.",
   ];
 
   return (
@@ -455,10 +454,10 @@ function FigmaExporterSetupDialog({
               </span>
               <div className="min-w-0">
                 <Dialog.Title className="text-[15px] font-medium leading-[1.25] text-[#0A0A0A]">
-                  Set up Stage Exporter for Figma
+                  Set up Stage for Figma
                 </Dialog.Title>
                 <Dialog.Description className="mt-1 text-[13px] font-medium leading-[1.45] text-[#525252]">
-                  Install the plugin once in Figma Desktop, then use the pairing code shown during export.
+                  Install the official Community plugin once, then use the pairing code shown during export.
                 </Dialog.Description>
               </div>
             </div>
@@ -480,19 +479,21 @@ function FigmaExporterSetupDialog({
 
             <img
               src="/images/integrations/figma-integration.webp"
-              alt="Figma menu showing Plugins, Development, and Import plugin from manifest"
+              alt="Stage Figma Community plugin"
               className="aspect-[1.36] w-full rounded-[8px] border border-[#E5E5E5] object-cover"
             />
           </div>
 
           <div className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
-            <a
-              href="/stage-exporter-0.2.13.zip"
-              download="stage-exporter-0.2.13.zip"
+            <button
+              type="button"
+              onClick={() => {
+                void openExternalLink(FIGMA_COMMUNITY_PLUGIN_URL);
+              }}
               className="inline-flex h-[34px] items-center justify-center rounded-[6px] bg-[#171717] px-3 text-[13px] font-medium leading-none text-white shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#2A2A2A]"
             >
-              Download plugin (.zip)
-            </a>
+              Open in Figma Community
+            </button>
             <Dialog.Close asChild>
               <button
                 type="button"
