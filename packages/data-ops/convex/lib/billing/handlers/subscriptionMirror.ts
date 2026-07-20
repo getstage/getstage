@@ -30,6 +30,14 @@ export function cancelReasonFromStripeSubscription(subscription: {
   return details?.feedback ?? details?.reason ?? undefined;
 }
 
+export function trialStartedAtMsFromStripe(subscription: {
+  trial_start?: number | null;
+}): number | undefined {
+  return typeof subscription.trial_start === "number"
+    ? subscription.trial_start * 1000
+    : undefined;
+}
+
 export const syncSubscriptionMirrorArgs = {
   userId: v.id("users"),
   stripeSubscriptionId: v.string(),
@@ -39,6 +47,7 @@ export const syncSubscriptionMirrorArgs = {
   currentPeriodEndMs: v.number(),
   cancelAtPeriodEnd: v.boolean(),
   cancelReason: v.optional(v.string()),
+  trialStartedAtMs: v.optional(v.number()),
 };
 
 function mapSubscriptionStatus(
@@ -64,6 +73,21 @@ function mapSubscriptionStatus(
     default:
       return "expired";
   }
+}
+
+/** Keep cancelReason only while the sub is actually exiting or already canceled. */
+function resolveCancelReason(
+  status: AppSubscriptionStatus,
+  cancelAtPeriodEnd: boolean,
+  cancelReason?: string,
+): string | undefined {
+  if (!cancelReason) {
+    return undefined;
+  }
+  if (status === "canceled" || cancelAtPeriodEnd) {
+    return cancelReason;
+  }
+  return undefined;
 }
 
 function resolvePlan(priceId: string, metadata?: Record<string, unknown> | null): Tier | null {
@@ -104,6 +128,7 @@ export async function syncSubscriptionMirrorHandler(
     currentPeriodEndMs: number;
     cancelAtPeriodEnd: boolean;
     cancelReason?: string;
+    trialStartedAtMs?: number;
   },
 ) {
   const plan = resolvePlan(args.stripePriceId);
@@ -117,6 +142,11 @@ export async function syncSubscriptionMirrorHandler(
 
   const billingCycle = resolveBillingCycle(args.stripePriceId);
   const status = mapSubscriptionStatus(args.stripeStatus, args.cancelAtPeriodEnd);
+  const cancelReason = resolveCancelReason(
+    status,
+    args.cancelAtPeriodEnd,
+    args.cancelReason,
+  );
   const timestamp = now();
 
   const existing = await ctx.db
@@ -127,6 +157,11 @@ export async function syncSubscriptionMirrorHandler(
     (row) => row.stripeSubscriptionId === args.stripeSubscriptionId,
   );
 
+  const trialStartedAt = args.trialStartedAtMs ?? match?.trialStartedAt;
+
+  // NOTE: db.replace below drops every field not listed here. When adding new
+  // optional fields to the `subscriptions` schema, also add them to this row
+  // (or copy them from `match` if they are managed externally like payment fields).
   const row = {
     userId: args.userId,
     provider: "stripe" as const,
@@ -138,17 +173,23 @@ export async function syncSubscriptionMirrorHandler(
     stripeCustomerId: args.stripeCustomerId,
     stripeSubscriptionId: args.stripeSubscriptionId,
     stripePriceId: args.stripePriceId,
-    ...(args.cancelReason ? { cancelReason: args.cancelReason } : {}),
+    ...(trialStartedAt !== undefined ? { trialStartedAt } : {}),
+    ...(cancelReason ? { cancelReason } : {}),
+    ...(match?.paymentMethodBrand ? { paymentMethodBrand: match.paymentMethodBrand } : {}),
+    ...(match?.paymentMethodLast4 ? { paymentMethodLast4: match.paymentMethodLast4 } : {}),
+    ...(match?.externalCustomerId ? { externalCustomerId: match.externalCustomerId } : {}),
+    ...(match?.externalSubscriptionId
+      ? { externalSubscriptionId: match.externalSubscriptionId }
+      : {}),
+    createdAt: match?.createdAt ?? timestamp,
     updatedAt: timestamp,
   };
 
   if (match) {
-    await ctx.db.patch(match._id, row);
+    // replace so stale cancelReason is dropped when the sub is no longer exiting
+    await ctx.db.replace(match._id, row);
   } else {
-    await ctx.db.insert("subscriptions", {
-      ...row,
-      createdAt: timestamp,
-    });
+    await ctx.db.insert("subscriptions", row);
   }
 
   const user = await ctx.db.get(args.userId);
@@ -184,6 +225,7 @@ export async function markSubscriptionMirrorCanceledHandler(
   const timestamp = now();
   await ctx.db.patch(match._id, {
     status: "canceled",
+    cancelAtPeriodEnd: false,
     ...(args.cancelReason ? { cancelReason: args.cancelReason } : {}),
     updatedAt: timestamp,
   });

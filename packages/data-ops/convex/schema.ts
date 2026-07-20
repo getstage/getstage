@@ -582,6 +582,8 @@ export default defineSchema({
     plan,
     status: subscriptionStatus,
     billingCycle: v.union(v.literal("monthly"), v.literal("yearly")),
+    // Stripe trial_start (ms). Set for trial checkouts; omitted for paid-only subs.
+    trialStartedAt: v.optional(v.number()),
     currentPeriodEnd: v.number(),
     cancelAtPeriodEnd: v.optional(v.boolean()),
     cancelReason: v.optional(v.string()),
