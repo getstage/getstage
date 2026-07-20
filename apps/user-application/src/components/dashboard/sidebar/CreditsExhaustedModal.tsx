@@ -4,6 +4,7 @@ import { useAction as useConvexAction } from "convex/react";
 import { api } from "@/lib/convexApi";
 import { useCreditSummaryQuery, useSettingsOverviewQuery } from "@/hooks/convex-data";
 import { toUserFacingErrorMessage } from "@/lib/errors";
+import { openExternalLink } from "@/lib/settings/openExternalLink";
 
 type CreditsExhaustedModalProps = {
   open: boolean;
@@ -35,12 +36,16 @@ export function CreditsExhaustedModal({
   const overview = useSettingsOverviewQuery();
   const credits = useCreditSummaryQuery();
   const endTrialNow = useConvexAction(api.billing.endTrialNow);
+  const createCustomerPortalSession = useConvexAction(api.billing.createCustomerPortalSession);
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
 
   const subscription = overview.data?.subscription ?? null;
   const isTrialing = subscription?.status === "trialing";
+  const isPaymentFailed =
+    subscription?.status === "past_due" || subscription?.status === "unpaid";
   const plan = subscription?.plan ?? null;
   const planDisplay = plan ? PLAN_DISPLAY[plan] ?? null : null;
   const billingCycle = subscription?.billingCycle === "monthly" ? "monthly" : "yearly";
@@ -96,7 +101,33 @@ export function CreditsExhaustedModal({
     }
   }
 
-  const { title, description } = copyForPhase(phase, isTrialing, planLabel, planPrice, error);
+  async function handleUpdatePayment() {
+    setPortalLoading(true);
+    setError(null);
+    try {
+      const result = await createCustomerPortalSession({ platform: "desktop" });
+      if (!result.url) {
+        throw new Error("Portal URL missing.");
+      }
+      await openExternalLink(result.url);
+      onOpenChange(false);
+    } catch (err) {
+      setError(
+        toUserFacingErrorMessage(err, "Could not open payment settings. Please try again."),
+      );
+    } finally {
+      setPortalLoading(false);
+    }
+  }
+
+  const { title, description } = copyForPhase(
+    phase,
+    isTrialing,
+    isPaymentFailed,
+    planLabel,
+    planPrice,
+    error,
+  );
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -125,8 +156,11 @@ export function CreditsExhaustedModal({
               {renderButtons({
                 phase,
                 isTrialing,
+                isPaymentFailed,
                 planLabel,
+                portalLoading,
                 onActivate: handleActivate,
+                onUpdatePayment: () => void handleUpdatePayment(),
                 onTopUp,
                 onSeePlans,
                 onClose: () => onOpenChange(false),
@@ -142,6 +176,7 @@ export function CreditsExhaustedModal({
 function copyForPhase(
   phase: Phase,
   isTrialing: boolean,
+  isPaymentFailed: boolean,
   planLabel: string,
   planPrice: number | null,
   error: string | null,
@@ -160,8 +195,15 @@ function copyForPhase(
   }
   if (phase === "error") {
     return {
-      title: "We couldn't activate your plan.",
+      title: isPaymentFailed ? "Couldn’t open payment settings." : "We couldn't activate your plan.",
       description: error ?? "Something went wrong. Please try again.",
+    };
+  }
+  if (isPaymentFailed) {
+    return {
+      title: "Payment failed",
+      description:
+        "We couldn’t charge your card, so AI credits are paused. Update your payment method to restore access.",
     };
   }
   if (isTrialing) {
@@ -182,13 +224,27 @@ function copyForPhase(
 function renderButtons(args: {
   phase: Phase;
   isTrialing: boolean;
+  isPaymentFailed: boolean;
   planLabel: string;
+  portalLoading: boolean;
   onActivate: () => void;
+  onUpdatePayment: () => void;
   onTopUp: () => void;
   onSeePlans: () => void;
   onClose: () => void;
 }) {
-  const { phase, isTrialing, planLabel, onActivate, onTopUp, onSeePlans, onClose } = args;
+  const {
+    phase,
+    isTrialing,
+    isPaymentFailed,
+    planLabel,
+    portalLoading,
+    onActivate,
+    onUpdatePayment,
+    onTopUp,
+    onSeePlans,
+    onClose,
+  } = args;
 
   if (phase === "activating") {
     return (
@@ -237,6 +293,28 @@ function renderButtons(args: {
   }
 
   // idle
+  if (isPaymentFailed) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={onUpdatePayment}
+          disabled={portalLoading}
+          className="flex h-[34px] w-full cursor-pointer items-center justify-center rounded-[6px] border-[0.5px] border-[rgba(158,153,248,0.75)] bg-gradient-to-b from-[#7B76DF] to-[#463FBA] px-[12px] py-[8px] text-[13px] font-medium leading-none text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] disabled:cursor-not-allowed disabled:opacity-60 [text-shadow:0_0.5px_1.5px_rgba(0,0,0,0.15)]"
+        >
+          {portalLoading ? "Opening…" : "Update payment method"}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-[34px] w-full cursor-pointer items-center justify-center px-[10px] py-[8px] text-[13px] font-medium leading-none text-[#737373] transition-colors hover:text-[#525252]"
+        >
+          Maybe later
+        </button>
+      </>
+    );
+  }
+
   if (isTrialing) {
     return (
       <>

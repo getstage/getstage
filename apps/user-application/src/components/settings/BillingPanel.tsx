@@ -93,6 +93,8 @@ export function BillingPanel() {
   const periodLabel = subscriptionPeriodLabel(subscription, "billing");
   const periodDate = formatSubscriptionPeriodDate(subscription?.currentPeriodEnd ?? null, "billing");
   const isTrialing = subscription?.status === "trialing";
+  const isPaymentFailed =
+    subscription?.status === "past_due" || subscription?.status === "unpaid";
   const paymentLabel = subscription?.paymentMethodBrand
     ? `${capitalize(subscription.paymentMethodBrand)} ${subscription.paymentMethodLast4 ? `•••• ${subscription.paymentMethodLast4}` : ""}`
     : "Manage in customer portal";
@@ -153,6 +155,20 @@ export function BillingPanel() {
           description="Manage your subscription here"
         />
 
+        {isPaymentFailed ? (
+          <div className="flex flex-col gap-[12px] rounded-[8px] border border-[#FECACA] bg-[#FEF2F2] px-[14px] py-[12px] sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium leading-[1.4] text-[#991B1B]">Payment failed</p>
+              <p className="mt-[2px] text-[12px] font-normal leading-[1.5] text-[#B91C1C]">
+                We couldn&apos;t charge your card. Update your payment method to restore AI credits.
+              </p>
+            </div>
+            <SaveButton onClick={openPortal} disabled={portalLoading || plan === "free"}>
+              {portalLoading ? "Opening…" : "Update payment method"}
+            </SaveButton>
+          </div>
+        ) : null}
+
         <SettingsCard title="Current plan">
           <p className="-mt-[12px] px-[12px] pb-[12px] text-[12px] font-normal leading-[1.5] text-[#404040]">
             Your Stage subscription, checkout, and customer portal.
@@ -167,6 +183,11 @@ export function BillingPanel() {
                     {isTrialing ? (
                       <span className="rounded-[4px] bg-[#F5F3FF] px-[6px] py-[2px] text-[11px] font-medium leading-none text-[#5B54C9]">
                         Free trial
+                      </span>
+                    ) : null}
+                    {isPaymentFailed ? (
+                      <span className="rounded-[4px] bg-[#FEF2F2] px-[6px] py-[2px] text-[11px] font-medium leading-none text-[#B91C1C]">
+                        Payment failed
                       </span>
                     ) : null}
                   </div>

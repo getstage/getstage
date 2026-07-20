@@ -44,7 +44,8 @@
         submit.disabled = true;
         status.className = "working";
         status.innerHTML = '<span class="spinner"></span>Starting export...';
-        parent.postMessage({ pluginMessage: { type: "export", pairingCode: code.value.trim() } }, "*");
+        const pairingCode = code.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+        parent.postMessage({ pluginMessage: { type: "export", pairingCode } }, "*");
       });
 
       onmessage = (event) => {

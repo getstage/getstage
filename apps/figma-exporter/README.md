@@ -2,17 +2,31 @@
 
 This plugin is the thin canvas-write adapter for Stage wireframe exports.
 
+## End users (production)
+
+Install the approved Community plugin — **not** a local zip / Development manifest:
+
+https://www.figma.com/community/plugin/1652796428495766813/stage
+
+Stage Settings → Integrations opens that listing. Plugin id in `manifest.json` must stay `1652796428495766813`.
+
 ## Local development
 
 ```bash
-# Production (default) — publish / org-distribute this build
-pnpm --filter @stage/figma-exporter build
+# Production allowlist zip (quirky-snail Convex) — for publishing / QA vs prod
+pnpm --filter @stage/figma-exporter release:zip
 
-# Local against testing Convex
-pnpm --filter @stage/figma-exporter build:dev
+# Local Stage (`pnpm dev` / reliable-bullfrog) — Development import only
+pnpm --filter @stage/figma-exporter release:zip:dev
 ```
 
-In Figma Desktop, import `apps/figma-exporter/manifest.json` as a development plugin.
+Outputs (dev/publish tooling — not the in-app user path):
+- `apps/figma-exporter/stage-exporter-<version>.zip`
+- `apps/figma-exporter/stage-exporter-<version>-testing.zip` for local desktop
+
+In Figma Desktop (dev only): Plugins → Development → Import plugin from manifest… → unzipped `manifest.json`.
+
+**Env mismatch:** Local Stage creates pairing jobs on testing Convex. The Community / production plugin claims against production. That shows up as “pairing code not found or expired.” Use the `-testing` zip with `pnpm dev`.
 
 Default `STAGE_API_BASE` is production (`https://quirky-snail-763.convex.site`). The build rewrites `manifest.json` `networkAccess.allowedDomains` to match. Do **not** publish a plugin whose allowlist still points at `reliable-bullfrog-917` (dev).
 

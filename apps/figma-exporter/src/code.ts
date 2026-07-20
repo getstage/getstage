@@ -192,7 +192,7 @@ function friendlyError(rawMessage: string): string {
     return "The Hi-Fi preview image could not be loaded. Republish the Stage Exporter plugin with the latest manifest, then try again.";
   }
   if (msg.indexOf("pairing code is invalid or expired") !== -1) {
-    return "The pairing code expired. Click Send to FigJam in Stage to get a new code.";
+    return "Pairing code not found or expired. Create a fresh code in Stage (Export again). Local Stage (pnpm dev) must use the testing plugin build — production zip talks to a different backend.";
   }
   if (msg.indexOf("same account") !== -1) {
     return "The Figma account in this file does not match the one connected to Stage. Reconnect Figma in Stage Settings.";
@@ -318,7 +318,9 @@ async function executeNodesFigmaWritePlan(plan: NodesFigmaWritePlan) {
   const nodes = Array.isArray(plan.nodes) ? plan.nodes.slice(0, 8000) : [];
   const root = figma.createFrame();
   root.name = plan.name;
-  root.resize(clampSize(num(plan.width, 1440)), clampSize(num(plan.height, 1000)));
+  const frameW = clampSize(num(plan.width, 1440));
+  const frameH = clampSize(num(plan.height, 1000));
+  root.resize(frameW, frameH);
   root.clipsContent = true;
   root.fills = [{ type: "SOLID", color: rgb("#FFFFFF") }];
 
@@ -341,11 +343,27 @@ async function executeNodesFigmaWritePlan(plan: NodesFigmaWritePlan) {
     if (!node || typeof node.type !== "string") continue;
     try {
       if (node.type === "rect") {
+        const w = clampSize(num(node.w, 1));
+        const h = clampSize(num(node.h, 1));
+        const y = num(node.y);
+        const fill = typeof node.fill === "string" ? node.fill.toLowerCase() : "";
+        const isWhite =
+          !fill || fill === "#ffffff" || fill === "#fff" || fill === "#fafafa" || fill === "#f5f5f5";
+        // Skip duplicate full-canvas white plates — they read as empty whitespace.
+        if (
+          isWhite &&
+          y <= 2 &&
+          w >= frameW * 0.95 &&
+          h >= frameH * 0.85
+        ) {
+          continue;
+        }
         const r = figma.createRectangle();
-        r.resize(clampSize(num(node.w, 1)), clampSize(num(node.h, 1)));
+        r.name = "Rectangle";
+        r.resize(w, h);
         root.appendChild(r);
         r.x = num(node.x);
-        r.y = num(node.y);
+        r.y = y;
         r.cornerRadius = Math.max(0, num(node.radius, 0));
         r.fills = node.fill ? [{ type: "SOLID", color: rgb(node.fill) }] : [];
         if (node.strokeColor) {
@@ -357,6 +375,7 @@ async function executeNodesFigmaWritePlan(plan: NodesFigmaWritePlan) {
         if (typeof node.url !== "string" || node.url.indexOf("https://") !== 0) continue;
         const image = await figma.createImageAsync(node.url);
         const r = figma.createRectangle();
+        r.name = "Image";
         r.resize(clampSize(num(node.w, 1)), clampSize(num(node.h, 1)));
         root.appendChild(r);
         r.x = num(node.x);
