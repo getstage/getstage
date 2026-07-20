@@ -192,7 +192,7 @@ function friendlyError(rawMessage: string): string {
     return "The Hi-Fi preview image could not be loaded. Republish the Stage Exporter plugin with the latest manifest, then try again.";
   }
   if (msg.indexOf("pairing code is invalid or expired") !== -1) {
-    return "Pairing code not found or expired. Create a fresh code in Stage (Export again). Local Stage (pnpm dev) must use the testing plugin build — production zip talks to a different backend.";
+    return "Pairing code not found or expired. Create a fresh export in Stage to get a new code.";
   }
   if (msg.indexOf("same account") !== -1) {
     return "The Figma account in this file does not match the one connected to Stage. Reconnect Figma in Stage Settings.";

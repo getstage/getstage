@@ -112,6 +112,7 @@ export function CreditsExhaustedModal({
       await openExternalLink(result.url);
       onOpenChange(false);
     } catch (err) {
+      setPhase("error");
       setError(
         toUserFacingErrorMessage(err, "Could not open payment settings. Please try again."),
       );
