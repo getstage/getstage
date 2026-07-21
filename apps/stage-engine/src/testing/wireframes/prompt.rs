@@ -84,3 +84,38 @@ fn regen_prompt_redacts_prior_html_and_forbids_reuse() {
     assert!(prompt.contains("homepage"));
 }
 
+#[test]
+fn hifi_prompt_includes_taste_skill_by_default() {
+    let prompt = build_wireframes_prompt(
+        &sample_input(),
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
+
+    assert!(
+        prompt.contains("<taste_skill"),
+        "Hi-Fi generation must attach the Taste skill"
+    );
+    assert!(prompt.contains("Leonxlnx/taste-skill"));
+    assert!(prompt.contains("Absolute bans (anti-slop)"));
+}
+
+#[test]
+fn lofi_prompt_omits_taste_skill() {
+    let prompt = build_wireframes_prompt(
+        &sample_input(),
+        WireframeKind::Lofi,
+        None,
+        None,
+        None,
+        false,
+        None,
+    );
+
+    assert!(!prompt.contains("<taste_skill"));
+}
+

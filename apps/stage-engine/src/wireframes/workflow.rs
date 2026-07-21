@@ -468,9 +468,16 @@ enum WorkflowError {
 
 impl WorkflowError {
     fn to_engine_error(&self, provider_id: ProviderId) -> EngineError {
+        // Provider failures already carry a short user-facing message (usage limit,
+        // auth, model). Keep that instead of wrapping everything in a generic
+        // "could not finish the wireframes run" that hides the real cause in detail.
+        if let WorkflowError::Provider(error) = self {
+            return error.to_engine_error(provider_id);
+        }
+
         let code = match self {
             WorkflowError::InvalidRequest(_) => EngineErrorCode::InvalidRequest,
-            WorkflowError::Provider(error) => error.to_engine_error(provider_id).code,
+            WorkflowError::Provider(_) => unreachable!("handled above"),
             WorkflowError::Convex(_) | WorkflowError::Serde(_) => EngineErrorCode::InternalError,
         };
 

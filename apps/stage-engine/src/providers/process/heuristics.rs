@@ -49,15 +49,38 @@ pub(super) fn extract_provider_exit_payload(detail: &str) -> Option<String> {
 }
 
 pub(super) fn looks_like_provider_session_limit(text: &str) -> bool {
+    // Match explicit limit language only. Do NOT match bare "resets " — that
+    // word appears in benign CLI noise and, when used for live process kills,
+    // would abort healthy runs.
     let lower = text.to_lowercase();
     lower.contains("session limit")
         || lower.contains("rate limit")
         || lower.contains("usage limit")
-        || lower.contains("resets ")
+}
+
+/// Org/admin blocked Claude Code subscription — not fixable by `claude auth login`.
+pub(super) fn looks_like_provider_subscription_disabled(text: &str) -> bool {
+    let lower = text.to_lowercase();
+    lower.contains("disabled claude subscription")
+        || lower.contains("use an anthropic api key instead")
+        || (lower.contains("organization has disabled") && lower.contains("claude"))
+}
+
+/// Fatal stderr that will not recover if we keep waiting — kill the child ASAP.
+pub(super) fn fatal_provider_stderr_message(text: &str) -> Option<&str> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if looks_like_provider_session_limit(trimmed) || looks_like_provider_subscription_disabled(trimmed)
+    {
+        return Some(trimmed);
+    }
+    None
 }
 
 pub(super) fn looks_like_provider_auth_failure(text: &str) -> bool {
-    if looks_like_provider_session_limit(text) {
+    if looks_like_provider_session_limit(text) || looks_like_provider_subscription_disabled(text) {
         return false;
     }
 
@@ -246,6 +269,29 @@ mod tests {
         assert!(!looks_like_provider_auth_failure(
             "You've hit your session limit · resets 6:50pm (Europe/Amsterdam)"
         ));
+    }
+
+    #[test]
+    fn subscription_disabled_is_fatal_and_not_auth() {
+        let text = "Your organization has disabled Claude subscription access for Claude Code · Use an Anthropic API key instead, or ask your admin to enable access";
+        assert!(looks_like_provider_subscription_disabled(text));
+        assert!(!looks_like_provider_auth_failure(text));
+        assert_eq!(fatal_provider_stderr_message(text), Some(text));
+    }
+
+    #[test]
+    fn usage_limit_is_fatal_stderr() {
+        let text =
+            "ERROR: You've hit your usage limit. Upgrade to Plus to continue using Codex, or try again at Jul 30th, 2026 1:50 PM.";
+        assert!(looks_like_provider_session_limit(text));
+        assert_eq!(fatal_provider_stderr_message(text), Some(text));
+    }
+
+    #[test]
+    fn benign_resets_noise_is_not_a_session_limit() {
+        let text = "Tool context resets between calls";
+        assert!(!looks_like_provider_session_limit(text));
+        assert_eq!(fatal_provider_stderr_message(text), None);
     }
 
     #[test]

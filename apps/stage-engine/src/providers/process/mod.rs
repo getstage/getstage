@@ -25,7 +25,7 @@ use crate::runs::RunEventSink;
 pub use error::ProviderProcessError;
 
 use error::provider_exit_error;
-use heuristics::needs_stderr_artifact_capture;
+use heuristics::{fatal_provider_stderr_message, needs_stderr_artifact_capture};
 use line::{
     LineSink, ProcessLine, StreamName, drain_pending_lines, spawn_line_reader, terminate_child,
 };
@@ -292,7 +292,21 @@ async fn drive_process_loop(
                 }
             }
             Some(line) = line_rx.recv() => {
+                // Usage / org-subscription failures will not recover — kill immediately
+                // instead of waiting while Codex dumps the rest of the prompt to stderr.
+                let fatal = fatal_provider_stderr_message(&line.text).map(str::to_string);
                 sink.handle(context, events, capture_multiline_stderr, line);
+                if let Some(message) = fatal {
+                    terminate_child(child).await;
+                    // Keep diagnostics collected up to the fatal line.
+                    sink.flush_stderr(context, capture_multiline_stderr);
+                    return Err(ProviderProcessError::Io {
+                        binary,
+                        source: std::io::Error::other(format!(
+                            "process exited with status exit status: 1: {message}"
+                        )),
+                    });
+                }
             }
             _ = sleep(PROCESS_POLL_INTERVAL) => {
                 match child.try_wait() {
