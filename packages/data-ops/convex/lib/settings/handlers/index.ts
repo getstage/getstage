@@ -102,6 +102,11 @@ export async function getOverviewHandler(ctx: QueryCtx) {
       accentColor: user.defaultPortalAccentColor ?? previewConfig?.accentColor ?? DEFAULT_PORTAL_COLOR,
     },
     previewPortalUrl: previewConfig?.shareUrl ? `${previewConfig.shareUrl}?preview=1` : null,
+    skillHub: {
+      installedSkillIds: user.installedSkillIds ?? null,
+      enabledSkillIds: user.enabledSkillIds ?? null,
+      enabledComponentPackIds: user.enabledComponentPackIds ?? null,
+    },
   };
 }
 
@@ -261,5 +266,41 @@ export async function deleteAccountHandler(ctx: ActionCtx, args: { confirmation:
 
   return {
     deleted: true,
+  };
+}
+
+export const updateSkillHubPrefsArgs = {
+  installedSkillIds: v.optional(v.array(v.string())),
+  enabledSkillIds: v.optional(v.array(v.string())),
+  enabledComponentPackIds: v.optional(v.array(v.string())),
+};
+
+export async function updateSkillHubPrefsHandler(
+  ctx: MutationCtx,
+  args: {
+    installedSkillIds?: string[];
+    enabledSkillIds?: string[];
+    enabledComponentPackIds?: string[];
+  },
+) {
+  const user = await requireAuthUser(ctx);
+  const timestamp = now();
+  await ctx.db.patch(user._id, {
+    ...(args.installedSkillIds !== undefined
+      ? { installedSkillIds: args.installedSkillIds.slice(0, 64) }
+      : {}),
+    ...(args.enabledSkillIds !== undefined
+      ? { enabledSkillIds: args.enabledSkillIds.slice(0, 64) }
+      : {}),
+    ...(args.enabledComponentPackIds !== undefined
+      ? { enabledComponentPackIds: args.enabledComponentPackIds.slice(0, 64) }
+      : {}),
+    updatedAt: timestamp,
+  });
+  return {
+    installedSkillIds: args.installedSkillIds ?? user.installedSkillIds ?? null,
+    enabledSkillIds: args.enabledSkillIds ?? user.enabledSkillIds ?? null,
+    enabledComponentPackIds:
+      args.enabledComponentPackIds ?? user.enabledComponentPackIds ?? null,
   };
 }

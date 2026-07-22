@@ -365,6 +365,7 @@ export default defineSchema({
     appDownloadedAt: v.optional(v.number()),
     emailUnsubscribedAt: v.optional(v.number()),
     emailUnsubscribeToken: v.optional(v.string()),
+    // Wireframes Skills / Components hub (Integrations tabs).
     installedSkillIds: v.optional(v.array(v.string())),
     enabledSkillIds: v.optional(v.array(v.string())),
     enabledComponentPackIds: v.optional(v.array(v.string())),

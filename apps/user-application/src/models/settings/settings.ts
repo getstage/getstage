@@ -117,6 +117,13 @@ export const settingsOverviewSchema = z.object({
     accentColor: z.string(),
   }),
   previewPortalUrl: z.string().nullable(),
+  skillHub: z
+    .object({
+      installedSkillIds: z.array(z.string()).nullable().optional(),
+      enabledSkillIds: z.array(z.string()).nullable(),
+      enabledComponentPackIds: z.array(z.string()).nullable(),
+    })
+    .optional(),
 });
 
 export const profileUpdateResultSchema = z.object({
