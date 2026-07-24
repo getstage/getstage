@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
+import { FaqSection } from "./FaqSection";
+import { TestimonialsSection } from "./TestimonialsSection";
 import "@/styles/stage-v2-tokens.css";
 import "@/styles/stage-v2-landing.css";
 
@@ -197,6 +199,12 @@ export function StageV2LandingPage() {
                 </ul>
               </div>
             </section>
+
+            <div className="container">
+              <span className="sect-rule" aria-hidden="true" />
+            </div>
+
+            <TestimonialsSection />
         
             {/* ─── FEATURES ───────────────────────────────────────── */}
             <section id="features" className="features">
@@ -360,6 +368,12 @@ export function StageV2LandingPage() {
                 </div>
               </div>
             </section>
+
+            <div className="container">
+              <span className="sect-rule" aria-hidden="true" />
+            </div>
+
+            <FaqSection />
         
           </main>
         
