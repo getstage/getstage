@@ -27,7 +27,7 @@ import { useProviderRequired } from "@/components/app/ProviderRequiredDialog";
 
 const RESEARCH_PROMPT = "Generate project research from the current Stage project context.";
 const RESEARCH_EVENT_STALL_MS = 20_000;
-const RESEARCH_ORPHAN_MS = 60_000;
+const RESEARCH_ORPHAN_GRACE_MS = 15_000;
 const RESEARCH_RUN_MAX_MS = 45 * 60 * 1000;
 
 function hasTerminalRunEvent(events: RunEvent[]) {
@@ -64,7 +64,6 @@ export function useResearchRun(projectId: string) {
   const chatDefaults = useChatDefaults();
   const cancelPersistedRun = useConvexMutation(api.projectAi.cancelRun);
   const [error, setError] = useState<string | null>(null);
-  const [runEnded, setRunEnded] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [lastRunDurationSeconds, setLastRunDurationSeconds] = useState<number | null>(null);
   const runStartedAtRef = useRef<number | null>(null);
@@ -85,40 +84,26 @@ export function useResearchRun(projectId: string) {
       ? { projectId: projectId as Id<"projects">, module: "research" }
       : "skip",
   );
-  const persistedRunningRun = useMemo(
-    () => researchRuns?.find((run) => run.status === "running") ?? null,
-    [researchRuns],
-  );
-  const latestFailedRun = useMemo(
-    () => researchRuns?.find((run) => run.status === "failed") ?? null,
-    [researchRuns],
-  );
+  const latestPersistedRun = researchRuns?.[0] ?? null;
+  const persistedRunningRun =
+    latestPersistedRun?.status === "running" ? latestPersistedRun : null;
+  const latestFailedRun =
+    latestPersistedRun?.status === "failed" ? latestPersistedRun : null;
 
   const hasLocalActiveRun =
     providerRun.startRun.isPending || providerRun.isRunActive;
 
-  const persistedRunAgeMs = persistedRunningRun
-    ? Date.now() - persistedRunningRun.startedAt
-    : 0;
-  const isOrphanedPersistedRun =
-    persistedRunningRun !== null &&
-    !hasLocalActiveRun &&
-    persistedRunAgeMs > RESEARCH_ORPHAN_MS;
+  const hasDetachedPersistedRun =
+    persistedRunningRun !== null && !hasLocalActiveRun;
 
-  const isRunning = useMemo(
-    () =>
-      !runEnded &&
-      (hasLocalActiveRun ||
-        (persistedRunningRun !== null && !isOrphanedPersistedRun)),
-    [hasLocalActiveRun, isOrphanedPersistedRun, persistedRunningRun, runEnded],
-  );
+  const isRunning =
+    error === null && (hasLocalActiveRun || persistedRunningRun !== null);
 
   const failRun = useCallback(
     (message: string, logMessage?: string) => {
       if (logMessage) {
         console.error(logMessage);
       }
-      setRunEnded(true);
       setError(message);
       resetActiveRun();
     },
@@ -126,13 +111,13 @@ export function useResearchRun(projectId: string) {
   );
 
   useEffect(() => {
-    if (persistedRunningRun && runStartedAtRef.current === null) {
+    if (!isRunning) {
+      return;
+    }
+    if (runStartedAtRef.current === null && persistedRunningRun) {
       runStartedAtRef.current = persistedRunningRun.startedAt;
     }
-  }, [persistedRunningRun]);
-
-  useEffect(() => {
-    if (!isRunning || runStartedAtRef.current === null) {
+    if (runStartedAtRef.current === null) {
       return;
     }
 
@@ -145,24 +130,18 @@ export function useResearchRun(projectId: string) {
     tick();
     const interval = window.setInterval(tick, 1000);
     return () => window.clearInterval(interval);
-  }, [isRunning]);
-
-  useEffect(() => {
-    if (!hasTerminalEvent || runStartedAtRef.current === null) {
-      return;
-    }
-
-    const duration = Math.floor((Date.now() - runStartedAtRef.current) / 1000);
-    setLastRunDurationSeconds(duration);
-    setElapsedSeconds(duration);
-  }, [hasTerminalEvent]);
+  }, [isRunning, persistedRunningRun]);
 
   useEffect(() => {
     if (!terminalEvent) {
       return;
     }
 
-    setRunEnded(true);
+    if (runStartedAtRef.current !== null) {
+      const duration = Math.floor((Date.now() - runStartedAtRef.current) / 1000);
+      setLastRunDurationSeconds(duration);
+      setElapsedSeconds(duration);
+    }
 
     if (terminalEvent.type === "run_completed") {
       setError(null);
@@ -177,55 +156,38 @@ export function useResearchRun(projectId: string) {
   }, [resetActiveRun, terminalEvent]);
 
   useEffect(() => {
-    if (hasTerminalEvent && !runEnded) {
-      setRunEnded(true);
-    }
-  }, [hasTerminalEvent, runEnded]);
-
-  useEffect(() => {
-    if (!latestFailedRun || runEnded || hasLocalActiveRun || persistedRunningRun) {
+    if (!hasDetachedPersistedRun || !persistedRunningRun) {
       return;
     }
 
-    const failedRecently =
-      latestFailedRun.completedAt !== null &&
-      Date.now() - latestFailedRun.completedAt < 5 * 60 * 1000;
-    if (!failedRecently) {
-      return;
-    }
-
-    setRunEnded(true);
-    setError(formatStoredRunErrorMessage(latestFailedRun.errorMessage));
-  }, [hasLocalActiveRun, latestFailedRun, persistedRunningRun, runEnded]);
-
-  useEffect(() => {
-    if (!isOrphanedPersistedRun || !persistedRunningRun) {
-      return;
-    }
-    if (orphanHandledRef.current === persistedRunningRun.id) {
-      return;
-    }
-    orphanHandledRef.current = persistedRunningRun.id;
-
-    void (async () => {
-      try {
-        await cancelPersistedRun({
-          runId: persistedRunningRun.id,
-          projectId: projectId as Id<"projects">,
-        });
-      } catch (cancelError) {
-        console.warn("[research] failed to cancel orphaned Convex run", cancelError);
+    const timer = window.setTimeout(() => {
+      if (orphanHandledRef.current === persistedRunningRun.id) {
+        return;
       }
+      orphanHandledRef.current = persistedRunningRun.id;
 
-      failRun(
-        RESEARCH_RUN_FAILED_USER_MESSAGE,
-        "[stage-engine] research run orphaned: Convex still running but engine session ended",
-      );
-    })();
-  }, [cancelPersistedRun, failRun, isOrphanedPersistedRun, persistedRunningRun, projectId]);
+      void (async () => {
+        try {
+          await cancelPersistedRun({
+            runId: persistedRunningRun.id,
+            projectId: projectId as Id<"projects">,
+          });
+        } catch (cancelError) {
+          console.warn("[research] failed to cancel orphaned Convex run", cancelError);
+        }
+
+        failRun(
+          RESEARCH_RUN_FAILED_USER_MESSAGE,
+          "[stage-engine] research run orphaned: Convex remained running after engine grace period",
+        );
+      })();
+    }, RESEARCH_ORPHAN_GRACE_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [cancelPersistedRun, failRun, hasDetachedPersistedRun, persistedRunningRun, projectId]);
 
   useEffect(() => {
-    if (!activeRunId || runEnded || hasTerminalEvent) {
+    if (!activeRunId || hasTerminalEvent) {
       return;
     }
 
@@ -260,12 +222,11 @@ export function useResearchRun(projectId: string) {
       window.clearTimeout(stallTimer);
       window.clearTimeout(maxTimer);
     };
-  }, [activeRunId, failRun, hasTerminalEvent, queryClient, runEnded]);
+  }, [activeRunId, failRun, hasTerminalEvent, queryClient]);
 
   const startResearch = useCallback(
     async (providerId: ProviderId) => {
       setError(null);
-      setRunEnded(false);
       orphanHandledRef.current = null;
       runStartedAtRef.current = Date.now();
       setElapsedSeconds(0);
@@ -312,7 +273,6 @@ export function useResearchRun(projectId: string) {
       });
     }
 
-    setRunEnded(true);
     resetActiveRun();
   }, [
     cancelPersistedRun,
@@ -322,6 +282,14 @@ export function useResearchRun(projectId: string) {
     providerRun.cancelRun,
     resetActiveRun,
   ]);
+
+  const persistedError =
+    latestFailedRun &&
+    !hasLocalActiveRun &&
+    latestFailedRun.completedAt !== null &&
+    Date.now() - latestFailedRun.completedAt < 5 * 60 * 1000
+      ? formatStoredRunErrorMessage(latestFailedRun.errorMessage)
+      : null;
 
   return {
     startResearch,
@@ -336,6 +304,7 @@ export function useResearchRun(projectId: string) {
       error ??
       (providerRun.startRun.error
         ? toUserFacingErrorMessage(providerRun.startRun.error, RESEARCH_RUN_FAILED_USER_MESSAGE)
-        : null),
+        : null) ??
+      persistedError,
   };
 }

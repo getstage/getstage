@@ -210,7 +210,7 @@ impl ProviderProcessError {
 
     /// Whether the failure looks like an auth/credentials problem and is therefore a
     /// candidate for an in-engine retry after warming the provider's credentials file.
-    pub(super) fn is_auth_failure(&self) -> bool {
+    pub(crate) fn is_auth_failure(&self) -> bool {
         match self {
             ProviderProcessError::Spawn { .. } | ProviderProcessError::Timeout { .. } => false,
             ProviderProcessError::Io { source, .. } => {

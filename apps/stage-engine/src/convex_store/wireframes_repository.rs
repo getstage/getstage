@@ -202,6 +202,10 @@ struct ConvexWireframesInput {
     flows_artifact_json: Option<String>,
     existing_wireframes_artifact_id: Option<String>,
     existing_wireframes_artifact_json: Option<String>,
+    #[serde(default)]
+    enabled_skill_ids: Option<Vec<String>>,
+    #[serde(default)]
+    enabled_component_pack_ids: Option<Vec<String>>,
 }
 
 impl ConvexWireframesInput {
@@ -219,6 +223,8 @@ impl ConvexWireframesInput {
             flows_artifact_json: self.flows_artifact_json,
             existing_wireframes_artifact_id: self.existing_wireframes_artifact_id,
             existing_wireframes_artifact_json: self.existing_wireframes_artifact_json,
+            enabled_skill_ids: self.enabled_skill_ids,
+            enabled_component_pack_ids: self.enabled_component_pack_ids,
         }
     }
 }

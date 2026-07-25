@@ -6,20 +6,25 @@
 
 ---
 
-## Implementation status (2026-07-15)
+## Implementation status (2026-07-21)
 
 | Item | Status | Where |
 |------|--------|--------|
 | Phase 1 Taste skill on Hi-Fi generate | **In engine (testable)** | `apps/stage-engine/skills/design-taste-frontend/SKILL.md` injected by `wireframes/prompt.rs` (source: Leonxlnx/taste-skill / tasteskill.dev) |
-| A/B without skill | **Ready** | `STAGE_WIREFRAMES_TASTE_SKILL=0` on stage-engine |
+| A/B without skill | **Ready** | `STAGE_WIREFRAMES_TASTE_SKILL=0` on stage-engine (overrides user prefs) |
 | Whitespace / content-height preview | **In code** | `shared/wireframePreviewDocument.ts` + `ResultsGrid` top-align |
 | Figma export hug content / drop full white plates | **In code** | `electron/helpers/wireframe-screenshot.ts` + `figma-exporter` |
 | Hi-Fi prompt bans `100vh` empty shells | **In code** | `HIFI_RULES` in `prompt.rs` |
 | Prod console: no Convex URL leak | **In code** | `src/lib/convex.ts` DEV-only log |
-| Skill page / designer UI (Phases 3–4) | **Not started** | Wait until Phase 1 A/B passes |
+| Integrations hub: Skills / Components / Marketplace UI | **In code** | `/integrations` tabs + `SkillsComponentsHub.tsx` · Figma audit `docs/FIGMA_SKILLS_COMPONENTS_AUDIT.md` |
+| User prefs for skills + component packs | **In code** | Convex `users.enabledSkillIds` / `enabledComponentPackIds` → `getWireframesInput` |
+| Hi-Fi prompt respects skill + pack toggles | **In code** | `wireframes/prompt.rs` |
+| Local skill scan / per-project picker (Phases 3–4 full) | **Not started** | Deferred — see audit “Deferred” |
 | Phase 2 moodboard layout brief | **Not started** | After Phase 1 proof |
 
-**Rule for design:** Do **not** design Skill page / icon until Phase 1 test below is green (Adrien: prove skills improve output before new pages).
+**Figma design audit:** [`docs/FIGMA_SKILLS_COMPONENTS_AUDIT.md`](FIGMA_SKILLS_COMPONENTS_AUDIT.md) — agent self-checks shipped UI against nodes `1574:52` / `1598:698` / `1629:1853`.
+
+**Rule for design:** Skill / Components hub shipped early for prefs + prompt wiring; still prove Phase 1 A/B before expanding marketplace install.
 
 ---
 

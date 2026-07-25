@@ -5,6 +5,8 @@ pub fn extract_json_object(text: &str) -> anyhow::Result<JsonValue> {
     extract_json_object_matching(text, None)
 }
 
+/// Kept for tests and any remaining full-artifact parse paths.
+#[allow(dead_code)]
 pub fn extract_research_artifact(text: &str) -> anyhow::Result<JsonValue> {
     extract_json_object_matching(text, Some("researchArtifact"))
 }

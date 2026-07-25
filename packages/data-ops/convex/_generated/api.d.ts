@@ -98,6 +98,7 @@ import type * as lib_integrations_googleSheets_handlers_import from "../lib/inte
 import type * as lib_integrations_stitch_handlers_index from "../lib/integrations/stitch/handlers/index.js";
 import type * as lib_integrations_stripeConnect_handlers_index from "../lib/integrations/stripeConnect/handlers/index.js";
 import type * as lib_projectAi_domain_artifactStore from "../lib/projectAi/domain/artifactStore.js";
+import type * as lib_projectAi_domain_attachArtifactAssets from "../lib/projectAi/domain/attachArtifactAssets.js";
 import type * as lib_projectAi_domain_contextStore from "../lib/projectAi/domain/contextStore.js";
 import type * as lib_projectAi_domain_latestArtifact from "../lib/projectAi/domain/latestArtifact.js";
 import type * as lib_projectAi_domain_normalize from "../lib/projectAi/domain/normalize.js";
@@ -246,6 +247,7 @@ declare const fullApi: ApiFromModules<{
   "lib/integrations/stitch/handlers/index": typeof lib_integrations_stitch_handlers_index;
   "lib/integrations/stripeConnect/handlers/index": typeof lib_integrations_stripeConnect_handlers_index;
   "lib/projectAi/domain/artifactStore": typeof lib_projectAi_domain_artifactStore;
+  "lib/projectAi/domain/attachArtifactAssets": typeof lib_projectAi_domain_attachArtifactAssets;
   "lib/projectAi/domain/contextStore": typeof lib_projectAi_domain_contextStore;
   "lib/projectAi/domain/latestArtifact": typeof lib_projectAi_domain_latestArtifact;
   "lib/projectAi/domain/normalize": typeof lib_projectAi_domain_normalize;

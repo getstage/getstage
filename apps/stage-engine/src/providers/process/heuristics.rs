@@ -53,9 +53,7 @@ pub(super) fn looks_like_provider_session_limit(text: &str) -> bool {
     // word appears in benign CLI noise and, when used for live process kills,
     // would abort healthy runs.
     let lower = text.to_lowercase();
-    lower.contains("session limit")
-        || lower.contains("rate limit")
-        || lower.contains("usage limit")
+    lower.contains("session limit") || lower.contains("rate limit") || lower.contains("usage limit")
 }
 
 /// Org/admin blocked Claude Code subscription — not fixable by `claude auth login`.
@@ -72,7 +70,8 @@ pub(super) fn fatal_provider_stderr_message(text: &str) -> Option<&str> {
     if trimmed.is_empty() {
         return None;
     }
-    if looks_like_provider_session_limit(trimmed) || looks_like_provider_subscription_disabled(trimmed)
+    if looks_like_provider_session_limit(trimmed)
+        || looks_like_provider_subscription_disabled(trimmed)
     {
         return Some(trimmed);
     }
@@ -281,8 +280,7 @@ mod tests {
 
     #[test]
     fn usage_limit_is_fatal_stderr() {
-        let text =
-            "ERROR: You've hit your usage limit. Upgrade to Plus to continue using Codex, or try again at Jul 30th, 2026 1:50 PM.";
+        let text = "ERROR: You've hit your usage limit. Upgrade to Plus to continue using Codex, or try again at Jul 30th, 2026 1:50 PM.";
         assert!(looks_like_provider_session_limit(text));
         assert_eq!(fatal_provider_stderr_message(text), Some(text));
     }

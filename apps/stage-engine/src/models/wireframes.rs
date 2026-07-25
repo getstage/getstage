@@ -13,6 +13,9 @@ pub struct WireframesInput {
     pub flows_artifact_json: Option<String>,
     pub existing_wireframes_artifact_id: Option<String>,
     pub existing_wireframes_artifact_json: Option<String>,
+    /// `None` = user never set prefs (engine defaults). `Some([])` = all disabled.
+    pub enabled_skill_ids: Option<Vec<String>>,
+    pub enabled_component_pack_ids: Option<Vec<String>>,
 }
 
 #[derive(Clone, Copy, Debug)]

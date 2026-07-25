@@ -9,7 +9,7 @@ use crate::convex_store::research_repository::{
 use crate::helpers::time::now_millis;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::runs::{RunEvent, RunStatus, StartRunRequest};
-use crate::providers::adapter::{ProviderRunContext, run_provider_collect, smoke_test_provider};
+use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
 use crate::providers::process::{ProviderProcessError, ProviderProcessOutcome};
 use crate::providers::service::assert_provider_ready_for_run;
 use crate::refero::service::ReferoService;
@@ -24,7 +24,7 @@ use crate::runs::RunEventSink;
 use serde_json::json;
 use tokio::time::{Duration, timeout};
 
-const RESEARCH_PROVIDER_TIMEOUT: Duration = Duration::from_secs(300);
+const RESEARCH_PROVIDER_TIMEOUT: Duration = Duration::from_secs(600);
 
 #[derive(Clone, Debug)]
 pub struct ResearchWorkflow {
@@ -89,15 +89,6 @@ impl ResearchWorkflow {
             assert_provider_ready_for_run(provider_id)
                 .await
                 .map_err(|blocked| WorkflowError::InvalidRequest(blocked.message))?;
-            smoke_test_provider(
-                ProviderRunContext {
-                    api_version,
-                    run_id: run_id.clone(),
-                    request: request.clone(),
-                },
-                cancel_rx.clone(),
-            )
-            .await?;
             self.tool_completed(api_version, &run_id, provider_id, &sink, "verify-provider");
 
             self.tool_started(

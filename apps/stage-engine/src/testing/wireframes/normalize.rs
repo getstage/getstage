@@ -16,6 +16,8 @@ fn sample_input() -> WireframesInput {
         flows_artifact_json: None,
         existing_wireframes_artifact_id: None,
         existing_wireframes_artifact_json: None,
+        enabled_skill_ids: None,
+        enabled_component_pack_ids: None,
     }
 }
 
