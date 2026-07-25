@@ -5,7 +5,7 @@ mod stderr;
 
 use std::path::PathBuf;
 use std::process::Stdio;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
@@ -15,7 +15,7 @@ use tokio::time::sleep;
 use crate::helpers::time::now_millis;
 use crate::models::errors::EngineErrorCode;
 use crate::models::providers::ProviderId;
-use crate::models::runs::RunEvent;
+use crate::models::runs::{RunEvent, RunMode};
 use crate::providers::adapter::ProviderRunContext;
 use crate::providers::command::{
     configure_provider_process, provider_cli_working_directory, run_command_in,
@@ -25,7 +25,7 @@ use crate::runs::RunEventSink;
 pub use error::ProviderProcessError;
 
 use error::provider_exit_error;
-use heuristics::needs_stderr_artifact_capture;
+use heuristics::{fatal_provider_stderr_message, needs_stderr_artifact_capture};
 use line::{
     LineSink, ProcessLine, StreamName, drain_pending_lines, spawn_line_reader, terminate_child,
 };
@@ -34,6 +34,8 @@ const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(50);
 const PROCESS_LINE_CAPACITY: usize = 128;
 const AUTH_WARMUP_DELAY: Duration = Duration::from_millis(300);
 const AUTH_WARMUP_TIMEOUT: Duration = Duration::from_secs(15);
+/// Kill a silent Research provider child before the hard job ceiling expires.
+const RESEARCH_INACTIVITY_TIMEOUT: Duration = Duration::from_secs(90);
 
 #[derive(Clone, Debug)]
 pub struct ProviderProcessSpec {
@@ -276,6 +278,9 @@ async fn drive_process_loop(
     capture_multiline_stderr: bool,
     cancel: &mut watch::Receiver<bool>,
 ) -> Result<ProviderProcessOutcome, ProviderProcessError> {
+    let inactivity_limit = research_inactivity_limit(context);
+    let mut last_activity = Instant::now();
+
     loop {
         tokio::select! {
             changed = cancel.changed() => {
@@ -292,9 +297,35 @@ async fn drive_process_loop(
                 }
             }
             Some(line) = line_rx.recv() => {
+                last_activity = Instant::now();
+                // Usage / org-subscription failures will not recover — kill immediately
+                // instead of waiting while Codex dumps the rest of the prompt to stderr.
+                let fatal = fatal_provider_stderr_message(&line.text).map(str::to_string);
                 sink.handle(context, events, capture_multiline_stderr, line);
+                if let Some(message) = fatal {
+                    terminate_child(child).await;
+                    // Keep diagnostics collected up to the fatal line.
+                    sink.flush_stderr(context, capture_multiline_stderr);
+                    return Err(ProviderProcessError::Io {
+                        binary,
+                        source: std::io::Error::other(format!(
+                            "process exited with status exit status: 1: {message}"
+                        )),
+                    });
+                }
             }
             _ = sleep(PROCESS_POLL_INTERVAL) => {
+                if let Some(limit) = inactivity_limit
+                    && last_activity.elapsed() >= limit
+                {
+                    terminate_child(child).await;
+                    sink.flush_stderr(context, capture_multiline_stderr);
+                    return Err(ProviderProcessError::Timeout {
+                        binary,
+                        seconds: limit.as_secs(),
+                    });
+                }
+
                 match child.try_wait() {
                     Ok(Some(status)) if status.success() => {
                         let _ = child.wait().await;
@@ -326,6 +357,10 @@ async fn drive_process_loop(
     }
 }
 
+fn research_inactivity_limit(context: &ProviderRunContext) -> Option<Duration> {
+    matches!(context.request.mode, RunMode::Research).then_some(RESEARCH_INACTIVITY_TIMEOUT)
+}
+
 fn provider_working_directory(requested: Option<&str>) -> std::io::Result<PathBuf> {
     if let Some(requested) = requested.filter(|value| !value.trim().is_empty()) {
         return Ok(PathBuf::from(requested));
@@ -352,5 +387,36 @@ mod tests {
 
         assert_eq!(resolved, std::env::temp_dir().join("stage-engine-provider"));
         assert!(resolved.is_dir());
+    }
+
+    #[test]
+    fn research_mode_enables_inactivity_watchdog() {
+        let research = ProviderRunContext {
+            api_version: "v1",
+            run_id: "run".to_string(),
+            request: crate::models::runs::StartRunRequest {
+                provider_id: ProviderId::Codex,
+                model_id: "codex-default".to_string(),
+                model_options: vec![],
+                working_directory: None,
+                prompt: "prompt".to_string(),
+                mode: RunMode::Research,
+                context: Default::default(),
+                attachments: vec![],
+            },
+        };
+        let chat = ProviderRunContext {
+            request: crate::models::runs::StartRunRequest {
+                mode: RunMode::Chat,
+                ..research.request.clone()
+            },
+            ..research.clone()
+        };
+
+        assert_eq!(
+            research_inactivity_limit(&research),
+            Some(RESEARCH_INACTIVITY_TIMEOUT)
+        );
+        assert_eq!(research_inactivity_limit(&chat), None);
     }
 }

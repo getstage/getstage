@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::models::refero::ReferoContext;
+use crate::models::refero::{ReferoContext, ReferoReference};
 use crate::models::research::ResearchInput;
 use crate::refero::service::{ReferoService, ReferoServiceError};
 
@@ -8,13 +8,10 @@ use super::context::{
     build_refero_category_search_requests, build_refero_competitor_search_requests,
     build_refero_flow_search_request,
 };
-use super::prompt::build_research_prompt;
-
 #[derive(Clone, Debug)]
-pub struct ResearchPromptBundle {
-    pub input: ResearchInput,
+pub struct ResearchEvidenceBundle {
     pub refero_context: ReferoContext,
-    pub prompt: String,
+    pub competitor_evidence: Vec<(String, Vec<ReferoReference>)>,
 }
 
 #[derive(Clone, Debug)]
@@ -27,27 +24,25 @@ impl ResearchService {
         Self { refero }
     }
 
-    pub async fn build_prompt_bundle(
+    pub async fn build_evidence_bundle(
         &self,
         input: ResearchInput,
-    ) -> Result<ResearchPromptBundle, ResearchServiceError> {
+    ) -> Result<ResearchEvidenceBundle, ResearchServiceError> {
         let category_requests = build_refero_category_search_requests(&input);
         let flow_request = build_refero_flow_search_request(&input);
         let competitor_requests = build_refero_competitor_search_requests(&input);
-        let refero_context = self
-            .refero
-            .research_context_for_categories(&category_requests, &flow_request)
-            .await?;
-        let competitor_evidence = self
-            .refero
-            .competitor_screen_evidence(&competitor_requests)
-            .await?;
-        let prompt = build_research_prompt(&input, &refero_context, &competitor_evidence);
 
-        Ok(ResearchPromptBundle {
-            input,
+        // Category+flow context and competitor evidence used to run serially; they are
+        // independent Refero searches and should overlap on the wall clock.
+        let (refero_context, competitor_evidence) = tokio::try_join!(
+            self.refero
+                .research_context_for_categories(&category_requests, &flow_request),
+            self.refero.competitor_screen_evidence(&competitor_requests),
+        )?;
+
+        Ok(ResearchEvidenceBundle {
             refero_context,
-            prompt,
+            competitor_evidence,
         })
     }
 

@@ -128,3 +128,50 @@ fn uses_refero_thumbnail_when_r2_image_key_is_missing() {
         "https://images.refero.design/screenshots/uuid-onboard.png"
     );
 }
+
+#[test]
+fn engine_adds_refero_sources_without_duplicates() {
+    let existing_screen = sample_screen(
+        "uuid-onboard",
+        ReferoUiPatternCategory::Onboarding,
+        "Shopify",
+    );
+    let new_screen = sample_screen(
+        "uuid-checklist",
+        ReferoUiPatternCategory::Onboarding,
+        "Notion",
+    );
+    let context = ReferoContext {
+        query: "onboarding".to_string(),
+        references: vec![existing_screen.clone(), new_screen.clone()],
+        category_searches: vec![ReferoCategorySearch {
+            category: ReferoUiPatternCategory::Onboarding,
+            query: "onboarding".to_string(),
+            references: vec![existing_screen, new_screen],
+        }],
+        fetched_at: 1,
+    };
+    let mut artifact = json!({
+        "sourceReferences": [{
+            "id": "uuid-onboard",
+            "provider": "refero",
+            "label": "Existing",
+            "url": null,
+            "externalId": "uuid-onboard"
+        }]
+    });
+    let image_keys = HashMap::from([(
+        "uuid-checklist".to_string(),
+        "research/project/uuid-checklist.png".to_string(),
+    )]);
+
+    apply_engine_ui_patterns(&mut artifact, &context, &image_keys);
+
+    let sources = artifact["sourceReferences"]
+        .as_array()
+        .expect("sources array");
+    assert_eq!(sources.len(), 2);
+    assert_eq!(sources[0]["id"], "uuid-onboard");
+    assert_eq!(sources[1]["id"], "uuid-checklist");
+    assert_eq!(sources[1]["url"], "research/project/uuid-checklist.png");
+}

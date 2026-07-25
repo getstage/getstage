@@ -5,6 +5,8 @@ pub fn extract_json_object(text: &str) -> anyhow::Result<JsonValue> {
     extract_json_object_matching(text, None)
 }
 
+/// Kept for tests and any remaining full-artifact parse paths.
+#[allow(dead_code)]
 pub fn extract_research_artifact(text: &str) -> anyhow::Result<JsonValue> {
     extract_json_object_matching(text, Some("researchArtifact"))
 }
@@ -139,6 +141,10 @@ fn find_artifact_by_kind(text: &str, kind: &str) -> Option<JsonValue> {
         }
     }
 
+    // Prefer the last match: providers often echo the prompt's prior artifact
+    // before writing the real one. First-match would pick the echo (e.g. regen
+    // payload with html stripped) and fail merge with empty html.
+    let mut last = None;
     for line in text.lines() {
         let line = line.trim();
         if !line.starts_with('{') || !line.contains(kind) {
@@ -146,9 +152,12 @@ fn find_artifact_by_kind(text: &str, kind: &str) -> Option<JsonValue> {
         }
         if let Ok(value) = serde_json::from_str::<JsonValue>(line) {
             if artifact_matches_kind_and_shape(&value, kind) {
-                return Some(value);
+                last = Some(value);
             }
         }
+    }
+    if last.is_some() {
+        return last;
     }
 
     collect_json_objects(text)

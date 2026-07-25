@@ -212,15 +212,12 @@ export async function createProjectForUser(
     throw new Error("Client email is required.");
   }
 
-  if (!nextClientAvatarUrl) {
-    throw new Error("Client photo is required.");
-  }
-
+  // Client photo is optional in the product UI; persist when present.
   await upsertClient(ctx, {
     userId: user._id,
     name: clientName,
     email: nextClientEmail,
-    avatarUrl: nextClientAvatarUrl,
+    ...(nextClientAvatarUrl ? { avatarUrl: nextClientAvatarUrl } : {}),
   });
 
   if (requestedClientAvatarUrl) {

@@ -19,8 +19,9 @@ use super::parse::{
 };
 
 const MAX_REFERO_SEARCH_RESULTS: u8 = 12;
-// Full-res screenshot per kept screen (5 categories x 4), so the UI never shows a blurry thumbnail.
-const MAX_REFERO_IMAGE_FETCHES: usize = 20;
+// Full-res screenshot budget: 5 categories x 2 screens for the initial Research report.
+const MAX_REFERO_IMAGE_FETCHES: usize = 10;
+const REFERO_IMAGE_FETCH_CONCURRENCY: usize = 4;
 // Pull a wider candidate pool per category, then keep only the screens that actually match
 // the category — so off-topic top hits get dropped instead of shown.
 const CATEGORY_CANDIDATE_POOL: u8 = 12;
@@ -60,26 +61,35 @@ impl ReferoService {
         category_requests: &[ReferoCategorySearchRequest],
         flow_request: &ReferoSearchRequest,
     ) -> Result<ReferoContext, ReferoServiceError> {
-        let mut join_set = tokio::task::JoinSet::new();
+        let category_search = async {
+            let mut join_set = tokio::task::JoinSet::new();
 
-        for (index, request) in category_requests.iter().enumerate() {
-            let service = self.clone();
-            let request = request.clone();
-            join_set.spawn(async move {
-                let screens = service.search_screens_for_category(&request).await?;
-                Ok::<_, ReferoServiceError>((index, request, screens))
-            });
-        }
+            for (index, request) in category_requests.iter().enumerate() {
+                let service = self.clone();
+                let request = request.clone();
+                join_set.spawn(async move {
+                    let screens = service.search_screens_for_category(&request).await?;
+                    Ok::<_, ReferoServiceError>((index, request, screens))
+                });
+            }
 
-        let mut indexed_results = Vec::with_capacity(category_requests.len());
-        while let Some(joined) = join_set.join_next().await {
-            let result = joined.map_err(|error| {
-                ReferoServiceError::Client(ReferoClientError::ToolCallFailed {
-                    message: format!("Refero category search task failed: {error}"),
-                })
-            })?;
-            indexed_results.push(result?);
-        }
+            let mut indexed_results = Vec::with_capacity(category_requests.len());
+            while let Some(joined) = join_set.join_next().await {
+                let result = joined.map_err(|error| {
+                    ReferoServiceError::Client(ReferoClientError::ToolCallFailed {
+                        message: format!("Refero category search task failed: {error}"),
+                    })
+                })?;
+                indexed_results.push(result?);
+            }
+
+            Ok::<_, ReferoServiceError>(indexed_results)
+        };
+
+        // Flow search and category searches share the same cancellation lifetime;
+        // dropping this workflow cancels both instead of detaching a spawned task.
+        let (mut indexed_results, flows) =
+            tokio::try_join!(category_search, self.search_flows(flow_request))?;
 
         indexed_results.sort_by_key(|(index, _, _)| *index);
 
@@ -112,7 +122,6 @@ impl ReferoService {
             });
         }
 
-        let flows = self.search_flows(flow_request).await?;
         references.extend(flows);
 
         let query = category_requests
@@ -325,29 +334,73 @@ impl ReferoService {
         &self,
         category_searches: &mut [ReferoCategorySearch],
     ) -> Result<usize, ReferoServiceError> {
-        let mut fetched = 0usize;
-
-        for bucket in category_searches.iter_mut() {
-            for reference in bucket.references.iter_mut() {
-                if fetched >= MAX_REFERO_IMAGE_FETCHES {
+        // Collect fetch targets first so we can hydrate with bounded concurrency while
+        // preserving the original category/reference order when writing bytes back.
+        let mut targets: Vec<(usize, usize, String)> = Vec::new();
+        for (bucket_index, bucket) in category_searches.iter().enumerate() {
+            for (reference_index, reference) in bucket.references.iter().enumerate() {
+                if targets.len() >= MAX_REFERO_IMAGE_FETCHES {
                     break;
                 }
-                // Refero search only yields a low-res thumbnail_url; fetch the full-res screenshot.
-                // Skip flows, already-hydrated screens, and synthetic ids (no real uuid to fetch).
                 if reference.kind != ReferoReferenceKind::Screen
                     || reference.raw_image_bytes.is_some()
                     || is_synthetic_reference_id(&reference.id)
                 {
                     continue;
                 }
+                targets.push((bucket_index, reference_index, reference.id.clone()));
+            }
+            if targets.len() >= MAX_REFERO_IMAGE_FETCHES {
+                break;
+            }
+        }
 
-                match self.fetch_screen_image_bytes(&reference.id).await {
-                    Ok(bytes) => {
-                        reference.raw_image_bytes = Some(bytes);
-                        fetched += 1;
+        let mut join_set = tokio::task::JoinSet::new();
+        let mut next = 0usize;
+        let mut fetched = 0usize;
+        let mut results: Vec<(usize, usize, Option<Vec<u8>>)> = Vec::new();
+
+        while next < targets.len() || !join_set.is_empty() {
+            while next < targets.len() && join_set.len() < REFERO_IMAGE_FETCH_CONCURRENCY {
+                let (bucket_index, reference_index, screen_id) = targets[next].clone();
+                next += 1;
+                let service = self.clone();
+                join_set.spawn(async move {
+                    let bytes = match service.fetch_screen_image_bytes(&screen_id).await {
+                        Ok(bytes) => Some(bytes),
+                        Err(error) => {
+                            tracing::warn!(
+                                screen_id = %screen_id,
+                                %error,
+                                "Refero screen image fetch failed"
+                            );
+                            None
+                        }
+                    };
+                    (bucket_index, reference_index, bytes)
+                });
+            }
+
+            if let Some(joined) = join_set.join_next().await {
+                match joined {
+                    Ok((bucket_index, reference_index, bytes)) => {
+                        if bytes.is_some() {
+                            fetched += 1;
+                        }
+                        results.push((bucket_index, reference_index, bytes));
                     }
                     Err(error) => {
-                        tracing::warn!(screen_id = %reference.id, %error, "Refero screen image fetch failed");
+                        tracing::warn!(%error, "Refero image hydration task failed");
+                    }
+                }
+            }
+        }
+
+        for (bucket_index, reference_index, bytes) in results {
+            if let Some(bytes) = bytes {
+                if let Some(bucket) = category_searches.get_mut(bucket_index) {
+                    if let Some(reference) = bucket.references.get_mut(reference_index) {
+                        reference.raw_image_bytes = Some(bytes);
                     }
                 }
             }

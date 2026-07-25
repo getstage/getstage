@@ -4,6 +4,8 @@ use reqwest::Client;
 
 use super::value::{args, function_result_to_json};
 
+const UPLOAD_STEP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(15);
+
 #[derive(Clone, Debug)]
 pub struct ConvexAssetUploader {
     deployment_url: String,
@@ -12,9 +14,14 @@ pub struct ConvexAssetUploader {
 
 impl ConvexAssetUploader {
     pub fn new(deployment_url: String) -> Self {
+        let http = Client::builder()
+            .timeout(std::time::Duration::from_secs(15))
+            .connect_timeout(std::time::Duration::from_secs(5))
+            .build()
+            .unwrap_or_else(|_| Client::new());
         Self {
             deployment_url,
-            http: Client::new(),
+            http,
         }
     }
 
@@ -35,10 +42,13 @@ impl ConvexAssetUploader {
         mutation_args.insert("mimeType".to_string(), Value::from(mime_type.to_string()));
         mutation_args.insert("scopeId".to_string(), Value::from(project_id.to_string()));
 
-        let result = client
-            .mutation("r2:generateUploadUrl", mutation_args)
-            .await
-            .context("failed to prepare image upload")?;
+        let result = tokio::time::timeout(
+            UPLOAD_STEP_TIMEOUT,
+            client.mutation("r2:generateUploadUrl", mutation_args),
+        )
+        .await
+        .context("timed out preparing image upload")?
+        .context("failed to prepare image upload")?;
         let payload = function_result_to_json(result)?;
 
         let key = payload
@@ -68,10 +78,13 @@ impl ConvexAssetUploader {
 
         let mut sync_args = args();
         sync_args.insert("key".to_string(), Value::from(key.clone()));
-        client
-            .mutation("r2:syncMetadata", sync_args)
-            .await
-            .context("failed to sync image metadata")?;
+        tokio::time::timeout(
+            UPLOAD_STEP_TIMEOUT,
+            client.mutation("r2:syncMetadata", sync_args),
+        )
+        .await
+        .context("timed out syncing image metadata")?
+        .context("failed to sync image metadata")?;
 
         Ok(key)
     }

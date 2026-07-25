@@ -7,7 +7,7 @@ use crate::providers::process::{
     ProviderProcessError, ProviderProcessOutcome, ProviderProcessSpec, run_provider_process,
     run_provider_process_collect,
 };
-use crate::providers::run_model_options::resolve_codex_model_id;
+use crate::providers::run_model_options::{apply_codex_run_options, resolve_codex_model_id};
 use crate::runs::RunEventSink;
 
 pub async fn run_codex(
@@ -75,6 +75,12 @@ fn codex_args(context: &ProviderRunContext) -> Vec<String> {
         "--skip-git-repo-check".to_string(),
     ]);
 
+    // Config overrides and ephemeral belong on `codex exec`, not the parent command.
+    apply_codex_run_options(&mut args, &context.request.model_options);
+    if context.request.mode == crate::models::runs::RunMode::Research {
+        args.push("--ephemeral".to_string());
+    }
+
     if let Some(working_directory) = context.request.working_directory.as_ref() {
         args.push("--cd".to_string());
         args.push(working_directory.clone());
@@ -102,7 +108,13 @@ fn research_web_search_enabled(context: &ProviderRunContext) -> bool {
     context.request.mode == crate::models::runs::RunMode::Research
         && !matches!(
             context.request.context.source.as_deref(),
-            Some("provider-preflight" | "research-opportunities" | "section:opportunities")
+            Some(
+                "provider-preflight"
+                    | "research-opportunities"
+                    | "research-context"
+                    | "research-synthesis"
+                    | "section:opportunities"
+            )
         )
 }
 
@@ -117,7 +129,10 @@ fn codex_model_id(model_id: &str) -> Option<&str> {
 mod tests {
     use super::{codex_args, codex_model_id};
     use crate::models::providers::ProviderId;
-    use crate::models::runs::{RunAttachment, RunAttachmentKind, RunMode, StartRunRequest};
+    use crate::models::runs::{
+        RunAttachment, RunAttachmentKind, RunMode, RunModelOptionSelection, RunModelOptionValue,
+        StartRunRequest,
+    };
     use crate::providers::adapter::ProviderRunContext;
 
     fn sample_context() -> ProviderRunContext {
@@ -178,6 +193,27 @@ mod tests {
         context.request.mode = RunMode::Research;
         let args = codex_args(&context);
         assert!(args.contains(&"--search".to_string()));
+        assert!(args.contains(&"--ephemeral".to_string()));
+    }
+
+    #[test]
+    fn codex_research_applies_fast_run_options() {
+        let mut context = sample_context();
+        context.request.mode = RunMode::Research;
+        context.request.model_options = vec![RunModelOptionSelection {
+            id: "response_speed".to_string(),
+            value: RunModelOptionValue::String("fast".to_string()),
+        }];
+
+        let args = codex_args(&context);
+        assert!(
+            args.windows(2)
+                .any(|pair| { pair[0] == "-c" && pair[1] == "model_reasoning_effort=\"low\"" })
+        );
+        assert!(
+            args.windows(2)
+                .any(|pair| pair[0] == "-c" && pair[1] == "model_verbosity=\"low\"")
+        );
     }
 
     #[test]
@@ -187,5 +223,28 @@ mod tests {
         context.request.context.source = Some("section:opportunities".to_string());
         let args = codex_args(&context);
         assert!(!args.contains(&"--search".to_string()));
+    }
+
+    #[test]
+    fn codex_context_and_synthesis_jobs_disable_live_web_search() {
+        for source in ["research-context", "research-synthesis"] {
+            let mut context = sample_context();
+            context.request.mode = RunMode::Research;
+            context.request.context.source = Some(source.to_string());
+            let args = codex_args(&context);
+            assert!(
+                !args.contains(&"--search".to_string()),
+                "{source} should not enable web search"
+            );
+        }
+    }
+
+    #[test]
+    fn codex_competitive_evidence_job_enables_live_web_search() {
+        let mut context = sample_context();
+        context.request.mode = RunMode::Research;
+        context.request.context.source = Some("research-web-evidence".to_string());
+        let args = codex_args(&context);
+        assert!(args.contains(&"--search".to_string()));
     }
 }

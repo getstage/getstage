@@ -5,7 +5,7 @@ use crate::models::providers::ProviderId;
 
 use super::heuristics::{
     extract_provider_exit_payload, looks_like_provider_auth_failure,
-    looks_like_provider_session_limit,
+    looks_like_provider_session_limit, looks_like_provider_subscription_disabled,
 };
 use super::stderr::{StderrDiagnostics, stderr_diag_max_chars, truncate_line};
 
@@ -75,6 +75,10 @@ impl ProviderProcessError {
                         return Self::session_limit_user_message(label, payload);
                     }
 
+                    if looks_like_provider_subscription_disabled(payload) {
+                        return Self::subscription_disabled_user_message(label);
+                    }
+
                     if looks_like_provider_auth_failure(payload) {
                         return format!(
                             "{label} is not logged in. Run `{login_cmd}` in Terminal, then refresh Settings → Integrations."
@@ -92,6 +96,10 @@ impl ProviderProcessError {
 
                 if looks_like_provider_session_limit(&detail) {
                     return Self::session_limit_user_message(label, &detail);
+                }
+
+                if looks_like_provider_subscription_disabled(&detail) {
+                    return Self::subscription_disabled_user_message(label);
                 }
 
                 if looks_like_provider_auth_failure(&detail) {
@@ -128,6 +136,12 @@ impl ProviderProcessError {
         }
 
         format!("{label} usage limit reached. Wait until the limit resets, then try again.")
+    }
+
+    fn subscription_disabled_user_message(label: &str) -> String {
+        format!(
+            "{label} subscription access is disabled for this organization. Use an Anthropic API key in Settings → Integrations, or ask your admin to enable Claude Code."
+        )
     }
 
     fn selected_model_from_text(text: &str) -> Option<&str> {
@@ -196,7 +210,7 @@ impl ProviderProcessError {
 
     /// Whether the failure looks like an auth/credentials problem and is therefore a
     /// candidate for an in-engine retry after warming the provider's credentials file.
-    pub(super) fn is_auth_failure(&self) -> bool {
+    pub(crate) fn is_auth_failure(&self) -> bool {
         match self {
             ProviderProcessError::Spawn { .. } | ProviderProcessError::Timeout { .. } => false,
             ProviderProcessError::Io { source, .. } => {
@@ -312,6 +326,21 @@ mod tests {
         assert!(engine_error.message.contains("usage limit reached"));
         assert!(!engine_error.message.contains("auth login"));
         assert!(engine_error.retryable);
+    }
+
+    #[test]
+    fn subscription_disabled_maps_to_api_key_message() {
+        let error = ProviderProcessError::Io {
+            binary: "claude",
+            source: std::io::Error::other(
+                "process exited with status exit status: 1: Your organization has disabled Claude subscription access for Claude Code · Use an Anthropic API key instead, or ask your admin to enable access",
+            ),
+        };
+
+        let engine_error = error.to_engine_error(ProviderId::Claude);
+        assert!(engine_error.message.contains("API key"));
+        assert!(engine_error.message.contains("organization"));
+        assert!(!engine_error.message.contains("auth login"));
     }
 
     #[test]
