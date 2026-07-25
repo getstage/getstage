@@ -31,13 +31,15 @@ use crate::research::service::ResearchService;
 use crate::runs::RunEventSink;
 use serde::de::DeserializeOwned;
 use serde_json::json;
-use tokio::time::{Duration, timeout};
+use tokio::time::{Duration, Instant, timeout};
 
 const SECTION_PROVIDER_TIMEOUT: Duration = Duration::from_secs(300);
 const CONTEXT_JOB_TIMEOUT: Duration = Duration::from_secs(120);
 const COMPETITIVE_JOB_TIMEOUT: Duration = Duration::from_secs(180);
 const SYNTHESIS_JOB_TIMEOUT: Duration = Duration::from_secs(120);
 const RESEARCH_WORKFLOW_TIMEOUT: Duration = Duration::from_secs(360);
+/// Leave headroom for merge/publish after the last provider job.
+const WORKFLOW_TAIL_RESERVE: Duration = Duration::from_secs(30);
 
 #[derive(Clone, Debug)]
 pub struct ResearchWorkflow {
@@ -83,7 +85,8 @@ impl ResearchWorkflow {
         );
 
         let result = match timeout(RESEARCH_WORKFLOW_TIMEOUT, async {
-            let workflow_started = std::time::Instant::now();
+            let workflow_started = Instant::now();
+            let workflow_deadline = workflow_started + RESEARCH_WORKFLOW_TIMEOUT;
             let auth_token = auth_token.ok_or_else(|| {
                 WorkflowError::InvalidRequest("Missing desktop session for Research.".to_string())
             })?;
@@ -228,7 +231,7 @@ impl ResearchWorkflow {
                 "research-web-evidence",
                 "low",
             );
-            let initial_jobs_started = std::time::Instant::now();
+            let initial_jobs_started = Instant::now();
             let (context_output, competitive_output) = tokio::try_join!(
                 run_research_job::<ContextJobOutput>(
                     api_version,
@@ -238,6 +241,7 @@ impl ResearchWorkflow {
                     sink.clone(),
                     cancel_rx.clone(),
                     CONTEXT_JOB_TIMEOUT,
+                    workflow_deadline,
                 ),
                 run_research_job::<CompetitiveJobOutput>(
                     api_version,
@@ -247,6 +251,7 @@ impl ResearchWorkflow {
                     sink.clone(),
                     cancel_rx.clone(),
                     COMPETITIVE_JOB_TIMEOUT,
+                    workflow_deadline,
                 ),
             )?;
             let (Some(context_output), Some(competitive_output)) =
@@ -263,6 +268,8 @@ impl ResearchWorkflow {
                 return Ok(());
             };
 
+            let requires_competitors =
+                !crate::research::competitive::allowed_competitive_targets(&input).is_empty();
             context_output
                 .validate()
                 .map_err(|source| WorkflowError::JobOutput {
@@ -270,7 +277,7 @@ impl ResearchWorkflow {
                     source,
                 })?;
             competitive_output
-                .validate()
+                .validate(requires_competitors)
                 .map_err(|source| WorkflowError::JobOutput {
                     phase: "competitive analysis",
                     source,
@@ -319,6 +326,7 @@ impl ResearchWorkflow {
                 sink.clone(),
                 cancel_rx.clone(),
                 SYNTHESIS_JOB_TIMEOUT,
+                workflow_deadline,
             )
             .await?
             else {
@@ -650,7 +658,9 @@ async fn run_research_job<T: DeserializeOwned>(
     sink: RunEventSink,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
     duration: Duration,
+    workflow_deadline: Instant,
 ) -> Result<Option<T>, WorkflowError> {
+    let first_budget = job_attempt_budget(duration, workflow_deadline)?;
     match run_research_job_once(
         api_version,
         run_id,
@@ -658,16 +668,18 @@ async fn run_research_job<T: DeserializeOwned>(
         request.clone(),
         sink.clone(),
         cancel_rx.clone(),
-        duration,
+        first_budget,
     )
     .await
     {
         Ok(outcome) => Ok(outcome),
         Err(error) if error.is_retryable_job_failure() => {
+            let retry_budget = job_attempt_budget(duration / 2, workflow_deadline)?;
             tracing::warn!(
                 run_id,
                 phase,
                 error = %error,
+                retry_timeout_seconds = retry_budget.as_secs(),
                 "Research job failed; retrying once at low effort"
             );
             force_low_effort(&mut request);
@@ -678,12 +690,25 @@ async fn run_research_job<T: DeserializeOwned>(
                 request,
                 sink,
                 cancel_rx,
-                duration,
+                retry_budget,
             )
             .await
         }
         Err(error) => Err(error),
     }
+}
+
+fn job_attempt_budget(
+    preferred: Duration,
+    workflow_deadline: Instant,
+) -> Result<Duration, WorkflowError> {
+    let remaining = workflow_deadline
+        .saturating_duration_since(Instant::now())
+        .saturating_sub(WORKFLOW_TAIL_RESERVE);
+    if remaining.is_zero() {
+        return Err(WorkflowError::WorkflowTimeout);
+    }
+    Ok(preferred.min(remaining))
 }
 
 async fn run_research_job_once<T: DeserializeOwned>(

@@ -45,7 +45,10 @@ pub struct CompetitiveJobOutput {
 }
 
 impl CompetitiveJobOutput {
-    pub fn validate(&self) -> Result<()> {
+    pub fn validate(&self, requires_competitors: bool) -> Result<()> {
+        if !requires_competitors {
+            return Ok(());
+        }
         ensure!(
             !self.competitive_analysis.competitors.is_empty(),
             "competitive job returned no competitors"

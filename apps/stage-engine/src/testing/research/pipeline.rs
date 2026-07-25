@@ -102,7 +102,7 @@ fn sample_synthesis() -> SynthesisJobOutput {
 #[test]
 fn validates_required_job_fields() {
     assert!(sample_context().validate().is_ok());
-    assert!(sample_competitive().validate().is_ok());
+    assert!(sample_competitive().validate(true).is_ok());
     assert!(sample_synthesis().validate().is_ok());
 
     let mut empty_context = sample_context();
@@ -111,7 +111,18 @@ fn validates_required_job_fields() {
 
     let mut empty_competitive = sample_competitive();
     empty_competitive.competitive_analysis.matrix_rows.clear();
-    assert!(empty_competitive.validate().is_err());
+    assert!(empty_competitive.validate(true).is_err());
+    assert!(empty_competitive.validate(false).is_ok());
+
+    let empty_competitors = CompetitiveJobOutput {
+        competitive_analysis: ResearchCompetitiveAnalysis {
+            competitors: vec![],
+            matrix_rows: vec![],
+        },
+        source_references: vec![],
+    };
+    assert!(empty_competitors.validate(false).is_ok());
+    assert!(empty_competitors.validate(true).is_err());
 
     let mut empty_synthesis = sample_synthesis();
     empty_synthesis.opportunities.clear();
