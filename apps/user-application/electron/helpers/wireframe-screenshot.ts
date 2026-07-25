@@ -218,11 +218,22 @@ const WIREFRAME_FIGMA_WALKER = `(() => {
       const opt = el.options && el.options[el.selectedIndex];
       text = ((opt && opt.text) || "").replace(/\\s+/g, " ").trim().slice(0, MAX_TEXT);
     }
+    const padL = parseFloat(style.paddingLeft) || 0;
+    const padT = parseFloat(style.paddingTop) || 0;
+    const padB = parseFloat(style.paddingBottom) || 0;
     if (text && isControl) {
       // Values sit inside the field: offset by left padding and vertically center.
       const fs = parseFloat(style.fontSize) || 16;
-      textX = x + (parseFloat(style.paddingLeft) || 0);
+      textX = x + padL;
       textY = y + Math.max(0, (rect.height - fs) / 2);
+    } else if (text && (padT > 0 || padL > 0)) {
+      // Padded leaf text (buttons, pills, chips): CSS content box starts after
+      // padding. Without this, Figma text sits on the top edge of the filled rect
+      // ("two parts": label stuck high, empty fill below).
+      const align = style.textAlign || "left";
+      const centered = align === "center" || align === "right" || align === "justify";
+      textX = centered ? x : x + padL;
+      textY = y + padT;
     }
     if (text) {
       // Computed line-height resolves to px unless "normal"; carry it so Figma
@@ -230,10 +241,9 @@ const WIREFRAME_FIGMA_WALKER = `(() => {
       const fs = parseFloat(style.fontSize) || 16;
       const lh = parseFloat(style.lineHeight);
       const lhPx = isFinite(lh) && lh > 0 ? lh : fs * 1.3;
-      // Whether the browser wrapped this to more than one line. Single-line text
-      // is exported without wrapping so a slightly wider Figma font can't push a
-      // phantom second line down onto the element below it.
-      const multiline = rect.height > lhPx * 1.5;
+      // Use content-box height so padding on buttons/pills doesn't look like wrap.
+      const contentH = Math.max(0, rect.height - padT - padB);
+      const multiline = contentH > lhPx * 1.5;
       nodes.push({
         type: "text", x: textX, y: textY, w: rect.width, text,
         fontSize: fs,
@@ -248,30 +258,55 @@ const WIREFRAME_FIGMA_WALKER = `(() => {
   }
   // Size the frame to the deepest layer's bottom, not the document height — a
   // short design in a taller viewport otherwise leaves a big white band below.
+  // Also drop near-full-frame white rects (duplicate of the root fill).
   let contentBottom = 0;
+  const filtered = [];
+  const rootW = Math.round(root.scrollWidth) || ${WIREFRAME_DESIGN_WIDTH};
   for (const node of nodes) {
     const h = node.type === "text" ? (node.fontSize || 16) * 1.5 : node.h || 0;
     const bottom = node.y + h;
     if (bottom > contentBottom) contentBottom = bottom;
   }
+  const frameH = Math.max(1, Math.ceil(contentBottom));
+  for (const node of nodes) {
+    if (node.type === "rect") {
+      const nearFullW = node.w >= rootW * 0.95;
+      const nearFullH = node.h >= frameH * 0.9 || node.h >= window.innerHeight * 0.9;
+      const fill = (node.fill || "").toLowerCase();
+      const isWhite = !fill || fill === "#ffffff" || fill === "#fff" || fill === "#fafafa";
+      if (nearFullW && nearFullH && isWhite && node.y <= 2) continue;
+    }
+    filtered.push(node);
+  }
   return {
-    width: Math.round(root.scrollWidth),
-    height: Math.max(1, Math.ceil(contentBottom)),
-    nodes,
+    width: rootW,
+    height: frameH,
+    nodes: filtered,
   };
 })()`;
 
 async function measureCaptureHeight(window: BrowserWindow): Promise<number> {
   const height = await window.webContents.executeJavaScript(`
-    Math.min(
-      ${MAX_CAPTURE_HEIGHT},
-      Math.max(
+    (() => {
+      let bottom = 0;
+      for (const el of document.body.querySelectorAll("*")) {
+        const style = getComputedStyle(el);
+        if (style.display === "none" || style.visibility === "hidden" || parseFloat(style.opacity) === 0) {
+          continue;
+        }
+        const rect = el.getBoundingClientRect();
+        if (rect.width < 1 || rect.height < 1) continue;
+        const candidate = rect.bottom + window.scrollY;
+        if (candidate > bottom) bottom = candidate;
+      }
+      const scroll = Math.max(
         document.documentElement.scrollHeight || 0,
         document.body.scrollHeight || 0,
-        document.documentElement.offsetHeight || 0,
-        document.body.offsetHeight || 0
-      )
-    )
+      );
+      // Prefer content-bottom; fall back to scrollHeight if walk found nothing.
+      const measured = bottom > 0 ? bottom : scroll;
+      return Math.min(${MAX_CAPTURE_HEIGHT}, Math.max(1, Math.ceil(measured + 8)));
+    })()
   `);
 
   if (typeof height !== "number" || !Number.isFinite(height) || height <= 0) {

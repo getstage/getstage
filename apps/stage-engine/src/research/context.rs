@@ -4,9 +4,7 @@ use crate::models::refero::{
 use crate::models::research::ResearchInput;
 use crate::research::competitive::allowed_competitor_names;
 
-/// Two screens per UI-pattern category keep the initial Research report under
-/// ~10 images while still giving designers variety. More can be regenerated later.
-const CATEGORY_SCREEN_LIMIT: u8 = 2;
+const CATEGORY_SCREEN_LIMIT: u8 = 4;
 
 pub fn build_refero_category_search_requests(
     input: &ResearchInput,
@@ -228,7 +226,7 @@ mod tests {
         assert!(requests[0].query.contains("E-commerce"));
         assert!(requests[0].query.contains("onboarding"));
         assert_eq!(requests[0].category, ReferoUiPatternCategory::Onboarding);
-        assert_eq!(requests[0].limit, 2);
+        assert_eq!(requests[0].limit, 4);
     }
 
     #[test]

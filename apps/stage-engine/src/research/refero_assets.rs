@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use anyhow::Context;
 use serde_json::{Value, json};
@@ -10,8 +10,6 @@ use crate::models::refero::{
 };
 use crate::refero::parse::{infer_image_mime, looks_like_image_bytes};
 use crate::refero::service::{ReferoService, infer_refero_file_name};
-
-const REFERO_UPLOAD_CONCURRENCY: usize = 4;
 
 pub async fn persist_refero_context_images(
     refero: &ReferoService,
@@ -27,98 +25,18 @@ pub async fn persist_refero_context_images(
 
     sync_category_bytes_to_flat_references(context);
 
-    let mut upload_jobs = Vec::new();
-    for bucket in &context.category_searches {
-        for reference in &bucket.references {
-            let Some(bytes) = reference.raw_image_bytes.as_ref() else {
-                continue;
-            };
-            if !looks_like_image_bytes(bytes) {
-                tracing::warn!(
-                    reference_id = %reference.id,
-                    byte_len = bytes.len(),
-                    "Skipping Refero image upload because bytes are not a valid image"
-                );
-                continue;
-            }
-            let mime_type = infer_image_mime(bytes).to_string();
-            let file_name = infer_refero_file_name(&reference.id, &mime_type);
-            upload_jobs.push((reference.id.clone(), file_name, mime_type, bytes.clone()));
-        }
-    }
-
-    let mut jobs = upload_jobs.into_iter().enumerate();
-    let mut join_set = tokio::task::JoinSet::new();
-    let mut indexed_results = Vec::new();
-    loop {
-        for _ in 0..REFERO_UPLOAD_CONCURRENCY {
-            let Some((index, (reference_id, file_name, mime_type, bytes))) = jobs.next() else {
-                break;
-            };
-            let uploader = uploader.clone();
-            let auth_token = auth_token.to_string();
-            let project_id = project_id.to_string();
-            join_set.spawn(async move {
-                let result = uploader
-                    .upload_research_refero_image(
-                        &auth_token,
-                        &project_id,
-                        &file_name,
-                        &mime_type,
-                        &bytes,
-                    )
-                    .await;
-                (index, reference_id, result)
-            });
-        }
-
-        if join_set.is_empty() {
-            break;
-        }
-        while let Some(joined) = join_set.join_next().await {
-            match joined {
-                Ok(result) => indexed_results.push(result),
-                Err(error) => tracing::warn!(%error, "Refero image upload task failed"),
-            }
-        }
-    }
-    indexed_results.sort_by_key(|(index, _, _)| *index);
-
     let mut uploaded_keys = HashMap::new();
-    for (_index, reference_id, result) in indexed_results {
-        match result {
-            Ok(key) => {
-                for bucket in &mut context.category_searches {
-                    for reference in &mut bucket.references {
-                        if reference.id == reference_id {
-                            reference.image_url = Some(key.clone());
-                            if reference.thumbnail_url.is_none() {
-                                reference.thumbnail_url = Some(key.clone());
-                            }
-                            // Bytes already persisted to R2 — drop them from memory.
-                            reference.raw_image_bytes = None;
-                        }
-                    }
-                }
-                uploaded_keys.insert(reference_id, key);
-            }
-            Err(error) => {
-                tracing::warn!(
-                    reference_id = %reference_id,
-                    %error,
-                    "Refero image upload failed; continuing research without this image"
-                );
-                for bucket in &mut context.category_searches {
-                    for reference in &mut bucket.references {
-                        if reference.id == reference_id {
-                            reference.raw_image_bytes = None;
-                            if reference.image_url.is_none() {
-                                reference.image_url = reference.thumbnail_url.clone();
-                            }
-                        }
-                    }
-                }
-            }
+
+    for bucket in &mut context.category_searches {
+        for reference in &mut bucket.references {
+            upload_reference_image(
+                uploader,
+                auth_token,
+                project_id,
+                reference,
+                &mut uploaded_keys,
+            )
+            .await;
         }
     }
 
@@ -151,54 +69,7 @@ pub fn apply_engine_ui_patterns(
         object.insert("uiPatterns".to_string(), ui_patterns);
     }
 
-    ensure_refero_source_references(artifact, context, image_keys);
     wire_refero_images_in_source_references(artifact, image_keys);
-}
-
-fn ensure_refero_source_references(
-    artifact: &mut Value,
-    context: &ReferoContext,
-    image_keys: &HashMap<String, String>,
-) {
-    let Some(object) = artifact.as_object_mut() else {
-        return;
-    };
-    let source_references = object
-        .entry("sourceReferences".to_string())
-        .or_insert_with(|| json!([]));
-    let Some(source_references) = source_references.as_array_mut() else {
-        return;
-    };
-
-    let mut existing_ids = source_references
-        .iter()
-        .filter_map(|source| source.get("id").and_then(Value::as_str))
-        .map(str::to_string)
-        .collect::<HashSet<_>>();
-
-    for reference in context
-        .category_searches
-        .iter()
-        .flat_map(|bucket| bucket.references.iter())
-        .filter(|reference| reference.kind == ReferoReferenceKind::Screen)
-    {
-        if !existing_ids.insert(reference.id.clone()) {
-            continue;
-        }
-        let url = image_keys
-            .get(&reference.id)
-            .cloned()
-            .or_else(|| reference.image_url.clone())
-            .or_else(|| reference.thumbnail_url.clone())
-            .or_else(|| reference.source_url.clone());
-        source_references.push(json!({
-            "id": reference.id,
-            "provider": "refero",
-            "label": reference.title,
-            "url": url,
-            "externalId": reference.id,
-        }));
-    }
 }
 
 fn build_ui_pattern_group(
@@ -462,6 +333,52 @@ fn category_pattern_insights(
                 ),
             ),
         ],
+    }
+}
+
+async fn upload_reference_image(
+    uploader: &ConvexAssetUploader,
+    auth_token: &str,
+    project_id: &str,
+    reference: &mut ReferoReference,
+    uploaded_keys: &mut HashMap<String, String>,
+) {
+    let Some(bytes) = reference.raw_image_bytes.take() else {
+        return;
+    };
+
+    if !looks_like_image_bytes(&bytes) {
+        tracing::warn!(
+            reference_id = %reference.id,
+            byte_len = bytes.len(),
+            "Skipping Refero image upload because bytes are not a valid image"
+        );
+        return;
+    }
+
+    let mime_type = infer_image_mime(&bytes);
+    let file_name = infer_refero_file_name(&reference.id, mime_type);
+    match uploader
+        .upload_research_refero_image(auth_token, project_id, &file_name, mime_type, &bytes)
+        .await
+    {
+        Ok(key) => {
+            reference.image_url = Some(key.clone());
+            if reference.thumbnail_url.is_none() {
+                reference.thumbnail_url = Some(key.clone());
+            }
+            uploaded_keys.insert(reference.id.clone(), key);
+        }
+        Err(error) => {
+            tracing::warn!(
+                reference_id = %reference.id,
+                %error,
+                "Refero image upload failed; continuing research without this image"
+            );
+            if reference.image_url.is_none() {
+                reference.image_url = reference.thumbnail_url.clone();
+            }
+        }
     }
 }
 

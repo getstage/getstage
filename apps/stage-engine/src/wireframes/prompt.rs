@@ -77,14 +77,122 @@ Imagery:
 
 Anti-slop taste rules (mandatory):
 - Cohesive system: one spacing scale, one corner radius, consistent shadows.
-- Strong typographic hierarchy and generous whitespace; avoid cramped, centered-everything layouts.
+- Strong typographic hierarchy with intentional spacing between sections (typically 48–96px) — not huge empty bands and not cramped, centered-everything layouts.
 - Realistic copy drawn from the strategy/research artifacts — no "Lorem ipsum" or placeholder filler.
 - Make each section visually distinct (alternating backgrounds, varied layout); avoid identical three-icon-card rows unless intentional.
 - Keep markup semantic and FLAT (header, section, h1-h3, p, ul, button) so it converts cleanly to Figma layers and exportable code. Avoid absolute positioning, transforms, and exotic CSS.
 - Ensure WCAG-AA text contrast.
 
-Pre-flight check before returning: confirm every Hi-Fi screen has a non-empty "html" using brand colors, real copy, and at least one image, and that no two sections look identical.
+Canvas / height rules (mandatory — Stage crops and exports by content height):
+- NEVER use min-height: 100vh, height: 100vh, or min-height: 100% on the root wrapper or on dialog/onboarding shells. Height must come from content.
+- Modal, form, invite, success, and step screens: content-sized card/panel with modest outer padding (32–64px). Do NOT vertically center a small card inside a full desktop viewport of empty white.
+- Marketing / long pages: stack sections tightly with consistent gaps; do not pad with large empty regions between sections.
+- Prefer one root <div> that wraps only real UI — no spacer divs whose only job is to fill the viewport.
+
+Pre-flight check before returning: confirm every Hi-Fi screen has a non-empty "html" using brand colors, real copy, and at least one image; no two sections look identical; and no screen relies on 100vh / empty viewport centering.
 "#;
+
+/// Leonxlnx/taste-skill (`design-taste-frontend` / tasteskill.dev), Stage-adapted.
+/// Injected into every Hi-Fi wireframes generation prompt.
+const TASTE_SKILL: &str = include_str!("../../skills/design-taste-frontend/SKILL.md");
+const TASTE_SKILL_ID: &str = "design-taste-frontend";
+
+/// Keep in sync with `apps/user-application/src/lib/settings/skillsCatalog.ts`.
+const COMPONENT_PACK_HINTS: &[(&str, &str)] = &[
+    (
+        "shadcn-ui",
+        "Prefer clean shadcn-like patterns: rounded-md controls, bordered cards, clear Label+Input forms, muted secondary text.",
+    ),
+    (
+        "radix-ui",
+        "Use accessible dialog/popover/select patterns with clear focus rings and semantic roles.",
+    ),
+    (
+        "magic-ui",
+        "Add restrained motion-ready structure (hero reveals, subtle card lift) without requiring JS in the HTML fragment.",
+    ),
+    (
+        "aceternity-ui",
+        "SaaS/AI product layouts: bold hero typography, feature bento sections, polished pricing and CTA blocks.",
+    ),
+    (
+        "kokonut-ui",
+        "Dashboard/SaaS density: clear data panels, metric strips, and structured app chrome when screens are product UI.",
+    ),
+    (
+        "origin-ui",
+        "Application blocks with production spacing and clear section separators — practical, not decorative.",
+    ),
+    (
+        "mantine",
+        "Accessible form and notification patterns with consistent control heights and readable contrast.",
+    ),
+];
+
+const DEFAULT_COMPONENT_PACK_IDS: &[&str] = &["shadcn-ui", "magic-ui", "aceternity-ui"];
+
+fn env_taste_skill_disabled() -> bool {
+    // Set STAGE_WIREFRAMES_TASTE_SKILL=0 for A/B without skill (overrides user prefs).
+    matches!(
+        std::env::var("STAGE_WIREFRAMES_TASTE_SKILL").as_deref(),
+        Ok("0") | Ok("false") | Ok("off")
+    )
+}
+
+fn taste_skill_enabled(input: &WireframesInput) -> bool {
+    if env_taste_skill_disabled() {
+        return false;
+    }
+    match &input.enabled_skill_ids {
+        // Legacy / unset prefs → Taste ON by default.
+        None => true,
+        Some(ids) => ids.iter().any(|id| id == TASTE_SKILL_ID),
+    }
+}
+
+fn enabled_component_pack_ids(input: &WireframesInput) -> Vec<String> {
+    match &input.enabled_component_pack_ids {
+        None => DEFAULT_COMPONENT_PACK_IDS
+            .iter()
+            .map(|id| (*id).to_string())
+            .collect(),
+        Some(ids) => ids.clone(),
+    }
+}
+
+fn hifi_prompt_extras(input: &WireframesInput) -> String {
+    let mut extras = String::from(HIFI_RULES);
+    if taste_skill_enabled(input) {
+        extras.push_str(
+            "\n\n<taste_skill source=\"Leonxlnx/taste-skill:design-taste-frontend\">\n",
+        );
+        extras.push_str(
+            "You MUST follow this Taste skill for every Hi-Fi html screen. It overrides generic AI defaults.\n\n",
+        );
+        extras.push_str(TASTE_SKILL);
+        extras.push_str("\n</taste_skill>\n");
+    }
+
+    let pack_ids = enabled_component_pack_ids(input);
+    let pack_lines: Vec<&str> = COMPONENT_PACK_HINTS
+        .iter()
+        .filter(|(id, _)| pack_ids.iter().any(|enabled| enabled == id))
+        .map(|(_, hint)| *hint)
+        .collect();
+    if !pack_lines.is_empty() {
+        extras.push_str("\n\n<component_packs>\n");
+        extras.push_str(
+            "Apply these enabled component-library patterns when shaping Hi-Fi HTML structure and controls:\n",
+        );
+        for line in pack_lines {
+            extras.push_str("- ");
+            extras.push_str(line);
+            extras.push('\n');
+        }
+        extras.push_str("</component_packs>\n");
+    }
+    extras
+}
 
 // On partial regen, strip prior `html` from the prompt payload so the model
 // re-designs from strategy/moodboard context instead of copy-pasting the saved
@@ -191,8 +299,8 @@ pub fn build_wireframes_prompt(
         .map(|id| format!("Selected moodboard style direction ID: {id}\n"))
         .unwrap_or_default();
     let hifi_extras = match kind {
-        WireframeKind::Hifi => HIFI_RULES,
-        WireframeKind::Lofi => "",
+        WireframeKind::Hifi => hifi_prompt_extras(input),
+        WireframeKind::Lofi => String::new(),
     };
     let regenerate_block = regenerate_screen_ids
         .filter(|ids| !ids.is_empty())

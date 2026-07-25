@@ -4,10 +4,12 @@ import { Link } from "@tanstack/react-router";
 import { DownstreamStepsDialog } from "@/components/project/DownstreamStepsDialog";
 import { ResearchRerunDialog } from "@/components/project/ResearchRerunDialog";
 import { useAfterUpstreamRunPrompt } from "@/hooks/project/useAfterUpstreamRunPrompt";
+import { useClearResearchAndStrategyForRerun } from "@/hooks/project/useClearResearchAndStrategyForRerun";
 import { useProjectDownstreamWork } from "@/hooks/project/useProjectDownstreamWork";
 import type { Project } from "@/models/project/project";
 import type { ValidatedResearchConfigureInput } from "@/lib/project/researchConfigureInput";
 import type { ProviderId, ResearchArtifactSection } from "@stage/data-ops/contracts";
+import type { Id } from "@stage/data-ops/convex/data-model";
 import type { CompetitiveView, ResearchTabData } from "@/types/project/researchTab";
 import { useResearchContext } from "@/hooks/project/research/useResearchContext";
 import { useResearchProviderSelection } from "@/hooks/project/research/useResearchProviderSelection";
@@ -59,9 +61,11 @@ export function ResearchTab({
   const [isNotionConnectDialogOpen, setIsNotionConnectDialogOpen] = useState(false);
 
   const research = useResearchTab(project);
+  const clearForRerun = useClearResearchAndStrategyForRerun(project.id);
   const downstreamWork = useProjectDownstreamWork(project.id);
   const upstreamPrompt = useAfterUpstreamRunPrompt(project.id);
-  const isRunBusy = research.isRunning || research.isStarting;
+  const isRunBusy =
+    research.isRunning || research.isStarting || clearForRerun.isPending;
   const researchContext = useResearchContext(project.id);
   const saveResearchArtifact = useSaveResearchArtifact(project.id);
   const regenerateSection = useResearchSectionRegenerate(project.id);
@@ -99,9 +103,15 @@ export function ResearchTab({
     setRunError(null);
 
     if (options?.isFullRerun) {
-      // Do not pre-delete prior artifacts. The generating state temporarily covers
-      // them, but a failed run can return to the last successful Research/Strategy.
       beginPending("research", { hadDownstream: downstreamWork.hasDownstream });
+      try {
+        await clearForRerun({ projectId: project.id as Id<"projects"> });
+      } catch (error) {
+        setRunError(
+          toUserFacingErrorMessage(error, "Could not clear the previous Research and Strategy."),
+        );
+        throw error;
+      }
     }
 
     try {

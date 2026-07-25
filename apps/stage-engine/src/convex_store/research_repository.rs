@@ -417,7 +417,9 @@ fn normalize_matrix_score(score: &str) -> Option<&'static str> {
     }
 }
 
-pub use crate::helpers::provider_json::{extract_json_object, extract_strategy_artifact};
+pub use crate::helpers::provider_json::{
+    extract_json_object, extract_research_artifact, extract_strategy_artifact,
+};
 
 fn summary_text(artifact: &JsonValue) -> Option<String> {
     match artifact.get("summary")? {

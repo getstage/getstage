@@ -17,6 +17,8 @@ fn sample_input() -> WireframesInput {
         existing_wireframes_artifact_json: Some(
             r#"{"generatedScreens":[{"id":"homepage"}]}"#.to_string(),
         ),
+        enabled_skill_ids: None,
+        enabled_component_pack_ids: None,
     }
 }
 
@@ -82,5 +84,67 @@ fn regen_prompt_redacts_prior_html_and_forbids_reuse() {
     );
     assert!(prompt.contains("Do NOT reuse prior html"));
     assert!(prompt.contains("homepage"));
+}
+
+#[test]
+fn hifi_prompt_includes_taste_skill_by_default() {
+    let prompt = build_wireframes_prompt(
+        &sample_input(),
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
+
+    assert!(
+        prompt.contains("<taste_skill"),
+        "Hi-Fi generation must attach the Taste skill"
+    );
+    assert!(prompt.contains("Leonxlnx/taste-skill"));
+    assert!(prompt.contains("Absolute bans (anti-slop)"));
+    assert!(
+        prompt.contains("<component_packs>"),
+        "Hi-Fi must include default component packs when prefs unset"
+    );
+    assert!(prompt.contains("shadcn-like patterns"));
+}
+
+#[test]
+fn hifi_prompt_omits_taste_when_skill_disabled_in_prefs() {
+    let mut input = sample_input();
+    input.enabled_skill_ids = Some(vec![]);
+    input.enabled_component_pack_ids = Some(vec!["radix-ui".to_string()]);
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
+
+    assert!(!prompt.contains("<taste_skill"));
+    assert!(prompt.contains("<component_packs>"));
+    assert!(prompt.contains("focus rings"));
+    assert!(!prompt.contains("shadcn-like patterns"));
+}
+
+#[test]
+fn lofi_prompt_omits_taste_skill() {
+    let prompt = build_wireframes_prompt(
+        &sample_input(),
+        WireframeKind::Lofi,
+        None,
+        None,
+        None,
+        false,
+        None,
+    );
+
+    assert!(!prompt.contains("<taste_skill"));
 }
 

@@ -365,6 +365,9 @@ export default defineSchema({
     appDownloadedAt: v.optional(v.number()),
     emailUnsubscribedAt: v.optional(v.number()),
     emailUnsubscribeToken: v.optional(v.string()),
+    installedSkillIds: v.optional(v.array(v.string())),
+    enabledSkillIds: v.optional(v.array(v.string())),
+    enabledComponentPackIds: v.optional(v.array(v.string())),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
   })

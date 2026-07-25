@@ -295,6 +295,11 @@ export function WireframesTab({
         onGoToResearch={onGoToResearch}
         onGoToStrategy={onGoToStrategy}
       />
+      {wireframesTab.error && step !== "generating" ? (
+        <p className="mb-4 whitespace-pre-wrap text-[13px] font-medium leading-[1.5] text-[#DC2626]">
+          {wireframesTab.error}
+        </p>
+      ) : null}
       {step === "choose-type" ? (
         <CanvasShell centered>
           <TypeChooser

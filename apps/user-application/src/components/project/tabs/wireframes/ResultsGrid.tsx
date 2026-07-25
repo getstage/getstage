@@ -180,7 +180,7 @@ export function WireframeCard({
           >
             <CheckIcon />
           </span>
-          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[4px] bg-[#E5E5E5] p-2">
+          <div className="flex min-h-0 flex-1 items-start justify-center overflow-hidden rounded-[4px] bg-[#E5E5E5] p-2">
             {preview}
           </div>
         </button>
@@ -189,12 +189,12 @@ export function WireframeCard({
           type="button"
           onClick={() => setPreviewOpen(true)}
           title="Open full preview"
-          className="flex min-h-0 flex-1 cursor-pointer items-stretch justify-center overflow-hidden rounded-[6px] bg-white p-0 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-shadow hover:shadow-[0_0.45px_2px_rgba(10,10,10,0.35)]"
+          className="flex min-h-0 flex-1 cursor-pointer items-stretch justify-stretch overflow-hidden rounded-[6px] bg-white p-0 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] transition-shadow hover:shadow-[0_0.45px_2px_rgba(10,10,10,0.35)]"
         >
           {preview}
         </button>
       ) : (
-        <div className="flex min-h-0 flex-1 items-center justify-center rounded-[6px] bg-[#E5E5E5] p-2 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
+        <div className="flex min-h-0 flex-1 items-start justify-center overflow-hidden rounded-[6px] bg-[#E5E5E5] p-2 shadow-[0_0.45px_1px_rgba(10,10,10,0.25)]">
           {preview}
         </div>
       )}

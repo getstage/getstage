@@ -33,6 +33,14 @@ function looksLikeProviderSessionLimit(text: string) {
   return /session limit|rate limit|usage limit|hit your session limit|resets \d/i.test(text);
 }
 
+function looksLikeProviderSubscriptionDisabled(text: string) {
+  return (
+    /disabled claude subscription/i.test(text) ||
+    /use an anthropic api key instead/i.test(text) ||
+    (/organization has disabled/i.test(text) && /claude/i.test(text))
+  );
+}
+
 /** Short hint for Codex/Claude limit errors — no stderr dumps or nested JSON. */
 function sessionLimitHint(text: string) {
   const tryAgain = text.match(/try again at ([^.)|]+)/i)?.[1]?.trim();
@@ -66,7 +74,7 @@ function looksLikeTechnicalResearchFailure(text: string) {
 }
 
 function looksLikeProviderAuthFailure(text: string) {
-  if (looksLikeProviderSessionLimit(text)) {
+  if (looksLikeProviderSessionLimit(text) || looksLikeProviderSubscriptionDisabled(text)) {
     return false;
   }
   return /auth|login|not authenticated|sign in|401|failed to authenticate|not logged in/i.test(
@@ -128,12 +136,26 @@ export function toEngineErrorUserMessage(
     return sessionLimitUserMessage(label, text);
   }
 
+  if (looksLikeProviderSubscriptionDisabled(text)) {
+    return `${label} subscription access is disabled for this organization. Use an Anthropic API key in Settings → Integrations, or ask your admin to enable Claude Code.`;
+  }
+
   if (error.code === "not_authenticated" || looksLikeProviderAuthFailure(text)) {
     return `${label} is not logged in. Run \`${loginCmd}\` in Terminal, then open Settings → Integrations and refresh.`;
   }
 
   if (looksLikeTechnicalResearchFailure(text)) {
     return fallback;
+  }
+
+  // User-facing request errors (e.g. wireframes empty/unchanged html). Skip
+  // technical/internal payloads that share the same error code.
+  if (
+    error.code === "invalid_request" &&
+    error.message?.trim() &&
+    !looksLikeTechnicalResearchFailure(error.message)
+  ) {
+    return error.message;
   }
 
   if (error.code === "internal_error") {
