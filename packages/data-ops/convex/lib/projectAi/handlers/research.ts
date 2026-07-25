@@ -138,8 +138,8 @@ export async function completeResearchRunHandler(
 
   assertCompleteResearchArtifact(args.contentJson);
 
-  // Convex mutations are transactional. Delete prior dependent artifacts and
-  // create the validated replacement in one commit; any throw rolls all of it back.
+  // Convex mutations are transactional. Delete prior Research and its derived
+  // Strategy, then create the validated replacement in one commit.
   await deletePreviousResearchArtifacts(ctx, args.projectId);
   await deletePreviousStrategyArtifacts(ctx, args.projectId);
 
