@@ -38,6 +38,8 @@ impl ReferoClient {
 
         let http = reqwest::Client::builder()
             .default_headers(headers)
+            .timeout(std::time::Duration::from_secs(15))
+            .connect_timeout(std::time::Duration::from_secs(5))
             .build()?;
 
         Ok(Self {

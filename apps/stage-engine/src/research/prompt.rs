@@ -1,93 +1,13 @@
-use crate::models::refero::{
-    ReferoContext, ReferoReference, ReferoReferenceKind, ReferoUiPatternCategory,
-};
+use crate::models::refero::{ReferoReference, ReferoReferenceKind};
 use crate::models::research::ResearchInput;
 
 use super::competitive::{competitive_rules_for_prompt, format_competitive_targets_for_prompt};
 
-pub fn build_research_prompt(
-    input: &ResearchInput,
-    refero_context: &ReferoContext,
-    competitor_evidence: &[(String, Vec<ReferoReference>)],
-) -> String {
-    let competitive_targets = format_competitive_targets_for_prompt(input);
-    let competitive_rules = competitive_rules_for_prompt(input);
-
-    let category_lines = refero_context
-        .category_searches
-        .iter()
-        .map(|bucket| {
-            let hits = bucket
-                .references
-                .iter()
-                .filter(|reference| reference.kind == ReferoReferenceKind::Screen)
-                .count();
-            format!(
-                "- {} ({} screens): {}",
-                bucket.category.display_title(),
-                hits,
-                bucket.query
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-
-    let flow_lines = refero_context
-        .references
-        .iter()
-        .filter(|reference| reference.kind == ReferoReferenceKind::Flow)
-        .map(|reference| {
-            format!(
-                "- {} flow{}",
-                reference.title,
-                reference
-                    .product_name
-                    .as_deref()
-                    .map(|product| format!(" from {product}"))
-                    .unwrap_or_default()
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-
-    let competitor_evidence_lines = if competitor_evidence
-        .iter()
-        .all(|(_, screens)| screens.is_empty())
-    {
-        "No Refero competitor screens found — fall back to web evidence for the matrix.".to_string()
-    } else {
-        competitor_evidence
-            .iter()
-            .map(|(name, screens)| {
-                let screen_lines = screens
-                    .iter()
-                    .filter(|reference| reference.kind == ReferoReferenceKind::Screen)
-                    .map(|reference| {
-                        let screen_type = reference.screen_type.as_deref().unwrap_or("screen");
-                        match reference.summary.as_deref() {
-                            Some(summary) if !summary.is_empty() => {
-                                format!("  - {} ({}) — {}", reference.title, screen_type, summary)
-                            }
-                            _ => format!("  - {} ({})", reference.title, screen_type),
-                        }
-                    })
-                    .collect::<Vec<_>>();
-                if screen_lines.is_empty() {
-                    format!("- {name}: no Refero screens found.")
-                } else {
-                    format!("- {name}:\n{}", screen_lines.join("\n"))
-                }
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
-    };
-
+pub fn build_context_prompt(input: &ResearchInput) -> String {
     format!(
-        r#"You are generating the Stage Research artifact.
-
-Return a single valid JSON object matching the Stage ResearchArtifact schema.
-Do not return markdown.
-Do not invent source references when the source is unknown.
+        r#"You are generating the context section of a Stage Research artifact.
+Return exactly one JSON object. Do not return markdown or commentary.
+Use only the project facts below. Do not browse the web and do not use model memory as evidence.
 
 Project:
 - Project ID: {project_id}
@@ -105,90 +25,24 @@ Target users:
 Additional notes:
 {additional_notes}
 
-Allowed competitive sites (and ONLY these):
-{competitive_targets}
-
-{competitive_rules}
-
-Real competitor UI evidence (from Refero — actual product screenshots, bot-proof; PREFER this over web fetch when scoring the competitive matrix):
-{competitor_evidence_lines}
-
-Web research rules:
-- Use web search/fetch to inspect only the project website and allowed competitive sites.
-- Inspect at most the homepage plus three relevant pages per site.
-- Prefer pricing, product/features, onboarding/signup, checkout, or dashboard evidence.
-- Every factual competitive claim must be supported by a real fetched page and represented in sourceReferences with its URL.
-- If a claim cannot be supported by fetched evidence, omit it.
-- Do not use model memory as evidence.
-
-Refero category searches (UI Patterns are built by Stage from these — do not author uiPatterns):
-{category_lines}
-
-Refero flow references (journey context only):
-{flow_lines}
-
-Required artifact sections:
-- summary
-- companySnapshot
-- competitiveAnalysis with card view data and matrix rows that follow the required JSON shape below
-- targetUsers as generated personas
-- opportunities
-- openQuestions
-- sourceReferences
-
-Output style (Stage is a designer OS — write for UI designers, not investors):
-- Be concise. No paragraphs in competitive matrix or card bullets.
-- Focus on screens, layout, navigation, flows, components — not pricing plans, VAT, or market strategy.
-
-Required competitiveAnalysis matrix shape:
-```json
+Return this exact top-level shape:
 {{
-  "matrixRows": [
-    {{
-      "id": "matrix-onboarding",
-      "label": "Onboarding",
-      "cells": [
-        {{
-          "competitorId": "the exact id from competitiveAnalysis.competitors",
-          "score": "OK"
-        }}
-      ]
-    }}
-  ]
+  "companySnapshot": [{{"label": "Industry", "value": "..."}}],
+  "targetUsers": [{{
+    "id": "persona-1", "name": "...", "role": "...", "goals": ["..."],
+    "frustrations": ["..."], "context": "...", "relevance": "...", "assumptions": []
+  }}],
+  "openQuestions": ["..."],
+  "sourceReferences": []
 }}
-```
-- Use the 7 matrix labels from the competitive rules (Navigation, Onboarding, Visual Style, Content Hierarchy, Mobile Experience, Dashboard Layout, Data Visualization).
-- Every matrix cell MUST have `competitorId` and `score` ("Strong" | "OK" | "Weak").
-- Score each competitor from the Real competitor UI evidence (Refero) above — it is reliable visual evidence and does not need a fetched URL. Only give a low score when the real screens show a genuine UX weakness, never because a live page failed to load or was bot-gated.
-- Matrix `note` must be omitted. Cells are score-only (Strong / OK / Weak).
-- Never put URLs or multi-sentence notes in matrix cells.
 
-summary rules:
-- Return summary as a JSON array of 3-5 short bullet strings (one sentence each, max 20 words). Never a single bullet, never a headline/body object.
-- Cover, in order: what was benchmarked, the dominant UI pattern across the competitors, the biggest UX gap, and the headline opportunity for {project_name}.
-
-targetUsers rules:
+Rules:
+- companySnapshot must contain 3-6 concise rows grounded in the provided facts.
 - Exactly 2 personas max.
 - Every persona must include id, name, role, context, goals[], and frustrations[].
-- role: short job/decision role label, e.g. "Retail Operations Manager".
-- goals[] and frustrations[]: one short sentence each (max 15 words).
-- context: one short sentence (max 15 words).
-
-opportunities rules:
-- Return 3-5 connected product opportunities grounded in the factual Research you just generated.
-- Each opportunity must advise how {project_name} can win versus the allowed competitors or user needs.
-- title: 2-4 words.
-- description: exactly one sentence, max 25 words. State the gap and why it matters for this product.
-- sourceSection must be one of "summary", "companySnapshot", "competitiveAnalysis", "uiPatterns", "targetUsers", or "openQuestions".
-- Never invent facts, competitors, user needs, or evidence just to create an opportunity.
-- If you cannot generate at least 3 grounded opportunities, return no artifact; do not return an empty opportunities array.
-
-Do NOT include uiPatterns in your JSON — Stage engine builds UI Patterns rows ({ui_pattern_rows}) from Refero screenshots after your response.
-
-The JSON must use:
-- apiVersion: "v1"
-- artifactKind: "researchArtifact"
-- projectId: the provided project ID
+- Keep persona goals, frustrations, and context to one short sentence each.
+- Put uncertainty into openQuestions instead of inventing facts.
+- sourceReferences must remain empty because this job does not fetch sources.
 "#,
         project_id = input.project_id,
         project_name = input.project_name,
@@ -198,23 +52,128 @@ The JSON must use:
         project_brief = input.project_brief.as_deref().unwrap_or("Not provided."),
         target_users = input.target_users.as_deref().unwrap_or("Not provided."),
         additional_notes = input.additional_notes.as_deref().unwrap_or("Not provided."),
-        competitive_targets = competitive_targets,
-        competitive_rules = competitive_rules,
-        competitor_evidence_lines = competitor_evidence_lines,
-        category_lines = if category_lines.is_empty() {
-            "No Refero category searches returned.".to_string()
-        } else {
-            category_lines
-        },
-        flow_lines = if flow_lines.is_empty() {
-            "No Refero flow references returned.".to_string()
-        } else {
-            flow_lines
-        },
-        ui_pattern_rows = ReferoUiPatternCategory::all()
-            .iter()
-            .map(|category| category.display_title())
-            .collect::<Vec<_>>()
-            .join(", "),
     )
+}
+
+pub fn build_competitive_prompt(
+    input: &ResearchInput,
+    competitor_evidence: &[(String, Vec<ReferoReference>)],
+) -> String {
+    format!(
+        r#"You are generating the competitive section of a Stage Research artifact.
+Return exactly one JSON object. Do not return markdown or commentary.
+
+Allowed competitive sites (and ONLY these):
+{competitive_targets}
+
+{competitive_rules}
+
+Real Refero UI evidence:
+{competitor_evidence}
+
+Evidence rules:
+- Treat Refero screenshots as reliable visual evidence and prefer them over web pages.
+- Browse only an allowed site that has no Refero screens or has a specific evidence gap.
+- For a missing site, inspect at most its homepage and one relevant product page.
+- Every web claim must cite a fetched URL in sourceReferences.
+- Never use model memory as evidence and never score a site down because it is bot-gated.
+
+Return this exact top-level shape:
+{{
+  "competitiveAnalysis": {{
+    "competitors": [{{
+      "id": "stable-slug", "name": "...", "url": "...", "logoUrl": null,
+      "mark": null, "color": null, "positioning": "...", "summary": "...",
+      "strengths": ["..."], "weaknesses": ["..."], "sourceReferenceIds": ["..."]
+    }}],
+    "matrixRows": [{{
+      "id": "matrix-navigation", "label": "Navigation",
+      "cells": [{{"competitorId": "stable-slug", "score": "OK"}}]
+    }}]
+  }},
+  "sourceReferences": [{{
+    "id": "web-1", "provider": "website", "label": "...",
+    "url": "https://...", "externalId": null
+  }}]
+}}
+
+Rules:
+- Include every allowed competitor exactly once.
+- Use all 7 required matrix labels and one cell per competitor per row.
+- score must be exactly "Strong", "OK", or "Weak"; omit matrix notes.
+- Keep strengths, weaknesses, positioning, and summary concise and design-focused.
+- Refero sourceReferenceIds are the screenshot IDs shown below; Stage adds their source rows.
+"#,
+        competitive_targets = format_competitive_targets_for_prompt(input),
+        competitive_rules = competitive_rules_for_prompt(input),
+        competitor_evidence = format_competitor_evidence(competitor_evidence),
+    )
+}
+
+pub fn build_synthesis_prompt(
+    input: &ResearchInput,
+    context_json: &str,
+    competitive_json: &str,
+) -> String {
+    format!(
+        r#"You are synthesizing a Stage Research artifact for {project_name}.
+Return exactly one JSON object. Do not browse the web. Do not return markdown or commentary.
+Use only the validated context and competitive evidence below.
+
+Context:
+{context_json}
+
+Competitive analysis:
+{competitive_json}
+
+Return this exact top-level shape:
+{{
+  "summary": ["..."],
+  "opportunities": [{{
+    "id": "opportunity-1", "title": "...", "description": "...",
+    "sourceSection": "competitiveAnalysis"
+  }}]
+}}
+
+Rules:
+- summary: 3-5 short bullets, each one sentence and at most 20 words.
+- Cover what was benchmarked, the dominant UI pattern, the biggest UX gap, and the headline opportunity.
+- opportunities: 3-5 connected product opportunities grounded only in the supplied evidence.
+- title: 2-4 words; description: exactly one sentence and at most 25 words.
+- sourceSection must be "companySnapshot", "competitiveAnalysis", or "targetUsers".
+- Do not invent facts, users, competitors, or evidence.
+"#,
+        project_name = input.project_name,
+    )
+}
+
+fn format_competitor_evidence(competitor_evidence: &[(String, Vec<ReferoReference>)]) -> String {
+    competitor_evidence
+        .iter()
+        .map(|(name, screens)| {
+            let screen_lines = screens
+                .iter()
+                .filter(|reference| reference.kind == ReferoReferenceKind::Screen)
+                .map(|reference| {
+                    let screen_type = reference.screen_type.as_deref().unwrap_or("screen");
+                    let summary = reference
+                        .summary
+                        .as_deref()
+                        .filter(|summary| !summary.is_empty())
+                        .map(|summary| format!(" — {summary}"))
+                        .unwrap_or_default();
+                    format!(
+                        "  - id={} | {} ({}){}",
+                        reference.id, reference.title, screen_type, summary
+                    )
+                })
+                .collect::<Vec<_>>();
+            if screen_lines.is_empty() {
+                format!("- {name}: no Refero screens found.")
+            } else {
+                format!("- {name}:\n{}", screen_lines.join("\n"))
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }

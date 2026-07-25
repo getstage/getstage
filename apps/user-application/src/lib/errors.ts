@@ -127,11 +127,22 @@ function isUnsafeUserMessage(message: string): boolean {
   );
 }
 
+function unwrapConvexServerMessage(message: string): string {
+  // Convex wraps thrown Error("…") as: "[Request ID: …] … Uncaught Error: …"
+  // Prefer the thrown text so product errors are not hidden as generic fallbacks.
+  const uncaught = message.match(/Uncaught Error:\s*([^\n]+)/i);
+  if (uncaught?.[1]?.trim()) {
+    return uncaught[1].trim();
+  }
+  return message;
+}
+
 export function toUserFacingErrorMessage(error: unknown, fallback: string): string {
-  const message = extractErrorMessage(error);
-  if (!message) {
+  const raw = extractErrorMessage(error);
+  if (!raw) {
     return fallback;
   }
+  const message = unwrapConvexServerMessage(raw);
 
   if (AUTH_INVALID_CODE_PATTERN.test(message)) {
     return "That code didn't work. Enter the latest 6-digit code from your email and try again.";

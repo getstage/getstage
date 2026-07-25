@@ -102,7 +102,13 @@ fn research_web_tools_enabled(context: &ProviderRunContext) -> bool {
     context.request.mode == crate::models::runs::RunMode::Research
         && !matches!(
             context.request.context.source.as_deref(),
-            Some("provider-preflight" | "research-opportunities" | "section:opportunities")
+            Some(
+                "provider-preflight"
+                    | "research-opportunities"
+                    | "research-context"
+                    | "research-synthesis"
+                    | "section:opportunities"
+            )
         )
 }
 

@@ -67,9 +67,8 @@ export async function createResearchRunHandler(
     }
   }
 
-  await deletePreviousResearchArtifacts(ctx, args.projectId);
-  await deletePreviousStrategyArtifacts(ctx, args.projectId);
-
+  // Keep the previous Research/Strategy stored until a validated replacement is
+  // published. Deleting here left clients without a fallback after mid-run failures.
   const runId = await createRunRecord(ctx, {
     userId: user._id,
     projectId: args.projectId,
@@ -91,14 +90,13 @@ export const clearResearchAndStrategyForRerunArgs = {
   projectId: v.id("projects"),
 };
 
-/** Clears saved research + strategy before a full re-run (UI calls this immediately on confirm). */
+/** Backward-compatible no-op: older desktop builds call this before re-running Research. */
 export async function clearResearchAndStrategyForRerunHandler(
   ctx: MutationCtx,
   args: { projectId: Id<"projects"> },
 ) {
   await requireProjectAccess(ctx, args.projectId);
-  await deletePreviousResearchArtifacts(ctx, args.projectId);
-  await deletePreviousStrategyArtifacts(ctx, args.projectId);
+  // Preserve the last successful artifacts until a validated replacement is published.
   return { clearedAt: now() };
 }
 
@@ -129,9 +127,21 @@ export async function completeResearchRunHandler(
     if (run.projectId !== args.projectId) {
       throw new Error("Run not found.");
     }
+    if (run.status !== "running") {
+      throw new Error("Research run is no longer active and cannot be completed.");
+    }
+    const activeRun = await findRunningRunForProjectModule(ctx, args.projectId, "research");
+    if (!activeRun || activeRun._id !== args.runId) {
+      throw new Error("A newer Research run replaced this run before completion.");
+    }
   }
 
   assertCompleteResearchArtifact(args.contentJson);
+
+  // Convex mutations are transactional. Delete prior Research and its derived
+  // Strategy, then create the validated replacement in one commit.
+  await deletePreviousResearchArtifacts(ctx, args.projectId);
+  await deletePreviousStrategyArtifacts(ctx, args.projectId);
 
   const artifactId = await createArtifactRecord(ctx, {
     userId: user._id,
