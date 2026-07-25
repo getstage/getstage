@@ -85,7 +85,6 @@ export async function captureWireframeHtmlPng(htmlFragment: string): Promise<Wir
       `data:text/html;charset=utf-8,${encodeURIComponent(document)}`,
     );
     await waitForWireframeRender(window.webContents);
-    await collapseViewportFillers(window);
     const height = await measureCaptureHeight(window);
     window.setContentSize(WIREFRAME_DESIGN_WIDTH, height);
     await waitForWireframeRender(window.webContents);
@@ -133,7 +132,6 @@ export async function captureWireframeFigmaNodes(
     const document = buildWireframePreviewDocument(trimmed);
     await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(document)}`);
     await waitForWireframeRender(window.webContents);
-    await collapseViewportFillers(window);
     const height = await measureCaptureHeight(window);
     window.setContentSize(WIREFRAME_DESIGN_WIDTH, height);
     await waitForWireframeRender(window.webContents);
@@ -286,53 +284,6 @@ const WIREFRAME_FIGMA_WALKER = `(() => {
     nodes: filtered,
   };
 })()`;
-
-/** Strip 100vh / flex-centered empty shells so measure + export hug content. */
-async function collapseViewportFillers(window: BrowserWindow): Promise<void> {
-  await window.webContents.executeJavaScript(`(() => {
-    const vh = window.innerHeight;
-    const nearlyViewport = (px) => Math.abs(px - vh) < 4 || px >= vh - 1;
-    const targets = [document.documentElement, document.body, ...document.body.children];
-    for (const el of targets) {
-      if (!(el instanceof HTMLElement)) continue;
-      const style = getComputedStyle(el);
-      const minH = parseFloat(style.minHeight);
-      const h = parseFloat(style.height);
-      if (nearlyViewport(minH) || nearlyViewport(h) || el.getBoundingClientRect().height >= vh - 2) {
-        el.style.minHeight = "0";
-        el.style.height = "auto";
-        el.style.maxHeight = "none";
-      }
-      const display = style.display;
-      if ((display === "flex" || display === "grid") && el.getBoundingClientRect().height >= vh - 2) {
-        const direction = style.flexDirection || "row";
-        const isColumn = direction === "column" || direction === "column-reverse";
-        // Drop only the *vertical* centering that creates empty bands.
-        if (isColumn) {
-          if (style.justifyContent === "center" || style.justifyContent === "safe center") {
-            el.style.justifyContent = "flex-start";
-          }
-        } else if (style.alignItems === "center" || style.alignItems === "safe center") {
-          el.style.alignItems = "flex-start";
-        }
-        const padY = Math.max(parseFloat(style.paddingTop) || 0, parseFloat(style.paddingBottom) || 0);
-        if (padY < 24) {
-          el.style.paddingTop = "48px";
-          el.style.paddingBottom = "48px";
-        }
-      }
-    }
-    // Inline style attributes often set min-height:100vh harder than stylesheet rules.
-    for (const el of document.querySelectorAll("[style]")) {
-      if (!(el instanceof HTMLElement) || !el.style) continue;
-      const raw = el.getAttribute("style") || "";
-      if (/min-height\\s*:\\s*100vh/i.test(raw) || /height\\s*:\\s*100vh/i.test(raw)) {
-        el.style.minHeight = "0";
-        el.style.height = "auto";
-      }
-    }
-  })()`);
-}
 
 async function measureCaptureHeight(window: BrowserWindow): Promise<number> {
   const height = await window.webContents.executeJavaScript(`
