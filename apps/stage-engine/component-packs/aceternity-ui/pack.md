@@ -9,11 +9,13 @@ inside them — buttons, inputs, cards, badges, tabs, tables — come from the `
 | Class | Element | Use for |
 |---|---|---|
 | `sx-hero` | `<section>` | Centered hero: spotlight background, stacked copy. |
-| `sx-hero sx-hero-split` | `<section>` | Two-column hero: copy left, `sx-media` right. |
+| `sx-hero sx-hero-split` | `<section>` | Two-column hero: `sx-copy` left, `sx-media` right. |
 | `sx-eyebrow` | `<p>` | Short uppercase kicker above the headline. |
 | `sx-headline` | `<h1>` / `<h2>` | Section headline. Fluid 34–60px. |
 | `sx-subhead` | `<p>` | One or two lines of supporting copy under a headline. |
 | `sx-actions` | `<div>` | Row of CTAs. Holds `ui-btn` elements, wraps on narrow screens. |
+| `sx-copy` | `<div>` | Left-aligned text column in a split hero or a feature row. |
+| `sx-section-head` | `<div>` | Centered heading block above a grid section. Required inside `sx-bento` / `sx-pricing`: a bare heading there becomes a grid cell. |
 | `sx-media` | `<div>` | Gradient placeholder for a screenshot or illustration. Leave it empty. |
 
 ## Bento grid
@@ -21,8 +23,7 @@ inside them — buttons, inputs, cards, badges, tabs, tables — come from the `
 | Class | Element | Use for |
 |---|---|---|
 | `sx-bento` | `<section>` | Three-column feature mosaic with spotlight hover. |
-| `sx-copy` | `<div>` | Left-aligned text column in a split hero or a feature row. |
-| `sx-section-head` | `<div>` | Centered eyebrow/headline/subhead above a `sx-bento` or `sx-pricing` grid. Required there: a bare heading would become a grid cell. |
+| `sx-bento-tile` | grid child | One tile: gradient wash, hairline, lift. Never add `ui-card`. |
 | `sx-bento-tile-wide` | added to a tile | Spans two columns. |
 | `sx-bento-tile-tall` | added to a tile | Spans two rows. |
 | `sx-tile-title` | `<h3>` | Tile heading. |
@@ -33,11 +34,11 @@ inside them — buttons, inputs, cards, badges, tabs, tables — come from the `
 | Class | Element | Use for |
 |---|---|---|
 | `sx-feature-row` | `<section>` | Alternating copy/visual row. |
-| `sx-feature-row-reverse` | added to a row | Puts the visual first. Use on every second row. |
-| `sx-feature-body` | `<div>` | Left-aligned copy stack inside a feature row. |
+| `sx-feature-row-reverse` | added to a row | Moves `sx-copy` second so the visual leads. Use on every second row. |
 | `sx-pricing` | `<section>` | Three-column plan grid. |
 | `sx-pricing-tier` | `<div>` | One plan surface. Never add `ui-card`. |
-| `sx-feature-row-reverse` | added to a row | Moves `sx-copy` second so the visual leads. Use on every second row. |
+| `sx-pricing-tier-featured` | added to a tier | Accent border + gradient lift. One per grid. |
+| `sx-tier-name` / `sx-tier-price` / `sx-tier-period` | `<p>` / `<span>` | Plan name, amount, and the `/mo` suffix inside the price. |
 | `sx-tier-list` | `<ul>` | Unbulleted feature list. Grows, so the CTA sits on the bottom edge. |
 | `sx-logo-strip` / `sx-logo` | `<section>` / `<span>` | Customer wordmark row and each wordmark. |
 | `sx-stat-strip` / `sx-stat` | `<section>` / `<div>` | Divided metrics row and each cell. |
@@ -61,6 +62,10 @@ inside them — buttons, inputs, cards, badges, tabs, tables — come from the `
 
 ```html
 <section class="sx-pricing">
+  <div class="sx-section-head">
+    <h2 class="sx-headline">Simple pricing</h2>
+    <p class="sx-subhead">Switch plans or cancel any time.</p>
+  </div>
   <div class="sx-pricing-tier sx-pricing-tier-featured">
     <p class="sx-tier-name">Studio</p>
     <p class="sx-tier-price">$49<span class="sx-tier-period">/mo</span></p>
