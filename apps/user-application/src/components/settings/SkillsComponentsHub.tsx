@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { SkillDetailPanel } from "./SkillDetailPanel";
 import { useMutation as useConvexMutation } from "convex/react";
 import { api } from "@/lib/convex";
 import { useSettingsOverviewQuery } from "@/hooks/convex-data";
@@ -128,6 +129,7 @@ export function MarketplaceHubPanel({
   const [query, setQuery] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<"skill" | "library" | null>(null);
+  const [openSkillId, setOpenSkillId] = useState<string | null>(null);
 
   const normalizedQuery = query.trim().toLowerCase();
   const discoverSkills = useMemo(
@@ -176,6 +178,59 @@ export function MarketplaceHubPanel({
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Could not add library.");
     }
+  }
+
+  const openSkill = openSkillId
+    ? DISCOVER_SKILL_CATALOG.find((entry) => entry.id === openSkillId)
+    : undefined;
+
+  const toastNode = toast ? (
+    <div className="absolute bottom-[4px] right-[4px] z-10 flex min-w-[220px] items-start gap-[10px] rounded-[8px] border border-[#E5E5E5] bg-white px-[12px] py-[10px] shadow-[0_8px_24px_rgba(10,10,10,0.15)]">
+      <img src="/logos/check.svg" alt="" aria-hidden className="mt-[1px] h-[14px] w-[14px]" />
+      <div className="min-w-0 flex-1">
+        <p className="text-[12px] font-medium leading-none text-[#171717]">
+          {toast === "skill" ? "Skill added to your library" : "Library added"}
+        </p>
+        <button
+          type="button"
+          className="mt-[6px] text-[11px] font-medium leading-none text-[#737373] underline"
+          onClick={() => {
+            if (toast === "skill") onViewSkills?.();
+            else onViewLibraries?.();
+            setToast(null);
+          }}
+        >
+          {toast === "skill" ? "View all skills" : "View all libraries"}
+        </button>
+      </div>
+      <button
+        type="button"
+        aria-label="Dismiss"
+        className="text-[14px] leading-none text-[#A3A3A3]"
+        onClick={() => setToast(null)}
+      >
+        ×
+      </button>
+    </div>
+  ) : null;
+
+  if (openSkill) {
+    return (
+      <div className="relative">
+        <SkillDetailPanel
+          skill={openSkill}
+          installed={prefs.installedSkillIds.includes(openSkill.id)}
+          busy={busyId === openSkill.id}
+          onBack={() => setOpenSkillId(null)}
+          onAddSkill={(id) => {
+            const target = DISCOVER_SKILL_CATALOG.find((entry) => entry.id === id);
+            if (target) void addSkill(target);
+          }}
+          onOpenSkill={setOpenSkillId}
+        />
+        {toastNode}
+      </div>
+    );
   }
 
   return (
@@ -246,6 +301,7 @@ export function MarketplaceHubPanel({
                   busy={busyId === skill.id}
                   disabled={prefs.isLoading}
                   onAdd={() => void addSkill(skill)}
+                  onOpen={() => setOpenSkillId(skill.id)}
                 />
               );
             })}
@@ -269,35 +325,7 @@ export function MarketplaceHubPanel({
         )}
       </HubSurface>
 
-      {toast ? (
-        <div className="absolute bottom-[4px] right-[4px] z-10 flex min-w-[220px] items-start gap-[10px] rounded-[8px] border border-[#E5E5E5] bg-white px-[12px] py-[10px] shadow-[0_8px_24px_rgba(10,10,10,0.15)]">
-          <img src="/logos/check.svg" alt="" aria-hidden className="mt-[1px] h-[14px] w-[14px]" />
-          <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-medium leading-none text-[#171717]">
-              {toast === "skill" ? "Skill added" : "Library added"}
-            </p>
-            <button
-              type="button"
-              className="mt-[6px] text-[11px] font-medium leading-none text-[#737373] underline"
-              onClick={() => {
-                if (toast === "skill") onViewSkills?.();
-                else onViewLibraries?.();
-                setToast(null);
-              }}
-            >
-              {toast === "skill" ? "View installed skills" : "View all libraries"}
-            </button>
-          </div>
-          <button
-            type="button"
-            aria-label="Dismiss"
-            className="text-[14px] leading-none text-[#A3A3A3]"
-            onClick={() => setToast(null)}
-          >
-            ×
-          </button>
-        </div>
-      ) : null}
+      {toastNode}
     </section>
   );
 }
@@ -360,23 +388,32 @@ function MarketplaceSkillCard({
   busy,
   disabled,
   onAdd,
+  onOpen,
 }: {
   skill: SkillCatalogItem;
   installed: boolean;
   busy: boolean;
   disabled: boolean;
   onAdd: () => void;
+  onOpen: () => void;
 }) {
   return (
     <article className="overflow-hidden rounded-[8px] bg-white shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <SkillArtwork skill={skill} />
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={`View ${skill.name} details`}
+        className="block w-full cursor-pointer text-left"
+      >
+        <SkillArtwork skill={skill} />
+      </button>
       <div className="flex min-h-[170px] flex-col gap-[10px] p-[12px]">
-        <div>
+        <button type="button" onClick={onOpen} className="cursor-pointer text-left">
           <h3 className="text-[13px] font-medium leading-[1.3] text-[#0A0A0A]">{skill.name}</h3>
           <p className="mt-[4px] line-clamp-2 text-[12px] font-medium leading-[1.4] text-[#737373]">
             {skill.description}
           </p>
-        </div>
+        </button>
         <div className="flex flex-wrap items-center gap-[10px]">
           <MetaChip icon="/logos/skills/toolbox.svg" label={skill.category} />
           <MetaChip icon="/logos/download.svg" label={skill.installsLabel} />
@@ -463,7 +500,7 @@ function ComponentPackRow({
   );
 }
 
-function SkillArtwork({ skill }: { skill: SkillCatalogItem }) {
+export function SkillArtwork({ skill }: { skill: SkillCatalogItem }) {
   return (
     <div
       className="flex h-[120px] items-center justify-center bg-cover bg-center"
@@ -511,7 +548,7 @@ function PackIcon({
   );
 }
 
-function MetaChip({ icon, label }: { icon: string; label: string }) {
+export function MetaChip({ icon, label }: { icon: string; label: string }) {
   return (
     <span className="inline-flex items-center gap-[5px] text-[11px] font-medium leading-none text-[#737373]">
       <span
@@ -527,7 +564,7 @@ function MetaChip({ icon, label }: { icon: string; label: string }) {
   );
 }
 
-function OfficialBadge() {
+export function OfficialBadge() {
   return (
     <span className="rounded-[4px] border border-[#A78BFA] px-[5px] py-[2px] text-[10px] font-medium leading-none text-[#7C3AED]">
       Official

@@ -407,6 +407,11 @@ export default defineSchema({
     // Workflow steps the owner has enabled for this project (e.g. a project that
     // skips "flows"). Absent = every step is enabled. "overview" is always shown.
     enabledSteps: v.optional(v.array(v.string())),
+    // Skills / component libraries chosen for this project (Integrations catalog ids).
+    // Absent = never chosen → Hi-Fi generation falls back to the account prefs, then to
+    // the built-in Design Taste default. `[]` = explicitly none.
+    skillIds: v.optional(v.array(v.string())),
+    componentPackIds: v.optional(v.array(v.string())),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

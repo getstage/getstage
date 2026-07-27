@@ -41,6 +41,8 @@ export type UseProjectDraftResult = {
   setEditingPhaseId: (phaseId: string | null) => void;
   setStartDate: (value: string) => void;
   setEndDate: (value: string) => void;
+  setSkillIds: (value: string[]) => void;
+  setComponentPackIds: (value: string[]) => void;
   reset: () => void;
   handleProjectImageFileChange: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleAvatarFileChange: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
@@ -77,6 +79,8 @@ function createInitialDraft(): ProjectDraft {
     startDate: timeline.startDate,
     endDate: timeline.endDate,
     phases: createInitialPhaseItems(DEFAULT_PHASES),
+    skillIds: [],
+    componentPackIds: [],
   };
 }
 
@@ -216,6 +220,14 @@ export function useProjectDraft({
 
   function setEndDate(value: string) {
     setDraft((current) => ({ ...current, endDate: value }));
+  }
+
+  function setSkillIds(value: string[]) {
+    setDraft((current) => ({ ...current, skillIds: value }));
+  }
+
+  function setComponentPackIds(value: string[]) {
+    setDraft((current) => ({ ...current, componentPackIds: value }));
   }
 
   async function handleProjectImageFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -411,6 +423,8 @@ export function useProjectDraft({
     setEditingPhaseId,
     setStartDate,
     setEndDate,
+    setSkillIds,
+    setComponentPackIds,
     reset,
     handleProjectImageFileChange,
     handleAvatarFileChange,

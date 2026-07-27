@@ -63,6 +63,10 @@ export const projectDetailSchema = projectSummarySchema.extend({
   // Workflow steps enabled for this project (excludes the always-on "overview").
   // Resolved at the read boundary, so consumers always get a concrete array.
   enabledSteps: z.array(projectStepSchema),
+  // Skills / component libraries chosen for this project (Integrations catalog ids).
+  // Resolved at the read boundary like enabledSteps; empty = nothing chosen yet.
+  skillIds: z.array(z.string()),
+  componentPackIds: z.array(z.string()),
 });
 
 export type ProjectType = z.infer<typeof projectTypeSchema>;

@@ -105,6 +105,10 @@ export async function buildApiProjectDetail(
     endDate: project.endDate,
     progress: project.progress,
     enabledSteps: project.enabledSteps ?? [...WORKFLOW_STEPS],
+    // Resolved here like enabledSteps: consumers always get a concrete array. Empty
+    // means "not chosen for this project" and generation falls back to account prefs.
+    skillIds: project.skillIds ?? [],
+    componentPackIds: project.componentPackIds ?? [],
     accessRole,
     phaseCount: stats.phaseCount,
     taskCount: stats.taskCount,

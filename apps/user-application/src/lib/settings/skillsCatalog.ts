@@ -10,6 +10,16 @@ export type SkillCatalogItem = {
   defaultEnabled: boolean;
   category: string;
   installsLabel: string;
+  /** Author or upstream project. Curated — never invented. */
+  author: string;
+  /** Upstream repository the Stage-adapted SKILL.md was distilled from. */
+  sourceUrl: string;
+  /** Long-form copy for the skill detail page. */
+  longDescription: string;
+  /** What Stage actually does with this skill when it is enabled. */
+  features: readonly string[];
+  bestFor: readonly string[];
+  tags: readonly string[];
 };
 
 export type ComponentPackCatalogItem = {
@@ -52,6 +62,20 @@ export const DISCOVER_SKILL_CATALOG: readonly SkillCatalogItem[] = [
     defaultEnabled: true,
     category: "Design",
     installsLabel: "275.6K Installs",
+    author: "Leonxlnx",
+    sourceUrl: "https://github.com/Leonxlnx/taste-skill",
+    longDescription:
+      "Design that looks decided, not generated. Taste is the skill that makes Stage design like a studio, not a chatbot. It enforces the choices that separate premium work from generic output: real typographic hierarchy, calibrated color, asymmetric layout, and restraint with motion. Turn it on for a project and every wireframe Stage generates carries the same considered, editorial feel.",
+    features: [
+      "Editorial typography and type scale",
+      "Calibrated color and chosen neutrals",
+      "Asymmetric, intentional layouts",
+      "Tasteful motion and micro-interactions",
+      "Kills generic AI patterns (centered everything, rounded-lg, gradient hero)",
+      "Consistent spacing and rhythm",
+    ],
+    bestFor: ["Landing pages", "Marketing sites", "Portfolios", "Premium brand pages"],
+    tags: ["typography", "layout", "aesthetics", "editorial"],
   },
   {
     id: "frontend-design",
@@ -63,6 +87,17 @@ export const DISCOVER_SKILL_CATALOG: readonly SkillCatalogItem[] = [
     defaultEnabled: false,
     category: "Design",
     installsLabel: "687.9K Installs",
+    author: "Anthropic",
+    sourceUrl: "https://github.com/anthropics/skills/tree/main/skills/frontend-design",
+    longDescription:
+      "Treats every generated screen as shipped product UI rather than a mockup. Stage asks for the states real software has — empty, loading, error — and holds control sizing and copy to the same bar as the happy path.",
+    features: [
+      "Real empty, loading, and error states",
+      "Consistent control sizing across a screen",
+      "Copy that names the user's task",
+    ],
+    bestFor: ["Product UI", "Dashboards", "Settings screens"],
+    tags: ["product-ui", "states", "polish"],
   },
   {
     id: "ui-ux-pro-max",
@@ -74,6 +109,17 @@ export const DISCOVER_SKILL_CATALOG: readonly SkillCatalogItem[] = [
     defaultEnabled: false,
     category: "Design",
     installsLabel: "277.5K Installs",
+    author: "nextlevelbuilder",
+    sourceUrl: "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
+    longDescription:
+      "Orders a screen around intent. One primary action leads, sections follow the user's decision path, and everything secondary is visually subordinate instead of competing for the same attention.",
+    features: [
+      "One unmistakable primary action per screen",
+      "Sections ordered by user intent",
+      "Secondary actions kept visually subordinate",
+    ],
+    bestFor: ["Conversion pages", "Onboarding", "Checkout"],
+    tags: ["ux", "hierarchy", "conversion"],
   },
   {
     id: "impeccable",
@@ -85,6 +131,18 @@ export const DISCOVER_SKILL_CATALOG: readonly SkillCatalogItem[] = [
     defaultEnabled: false,
     category: "Design",
     installsLabel: "200.7K Installs",
+    author: "pbakaus",
+    sourceUrl: "https://github.com/pbakaus/impeccable",
+    longDescription:
+      "A craft pass on top of a working layout. Optical alignment, consistent icon weight, balanced whitespace, and no orphaned or widowed lines in headings — the details people feel before they can name them.",
+    features: [
+      "Optical alignment over mathematical alignment",
+      "Consistent icon weight and size",
+      "Balanced whitespace",
+      "No orphaned or widowed heading lines",
+    ],
+    bestFor: ["Brand pages", "Case studies", "Pitch surfaces"],
+    tags: ["craft", "detail", "polish"],
   },
   {
     id: "emil-design-eng",
@@ -96,28 +154,61 @@ export const DISCOVER_SKILL_CATALOG: readonly SkillCatalogItem[] = [
     defaultEnabled: false,
     category: "Design",
     installsLabel: "152.1K Installs",
+    author: "emilkowalski",
+    sourceUrl: "https://github.com/emilkowalski/skills/tree/main/skills/emil-design-eng",
+    longDescription:
+      "Design-engineering rigor: a small token set for spacing, radius, and elevation reused everywhere, and layouts that keep working when the viewport narrows.",
+    features: [
+      "Small reusable token set (spacing, radius, elevation)",
+      "Layouts that hold at narrow widths",
+      "Componentized structure instead of one-off styling",
+    ],
+    bestFor: ["Design systems", "App shells", "Component-heavy UI"],
+    tags: ["design-systems", "tokens", "responsive"],
   },
   {
     id: "design-motion-principles",
     name: "Design Motion Principles",
     overlayTitle: "<Design Motion Principles>",
-    description: "Motion and interaction principles for product UI.",
+    description: "kylezantos motion skill — frequency gate, duration bands, reduced-motion.",
     official: true,
     meshSrc: MESH.green,
     defaultEnabled: false,
     category: "Motion",
     installsLabel: "Curated",
+    author: "kylezantos",
+    sourceUrl: "https://github.com/kylezantos/design-motion-principles",
+    longDescription:
+      "Implies motion through structure. Because Stage's Hi-Fi output ships as JS-free HTML, this skill leans on clear enter/exit anchors, layered depth, and hover/focus affordances that read as interactive without any script.",
+    features: [
+      "Clear enter and exit anchors per section",
+      "Layered depth instead of flat stacking",
+      "Hover and focus affordances that read as interactive",
+    ],
+    bestFor: ["Marketing sites", "Product tours", "Feature pages"],
+    tags: ["motion", "interaction", "depth"],
   },
   {
     id: "shadcn-ui-skill",
     name: "shadcn/ui Skill",
     overlayTitle: "<shadcn/ui Skill>",
-    description: "Stitch skill for shadcn-style component patterns (agent skill, not the library).",
+    description: "Official shadcn/ui agent skill — tokens, variants, and structure discipline.",
     official: true,
     meshSrc: MESH.warm,
     defaultEnabled: false,
     category: "Design Systems",
     installsLabel: "45.5K Installs",
+    author: "shadcn",
+    sourceUrl: "https://github.com/shadcn-ui/ui/tree/main/skills/shadcn",
+    longDescription:
+      "Composes screens from shadcn primitives — Card, Button, Input with Label, Badge, Table, Tabs — keeping their default spacing and border treatment so the output reads as a familiar shadcn app.",
+    features: [
+      "Composes from shadcn primitives",
+      "Keeps default spacing and border treatment",
+      "Familiar form and table patterns",
+    ],
+    bestFor: ["SaaS apps", "Admin panels", "Internal tools"],
+    tags: ["shadcn", "components", "design-systems"],
   },
 ] as const;
 

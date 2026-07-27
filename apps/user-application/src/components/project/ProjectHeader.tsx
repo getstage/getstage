@@ -26,6 +26,9 @@ export function ProjectHeader({
   onSavePhases,
   enabledSteps,
   onSaveWorkflow,
+  skillIds,
+  componentPackIds,
+  onSaveSkills,
   onPauseProject,
   onCompleteProject,
   onDeleteProject,
@@ -47,6 +50,9 @@ export function ProjectHeader({
   onSavePhases: (phases: Phase[], deleteTasksInRemovedPhases?: boolean) => Promise<void>;
   enabledSteps: readonly string[];
   onSaveWorkflow: (enabledSteps: string[]) => Promise<void>;
+  skillIds: readonly string[];
+  componentPackIds: readonly string[];
+  onSaveSkills: (input: { skillIds: string[]; componentPackIds: string[] }) => Promise<void>;
   onPauseProject: () => Promise<void>;
   onCompleteProject: () => Promise<void>;
   onDeleteProject: () => Promise<void>;
@@ -198,6 +204,9 @@ export function ProjectHeader({
           onSavePhases={onSavePhases}
           enabledSteps={enabledSteps}
           onSaveWorkflow={onSaveWorkflow}
+          skillIds={skillIds}
+          componentPackIds={componentPackIds}
+          onSaveSkills={onSaveSkills}
           onPauseProject={onPauseProject}
           onCompleteProject={onCompleteProject}
           onDeleteProject={onDeleteProject}

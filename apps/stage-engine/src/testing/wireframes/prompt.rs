@@ -99,7 +99,7 @@ fn hifi_prompt_includes_taste_skill_by_default() {
     );
 
     assert!(
-        prompt.contains("<taste_skill"),
+        prompt.contains("<skill id=\"design-taste-frontend\">"),
         "Hi-Fi generation must attach the Taste skill"
     );
     assert!(prompt.contains("Leonxlnx/taste-skill"));
@@ -127,7 +127,7 @@ fn hifi_prompt_omits_taste_when_skill_disabled_in_prefs() {
         None,
     );
 
-    assert!(!prompt.contains("<taste_skill"));
+    assert!(!prompt.contains("<skill id="));
     assert!(prompt.contains("<component_packs>"));
     assert!(prompt.contains("focus rings"));
     assert!(!prompt.contains("shadcn-like patterns"));
@@ -145,6 +145,82 @@ fn lofi_prompt_omits_taste_skill() {
         None,
     );
 
-    assert!(!prompt.contains("<taste_skill"));
+    assert!(!prompt.contains("<skill id="));
 }
 
+#[test]
+fn hifi_prompt_injects_full_body_of_each_selected_skill() {
+    let mut input = sample_input();
+    input.enabled_skill_ids = Some(vec![
+        "design-taste-frontend".to_string(),
+        "impeccable".to_string(),
+    ]);
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
+
+    // Not a one-line hint: the vendored SKILL.md body must be present.
+    assert!(
+        prompt.contains("<skill id=\"impeccable\">")
+            && prompt.contains("Pick the visitor mode first"),
+        "a selected catalog skill must inject its full vendored body"
+    );
+    assert!(
+        !prompt.contains("<skill id=\"frontend-design\">"),
+        "unselected catalog skills must stay out of the prompt"
+    );
+    assert!(
+        prompt.contains("<skill_precedence>"),
+        "two or more skills must declare a conflict rule"
+    );
+
+    let taste_at = prompt
+        .find("<skill id=\"design-taste-frontend\">")
+        .expect("taste block present");
+    let impeccable_at = prompt
+        .find("<skill id=\"impeccable\">")
+        .expect("impeccable block present");
+    assert!(
+        taste_at > impeccable_at,
+        "Taste must be injected last so its bans win a conflict"
+    );
+}
+
+#[test]
+fn hifi_prompt_omits_precedence_note_for_a_single_skill() {
+    let mut input = sample_input();
+    input.enabled_skill_ids = Some(vec!["design-taste-frontend".to_string()]);
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
+
+    assert!(prompt.contains("<skill id=\"design-taste-frontend\">"));
+    assert!(!prompt.contains("<skill_precedence>"));
+}
+
+#[test]
+fn lofi_prompt_ignores_skills_and_component_packs() {
+    let mut input = sample_input();
+    input.enabled_skill_ids = Some(vec!["impeccable".to_string()]);
+    input.enabled_component_pack_ids = Some(vec!["radix-ui".to_string()]);
+
+    let prompt =
+        build_wireframes_prompt(&input, WireframeKind::Lofi, None, None, None, false, None);
+
+    assert!(!prompt.contains("<skill id="));
+    assert!(!prompt.contains("<component_packs>"));
+}

@@ -129,7 +129,47 @@ const COMPONENT_PACK_HINTS: &[(&str, &str)] = &[
     ),
 ];
 
+/// Vendored, Stage-adapted skill files. Each directory also carries the verbatim upstream
+/// `SOURCE_*.md` for provenance; only the adapted `SKILL.md` reaches the prompt, because the
+/// upstream files assume a coding agent with a filesystem, a CLI, and React/Tailwind output.
+///
+/// Order matters: this is the injection order, and Taste is appended last by
+/// `hifi_prompt_extras` so its anti-slop bans get the final word on any conflict.
+/// Keep ids in sync with `apps/user-application/src/lib/settings/skillsCatalog.ts`.
+const CATALOG_SKILLS: &[(&str, &str)] = &[
+    (
+        "frontend-design",
+        include_str!("../../skills/frontend-design/SKILL.md"),
+    ),
+    (
+        "ui-ux-pro-max",
+        include_str!("../../skills/ui-ux-pro-max/SKILL.md"),
+    ),
+    (
+        "impeccable",
+        include_str!("../../skills/impeccable/SKILL.md"),
+    ),
+    (
+        "emil-design-eng",
+        include_str!("../../skills/emil-design-eng/SKILL.md"),
+    ),
+    (
+        "design-motion-principles",
+        include_str!("../../skills/design-motion-principles/SKILL.md"),
+    ),
+    (
+        "shadcn-ui-skill",
+        include_str!("../../skills/shadcn-ui-skill/SKILL.md"),
+    ),
+];
+
 const DEFAULT_COMPONENT_PACK_IDS: &[&str] = &["shadcn-ui", "magic-ui", "aceternity-ui"];
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct HifiPromptPreferences {
+    pub skill_ids: Vec<&'static str>,
+    pub component_pack_ids: Vec<String>,
+}
 
 fn env_taste_skill_disabled() -> bool {
     // Set STAGE_WIREFRAMES_TASTE_SKILL=0 for A/B without skill (overrides user prefs).
@@ -160,23 +200,71 @@ fn enabled_component_pack_ids(input: &WireframesInput) -> Vec<String> {
     }
 }
 
-fn hifi_prompt_extras(input: &WireframesInput) -> String {
-    let mut extras = String::from(HIFI_RULES);
+/// Selected catalog skills other than Taste. Legacy / unset prefs stay Taste-only so old
+/// projects keep the exact behaviour they had before per-project selection existed.
+fn selected_catalog_skill_ids(input: &WireframesInput) -> Vec<&'static str> {
+    let Some(ids) = &input.enabled_skill_ids else {
+        return Vec::new();
+    };
+    CATALOG_SKILLS
+        .iter()
+        .filter(|(id, _)| ids.iter().any(|enabled| enabled == id))
+        .map(|(id, _)| *id)
+        .collect()
+}
+
+pub(crate) fn resolve_hifi_prompt_preferences(input: &WireframesInput) -> HifiPromptPreferences {
+    let mut skill_ids = selected_catalog_skill_ids(input);
+    // Taste is appended last so its bans win any conflict with another skill.
     if taste_skill_enabled(input) {
-        extras.push_str(
-            "\n\n<taste_skill source=\"Leonxlnx/taste-skill:design-taste-frontend\">\n",
-        );
-        extras.push_str(
-            "You MUST follow this Taste skill for every Hi-Fi html screen. It overrides generic AI defaults.\n\n",
-        );
-        extras.push_str(TASTE_SKILL);
-        extras.push_str("\n</taste_skill>\n");
+        skill_ids.push(TASTE_SKILL_ID);
     }
 
-    let pack_ids = enabled_component_pack_ids(input);
+    HifiPromptPreferences {
+        skill_ids,
+        component_pack_ids: enabled_component_pack_ids(input),
+    }
+}
+
+fn push_skill_block(extras: &mut String, id: &str, body: &str) {
+    extras.push_str("\n\n<skill id=\"");
+    extras.push_str(id);
+    extras.push_str("\">\n");
+    extras.push_str(body);
+    extras.push_str("\n</skill>\n");
+}
+
+fn hifi_prompt_extras(input: &WireframesInput) -> String {
+    let mut extras = String::from(HIFI_RULES);
+    let preferences = resolve_hifi_prompt_preferences(input);
+
+    if preferences.skill_ids.len() > 1 {
+        extras.push_str(
+            "\n\n<skill_precedence>\nThe <skill> blocks below all apply to every Hi-Fi html screen. Where two skills conflict, the LATER block wins; the moodboard, style guide, or brand kit outranks all of them.\n</skill_precedence>\n",
+        );
+    }
+
+    for id in &preferences.skill_ids {
+        if *id == TASTE_SKILL_ID {
+            continue;
+        }
+        if let Some((_, body)) = CATALOG_SKILLS.iter().find(|(entry, _)| entry == id) {
+            push_skill_block(&mut extras, id, body);
+        }
+    }
+
+    if preferences.skill_ids.contains(&TASTE_SKILL_ID) {
+        push_skill_block(&mut extras, TASTE_SKILL_ID, TASTE_SKILL);
+    }
+
     let pack_lines: Vec<&str> = COMPONENT_PACK_HINTS
         .iter()
-        .filter(|(id, _)| pack_ids.iter().any(|enabled| enabled == id))
+        .filter(|(id, _)| {
+            preferences
+                .component_pack_ids
+                .iter()
+                .any(|enabled| enabled == id)
+        })
         .map(|(_, hint)| *hint)
         .collect();
     if !pack_lines.is_empty() {

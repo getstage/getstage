@@ -62,6 +62,8 @@ export async function createProjectFromDraft<TResult>({
     startDate: parseInputDate(draft.startDate),
     endDate: parseInputDate(draft.endDate),
     activePhases,
+    skillIds: draft.skillIds,
+    componentPackIds: draft.componentPackIds,
     aiRoadmaps,
   });
 

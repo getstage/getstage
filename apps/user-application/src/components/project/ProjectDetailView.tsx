@@ -29,6 +29,9 @@ const PROJECT_STEP_LABELS: Record<StepTab, string> = {
   assets: "Assets",
 };
 
+/** Stable identity for the frame before the project detail has loaded. */
+const NO_SELECTION: readonly string[] = [];
+
 const ProjectStepView = lazy(() =>
   import("./ProjectStepView").then((module) => ({
     default: module.ProjectStepView,
@@ -191,6 +194,9 @@ export function ProjectDetailView() {
               }
               enabledSteps={enabledSteps}
               onSaveWorkflow={(steps) => runModalAction(() => actions.saveWorkflow(steps))}
+              skillIds={live.detail?.skillIds ?? NO_SELECTION}
+              componentPackIds={live.detail?.componentPackIds ?? NO_SELECTION}
+              onSaveSkills={(input) => runModalAction(() => actions.saveSkills(input))}
               onPauseProject={() => runModalAction(() => actions.pauseProject())}
               onCompleteProject={() => runModalAction(() => actions.completeProject())}
               onDeleteProject={runDeleteAction}

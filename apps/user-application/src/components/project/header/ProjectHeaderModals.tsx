@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { StageDatePicker } from "@/components/ui/StageDatePicker";
+import {
+  COMPONENT_PACK_CATALOG,
+  DISCOVER_SKILL_CATALOG,
+} from "@/lib/settings/skillsCatalog";
+import { CatalogMultiSelect } from "../SkillsComponentsSelect";
 import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@/lib/r2Uploads";
 import type {
   SaveClientProfileInput,
@@ -21,6 +26,9 @@ export function ProjectActionModal({
   onSavePhases,
   enabledSteps,
   onSaveWorkflow,
+  skillIds,
+  componentPackIds,
+  onSaveSkills,
   onPauseProject,
   onCompleteProject,
   onDeleteProject,
@@ -41,6 +49,9 @@ export function ProjectActionModal({
   onSavePhases: (phases: Phase[], deleteTasksInRemovedPhases?: boolean) => Promise<void>;
   enabledSteps: readonly string[];
   onSaveWorkflow: (enabledSteps: string[]) => Promise<void>;
+  skillIds: readonly string[];
+  componentPackIds: readonly string[];
+  onSaveSkills: (input: { skillIds: string[]; componentPackIds: string[] }) => Promise<void>;
   onPauseProject: () => Promise<void>;
   onCompleteProject: () => Promise<void>;
   onDeleteProject: () => Promise<void>;
@@ -107,6 +118,15 @@ export function ProjectActionModal({
           <WorkflowModal
             enabledSteps={enabledSteps}
             onSave={onSaveWorkflow}
+            error={modalError}
+            onClose={onClose}
+          />
+        ) : null}
+        {modal === "skills" ? (
+          <SkillsComponentsModal
+            skillIds={skillIds}
+            componentPackIds={componentPackIds}
+            onSave={onSaveSkills}
             error={modalError}
             onClose={onClose}
           />
@@ -682,6 +702,71 @@ function WorkflowModal({
             );
           })}
         </div>
+        {error ? <p className="text-[12px] font-medium text-[#b91c1c]">{error}</p> : null}
+      </div>
+    </ModalShell>
+  );
+}
+
+function SkillsComponentsModal({
+  skillIds,
+  componentPackIds,
+  onSave,
+  error,
+  onClose,
+}: {
+  skillIds: readonly string[];
+  componentPackIds: readonly string[];
+  onSave: (input: { skillIds: string[]; componentPackIds: string[] }) => Promise<void>;
+  error: string | null;
+  onClose: () => void;
+}) {
+  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>(() => [...skillIds]);
+  const [selectedPackIds, setSelectedPackIds] = useState<string[]>(() => [...componentPackIds]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function save() {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onSave({ skillIds: selectedSkillIds, componentPackIds: selectedPackIds });
+      onClose();
+    } catch {
+      // Parent sets error; keep modal open.
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <ModalShell
+      title="Edit Skills & Components"
+      action="Save"
+      isSubmitting={isSubmitting}
+      onAction={() => void save()}
+      onClose={onClose}
+    >
+      <div className="flex w-full flex-col gap-[16px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+        <p className="text-[12px] font-medium leading-[1.5] text-[#737373]">
+          Hi-Fi wireframes for this project use these skills and component libraries. Leave both
+          empty to fall back to your account defaults.
+        </p>
+        <CatalogMultiSelect
+          label="Skills"
+          placeholder="Select one or multiple skills"
+          options={DISCOVER_SKILL_CATALOG}
+          selectedIds={selectedSkillIds}
+          onChange={setSelectedSkillIds}
+          disabled={isSubmitting}
+        />
+        <CatalogMultiSelect
+          label="Components"
+          placeholder="Select one or multiple components"
+          options={COMPONENT_PACK_CATALOG}
+          selectedIds={selectedPackIds}
+          onChange={setSelectedPackIds}
+          disabled={isSubmitting}
+        />
         {error ? <p className="text-[12px] font-medium text-[#b91c1c]">{error}</p> : null}
       </div>
     </ModalShell>

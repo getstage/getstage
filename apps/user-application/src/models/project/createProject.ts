@@ -3,7 +3,7 @@ import { createProjectInputSchema } from "@/data-ops/schema";
 import { parseDateInput } from "@/lib/project/createProjectDates";
 import type { ProjectType } from "@/types";
 
-export const CREATE_PROJECT_PROGRESS_STEPS = [0, 1, 2, 3, 4] as const;
+export const CREATE_PROJECT_PROGRESS_STEPS = [0, 1, 2, 3, 4, 5] as const;
 
 export const CREATE_PROJECT_TYPE_VALUES: ProjectType[] = [
   "web-design",
@@ -15,7 +15,14 @@ export const CREATE_PROJECT_TYPE_VALUES: ProjectType[] = [
 export const SMART_ROADMAP_PHASES = ["Research", "Architecture", "Design", "Development", "Testing"];
 export const DEFAULT_MANUAL_PHASES = ["Discovery", "Strategy", "Design", "Development", "Launch"];
 
-export type CreateProjectStep = "basic" | "client" | "type" | "timeline" | "roadmap" | "success";
+export type CreateProjectStep =
+  | "basic"
+  | "client"
+  | "type"
+  | "timeline"
+  | "skills"
+  | "roadmap"
+  | "success";
 export type RoadmapMode = "smart" | "manual";
 
 export type ExistingClientOption = {

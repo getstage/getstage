@@ -18,6 +18,7 @@ import { deleteProjectWithDependents } from "../domain/delete";
 import { now } from "../../../helpers/time";
 import {
   createProjectArgsValidator,
+  normalizeCatalogIds,
   phaseInputValidator,
   projectStatusValidator,
 } from "../../../models/projects/validators";
@@ -98,6 +99,8 @@ export async function createHandler(
     startDate: number;
     endDate: number;
     phases?: Array<{ name: string; tasks?: string[] }>;
+    skillIds?: string[];
+    componentPackIds?: string[];
   },
 ) {
   const user = await requireAuthUser(ctx);
@@ -120,6 +123,8 @@ export const updateArgs = {
   endDate: v.optional(v.number()),
   status: v.optional(projectStatusValidator),
   enabledSteps: v.optional(v.array(v.string())),
+  skillIds: v.optional(v.array(v.string())),
+  componentPackIds: v.optional(v.array(v.string())),
 };
 
 export async function updateHandler(
@@ -137,6 +142,8 @@ export async function updateHandler(
     endDate?: number;
     status?: "active" | "paused" | "completed";
     enabledSteps?: string[];
+    skillIds?: string[];
+    componentPackIds?: string[];
   },
 ) {
   const { project } = await requireProjectAccess(ctx, args.projectId);
@@ -218,6 +225,12 @@ export async function updateHandler(
       new Set(args.enabledSteps.map((step) => step.trim()).filter((step) => step && step !== "overview")),
     );
     patch.enabledSteps = nextSteps;
+  }
+  if (args.skillIds !== undefined) {
+    patch.skillIds = normalizeCatalogIds(args.skillIds);
+  }
+  if (args.componentPackIds !== undefined) {
+    patch.componentPackIds = normalizeCatalogIds(args.componentPackIds);
   }
 
   if (Object.keys(patch).length > 1) {

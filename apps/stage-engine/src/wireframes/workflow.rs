@@ -13,7 +13,7 @@ use crate::providers::command::provider_cli_working_directory;
 use crate::providers::process::ProviderProcessOutcome;
 use crate::runs::RunEventSink;
 use crate::wireframes::normalize::normalize_wireframes_artifact;
-use crate::wireframes::prompt::build_wireframes_prompt;
+use crate::wireframes::prompt::{build_wireframes_prompt, resolve_hifi_prompt_preferences};
 use crate::wireframes::{MAX_BRAND_KIT_BYTES, MAX_BRAND_KIT_FILES};
 
 const GENERATED_AT_LABEL: &str = "just now";
@@ -103,6 +103,23 @@ impl WireframesWorkflow {
                 .fetch_wireframes_input(&auth_token, project_id)
                 .await?;
             self.tool_completed(api_version, &run_id, provider_id, &sink, "stage-context");
+            if matches!(wireframe_kind, WireframeKind::Hifi) {
+                let preferences = resolve_hifi_prompt_preferences(&input);
+                tracing::info!(
+                    run_id = %run_id,
+                    configured_skill_ids = ?input.enabled_skill_ids,
+                    configured_component_pack_ids = ?input.enabled_component_pack_ids,
+                    effective_skill_ids = ?preferences.skill_ids,
+                    effective_component_pack_ids = ?preferences.component_pack_ids,
+                    "resolved Hi-Fi wireframes skills and component libraries"
+                );
+            } else {
+                tracing::info!(
+                    run_id = %run_id,
+                    kind = wireframe_kind.as_str(),
+                    "wireframes skills and component libraries are not applied to Lo-Fi generation"
+                );
+            }
 
             convex_run_id = self
                 .repository
