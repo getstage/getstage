@@ -3,6 +3,7 @@ use serde_json::{Map as JsonMap, Value as JsonValue, json};
 
 use super::{MAX_BLOCKS_PER_SECTION, MAX_SECTIONS_PER_SCREEN};
 use crate::models::wireframes::{WireframeBrandSource, WireframeKind, WireframesInput};
+use crate::wireframes::prompt::component_pack_css;
 
 const ALLOWED_BLOCK_KINDS: &[&str] = &[
     "header",
@@ -43,10 +44,18 @@ pub fn normalize_wireframes_artifact(
         .cloned()
         .unwrap_or_default();
 
+    // One stylesheet for the whole run: every Hi-Fi screen draws its controls from the
+    // same source instead of inventing a button per screen. Lo-Fi compiles from blocks
+    // and has no packs.
+    let pack_css = match kind {
+        WireframeKind::Hifi => component_pack_css(input),
+        WireframeKind::Lofi => String::new(),
+    };
+
     let mut normalized_screens = Vec::new();
     for screen in &raw_screens {
         if let Some(normalized) =
-            normalize_screen(screen, generated_at_label, generated_at, kind)?
+            normalize_screen(screen, generated_at_label, generated_at, kind, &pack_css)?
         {
             normalized_screens.push(normalized);
         }
@@ -256,11 +265,23 @@ fn validate_hifi_html(html: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
+// The pack stylesheet rides along inside each screen rather than sitting once at the
+// artifact root: the preview iframe, the PNG capture, Paper's CSS inliner, and the code
+// export each receive a single fragment, and none of them can reach run-level state.
+// Duplication costs a few KB per screen and buys a fragment that renders anywhere.
+fn with_pack_css(html: &str, pack_css: &str) -> String {
+    if pack_css.is_empty() {
+        return html.to_string();
+    }
+    format!("<style>{pack_css}</style>\n{html}")
+}
+
 fn normalize_screen(
     screen: &JsonValue,
     generated_at_label: &str,
     generated_at: u128,
     kind: WireframeKind,
+    pack_css: &str,
 ) -> anyhow::Result<Option<JsonValue>> {
     let Some(object) = screen.as_object() else {
         return Ok(None);
@@ -314,9 +335,13 @@ fn normalize_screen(
         // preview iframe. Reject it up front so the user retries instead of saving
         // a broken artifact. Lo-Fi screens compile from blocks and skip this.
         if matches!(kind, WireframeKind::Hifi) {
+            // Validate the model's own markup before the pack stylesheet is attached,
+            // otherwise prepending <style> would let any fragment pass the styling check.
             validate_hifi_html(html)?;
+            entry.insert("html".to_string(), json!(with_pack_css(html, pack_css)));
+        } else {
+            entry.insert("html".to_string(), json!(html));
         }
-        entry.insert("html".to_string(), json!(html));
     }
 
     let raw_sections = object

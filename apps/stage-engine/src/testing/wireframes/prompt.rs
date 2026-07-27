@@ -105,10 +105,10 @@ fn hifi_prompt_includes_taste_skill_by_default() {
     assert!(prompt.contains("Leonxlnx/taste-skill"));
     assert!(prompt.contains("Absolute bans (anti-slop)"));
     assert!(
-        prompt.contains("<component_packs>"),
-        "Hi-Fi must include default component packs when prefs unset"
+        prompt.contains("<component_pack id=\"shadcn-ui\">"),
+        "Hi-Fi must attach the default base pack when prefs are unset"
     );
-    assert!(prompt.contains("shadcn-like patterns"));
+    assert!(prompt.contains("Controls come from this pack. Layout is yours."));
 }
 
 #[test]
@@ -128,9 +128,83 @@ fn hifi_prompt_omits_taste_when_skill_disabled_in_prefs() {
     );
 
     assert!(!prompt.contains("<skill id="));
-    assert!(prompt.contains("<component_packs>"));
-    assert!(prompt.contains("focus rings"));
-    assert!(!prompt.contains("shadcn-like patterns"));
+    assert!(
+        !prompt.contains("<component_pack id="),
+        "radix-ui ships behaviour, not a visual design, so it has no pack to attach"
+    );
+}
+
+#[test]
+fn hifi_prompt_attaches_base_and_sections_packs_in_order() {
+    let mut input = sample_input();
+    input.enabled_component_pack_ids =
+        Some(vec!["aceternity-ui".to_string(), "shadcn-ui".to_string()]);
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
+
+    let base_at = prompt
+        .find("<component_pack id=\"shadcn-ui\">")
+        .expect("base pack attached");
+    let sections_at = prompt
+        .find("<component_pack id=\"aceternity-ui\">")
+        .expect("sections pack attached");
+    // Selection order must not decide injection order: a sections pack consumes the
+    // base pack's --ui-* variables, so the base vocabulary always comes first.
+    assert!(
+        base_at < sections_at,
+        "base pack must be injected before the sections pack"
+    );
+}
+
+#[test]
+fn hifi_prompt_supplies_a_base_pack_when_only_sections_are_selected() {
+    let mut input = sample_input();
+    // The old multi-select allowed this; the sections CSS would otherwise render against
+    // undefined --ui-* variables.
+    input.enabled_component_pack_ids = Some(vec!["magic-ui".to_string()]);
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
+
+    assert!(
+        prompt.contains("<component_pack id=\"shadcn-ui\">"),
+        "a sections pack must always get a base pack under it"
+    );
+    assert!(prompt.contains("<component_pack id=\"magic-ui\">"));
+}
+
+#[test]
+fn hifi_prompt_attaches_no_pack_when_selection_is_explicitly_empty() {
+    let mut input = sample_input();
+    input.enabled_component_pack_ids = Some(Vec::new());
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
+
+    // Empty means "no packs", not "fall back to the default pack".
+    assert!(!prompt.contains("<component_pack id="));
 }
 
 #[test]
@@ -222,5 +296,5 @@ fn lofi_prompt_ignores_skills_and_component_packs() {
         build_wireframes_prompt(&input, WireframeKind::Lofi, None, None, None, false, None);
 
     assert!(!prompt.contains("<skill id="));
-    assert!(!prompt.contains("<component_packs>"));
+    assert!(!prompt.contains("<component_pack id="));
 }

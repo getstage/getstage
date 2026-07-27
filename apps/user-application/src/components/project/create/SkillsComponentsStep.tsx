@@ -1,8 +1,4 @@
-import {
-  COMPONENT_PACK_CATALOG,
-  DISCOVER_SKILL_CATALOG,
-} from "@/lib/settings/skillsCatalog";
-import { CatalogMultiSelect } from "../SkillsComponentsSelect";
+import { SkillsComponentsPanel } from "../SkillsComponentsSelect";
 import { ContinueButton, CreateProjectStepShell, FormCard } from "./CreateProjectPrimitives";
 
 export function SkillsComponentsStep({
@@ -23,7 +19,7 @@ export function SkillsComponentsStep({
   return (
     <CreateProjectStepShell
       title="Skills & Components"
-      description="Select skills and components to use in this project"
+      description="Pick one design skill, an optional motion skill, one component base, and optional page sections"
       activeStepIndex={4}
       headerGapClassName="gap-[24px]"
       descriptionClassName="w-full"
@@ -37,19 +33,13 @@ export function SkillsComponentsStep({
         }}
       >
         <FormCard>
-          <CatalogMultiSelect
-            label="Skills"
-            placeholder="Select one or multiple skills"
-            options={DISCOVER_SKILL_CATALOG}
-            selectedIds={skillIds}
-            onChange={onSkillIdsChange}
-          />
-          <CatalogMultiSelect
-            label="Components"
-            placeholder="Select one or multiple components"
-            options={COMPONENT_PACK_CATALOG}
-            selectedIds={componentPackIds}
-            onChange={onComponentPackIdsChange}
+          <SkillsComponentsPanel
+            skillIds={skillIds}
+            componentPackIds={componentPackIds}
+            onChange={(next) => {
+              onSkillIdsChange(next.skillIds);
+              onComponentPackIdsChange(next.componentPackIds);
+            }}
           />
         </FormCard>
 

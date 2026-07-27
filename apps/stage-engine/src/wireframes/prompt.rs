@@ -65,6 +65,7 @@ const HIFI_RULES: &str = r#"
 Hi-Fi mode — produce a FINAL DESIGN, not a wireframe:
 - For EACH generatedScreens[] entry, add an "html" field: a single, self-contained HTML fragment that renders that screen as a polished, production-quality web page.
 - Style everything with ONE <style> block at the top of the fragment (plain CSS) plus inline styles as needed. Do NOT use Tailwind, any CSS framework, <script>, external <link> stylesheets, or @import. Use system font stacks inside the <style> block (e.g. font-family: 'Geist', system-ui, sans-serif). The design MUST render on its own with no JavaScript or external requests.
+- When a <component_pack> is attached below, its stylesheet is added to the fragment for you. Use that pack's classes for every control (buttons, inputs, cards, badges, tabs, tables) and write ONLY layout CSS in your own <style> block. Never redefine a pack class, and never invent a second button or card style.
 - Wrap everything in one root <div> — do not emit <html>, <head>, or <body> tags.
 - Still fill sections[]/blocks[] as the structural outline (used for Figma layer naming and Lo-Fi fallback); the "html" field is the source of truth for the visuals.
 
@@ -97,36 +98,55 @@ Pre-flight check before returning: confirm every Hi-Fi screen has a non-empty "h
 const TASTE_SKILL: &str = include_str!("../../skills/design-taste-frontend/SKILL.md");
 const TASTE_SKILL_ID: &str = "design-taste-frontend";
 
-/// Keep in sync with `apps/user-application/src/lib/settings/skillsCatalog.ts`.
-const COMPONENT_PACK_HINTS: &[(&str, &str)] = &[
-    (
-        "shadcn-ui",
-        "Prefer clean shadcn-like patterns: rounded-md controls, bordered cards, clear Label+Input forms, muted secondary text.",
-    ),
-    (
-        "radix-ui",
-        "Use accessible dialog/popover/select patterns with clear focus rings and semantic roles.",
-    ),
-    (
-        "magic-ui",
-        "Add restrained motion-ready structure (hero reveals, subtle card lift) without requiring JS in the HTML fragment.",
-    ),
-    (
-        "aceternity-ui",
-        "SaaS/AI product layouts: bold hero typography, feature bento sections, polished pricing and CTA blocks.",
-    ),
-    (
-        "kokonut-ui",
-        "Dashboard/SaaS density: clear data panels, metric strips, and structured app chrome when screens are product UI.",
-    ),
-    (
-        "origin-ui",
-        "Application blocks with production spacing and clear section separators — practical, not decorative.",
-    ),
-    (
-        "mantine",
-        "Accessible form and notification patterns with consistent control heights and readable contrast.",
-    ),
+/// Vendored component packs. `pack.css` is prepended to every Hi-Fi fragment by
+/// `normalize`, so all screens in a run share one control vocabulary instead of each
+/// screen inventing its own button; `pack.md` teaches the model that vocabulary.
+///
+/// Base packs implement `ui-*` controls and sections packs implement `sx-*` page
+/// sections. Class names are identical across packs of the same kind, so swapping a
+/// pack swaps CSS without changing a word of the prompt. Base entries come first so
+/// their `--ui-*` variables are declared before a sections pack consumes them.
+///
+/// `radix-ui` is deliberately absent: it ships accessible behaviour, not a visual
+/// design, so there is nothing for a wireframe to copy.
+/// Keep ids in sync with `apps/user-application/src/lib/settings/skillsCatalog.ts`.
+struct ComponentPack {
+    id: &'static str,
+    /// Base packs declare the `--ui-*` variables and the `ui-*` controls; sections packs
+    /// consume both and add `sx-*` page blocks on top.
+    base: bool,
+    /// Prepended to the fragment; never shown to the model.
+    css: &'static str,
+    /// Injected into the prompt; never shipped to the browser.
+    vocabulary: &'static str,
+}
+
+macro_rules! component_pack {
+    ($id:literal, base) => {
+        component_pack!(@build $id, true)
+    };
+    ($id:literal, sections) => {
+        component_pack!(@build $id, false)
+    };
+    (@build $id:literal, $base:literal) => {
+        ComponentPack {
+            id: $id,
+            base: $base,
+            css: include_str!(concat!("../../component-packs/", $id, "/pack.css")),
+            vocabulary: include_str!(concat!("../../component-packs/", $id, "/pack.md")),
+        }
+    };
+}
+
+const COMPONENT_PACKS: &[ComponentPack] = &[
+    // base — exactly one per run
+    component_pack!("shadcn-ui", base),
+    component_pack!("mantine", base),
+    component_pack!("origin-ui", base),
+    component_pack!("kokonut-ui", base),
+    // sections — optional, layered over a base pack
+    component_pack!("aceternity-ui", sections),
+    component_pack!("magic-ui", sections),
 ];
 
 /// Vendored, Stage-adapted skill files. Each directory also carries the verbatim upstream
@@ -157,13 +177,12 @@ const CATALOG_SKILLS: &[(&str, &str)] = &[
         "design-motion-principles",
         include_str!("../../skills/design-motion-principles/SKILL.md"),
     ),
-    (
-        "shadcn-ui-skill",
-        include_str!("../../skills/shadcn-ui-skill/SKILL.md"),
-    ),
 ];
 
-const DEFAULT_COMPONENT_PACK_IDS: &[&str] = &["shadcn-ui", "magic-ui", "aceternity-ui"];
+const DEFAULT_BASE_PACK_ID: &str = "shadcn-ui";
+
+/// Base pack only. A sections pack is an explicit opt-in, never a default.
+const DEFAULT_COMPONENT_PACK_IDS: &[&str] = &[DEFAULT_BASE_PACK_ID];
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct HifiPromptPreferences {
@@ -198,6 +217,40 @@ fn enabled_component_pack_ids(input: &WireframesInput) -> Vec<String> {
             .collect(),
         Some(ids) => ids.clone(),
     }
+}
+
+/// Vendored packs for this run, in `COMPONENT_PACKS` order (base before sections).
+fn selected_component_packs(input: &WireframesInput) -> Vec<&'static ComponentPack> {
+    let ids = enabled_component_pack_ids(input);
+    let mut packs: Vec<&'static ComponentPack> = COMPONENT_PACKS
+        .iter()
+        .filter(|pack| ids.iter().any(|id| id == pack.id))
+        .collect();
+
+    // A sections pack styles itself with the base pack's `--ui-*` variables. The old
+    // multi-select let a project save sections without a base, which would render those
+    // sections against undefined variables — so a sections pack always gets a base under
+    // it. An empty selection stays empty: that means "no packs", not "the default pack".
+    if packs.iter().any(|pack| !pack.base) && !packs.iter().any(|pack| pack.base) {
+        if let Some(base) = COMPONENT_PACKS
+            .iter()
+            .find(|pack| pack.id == DEFAULT_BASE_PACK_ID)
+        {
+            packs.insert(0, base);
+        }
+    }
+
+    packs
+}
+
+/// Stylesheet shared by every Hi-Fi screen in the run. Empty when no selected pack is
+/// vendored — the model then styles controls itself, exactly as it did before packs.
+pub(crate) fn component_pack_css(input: &WireframesInput) -> String {
+    selected_component_packs(input)
+        .iter()
+        .map(|pack| pack.css)
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 /// Selected catalog skills other than Taste. Legacy / unset prefs stay Taste-only so old
@@ -257,27 +310,12 @@ fn hifi_prompt_extras(input: &WireframesInput) -> String {
         push_skill_block(&mut extras, TASTE_SKILL_ID, TASTE_SKILL);
     }
 
-    let pack_lines: Vec<&str> = COMPONENT_PACK_HINTS
-        .iter()
-        .filter(|(id, _)| {
-            preferences
-                .component_pack_ids
-                .iter()
-                .any(|enabled| enabled == id)
-        })
-        .map(|(_, hint)| *hint)
-        .collect();
-    if !pack_lines.is_empty() {
-        extras.push_str("\n\n<component_packs>\n");
-        extras.push_str(
-            "Apply these enabled component-library patterns when shaping Hi-Fi HTML structure and controls:\n",
-        );
-        for line in pack_lines {
-            extras.push_str("- ");
-            extras.push_str(line);
-            extras.push('\n');
-        }
-        extras.push_str("</component_packs>\n");
+    for pack in selected_component_packs(input) {
+        extras.push_str("\n\n<component_pack id=\"");
+        extras.push_str(pack.id);
+        extras.push_str("\">\n");
+        extras.push_str(pack.vocabulary);
+        extras.push_str("\n</component_pack>\n");
     }
     extras
 }

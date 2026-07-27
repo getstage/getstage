@@ -1,0 +1,369 @@
+/* Magic UI — Stage sections pack.
+ *
+ * Marketing-page sections in Magic UI's idiom: layered gradient washes, dot-grid
+ * depth, shimmer borders, and tiles that lift on hover. The engine prepends this
+ * verbatim alongside a base pack, so every rule is plain CSS — no Tailwind, no JS,
+ * no external requests, no keyframe loops. Motion is implied through structure and
+ * hover/focus state, and every transition sits behind a reduced-motion guard.
+ *
+ * Sections own layout, section backgrounds, typographic scale, and decorative
+ * surfaces. Controls come from the base pack's `ui-*` classes; nothing here touches
+ * them — an `sx-` section holds a `ui-btn`, it never restyles one.
+ *
+ * Colour/type/radius are read from the base pack's `--ui-*` variables through the
+ * `--sx-*` aliases below. They are aliases, not redeclarations: overriding
+ * `--ui-primary` on `:root` from the moodboard reskins these sections too, while
+ * redeclaring `--ui-*` here would stomp whichever base pack is loaded next to us.
+ * Every alias carries a standalone default so the pack also renders on its own.
+ */
+
+:root {
+  --sx-bg: var(--ui-bg, #ffffff);
+  --sx-fg: var(--ui-fg, #0a0a0a);
+  --sx-muted: var(--ui-muted, #f5f5f5);
+  --sx-muted-fg: var(--ui-muted-fg, #737373);
+  --sx-border: var(--ui-border, #e5e5e5);
+  --sx-accent: var(--ui-primary, #171717);
+  --sx-font: var(--ui-font, Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+  --sx-radius: calc(var(--ui-radius, 8px) * 2);
+
+  /* Section rhythm. One vertical scale for every section in the run. */
+  --sx-pad-y: 96px;
+  --sx-pad-x: 48px;
+  --sx-gap: 24px;
+
+  /* Decorative layers: ambient glow, shimmer border stop, dot grid, panel fill, depth.
+   * All derived from the base pack's tokens, so a dark or high-contrast base pack drags
+   * the whole decoration set with it instead of leaving black shadows on a black page. */
+  --sx-glow: color-mix(in srgb, var(--sx-accent) 14%, transparent);
+  --sx-sheen: color-mix(in srgb, var(--sx-accent) 38%, transparent);
+  --sx-dot: color-mix(in srgb, var(--sx-fg) 8%, transparent);
+  --sx-panel: color-mix(in srgb, var(--sx-muted) 55%, var(--sx-bg));
+  --sx-shadow: 0 1px 2px color-mix(in srgb, var(--sx-fg) 6%, transparent);
+  --sx-shadow-lift: 0 16px 36px -14px color-mix(in srgb, var(--sx-fg) 26%, transparent);
+}
+
+/* Heroes -------------------------------------------------------------------- */
+
+.sx-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: var(--sx-pad-y) var(--sx-pad-x);
+  text-align: center;
+  background-color: var(--sx-bg);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% 0%, var(--sx-glow), transparent 70%),
+    radial-gradient(var(--sx-dot) 1px, transparent 1px);
+  background-size: 100% 100%, 22px 22px;
+  background-position: 50% 0, 0 0;
+}
+
+.sx-hero-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 56px;
+  padding: var(--sx-pad-y) var(--sx-pad-x);
+  background-color: var(--sx-bg);
+  background-image: radial-gradient(ellipse 70% 90% at 100% 40%, var(--sx-glow), transparent 70%);
+}
+
+/* Left-aligned text column for split heroes and feature rows. */
+.sx-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+/* Centred heading block spanning a grid section. */
+.sx-section-head {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* Type scale ---------------------------------------------------------------- */
+
+.sx-eyebrow {
+  margin: 0;
+  font-family: var(--sx-font);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sx-accent);
+}
+
+.sx-headline {
+  max-width: 22ch;
+  margin: 0;
+  font-family: var(--sx-font);
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--sx-fg);
+}
+
+.sx-subhead {
+  max-width: 58ch;
+  margin: 0;
+  font-family: var(--sx-font);
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--sx-muted-fg);
+}
+
+/* Row of calls to action. Layout only — the buttons are `ui-btn`. */
+.sx-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+
+/* Decorative stand-in for a product shot or diagram. */
+.sx-media {
+  width: 100%;
+  min-height: 280px;
+  border: 1px solid transparent;
+  border-radius: var(--sx-radius);
+  background:
+    linear-gradient(var(--sx-panel), var(--sx-panel)) padding-box,
+    linear-gradient(135deg, var(--sx-sheen), transparent 45%, var(--sx-sheen)) border-box;
+  box-shadow: var(--sx-shadow-lift);
+}
+
+/* Bento grid ---------------------------------------------------------------- */
+
+.sx-bento {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sx-gap);
+  padding: var(--sx-pad-y) var(--sx-pad-x);
+  background: var(--sx-bg);
+}
+
+.sx-bento-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 200px;
+  padding: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--sx-radius);
+  background:
+    linear-gradient(var(--sx-panel), var(--sx-panel)) padding-box,
+    linear-gradient(140deg, var(--sx-sheen), var(--sx-border) 45%, transparent) border-box;
+  box-shadow: var(--sx-shadow);
+}
+
+.sx-bento-tile:hover { box-shadow: var(--sx-shadow-lift); }
+
+.sx-bento-tile-wide { grid-column: span 2; }
+.sx-bento-tile-tall { grid-row: span 2; min-height: 424px; }
+
+.sx-tile-title {
+  margin: 0;
+  font-family: var(--sx-font);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--sx-fg);
+}
+
+.sx-tile-body {
+  margin: 0;
+  font-family: var(--sx-font);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--sx-muted-fg);
+}
+
+/* Feature rows -------------------------------------------------------------- */
+
+.sx-feature-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 56px;
+  padding: 72px var(--sx-pad-x);
+  background: var(--sx-bg);
+}
+
+/* Alternate the media/copy order down a stack of rows. */
+.sx-feature-row-reverse > .sx-copy { order: 2; }
+
+/* Pricing ------------------------------------------------------------------- */
+
+.sx-pricing {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--sx-gap);
+  padding: var(--sx-pad-y) var(--sx-pad-x);
+  background: var(--sx-bg);
+}
+
+.sx-pricing-tier {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px;
+  border: 1px solid var(--sx-border);
+  border-radius: var(--sx-radius);
+  background: var(--sx-bg);
+  box-shadow: var(--sx-shadow);
+}
+
+.sx-pricing-tier:hover { box-shadow: var(--sx-shadow-lift); }
+
+.sx-pricing-tier-featured {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--sx-panel), var(--sx-panel)) padding-box,
+    linear-gradient(140deg, var(--sx-sheen), transparent 50%, var(--sx-sheen)) border-box;
+  box-shadow: var(--sx-shadow-lift);
+}
+
+.sx-tier-name {
+  margin: 0;
+  font-family: var(--sx-font);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sx-muted-fg);
+}
+
+.sx-tier-price {
+  margin: 0;
+  font-family: var(--sx-font);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--sx-fg);
+}
+
+.sx-tier-period { font-family: var(--sx-font); font-size: 14px; font-weight: 500; color: var(--sx-muted-fg); }
+
+.sx-tier-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--sx-font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--sx-fg);
+}
+
+/* Proof --------------------------------------------------------------------- */
+
+.sx-logo-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 48px;
+  padding: 40px var(--sx-pad-x);
+  border-top: 1px solid var(--sx-border);
+  border-bottom: 1px solid var(--sx-border);
+  background: var(--sx-bg);
+}
+
+.sx-logo {
+  font-family: var(--sx-font);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--sx-muted-fg);
+  opacity: 0.65;
+}
+
+.sx-logo:hover { opacity: 1; }
+
+.sx-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sx-gap);
+  padding: 56px var(--sx-pad-x);
+  border-top: 1px solid var(--sx-border);
+  background: var(--sx-bg);
+}
+
+.sx-stat { display: flex; flex-direction: column; gap: 6px; }
+
+.sx-stat-value {
+  font-family: var(--sx-font);
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--sx-fg);
+}
+
+.sx-stat-label { font-family: var(--sx-font); font-size: 14px; line-height: 1.4; color: var(--sx-muted-fg); }
+
+.sx-testimonial {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: var(--sx-pad-y) var(--sx-pad-x);
+  text-align: center;
+  background-color: var(--sx-bg);
+  background-image: radial-gradient(ellipse 60% 100% at 50% 50%, var(--sx-glow), transparent 70%);
+}
+
+.sx-quote {
+  max-width: 46ch;
+  margin: 0;
+  font-family: var(--sx-font);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: var(--sx-fg);
+}
+
+.sx-attrib { font-family: var(--sx-font); font-size: 14px; line-height: 1.4; color: var(--sx-muted-fg); }
+
+/* Closing CTA --------------------------------------------------------------- */
+
+.sx-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  margin: 0 var(--sx-pad-x) var(--sx-pad-x);
+  padding: 72px 48px;
+  text-align: center;
+  border: 1px solid transparent;
+  border-radius: var(--sx-radius);
+  background:
+    radial-gradient(ellipse 70% 120% at 50% 100%, var(--sx-glow), transparent 70%) padding-box,
+    linear-gradient(var(--sx-panel), var(--sx-panel)) padding-box,
+    linear-gradient(120deg, var(--sx-sheen), transparent 40%, var(--sx-sheen)) border-box;
+}
+
+/* Motion -------------------------------------------------------------------- */
+
+/* Opacity and depth only, opt-in. No transforms, no keyframe loops — the export
+ * pipeline screenshots a static frame and walks it into Figma layers. */
+@media (prefers-reduced-motion: no-preference) {
+  .sx-bento-tile,
+  .sx-pricing-tier,
+  .sx-logo {
+    transition: opacity 160ms ease, box-shadow 160ms ease;
+  }
+}

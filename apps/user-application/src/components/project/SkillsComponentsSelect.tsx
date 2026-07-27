@@ -1,4 +1,11 @@
 import { useEffect, useId, useRef, useState } from "react";
+import {
+  COMPONENT_PACK_CATALOG,
+  DISCOVER_SKILL_CATALOG,
+  defaultProjectSelection,
+  packsOfKind,
+  skillsInCategory,
+} from "@/lib/settings/skillsCatalog";
 import { cn } from "@/lib/utils";
 
 /** Structural subset shared by `DISCOVER_SKILL_CATALOG` and `COMPONENT_PACK_CATALOG`. */
@@ -9,24 +16,25 @@ export type CatalogOption = {
   iconSrc?: string;
 };
 
+const NONE_ID = "__none__";
+
 /**
- * Multi-select over an Integrations catalog. The trigger stays a stable placeholder and
- * every selection is rendered as a removable chip below it, so N selections never
- * overflow the control.
+ * Single-select over one exclusivity axis of an Integrations catalog. Each axis owns one
+ * dropdown, so two conflicting design skills or two conflicting base packs are unreachable.
  */
-export function CatalogMultiSelect({
+export function CategorySelect({
   label,
-  placeholder,
   options,
-  selectedIds,
+  selectedId,
   onChange,
+  optional = false,
   disabled = false,
 }: {
   label: string;
-  placeholder: string;
   options: readonly CatalogOption[];
-  selectedIds: readonly string[];
-  onChange: (next: string[]) => void;
+  selectedId: string | null;
+  onChange: (next: string | null) => void;
+  optional?: boolean;
   disabled?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -54,15 +62,10 @@ export function CatalogMultiSelect({
     };
   }, [isOpen]);
 
-  const selected = options.filter((option) => selectedIds.includes(option.id));
-
-  function toggle(id: string) {
-    onChange(
-      selectedIds.includes(id)
-        ? selectedIds.filter((entry) => entry !== id)
-        : [...selectedIds, id],
-    );
-  }
+  const selected = options.find((option) => option.id === selectedId) ?? null;
+  const entries: CatalogOption[] = optional
+    ? [{ id: NONE_ID, name: "None", description: "Skip this choice" }, ...options]
+    : [...options];
 
   return (
     <div className="flex w-full flex-col items-start gap-[8px]">
@@ -79,12 +82,10 @@ export function CatalogMultiSelect({
           className={cn(
             "flex h-[34px] w-full items-center justify-between gap-[8px] rounded-[6px] bg-[#f5f5f5] px-[12px] text-left text-[12px] font-medium leading-[1.25] shadow-[0px_0.45px_1px_0px_rgba(10,10,10,0.25)] outline-none transition-colors",
             disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-[#eeeeee]",
-            selected.length > 0 ? "text-[#171717]" : "text-[#525252]",
+            selected ? "text-[#171717]" : "text-[#525252]",
           )}
         >
-          <span className="truncate">
-            {selected.length > 0 ? `${selected.length} selected` : placeholder}
-          </span>
+          <span className="truncate">{selected ? selected.name : "None"}</span>
           <SelectChevron open={isOpen} />
         </button>
 
@@ -92,19 +93,22 @@ export function CatalogMultiSelect({
           <div
             id={listboxId}
             role="listbox"
-            aria-multiselectable="true"
             aria-label={label}
             className="absolute left-0 right-0 top-[38px] z-30 flex max-h-[240px] flex-col gap-[2px] overflow-y-auto rounded-[8px] border border-[#e5e5e5] bg-white p-[4px] shadow-[0_18px_42px_rgba(10,10,10,0.12),0_0.45px_0.5px_rgba(10,10,10,0.25)]"
           >
-            {options.map((option) => {
-              const isSelected = selectedIds.includes(option.id);
+            {entries.map((option) => {
+              const isNone = option.id === NONE_ID;
+              const isSelected = isNone ? selected === null : option.id === selectedId;
               return (
                 <button
                   key={option.id}
                   type="button"
                   role="option"
                   aria-selected={isSelected}
-                  onClick={() => toggle(option.id)}
+                  onClick={() => {
+                    onChange(isNone ? null : option.id);
+                    setIsOpen(false);
+                  }}
                   className="flex w-full cursor-pointer items-center gap-[8px] rounded-[6px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f5f5f5]"
                 >
                   {option.iconSrc ? (
@@ -140,37 +144,117 @@ export function CatalogMultiSelect({
           </div>
         ) : null}
       </div>
-
-      {selected.length > 0 ? (
-        <div className="flex w-full flex-wrap items-center gap-[6px]">
-          {selected.map((option) => (
-            <span
-              key={option.id}
-              className="flex items-center gap-[6px] rounded-[6px] bg-[#f5f5f5] py-[4px] pl-[8px] pr-[6px] text-[12px] font-medium leading-[1.25] text-[#171717]"
-            >
-              {option.iconSrc ? (
-                <img
-                  src={option.iconSrc}
-                  alt=""
-                  aria-hidden="true"
-                  className="h-[14px] w-[14px] shrink-0 rounded-[3px] object-contain"
-                />
-              ) : null}
-              {option.name}
-              <button
-                type="button"
-                disabled={disabled}
-                onClick={() => toggle(option.id)}
-                aria-label={`Remove ${option.name}`}
-                className="flex h-[14px] w-[14px] cursor-pointer items-center justify-center text-[#737373] transition-colors hover:text-[#171717] disabled:cursor-not-allowed"
-              >
-                <RemoveIcon />
-              </button>
-            </span>
-          ))}
-        </div>
-      ) : null}
     </div>
+  );
+}
+
+const DESIGN_SKILLS = skillsInCategory("Design");
+const MOTION_SKILLS = skillsInCategory("Motion");
+const BASE_PACKS = packsOfKind("base");
+const SECTIONS_PACKS = packsOfKind("sections");
+
+/** Resolved ids for the four project axes, defaults applied. */
+export type ProjectSelection = {
+  designSkillId: string;
+  motionSkillId: string | null;
+  basePackId: string;
+  sectionsPackId: string | null;
+};
+
+/**
+ * Reads the two flat id arrays a project stores into the four axes. An empty or unknown
+ * selection resolves to the Stage defaults for display without writing anything, so an
+ * untouched project keeps falling through to engine defaults.
+ */
+export function resolveProjectSelection(
+  skillIds: readonly string[],
+  componentPackIds: readonly string[],
+): ProjectSelection {
+  const defaults = defaultProjectSelection();
+  return {
+    designSkillId:
+      skillIds.find((id) => DESIGN_SKILLS.some((skill) => skill.id === id)) ??
+      defaults.skillIds[0],
+    motionSkillId: skillIds.find((id) => MOTION_SKILLS.some((skill) => skill.id === id)) ?? null,
+    basePackId:
+      componentPackIds.find((id) => BASE_PACKS.some((pack) => pack.id === id)) ??
+      defaults.componentPackIds[0],
+    sectionsPackId:
+      componentPackIds.find((id) => SECTIONS_PACKS.some((pack) => pack.id === id)) ?? null,
+  };
+}
+
+/** Human-readable name for a catalog id, for read-only summaries. */
+export function catalogLabel(id: string | null): string {
+  if (!id) return "None";
+  return (
+    DISCOVER_SKILL_CATALOG.find((skill) => skill.id === id)?.name ??
+    COMPONENT_PACK_CATALOG.find((pack) => pack.id === id)?.name ??
+    id
+  );
+}
+
+/**
+ * The four project axes as dropdowns, mapped to and from the two flat id arrays the
+ * project stores. Unknown or legacy extra ids are dropped on the next change.
+ */
+export function SkillsComponentsPanel({
+  skillIds,
+  componentPackIds,
+  onChange,
+  disabled = false,
+}: {
+  skillIds: readonly string[];
+  componentPackIds: readonly string[];
+  onChange: (next: { skillIds: string[]; componentPackIds: string[] }) => void;
+  disabled?: boolean;
+}) {
+  const current = resolveProjectSelection(skillIds, componentPackIds);
+
+  function emit(next: Partial<ProjectSelection>) {
+    const merged = { ...current, ...next };
+    onChange({
+      skillIds: [merged.designSkillId, ...(merged.motionSkillId ? [merged.motionSkillId] : [])],
+      componentPackIds: [
+        merged.basePackId,
+        ...(merged.sectionsPackId ? [merged.sectionsPackId] : []),
+      ],
+    });
+  }
+
+  return (
+    <>
+      <CategorySelect
+        label="Design skill"
+        options={DESIGN_SKILLS}
+        selectedId={current.designSkillId}
+        onChange={(next) => emit({ designSkillId: next ?? current.designSkillId })}
+        disabled={disabled}
+      />
+      <CategorySelect
+        label="Motion skill (optional)"
+        options={MOTION_SKILLS}
+        selectedId={current.motionSkillId}
+        onChange={(next) => emit({ motionSkillId: next })}
+        optional
+        disabled={disabled}
+      />
+      <CategorySelect
+        label="Base system"
+        options={BASE_PACKS}
+        selectedId={current.basePackId}
+        onChange={(next) => emit({ basePackId: next ?? current.basePackId })}
+        disabled={disabled}
+      />
+      <CategorySelect
+        label="Page sections (optional)"
+        options={SECTIONS_PACKS}
+        selectedId={current.sectionsPackId}
+        onChange={(next) => emit({ sectionsPackId: next })}
+        optional
+        disabled={disabled}
+      />
+    </>
   );
 }
 
@@ -191,19 +275,6 @@ function SelectChevron({ open }: { open: boolean }) {
         strokeWidth="1.2"
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function RemoveIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[10px] w-[10px]">
-      <path
-        d="M3.5 3.5l9 9m0-9l-9 9"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
       />
     </svg>
   );

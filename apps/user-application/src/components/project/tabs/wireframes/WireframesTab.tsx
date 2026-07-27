@@ -14,7 +14,7 @@ import { api } from "@/lib/convexApi";
 import { buildResultCards } from "@/lib/project/mapWireframesArtifactToTabData";
 import type { Project } from "@/models/project/project";
 import type { WireframeAssetCard } from "@/types/project/assetsTab";
-import type { WireframeKindChoice, WireframeStep, WireframesTabData } from "@/types/project/wireframesTab";
+import type { ScreenItem, WireframeKindChoice, WireframeStep, WireframesTabData } from "@/types/project/wireframesTab";
 import { ExportOptionsDialog } from "../assets/ExportOptionsDialog";
 import { BrandKitStep } from "./BrandKitStep";
 import { CanvasShell } from "./CanvasShell";
@@ -29,6 +29,9 @@ import { WireframeKindChooser } from "./WireframeKindChooser";
 
 type WireframesTabProps = {
   project: Project;
+  skillIds: readonly string[];
+  componentPackIds: readonly string[];
+  onSaveSkills: (input: { skillIds: string[]; componentPackIds: string[] }) => Promise<void>;
   onGoToResearch?: () => void;
   onGoToStrategy?: () => void;
   onGoToFlows?: () => void;
@@ -38,7 +41,7 @@ type WireframesTabProps = {
 function getRestoredWireframeUiState(
   tabData: WireframesTabData | undefined,
   isGenerating: boolean,
-  seedScreens: ReturnType<typeof createSeedConfigureScreens>,
+  seedScreens: ScreenItem[],
 ) {
   if (!tabData) {
     return {
@@ -65,6 +68,9 @@ function getRestoredWireframeUiState(
 
 export function WireframesTab({
   project,
+  skillIds,
+  componentPackIds,
+  onSaveSkills,
   onGoToResearch,
   onGoToStrategy,
   onGoToFlows,
@@ -385,6 +391,9 @@ export function WireframesTab({
           wireframeKind={wireframeKind ?? "lofi"}
           screens={screens}
           selectedCount={selectedCount}
+          skillIds={skillIds}
+          componentPackIds={componentPackIds}
+          onSaveSkills={onSaveSkills}
           onChangeType={() => setStep("choose-kind")}
           onAddBrandKit={() => {
             setWireframeKind("hifi");

@@ -86,11 +86,18 @@ Legend: `[x]` done in code · `[ ]` not done / deferred · `~` partial
 | Item | Status |
 |------|--------|
 | Convex prefs + Hi-Fi pack/taste wiring | [x] |
-| Hi-Fi precedence: project selection → account prefs → built-in Design Taste | [x] |
+| Hi-Fi precedence: project selection → built-in Design Taste + default packs | [x] | empty project is caller-independent |
 | Every catalog skill injects a full vendored `SKILL.md`, not a one-line hint | [x] | `apps/stage-engine/skills/<id>/SKILL.md` |
 | Verbatim upstream kept beside each adapted skill for provenance | [x] | `SOURCE_*.md` in the same directory |
 | `<skill_precedence>` emitted when 2+ skills are active; Taste injected last | [x] | |
 | Lo-Fi ignores skills and packs | [x] |
+| Component libraries ship real vendored CSS, not one-line prompt hints | [x] | `apps/stage-engine/component-packs/<id>/pack.css` + `pack.md`; `COMPONENT_PACK_HINTS` deleted |
+| All 4 base packs implement an identical `ui-*` class set | [x] | Verified by selector diff against the shadcn reference — 0 missing, 0 extra |
+| Sections packs never restyle a control | [x] | Verified: no `ui-*` rule declared in either sections pack |
+| Pack stylesheet rides inside each Hi-Fi fragment | [x] | Preview, PNG, Paper, and code export each take one fragment and cannot reach run-level state |
+| Hi-Fi validation runs before the pack CSS is attached | [x] | Otherwise any fragment would satisfy the "must be styled" check |
+| A sections pack always gets a base pack under it | [x] | Legacy selections could name sections only, leaving `--ui-*` undefined |
+| `radix-ui` never reaches a run | [x] | Behaviour, not a visual design — absent from `COMPONENT_PACKS` |
 
 ## Create flow — Skills & Components (`1654:3948`)
 

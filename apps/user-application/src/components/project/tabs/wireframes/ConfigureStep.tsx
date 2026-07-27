@@ -1,3 +1,9 @@
+import { useState } from "react";
+import {
+  catalogLabel,
+  resolveProjectSelection,
+  SkillsComponentsPanel,
+} from "@/components/project/SkillsComponentsSelect";
 import type { ScreenItem, WireframeKind } from "@/types/project/wireframesTab";
 import { Badge, PrimaryButton, SecondaryButton } from "./WireframePrimitives";
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, PlusIcon } from "./wireframesIcons";
@@ -6,6 +12,9 @@ export function ConfigureStep({
   wireframeKind,
   screens,
   selectedCount,
+  skillIds,
+  componentPackIds,
+  onSaveSkills,
   onChangeType,
   onAddBrandKit,
   onToggle,
@@ -14,6 +23,9 @@ export function ConfigureStep({
   wireframeKind: WireframeKind;
   screens: ScreenItem[];
   selectedCount: number;
+  skillIds: readonly string[];
+  componentPackIds: readonly string[];
+  onSaveSkills: (input: { skillIds: string[]; componentPackIds: string[] }) => Promise<void>;
   onChangeType: () => void;
   onAddBrandKit: () => void;
   onToggle: (id: string) => void;
@@ -32,9 +44,7 @@ export function ConfigureStep({
         </div>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3 text-[13px] font-medium leading-[1.25]">
-            <span className="text-[#171717]">13 screens from Flows</span>
-            <span className="h-1 w-1 rounded-full bg-[#D4D4D4]" />
-            <span className="text-[#737373]">14 patterns applied from Moodboard</span>
+            <span className="text-[#171717]">{screens.length} screens from Flows</span>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
             <SecondaryButton onClick={onChangeType}>
@@ -51,10 +61,20 @@ export function ConfigureStep({
         </div>
       </div>
 
+      {wireframeKind === "hifi" ? (
+        <HifiSelectionRow
+          skillIds={skillIds}
+          componentPackIds={componentPackIds}
+          onSaveSkills={onSaveSkills}
+        />
+      ) : null}
+
       <div className="rounded-[8px] bg-white p-11 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="mb-6 flex items-center justify-between text-[15px] font-medium leading-[1.25] text-[#171717]">
           <span>Screens To Generate</span>
-          <span className="text-[13px] text-[#525252]">{selectedCount} of 13 selected</span>
+          <span className="text-[13px] text-[#525252]">
+            {selectedCount} of {screens.length} selected
+          </span>
         </div>
         <div className="flex flex-col gap-1">
           {screens.map((screen) => (
@@ -79,6 +99,91 @@ export function ConfigureStep({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Hi-Fi only. Shows the four active project choices and lets the user change them without
+ * leaving Configure, so Generate immediately picks up the saved selection.
+ */
+function HifiSelectionRow({
+  skillIds,
+  componentPackIds,
+  onSaveSkills,
+}: {
+  skillIds: readonly string[];
+  componentPackIds: readonly string[];
+  onSaveSkills: (input: { skillIds: string[]; componentPackIds: string[] }) => Promise<void>;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState<{ skillIds: string[]; componentPackIds: string[] } | null>(
+    null,
+  );
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const active = draft ?? { skillIds, componentPackIds };
+  const selection = resolveProjectSelection(active.skillIds, active.componentPackIds);
+
+  async function save() {
+    if (isSaving) return;
+    if (!draft) {
+      setIsEditing(false);
+      return;
+    }
+    setIsSaving(true);
+    setError(null);
+    try {
+      await onSaveSkills(draft);
+      setDraft(null);
+      setIsEditing(false);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not save the selection.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <div className="mb-1 rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-medium leading-[1.25]">
+          <SelectionFact label="Design" value={catalogLabel(selection.designSkillId)} />
+          <SelectionFact label="Motion" value={catalogLabel(selection.motionSkillId)} />
+          <SelectionFact label="Base" value={catalogLabel(selection.basePackId)} />
+          <SelectionFact label="Sections" value={catalogLabel(selection.sectionsPackId)} />
+        </div>
+        <SecondaryButton onClick={() => setIsEditing((current) => !current)}>
+          {isEditing ? "Close" : "Edit"}
+        </SecondaryButton>
+      </div>
+
+      {isEditing ? (
+        <div className="mt-4 flex flex-col gap-[16px] border-t border-[#E5E5E5] pt-4">
+          <SkillsComponentsPanel
+            skillIds={active.skillIds}
+            componentPackIds={active.componentPackIds}
+            onChange={setDraft}
+            disabled={isSaving}
+          />
+          {error ? <p className="text-[12px] font-medium text-[#b91c1c]">{error}</p> : null}
+          <div className="flex justify-end">
+            <PrimaryButton onClick={() => void save()} disabled={isSaving}>
+              {isSaving ? "Saving…" : "Save selection"}
+            </PrimaryButton>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function SelectionFact({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="flex items-center gap-[6px]">
+      <span className="text-[#737373]">{label}</span>
+      <span className="text-[#171717]">{value}</span>
+    </span>
   );
 }
 

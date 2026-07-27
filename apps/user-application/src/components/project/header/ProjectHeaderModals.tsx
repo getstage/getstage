@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { StageDatePicker } from "@/components/ui/StageDatePicker";
-import {
-  COMPONENT_PACK_CATALOG,
-  DISCOVER_SKILL_CATALOG,
-} from "@/lib/settings/skillsCatalog";
-import { CatalogMultiSelect } from "../SkillsComponentsSelect";
+import { SkillsComponentsPanel } from "../SkillsComponentsSelect";
 import { AVATAR_ACCEPT, PROJECT_MARKER_ACCEPT } from "@/lib/r2Uploads";
 import type {
   SaveClientProfileInput,
@@ -748,23 +744,16 @@ function SkillsComponentsModal({
     >
       <div className="flex w-full flex-col gap-[16px] rounded-[8px] bg-white p-[12px] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <p className="text-[12px] font-medium leading-[1.5] text-[#737373]">
-          Hi-Fi wireframes for this project use these skills and component libraries. Leave both
-          empty to fall back to your account defaults.
+          Hi-Fi wireframes for this project use one design skill, an optional motion skill, one
+          component base, and optional page sections.
         </p>
-        <CatalogMultiSelect
-          label="Skills"
-          placeholder="Select one or multiple skills"
-          options={DISCOVER_SKILL_CATALOG}
-          selectedIds={selectedSkillIds}
-          onChange={setSelectedSkillIds}
-          disabled={isSubmitting}
-        />
-        <CatalogMultiSelect
-          label="Components"
-          placeholder="Select one or multiple components"
-          options={COMPONENT_PACK_CATALOG}
-          selectedIds={selectedPackIds}
-          onChange={setSelectedPackIds}
+        <SkillsComponentsPanel
+          skillIds={selectedSkillIds}
+          componentPackIds={selectedPackIds}
+          onChange={(next) => {
+            setSelectedSkillIds(next.skillIds);
+            setSelectedPackIds(next.componentPackIds);
+          }}
           disabled={isSubmitting}
         />
         {error ? <p className="text-[12px] font-medium text-[#b91c1c]">{error}</p> : null}

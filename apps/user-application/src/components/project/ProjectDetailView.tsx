@@ -267,6 +267,9 @@ export function ProjectDetailView() {
               <ProjectStepView
                 activeTab={activeTab as StepTab}
                 project={project}
+                skillIds={live.detail?.skillIds ?? NO_SELECTION}
+                componentPackIds={live.detail?.componentPackIds ?? NO_SELECTION}
+                onSaveSkills={actions.saveSkills}
                 artifactQueriesEnabled={artifactQueriesEnabled}
                 pendingStrategyGeneration={pendingStrategyGeneration}
                 pendingStrategyProviderId={pendingStrategyProviderId}

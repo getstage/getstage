@@ -27,7 +27,7 @@ export async function getWireframesInputHandler(
   ctx: QueryCtx,
   args: { projectId: Id<"projects"> },
 ) {
-  const { project, user } = await requireProjectAccess(ctx, args.projectId);
+  const { project } = await requireProjectAccess(ctx, args.projectId);
 
   const latestResearch = await findLatestArtifact(
     ctx,
@@ -76,13 +76,13 @@ export async function getWireframesInputHandler(
     flowsArtifactJson: latestFlows?.contentJson ?? undefined,
     existingWireframesArtifactId: latestWireframes ? String(latestWireframes._id) : undefined,
     existingWireframesArtifactJson: latestWireframes?.contentJson ?? undefined,
-    // Precedence: an explicit project selection wins; an empty one falls through to the
-    // account-level Integrations prefs, and those falling through too leaves `undefined`,
-    // which the engine reads as legacy → built-in Design Taste + default packs.
-    enabledSkillIds: project.skillIds?.length ? project.skillIds : user.enabledSkillIds,
+    // Project selection only. Empty / unset → leave undefined so the engine uses the
+    // same built-in Design Taste + default packs for every collaborator on this project.
+    // Do not fall back to the caller's account prefs (that made output caller-dependent).
+    enabledSkillIds: project.skillIds?.length ? project.skillIds : undefined,
     enabledComponentPackIds: project.componentPackIds?.length
       ? project.componentPackIds
-      : user.enabledComponentPackIds,
+      : undefined,
   };
 }
 

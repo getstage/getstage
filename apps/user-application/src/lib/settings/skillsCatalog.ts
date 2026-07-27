@@ -30,6 +30,12 @@ export type ComponentPackCatalogItem = {
   iconSrc: string;
   defaultEnabled: boolean;
   category: string;
+  /**
+   * Exclusivity axis for project selection. A project takes exactly one `base` pack and
+   * at most one `sections` pack. `primitives` packs have no visual design of their own,
+   * so they stay browsable in Integrations but are never offered in a project selector.
+   */
+  packKind: "base" | "sections" | "primitives";
   installsLabel: string;
   /** Stage Hi-Fi prompt hints only — not a skills.sh package */
   promptHint: string;
@@ -148,23 +154,23 @@ export const DISCOVER_SKILL_CATALOG: readonly SkillCatalogItem[] = [
     id: "emil-design-eng",
     name: "Emil Design Eng",
     overlayTitle: "<Emil Design Eng>",
-    description: "emilkowalski design-engineering skills.",
+    description: "emilkowalski motion and interaction craft for design engineers.",
     official: true,
     meshSrc: MESH.cool,
     defaultEnabled: false,
-    category: "Design",
+    category: "Motion",
     installsLabel: "152.1K Installs",
     author: "emilkowalski",
     sourceUrl: "https://github.com/emilkowalski/skills/tree/main/skills/emil-design-eng",
     longDescription:
-      "Design-engineering rigor: a small token set for spacing, radius, and elevation reused everywhere, and layouts that keep working when the viewport narrows.",
+      "Spring-based motion thinking from the author of Sonner and Vaul. Transitions get a physical feel instead of a linear fade, interactive elements answer immediately on hover and focus, and nothing animates unless the movement explains what changed.",
     features: [
-      "Small reusable token set (spacing, radius, elevation)",
-      "Layouts that hold at narrow widths",
-      "Componentized structure instead of one-off styling",
+      "Spring-like easing instead of linear fades",
+      "Immediate hover and focus feedback on interactive elements",
+      "Motion only where it explains a state change",
     ],
-    bestFor: ["Design systems", "App shells", "Component-heavy UI"],
-    tags: ["design-systems", "tokens", "responsive"],
+    bestFor: ["Overlays and sheets", "App shells", "Component-heavy UI"],
+    tags: ["motion", "interaction", "design-engineering"],
   },
   {
     id: "design-motion-principles",
@@ -188,28 +194,6 @@ export const DISCOVER_SKILL_CATALOG: readonly SkillCatalogItem[] = [
     bestFor: ["Marketing sites", "Product tours", "Feature pages"],
     tags: ["motion", "interaction", "depth"],
   },
-  {
-    id: "shadcn-ui-skill",
-    name: "shadcn/ui Skill",
-    overlayTitle: "<shadcn/ui Skill>",
-    description: "Official shadcn/ui agent skill — tokens, variants, and structure discipline.",
-    official: true,
-    meshSrc: MESH.warm,
-    defaultEnabled: false,
-    category: "Design Systems",
-    installsLabel: "45.5K Installs",
-    author: "shadcn",
-    sourceUrl: "https://github.com/shadcn-ui/ui/tree/main/skills/shadcn",
-    longDescription:
-      "Composes screens from shadcn primitives — Card, Button, Input with Label, Badge, Table, Tabs — keeping their default spacing and border treatment so the output reads as a familiar shadcn app.",
-    features: [
-      "Composes from shadcn primitives",
-      "Keeps default spacing and border treatment",
-      "Familiar form and table patterns",
-    ],
-    bestFor: ["SaaS apps", "Admin panels", "Internal tools"],
-    tags: ["shadcn", "components", "design-systems"],
-  },
 ] as const;
 
 export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
@@ -221,6 +205,7 @@ export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
     iconSrc: "/logos/component-packs/shadcn.jpg",
     defaultEnabled: true,
     category: "SaaS",
+    packKind: "base",
     installsLabel: "246.7K Installs",
     promptHint:
       "Prefer clean shadcn-like patterns: rounded-md controls, bordered cards, clear Label+Input forms, muted secondary text.",
@@ -233,6 +218,7 @@ export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
     iconSrc: "/logos/component-packs/radix.svg",
     defaultEnabled: false,
     category: "SaaS",
+    packKind: "primitives",
     installsLabel: "989 Installs",
     promptHint:
       "Use accessible dialog/popover/select patterns with clear focus rings and semantic roles.",
@@ -245,6 +231,7 @@ export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
     iconSrc: "/logos/component-packs/magic-ui.svg",
     defaultEnabled: true,
     category: "SaaS",
+    packKind: "sections",
     installsLabel: "543 Installs",
     promptHint:
       "Add restrained motion-ready structure (hero reveals, subtle card lift) without requiring JS in the HTML fragment.",
@@ -257,6 +244,7 @@ export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
     iconSrc: "/logos/component-packs/aceternity.svg",
     defaultEnabled: true,
     category: "SaaS",
+    packKind: "sections",
     installsLabel: "1.1K Installs",
     promptHint:
       "SaaS/AI product layouts: bold hero typography, feature bento sections, polished pricing and CTA blocks.",
@@ -269,6 +257,7 @@ export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
     iconSrc: "/logos/component-packs/kokonut.svg",
     defaultEnabled: false,
     category: "SaaS",
+    packKind: "base",
     installsLabel: "Not listed on skills.sh",
     promptHint:
       "Dashboard/SaaS density: clear data panels, metric strips, and structured app chrome when screens are product UI.",
@@ -281,6 +270,7 @@ export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
     iconSrc: "/logos/component-packs/origin.svg",
     defaultEnabled: false,
     category: "SaaS",
+    packKind: "base",
     installsLabel: "Not listed on skills.sh",
     promptHint:
       "Application blocks with production spacing and clear section separators — practical, not decorative.",
@@ -293,6 +283,7 @@ export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
     iconSrc: "/logos/component-packs/mantine.svg",
     defaultEnabled: false,
     category: "SaaS",
+    packKind: "base",
     installsLabel: "5.2K Installs",
     promptHint:
       "Accessible form and notification patterns with consistent control heights and readable contrast.",
@@ -309,4 +300,17 @@ export function defaultInstalledSkillIds(): string[] {
 
 export function defaultEnabledComponentPackIds(): string[] {
   return COMPONENT_PACK_CATALOG.filter((p) => p.defaultEnabled).map((p) => p.id);
+}
+
+export function skillsInCategory(category: string): SkillCatalogItem[] {
+  return DISCOVER_SKILL_CATALOG.filter((s) => s.category === category);
+}
+
+export function packsOfKind(kind: ComponentPackCatalogItem["packKind"]): ComponentPackCatalogItem[] {
+  return COMPONENT_PACK_CATALOG.filter((p) => p.packKind === kind);
+}
+
+/** What Stage falls back to when a project has made no explicit choice. */
+export function defaultProjectSelection(): { skillIds: string[]; componentPackIds: string[] } {
+  return { skillIds: ["design-taste-frontend"], componentPackIds: ["shadcn-ui"] };
 }

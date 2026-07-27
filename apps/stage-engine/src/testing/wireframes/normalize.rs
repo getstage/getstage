@@ -107,6 +107,87 @@ fn preserves_hifi_html_field() {
 }
 
 #[test]
+fn hifi_screens_carry_the_component_pack_stylesheet() {
+    let artifact = json!({
+        "generatedScreens": [sample_screen(
+            "homepage",
+            Some("<div><style>.hero{color:#111}</style><section class=\"hero\">Hi-Fi</section></div>"),
+        )]
+    });
+
+    let normalized = normalize_wireframes_artifact(
+        artifact,
+        &sample_input(),
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        123,
+        "just now",
+    )
+    .unwrap();
+
+    let html = normalized["generatedScreens"][0]["html"].as_str().unwrap();
+    // Unset prefs fall through to the default base pack. The stylesheet has to ride
+    // inside the fragment: the preview iframe, PNG capture, Paper, and the code export
+    // each receive one screen and none of them can reach run-level state.
+    assert!(
+        html.contains(".ui-btn"),
+        "pack stylesheet must ride along in the fragment"
+    );
+    assert!(html.contains("Hi-Fi"), "the model's own markup must survive");
+}
+
+#[test]
+fn lofi_screens_carry_no_component_pack_stylesheet() {
+    let artifact = json!({
+        "generatedScreens": [sample_screen(
+            "homepage",
+            Some("<div><style>.hero{color:#111}</style><section>Lo-Fi</section></div>"),
+        )]
+    });
+
+    let normalized = normalize_wireframes_artifact(
+        artifact,
+        &sample_input(),
+        WireframeKind::Lofi,
+        None,
+        None,
+        123,
+        "just now",
+    )
+    .unwrap();
+
+    assert!(
+        !normalized["generatedScreens"][0]["html"]
+            .as_str()
+            .unwrap()
+            .contains(".ui-btn")
+    );
+}
+
+#[test]
+fn normalize_rejects_unstyled_hifi_screen_despite_the_pack_stylesheet() {
+    let artifact = json!({
+        "generatedScreens": [sample_screen("homepage", Some("<div>No styles here</div>"))]
+    });
+
+    let error = normalize_wireframes_artifact(
+        artifact,
+        &sample_input(),
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        123,
+        "just now",
+    )
+    .unwrap_err();
+
+    // The pack stylesheet is attached after validation on purpose; attaching it first
+    // would let any fragment satisfy the "must be styled" check.
+    assert!(error.to_string().contains("Hi-Fi html"));
+}
+
+#[test]
 fn drops_blocks_with_unknown_kind() {
     let artifact = json!({
         "generatedScreens": [{
