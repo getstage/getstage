@@ -52,11 +52,16 @@ export function getSidecarEnv(port: number): NodeJS.ProcessEnv {
   const r2PublicBaseUrl =
     process.env.R2_PUBLIC_BASE_URL ??
     (app.isPackaged ? undefined : "https://assets-testing.getstage.co");
+  const wireframeRendererRoot = app.isPackaged
+    ? resolve(process.resourcesPath, "wireframe-renderer")
+    : resolve(app.getAppPath(), "../..", "packages/wireframe-renderer");
 
   return {
     ...process.env,
     PATH: augmentPathForProviderClis(process.env.PATH),
     STAGE_ENGINE_PORT: String(port),
+    STAGE_WIREFRAME_NODE_BINARY: process.execPath,
+    STAGE_WIREFRAME_RENDERER_ROOT: wireframeRendererRoot,
     ...(convexUrl ? { CONVEX_URL: convexUrl } : {}),
     ...(r2PublicBaseUrl ? { R2_PUBLIC_BASE_URL: r2PublicBaseUrl } : {}),
   };

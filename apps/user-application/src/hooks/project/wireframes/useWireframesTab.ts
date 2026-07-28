@@ -74,7 +74,8 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
   const projectId = project.id;
   const wireframesArtifact = useWireframesArtifact(projectId);
   const wireframesRun = useWireframesRun(projectId);
-  const { resolvedProviderId, providerOptions } = useProjectAiProvider(projectId);
+  const { resolvedProviderId, providerOptions, selectedProviderId, selectProvider } =
+    useProjectAiProvider(projectId);
   const providerRequired = useProviderRequired();
   const [error, setError] = useState<string | null>(null);
 
@@ -234,6 +235,10 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
     regeneratingScreenIds,
     isGenerating: wireframesRun.isRunning || wireframesRun.isStarting,
     isRunsLoading: wireframesRun.isRunsLoading,
+    elapsedSeconds: wireframesRun.elapsedSeconds,
+    providerOptions,
+    selectedProviderId,
+    selectProvider,
     isRegenerateRun: wireframesRun.isRegenerateRun,
     isRunning: wireframesRun.isRunning,
     error: error ?? wireframesRun.error,

@@ -90,8 +90,81 @@ Canvas / height rules (mandatory — Stage crops and exports by content height):
 - Marketing / long pages: stack sections tightly with consistent gaps; do not pad with large empty regions between sections.
 - Prefer one root <div> that wraps only real UI — no spacer divs whose only job is to fill the viewport.
 
-Pre-flight check before returning: confirm every Hi-Fi screen has a non-empty "html" using brand colors, real copy, and at least one image; no two sections look identical; and no screen relies on 100vh / empty viewport centering.
+Multi-step / wizard / onboarding / success screens (mandatory — Stage never runs JavaScript):
+- Emit ONLY the active step's UI for that screen. Do NOT include sibling steps hidden with display:none, visibility:hidden, the hidden attribute, or aria-hidden.
+- Do NOT rely on tabs, carousels, or step state that needs <script> to reveal content. One screen id = one visible frame.
+- Keep the active panel content-sized; no empty wrapper holding height for hidden siblings.
+
+Pre-flight check before returning: confirm every Hi-Fi screen has a non-empty "html" using brand colors, real copy, and at least one image; no two sections look identical; no screen relies on 100vh / empty viewport centering; and no screen hides its only content for JavaScript.
 "#;
+
+const REACT_TSX_RULES: &str = r#"
+React component mode (Stage renders TSX → static HTML; no client JavaScript):
+- For EACH generatedScreens[] entry, add a "tsx" field: a complete React function component as a string.
+- Default-export `function Screen()` and return one visible root.
+- Import selected Base components ONLY from "@stage/base". If a Sections library is selected, import its blocks ONLY from "@stage/sections". These virtual modules resolve to the exact real libraries selected for this run.
+- Do not import another component library, npm package, Node API, browser global, stylesheet, or local file. `react` and `lucide-react` are the only other allowed imports.
+- Use at least one real Base component in every screen. Use a real Sections component when the selected block fits the screen; do not force marketing sections into application forms.
+- Use Tailwind utility classes for layout around the real components. Motion components render their initial static SSR state.
+- Keep a minimal self-contained "html" fallback; rendered TSX replaces it only after compilation succeeds.
+- Still fill sections[]/blocks[] for Figma naming. One screen = one visible frame (no hidden steps).
+"#;
+
+const RENDERER_LIBRARY_MANIFESTS: &str =
+    include_str!("../../../../packages/wireframe-renderer/manifests/libraries.json");
+
+fn react_tsx_prompt_enabled() -> bool {
+    crate::wireframes::render::react_render_enabled()
+}
+
+fn react_library_manifest(component_pack_ids: &[String]) -> String {
+    let libraries = crate::wireframes::render::resolve_renderer_libraries(component_pack_ids);
+    let Ok(manifest) = serde_json::from_str::<serde_json::Value>(RENDERER_LIBRARY_MANIFESTS) else {
+        return String::new();
+    };
+
+    let mut output = String::from("\nSelected real component libraries for this run:\n");
+    for (kind, id, module) in [
+        ("Base", Some(libraries.base.as_str()), "@stage/base"),
+        ("Sections", libraries.sections.as_deref(), "@stage/sections"),
+    ] {
+        let Some(id) = id else {
+            output.push_str("- Sections: none selected. Do not import \"@stage/sections\".\n");
+            continue;
+        };
+        let key = if kind == "Base" { "base" } else { "sections" };
+        let Some(entry) = manifest
+            .get(key)
+            .and_then(serde_json::Value::as_array)
+            .and_then(|entries| {
+                entries
+                    .iter()
+                    .find(|entry| entry.get("id").and_then(serde_json::Value::as_str) == Some(id))
+            })
+        else {
+            continue;
+        };
+        let name = entry
+            .get("name")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or(id);
+        let exports = entry
+            .get("exports")
+            .and_then(serde_json::Value::as_array)
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(serde_json::Value::as_str)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            })
+            .unwrap_or_default();
+        output.push_str(&format!(
+            "- {kind}: {name} (`{id}`). Allowed import: `import {{ {exports} }} from \"{module}\";`\n"
+        ));
+    }
+    output
+}
 
 /// Leonxlnx/taste-skill (`design-taste-frontend` / tasteskill.dev), Stage-adapted.
 /// Injected into every Hi-Fi wireframes generation prompt.
@@ -290,6 +363,10 @@ fn push_skill_block(extras: &mut String, id: &str, body: &str) {
 fn hifi_prompt_extras(input: &WireframesInput) -> String {
     let mut extras = String::from(HIFI_RULES);
     let preferences = resolve_hifi_prompt_preferences(input);
+    if react_tsx_prompt_enabled() {
+        extras.push_str(REACT_TSX_RULES);
+        extras.push_str(&react_library_manifest(&preferences.component_pack_ids));
+    }
 
     if preferences.skill_ids.len() > 1 {
         extras.push_str(
@@ -364,6 +441,29 @@ fn redact_regen_artifact(existing_json: &str, ids: &[&str]) -> String {
     serde_json::to_string(&value).unwrap_or_else(|_| existing_json.to_string())
 }
 
+/// Removes the `<style data-stage-pack>` block `normalize` prepends to every saved screen.
+/// Operates on the artifact JSON text: the marker delimiters contain no characters that
+/// JSON escapes, so they survive serialization intact.
+fn strip_pack_styles(json: &str) -> String {
+    const OPEN: &str = "<style data-stage-pack>";
+    const CLOSE: &str = "</style>";
+
+    let mut out = String::with_capacity(json.len());
+    let mut rest = json;
+    while let Some(start) = rest.find(OPEN) {
+        out.push_str(&rest[..start]);
+        let after_open = &rest[start + OPEN.len()..];
+        let Some(end) = after_open.find(CLOSE) else {
+            // Unterminated marker: keep what is left rather than silently truncating.
+            out.push_str(after_open);
+            return out;
+        };
+        rest = &after_open[end + CLOSE.len()..];
+    }
+    out.push_str(rest);
+    out
+}
+
 pub fn build_wireframes_prompt(
     input: &WireframesInput,
     kind: WireframeKind,
@@ -399,6 +499,10 @@ pub fn build_wireframes_prompt(
                 }
                 None => json.to_string(),
             };
+            // Every saved screen carries the pack stylesheet. Echoing the artifact back
+            // verbatim would resend it once per screen — ~6 KB x 13 screens of prompt for
+            // CSS the model must not write anyway. `<component_pack>` teaches the classes.
+            let payload = strip_pack_styles(&payload);
             format!(
                 "Previous wireframes artifact (regenerate; keep ids stable where possible):\n{payload}\n\n"
             )

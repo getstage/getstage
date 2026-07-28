@@ -36,8 +36,8 @@ const CHANGE_EVENT = "stage:chat-defaults-changed";
 
 export const chatModels: ChatModel[] = [
   {
-    id: "claude-opus-4.8",
-    label: "Claude Opus 4.8",
+    id: "claude-opus-5",
+    label: "Claude Opus 5",
     provider: "anthropic",
     description: "Newest flagship Claude model",
     badge: "New",
@@ -50,16 +50,29 @@ export const chatModels: ChatModel[] = [
     badge: "New",
   },
   {
-    id: "claude-sonnet-4.6",
-    label: "Claude Sonnet 4.6",
+    id: "claude-sonnet-5",
+    label: "Claude Sonnet 5",
     provider: "anthropic",
     description: "Newest balanced Claude model",
+    badge: "New",
+  },
+  {
+    id: "claude-opus-4.8",
+    label: "Claude Opus 4.8",
+    provider: "anthropic",
+    description: "Previous flagship Claude",
   },
   {
     id: "claude-haiku-4.5",
     label: "Claude Haiku 4.5",
     provider: "anthropic",
     description: "Newest fast Claude model",
+  },
+  {
+    id: "claude-sonnet-4.6",
+    label: "Claude Sonnet 4.6",
+    provider: "anthropic",
+    description: "Previous balanced Claude model",
   },
   {
     id: "claude-opus-4.7",

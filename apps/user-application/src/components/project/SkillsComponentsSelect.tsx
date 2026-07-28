@@ -85,7 +85,17 @@ export function CategorySelect({
             selected ? "text-[#171717]" : "text-[#525252]",
           )}
         >
-          <span className="truncate">{selected ? selected.name : "None"}</span>
+          <span className="flex min-w-0 items-center gap-[8px]">
+            {selected?.iconSrc ? (
+              <img
+                src={selected.iconSrc}
+                alt=""
+                aria-hidden="true"
+                className="h-[16px] w-[16px] shrink-0 rounded-[4px] object-contain"
+              />
+            ) : null}
+            <span className="truncate">{selected ? selected.name : "None"}</span>
+          </span>
           <SelectChevron open={isOpen} />
         </button>
 
@@ -184,14 +194,18 @@ export function resolveProjectSelection(
   };
 }
 
-/** Human-readable name for a catalog id, for read-only summaries. */
-export function catalogLabel(id: string | null): string {
-  if (!id) return "None";
-  return (
-    DISCOVER_SKILL_CATALOG.find((skill) => skill.id === id)?.name ??
-    COMPONENT_PACK_CATALOG.find((pack) => pack.id === id)?.name ??
-    id
-  );
+/**
+ * Name and icon for a catalog id, for read-only summaries. `null` when the axis is unset,
+ * so the caller owns how "nothing chosen" reads. Only packs carry a logo; skills are
+ * illustrated with a mesh that is too detailed to read at chip size.
+ */
+export function catalogEntry(id: string | null): { name: string; iconSrc?: string } | null {
+  if (!id) return null;
+  const skill = DISCOVER_SKILL_CATALOG.find((entry) => entry.id === id);
+  if (skill) return { name: skill.name };
+  const pack = COMPONENT_PACK_CATALOG.find((entry) => entry.id === id);
+  if (pack) return { name: pack.name, iconSrc: pack.iconSrc };
+  return { name: id };
 }
 
 /**

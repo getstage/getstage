@@ -98,10 +98,17 @@ export function SkillsHubPanel() {
 
 export function ComponentsHubPanel() {
   const prefs = useSkillHubPrefs();
+  const installedCount = COMPONENT_PACK_CATALOG.length;
+  const enabledCount = COMPONENT_PACK_CATALOG.filter((pack) =>
+    prefs.enabledComponentPackIds.includes(pack.id),
+  ).length;
 
   return (
     <HubSurface>
-      <SurfaceHeader title="Component Libraries" count="12 installed · 5 enabled" />
+      <SurfaceHeader
+        title="Component Libraries"
+        count={`${installedCount} installed · ${enabledCount} enabled`}
+      />
       <div className="flex flex-col gap-[4px]">
         {COMPONENT_PACK_CATALOG.map((pack) => (
           <ComponentPackRow

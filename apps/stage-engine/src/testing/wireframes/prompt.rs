@@ -298,3 +298,38 @@ fn lofi_prompt_ignores_skills_and_component_packs() {
     assert!(!prompt.contains("<skill id="));
     assert!(!prompt.contains("<component_pack id="));
 }
+
+#[test]
+fn prior_artifact_echo_drops_the_pack_stylesheet() {
+    let mut input = sample_input();
+    // Shape of a saved screen after `normalize` prepends the pack stylesheet.
+    input.existing_wireframes_artifact_json = Some(
+        r#"{"artifactKind":"wireframesArtifact","generatedScreens":[{"id":"home","html":"<style data-stage-pack>.ui-btn{height:36px}</style>\n<div>Real markup</div>"}]}"#
+            .to_string(),
+    );
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
+
+    // Resending the stylesheet once per screen would add ~6 KB x screen count of prompt
+    // for CSS the model is explicitly told not to write.
+    assert!(
+        !prompt.contains("<style data-stage-pack>"),
+        "the echoed artifact must not carry the pack stylesheet"
+    );
+    assert!(
+        !prompt.contains(".ui-btn{height:36px}"),
+        "the pack CSS body must be stripped, not just its wrapper"
+    );
+    assert!(
+        prompt.contains("<div>Real markup</div>"),
+        "the model's own markup must survive the strip"
+    );
+}

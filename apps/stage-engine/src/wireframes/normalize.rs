@@ -247,6 +247,81 @@ fn html_changed(before: &str, after: &str) -> bool {
     before.trim() != after.trim()
 }
 
+/// Preview iframes never run JS. Strip what the sandbox would block or ignore.
+pub(crate) fn sanitize_hifi_html(html: &str) -> String {
+    let mut out = strip_tag_pair(html, "script");
+    out = strip_tag_pair(&out, "link");
+    // Drop common inline handlers the model invents for step UIs.
+    for attr in ["onclick=", "onload=", "onerror=", "onchange=", "onsubmit="] {
+        out = strip_attr(&out, attr);
+    }
+    out.replace("@import", "/* blocked import */")
+}
+
+fn strip_tag_pair(html: &str, tag: &str) -> String {
+    let open = format!("<{tag}");
+    let close = format!("</{tag}>");
+    let lower = html.to_ascii_lowercase();
+    let void_tag = matches!(tag, "link" | "meta" | "img" | "br" | "hr" | "input");
+    let mut out = String::with_capacity(html.len());
+    let mut cursor = 0;
+    while let Some(rel) = lower[cursor..].find(&open) {
+        let start = cursor + rel;
+        out.push_str(&html[cursor..start]);
+        let after = start + open.len();
+        let Some(gt_rel) = lower[after..].find('>') else {
+            return out;
+        };
+        let gt = after + gt_rel;
+        let self_closing = void_tag || html.as_bytes().get(gt.saturating_sub(1)) == Some(&b'/');
+        if self_closing {
+            cursor = gt + 1;
+            continue;
+        }
+        let Some(end_rel) = lower[gt + 1..].find(&close) else {
+            return out;
+        };
+        cursor = gt + 1 + end_rel + close.len();
+    }
+    out.push_str(&html[cursor..]);
+    out
+}
+
+fn strip_attr(html: &str, attr: &str) -> String {
+    let lower = html.to_ascii_lowercase();
+    let needle = attr.to_ascii_lowercase();
+    let mut out = String::with_capacity(html.len());
+    let mut cursor = 0;
+    while let Some(rel) = lower[cursor..].find(&needle) {
+        let start = cursor + rel;
+        // Keep a leading space if present so markup stays readable.
+        let cut = if start > cursor && html.as_bytes()[start - 1] == b' ' {
+            start - 1
+        } else {
+            start
+        };
+        out.push_str(&html[cursor..cut]);
+        let after = start + needle.len();
+        let end = match html.as_bytes().get(after) {
+            Some(b'"') => lower[after + 1..]
+                .find('"')
+                .map(|i| after + 1 + i + 1)
+                .unwrap_or(html.len()),
+            Some(b'\'') => lower[after + 1..]
+                .find('\'')
+                .map(|i| after + 1 + i + 1)
+                .unwrap_or(html.len()),
+            _ => lower[after..]
+                .find(|c: char| c.is_ascii_whitespace() || c == '>')
+                .map(|i| after + i)
+                .unwrap_or(html.len()),
+        };
+        cursor = end;
+    }
+    out.push_str(&html[cursor..]);
+    out
+}
+
 // A Hi-Fi fragment must actually be a styled layout, not raw CSS text or a bare
 // string. Require some styling (a <style> block or inline style=) and at least
 // one layout element so the preview renders a design rather than unstyled text.
@@ -262,6 +337,20 @@ fn validate_hifi_html(html: &str) -> anyhow::Result<()> {
     {
         bail!("Hi-Fi html must include semantic layout elements (div/header/main/section).");
     }
+    // Hidden-only multi-step shells render blank without JS.
+    let body = strip_tag_pair(trimmed, "style");
+    let lower = body.to_ascii_lowercase();
+    let hidden_heavy =
+        lower.matches("display:none").count() + lower.matches("display: none").count() >= 2
+            && !lower.contains("display:block")
+            && !lower.contains("display: block")
+            && !lower.contains("display:flex")
+            && !lower.contains("display: flex");
+    if hidden_heavy {
+        bail!(
+            "Hi-Fi html has no visible content (emit only the active step; do not hide siblings for JS)."
+        );
+    }
     Ok(())
 }
 
@@ -273,7 +362,9 @@ fn with_pack_css(html: &str, pack_css: &str) -> String {
     if pack_css.is_empty() {
         return html.to_string();
     }
-    format!("<style>{pack_css}</style>\n{html}")
+    // Marked so `strip_pack_styles` can drop it when a prior artifact is echoed back into
+    // a prompt — otherwise every regenerate would resend the stylesheet once per screen.
+    format!("<style data-stage-pack>{pack_css}</style>\n{html}")
 }
 
 fn normalize_screen(
@@ -286,7 +377,11 @@ fn normalize_screen(
     let Some(object) = screen.as_object() else {
         return Ok(None);
     };
-    let Some(id) = object.get("id").and_then(JsonValue::as_str).map(str::to_string) else {
+    let Some(id) = object
+        .get("id")
+        .and_then(JsonValue::as_str)
+        .map(str::to_string)
+    else {
         return Ok(None);
     };
     let title = object
@@ -335,13 +430,28 @@ fn normalize_screen(
         // preview iframe. Reject it up front so the user retries instead of saving
         // a broken artifact. Lo-Fi screens compile from blocks and skip this.
         if matches!(kind, WireframeKind::Hifi) {
-            // Validate the model's own markup before the pack stylesheet is attached,
-            // otherwise prepending <style> would let any fragment pass the styling check.
-            validate_hifi_html(html)?;
-            entry.insert("html".to_string(), json!(with_pack_css(html, pack_css)));
+            // Strip scripts/handlers first: the preview sandbox never runs them, and
+            // validation must see the post-strip markup the user will actually get.
+            let sanitized = sanitize_hifi_html(html);
+            // Validate before the pack stylesheet is attached, otherwise prepending
+            // <style> would let any fragment pass the styling check.
+            validate_hifi_html(&sanitized)?;
+            entry.insert(
+                "html".to_string(),
+                json!(with_pack_css(&sanitized, pack_css)),
+            );
         } else {
             entry.insert("html".to_string(), json!(html));
         }
+    }
+
+    if let Some(tsx) = object
+        .get("tsx")
+        .and_then(JsonValue::as_str)
+        .map(str::trim)
+        .filter(|tsx| !tsx.is_empty())
+    {
+        entry.insert("tsx".to_string(), json!(tsx));
     }
 
     let raw_sections = object

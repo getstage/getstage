@@ -134,7 +134,10 @@ fn hifi_screens_carry_the_component_pack_stylesheet() {
         html.contains(".ui-btn"),
         "pack stylesheet must ride along in the fragment"
     );
-    assert!(html.contains("Hi-Fi"), "the model's own markup must survive");
+    assert!(
+        html.contains("Hi-Fi"),
+        "the model's own markup must survive"
+    );
 }
 
 #[test]
@@ -328,8 +331,16 @@ fn lofi_keeps_existing_screen_when_partial_response_omits_a_requested_id() {
             .find(|screen| screen["id"] == id)
             .and_then(|screen| screen["html"].as_str())
     };
-    assert_eq!(by_id("homepage"), Some("new-home"), "returned screen is updated");
-    assert_eq!(by_id("pricing"), Some("orig-pricing"), "omitted screen is preserved");
+    assert_eq!(
+        by_id("homepage"),
+        Some("new-home"),
+        "returned screen is updated"
+    );
+    assert_eq!(
+        by_id("pricing"),
+        Some("orig-pricing"),
+        "omitted screen is preserved"
+    );
 }
 
 #[test]
@@ -381,14 +392,18 @@ fn merge_updates_only_regenerated_screen_timestamp() {
 
     let screens = merged["generatedScreens"].as_array().unwrap();
     let field = |id: &str, key: &str| {
-        screens
-            .iter()
-            .find(|screen| screen["id"] == id)
-            .unwrap()[key]
-            .clone()
+        screens.iter().find(|screen| screen["id"] == id).unwrap()[key].clone()
     };
-    assert_eq!(field("homepage", "generatedAt"), json!(999), "regenerated screen gets new timestamp");
-    assert_eq!(field("pricing", "generatedAt"), json!(100), "untouched screen keeps old timestamp");
+    assert_eq!(
+        field("homepage", "generatedAt"),
+        json!(999),
+        "regenerated screen gets new timestamp"
+    );
+    assert_eq!(
+        field("pricing", "generatedAt"),
+        json!(100),
+        "untouched screen keeps old timestamp"
+    );
 }
 
 #[test]
@@ -494,6 +509,76 @@ fn validate_hifi_html_rejects_unstyled_or_raw_css() {
 }
 
 #[test]
+fn sanitize_strips_scripts_handlers_and_links() {
+    let raw = r#"<div style="color:#111">
+        <link rel="stylesheet" href="https://evil.example/x.css">
+        <button onclick="alert(1)">Continue signup flow</button>
+        <script>document.querySelector('.step-2').style.display='block'</script>
+        <style>@import url("https://evil.example/pack.css"); .ok{color:red}</style>
+        <p>Visible step copy here</p>
+    </div>"#;
+    let cleaned = sanitize_hifi_html(raw);
+    assert!(!cleaned.to_ascii_lowercase().contains("<script"));
+    assert!(!cleaned.to_ascii_lowercase().contains("<link"));
+    assert!(!cleaned.contains("onclick"));
+    assert!(!cleaned.to_ascii_lowercase().contains("@import url"));
+    assert!(cleaned.contains("Visible step copy here"));
+}
+
+#[test]
+fn normalize_strips_scripts_from_saved_hifi_html() {
+    let artifact = json!({
+        "generatedScreens": [sample_screen(
+            "onboarding",
+            Some(r#"<div><style>.card{padding:24px}</style>
+                <div class="card"><h1>Invite your team</h1><p>Send seats to collaborators.</p></div>
+                <script>window.ready=true</script></div>"#),
+        )]
+    });
+
+    let normalized = normalize_wireframes_artifact(
+        artifact,
+        &sample_input(),
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        123,
+        "just now",
+    )
+    .unwrap();
+
+    let html = normalized["generatedScreens"][0]["html"].as_str().unwrap();
+    assert!(!html.to_ascii_lowercase().contains("<script"));
+    assert!(html.contains("Invite your team"));
+}
+
+#[test]
+fn normalize_rejects_hifi_shell_with_only_hidden_steps() {
+    let artifact = json!({
+        "generatedScreens": [sample_screen(
+            "wizard",
+            Some(r#"<div><style>.step{padding:16px}</style>
+                <div class="step" style="display:none"><h1>Step one copy</h1></div>
+                <div class="step" style="display:none"><h1>Step two copy</h1></div>
+            </div>"#),
+        )]
+    });
+
+    let error = normalize_wireframes_artifact(
+        artifact,
+        &sample_input(),
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        123,
+        "just now",
+    )
+    .unwrap_err();
+
+    assert!(error.to_string().contains("visible content"));
+}
+
+#[test]
 fn normalize_rejects_hifi_screen_with_raw_css_html() {
     let artifact = json!({
         "generatedScreens": [sample_screen("homepage", Some(".lim-welcome{color:#111}"))]
@@ -534,6 +619,8 @@ fn normalize_sets_per_screen_generated_at() {
         normalized["generatedScreens"][0]["generatedAt"],
         1_700_000_000_123_i64
     );
-    assert_eq!(normalized["generatedScreens"][0]["generatedAtLabel"], "just now");
+    assert_eq!(
+        normalized["generatedScreens"][0]["generatedAtLabel"],
+        "just now"
+    );
 }
-

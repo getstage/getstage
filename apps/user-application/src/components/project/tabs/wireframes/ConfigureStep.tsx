@@ -1,11 +1,9 @@
-import { useState } from "react";
-import {
-  catalogLabel,
-  resolveProjectSelection,
-  SkillsComponentsPanel,
-} from "@/components/project/SkillsComponentsSelect";
+import type { ProviderId } from "@stage/data-ops/contracts";
+import { AiRunSettings } from "@/components/project/AiRunSettings";
+import type { ResearchProviderOption } from "@/hooks/project/research/useResearchProviderSelection";
 import type { ScreenItem, WireframeKind } from "@/types/project/wireframesTab";
 import { Badge, PrimaryButton, SecondaryButton } from "./WireframePrimitives";
+import { WireframeRunSelection } from "./WireframeRunSelection";
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, PlusIcon } from "./wireframesIcons";
 
 export function ConfigureStep({
@@ -15,6 +13,9 @@ export function ConfigureStep({
   skillIds,
   componentPackIds,
   onSaveSkills,
+  providerOptions,
+  selectedProviderId,
+  onSelectProvider,
   onChangeType,
   onAddBrandKit,
   onToggle,
@@ -26,6 +27,9 @@ export function ConfigureStep({
   skillIds: readonly string[];
   componentPackIds: readonly string[];
   onSaveSkills: (input: { skillIds: string[]; componentPackIds: string[] }) => Promise<void>;
+  providerOptions: ResearchProviderOption[];
+  selectedProviderId: ProviderId | null;
+  onSelectProvider: (providerId: ProviderId) => void;
   onChangeType: () => void;
   onAddBrandKit: () => void;
   onToggle: (id: string) => void;
@@ -62,11 +66,13 @@ export function ConfigureStep({
       </div>
 
       {wireframeKind === "hifi" ? (
-        <HifiSelectionRow
-          skillIds={skillIds}
-          componentPackIds={componentPackIds}
-          onSaveSkills={onSaveSkills}
-        />
+        <div className="mb-1">
+          <WireframeRunSelection
+            skillIds={skillIds}
+            componentPackIds={componentPackIds}
+            onSave={onSaveSkills}
+          />
+        </div>
       ) : null}
 
       <div className="rounded-[8px] bg-white p-11 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
@@ -91,99 +97,21 @@ export function ConfigureStep({
             placeholder="ex. sticky header with primary CTA, wide hero, keep forms short, mobile-first density..."
           />
         </label>
+        <div className="mt-6 border-t border-[#E5E5E5] pt-6">
+          <AiRunSettings
+            providerOptions={providerOptions}
+            selectedProviderId={selectedProviderId}
+            onSelectProvider={onSelectProvider}
+          />
+        </div>
         <div className="mt-6 flex justify-end">
-          <PrimaryButton onClick={onGenerate}>
+          <PrimaryButton onClick={onGenerate} disabled={!selectedProviderId}>
             Generate {selectedCount} Wireframes
             <ArrowRightIcon />
           </PrimaryButton>
         </div>
       </div>
     </div>
-  );
-}
-
-/**
- * Hi-Fi only. Shows the four active project choices and lets the user change them without
- * leaving Configure, so Generate immediately picks up the saved selection.
- */
-function HifiSelectionRow({
-  skillIds,
-  componentPackIds,
-  onSaveSkills,
-}: {
-  skillIds: readonly string[];
-  componentPackIds: readonly string[];
-  onSaveSkills: (input: { skillIds: string[]; componentPackIds: string[] }) => Promise<void>;
-}) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState<{ skillIds: string[]; componentPackIds: string[] } | null>(
-    null,
-  );
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const active = draft ?? { skillIds, componentPackIds };
-  const selection = resolveProjectSelection(active.skillIds, active.componentPackIds);
-
-  async function save() {
-    if (isSaving) return;
-    if (!draft) {
-      setIsEditing(false);
-      return;
-    }
-    setIsSaving(true);
-    setError(null);
-    try {
-      await onSaveSkills(draft);
-      setDraft(null);
-      setIsEditing(false);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not save the selection.");
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  return (
-    <div className="mb-1 rounded-[8px] bg-white p-4 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-medium leading-[1.25]">
-          <SelectionFact label="Design" value={catalogLabel(selection.designSkillId)} />
-          <SelectionFact label="Motion" value={catalogLabel(selection.motionSkillId)} />
-          <SelectionFact label="Base" value={catalogLabel(selection.basePackId)} />
-          <SelectionFact label="Sections" value={catalogLabel(selection.sectionsPackId)} />
-        </div>
-        <SecondaryButton onClick={() => setIsEditing((current) => !current)}>
-          {isEditing ? "Close" : "Edit"}
-        </SecondaryButton>
-      </div>
-
-      {isEditing ? (
-        <div className="mt-4 flex flex-col gap-[16px] border-t border-[#E5E5E5] pt-4">
-          <SkillsComponentsPanel
-            skillIds={active.skillIds}
-            componentPackIds={active.componentPackIds}
-            onChange={setDraft}
-            disabled={isSaving}
-          />
-          {error ? <p className="text-[12px] font-medium text-[#b91c1c]">{error}</p> : null}
-          <div className="flex justify-end">
-            <PrimaryButton onClick={() => void save()} disabled={isSaving}>
-              {isSaving ? "Saving…" : "Save selection"}
-            </PrimaryButton>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function SelectionFact({ label, value }: { label: string; value: string }) {
-  return (
-    <span className="flex items-center gap-[6px]">
-      <span className="text-[#737373]">{label}</span>
-      <span className="text-[#171717]">{value}</span>
-    </span>
   );
 }
 

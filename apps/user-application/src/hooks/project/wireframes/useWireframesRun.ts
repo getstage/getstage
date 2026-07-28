@@ -10,6 +10,7 @@ import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
+import { useElapsedSeconds } from "@/hooks/project/useElapsedSeconds";
 import { formatRunFailedEvent, toRunFailureUserMessage } from "@/lib/engine/formatRunError";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
@@ -305,12 +306,15 @@ export function useWireframesRun(projectId: string) {
     ],
   );
 
+  const elapsedSeconds = useElapsedSeconds(isRunning, persistedRunningRun?.startedAt ?? null);
+
   return {
     startWireframes,
     cancelWireframes,
     isStarting: providerRun.startRun.isPending,
     isRunning,
     isRunsLoading,
+    elapsedSeconds,
     isRegenerateRun,
     persistedRunningRun,
     activeRunId: providerRun.activeRunId,
