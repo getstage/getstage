@@ -9,7 +9,7 @@
 
 | Priority | Item | Owner / where |
 |----------|------|----------------|
-| **P1 wireframes quality** | Beat raw Claude: Taste skill → local/project skills + library packs → moodboard layouts → refine | `docs/WIREFRAMES_QUALITY_PLAN.md` |
+| **P1 wireframes quality** | Beat raw Claude: Taste skill → per-project skills + library packs → moodboard layouts → refine. Per-project selection **implemented 2026-07-27** (create step, ⋯ edit, Hi-Fi precedence, Skill detail page) | `docs/WIREFRAMES_QUALITY_PLAN.md`, `docs/FIGMA_SKILLS_COMPONENTS_AUDIT.md` |
 | **!!! P0** | Desktop idle energy P0 — PR `fix/desktop-idle-energy-p0` | `docs/AI/desktop/2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md` |
 | **P1** | Run packaged-DMG benchmark + 2 h soak (RAM < 400 MB, 12 hr power < 500) | `scripts/desktop-idle-benchmark.sh` |
 | **P2** | IPC R2 upload (separate PR after energy gate) | `src/lib/r2Uploads.ts`, `electron/helpers/r2-upload.ts` |

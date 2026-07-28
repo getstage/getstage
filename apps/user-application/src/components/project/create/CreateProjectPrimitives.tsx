@@ -44,7 +44,7 @@ export function CreateProjectStepShell({
 
         <div
           className="flex shrink-0 items-center gap-[4px]"
-          aria-label={`Step ${activeStepIndex + 1} of 5`}
+          aria-label={`Step ${activeStepIndex + 1} of ${CREATE_PROJECT_PROGRESS_STEPS.length}`}
         >
           {CREATE_PROJECT_PROGRESS_STEPS.map((step) => {
             const canGoBack = step < activeStepIndex && Boolean(onStepSelect);
@@ -80,23 +80,25 @@ export function FormCard({
   bodyPaddingClassName = "p-[12px]",
   children,
 }: {
-  title: string;
+  title?: string;
   titleWeight?: "medium" | "semibold";
   bodyPaddingClassName?: string;
   children: ReactNode;
 }) {
   return (
     <div className="flex w-full flex-col items-start rounded-[12px] bg-[#f5f5f5] p-[4px] shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]">
-      <div className="flex items-center justify-center px-[12px] pb-[12px] pt-[8px]">
-        <p
-          className={cn(
-            "whitespace-nowrap text-[13px] leading-[1.5] text-[#0a0a0a]",
-            titleWeight === "semibold" ? "font-semibold" : "font-medium",
-          )}
-        >
-          {title}
-        </p>
-      </div>
+      {title ? (
+        <div className="flex items-center justify-center px-[12px] pb-[12px] pt-[8px]">
+          <p
+            className={cn(
+              "whitespace-nowrap text-[13px] leading-[1.5] text-[#0a0a0a]",
+              titleWeight === "semibold" ? "font-semibold" : "font-medium",
+            )}
+          >
+            {title}
+          </p>
+        </div>
+      ) : null}
 
       <div className={cn("flex w-full flex-col items-start gap-[16px] rounded-[8px] bg-white shadow-[0px_0.45px_0.5px_0px_rgba(10,10,10,0.25)]", bodyPaddingClassName)}>
         {children}

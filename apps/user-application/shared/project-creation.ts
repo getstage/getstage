@@ -33,6 +33,8 @@ export type ProjectDraft = {
   startDate: string;
   endDate: string;
   phases: PhaseItem[];
+  skillIds: string[];
+  componentPackIds: string[];
 };
 
 export type ProjectDraftActions = {
@@ -108,6 +110,8 @@ export function buildPreparedProjectPayload({
   startDate,
   endDate,
   activePhases,
+  skillIds,
+  componentPackIds,
   aiRoadmaps,
 }: {
   projectName: string;
@@ -121,6 +125,8 @@ export function buildPreparedProjectPayload({
   startDate: number;
   endDate: number;
   activePhases: PhaseItem[];
+  skillIds: string[];
+  componentPackIds: string[];
   aiRoadmaps: Record<ProjectType, RoadmapTemplateItem[]>;
 }): PreparedProjectPayload {
   const phases =
@@ -147,5 +153,7 @@ export function buildPreparedProjectPayload({
     startDate,
     endDate,
     phases,
+    skillIds,
+    componentPackIds,
   };
 }

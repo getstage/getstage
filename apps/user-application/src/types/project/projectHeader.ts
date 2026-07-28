@@ -4,6 +4,7 @@ export type ProjectModal =
   | "timeline"
   | "phases"
   | "workflow"
+  | "skills"
   | "pause"
   | "complete"
   | "delete";

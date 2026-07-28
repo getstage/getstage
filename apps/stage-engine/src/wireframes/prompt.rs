@@ -65,6 +65,7 @@ const HIFI_RULES: &str = r#"
 Hi-Fi mode — produce a FINAL DESIGN, not a wireframe:
 - For EACH generatedScreens[] entry, add an "html" field: a single, self-contained HTML fragment that renders that screen as a polished, production-quality web page.
 - Style everything with ONE <style> block at the top of the fragment (plain CSS) plus inline styles as needed. Do NOT use Tailwind, any CSS framework, <script>, external <link> stylesheets, or @import. Use system font stacks inside the <style> block (e.g. font-family: 'Geist', system-ui, sans-serif). The design MUST render on its own with no JavaScript or external requests.
+- When a <component_pack> is attached below, its stylesheet is added to the fragment for you. Use that pack's classes for every control (buttons, inputs, cards, badges, tabs, tables) and write ONLY layout CSS in your own <style> block. Never redefine a pack class, and never invent a second button or card style.
 - Wrap everything in one root <div> — do not emit <html>, <head>, or <body> tags.
 - Still fill sections[]/blocks[] as the structural outline (used for Figma layer naming and Lo-Fi fallback); the "html" field is the source of truth for the visuals.
 
@@ -89,47 +90,178 @@ Canvas / height rules (mandatory — Stage crops and exports by content height):
 - Marketing / long pages: stack sections tightly with consistent gaps; do not pad with large empty regions between sections.
 - Prefer one root <div> that wraps only real UI — no spacer divs whose only job is to fill the viewport.
 
-Pre-flight check before returning: confirm every Hi-Fi screen has a non-empty "html" using brand colors, real copy, and at least one image; no two sections look identical; and no screen relies on 100vh / empty viewport centering.
+Multi-step / wizard / onboarding / success screens (mandatory — Stage never runs JavaScript):
+- Emit ONLY the active step's UI for that screen. Do NOT include sibling steps hidden with display:none, visibility:hidden, the hidden attribute, or aria-hidden.
+- Do NOT rely on tabs, carousels, or step state that needs <script> to reveal content. One screen id = one visible frame.
+- Keep the active panel content-sized; no empty wrapper holding height for hidden siblings.
+
+Pre-flight check before returning: confirm every Hi-Fi screen has a non-empty "html" using brand colors, real copy, and at least one image; no two sections look identical; no screen relies on 100vh / empty viewport centering; and no screen hides its only content for JavaScript.
 "#;
+
+const REACT_TSX_RULES: &str = r#"
+React component mode (Stage renders TSX → static HTML; no client JavaScript):
+- For EACH generatedScreens[] entry, add a "tsx" field: a complete React function component as a string.
+- Default-export `function Screen()` and return one visible root.
+- Import selected Base components ONLY from "@stage/base". If a Sections library is selected, import its blocks ONLY from "@stage/sections". These virtual modules resolve to the exact real libraries selected for this run.
+- Do not import another component library, npm package, Node API, browser global, stylesheet, or local file. `react` and `lucide-react` are the only other allowed imports.
+- Use at least one real Base component in every screen. Use a real Sections component when the selected block fits the screen; do not force marketing sections into application forms.
+- Use Tailwind utility classes for layout around the real components. Motion components render their initial static SSR state.
+- Keep a minimal self-contained "html" fallback; rendered TSX replaces it only after compilation succeeds.
+- Still fill sections[]/blocks[] for Figma naming. One screen = one visible frame (no hidden steps).
+"#;
+
+const RENDERER_LIBRARY_MANIFESTS: &str =
+    include_str!("../../../../packages/wireframe-renderer/manifests/libraries.json");
+
+fn react_tsx_prompt_enabled() -> bool {
+    crate::wireframes::render::react_render_enabled()
+}
+
+fn react_library_manifest(component_pack_ids: &[String]) -> String {
+    let libraries = crate::wireframes::render::resolve_renderer_libraries(component_pack_ids);
+    let Ok(manifest) = serde_json::from_str::<serde_json::Value>(RENDERER_LIBRARY_MANIFESTS) else {
+        return String::new();
+    };
+
+    let mut output = String::from("\nSelected real component libraries for this run:\n");
+    for (kind, id, module) in [
+        ("Base", Some(libraries.base.as_str()), "@stage/base"),
+        ("Sections", libraries.sections.as_deref(), "@stage/sections"),
+    ] {
+        let Some(id) = id else {
+            output.push_str("- Sections: none selected. Do not import \"@stage/sections\".\n");
+            continue;
+        };
+        let key = if kind == "Base" { "base" } else { "sections" };
+        let Some(entry) = manifest
+            .get(key)
+            .and_then(serde_json::Value::as_array)
+            .and_then(|entries| {
+                entries
+                    .iter()
+                    .find(|entry| entry.get("id").and_then(serde_json::Value::as_str) == Some(id))
+            })
+        else {
+            continue;
+        };
+        let name = entry
+            .get("name")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or(id);
+        let exports = entry
+            .get("exports")
+            .and_then(serde_json::Value::as_array)
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(serde_json::Value::as_str)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            })
+            .unwrap_or_default();
+        output.push_str(&format!(
+            "- {kind}: {name} (`{id}`). Allowed import: `import {{ {exports} }} from \"{module}\";`\n"
+        ));
+    }
+    output
+}
 
 /// Leonxlnx/taste-skill (`design-taste-frontend` / tasteskill.dev), Stage-adapted.
 /// Injected into every Hi-Fi wireframes generation prompt.
 const TASTE_SKILL: &str = include_str!("../../skills/design-taste-frontend/SKILL.md");
 const TASTE_SKILL_ID: &str = "design-taste-frontend";
 
-/// Keep in sync with `apps/user-application/src/lib/settings/skillsCatalog.ts`.
-const COMPONENT_PACK_HINTS: &[(&str, &str)] = &[
+/// Vendored component packs. `pack.css` is prepended to every Hi-Fi fragment by
+/// `normalize`, so all screens in a run share one control vocabulary instead of each
+/// screen inventing its own button; `pack.md` teaches the model that vocabulary.
+///
+/// Base packs implement `ui-*` controls and sections packs implement `sx-*` page
+/// sections. Class names are identical across packs of the same kind, so swapping a
+/// pack swaps CSS without changing a word of the prompt. Base entries come first so
+/// their `--ui-*` variables are declared before a sections pack consumes them.
+///
+/// `radix-ui` is deliberately absent: it ships accessible behaviour, not a visual
+/// design, so there is nothing for a wireframe to copy.
+/// Keep ids in sync with `apps/user-application/src/lib/settings/skillsCatalog.ts`.
+struct ComponentPack {
+    id: &'static str,
+    /// Base packs declare the `--ui-*` variables and the `ui-*` controls; sections packs
+    /// consume both and add `sx-*` page blocks on top.
+    base: bool,
+    /// Prepended to the fragment; never shown to the model.
+    css: &'static str,
+    /// Injected into the prompt; never shipped to the browser.
+    vocabulary: &'static str,
+}
+
+macro_rules! component_pack {
+    ($id:literal, base) => {
+        component_pack!(@build $id, true)
+    };
+    ($id:literal, sections) => {
+        component_pack!(@build $id, false)
+    };
+    (@build $id:literal, $base:literal) => {
+        ComponentPack {
+            id: $id,
+            base: $base,
+            css: include_str!(concat!("../../component-packs/", $id, "/pack.css")),
+            vocabulary: include_str!(concat!("../../component-packs/", $id, "/pack.md")),
+        }
+    };
+}
+
+const COMPONENT_PACKS: &[ComponentPack] = &[
+    // base — exactly one per run
+    component_pack!("shadcn-ui", base),
+    component_pack!("mantine", base),
+    component_pack!("origin-ui", base),
+    component_pack!("kokonut-ui", base),
+    // sections — optional, layered over a base pack
+    component_pack!("aceternity-ui", sections),
+    component_pack!("magic-ui", sections),
+];
+
+/// Vendored, Stage-adapted skill files. Each directory also carries the verbatim upstream
+/// `SOURCE_*.md` for provenance; only the adapted `SKILL.md` reaches the prompt, because the
+/// upstream files assume a coding agent with a filesystem, a CLI, and React/Tailwind output.
+///
+/// Order matters: this is the injection order, and Taste is appended last by
+/// `hifi_prompt_extras` so its anti-slop bans get the final word on any conflict.
+/// Keep ids in sync with `apps/user-application/src/lib/settings/skillsCatalog.ts`.
+const CATALOG_SKILLS: &[(&str, &str)] = &[
     (
-        "shadcn-ui",
-        "Prefer clean shadcn-like patterns: rounded-md controls, bordered cards, clear Label+Input forms, muted secondary text.",
+        "frontend-design",
+        include_str!("../../skills/frontend-design/SKILL.md"),
     ),
     (
-        "radix-ui",
-        "Use accessible dialog/popover/select patterns with clear focus rings and semantic roles.",
+        "ui-ux-pro-max",
+        include_str!("../../skills/ui-ux-pro-max/SKILL.md"),
     ),
     (
-        "magic-ui",
-        "Add restrained motion-ready structure (hero reveals, subtle card lift) without requiring JS in the HTML fragment.",
+        "impeccable",
+        include_str!("../../skills/impeccable/SKILL.md"),
     ),
     (
-        "aceternity-ui",
-        "SaaS/AI product layouts: bold hero typography, feature bento sections, polished pricing and CTA blocks.",
+        "emil-design-eng",
+        include_str!("../../skills/emil-design-eng/SKILL.md"),
     ),
     (
-        "kokonut-ui",
-        "Dashboard/SaaS density: clear data panels, metric strips, and structured app chrome when screens are product UI.",
-    ),
-    (
-        "origin-ui",
-        "Application blocks with production spacing and clear section separators — practical, not decorative.",
-    ),
-    (
-        "mantine",
-        "Accessible form and notification patterns with consistent control heights and readable contrast.",
+        "design-motion-principles",
+        include_str!("../../skills/design-motion-principles/SKILL.md"),
     ),
 ];
 
-const DEFAULT_COMPONENT_PACK_IDS: &[&str] = &["shadcn-ui", "magic-ui", "aceternity-ui"];
+const DEFAULT_BASE_PACK_ID: &str = "shadcn-ui";
+
+/// Base pack only. A sections pack is an explicit opt-in, never a default.
+const DEFAULT_COMPONENT_PACK_IDS: &[&str] = &[DEFAULT_BASE_PACK_ID];
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct HifiPromptPreferences {
+    pub skill_ids: Vec<&'static str>,
+    pub component_pack_ids: Vec<String>,
+}
 
 fn env_taste_skill_disabled() -> bool {
     // Set STAGE_WIREFRAMES_TASTE_SKILL=0 for A/B without skill (overrides user prefs).
@@ -160,36 +292,107 @@ fn enabled_component_pack_ids(input: &WireframesInput) -> Vec<String> {
     }
 }
 
-fn hifi_prompt_extras(input: &WireframesInput) -> String {
-    let mut extras = String::from(HIFI_RULES);
-    if taste_skill_enabled(input) {
-        extras.push_str(
-            "\n\n<taste_skill source=\"Leonxlnx/taste-skill:design-taste-frontend\">\n",
-        );
-        extras.push_str(
-            "You MUST follow this Taste skill for every Hi-Fi html screen. It overrides generic AI defaults.\n\n",
-        );
-        extras.push_str(TASTE_SKILL);
-        extras.push_str("\n</taste_skill>\n");
+/// Vendored packs for this run, in `COMPONENT_PACKS` order (base before sections).
+fn selected_component_packs(input: &WireframesInput) -> Vec<&'static ComponentPack> {
+    let ids = enabled_component_pack_ids(input);
+    let mut packs: Vec<&'static ComponentPack> = COMPONENT_PACKS
+        .iter()
+        .filter(|pack| ids.iter().any(|id| id == pack.id))
+        .collect();
+
+    // A sections pack styles itself with the base pack's `--ui-*` variables. The old
+    // multi-select let a project save sections without a base, which would render those
+    // sections against undefined variables — so a sections pack always gets a base under
+    // it. An empty selection stays empty: that means "no packs", not "the default pack".
+    if packs.iter().any(|pack| !pack.base) && !packs.iter().any(|pack| pack.base) {
+        if let Some(base) = COMPONENT_PACKS
+            .iter()
+            .find(|pack| pack.id == DEFAULT_BASE_PACK_ID)
+        {
+            packs.insert(0, base);
+        }
     }
 
-    let pack_ids = enabled_component_pack_ids(input);
-    let pack_lines: Vec<&str> = COMPONENT_PACK_HINTS
+    packs
+}
+
+/// Stylesheet shared by every Hi-Fi screen in the run. Empty when no selected pack is
+/// vendored — the model then styles controls itself, exactly as it did before packs.
+pub(crate) fn component_pack_css(input: &WireframesInput) -> String {
+    selected_component_packs(input)
         .iter()
-        .filter(|(id, _)| pack_ids.iter().any(|enabled| enabled == id))
-        .map(|(_, hint)| *hint)
-        .collect();
-    if !pack_lines.is_empty() {
-        extras.push_str("\n\n<component_packs>\n");
+        .map(|pack| pack.css)
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Selected catalog skills other than Taste. Legacy / unset prefs stay Taste-only so old
+/// projects keep the exact behaviour they had before per-project selection existed.
+fn selected_catalog_skill_ids(input: &WireframesInput) -> Vec<&'static str> {
+    let Some(ids) = &input.enabled_skill_ids else {
+        return Vec::new();
+    };
+    CATALOG_SKILLS
+        .iter()
+        .filter(|(id, _)| ids.iter().any(|enabled| enabled == id))
+        .map(|(id, _)| *id)
+        .collect()
+}
+
+pub(crate) fn resolve_hifi_prompt_preferences(input: &WireframesInput) -> HifiPromptPreferences {
+    let mut skill_ids = selected_catalog_skill_ids(input);
+    // Taste is appended last so its bans win any conflict with another skill.
+    if taste_skill_enabled(input) {
+        skill_ids.push(TASTE_SKILL_ID);
+    }
+
+    HifiPromptPreferences {
+        skill_ids,
+        component_pack_ids: enabled_component_pack_ids(input),
+    }
+}
+
+fn push_skill_block(extras: &mut String, id: &str, body: &str) {
+    extras.push_str("\n\n<skill id=\"");
+    extras.push_str(id);
+    extras.push_str("\">\n");
+    extras.push_str(body);
+    extras.push_str("\n</skill>\n");
+}
+
+fn hifi_prompt_extras(input: &WireframesInput) -> String {
+    let mut extras = String::from(HIFI_RULES);
+    let preferences = resolve_hifi_prompt_preferences(input);
+    if react_tsx_prompt_enabled() {
+        extras.push_str(REACT_TSX_RULES);
+        extras.push_str(&react_library_manifest(&preferences.component_pack_ids));
+    }
+
+    if preferences.skill_ids.len() > 1 {
         extras.push_str(
-            "Apply these enabled component-library patterns when shaping Hi-Fi HTML structure and controls:\n",
+            "\n\n<skill_precedence>\nThe <skill> blocks below all apply to every Hi-Fi html screen. Where two skills conflict, the LATER block wins; the moodboard, style guide, or brand kit outranks all of them.\n</skill_precedence>\n",
         );
-        for line in pack_lines {
-            extras.push_str("- ");
-            extras.push_str(line);
-            extras.push('\n');
+    }
+
+    for id in &preferences.skill_ids {
+        if *id == TASTE_SKILL_ID {
+            continue;
         }
-        extras.push_str("</component_packs>\n");
+        if let Some((_, body)) = CATALOG_SKILLS.iter().find(|(entry, _)| entry == id) {
+            push_skill_block(&mut extras, id, body);
+        }
+    }
+
+    if preferences.skill_ids.contains(&TASTE_SKILL_ID) {
+        push_skill_block(&mut extras, TASTE_SKILL_ID, TASTE_SKILL);
+    }
+
+    for pack in selected_component_packs(input) {
+        extras.push_str("\n\n<component_pack id=\"");
+        extras.push_str(pack.id);
+        extras.push_str("\">\n");
+        extras.push_str(pack.vocabulary);
+        extras.push_str("\n</component_pack>\n");
     }
     extras
 }
@@ -238,6 +441,29 @@ fn redact_regen_artifact(existing_json: &str, ids: &[&str]) -> String {
     serde_json::to_string(&value).unwrap_or_else(|_| existing_json.to_string())
 }
 
+/// Removes the `<style data-stage-pack>` block `normalize` prepends to every saved screen.
+/// Operates on the artifact JSON text: the marker delimiters contain no characters that
+/// JSON escapes, so they survive serialization intact.
+fn strip_pack_styles(json: &str) -> String {
+    const OPEN: &str = "<style data-stage-pack>";
+    const CLOSE: &str = "</style>";
+
+    let mut out = String::with_capacity(json.len());
+    let mut rest = json;
+    while let Some(start) = rest.find(OPEN) {
+        out.push_str(&rest[..start]);
+        let after_open = &rest[start + OPEN.len()..];
+        let Some(end) = after_open.find(CLOSE) else {
+            // Unterminated marker: keep what is left rather than silently truncating.
+            out.push_str(after_open);
+            return out;
+        };
+        rest = &after_open[end + CLOSE.len()..];
+    }
+    out.push_str(rest);
+    out
+}
+
 pub fn build_wireframes_prompt(
     input: &WireframesInput,
     kind: WireframeKind,
@@ -273,6 +499,10 @@ pub fn build_wireframes_prompt(
                 }
                 None => json.to_string(),
             };
+            // Every saved screen carries the pack stylesheet. Echoing the artifact back
+            // verbatim would resend it once per screen — ~6 KB x 13 screens of prompt for
+            // CSS the model must not write anyway. `<component_pack>` teaches the classes.
+            let payload = strip_pack_styles(&payload);
             format!(
                 "Previous wireframes artifact (regenerate; keep ids stable where possible):\n{payload}\n\n"
             )

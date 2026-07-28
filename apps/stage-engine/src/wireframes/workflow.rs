@@ -13,7 +13,11 @@ use crate::providers::command::provider_cli_working_directory;
 use crate::providers::process::ProviderProcessOutcome;
 use crate::runs::RunEventSink;
 use crate::wireframes::normalize::normalize_wireframes_artifact;
-use crate::wireframes::prompt::build_wireframes_prompt;
+use crate::wireframes::prompt::{build_wireframes_prompt, resolve_hifi_prompt_preferences};
+use crate::wireframes::render::{
+    apply_react_render, react_render_enabled, repair_prompt_for_failures,
+    resolve_renderer_libraries,
+};
 use crate::wireframes::{MAX_BRAND_KIT_BYTES, MAX_BRAND_KIT_FILES};
 
 const GENERATED_AT_LABEL: &str = "just now";
@@ -103,6 +107,23 @@ impl WireframesWorkflow {
                 .fetch_wireframes_input(&auth_token, project_id)
                 .await?;
             self.tool_completed(api_version, &run_id, provider_id, &sink, "stage-context");
+            if matches!(wireframe_kind, WireframeKind::Hifi) {
+                let preferences = resolve_hifi_prompt_preferences(&input);
+                tracing::info!(
+                    run_id = %run_id,
+                    configured_skill_ids = ?input.enabled_skill_ids,
+                    configured_component_pack_ids = ?input.enabled_component_pack_ids,
+                    effective_skill_ids = ?preferences.skill_ids,
+                    effective_component_pack_ids = ?preferences.component_pack_ids,
+                    "resolved Hi-Fi wireframes skills and component libraries"
+                );
+            } else {
+                tracing::info!(
+                    run_id = %run_id,
+                    kind = wireframe_kind.as_str(),
+                    "wireframes skills and component libraries are not applied to Lo-Fi generation"
+                );
+            }
 
             convex_run_id = self
                 .repository
@@ -147,6 +168,7 @@ impl WireframesWorkflow {
                 brand_kit_attached,
                 regenerate_screen_ids.as_deref(),
             );
+            let repair_request_template = request.clone();
             let provider_context = ProviderRunContext {
                 api_version,
                 run_id: run_id.clone(),
@@ -160,7 +182,8 @@ impl WireframesWorkflow {
                 "starting wireframes provider run"
             );
             let provider_started = Instant::now();
-            let outcome = run_provider_collect(provider_context, sink.clone(), cancel_rx).await?;
+            let outcome =
+                run_provider_collect(provider_context, sink.clone(), cancel_rx.clone()).await?;
             tracing::info!(
                 run_id = %run_id,
                 provider_id = ?provider_id,
@@ -173,7 +196,20 @@ impl WireframesWorkflow {
                 return Ok(());
             };
 
-            let raw_artifact = extract_wireframes_artifact(&final_text)?;
+            // "did not contain a valid artifact" cannot distinguish a truncated response
+            // from one wrapped in prose or code fences. Log the size and tail so the next
+            // failure is diagnosable from the log instead of another 17-minute rerun.
+            let raw_artifact = extract_wireframes_artifact(&final_text).inspect_err(|error| {
+                let char_count = final_text.chars().count();
+                let tail: String = final_text.chars().skip(char_count.saturating_sub(400)).collect();
+                tracing::error!(
+                    run_id = %run_id,
+                    output_chars = char_count,
+                    %error,
+                    output_tail = %tail,
+                    "wireframes provider output could not be parsed"
+                );
+            })?;
             let mut artifact = normalize_wireframes_artifact(
                 raw_artifact,
                 &input,
@@ -197,6 +233,46 @@ impl WireframesWorkflow {
                     wireframe_kind,
                 )
                 .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))?;
+            }
+
+            if matches!(wireframe_kind, WireframeKind::Hifi) && react_render_enabled() {
+                let pack_ids = resolve_hifi_prompt_preferences(&input).component_pack_ids;
+                let libraries = resolve_renderer_libraries(&pack_ids);
+                let failures = apply_react_render(&mut artifact, &libraries)
+                    .await
+                    .unwrap_or_default();
+                if !failures.is_empty() {
+                    tracing::info!(
+                        run_id = %run_id,
+                        failed = failures.len(),
+                        "retrying failed wireframe TSX screens once"
+                    );
+                    let mut repair_request = repair_request_template;
+                    repair_request.prompt = repair_prompt_for_failures(&failures, &libraries);
+                    let repair_context = ProviderRunContext {
+                        api_version,
+                        run_id: run_id.clone(),
+                        request: repair_request,
+                    };
+                    if let Ok(ProviderProcessOutcome::Completed(repair_text)) =
+                        run_provider_collect(repair_context, sink.clone(), cancel_rx).await
+                    {
+                        if let Ok(repair_raw) = extract_wireframes_artifact(&repair_text) {
+                            if let Ok(repair_normalized) = normalize_wireframes_artifact(
+                                repair_raw,
+                                &input,
+                                wireframe_kind,
+                                brand_source,
+                                style_direction_id.as_deref(),
+                                now_millis(),
+                                GENERATED_AT_LABEL,
+                            ) {
+                                merge_tsx_screens(&mut artifact, &repair_normalized);
+                                let _ = apply_react_render(&mut artifact, &libraries).await;
+                            }
+                        }
+                    }
+                }
             }
 
             self.repository
@@ -502,6 +578,40 @@ fn user_message(error: &WorkflowError) -> String {
         }
         WorkflowError::Serde(_) => {
             "The AI response did not match the Wireframes artifact format.".to_string()
+        }
+    }
+}
+
+fn merge_tsx_screens(target: &mut serde_json::Value, repair: &serde_json::Value) {
+    let Some(target_screens) = target
+        .get_mut("generatedScreens")
+        .and_then(serde_json::Value::as_array_mut)
+    else {
+        return;
+    };
+    let Some(repair_screens) = repair
+        .get("generatedScreens")
+        .and_then(serde_json::Value::as_array)
+    else {
+        return;
+    };
+    for repaired in repair_screens {
+        let Some(id) = repaired.get("id").and_then(serde_json::Value::as_str) else {
+            continue;
+        };
+        let Some(tsx) = repaired.get("tsx").cloned() else {
+            continue;
+        };
+        if let Some(screen) = target_screens
+            .iter_mut()
+            .find(|s| s.get("id").and_then(serde_json::Value::as_str) == Some(id))
+        {
+            if let Some(obj) = screen.as_object_mut() {
+                obj.insert("tsx".to_string(), tsx);
+                if let Some(html) = repaired.get("html") {
+                    obj.insert("html".to_string(), html.clone());
+                }
+            }
         }
     }
 }

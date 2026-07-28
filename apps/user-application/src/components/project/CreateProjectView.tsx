@@ -6,6 +6,7 @@ import { ArrowLeftIcon } from "./create/CreateProjectPrimitives";
 import { ProjectCreatedStep } from "./create/ProjectCreatedStep";
 import { ProjectTypeStep } from "./create/ProjectTypeStep";
 import { RoadmapStep } from "./create/RoadmapStep";
+import { SkillsComponentsStep } from "./create/SkillsComponentsStep";
 import { TimelineStep } from "./create/TimelineStep";
 import { useCreateProjectFlow } from "@/hooks/project/useCreateProjectFlow";
 import { setProjectBackDestination } from "@/lib/projectBackDestination";
@@ -15,7 +16,7 @@ export function CreateProjectView() {
   const navigate = useNavigate();
   const flow = useCreateProjectFlow();
   const { draftState, draft } = flow;
-  const creationSteps = ["basic", "client", "type", "timeline", "roadmap"] as const;
+  const creationSteps = ["basic", "client", "type", "timeline", "skills", "roadmap"] as const;
 
   function goBackToStep(stepIndex: number) {
     const targetStep = creationSteps[stepIndex];
@@ -137,6 +138,15 @@ export function CreateProjectView() {
                   flow.setTimelineError(null);
                 }}
                 onContinue={flow.continueFromTimeline}
+                onStepSelect={goBackToStep}
+              />
+            ) : flow.step === "skills" ? (
+              <SkillsComponentsStep
+                skillIds={draft.skillIds}
+                componentPackIds={draft.componentPackIds}
+                onSkillIdsChange={draftState.setSkillIds}
+                onComponentPackIdsChange={draftState.setComponentPackIds}
+                onContinue={flow.continueFromSkills}
                 onStepSelect={goBackToStep}
               />
             ) : (

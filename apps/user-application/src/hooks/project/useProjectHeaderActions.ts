@@ -227,6 +227,18 @@ export function useProjectHeaderActions({
     });
   }
 
+  async function saveSkills(input: { skillIds: string[]; componentPackIds: string[] }) {
+    if (!detail) {
+      throw new Error("Project is not loaded yet.");
+    }
+
+    await updateProject.mutateAsync({
+      projectId,
+      skillIds: input.skillIds,
+      componentPackIds: input.componentPackIds,
+    });
+  }
+
   async function deleteProject() {
     onLeavingAfterDelete(true);
     try {
@@ -244,6 +256,7 @@ export function useProjectHeaderActions({
     saveTimeline,
     savePhases,
     saveWorkflow,
+    saveSkills,
     pauseProject,
     completeProject,
     deleteProject,

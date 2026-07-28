@@ -76,6 +76,13 @@ export async function getWireframesInputHandler(
     flowsArtifactJson: latestFlows?.contentJson ?? undefined,
     existingWireframesArtifactId: latestWireframes ? String(latestWireframes._id) : undefined,
     existingWireframesArtifactJson: latestWireframes?.contentJson ?? undefined,
+    // Project selection only. Empty / unset → leave undefined so the engine uses the
+    // same built-in Design Taste + default packs for every collaborator on this project.
+    // Do not fall back to the caller's account prefs (that made output caller-dependent).
+    enabledSkillIds: project.skillIds?.length ? project.skillIds : undefined,
+    enabledComponentPackIds: project.componentPackIds?.length
+      ? project.componentPackIds
+      : undefined,
   };
 }
 

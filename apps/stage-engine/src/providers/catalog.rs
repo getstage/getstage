@@ -35,10 +35,12 @@ pub fn spec_by_route_id(provider_id: &str) -> Option<ProviderRuntimeSpec> {
 pub fn fallback_models(provider_id: ProviderId) -> Vec<ProviderModel> {
     match provider_id {
         ProviderId::Claude => vec![
-            claude_fallback_model("claude-opus-4.8", "Claude Opus 4.8", Some(true)),
+            claude_fallback_model("claude-opus-5", "Claude Opus 5", Some(true)),
             claude_fallback_model("claude-fable-5", "Claude Fable 5", None),
-            claude_fallback_model("claude-sonnet-4.6", "Claude Sonnet 4.6", None),
+            claude_fallback_model("claude-sonnet-5", "Claude Sonnet 5", None),
+            claude_fallback_model("claude-opus-4.8", "Claude Opus 4.8", None),
             claude_fallback_model("claude-haiku-4.5", "Claude Haiku 4.5", None),
+            claude_fallback_model("claude-sonnet-4.6", "Claude Sonnet 4.6", None),
             claude_fallback_model("claude-opus-4.7", "Claude Opus 4.7", None),
         ],
         ProviderId::Codex => vec![

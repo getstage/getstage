@@ -1,5 +1,6 @@
 pub mod normalize;
 pub mod prompt;
+pub mod render;
 pub mod workflow;
 
 /// Tunable limits for the wireframes module, kept in one place.

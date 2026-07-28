@@ -83,6 +83,8 @@ export const projectDetailReturn = v.object({
   endDate: v.number(),
   progress: v.number(),
   enabledSteps: v.array(v.string()),
+  skillIds: v.array(v.string()),
+  componentPackIds: v.array(v.string()),
   accessRole: v.union(v.literal("owner"), v.literal("editor")),
   phaseCount: v.number(),
   taskCount: v.number(),

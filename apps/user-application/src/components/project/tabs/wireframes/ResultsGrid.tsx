@@ -24,6 +24,7 @@ export function ResultsGrid({
   onCancelRegenerate,
   onToggleRegenerateSelection,
   onConfirmRegenerate,
+  regenerateConfirmBlocked = false,
   // Optional slot rendered above the grid during regenerate mode. The parent
   // owns the source picker + style-direction select so this grid stays a pure
   // presentation component; the confirm reads whatever state the parent wired
@@ -42,6 +43,7 @@ export function ResultsGrid({
   onCancelRegenerate: () => void;
   onToggleRegenerateSelection: (cardId: string) => void;
   onConfirmRegenerate: () => void;
+  regenerateConfirmBlocked?: boolean;
   regeneratePicker?: ReactNode;
 }) {
   const selectedCount = selectedRegenerateIds.size;
@@ -70,7 +72,7 @@ export function ResultsGrid({
                 <SecondaryButton onClick={onCancelRegenerate}>Cancel</SecondaryButton>
                 <PrimaryButton
                   onClick={onConfirmRegenerate}
-                  disabled={selectedCount === 0 || isGenerating}
+                  disabled={selectedCount === 0 || isGenerating || regenerateConfirmBlocked}
                 >
                   Regenerate {selectedCount > 0 ? selectedCount : ""} screen
                   {selectedCount === 1 ? "" : "s"}

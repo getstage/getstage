@@ -1,0 +1,42 @@
+{
+  "base": [
+    {
+      "id": "shadcn-ui",
+      "name": "shadcn/ui",
+      "source": "https://ui.shadcn.com",
+      "exports": ["Badge", "Button", "Card", "CardContent", "CardDescription", "CardFooter", "CardHeader", "CardTitle", "Input", "Label", "Select", "SelectContent", "SelectItem", "SelectTrigger", "SelectValue", "Table", "TableBody", "TableCell", "TableHead", "TableHeader", "TableRow", "Tabs", "TabsContent", "TabsList", "TabsTrigger", "Textarea"]
+    },
+    {
+      "id": "kokonut-ui",
+      "name": "Kokonut UI",
+      "source": "https://kokonutui.com",
+      "exports": ["Badge", "Button", "Card", "CardContent", "CardDescription", "CardFooter", "CardHeader", "CardTitle", "CommandButton", "GradientButton", "Input", "Label", "Table", "TableBody", "TableCell", "TableHead", "TableHeader", "TableRow", "Textarea"]
+    },
+    {
+      "id": "origin-ui",
+      "name": "Origin UI",
+      "source": "https://github.com/shadcn/originui",
+      "exports": ["Badge", "Button", "Input", "Table", "TableBody", "TableCell", "TableHead", "TableHeader", "TableRow", "Textarea"]
+    },
+    {
+      "id": "mantine",
+      "name": "Mantine",
+      "source": "https://mantine.dev",
+      "exports": ["Badge", "Button", "Card", "Grid", "Group", "Paper", "Select", "Stack", "Table", "Tabs", "Text", "Textarea", "TextInput", "Title"]
+    }
+  ],
+  "sections": [
+    {
+      "id": "magic-ui",
+      "name": "Magic UI",
+      "source": "https://magicui.design",
+      "exports": ["BentoCard", "BentoGrid", "Marquee"]
+    },
+    {
+      "id": "aceternity-ui",
+      "name": "Aceternity UI",
+      "source": "https://ui.aceternity.com",
+      "exports": ["BentoGrid", "BentoGridItem"]
+    }
+  ]
+}

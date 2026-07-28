@@ -1,11 +1,21 @@
+import type { ProviderId } from "@stage/data-ops/contracts";
+import { AiRunSettings } from "@/components/project/AiRunSettings";
+import type { ResearchProviderOption } from "@/hooks/project/research/useResearchProviderSelection";
 import type { ScreenItem, WireframeKind } from "@/types/project/wireframesTab";
 import { Badge, PrimaryButton, SecondaryButton } from "./WireframePrimitives";
+import { WireframeRunSelection } from "./WireframeRunSelection";
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, PlusIcon } from "./wireframesIcons";
 
 export function ConfigureStep({
   wireframeKind,
   screens,
   selectedCount,
+  skillIds,
+  componentPackIds,
+  onSaveSkills,
+  providerOptions,
+  selectedProviderId,
+  onSelectProvider,
   onChangeType,
   onAddBrandKit,
   onToggle,
@@ -14,6 +24,12 @@ export function ConfigureStep({
   wireframeKind: WireframeKind;
   screens: ScreenItem[];
   selectedCount: number;
+  skillIds: readonly string[];
+  componentPackIds: readonly string[];
+  onSaveSkills: (input: { skillIds: string[]; componentPackIds: string[] }) => Promise<void>;
+  providerOptions: ResearchProviderOption[];
+  selectedProviderId: ProviderId | null;
+  onSelectProvider: (providerId: ProviderId) => void;
   onChangeType: () => void;
   onAddBrandKit: () => void;
   onToggle: (id: string) => void;
@@ -32,9 +48,7 @@ export function ConfigureStep({
         </div>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3 text-[13px] font-medium leading-[1.25]">
-            <span className="text-[#171717]">13 screens from Flows</span>
-            <span className="h-1 w-1 rounded-full bg-[#D4D4D4]" />
-            <span className="text-[#737373]">14 patterns applied from Moodboard</span>
+            <span className="text-[#171717]">{screens.length} screens from Flows</span>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
             <SecondaryButton onClick={onChangeType}>
@@ -51,10 +65,22 @@ export function ConfigureStep({
         </div>
       </div>
 
+      {wireframeKind === "hifi" ? (
+        <div className="mb-1">
+          <WireframeRunSelection
+            skillIds={skillIds}
+            componentPackIds={componentPackIds}
+            onSave={onSaveSkills}
+          />
+        </div>
+      ) : null}
+
       <div className="rounded-[8px] bg-white p-11 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="mb-6 flex items-center justify-between text-[15px] font-medium leading-[1.25] text-[#171717]">
           <span>Screens To Generate</span>
-          <span className="text-[13px] text-[#525252]">{selectedCount} of 13 selected</span>
+          <span className="text-[13px] text-[#525252]">
+            {selectedCount} of {screens.length} selected
+          </span>
         </div>
         <div className="flex flex-col gap-1">
           {screens.map((screen) => (
@@ -71,8 +97,15 @@ export function ConfigureStep({
             placeholder="ex. sticky header with primary CTA, wide hero, keep forms short, mobile-first density..."
           />
         </label>
+        <div className="mt-6 border-t border-[#E5E5E5] pt-6">
+          <AiRunSettings
+            providerOptions={providerOptions}
+            selectedProviderId={selectedProviderId}
+            onSelectProvider={onSelectProvider}
+          />
+        </div>
         <div className="mt-6 flex justify-end">
-          <PrimaryButton onClick={onGenerate}>
+          <PrimaryButton onClick={onGenerate} disabled={!selectedProviderId}>
             Generate {selectedCount} Wireframes
             <ArrowRightIcon />
           </PrimaryButton>

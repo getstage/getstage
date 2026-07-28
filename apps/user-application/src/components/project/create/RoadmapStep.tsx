@@ -51,7 +51,7 @@ export function RoadmapStep({
     <CreateProjectStepShell
       title="Build your roadmap"
       description="How do you want to structure this project?"
-      activeStepIndex={4}
+      activeStepIndex={5}
       headerGapClassName="gap-[24px]"
       descriptionClassName="w-full"
       onStepSelect={onStepSelect}

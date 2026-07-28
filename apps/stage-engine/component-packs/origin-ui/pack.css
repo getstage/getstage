@@ -1,0 +1,242 @@
+/* Origin UI — Stage base component pack.
+ *
+ * Hand-written CSS in Origin UI's register: production application blocks for internal
+ * tools and admin surfaces. Denser rhythm than shadcn, hairline borders, small radius,
+ * no drop shadows — separation comes from borders and background steps.
+ *
+ * No Tailwind, no JS, no external requests: the engine prepends this verbatim to every
+ * Hi-Fi fragment, so preview, PNG capture, Paper, and the code export all keep working.
+ *
+ * Colour/type/radius come from `--ui-*` variables. The moodboard style guide or brand
+ * kit overrides them per project, so the same pack skins to any client brand while the
+ * proportions stay constant across all screens in a run.
+ */
+
+:root {
+  --ui-bg: #ffffff;
+  --ui-fg: #101828;
+  --ui-muted: #f7f8fa;
+  --ui-muted-fg: #667085;
+  --ui-border: #e3e6ea;
+  --ui-primary: #1e293b;
+  --ui-primary-fg: #f8fafc;
+  --ui-destructive: #e11d48;
+  --ui-ring: #94a3b8;
+  --ui-radius: 6px;
+  --ui-font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Controls ------------------------------------------------------------------ */
+
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: calc(var(--ui-radius) - 2px);
+  background: var(--ui-primary);
+  color: var(--ui-primary-fg);
+  font-family: var(--ui-font);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.ui-btn:hover { opacity: 0.92; }
+.ui-btn:focus-visible { outline: 2px solid var(--ui-ring); outline-offset: 1px; }
+
+.ui-btn-secondary {
+  background: var(--ui-muted);
+  color: var(--ui-fg);
+  border-color: var(--ui-border);
+}
+
+.ui-btn-outline {
+  background: var(--ui-bg);
+  color: var(--ui-fg);
+  border-color: var(--ui-border);
+}
+
+.ui-btn-ghost {
+  background: transparent;
+  color: var(--ui-muted-fg);
+}
+
+.ui-btn-outline:hover, .ui-btn-ghost:hover { background: var(--ui-muted); color: var(--ui-fg); opacity: 1; }
+
+.ui-btn-destructive {
+  background: var(--ui-destructive);
+  color: #ffffff;
+}
+
+.ui-btn-lg { height: 38px; padding: 0 18px; font-size: 14px; }
+.ui-btn-sm { height: 26px; padding: 0 9px; font-size: 12px; }
+
+/* Forms --------------------------------------------------------------------- */
+
+.ui-field { display: flex; flex-direction: column; gap: 5px; }
+
+.ui-label {
+  font-family: var(--ui-font);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--ui-fg);
+}
+
+.ui-input,
+.ui-textarea,
+.ui-select {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: calc(var(--ui-radius) - 2px);
+  background: var(--ui-bg);
+  color: var(--ui-fg);
+  font-family: var(--ui-font);
+  font-size: 13px;
+}
+
+.ui-textarea { height: auto; min-height: 68px; padding: 7px 10px; line-height: 1.45; resize: vertical; }
+.ui-input::placeholder, .ui-textarea::placeholder { color: var(--ui-muted-fg); }
+.ui-input:focus, .ui-textarea:focus, .ui-select:focus {
+  outline: 2px solid var(--ui-ring);
+  outline-offset: -1px;
+  border-color: var(--ui-ring);
+}
+
+.ui-hint { font-family: var(--ui-font); font-size: 12px; line-height: 1.4; color: var(--ui-muted-fg); }
+
+.ui-checkbox, .ui-radio {
+  width: 15px;
+  height: 15px;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-bg);
+  flex-shrink: 0;
+}
+
+.ui-checkbox { border-radius: 3px; }
+.ui-radio { border-radius: 50%; }
+
+.ui-switch {
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-muted);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ui-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ui-muted-fg);
+}
+
+/* Surfaces ------------------------------------------------------------------ */
+
+.ui-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  background: var(--ui-bg);
+}
+
+.ui-card-header { display: flex; flex-direction: column; gap: 3px; padding-bottom: 12px; border-bottom: 1px solid var(--ui-border); }
+.ui-card-title { font-family: var(--ui-font); font-size: 14px; font-weight: 600; line-height: 1.3; letter-spacing: -0.005em; color: var(--ui-fg); margin: 0; }
+.ui-card-desc { font-family: var(--ui-font); font-size: 13px; line-height: 1.45; color: var(--ui-muted-fg); margin: 0; }
+.ui-card-footer { display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid var(--ui-border); }
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border: 1px solid var(--ui-border);
+  border-radius: 3px;
+  background: var(--ui-muted);
+  color: var(--ui-muted-fg);
+  font-family: var(--ui-font);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+
+.ui-badge-primary { background: var(--ui-primary); color: var(--ui-primary-fg); border-color: transparent; }
+
+.ui-alert {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: calc(var(--ui-radius) - 2px);
+  background: var(--ui-muted);
+  font-family: var(--ui-font);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ui-fg);
+}
+
+.ui-separator { height: 1px; border: 0; background: var(--ui-border); margin: 0; }
+
+.ui-avatar {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--ui-border);
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--ui-muted);
+  flex-shrink: 0;
+}
+
+/* Navigation and data -------------------------------------------------------- */
+
+.ui-tabs { display: flex; align-items: flex-end; gap: 4px; border-bottom: 1px solid var(--ui-border); }
+
+.ui-tab {
+  margin-bottom: -1px;
+  padding: 7px 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ui-muted-fg);
+  font-family: var(--ui-font);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.ui-tab-active { color: var(--ui-fg); border-bottom-color: var(--ui-primary); }
+
+.ui-table { width: 100%; border-collapse: collapse; font-family: var(--ui-font); font-size: 13px; }
+.ui-table th {
+  padding: 7px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ui-muted-fg);
+  background: var(--ui-muted);
+  border-bottom: 1px solid var(--ui-border);
+}
+.ui-table td { padding: 8px 12px; line-height: 1.4; color: var(--ui-fg); border-bottom: 1px solid var(--ui-border); }
