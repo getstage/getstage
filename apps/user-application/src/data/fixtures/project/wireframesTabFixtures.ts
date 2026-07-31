@@ -1,9 +1,2 @@
-export {
-  createSeedConfigureScreens,
-  FIGMA_SYMBOL_URL,
-  getSeedWireframesTabData,
-  MOCK_BRAND_KIT,
-  MOCK_WIREFRAMES_GENERATED_AT_LABEL,
-  WIREFRAMES_RESULTS_PREVIEW_LIMIT,
-  WIREFRAMES_STATS,
-} from "@/mock/project/wireframes";
+/** Generated screens the results grid renders before the rest are cut off. */
+export const WIREFRAMES_RESULTS_PREVIEW_LIMIT = 6;

@@ -1,3 +1,4 @@
+use crate::flows::prompt::{project_type_lines, project_type_screen_guidance};
 use crate::models::wireframes::{WireframeBrandSource, WireframeKind, WireframesInput};
 
 const WIREFRAMES_SHAPE_EXAMPLE: &str = r#"{
@@ -464,6 +465,56 @@ fn strip_pack_styles(json: &str) -> String {
     out
 }
 
+/// A scoped run re-designs screens that already exist, so the model needs those screens'
+/// own definitions and the journeys they sit in — not the product's entire flow inventory.
+/// Keeps `screens[]` for the target ids and only the flows that actually reference them.
+fn scope_flows_artifact(flows_json: &str, ids: &[&str]) -> String {
+    let Ok(mut value) = serde_json::from_str::<serde_json::Value>(flows_json) else {
+        return flows_json.to_string();
+    };
+    let Some(object) = value.as_object_mut() else {
+        return flows_json.to_string();
+    };
+    let id_set: std::collections::HashSet<&str> = ids.iter().copied().collect();
+
+    if let Some(screens) = object.get("screens").and_then(serde_json::Value::as_array) {
+        let kept = screens
+            .iter()
+            .filter(|screen| {
+                screen
+                    .get("id")
+                    .and_then(serde_json::Value::as_str)
+                    .is_some_and(|id| id_set.contains(id))
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        object.insert("screens".to_string(), serde_json::Value::Array(kept));
+    }
+
+    // Whole flows are kept, not just the matching steps: the neighbouring steps are the
+    // journey context that keeps a re-designed screen consistent with the ones around it.
+    if let Some(flows) = object.get("flows").and_then(serde_json::Value::as_array) {
+        let kept = flows
+            .iter()
+            .filter(|flow| {
+                flow.get("steps")
+                    .and_then(serde_json::Value::as_array)
+                    .is_some_and(|steps| {
+                        steps.iter().any(|step| {
+                            step.get("screenId")
+                                .and_then(serde_json::Value::as_str)
+                                .is_some_and(|id| id_set.contains(id))
+                        })
+                    })
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        object.insert("flows".to_string(), serde_json::Value::Array(kept));
+    }
+
+    serde_json::to_string(&value).unwrap_or_else(|_| flows_json.to_string())
+}
+
 pub fn build_wireframes_prompt(
     input: &WireframesInput,
     kind: WireframeKind,
@@ -471,13 +522,21 @@ pub fn build_wireframes_prompt(
     style_direction_id: Option<&str>,
     layout_preference: Option<&str>,
     brand_kit_attached: bool,
-    regenerate_screen_ids: Option<&[String]>,
+    target_screen_ids: Option<&[String]>,
 ) -> String {
-    let research_block = input
-        .research_artifact_json
-        .as_deref()
-        .map(|json| format!("Saved research artifact JSON:\n{json}\n\n"))
-        .unwrap_or_default();
+    let scoped_ids = target_screen_ids.filter(|ids| !ids.is_empty());
+    // Research is the single largest block in the prompt (~60 KB on a real project) and a
+    // scoped run does not need it: strategy carries the copy angle, the moodboard the
+    // look, and the redacted artifact the screens' own structure. Dropping it here is what
+    // stops a 2-screen re-design from costing as much as a full pass.
+    let research_block = match scoped_ids {
+        Some(_) => String::new(),
+        None => input
+            .research_artifact_json
+            .as_deref()
+            .map(|json| format!("Saved research artifact JSON:\n{json}\n\n"))
+            .unwrap_or_default(),
+    };
     let moodboard_block = input
         .moodboard_artifact_json
         .as_deref()
@@ -486,13 +545,24 @@ pub fn build_wireframes_prompt(
     let flows_block = input
         .flows_artifact_json
         .as_deref()
-        .map(|json| format!("Saved flows artifact JSON (authoritative screen list):\n{json}\n\n"))
+        .map(|json| match scoped_ids {
+            Some(ids) => {
+                let id_refs = ids.iter().map(String::as_str).collect::<Vec<_>>();
+                let payload = scope_flows_artifact(json, &id_refs);
+                format!(
+                    "Saved flows artifact JSON (screens in scope and the flows they belong to):\n{payload}\n\n"
+                )
+            }
+            None => {
+                format!("Saved flows artifact JSON (authoritative screen list):\n{json}\n\n")
+            }
+        })
         .unwrap_or_default();
     let existing_block = input
         .existing_wireframes_artifact_json
         .as_deref()
         .map(|json| {
-            let payload = match regenerate_screen_ids.filter(|ids| !ids.is_empty()) {
+            let payload = match scoped_ids {
                 Some(ids) => {
                     let id_refs = ids.iter().map(String::as_str).collect::<Vec<_>>();
                     redact_regen_artifact(json, &id_refs)
@@ -532,15 +602,38 @@ pub fn build_wireframes_prompt(
         WireframeKind::Hifi => hifi_prompt_extras(input),
         WireframeKind::Lofi => String::new(),
     };
-    let regenerate_block = regenerate_screen_ids
+    // Scoping the run to a set of ids means two different things. With a saved artifact
+    // the user is re-designing screens that already exist, so the model must not echo the
+    // prior markup. Without one (first pass, or a screen the user just added) there is
+    // nothing to differ from and the block only narrows the output.
+    let scope_block = target_screen_ids
         .filter(|ids| !ids.is_empty())
         .map(|ids| {
-            format!(
-                "- PARTIAL REGENERATION: Return generatedScreens[] containing ONLY these screen ids: {}. Re-design each returned screen from strategy/moodboard context. Do NOT reuse prior html markup or layout structure for these ids. Each returned screen MUST have a non-empty \"html\" that is materially different from the saved artifact (different section order, layout pattern, or visual rhythm).\n",
-                ids.join(", ")
-            )
+            let id_list = ids.join(", ");
+            // The scope narrows what gets DESIGNED, never what gets LISTED. Without the
+            // second sentence a run scoped to the ticked screens comes back with a
+            // configureScreens holding only those, and the screens the user unticked
+            // vanish from the list with no way to tick them again.
+            let list_rule = "configureScreens[] is the screen LIST and MUST still contain every screen from the flows artifact and the previous artifact, including ids outside the scope above — give those selected: false. Only generatedScreens[] is limited to the scoped ids.";
+            if input.existing_wireframes_artifact_json.is_some() {
+                format!(
+                    "- PARTIAL REGENERATION: Return generatedScreens[] containing ONLY these screen ids: {id_list}. Re-design each returned screen from strategy/moodboard context. Do NOT reuse prior html markup or layout structure for these ids. Each returned screen MUST have a non-empty \"html\" that is materially different from the saved artifact (different section order, layout pattern, or visual rhythm).\n- {list_rule}\n"
+                )
+            } else {
+                format!(
+                    "- SCOPED GENERATION: Return generatedScreens[] containing ONLY these screen ids: {id_list}. Design each returned screen from strategy/moodboard context, and give each a non-empty \"html\".\n- {list_rule}\n"
+                )
+            }
         })
         .unwrap_or_default();
+    // An unscoped run is a full pass, so it must cover the whole ticked list. A scoped run
+    // is told exactly which ids to return, and repeating "cover everything" here would
+    // contradict it.
+    let coverage_rule = if scope_block.is_empty() {
+        "- One screen per generatedScreens[] entry; cover every selected screen from the configure list."
+    } else {
+        "- One screen per generatedScreens[] entry."
+    };
 
     format!(
         r#"<role>You are generating the Stage Wireframes artifact for a {kind_str} pass.</role>
@@ -553,10 +646,12 @@ pub fn build_wireframes_prompt(
 - Allowed block kinds: {ALLOWED_BLOCK_KINDS}.
 - Each generated screen MUST have 1-6 sections; each section MUST have 1-5 blocks.
 - copySlots are short strings (no markdown), filled from Strategy CTAs/value props when available.
-- One screen per generatedScreens[] entry; preserve every selected screen from the configure list.
-- configureScreens[].required: true ONLY for the 2-4 screens essential to the core funnel (e.g. the primary landing page). Default every other screen to required: false so the user can toggle it off — do not mark every screen required.
+{coverage_rule}
+- Screen set: {project_type_guidance}
+- When a flows artifact is present, its screens are the authoritative screen list: cover them and keep their ids stable.
+- configureScreens[].required: true ONLY for the 2-4 screens that are core to a project of this type (an application: the main signed-in screen and the auth screen; a site: the primary landing page). Default every other screen to required: false so the user can toggle it off — do not mark every screen required.
 - {brand_source_line}
-{regenerate_block}{style_direction_block}{layout_block}</rules>
+{scope_block}{style_direction_block}{layout_block}</rules>
 
 <cognitive_steps>
 1. Restate each screen's goal in one sentence (set generatedScreens[].goal).
@@ -572,13 +667,18 @@ This shape example is ONLY a formatting reference, not content to copy:
 Project:
 - Project ID: {project_id}
 - Project name: {project_name}
-
+{project_type_lines}
 Saved strategy artifact JSON:
 {strategy_artifact}
 
 {research_block}{moodboard_block}{flows_block}{existing_block}Return only the JSON artifact."#,
         project_id = input.project_id,
         project_name = input.project_name,
+        project_type_lines = project_type_lines(
+            &input.project_type,
+            input.project_type_label.as_deref()
+        ),
+        project_type_guidance = project_type_screen_guidance(&input.project_type),
         strategy_artifact = input.strategy_artifact_json,
     )
 }

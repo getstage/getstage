@@ -34,6 +34,9 @@ const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(50);
 const PROCESS_LINE_CAPACITY: usize = 128;
 const AUTH_WARMUP_DELAY: Duration = Duration::from_millis(300);
 const AUTH_WARMUP_TIMEOUT: Duration = Duration::from_secs(15);
+/// How often a still-running provider reports in. Long enough not to spam a 10-minute
+/// run, short enough that a stalled CLI is obvious well before the client's watchdog.
+const PROVIDER_HEARTBEAT_INTERVAL: Duration = Duration::from_secs(30);
 
 #[derive(Clone, Debug)]
 pub struct ProviderProcessSpec {
@@ -276,6 +279,12 @@ async fn drive_process_loop(
     capture_multiline_stderr: bool,
     cancel: &mut watch::Receiver<bool>,
 ) -> Result<ProviderProcessOutcome, ProviderProcessError> {
+    // A provider CLI can stay silent for many minutes (claude runs with
+    // `--output-format text`, which emits nothing until the whole artifact is done).
+    // Without a heartbeat that silence is indistinguishable from a hang, in the log and
+    // in the UI alike.
+    let process_started = std::time::Instant::now();
+    let mut last_heartbeat = process_started;
     loop {
         tokio::select! {
             changed = cancel.changed() => {
@@ -327,7 +336,19 @@ async fn drive_process_loop(
                             &sink.final_text,
                         ));
                     }
-                    Ok(None) => sleep(PROCESS_POLL_INTERVAL).await,
+                    Ok(None) => {
+                        if last_heartbeat.elapsed() >= PROVIDER_HEARTBEAT_INTERVAL {
+                            last_heartbeat = std::time::Instant::now();
+                            tracing::info!(
+                                run_id = %context.run_id,
+                                provider_id = ?context.request.provider_id,
+                                elapsed_s = process_started.elapsed().as_secs(),
+                                output_chars = sink.final_text.len(),
+                                "provider still running"
+                            );
+                        }
+                        sleep(PROCESS_POLL_INTERVAL).await;
+                    }
                     Err(source) => {
                         return Err(ProviderProcessError::Io {
                             binary,

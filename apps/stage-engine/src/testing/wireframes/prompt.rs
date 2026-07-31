@@ -5,6 +5,8 @@ fn sample_input() -> WireframesInput {
     WireframesInput {
         project_id: "project_123".to_string(),
         project_name: "Shopify".to_string(),
+        project_type: "web-app".to_string(),
+        project_type_label: None,
         strategy_artifact_id: "strategy_1".to_string(),
         strategy_artifact_json: "{}".to_string(),
         research_artifact_id: None,
@@ -37,6 +39,87 @@ fn includes_partial_regeneration_block_when_screen_ids_provided() {
     assert!(prompt.contains("PARTIAL REGENERATION"));
     assert!(prompt.contains("homepage, pricing"));
     assert!(prompt.contains("Previous wireframes artifact"));
+}
+#[test]
+fn scoped_run_drops_research_and_keeps_it_on_a_full_pass() {
+    // Research is the largest block in the prompt. A run scoped to known screens must not
+    // carry it, while a full pass still does — that difference is the latency fix.
+    let mut input = sample_input();
+    input.research_artifact_json = Some(r#"{"findings":["RESEARCH_MARKER"]}"#.to_string());
+
+    let scoped = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        Some(&["homepage".to_string()]),
+    );
+    let full = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
+
+    assert!(!scoped.contains("RESEARCH_MARKER"));
+    assert!(!scoped.contains("Saved research artifact JSON"));
+    assert!(full.contains("RESEARCH_MARKER"));
+}
+
+#[test]
+fn scoped_run_keeps_only_the_targeted_screens_and_their_flows() {
+    // The flows artifact is the authoritative screen list on a full pass, but a scoped run
+    // only needs the screens it re-designs plus the journeys those screens sit in.
+    let mut input = sample_input();
+    input.flows_artifact_json = Some(
+        r#"{"screens":[{"id":"homepage","title":"Homepage"},{"id":"settings","title":"Settings"}],"flows":[{"id":"signup","steps":[{"id":"s1","screenId":"homepage"},{"id":"s2","screenId":"checkout"}]},{"id":"admin","steps":[{"id":"s3","screenId":"settings"}]}]}"#
+            .to_string(),
+    );
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        Some(&["homepage".to_string()]),
+    );
+
+    assert!(prompt.contains("\"id\":\"homepage\""));
+    // The untargeted screen and the flow that never touches homepage are both gone.
+    assert!(!prompt.contains("Settings"));
+    assert!(!prompt.contains("\"admin\""));
+    // Neighbouring steps of a matching flow stay: they are the journey context.
+    assert!(prompt.contains("checkout"));
+}
+
+#[test]
+fn full_pass_keeps_the_whole_flows_artifact() {
+    let mut input = sample_input();
+    input.flows_artifact_json = Some(
+        r#"{"screens":[{"id":"homepage"},{"id":"settings"}],"flows":[{"id":"admin","steps":[{"id":"s3","screenId":"settings"}]}]}"#
+            .to_string(),
+    );
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
+
+    assert!(prompt.contains("authoritative screen list"));
+    assert!(prompt.contains("\"settings\""));
+    assert!(prompt.contains("\"admin\""));
 }
 
 #[test]
@@ -332,4 +415,128 @@ fn prior_artifact_echo_drops_the_pack_stylesheet() {
         prompt.contains("<div>Real markup</div>"),
         "the model's own markup must survive the strip"
     );
+}
+
+#[test]
+fn prompt_states_the_project_type_and_its_screen_guidance() {
+    let prompt = build_wireframes_prompt(
+        &sample_input(),
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
+
+    assert!(prompt.contains("- Project type: web-app"));
+    // An app project must not be steered toward a marketing site.
+    assert!(prompt.contains("This is an application project"));
+    assert!(prompt.contains("Do NOT default to marketing pages"));
+}
+
+#[test]
+fn prompt_reports_the_free_text_label_for_an_other_project_type() {
+    let mut input = sample_input();
+    input.project_type = "other".to_string();
+    input.project_type_label = Some("Trade show booth".to_string());
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Lofi,
+        None,
+        None,
+        None,
+        false,
+        None,
+    );
+
+    assert!(prompt.contains("- Project type: other"));
+    assert!(prompt.contains("- Project type detail: Trade show booth"));
+}
+
+#[test]
+fn site_project_type_keeps_marketing_page_guidance() {
+    let mut input = sample_input();
+    input.project_type = "web-design".to_string();
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Lofi,
+        None,
+        None,
+        None,
+        false,
+        None,
+    );
+
+    assert!(prompt.contains("This is a site project"));
+}
+
+#[test]
+fn scoped_first_pass_omits_the_regeneration_wording() {
+    // A Hi-Fi run scoped to selected screens before anything is saved: there is no prior
+    // markup, so the prompt must scope the output without the re-design instructions.
+    let mut input = sample_input();
+    input.existing_wireframes_artifact_id = None;
+    input.existing_wireframes_artifact_json = None;
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        Some(&["dashboard".to_string(), "settings".to_string()]),
+    );
+
+    assert!(prompt.contains("SCOPED GENERATION"));
+    assert!(prompt.contains("dashboard, settings"));
+    assert!(!prompt.contains("PARTIAL REGENERATION"));
+    assert!(!prompt.contains("Do NOT reuse prior html"));
+    assert!(!prompt.contains("Previous wireframes artifact"));
+}
+
+#[test]
+fn a_scoped_run_must_still_return_the_whole_screen_list() {
+    // Generating only the ticked screens must not shrink configureScreens: the screens the
+    // user unticked have to stay in the list, or there is no way to tick them again.
+    let input = sample_input();
+
+    let scoped = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        Some(&["dashboard".to_string()]),
+    );
+
+    assert!(
+        scoped.contains("configureScreens[] is the screen LIST"),
+        "a scoped run must be told the scope narrows generation, not the list"
+    );
+    assert!(scoped.contains("give those selected: false"));
+    assert!(
+        !scoped.contains("cover every selected screen from the configure list"),
+        "the full-pass coverage rule would contradict the scope"
+    );
+
+    let full = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
+
+    assert!(
+        full.contains("cover every selected screen from the configure list"),
+        "an unscoped run is a full pass and must cover the ticked list"
+    );
+    assert!(!full.contains("configureScreens[] is the screen LIST"));
 }

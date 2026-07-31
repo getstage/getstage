@@ -3,7 +3,6 @@ export type ProjectModal =
   | "client"
   | "timeline"
   | "phases"
-  | "workflow"
   | "skills"
   | "pause"
   | "complete"

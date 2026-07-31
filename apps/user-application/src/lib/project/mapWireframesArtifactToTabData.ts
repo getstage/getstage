@@ -1,4 +1,8 @@
-import type { WireframeConfigureScreen, WireframesArtifact } from "@stage/data-ops/contracts";
+import {
+  wireframesArtifactSchema,
+  type WireframeConfigureScreen,
+  type WireframesArtifact,
+} from "@stage/data-ops/contracts";
 import type {
   ScreenItem,
   WireframeGeneratedScreen,
@@ -27,6 +31,27 @@ export function mapScreenItemToConfigureScreen(screen: ScreenItem): WireframeCon
     required: screen.required,
     selected: screen.selected,
   };
+}
+
+/**
+ * The artifact with the user's curated screen list written back. Only the list and
+ * its count change: generated screens stay whatever the engine produced, so editing
+ * the list never claims a screen has been generated.
+ */
+export function withConfigureScreens(
+  artifact: WireframesArtifact,
+  screens: ScreenItem[],
+): WireframesArtifact {
+  const configureScreens = screens.map(mapScreenItemToConfigureScreen);
+
+  return wireframesArtifactSchema.parse({
+    ...artifact,
+    configureScreens,
+    stats: {
+      ...artifact.stats,
+      totalConfigureScreenCount: configureScreens.length,
+    },
+  });
 }
 
 export function mapWireframesArtifactToTabData(artifact: WireframesArtifact): WireframesTabData {
@@ -71,9 +96,15 @@ export function buildResultCards(
   generatedAt?: number,
 ): WireframeResultCard[] {
   const generatedById = new Map(generatedScreens.map((screen) => [screen.id, screen]));
+  // `selected` is the scope of the NEXT run, not what exists. Once anything has
+  // been generated the grid shows the generated screens; before the first run it
+  // previews the pending selection.
+  const visibleScreens =
+    generatedScreens.length > 0
+      ? screens.filter((screen) => generatedById.has(screen.id))
+      : screens.filter((screen) => screen.selected);
 
-  return screens
-    .filter((screen) => screen.selected)
+  return visibleScreens
     .slice(0, limit)
     .map((screen) => {
       const generated = generatedById.get(screen.id);

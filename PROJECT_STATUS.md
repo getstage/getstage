@@ -1,7 +1,7 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-06-14
+> **Last updated:** 2026-07-30
 
 ---
 
@@ -20,6 +20,7 @@
 | **P0 reliability review** | Research images, Moodboard directions, Style Guide, exports, uploads, provider errors, client portal recovery checklist | `apps/user-application/docs/AI/moodboard/STAGE_RELIABILITY_RECOVERY_PLAN.md` |
 | **P1 local review** | Project-aware Stage chat: `@project`, bounded Convex context, screenshots, confirmed window capture | `apps/user-application/docs/AI/chatbot/CHATBOT_PLAN.md`; branch `feat/stage-chat-project-context-vision` |
 | **P2 desktop flash-kill** | Convex queries routed through TanStack Query (`@convex-dev/react-query`) + route loaders (`ensureQueryData`) so screens paint ready data instead of setup/empty flashes. Interim: per-tab `TabLoadingState` loader on Flows/Wireframes/Assets. Branch `feat/convex-tanstack-query-loaders`. Follow-up: strip residual `isRunsLoading`/`isStyleGuideRunsLoading` guards once live smoke confirms loader cache hits. Skill: `.agents/skills/convex-tanstack-query-adapter/` | apps/user-application/src |
+| **P0 testing round 2** | Adrien's Stage 2 feedback — **fixed 2026-07-30**: screen list now Flows-derived + project-type aware (was a hardcoded marketing fixture shipping in prod), screens add/edit/delete + persist, every run scoped to the ticked screens (a "2 screen" Hi-Fi run used to generate all 13 in one provider call), Edit Workflow removed | `apps/user-application/docs/AI/wireframes/WIREFRAMES_BUILD_PLAN.md` |
 
 **Current desktop version (work branch):** `0.1.70`
 

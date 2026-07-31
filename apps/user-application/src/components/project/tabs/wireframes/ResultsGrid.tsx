@@ -4,7 +4,7 @@ import { formatRelativeTime } from "@/lib/utils";
 import type { WireframeKind } from "@/types/project/wireframesTab";
 import { Badge, PrimaryButton, SecondaryButton } from "./WireframePrimitives";
 import { FidelityToggle } from "./FidelityToggle";
-import { ArrowRightIcon, CheckIcon, ImageIcon, SparkleIcon } from "./wireframesIcons";
+import { ArrowRightIcon, CheckIcon, ImageIcon, PlusIcon, SparkleIcon } from "./wireframesIcons";
 import { WireframeBlockPreview } from "./WireframeBlockPreview";
 import {
   WireframeHtmlPreviewDialog,
@@ -24,6 +24,7 @@ export function ResultsGrid({
   onCancelRegenerate,
   onToggleRegenerateSelection,
   onConfirmRegenerate,
+  onManageScreens,
   regenerateConfirmBlocked = false,
   // Optional slot rendered above the grid during regenerate mode. The parent
   // owns the source picker + style-direction select so this grid stays a pure
@@ -43,6 +44,8 @@ export function ResultsGrid({
   onCancelRegenerate: () => void;
   onToggleRegenerateSelection: (cardId: string) => void;
   onConfirmRegenerate: () => void;
+  /** Back to the screen list, where screens can be added, edited or removed. */
+  onManageScreens: () => void;
   regenerateConfirmBlocked?: boolean;
   regeneratePicker?: ReactNode;
 }) {
@@ -66,6 +69,12 @@ export function ResultsGrid({
           </h2>
         )}
         <div className="flex flex-wrap items-center justify-end gap-2">
+          {!regenerateMode ? (
+            <SecondaryButton onClick={onManageScreens} disabled={isGenerating}>
+              <PlusIcon />
+              Add or edit screens
+            </SecondaryButton>
+          ) : null}
           {wireframeKind === "hifi" ? (
             regenerateMode ? (
               <>

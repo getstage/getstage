@@ -263,7 +263,7 @@ R2 purposes: `wireframes-brandkit` (PDF). No Hi-Fi image bytes in V1 (renderer i
 | `getLatestMoodboardArtifact` | `styleGuides[]` (selected by `styleDirectionId`) | Hi-Fi palette/typography |
 | Configure form (already in tab) | `selectedScreenIds[]`, `layoutPreference` | User intent overrides |
 
-If Flows artifact does not exist yet, V1 uses the Configure list as the screen source (today's seed). Document explicitly that Flows-driven mode lands when the Flows workflow ships.
+The Configure list comes from the project's Flows artifact (`screens[]`), mapped to `ScreenItem[]`. With no Flows artifact the tab shows an empty state pointing at Flows instead of a generic fallback list. Users can add, edit and delete screens; the edited list persists to the wireframes artifact's `configureScreens` via `updateWireframesArtifact`. Every run is scoped: the `screens:` run-source token carries the ticked ids, the engine generates only those, and merges them into the saved artifact (appending ids it has not seen).
 
 ---
 

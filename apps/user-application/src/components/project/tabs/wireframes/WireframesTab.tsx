@@ -1,25 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
-import {
-  createSeedConfigureScreens,
-  MOCK_WIREFRAMES_GENERATED_AT_LABEL,
-  WIREFRAMES_RESULTS_PREVIEW_LIMIT,
-} from "@/data/fixtures/project/wireframesTabFixtures";
+import { WIREFRAMES_RESULTS_PREVIEW_LIMIT } from "@/data/fixtures/project/wireframesTabFixtures";
 import { useAssetsTab, useMoodboardArtifact, useWireframesTab } from "@/hooks/project";
 import { useFigmaWireframeExport } from "@/hooks/project/assets/useFigmaWireframeExport";
 import { useWireframeDeliveryExport } from "@/hooks/project/assets/useWireframeDeliveryExport";
-import { useWireframeBrandKit } from "@/hooks/project/wireframes";
+import { useFlowsArtifact } from "@/hooks/project/flows/useFlowsArtifact";
+import { useSaveWireframesArtifact, useWireframeBrandKit } from "@/hooks/project/wireframes";
 import { AiRunSettings } from "@/components/project/AiRunSettings";
 import { api } from "@/lib/convexApi";
 import { buildResultCards } from "@/lib/project/mapWireframesArtifactToTabData";
+import {
+  applyScreenDraft,
+  createScreenItem,
+  mapFlowScreensToScreenItems,
+  type ScreenDraft,
+} from "@/lib/project/wireframeScreenList";
 import type { Project } from "@/models/project/project";
 import type { WireframeAssetCard } from "@/types/project/assetsTab";
 import type { ScreenItem, WireframeKindChoice, WireframeStep } from "@/types/project/wireframesTab";
 import { ExportOptionsDialog } from "../assets/ExportOptionsDialog";
 import { BrandKitStep } from "./BrandKitStep";
 import { CanvasShell } from "./CanvasShell";
-import { ConfigureStep } from "./ConfigureStep";
+import { ConfigureStep, type ScreenListSource } from "./ConfigureStep";
 import { GeneratingStep } from "./GeneratingStep";
 import { ResultsGrid } from "./ResultsGrid";
 import { StyleGuideStep } from "./StyleGuideStep";
@@ -78,7 +81,15 @@ export function WireframesTab({
     null,
   );
   const [regenerateSelectionBusy, setRegenerateSelectionBusy] = useState(false);
-  const seedScreens = useMemo(() => createSeedConfigureScreens(), []);
+  const flowsArtifact = useFlowsArtifact(project.id);
+  const saveWireframes = useSaveWireframesArtifact(project.id);
+  // The pre-run screen list has exactly one real source: the project's Flows.
+  // There is no generic default worth inventing, so an empty Flows artifact
+  // means an empty list plus a prompt to run Flows first.
+  const flowsScreens = useMemo(
+    () => mapFlowScreensToScreenItems(flowsArtifact.data?.tabData.screens ?? []),
+    [flowsArtifact.data],
+  );
   const tabData = wireframesTab.data?.tabData;
   const isGenerating = wireframesTab.isGenerating;
   // `null` means "show whatever the server says". Only an explicit user step overrides
@@ -87,16 +98,22 @@ export function WireframesTab({
   const [wireframeKind, setWireframeKind] = useState<WireframeKindChoice>(null);
   const [brandSource, setBrandSource] = useState<BrandSourceChoice>(null);
   const [styleDirectionId, setStyleDirectionId] = useState<string | null>(null);
-  // Local edits win while configuring; otherwise the saved screen set, then the seed.
+  // Local edits win while configuring; otherwise the saved screen set, then Flows.
   const [localScreens, setLocalScreens] = useState<ScreenItem[] | null>(null);
-  const screens = localScreens ?? tabData?.configureScreens ?? seedScreens;
+  const savedScreens = tabData?.configureScreens;
+  const screens = localScreens ?? savedScreens ?? flowsScreens;
+  const screenListSource: ScreenListSource = savedScreens ? "saved" : "flows";
   const hydratedProjectRef = useRef<string | null>(null);
+  const [screenListError, setScreenListError] = useState<string | null>(null);
+  const screenSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const artifactIdRef = useRef<string | null>(null);
   // Results metadata is read live from the artifact so a fresh run (e.g. a Hi-Fi conversion)
   // always reflects the latest generation instead of stale mirrored state.
   const generatedScreens = wireframesTab.data?.tabData.generatedScreens ?? [];
   const generatedAt = wireframesTab.data?.tabData.generatedAt;
-  const generatedAtLabel =
-    wireframesTab.data?.tabData.generatedAtLabel ?? MOCK_WIREFRAMES_GENERATED_AT_LABEL;
+  // No artifact means nothing has been generated, so there is no honest label to
+  // fall back to; the cards then render their own per-screen timestamp.
+  const generatedAtLabel = wireframesTab.data?.tabData.generatedAtLabel ?? "";
   const selectedCount = screens.filter((screen) => screen.selected).length;
 
   // Moodboard style directions that have a style guide attached.
@@ -140,6 +157,18 @@ export function WireframesTab({
     setStyleDirectionId(tabData.styleDirectionId);
   }, [project.id, tabData, wireframesTab.isRunsLoading]);
 
+  // A finished run replaces the artifact record. Drop the local copy so the engine's
+  // merged list (including screens it appended) becomes the view. Our own saves patch
+  // the same record, so an in-progress edit is never thrown away by this.
+  useEffect(() => {
+    const artifactId = wireframesTab.data?.id ?? null;
+    if (artifactId === null || artifactId === artifactIdRef.current) {
+      return;
+    }
+    artifactIdRef.current = artifactId;
+    setLocalScreens(null);
+  }, [wireframesTab.data?.id]);
+
   function continueFromSource(source: BrandSource) {
     setBrandSource(source);
     if (source === "brand-kit") {
@@ -171,8 +200,7 @@ export function WireframesTab({
     brandKitKeys?: string[];
     brandKitLoading?: boolean;
     screens?: typeof screens;
-    source?: string;
-    prompt?: string;
+    screenIds?: string[];
   }) {
     setRegenerateMode(false);
     setSelectedRegenerateIds(new Set());
@@ -203,8 +231,7 @@ export function WireframesTab({
         brandKitKeys: resolvedBrandKitKeys,
         brandKitLoading: overrides?.brandKitLoading ?? brandKit.isLoading,
         screens: resolvedScreens,
-        source: overrides?.source,
-        prompt: overrides?.prompt,
+        screenIds: overrides?.screenIds,
       });
       // Hand control back to the server view: the run makes this "generating", and
       // finishing it makes it "results", with no step bookkeeping in between.
@@ -228,7 +255,43 @@ export function WireframesTab({
     return true;
   }
 
+  const generatedScreenIds = useMemo(
+    () => generatedScreens.map((screen) => screen.id),
+    [generatedScreens],
+  );
 
+  // Screen-list edits belong to the user, not to a run: keep them locally for the
+  // live view and write them onto the artifact whenever one exists. Before the
+  // first run there is nothing to update, so the list stays local until that run
+  // persists it.
+  function applyScreens(nextScreens: ScreenItem[]) {
+    setLocalScreens(nextScreens);
+
+    const record = wireframesTab.data;
+    if (!record) {
+      return;
+    }
+
+    const save = () => saveWireframes.saveConfigureScreens(record, nextScreens);
+    const nextSave = screenSaveQueueRef.current.then(save, save).then(() => undefined);
+    screenSaveQueueRef.current = nextSave.catch(() => undefined);
+    void nextSave.then(
+      () => setScreenListError(null),
+      (error: unknown) =>
+        setScreenListError(
+          error instanceof Error ? error.message : "Could not save the screen list.",
+        ),
+    );
+  }
+
+  function manageScreensFromResults() {
+    // Straight back to the list. The ticks are the user's persisted intent, so this
+    // never rewrites them; Configure offers a "new screens only" run for the common
+    // case of adding a screen to an already generated set.
+    setRegenerateMode(false);
+    setSelectedRegenerateIds(new Set());
+    setSetupStep("configure");
+  }
 
   const generatedCards = useMemo(
     () =>
@@ -247,7 +310,13 @@ export function WireframesTab({
       ? styleDirections.find((direction) => direction.id === regenerateStyleDirectionId)?.title
       : null;
 
-  if (wireframesTab.isLoading || wireframesTab.isRunsLoading) {
+  // Without a saved list the screen list comes from Flows, so showing the tab before
+  // that query settles would flash a "run Flows first" state at projects that have flows.
+  if (
+    wireframesTab.isLoading ||
+    wireframesTab.isRunsLoading ||
+    (!savedScreens && flowsArtifact.isLoading)
+  ) {
     return <TabLoadingState label="Loading wireframes…" />;
   }
 
@@ -260,7 +329,7 @@ export function WireframesTab({
         <CanvasShell centered>
           <GeneratingStep
             mode={wireframesTab.isRegenerateRun ? "regenerate" : "generate"}
-            screenCount={wireframesTab.regeneratingScreenIds?.length ?? selectedRegenerateIds.size}
+            screenCount={wireframesTab.runningScreenIds?.length ?? selectedRegenerateIds.size}
             elapsedSeconds={wireframesTab.elapsedSeconds}
           />
         </CanvasShell>
@@ -278,9 +347,9 @@ export function WireframesTab({
         onGoToResearch={onGoToResearch}
         onGoToStrategy={onGoToStrategy}
       />
-      {wireframesTab.error ? (
+      {wireframesTab.error ?? screenListError ? (
         <p className="mb-4 whitespace-pre-wrap text-[13px] font-medium leading-[1.5] text-[#DC2626]">
-          {wireframesTab.error}
+          {wireframesTab.error ?? screenListError}
         </p>
       ) : null}
       {view === "choose-type" ? (
@@ -367,7 +436,9 @@ export function WireframesTab({
         <ConfigureStep
           wireframeKind={wireframeKind ?? "lofi"}
           screens={screens}
+          screenListSource={screenListSource}
           selectedCount={selectedCount}
+          generatedScreenIds={generatedScreenIds}
           skillIds={skillIds}
           componentPackIds={componentPackIds}
           providerOptions={wireframesTab.providerOptions}
@@ -381,15 +452,24 @@ export function WireframesTab({
             setSetupStep("brand-kit");
           }}
           onToggle={(id) =>
-            setLocalScreens(
+            applyScreens(
               screens.map((screen) =>
                 // STA-11: required = default-selected, not locked. Users must be able to untick.
                 screen.id === id ? { ...screen, selected: !screen.selected } : screen,
               ),
             )
           }
+          onAddScreen={(draft: ScreenDraft) =>
+            applyScreens([...screens, createScreenItem(draft, screens.map((screen) => screen.id))])
+          }
+          onEditScreen={(id, draft) => applyScreens(applyScreenDraft(screens, id, draft))}
+          onDeleteScreen={(id) => applyScreens(screens.filter((screen) => screen.id !== id))}
+          onGoToFlows={onGoToFlows}
           onGenerate={() => {
             void generateWireframes();
+          }}
+          onGenerateScreens={(screenIds) => {
+            void generateWireframes({ screenIds });
           }}
         />
       ) : null}
@@ -414,7 +494,8 @@ export function WireframesTab({
           isGenerating={wireframesTab.isGenerating}
           regenerateMode={regenerateMode}
           selectedRegenerateIds={selectedRegenerateIds}
-          regeneratingScreenIds={wireframesTab.regeneratingScreenIds}
+          regeneratingScreenIds={wireframesTab.runningScreenIds}
+          onManageScreens={manageScreensFromResults}
           onStartRegenerate={() => {
             setRegenerateMode(true);
             setSelectedRegenerateIds(new Set());

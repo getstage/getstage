@@ -122,7 +122,6 @@ export const updateArgs = {
   startDate: v.optional(v.number()),
   endDate: v.optional(v.number()),
   status: v.optional(projectStatusValidator),
-  enabledSteps: v.optional(v.array(v.string())),
   skillIds: v.optional(v.array(v.string())),
   componentPackIds: v.optional(v.array(v.string())),
 };
@@ -141,7 +140,6 @@ export async function updateHandler(
     startDate?: number;
     endDate?: number;
     status?: "active" | "paused" | "completed";
-    enabledSteps?: string[];
     skillIds?: string[];
     componentPackIds?: string[];
   },
@@ -219,13 +217,6 @@ export async function updateHandler(
   changed("startDate", nextStartDate, project.startDate);
   changed("endDate", nextEndDate, project.endDate);
   if (args.status !== undefined) changed("status", args.status, project.status);
-  if (args.enabledSteps !== undefined) {
-    // Normalize: de-dupe, drop blanks. "overview" is always enabled, so it is never stored.
-    const nextSteps = Array.from(
-      new Set(args.enabledSteps.map((step) => step.trim()).filter((step) => step && step !== "overview")),
-    );
-    patch.enabledSteps = nextSteps;
-  }
   if (args.skillIds !== undefined) {
     patch.skillIds = normalizeCatalogIds(args.skillIds);
   }

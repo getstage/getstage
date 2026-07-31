@@ -63,6 +63,10 @@ export async function getFlowsInputHandler(
   return {
     projectId: String(project._id),
     projectName: project.name,
+    // Flows owns the authoritative screen list, so the project type has to reach it:
+    // a "web-app" project needs dashboard/auth/settings screens, not a marketing funnel.
+    projectType: project.type,
+    projectTypeLabel: project.typeOtherLabel,
     researchArtifactId: String(latestResearch._id),
     researchArtifactJson: latestResearch.contentJson,
     strategyArtifactId: String(latestStrategy._id),

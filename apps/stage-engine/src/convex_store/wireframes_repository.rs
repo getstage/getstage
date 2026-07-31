@@ -192,6 +192,12 @@ impl WireframesRepository {
 struct ConvexWireframesInput {
     project_id: String,
     project_name: String,
+    // `serde(default)` so a Convex deployment that predates these fields still
+    // deserializes instead of failing every wireframes run.
+    #[serde(default)]
+    project_type: String,
+    #[serde(default)]
+    project_type_label: Option<String>,
     strategy_artifact_id: String,
     strategy_artifact_json: String,
     research_artifact_id: Option<String>,
@@ -213,6 +219,8 @@ impl ConvexWireframesInput {
         WireframesInput {
             project_id: self.project_id,
             project_name: self.project_name,
+            project_type: self.project_type,
+            project_type_label: self.project_type_label,
             strategy_artifact_id: self.strategy_artifact_id,
             strategy_artifact_json: self.strategy_artifact_json,
             research_artifact_id: self.research_artifact_id,

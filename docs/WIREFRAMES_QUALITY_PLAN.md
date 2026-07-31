@@ -19,6 +19,11 @@
 | Integrations hub: Skills / Components / Marketplace UI | **In code** | `/integrations` tabs + `SkillsComponentsHub.tsx` · Figma audit `docs/FIGMA_SKILLS_COMPONENTS_AUDIT.md` |
 | User prefs for skills + component packs | **In code** | Convex `users.enabledSkillIds` / `enabledComponentPackIds` → `getWireframesInput` |
 | Hi-Fi prompt respects skill + pack toggles | **In code** | `wireframes/prompt.rs` |
+| Scoped runs drop research + filter flows | **In code** | `wireframes/prompt.rs` — a scoped re-design no longer carries the full research dump |
+| One provider call per screen, run in parallel | **In code** | `wireframes/workflow.rs` `run_screens_in_parallel`, max 4 at a time |
+| Malformed artifact no longer loses the run | **In code** | `helpers/provider_json.rs` recovers the complete screens when the root JSON breaks |
+| Partial results are saved, not discarded | **In code** | `wireframes/normalize.rs` reverts only the failed screens and reports them |
+| Engine run timings + scope in logs | **In code** | `wireframes/workflow.rs` phase timings, `prompt_chars`, provider heartbeat |
 | Local skill scan / per-project picker (Phases 3–4 full) | **Not started** | Deferred — see audit “Deferred” |
 | Phase 2 moodboard layout brief | **Not started** | After Phase 1 proof |
 

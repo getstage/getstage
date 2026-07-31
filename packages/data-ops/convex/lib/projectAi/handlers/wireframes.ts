@@ -62,6 +62,11 @@ export async function getWireframesInputHandler(
   return {
     projectId: String(project._id),
     projectName: project.name,
+    // The project type the owner picked at creation (e.g. "web-app"). Screen planning
+    // must follow it: a web app needs dashboard/auth/settings screens, not a marketing
+    // funnel. Without this the model only ever sees artifacts and defaults to a website.
+    projectType: project.type,
+    projectTypeLabel: project.typeOtherLabel,
     strategyArtifactId: String(latestStrategy._id),
     strategyArtifactJson: latestStrategy.contentJson,
     researchArtifactId: latestResearch ? String(latestResearch._id) : undefined,

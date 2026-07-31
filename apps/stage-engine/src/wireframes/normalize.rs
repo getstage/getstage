@@ -134,12 +134,18 @@ pub fn normalize_wireframes_artifact(
     Ok(JsonValue::Object(normalized))
 }
 
-pub fn merge_regenerated_screens(
+/// Folds a scoped generation response into the saved artifact.
+///
+/// `screen_ids` are the ids the run was scoped to. An id the saved artifact already has
+/// keeps its position and is replaced by the returned screen; an id it does not have yet
+/// (a screen the user added after the first pass) is appended, together with its
+/// `configureScreens` entry so the new screen is not missing from the screen list.
+fn merge_regenerated_screens(
     existing_artifact_json: &str,
     partial_artifact: JsonValue,
     screen_ids: &[String],
     kind: WireframeKind,
-) -> anyhow::Result<JsonValue> {
+) -> anyhow::Result<(JsonValue, Vec<String>)> {
     let existing = serde_json::from_str::<JsonValue>(existing_artifact_json)
         .context("existing wireframes artifact is invalid")?;
     let existing_object = existing
@@ -163,69 +169,167 @@ pub fn merge_regenerated_screens(
         .and_then(JsonValue::as_array)
         .cloned()
         .unwrap_or_default();
-    let regen_ids: std::collections::HashSet<&str> =
+    let target_ids: std::collections::HashSet<&str> =
         screen_ids.iter().map(String::as_str).collect();
 
-    for screen_id in screen_ids {
-        let found = existing_screens
-            .iter()
-            .any(|screen| screen.get("id").and_then(JsonValue::as_str) == Some(screen_id.as_str()));
-        if !found {
-            bail!("Screen {screen_id} was not found in the existing wireframes artifact.");
-        }
+    // At least one requested id must come back, otherwise the merge would report success
+    // while changing nothing at all.
+    let returned_a_requested_id = partial_screens.iter().any(|screen| {
+        screen
+            .get("id")
+            .and_then(JsonValue::as_str)
+            .is_some_and(|id| target_ids.contains(id))
+    });
+    if !returned_a_requested_id {
+        bail!(
+            "The AI response contained none of the requested wireframe screens: {}.",
+            screen_ids.join(", ")
+        );
     }
 
-    // A requested id the model omitted keeps its existing screen (via unwrap_or
-    // below) rather than discarding every regenerated screen — a partial response
-    // still lands the sections it did return. The unchanged/empty check below then
-    // catches the case where nothing actually changed for a requested id.
-    let merged_screens = existing_screens
+    // A requested id the model omitted keeps its existing screen (via unwrap_or below)
+    // rather than discarding every regenerated screen — a partial response still lands
+    // the sections it did return. The unchanged/empty check below then catches the case
+    // where nothing actually changed for a requested id.
+    let mut merged_screens = existing_screens
         .iter()
         .map(|screen| {
             let Some(id) = screen.get("id").and_then(JsonValue::as_str) else {
                 return screen.clone();
             };
-            if !regen_ids.contains(id) {
+            if !target_ids.contains(id) {
                 return screen.clone();
             }
-            partial_screens
-                .iter()
-                .find(|candidate| candidate.get("id").and_then(JsonValue::as_str) == Some(id))
+            screen_by_id(&partial_screens, id)
                 .cloned()
                 .unwrap_or_else(|| screen.clone())
         })
         .collect::<Vec<_>>();
 
-    // For Hi-Fi, a regen must materially change each requested screen. Reject an
-    // empty fragment or one identical to the pre-merge markup (the provider copied
-    // the prior html, or omitted the id entirely) so the run fails visibly instead
-    // of reporting success with no change. Lo-Fi screens carry no html, so skip.
-    if matches!(kind, WireframeKind::Hifi) {
-        let html_for = |screens: &[JsonValue], id: &str| -> String {
-            screens
-                .iter()
-                .find(|screen| screen.get("id").and_then(JsonValue::as_str) == Some(id))
-                .and_then(|screen| screen.get("html").and_then(JsonValue::as_str))
-                .unwrap_or("")
-                .to_string()
-        };
-        for screen_id in screen_ids {
-            let before = html_for(&existing_screens, screen_id);
-            let after = html_for(&merged_screens, screen_id);
-            if after.trim().is_empty() {
-                bail!("Regenerated screen {screen_id} has empty html.");
-            }
-            if !html_changed(&before, &after) {
-                bail!("Regenerated screen {screen_id} is unchanged. Retry regeneration.");
-            }
+    // Requested ids the saved artifact never had are newly added screens: append them in
+    // the order the run requested them, after the screens that already existed.
+    for screen_id in screen_ids {
+        if screen_by_id(&merged_screens, screen_id).is_some() {
+            continue;
+        }
+        if let Some(screen) = screen_by_id(&partial_screens, screen_id) {
+            merged_screens.push(screen.clone());
         }
     }
+
+    // A kind change (the Lo-Fi -> Hi-Fi conversion) rewrites the artifact's wireframeKind
+    // below, so a screen left over from the previous kind would be presented as if it had
+    // been converted — a Hi-Fi result grid showing Lo-Fi screens with no markup. A screen
+    // the user did not select is not part of this pass, so drop it instead of mixing kinds.
+    let kind_changed = existing_object
+        .get("wireframeKind")
+        .and_then(JsonValue::as_str)
+        .is_some_and(|existing| existing != kind.as_str());
+    if kind_changed {
+        merged_screens.retain(|screen| {
+            screen
+                .get("id")
+                .and_then(JsonValue::as_str)
+                .is_some_and(|id| target_ids.contains(id))
+        });
+    }
+
+    // For Hi-Fi every requested screen must end up with real markup that differs from what
+    // was saved. A screen that fails that bar is reverted to its saved version and
+    // reported, instead of failing the whole run: a ten-minute run that produced five good
+    // screens must land those five rather than throw everything away. Only a run where
+    // nothing at all landed is an error. Lo-Fi screens carry no html, so skip.
+    let mut failed_ids = Vec::new();
+    if matches!(kind, WireframeKind::Hifi) {
+        for screen_id in screen_ids {
+            let after = screen_by_id(&merged_screens, screen_id)
+                .and_then(|screen| screen.get("html").and_then(JsonValue::as_str))
+                .unwrap_or("");
+            let before = screen_by_id(&existing_screens, screen_id)
+                .and_then(|screen| screen.get("html").and_then(JsonValue::as_str))
+                .unwrap_or("");
+            if !after.trim().is_empty() && html_changed(before, after) {
+                continue;
+            }
+            failed_ids.push(screen_id.clone());
+            // Never keep a screen the provider returned empty: restore the saved version,
+            // or drop it entirely when the run was adding it for the first time.
+            match screen_by_id(&existing_screens, screen_id) {
+                Some(saved) => {
+                    let saved = saved.clone();
+                    if let Some(slot) = merged_screens.iter_mut().find(|screen| {
+                        screen.get("id").and_then(JsonValue::as_str) == Some(screen_id.as_str())
+                    }) {
+                        *slot = saved;
+                    }
+                }
+                None => merged_screens.retain(|screen| {
+                    screen.get("id").and_then(JsonValue::as_str) != Some(screen_id.as_str())
+                }),
+            }
+        }
+
+        if failed_ids.len() == screen_ids.len() {
+            bail!(
+                "None of the requested wireframe screens came back usable: {}. Retry regeneration.",
+                failed_ids.join(", ")
+            );
+        }
+    }
+
+    // configureScreens is the user-authored screen list, so its entries and their order
+    // win; entries for ids only the response knows about are appended so an appended
+    // screen is still listed.
+    let mut merged_configure = existing_object
+        .get("configureScreens")
+        .and_then(JsonValue::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let mut configure_ids: std::collections::HashSet<String> = merged_configure
+        .iter()
+        .filter_map(|entry| {
+            entry
+                .get("id")
+                .and_then(JsonValue::as_str)
+                .map(ToOwned::to_owned)
+        })
+        .collect();
+    let partial_configure = partial_object
+        .get("configureScreens")
+        .and_then(JsonValue::as_array)
+        .cloned()
+        .unwrap_or_default();
+    for entry in partial_configure {
+        let Some(id) = entry
+            .get("id")
+            .and_then(JsonValue::as_str)
+            .map(ToOwned::to_owned)
+        else {
+            continue;
+        };
+        if configure_ids.insert(id) {
+            merged_configure.push(entry);
+        }
+    }
+    let configure_count = merged_configure.len();
 
     let mut merged = existing_object.clone();
     merged.insert(
         "generatedScreens".to_string(),
         JsonValue::Array(merged_screens),
     );
+    if configure_count > 0 {
+        merged.insert(
+            "configureScreens".to_string(),
+            JsonValue::Array(merged_configure),
+        );
+        if let Some(stats) = merged.get_mut("stats").and_then(JsonValue::as_object_mut) {
+            stats.insert(
+                "totalConfigureScreenCount".to_string(),
+                json!(configure_count),
+            );
+        }
+    }
     for key in [
         "wireframeKind",
         "brandSource",
@@ -238,7 +342,31 @@ pub fn merge_regenerated_screens(
         }
     }
 
-    Ok(JsonValue::Object(merged))
+    Ok((JsonValue::Object(merged), failed_ids))
+}
+
+/// Resolves a scoped run against whatever the project already has saved.
+///
+/// With a saved artifact the returned screens are merged into it, so unselected screens
+/// survive and newly requested ids are appended. Without one there is nothing to merge
+/// into: the prompt already restricted the output to `screen_ids`, so the normalized
+/// artifact stands as the artifact. An unscoped run is a full pass and passes through.
+pub fn apply_scoped_screens(
+    existing_artifact_json: Option<&str>,
+    artifact: JsonValue,
+    screen_ids: Option<&[String]>,
+    kind: WireframeKind,
+) -> anyhow::Result<(JsonValue, Vec<String>)> {
+    let (Some(screen_ids), Some(existing_json)) = (screen_ids, existing_artifact_json) else {
+        return Ok((artifact, Vec::new()));
+    };
+    merge_regenerated_screens(existing_json, artifact, screen_ids, kind)
+}
+
+fn screen_by_id<'a>(screens: &'a [JsonValue], id: &str) -> Option<&'a JsonValue> {
+    screens
+        .iter()
+        .find(|screen| screen.get("id").and_then(JsonValue::as_str) == Some(id))
 }
 
 // Trim-insensitive equality: a regen that returns byte-identical markup (the

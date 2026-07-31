@@ -179,5 +179,3 @@ export function createMockWireframesArtifact(
     buildWireframesArtifact(projectId, MOCK_WIREFRAMES_GENERATED_AT, overrides),
   );
 }
-
-export { CANONICAL_CONFIGURE_SCREENS };

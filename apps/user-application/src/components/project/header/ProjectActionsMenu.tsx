@@ -21,7 +21,6 @@ export function ProjectActionsMenu({
         <ProjectActionItem onSelect={() => onAction("client")}>Edit Client</ProjectActionItem>
         <ProjectActionItem onSelect={() => onAction("timeline")}>Adjust Timeline</ProjectActionItem>
         <ProjectActionItem onSelect={() => onAction("phases")}>Add or remove phases</ProjectActionItem>
-        <ProjectActionItem onSelect={() => onAction("workflow")}>Edit Workflow</ProjectActionItem>
         <ProjectActionItem onSelect={() => onAction("skills")}>
           Edit Skills &amp; Components
         </ProjectActionItem>

@@ -216,17 +216,6 @@ export function useProjectHeaderActions({
     });
   }
 
-  async function saveWorkflow(enabledSteps: string[]) {
-    if (!detail) {
-      throw new Error("Project is not loaded yet.");
-    }
-
-    await updateProject.mutateAsync({
-      projectId,
-      enabledSteps,
-    });
-  }
-
   async function saveSkills(input: { skillIds: string[]; componentPackIds: string[] }) {
     if (!detail) {
       throw new Error("Project is not loaded yet.");
@@ -255,7 +244,6 @@ export function useProjectHeaderActions({
     saveClientProfile,
     saveTimeline,
     savePhases,
-    saveWorkflow,
     saveSkills,
     pauseProject,
     completeProject,

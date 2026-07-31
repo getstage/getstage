@@ -4,6 +4,8 @@ fn input() -> FlowsInput {
     FlowsInput {
         project_id: "p1".to_string(),
         project_name: "Project".to_string(),
+        project_type: "web-app".to_string(),
+        project_type_label: None,
         research_artifact_id: "r1".to_string(),
         research_artifact_json: "{}".to_string(),
         strategy_artifact_id: "s1".to_string(),
