@@ -22,7 +22,7 @@
 | **P2 desktop flash-kill** | Convex queries routed through TanStack Query (`@convex-dev/react-query`) + route loaders (`ensureQueryData`) so screens paint ready data instead of setup/empty flashes. Interim: per-tab `TabLoadingState` loader on Flows/Wireframes/Assets. Branch `feat/convex-tanstack-query-loaders`. Follow-up: strip residual `isRunsLoading`/`isStyleGuideRunsLoading` guards once live smoke confirms loader cache hits. Skill: `.agents/skills/convex-tanstack-query-adapter/` | apps/user-application/src |
 | **P0 testing round 2** | Adrien's Stage 2 feedback — **fixed 2026-07-30**: screen list now Flows-derived + project-type aware (was a hardcoded marketing fixture shipping in prod), screens add/edit/delete + persist, every run scoped to the ticked screens (a "2 screen" Hi-Fi run used to generate all 13 in one provider call), Edit Workflow removed | `apps/user-application/docs/AI/wireframes/WIREFRAMES_BUILD_PLAN.md` |
 
-**Current desktop version (work branch):** `0.1.70`
+**Current desktop version (work branch):** `0.2.17`
 
 ---
 
