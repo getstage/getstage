@@ -23,7 +23,7 @@
 | **P0 testing round 2** | Adrien's Stage 2 feedback — **fixed 2026-07-30**: screen list now Flows-derived + project-type aware (was a hardcoded marketing fixture shipping in prod), screens add/edit/delete + persist, every run scoped to the ticked screens (a "2 screen" Hi-Fi run used to generate all 13 in one provider call), Edit Workflow removed | `apps/user-application/docs/AI/wireframes/WIREFRAMES_BUILD_PLAN.md` |
 | **P0 "Stage needs a quick refresh"** | Partners hit the root error boundary on cold start — **fixed 2026-08-01**: route loaders warmed Convex data with `Promise.all`, so one rejected query (cold socket, brief network drop) threw out of the loader and replaced the app with a sign-in prompt. Loaders now settle via `warmRouteData`; the boundary leads with Try again instead of signing the user out. A genuinely signed-out user is still redirected by the `_authed` guard | `apps/user-application/src/lib/routeData.ts` |
 
-**Current desktop version (work branch):** `0.2.17`
+**Current desktop version (work branch):** `0.2.18`
 
 ---
 
