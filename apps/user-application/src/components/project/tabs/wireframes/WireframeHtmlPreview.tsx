@@ -93,8 +93,14 @@ export function WireframeHtmlThumbnail({ html }: { html: string }) {
                   (el as HTMLElement).style.height = "auto";
                 }
               }
+              // Measure the body only. `documentElement.scrollHeight` never reports less
+              // than the iframe's own viewport, which is this very element at `docHeight`
+              // — so including it pinned every screen shorter than the 900px starting
+              // height to 900 and rendered the difference as a white band, with no way
+              // back down. The collapse CSS gives the body `height: auto`, so it reports
+              // the content and nothing else.
               const measured = Math.ceil(
-                Math.max(doc.body.scrollHeight, doc.documentElement?.scrollHeight ?? 0),
+                Math.max(doc.body.scrollHeight, doc.body.getBoundingClientRect().height),
               );
               if (measured > 0) {
                 setDocHeight(Math.min(Math.max(measured, 1), 2400));
