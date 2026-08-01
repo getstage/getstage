@@ -56,23 +56,26 @@ function RootErrorBoundary({ error, reset }: ErrorComponentProps) {
           Stage needs a quick refresh
         </h1>
         <p className="mt-3 text-[15px] leading-[1.6] text-[#525252]">
-          We could not load this view. Sign in again to reconnect your account,
-          or try reloading.
+          We could not load this view. Reloading usually fixes it. If it keeps
+          happening, sign in again to reconnect your account.
         </p>
         <div className="mt-6 flex items-center gap-3">
+          {/* Reload leads: a signed-out user is redirected by the `_authed` guard and
+              never reaches this screen, so landing here means a transient failure.
+              Signing out would throw away a working session to fix a network blip. */}
           <button
             type="button"
             className="rounded-[10px] bg-[#0a0a0a] px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-[#262626]"
-            onClick={() => void signInAgain()}
+            onClick={() => reset()}
           >
-            Sign in again
+            Try again
           </button>
           <button
             type="button"
             className="rounded-[10px] border border-[#e5e5e5] px-4 py-2 text-[14px] font-medium text-[#0a0a0a] transition-colors hover:bg-[#f5f5f5]"
-            onClick={() => reset()}
+            onClick={() => void signInAgain()}
           >
-            Try again
+            Sign in again
           </button>
         </div>
       </div>
