@@ -25,7 +25,7 @@
 | **P0 Convex custom domains** | Client requirement. Move Convex API + HTTP actions onto `getstage.co` subdomains, production first, and ride the switch along with the `prod-v0.2.18` design release. Hardcoded `*.convex.cloud` / `*.convex.site` references inventoried; the switch is a Worker var + a GitHub Environment secret + the Figma allowlist, **not** an env override — overriding `CONVEX_SITE_URL` moves the JWT issuer and signs every user out. Figma re-review is the long pole, start it first | `apps/user-application/docs/AI/infra/2026-08-01-CONVEX_CUSTOM_DOMAIN_MIGRATION.md` |
 | **P1 Hi-Fi preview whitespace** | **Fixed 2026-08-01**: the thumbnail measured `documentElement.scrollHeight`, which never reports less than the iframe's own viewport, so every screen shorter than the 900px starting height stayed pinned at 900 and rendered the remainder as a white band — and could never shrink back. Now measures the body only, matching what the Figma export already did | `apps/user-application/src/components/project/tabs/wireframes/WireframeHtmlPreview.tsx` |
 
-**Current desktop version (work branch):** `0.2.18`
+**Current desktop version (work branch):** `0.2.19`
 
 ---
 
