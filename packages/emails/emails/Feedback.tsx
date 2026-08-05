@@ -2,18 +2,18 @@ import { Img, Link, Section, Text } from "@react-email/components";
 import * as React from "react";
 import { Divider, EmailLayout } from "../components/EmailLayout";
 import * as s from "../components/tokens";
-import { SLACK_INVITE_URL } from "../components/links";
+import { DISCORD_INVITE_URL } from "../components/links";
 
 export interface FeedbackProps {
   firstName?: string;
-  slackUrl?: string;
+  discordUrl?: string;
   avatarUrl?: string;
   workspaceImageUrl?: string;
 }
 
 export const Feedback = ({
   firstName = "there",
-  slackUrl = SLACK_INVITE_URL,
+  discordUrl = DISCORD_INVITE_URL,
   avatarUrl = "https://getstage.co/email/adrien-avatar.png",
   workspaceImageUrl = "https://getstage.co/email/stage-workspace.png",
 }: FeedbackProps) => (
@@ -58,8 +58,8 @@ export const Feedback = ({
 
     <Text style={s.postscript}>
       P.S. If you haven't already,{" "}
-      <Link href={slackUrl} style={s.textLink}>
-        join the Slack
+      <Link href={discordUrl} style={s.textLink}>
+        join the Discord
       </Link>{" "}
       - that's where feature requests turn into shipped updates.
     </Text>

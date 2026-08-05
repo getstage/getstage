@@ -2,7 +2,7 @@ import { Img, Link, Section, Text } from "@react-email/components";
 import * as React from "react";
 import { CTAButton, Divider, EmailLayout } from "../components/EmailLayout";
 import * as s from "../components/tokens";
-import { SLACK_INVITE_URL } from "../components/links";
+import { DISCORD_INVITE_URL } from "../components/links";
 
 export interface ClientPortalProps {
   firstName?: string;
@@ -10,7 +10,7 @@ export interface ClientPortalProps {
   markUrl?: string;
   stageIconUrl?: string;
   portalImageUrl?: string;
-  slackUrl?: string;
+  discordUrl?: string;
 }
 
 export const ClientPortal = ({
@@ -19,7 +19,7 @@ export const ClientPortal = ({
   markUrl,
   stageIconUrl = "https://getstage.co/email/stage-mark-white.png",
   portalImageUrl = "https://getstage.co/email/client-portal-mockup.png",
-  slackUrl = SLACK_INVITE_URL,
+  discordUrl = DISCORD_INVITE_URL,
 }: ClientPortalProps) => (
   <EmailLayout
     preview="Your clients don't need another Notion link."
@@ -42,16 +42,16 @@ export const ClientPortal = ({
     </Section>
 
     <Text style={s.paragraph}>
-      Stage has a built-in client portal. One link, branded with your logo,
-      colors, and custom domain. Share it with your team or your clients - they
-      see project progress, deliverables, and can leave revisions directly.
+      Stage has a built-in client portal. One link, branded with your logo and
+      brand colour. Share it with your team or your clients - they see project
+      progress, deliverables, and can leave revisions directly.
     </Text>
 
     <Divider />
 
     <Text style={s.subheading}>What makes it different:</Text>
     <Text style={s.listItem}>
-      • Your brand, your logo, your domain - not a generic tool link
+      • Your logo, your brand colour - not a generic tool link
     </Text>
     <Text style={s.listItem}>
       • Clients leave revisions right inside the portal
@@ -64,8 +64,8 @@ export const ClientPortal = ({
     </Text>
 
     <Text style={s.paragraph}>
-      No more screenshots in Slack. No more "check the Google Drive folder."
-      One link, everything in sync.
+      No more screenshots in a chat thread. No more "check the Google Drive
+      folder." One link, everything in sync.
     </Text>
 
     <CTAButton href={portalSetupUrl} label="Set up your client portal" iconUrl={stageIconUrl} />
@@ -74,8 +74,8 @@ export const ClientPortal = ({
 
     <Text style={s.postscript}>
       P.S. If you haven't already,{" "}
-      <Link href={slackUrl} style={s.textLink}>
-        join the Slack
+      <Link href={discordUrl} style={s.textLink}>
+        join the Discord
       </Link>{" "}
       - that's where feature requests turn into shipped updates.
     </Text>

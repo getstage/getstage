@@ -43,7 +43,7 @@ export function FeaturesSection() {
           />
           <FeatureCard
             title="Client Portal"
-            description="Share a polished, read-only portal so clients can follow progress without chasing you for updates."
+            description="Share a branded portal so clients follow progress and request revisions without chasing you for updates."
             image={<FeatureImage src={clientPortalImage} alt="Client portal view in Stage" motionSeed={1} />}
           />
           <div className="landing-features-lattice-cell" aria-hidden="true" />
@@ -81,7 +81,7 @@ export function FeaturesSection() {
           />
           <FeatureCard
             title="Integrations"
-            description="Connect Stripe and Google Sheets today. Figma, Notion, and Slack are on the roadmap."
+            description="Connect Stripe, Google Sheets, Notion, and Figma. Paper export runs through Paper Desktop."
             image={<IntegrationsMockup />}
             compact
             cardClassName="is-integrations"

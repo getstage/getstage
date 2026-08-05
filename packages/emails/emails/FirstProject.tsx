@@ -2,14 +2,14 @@ import { Img, Link, Section, Text } from "@react-email/components";
 import * as React from "react";
 import { CTAButton, Divider, EmailLayout } from "../components/EmailLayout";
 import * as s from "../components/tokens";
-import { SLACK_INVITE_URL } from "../components/links";
+import { DISCORD_INVITE_URL } from "../components/links";
 
 export interface FirstProjectProps {
   firstName?: string;
   openAppUrl?: string;
   markUrl?: string;
   stageIconUrl?: string;
-  slackUrl?: string;
+  discordUrl?: string;
   workspaceImageUrl?: string;
 }
 
@@ -18,7 +18,7 @@ export const FirstProject = ({
   openAppUrl = "https://getstage.co/open",
   markUrl,
   stageIconUrl = "https://getstage.co/email/stage-mark-white.png",
-  slackUrl = SLACK_INVITE_URL,
+  discordUrl = DISCORD_INVITE_URL,
   workspaceImageUrl = "https://getstage.co/email/stage-workspace.png",
 }: FirstProjectProps) => (
   <EmailLayout
@@ -52,8 +52,8 @@ export const FirstProject = ({
 
     <Text style={s.paragraph}>
       That's it. Stage takes your brief and gives you a head start - competitor
-      research, visual references, and structure - so you're not starting from
-      a blank canvas.
+      research, UX patterns, and a strategy to build the flows on - so you're
+      not starting from a blank canvas.
     </Text>
 
     <CTAButton href={openAppUrl} label="Open Stage" iconUrl={stageIconUrl} />
@@ -66,8 +66,8 @@ export const FirstProject = ({
 
     <Text style={s.postscript}>
       P.S. If you haven't already,{" "}
-      <Link href={slackUrl} style={s.textLink}>
-        join the Slack
+      <Link href={discordUrl} style={s.textLink}>
+        join the Discord
       </Link>{" "}
       - that's where feature requests turn into shipped updates.
     </Text>

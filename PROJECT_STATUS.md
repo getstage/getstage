@@ -1,7 +1,7 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-07-30
+> **Last updated:** 2026-08-05
 
 ---
 
@@ -24,6 +24,8 @@
 | **P0 "Stage needs a quick refresh"** | Partners hit the root error boundary on cold start — **fixed 2026-08-01**: route loaders warmed Convex data with `Promise.all`, so one rejected query (cold socket, brief network drop) threw out of the loader and replaced the app with a sign-in prompt. Loaders now settle via `warmRouteData`; the boundary leads with Try again instead of signing the user out. A genuinely signed-out user is still redirected by the `_authed` guard | `apps/user-application/src/lib/routeData.ts` |
 | **P0 Convex custom domains** | Client requirement. Move Convex API + HTTP actions onto `getstage.co` subdomains, production first, and ride the switch along with the `prod-v0.2.18` design release. Hardcoded `*.convex.cloud` / `*.convex.site` references inventoried; the switch is a Worker var + a GitHub Environment secret + the Figma allowlist, **not** an env override — overriding `CONVEX_SITE_URL` moves the JWT issuer and signs every user out. Figma re-review is the long pole, start it first | `apps/user-application/docs/AI/infra/2026-08-01-CONVEX_CUSTOM_DOMAIN_MIGRATION.md` |
 | **P1 Hi-Fi preview whitespace** | **Fixed 2026-08-01**: the thumbnail measured `documentElement.scrollHeight`, which never reports less than the iframe's own viewport, so every screen shorter than the 900px starting height stayed pinned at 900 and rendered the remainder as a white band — and could never shrink back. Now measures the body only, matching what the Figma export already did | `apps/user-application/src/components/project/tabs/wireframes/WireframeHtmlPreview.tsx` |
+| **P0 community move to Discord** | **Done 2026-08-05**: the Slack invite is gone from every surface. `DISCORD_INVITE_URL` (`STAGE_DISCORD_INVITE_URL` override) → `https://discord.gg/z4ZAKu6r29`, 8 lifecycle templates switched, `discord-glyph-white` glyph added (`packages/emails/emails/static/` + `apps/web-application/public/email/`), Slack glyph/workspace/icon assets deleted. Invite verified live (server "Stage"). **Make the invite non-expiring in Discord** — a bot-created invite can lapse, and then every Pro email CTA dead-ends | `packages/emails/components/links.ts`, `packages/emails/EMAIL-FLOWS.md` |
+| **P0 marketing copy vs shipped product** | **Done 2026-08-05**: audited email + landing + paywall copy against code. Removed the custom-domain promise (no backend exists; the web Save button is disabled), "no credit card required" (Stripe checkout collects a card for the 14-day trial), "no usage limits from Stage" (research 27 / moodboard 4 / voice 5-per-min credits with a `requireCredits` precheck) and the sitemap claim (no sitemap artifact exists). Shortcut copy now matches reality: `Cmd+Shift+A` opens chat, `Cmd+Shift+V` records a voice note, window capture is a manual picker inside the chat. Portal copy upgraded from "read-only" to revision requests, which have been live since `convex/portal.ts:requestTaskRevision` | `packages/emails/emails/*`, `apps/web-application/src/components/landing-v2/*`, `apps/*/src/components/onboarding/OnboardingPaywall.tsx` |
 
 **Current desktop version (work branch):** `0.2.19`
 

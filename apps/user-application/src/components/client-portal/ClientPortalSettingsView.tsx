@@ -329,11 +329,16 @@ function DomainCard() {
       <div className="flex flex-col gap-[28px]">
         <div>
           <h3 className="text-[13px] font-medium text-[#171717]">Custom Domains</h3>
-          <p className="mt-[4px] text-[12px] text-[#525252]">Use your own domain for the client portal</p>
+          <p className="mt-[4px] text-[12px] text-[#525252]">Custom portal domains are not available yet — your portal is served from a getstage.co link.</p>
         </div>
         <label className="flex flex-col gap-[8px]">
           <span className="text-[13px] font-medium text-[#171717]">Domain</span>
-          <input className="h-[34px] w-full max-w-[290px] rounded-[6px] bg-[#f5f5f5] px-[12px] text-[12px] font-medium text-[#525252] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none" placeholder="ex. www.google.com" />
+          <input
+            className="h-[34px] w-full max-w-[290px] cursor-not-allowed rounded-[6px] bg-[#f5f5f5] px-[12px] text-[12px] font-medium text-[#a3a3a3] shadow-[0_0.45px_1px_rgba(10,10,10,0.25)] outline-none"
+            placeholder="ex. www.google.com"
+            disabled
+            title="Custom domains are not available yet"
+          />
         </label>
       </div>
     </div>
@@ -369,7 +374,7 @@ function PortalPaywall({
               <div className="flex flex-col gap-[12px] text-[13px] font-medium leading-none text-[#525252]">
                 <p>Everything in Start</p>
                 <PlanFeature iconSrc="/logos/pricing/folder.svg">Unlimited projects</PlanFeature>
-                <PlanFeature iconSrc="/logos/pricing/portal.svg">Customizable client portal (your brand, your domain)</PlanFeature>
+                <PlanFeature iconSrc="/logos/pricing/portal.svg">Customizable client portal (your logo, your brand colour)</PlanFeature>
                 <PlanFeature iconSrc="/logos/pricing/priority.svg">Priority support</PlanFeature>
               </div>
               <button

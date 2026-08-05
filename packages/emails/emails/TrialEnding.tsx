@@ -2,7 +2,7 @@ import { Img, Link, Section, Text } from "@react-email/components";
 import * as React from "react";
 import { CTAButton, Divider, EmailLayout } from "../components/EmailLayout";
 import * as s from "../components/tokens";
-import { SLACK_INVITE_URL, STRIPE_BILLING_PORTAL_LOGIN_URL } from "../components/links";
+import { DISCORD_INVITE_URL, STRIPE_BILLING_PORTAL_LOGIN_URL } from "../components/links";
 
 export interface TrialEndingProps {
   firstName?: string;
@@ -10,7 +10,7 @@ export interface TrialEndingProps {
   billingPortalUrl?: string;
   markUrl?: string;
   stageIconUrl?: string;
-  slackUrl?: string;
+  discordUrl?: string;
   workspaceImageUrl?: string;
 }
 
@@ -20,7 +20,7 @@ export const TrialEnding = ({
   billingPortalUrl = STRIPE_BILLING_PORTAL_LOGIN_URL,
   markUrl,
   stageIconUrl = "https://getstage.co/email/stage-mark-white.png",
-  slackUrl = SLACK_INVITE_URL,
+  discordUrl = DISCORD_INVITE_URL,
   workspaceImageUrl = "https://getstage.co/email/stage-workspace.png",
 }: TrialEndingProps) => (
   <EmailLayout
@@ -60,11 +60,12 @@ export const TrialEnding = ({
 
     <Text style={s.subheading}>A few things you might not have tried yet:</Text>
     <Text style={s.listItem}>
-      • Use the Mac shortcut to get instant AI feedback on whatever's on your
-      screen
+      • Hit Cmd + Shift + A to ask Stage about the design you're in, or attach a
+      window for a critique
     </Text>
     <Text style={s.listItem}>
-      • Generate multiple concept directions from a single brief
+      • Collect Refero and Figma references into moodboard directions, then turn
+      the one you pick into a style guide
     </Text>
     <Text style={s.listItem}>
       • Use the portal to collect client revisions in one place
@@ -80,8 +81,8 @@ export const TrialEnding = ({
 
     <Text style={s.postscript}>
       P.S. If you haven't already,{" "}
-      <Link href={slackUrl} style={s.textLink}>
-        join the Slack
+      <Link href={discordUrl} style={s.textLink}>
+        join the Discord
       </Link>{" "}
       - that's where feature requests turn into shipped updates.
     </Text>

@@ -13,7 +13,7 @@ export const PRO_FEATURES = [
   { iconSrc: "/logos/pricing/folder.svg", label: "Unlimited projects" },
   { iconSrc: "/logos/pricing/connect.svg", label: "Connect Claude, Figma, Notion & more" },
   { iconSrc: "/logos/pricing/storage.svg", label: "Unlimited file storage" },
-  { iconSrc: "/logos/pricing/portal.svg", label: "Customizable client portal (your brand, your domain)" },
+  { iconSrc: "/logos/pricing/portal.svg", label: "Customizable client portal (your logo, your brand colour)" },
   { iconSrc: "/logos/pricing/priority.svg", label: "Priority support" },
 ];
 
