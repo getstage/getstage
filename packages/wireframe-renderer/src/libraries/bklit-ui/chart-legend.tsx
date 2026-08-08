@@ -9,11 +9,11 @@ export function ChartLegend({
   className?: string;
 }) {
   return (
-    <ul className={cn("flex flex-wrap items-center gap-4 text-primary", className)}>
+    <ul className={cn("flex flex-wrap items-center gap-4", className)}>
       {items.map((item, index) => (
         <li key={item} className="flex items-center gap-2 text-xs text-muted-foreground">
           <span
-            className="size-2.5 rounded-full bg-current text-primary"
+            className="size-2.5 rounded-full bg-current"
             style={{ opacity: seriesOpacity(index, items.length) }}
           />
           {item}

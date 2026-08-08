@@ -98,6 +98,58 @@ impl RendererLibraries {
     }
 }
 
+/// The style guide this run designs against, shaped for the renderer's `theme` input.
+///
+/// The renderer maps it onto the CSS variables every vendored library reads, so `Button`
+/// and `Card` come out in the project's brand instead of the grayscale defaults. Returns
+/// `None` when there is no style guide to apply — the renderer then keeps its defaults.
+pub fn brand_theme(
+    moodboard_artifact_json: Option<&str>,
+    style_direction_id: Option<&str>,
+) -> Option<JsonValue> {
+    let artifact: JsonValue = serde_json::from_str(moodboard_artifact_json?).ok()?;
+    let guides = artifact.get("styleGuides")?.as_array()?;
+    // A run pinned to a direction must theme from that direction's guide, not whichever
+    // one happens to be first.
+    let guide = style_direction_id
+        .and_then(|id| {
+            guides.iter().find(|guide| {
+                guide.get("directionId").and_then(JsonValue::as_str) == Some(id)
+                    || guide.get("id").and_then(JsonValue::as_str) == Some(id)
+            })
+        })
+        .or_else(|| guides.first())?;
+
+    let palettes: Vec<JsonValue> = guide
+        .get("colorPalettes")
+        .and_then(JsonValue::as_array)
+        .map(|entries| {
+            entries
+                .iter()
+                .filter_map(|entry| {
+                    let hex = entry.get("hex").and_then(JsonValue::as_str)?;
+                    Some(json!({
+                        "label": entry.get("label").and_then(JsonValue::as_str).unwrap_or(""),
+                        "hex": hex,
+                        "colors": entry.get("colors").cloned().unwrap_or_else(|| json!([])),
+                    }))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let font_family = guide
+        .get("typography")
+        .and_then(|typography| typography.get("fontFamily"))
+        .and_then(JsonValue::as_str)
+        .unwrap_or("");
+
+    if palettes.is_empty() && font_family.is_empty() {
+        return None;
+    }
+    Some(json!({ "fontFamily": font_family, "palettes": palettes }))
+}
+
 /// Opt out with `STAGE_WIREFRAMES_REACT_RENDER=0`.
 pub fn react_render_enabled() -> bool {
     match std::env::var("STAGE_WIREFRAMES_REACT_RENDER").as_deref() {
@@ -151,6 +203,7 @@ fn set_render_mode(screen: &mut JsonValue, mode: &str) {
 pub async fn apply_react_render(
     artifact: &mut JsonValue,
     libraries: &RendererLibraries,
+    theme: Option<&JsonValue>,
 ) -> anyhow::Result<Vec<RenderFailure>> {
     let Some(screens) = artifact
         .get_mut("generatedScreens")
@@ -181,7 +234,7 @@ pub async fn apply_react_render(
         return Ok(Vec::new());
     }
 
-    let rendered = match render_batch(libraries, &batch).await {
+    let rendered = match render_batch(libraries, theme, &batch).await {
         Ok(payload) => payload,
         Err(error) => {
             tracing::warn!(%error, "wireframe react renderer unavailable; keeping html fallback");
@@ -226,6 +279,7 @@ pub async fn apply_react_render(
 
 async fn render_batch(
     libraries: &RendererLibraries,
+    theme: Option<&JsonValue>,
     screens: &[JsonValue],
 ) -> anyhow::Result<RenderPayload> {
     let root = renderer_root();
@@ -238,11 +292,16 @@ async fn render_batch(
         );
     }
 
-    let input = json!({
+    let mut input = json!({
         "version": 1,
         "libraries": libraries.as_json(),
         "screens": screens,
     });
+    if let Some(theme) = theme
+        && let Some(object) = input.as_object_mut()
+    {
+        object.insert("theme".to_string(), theme.clone());
+    }
     let node_binary =
         std::env::var_os("STAGE_WIREFRAME_NODE_BINARY").unwrap_or_else(|| "node".into());
     let mut child = Command::new(node_binary)

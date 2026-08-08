@@ -131,6 +131,15 @@ Canvas / height rules (mandatory — Stage crops and exports by content height):
 - Modal, form, invite, success, and step screens: content-sized card/panel with modest outer padding. Do NOT vertically center a small card inside a full frame of empty white.
 - Prefer one root element that wraps only real UI — no spacer divs whose only job is to fill the frame.
 
+Motion and interaction (CSS only — it survives the static render, JavaScript does not):
+- Give interactive elements real states: `hover:`, `focus-visible:`, `active:`, `group-hover:`, with `transition-colors` or `transition-all duration-200`. A screen with no hover states reads as a screenshot.
+- Use Tailwind's CSS animation utilities (`animate-pulse`, `animate-marquee` where a Sections library exports a marquee) and `motion-reduce:animate-none`. These run in the render; JS-driven animation does not.
+- Do NOT rely on any JavaScript library's animate/initial props for the visible result — a motion component renders only its resting state.
+
+Brand surfaces:
+- The selected component library already reads this project's palette from its own CSS variables, so a plain `<Button>` or `<Card>` is already on-brand. Do not re-skin them with hardcoded colors; add brand color only where you are styling your own layout.
+- Check contrast against the section you place things in: a dark section needs light text and light chart colors set on the element or an ancestor.
+
 Multi-step / wizard / onboarding / success screens (mandatory — the render is static, no client JavaScript):
 - Emit ONLY the active step's UI for that screen. Do NOT include sibling steps hidden with hidden/aria-hidden or display:none.
 - One screen id = one visible frame. Motion components render their initial static state.

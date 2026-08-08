@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { MantineProvider } from "./libraries/mantine";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { themeCss, type BrandTheme } from "./theme";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
@@ -54,6 +55,8 @@ type BatchInput = {
   version: 1;
   /** Virtual module specifier -> library directory under `src/libraries`. */
   libraries: Record<string, string>;
+  /** The project's style guide, mapped onto the CSS variables the libraries read. */
+  theme?: BrandTheme;
   screens: ScreenInput[];
 };
 type ScreenOutput = { id: string; html: string; error?: string };
@@ -126,13 +129,15 @@ function writeScreens(input: BatchInput, batchDirectory: string) {
   });
 }
 
-function buildCss(baseLibraryId: string, batchDirectory: string) {
+function buildCss(baseLibraryId: string, batchDirectory: string, theme: BrandTheme | undefined) {
   const globalCss = fs.readFileSync(path.join(ROOT, "src", "globals.css"), "utf8");
   const cssInput = [
     '@import "tailwindcss" source(none);',
     `@source "${path.join(ROOT, "src").replaceAll("\\", "/")}";`,
     `@source "${batchDirectory.replaceAll("\\", "/")}/*.tsx";`,
     globalCss.replace('@import "tailwindcss";', ""),
+    // After globals.css so the project's brand overrides the grayscale defaults.
+    themeCss(theme),
   ].join("\n");
   const inputPath = path.join(batchDirectory, "input.css");
   const outputPath = path.join(batchDirectory, "output.css");
@@ -189,7 +194,7 @@ async function renderBatch(input: BatchInput) {
 
   try {
     const screens = writeScreens(input, batchDirectory);
-    const css = buildCss(baseLibraryId, batchDirectory);
+    const css = buildCss(baseLibraryId, batchDirectory, input.theme);
     const output: ScreenOutput[] = [];
 
     for (const screen of screens) {

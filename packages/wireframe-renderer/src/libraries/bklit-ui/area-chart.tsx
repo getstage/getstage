@@ -18,7 +18,7 @@ export function AreaChart({
     <svg
       viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
       preserveAspectRatio="none"
-      className={cn("h-full w-full text-primary", className)}
+      className={cn("h-full w-full", className)}
       role="img"
       aria-label={label}
     >

@@ -22,7 +22,7 @@ export function DonutChart({
   return (
     <svg
       viewBox={`0 0 ${DONUT_SIZE} ${DONUT_SIZE}`}
-      className={cn("h-full w-full text-primary", className)}
+      className={cn("h-full w-full", className)}
       role="img"
       aria-label={label}
     >

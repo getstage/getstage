@@ -19,7 +19,7 @@ export function Sparkline({
     <svg
       viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
       preserveAspectRatio="none"
-      className={cn("h-8 w-full text-primary", className)}
+      className={cn("h-8 w-full", className)}
       role="img"
       aria-label={label}
     >

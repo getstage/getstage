@@ -15,7 +15,8 @@ use crate::runs::RunEventSink;
 use crate::wireframes::normalize::{apply_scoped_screens, normalize_wireframes_artifact};
 use crate::wireframes::prompt::{build_wireframes_prompt, resolve_hifi_prompt_preferences};
 use crate::wireframes::render::{
-    RendererLibraries, apply_react_render, react_render_enabled, repair_prompt_for_failures,
+    RendererLibraries, apply_react_render, brand_theme, react_render_enabled,
+    repair_prompt_for_failures,
 };
 use crate::wireframes::{MAX_BRAND_KIT_BYTES, MAX_BRAND_KIT_FILES};
 
@@ -338,8 +339,19 @@ impl WireframesWorkflow {
             if matches!(wireframe_kind, WireframeKind::Hifi) && react_render_enabled() {
                 let pack_ids = resolve_hifi_prompt_preferences(&input).component_pack_ids;
                 let libraries = RendererLibraries::resolve(&pack_ids);
+                // The style guide has to reach the renderer, not just the prompt: without it
+                // every real component falls back to the grayscale defaults in globals.css.
+                let theme = brand_theme(
+                    input.moodboard_artifact_json.as_deref(),
+                    style_direction_id.as_deref(),
+                );
+                tracing::info!(
+                    run_id = %run_id,
+                    brand_theme_applied = theme.is_some(),
+                    "resolved wireframe renderer brand theme"
+                );
                 let render_started = Instant::now();
-                let failures = apply_react_render(&mut artifact, &libraries)
+                let failures = apply_react_render(&mut artifact, &libraries, theme.as_ref())
                     .await
                     .unwrap_or_default();
                 tracing::info!(
@@ -377,7 +389,7 @@ impl WireframesWorkflow {
                     {
                         Ok(repair_normalized) => {
                             merge_tsx_screens(&mut artifact, &repair_normalized);
-                            let _ = apply_react_render(&mut artifact, &libraries).await;
+                            let _ = apply_react_render(&mut artifact, &libraries, theme.as_ref()).await;
                         }
                         Err(error) => tracing::warn!(
                             run_id = %run_id,
