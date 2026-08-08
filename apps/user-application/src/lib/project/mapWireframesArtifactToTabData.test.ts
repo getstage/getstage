@@ -24,6 +24,8 @@ function artifact(screens: ScreenItem[]): WireframesArtifact {
     projectId: "project-1",
     title: "Wireframes",
     wireframeKind: "hifi",
+    viewport: "desktop",
+    frameWidth: 1440,
     stats: { flowsScreenCount: 2, moodboardPatternCount: 0, totalConfigureScreenCount: 2 },
     configureScreens: screens,
     generatedScreens: [
@@ -33,6 +35,7 @@ function artifact(screens: ScreenItem[]): WireframesArtifact {
         priority: "P1",
         generatedAtLabel: "6th April, 2025",
         sections: [],
+        renderMode: "html-fallback",
       },
     ],
     generatedAt: 1_744_000_000_000,

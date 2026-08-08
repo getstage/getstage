@@ -6,6 +6,11 @@ export const wireframeBrandSourceSchema = z.enum(["style-guide", "brand-kit"]);
 
 export const wireframeScreenKindSchema = z.enum(["Page", "Section"]);
 
+export const wireframeRenderModeSchema = z.enum(["react", "html-fallback"]);
+
+/** The frame a run was designed for. Derived from the project type by the engine. */
+export const wireframeViewportSchema = z.enum(["mobile", "desktop"]);
+
 export const wireframeConfigureScreenSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -79,6 +84,10 @@ export const wireframeGeneratedScreenSchema = z.object({
   // Hi-Fi source of truth: a self-contained HTML fragment that renders this
   // screen as a final design. Absent for Lo-Fi (block-only) screens.
   html: z.string().optional(),
+  // How that HTML was produced. The React path falls back silently, so without this
+  // a screen built from real library components is indistinguishable from one the
+  // model hand-wrote. Artifacts predating the React renderer are all fallbacks.
+  renderMode: wireframeRenderModeSchema.default("html-fallback"),
 });
 
 export const wireframesStatsSchema = z.object({
@@ -103,6 +112,9 @@ export const wireframesArtifactSchema = z.object({
   projectId: z.string().min(1),
   title: z.string().min(1),
   wireframeKind: wireframeKindSchema,
+  // Artifacts predating the viewport axis were all designed at desktop width.
+  viewport: wireframeViewportSchema.default("desktop"),
+  frameWidth: z.number().int().positive().default(1440),
   brandSource: wireframeBrandSourceSchema.optional(),
   styleDirectionId: z.string().min(1).optional(),
   stats: wireframesStatsSchema,
@@ -118,6 +130,8 @@ export const wireframesArtifactSchema = z.object({
 export type WireframeKind = z.infer<typeof wireframeKindSchema>;
 export type WireframeBrandSource = z.infer<typeof wireframeBrandSourceSchema>;
 export type WireframeScreenKind = z.infer<typeof wireframeScreenKindSchema>;
+export type WireframeRenderMode = z.infer<typeof wireframeRenderModeSchema>;
+export type WireframeViewport = z.infer<typeof wireframeViewportSchema>;
 export type WireframeConfigureScreen = z.infer<typeof wireframeConfigureScreenSchema>;
 export type WireframeBrandKit = z.infer<typeof wireframeBrandKitSchema>;
 export type WireframeBlockKind = z.infer<typeof wireframeBlockKindSchema>;

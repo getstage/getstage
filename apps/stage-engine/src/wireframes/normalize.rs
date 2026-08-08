@@ -2,7 +2,9 @@ use anyhow::{Context, bail};
 use serde_json::{Map as JsonMap, Value as JsonValue, json};
 
 use super::{MAX_BLOCKS_PER_SECTION, MAX_SECTIONS_PER_SCREEN};
-use crate::models::wireframes::{WireframeBrandSource, WireframeKind, WireframesInput};
+use crate::models::wireframes::{
+    WireframeBrandSource, WireframeKind, WireframeViewport, WireframesInput,
+};
 use crate::wireframes::prompt::component_pack_css;
 
 const ALLOWED_BLOCK_KINDS: &[&str] = &[
@@ -95,6 +97,9 @@ pub fn normalize_wireframes_artifact(
     normalized.insert("projectId".to_string(), json!(input.project_id));
     normalized.insert("title".to_string(), json!(title));
     normalized.insert("wireframeKind".to_string(), json!(kind.as_str()));
+    let viewport = WireframeViewport::from_project_type(&input.project_type);
+    normalized.insert("viewport".to_string(), json!(viewport.as_str()));
+    normalized.insert("frameWidth".to_string(), json!(viewport.frame_width()));
     if let Some(brand_source) = brand_source {
         let value = match brand_source {
             WireframeBrandSource::StyleGuide => "style-guide",
@@ -332,6 +337,8 @@ fn merge_regenerated_screens(
     }
     for key in [
         "wireframeKind",
+        "viewport",
+        "frameWidth",
         "brandSource",
         "styleDirectionId",
         "generatedAt",

@@ -5,23 +5,55 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { MantineProvider } from "@mantine/core";
+import { MantineProvider } from "./libraries/mantine";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
-const BASE_IDS = new Set(["shadcn-ui", "kokonut-ui", "origin-ui", "mantine"]);
-const SECTION_IDS = new Set(["magic-ui", "aceternity-ui"]);
-const ALLOWED_IMPORTS = new Set(["react", "lucide-react", "@stage/base", "@stage/sections"]);
+
+/// Scratch space for one batch. The digest covers the screen source, so every run gets a
+/// fresh directory that is never reused, and each holds a full compiled Tailwind build —
+/// left behind they grow the repo by hundreds of KB per generation. A batch removes its own
+/// directory when it finishes; the age sweep only exists to collect batches whose process
+/// was killed before it could.
+const BATCH_ROOT = path.join(ROOT, ".stage-batches");
+const BATCH_TTL_MS = 60 * 60 * 1000;
+
+function pruneAbandonedBatches() {
+  if (!fs.existsSync(BATCH_ROOT)) return;
+  const cutoff = Date.now() - BATCH_TTL_MS;
+  for (const entry of fs.readdirSync(BATCH_ROOT)) {
+    const directory = path.join(BATCH_ROOT, entry);
+    try {
+      if (fs.statSync(directory).mtimeMs < cutoff) {
+        fs.rmSync(directory, { recursive: true, force: true });
+      }
+    } catch {
+      // A concurrent renderer may have swept it first; nothing to recover.
+    }
+  }
+}
+
+/// The virtual modules generated TSX may import, and the library each one can resolve to.
+/// A slot the run did not select is simply absent from `libraries` — there is no "none"
+/// value to thread through the rewrite, so an unselected slot fails at validation with a
+/// clear message instead of resolving to a missing directory.
+const LIBRARY_SLOTS: Record<string, ReadonlySet<string>> = {
+  "@stage/base": new Set(["shadcn-ui", "kokonut-ui", "origin-ui", "mantine"]),
+  "@stage/sections": new Set(["magic-ui", "aceternity-ui"]),
+  "@stage/charts": new Set(["bklit-ui"]),
+};
+const BASE_MODULE = "@stage/base";
+const FREE_IMPORTS = new Set(["react", "lucide-react"]);
 const FORBIDDEN_GLOBALS =
   /\b(process|globalThis|global|require|eval|Function|fetch|WebSocket|XMLHttpRequest)\b/;
 
 type ScreenInput = { id: string; tsx: string };
 type BatchInput = {
   version: 1;
-  baseLibraryId: string;
-  sectionsLibraryId?: string | null;
+  /** Virtual module specifier -> library directory under `src/libraries`. */
+  libraries: Record<string, string>;
   screens: ScreenInput[];
 };
 type ScreenOutput = { id: string; html: string; error?: string };
@@ -30,17 +62,24 @@ function validateBatch(value: unknown): BatchInput {
   if (!value || typeof value !== "object") throw new Error("Renderer input must be an object.");
   const input = value as Partial<BatchInput>;
   if (input.version !== 1) throw new Error("Renderer input version must be 1.");
-  if (!input.baseLibraryId || !BASE_IDS.has(input.baseLibraryId)) {
-    throw new Error(`Unsupported base library: ${input.baseLibraryId ?? "missing"}`);
+
+  const libraries = input.libraries;
+  if (!libraries || typeof libraries !== "object") {
+    throw new Error("Renderer input must include libraries{}.");
   }
-  if (input.sectionsLibraryId && !SECTION_IDS.has(input.sectionsLibraryId)) {
-    throw new Error(`Unsupported sections library: ${input.sectionsLibraryId}`);
+  for (const [module, libraryId] of Object.entries(libraries)) {
+    const allowed = LIBRARY_SLOTS[module];
+    if (!allowed) throw new Error(`Unknown library slot: ${module}`);
+    if (!allowed.has(libraryId)) {
+      throw new Error(`Unsupported library for ${module}: ${libraryId}`);
+    }
   }
+  if (!libraries[BASE_MODULE]) throw new Error(`Renderer input must bind ${BASE_MODULE}.`);
   if (!Array.isArray(input.screens)) throw new Error("Renderer input must include screens[].");
   return input as BatchInput;
 }
 
-function validateTsx(tsx: string, hasSections: boolean) {
+function validateTsx(tsx: string, boundModules: ReadonlySet<string>) {
   if (tsx.length > 250_000) throw new Error("Screen TSX exceeds 250 KB.");
   if (FORBIDDEN_GLOBALS.test(tsx) || /\bimport\s*\(/.test(tsx)) {
     throw new Error("Screen TSX contains a forbidden runtime capability.");
@@ -54,46 +93,40 @@ function validateTsx(tsx: string, hasSections: boolean) {
   );
   for (const match of imports) {
     const specifier = match[1];
-    if (!ALLOWED_IMPORTS.has(specifier)) {
-      throw new Error(`Import "${specifier}" is not allowed.`);
+    if (FREE_IMPORTS.has(specifier) || boundModules.has(specifier)) continue;
+    if (specifier in LIBRARY_SLOTS) {
+      throw new Error(`TSX imports ${specifier}, but that library is not selected for this run.`);
     }
-    if (specifier === "@stage/sections" && !hasSections) {
-      throw new Error("TSX imports @stage/sections, but no Sections library is selected.");
-    }
+    throw new Error(`Import "${specifier}" is not allowed.`);
   }
 }
 
 function writeScreens(input: BatchInput, batchDirectory: string) {
   fs.mkdirSync(batchDirectory, { recursive: true });
-  const nodeModules = path.join(batchDirectory, "node_modules");
-  if (!fs.existsSync(nodeModules)) {
-    fs.symlinkSync(path.join(ROOT, "node_modules"), nodeModules, "junction");
-  }
+
+  const bindings = Object.entries(input.libraries);
+  const boundModules = new Set(bindings.map(([module]) => module));
 
   return input.screens.map((screen, index) => {
-    validateTsx(screen.tsx, Boolean(input.sectionsLibraryId));
-    const safeId = screen.id.replace(/[^a-zA-Z0-9_-]/g, "_") || `screen-${index}`;
+    validateTsx(screen.tsx, boundModules);
+    const safeId = screen.id.replaceAll(/[^a-zA-Z0-9_-]/g, "_") || `screen-${index}`;
     const source = /\bimport\s+(?:\*\s+as\s+)?React\b/.test(screen.tsx)
       ? screen.tsx
       : `import React from "react";\n${screen.tsx}`;
-    const rewritten = source
-      .replaceAll('"@stage/base"', `"@/libraries/${input.baseLibraryId}"`)
-      .replaceAll("'@stage/base'", `'@/libraries/${input.baseLibraryId}'`)
-      .replaceAll(
-        '"@stage/sections"',
-        `"@/libraries/${input.sectionsLibraryId ?? "__missing-sections__"}"`,
-      )
-      .replaceAll(
-        "'@stage/sections'",
-        `'@/libraries/${input.sectionsLibraryId ?? "__missing-sections__"}'`,
-      );
+    const rewritten = bindings.reduce(
+      (tsx, [module, libraryId]) =>
+        tsx
+          .replaceAll(`"${module}"`, `"@/libraries/${libraryId}"`)
+          .replaceAll(`'${module}'`, `'@/libraries/${libraryId}'`),
+      source,
+    );
     const filePath = path.join(batchDirectory, `${index}-${safeId}.tsx`);
     fs.writeFileSync(filePath, rewritten, "utf8");
     return { ...screen, filePath };
   });
 }
 
-function buildCss(input: BatchInput, batchDirectory: string) {
+function buildCss(baseLibraryId: string, batchDirectory: string) {
   const globalCss = fs.readFileSync(path.join(ROOT, "src", "globals.css"), "utf8");
   const cssInput = [
     '@import "tailwindcss" source(none);',
@@ -120,7 +153,7 @@ function buildCss(input: BatchInput, batchDirectory: string) {
   }
 
   const tailwindCss = fs.readFileSync(outputPath, "utf8");
-  if (input.baseLibraryId !== "mantine") return tailwindCss;
+  if (baseLibraryId !== "mantine") return tailwindCss;
   const mantineCss = fs.readFileSync(require.resolve("@mantine/core/styles.css"), "utf8");
   return `${mantineCss}\n${tailwindCss}`;
 }
@@ -150,26 +183,33 @@ async function renderBatch(input: BatchInput) {
     .update(JSON.stringify(input))
     .digest("hex")
     .slice(0, 16);
-  const batchDirectory = path.join(os.tmpdir(), "stage-wireframe-renderer", digest);
-  const screens = writeScreens(input, batchDirectory);
-  const css = buildCss(input, batchDirectory);
-  const output: ScreenOutput[] = [];
+  const batchDirectory = path.join(BATCH_ROOT, digest);
+  const baseLibraryId = input.libraries[BASE_MODULE];
+  pruneAbandonedBatches();
 
-  for (const screen of screens) {
-    try {
-      output.push({
-        id: screen.id,
-        html: await renderScreen(screen.filePath, input.baseLibraryId, css),
-      });
-    } catch (error) {
-      output.push({
-        id: screen.id,
-        html: "",
-        error: error instanceof Error ? error.stack ?? error.message : String(error),
-      });
+  try {
+    const screens = writeScreens(input, batchDirectory);
+    const css = buildCss(baseLibraryId, batchDirectory);
+    const output: ScreenOutput[] = [];
+
+    for (const screen of screens) {
+      try {
+        output.push({
+          id: screen.id,
+          html: await renderScreen(screen.filePath, baseLibraryId, css),
+        });
+      } catch (error) {
+        output.push({
+          id: screen.id,
+          html: "",
+          error: error instanceof Error ? error.stack ?? error.message : String(error),
+        });
+      }
     }
+    return { version: 1 as const, screens: output };
+  } finally {
+    fs.rmSync(batchDirectory, { recursive: true, force: true });
   }
-  return { version: 1 as const, screens: output };
 }
 
 async function main() {

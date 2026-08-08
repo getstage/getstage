@@ -57,6 +57,8 @@ export function withConfigureScreens(
 export function mapWireframesArtifactToTabData(artifact: WireframesArtifact): WireframesTabData {
   return {
     wireframeKind: artifact.wireframeKind,
+    viewport: artifact.viewport,
+    frameWidth: artifact.frameWidth,
     brandSource: artifact.brandSource ?? null,
     styleDirectionId: artifact.styleDirectionId ?? null,
     configureScreens: artifact.configureScreens.map(mapConfigureScreenToScreenItem),
@@ -75,6 +77,7 @@ export function mapWireframesArtifactToTabData(artifact: WireframesArtifact): Wi
       goal: screen.goal,
       sections: screen.sections,
       html: screen.html,
+      renderMode: screen.renderMode,
     })),
   };
 }
@@ -85,6 +88,8 @@ export type WireframeResultCard = ScreenItem & {
   goal?: string;
   sections?: WireframeGeneratedScreen["sections"];
   html?: string;
+  /** How `html` was produced. Defaulted by the contract, so it is always set. */
+  renderMode: WireframeGeneratedScreen["renderMode"];
   figmaUrl?: string;
 };
 
@@ -118,6 +123,9 @@ export function buildResultCards(
         goal: generated?.goal,
         sections: generated?.sections,
         html: generated?.html,
+        // A screen with no generated entry has no HTML at all, so "fallback" is the
+        // honest reading: nothing came out of the React renderer for it.
+        renderMode: generated?.renderMode ?? "html-fallback",
         figmaUrl: generated?.figmaUrl,
       };
     });

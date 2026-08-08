@@ -35,7 +35,7 @@ export type ComponentPackCatalogItem = {
    * at most one `sections` pack. `primitives` packs have no visual design of their own,
    * so they stay browsable in Integrations but are never offered in a project selector.
    */
-  packKind: "base" | "sections" | "primitives";
+  packKind: "base" | "sections" | "primitives" | "charts";
   installsLabel: string;
   /** Stage Hi-Fi prompt hints only — not a skills.sh package */
   promptHint: string;
@@ -287,6 +287,19 @@ export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
     installsLabel: "5.2K Installs",
     promptHint:
       "Accessible form and notification patterns with consistent control heights and readable contrast.",
+  },
+  {
+    id: "bklit-ui",
+    name: "Bklit UI",
+    description: "Design-engineered data visualization components for dashboards and reporting.",
+    official: true,
+    iconSrc: "/logos/component-packs/bklit.svg",
+    defaultEnabled: false,
+    category: "SaaS",
+    packKind: "charts",
+    installsLabel: "Not listed on skills.sh",
+    promptHint:
+      "Render metrics, trends, and reporting as real charts — area, bar, line, donut, sparkline — instead of faking graphs with divs.",
   },
 ] as const;
 

@@ -4,25 +4,98 @@
       "id": "shadcn-ui",
       "name": "shadcn/ui",
       "source": "https://ui.shadcn.com",
-      "exports": ["Badge", "Button", "Card", "CardContent", "CardDescription", "CardFooter", "CardHeader", "CardTitle", "Input", "Label", "Select", "SelectContent", "SelectItem", "SelectTrigger", "SelectValue", "Table", "TableBody", "TableCell", "TableHead", "TableHeader", "TableRow", "Tabs", "TabsContent", "TabsList", "TabsTrigger", "Textarea"]
+      "exports": [
+        "Badge",
+        "Button",
+        "Card",
+        "CardContent",
+        "CardDescription",
+        "CardFooter",
+        "CardHeader",
+        "CardTitle",
+        "Input",
+        "Label",
+        "Select",
+        "SelectContent",
+        "SelectItem",
+        "SelectTrigger",
+        "SelectValue",
+        "Table",
+        "TableBody",
+        "TableCell",
+        "TableHead",
+        "TableHeader",
+        "TableRow",
+        "Tabs",
+        "TabsContent",
+        "TabsList",
+        "TabsTrigger",
+        "Textarea"
+      ]
     },
     {
       "id": "kokonut-ui",
       "name": "Kokonut UI",
       "source": "https://kokonutui.com",
-      "exports": ["Badge", "Button", "Card", "CardContent", "CardDescription", "CardFooter", "CardHeader", "CardTitle", "CommandButton", "GradientButton", "Input", "Label", "Table", "TableBody", "TableCell", "TableHead", "TableHeader", "TableRow", "Textarea"]
+      "exports": [
+        "Badge",
+        "Button",
+        "Card",
+        "CardContent",
+        "CardDescription",
+        "CardFooter",
+        "CardHeader",
+        "CardTitle",
+        "CommandButton",
+        "GradientButton",
+        "Input",
+        "Label",
+        "Table",
+        "TableBody",
+        "TableCell",
+        "TableHead",
+        "TableHeader",
+        "TableRow",
+        "Textarea"
+      ]
     },
     {
       "id": "origin-ui",
       "name": "Origin UI",
       "source": "https://github.com/shadcn/originui",
-      "exports": ["Badge", "Button", "Input", "Table", "TableBody", "TableCell", "TableHead", "TableHeader", "TableRow", "Textarea"]
+      "exports": [
+        "Badge",
+        "Button",
+        "Input",
+        "Table",
+        "TableBody",
+        "TableCell",
+        "TableHead",
+        "TableHeader",
+        "TableRow",
+        "Textarea"
+      ]
     },
     {
       "id": "mantine",
       "name": "Mantine",
       "source": "https://mantine.dev",
-      "exports": ["Badge", "Button", "Card", "Grid", "Group", "Paper", "Select", "Stack", "Table", "Tabs", "Text", "Textarea", "TextInput", "Title"]
+      "exports": [
+        "Badge",
+        "Button",
+        "Card",
+        "Grid",
+        "Group",
+        "Paper",
+        "Select",
+        "Stack",
+        "Table",
+        "Tabs",
+        "Text",
+        "Textarea",
+        "TextInput",
+        "Title"
+      ]
     }
   ],
   "sections": [
@@ -30,13 +103,38 @@
       "id": "magic-ui",
       "name": "Magic UI",
       "source": "https://magicui.design",
-      "exports": ["BentoCard", "BentoGrid", "Marquee"]
+      "exports": [
+        "BentoCard",
+        "BentoGrid",
+        "Marquee"
+      ],
+      "usage": "BentoGrid takes children. BentoCard requires name and description; className, background, Icon (a component reference, e.g. an imported lucide-react icon), href and cta are optional. Marquee takes children and repeats them."
     },
     {
       "id": "aceternity-ui",
       "name": "Aceternity UI",
       "source": "https://ui.aceternity.com",
-      "exports": ["BentoGrid", "BentoGridItem"]
+      "exports": [
+        "BentoGrid",
+        "BentoGridItem"
+      ],
+      "usage": "BentoGrid takes children. BentoGridItem takes title, description, and optional header (a ReactNode) and icon (a ReactNode, not a component reference)."
+    }
+  ],
+  "charts": [
+    {
+      "id": "bklit-ui",
+      "name": "Bklit UI",
+      "source": "https://bklit.com",
+      "exports": [
+        "AreaChart",
+        "BarChart",
+        "ChartLegend",
+        "DonutChart",
+        "LineChart",
+        "Sparkline"
+      ],
+      "usage": "Every chart takes data: { label: string; value: number }[] and a label string for accessibility. DonutChart also takes centerLabel and derives the center total from the data. Charts inherit brand color from currentColor \u2014 set it with a text-* class on the chart or an ancestor. Give each chart a sized container (for example h-48) because they fill their parent."
     }
   ]
 }

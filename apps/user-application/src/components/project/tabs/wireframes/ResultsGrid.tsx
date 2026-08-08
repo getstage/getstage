@@ -105,20 +105,34 @@ export function ResultsGrid({
       {regenerateMode && regeneratePicker ? (
         <div className="px-4 pb-4">{regeneratePicker}</div>
       ) : null}
-      <div className="grid gap-1 lg:grid-cols-3">
-        {cards.map((card, index) => (
-          <WireframeCard
-            key={`${card.id}-${index}`}
-            card={card}
-            view={effectiveView}
-            onExport={() => onExport(card.id)}
-            regenerateMode={regenerateMode}
-            isSelected={selectedRegenerateIds.has(card.id)}
-            isRegenerating={regeneratingSet.has(card.id)}
-            onToggleRegenerate={() => onToggleRegenerateSelection(card.id)}
-          />
-        ))}
-      </div>
+      {cards.length === 0 ? (
+        // The grid only lists screens present in both the screen list and the generated
+        // set. An empty intersection used to render a blank panel with no explanation,
+        // which reads as data loss even when every screen generated fine.
+        <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 rounded-[8px] bg-white p-8 text-center shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <p className="text-[15px] font-medium leading-[1.4] text-[#171717]">
+            No screens to show yet
+          </p>
+          <p className="max-w-[380px] text-[13px] leading-[1.5] text-[#525252]">
+            Add or edit screens to pick what to design, then run Regenerate.
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-1 lg:grid-cols-3">
+          {cards.map((card, index) => (
+            <WireframeCard
+              key={`${card.id}-${index}`}
+              card={card}
+              view={effectiveView}
+              onExport={() => onExport(card.id)}
+              regenerateMode={regenerateMode}
+              isSelected={selectedRegenerateIds.has(card.id)}
+              isRegenerating={regeneratingSet.has(card.id)}
+              onToggleRegenerate={() => onToggleRegenerateSelection(card.id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -229,6 +243,14 @@ export function WireframeCard({
             <div className="mt-[7px] flex items-center gap-2 text-[12px] font-medium leading-[1.5] text-[#737373]">
               <SparkleIcon />
               {isRegenerating ? "Regenerating..." : "AI Generated"}
+              {/* Only meaningful once a Hi-Fi design exists: it says whether this screen
+                  was built from the selected component libraries or quietly fell back to
+                  markup the model wrote by hand. */}
+              {hasHtml && card.renderMode === "html-fallback" ? (
+                <span title="This screen fell back to model-written HTML — the selected component libraries were not used.">
+                  <Badge tone="rose">Fallback HTML</Badge>
+                </span>
+              ) : null}
             </div>
             <p className="mt-[3px] text-[12px] font-medium leading-[1.5] text-[#737373]">
               {generatedAtLabel}

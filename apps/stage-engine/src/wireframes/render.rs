@@ -7,26 +7,95 @@ use serde_json::{Value as JsonValue, json};
 use tokio::process::Command;
 
 const RENDER_TIMEOUT: Duration = Duration::from_secs(90);
-const BASE_LIBRARY_IDS: [&str; 4] = ["shadcn-ui", "kokonut-ui", "origin-ui", "mantine"];
-const SECTION_LIBRARY_IDS: [&str; 2] = ["magic-ui", "aceternity-ui"];
+const DEFAULT_BASE_LIBRARY: &str = "shadcn-ui";
 
-#[derive(Clone, Debug)]
-pub struct RendererLibraries {
-    pub base: String,
-    pub sections: Option<String>,
+/// How a screen's final HTML was produced. Persisted per screen because the React path
+/// falls back silently: without this, a run that produced nothing but hand-written model
+/// HTML looks identical to a fully rendered one outside the engine logs.
+pub const RENDER_MODE_REACT: &str = "react";
+pub const RENDER_MODE_FALLBACK: &str = "html-fallback";
+
+/// A virtual module the generated TSX may import, the libraries that can satisfy it, and
+/// the manifest section describing them.
+pub struct LibrarySlot {
+    pub module: &'static str,
+    pub label: &'static str,
+    pub manifest_key: &'static str,
+    pub library_ids: &'static [&'static str],
 }
 
-pub fn resolve_renderer_libraries(component_pack_ids: &[String]) -> RendererLibraries {
-    let base = component_pack_ids
-        .iter()
-        .find(|id| BASE_LIBRARY_IDS.contains(&id.as_str()))
-        .cloned()
-        .unwrap_or_else(|| "shadcn-ui".to_string());
-    let sections = component_pack_ids
-        .iter()
-        .find(|id| SECTION_LIBRARY_IDS.contains(&id.as_str()))
-        .cloned();
-    RendererLibraries { base, sections }
+/// Base first: it is the only required slot, and `RendererLibraries` relies on that order.
+pub const LIBRARY_SLOTS: [LibrarySlot; 3] = [
+    LibrarySlot {
+        module: "@stage/base",
+        label: "Base",
+        manifest_key: "base",
+        library_ids: &["shadcn-ui", "kokonut-ui", "origin-ui", "mantine"],
+    },
+    LibrarySlot {
+        module: "@stage/sections",
+        label: "Sections",
+        manifest_key: "sections",
+        library_ids: &["magic-ui", "aceternity-ui"],
+    },
+    LibrarySlot {
+        module: "@stage/charts",
+        label: "Data visuals",
+        manifest_key: "charts",
+        library_ids: &["bklit-ui"],
+    },
+];
+
+/// The libraries bound for one run. Base is stored as a plain `String` so it always
+/// resolves by construction, and the optional slots hold only what the run actually
+/// selected — there is no "unselected" value for callers to special-case.
+#[derive(Clone, Debug)]
+pub struct RendererLibraries {
+    base: String,
+    optional: Vec<(&'static str, String)>,
+}
+
+impl RendererLibraries {
+    pub fn resolve(component_pack_ids: &[String]) -> Self {
+        let selected = |slot: &LibrarySlot| {
+            component_pack_ids
+                .iter()
+                .find(|id| slot.library_ids.contains(&id.as_str()))
+                .cloned()
+        };
+        let (base_slot, optional_slots) = LIBRARY_SLOTS
+            .split_first()
+            .expect("LIBRARY_SLOTS always contains the base slot");
+
+        Self {
+            base: selected(base_slot).unwrap_or_else(|| DEFAULT_BASE_LIBRARY.to_string()),
+            optional: optional_slots
+                .iter()
+                .filter_map(|slot| selected(slot).map(|id| (slot.module, id)))
+                .collect(),
+        }
+    }
+
+    /// Every bound slot, base first, paired with the library that satisfies it.
+    pub fn selected(&self) -> impl Iterator<Item = (&'static LibrarySlot, &str)> {
+        LIBRARY_SLOTS.iter().filter_map(|slot| {
+            if slot.module == LIBRARY_SLOTS[0].module {
+                return Some((slot, self.base.as_str()));
+            }
+            self.optional
+                .iter()
+                .find(|(module, _)| *module == slot.module)
+                .map(|(_, id)| (slot, id.as_str()))
+        })
+    }
+
+    fn as_json(&self) -> JsonValue {
+        JsonValue::Object(
+            self.selected()
+                .map(|(slot, id)| (slot.module.to_string(), json!(id)))
+                .collect(),
+        )
+    }
 }
 
 /// Opt out with `STAGE_WIREFRAMES_REACT_RENDER=0`.
@@ -71,7 +140,14 @@ pub struct RenderFailure {
     pub error: String,
 }
 
-/// Renders screens carrying TSX. A failed screen keeps its existing HTML fallback.
+fn set_render_mode(screen: &mut JsonValue, mode: &str) {
+    if let Some(object) = screen.as_object_mut() {
+        object.insert("renderMode".to_string(), json!(mode));
+    }
+}
+
+/// Renders screens carrying TSX. A failed screen keeps its existing HTML fallback, and
+/// every screen is stamped with the mode that produced its final HTML.
 pub async fn apply_react_render(
     artifact: &mut JsonValue,
     libraries: &RendererLibraries,
@@ -82,6 +158,11 @@ pub async fn apply_react_render(
     else {
         return Ok(Vec::new());
     };
+
+    // Fallback is the truth until a screen is proven to have rendered.
+    for screen in screens.iter_mut() {
+        set_render_mode(screen, RENDER_MODE_FALLBACK);
+    }
 
     let mut batch = Vec::new();
     let mut tsx_by_id = std::collections::HashMap::new();
@@ -137,6 +218,7 @@ pub async fn apply_react_render(
             && let Some(object) = screen.as_object_mut()
         {
             object.insert("html".to_string(), json!(out.html));
+            object.insert("renderMode".to_string(), json!(RENDER_MODE_REACT));
         }
     }
     Ok(failures)
@@ -158,8 +240,7 @@ async fn render_batch(
 
     let input = json!({
         "version": 1,
-        "baseLibraryId": libraries.base,
-        "sectionsLibraryId": libraries.sections,
+        "libraries": libraries.as_json(),
         "screens": screens,
     });
     let node_binary =
@@ -186,24 +267,41 @@ async fn render_batch(
     let output = tokio::time::timeout(RENDER_TIMEOUT, child.wait_with_output())
         .await
         .map_err(|_| anyhow::anyhow!("wireframe renderer timed out after 90 seconds"))??;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("renderer exited {}: {stderr}", output.status);
-    }
 
-    Ok(serde_json::from_slice(&output.stdout)?)
+    // The CLI exits non-zero when every screen failed, but it still writes a valid
+    // payload whose per-screen `error` fields say why. Parsing before checking the exit
+    // status keeps those reasons; checking first collapsed them all into "exited 1" with
+    // an empty stderr, which is exactly the case worth debugging.
+    match serde_json::from_slice::<RenderPayload>(&output.stdout) {
+        Ok(payload) => Ok(payload),
+        Err(parse_error) => {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            if stderr.trim().is_empty() {
+                anyhow::bail!(
+                    "renderer exited {} and its output could not be read: {parse_error}",
+                    output.status
+                );
+            }
+            anyhow::bail!("renderer exited {}: {stderr}", output.status);
+        }
+    }
 }
 
 pub fn repair_prompt_for_failures(
     failures: &[RenderFailure],
     libraries: &RendererLibraries,
 ) -> String {
-    let sections = libraries.sections.as_deref().unwrap_or("none");
-    let mut body = format!(
-        "Repair ONLY these wireframe screens. Return generatedScreens[] with the same ids, fixed \"tsx\", and a minimal \"html\" fallback.\n\
-         Selected Base library: {}. Selected Sections library: {sections}.\n\
-         Import Base components only from \"@stage/base\" and optional Sections components only from \"@stage/sections\". Do not import Node APIs or browser globals.\n\n",
-        libraries.base
+    let mut body = String::from(
+        "Repair ONLY these wireframe screens. Return generatedScreens[] with the same ids, fixed \"tsx\", and a minimal \"html\" fallback.\n",
+    );
+    for (slot, id) in libraries.selected() {
+        body.push_str(&format!(
+            "Selected {} library: {id} — import it only from \"{}\".\n",
+            slot.label, slot.module
+        ));
+    }
+    body.push_str(
+        "Do not import any other component library, Node API, or browser global.\n\n",
     );
     for failure in failures {
         body.push_str(&format!(
@@ -219,10 +317,29 @@ mod tests {
     use super::*;
 
     #[test]
-    fn resolves_base_and_sections_independently() {
-        let ids = vec!["magic-ui".to_string(), "kokonut-ui".to_string()];
-        let libraries = resolve_renderer_libraries(&ids);
-        assert_eq!(libraries.base, "kokonut-ui");
-        assert_eq!(libraries.sections.as_deref(), Some("magic-ui"));
+    fn resolves_each_slot_independently() {
+        let ids = vec![
+            "magic-ui".to_string(),
+            "kokonut-ui".to_string(),
+            "bklit-ui".to_string(),
+        ];
+        let libraries = RendererLibraries::resolve(&ids);
+        assert_eq!(
+            libraries.as_json(),
+            json!({
+                "@stage/base": "kokonut-ui",
+                "@stage/sections": "magic-ui",
+                "@stage/charts": "bklit-ui",
+            })
+        );
+    }
+
+    #[test]
+    fn unselected_optional_slots_are_absent_and_base_defaults() {
+        let libraries = RendererLibraries::resolve(&[]);
+        assert_eq!(
+            libraries.as_json(),
+            json!({ "@stage/base": DEFAULT_BASE_LIBRARY })
+        );
     }
 }

@@ -10,12 +10,12 @@ interface BentoGridProps extends ComponentPropsWithoutRef<"div"> {
 
 interface BentoCardProps extends ComponentPropsWithoutRef<"div"> {
   name: string;
-  className: string;
-  background: ReactNode;
-  Icon: React.ElementType;
+  className?: string;
+  background?: ReactNode;
+  Icon?: React.ElementType;
   description: string;
-  href: string;
-  cta: string;
+  href?: string;
+  cta?: string;
 }
 
 export function BentoGrid({ children, className, ...props }: BentoGridProps) {
@@ -29,14 +29,17 @@ export function BentoGrid({ children, className, ...props }: BentoGridProps) {
   );
 }
 
+// Every prop except the copy is optional. A generated screen that omits `Icon` used to
+// throw "Element type is invalid" and take the whole screen down to hand-written HTML;
+// degrading to no icon is always the better trade for a wireframe.
 export function BentoCard({
   name,
   className,
   background,
   Icon,
   description,
-  href,
-  cta,
+  href = "#",
+  cta = "Learn more",
   ...props
 }: BentoCardProps) {
   return (
@@ -50,7 +53,9 @@ export function BentoCard({
       <div>{background}</div>
       <div className="p-4">
         <div className="pointer-events-none z-10 flex transform-gpu flex-col gap-1 transition-all duration-300 lg:group-hover:-translate-y-10">
-          <Icon className="h-12 w-12 origin-left transform-gpu text-neutral-700 transition-all duration-300 ease-in-out group-hover:scale-75" />
+          {Icon && (
+            <Icon className="h-12 w-12 origin-left transform-gpu text-neutral-700 transition-all duration-300 ease-in-out group-hover:scale-75" />
+          )}
           <h3 className="text-xl font-semibold text-neutral-700 dark:text-neutral-300">{name}</h3>
           <p className="max-w-lg text-neutral-400">{description}</p>
         </div>

@@ -162,13 +162,15 @@ const DESIGN_SKILLS = skillsInCategory("Design");
 const MOTION_SKILLS = skillsInCategory("Motion");
 const BASE_PACKS = packsOfKind("base");
 const SECTIONS_PACKS = packsOfKind("sections");
+const CHARTS_PACKS = packsOfKind("charts");
 
-/** Resolved ids for the four project axes, defaults applied. */
+/** Resolved ids for the five project axes, defaults applied. */
 export type ProjectSelection = {
   designSkillId: string;
   motionSkillId: string | null;
   basePackId: string;
   sectionsPackId: string | null;
+  chartsPackId: string | null;
 };
 
 /**
@@ -191,6 +193,8 @@ export function resolveProjectSelection(
       defaults.componentPackIds[0],
     sectionsPackId:
       componentPackIds.find((id) => SECTIONS_PACKS.some((pack) => pack.id === id)) ?? null,
+    chartsPackId:
+      componentPackIds.find((id) => CHARTS_PACKS.some((pack) => pack.id === id)) ?? null,
   };
 }
 
@@ -209,7 +213,7 @@ export function catalogEntry(id: string | null): { name: string; iconSrc?: strin
 }
 
 /**
- * The four project axes as dropdowns, mapped to and from the two flat id arrays the
+ * The five project axes as dropdowns, mapped to and from the two flat id arrays the
  * project stores. Unknown or legacy extra ids are dropped on the next change.
  */
 export function SkillsComponentsPanel({
@@ -232,6 +236,7 @@ export function SkillsComponentsPanel({
       componentPackIds: [
         merged.basePackId,
         ...(merged.sectionsPackId ? [merged.sectionsPackId] : []),
+        ...(merged.chartsPackId ? [merged.chartsPackId] : []),
       ],
     });
   }
@@ -265,6 +270,14 @@ export function SkillsComponentsPanel({
         options={SECTIONS_PACKS}
         selectedId={current.sectionsPackId}
         onChange={(next) => emit({ sectionsPackId: next })}
+        optional
+        disabled={disabled}
+      />
+      <CategorySelect
+        label="Data visuals (optional)"
+        options={CHARTS_PACKS}
+        selectedId={current.chartsPackId}
+        onChange={(next) => emit({ chartsPackId: next })}
         optional
         disabled={disabled}
       />

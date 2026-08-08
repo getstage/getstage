@@ -56,3 +56,6 @@ agent-mode/
 # MCP server configs are local-only; each contributor opts in via the README.
 .mcp.json
 **/.mcp.json
+
+# Wireframe renderer scratch batches
+packages/wireframe-renderer/.stage-batches/

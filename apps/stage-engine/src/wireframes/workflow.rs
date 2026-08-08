@@ -7,7 +7,7 @@ use crate::helpers::time::now_millis;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::providers::ProviderId;
 use crate::models::runs::{RunAttachment, RunAttachmentKind, RunEvent, RunStatus, StartRunRequest};
-use crate::models::wireframes::{WireframeBrandSource, WireframeKind};
+use crate::models::wireframes::{WireframeBrandSource, WireframeKind, WireframesInput};
 use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
 use crate::providers::command::provider_cli_working_directory;
 use crate::providers::process::ProviderProcessOutcome;
@@ -15,8 +15,7 @@ use crate::runs::RunEventSink;
 use crate::wireframes::normalize::{apply_scoped_screens, normalize_wireframes_artifact};
 use crate::wireframes::prompt::{build_wireframes_prompt, resolve_hifi_prompt_preferences};
 use crate::wireframes::render::{
-    apply_react_render, react_render_enabled, repair_prompt_for_failures,
-    resolve_renderer_libraries,
+    RendererLibraries, apply_react_render, react_render_enabled, repair_prompt_for_failures,
 };
 use crate::wireframes::{MAX_BRAND_KIT_BYTES, MAX_BRAND_KIT_FILES};
 
@@ -27,6 +26,14 @@ const GENERATED_AT_LABEL: &str = "just now";
 /// and took twice as long as the slowest screen for no reason. High enough for that,
 /// low enough that selecting every screen does not spawn a dozen provider CLIs at once.
 const MAX_PARALLEL_SCREEN_RUNS: usize = 6;
+
+/// What a batch of per-screen runs produced: the designs, plus the screen list every
+/// response repeats. The list matters on a first pass, where there is no saved artifact
+/// to merge into and dropping it would leave the results grid with nothing to show.
+struct ParallelScreenRuns {
+    screens: Vec<serde_json::Value>,
+    configure: Vec<serde_json::Value>,
+}
 
 #[derive(Clone, Debug)]
 pub struct WireframesWorkflow {
@@ -223,7 +230,7 @@ impl WireframesWorkflow {
                     .map(|(_, request)| request.prompt.clone())
                     .unwrap_or_default();
                 let started = Instant::now();
-                let screens = self
+                let batch = self
                     .run_screens_in_parallel(
                         api_version,
                         &run_id,
@@ -233,23 +240,28 @@ impl WireframesWorkflow {
                         &cancel_rx,
                     )
                     .await?;
-                let Some(screens) = screens else {
+                let Some(batch) = batch else {
                     tracing::info!(run_id = %run_id, "wireframes provider run cancelled");
                     return Ok(());
                 };
                 tracing::info!(
                     run_id = %run_id,
                     provider_elapsed_ms = started.elapsed().as_millis(),
-                    screens_returned = screens.len(),
+                    screens_returned = batch.screens.len(),
                     screens_requested = screen_ids.len(),
+                    configure_entries = batch.configure.len(),
                     "per-screen wireframes provider runs finished"
                 );
-                if screens.is_empty() {
+                if batch.screens.is_empty() {
                     return Err(WorkflowError::InvalidRequest(
                         "None of the selected screens could be generated. Try again.".to_string(),
                     ));
                 }
-                serde_json::json!({ "generatedScreens": screens }).to_string()
+                serde_json::json!({
+                    "generatedScreens": batch.screens,
+                    "configureScreens": batch.configure,
+                })
+                .to_string()
             } else {
                 request.prompt = build_wireframes_prompt(
                     &input,
@@ -325,7 +337,7 @@ impl WireframesWorkflow {
 
             if matches!(wireframe_kind, WireframeKind::Hifi) && react_render_enabled() {
                 let pack_ids = resolve_hifi_prompt_preferences(&input).component_pack_ids;
-                let libraries = resolve_renderer_libraries(&pack_ids);
+                let libraries = RendererLibraries::resolve(&pack_ids);
                 let render_started = Instant::now();
                 let failures = apply_react_render(&mut artifact, &libraries)
                     .await
@@ -352,23 +364,26 @@ impl WireframesWorkflow {
                         run_id: run_id.clone(),
                         request: repair_request,
                     };
-                    if let Ok(ProviderProcessOutcome::Completed(repair_text)) =
-                        run_provider_collect(repair_context, sink.clone(), cancel_rx).await
+                    match collect_repair_artifact(
+                        repair_context,
+                        sink.clone(),
+                        cancel_rx,
+                        &input,
+                        wireframe_kind,
+                        brand_source,
+                        style_direction_id.as_deref(),
+                    )
+                    .await
                     {
-                        if let Ok(repair_raw) = extract_wireframes_artifact(&repair_text) {
-                            if let Ok(repair_normalized) = normalize_wireframes_artifact(
-                                repair_raw,
-                                &input,
-                                wireframe_kind,
-                                brand_source,
-                                style_direction_id.as_deref(),
-                                now_millis(),
-                                GENERATED_AT_LABEL,
-                            ) {
-                                merge_tsx_screens(&mut artifact, &repair_normalized);
-                                let _ = apply_react_render(&mut artifact, &libraries).await;
-                            }
+                        Ok(repair_normalized) => {
+                            merge_tsx_screens(&mut artifact, &repair_normalized);
+                            let _ = apply_react_render(&mut artifact, &libraries).await;
                         }
+                        Err(error) => tracing::warn!(
+                            run_id = %run_id,
+                            %error,
+                            "wireframe TSX repair produced nothing usable; screens keep their fallback HTML"
+                        ),
                     }
                     tracing::info!(
                         run_id = %run_id,
@@ -489,7 +504,7 @@ impl WireframesWorkflow {
         requests: Vec<(String, StartRunRequest)>,
         sink: &RunEventSink,
         cancel_rx: &tokio::sync::watch::Receiver<bool>,
-    ) -> Result<Option<Vec<serde_json::Value>>, WorkflowError> {
+    ) -> Result<Option<ParallelScreenRuns>, WorkflowError> {
         let permits = Arc::new(tokio::sync::Semaphore::new(MAX_PARALLEL_SCREEN_RUNS));
         let mut tasks = tokio::task::JoinSet::new();
 
@@ -520,6 +535,12 @@ impl WireframesWorkflow {
         }
 
         let mut screens = Vec::new();
+        // Each per-screen response repeats the whole screen list (the prompt's list rule
+        // requires it). Without collecting it, a first Hi-Fi pass — which has no saved
+        // artifact to merge into — would save an artifact with no `configureScreens`, and
+        // the results grid, which only shows screens present in both lists, would render
+        // empty even though every screen generated fine.
+        let mut configure: Vec<serde_json::Value> = Vec::new();
         let mut cancelled = false;
         while let Some(joined) = tasks.join_next().await {
             let (screen_id, outcome) = joined.map_err(|error| {
@@ -542,6 +563,23 @@ impl WireframesWorkflow {
                                 "screen run finished"
                             );
                             screens.extend(returned);
+                            for entry in artifact
+                                .get("configureScreens")
+                                .and_then(serde_json::Value::as_array)
+                                .cloned()
+                                .unwrap_or_default()
+                            {
+                                let Some(id) = entry.get("id").and_then(serde_json::Value::as_str)
+                                else {
+                                    continue;
+                                };
+                                if configure.iter().any(|seen| {
+                                    seen.get("id").and_then(serde_json::Value::as_str) == Some(id)
+                                }) {
+                                    continue;
+                                }
+                                configure.push(entry);
+                            }
                         }
                         Err(error) => tracing::error!(
                             run_id = %run_id,
@@ -568,7 +606,7 @@ impl WireframesWorkflow {
         if cancelled {
             return Ok(None);
         }
-        Ok(Some(screens))
+        Ok(Some(ParallelScreenRuns { screens, configure }))
     }
 
     fn tool_started(
@@ -806,6 +844,37 @@ fn user_message(error: &WorkflowError) -> String {
             "The AI response did not match the Wireframes artifact format.".to_string()
         }
     }
+}
+
+/// One repair round-trip: ask the provider to fix the failed screens, then parse and
+/// normalize the reply. Each step returns its own error type, which is why this used to be
+/// a pyramid of `if let Ok` that dropped every failure on the floor — a repair that did
+/// nothing logged exactly like one that worked. Returning the reason lets the caller say so.
+async fn collect_repair_artifact(
+    context: ProviderRunContext,
+    sink: RunEventSink,
+    cancel_rx: tokio::sync::watch::Receiver<bool>,
+    input: &WireframesInput,
+    wireframe_kind: WireframeKind,
+    brand_source: Option<WireframeBrandSource>,
+    style_direction_id: Option<&str>,
+) -> anyhow::Result<serde_json::Value> {
+    let outcome = run_provider_collect(context, sink, cancel_rx)
+        .await
+        .map_err(|error| anyhow::anyhow!("repair provider run failed: {error}"))?;
+    let ProviderProcessOutcome::Completed(text) = outcome else {
+        anyhow::bail!("repair provider run did not complete");
+    };
+
+    normalize_wireframes_artifact(
+        extract_wireframes_artifact(&text)?,
+        input,
+        wireframe_kind,
+        brand_source,
+        style_direction_id,
+        now_millis(),
+        GENERATED_AT_LABEL,
+    )
 }
 
 fn merge_tsx_screens(target: &mut serde_json::Value, repair: &serde_json::Value) {

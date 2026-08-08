@@ -1,5 +1,7 @@
 use crate::flows::prompt::{project_type_lines, project_type_screen_guidance};
-use crate::models::wireframes::{WireframeBrandSource, WireframeKind, WireframesInput};
+use crate::models::wireframes::{
+    WireframeBrandSource, WireframeKind, WireframeViewport, WireframesInput,
+};
 
 const WIREFRAMES_SHAPE_EXAMPLE: &str = r#"{
   "apiVersion": "v1",
@@ -87,7 +89,7 @@ Anti-slop taste rules (mandatory):
 
 Canvas / height rules (mandatory — Stage crops and exports by content height):
 - NEVER use min-height: 100vh, height: 100vh, or min-height: 100% on the root wrapper or on dialog/onboarding shells. Height must come from content.
-- Modal, form, invite, success, and step screens: content-sized card/panel with modest outer padding (32–64px). Do NOT vertically center a small card inside a full desktop viewport of empty white.
+- Modal, form, invite, success, and step screens: content-sized card/panel with modest outer padding (32–64px on desktop, 16–24px on mobile). Do NOT vertically center a small card inside a full frame of empty white.
 - Marketing / long pages: stack sections tightly with consistent gaps; do not pad with large empty regions between sections.
 - Prefer one root <div> that wraps only real UI — no spacer divs whose only job is to fill the viewport.
 
@@ -96,19 +98,69 @@ Multi-step / wizard / onboarding / success screens (mandatory — Stage never ru
 - Do NOT rely on tabs, carousels, or step state that needs <script> to reveal content. One screen id = one visible frame.
 - Keep the active panel content-sized; no empty wrapper holding height for hidden siblings.
 
-Pre-flight check before returning: confirm every Hi-Fi screen has a non-empty "html" using brand colors, real copy, and at least one image; no two sections look identical; no screen relies on 100vh / empty viewport centering; and no screen hides its only content for JavaScript.
+Pre-flight check before returning: confirm every Hi-Fi screen has BOTH a non-empty "tsx" and a non-empty "html" using brand colors, real copy, and at least one image; no two sections look identical; no screen relies on 100vh / empty viewport centering; and no screen hides its only content for JavaScript.
+"#;
+
+/// Hi-Fi rules for React mode. The plain-CSS path below (`HIFI_RULES`) asks for a fully
+/// designed `html` fragment with no Tailwind and a hand-written `ui-*` class vocabulary —
+/// the exact opposite of what the real libraries need. Running both at once is what made
+/// the model return screens with no "tsx" at all, so only one of the two is ever injected.
+const HIFI_REACT_RULES: &str = r#"
+Hi-Fi mode — the design IS a React component:
+- The "tsx" field is the design. Stage compiles it against the real component libraries with real Tailwind and ships the rendered result. Put all of your effort here.
+- The "html" field is a fallback shown ONLY if that compilation fails. Keep it SHORT and plain: wrap it in ONE root <div> and use `style="..."` attributes for the few styles it needs. Do NOT put Tailwind classes in "html" — nothing compiles them there, so they would render completely unstyled. It must still be valid: one <div> root and at least one inline style, or the screen is rejected.
+- Style the TSX with Tailwind utility classes. Arbitrary values are fine and encouraged for brand fidelity (text-[13px], bg-[#F5F5F5], rounded-[6px], shadow-[0_1px_2px_rgba(0,0,0,0.08)]).
+- Still fill sections[]/blocks[] as the structural outline (used for Figma layer naming and the Lo-Fi view).
+
+Brand:
+- Derive the palette, typography, and tone from the moodboard styleGuides[] (or the attached brand kit). Apply real brand colors and fonts through Tailwind arbitrary values — never default grays/blues.
+- Set brandTokens.paletteRef and brandTokens.typographyRef to the source you used.
+
+Imagery:
+- Use topic-relevant placeholder photos via https://images.unsplash.com/...&q=80&w=1200, or branded gradient blocks. Never leave empty image boxes.
+
+Anti-slop taste rules (mandatory):
+- Cohesive system: one spacing scale, one corner radius, consistent shadows across every screen in the run.
+- Strong typographic hierarchy with intentional spacing between sections (typically 48-96px on desktop) — not huge empty bands and not cramped, centered-everything layouts.
+- Realistic copy drawn from the strategy/research artifacts — no "Lorem ipsum" or placeholder filler.
+- Make each section visually distinct (alternating backgrounds, varied layout); avoid identical three-icon-card rows unless intentional.
+- Ensure WCAG-AA text contrast.
+
+Canvas / height rules (mandatory — Stage crops and exports by content height):
+- NEVER use min-h-screen, h-screen, or any 100vh height on the root wrapper or on dialog/onboarding shells. Height must come from content.
+- Modal, form, invite, success, and step screens: content-sized card/panel with modest outer padding. Do NOT vertically center a small card inside a full frame of empty white.
+- Prefer one root element that wraps only real UI — no spacer divs whose only job is to fill the frame.
+
+Multi-step / wizard / onboarding / success screens (mandatory — the render is static, no client JavaScript):
+- Emit ONLY the active step's UI for that screen. Do NOT include sibling steps hidden with hidden/aria-hidden or display:none.
+- One screen id = one visible frame. Motion components render their initial static state.
+
+Pre-flight check before returning: confirm every screen has a non-empty "tsx" built from the real libraries, using brand colors, real copy, and at least one image; no two sections look identical; no screen relies on a full-viewport height; and the "html" fallback is short and plain.
 "#;
 
 const REACT_TSX_RULES: &str = r#"
 React component mode (Stage renders TSX → static HTML; no client JavaScript):
 - For EACH generatedScreens[] entry, add a "tsx" field: a complete React function component as a string.
 - Default-export `function Screen()` and return one visible root.
-- Import selected Base components ONLY from "@stage/base". If a Sections library is selected, import its blocks ONLY from "@stage/sections". These virtual modules resolve to the exact real libraries selected for this run.
+- Import components ONLY from the virtual modules listed under "Selected real component libraries for this run". Each one resolves to the exact real library selected.
 - Do not import another component library, npm package, Node API, browser global, stylesheet, or local file. `react` and `lucide-react` are the only other allowed imports.
-- Use at least one real Base component in every screen. Use a real Sections component when the selected block fits the screen; do not force marketing sections into application forms.
+- Build the screen OUT of those components. Hand-written Tailwind is for layout and spacing BETWEEN them — never re-create a button, card, input, table, or chart the libraries already export.
+- Every screen uses at least one Base component. Use a Sections block whenever the screen has a matching marketing section; never force a marketing section into an application form.
+- When a screen shows metrics, trends, usage, analytics, or reporting, render them with the Data visuals library rather than faking a graph with divs. If no Data visuals library is selected, omit the chart instead of drawing one by hand.
 - Use Tailwind utility classes for layout around the real components. Motion components render their initial static SSR state.
 - Keep a minimal self-contained "html" fallback; rendered TSX replaces it only after compilation succeeds.
 - Still fill sections[]/blocks[] for Figma naming. One screen = one visible frame (no hidden steps).
+
+Each generatedScreens[] entry therefore looks like this (abbreviated — keep every other field too):
+{
+  "id": "homepage",
+  "title": "Homepage",
+  "tsx": "import { Button, Card } from \"@stage/base\";\n\nexport default function Screen() {\n  return (\n    <div className=\"p-10\">\n      <Card><h1 className=\"text-3xl font-semibold\">Headline</h1><Button>Get started</Button></Card>\n    </div>\n  );\n}\n",
+  "html": "<div style=\"padding:40px\"><h1>Headline</h1></div>",
+  "sections": []
+}
+
+A screen returned without a "tsx" field is an incomplete response. Write the TSX first, then derive the short "html" fallback from it.
 "#;
 
 const RENDERER_LIBRARY_MANIFESTS: &str =
@@ -119,23 +171,19 @@ fn react_tsx_prompt_enabled() -> bool {
 }
 
 fn react_library_manifest(component_pack_ids: &[String]) -> String {
-    let libraries = crate::wireframes::render::resolve_renderer_libraries(component_pack_ids);
+    use crate::wireframes::render::{LIBRARY_SLOTS, RendererLibraries};
+
+    let libraries = RendererLibraries::resolve(component_pack_ids);
     let Ok(manifest) = serde_json::from_str::<serde_json::Value>(RENDERER_LIBRARY_MANIFESTS) else {
         return String::new();
     };
 
     let mut output = String::from("\nSelected real component libraries for this run:\n");
-    for (kind, id, module) in [
-        ("Base", Some(libraries.base.as_str()), "@stage/base"),
-        ("Sections", libraries.sections.as_deref(), "@stage/sections"),
-    ] {
-        let Some(id) = id else {
-            output.push_str("- Sections: none selected. Do not import \"@stage/sections\".\n");
-            continue;
-        };
-        let key = if kind == "Base" { "base" } else { "sections" };
+    let mut bound = Vec::new();
+    for (slot, id) in libraries.selected() {
+        bound.push(slot.module);
         let Some(entry) = manifest
-            .get(key)
+            .get(slot.manifest_key)
             .and_then(serde_json::Value::as_array)
             .and_then(|entries| {
                 entries
@@ -161,7 +209,21 @@ fn react_library_manifest(component_pack_ids: &[String]) -> String {
             })
             .unwrap_or_default();
         output.push_str(&format!(
-            "- {kind}: {name} (`{id}`). Allowed import: `import {{ {exports} }} from \"{module}\";`\n"
+            "- {}: {name} (`{id}`). Allowed import: `import {{ {exports} }} from \"{}\";`\n",
+            slot.label, slot.module
+        ));
+        if let Some(usage) = entry.get("usage").and_then(serde_json::Value::as_str) {
+            output.push_str(&format!("  {usage}\n"));
+        }
+    }
+
+    for slot in LIBRARY_SLOTS
+        .iter()
+        .filter(|slot| !bound.contains(&slot.module))
+    {
+        output.push_str(&format!(
+            "- {}: none selected. Do not import \"{}\".\n",
+            slot.label, slot.module
         ));
     }
     output
@@ -320,6 +382,12 @@ fn selected_component_packs(input: &WireframesInput) -> Vec<&'static ComponentPa
 /// Stylesheet shared by every Hi-Fi screen in the run. Empty when no selected pack is
 /// vendored — the model then styles controls itself, exactly as it did before packs.
 pub(crate) fn component_pack_css(input: &WireframesInput) -> String {
+    // React mode replaces the fragment with the real rendered output, so prepending the
+    // hand-written pack stylesheet would only dress up a fallback that is meant to look
+    // like a fallback.
+    if react_tsx_prompt_enabled() {
+        return String::new();
+    }
     selected_component_packs(input)
         .iter()
         .map(|pack| pack.css)
@@ -362,16 +430,13 @@ fn push_skill_block(extras: &mut String, id: &str, body: &str) {
 }
 
 fn hifi_prompt_extras(input: &WireframesInput) -> String {
-    let mut extras = String::from(HIFI_RULES);
+    let react = react_tsx_prompt_enabled();
+    let mut extras = String::from(if react { HIFI_REACT_RULES } else { HIFI_RULES });
     let preferences = resolve_hifi_prompt_preferences(input);
-    if react_tsx_prompt_enabled() {
-        extras.push_str(REACT_TSX_RULES);
-        extras.push_str(&react_library_manifest(&preferences.component_pack_ids));
-    }
 
     if preferences.skill_ids.len() > 1 {
         extras.push_str(
-            "\n\n<skill_precedence>\nThe <skill> blocks below all apply to every Hi-Fi html screen. Where two skills conflict, the LATER block wins; the moodboard, style guide, or brand kit outranks all of them.\n</skill_precedence>\n",
+            "\n\n<skill_precedence>\nThe <skill> blocks below all apply to every Hi-Fi screen you design. Where two skills conflict, the LATER block wins; the moodboard, style guide, or brand kit outranks all of them.\n</skill_precedence>\n",
         );
     }
 
@@ -388,12 +453,25 @@ fn hifi_prompt_extras(input: &WireframesInput) -> String {
         push_skill_block(&mut extras, TASTE_SKILL_ID, TASTE_SKILL);
     }
 
-    for pack in selected_component_packs(input) {
-        extras.push_str("\n\n<component_pack id=\"");
-        extras.push_str(pack.id);
-        extras.push_str("\">\n");
-        extras.push_str(pack.vocabulary);
-        extras.push_str("\n</component_pack>\n");
+    // The `ui-*` pack vocabulary only describes the plain-CSS fragment. In React mode the
+    // real libraries are the vocabulary, and teaching both is what made the model produce
+    // hand-written CSS instead of components.
+    if !react {
+        for pack in selected_component_packs(input) {
+            extras.push_str("\n\n<component_pack id=\"");
+            extras.push_str(pack.id);
+            extras.push_str("\">\n");
+            extras.push_str(pack.vocabulary);
+            extras.push_str("\n</component_pack>\n");
+        }
+    }
+
+    // Last, deliberately. The skill blocks above are ~290K characters of HTML craft; when
+    // the React rules sat before them the model read "write beautiful HTML" for a very long
+    // time afterwards and returned screens with no "tsx" at all.
+    if react {
+        extras.push_str(REACT_TSX_RULES);
+        extras.push_str(&react_library_manifest(&preferences.component_pack_ids));
     }
     extras
 }
@@ -648,6 +726,7 @@ pub fn build_wireframes_prompt(
 - copySlots are short strings (no markdown), filled from Strategy CTAs/value props when available.
 {coverage_rule}
 - Screen set: {project_type_guidance}
+- Frame: {viewport_guidance}
 - When a flows artifact is present, its screens are the authoritative screen list: cover them and keep their ids stable.
 - configureScreens[].required: true ONLY for the 2-4 screens that are core to a project of this type (an application: the main signed-in screen and the auth screen; a site: the primary landing page). Default every other screen to required: false so the user can toggle it off — do not mark every screen required.
 - {brand_source_line}
@@ -679,6 +758,8 @@ Saved strategy artifact JSON:
             input.project_type_label.as_deref()
         ),
         project_type_guidance = project_type_screen_guidance(&input.project_type),
+        viewport_guidance = WireframeViewport::from_project_type(&input.project_type)
+            .prompt_guidance(),
         strategy_artifact = input.strategy_artifact_json,
     )
 }

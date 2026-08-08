@@ -1,4 +1,6 @@
 export type WireframeKind = "lofi" | "hifi";
+export type WireframeRenderMode = "react" | "html-fallback";
+export type WireframeViewport = "mobile" | "desktop";
 export type WireframeKindChoice = WireframeKind | null;
 export type WireframeStep =
   | "choose-kind"
@@ -63,10 +65,17 @@ export type WireframeGeneratedScreen = {
   // Hi-Fi source of truth: a self-contained HTML fragment rendering this screen
   // as a final design. Absent for Lo-Fi (block-only) screens.
   html?: string;
+  // How that HTML was produced. The React renderer falls back silently, so without
+  // this a screen built from the selected component libraries is indistinguishable
+  // from one the model hand-wrote. Screens predating the renderer are all fallbacks.
+  renderMode: WireframeRenderMode;
 };
 
 export type WireframesTabData = {
   wireframeKind: WireframeKind;
+  /** The frame this run was designed for, derived by the engine from the project type. */
+  viewport: WireframeViewport;
+  frameWidth: number;
   brandSource: "style-guide" | "brand-kit" | null;
   styleDirectionId: string | null;
   configureScreens: ScreenItem[];
