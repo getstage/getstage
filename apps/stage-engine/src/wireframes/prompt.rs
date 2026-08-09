@@ -153,7 +153,9 @@ React component mode (Stage renders TSX → static HTML; no client JavaScript):
 - Default-export `function Screen()` and return one visible root.
 - Import components ONLY from the virtual modules listed under "Selected real component libraries for this run". Each one resolves to the exact real library selected.
 - Do not import another component library, npm package, Node API, browser global, stylesheet, or local file. `react` and `lucide-react` are the only other allowed imports.
-- Build the screen OUT of those components. Hand-written Tailwind is for layout and spacing BETWEEN them — never re-create a button, card, input, table, or chart the libraries already export.
+- Import ONLY names shown in the library's "Allowed import" line above. If a name is not listed there, the library does not export it — compose that element from plain HTML tags with Tailwind classes instead of guessing an import.
+- Write "tsx" as one JSON string with quotes escaped exactly once. The decoded component source must contain no backslash-escaped quotes — a literal \" left inside the decoded tsx (className=\"...\") fails compilation.
+- Build the screen OUT of those components. Hand-written Tailwind is for layout and spacing BETWEEN them — never re-create a button, card, input, table, chart, background pattern, text effect, or device mockup the libraries already export.
 - Every screen uses at least one Base component. Use a Sections block whenever the screen has a matching marketing section; never force a marketing section into an application form.
 - When a screen shows metrics, trends, usage, analytics, or reporting, render them with the Data visuals library rather than faking a graph with divs. If no Data visuals library is selected, omit the chart instead of drawing one by hand.
 - Use Tailwind utility classes for layout around the real components. Motion components render their initial static SSR state.
@@ -294,9 +296,15 @@ const COMPONENT_PACKS: &[ComponentPack] = &[
     component_pack!("magic-ui", sections),
 ];
 
-/// Vendored, Stage-adapted skill files. Each directory also carries the verbatim upstream
-/// `SOURCE_*.md` for provenance; only the adapted `SKILL.md` reaches the prompt, because the
-/// upstream files assume a coding agent with a filesystem, a CLI, and React/Tailwind output.
+/// Vendored skill files. Each entry injects the Stage-adapted `SKILL.md` followed by the
+/// verbatim upstream `SOURCE_*.md` as reference: the adapted file says how the skill applies
+/// to Stage wireframes, the source carries the full rules a digest compresses away (the
+/// renderer's output IS React/Tailwind, so the upstream guidance applies). Where an upstream
+/// file assumes a filesystem or CLI (e.g. ui-ux-pro-max's search script), the adapted file
+/// is the part that scopes it.
+///
+/// Taste is the exception: its source is 87 KB, too large for the prompt, so Taste stays
+/// digest-only (and is appended last, so its bans win conflicts).
 ///
 /// Order matters: this is the injection order, and Taste is appended last by
 /// `hifi_prompt_extras` so its anti-slop bans get the final word on any conflict.
@@ -304,23 +312,45 @@ const COMPONENT_PACKS: &[ComponentPack] = &[
 const CATALOG_SKILLS: &[(&str, &str)] = &[
     (
         "frontend-design",
-        include_str!("../../skills/frontend-design/SKILL.md"),
+        concat!(
+            include_str!("../../skills/frontend-design/SKILL.md"),
+            "\n\n---\n\nFull upstream reference:\n\n",
+            include_str!("../../skills/frontend-design/SOURCE_frontend-design.md"),
+        ),
     ),
     (
         "ui-ux-pro-max",
-        include_str!("../../skills/ui-ux-pro-max/SKILL.md"),
+        concat!(
+            include_str!("../../skills/ui-ux-pro-max/SKILL.md"),
+            "\n\n---\n\nFull upstream reference:\n\n",
+            include_str!("../../skills/ui-ux-pro-max/SOURCE_ui-ux-pro-max.md"),
+            "\n\n",
+            include_str!("../../skills/ui-ux-pro-max/SOURCE_pro-rules.md"),
+        ),
     ),
     (
         "impeccable",
-        include_str!("../../skills/impeccable/SKILL.md"),
+        concat!(
+            include_str!("../../skills/impeccable/SKILL.md"),
+            "\n\n---\n\nFull upstream reference:\n\n",
+            include_str!("../../skills/impeccable/SOURCE_impeccable.md"),
+        ),
     ),
     (
         "emil-design-eng",
-        include_str!("../../skills/emil-design-eng/SKILL.md"),
+        concat!(
+            include_str!("../../skills/emil-design-eng/SKILL.md"),
+            "\n\n---\n\nFull upstream reference:\n\n",
+            include_str!("../../skills/emil-design-eng/SOURCE_emil-design-eng.md"),
+        ),
     ),
     (
         "design-motion-principles",
-        include_str!("../../skills/design-motion-principles/SKILL.md"),
+        concat!(
+            include_str!("../../skills/design-motion-principles/SKILL.md"),
+            "\n\n---\n\nFull upstream reference:\n\n",
+            include_str!("../../skills/design-motion-principles/SOURCE_design-motion-principles.md"),
+        ),
     ),
 ];
 

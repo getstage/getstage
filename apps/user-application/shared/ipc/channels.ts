@@ -48,6 +48,7 @@ export const IPC_CHANNELS = {
   updatesInstall: "updates:install",
   updatesStatusChanged: "updates:status-changed",
   storagePutR2Upload: "storage:put-r2-upload",
+  storageFetchR2Text: "storage:fetch-r2-text",
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];

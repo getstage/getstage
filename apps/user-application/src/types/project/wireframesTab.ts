@@ -84,5 +84,8 @@ export type WireframesTabData = {
   generatedAt: number;
   generatedAtLabel: string;
   figmaSymbolUrl: string;
+  // The run's shared stylesheet text (resolved from R2 by useWireframesArtifact).
+  // Null for Lo-Fi runs and pre-offload artifacts.
+  css: string | null;
   generatedScreens: WireframeGeneratedScreen[];
 };

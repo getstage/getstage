@@ -117,6 +117,7 @@ export type StageDesktopApi = {
       mimeType: string;
       bytes: Uint8Array;
     }) => Promise<{ ok: true; status: number }>;
+    fetchR2Text: (request: { url: string }) => Promise<string>;
   };
   updates: {
     getStatus: () => Promise<DesktopUpdateStatus>;

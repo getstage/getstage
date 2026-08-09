@@ -1,2 +1,16 @@
 export * from "./bento-grid";
 export { Marquee } from "@/components/ui/marquee";
+export { AnimatedGradientText } from "@/components/magicui/animated-gradient-text";
+export { AnimatedShinyText } from "@/components/magicui/animated-shiny-text";
+export { AuroraText } from "@/components/magicui/aurora-text";
+export { AvatarCircles } from "@/components/magicui/avatar-circles";
+export { BorderBeam } from "@/components/magicui/border-beam";
+export { DotPattern } from "@/components/magicui/dot-pattern";
+export { GridPattern } from "@/components/magicui/grid-pattern";
+export { Iphone } from "@/components/magicui/iphone";
+export { OrbitingCircles } from "@/components/magicui/orbiting-circles";
+export { RainbowButton } from "@/components/magicui/rainbow-button";
+export { Ripple } from "@/components/magicui/ripple";
+export { Safari } from "@/components/magicui/safari";
+export { ShimmerButton } from "@/components/magicui/shimmer-button";
+export { ShineBorder } from "@/components/magicui/shine-border";

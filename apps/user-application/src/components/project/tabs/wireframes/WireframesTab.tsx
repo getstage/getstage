@@ -6,7 +6,11 @@ import { useAssetsTab, useMoodboardArtifact, useWireframesTab } from "@/hooks/pr
 import { useFigmaWireframeExport } from "@/hooks/project/assets/useFigmaWireframeExport";
 import { useWireframeDeliveryExport } from "@/hooks/project/assets/useWireframeDeliveryExport";
 import { useFlowsArtifact } from "@/hooks/project/flows/useFlowsArtifact";
-import { useSaveWireframesArtifact, useWireframeBrandKit } from "@/hooks/project/wireframes";
+import {
+  useClearWireframeScreens,
+  useSaveWireframesArtifact,
+  useWireframeBrandKit,
+} from "@/hooks/project/wireframes";
 import { AiRunSettings } from "@/components/project/AiRunSettings";
 import { api } from "@/lib/convexApi";
 import { buildResultCards } from "@/lib/project/mapWireframesArtifactToTabData";
@@ -83,6 +87,7 @@ export function WireframesTab({
   const [regenerateSelectionBusy, setRegenerateSelectionBusy] = useState(false);
   const flowsArtifact = useFlowsArtifact(project.id);
   const saveWireframes = useSaveWireframesArtifact(project.id);
+  const { clearScreens, isClearing } = useClearWireframeScreens(project.id);
   // The pre-run screen list has exactly one real source: the project's Flows.
   // There is no generic default worth inventing, so an empty Flows artifact
   // means an empty list plus a prompt to run Flows first.
@@ -478,6 +483,7 @@ export function WireframesTab({
         <ResultsGrid
           wireframeKind={wireframeKind ?? "lofi"}
           cards={generatedCards}
+          css={tabData?.css ?? null}
           onExport={(cardId) =>
             setExportAsset(wireframeAssets.find((asset) => asset.id === cardId) ?? null)
           }
@@ -496,6 +502,20 @@ export function WireframesTab({
           selectedRegenerateIds={selectedRegenerateIds}
           regeneratingScreenIds={wireframesTab.runningScreenIds}
           onManageScreens={manageScreensFromResults}
+          onDeleteScreens={() => {
+            if (wireframesTab.isGenerating || isClearing) {
+              return;
+            }
+            // Destructive and not undoable, so it asks once rather than relying on the
+            // user having meant it.
+            if (!window.confirm("Delete all generated screens? The screen list is kept.")) {
+              return;
+            }
+            void clearScreens().then(() => {
+              setWireframeKind(null);
+              setSetupStep("choose-kind");
+            });
+          }}
           onStartRegenerate={() => {
             setRegenerateMode(true);
             setSelectedRegenerateIds(new Set());

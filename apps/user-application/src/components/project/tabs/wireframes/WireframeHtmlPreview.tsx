@@ -12,7 +12,7 @@ export { buildWireframePreviewDocument };
 
 // A non-interactive, scaled-down render of the design used as a card thumbnail.
 // `sandbox="allow-same-origin"` lets us measure content height (no scripts).
-export function WireframeHtmlThumbnail({ html }: { html: string }) {
+export function WireframeHtmlThumbnail({ html, css = null }: { html: string; css?: string | null }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.2);
   const [docHeight, setDocHeight] = useState(DESIGN_HEIGHT);
@@ -63,7 +63,7 @@ export function WireframeHtmlThumbnail({ html }: { html: string }) {
         <iframe
           key={html.length + html.slice(0, 64)}
           title="Wireframe preview"
-          srcDoc={buildWireframePreviewDocument(html)}
+          srcDoc={buildWireframePreviewDocument(html, { css })}
           // allow-same-origin: needed to measure contentDocument height.
           // Never add allow-scripts here — that combo would give the framed
           // HTML full same-origin access to the parent app.
@@ -118,11 +118,13 @@ export function WireframeHtmlThumbnail({ html }: { html: string }) {
 // Full-size, scrollable render shown when a card is expanded.
 export function WireframeHtmlPreviewDialog({
   html,
+  css = null,
   title,
   open,
   onOpenChange,
 }: {
   html: string;
+  css?: string | null;
   title: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -136,6 +138,9 @@ export function WireframeHtmlPreviewDialog({
             <Dialog.Title className="text-[15px] font-medium leading-[1.25] text-[#171717]">
               {title}
             </Dialog.Title>
+            <Dialog.Description className="sr-only">
+              Full-size scrollable preview of the {title} wireframe.
+            </Dialog.Description>
             <Dialog.Close className="inline-flex h-8 cursor-pointer items-center justify-center rounded-[6px] border border-[#D4D4D4] bg-[#F5F5F5] px-3 text-[13px] font-medium leading-none text-[#171717] transition-colors hover:bg-[#EDEDED]">
               Close
             </Dialog.Close>
@@ -143,7 +148,7 @@ export function WireframeHtmlPreviewDialog({
           <iframe
             key={html.length + html.slice(0, 64)}
             title={`${title} full preview`}
-            srcDoc={buildWireframePreviewDocument(html)}
+            srcDoc={buildWireframePreviewDocument(html, { css })}
             sandbox=""
             className="min-h-0 flex-1 border-0 bg-white"
           />

@@ -168,6 +168,7 @@ const uploadPurpose = v.union(
   v.literal("moodboard-figma"),
   v.literal("moodboard-url"),
   v.literal("wireframe-brand-kit"),
+  v.literal("wireframe-screen"),
 );
 
 const subscriptionStatus = v.union(

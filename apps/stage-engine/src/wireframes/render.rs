@@ -178,11 +178,30 @@ struct RenderScreenOut {
     html: String,
     #[serde(default)]
     error: Option<String>,
+    /// True when the renderer fixed double-escaped quotes itself instead of failing —
+    /// logged so we can see how often the model makes that mechanical mistake.
+    #[serde(default)]
+    repaired: bool,
 }
 
 #[derive(Debug, Deserialize)]
 struct RenderPayload {
     screens: Vec<RenderScreenOut>,
+    /// The batch's compiled stylesheet. Emitted once because it is identical for
+    /// every screen — embedding it per screen is what pushed artifacts past the
+    /// Convex 1 MiB document limit. Optional for renderer versions that still
+    /// inline it.
+    #[serde(default)]
+    css: Option<String>,
+}
+
+/// What a render pass produced: the screens that failed (for the repair prompt) and
+/// the run's shared stylesheet (for the R2 offload). `Default` covers every early
+/// return where no screen rendered.
+#[derive(Debug, Default)]
+pub struct ReactRenderOutcome {
+    pub failures: Vec<RenderFailure>,
+    pub css: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -204,12 +223,12 @@ pub async fn apply_react_render(
     artifact: &mut JsonValue,
     libraries: &RendererLibraries,
     theme: Option<&JsonValue>,
-) -> anyhow::Result<Vec<RenderFailure>> {
+) -> anyhow::Result<ReactRenderOutcome> {
     let Some(screens) = artifact
         .get_mut("generatedScreens")
         .and_then(JsonValue::as_array_mut)
     else {
-        return Ok(Vec::new());
+        return Ok(ReactRenderOutcome::default());
     };
 
     // Fallback is the truth until a screen is proven to have rendered.
@@ -231,21 +250,24 @@ pub async fn apply_react_render(
         batch.push(json!({ "id": id, "tsx": tsx }));
     }
     if batch.is_empty() {
-        return Ok(Vec::new());
+        return Ok(ReactRenderOutcome::default());
     }
 
     let rendered = match render_batch(libraries, theme, &batch).await {
         Ok(payload) => payload,
         Err(error) => {
             tracing::warn!(%error, "wireframe react renderer unavailable; keeping html fallback");
-            return Ok(tsx_by_id
-                .into_iter()
-                .map(|(id, tsx)| RenderFailure {
-                    id,
-                    tsx,
-                    error: error.to_string(),
-                })
-                .collect());
+            return Ok(ReactRenderOutcome {
+                failures: tsx_by_id
+                    .into_iter()
+                    .map(|(id, tsx)| RenderFailure {
+                        id,
+                        tsx,
+                        error: error.to_string(),
+                    })
+                    .collect(),
+                css: None,
+            });
         }
     };
 
@@ -265,6 +287,9 @@ pub async fn apply_react_render(
         if out.html.trim().is_empty() {
             continue;
         }
+        if out.repaired {
+            tracing::info!(screen_id = %out.id, "renderer self-repaired double-escaped quotes; no model repair pass needed");
+        }
         if let Some(screen) = screens
             .iter_mut()
             .find(|screen| screen.get("id").and_then(JsonValue::as_str) == Some(out.id.as_str()))
@@ -274,7 +299,10 @@ pub async fn apply_react_render(
             object.insert("renderMode".to_string(), json!(RENDER_MODE_REACT));
         }
     }
-    Ok(failures)
+    Ok(ReactRenderOutcome {
+        failures,
+        css: rendered.css,
+    })
 }
 
 async fn render_batch(

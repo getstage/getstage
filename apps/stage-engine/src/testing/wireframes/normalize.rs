@@ -109,7 +109,7 @@ fn preserves_hifi_html_field() {
 }
 
 #[test]
-fn hifi_screens_carry_the_component_pack_stylesheet() {
+fn hifi_screens_carry_no_pack_stylesheet_in_react_mode() {
     let artifact = json!({
         "generatedScreens": [sample_screen(
             "homepage",
@@ -129,17 +129,23 @@ fn hifi_screens_carry_the_component_pack_stylesheet() {
     .unwrap();
 
     let html = normalized["generatedScreens"][0]["html"].as_str().unwrap();
-    // Unset prefs fall through to the default base pack. The stylesheet has to ride
-    // inside the fragment: the preview iframe, PNG capture, Paper, and the code export
-    // each receive one screen and none of them can reach run-level state.
-    assert!(
-        html.contains(".ui-btn"),
-        "pack stylesheet must ride along in the fragment"
+    // React mode replaces the fragment with the rendered library output, so the
+    // hand-written pack stylesheet is no longer prepended — the fragment stays the
+    // model's own markup alone. The non-React prepend is covered below.
+    assert!(!html.contains("data-stage-pack"));
+    assert!(html.contains("Hi-Fi"), "the model's own markup must survive");
+}
+
+#[test]
+fn pack_stylesheet_prepend_marks_the_style_block_for_prompt_stripping() {
+    // Non-React Hi-Fi path: the stylesheet rides inside the fragment because the preview
+    // iframe, PNG capture, and code export each receive one screen in isolation.
+    let html = with_pack_css("<div>Real markup</div>", ".ui-btn{height:36px}");
+    assert_eq!(
+        html,
+        "<style data-stage-pack>.ui-btn{height:36px}</style>\n<div>Real markup</div>"
     );
-    assert!(
-        html.contains("Hi-Fi"),
-        "the model's own markup must survive"
-    );
+    assert_eq!(with_pack_css("<div>Real markup</div>", ""), "<div>Real markup</div>");
 }
 
 #[test]

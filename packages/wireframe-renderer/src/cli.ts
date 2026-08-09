@@ -46,6 +46,21 @@ const LIBRARY_SLOTS: Record<string, ReadonlySet<string>> = {
   "@stage/charts": new Set(["bklit-ui"]),
 };
 const BASE_MODULE = "@stage/base";
+
+/// Named exports each library actually provides, read from the same manifest the prompt
+/// shows the model. Without this check a hallucinated name (Mantine's `Group` imported from
+/// Kokonut) fails deep inside Node's ESM loader, and the repair pass gets a stack trace
+/// instead of the one fact it needs: which names exist.
+const LIBRARY_EXPORTS: Record<string, string[]> = (() => {
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(ROOT, "manifests", "libraries.json"), "utf8"),
+  ) as Record<string, { id: string; exports?: string[] }[]>;
+  const byLibrary: Record<string, string[]> = {};
+  for (const entries of Object.values(manifest)) {
+    for (const entry of entries) byLibrary[entry.id] = entry.exports ?? [];
+  }
+  return byLibrary;
+})();
 const FREE_IMPORTS = new Set(["react", "lucide-react"]);
 const FORBIDDEN_GLOBALS =
   /\b(process|globalThis|global|require|eval|Function|fetch|WebSocket|XMLHttpRequest)\b/;
@@ -59,7 +74,7 @@ type BatchInput = {
   theme?: BrandTheme;
   screens: ScreenInput[];
 };
-type ScreenOutput = { id: string; html: string; error?: string };
+type ScreenOutput = { id: string; html: string; error?: string; repaired?: boolean };
 
 function validateBatch(value: unknown): BatchInput {
   if (!value || typeof value !== "object") throw new Error("Renderer input must be an object.");
@@ -80,6 +95,29 @@ function validateBatch(value: unknown): BatchInput {
   if (!libraries[BASE_MODULE]) throw new Error(`Renderer input must bind ${BASE_MODULE}.`);
   if (!Array.isArray(input.screens)) throw new Error("Renderer input must include screens[].");
   return input as BatchInput;
+}
+
+function validateNamedImports(tsx: string, libraries: Record<string, string>) {
+  const named = tsx.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']([^"']+)["']/g);
+  for (const match of named) {
+    const libraryId = libraries[match[2]];
+    if (!libraryId) continue;
+    const available = LIBRARY_EXPORTS[libraryId];
+    if (!available || available.length === 0) continue;
+
+    const requested = match[1]
+      .split(",")
+      .map((part) => part.split(/\sas\s/)[0].trim())
+      .filter(Boolean);
+    const missing = requested.filter((name) => !available.includes(name));
+    if (missing.length > 0) {
+      throw new Error(
+        `${libraryId} does not export ${missing.join(", ")}. ` +
+          `Available from "${match[2]}": ${available.join(", ")}. ` +
+          `Use plain HTML elements with Tailwind classes for text, headings, and layout.`,
+      );
+    }
+  }
 }
 
 function validateTsx(tsx: string, boundModules: ReadonlySet<string>) {
@@ -104,6 +142,16 @@ function validateTsx(tsx: string, boundModules: ReadonlySet<string>) {
   }
 }
 
+function rewriteModuleBindings(tsx: string, bindings: [string, string][]) {
+  return bindings.reduce(
+    (acc, [module, libraryId]) =>
+      acc
+        .replaceAll(`"${module}"`, `"@/libraries/${libraryId}"`)
+        .replaceAll(`'${module}'`, `'@/libraries/${libraryId}'`),
+    tsx,
+  );
+}
+
 function writeScreens(input: BatchInput, batchDirectory: string) {
   fs.mkdirSync(batchDirectory, { recursive: true });
 
@@ -112,17 +160,12 @@ function writeScreens(input: BatchInput, batchDirectory: string) {
 
   return input.screens.map((screen, index) => {
     validateTsx(screen.tsx, boundModules);
+    validateNamedImports(screen.tsx, input.libraries);
     const safeId = screen.id.replaceAll(/[^a-zA-Z0-9_-]/g, "_") || `screen-${index}`;
     const source = /\bimport\s+(?:\*\s+as\s+)?React\b/.test(screen.tsx)
       ? screen.tsx
       : `import React from "react";\n${screen.tsx}`;
-    const rewritten = bindings.reduce(
-      (tsx, [module, libraryId]) =>
-        tsx
-          .replaceAll(`"${module}"`, `"@/libraries/${libraryId}"`)
-          .replaceAll(`'${module}'`, `'@/libraries/${libraryId}'`),
-      source,
-    );
+    const rewritten = rewriteModuleBindings(source, bindings);
     const filePath = path.join(batchDirectory, `${index}-${safeId}.tsx`);
     fs.writeFileSync(filePath, rewritten, "utf8");
     return { ...screen, filePath };
@@ -163,11 +206,7 @@ function buildCss(baseLibraryId: string, batchDirectory: string, theme: BrandThe
   return `${mantineCss}\n${tailwindCss}`;
 }
 
-async function renderScreen(
-  filePath: string,
-  baseLibraryId: string,
-  css: string,
-): Promise<string> {
+async function renderScreen(filePath: string, baseLibraryId: string): Promise<string> {
   const module = await import(`${pathToFileURL(filePath).href}?v=${Date.now()}`);
   const Screen = module.default ?? module.Screen;
   if (typeof Screen !== "function") {
@@ -179,8 +218,49 @@ async function renderScreen(
       ? React.createElement(MantineProvider, null, screen)
       : screen;
   const markup = renderToStaticMarkup(root);
-  const fragment = markup.startsWith("<") ? markup : `<div>${markup}</div>`;
-  return `<style data-stage-render>${css}</style>\n${fragment}`;
+  // The compiled stylesheet no longer rides inside the fragment: it is identical
+  // for every screen in the batch, and embedding it is what pushed artifacts past
+  // Convex's 1 MiB document limit. The engine stores it once per run (see `css`
+  // on the batch output) and pairs fragment + stylesheet at read time.
+  return markup.startsWith("<") ? markup : `<div>${markup}</div>`;
+}
+
+/// The model sometimes double-escapes quotes inside the TSX string (`className=\"...\"`),
+/// which fails the esbuild transform — "Unexpected backslash in JSX element" when the escape
+/// lands in the JSX body, a plain syntax error when the import line itself is escaped. That
+/// is a mechanical mistake, not a design one — decode the escapes and retry once instead of
+/// spending a full model repair round-trip on it.
+///
+/// The decode has to redo everything the escaped text slipped past: import validation and the
+/// virtual-module rewrite both match on quote characters, so the raw file was neither checked
+/// nor rebound. Gated on transform failures (never render errors) plus the file actually
+/// containing `\"`, so valid files and screens failing for any other reason are never
+/// rewritten. When the retry still fails, the newer error describes the decoded source the
+/// model actually meant, which is the more useful input for the repair pass.
+async function renderWithEscapeRepair(
+  filePath: string,
+  baseLibraryId: string,
+  libraries: Record<string, string>,
+): Promise<{ html: string; repaired: boolean }> {
+  try {
+    return { html: await renderScreen(filePath, baseLibraryId), repaired: false };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const source = fs.readFileSync(filePath, "utf8");
+    if (!message.startsWith("Transform failed") || !source.includes('\\"')) {
+      throw error;
+    }
+    const decoded = source.replaceAll('\\"', '"').replaceAll("\\'", "'");
+    const bindings = Object.entries(libraries);
+    try {
+      validateTsx(decoded, new Set(bindings.map(([module]) => module)));
+      validateNamedImports(decoded, libraries);
+      fs.writeFileSync(filePath, rewriteModuleBindings(decoded, bindings), "utf8");
+      return { html: await renderScreen(filePath, baseLibraryId), repaired: true };
+    } catch (retryError) {
+      throw retryError instanceof Error ? retryError : error;
+    }
+  }
 }
 
 async function renderBatch(input: BatchInput) {
@@ -199,10 +279,12 @@ async function renderBatch(input: BatchInput) {
 
     for (const screen of screens) {
       try {
-        output.push({
-          id: screen.id,
-          html: await renderScreen(screen.filePath, baseLibraryId, css),
-        });
+        const { html, repaired } = await renderWithEscapeRepair(
+          screen.filePath,
+          baseLibraryId,
+          input.libraries,
+        );
+        output.push(repaired ? { id: screen.id, html, repaired } : { id: screen.id, html });
       } catch (error) {
         output.push({
           id: screen.id,
@@ -211,7 +293,7 @@ async function renderBatch(input: BatchInput) {
         });
       }
     }
-    return { version: 1 as const, screens: output };
+    return { version: 1 as const, css, screens: output };
   } finally {
     fs.rmSync(batchDirectory, { recursive: true, force: true });
   }

@@ -43,6 +43,8 @@ export function buildWireframesArtifactRecord(
     createdAt: artifact.generatedAt,
     updatedAt: artifact.generatedAt,
     artifact,
+    // Mock artifacts are pre-offload shape: fragments embed their own CSS.
+    resolvedCss: null,
     tabData: mapWireframesArtifactToTabData(artifact),
   };
 }

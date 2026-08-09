@@ -14,6 +14,7 @@ import {
 export function ResultsGrid({
   wireframeKind,
   cards,
+  css = null,
   onConvert,
   onExport,
   isGenerating = false,
@@ -26,6 +27,7 @@ export function ResultsGrid({
   onConfirmRegenerate,
   onManageScreens,
   regenerateConfirmBlocked = false,
+  onDeleteScreens,
   // Optional slot rendered above the grid during regenerate mode. The parent
   // owns the source picker + style-direction select so this grid stays a pure
   // presentation component; the confirm reads whatever state the parent wired
@@ -34,6 +36,8 @@ export function ResultsGrid({
 }: {
   wireframeKind: WireframeKind;
   cards: WireframeResultCard[];
+  // Shared run stylesheet for R2-offloaded runs; null when fragments embed CSS.
+  css?: string | null;
   onConvert: () => void;
   onExport: (cardId: string) => void;
   isGenerating?: boolean;
@@ -47,6 +51,8 @@ export function ResultsGrid({
   /** Back to the screen list, where screens can be added, edited or removed. */
   onManageScreens: () => void;
   regenerateConfirmBlocked?: boolean;
+  /** Clears every generated screen so the next run takes the first-generation path. */
+  onDeleteScreens: () => void;
   regeneratePicker?: ReactNode;
 }) {
   const selectedCount = selectedRegenerateIds.size;
@@ -73,6 +79,11 @@ export function ResultsGrid({
             <SecondaryButton onClick={onManageScreens} disabled={isGenerating}>
               <PlusIcon />
               Add or edit screens
+            </SecondaryButton>
+          ) : null}
+          {!regenerateMode && cards.length > 0 ? (
+            <SecondaryButton onClick={onDeleteScreens} disabled={isGenerating}>
+              Delete screens
             </SecondaryButton>
           ) : null}
           {wireframeKind === "hifi" ? (
@@ -123,6 +134,7 @@ export function ResultsGrid({
             <WireframeCard
               key={`${card.id}-${index}`}
               card={card}
+              css={css}
               view={effectiveView}
               onExport={() => onExport(card.id)}
               regenerateMode={regenerateMode}
@@ -139,6 +151,7 @@ export function ResultsGrid({
 
 export function WireframeCard({
   card,
+  css = null,
   view,
   onExport,
   regenerateMode = false,
@@ -147,6 +160,7 @@ export function WireframeCard({
   onToggleRegenerate,
 }: {
   card: WireframeResultCard;
+  css?: string | null;
   view: WireframeKind;
   onExport: () => void;
   regenerateMode?: boolean;
@@ -177,7 +191,7 @@ export function WireframeCard({
   }, [card.generatedAt]);
 
   const preview = hasHtml && html ? (
-    <WireframeHtmlThumbnail html={html} />
+    <WireframeHtmlThumbnail html={html} css={css} />
   ) : hasBlocks ? (
     <WireframeBlockPreview sections={sections} />
   ) : (
@@ -226,6 +240,7 @@ export function WireframeCard({
       {hasHtml && html && !regenerateMode ? (
         <WireframeHtmlPreviewDialog
           html={html}
+          css={css}
           title={`${card.title} Wireframe`}
           open={previewOpen}
           onOpenChange={setPreviewOpen}

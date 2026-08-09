@@ -56,8 +56,11 @@
         "TableHead",
         "TableHeader",
         "TableRow",
-        "Textarea"
-      ]
+        "Textarea",
+        "CardFlip",
+        "TweetCard"
+      ],
+      "usage": "CardFlip is a showcase card (props: title, subtitle, description, features[]) \u2014 it flips on hover and renders its front face statically. TweetCard is a social-proof quote card (props: authorName, authorHandle, authorImage, content[], timestamp, href, optional reply={authorName, authorHandle, authorImage, content, timestamp})."
     },
     {
       "id": "origin-ui",
@@ -106,9 +109,23 @@
       "exports": [
         "BentoCard",
         "BentoGrid",
-        "Marquee"
+        "Marquee",
+        "GridPattern",
+        "DotPattern",
+        "Ripple",
+        "OrbitingCircles",
+        "AnimatedShinyText",
+        "AnimatedGradientText",
+        "AuroraText",
+        "ShineBorder",
+        "BorderBeam",
+        "ShimmerButton",
+        "RainbowButton",
+        "AvatarCircles",
+        "Iphone",
+        "Safari"
       ],
-      "usage": "BentoGrid takes children. BentoCard requires name and description; className, background, Icon (a component reference, e.g. an imported lucide-react icon), href and cta are optional. Marquee takes children and repeats them."
+      "usage": "Compose sections from these instead of hand-writing markup. BentoGrid takes children; BentoCard requires name and description (className, background, Icon as a component reference, href, cta optional). Marquee repeats its children (props: reverse, vertical, pauseOnHover, repeat). GridPattern/DotPattern/Ripple are absolute background layers: place as the first child of a relative parent, content after them (GridPattern: width, height, squares=[[x,y]]; DotPattern: width, height, cx, cy, cr; Ripple: mainCircleSize, numCircles). OrbitingCircles orbits its children (icons) around the parent's center (props: radius, duration, iconSize). AnimatedShinyText/AnimatedGradientText/AuroraText wrap a word or short phrase inside a heading, not whole paragraphs (AnimatedGradientText: colorFrom, colorTo, speed; AuroraText: colors, speed). ShineBorder and BorderBeam are animated border overlays: place inside a relative rounded-[Npx] parent with overflow-hidden (ShineBorder: shineColor, borderWidth, duration; BorderBeam: size, duration, colorFrom, colorTo). ShimmerButton and RainbowButton are premium CTA buttons, use them like Button with children as the label (ShimmerButton: background, shimmerColor, borderRadius; RainbowButton: variant, size). AvatarCircles shows social proof (props: avatarUrls=[{imageUrl, profileUrl}], numPeople). Iphone and Safari frame a screenshot image (Iphone: src; Safari: imageSrc, url for the address bar, width, height) \u2014 use for product shots."
     },
     {
       "id": "aceternity-ui",

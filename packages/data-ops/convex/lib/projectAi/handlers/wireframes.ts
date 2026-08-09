@@ -14,7 +14,9 @@ import {
   createRunRecord,
   findRunningRunForProjectModule,
 } from "../domain/runStore";
+import { deleteOldR2Asset } from "../../../r2";
 import { normalizeOptional } from "../domain/normalize";
+import { collectR2KeysFromJson } from "../domain/r2Keys";
 import { resolveAssetContentJson } from "../domain/researchContent";
 import { now } from "../domain/time";
 import { projectAiProviderId } from "../domain/validators";
@@ -284,6 +286,62 @@ export async function updateWireframesArtifactHandler(
     artifactId: String(args.artifactId),
     updatedAt: timestamp,
   };
+}
+
+export const clearWireframeScreensArgs = {
+  projectId: v.id("projects"),
+};
+
+/**
+ * Drops every generated screen from the project's wireframes artifact and puts it back to
+ * Lo-Fi, while keeping `configureScreens` so the screen selection survives.
+ *
+ * A first Hi-Fi generation and a regeneration take different paths — regeneration merges
+ * into the existing artifact, a first run has nothing to merge into — and the only way to
+ * get back to the first-run state was to create a whole new project. This resets in one
+ * click. Destructive and not undoable: the generated designs are gone.
+ */
+export async function clearWireframeScreensHandler(
+  ctx: MutationCtx,
+  args: { projectId: Id<"projects"> },
+) {
+  await requireProjectAccess(ctx, args.projectId);
+  const artifact = await findLatestArtifact(
+    ctx,
+    args.projectId,
+    "generate",
+    "wireframesArtifact",
+  );
+  // An artifact row with no content has nothing to clear, and reporting success would
+  // tell the user screens were removed when none existed.
+  if (!artifact?.contentJson) {
+    return { cleared: false as const, screensRemoved: 0 };
+  }
+
+  const content = parseWireframesContentJson(artifact.contentJson, args.projectId);
+  const screensRemoved = Array.isArray(content.generatedScreens)
+    ? content.generatedScreens.length
+    : 0;
+  const timestamp = now();
+
+  // Rendered screens keep their fragment and the run stylesheet in R2. Clearing
+  // must delete those objects too, or every test cycle leaks storage.
+  const r2Keys = new Set<string>();
+  collectR2KeysFromJson(content, r2Keys);
+  for (const key of r2Keys) {
+    await deleteOldR2Asset(ctx, key);
+  }
+
+  await ctx.db.patch(artifact._id, {
+    contentJson: JSON.stringify({
+      ...content,
+      wireframeKind: "lofi",
+      generatedScreens: [],
+    }),
+    updatedAt: timestamp,
+  });
+
+  return { cleared: true as const, screensRemoved };
 }
 
 function parseWireframesContentJson(contentJson: string, projectId: Id<"projects">) {

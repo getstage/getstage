@@ -54,7 +54,10 @@ export function withConfigureScreens(
   });
 }
 
-export function mapWireframesArtifactToTabData(artifact: WireframesArtifact): WireframesTabData {
+export function mapWireframesArtifactToTabData(
+  artifact: WireframesArtifact,
+  css: string | null = null,
+): WireframesTabData {
   return {
     wireframeKind: artifact.wireframeKind,
     viewport: artifact.viewport,
@@ -67,6 +70,7 @@ export function mapWireframesArtifactToTabData(artifact: WireframesArtifact): Wi
     generatedAt: artifact.generatedAt,
     generatedAtLabel: artifact.generatedAtLabel,
     figmaSymbolUrl: artifact.figmaSymbolUrl,
+    css,
     generatedScreens: artifact.generatedScreens.map((screen) => ({
       id: screen.id,
       title: screen.title,

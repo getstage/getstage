@@ -16,17 +16,21 @@ function render(baseLibraryId, sectionsLibraryId, tsx) {
       encoding: "utf8",
       input: JSON.stringify({
         version: 1,
-        baseLibraryId,
-        sectionsLibraryId,
+        libraries: {
+          "@stage/base": baseLibraryId,
+          ...(sectionsLibraryId ? { "@stage/sections": sectionsLibraryId } : {}),
+        },
         screens: [{ id: "test-screen", tsx }],
       }),
       timeout: 30_000,
     },
   );
   assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
-  const screen = JSON.parse(result.stdout).screens[0];
+  const output = JSON.parse(result.stdout);
+  // The compiled stylesheet ships once per batch, not per screen; fragments are bare HTML.
+  assert.ok(typeof output.css === "string" && output.css.length > 0);
+  const screen = output.screens[0];
   assert.equal(screen.error, undefined);
-  assert.match(screen.html, /data-stage-render/);
   return screen.html;
 }
 

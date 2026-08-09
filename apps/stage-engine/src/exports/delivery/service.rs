@@ -25,8 +25,8 @@ impl DeliveryExportService {
         token: &str,
         request: WireframeDeliveryRequest,
     ) -> anyhow::Result<CodeExportResponse> {
-        let screen = self.load_screen(token, &request).await?;
-        let html = compile_html(&screen);
+        let (screen, css) = self.load_screen(token, &request).await?;
+        let html = compile_html(&screen, css.as_deref());
         Ok(CodeExportResponse {
             api_version: "v1",
             suggested_directory_name: slug(&screen.title),
@@ -51,7 +51,7 @@ impl DeliveryExportService {
         token: &str,
         request: WireframeDeliveryRequest,
     ) -> anyhow::Result<PaperExportResponse> {
-        let screen = self.load_screen(token, &request).await?;
+        let (screen, css) = self.load_screen(token, &request).await?;
         let width = request.hifi_preview_width.unwrap_or(1440).max(1);
         let height = request.hifi_preview_height.unwrap_or(1000).max(1000);
         let artboard_id = self
@@ -65,6 +65,7 @@ impl DeliveryExportService {
                     request.hifi_preview_data_url.as_deref(),
                     width,
                     height,
+                    css.as_deref(),
                 ),
             )
             .await?;
@@ -88,11 +89,14 @@ impl DeliveryExportService {
         }
     }
 
+    /// The selected screen plus the run's stylesheet. Screens rendered by the React
+    /// pipeline store both in R2 (`htmlUrl` / `cssUrl`, resolved to URLs by the
+    /// query); the export fetches them so the output stays self-contained.
     async fn load_screen(
         &self,
         token: &str,
         request: &WireframeDeliveryRequest,
-    ) -> anyhow::Result<GeneratedScreen> {
+    ) -> anyhow::Result<(GeneratedScreen, Option<String>)> {
         let record = self
             .repository
             .fetch_latest_wireframes_artifact(token, &request.project_id)
@@ -105,22 +109,93 @@ impl DeliveryExportService {
             .context("wireframes artifact has no content")?;
         let artifact: WireframesArtifact =
             serde_json::from_str(&content).context("wireframes artifact content is invalid")?;
-        artifact
+        let mut screen = artifact
             .generated_screens
             .into_iter()
             .find(|screen| screen.id == request.screen_id)
-            .context("selected wireframe screen was not found")
+            .context("selected wireframe screen was not found")?;
+
+        let needs_fragment = screen
+            .html
+            .as_deref()
+            .map(str::trim)
+            .unwrap_or("")
+            .is_empty();
+        if needs_fragment && let Some(url) = screen.html_url.as_deref() {
+            // The public bucket's Cloudflare proxy injects an email-decode
+            // <script> into HTML responses; exported files must stay static.
+            screen.html = Some(strip_script_tags(&fetch_r2_text(url).await?));
+        }
+        let css = match artifact.css_url.as_deref() {
+            Some(url) => Some(fetch_r2_text(url).await?),
+            None => None,
+        };
+        Ok((screen, css))
     }
 }
 
-fn compile_html(screen: &GeneratedScreen) -> String {
-    // Hi-Fi screens carry a finished, self-contained HTML fragment with its own
-    // <style>; the code export is simply that design wrapped in a document with a
-    // minimal reset (matching the in-app preview) so the file renders identically.
+/// Removes `<script>` tags (paired or unclosed-trailing) without a regex dep.
+/// Rendered fragments are static markup; anything script-shaped is proxy
+/// injection or model output we never want in an export.
+fn strip_script_tags(html: &str) -> String {
+    let lower = html.to_ascii_lowercase();
+    let mut out = String::with_capacity(html.len());
+    let mut cursor = 0;
+    while let Some(open) = lower[cursor..].find("<script") {
+        let start = cursor + open;
+        out.push_str(&html[cursor..start]);
+        cursor = match lower[start..].find("</script") {
+            Some(close) => {
+                let close_start = start + close;
+                match lower[close_start..].find('>') {
+                    Some(end) => close_start + end + 1,
+                    None => html.len(),
+                }
+            }
+            None => html.len(),
+        };
+    }
+    out.push_str(&html[cursor..]);
+    out
+}
+
+/// Downloads an offloaded wireframes object. Capped well above any real fragment
+/// or stylesheet so a bad URL cannot exhaust engine memory.
+async fn fetch_r2_text(url: &str) -> anyhow::Result<String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .context("failed to build R2 fetch client")?;
+    let bytes = client
+        .get(url)
+        .send()
+        .await
+        .with_context(|| format!("failed to fetch {url}"))?
+        .error_for_status()
+        .with_context(|| format!("R2 object rejected the fetch: {url}"))?
+        .bytes()
+        .await?;
+    if bytes.len() > 10 * 1024 * 1024 {
+        bail!("R2 object exceeds 10 MB: {url}");
+    }
+    String::from_utf8(bytes.to_vec()).context("R2 object is not valid UTF-8")
+}
+
+fn compile_html(screen: &GeneratedScreen, bundle_css: Option<&str>) -> String {
+    // Hi-Fi screens carry a finished HTML fragment; the code export wraps it in a
+    // document with a minimal reset (matching the in-app preview). When the run's
+    // stylesheet lives in R2 it is fetched by `load_screen` and inlined here, so
+    // the exported file renders identically with no external requests.
     // Lo-Fi screens compile their gray-block outline from `sections`/`blocks`.
     let (css, body) = match hifi_fragment(screen) {
-        Some(fragment) => (RESET_CSS, fragment.to_string()),
-        None => (CSS, compile_body(screen)),
+        Some(fragment) => (
+            match bundle_css {
+                Some(bundle) => format!("{RESET_CSS}\n{bundle}"),
+                None => RESET_CSS.to_string(),
+            },
+            fragment.to_string(),
+        ),
+        None => (CSS.to_string(), compile_body(screen)),
     };
     format!(
         "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{}</title><style>{}</style></head><body>{}</body></html>\n",
@@ -195,12 +270,19 @@ fn compile_paper_html(
     hifi_preview_data_url: Option<&str>,
     width: u16,
     height: u16,
+    bundle_css: Option<&str>,
 ) -> String {
     // Prefer the real Hi-Fi markup so Paper inserts editable nodes via write_html,
     // matching the code-export path. Only fall back to a flat image when no
     // fragment is available (mirrors compile_html's hifi_fragment/Lo-Fi split).
+    // The inliner never fetches remote stylesheets, so an offloaded run's CSS is
+    // prepended as a <style> block for it to fold onto the elements.
     if let Some(fragment) = hifi_fragment(screen) {
-        return inline_styles_for_paper(fragment);
+        let fragment = match bundle_css {
+            Some(bundle) => format!("<style>{bundle}</style>\n{fragment}"),
+            None => fragment.to_string(),
+        };
+        return inline_styles_for_paper(&fragment);
     }
 
     if let Some(data_url) = hifi_preview_data_url.filter(|value| !value.trim().is_empty()) {
@@ -281,7 +363,7 @@ const CSS: &str = "*{box-sizing:border-box}body{margin:0;background:#f5f5f5;colo
 
 #[cfg(test)]
 mod tests {
-    use super::{GeneratedScreen, compile_html, inline_styles_for_paper, slug};
+    use super::{GeneratedScreen, compile_html, inline_styles_for_paper, slug, strip_script_tags};
 
     #[test]
     fn inline_styles_for_paper_should_fold_style_block_rules_onto_elements() {
@@ -299,6 +381,21 @@ mod tests {
     }
 
     #[test]
+    fn strip_script_tags_removes_proxy_injected_scripts() {
+        let fragment = "<div class=\"hero\">Hi</div><script data-cfasync=\"false\" src=\"/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js\"></script>";
+        let cleaned = strip_script_tags(fragment);
+        assert_eq!(cleaned, "<div class=\"hero\">Hi</div>");
+
+        // Unclosed trailing tag is removed to end of input; earlier content kept.
+        let unclosed = "<p>ok</p><SCRIPT src=\"https://example.com/x.js\">";
+        assert_eq!(strip_script_tags(unclosed), "<p>ok</p>");
+
+        // No scripts: input passes through untouched.
+        let plain = "<div>nothing to do</div>";
+        assert_eq!(strip_script_tags(plain), plain);
+    }
+
+    #[test]
     fn slug_should_create_safe_directory_name() {
         assert_eq!(slug("Home / Landing"), "home-landing-wireframe");
     }
@@ -310,9 +407,10 @@ mod tests {
             title: "Homepage".to_string(),
             sections: Vec::new(),
             html: Some("<div class=\"hero\"><h1>Ship faster</h1></div>".to_string()),
+            html_url: None,
         };
 
-        let document = compile_html(&screen);
+        let document = compile_html(&screen, None);
 
         assert!(document.contains("<div class=\"hero\"><h1>Ship faster</h1></div>"));
         // The block-layout scaffolding must not appear for a Hi-Fi screen.

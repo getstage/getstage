@@ -22,6 +22,7 @@ import {
   type RunEvent,
 } from "@stage/data-ops/contracts";
 import { putSignedR2Upload } from "./helpers/r2-upload";
+import { stripScriptTags } from "@shared/wireframePreviewDocument";
 import {
   captureWireframeFigmaNodes,
   captureWireframeHtmlPng,
@@ -313,7 +314,7 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IPC_CHANNELS.engineCreateFigmaExport, async (_event, request: unknown) => {
     const parsedRequest = createFigmaExportRequestSchema.parse(request);
-    const { hifiHtml, ...baseRequest } = parsedRequest;
+    const { hifiHtml, hifiCss, ...baseRequest } = parsedRequest;
     let engineRequest: Record<string, unknown> = baseRequest;
 
     if (hifiHtml) {
@@ -321,13 +322,13 @@ export function registerIpcHandlers({
       // plugin rebuilds as real text/rects/images. Fall back to the flattened
       // screenshot only if extraction yields nothing usable.
       const nodeTree = await withDebugTiming("figma-export:extract-nodes", () =>
-        captureWireframeFigmaNodes(hifiHtml).catch(() => null),
+        captureWireframeFigmaNodes(hifiHtml, hifiCss).catch(() => null),
       );
       if (nodeTree && nodeTree.nodes.length > 0) {
         engineRequest = { ...baseRequest, hifiFigmaNodes: nodeTree };
       } else {
         const screenshot = await withDebugTiming("figma-export:render-hifi-preview", () =>
-          captureWireframeHtmlPng(hifiHtml),
+          captureWireframeHtmlPng(hifiHtml, hifiCss),
         );
         engineRequest = {
           ...baseRequest,
@@ -426,12 +427,12 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IPC_CHANNELS.engineCreatePaperExport, async (_event, request: unknown) => {
     const parsedRequest = createPaperExportRequestSchema.parse(request);
-    const { hifiHtml, ...baseRequest } = parsedRequest;
+    const { hifiHtml, hifiCss, ...baseRequest } = parsedRequest;
     let engineRequest: Record<string, unknown> = baseRequest;
 
     if (hifiHtml) {
       const screenshot = await withDebugTiming("paper-export:render-hifi-preview", () =>
-        captureWireframeHtmlPng(hifiHtml),
+        captureWireframeHtmlPng(hifiHtml, hifiCss),
       );
       engineRequest = {
         ...baseRequest,
@@ -615,6 +616,36 @@ export function registerIpcHandlers({
       mimeType,
       bytes: bytes instanceof Uint8Array ? bytes : bytes,
     });
+  });
+
+  ipcMain.handle(IPC_CHANNELS.storageFetchR2Text, async (_event, request: unknown) => {
+    if (!request || typeof request !== "object") {
+      throw new Error("R2 fetch request is required.");
+    }
+
+    const { url } = request as { url?: unknown };
+    if (typeof url !== "string" || !url.startsWith("https://")) {
+      throw new Error("R2 fetch URL must be an https URL.");
+    }
+
+    // Rendered wireframe HTML/CSS lives in R2 behind public URLs the sandboxed
+    // preview iframes cannot fetch (the bucket sends no CORS headers), so the
+    // main process proxies the text. Cap matches the upload rule's 10 MB.
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`R2 fetch failed with status ${response.status}.`);
+    }
+
+    const text = await response.text();
+    if (text.length > 10 * 1024 * 1024) {
+      throw new Error("R2 object exceeds 10 MB.");
+    }
+
+    // The public bucket sits behind the Cloudflare proxy, whose email obfuscation
+    // injects an email-decode <script> into HTML responses. Fragments are static
+    // markup and never legitimately carry scripts, so strip them here — every
+    // consumer (thumbnails, dialog, Figma/Paper capture) then stays clean.
+    return stripScriptTags(text);
   });
 }
 

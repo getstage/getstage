@@ -190,6 +190,8 @@ const stageDesktop = {
       mimeType: string;
       bytes: Uint8Array;
     }) => ipcRenderer.invoke(IPC_CHANNELS.storagePutR2Upload, request),
+    fetchR2Text: (request: { url: string }) =>
+      ipcRenderer.invoke(IPC_CHANNELS.storageFetchR2Text, request) as Promise<string>,
   },
   updates: {
     getStatus: (): Promise<DesktopUpdateStatus> =>

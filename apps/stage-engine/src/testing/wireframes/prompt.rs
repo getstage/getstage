@@ -187,11 +187,17 @@ fn hifi_prompt_includes_taste_skill_by_default() {
     );
     assert!(prompt.contains("Leonxlnx/taste-skill"));
     assert!(prompt.contains("Absolute bans (anti-slop)"));
+    // React mode replaced the pack.css vocabulary with the real component libraries:
+    // the tsx rules come last and the default base library is bound when prefs are unset.
+    assert!(prompt.contains("The \"tsx\" field is the design."));
     assert!(
-        prompt.contains("<component_pack id=\"shadcn-ui\">"),
-        "Hi-Fi must attach the default base pack when prefs are unset"
+        prompt.contains("Selected real component libraries for this run:"),
+        "Hi-Fi React runs bind the real libraries instead of injecting pack.css"
     );
-    assert!(prompt.contains("Controls come from this pack. Layout is yours."));
+    assert!(
+        prompt.contains("`shadcn-ui`"),
+        "the default base library is bound when prefs are unset"
+    );
 }
 
 #[test]
@@ -218,57 +224,44 @@ fn hifi_prompt_omits_taste_when_skill_disabled_in_prefs() {
 }
 
 #[test]
-fn hifi_prompt_attaches_base_and_sections_packs_in_order() {
+fn selected_component_packs_orders_base_before_sections() {
     let mut input = sample_input();
     input.enabled_component_pack_ids =
         Some(vec!["aceternity-ui".to_string(), "shadcn-ui".to_string()]);
 
-    let prompt = build_wireframes_prompt(
-        &input,
-        WireframeKind::Hifi,
-        Some(WireframeBrandSource::StyleGuide),
-        None,
-        None,
-        false,
-        None,
-    );
+    let packs = selected_component_packs(&input);
 
-    let base_at = prompt
-        .find("<component_pack id=\"shadcn-ui\">")
-        .expect("base pack attached");
-    let sections_at = prompt
-        .find("<component_pack id=\"aceternity-ui\">")
-        .expect("sections pack attached");
+    let base_at = packs
+        .iter()
+        .position(|pack| pack.id == "shadcn-ui")
+        .expect("base pack selected");
+    let sections_at = packs
+        .iter()
+        .position(|pack| pack.id == "aceternity-ui")
+        .expect("sections pack selected");
     // Selection order must not decide injection order: a sections pack consumes the
     // base pack's --ui-* variables, so the base vocabulary always comes first.
     assert!(
         base_at < sections_at,
-        "base pack must be injected before the sections pack"
+        "base pack must come before the sections pack"
     );
 }
 
 #[test]
-fn hifi_prompt_supplies_a_base_pack_when_only_sections_are_selected() {
+fn selected_component_packs_supplies_a_base_when_only_sections_are_selected() {
     let mut input = sample_input();
     // The old multi-select allowed this; the sections CSS would otherwise render against
     // undefined --ui-* variables.
     input.enabled_component_pack_ids = Some(vec!["magic-ui".to_string()]);
 
-    let prompt = build_wireframes_prompt(
-        &input,
-        WireframeKind::Hifi,
-        Some(WireframeBrandSource::StyleGuide),
-        None,
-        None,
-        false,
-        None,
-    );
+    let packs = selected_component_packs(&input);
 
-    assert!(
-        prompt.contains("<component_pack id=\"shadcn-ui\">"),
-        "a sections pack must always get a base pack under it"
+    assert_eq!(
+        packs.first().map(|pack| pack.id),
+        Some(DEFAULT_BASE_PACK_ID),
+        "a sections pack must always get a base under it"
     );
-    assert!(prompt.contains("<component_pack id=\"magic-ui\">"));
+    assert!(packs.iter().any(|pack| pack.id == "magic-ui"));
 }
 
 #[test]

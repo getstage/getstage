@@ -8,6 +8,10 @@
 
 ## Implementation status (2026-07-21)
 
+> **Newer:** the React/Tailwind pipeline landed 7–9 Aug 2026 and changed several rows below
+> (the `pack.css` component packs no longer apply to Hi-Fi React runs). Current state and
+> open items: [`WIREFRAMES_SESSION_AUDIT_2026-08-09.md`](WIREFRAMES_SESSION_AUDIT_2026-08-09.md).
+
 | Item | Status | Where |
 |------|--------|--------|
 | Phase 1 Taste skill on Hi-Fi generate | **In engine (testable)** | `apps/stage-engine/skills/design-taste-frontend/SKILL.md` injected by `wireframes/prompt.rs` (source: Leonxlnx/taste-skill / tasteskill.dev) |

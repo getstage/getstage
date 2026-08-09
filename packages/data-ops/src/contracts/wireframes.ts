@@ -84,6 +84,11 @@ export const wireframeGeneratedScreenSchema = z.object({
   // Hi-Fi source of truth: a self-contained HTML fragment that renders this
   // screen as a final design. Absent for Lo-Fi (block-only) screens.
   html: z.string().optional(),
+  // React-rendered screens offload their fragment to R2 (the compiled Tailwind
+  // build made inline html blow the Convex 1 MiB document limit). `htmlUrl` is
+  // the stored object key at rest; reads resolve it to a URL. `html` stays for
+  // Lo-Fi, model-HTML fallbacks, and artifacts from before the offload.
+  htmlUrl: z.string().optional(),
   // How that HTML was produced. The React path falls back silently, so without this
   // a screen built from real library components is indistinguishable from one the
   // model hand-wrote. Artifacts predating the React renderer are all fallbacks.
@@ -121,6 +126,10 @@ export const wireframesArtifactSchema = z.object({
   configureScreens: z.array(wireframeConfigureScreenSchema).default([]),
   brandKit: wireframeBrandKitSchema.optional(),
   layoutPreference: z.string().optional(),
+  // One compiled stylesheet per run, stored in R2 and shared by every
+  // React-rendered screen. Resolved to a URL on read; absent on older artifacts
+  // (their screens carry the CSS inline).
+  cssUrl: z.string().optional(),
   generatedScreens: z.array(wireframeGeneratedScreenSchema).default([]),
   generatedAt: z.number().int().nonnegative(),
   generatedAtLabel: z.string().min(1),
