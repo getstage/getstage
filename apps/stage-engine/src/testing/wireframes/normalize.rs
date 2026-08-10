@@ -701,6 +701,81 @@ fn rejects_regen_when_the_only_requested_screen_comes_back_empty() {
 }
 
 #[test]
+fn drops_only_the_invalid_hifi_screen_and_keeps_the_valid_ones() {
+    let artifact = json!({
+        "generatedScreens": [
+            sample_screen(
+                "homepage",
+                Some("<div><style>.hero{color:#111}</style><section class=\"hero\">Hi-Fi</section></div>"),
+            ),
+            sample_screen("broken", Some("<div>No styles here</div>")),
+        ]
+    });
+
+    let normalized = normalize_wireframes_artifact(
+        artifact,
+        &sample_input(),
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        123,
+        "just now",
+    )
+    .expect("one invalid screen must not fail a run that produced a valid one");
+
+    let screens = normalized["generatedScreens"].as_array().unwrap();
+    assert_eq!(screens.len(), 1);
+    assert_eq!(screens[0]["id"], "homepage");
+}
+
+#[test]
+fn tsx_screen_keeps_its_html_fallback_without_html_era_validation() {
+    // React mode: the model's html is a transient fallback that the renderer replaces.
+    // A fallback the HTML-era validation would reject (Tailwind classes instead of
+    // inline styles, hidden siblings) must not drop the screen or the run.
+    let mut screen = sample_screen(
+        "wizard",
+        Some(r#"<div><style>.step{padding:16px}</style>
+            <div class="step flex">Active step</div>
+            <div class="step" style="display:none">Later step</div>
+            <div class="step" style="display:none">Later step</div>
+        </div>"#),
+    );
+    screen["tsx"] = json!("export default function Screen() { return <div />; }");
+
+    let normalized = normalize_wireframes_artifact(
+        json!({ "generatedScreens": [screen] }),
+        &sample_input(),
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        123,
+        "just now",
+    )
+    .expect("a TSX screen must survive an html fallback the old validator rejects");
+
+    let saved = &normalized["generatedScreens"][0];
+    assert!(saved["tsx"].as_str().unwrap().contains("function Screen"));
+    assert!(saved["html"].as_str().unwrap().contains("Active step"));
+}
+
+#[test]
+fn validate_hifi_html_accepts_tailwind_visible_classes() {
+    // The active step uses Tailwind layout utilities instead of an inline display
+    // style; only the siblings are hidden. That shell renders fine.
+    assert!(
+        validate_hifi_html(
+            r#"<div><style>.step{padding:16px}</style>
+                <div class="step flex flex-col"><h1>Step one</h1></div>
+                <div class="step" style="display:none">Step two</div>
+                <div class="step" style="display:none">Step three</div>
+            </div>"#
+        )
+        .is_ok()
+    );
+}
+
+#[test]
 fn validate_hifi_html_rejects_unstyled_or_raw_css() {
     // Raw CSS text with no elements at all.
     assert!(validate_hifi_html(".hero{color:#111}").is_err());

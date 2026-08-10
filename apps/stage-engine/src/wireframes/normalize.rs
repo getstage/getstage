@@ -55,16 +55,39 @@ pub fn normalize_wireframes_artifact(
     };
 
     let mut normalized_screens = Vec::new();
+    let mut first_rejection: Option<String> = None;
     for screen in &raw_screens {
-        if let Some(normalized) =
-            normalize_screen(screen, generated_at_label, generated_at, kind, &pack_css)?
-        {
-            normalized_screens.push(normalized);
+        match normalize_screen(screen, generated_at_label, generated_at, kind, &pack_css) {
+            Ok(Some(normalized)) => normalized_screens.push(normalized),
+            Ok(None) => {}
+            Err(error) => {
+                // One malformed screen must not throw away a run that produced sixteen
+                // good ones — drop it and keep going. A run where nothing survived
+                // still fails below, with the first rejection attached for context.
+                let id = screen
+                    .get("id")
+                    .and_then(JsonValue::as_str)
+                    .unwrap_or("unknown");
+                let reason = error.to_string();
+                tracing::warn!(
+                    screen_id = id,
+                    error = reason.as_str(),
+                    "dropping wireframe screen that failed normalization"
+                );
+                if first_rejection.is_none() {
+                    first_rejection = Some(reason);
+                }
+            }
         }
     }
 
     if normalized_screens.is_empty() {
-        bail!("The AI response did not contain usable wireframe screens.");
+        match first_rejection {
+            Some(reason) => bail!(
+                "No usable wireframe screens survived normalization; first rejection: {reason}."
+            ),
+            None => bail!("The AI response did not contain usable wireframe screens."),
+        }
     }
 
     let configure_screens = object
@@ -475,18 +498,53 @@ fn validate_hifi_html(html: &str) -> anyhow::Result<()> {
     // Hidden-only multi-step shells render blank without JS.
     let body = strip_tag_pair(trimmed, "style");
     let lower = body.to_ascii_lowercase();
-    let hidden_heavy =
-        lower.matches("display:none").count() + lower.matches("display: none").count() >= 2
-            && !lower.contains("display:block")
-            && !lower.contains("display: block")
-            && !lower.contains("display:flex")
-            && !lower.contains("display: flex");
-    if hidden_heavy {
+    let hidden_count =
+        lower.matches("display:none").count() + lower.matches("display: none").count();
+    if hidden_count >= 2 && !has_visible_layout(&lower) {
         bail!(
             "Hi-Fi html has no visible content (emit only the active step; do not hide siblings for JS)."
         );
     }
     Ok(())
+}
+
+// Visible content shows up as an inline display style in hand-written markup, or as a
+// layout utility inside a class attribute when the model reaches for Tailwind. Reading
+// only the inline form made a wizard whose active step uses class="flex" look
+// "hidden-only" next to its display:none siblings.
+fn has_visible_layout(lower: &str) -> bool {
+    const INLINE_MARKERS: &[&str] = &[
+        "display:block",
+        "display: block",
+        "display:flex",
+        "display: flex",
+        "display:grid",
+        "display: grid",
+    ];
+    if INLINE_MARKERS.iter().any(|marker| lower.contains(marker)) {
+        return true;
+    }
+    for quote in ['"', '\''] {
+        for attr in ["class", "classname"] {
+            let needle = format!("{attr}={quote}");
+            let mut cursor = 0;
+            while let Some(rel) = lower[cursor..].find(&needle) {
+                let value_start = cursor + rel + needle.len();
+                let value_end = lower[value_start..]
+                    .find(quote)
+                    .map(|i| value_start + i)
+                    .unwrap_or(lower.len());
+                let visible = lower[value_start..value_end]
+                    .split(|c: char| c.is_ascii_whitespace() || c == ':')
+                    .any(|token| matches!(token.split('-').next(), Some("flex" | "block" | "grid")));
+                if visible {
+                    return true;
+                }
+                cursor = value_end;
+            }
+        }
+    }
+    false
 }
 
 // The pack stylesheet rides along inside each screen rather than sitting once at the
@@ -554,6 +612,16 @@ fn normalize_screen(
     {
         entry.insert("brandTokens".to_string(), brand_tokens);
     }
+    // In React mode the model's "html" is only a fallback: the renderer replaces it
+    // with compiled library markup once the TSX builds. It is still sanitized (the
+    // preview sandbox runs no scripts either way), but the HTML-era validation below
+    // is skipped for TSX screens — it predates the React pipeline and misreads the
+    // Tailwind-flavoured fallback the prompt asks for.
+    let has_tsx = object
+        .get("tsx")
+        .and_then(JsonValue::as_str)
+        .is_some_and(|tsx| !tsx.trim().is_empty());
+
     if let Some(html) = object
         .get("html")
         .and_then(JsonValue::as_str)
@@ -570,7 +638,9 @@ fn normalize_screen(
             let sanitized = sanitize_hifi_html(html);
             // Validate before the pack stylesheet is attached, otherwise prepending
             // <style> would let any fragment pass the styling check.
-            validate_hifi_html(&sanitized)?;
+            if !has_tsx {
+                validate_hifi_html(&sanitized)?;
+            }
             entry.insert(
                 "html".to_string(),
                 json!(with_pack_css(&sanitized, pack_css)),

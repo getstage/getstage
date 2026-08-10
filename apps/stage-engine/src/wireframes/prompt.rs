@@ -159,7 +159,7 @@ React component mode (Stage renders TSX → static HTML; no client JavaScript):
 - Every screen uses at least one Base component. Use a Sections block whenever the screen has a matching marketing section; never force a marketing section into an application form.
 - When a screen shows metrics, trends, usage, analytics, or reporting, render them with the Data visuals library rather than faking a graph with divs. If no Data visuals library is selected, omit the chart instead of drawing one by hand.
 - Use Tailwind utility classes for layout around the real components. Motion components render their initial static SSR state.
-- Keep a minimal self-contained "html" fallback; rendered TSX replaces it only after compilation succeeds.
+- Keep a minimal self-contained "html" fallback; rendered TSX replaces it only after compilation succeeds. The fallback shows the same single visible frame — never hidden steps or display:none siblings.
 - Still fill sections[]/blocks[] for Figma naming. One screen = one visible frame (no hidden steps).
 
 Each generatedScreens[] entry therefore looks like this (abbreviated — keep every other field too):

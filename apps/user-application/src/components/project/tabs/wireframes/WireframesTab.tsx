@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
-import { WIREFRAMES_RESULTS_PREVIEW_LIMIT } from "@/data/fixtures/project/wireframesTabFixtures";
 import { useAssetsTab, useMoodboardArtifact, useWireframesTab } from "@/hooks/project";
 import { useFigmaWireframeExport } from "@/hooks/project/assets/useFigmaWireframeExport";
 import { useWireframeDeliveryExport } from "@/hooks/project/assets/useWireframeDeliveryExport";
@@ -303,7 +302,6 @@ export function WireframesTab({
       buildResultCards(
         screens,
         generatedAtLabel,
-        WIREFRAMES_RESULTS_PREVIEW_LIMIT,
         generatedScreens,
         generatedAt,
       ),

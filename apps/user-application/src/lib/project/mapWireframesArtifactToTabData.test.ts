@@ -87,7 +87,7 @@ describe("buildResultCards", () => {
   test("the grid shows generated screens, not the next run's selection", () => {
     const screens = [screen("home", false), screen("pricing", true)];
 
-    const cards = buildResultCards(screens, "label", 6, artifact(screens).generatedScreens, 1);
+    const cards = buildResultCards(screens, "label", artifact(screens).generatedScreens, 1);
 
     assert.deepEqual(
       cards.map((card) => card.id),
@@ -98,11 +98,33 @@ describe("buildResultCards", () => {
   test("before the first run the grid previews the selection", () => {
     const screens = [screen("home", false), screen("pricing", true)];
 
-    const cards = buildResultCards(screens, "label", 6, [], undefined);
+    const cards = buildResultCards(screens, "label", [], undefined);
 
     assert.deepEqual(
       cards.map((card) => card.id),
       ["pricing"],
+    );
+  });
+
+  test("every generated screen appears — there is no 6-card cutoff", () => {
+    const screens = Array.from({ length: 17 }, (_, index) =>
+      screen(`screen-${index + 1}`, true),
+    );
+    const generated = screens.map((item) => ({
+      id: item.id,
+      title: item.title,
+      priority: item.priority,
+      generatedAtLabel: "now",
+      sections: [],
+      renderMode: "react" as const,
+    }));
+
+    const cards = buildResultCards(screens, "label", generated, 1);
+
+    assert.equal(cards.length, 17);
+    assert.deepEqual(
+      cards.map((card) => card.id),
+      screens.map((item) => item.id),
     );
   });
 });

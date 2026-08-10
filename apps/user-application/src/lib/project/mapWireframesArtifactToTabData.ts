@@ -100,37 +100,35 @@ export type WireframeResultCard = ScreenItem & {
 export function buildResultCards(
   screens: ScreenItem[],
   generatedAtLabel: string,
-  limit = 6,
   generatedScreens: WireframeGeneratedScreen[] = [],
   generatedAt?: number,
 ): WireframeResultCard[] {
   const generatedById = new Map(generatedScreens.map((screen) => [screen.id, screen]));
   // `selected` is the scope of the NEXT run, not what exists. Once anything has
-  // been generated the grid shows the generated screens; before the first run it
-  // previews the pending selection.
+  // been generated the grid shows every generated screen; before the first run it
+  // previews the pending selection. There is no preview cutoff — a 17-screen run
+  // must show all 17 cards.
   const visibleScreens =
     generatedScreens.length > 0
       ? screens.filter((screen) => generatedById.has(screen.id))
       : screens.filter((screen) => screen.selected);
 
-  return visibleScreens
-    .slice(0, limit)
-    .map((screen) => {
-      const generated = generatedById.get(screen.id);
-      return {
-        ...screen,
-        date: generated?.generatedAtLabel ?? generatedAtLabel,
-        // Per-screen timestamp so a partial regen only bumps the regenerated
-        // cards; fall back to the artifact time, then to the `date` label string
-        // (via WireframeCard) when neither numeric time exists.
-        generatedAt: generated?.generatedAt ?? generatedAt,
-        goal: generated?.goal,
-        sections: generated?.sections,
-        html: generated?.html,
-        // A screen with no generated entry has no HTML at all, so "fallback" is the
-        // honest reading: nothing came out of the React renderer for it.
-        renderMode: generated?.renderMode ?? "html-fallback",
-        figmaUrl: generated?.figmaUrl,
-      };
-    });
+  return visibleScreens.map((screen) => {
+    const generated = generatedById.get(screen.id);
+    return {
+      ...screen,
+      date: generated?.generatedAtLabel ?? generatedAtLabel,
+      // Per-screen timestamp so a partial regen only bumps the regenerated
+      // cards; fall back to the artifact time, then to the `date` label string
+      // (via WireframeCard) when neither numeric time exists.
+      generatedAt: generated?.generatedAt ?? generatedAt,
+      goal: generated?.goal,
+      sections: generated?.sections,
+      html: generated?.html,
+      // A screen with no generated entry has no HTML at all, so "fallback" is the
+      // honest reading: nothing came out of the React renderer for it.
+      renderMode: generated?.renderMode ?? "html-fallback",
+      figmaUrl: generated?.figmaUrl,
+    };
+  });
 }
