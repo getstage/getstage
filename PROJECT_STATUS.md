@@ -27,7 +27,7 @@
 | **P0 community move to Discord** | **Done 2026-08-05**: the Slack invite is gone from every surface. `DISCORD_INVITE_URL` (`STAGE_DISCORD_INVITE_URL` override) → `https://discord.gg/z4ZAKu6r29`, 8 lifecycle templates switched, `discord-glyph-white` glyph added (`packages/emails/emails/static/` + `apps/web-application/public/email/`), Slack glyph/workspace/icon assets deleted. Invite verified live (server "Stage"). **Make the invite non-expiring in Discord** — a bot-created invite can lapse, and then every Pro email CTA dead-ends | `packages/emails/components/links.ts`, `packages/emails/EMAIL-FLOWS.md` |
 | **P0 marketing copy vs shipped product** | **Done 2026-08-05**: audited email + landing + paywall copy against code. Removed the custom-domain promise (no backend exists; the web Save button is disabled), "no credit card required" (Stripe checkout collects a card for the 14-day trial), "no usage limits from Stage" (research 27 / moodboard 4 / voice 5-per-min credits with a `requireCredits` precheck) and the sitemap claim (no sitemap artifact exists). Shortcut copy now matches reality: `Cmd+Shift+A` opens chat, `Cmd+Shift+V` records a voice note, window capture is a manual picker inside the chat. Portal copy upgraded from "read-only" to revision requests, which have been live since `convex/portal.ts:requestTaskRevision` | `packages/emails/emails/*`, `apps/web-application/src/components/landing-v2/*`, `apps/*/src/components/onboarding/OnboardingPaywall.tsx` |
 
-**Current desktop version (work branch):** `0.2.21`
+**Current desktop version (work branch):** `0.2.22`
 
 ---
 
