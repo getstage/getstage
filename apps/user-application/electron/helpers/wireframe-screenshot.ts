@@ -61,7 +61,10 @@ export type WireframeFigmaNodeTree = {
   nodes: WireframeFigmaNode[];
 };
 
-export async function captureWireframeHtmlPng(htmlFragment: string): Promise<WireframeScreenshot> {
+export async function captureWireframeHtmlPng(
+  htmlFragment: string,
+  css?: string,
+): Promise<WireframeScreenshot> {
   const trimmed = htmlFragment.trim();
   if (!trimmed) {
     throw new Error("Hi-Fi wireframe HTML is empty.");
@@ -80,7 +83,7 @@ export async function captureWireframeHtmlPng(htmlFragment: string): Promise<Wir
   });
 
   try {
-    const document = buildWireframePreviewDocument(trimmed);
+    const document = buildWireframePreviewDocument(trimmed, { css });
     await window.loadURL(
       `data:text/html;charset=utf-8,${encodeURIComponent(document)}`,
     );
@@ -110,6 +113,7 @@ export async function captureWireframeHtmlPng(htmlFragment: string): Promise<Wir
 // so the export is real text/rects/images instead of a flattened picture.
 export async function captureWireframeFigmaNodes(
   htmlFragment: string,
+  css?: string,
 ): Promise<WireframeFigmaNodeTree> {
   const trimmed = htmlFragment.trim();
   if (!trimmed) {
@@ -129,7 +133,7 @@ export async function captureWireframeFigmaNodes(
   });
 
   try {
-    const document = buildWireframePreviewDocument(trimmed);
+    const document = buildWireframePreviewDocument(trimmed, { css });
     await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(document)}`);
     await waitForWireframeRender(window.webContents);
     const height = await measureCaptureHeight(window);

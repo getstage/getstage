@@ -2,14 +2,14 @@ import { Img, Link, Section, Text } from "@react-email/components";
 import * as React from "react";
 import { CTAButton, Divider, EmailLayout } from "../components/EmailLayout";
 import * as s from "../components/tokens";
-import { SLACK_INVITE_URL } from "../components/links";
+import { DISCORD_INVITE_URL } from "../components/links";
 
 export interface WorkflowDeepDiveProps {
   firstName?: string;
   openAppUrl?: string;
   markUrl?: string;
   stageIconUrl?: string;
-  slackUrl?: string;
+  discordUrl?: string;
   briefIconUrl?: string;
   researchIconUrl?: string;
   directionsIconUrl?: string;
@@ -68,7 +68,7 @@ export const WorkflowDeepDive = ({
   openAppUrl = "https://getstage.co/open",
   markUrl,
   stageIconUrl = "https://getstage.co/email/stage-mark-white.png",
-  slackUrl = SLACK_INVITE_URL,
+  discordUrl = DISCORD_INVITE_URL,
   briefIconUrl = "https://getstage.co/email/icon-brief.png",
   researchIconUrl = "https://getstage.co/email/icon-research.png",
   directionsIconUrl = "https://getstage.co/email/icon-directions.png",
@@ -107,21 +107,21 @@ export const WorkflowDeepDive = ({
     />
     <Step
       iconUrl={researchIconUrl}
-      title="Research"
-      body="AI pulls competitors, market trends, and UX patterns."
+      title="Research & Strategy"
+      body="AI pulls competitors, market trends, and UX patterns, then turns them into a strategy you can edit section by section."
       alt="Research"
     />
     <Step
       iconUrl={directionsIconUrl}
-      title="Directions"
-      body="Get mood boards and concept territories based on your research."
-      alt="Directions"
+      title="Moodboard"
+      body="Collect references from Refero, Figma, or your own uploads into named directions, then generate a style guide from the one you pick."
+      alt="Moodboard"
     />
     <Step
       iconUrl={structureIconUrl}
-      title="Structure"
-      body="Generate sitemaps, flows, and wireframes."
-      alt="Structure"
+      title="Flows & Wireframes"
+      body="Generate user flows and the screens behind them, then wireframe those screens in Lo-Fi or Hi-Fi."
+      alt="Flows and wireframes"
     />
 
     <Divider />
@@ -131,8 +131,8 @@ export const WorkflowDeepDive = ({
       concepts shape your wireframes. Nothing gets lost.
     </Text>
     <Text style={s.paragraph}>
-      And because you connect your own Claude or Codex, there are no usage
-      limits from Stage. Use it as much as you want.
+      And because Stage runs on your own Claude or Codex CLI, the heavy lifting
+      happens on your provider subscription - Stage never resells you tokens.
     </Text>
 
     <CTAButton href={openAppUrl} label="Try it on a real project" iconUrl={stageIconUrl} />
@@ -141,8 +141,8 @@ export const WorkflowDeepDive = ({
 
     <Text style={s.postscript}>
       P.S. If you haven't already,{" "}
-      <Link href={slackUrl} style={s.textLink}>
-        join the Slack
+      <Link href={discordUrl} style={s.textLink}>
+        join the Discord
       </Link>{" "}
       - that's where feature requests turn into shipped updates.
     </Text>

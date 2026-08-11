@@ -1,7 +1,7 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-06-14
+> **Last updated:** 2026-08-05
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Priority | Item | Owner / where |
 |----------|------|----------------|
-| **P1 wireframes quality** | Beat raw Claude: Taste skill → local/project skills + library packs → moodboard layouts → refine | `docs/WIREFRAMES_QUALITY_PLAN.md` |
+| **!!! P0 wireframes: real React libraries** | Pipeline live (React+Motion preview + debug dumps). **Quality gap documented:** model under-uses showcase packs / skips motion. Next = prompt pressure (Q1). | Progress + diagnosis: `docs/WIREFRAMES_REAL_REACT_AUDIT.md` (§ Quality diagnosis) · Direction: `docs/WIREFRAMES_REAL_REACT_LIBRARIES.md` · Inventory: `packages/wireframe-renderer/manifests/wireframesQualityInventory.ts` |
 | **!!! P0** | Desktop idle energy P0 — PR `fix/desktop-idle-energy-p0` | `docs/AI/desktop/2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md` |
 | **P1** | Run packaged-DMG benchmark + 2 h soak (RAM < 400 MB, 12 hr power < 500) | `scripts/desktop-idle-benchmark.sh` |
 | **P2** | IPC R2 upload (separate PR after energy gate) | `src/lib/r2Uploads.ts`, `electron/helpers/r2-upload.ts` |
@@ -20,8 +20,14 @@
 | **P0 reliability review** | Research images, Moodboard directions, Style Guide, exports, uploads, provider errors, client portal recovery checklist | `apps/user-application/docs/AI/moodboard/STAGE_RELIABILITY_RECOVERY_PLAN.md` |
 | **P1 local review** | Project-aware Stage chat: `@project`, bounded Convex context, screenshots, confirmed window capture | `apps/user-application/docs/AI/chatbot/CHATBOT_PLAN.md`; branch `feat/stage-chat-project-context-vision` |
 | **P2 desktop flash-kill** | Convex queries routed through TanStack Query (`@convex-dev/react-query`) + route loaders (`ensureQueryData`) so screens paint ready data instead of setup/empty flashes. Interim: per-tab `TabLoadingState` loader on Flows/Wireframes/Assets. Branch `feat/convex-tanstack-query-loaders`. Follow-up: strip residual `isRunsLoading`/`isStyleGuideRunsLoading` guards once live smoke confirms loader cache hits. Skill: `.agents/skills/convex-tanstack-query-adapter/` | apps/user-application/src |
+| **P0 testing round 2** | Adrien's Stage 2 feedback — **fixed 2026-07-30**: screen list now Flows-derived + project-type aware (was a hardcoded marketing fixture shipping in prod), screens add/edit/delete + persist, every run scoped to the ticked screens (a "2 screen" Hi-Fi run used to generate all 13 in one provider call), Edit Workflow removed | `apps/user-application/docs/AI/wireframes/WIREFRAMES_BUILD_PLAN.md` |
+| **P0 "Stage needs a quick refresh"** | Partners hit the root error boundary on cold start — **fixed 2026-08-01**: route loaders warmed Convex data with `Promise.all`, so one rejected query (cold socket, brief network drop) threw out of the loader and replaced the app with a sign-in prompt. Loaders now settle via `warmRouteData`; the boundary leads with Try again instead of signing the user out. A genuinely signed-out user is still redirected by the `_authed` guard | `apps/user-application/src/lib/routeData.ts` |
+| **P0 Convex custom domains** | Client requirement. Move Convex API + HTTP actions onto `getstage.co` subdomains, production first, and ride the switch along with the `prod-v0.2.18` design release. Hardcoded `*.convex.cloud` / `*.convex.site` references inventoried; the switch is a Worker var + a GitHub Environment secret + the Figma allowlist, **not** an env override — overriding `CONVEX_SITE_URL` moves the JWT issuer and signs every user out. Figma re-review is the long pole, start it first | `apps/user-application/docs/AI/infra/2026-08-01-CONVEX_CUSTOM_DOMAIN_MIGRATION.md` |
+| **P1 Hi-Fi preview whitespace** | **Fixed 2026-08-01**: the thumbnail measured `documentElement.scrollHeight`, which never reports less than the iframe's own viewport, so every screen shorter than the 900px starting height stayed pinned at 900 and rendered the remainder as a white band — and could never shrink back. Now measures the body only, matching what the Figma export already did | `apps/user-application/src/components/project/tabs/wireframes/WireframeHtmlPreview.tsx` |
+| **P0 community move to Discord** | **Done 2026-08-05**: the Slack invite is gone from every surface. `DISCORD_INVITE_URL` (`STAGE_DISCORD_INVITE_URL` override) → `https://discord.gg/z4ZAKu6r29`, 8 lifecycle templates switched, `discord-glyph-white` glyph added (`packages/emails/emails/static/` + `apps/web-application/public/email/`), Slack glyph/workspace/icon assets deleted. Invite verified live (server "Stage"). **Make the invite non-expiring in Discord** — a bot-created invite can lapse, and then every Pro email CTA dead-ends | `packages/emails/components/links.ts`, `packages/emails/EMAIL-FLOWS.md` |
+| **P0 marketing copy vs shipped product** | **Done 2026-08-05**: audited email + landing + paywall copy against code. Removed the custom-domain promise (no backend exists; the web Save button is disabled), "no credit card required" (Stripe checkout collects a card for the 14-day trial), "no usage limits from Stage" (research 27 / moodboard 4 / voice 5-per-min credits with a `requireCredits` precheck) and the sitemap claim (no sitemap artifact exists). Shortcut copy now matches reality: `Cmd+Shift+A` opens chat, `Cmd+Shift+V` records a voice note, window capture is a manual picker inside the chat. Portal copy upgraded from "read-only" to revision requests, which have been live since `convex/portal.ts:requestTaskRevision` | `packages/emails/emails/*`, `apps/web-application/src/components/landing-v2/*`, `apps/*/src/components/onboarding/OnboardingPaywall.tsx` |
 
-**Current desktop version (work branch):** `0.1.70`
+**Current desktop version (work branch):** `0.2.23`
 
 ---
 

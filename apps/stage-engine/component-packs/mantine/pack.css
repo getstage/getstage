@@ -1,0 +1,256 @@
+/* Mantine — Stage base component pack.
+ *
+ * Hand-written CSS reproducing Mantine's control proportions (v7, size `md`). No
+ * Tailwind, no JS, no external requests: the engine prepends this verbatim to every
+ * Hi-Fi fragment, so preview, PNG capture, Paper, and the code export all keep working.
+ *
+ * Same `ui-*` class names as every other base pack — only the values differ, so a run
+ * swaps the look without touching the prompt vocabulary. Mantine reads friendlier than
+ * shadcn: 42px controls, 12px radii, a filled blue primary with no visible border, pill
+ * badges, underlined tabs, borders instead of shadows, and a brand-coloured focus ring.
+ *
+ * Colour/type/radius come from `--ui-*` variables. The moodboard style guide or brand
+ * kit overrides them per project, so the same pack skins to any client brand while the
+ * proportions stay constant across all screens in a run.
+ */
+
+:root {
+  --ui-bg: #ffffff;
+  --ui-fg: #212529;
+  --ui-muted: #f1f3f5;
+  --ui-muted-fg: #868e96;
+  --ui-border: #dee2e6;
+  --ui-primary: #228be6;
+  --ui-primary-fg: #ffffff;
+  --ui-destructive: #fa5252;
+  /* Mantine focuses in the brand colour, so the ring follows --ui-primary by default. */
+  --ui-ring: var(--ui-primary);
+  --ui-radius: 12px;
+  --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Controls ------------------------------------------------------------------ */
+
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 42px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius);
+  background: var(--ui-primary);
+  color: var(--ui-primary-fg);
+  font-family: var(--ui-font);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.ui-btn:hover { filter: brightness(0.94); }
+.ui-btn:focus-visible { outline: 2px solid var(--ui-ring); outline-offset: 2px; }
+
+/* Mantine's "light" variant: a tint of the brand colour, not a grey fill. The plain
+ * declaration stays as the fallback wherever color-mix() is unavailable. */
+.ui-btn-secondary {
+  background: var(--ui-muted);
+  background: color-mix(in srgb, var(--ui-primary) 12%, var(--ui-bg));
+  color: var(--ui-primary);
+}
+
+.ui-btn-outline {
+  background: transparent;
+  color: var(--ui-primary);
+  border-color: var(--ui-primary);
+}
+
+.ui-btn-ghost {
+  background: transparent;
+  color: var(--ui-fg);
+}
+
+.ui-btn-destructive {
+  background: var(--ui-destructive);
+  color: #ffffff;
+}
+
+.ui-btn-lg { height: 50px; padding: 0 22px; font-size: 18px; }
+.ui-btn-sm { height: 36px; padding: 0 14px; font-size: 14px; }
+
+/* Forms --------------------------------------------------------------------- */
+
+.ui-field { display: flex; flex-direction: column; gap: 4px; }
+
+.ui-label {
+  font-family: var(--ui-font);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--ui-fg);
+}
+
+.ui-input,
+.ui-textarea,
+.ui-select {
+  box-sizing: border-box;
+  width: 100%;
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  background: var(--ui-bg);
+  color: var(--ui-fg);
+  font-family: var(--ui-font);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.ui-textarea { height: auto; min-height: 96px; padding: 10px 14px; resize: vertical; }
+.ui-input::placeholder, .ui-textarea::placeholder { color: var(--ui-muted-fg); }
+
+/* Mantine marks focus by recolouring the border, not by drawing an outer outline. */
+.ui-input:focus, .ui-textarea:focus, .ui-select:focus {
+  outline: none;
+  border-color: var(--ui-ring);
+}
+
+.ui-hint { font-family: var(--ui-font); font-size: 12px; line-height: 1.4; color: var(--ui-muted-fg); }
+
+.ui-checkbox, .ui-radio {
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-bg);
+  flex-shrink: 0;
+}
+
+.ui-checkbox { border-radius: 4px; }
+.ui-radio { border-radius: 50%; }
+
+.ui-switch {
+  box-sizing: border-box;
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--ui-border);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ui-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ui-bg);
+}
+
+/* Surfaces ------------------------------------------------------------------ */
+
+.ui-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--ui-border);
+  border-radius: calc(var(--ui-radius) + 4px);
+  background: var(--ui-bg);
+}
+
+.ui-card-header { display: flex; flex-direction: column; gap: 4px; }
+.ui-card-title { font-family: var(--ui-font); font-size: 18px; font-weight: 600; line-height: 1.35; color: var(--ui-fg); margin: 0; }
+.ui-card-desc { font-family: var(--ui-font); font-size: 14px; line-height: 1.55; color: var(--ui-muted-fg); margin: 0; }
+.ui-card-footer { display: flex; align-items: center; gap: 12px; }
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: 22px;
+  padding: 0 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  background: var(--ui-muted);
+  color: var(--ui-fg);
+  font-family: var(--ui-font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.ui-badge-primary { background: var(--ui-primary); color: var(--ui-primary-fg); border-color: transparent; }
+
+.ui-alert {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: calc(var(--ui-radius) + 4px);
+  background: var(--ui-muted);
+  background: color-mix(in srgb, var(--ui-primary) 8%, var(--ui-bg));
+  font-family: var(--ui-font);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ui-fg);
+}
+
+.ui-separator { height: 1px; border: 0; background: var(--ui-border); margin: 0; }
+
+.ui-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--ui-muted);
+  flex-shrink: 0;
+}
+
+/* Navigation and data -------------------------------------------------------- */
+
+.ui-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--ui-border); }
+
+.ui-tab {
+  padding: 10px 16px;
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--ui-muted-fg);
+  font-family: var(--ui-font);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.ui-tab-active { color: var(--ui-fg); border-bottom-color: var(--ui-primary); }
+
+.ui-table { width: 100%; border-collapse: collapse; font-family: var(--ui-font); font-size: 14px; line-height: 1.55; }
+.ui-table th {
+  padding: 11px 12px;
+  text-align: left;
+  font-weight: 700;
+  color: var(--ui-fg);
+  border-bottom: 1px solid var(--ui-border);
+}
+.ui-table td { padding: 11px 12px; color: var(--ui-fg); border-bottom: 1px solid var(--ui-border); }
+
+/* Motion --------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .ui-btn { transition: filter 100ms ease, background-color 100ms ease; }
+  .ui-input, .ui-textarea, .ui-select { transition: border-color 100ms ease; }
+  .ui-tab { transition: color 100ms ease, border-color 100ms ease; }
+}

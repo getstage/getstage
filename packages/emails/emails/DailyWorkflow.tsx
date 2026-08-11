@@ -2,7 +2,7 @@ import { Img, Link, Section, Text } from "@react-email/components";
 import * as React from "react";
 import { CTAButton, Divider, EmailLayout } from "../components/EmailLayout";
 import * as s from "../components/tokens";
-import { SLACK_INVITE_URL } from "../components/links";
+import { DISCORD_INVITE_URL } from "../components/links";
 
 export interface DailyWorkflowProps {
   firstName?: string;
@@ -12,7 +12,7 @@ export interface DailyWorkflowProps {
   morningImageUrl?: string;
   afternoonImageUrl?: string;
   endOfDayImageUrl?: string;
-  slackUrl?: string;
+  discordUrl?: string;
 }
 
 export const DailyWorkflow = ({
@@ -23,7 +23,7 @@ export const DailyWorkflow = ({
   morningImageUrl = "https://getstage.co/email/research-matrix.png",
   afternoonImageUrl = "https://getstage.co/email/vocal-shortcut.png",
   endOfDayImageUrl = "https://getstage.co/email/client-portal-mockup.png",
-  slackUrl = SLACK_INVITE_URL,
+  discordUrl = DISCORD_INVITE_URL,
 }: DailyWorkflowProps) => (
   <EmailLayout
     preview="How designers are using Stage daily."
@@ -54,9 +54,9 @@ export const DailyWorkflow = ({
 
     <Text style={s.subheading}>Afternoon: deep work</Text>
     <Text style={s.listItem}>
-      You're designing in Figma. Hit the Stage shortcut to get a quick
-      critique, explore a different layout approach, or check if your
-      hierarchy makes sense. No context switching.
+      You're designing in Figma. Hit Cmd + Shift + A, attach the window, and ask
+      Stage for a quick critique - or talk it through with Cmd + Shift + V. No
+      context switching.
     </Text>
     <Section style={s.sectionImageWrap}>
       <Img
@@ -90,8 +90,8 @@ export const DailyWorkflow = ({
 
     <Text style={s.postscript}>
       P.S. If you haven't already,{" "}
-      <Link href={slackUrl} style={s.textLink}>
-        join the Slack
+      <Link href={discordUrl} style={s.textLink}>
+        join the Discord
       </Link>{" "}
       - that's where feature requests turn into shipped updates.
     </Text>

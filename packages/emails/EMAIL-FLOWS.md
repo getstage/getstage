@@ -29,7 +29,7 @@ Trigger-based sequence for new sign-ups. Goal: get them to download the macOS ap
 >
 > [Download Stage for macOS] - primary CTA button
 >
-> Once you open the app, you'll finish setting up your account and start your 7-day free trial. Your first project is 5 minutes away.
+> Once you open the app, you'll finish setting up your account and start your 14-day free trial. Your first project is 5 minutes away.
 >
 > Quick heads up - Stage is a macOS app. If you're on Windows, no worries.
 > [Join the Windows waitlist](https://forms.gle/7X47mM7NmzgoMjeV8) - text link
@@ -54,7 +54,7 @@ Trigger-based sequence for new sign-ups. Goal: get them to download the macOS ap
 >
 > [Download Stage for macOS] - primary CTA button
 >
-> Once you open it, you'll set up your account and start your 7-day free trial. Everything runs locally on your Mac.
+> Once you open it, you'll set up your account and start your 14-day free trial. Everything runs locally on your Mac.
 >
 > Not on Mac? [Join the Windows waitlist](https://forms.gle/7X47mM7NmzgoMjeV8) - we'll let you know when we expand.
 >
@@ -73,7 +73,7 @@ Trigger-based sequence for new sign-ups. Goal: get them to download the macOS ap
 
 > Hey {{first_name}},
 >
-> You're in - your 7-day trial is running. Let's make the most of it.
+> You're in - your 14-day trial is running. Let's make the most of it.
 >
 > The fastest way to see what Stage can do: create your first project.
 >
@@ -83,7 +83,7 @@ Trigger-based sequence for new sign-ups. Goal: get them to download the macOS ap
 > 2. Paste a brief or describe what you're working on
 > 3. Let the AI pull together research, references, and a starting direction
 >
-> That's it. Stage takes your brief and gives you a head start - competitor research, visual references, and structure - so you're not starting from a blank canvas.
+> That's it. Stage takes your brief and gives you a head start - competitor research, UX patterns, and a strategy to build the flows on - so you're not starting from a blank canvas.
 >
 > [Open Stage] - primary CTA button
 >
@@ -109,13 +109,13 @@ Trigger-based sequence for new sign-ups. Goal: get them to download the macOS ap
 > Stage replaces that with one workflow:
 >
 > **Brief** - Paste or write your project brief
-> **Research** - AI pulls competitors, market trends, and UX patterns
-> **Directions** - Get mood boards and concept territories based on your research
-> **Structure** - Generate sitemaps, flows, and wireframes
+> **Research & Strategy** - AI pulls competitors, market trends, and UX patterns, then turns them into a strategy you can edit section by section
+> **Moodboard** - Collect references from Refero, Figma, or your own uploads into named directions, then generate a style guide from the one you pick
+> **Flows & Wireframes** - Generate user flows and the screens behind them, then wireframe those screens in Lo-Fi or Hi-Fi
 >
 > Every step feeds into the next. Your research informs your concepts. Your concepts shape your wireframes. Nothing gets lost.
 >
-> And because you connect your own Claude or Codex, there are no usage limits from Stage. Use it as much as you want.
+> And because Stage runs on your own Claude or Codex CLI, the heavy lifting happens on your provider subscription - Stage never resells you tokens.
 >
 > [Try it on a real project] - primary CTA button
 >
@@ -136,16 +136,16 @@ Trigger-based sequence for new sign-ups. Goal: get them to download the macOS ap
 >
 > Every freelancer knows the pain - sharing work through Notion links, Google Drive folders, or long email threads. Your clients lose track, you lose control.
 >
-> Stage has a built-in client portal. One link, branded with your logo, colors, and custom domain. Share it with your team or your clients - they see project progress, deliverables, and can leave revisions directly.
+> Stage has a built-in client portal. One link, branded with your logo and brand colour. Share it with your team or your clients - they see project progress, deliverables, and can leave revisions directly.
 >
 > **What makes it different:**
 >
-> - Your brand, your logo, your domain - not a generic tool link
+> - Your logo, your brand colour - not a generic tool link
 > - Clients leave revisions right inside the portal
 > - You see every revision live, no back-and-forth emails
 > - Share with your team and clients from one place
 >
-> No more screenshots in Slack. No more "check the Google Drive folder." One link, everything in sync.
+> No more screenshots in a chat thread. No more "check the Google Drive folder." One link, everything in sync.
 >
 > [Set up your client portal] - primary CTA button
 >
@@ -164,16 +164,16 @@ Trigger-based sequence for new sign-ups. Goal: get them to download the macOS ap
 
 > Hey {{first_name}},
 >
-> Quick heads up - your 7-day trial ends tomorrow. Your card on file will be charged automatically and your plan kicks in. No interruption, your projects stay exactly where they are.
+> Quick heads up - your 14-day trial ends tomorrow. Your card on file will be charged automatically and your plan kicks in. No interruption, your projects stay exactly where they are.
 >
-> If you want to cancel, you can do it in Settings before the trial ends. No questions asked.
+> If you want to cancel, you can do it in the [billing portal](https://billing.stripe.com/p/login/6oU8wPd726nA3RXf3fd7q00) before the trial ends. No questions asked.
 >
 > But if Stage helped you move faster on even one project this week - the research, the AI workflows, the client portal - it's already paying for itself.
 >
 > **A few things you might not have tried yet:**
 >
-> - Use the Mac shortcut to get instant AI feedback on whatever's on your screen
-> - Generate multiple concept directions from a single brief
+> - Hit Cmd + Shift + A to ask Stage about the design you're in, or attach a window for a critique
+> - Collect Refero and Figma references into moodboard directions, then turn the one you pick into a style guide
 > - Use the portal to collect client revisions in one place
 >
 > [Open Stage] - primary CTA button
@@ -201,18 +201,18 @@ Post-purchase sequence for paying users. Goal: educate on advanced features, red
 
 > Hey {{first_name}},
 >
-> Thanks for going Pro. You now have full access to Stage - no limits, no expiration.
+> Thanks for going Pro. Every project type, the client portal, and your full monthly AI credit allowance are unlocked - and the trial clock is gone.
 >
 > Two things to set up now:
 >
 > **1. Your client portal**
-> Add your brand, logo, and custom domain. Takes 2 minutes and your clients will notice the difference.
+> Add your logo and brand colour, then share one link. Takes 2 minutes and your clients will notice the difference.
 >
-> **2. Join the Stage Slack**
+> **2. Join the Stage Discord**
 > This is where you get priority support, share feedback, and connect with other designers using Stage. I'm in there daily.
 >
 > [Set up my portal] - primary CTA button
-> [Join the Slack](https://join.slack.com/t/stage-cnk9712/shared_invite/zt-3xaeofd5f-JuFnTgjh64n1Vqqbhg~DIQ) - secondary text link
+> [Join the Discord](https://discord.gg/z4ZAKu6r29) - secondary text link
 >
 > Welcome aboard.
 >
@@ -233,14 +233,14 @@ Post-purchase sequence for paying users. Goal: educate on advanced features, red
 >
 > You've been on Stage for a few days now. Here are three features that most people don't find on their own:
 >
-> **1. Mac shortcut - your UX co-pilot**
-> Hit the shortcut from anywhere - Figma, a browser, whatever's on screen. Stage analyzes what you're looking at and gives you instant feedback. It's the fastest way to get a second opinion on any design.
+> **1. Two Mac shortcuts**
+> Cmd + Shift + A opens Stage chat over whatever you're working in - Figma, a browser, anything. Cmd + Shift + V starts a voice note, so you can brief Stage out loud instead of typing.
 >
 > **2. Regenerate and iterate**
 > Not happy with what Stage generated? Hit Regenerate. Or give it feedback and iterate - refine a strategy doc, rework a wireframe, adjust the direction. Stage gets sharper every round.
 >
 > **3. AI critique before client review**
-> Before you share work with a client, let Stage critique it first. It catches spacing issues, hierarchy problems, and inconsistencies you might miss after staring at a design for hours.
+> Before you share work with a client, let Stage critique it first. Pin the project with @project, attach the window you're designing in, and Stage catches spacing issues, hierarchy problems, and inconsistencies you might miss after staring at a design for hours.
 >
 > [Open Stage] - primary CTA button
 >
@@ -265,7 +265,7 @@ Post-purchase sequence for paying users. Goal: educate on advanced features, red
 > Client sends a brief. Paste it into Stage. In 5 minutes you have competitor research, visual references, and a strategic direction - before you even open Figma.
 >
 > **Afternoon: deep work**
-> You're designing in Figma. Hit the Stage shortcut to get a quick critique, explore a different layout approach, or check if your hierarchy makes sense. No context switching.
+> You're designing in Figma. Hit Cmd + Shift + A, attach the window, and ask Stage for a quick critique - or talk it through with Cmd + Shift + V. No context switching.
 >
 > **End of day: client update**
 > Share progress through your portal. Your client sees the work, leaves revisions in one place. No email threads, no Notion links, no "which version is latest?"
@@ -299,7 +299,7 @@ Post-purchase sequence for paying users. Goal: educate on advanced features, red
 >
 > Adrien
 >
-> P.S. If you haven't already, [join the Slack](https://join.slack.com/t/stage-cnk9712/shared_invite/zt-3xaeofd5f-JuFnTgjh64n1Vqqbhg~DIQ) - that's where feature requests turn into shipped updates.
+> P.S. If you haven't already, [join the Discord](https://discord.gg/z4ZAKu6r29) - that's where feature requests turn into shipped updates.
 
 ---
 
@@ -309,7 +309,7 @@ Post-purchase sequence for paying users. Goal: educate on advanced features, red
 - **Templates:** React Email components in `emails/`
 - **Sender:** adrien@getstage.co (Resend, verified domain)
 - **Assets:** Hosted from repo (`emails/assets/`)
-- **Slack:** https://join.slack.com/t/stage-cnk9712/shared_invite/zt-3xaeofd5f-JuFnTgjh64n1Vqqbhg~DIQ
+- **Discord:** https://discord.gg/z4ZAKu6r29 (override with `STAGE_DISCORD_INVITE_URL`)
 - **Events needed from Convex:**
   1. `user.signed_up` - web sign-up completed
   2. `user.app_downloaded` - macOS app first opened

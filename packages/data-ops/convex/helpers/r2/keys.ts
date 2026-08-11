@@ -18,6 +18,10 @@ export function getExtensionFromMimeType(mimeType: string, fileName: string) {
       return "docx";
     case "text/plain":
       return "txt";
+    case "text/html":
+      return "html";
+    case "text/css":
+      return "css";
     case "text/csv":
     case "application/csv":
     case "application/vnd.ms-excel":

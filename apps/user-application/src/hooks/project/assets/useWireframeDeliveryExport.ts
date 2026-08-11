@@ -20,6 +20,7 @@ export function useWireframeDeliveryExport(projectId: string) {
         artifactId: asset.artifactId,
         screenId: asset.screenId,
         ...(option === "paper" && asset.html?.trim() ? { hifiHtml: asset.html.trim() } : {}),
+        ...(option === "paper" && asset.css?.trim() ? { hifiCss: asset.css } : {}),
       };
       const promise = (async () => {
         if (option === "code") {

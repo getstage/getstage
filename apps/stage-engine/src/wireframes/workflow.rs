@@ -1,33 +1,59 @@
 use std::sync::Arc;
 use std::time::Instant;
 
+use crate::convex_store::asset_upload::ConvexAssetUploader;
 use crate::convex_store::wireframes_repository::WireframesRepository;
 use crate::helpers::provider_json::extract_wireframes_artifact;
 use crate::helpers::time::now_millis;
 use crate::models::errors::{EngineError, EngineErrorCode};
 use crate::models::providers::ProviderId;
 use crate::models::runs::{RunAttachment, RunAttachmentKind, RunEvent, RunStatus, StartRunRequest};
-use crate::models::wireframes::{WireframeBrandSource, WireframeKind};
+use crate::models::wireframes::{WireframeBrandSource, WireframeKind, WireframesInput};
 use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
 use crate::providers::command::provider_cli_working_directory;
 use crate::providers::process::ProviderProcessOutcome;
 use crate::runs::RunEventSink;
-use crate::wireframes::normalize::normalize_wireframes_artifact;
-use crate::wireframes::prompt::build_wireframes_prompt;
+use crate::wireframes::debug_dump::WireframesDebugDump;
+use crate::wireframes::normalize::{apply_scoped_screens, normalize_wireframes_artifact};
+use crate::wireframes::prompt::{build_wireframes_prompt, resolve_hifi_prompt_preferences};
+use crate::wireframes::render::{
+    RendererLibraries, apply_react_render, brand_theme, react_render_enabled,
+    repair_prompt_for_failures,
+};
 use crate::wireframes::{MAX_BRAND_KIT_BYTES, MAX_BRAND_KIT_FILES};
 
 const GENERATED_AT_LABEL: &str = "just now";
 
+/// Screens designed at the same time. A run's wall time is one wave, so this is set to
+/// cover a normal selection in a single wave: at four, a six-screen run needed two waves
+/// and took twice as long as the slowest screen for no reason. High enough for that,
+/// low enough that selecting every screen does not spawn a dozen provider CLIs at once.
+const MAX_PARALLEL_SCREEN_RUNS: usize = 6;
+
+/// What a batch of per-screen runs produced: the designs, plus the screen list every
+/// response repeats. The list matters on a first pass, where there is no saved artifact
+/// to merge into and dropping it would leave the results grid with nothing to show.
+struct ParallelScreenRuns {
+    screens: Vec<serde_json::Value>,
+    configure: Vec<serde_json::Value>,
+}
+
 #[derive(Clone, Debug)]
 pub struct WireframesWorkflow {
     repository: WireframesRepository,
+    asset_uploader: ConvexAssetUploader,
     r2_public_base_url: Option<String>,
 }
 
 impl WireframesWorkflow {
-    pub fn new(repository: WireframesRepository, r2_public_base_url: Option<String>) -> Self {
+    pub fn new(
+        repository: WireframesRepository,
+        asset_uploader: ConvexAssetUploader,
+        r2_public_base_url: Option<String>,
+    ) -> Self {
         Self {
             repository,
+            asset_uploader,
             r2_public_base_url,
         }
     }
@@ -67,20 +93,26 @@ impl WireframesWorkflow {
             .and_then(parse_style_direction_from_source)
             .map(ToOwned::to_owned);
         let brand_kit_keys = request.context.brand_kit_keys.clone().unwrap_or_default();
-        let regenerate_screen_ids = request
+        let target_screen_ids = request
             .context
             .source
             .as_deref()
             .and_then(parse_screens_from_source);
 
         let workflow_started = Instant::now();
+        // The scope is THE thing to know when a run feels slow: "2 screens took 13 minutes"
+        // is only actionable once the log proves the run really was scoped to 2.
         tracing::info!(
             run_id = %run_id,
             provider_id = ?provider_id,
             project_id = ?project_id,
             kind = wireframe_kind.as_str(),
+            scoped_screen_count = target_screen_ids.as_ref().map_or(0, Vec::len),
+            scoped_screen_ids = ?target_screen_ids,
             "wireframes workflow started"
         );
+        let dump = WireframesDebugDump::open(&run_id);
+        dump.write_readme();
 
         let result = async {
             let auth_token = auth_token.ok_or_else(|| {
@@ -98,11 +130,65 @@ impl WireframesWorkflow {
                 "stage-context",
                 "Load Stage wireframes input",
             );
+            let input_started = Instant::now();
             let input = self
                 .repository
                 .fetch_wireframes_input(&auth_token, project_id)
                 .await?;
             self.tool_completed(api_version, &run_id, provider_id, &sink, "stage-context");
+            tracing::info!(
+                run_id = %run_id,
+                input_elapsed_ms = input_started.elapsed().as_millis(),
+                research_chars = input.research_artifact_json.as_deref().map_or(0, str::len),
+                strategy_chars = input.strategy_artifact_json.len(),
+                moodboard_chars = input.moodboard_artifact_json.as_deref().map_or(0, str::len),
+                flows_chars = input.flows_artifact_json.as_deref().map_or(0, str::len),
+                existing_artifact_chars = input
+                    .existing_wireframes_artifact_json
+                    .as_deref()
+                    .map_or(0, str::len),
+                "loaded wireframes input from Convex"
+            );
+            if matches!(wireframe_kind, WireframeKind::Hifi) {
+                let preferences = resolve_hifi_prompt_preferences(&input);
+                tracing::info!(
+                    run_id = %run_id,
+                    configured_skill_ids = ?input.enabled_skill_ids,
+                    configured_component_pack_ids = ?input.enabled_component_pack_ids,
+                    effective_skill_ids = ?preferences.skill_ids,
+                    effective_component_pack_ids = ?preferences.component_pack_ids,
+                    "resolved Hi-Fi wireframes skills and component libraries"
+                );
+                dump.write_meta(serde_json::json!({
+                    "runId": run_id,
+                    "kind": wireframe_kind.as_str(),
+                    "providerId": format!("{provider_id:?}"),
+                    "projectId": project_id,
+                    "scopedScreenIds": target_screen_ids,
+                    "configuredSkillIds": input.enabled_skill_ids,
+                    "configuredComponentPackIds": input.enabled_component_pack_ids,
+                    "effectiveSkillIds": preferences.skill_ids,
+                    "effectiveComponentPackIds": preferences.component_pack_ids,
+                    "brandSource": brand_source.map(|s| format!("{s:?}")),
+                    "styleDirectionId": style_direction_id,
+                    "dumpDir": dump.dir().map(|p| p.display().to_string()),
+                }));
+            } else {
+                tracing::info!(
+                    run_id = %run_id,
+                    kind = wireframe_kind.as_str(),
+                    "wireframes skills and component libraries are not applied to Lo-Fi generation"
+                );
+                dump.write_meta(serde_json::json!({
+                    "runId": run_id,
+                    "kind": wireframe_kind.as_str(),
+                    "providerId": format!("{provider_id:?}"),
+                    "projectId": project_id,
+                    "scopedScreenIds": target_screen_ids,
+                    "note": "Lo-Fi — component packs not applied",
+                    "dumpDir": dump.dir().map(|p| p.display().to_string()),
+                }));
+            }
 
             convex_run_id = self
                 .repository
@@ -138,43 +224,146 @@ impl WireframesWorkflow {
                 false
             };
 
-            request.prompt = build_wireframes_prompt(
-                &input,
-                wireframe_kind,
-                brand_source,
-                style_direction_id.as_deref(),
-                None,
-                brand_kit_attached,
-                regenerate_screen_ids.as_deref(),
-            );
-            let provider_context = ProviderRunContext {
-                api_version,
-                run_id: run_id.clone(),
-                request,
+            // One provider call per screen, run together. A single call covering every
+            // screen is why a six-screen run took ten minutes: the model writes them
+            // sequentially into one giant JSON object, and one malformed byte anywhere in
+            // it used to lose the whole run. Per screen the wall time collapses to the
+            // slowest screen instead of the sum, each response is small enough to survive
+            // parsing, and a screen that fails costs only itself.
+            let screen_ids = target_screen_ids.clone().unwrap_or_default();
+            let final_text = if screen_ids.len() > 1 {
+                let mut requests = Vec::with_capacity(screen_ids.len());
+                for screen_id in &screen_ids {
+                    let mut screen_request = request.clone();
+                    screen_request.prompt = build_wireframes_prompt(
+                        &input,
+                        wireframe_kind,
+                        brand_source,
+                        style_direction_id.as_deref(),
+                        None,
+                        brand_kit_attached,
+                        Some(std::slice::from_ref(screen_id)),
+                    );
+                    dump.write_prompt(screen_id, &screen_request.prompt);
+                    requests.push((screen_id.clone(), screen_request));
+                }
+                let prompt_chars: usize = requests
+                    .iter()
+                    .map(|(_, request)| request.prompt.chars().count())
+                    .sum();
+                tracing::info!(
+                    run_id = %run_id,
+                    provider_id = ?provider_id,
+                    kind = wireframe_kind.as_str(),
+                    screen_count = requests.len(),
+                    max_parallel = MAX_PARALLEL_SCREEN_RUNS,
+                    prompt_chars,
+                    "starting per-screen wireframes provider runs"
+                );
+                request.prompt = requests
+                    .first()
+                    .map(|(_, request)| request.prompt.clone())
+                    .unwrap_or_default();
+                let started = Instant::now();
+                let batch = self
+                    .run_screens_in_parallel(
+                        api_version,
+                        &run_id,
+                        provider_id,
+                        requests,
+                        &sink,
+                        &cancel_rx,
+                        dump.clone(),
+                    )
+                    .await?;
+                let Some(batch) = batch else {
+                    tracing::info!(run_id = %run_id, "wireframes provider run cancelled");
+                    return Ok(());
+                };
+                tracing::info!(
+                    run_id = %run_id,
+                    provider_elapsed_ms = started.elapsed().as_millis(),
+                    screens_returned = batch.screens.len(),
+                    screens_requested = screen_ids.len(),
+                    configure_entries = batch.configure.len(),
+                    "per-screen wireframes provider runs finished"
+                );
+                if batch.screens.is_empty() {
+                    return Err(WorkflowError::InvalidRequest(
+                        "None of the selected screens could be generated. Try again.".to_string(),
+                    ));
+                }
+                for screen in &batch.screens {
+                    dump.write_tsx_from_screen(screen);
+                }
+                serde_json::json!({
+                    "generatedScreens": batch.screens,
+                    "configureScreens": batch.configure,
+                })
+                .to_string()
+            } else {
+                request.prompt = build_wireframes_prompt(
+                    &input,
+                    wireframe_kind,
+                    brand_source,
+                    style_direction_id.as_deref(),
+                    None,
+                    brand_kit_attached,
+                    target_screen_ids.as_deref(),
+                );
+                let request_prompt_chars = request.prompt.chars().count();
+                let single_label = screen_ids
+                    .first()
+                    .map(String::as_str)
+                    .unwrap_or("single");
+                dump.write_prompt(single_label, &request.prompt);
+                tracing::info!(
+                    run_id = %run_id,
+                    provider_id = ?provider_id,
+                    kind = wireframe_kind.as_str(),
+                    scoped_screen_count = screen_ids.len(),
+                    prompt_chars = request_prompt_chars,
+                    "starting wireframes provider run"
+                );
+                let provider_context = ProviderRunContext {
+                    api_version,
+                    run_id: run_id.clone(),
+                    request: request.clone(),
+                };
+                let provider_started = Instant::now();
+                let outcome =
+                    run_provider_collect(provider_context, sink.clone(), cancel_rx.clone()).await?;
+                tracing::info!(
+                    run_id = %run_id,
+                    provider_id = ?provider_id,
+                    kind = wireframe_kind.as_str(),
+                    provider_elapsed_ms = provider_started.elapsed().as_millis(),
+                    "wireframes provider run finished"
+                );
+                let ProviderProcessOutcome::Completed(text) = outcome else {
+                    tracing::info!(run_id = %run_id, "wireframes provider run cancelled");
+                    return Ok(());
+                };
+                dump.write_provider_raw(single_label, &text);
+                text
             };
+            let repair_request_template = request;
 
-            tracing::info!(
-                run_id = %run_id,
-                provider_id = ?provider_id,
-                kind = wireframe_kind.as_str(),
-                "starting wireframes provider run"
-            );
-            let provider_started = Instant::now();
-            let outcome = run_provider_collect(provider_context, sink.clone(), cancel_rx).await?;
-            tracing::info!(
-                run_id = %run_id,
-                provider_id = ?provider_id,
-                kind = wireframe_kind.as_str(),
-                provider_elapsed_ms = provider_started.elapsed().as_millis(),
-                "wireframes provider run finished"
-            );
-            let ProviderProcessOutcome::Completed(final_text) = outcome else {
-                tracing::info!(run_id = %run_id, "wireframes provider run cancelled");
-                return Ok(());
-            };
-
-            let raw_artifact = extract_wireframes_artifact(&final_text)?;
-            let mut artifact = normalize_wireframes_artifact(
+            // "did not contain a valid artifact" cannot distinguish a truncated response
+            // from one wrapped in prose or code fences. Log the size and tail so the next
+            // failure is diagnosable from the log instead of another rerun.
+            let raw_artifact = extract_wireframes_artifact(&final_text).inspect_err(|error| {
+                let char_count = final_text.chars().count();
+                let tail: String = final_text.chars().skip(char_count.saturating_sub(400)).collect();
+                tracing::error!(
+                    run_id = %run_id,
+                    output_chars = char_count,
+                    %error,
+                    output_tail = %tail,
+                    "wireframes provider output could not be parsed"
+                );
+            })?;
+            let artifact = normalize_wireframes_artifact(
                 raw_artifact,
                 &input,
                 wireframe_kind,
@@ -183,22 +372,123 @@ impl WireframesWorkflow {
                 now_millis(),
                 GENERATED_AT_LABEL,
             )?;
-            if let Some(screen_ids) = regenerate_screen_ids.as_ref() {
-                let Some(existing_json) = input.existing_wireframes_artifact_json.as_deref() else {
-                    return Err(WorkflowError::InvalidRequest(
-                        "Cannot regenerate wireframe screens without an existing wireframes artifact."
-                            .to_string(),
-                    ));
-                };
-                artifact = crate::wireframes::normalize::merge_regenerated_screens(
-                    existing_json,
-                    artifact,
-                    screen_ids,
-                    wireframe_kind,
-                )
-                .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))?;
+            let (mut artifact, failed_screen_ids) = apply_scoped_screens(
+                input.existing_wireframes_artifact_json.as_deref(),
+                artifact,
+                target_screen_ids.as_deref(),
+                wireframe_kind,
+            )
+            .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))?;
+
+            if let Some(screens) = artifact
+                .get("generatedScreens")
+                .and_then(serde_json::Value::as_array)
+            {
+                for screen in screens {
+                    dump.write_tsx_from_screen(screen);
+                }
             }
 
+            // The React render's compiled stylesheet, kept aside so the run's screens
+            // can be offloaded to R2 with it instead of embedding it per screen.
+            let mut rendered_css: Option<String> = None;
+            if matches!(wireframe_kind, WireframeKind::Hifi) && react_render_enabled() {
+                let pack_ids = resolve_hifi_prompt_preferences(&input).component_pack_ids;
+                let libraries = RendererLibraries::resolve(&pack_ids);
+                // The style guide has to reach the renderer, not just the prompt: without it
+                // every real component falls back to the grayscale defaults in globals.css.
+                let theme = brand_theme(
+                    input.moodboard_artifact_json.as_deref(),
+                    style_direction_id.as_deref(),
+                );
+                tracing::info!(
+                    run_id = %run_id,
+                    brand_theme_applied = theme.is_some(),
+                    "resolved wireframe renderer brand theme"
+                );
+                let render_started = Instant::now();
+                let render_outcome = apply_react_render(&mut artifact, &libraries, theme.as_ref())
+                    .await
+                    .unwrap_or_default();
+                rendered_css = render_outcome.css;
+                let failures = render_outcome.failures;
+                tracing::info!(
+                    run_id = %run_id,
+                    render_elapsed_ms = render_started.elapsed().as_millis(),
+                    failed = failures.len(),
+                    "rendered wireframe TSX screens"
+                );
+                if !failures.is_empty() {
+                    // A second full provider call. It doubles the run, so it must be loud:
+                    // an unavailable renderer marks every screen failed and lands here.
+                    tracing::warn!(
+                        run_id = %run_id,
+                        failed = failures.len(),
+                        "retrying failed wireframe TSX screens once — this doubles the run"
+                    );
+                    let repair_started = Instant::now();
+                    let mut repair_request = repair_request_template;
+                    repair_request.prompt = repair_prompt_for_failures(&failures, &libraries);
+                    dump.write_prompt("repair-pass", &repair_request.prompt);
+                    let repair_context = ProviderRunContext {
+                        api_version,
+                        run_id: run_id.clone(),
+                        request: repair_request,
+                    };
+                    match collect_repair_artifact(
+                        repair_context,
+                        sink.clone(),
+                        cancel_rx,
+                        &input,
+                        wireframe_kind,
+                        brand_source,
+                        style_direction_id.as_deref(),
+                    )
+                    .await
+                    {
+                        Ok(repair_normalized) => {
+                            merge_tsx_screens(&mut artifact, &repair_normalized);
+                            // The repaired TSX changes the Tailwind build, so the
+                            // stylesheet from this render replaces the earlier one.
+                            if let Ok(outcome) =
+                                apply_react_render(&mut artifact, &libraries, theme.as_ref()).await
+                                && outcome.css.is_some()
+                            {
+                                rendered_css = outcome.css;
+                            }
+                        }
+                        Err(error) => tracing::warn!(
+                            run_id = %run_id,
+                            %error,
+                            "wireframe TSX repair produced nothing usable; screens keep their fallback HTML"
+                        ),
+                    }
+                    tracing::info!(
+                        run_id = %run_id,
+                        repair_elapsed_ms = repair_started.elapsed().as_millis(),
+                        "wireframe TSX repair pass finished"
+                    );
+                }
+                // Dump static + live HTML while they are still inline (before R2 offload).
+                dump.write_render_outputs(&artifact);
+            }
+
+            // Offload before saving: inline rendered fragments are what pushed the
+            // artifact past Convex's 1 MiB document limit and lost whole runs.
+            if let Some(css) = rendered_css.as_deref() {
+                self.offload_rendered_screens(&auth_token, project_id, &mut artifact, css)
+                    .await;
+            }
+            dump.write_artifact_keys(&artifact);
+            if let Some(dir) = dump.dir() {
+                tracing::info!(
+                    run_id = %run_id,
+                    path = %dir.display(),
+                    "wireframes debug dump complete — open this folder to inspect prompt/tsx/live/static"
+                );
+            }
+
+            let save_started = Instant::now();
             self.repository
                 .complete_wireframes_run(
                     &auth_token,
@@ -210,18 +500,44 @@ impl WireframesWorkflow {
                 )
                 .await?;
 
+            // Delivered vs. scoped is the check that the scope was actually honoured:
+            // a run asked for 2 screens must not come back having designed 15.
             tracing::info!(
                 run_id = %run_id,
                 provider_id = ?provider_id,
                 kind = wireframe_kind.as_str(),
+                scoped_screen_count = target_screen_ids.as_ref().map_or(0, Vec::len),
+                artifact_screen_count = artifact
+                    .get("generatedScreens")
+                    .and_then(serde_json::Value::as_array)
+                    .map_or(0, Vec::len),
+                save_elapsed_ms = save_started.elapsed().as_millis(),
                 total_elapsed_ms = workflow_started.elapsed().as_millis(),
                 "wireframes artifact saved to Convex"
             );
 
-            // Regen runs touch only the selected screens; a count-based message keeps
-            // the success copy honest instead of implying a full rebuild.
-            let final_text = match regenerate_screen_ids.as_ref() {
-                Some(ids) => format!("Updated {} wireframe screen(s).", ids.len()),
+            // A scoped run touches only the selected screens; a count-based message keeps
+            // the success copy honest instead of implying a full rebuild. Screens that did
+            // not come back are named, so a partial result is never presented as a
+            // complete one.
+            let final_text = match target_screen_ids.as_ref() {
+                Some(ids) => {
+                    let updated = ids.len() - failed_screen_ids.len();
+                    let verb = if input.existing_wireframes_artifact_json.is_some() {
+                        "Updated"
+                    } else {
+                        "Generated"
+                    };
+                    if failed_screen_ids.is_empty() {
+                        format!("{verb} {updated} wireframe screen(s).")
+                    } else {
+                        format!(
+                            "{verb} {updated} of {} wireframe screen(s). These did not come back and kept their previous design: {}.",
+                            ids.len(),
+                            failed_screen_ids.join(", ")
+                        )
+                    }
+                }
                 None => "Wireframes generated.".to_string(),
             };
             sink.send(RunEvent::RunCompleted {
@@ -267,6 +583,283 @@ impl WireframesWorkflow {
                 error: error.to_engine_error(provider_id),
             });
         }
+    }
+
+    /// Moves React-rendered screens out of the artifact and into R2: the compiled
+    /// stylesheet is identical across a run's screens, and embedding it in every
+    /// fragment is what pushed Mantine runs past Convex's 1 MiB document limit,
+    /// losing the whole run at save time. The stylesheet uploads once, each rendered
+    /// screen's fragment uploads once, and the artifact keeps only the keys
+    /// (`cssUrl` at the root, `htmlUrl` per screen) — reads resolve them to URLs.
+    ///
+    /// Best-effort degradation: when the stylesheet upload fails, every rendered
+    /// screen gets the CSS re-embedded inline (the pre-offload shape); when a single
+    /// screen's upload fails, only that screen does. An R2 outage degrades to the
+    /// old behaviour instead of losing the run.
+    async fn offload_rendered_screens(
+        &self,
+        auth_token: &str,
+        project_id: &str,
+        artifact: &mut serde_json::Value,
+        css: &str,
+    ) {
+        // Only React-rendered screens reference the shared build; model-HTML
+        // fallbacks are self-contained and stay untouched either way.
+        let embed_css = |screen: &mut serde_json::Value| {
+            let is_react = screen.get("renderMode").and_then(serde_json::Value::as_str)
+                == Some(crate::wireframes::render::RENDER_MODE_REACT);
+            if !is_react {
+                return;
+            }
+            if let Some(object) = screen.as_object_mut()
+                && let Some(html) = object.get("html").and_then(serde_json::Value::as_str)
+                && !html.trim().is_empty()
+            {
+                object.insert(
+                    "html".to_string(),
+                    serde_json::json!(format!("<style data-stage-render>{css}</style>\n{html}")),
+                );
+            }
+        };
+
+        let css_key = match self
+            .asset_uploader
+            .upload_file(
+                auth_token,
+                project_id,
+                "wireframe-screen",
+                "wireframes.css",
+                "text/css",
+                css.as_bytes(),
+            )
+            .await
+        {
+            Ok(key) => key,
+            Err(error) => {
+                tracing::warn!(error = error.to_string(), "wireframes stylesheet upload failed; keeping CSS inline");
+                if let Some(screens) = artifact
+                    .get_mut("generatedScreens")
+                    .and_then(serde_json::Value::as_array_mut)
+                {
+                    for screen in screens.iter_mut() {
+                        embed_css(screen);
+                    }
+                }
+                return;
+            }
+        };
+
+        let mut offloaded = 0usize;
+        let Some(screens) = artifact
+            .get_mut("generatedScreens")
+            .and_then(serde_json::Value::as_array_mut)
+        else {
+            return;
+        };
+        for screen in screens.iter_mut() {
+            let is_react = screen.get("renderMode").and_then(serde_json::Value::as_str)
+                == Some(crate::wireframes::render::RENDER_MODE_REACT);
+            let html = screen
+                .get("html")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("")
+                .trim()
+                .to_string();
+            if !is_react || html.is_empty() {
+                continue;
+            }
+            let screen_id = screen
+                .get("id")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("screen")
+                .to_string();
+            match self
+                .asset_uploader
+                .upload_file(
+                    auth_token,
+                    project_id,
+                    "wireframe-screen",
+                    &format!("{screen_id}.html"),
+                    "text/html",
+                    html.as_bytes(),
+                )
+                .await
+            {
+                Ok(key) => {
+                    if let Some(object) = screen.as_object_mut() {
+                        object.insert("htmlUrl".to_string(), serde_json::json!(key));
+                        object.remove("html");
+                    }
+                    offloaded += 1;
+                }
+                Err(error) => {
+                    tracing::warn!(
+                        error = error.to_string(),
+                        screen_id = screen_id.as_str(),
+                        "wireframe screen upload failed; keeping its CSS inline"
+                    );
+                    embed_css(screen);
+                }
+            }
+
+            // The live bundle (React + motion) rides in R2 too — far too large to inline.
+            // On upload failure drop it so the artifact stays small; the static html
+            // preview is the fallback.
+            let live = screen
+                .get("liveHtml")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("")
+                .trim()
+                .to_string();
+            if !live.is_empty() {
+                let live_key = self
+                    .asset_uploader
+                    .upload_file(
+                        auth_token,
+                        project_id,
+                        "wireframe-screen",
+                        &format!("{screen_id}.live.html"),
+                        "text/html",
+                        live.as_bytes(),
+                    )
+                    .await;
+                if let Some(object) = screen.as_object_mut() {
+                    object.remove("liveHtml");
+                    if let Ok(key) = live_key {
+                        object.insert("liveUrl".to_string(), serde_json::json!(key));
+                    }
+                }
+            }
+        }
+
+        // No point publishing a stylesheet key when every screen kept its inline copy.
+        if offloaded > 0
+            && let Some(object) = artifact.as_object_mut()
+        {
+            object.insert("cssUrl".to_string(), serde_json::json!(css_key));
+        }
+        tracing::info!(offloaded, "offloaded rendered wireframe screens to R2");
+    }
+
+    /// Designs each screen in its own provider call, at most
+    /// `MAX_PARALLEL_SCREEN_RUNS` at a time, and returns the screens that came back.
+    ///
+    /// A screen whose call fails or returns unparseable output is logged and skipped
+    /// rather than aborting its siblings; the merge downstream reports what is missing.
+    /// `None` means the user cancelled the run.
+    async fn run_screens_in_parallel(
+        &self,
+        api_version: &'static str,
+        run_id: &str,
+        provider_id: ProviderId,
+        requests: Vec<(String, StartRunRequest)>,
+        sink: &RunEventSink,
+        cancel_rx: &tokio::sync::watch::Receiver<bool>,
+        dump: WireframesDebugDump,
+    ) -> Result<Option<ParallelScreenRuns>, WorkflowError> {
+        let permits = Arc::new(tokio::sync::Semaphore::new(MAX_PARALLEL_SCREEN_RUNS));
+        let mut tasks = tokio::task::JoinSet::new();
+
+        for (screen_id, request) in requests {
+            // Every screen announces itself up front so the client can show the real set
+            // of work in flight instead of a spinner with no idea how much is left.
+            self.tool_started(
+                api_version,
+                run_id,
+                provider_id,
+                sink,
+                &screen_id,
+                &format!("Design {screen_id}"),
+            );
+            let permits = permits.clone();
+            let context = ProviderRunContext {
+                api_version,
+                run_id: run_id.to_string(),
+                request,
+            };
+            let sink = sink.clone();
+            let cancel_rx = cancel_rx.clone();
+            tasks.spawn(async move {
+                let _permit = permits.acquire_owned().await;
+                let outcome = run_provider_collect(context, sink, cancel_rx).await;
+                (screen_id, outcome)
+            });
+        }
+
+        let mut screens = Vec::new();
+        // Each per-screen response repeats the whole screen list (the prompt's list rule
+        // requires it). Without collecting it, a first Hi-Fi pass — which has no saved
+        // artifact to merge into — would save an artifact with no `configureScreens`, and
+        // the results grid, which only shows screens present in both lists, would render
+        // empty even though every screen generated fine.
+        let mut configure: Vec<serde_json::Value> = Vec::new();
+        let mut cancelled = false;
+        while let Some(joined) = tasks.join_next().await {
+            let (screen_id, outcome) = joined.map_err(|error| {
+                WorkflowError::InvalidRequest(format!("screen run task failed: {error}"))
+            })?;
+            match outcome {
+                Ok(ProviderProcessOutcome::Completed(text)) => {
+                    dump.write_provider_raw(&screen_id, &text);
+                    match extract_wireframes_artifact(&text) {
+                        Ok(artifact) => {
+                            let returned = artifact
+                                .get("generatedScreens")
+                                .and_then(serde_json::Value::as_array)
+                                .cloned()
+                                .unwrap_or_default();
+                            tracing::info!(
+                                run_id = %run_id,
+                                screen_id = %screen_id,
+                                output_chars = text.chars().count(),
+                                returned = returned.len(),
+                                "screen run finished"
+                            );
+                            screens.extend(returned);
+                            for entry in artifact
+                                .get("configureScreens")
+                                .and_then(serde_json::Value::as_array)
+                                .cloned()
+                                .unwrap_or_default()
+                            {
+                                let Some(id) = entry.get("id").and_then(serde_json::Value::as_str)
+                                else {
+                                    continue;
+                                };
+                                if configure.iter().any(|seen| {
+                                    seen.get("id").and_then(serde_json::Value::as_str) == Some(id)
+                                }) {
+                                    continue;
+                                }
+                                configure.push(entry);
+                            }
+                        }
+                        Err(error) => tracing::error!(
+                            run_id = %run_id,
+                            screen_id = %screen_id,
+                            output_chars = text.chars().count(),
+                            %error,
+                            "screen run output could not be parsed; skipping this screen"
+                        ),
+                    }
+                }
+                Ok(_) => cancelled = true,
+                Err(error) => tracing::error!(
+                    run_id = %run_id,
+                    screen_id = %screen_id,
+                    %error,
+                    "screen run failed; skipping this screen"
+                ),
+            }
+            self.tool_completed(api_version, run_id, provider_id, sink, &screen_id);
+        }
+
+        // A cancel stops every sibling, so treat the whole run as cancelled rather than
+        // saving the handful of screens that happened to finish first.
+        if cancelled {
+            return Ok(None);
+        }
+        Ok(Some(ParallelScreenRuns { screens, configure }))
     }
 
     fn tool_started(
@@ -502,6 +1095,71 @@ fn user_message(error: &WorkflowError) -> String {
         }
         WorkflowError::Serde(_) => {
             "The AI response did not match the Wireframes artifact format.".to_string()
+        }
+    }
+}
+
+/// One repair round-trip: ask the provider to fix the failed screens, then parse and
+/// normalize the reply. Each step returns its own error type, which is why this used to be
+/// a pyramid of `if let Ok` that dropped every failure on the floor — a repair that did
+/// nothing logged exactly like one that worked. Returning the reason lets the caller say so.
+async fn collect_repair_artifact(
+    context: ProviderRunContext,
+    sink: RunEventSink,
+    cancel_rx: tokio::sync::watch::Receiver<bool>,
+    input: &WireframesInput,
+    wireframe_kind: WireframeKind,
+    brand_source: Option<WireframeBrandSource>,
+    style_direction_id: Option<&str>,
+) -> anyhow::Result<serde_json::Value> {
+    let outcome = run_provider_collect(context, sink, cancel_rx)
+        .await
+        .map_err(|error| anyhow::anyhow!("repair provider run failed: {error}"))?;
+    let ProviderProcessOutcome::Completed(text) = outcome else {
+        anyhow::bail!("repair provider run did not complete");
+    };
+
+    normalize_wireframes_artifact(
+        extract_wireframes_artifact(&text)?,
+        input,
+        wireframe_kind,
+        brand_source,
+        style_direction_id,
+        now_millis(),
+        GENERATED_AT_LABEL,
+    )
+}
+
+fn merge_tsx_screens(target: &mut serde_json::Value, repair: &serde_json::Value) {
+    let Some(target_screens) = target
+        .get_mut("generatedScreens")
+        .and_then(serde_json::Value::as_array_mut)
+    else {
+        return;
+    };
+    let Some(repair_screens) = repair
+        .get("generatedScreens")
+        .and_then(serde_json::Value::as_array)
+    else {
+        return;
+    };
+    for repaired in repair_screens {
+        let Some(id) = repaired.get("id").and_then(serde_json::Value::as_str) else {
+            continue;
+        };
+        let Some(tsx) = repaired.get("tsx").cloned() else {
+            continue;
+        };
+        if let Some(screen) = target_screens
+            .iter_mut()
+            .find(|s| s.get("id").and_then(serde_json::Value::as_str) == Some(id))
+        {
+            if let Some(obj) = screen.as_object_mut() {
+                obj.insert("tsx".to_string(), tsx);
+                if let Some(html) = repaired.get("html") {
+                    obj.insert("html".to_string(), html.clone());
+                }
+            }
         }
     }
 }

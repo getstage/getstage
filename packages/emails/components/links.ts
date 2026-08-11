@@ -1,9 +1,8 @@
 /**
  * Shared external links used across email templates.
- *
- * Centralised so rotation (e.g. when a Slack invite expires) is a one-line
- * change instead of editing every template. The env override lets release
- * pipelines or local previews inject a fresh URL without a code change.
+ * Centralised so rotation (e.g. when the Discord invite is regenerated) is a
+ * one-line change instead of editing every template. The env override lets
+ * release pipelines or local previews inject a fresh URL without a code change.
  */
 function env(name: string) {
   return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[
@@ -11,9 +10,8 @@ function env(name: string) {
   ];
 }
 
-export const SLACK_INVITE_URL =
-  env("STAGE_SLACK_INVITE_URL") ??
-  "https://join.slack.com/t/stage-cnk9712/shared_invite/zt-3xaeofd5f-JuFnTgjh64n1Vqqbhg~DIQ";
+export const DISCORD_INVITE_URL =
+  env("STAGE_DISCORD_INVITE_URL") ?? "https://discord.gg/z4ZAKu6r29";
 
 /** Stripe customer portal login — recipients enter email to manage/cancel billing. */
 export const STRIPE_BILLING_PORTAL_LOGIN_URL =

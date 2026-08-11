@@ -49,6 +49,7 @@ export function useAssetsTab(
         priority: screen.priority,
         figmaUrl: screen.figmaUrl,
         html: screen.html,
+        css: artifactRecord.resolvedCss ?? undefined,
         sections: screen.sections,
       })) ?? [];
 

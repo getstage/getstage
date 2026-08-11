@@ -140,6 +140,7 @@ function buildGeneratedScreens(
       priority: screen.priority,
       generatedAtLabel,
       sections: [],
+      renderMode: "html-fallback",
     }));
 }
 
@@ -156,6 +157,8 @@ function buildWireframesArtifact(
     projectId,
     title: "Project Wireframes",
     wireframeKind: overrides?.wireframeKind ?? "lofi",
+    viewport: "desktop",
+    frameWidth: 1440,
     brandSource: overrides?.brandSource,
     stats: { ...WIREFRAMES_STATS },
     configureScreens,
@@ -179,5 +182,3 @@ export function createMockWireframesArtifact(
     buildWireframesArtifact(projectId, MOCK_WIREFRAMES_GENERATED_AT, overrides),
   );
 }
-
-export { CANONICAL_CONFIGURE_SCREENS };

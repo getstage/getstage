@@ -13,7 +13,8 @@ export type UploadPurpose =
   | "moodboard-refero"
   | "moodboard-figma"
   | "moodboard-url"
-  | "wireframe-brand-kit";
+  | "wireframe-brand-kit"
+  | "wireframe-screen";
 
 type UploadRule = {
   allowedMimeTypes: string[];
@@ -133,6 +134,13 @@ export const UPLOAD_RULES: Record<UploadPurpose, UploadRule> = {
       ".woff",
       ".woff2",
     ],
+    maxBytes: 10 * 1024 * 1024,
+  },
+  "wireframe-screen": {
+    // Rendered wireframe output: one HTML fragment per screen plus the run's
+    // compiled stylesheet. Written by the engine, read by the app and exports.
+    allowedMimeTypes: ["text/html", "text/css"],
+    allowedExtensions: [".html", ".css"],
     maxBytes: 10 * 1024 * 1024,
   },
   "project-asset": {

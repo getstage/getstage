@@ -32,6 +32,7 @@ const uploadPurposeValidator = v.union(
   v.literal("moodboard-figma"),
   v.literal("moodboard-url"),
   v.literal("wireframe-brand-kit"),
+  v.literal("wireframe-screen"),
 );
 
 export const { syncMetadata } = r2.clientApi<DataModel>({

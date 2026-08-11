@@ -1,5 +1,5 @@
 use anyhow::{Context, bail};
-use serde_json::Value as JsonValue;
+use serde_json::{Value as JsonValue, json};
 
 pub fn extract_json_object(text: &str) -> anyhow::Result<JsonValue> {
     extract_json_object_matching(text, None)
@@ -94,11 +94,56 @@ pub fn extract_wireframes_artifact(text: &str) -> anyhow::Result<JsonValue> {
         return Ok(value);
     }
 
-    collect_json_objects(trimmed)
+    if let Some(value) = collect_json_objects(trimmed)
         .into_iter()
         .rev()
         .find(wireframes_shape_is_normalizable)
-        .context("provider output did not contain a valid wireframesArtifact artifact")
+    {
+        return Ok(value);
+    }
+
+    // A Hi-Fi response is one huge JSON object whose values are escaped HTML/TSX. After
+    // tens of thousands of characters models sometimes drop the root object's closing
+    // brace, which makes the whole artifact unparseable even though every screen inside it
+    // is complete. Throwing a ten-minute run away over one missing byte is data loss, so
+    // rebuild the artifact from the screen objects that did parse. A screen truncated
+    // mid-write never balances its braces, so it can never be recovered here.
+    let recovered = recover_generated_screens(trimmed);
+    if !recovered.is_empty() {
+        tracing::warn!(
+            screens = recovered.len(),
+            "wireframes artifact was malformed; recovered the complete screens from it"
+        );
+        return Ok(json!({ "generatedScreens": recovered }));
+    }
+
+    bail!("provider output did not contain a valid wireframesArtifact artifact")
+}
+
+/// Screen objects salvaged from an artifact whose outer JSON did not survive.
+fn recover_generated_screens(text: &str) -> Vec<JsonValue> {
+    let mut screens: Vec<(String, JsonValue)> = Vec::new();
+    for value in collect_json_objects(text) {
+        let Some(id) = value.get("id").and_then(JsonValue::as_str) else {
+            continue;
+        };
+        // A screen carries a design (`html`/`tsx`) or a structural outline (`sections`).
+        // Sections and blocks are also `id`-bearing objects, but never hold those keys.
+        if !(value.get("html").is_some()
+            || value.get("tsx").is_some()
+            || value.get("sections").is_some())
+        {
+            continue;
+        }
+        let id = id.to_string();
+        // Providers sometimes echo the prompt's prior artifact before writing the real
+        // one, so a later occurrence of an id supersedes an earlier one.
+        match screens.iter_mut().find(|(seen, _)| *seen == id) {
+            Some(slot) => slot.1 = value,
+            None => screens.push((id, value)),
+        }
+    }
+    screens.into_iter().map(|(_, value)| value).collect()
 }
 
 fn extract_json_object_matching(
@@ -405,5 +450,43 @@ tokens used"#;
         assert!(!is_complete_json_object(
             r#""artifactKind":"strategyArtifact""#
         ));
+    }
+    #[test]
+    fn recovers_screens_when_the_artifact_lost_its_closing_brace() {
+        // Run 009f3cbc: ten minutes of work, six finished screens, and the root object's
+        // closing `}` missing. The screens themselves parse, so they must survive.
+        let text = "```json\n{\n  \"artifactKind\": \"wireframesArtifact\",\n  \"generatedScreens\": [\n    {\"id\":\"home\",\"html\":\"<div>Home</div>\"},\n    {\"id\":\"pricing\",\"html\":\"<div>Pricing</div>\"}\n  ]\n```";
+
+        let value = extract_wireframes_artifact(text).expect("complete screens must survive");
+
+        let screens = value["generatedScreens"].as_array().unwrap();
+        assert_eq!(screens.len(), 2);
+        assert_eq!(screens[0]["id"], "home");
+        assert_eq!(screens[1]["id"], "pricing");
+    }
+
+    #[test]
+    fn a_screen_truncated_mid_write_is_never_recovered() {
+        // The last screen was cut off mid-markup: its braces never balance, so it must be
+        // dropped rather than saved as a half-written design.
+        let text = "{\"generatedScreens\":[{\"id\":\"home\",\"html\":\"<div>Home</div>\"},{\"id\":\"pricing\",\"html\":\"<div>Pri";
+
+        let value = extract_wireframes_artifact(text).expect("the complete screen must survive");
+
+        let screens = value["generatedScreens"].as_array().unwrap();
+        assert_eq!(screens.len(), 1);
+        assert_eq!(screens[0]["id"], "home");
+    }
+
+    #[test]
+    fn sections_and_blocks_are_not_mistaken_for_screens() {
+        // Sections and blocks also carry an `id`; only screens carry html/tsx/sections.
+        let text = "{\"generatedScreens\":[{\"id\":\"home\",\"sections\":[{\"id\":\"hero\",\"blocks\":[{\"id\":\"b1\",\"kind\":\"heading\"}]}]}]";
+
+        let value = extract_wireframes_artifact(text).unwrap();
+
+        let screens = value["generatedScreens"].as_array().unwrap();
+        assert_eq!(screens.len(), 1);
+        assert_eq!(screens[0]["id"], "home");
     }
 }

@@ -12,7 +12,7 @@ export { buildWireframePreviewDocument };
 
 // A non-interactive, scaled-down render of the design used as a card thumbnail.
 // `sandbox="allow-same-origin"` lets us measure content height (no scripts).
-export function WireframeHtmlThumbnail({ html }: { html: string }) {
+export function WireframeHtmlThumbnail({ html, css = null }: { html: string; css?: string | null }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.2);
   const [docHeight, setDocHeight] = useState(DESIGN_HEIGHT);
@@ -63,7 +63,7 @@ export function WireframeHtmlThumbnail({ html }: { html: string }) {
         <iframe
           key={html.length + html.slice(0, 64)}
           title="Wireframe preview"
-          srcDoc={buildWireframePreviewDocument(html)}
+          srcDoc={buildWireframePreviewDocument(html, { css })}
           // allow-same-origin: needed to measure contentDocument height.
           // Never add allow-scripts here — that combo would give the framed
           // HTML full same-origin access to the parent app.
@@ -93,8 +93,14 @@ export function WireframeHtmlThumbnail({ html }: { html: string }) {
                   (el as HTMLElement).style.height = "auto";
                 }
               }
+              // Measure the body only. `documentElement.scrollHeight` never reports less
+              // than the iframe's own viewport, which is this very element at `docHeight`
+              // — so including it pinned every screen shorter than the 900px starting
+              // height to 900 and rendered the difference as a white band, with no way
+              // back down. The collapse CSS gives the body `height: auto`, so it reports
+              // the content and nothing else.
               const measured = Math.ceil(
-                Math.max(doc.body.scrollHeight, doc.documentElement?.scrollHeight ?? 0),
+                Math.max(doc.body.scrollHeight, doc.body.getBoundingClientRect().height),
               );
               if (measured > 0) {
                 setDocHeight(Math.min(Math.max(measured, 1), 2400));
@@ -112,15 +118,52 @@ export function WireframeHtmlThumbnail({ html }: { html: string }) {
 // Full-size, scrollable render shown when a card is expanded.
 export function WireframeHtmlPreviewDialog({
   html,
+  css = null,
+  liveUrl = null,
   title,
   open,
   onOpenChange,
 }: {
   html: string;
+  css?: string | null;
+  /** When set, the dialog runs the interactive React build instead of static HTML. */
+  liveUrl?: string | null;
   title: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  // Live React runs from R2 — but the sandboxed iframe cannot fetch the bucket
+  // (no CORS / opaque origin), and Cloudflare rewrites HTML responses with an
+  // email-decode script. Fetch the text via the main process like the static
+  // path, then inject as srcDoc so scripts actually run under allow-scripts.
+  const [liveDoc, setLiveDoc] = useState<string | null>(null);
+  const [liveError, setLiveError] = useState(false);
+
+  useEffect(() => {
+    if (!open || !liveUrl || !window.stageDesktop) {
+      setLiveDoc(null);
+      setLiveError(false);
+      return;
+    }
+    let cancelled = false;
+    setLiveDoc(null);
+    setLiveError(false);
+    // fetchR2Text strips script tags for the *static* path. The live bundle is
+    // entirely a <script>, so we need the raw bytes here — otherwise srcDoc has
+    // no code and stays white.
+    window.stageDesktop.storage
+      .fetchR2TextRaw({ url: liveUrl })
+      .then((text) => {
+        if (!cancelled) setLiveDoc(text);
+      })
+      .catch(() => {
+        if (!cancelled) setLiveError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, liveUrl]);
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -130,17 +173,38 @@ export function WireframeHtmlPreviewDialog({
             <Dialog.Title className="text-[15px] font-medium leading-[1.25] text-[#171717]">
               {title}
             </Dialog.Title>
+            <Dialog.Description className="sr-only">
+              Full-size scrollable preview of the {title} wireframe.
+            </Dialog.Description>
             <Dialog.Close className="inline-flex h-8 cursor-pointer items-center justify-center rounded-[6px] border border-[#D4D4D4] bg-[#F5F5F5] px-3 text-[13px] font-medium leading-none text-[#171717] transition-colors hover:bg-[#EDEDED]">
               Close
             </Dialog.Close>
           </div>
-          <iframe
-            key={html.length + html.slice(0, 64)}
-            title={`${title} full preview`}
-            srcDoc={buildWireframePreviewDocument(html)}
-            sandbox=""
-            className="min-h-0 flex-1 border-0 bg-white"
-          />
+          {liveUrl && !liveError ? (
+            liveDoc ? (
+              <iframe
+                key={liveDoc.length + liveDoc.slice(0, 64)}
+                title={`${title} live preview`}
+                srcDoc={liveDoc}
+                // allow-scripts WITHOUT allow-same-origin: the React + motion bundle runs
+                // in an opaque origin, fully isolated from the app, Convex, and IPC.
+                sandbox="allow-scripts"
+                className="min-h-0 flex-1 border-0 bg-white"
+              />
+            ) : (
+              <div className="flex min-h-0 flex-1 items-center justify-center bg-white text-[13px] font-medium text-[#737373]">
+                Loading live preview…
+              </div>
+            )
+          ) : (
+            <iframe
+              key={html.length + html.slice(0, 64)}
+              title={`${title} full preview`}
+              srcDoc={buildWireframePreviewDocument(html, { css })}
+              sandbox=""
+              className="min-h-0 flex-1 border-0 bg-white"
+            />
+          )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

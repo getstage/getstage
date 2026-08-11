@@ -131,7 +131,9 @@ export async function deletePreviousWireframesArtifacts(
   ctx: MutationCtx,
   projectId: Id<"projects">,
 ) {
-  await deletePreviousArtifactsByKind(ctx, projectId, "generate", "wireframesArtifact");
+  await deletePreviousArtifactsByKind(ctx, projectId, "generate", "wireframesArtifact", {
+    cleanupR2FromContentJson: true,
+  });
 }
 
 /** Moodboard, flows, wireframes — only via explicit user mutation after upstream re-run. */

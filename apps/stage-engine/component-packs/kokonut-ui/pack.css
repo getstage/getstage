@@ -1,0 +1,256 @@
+/* Kokonut UI — Stage base component pack.
+ *
+ * Hand-written CSS in Kokonut's premium-dashboard register: layered soft elevation,
+ * generous radii, pill badges, and product chrome around cards and tables. No Tailwind,
+ * no JS, no external requests: the engine prepends this verbatim to every Hi-Fi
+ * fragment, so preview, PNG capture, Paper, and the code export all keep working.
+ *
+ * Same `ui-*` vocabulary as every other base pack — only the values differ, so swapping
+ * the pack reskins a run without touching a single line of generated markup. Colour,
+ * type, and radius come from `--ui-*` variables that the moodboard style guide or brand
+ * kit overrides per project.
+ */
+
+:root {
+  --ui-bg: #ffffff;
+  --ui-fg: #17171f;
+  --ui-muted: #eff0f5;
+  --ui-muted-fg: #6c7080;
+  --ui-border: #e3e4ec;
+  --ui-primary: #4f46e5;
+  --ui-primary-fg: #ffffff;
+  --ui-destructive: #e11d48;
+  --ui-ring: #c7c5fb;
+  --ui-radius: 14px;
+  --ui-font: Geist, Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Controls ------------------------------------------------------------------ */
+
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: calc(var(--ui-radius) - 4px);
+  background: var(--ui-primary);
+  color: var(--ui-primary-fg);
+  font-family: var(--ui-font);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(17, 18, 34, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.ui-btn:hover { filter: brightness(1.06); }
+.ui-btn:focus-visible { outline: 2px solid var(--ui-primary); outline-offset: 2px; }
+
+.ui-btn-secondary {
+  background: var(--ui-muted);
+  color: var(--ui-fg);
+  border-color: var(--ui-border);
+  box-shadow: 0 1px 2px rgba(17, 18, 34, 0.05);
+}
+
+.ui-btn-outline {
+  background: var(--ui-bg);
+  color: var(--ui-fg);
+  border-color: var(--ui-border);
+  box-shadow: 0 1px 2px rgba(17, 18, 34, 0.05);
+}
+
+.ui-btn-ghost {
+  background: transparent;
+  color: var(--ui-muted-fg);
+  box-shadow: none;
+}
+
+.ui-btn-destructive {
+  background: var(--ui-destructive);
+  color: #ffffff;
+}
+
+.ui-btn-lg { height: 46px; padding: 0 26px; font-size: 15px; border-radius: var(--ui-radius); }
+.ui-btn-sm { height: 32px; padding: 0 12px; font-size: 13px; border-radius: calc(var(--ui-radius) - 6px); }
+
+/* Forms --------------------------------------------------------------------- */
+
+.ui-field { display: flex; flex-direction: column; gap: 8px; }
+
+.ui-label {
+  font-family: var(--ui-font);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  color: var(--ui-fg);
+}
+
+.ui-input,
+.ui-textarea,
+.ui-select {
+  width: 100%;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--ui-border);
+  border-radius: calc(var(--ui-radius) - 4px);
+  background: var(--ui-bg);
+  color: var(--ui-fg);
+  font-family: var(--ui-font);
+  font-size: 14px;
+  box-shadow: inset 0 1px 2px rgba(17, 18, 34, 0.04);
+}
+
+.ui-textarea { height: auto; min-height: 96px; padding: 10px 14px; resize: vertical; }
+.ui-input::placeholder, .ui-textarea::placeholder { color: var(--ui-muted-fg); }
+.ui-input:focus, .ui-textarea:focus, .ui-select:focus {
+  outline: none;
+  border-color: var(--ui-primary);
+  box-shadow: 0 0 0 3px var(--ui-ring);
+}
+
+.ui-hint { font-family: var(--ui-font); font-size: 12px; line-height: 1.5; color: var(--ui-muted-fg); }
+
+.ui-checkbox, .ui-radio {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-bg);
+  box-shadow: inset 0 1px 2px rgba(17, 18, 34, 0.05);
+  flex-shrink: 0;
+}
+
+.ui-checkbox { border-radius: 6px; }
+.ui-radio { border-radius: 50%; }
+
+.ui-switch {
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--ui-muted);
+  border: 1px solid var(--ui-border);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ui-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ui-bg);
+  box-shadow: 0 1px 3px rgba(17, 18, 34, 0.24);
+}
+
+/* Surfaces ------------------------------------------------------------------ */
+
+.ui-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 22px 24px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  background: var(--ui-bg);
+  box-shadow:
+    0 1px 2px rgba(17, 18, 34, 0.05),
+    0 6px 16px -6px rgba(17, 18, 34, 0.08),
+    0 20px 40px -24px rgba(17, 18, 34, 0.18);
+}
+
+.ui-card-header { display: flex; flex-direction: column; gap: 6px; }
+.ui-card-title { font-family: var(--ui-font); font-size: 17px; font-weight: 600; line-height: 1.25; letter-spacing: -0.015em; font-variant-numeric: tabular-nums; color: var(--ui-fg); margin: 0; }
+.ui-card-desc { font-family: var(--ui-font); font-size: 13px; line-height: 1.55; color: var(--ui-muted-fg); margin: 0; }
+.ui-card-footer { display: flex; align-items: center; gap: 10px; padding-top: 18px; border-top: 1px solid var(--ui-border); }
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  background: var(--ui-muted);
+  color: var(--ui-muted-fg);
+  font-family: var(--ui-font);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+}
+
+.ui-badge-primary { background: var(--ui-primary); color: var(--ui-primary-fg); border-color: transparent; }
+
+.ui-alert {
+  display: flex;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  background: var(--ui-muted);
+  box-shadow: inset 3px 0 0 var(--ui-primary);
+  font-family: var(--ui-font);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ui-fg);
+}
+
+.ui-separator { height: 1px; border: 0; background: var(--ui-border); margin: 0; }
+
+.ui-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  object-fit: cover;
+  background: var(--ui-muted);
+  box-shadow: 0 0 0 1px var(--ui-border), 0 1px 3px rgba(17, 18, 34, 0.12);
+  flex-shrink: 0;
+}
+
+/* Navigation and data -------------------------------------------------------- */
+
+.ui-tabs { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--ui-border); border-radius: calc(var(--ui-radius) - 2px); background: var(--ui-muted); }
+
+.ui-tab {
+  padding: 7px 14px;
+  border: 0;
+  border-radius: calc(var(--ui-radius) - 6px);
+  background: transparent;
+  color: var(--ui-muted-fg);
+  font-family: var(--ui-font);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+}
+
+.ui-tab-active { background: var(--ui-bg); color: var(--ui-fg); box-shadow: 0 1px 2px rgba(17, 18, 34, 0.10), 0 4px 10px -4px rgba(17, 18, 34, 0.16); }
+
+.ui-table { width: 100%; border-collapse: collapse; font-family: var(--ui-font); font-size: 13px; }
+.ui-table th {
+  padding: 11px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ui-muted-fg);
+  background: var(--ui-muted);
+  border-bottom: 1px solid var(--ui-border);
+}
+.ui-table td { padding: 14px; color: var(--ui-fg); font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--ui-border); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .ui-btn, .ui-input, .ui-textarea, .ui-select, .ui-tab { transition: box-shadow 120ms ease, border-color 120ms ease, filter 120ms ease; }
+}

@@ -114,8 +114,8 @@ fn research_web_tools_enabled(context: &ProviderRunContext) -> bool {
 
 fn claude_model_id(model_id: &str) -> &str {
     match model_id {
-        "claude-opus" | "claude-opus-4.8" | "claude-opus-4.7" => "opus",
-        "claude-sonnet" | "claude-sonnet-4.6" => "sonnet",
+        "claude-opus" | "claude-opus-5" | "claude-opus-4.8" | "claude-opus-4.7" => "opus",
+        "claude-sonnet" | "claude-sonnet-5" | "claude-sonnet-4.6" => "sonnet",
         "claude-haiku-4.5" => "haiku",
         "claude-fable" | "claude-fable-5" => "fable",
         other => other,
@@ -149,11 +149,13 @@ mod tests {
     #[test]
     fn claude_model_id_should_map_stage_fallback_sonnet_alias() {
         assert_eq!(claude_model_id("claude-sonnet"), "sonnet");
+        assert_eq!(claude_model_id("claude-sonnet-5"), "sonnet");
         assert_eq!(claude_model_id("claude-sonnet-4.6"), "sonnet");
     }
 
     #[test]
     fn claude_model_id_should_map_stage_fallback_opus_alias() {
+        assert_eq!(claude_model_id("claude-opus-5"), "opus");
         assert_eq!(claude_model_id("claude-opus-4.8"), "opus");
     }
 

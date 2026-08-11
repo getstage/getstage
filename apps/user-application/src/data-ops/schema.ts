@@ -248,6 +248,8 @@ export const createProjectInputSchema = z
       )
       .min(2, "Select at least two phases.")
       .optional(),
+    skillIds: z.array(z.string()).optional(),
+    componentPackIds: z.array(z.string()).optional(),
   })
   .superRefine((value, context) => {
     if (value.type === "other") {

@@ -11,5 +11,8 @@ export type WireframesArtifactRecord = {
   createdAt: number;
   updatedAt: number;
   artifact: WireframesArtifact;
+  // The run stylesheet fetched back from R2. Null for Lo-Fi runs and for
+  // artifacts saved before the offload, whose fragments embed their own CSS.
+  resolvedCss: string | null;
   tabData: WireframesTabData;
 };

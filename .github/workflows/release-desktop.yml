@@ -124,6 +124,9 @@ jobs:
           CARGO_BUILD_TARGET: ${{ matrix.rust_target }}
         run: node apps/user-application/scripts/copy-stage-engine.mjs
 
+      - name: Prepare wireframe renderer for packaging
+        run: pnpm --filter stage-user-application run build:wireframe-renderer
+
       - name: Build Electron app
         run: pnpm --filter stage-user-application run build
 

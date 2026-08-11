@@ -1,52 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ProviderId, WireframeBrandSource, WireframeKind } from "@stage/data-ops/contracts";
+import type { ProviderId, WireframeBrandSource } from "@stage/data-ops/contracts";
 import { useProviderRequired } from "@/components/app/ProviderRequiredDialog";
 import { useProjectAiProvider } from "@/hooks/project/useProjectAiProvider";
+import {
+  buildWireframeRunSource,
+  resolveRunScreenIds,
+  screenIdsFromRunSource,
+} from "@/lib/project/wireframeScreenList";
 import type { Project } from "@/models/project/project";
-import type { ScreenItem } from "@/types/project/wireframesTab";
+import type { ScreenItem, WireframeKind } from "@/types/project/wireframesTab";
 import type { WireframesArtifactRecord } from "@/types/project/wireframesArtifactRecord";
 import { useWireframesArtifact } from "./useWireframesArtifact";
 import { screenIdsFromRegeneratePrompt, useWireframesRun } from "./useWireframesRun";
-
-export function screenIdsFromRunSource(source: string | null | undefined) {
-  if (!source) {
-    return null;
-  }
-
-  for (const segment of source.split(",")) {
-    const trimmed = segment.trim();
-    if (!trimmed.startsWith("screens:")) {
-      continue;
-    }
-    const ids = trimmed
-      .slice("screens:".length)
-      .split(";")
-      .map((id) => id.trim())
-      .filter(Boolean);
-    return ids.length > 0 ? ids : null;
-  }
-
-  return null;
-}
-
-function buildRunSource(
-  kind: WireframeKind,
-  brandSource: WireframeBrandSource | null,
-  styleDirectionId?: string | null,
-  screenIds?: string[],
-): string {
-  const tokens = [`kind:${kind}`];
-  if (brandSource) {
-    tokens.push(`brand:${brandSource}`);
-  }
-  if (styleDirectionId) {
-    tokens.push(`style-direction:${styleDirectionId}`);
-  }
-  if (screenIds && screenIds.length > 0) {
-    tokens.push(`screens:${screenIds.join(";")}`);
-  }
-  return tokens.join(",");
-}
 
 // A brand-kit Hi-Fi run needs at least one uploaded R2 key, otherwise the
 // engine is forced into a silent generic-token fallback with no error. The
@@ -74,7 +39,8 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
   const projectId = project.id;
   const wireframesArtifact = useWireframesArtifact(projectId);
   const wireframesRun = useWireframesRun(projectId);
-  const { resolvedProviderId, providerOptions } = useProjectAiProvider(projectId);
+  const { resolvedProviderId, providerOptions, selectedProviderId, selectProvider } =
+    useProjectAiProvider(projectId);
   const providerRequired = useProviderRequired();
   const [error, setError] = useState<string | null>(null);
 
@@ -108,12 +74,19 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
       brandKitKeys: string[];
       brandKitLoading?: boolean;
       providerId?: ProviderId;
-      source?: string;
-      prompt?: string;
       screenIds?: string[];
     }): Promise<WireframesArtifactRecord | null> => {
       setError(null);
-      void input.screens;
+
+      // The run must cover exactly the screens the user asked for. Without a
+      // `screens:` token the engine generates the whole list in one provider
+      // call, which is how two Hi-Fi screens used to cost 17 minutes.
+      const screenIds = resolveRunScreenIds(input.screens, input.screenIds);
+      if (screenIds.length === 0) {
+        const message = "Select at least one screen to generate.";
+        setError(message);
+        throw new Error(message);
+      }
 
       const brandKitGuardError = assertBrandKitReady(
         input.brandSource,
@@ -133,15 +106,13 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
       try {
         await wireframesRun.startWireframes(
           runProviderId,
-          input.source ??
-            buildRunSource(
-              input.wireframeKind,
-              input.brandSource,
-              input.styleDirectionId,
-              input.screenIds,
-            ),
+          buildWireframeRunSource(
+            input.wireframeKind,
+            input.brandSource,
+            input.styleDirectionId,
+            screenIds,
+          ),
           input.brandKitKeys,
-          input.prompt,
         );
       } catch (runError) {
         const message =
@@ -188,7 +159,7 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
       try {
         await wireframesRun.startWireframes(
           runProviderId,
-          buildRunSource(
+          buildWireframeRunSource(
             input.wireframeKind,
             input.brandSource,
             input.styleDirectionId,
@@ -207,7 +178,10 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
     [requireProviderId, resolvedProviderId, wireframesRun],
   );
 
-  const regeneratingScreenIds = useMemo(() => {
+  // Screens the live run is producing. Every run is scoped now, so this covers a
+  // first generate as well as a regenerate; `isRegenerateRun` is what tells the
+  // two apart.
+  const runningScreenIds = useMemo(() => {
     if (!wireframesRun.isRunning && !wireframesRun.isStarting) {
       return null;
     }
@@ -231,9 +205,13 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
     usingMockData: false,
     generateWireframes,
     regenerateScreens,
-    regeneratingScreenIds,
+    runningScreenIds,
     isGenerating: wireframesRun.isRunning || wireframesRun.isStarting,
     isRunsLoading: wireframesRun.isRunsLoading,
+    elapsedSeconds: wireframesRun.elapsedSeconds,
+    providerOptions,
+    selectedProviderId,
+    selectProvider,
     isRegenerateRun: wireframesRun.isRegenerateRun,
     isRunning: wireframesRun.isRunning,
     error: error ?? wireframesRun.error,

@@ -36,7 +36,17 @@ export const createProjectArgsValidator = {
   startDate: v.number(),
   endDate: v.number(),
   phases: v.optional(v.array(phaseCreationInputValidator)),
+  skillIds: v.optional(v.array(v.string())),
+  componentPackIds: v.optional(v.array(v.string())),
 } as const;
+
+/**
+ * Catalog ids are free-form strings from the Integrations hub. Trim, drop blanks,
+ * de-dupe, and cap so a project row can never grow unbounded.
+ */
+export function normalizeCatalogIds(ids: string[]): string[] {
+  return Array.from(new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0))).slice(0, 32);
+}
 
 /** Convex `v.object` for `Infer<>` / desktop handlers. */
 export const createProjectArgsObject = v.object(createProjectArgsValidator);

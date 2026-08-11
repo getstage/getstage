@@ -1,11 +1,14 @@
+import { formatElapsed } from "@/hooks/project/useElapsedSeconds";
 import { DoneCircleIcon, PendingIcon, SpinnerIcon } from "./wireframesIcons";
 
 export function GeneratingStep({
   mode = "generate",
   screenCount,
+  elapsedSeconds = 0,
 }: {
   mode?: "generate" | "regenerate";
   screenCount?: number;
+  elapsedSeconds?: number;
 }) {
   const isRegenerate = mode === "regenerate";
   const regenerateSubtitle =
@@ -39,6 +42,9 @@ export function GeneratingStep({
         <ProgressRow loading label={isRegenerate ? "Regenerating Screens" : "Creating Layouts"} />
         <ProgressRow label={isRegenerate ? "Updating Wireframes" : "Create Wireframes"} />
       </div>
+      <p className="text-[12px] font-medium leading-[1.5] text-[#737373]">
+        Elapsed: {formatElapsed(elapsedSeconds)}
+      </p>
     </div>
   );
 }

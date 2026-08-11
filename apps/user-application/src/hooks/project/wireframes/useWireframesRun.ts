@@ -10,6 +10,7 @@ import { useProviderPreferences } from "@/hooks/engine/useProviderPreferences";
 import { useProviderRun } from "@/hooks/engine/useProviderRun";
 import { useProviderStatus } from "@/hooks/engine/useProviderStatus";
 import { useChatDefaults } from "@/hooks/engine/useChatDefaults";
+import { useElapsedSeconds } from "@/hooks/project/useElapsedSeconds";
 import { formatRunFailedEvent, toRunFailureUserMessage } from "@/lib/engine/formatRunError";
 import { toUserFacingErrorMessage } from "@/lib/errors";
 import { buildRunModelOptions } from "@/lib/engine/runModelOptions";
@@ -87,6 +88,10 @@ export function useWireframesRun(projectId: string) {
   const chatDefaults = useChatDefaults();
   const [error, setError] = useState<string | null>(null);
   const [runEnded, setRunEnded] = useState(false);
+  // Prompt of the run started in this session. Every run carries a `screens:`
+  // scope now, so the prompt is the only thing separating a regenerate from a
+  // plain generate. After a reload the persisted run's inputSummary carries it.
+  const [activeRunPrompt, setActiveRunPrompt] = useState<string | null>(null);
   const runStartedAtRef = useRef<number | null>(null);
 
   const activeRunId = providerRun.activeRunId;
@@ -127,13 +132,12 @@ export function useWireframesRun(projectId: string) {
     ],
   );
 
-  const isRegenerateRun = useMemo(() => {
-    if (providerRun.activeRunSource?.includes("screens:")) {
-      return true;
-    }
-
-    return isWireframesRegeneratePrompt(persistedRunningRun?.inputSummary);
-  }, [persistedRunningRun?.inputSummary, providerRun.activeRunSource]);
+  const isRegenerateRun = useMemo(
+    () =>
+      isWireframesRegeneratePrompt(activeRunPrompt) ||
+      isWireframesRegeneratePrompt(persistedRunningRun?.inputSummary),
+    [activeRunPrompt, persistedRunningRun?.inputSummary],
+  );
 
   const terminalEvent = useMemo(
     () => latestTerminalRunEvent(activeRunEvents),
@@ -251,6 +255,7 @@ export function useWireframesRun(projectId: string) {
       const runPromise = (async () => {
         setError(null);
         setRunEnded(false);
+        setActiveRunPrompt(prompt);
         runStartedAtRef.current = null;
 
         const preflightArgs = {
@@ -305,12 +310,15 @@ export function useWireframesRun(projectId: string) {
     ],
   );
 
+  const elapsedSeconds = useElapsedSeconds(isRunning, persistedRunningRun?.startedAt ?? null);
+
   return {
     startWireframes,
     cancelWireframes,
     isStarting: providerRun.startRun.isPending,
     isRunning,
     isRunsLoading,
+    elapsedSeconds,
     isRegenerateRun,
     persistedRunningRun,
     activeRunId: providerRun.activeRunId,

@@ -1,0 +1,3 @@
+/* React Bits sections pack. CSS vocabulary is only prepended on the legacy HTML
+   path; React runs inject nothing here (the real components carry their own
+   styles). Kept so the component_pack! macro's include_str! resolves. */

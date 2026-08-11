@@ -14,7 +14,9 @@ import {
   createRunRecord,
   findRunningRunForProjectModule,
 } from "../domain/runStore";
+import { deleteOldR2Asset } from "../../../r2";
 import { normalizeOptional } from "../domain/normalize";
+import { collectR2KeysFromJson } from "../domain/r2Keys";
 import { resolveAssetContentJson } from "../domain/researchContent";
 import { now } from "../domain/time";
 import { projectAiProviderId } from "../domain/validators";
@@ -62,6 +64,11 @@ export async function getWireframesInputHandler(
   return {
     projectId: String(project._id),
     projectName: project.name,
+    // The project type the owner picked at creation (e.g. "web-app"). Screen planning
+    // must follow it: a web app needs dashboard/auth/settings screens, not a marketing
+    // funnel. Without this the model only ever sees artifacts and defaults to a website.
+    projectType: project.type,
+    projectTypeLabel: project.typeOtherLabel,
     strategyArtifactId: String(latestStrategy._id),
     strategyArtifactJson: latestStrategy.contentJson,
     researchArtifactId: latestResearch ? String(latestResearch._id) : undefined,
@@ -76,6 +83,13 @@ export async function getWireframesInputHandler(
     flowsArtifactJson: latestFlows?.contentJson ?? undefined,
     existingWireframesArtifactId: latestWireframes ? String(latestWireframes._id) : undefined,
     existingWireframesArtifactJson: latestWireframes?.contentJson ?? undefined,
+    // Project selection only. Empty / unset → leave undefined so the engine uses the
+    // same built-in Design Taste + default packs for every collaborator on this project.
+    // Do not fall back to the caller's account prefs (that made output caller-dependent).
+    enabledSkillIds: project.skillIds?.length ? project.skillIds : undefined,
+    enabledComponentPackIds: project.componentPackIds?.length
+      ? project.componentPackIds
+      : undefined,
   };
 }
 
@@ -272,6 +286,84 @@ export async function updateWireframesArtifactHandler(
     artifactId: String(args.artifactId),
     updatedAt: timestamp,
   };
+}
+
+export const clearWireframeScreensArgs = {
+  projectId: v.id("projects"),
+  // Absent → clear every generated screen (reset to the first-run / Lo-Fi state). Present →
+  // remove only these screens and untick them in the list, leaving the rest of the run.
+  screenIds: v.optional(v.array(v.string())),
+};
+
+/**
+ * Removes generated screens from the project's wireframes artifact and deletes their R2
+ * objects. With no `screenIds` it clears the whole run and drops back to Lo-Fi — the only
+ * way to reach the first-generation path again without a new project. With `screenIds` it
+ * removes just those, unticking them in `configureScreens` so they neither resurface as
+ * "missing" nor regenerate on the next full run; the shared run stylesheet is dropped only
+ * when the last screen goes. Destructive and not undoable.
+ */
+export async function clearWireframeScreensHandler(
+  ctx: MutationCtx,
+  args: { projectId: Id<"projects">; screenIds?: string[] },
+) {
+  await requireProjectAccess(ctx, args.projectId);
+  const artifact = await findLatestArtifact(
+    ctx,
+    args.projectId,
+    "generate",
+    "wireframesArtifact",
+  );
+  // An artifact row with no content has nothing to clear, and reporting success would
+  // tell the user screens were removed when none existed.
+  if (!artifact?.contentJson) {
+    return { cleared: false as const, screensRemoved: 0 };
+  }
+
+  const content = parseWireframesContentJson(artifact.contentJson, args.projectId);
+  const generated = Array.isArray(content.generatedScreens) ? content.generatedScreens : [];
+  const removeIds = args.screenIds && args.screenIds.length > 0 ? new Set(args.screenIds) : null;
+  const isRemoved = (screen: unknown) =>
+    removeIds === null ||
+    (isRecord(screen) && typeof screen.id === "string" && removeIds.has(screen.id));
+
+  const removed = generated.filter(isRemoved);
+  if (removed.length === 0) {
+    return { cleared: false as const, screensRemoved: 0 };
+  }
+  const kept = generated.filter((screen) => !isRemoved(screen));
+  const timestamp = now();
+
+  // Rendered screens keep their fragment in R2; the run stylesheet stays until the last
+  // screen goes. Collect only the removed screens' keys, plus the stylesheet when nothing
+  // references it anymore — clearing must never leak storage.
+  const r2Keys = new Set<string>();
+  for (const screen of removed) {
+    collectR2KeysFromJson(screen, r2Keys);
+  }
+
+  const nextContent: Record<string, unknown> = { ...content, generatedScreens: kept };
+  if (kept.length === 0) {
+    collectR2KeysFromJson(content.cssUrl, r2Keys);
+    delete nextContent.cssUrl;
+    nextContent.wireframeKind = "lofi";
+  }
+  if (removeIds !== null && Array.isArray(content.configureScreens)) {
+    nextContent.configureScreens = content.configureScreens.map((screen) =>
+      isRemoved(screen) ? { ...screen, selected: false } : screen,
+    );
+  }
+
+  for (const key of r2Keys) {
+    await deleteOldR2Asset(ctx, key);
+  }
+
+  await ctx.db.patch(artifact._id, {
+    contentJson: JSON.stringify(nextContent),
+    updatedAt: timestamp,
+  });
+
+  return { cleared: true as const, screensRemoved: removed.length };
 }
 
 function parseWireframesContentJson(contentJson: string, projectId: Id<"projects">) {

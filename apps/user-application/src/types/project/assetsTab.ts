@@ -22,6 +22,10 @@ export type WireframeAssetCard = ProjectAsset & {
   priority: string;
   figmaUrl?: string;
   html?: string;
+  // Shared run stylesheet (R2-offloaded runs). Figma/Paper export captures the
+  // fragment offscreen and needs the CSS inline — the sandboxed capture cannot
+  // fetch the URL itself.
+  css?: string;
   sections: WireframeRenderableSection[];
 };
 

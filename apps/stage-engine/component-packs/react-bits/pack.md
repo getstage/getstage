@@ -1,0 +1,1 @@
+React Bits — animated/effect section components (borders, glass surfaces, hover glare, blur veils). In React mode the model imports them from `@stage/sections`; use them to wrap text or cards for visual accent. Effects render their static resting state under the current static renderer.

@@ -346,6 +346,7 @@ mod tests {
             id: "home".to_string(),
             title: "Homepage".to_string(),
             html: None,
+            html_url: None,
             sections: vec![super::super::models::GeneratedSection {
                 id: "hero-section".to_string(),
                 title: "Hero".to_string(),
