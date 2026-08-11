@@ -1,3 +1,4 @@
+pub mod debug_dump;
 pub mod normalize;
 pub mod prompt;
 pub mod render;

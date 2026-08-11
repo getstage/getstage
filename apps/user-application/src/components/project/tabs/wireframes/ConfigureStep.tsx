@@ -30,6 +30,7 @@ export function ConfigureStep({
   providerOptions,
   selectedProviderId,
   onSelectProvider,
+  onBackToResults,
   onChangeType,
   onAddBrandKit,
   onToggle,
@@ -52,6 +53,8 @@ export function ConfigureStep({
   providerOptions: ResearchProviderOption[];
   selectedProviderId: ProviderId | null;
   onSelectProvider: (providerId: ProviderId) => void;
+  /** Return to the results grid. Present only once a run exists to go back to. */
+  onBackToResults?: () => void;
   onChangeType: () => void;
   onAddBrandKit: () => void;
   onToggle: (id: string) => void;
@@ -93,6 +96,12 @@ export function ConfigureStep({
             </span>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
+            {onBackToResults ? (
+              <SecondaryButton purple onClick={onBackToResults}>
+                <ArrowLeftIcon />
+                Back to wireframes
+              </SecondaryButton>
+            ) : null}
             <SecondaryButton onClick={onChangeType}>
               <ArrowLeftIcon />
               Change Wireframe type
@@ -265,7 +274,6 @@ function ScreenDraftRow({
 }) {
   const [title, setTitle] = useState(draft.title);
   const [description, setDescription] = useState(draft.description);
-  const [kind, setKind] = useState(draft.kind);
   const canSubmit = title.trim().length > 0 && description.trim().length > 0;
 
   return (
@@ -285,35 +293,16 @@ function ScreenDraftRow({
           placeholder="What this screen is for, ex. manage members and roles"
           aria-label="Screen description"
         />
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-1">
-            {(["Page", "Section"] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setKind(option)}
-                aria-pressed={kind === option}
-                className={`inline-flex h-[30px] items-center rounded-[6px] px-3 text-[12px] font-medium leading-none shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors ${
-                  kind === option
-                    ? "bg-[#0A0A0A] text-white"
-                    : "bg-white text-[#525252] hover:bg-[#F5F5F5]"
-                }`}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
-            <SecondaryButton size="action" onClick={onCancel}>
-              Cancel
-            </SecondaryButton>
-            <PrimaryButton
-              disabled={!canSubmit}
-              onClick={() => onSubmit({ title, description, kind })}
-            >
-              {submitLabel}
-            </PrimaryButton>
-          </div>
+        <div className="flex items-center justify-end gap-2">
+          <SecondaryButton size="action" onClick={onCancel}>
+            Cancel
+          </SecondaryButton>
+          <PrimaryButton
+            disabled={!canSubmit}
+            onClick={() => onSubmit({ title, description, kind: "Page" })}
+          >
+            {submitLabel}
+          </PrimaryButton>
         </div>
       </div>
     </article>

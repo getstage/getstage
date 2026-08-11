@@ -75,6 +75,8 @@ export function WireframesTab({
   const [exportAsset, setExportAsset] = useState<WireframeAssetCard | null>(null);
   const [regenerateMode, setRegenerateMode] = useState(false);
   const [selectedRegenerateIds, setSelectedRegenerateIds] = useState<Set<string>>(() => new Set());
+  const [deleteMode, setDeleteMode] = useState(false);
+  const [selectedDeleteIds, setSelectedDeleteIds] = useState<Set<string>>(() => new Set());
   // The regenerate flow re-uses the artifact's brand source by default, but the
   // user may want to switch (e.g. from a brand-kit result they don't like back
   // to a moodboard style guide). These mirror the live selection the picker
@@ -208,6 +210,8 @@ export function WireframesTab({
   }) {
     setRegenerateMode(false);
     setSelectedRegenerateIds(new Set());
+    setDeleteMode(false);
+    setSelectedDeleteIds(new Set());
 
     const converting = consumeConversionFlag();
     const resolvedKind = overrides?.wireframeKind ?? wireframeKind ?? "lofi";
@@ -294,6 +298,8 @@ export function WireframesTab({
     // case of adding a screen to an already generated set.
     setRegenerateMode(false);
     setSelectedRegenerateIds(new Set());
+    setDeleteMode(false);
+    setSelectedDeleteIds(new Set());
     setSetupStep("configure");
   }
 
@@ -306,6 +312,20 @@ export function WireframesTab({
         generatedAt,
       ),
     [generatedAt, generatedAtLabel, generatedScreens, screens],
+  );
+
+  // Screens the user selected that never landed a design — a partial run (rate limit,
+  // parse/render failure) or a freshly added screen. Surfaced in the results grid so the
+  // gap is visible and one click regenerates exactly those, instead of the count silently
+  // not matching what was asked for.
+  const missingScreens = useMemo(
+    () =>
+      generatedScreens.length > 0
+        ? screens
+            .filter((screen) => screen.selected && !generatedScreenIds.includes(screen.id))
+            .map((screen) => ({ id: screen.id, title: screen.title }))
+        : [],
+    [screens, generatedScreenIds, generatedScreens.length],
   );
 
   const regenerateDirectionTitle =
@@ -448,6 +468,9 @@ export function WireframesTab({
           selectedProviderId={wireframesTab.selectedProviderId}
           onSelectProvider={wireframesTab.selectProvider}
           onSaveSkills={onSaveSkills}
+          onBackToResults={
+            generatedScreens.length > 0 ? () => setSetupStep(null) : undefined
+          }
           onChangeType={() => setSetupStep("choose-kind")}
           onAddBrandKit={() => {
             setWireframeKind("hifi");
@@ -500,21 +523,64 @@ export function WireframesTab({
           selectedRegenerateIds={selectedRegenerateIds}
           regeneratingScreenIds={wireframesTab.runningScreenIds}
           onManageScreens={manageScreensFromResults}
-          onDeleteScreens={() => {
+          missingScreens={missingScreens}
+          onGenerateMissing={() => {
+            void generateWireframes({ screenIds: missingScreens.map((screen) => screen.id) });
+          }}
+          deleteMode={deleteMode}
+          selectedDeleteIds={selectedDeleteIds}
+          isDeleting={isClearing}
+          onStartDelete={() => {
+            setRegenerateMode(false);
+            setSelectedRegenerateIds(new Set());
+            setDeleteMode(true);
+            setSelectedDeleteIds(new Set());
+          }}
+          onCancelDelete={() => {
+            setDeleteMode(false);
+            setSelectedDeleteIds(new Set());
+          }}
+          onToggleDeleteSelection={(cardId) => {
+            setSelectedDeleteIds((current) => {
+              const next = new Set(current);
+              if (next.has(cardId)) {
+                next.delete(cardId);
+              } else {
+                next.add(cardId);
+              }
+              return next;
+            });
+          }}
+          onSelectAllDelete={() => {
+            setSelectedDeleteIds((current) =>
+              current.size === generatedCards.length
+                ? new Set()
+                : new Set(generatedCards.map((card) => card.id)),
+            );
+          }}
+          onConfirmDelete={() => {
             if (wireframesTab.isGenerating || isClearing) {
               return;
             }
-            // Destructive and not undoable, so it asks once rather than relying on the
-            // user having meant it.
-            if (!window.confirm("Delete all generated screens? The screen list is kept.")) {
+            const ids = Array.from(selectedDeleteIds);
+            if (ids.length === 0) {
               return;
             }
-            void clearScreens().then(() => {
-              setWireframeKind(null);
-              setSetupStep("choose-kind");
+            // Destructive and not undoable, so it asks once.
+            const confirmed = window.confirm(
+              `Delete ${ids.length} screen${ids.length === 1 ? "" : "s"}? This cannot be undone.`,
+            );
+            if (!confirmed) {
+              return;
+            }
+            void clearScreens(ids).then(() => {
+              setDeleteMode(false);
+              setSelectedDeleteIds(new Set());
             });
           }}
           onStartRegenerate={() => {
+            setDeleteMode(false);
+            setSelectedDeleteIds(new Set());
             setRegenerateMode(true);
             setSelectedRegenerateIds(new Set());
             setRegenerateSelectionBusy(false);

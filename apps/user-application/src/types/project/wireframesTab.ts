@@ -65,6 +65,9 @@ export type WireframeGeneratedScreen = {
   // Hi-Fi source of truth: a self-contained HTML fragment rendering this screen
   // as a final design. Absent for Lo-Fi (block-only) screens.
   html?: string;
+  // The interactive React build (React + motion). A resolved R2 URL at read time; the
+  // live preview loads it in a sandboxed iframe. Absent for fallback/Lo-Fi screens.
+  liveUrl?: string;
   // How that HTML was produced. The React renderer falls back silently, so without
   // this a screen built from the selected component libraries is indistinguishable
   // from one the model hand-wrote. Screens predating the renderer are all fallbacks.

@@ -119,16 +119,51 @@ export function WireframeHtmlThumbnail({ html, css = null }: { html: string; css
 export function WireframeHtmlPreviewDialog({
   html,
   css = null,
+  liveUrl = null,
   title,
   open,
   onOpenChange,
 }: {
   html: string;
   css?: string | null;
+  /** When set, the dialog runs the interactive React build instead of static HTML. */
+  liveUrl?: string | null;
   title: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  // Live React runs from R2 — but the sandboxed iframe cannot fetch the bucket
+  // (no CORS / opaque origin), and Cloudflare rewrites HTML responses with an
+  // email-decode script. Fetch the text via the main process like the static
+  // path, then inject as srcDoc so scripts actually run under allow-scripts.
+  const [liveDoc, setLiveDoc] = useState<string | null>(null);
+  const [liveError, setLiveError] = useState(false);
+
+  useEffect(() => {
+    if (!open || !liveUrl || !window.stageDesktop) {
+      setLiveDoc(null);
+      setLiveError(false);
+      return;
+    }
+    let cancelled = false;
+    setLiveDoc(null);
+    setLiveError(false);
+    // fetchR2Text strips script tags for the *static* path. The live bundle is
+    // entirely a <script>, so we need the raw bytes here — otherwise srcDoc has
+    // no code and stays white.
+    window.stageDesktop.storage
+      .fetchR2TextRaw({ url: liveUrl })
+      .then((text) => {
+        if (!cancelled) setLiveDoc(text);
+      })
+      .catch(() => {
+        if (!cancelled) setLiveError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, liveUrl]);
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -145,13 +180,31 @@ export function WireframeHtmlPreviewDialog({
               Close
             </Dialog.Close>
           </div>
-          <iframe
-            key={html.length + html.slice(0, 64)}
-            title={`${title} full preview`}
-            srcDoc={buildWireframePreviewDocument(html, { css })}
-            sandbox=""
-            className="min-h-0 flex-1 border-0 bg-white"
-          />
+          {liveUrl && !liveError ? (
+            liveDoc ? (
+              <iframe
+                key={liveDoc.length + liveDoc.slice(0, 64)}
+                title={`${title} live preview`}
+                srcDoc={liveDoc}
+                // allow-scripts WITHOUT allow-same-origin: the React + motion bundle runs
+                // in an opaque origin, fully isolated from the app, Convex, and IPC.
+                sandbox="allow-scripts"
+                className="min-h-0 flex-1 border-0 bg-white"
+              />
+            ) : (
+              <div className="flex min-h-0 flex-1 items-center justify-center bg-white text-[13px] font-medium text-[#737373]">
+                Loading live preview…
+              </div>
+            )
+          ) : (
+            <iframe
+              key={html.length + html.slice(0, 64)}
+              title={`${title} full preview`}
+              srcDoc={buildWireframePreviewDocument(html, { css })}
+              sandbox=""
+              className="min-h-0 flex-1 border-0 bg-white"
+            />
+          )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

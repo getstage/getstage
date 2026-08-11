@@ -27,7 +27,16 @@ export function ResultsGrid({
   onConfirmRegenerate,
   onManageScreens,
   regenerateConfirmBlocked = false,
-  onDeleteScreens,
+  missingScreens = [],
+  onGenerateMissing,
+  deleteMode = false,
+  selectedDeleteIds,
+  onStartDelete,
+  onCancelDelete,
+  onToggleDeleteSelection,
+  onConfirmDelete,
+  onSelectAllDelete,
+  isDeleting = false,
   // Optional slot rendered above the grid during regenerate mode. The parent
   // owns the source picker + style-direction select so this grid stays a pure
   // presentation component; the confirm reads whatever state the parent wired
@@ -51,11 +60,25 @@ export function ResultsGrid({
   /** Back to the screen list, where screens can be added, edited or removed. */
   onManageScreens: () => void;
   regenerateConfirmBlocked?: boolean;
-  /** Clears every generated screen so the next run takes the first-generation path. */
-  onDeleteScreens: () => void;
+  /** Selected screens that have no generated design yet — surfaced so a partial run
+   *  (rate limit, parse/render failure, or a freshly added screen) is visible, not lost. */
+  missingScreens?: { id: string; title: string }[];
+  /** Scoped run for exactly the missing screens. */
+  onGenerateMissing?: () => void;
+  /** Per-screen delete selection, mirroring regenerate mode. */
+  deleteMode?: boolean;
+  selectedDeleteIds?: Set<string>;
+  onStartDelete?: () => void;
+  onCancelDelete?: () => void;
+  onToggleDeleteSelection?: (cardId: string) => void;
+  onConfirmDelete?: () => void;
+  onSelectAllDelete?: () => void;
+  isDeleting?: boolean;
   regeneratePicker?: ReactNode;
 }) {
-  const selectedCount = selectedRegenerateIds.size;
+  const regenerateCount = selectedRegenerateIds.size;
+  const deleteSelectedCount = selectedDeleteIds?.size ?? 0;
+  const selectionMode = regenerateMode || deleteMode;
   const regeneratingSet = new Set(regeneratingScreenIds ?? []);
   // A Hi-Fi artifact keeps each screen's Lo-Fi blocks alongside its rendered
   // design, so the user can flip the whole grid back to the Lo-Fi view after
@@ -75,27 +98,48 @@ export function ResultsGrid({
           </h2>
         )}
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {!regenerateMode ? (
-            <SecondaryButton onClick={onManageScreens} disabled={isGenerating}>
-              <PlusIcon />
-              Add or edit screens
-            </SecondaryButton>
+          {!selectionMode ? (
+            <>
+              <SecondaryButton onClick={onManageScreens} disabled={isGenerating}>
+                <PlusIcon />
+                Add or edit screens
+              </SecondaryButton>
+              {cards.length > 0 ? (
+                <SecondaryButton onClick={onStartDelete} disabled={isGenerating}>
+                  Delete screens
+                </SecondaryButton>
+              ) : null}
+            </>
           ) : null}
-          {!regenerateMode && cards.length > 0 ? (
-            <SecondaryButton onClick={onDeleteScreens} disabled={isGenerating}>
-              Delete screens
-            </SecondaryButton>
+          {deleteMode ? (
+            <>
+              {cards.length > 0 ? (
+                <SecondaryButton onClick={onSelectAllDelete}>
+                  {deleteSelectedCount === cards.length ? "Clear selection" : "Select all"}
+                </SecondaryButton>
+              ) : null}
+              <SecondaryButton onClick={onCancelDelete}>Cancel</SecondaryButton>
+              <button
+                type="button"
+                onClick={onConfirmDelete}
+                disabled={deleteSelectedCount === 0 || isDeleting}
+                className="inline-flex h-[38px] items-center justify-center gap-2 rounded-[6px] border border-[#F5A5A5] bg-gradient-to-b from-[#E5484D] to-[#C62A2F] px-3 text-[13px] font-medium leading-[1.25] text-[#FAFAFA] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Delete {deleteSelectedCount > 0 ? deleteSelectedCount : ""} screen
+                {deleteSelectedCount === 1 ? "" : "s"}
+              </button>
+            </>
           ) : null}
-          {wireframeKind === "hifi" ? (
+          {wireframeKind === "hifi" && !deleteMode ? (
             regenerateMode ? (
               <>
                 <SecondaryButton onClick={onCancelRegenerate}>Cancel</SecondaryButton>
                 <PrimaryButton
                   onClick={onConfirmRegenerate}
-                  disabled={selectedCount === 0 || isGenerating || regenerateConfirmBlocked}
+                  disabled={regenerateCount === 0 || isGenerating || regenerateConfirmBlocked}
                 >
-                  Regenerate {selectedCount > 0 ? selectedCount : ""} screen
-                  {selectedCount === 1 ? "" : "s"}
+                  Regenerate {regenerateCount > 0 ? regenerateCount : ""} screen
+                  {regenerateCount === 1 ? "" : "s"}
                   <ArrowRightIcon />
                 </PrimaryButton>
               </>
@@ -105,7 +149,7 @@ export function ResultsGrid({
               </SecondaryButton>
             )
           ) : null}
-          {wireframeKind === "lofi" ? (
+          {wireframeKind === "lofi" && !selectionMode ? (
             <SecondaryButton purple onClick={onConvert} disabled={isGenerating}>
               Convert to High-fi
               <ArrowRightIcon />
@@ -113,6 +157,21 @@ export function ResultsGrid({
           ) : null}
         </div>
       </div>
+      {!selectionMode && missingScreens.length > 0 ? (
+        <div className="mx-1 mb-1 flex flex-wrap items-center justify-between gap-3 rounded-[8px] bg-[#FEF3C7] px-4 py-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
+          <p className="text-[12px] font-medium leading-[1.5] text-[#92400E]">
+            {missingScreens.length} selected{" "}
+            {missingScreens.length === 1 ? "screen has" : "screens have"} no design yet:{" "}
+            {missingScreens.map((screen) => screen.title).join(", ")}
+          </p>
+          {onGenerateMissing ? (
+            <SecondaryButton purple onClick={onGenerateMissing} disabled={isGenerating}>
+              Generate {missingScreens.length === 1 ? "it" : "missing"}
+              <ArrowRightIcon />
+            </SecondaryButton>
+          ) : null}
+        </div>
+      ) : null}
       {regenerateMode && regeneratePicker ? (
         <div className="px-4 pb-4">{regeneratePicker}</div>
       ) : null}
@@ -137,10 +196,18 @@ export function ResultsGrid({
               css={css}
               view={effectiveView}
               onExport={() => onExport(card.id)}
-              regenerateMode={regenerateMode}
-              isSelected={selectedRegenerateIds.has(card.id)}
+              regenerateMode={selectionMode}
+              isSelected={
+                deleteMode
+                  ? (selectedDeleteIds?.has(card.id) ?? false)
+                  : selectedRegenerateIds.has(card.id)
+              }
               isRegenerating={regeneratingSet.has(card.id)}
-              onToggleRegenerate={() => onToggleRegenerateSelection(card.id)}
+              onToggleRegenerate={() =>
+                deleteMode
+                  ? onToggleDeleteSelection?.(card.id)
+                  : onToggleRegenerateSelection(card.id)
+              }
             />
           ))}
         </div>
@@ -241,6 +308,7 @@ export function WireframeCard({
         <WireframeHtmlPreviewDialog
           html={html}
           css={css}
+          liveUrl={card.liveUrl ?? null}
           title={`${card.title} Wireframe`}
           open={previewOpen}
           onOpenChange={setPreviewOpen}

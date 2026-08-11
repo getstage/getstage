@@ -13,6 +13,7 @@ use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
 use crate::providers::command::provider_cli_working_directory;
 use crate::providers::process::ProviderProcessOutcome;
 use crate::runs::RunEventSink;
+use crate::wireframes::debug_dump::WireframesDebugDump;
 use crate::wireframes::normalize::{apply_scoped_screens, normalize_wireframes_artifact};
 use crate::wireframes::prompt::{build_wireframes_prompt, resolve_hifi_prompt_preferences};
 use crate::wireframes::render::{
@@ -110,6 +111,8 @@ impl WireframesWorkflow {
             scoped_screen_ids = ?target_screen_ids,
             "wireframes workflow started"
         );
+        let dump = WireframesDebugDump::open(&run_id);
+        dump.write_readme();
 
         let result = async {
             let auth_token = auth_token.ok_or_else(|| {
@@ -156,12 +159,35 @@ impl WireframesWorkflow {
                     effective_component_pack_ids = ?preferences.component_pack_ids,
                     "resolved Hi-Fi wireframes skills and component libraries"
                 );
+                dump.write_meta(serde_json::json!({
+                    "runId": run_id,
+                    "kind": wireframe_kind.as_str(),
+                    "providerId": format!("{provider_id:?}"),
+                    "projectId": project_id,
+                    "scopedScreenIds": target_screen_ids,
+                    "configuredSkillIds": input.enabled_skill_ids,
+                    "configuredComponentPackIds": input.enabled_component_pack_ids,
+                    "effectiveSkillIds": preferences.skill_ids,
+                    "effectiveComponentPackIds": preferences.component_pack_ids,
+                    "brandSource": brand_source.map(|s| format!("{s:?}")),
+                    "styleDirectionId": style_direction_id,
+                    "dumpDir": dump.dir().map(|p| p.display().to_string()),
+                }));
             } else {
                 tracing::info!(
                     run_id = %run_id,
                     kind = wireframe_kind.as_str(),
                     "wireframes skills and component libraries are not applied to Lo-Fi generation"
                 );
+                dump.write_meta(serde_json::json!({
+                    "runId": run_id,
+                    "kind": wireframe_kind.as_str(),
+                    "providerId": format!("{provider_id:?}"),
+                    "projectId": project_id,
+                    "scopedScreenIds": target_screen_ids,
+                    "note": "Lo-Fi — component packs not applied",
+                    "dumpDir": dump.dir().map(|p| p.display().to_string()),
+                }));
             }
 
             convex_run_id = self
@@ -218,6 +244,7 @@ impl WireframesWorkflow {
                         brand_kit_attached,
                         Some(std::slice::from_ref(screen_id)),
                     );
+                    dump.write_prompt(screen_id, &screen_request.prompt);
                     requests.push((screen_id.clone(), screen_request));
                 }
                 let prompt_chars: usize = requests
@@ -246,6 +273,7 @@ impl WireframesWorkflow {
                         requests,
                         &sink,
                         &cancel_rx,
+                        dump.clone(),
                     )
                     .await?;
                 let Some(batch) = batch else {
@@ -265,6 +293,9 @@ impl WireframesWorkflow {
                         "None of the selected screens could be generated. Try again.".to_string(),
                     ));
                 }
+                for screen in &batch.screens {
+                    dump.write_tsx_from_screen(screen);
+                }
                 serde_json::json!({
                     "generatedScreens": batch.screens,
                     "configureScreens": batch.configure,
@@ -281,6 +312,11 @@ impl WireframesWorkflow {
                     target_screen_ids.as_deref(),
                 );
                 let request_prompt_chars = request.prompt.chars().count();
+                let single_label = screen_ids
+                    .first()
+                    .map(String::as_str)
+                    .unwrap_or("single");
+                dump.write_prompt(single_label, &request.prompt);
                 tracing::info!(
                     run_id = %run_id,
                     provider_id = ?provider_id,
@@ -308,6 +344,7 @@ impl WireframesWorkflow {
                     tracing::info!(run_id = %run_id, "wireframes provider run cancelled");
                     return Ok(());
                 };
+                dump.write_provider_raw(single_label, &text);
                 text
             };
             let repair_request_template = request;
@@ -342,6 +379,15 @@ impl WireframesWorkflow {
                 wireframe_kind,
             )
             .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))?;
+
+            if let Some(screens) = artifact
+                .get("generatedScreens")
+                .and_then(serde_json::Value::as_array)
+            {
+                for screen in screens {
+                    dump.write_tsx_from_screen(screen);
+                }
+            }
 
             // The React render's compiled stylesheet, kept aside so the run's screens
             // can be offloaded to R2 with it instead of embedding it per screen.
@@ -383,6 +429,7 @@ impl WireframesWorkflow {
                     let repair_started = Instant::now();
                     let mut repair_request = repair_request_template;
                     repair_request.prompt = repair_prompt_for_failures(&failures, &libraries);
+                    dump.write_prompt("repair-pass", &repair_request.prompt);
                     let repair_context = ProviderRunContext {
                         api_version,
                         run_id: run_id.clone(),
@@ -422,6 +469,8 @@ impl WireframesWorkflow {
                         "wireframe TSX repair pass finished"
                     );
                 }
+                // Dump static + live HTML while they are still inline (before R2 offload).
+                dump.write_render_outputs(&artifact);
             }
 
             // Offload before saving: inline rendered fragments are what pushed the
@@ -429,6 +478,14 @@ impl WireframesWorkflow {
             if let Some(css) = rendered_css.as_deref() {
                 self.offload_rendered_screens(&auth_token, project_id, &mut artifact, css)
                     .await;
+            }
+            dump.write_artifact_keys(&artifact);
+            if let Some(dir) = dump.dir() {
+                tracing::info!(
+                    run_id = %run_id,
+                    path = %dir.display(),
+                    "wireframes debug dump complete — open this folder to inspect prompt/tsx/live/static"
+                );
             }
 
             let save_started = Instant::now();
@@ -644,6 +701,35 @@ impl WireframesWorkflow {
                     embed_css(screen);
                 }
             }
+
+            // The live bundle (React + motion) rides in R2 too — far too large to inline.
+            // On upload failure drop it so the artifact stays small; the static html
+            // preview is the fallback.
+            let live = screen
+                .get("liveHtml")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("")
+                .trim()
+                .to_string();
+            if !live.is_empty() {
+                let live_key = self
+                    .asset_uploader
+                    .upload_file(
+                        auth_token,
+                        project_id,
+                        "wireframe-screen",
+                        &format!("{screen_id}.live.html"),
+                        "text/html",
+                        live.as_bytes(),
+                    )
+                    .await;
+                if let Some(object) = screen.as_object_mut() {
+                    object.remove("liveHtml");
+                    if let Ok(key) = live_key {
+                        object.insert("liveUrl".to_string(), serde_json::json!(key));
+                    }
+                }
+            }
         }
 
         // No point publishing a stylesheet key when every screen kept its inline copy.
@@ -669,6 +755,7 @@ impl WireframesWorkflow {
         requests: Vec<(String, StartRunRequest)>,
         sink: &RunEventSink,
         cancel_rx: &tokio::sync::watch::Receiver<bool>,
+        dump: WireframesDebugDump,
     ) -> Result<Option<ParallelScreenRuns>, WorkflowError> {
         let permits = Arc::new(tokio::sync::Semaphore::new(MAX_PARALLEL_SCREEN_RUNS));
         let mut tasks = tokio::task::JoinSet::new();
@@ -713,6 +800,7 @@ impl WireframesWorkflow {
             })?;
             match outcome {
                 Ok(ProviderProcessOutcome::Completed(text)) => {
+                    dump.write_provider_raw(&screen_id, &text);
                     match extract_wireframes_artifact(&text) {
                         Ok(artifact) => {
                             let returned = artifact

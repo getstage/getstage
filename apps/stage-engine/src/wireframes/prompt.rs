@@ -131,10 +131,10 @@ Canvas / height rules (mandatory — Stage crops and exports by content height):
 - Modal, form, invite, success, and step screens: content-sized card/panel with modest outer padding. Do NOT vertically center a small card inside a full frame of empty white.
 - Prefer one root element that wraps only real UI — no spacer divs whose only job is to fill the frame.
 
-Motion and interaction (CSS only — it survives the static render, JavaScript does not):
-- Give interactive elements real states: `hover:`, `focus-visible:`, `active:`, `group-hover:`, with `transition-colors` or `transition-all duration-200`. A screen with no hover states reads as a screenshot.
-- Use Tailwind's CSS animation utilities (`animate-pulse`, `animate-marquee` where a Sections library exports a marquee) and `motion-reduce:animate-none`. These run in the render; JS-driven animation does not.
-- Do NOT rely on any JavaScript library's animate/initial props for the visible result — a motion component renders only its resting state.
+Motion and interaction (motion/react runs live in the app preview; the Figma export and the card thumbnail are a static capture of the RESTING frame):
+- You MAY `import { motion } from "motion/react"` and use `animate`, `initial`, `whileHover`, `whileInView`, springs, and transitions. It runs for real in the live preview.
+- Because Figma and the thumbnail capture the resting frame, the initial/resting state must already look complete — never leave an element blank, `opacity-0`, or hidden waiting for JS to reveal it. Animate FROM a good-looking state, not from invisible.
+- Also give interactive elements CSS states (`hover:`, `focus-visible:`, `active:`, `group-hover:` with `transition-*`) and Tailwind animation utilities (`animate-pulse`, `animate-marquee`, `motion-reduce:animate-none`) so motion reads even in the static capture. A screen with no motion and no hover states reads as a screenshot.
 
 Brand surfaces:
 - The selected component library already reads this project's palette from its own CSS variables, so a plain `<Button>` or `<Card>` is already on-brand. Do not re-skin them with hardcoded colors; add brand color only where you are styling your own layout.
@@ -152,7 +152,7 @@ React component mode (Stage renders TSX → static HTML; no client JavaScript):
 - For EACH generatedScreens[] entry, add a "tsx" field: a complete React function component as a string.
 - Default-export `function Screen()` and return one visible root.
 - Import components ONLY from the virtual modules listed under "Selected real component libraries for this run". Each one resolves to the exact real library selected.
-- Do not import another component library, npm package, Node API, browser global, stylesheet, or local file. `react` and `lucide-react` are the only other allowed imports.
+- Do not import another component library, npm package, Node API, browser global, stylesheet, or local file. `react`, `lucide-react`, and `motion` (`motion/react`) are the only other allowed imports.
 - Import ONLY names shown in the library's "Allowed import" line above. If a name is not listed there, the library does not export it — compose that element from plain HTML tags with Tailwind classes instead of guessing an import.
 - Write "tsx" as one JSON string with quotes escaped exactly once. The decoded component source must contain no backslash-escaped quotes — a literal \" left inside the decoded tsx (className=\"...\") fails compilation.
 - Build the screen OUT of those components. Hand-written Tailwind is for layout and spacing BETWEEN them — never re-create a button, card, input, table, chart, background pattern, text effect, or device mockup the libraries already export.
@@ -294,6 +294,7 @@ const COMPONENT_PACKS: &[ComponentPack] = &[
     // sections — optional, layered over a base pack
     component_pack!("aceternity-ui", sections),
     component_pack!("magic-ui", sections),
+    component_pack!("react-bits", sections),
 ];
 
 /// Vendored skill files. Each entry injects the Stage-adapted `SKILL.md` followed by the

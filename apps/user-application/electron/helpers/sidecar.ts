@@ -62,6 +62,11 @@ export function getSidecarEnv(port: number): NodeJS.ProcessEnv {
     STAGE_ENGINE_PORT: String(port),
     STAGE_WIREFRAME_NODE_BINARY: process.execPath,
     STAGE_WIREFRAME_RENDERER_ROOT: wireframeRendererRoot,
+    // Dev: dump every wireframes run to /tmp/stage-wireframes/<run_id>/ so we can
+    // inspect prompt/tsx/live/static. Override with STAGE_WIREFRAMES_DEBUG_DUMP=0.
+    ...(!app.isPackaged && !process.env.STAGE_WIREFRAMES_DEBUG_DUMP
+      ? { STAGE_WIREFRAMES_DEBUG_DUMP: "1" }
+      : {}),
     ...(convexUrl ? { CONVEX_URL: convexUrl } : {}),
     ...(r2PublicBaseUrl ? { R2_PUBLIC_BASE_URL: r2PublicBaseUrl } : {}),
   };

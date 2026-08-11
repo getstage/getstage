@@ -35,7 +35,8 @@ stage_mvp/
 | [`ARCHITECTURE.md`](../ARCHITECTURE.md) | 4 apps, data flows, branches |
 | [`AGENTS.md`](../AGENTS.md) | Agent/dev entry point |
 | [`R2_MIGRATION_FIXES.md`](../R2_MIGRATION_FIXES.md) | R2 storage migration rules |
-| [`WIREFRAMES_QUALITY_PLAN.md`](./WIREFRAMES_QUALITY_PLAN.md) | Beat raw Claude: taste skill, design brief, local skills |
+| [`WIREFRAMES_REAL_REACT_LIBRARIES.md`](./WIREFRAMES_REAL_REACT_LIBRARIES.md) | !!! Target: real React + Motion + Tailwind from real libraries |
+| [`WIREFRAMES_REAL_REACT_AUDIT.md`](./WIREFRAMES_REAL_REACT_AUDIT.md) | !!! Progress audit — where we are / stuck / left off |
 
 ### Desktop (`apps/user-application/docs/AI/desktop/`)
 

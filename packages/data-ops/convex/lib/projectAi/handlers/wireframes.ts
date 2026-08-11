@@ -290,20 +290,22 @@ export async function updateWireframesArtifactHandler(
 
 export const clearWireframeScreensArgs = {
   projectId: v.id("projects"),
+  // Absent → clear every generated screen (reset to the first-run / Lo-Fi state). Present →
+  // remove only these screens and untick them in the list, leaving the rest of the run.
+  screenIds: v.optional(v.array(v.string())),
 };
 
 /**
- * Drops every generated screen from the project's wireframes artifact and puts it back to
- * Lo-Fi, while keeping `configureScreens` so the screen selection survives.
- *
- * A first Hi-Fi generation and a regeneration take different paths — regeneration merges
- * into the existing artifact, a first run has nothing to merge into — and the only way to
- * get back to the first-run state was to create a whole new project. This resets in one
- * click. Destructive and not undoable: the generated designs are gone.
+ * Removes generated screens from the project's wireframes artifact and deletes their R2
+ * objects. With no `screenIds` it clears the whole run and drops back to Lo-Fi — the only
+ * way to reach the first-generation path again without a new project. With `screenIds` it
+ * removes just those, unticking them in `configureScreens` so they neither resurface as
+ * "missing" nor regenerate on the next full run; the shared run stylesheet is dropped only
+ * when the last screen goes. Destructive and not undoable.
  */
 export async function clearWireframeScreensHandler(
   ctx: MutationCtx,
-  args: { projectId: Id<"projects"> },
+  args: { projectId: Id<"projects">; screenIds?: string[] },
 ) {
   await requireProjectAccess(ctx, args.projectId);
   const artifact = await findLatestArtifact(
@@ -319,29 +321,49 @@ export async function clearWireframeScreensHandler(
   }
 
   const content = parseWireframesContentJson(artifact.contentJson, args.projectId);
-  const screensRemoved = Array.isArray(content.generatedScreens)
-    ? content.generatedScreens.length
-    : 0;
+  const generated = Array.isArray(content.generatedScreens) ? content.generatedScreens : [];
+  const removeIds = args.screenIds && args.screenIds.length > 0 ? new Set(args.screenIds) : null;
+  const isRemoved = (screen: unknown) =>
+    removeIds === null ||
+    (isRecord(screen) && typeof screen.id === "string" && removeIds.has(screen.id));
+
+  const removed = generated.filter(isRemoved);
+  if (removed.length === 0) {
+    return { cleared: false as const, screensRemoved: 0 };
+  }
+  const kept = generated.filter((screen) => !isRemoved(screen));
   const timestamp = now();
 
-  // Rendered screens keep their fragment and the run stylesheet in R2. Clearing
-  // must delete those objects too, or every test cycle leaks storage.
+  // Rendered screens keep their fragment in R2; the run stylesheet stays until the last
+  // screen goes. Collect only the removed screens' keys, plus the stylesheet when nothing
+  // references it anymore — clearing must never leak storage.
   const r2Keys = new Set<string>();
-  collectR2KeysFromJson(content, r2Keys);
+  for (const screen of removed) {
+    collectR2KeysFromJson(screen, r2Keys);
+  }
+
+  const nextContent: Record<string, unknown> = { ...content, generatedScreens: kept };
+  if (kept.length === 0) {
+    collectR2KeysFromJson(content.cssUrl, r2Keys);
+    delete nextContent.cssUrl;
+    nextContent.wireframeKind = "lofi";
+  }
+  if (removeIds !== null && Array.isArray(content.configureScreens)) {
+    nextContent.configureScreens = content.configureScreens.map((screen) =>
+      isRemoved(screen) ? { ...screen, selected: false } : screen,
+    );
+  }
+
   for (const key of r2Keys) {
     await deleteOldR2Asset(ctx, key);
   }
 
   await ctx.db.patch(artifact._id, {
-    contentJson: JSON.stringify({
-      ...content,
-      wireframeKind: "lofi",
-      generatedScreens: [],
-    }),
+    contentJson: JSON.stringify(nextContent),
     updatedAt: timestamp,
   });
 
-  return { cleared: true as const, screensRemoved };
+  return { cleared: true as const, screensRemoved: removed.length };
 }
 
 function parseWireframesContentJson(contentJson: string, projectId: Id<"projects">) {

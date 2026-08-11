@@ -81,6 +81,7 @@ export function mapWireframesArtifactToTabData(
       goal: screen.goal,
       sections: screen.sections,
       html: screen.html,
+      liveUrl: screen.liveUrl,
       renderMode: screen.renderMode,
     })),
   };
@@ -92,6 +93,8 @@ export type WireframeResultCard = ScreenItem & {
   goal?: string;
   sections?: WireframeGeneratedScreen["sections"];
   html?: string;
+  /** Resolved R2 URL of the interactive React build, loaded live in a sandboxed iframe. */
+  liveUrl?: string;
   /** How `html` was produced. Defaulted by the contract, so it is always set. */
   renderMode: WireframeGeneratedScreen["renderMode"];
   figmaUrl?: string;
@@ -128,6 +131,7 @@ export function buildResultCards(
       // A screen with no generated entry has no HTML at all, so "fallback" is the
       // honest reading: nothing came out of the React renderer for it.
       renderMode: generated?.renderMode ?? "html-fallback",
+      liveUrl: generated?.liveUrl,
       figmaUrl: generated?.figmaUrl,
     };
   });

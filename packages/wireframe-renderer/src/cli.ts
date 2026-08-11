@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { MantineProvider } from "./libraries/mantine";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import * as esbuild from "esbuild";
 import { themeCss, type BrandTheme } from "./theme";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -42,7 +43,7 @@ function pruneAbandonedBatches() {
 /// clear message instead of resolving to a missing directory.
 const LIBRARY_SLOTS: Record<string, ReadonlySet<string>> = {
   "@stage/base": new Set(["shadcn-ui", "kokonut-ui", "origin-ui", "mantine"]),
-  "@stage/sections": new Set(["magic-ui", "aceternity-ui"]),
+  "@stage/sections": new Set(["magic-ui", "aceternity-ui", "react-bits"]),
   "@stage/charts": new Set(["bklit-ui"]),
 };
 const BASE_MODULE = "@stage/base";
@@ -61,7 +62,7 @@ const LIBRARY_EXPORTS: Record<string, string[]> = (() => {
   }
   return byLibrary;
 })();
-const FREE_IMPORTS = new Set(["react", "lucide-react"]);
+const FREE_IMPORTS = new Set(["react", "lucide-react", "motion", "motion/react"]);
 const FORBIDDEN_GLOBALS =
   /\b(process|globalThis|global|require|eval|Function|fetch|WebSocket|XMLHttpRequest)\b/;
 
@@ -74,7 +75,14 @@ type BatchInput = {
   theme?: BrandTheme;
   screens: ScreenInput[];
 };
-type ScreenOutput = { id: string; html: string; error?: string; repaired?: boolean };
+type ScreenOutput = {
+  id: string;
+  html: string;
+  /** Self-contained runnable HTML doc (React + motion) for the live preview. */
+  liveHtml?: string;
+  error?: string;
+  repaired?: boolean;
+};
 
 function validateBatch(value: unknown): BatchInput {
   if (!value || typeof value !== "object") throw new Error("Renderer input must be an object.");
@@ -225,6 +233,67 @@ async function renderScreen(filePath: string, baseLibraryId: string): Promise<st
   return markup.startsWith("<") ? markup : `<div>${markup}</div>`;
 }
 
+/// The live preview needs a running React app, not a static string: motion/react, hover,
+/// and springs only exist when JavaScript runs. esbuild bundles the screen (its vendored
+/// library imports resolved via tsconfig paths) with React and motion into one
+/// self-contained IIFE, wrapped in an HTML document with the run stylesheet inlined. The
+/// desktop mounts this in an `allow-scripts` sandboxed iframe (own opaque origin, no
+/// same-origin) so the model's code runs fully isolated from the app, Convex, and IPC.
+/// The static `renderScreen` output above stays for Figma export, thumbnails, and the
+/// fallback — Figma cannot run JavaScript, so it only ever gets the resting frame.
+async function buildLiveDocument(
+  screenFilePath: string,
+  css: string,
+  baseLibraryId: string,
+): Promise<string> {
+  const providerImport =
+    baseLibraryId === "mantine" ? 'import { MantineProvider } from "@mantine/core";\n' : "";
+  const rendered =
+    baseLibraryId === "mantine"
+      ? "React.createElement(MantineProvider, null, React.createElement(Screen))"
+      : "React.createElement(Screen)";
+  const entryPath = screenFilePath.replace(/\.tsx$/, ".live.tsx");
+  fs.writeFileSync(
+    entryPath,
+    `import React from "react";\n` +
+      `import { createRoot } from "react-dom/client";\n` +
+      providerImport +
+      `import * as ScreenModule from ${JSON.stringify(screenFilePath)};\n` +
+      `const Screen = ScreenModule.default ?? ScreenModule.Screen;\n` +
+      `const container = document.getElementById("root");\n` +
+      `if (container && typeof Screen === "function") createRoot(container).render(${rendered});\n`,
+    "utf8",
+  );
+
+  const result = await esbuild.build({
+    entryPoints: [entryPath],
+    bundle: true,
+    write: false,
+    format: "iife",
+    platform: "browser",
+    jsx: "automatic",
+    minify: true,
+    legalComments: "none",
+    tsconfig: path.join(ROOT, "tsconfig.json"),
+    // Browser has no `process` — vendored components read it (e.g. v0-button's
+    // VERCEL_PROJECT_PRODUCTION_URL). Without a stub the live bundle throws at
+    // `process is not defined` and React never mounts → blank white iframe.
+    // `define` can't inject an object literal, so: `define` rewrites every
+    // `process.env` to itself (keeps the `process` identifier alive), and the
+    // banner declares `process` before the IIFE runs.
+    banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
+    define: { "process.env": "process.env" },
+    logLevel: "silent",
+  });
+  const js = result.outputFiles[0]?.text ?? "";
+  return (
+    `<!doctype html><html><head><meta charset="utf-8">` +
+    `<meta name="viewport" content="width=device-width, initial-scale=1">` +
+    `<style>${css}</style></head><body><div id="root"></div>` +
+    `<script>${js}</script></body></html>`
+  );
+}
+
 /// The model sometimes double-escapes quotes inside the TSX string (`className=\"...\"`),
 /// which fails the esbuild transform — "Unexpected backslash in JSX element" when the escape
 /// lands in the JSX body, a plain syntax error when the import line itself is escaped. That
@@ -284,7 +353,15 @@ async function renderBatch(input: BatchInput) {
           baseLibraryId,
           input.libraries,
         );
-        output.push(repaired ? { id: screen.id, html, repaired } : { id: screen.id, html });
+        const entry: ScreenOutput = { id: screen.id, html };
+        if (repaired) entry.repaired = true;
+        // Live bundle is best-effort: a bundling failure must not lose the static html.
+        try {
+          entry.liveHtml = await buildLiveDocument(screen.filePath, css, baseLibraryId);
+        } catch {
+          // keep the static-only entry
+        }
+        output.push(entry);
       } catch (error) {
         output.push({
           id: screen.id,

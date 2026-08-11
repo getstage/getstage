@@ -17,6 +17,7 @@ async function resolveStoredAssetUrls(value: unknown): Promise<unknown> {
           key === "url" ||
           // Wireframes: rendered fragments and the run stylesheet live in R2.
           key === "htmlUrl" ||
+          key === "liveUrl" ||
           key === "cssUrl") &&
         typeof nested === "string";
 

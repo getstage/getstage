@@ -58,9 +58,13 @@
         "TableRow",
         "Textarea",
         "CardFlip",
-        "TweetCard"
+        "TweetCard",
+        "LiquidGlassCard",
+        "LiquidButton",
+        "CarouselCards",
+        "V0Button"
       ],
-      "usage": "CardFlip is a showcase card (props: title, subtitle, description, features[]) \u2014 it flips on hover and renders its front face statically. TweetCard is a social-proof quote card (props: authorName, authorHandle, authorImage, content[], timestamp, href, optional reply={authorName, authorHandle, authorImage, content, timestamp})."
+      "usage": "CardFlip is a showcase card (props: title, subtitle, description, features[]) — it flips on hover and renders its front face statically. TweetCard is a social-proof quote card (props: authorName, authorHandle, authorImage, content[], timestamp, href, optional reply={authorName, authorHandle, authorImage, content, timestamp}). LiquidGlassCard is a frosted-glass container (props: glassSize sm|default|lg, glassEffect, className, children) for a feature or highlight card — wrap content in it; it renders a static SVG glass filter, no JS. LiquidButton is a glass-styled button (same props as Button plus liquidVariant default|none)."
     },
     {
       "id": "origin-ui",
@@ -123,9 +127,25 @@
         "RainbowButton",
         "AvatarCircles",
         "Iphone",
-        "Safari"
+        "Safari",
+        "NeonGradientCard",
+        "RetroGrid",
+        "Meteors",
+        "NoiseTexture",
+        "PulsatingButton",
+        "Android",
+        "ProgressiveBlur",
+        "HexagonPattern",
+        "StripedPattern",
+        "InteractiveGridPattern",
+        "AnimatedCircularProgressBar",
+        "RippleButton",
+        "InteractiveHoverButton",
+        "PixelImage",
+        "Backlight",
+        "MorphingText"
       ],
-      "usage": "Compose sections from these instead of hand-writing markup. BentoGrid takes children; BentoCard requires name and description (className, background, Icon as a component reference, href, cta optional). Marquee repeats its children (props: reverse, vertical, pauseOnHover, repeat). GridPattern/DotPattern/Ripple are absolute background layers: place as the first child of a relative parent, content after them (GridPattern: width, height, squares=[[x,y]]; DotPattern: width, height, cx, cy, cr; Ripple: mainCircleSize, numCircles). OrbitingCircles orbits its children (icons) around the parent's center (props: radius, duration, iconSize). AnimatedShinyText/AnimatedGradientText/AuroraText wrap a word or short phrase inside a heading, not whole paragraphs (AnimatedGradientText: colorFrom, colorTo, speed; AuroraText: colors, speed). ShineBorder and BorderBeam are animated border overlays: place inside a relative rounded-[Npx] parent with overflow-hidden (ShineBorder: shineColor, borderWidth, duration; BorderBeam: size, duration, colorFrom, colorTo). ShimmerButton and RainbowButton are premium CTA buttons, use them like Button with children as the label (ShimmerButton: background, shimmerColor, borderRadius; RainbowButton: variant, size). AvatarCircles shows social proof (props: avatarUrls=[{imageUrl, profileUrl}], numPeople). Iphone and Safari frame a screenshot image (Iphone: src; Safari: imageSrc, url for the address bar, width, height) \u2014 use for product shots."
+      "usage": "Compose sections from these instead of hand-writing markup. BentoGrid takes children; BentoCard requires name and description (className, background, Icon as a component reference, href, cta optional). Marquee repeats its children (props: reverse, vertical, pauseOnHover, repeat). GridPattern/DotPattern/Ripple are absolute background layers: place as the first child of a relative parent, content after them (GridPattern: width, height, squares=[[x,y]]; DotPattern: width, height, cx, cy, cr; Ripple: mainCircleSize, numCircles). OrbitingCircles orbits its children (icons) around the parent's center (props: radius, duration, iconSize). AnimatedShinyText/AnimatedGradientText/AuroraText wrap a word or short phrase inside a heading, not whole paragraphs (AnimatedGradientText: colorFrom, colorTo, speed; AuroraText: colors, speed). ShineBorder and BorderBeam are animated border overlays: place inside a relative rounded-[Npx] parent with overflow-hidden (ShineBorder: shineColor, borderWidth, duration; BorderBeam: size, duration, colorFrom, colorTo). ShimmerButton and RainbowButton are premium CTA buttons, use them like Button with children as the label (ShimmerButton: background, shimmerColor, borderRadius; RainbowButton: variant, size). AvatarCircles shows social proof (props: avatarUrls=[{imageUrl, profileUrl}], numPeople). Iphone and Safari frame a screenshot image (Iphone: src; Safari: imageSrc, url for the address bar, width, height) — use for product shots. NeonGradientCard: A beautiful neon card effect RetroGrid: An animated scrolling retro grid effect Meteors: A meteor shower effect. NoiseTexture: An SVG fractal noise layer using feTurbulence, desaturation, and contrast controls for subtle texture overlays. PulsatingButton: An animated pulsating button useful for capturing attention of users. Android: A mockup of an Android device. ProgressiveBlur: The Progressive Blur component adds a smooth blur gradient effect to scrollable content, indicating more content below or above. HexagonPattern: A background hexagon pattern made with SVGs, fully customizable using Tailwind CSS. StripedPattern: A background striped pattern made with SVGs, fully customizable using Tailwind CSS. InteractiveGridPattern: A interactive background grid pattern made with SVGs, fully customizable using Tailwind CSS. AnimatedCircularProgressBar: Animated Circular Progress Bar is a component that displays a circular gauge with a percentage value. RippleButton: An animated button with ripple useful for user engagement. CollapseButton/File/Folder/Tree/type TreeViewElement: A component used to showcase the folder and file structure of a directory. AnimatedSpan/TypingAnimation/Terminal: A terminal component PixelImage: A component that displays an image with a pixelated effect, creating a retro aesthetic. Backlight: A backlight glow effect for videos, images, and SVGs. MorphingText: A dynamic text morphing component for Magic UI."
     },
     {
       "id": "aceternity-ui",
@@ -136,6 +156,21 @@
         "BentoGridItem"
       ],
       "usage": "BentoGrid takes children. BentoGridItem takes title, description, and optional header (a ReactNode) and icon (a ReactNode, not a component reference)."
+    },
+    {
+      "id": "react-bits",
+      "name": "React Bits",
+      "source": "https://reactbits.dev",
+      "exports": [
+        "StarBorder",
+        "ElectricBorder",
+        "GlareHover",
+        "GlassIcons",
+        "GlassSurface",
+        "Folder",
+        "GradualBlur"
+      ],
+      "usage": "Animated/effect components from React Bits. Wrap text or content; effects render their static resting state under SSR. StarBorder: Animated star / sparkle border orbiting content with twinkle pulses. ElectricBorder: Jittery electric energy border with animated arcs, glow and adjustable intensity. GlareHover: Adds a realistic moving glare highlight on hover over any element. GlassIcons: Icon set styled with frosted glass blur. GlassSurface: Advanced Apple-style glass surface with real-time distortion + lighting. Folder: Interactive folder opens to reveal nested content smooth motion. GradualBlur: Progressively un-blurs content based on scroll or trigger creating a cinematic reveal."
     }
   ],
   "charts": [
@@ -151,7 +186,7 @@
         "LineChart",
         "Sparkline"
       ],
-      "usage": "Every chart takes data: { label: string; value: number }[] and a label string for accessibility. DonutChart also takes centerLabel and derives the center total from the data. Charts inherit brand color from currentColor \u2014 set it with a text-* class on the chart or an ancestor. Give each chart a sized container (for example h-48) because they fill their parent."
+      "usage": "Every chart takes data: { label: string; value: number }[] and a label string for accessibility. DonutChart also takes centerLabel and derives the center total from the data. Charts inherit brand color from currentColor — set it with a text-* class on the chart or an ancestor. Give each chart a sized container (for example h-48) because they fill their parent."
     }
   ]
 }

@@ -647,6 +647,31 @@ export function registerIpcHandlers({
     // consumer (thumbnails, dialog, Figma/Paper capture) then stays clean.
     return stripScriptTags(text);
   });
+
+  ipcMain.handle(IPC_CHANNELS.storageFetchR2TextRaw, async (_event, request: unknown) => {
+    if (!request || typeof request !== "object") {
+      throw new Error("R2 fetch request is required.");
+    }
+
+    const { url } = request as { url?: unknown };
+    if (typeof url !== "string" || !url.startsWith("https://")) {
+      throw new Error("R2 fetch URL must be an https URL.");
+    }
+
+    // Live wireframe previews are themselves a <script> bundle. Stripping tags
+    // (the static path) would delete the entire app, so this returns the text
+    // untouched. Only feed this into a sandboxed iframe with allow-scripts.
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`R2 fetch failed with status ${response.status}.`);
+    }
+
+    const text = await response.text();
+    if (text.length > 10 * 1024 * 1024) {
+      throw new Error("R2 object exceeds 10 MB.");
+    }
+    return text;
+  });
 }
 
 async function streamRunEventsToRenderer(args: {

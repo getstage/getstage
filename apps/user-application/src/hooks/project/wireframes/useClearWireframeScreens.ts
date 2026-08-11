@@ -15,14 +15,20 @@ export function useClearWireframeScreens(projectId: string) {
   const clearWireframeScreens = useMutation(api.projectAi.clearWireframeScreens);
   const [isClearing, setIsClearing] = useState(false);
 
-  const clearScreens = useCallback(async () => {
-    setIsClearing(true);
-    try {
-      return await clearWireframeScreens({ projectId: projectId as Id<"projects"> });
-    } finally {
-      setIsClearing(false);
-    }
-  }, [clearWireframeScreens, projectId]);
+  const clearScreens = useCallback(
+    async (screenIds?: string[]) => {
+      setIsClearing(true);
+      try {
+        return await clearWireframeScreens({
+          projectId: projectId as Id<"projects">,
+          ...(screenIds && screenIds.length > 0 ? { screenIds } : {}),
+        });
+      } finally {
+        setIsClearing(false);
+      }
+    },
+    [clearWireframeScreens, projectId],
+  );
 
   return { clearScreens, isClearing };
 }

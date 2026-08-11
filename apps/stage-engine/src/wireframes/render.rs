@@ -36,7 +36,7 @@ pub const LIBRARY_SLOTS: [LibrarySlot; 3] = [
         module: "@stage/sections",
         label: "Sections",
         manifest_key: "sections",
-        library_ids: &["magic-ui", "aceternity-ui"],
+        library_ids: &["magic-ui", "aceternity-ui", "react-bits"],
     },
     LibrarySlot {
         module: "@stage/charts",
@@ -176,6 +176,9 @@ fn renderer_root() -> PathBuf {
 struct RenderScreenOut {
     id: String,
     html: String,
+    /// Self-contained runnable HTML doc (React + motion) for the live preview.
+    #[serde(default, rename = "liveHtml")]
+    live_html: Option<String>,
     #[serde(default)]
     error: Option<String>,
     /// True when the renderer fixed double-escaped quotes itself instead of failing —
@@ -296,6 +299,9 @@ pub async fn apply_react_render(
             && let Some(object) = screen.as_object_mut()
         {
             object.insert("html".to_string(), json!(out.html));
+            if let Some(live) = out.live_html.filter(|l| !l.trim().is_empty()) {
+                object.insert("liveHtml".to_string(), json!(live));
+            }
             object.insert("renderMode".to_string(), json!(RENDER_MODE_REACT));
         }
     }

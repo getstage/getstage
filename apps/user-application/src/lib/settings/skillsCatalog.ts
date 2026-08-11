@@ -250,6 +250,19 @@ export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
       "SaaS/AI product layouts: bold hero typography, feature bento sections, polished pricing and CTA blocks.",
   },
   {
+    id: "react-bits",
+    name: "React Bits",
+    description: "Animated text, borders, and glass-effect section components.",
+    official: false,
+    iconSrc: "/logos/component-packs/react-bits.svg",
+    defaultEnabled: false,
+    category: "SaaS",
+    packKind: "sections",
+    installsLabel: "Not listed on skills.sh",
+    promptHint:
+      "Accent components: wrap headings or cards in StarBorder / ElectricBorder / GlassSurface / GlareHover for visual polish. Renders its static resting state under the current renderer.",
+  },
+  {
     id: "kokonut-ui",
     name: "Kokonut UI",
     description: "Premium dashboard and SaaS components with polished visual patterns.",

@@ -89,6 +89,11 @@ export const wireframeGeneratedScreenSchema = z.object({
   // the stored object key at rest; reads resolve it to a URL. `html` stays for
   // Lo-Fi, model-HTML fallbacks, and artifacts from before the offload.
   htmlUrl: z.string().optional(),
+  // The interactive React build (React + motion), offloaded to R2 like `htmlUrl` and
+  // present only for React-rendered screens. The live preview runs it in a sandboxed
+  // iframe; `liveUrl` is the stored object key at rest, resolved to a URL on read.
+  liveHtml: z.string().optional(),
+  liveUrl: z.string().optional(),
   // How that HTML was produced. The React path falls back silently, so without this
   // a screen built from real library components is indistinguishable from one the
   // model hand-wrote. Artifacts predating the React renderer are all fallbacks.
