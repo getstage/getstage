@@ -36,6 +36,7 @@ stage_mvp/
 | [`AGENTS.md`](../AGENTS.md) | Agent/dev entry point |
 | [`R2_MIGRATION_FIXES.md`](../R2_MIGRATION_FIXES.md) | R2 storage migration rules |
 | [`WIREFRAMES_QUALITY_PLAN.md`](./WIREFRAMES_QUALITY_PLAN.md) | Beat raw Claude: taste skill, design brief, local skills |
+| [`WIREFRAMES_RETRIEVAL_CONCEPT.md`](./WIREFRAMES_RETRIEVAL_CONCEPT.md) | Concept: n8n catalog ingest, Convex RAG, thin workspace (not implemented) |
 
 ### Desktop (`apps/user-application/docs/AI/desktop/`)
 

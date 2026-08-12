@@ -29,6 +29,18 @@ Renderer → Convex client → Convex deployment → packages/data-ops
 Renderer → preload IPC → Electron main → stage-engine → provider CLIs / filesystem
 ```
 
+#### Wireframes retrieval (concept — not shipped)
+
+Target cutover: [`docs/WIREFRAMES_RETRIEVAL_CONCEPT.md`](docs/WIREFRAMES_RETRIEVAL_CONCEPT.md). Keep the sealed run workspace as isolation. Stop materializing full libraries into it. n8n ingests complete upstream source into R2 + Convex; the provider RAG-searches Convex inside hard filters; only retrieved bundles land in the workspace.
+
+```txt
+n8n ingest → R2 blobs + Convex index (verified gate via Stage)
+        ↓
+generate: filter Convex → provider RAG search → fetch hit bundles
+        ↓
+thin workspace (brief + retrieved source) → typecheck / browser → save
+```
+
 ### Auth & billing
 
 ```txt
