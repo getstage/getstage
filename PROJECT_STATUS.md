@@ -1,7 +1,7 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-06-14
+> **Last updated:** 2026-08-12
 
 ---
 
@@ -9,6 +9,7 @@
 
 | Priority | Item | Owner / where |
 |----------|------|----------------|
+| **P0 wireframes: retrieval concept** | **Concept only, not implemented.** n8n fills a complete component catalog (Firecrawl + registry JSON → R2 blobs, Convex index, Stage verify gate). Generate: hard filters then provider RAG-search in Convex; thin workspace holds only retrieved source. Keep workspace isolation; drop catalog/skill dumps and name-only gates. | `docs/WIREFRAMES_RETRIEVAL_CONCEPT.md` |
 | **P1 wireframes quality** | Beat raw Claude: Taste skill → local/project skills + library packs → moodboard layouts → refine | `docs/WIREFRAMES_QUALITY_PLAN.md` |
 | **!!! P0** | Desktop idle energy P0 — PR `fix/desktop-idle-energy-p0` | `docs/AI/desktop/2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md` |
 | **P1** | Run packaged-DMG benchmark + 2 h soak (RAM < 400 MB, 12 hr power < 500) | `scripts/desktop-idle-benchmark.sh` |
