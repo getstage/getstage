@@ -67,6 +67,7 @@ fn codex_args(context: &ProviderRunContext) -> Vec<String> {
 
     args.extend([
         "exec".to_string(),
+        "--json".to_string(),
         "--color".to_string(),
         "never".to_string(),
         "--sandbox".to_string(),
@@ -77,8 +78,14 @@ fn codex_args(context: &ProviderRunContext) -> Vec<String> {
 
     // Config overrides and ephemeral belong on `codex exec`, not the parent command.
     apply_codex_run_options(&mut args, &context.request.model_options);
-    if context.request.mode == crate::models::runs::RunMode::Research {
+    if matches!(
+        context.request.mode,
+        crate::models::runs::RunMode::Research | crate::models::runs::RunMode::Wireframes
+    ) {
         args.push("--ephemeral".to_string());
+    }
+    if context.request.mode == crate::models::runs::RunMode::Wireframes {
+        args.extend(["-c".to_string(), "project_doc_max_bytes=0".to_string()]);
     }
 
     if let Some(working_directory) = context.request.working_directory.as_ref() {

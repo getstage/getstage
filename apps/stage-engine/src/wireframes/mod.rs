@@ -1,6 +1,10 @@
 pub mod debug_dump;
+pub mod design_plan;
+pub(crate) mod helper;
 pub mod normalize;
 pub mod prompt;
+pub mod provider_workspace;
+pub mod quality;
 pub mod render;
 pub mod workflow;
 

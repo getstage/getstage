@@ -1,58 +1,37 @@
 ---
 name: ui-ux-pro-max-stage
-description: Stage-adapted nextlevelbuilder UI UX Pro Max skill for Hi-Fi wireframe HTML.
+description: Design-system and usability guidance for Stage Hi-Fi React screens.
 source: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
 ---
 
 # Stage Hi-Fi — UI UX Pro Max
 
-Apply when generating Stage `generatedScreens[].html` fragments.
-Upstream targets native/mobile app UI and ships CSV datasets plus Python search scripts. Stage generates
-**self-contained HTML + one `<style>` block** for desktop-first screens, so the touch-target, safe-area, and
-platform-gesture rules do not translate. What follows is the web-applicable subset of its pro rules.
+**Role:** define a coherent, usable design system. Apply to every product surface, especially operational, form, dashboard, and information-dense screens. Do not choose the visual thesis when another selected skill owns visual direction.
 
-## 1. Icons and visual elements
+## System
 
-- **No emoji as structural icons.** Emoji are font-dependent and cannot be themed. Use inline SVG.
-- **Consistent sizing.** Pick one icon scale (e.g. 16 / 20 / 24px) and hold it. Never mix 20 / 24 / 28
-  arbitrarily on the same screen.
-- **Stroke consistency.** One stroke width per visual layer — 1.5px or 2px, not both.
-- **Filled vs outline discipline.** One icon style per hierarchy level.
-- **Icon alignment.** Align to the text baseline with consistent padding around the glyph.
-- **Icon contrast.** 4.5:1 for small elements, 3:1 minimum for larger glyphs.
+- Reuse one shared type scale, color-role system, spacing rhythm, radius scale, elevation vocabulary, icon family, and motion vocabulary across the run.
+- Use 4/8px spacing increments and clear hierarchy tiers rather than arbitrary gaps.
+- Keep sibling screens on a consistent content grid while allowing page-specific density and layout archetypes.
+- Drive color through project/library tokens. Do not scatter hardcoded section colors or create a competing theme.
 
-## 2. Interaction states
+## Hierarchy and task fit
 
-- Every interactive element shows a pressed or hover state within 80–150ms.
-- Micro-interactions stay in the 150–300ms band.
-- **Press states must not shift layout bounds.** Use color, opacity, or elevation — never a transform that
-  moves surrounding content.
-- Disabled controls look disabled and carry the `disabled` attribute. Nothing may look clickable and do
-  nothing.
-- Use semantic elements (`button`, `a`, `label`, `input`) rather than generic containers as controls.
+- Organize around the user's primary decision or action, not around available components.
+- Distinguish primary, secondary, and destructive actions. Keep an action's name stable through the flow.
+- Use tables for comparable rows, lists for scanning, forms for input, and charts only for real relationships.
+- Empty, loading, error, disabled, selected, and success states must communicate the next action clearly.
 
-## 3. Contrast
+## Interaction and accessibility
 
-- Body text ≥ 4.5:1 against its surface; secondary text ≥ 3:1.
-- Borders and dividers must stay visible — do not rely on a hairline that vanishes against the background.
-- Pressed, focused, and disabled states stay equally distinguishable.
-- Modal scrims sit around 40–60% black so foreground content is isolated.
-- Drive color from a small token set at the top of the `<style>` block, not from per-section hex values.
+- Use semantic `button`, `a`, `label`, `input`, and table elements.
+- Every interactive element needs visible hover, focus-visible, active, and disabled treatment where applicable.
+- Body text and small controls require strong contrast; color cannot be the only signal.
+- Form fields need labels and relevant hint/error text. Touch and keyboard users must receive equivalent affordances.
+- Keep controls stable under interaction; feedback must not shift surrounding layout.
 
-## 4. Layout and spacing
+## Responsive and delivery check
 
-- **4/8px rhythm** for padding, gaps, and section spacing. No random increments.
-- **Vertical rhythm tiers** by hierarchy — e.g. 16 / 24 / 32 / 48 — applied consistently.
-- **Consistent content width** across sibling screens.
-- **Readable measure.** Do not run long-form paragraphs edge to edge; cap the line length.
-
-## 5. Pre-delivery check
-
-Before returning the fragment, verify:
-
-- No emoji used as an icon; all icons share one family and style
-- Every interactive element has a visible focus state
-- Primary text ≥ 4.5:1, secondary ≥ 3:1
-- 4/8px spacing rhythm holds at component and section level
-- Color is not the only indicator of meaning
-- Form fields have labels and, where relevant, hint or error text
+- Preserve readable measures and prevent fixed/sticky controls from hiding content.
+- Keep icon size, stroke style, and alignment consistent within each hierarchy level; use Lucide rather than emoji.
+- Verify hierarchy, focus visibility, contrast, labels, spacing rhythm, and responsive overflow before returning TSX.

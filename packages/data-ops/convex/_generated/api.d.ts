@@ -129,6 +129,7 @@ import type * as lib_r2_domain from "../lib/r2/domain.js";
 import type * as lib_r2_handlers from "../lib/r2/handlers.js";
 import type * as lib_settings_handlers_index from "../lib/settings/handlers/index.js";
 import type * as lib_tasks_handlers_index from "../lib/tasks/handlers/index.js";
+import type * as lib_wireframeCatalog_handlers from "../lib/wireframeCatalog/handlers.js";
 import type * as maintenance from "../maintenance.js";
 import type * as models_integrations_contentPlatforms from "../models/integrations/contentPlatforms.js";
 import type * as models_integrations_googleSheets from "../models/integrations/googleSheets.js";
@@ -148,6 +149,7 @@ import type * as tasks from "../tasks.js";
 import type * as userEmails from "../userEmails.js";
 import type * as users from "../users.js";
 import type * as viewer from "../viewer.js";
+import type * as wireframeCatalog from "../wireframeCatalog.js";
 import type * as workspaceMembers from "../workspaceMembers.js";
 
 import type {
@@ -278,6 +280,7 @@ declare const fullApi: ApiFromModules<{
   "lib/r2/handlers": typeof lib_r2_handlers;
   "lib/settings/handlers/index": typeof lib_settings_handlers_index;
   "lib/tasks/handlers/index": typeof lib_tasks_handlers_index;
+  "lib/wireframeCatalog/handlers": typeof lib_wireframeCatalog_handlers;
   maintenance: typeof maintenance;
   "models/integrations/contentPlatforms": typeof models_integrations_contentPlatforms;
   "models/integrations/googleSheets": typeof models_integrations_googleSheets;
@@ -297,6 +300,7 @@ declare const fullApi: ApiFromModules<{
   userEmails: typeof userEmails;
   users: typeof users;
   viewer: typeof viewer;
+  wireframeCatalog: typeof wireframeCatalog;
   workspaceMembers: typeof workspaceMembers;
 }>;
 

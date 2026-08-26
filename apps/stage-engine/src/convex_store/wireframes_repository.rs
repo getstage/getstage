@@ -78,6 +78,37 @@ impl WireframesRepository {
             .map(ToOwned::to_owned))
     }
 
+    pub async fn checkpoint_wireframes_run(
+        &self,
+        token: &str,
+        project_id: &str,
+        run_id: Option<&str>,
+        kind: &str,
+        screen_id: Option<&str>,
+        content: &JsonValue,
+    ) -> anyhow::Result<()> {
+        let Some(run_id) = run_id else {
+            return Ok(());
+        };
+        let mut client = self.authenticated_client(token).await?;
+        let mut mutation_args = args();
+        mutation_args.insert("projectId".to_string(), Value::from(project_id.to_string()));
+        mutation_args.insert("runId".to_string(), Value::from(run_id.to_string()));
+        mutation_args.insert("kind".to_string(), Value::from(kind.to_string()));
+        mutation_args.insert(
+            "contentJson".to_string(),
+            Value::from(serde_json::to_string(content)?),
+        );
+        if let Some(screen_id) = screen_id {
+            mutation_args.insert("screenId".to_string(), Value::from(screen_id.to_string()));
+        }
+        client
+            .mutation("projectAi:checkpointWireframesRun", mutation_args)
+            .await
+            .context("failed to checkpoint wireframes run in Convex")?;
+        Ok(())
+    }
+
     pub async fn complete_wireframes_run(
         &self,
         token: &str,
@@ -86,6 +117,7 @@ impl WireframesRepository {
         artifact: &JsonValue,
         input: &WireframesInput,
         provider_id: ProviderId,
+        cancelled: bool,
     ) -> anyhow::Result<Option<String>> {
         let mut client = self.authenticated_client(token).await?;
         let mut mutation_args = args();
@@ -130,6 +162,7 @@ impl WireframesRepository {
                 Value::from(flows_id.to_string()),
             );
         }
+        mutation_args.insert("cancelled".to_string(), Value::from(cancelled));
         mutation_args.insert(
             "providerId".to_string(),
             Value::from(match provider_id {
@@ -148,6 +181,26 @@ impl WireframesRepository {
             .get("artifactId")
             .and_then(JsonValue::as_str)
             .map(ToOwned::to_owned))
+    }
+
+    pub async fn cancel_wireframes_run(
+        &self,
+        token: &str,
+        project_id: &str,
+        run_id: Option<&str>,
+    ) -> anyhow::Result<()> {
+        let Some(run_id) = run_id else {
+            return Ok(());
+        };
+        let mut client = self.authenticated_client(token).await?;
+        let mut mutation_args = args();
+        mutation_args.insert("projectId".to_string(), Value::from(project_id.to_string()));
+        mutation_args.insert("runId".to_string(), Value::from(run_id.to_string()));
+        client
+            .mutation("projectAi:cancelWireframesRun", mutation_args)
+            .await
+            .context("failed to mark wireframes run cancelled in Convex")?;
+        Ok(())
     }
 
     pub async fn fail_wireframes_run(

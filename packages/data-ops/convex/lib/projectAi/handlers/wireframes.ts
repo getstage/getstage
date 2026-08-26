@@ -83,9 +83,9 @@ export async function getWireframesInputHandler(
     flowsArtifactJson: latestFlows?.contentJson ?? undefined,
     existingWireframesArtifactId: latestWireframes ? String(latestWireframes._id) : undefined,
     existingWireframesArtifactJson: latestWireframes?.contentJson ?? undefined,
-    // Project selection only. Empty / unset → leave undefined so the engine uses the
-    // same built-in Design Taste + default packs for every collaborator on this project.
-    // Do not fall back to the caller's account prefs (that made output caller-dependent).
+    // Project selection only. Empty or unset means no design skill; component packs keep
+    // their engine default. Do not fall back to caller account preferences, which would
+    // make project output collaborator-dependent.
     enabledSkillIds: project.skillIds?.length ? project.skillIds : undefined,
     enabledComponentPackIds: project.componentPackIds?.length
       ? project.componentPackIds
@@ -141,6 +141,69 @@ export async function createWireframesRunHandler(
   };
 }
 
+export const checkpointWireframesRunArgs = {
+  projectId: v.id("projects"),
+  runId: v.id("projectAiRuns"),
+  kind: v.union(v.literal("design-plan"), v.literal("screen")),
+  screenId: v.optional(v.string()),
+  contentJson: v.string(),
+};
+
+export async function checkpointWireframesRunHandler(
+  ctx: MutationCtx,
+  args: {
+    projectId: Id<"projects">;
+    runId: Id<"projectAiRuns">;
+    kind: "design-plan" | "screen";
+    screenId?: string;
+    contentJson: string;
+  },
+) {
+  const { user } = await requireProjectAccess(ctx, args.projectId);
+  const run = await getRunRecord(ctx, args.runId);
+  if (run.projectId !== args.projectId || run.module !== "generate") {
+    throw new Error("Run not found.");
+  }
+  if (run.status !== "running") {
+    throw new Error("Only a running wireframes run can be checkpointed.");
+  }
+  const screenId = normalizeOptional(args.screenId);
+  if ((args.kind === "screen") !== Boolean(screenId)) {
+    throw new Error("Screen checkpoints require exactly one screen id.");
+  }
+  if (args.contentJson.length > 500_000) {
+    throw new Error("Wireframes checkpoint exceeds 500 KB.");
+  }
+  JSON.parse(args.contentJson);
+
+  const existing = (
+    await ctx.db
+      .query("projectAiRunCheckpoints")
+      .withIndex("by_run", (q) => q.eq("runId", args.runId))
+      .collect()
+  ).find((checkpoint) => checkpoint.kind === args.kind && checkpoint.screenId === screenId);
+  const timestamp = now();
+  if (existing) {
+    await ctx.db.patch(existing._id, {
+      contentJson: args.contentJson,
+      updatedAt: timestamp,
+    });
+  } else {
+    await ctx.db.insert("projectAiRunCheckpoints", {
+      userId: user._id,
+      projectId: args.projectId,
+      runId: args.runId,
+      kind: args.kind,
+      screenId,
+      contentJson: args.contentJson,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+  }
+  await ctx.db.patch(args.runId, { updatedAt: timestamp });
+  return { runId: String(args.runId), checkpointedAt: timestamp };
+}
+
 export const completeWireframesRunArgs = {
   projectId: v.id("projects"),
   runId: v.optional(v.id("projectAiRuns")),
@@ -152,6 +215,7 @@ export const completeWireframesRunArgs = {
   moodboardArtifactId: v.optional(v.string()),
   flowsArtifactId: v.optional(v.string()),
   providerId: v.optional(projectAiProviderId),
+  cancelled: v.optional(v.boolean()),
 };
 
 export async function completeWireframesRunHandler(
@@ -167,6 +231,7 @@ export async function completeWireframesRunHandler(
     moodboardArtifactId?: string;
     flowsArtifactId?: string;
     providerId?: "claude" | "codex";
+    cancelled?: boolean;
   },
 ) {
   const { user } = await requireProjectAccess(ctx, args.projectId);
@@ -208,12 +273,53 @@ export async function completeWireframesRunHandler(
     });
   }
 
-  const completedAt = args.runId ? await completeRunRecord(ctx, args.runId) : now();
+  if (args.runId) {
+    const checkpoints = await ctx.db
+      .query("projectAiRunCheckpoints")
+      .withIndex("by_run", (q) => q.eq("runId", args.runId!))
+      .collect();
+    await Promise.all(checkpoints.map((checkpoint) => ctx.db.delete(checkpoint._id)));
+  }
+  let completedAt = now();
+  if (args.runId) {
+    if (args.cancelled) {
+      await ctx.db.patch(args.runId, {
+        status: "cancelled",
+        completedAt,
+        updatedAt: completedAt,
+      });
+    } else {
+      completedAt = await completeRunRecord(ctx, args.runId);
+    }
+  }
 
   return {
     artifactId: String(artifactId),
     completedAt,
   };
+}
+
+export const cancelWireframesRunArgs = {
+  projectId: v.id("projects"),
+  runId: v.id("projectAiRuns"),
+};
+
+export async function cancelWireframesRunHandler(
+  ctx: MutationCtx,
+  args: { projectId: Id<"projects">; runId: Id<"projectAiRuns"> },
+) {
+  await requireProjectAccess(ctx, args.projectId);
+  const run = await getRunRecord(ctx, args.runId);
+  if (run.projectId !== args.projectId) {
+    throw new Error("Run not found.");
+  }
+  const timestamp = now();
+  await ctx.db.patch(args.runId, {
+    status: "cancelled",
+    completedAt: timestamp,
+    updatedAt: timestamp,
+  });
+  return { runId: String(args.runId), cancelledAt: timestamp };
 }
 
 export const failWireframesRunArgs = {

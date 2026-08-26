@@ -60,11 +60,19 @@ pub async fn run_claude_collect(
 fn claude_args(context: &ProviderRunContext) -> Vec<String> {
     let allowed_reads = context
         .request
-        .attachments
+        .context
+        .context_files
         .iter()
-        .filter_map(|attachment| attachment.local_path.as_ref())
+        .flatten()
+        .chain(
+            context
+                .request
+                .attachments
+                .iter()
+                .filter_map(|attachment| attachment.local_path.as_ref()),
+        )
         .map(|path| format!("Read({path})"))
-        .collect::<Vec<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     let mut tools = Vec::new();
     let mut allowed_tools = Vec::new();
     if research_web_tools_enabled(context) {
@@ -79,7 +87,8 @@ fn claude_args(context: &ProviderRunContext) -> Vec<String> {
     let mut args = vec![
         "--print".to_string(),
         "--output-format".to_string(),
-        "text".to_string(),
+        "stream-json".to_string(),
+        "--verbose".to_string(),
         "--no-session-persistence".to_string(),
         "--tools".to_string(),
         tools.join(","),
@@ -92,6 +101,15 @@ fn claude_args(context: &ProviderRunContext) -> Vec<String> {
     if !allowed_tools.is_empty() {
         args.push("--allowedTools".to_string());
         args.push(allowed_tools.join(","));
+    }
+    if context.request.mode == crate::models::runs::RunMode::Wireframes {
+        args.extend([
+            "--setting-sources".to_string(),
+            String::new(),
+            "--strict-mcp-config".to_string(),
+            "--mcp-config".to_string(),
+            r#"{"mcpServers":{}}"#.to_string(),
+        ]);
     }
 
     apply_claude_run_options(&mut args, &context.request.model_options);

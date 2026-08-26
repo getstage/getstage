@@ -200,9 +200,19 @@ export const createWireframesRun = mutation({
   handler: wireframesHandlers.createWireframesRunHandler,
 });
 
+export const checkpointWireframesRun = mutation({
+  args: wireframesHandlers.checkpointWireframesRunArgs,
+  handler: wireframesHandlers.checkpointWireframesRunHandler,
+});
+
 export const completeWireframesRun = mutation({
   args: wireframesHandlers.completeWireframesRunArgs,
   handler: wireframesHandlers.completeWireframesRunHandler,
+});
+
+export const cancelWireframesRun = mutation({
+  args: wireframesHandlers.cancelWireframesRunArgs,
+  handler: wireframesHandlers.cancelWireframesRunHandler,
 });
 
 export const failWireframesRun = mutation({

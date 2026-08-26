@@ -33,7 +33,13 @@ impl WireframesDebugDump {
             return Self { inner: None };
         }
 
-        let dir = dump_root().join(run_id);
+        let root = dump_root();
+        if let Err(error) = fs::create_dir_all(&root) {
+            tracing::warn!(path = %root.display(), %error, "could not create wireframes debug root");
+            return Self { inner: None };
+        }
+        prune_expired_debug_dumps(&root);
+        let dir = root.join(run_id);
         match fs::create_dir_all(&dir) {
             Ok(()) => {
                 tracing::info!(
@@ -57,10 +63,6 @@ impl WireframesDebugDump {
                 Self { inner: None }
             }
         }
-    }
-
-    pub fn enabled(&self) -> bool {
-        self.inner.is_some()
     }
 
     pub fn dir(&self) -> Option<&Path> {
@@ -91,7 +93,9 @@ impl WireframesDebugDump {
     pub fn write_json(&self, file_name: &str, value: &serde_json::Value) {
         match serde_json::to_string_pretty(value) {
             Ok(body) => self.write_text(file_name, &body),
-            Err(error) => tracing::warn!(%error, file = %file_name, "wireframes debug json encode failed"),
+            Err(error) => {
+                tracing::warn!(%error, file = %file_name, "wireframes debug json encode failed")
+            }
         }
     }
 
@@ -289,7 +293,33 @@ fn dump_enabled() -> bool {
 fn dump_root() -> PathBuf {
     std::env::var_os("STAGE_WIREFRAMES_DEBUG_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("/tmp/stage-wireframes"))
+        .unwrap_or_else(|| std::env::temp_dir().join("stage-wireframes"))
+}
+
+fn prune_expired_debug_dumps(root: &Path) {
+    let retention_hours = std::env::var("STAGE_WIREFRAMES_DEBUG_RETENTION_HOURS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(7 * 24);
+    let retention = std::time::Duration::from_secs(retention_hours.saturating_mul(60 * 60));
+    let Ok(entries) = fs::read_dir(root) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let expired = entry
+            .metadata()
+            .and_then(|metadata| metadata.modified())
+            .ok()
+            .and_then(|modified| modified.elapsed().ok())
+            .is_some_and(|age| age >= retention);
+        if expired && let Err(error) = fs::remove_dir_all(&path) {
+            tracing::warn!(path = %path.display(), %error, "could not prune expired wireframes debug dump");
+        }
+    }
 }
 
 fn sanitize_id(id: &str) -> String {

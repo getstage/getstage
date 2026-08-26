@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cli = path.join(root, "node_modules/tsx/dist/cli.mjs");
 
-function render(baseLibraryId, sectionsLibraryId, tsx) {
+function render(baseLibraryId, sectionsLibraryId, tsx, chartsLibraryId = null) {
   const result = spawnSync(
     process.execPath,
     [cli, "--tsconfig", path.join(root, "tsconfig.json"), path.join(root, "src/cli.ts")],
@@ -19,6 +19,7 @@ function render(baseLibraryId, sectionsLibraryId, tsx) {
         libraries: {
           "@stage/base": baseLibraryId,
           ...(sectionsLibraryId ? { "@stage/sections": sectionsLibraryId } : {}),
+          ...(chartsLibraryId ? { "@stage/charts": chartsLibraryId } : {}),
         },
         screens: [{ id: "test-screen", tsx }],
       }),
@@ -84,4 +85,94 @@ test("renders Mantine base with its SSR provider and styles", () => {
   );
   assert.match(html, /Mantine/);
   assert.match(html, /mantine-Button-root/);
+});
+
+
+test("renders structured chart legend items", () => {
+  const html = render(
+    "shadcn-ui",
+    null,
+    `import { ChartLegend } from "@stage/charts";
+     export default function Screen() {
+       return <ChartLegend items={[{ label: "Opened", color: "#b87214" }, { label: "Resolved", color: "#2d8a58" }]} />;
+     }`,
+    "bklit-ui",
+  );
+  assert.match(html, /Opened/);
+  assert.match(html, /Resolved/);
+  assert.doesNotMatch(html, /Objects are not valid as a React child/);
+});
+
+// Regression (2026-08-11): the lucide gate read only `declare const` names and rejected
+// real alias exports (Globe2, CheckCircle2, AlertTriangle) — killing healthy runs.
+test("accepts lucide icons that only exist as aliased re-exports", () => {
+  const html = render(
+    "origin-ui",
+    null,
+    `import { Globe2, CheckCircle2, AlertTriangle } from "lucide-react";
+     import { Button } from "@stage/base";
+     export default function Screen() {
+       return <main><Globe2 /><CheckCircle2 /><AlertTriangle /><Button>Icons</Button></main>;
+     }`,
+  );
+  assert.match(html, /Icons/);
+});
+
+test("rejects invented lucide icons with a clear message", () => {
+  const result = spawnSync(
+    process.execPath,
+    [cli, "--tsconfig", path.join(root, "tsconfig.json"), path.join(root, "src/cli.ts")],
+    {
+      cwd: root,
+      encoding: "utf8",
+      input: JSON.stringify({
+        version: 1,
+        libraries: { "@stage/base": "origin-ui" },
+        screens: [
+          {
+            id: "bad-icons",
+            tsx: `import { Chrome, NotARealIcon } from "lucide-react";
+                  export default function Screen() { return <main><Chrome /><NotARealIcon /></main>; }`,
+          },
+        ],
+      }),
+      timeout: 30_000,
+    },
+  );
+  assert.match(result.stdout + result.stderr, /lucide-react does not export Chrome, NotARealIcon/);
+});
+
+test("rejects absolute positioning that overlaps copy", () => {
+  const result = spawnSync(
+    process.execPath,
+    [cli, "--tsconfig", path.join(root, "tsconfig.json"), path.join(root, "src/cli.ts")],
+    {
+      cwd: root,
+      encoding: "utf8",
+      input: JSON.stringify({
+        version: 1,
+        libraries: { "@stage/base": "origin-ui" },
+        screens: [
+          {
+            id: "overlap",
+            tsx: `import { Button } from "@stage/base";
+                  export default function Screen() {
+                    return (
+                      <main className="relative">
+                        <h1 className="absolute top-10 left-10">Headline</h1>
+                        <p className="-mt-8">Body that overlaps the headline</p>
+                        <Button>Go</Button>
+                      </main>
+                    );
+                  }`,
+          },
+        ],
+      }),
+      timeout: 30_000,
+    },
+  );
+  assert.match(
+    result.stdout + result.stderr,
+    /must not position copy with absolute\/fixed or negative margins/,
+  );
 });

@@ -1,69 +1,35 @@
 ---
 name: emil-design-eng-stage
-description: Stage-adapted emilkowalski design-engineering skill for Hi-Fi wireframe HTML.
+description: Interaction-craft guidance for Stage Hi-Fi React screens.
 source: https://github.com/emilkowalski/skills/tree/main/skills/emil-design-eng
 ---
 
 # Stage Hi-Fi — Design Engineering
 
-Apply when generating Stage `generatedScreens[].html` fragments.
-You are **not** shipping React/Framer Motion code — only **self-contained HTML + one `<style>` block**, no JS.
-Upstream spring/gesture guidance therefore does not apply; everything below is the CSS-expressible subset.
+**Role:** make interactions feel intentional through compounded details. Apply after the shared visual system and screen hierarchy are decided.
 
-## 1. Unseen details compound
+## Frequency decides motion
 
-Most details users never consciously notice — that is the point. The aggregate of invisible correctness is
-what makes an interface feel considered. Consistency of the small things outranks any single flourish.
+- Repeated keyboard actions and controls used hundreds of times: no animation.
+- Frequent list, navigation, and hover interactions: subtle feedback only.
+- Occasional modals, drawers, toasts, and disclosures: clear short transitions.
+- First-time or showcase moments: expressive motion is allowed when it explains or demonstrates something.
 
-## 2. Animate only what earns it
+Every transition needs a purpose: state feedback, spatial continuity, hierarchy, or explanation. No purpose means no motion.
 
-Ask how often the user would see the interaction:
+## Motion vocabulary
 
-| Frequency | Decision |
-|---|---|
-| 100+ times/day (shortcuts, palette toggles) | No animation, ever |
-| Tens of times/day (hover, list navigation) | Drastically reduce |
-| Occasional (modals, drawers, toasts) | Standard transition |
+- Press feedback: roughly 100–160ms.
+- Tooltips and small popovers: roughly 125–200ms.
+- Dropdowns and selects: roughly 150–250ms.
+- Modals and drawers: roughly 200–500ms.
+- Enter/exit generally uses responsive ease-out; in-place movement uses ease-in-out; color/hover uses ease.
+- Prefer `transform` and `opacity`; avoid layout-triggering animation.
+- Keep one easing vocabulary and duration scale across sibling components.
 
-Every transition needs a purpose: spatial consistency, state indication, or explanation. No purpose → no
-transition.
+## React and static consumers
 
-## 3. Easing
-
-- Entering or exiting → `ease-out` (starts fast, feels responsive)
-- Moving or morphing in place → `ease-in-out`
-- Hover or color change → `ease`
-
-## 4. Duration
-
-| Element | Duration |
-|---|---|
-| Button press feedback | 100–160ms |
-| Tooltips, small popovers | 125–200ms |
-| Dropdowns, selects | 150–250ms |
-| Modals, drawers | 200–500ms |
-
-`ease-out` at 200ms *feels* faster than `ease-in` at 200ms, because movement is visible immediately.
-
-## 5. Component reflexes
-
-- **Buttons respond:** `transform: scale(0.97)` on `:active` with `transition: transform 160ms ease-out`.
-- **Never scale from 0:** nothing in the real world vanishes completely. Enter from `scale(0.9)` plus opacity.
-- **Popovers are origin-aware:** scale from the trigger, not from center. Modals are the exception — they keep
-  `transform-origin: center` because they are not anchored to a trigger.
-- **Prefer CSS transitions over keyframes** for anything a user can interrupt.
-- **Blur masks imperfect transitions.**
-
-## 6. Performance
-
-Animate `transform` and `opacity` only. Anything that triggers layout is off the table.
-
-## 7. Accessibility is not optional
-
-Every transition sits inside a `@media (prefers-reduced-motion: reduce)` guard that removes or neutralises it.
-Hover-only affordances must have a non-hover equivalent, because touch devices have no hover.
-
-## 8. Cohesion
-
-Enter and exit are allowed to be asymmetric (exit usually faster), but the whole screen shares one easing
-vocabulary and one duration scale. Two different easing curves on sibling elements read as sloppiness.
+- Use `motion/react` only for meaningful live behavior. CSS hover/focus/active states remain required.
+- Never make the initial state blank, hidden, or `opacity: 0`. Animate from a complete visible frame because Figma and thumbnails capture the resting state.
+- Anchor popovers to their trigger; modals may use the viewport center. Never scale an element from zero.
+- Respect reduced motion and provide non-hover equivalents for touch and keyboard users.

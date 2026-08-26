@@ -401,7 +401,10 @@ mod tests {
         assert!(matches!(parsed.nodes[0], FigmaDomNode::Text { .. }));
 
         let out = serde_json::to_string(&parsed.nodes).expect("nodes should serialize");
-        assert!(out.contains("fontSize"), "expected camelCase field, got: {out}");
+        assert!(
+            out.contains("fontSize"),
+            "expected camelCase field, got: {out}"
+        );
         assert!(!out.contains("font_size"), "leaked snake_case field: {out}");
     }
 }

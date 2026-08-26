@@ -42,6 +42,10 @@ pub struct RunContext {
     pub task_id: Option<String>,
     pub source: Option<String>,
     #[serde(default)]
+    pub context_files: Option<Vec<String>>,
+    #[serde(default)]
+    pub required_context_files: Option<Vec<String>>,
+    #[serde(default)]
     pub brand_kit_keys: Option<Vec<String>>,
 }
 

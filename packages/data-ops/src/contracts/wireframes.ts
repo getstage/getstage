@@ -52,7 +52,27 @@ export const wireframeBlockSchema = z.object({
   id: z.string().min(1),
   kind: wireframeBlockKindSchema,
   intent: z.string().min(1),
-  copySlots: z.record(z.string(), z.string()).optional(),
+  // Models often emit arrays/objects for list-like slots ("links", "items"). Accept
+  // them and coerce to a string so a structural metadata slip cannot hide a finished
+  // Hi-Fi run behind the empty Create Wireframe wizard.
+  copySlots: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .transform((slots) => {
+      if (!slots) return undefined;
+      const out: Record<string, string> = {};
+      for (const [key, value] of Object.entries(slots)) {
+        out[key] =
+          typeof value === "string"
+            ? value
+            : value == null
+              ? ""
+              : Array.isArray(value)
+                ? value.map(String).join(", ")
+                : JSON.stringify(value);
+      }
+      return out;
+    }),
   emphasis: wireframeBlockEmphasisSchema.default("secondary"),
   notes: z.string().optional(),
 });

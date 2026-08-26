@@ -11,5 +11,6 @@ export {
   listPotentialOrphanedUploads,
   normalizeLegacyUploadedAssets,
   pruneStalePendingUploads,
+  retryPendingR2Deletions,
   syncMetadata,
 } from "./lib/r2/handlers";

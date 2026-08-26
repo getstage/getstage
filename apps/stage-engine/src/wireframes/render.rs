@@ -240,20 +240,30 @@ pub async fn apply_react_render(
     }
 
     let mut batch = Vec::new();
+    let mut failures = Vec::new();
     let mut tsx_by_id = std::collections::HashMap::new();
     for screen in screens.iter() {
         let id = screen.get("id").and_then(JsonValue::as_str).unwrap_or("");
-        let Some(tsx) = screen.get("tsx").and_then(JsonValue::as_str) else {
+        if id.is_empty() {
             continue;
-        };
-        if id.is_empty() || tsx.trim().is_empty() {
+        }
+        let tsx = screen.get("tsx").and_then(JsonValue::as_str).unwrap_or("");
+        if tsx.trim().is_empty() {
+            failures.push(RenderFailure {
+                id: id.to_string(),
+                tsx: String::new(),
+                error: "Screen has no non-empty TSX implementation.".to_string(),
+            });
             continue;
         }
         tsx_by_id.insert(id.to_string(), tsx.to_string());
         batch.push(json!({ "id": id, "tsx": tsx }));
     }
     if batch.is_empty() {
-        return Ok(ReactRenderOutcome::default());
+        return Ok(ReactRenderOutcome {
+            failures,
+            css: None,
+        });
     }
 
     let rendered = match render_batch(libraries, theme, &batch).await {
@@ -274,8 +284,12 @@ pub async fn apply_react_render(
         }
     };
 
-    let mut failures = Vec::new();
+    let mut pending = tsx_by_id
+        .keys()
+        .cloned()
+        .collect::<std::collections::HashSet<_>>();
     for out in rendered.screens {
+        pending.remove(&out.id);
         if let Some(error) = out.error {
             tracing::warn!(screen_id = %out.id, %error, "wireframe react render failed");
             if let Some(tsx) = tsx_by_id.get(&out.id) {
@@ -288,6 +302,13 @@ pub async fn apply_react_render(
             continue;
         }
         if out.html.trim().is_empty() {
+            if let Some(tsx) = tsx_by_id.get(&out.id) {
+                failures.push(RenderFailure {
+                    id: out.id,
+                    tsx: tsx.clone(),
+                    error: "Renderer returned empty static HTML.".to_string(),
+                });
+            }
             continue;
         }
         if out.repaired {
@@ -303,6 +324,15 @@ pub async fn apply_react_render(
                 object.insert("liveHtml".to_string(), json!(live));
             }
             object.insert("renderMode".to_string(), json!(RENDER_MODE_REACT));
+        }
+    }
+    for id in pending {
+        if let Some(tsx) = tsx_by_id.get(&id) {
+            failures.push(RenderFailure {
+                id,
+                tsx: tsx.clone(),
+                error: "Renderer returned no result for this screen.".to_string(),
+            });
         }
     }
     Ok(ReactRenderOutcome {
@@ -393,9 +423,11 @@ pub fn repair_prompt_for_failures(
             slot.label, slot.module
         ));
     }
-    body.push_str(
-        "Do not import any other component library, Node API, or browser global.\n\n",
-    );
+    body.push_str("Do not import any other component library, Node API, or browser global.\n");
+    // The model already saw the library manifest at generation time and still produced an
+    // invalid call — restate the hard contract so the repair cannot repeat it.
+    body.push_str("Every component call must pass all required props exactly as listed in the manifest, and every lucide-react import must be a real exported icon name.\n");
+    body.push_str("Never position copy with absolute/fixed or negative margins — stack text with flex/grid only.\n\n");
     for failure in failures {
         body.push_str(&format!(
             "Screen `{}` failed to render:\n{}\n\nPrevious TSX:\n```tsx\n{}\n```\n\n",
@@ -425,6 +457,22 @@ mod tests {
                 "@stage/charts": "bklit-ui",
             })
         );
+    }
+
+    #[tokio::test]
+    async fn missing_tsx_is_an_explicit_render_failure() {
+        let libraries = RendererLibraries::resolve(&[]);
+        let mut artifact = json!({
+            "generatedScreens": [{ "id": "dashboard", "html": "<main>Fallback</main>" }]
+        });
+
+        let outcome = apply_react_render(&mut artifact, &libraries, None)
+            .await
+            .unwrap();
+
+        assert_eq!(outcome.failures.len(), 1);
+        assert_eq!(outcome.failures[0].id, "dashboard");
+        assert!(outcome.failures[0].error.contains("no non-empty TSX"));
     }
 
     #[test]

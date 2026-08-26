@@ -59,31 +59,6 @@ const MESH = {
  */
 export const DISCOVER_SKILL_CATALOG: readonly SkillCatalogItem[] = [
   {
-    id: "design-taste-frontend",
-    name: "Design Taste",
-    overlayTitle: "<Design Taste>",
-    description: "Leonxlnx taste skill — Stage’s default Hi-Fi anti-slop skill.",
-    official: true,
-    meshSrc: MESH.warm,
-    defaultEnabled: true,
-    category: "Design",
-    installsLabel: "275.6K Installs",
-    author: "Leonxlnx",
-    sourceUrl: "https://github.com/Leonxlnx/taste-skill",
-    longDescription:
-      "Design that looks decided, not generated. Taste is the skill that makes Stage design like a studio, not a chatbot. It enforces the choices that separate premium work from generic output: real typographic hierarchy, calibrated color, asymmetric layout, and restraint with motion. Turn it on for a project and every wireframe Stage generates carries the same considered, editorial feel.",
-    features: [
-      "Editorial typography and type scale",
-      "Calibrated color and chosen neutrals",
-      "Asymmetric, intentional layouts",
-      "Tasteful motion and micro-interactions",
-      "Kills generic AI patterns (centered everything, rounded-lg, gradient hero)",
-      "Consistent spacing and rhythm",
-    ],
-    bestFor: ["Landing pages", "Marketing sites", "Portfolios", "Premium brand pages"],
-    tags: ["typography", "layout", "aesthetics", "editorial"],
-  },
-  {
     id: "frontend-design",
     name: "Frontend Design",
     overlayTitle: "<Frontend Design>",
@@ -336,7 +311,7 @@ export function packsOfKind(kind: ComponentPackCatalogItem["packKind"]): Compone
   return COMPONENT_PACK_CATALOG.filter((p) => p.packKind === kind);
 }
 
-/** What Stage falls back to when a project has made no explicit choice. */
+/** Defaults for a project with no explicit selection. Skills are always opt-in. */
 export function defaultProjectSelection(): { skillIds: string[]; componentPackIds: string[] } {
-  return { skillIds: ["design-taste-frontend"], componentPackIds: ["shadcn-ui"] };
+  return { skillIds: [], componentPackIds: ["shadcn-ui"] };
 }

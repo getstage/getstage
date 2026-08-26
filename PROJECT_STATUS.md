@@ -1,7 +1,7 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-08-05
+> **Last updated:** 2026-08-26
 
 ---
 
@@ -9,10 +9,12 @@
 
 | Priority | Item | Owner / where |
 |----------|------|----------------|
-| **!!! P0 wireframes: real React libraries** | Pipeline live (React+Motion preview + debug dumps). **Quality gap documented:** model under-uses showcase packs / skips motion. Next = prompt pressure (Q1). | Progress + diagnosis: `docs/WIREFRAMES_REAL_REACT_AUDIT.md` (§ Quality diagnosis) · Direction: `docs/WIREFRAMES_REAL_REACT_LIBRARIES.md` · Inventory: `packages/wireframe-renderer/manifests/wireframesQualityInventory.ts` |
+| **!!! P0 wireframes: non-generic design quality** | **W1–W5 implemented 2026-08-11; live acceptance pending.** Hi-Fi runs now materialize exact selected project/design/skill/library context and real brand assets in a unique sealed run-local workspace; Claude/Codex receive short per-call manifests and provider-specific read restrictions; structured event adapters gate missing required reads; screens are checkpointed and repaired independently; cancellation preserves validated siblings; workspace/debug retention is separated; R2 deletion uses durable queued retries with live-reference protection. **Verified 2026-08-11:** Convex functions deployed in dev; monorepo TypeScript typecheck and production build pass; stage-engine 231/231 tests pass; renderer 13/13 tests pass; packaged renderer preparation succeeds. **Not yet user-run:** fixed four-screen Claude/Codex comparison, access coverage, latency/tokens, visual rubric, live preview, Figma resting frames, and transient R2 retry scenario. Full plan + evidence: `docs/WIREFRAMES_REAL_REACT_AUDIT.md`; quality contract: `docs/WIREFRAMES_REAL_REACT_LIBRARIES.md`. | `apps/stage-engine/src/wireframes/provider_workspace.rs`, `apps/stage-engine/src/wireframes/workflow.rs`, `packages/data-ops/convex/lib/r2/domain.ts` |
+| **P0 wireframes: agentic RAG cutover** | **AUG26 architecture researched and approved; implementation not yet started.** Firecrawl, docs.rs, crates.io, released source, and Cargo checks confirm `rrag 0.1.0-alpha.2` has usable embedding, retrieval, tool, pipeline, evaluation, and observability boundaries. Stage will exact-version pin it behind custom Nebius, Convex, R2-read-only, MCP, and Helicone adapters. Component ingest is complete in R2 + Convex. Next: compatibility slice, source verification, Qwen 4,096-dimensional embeddings, filtered Convex vector search, and run-scoped `search_components` / `load_component` tools for Claude Code and Codex. No live backfill runs silently. | `docs/WIREFRAMES_AGENTIC_RAG_PLAN_AUG26.md`, `docs/WIREFRAMES_LIBRARY_INGEST.md` |
 | **!!! P0** | Desktop idle energy P0 — PR `fix/desktop-idle-energy-p0` | `docs/AI/desktop/2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md` |
 | **P1** | Run packaged-DMG benchmark + 2 h soak (RAM < 400 MB, 12 hr power < 500) | `scripts/desktop-idle-benchmark.sh` |
 | **P2** | IPC R2 upload (separate PR after energy gate) | `src/lib/r2Uploads.ts`, `electron/helpers/r2-upload.ts` |
+| **P2** | Engine hygiene (async fs, Convex client lock, production expects, shared WorkflowError, typed wireframe JSON) | `apps/stage-engine/ENGINE_REVIEW.md` |
 | **P3** | Export E2E + Convex deploy | Notion live test, Figma plugin publish, Paper live write |
 | **P2 triage** | Bug triage #33 / #40 / #45 + Dashboard Revenue gap | `apps/user-application/docs/AI/BUG_TRIAGE_2026_06_24.md` |
 | **P1 moodboard** | Moodboard + Style Guide fix plan (multi-project, Edit, images, engine vision) — **implemented 2026-06-25** | `apps/user-application/docs/AI/moodboard/MOODBOARD_STYLEGUIDE_FIX_PLAN.md` |

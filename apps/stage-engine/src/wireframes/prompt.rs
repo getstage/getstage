@@ -159,6 +159,7 @@ React component mode (Stage renders TSX → static HTML; no client JavaScript):
 - Every screen uses at least one Base component. Use a Sections block whenever the screen has a matching marketing section; never force a marketing section into an application form.
 - When a screen shows metrics, trends, usage, analytics, or reporting, render them with the Data visuals library rather than faking a graph with divs. If no Data visuals library is selected, omit the chart instead of drawing one by hand.
 - Use Tailwind utility classes for layout around the real components. Motion components render their initial static SSR state.
+- Never position copy with absolute/fixed positioning or negative margins (`-mt-*`, `-top-*`, …). Stack text, buttons, and media with flex/grid only — overlapping headlines fail the render gate.
 - Keep a minimal self-contained "html" fallback; rendered TSX replaces it only after compilation succeeds. The fallback shows the same single visible frame — never hidden steps or display:none siblings.
 - Still fill sections[]/blocks[] for Figma naming. One screen = one visible frame (no hidden steps).
 
@@ -179,6 +180,58 @@ const RENDERER_LIBRARY_MANIFESTS: &str =
 
 fn react_tsx_prompt_enabled() -> bool {
     crate::wireframes::render::react_render_enabled()
+}
+
+fn manifest_strings<'a>(value: &'a serde_json::Value, key: &str) -> Vec<&'a str> {
+    value
+        .get(key)
+        .and_then(serde_json::Value::as_array)
+        .map(|items| items.iter().filter_map(serde_json::Value::as_str).collect())
+        .unwrap_or_default()
+}
+
+fn semantic_manifest_is_complete(entry: &serde_json::Value, exports: &[&str]) -> bool {
+    let Some(groups) = entry
+        .get("componentGroups")
+        .and_then(serde_json::Value::as_array)
+    else {
+        return false;
+    };
+    let mut coverage = std::collections::HashMap::<&str, usize>::new();
+    for group in groups {
+        for export in manifest_strings(group, "exports") {
+            *coverage.entry(export).or_default() += 1;
+        }
+    }
+    if coverage.len() != exports.len()
+        || exports
+            .iter()
+            .any(|export| coverage.get(export).copied() != Some(1))
+        || coverage.keys().any(|export| !exports.contains(export))
+    {
+        return false;
+    }
+
+    entry
+        .get("recipes")
+        .and_then(serde_json::Value::as_array)
+        .is_some_and(|recipes| {
+            !recipes.is_empty()
+                && recipes.iter().all(|recipe| {
+                    recipe
+                        .get("components")
+                        .and_then(serde_json::Value::as_array)
+                        .is_some_and(|components| {
+                            !components.is_empty()
+                                && components.iter().all(|component| {
+                                    component
+                                        .get("exportName")
+                                        .and_then(serde_json::Value::as_str)
+                                        .is_some_and(|name| exports.contains(&name))
+                                })
+                        })
+                })
+        })
 }
 
 fn react_library_manifest(component_pack_ids: &[String]) -> String {
@@ -208,23 +261,103 @@ fn react_library_manifest(component_pack_ids: &[String]) -> String {
             .get("name")
             .and_then(serde_json::Value::as_str)
             .unwrap_or(id);
-        let exports = entry
-            .get("exports")
-            .and_then(serde_json::Value::as_array)
-            .map(|items| {
-                items
-                    .iter()
-                    .filter_map(serde_json::Value::as_str)
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            })
-            .unwrap_or_default();
+        let exports = manifest_strings(entry, "exports");
+        if !semantic_manifest_is_complete(entry, &exports) {
+            tracing::error!(
+                library_id = id,
+                "component library metadata is incomplete; hiding it from generation prompts"
+            );
+            output.push_str(&format!(
+                "- {}: `{id}` metadata is incomplete. Do not import \"{}\".\n",
+                slot.label, slot.module
+            ));
+            continue;
+        }
         output.push_str(&format!(
-            "- {}: {name} (`{id}`). Allowed import: `import {{ {exports} }} from \"{}\";`\n",
-            slot.label, slot.module
+            "- {}: {name} (`{id}`). Allowed import: `import {{ {} }} from \"{}\";`\n",
+            slot.label,
+            exports.join(", "),
+            slot.module
         ));
-        if let Some(usage) = entry.get("usage").and_then(serde_json::Value::as_str) {
-            output.push_str(&format!("  {usage}\n"));
+
+        if let Some(groups) = entry
+            .get("componentGroups")
+            .and_then(serde_json::Value::as_array)
+        {
+            output.push_str("  Component groups:\n");
+            for group in groups {
+                let group_id = group
+                    .get("id")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("unknown");
+                let role = group
+                    .get("role")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("");
+                let weight = group
+                    .get("visualWeight")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("");
+                let intents = manifest_strings(group, "screenIntents").join("/");
+                let blocks = manifest_strings(group, "blockIntents").join("/");
+                let density = manifest_strings(group, "density").join("/");
+                let group_exports = manifest_strings(group, "exports").join(", ");
+                let motion = group
+                    .get("motion")
+                    .and_then(|motion| motion.get("requirement"))
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("none");
+                let static_state = group
+                    .get("requiredStaticState")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("");
+                let avoid = manifest_strings(group, "avoidUse").join(" ");
+                output.push_str(&format!(
+                    "  - `{group_id}` [{weight}; screens={intents}; blocks={blocks}; density={density}; motion={motion}]: {group_exports}. {role} Static: {static_state} Avoid: {avoid}\n"
+                ));
+            }
+        }
+
+        if let Some(recipes) = entry.get("recipes").and_then(serde_json::Value::as_array) {
+            output.push_str("  Composition recipes:\n");
+            for recipe in recipes {
+                let recipe_id = recipe
+                    .get("id")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("unknown");
+                let purpose = recipe
+                    .get("purpose")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("");
+                let intents = manifest_strings(recipe, "screenIntents").join("/");
+                let blocks = manifest_strings(recipe, "blockIntents").join("/");
+                let density = manifest_strings(recipe, "density").join("/");
+                let components = recipe
+                    .get("components")
+                    .and_then(serde_json::Value::as_array)
+                    .map(|components| {
+                        components
+                            .iter()
+                            .filter_map(|component| {
+                                let name = component.get("exportName")?.as_str()?;
+                                let purpose = component.get("purpose")?.as_str()?;
+                                let props = manifest_strings(component, "requiredProps");
+                                let props = if props.is_empty() {
+                                    String::new()
+                                } else {
+                                    format!("; required props/data: {}", props.join(", "))
+                                };
+                                Some(format!("{name} ({purpose}{props})"))
+                            })
+                            .collect::<Vec<_>>()
+                            .join(" + ")
+                    })
+                    .unwrap_or_default();
+                let avoid = manifest_strings(recipe, "avoidUse").join(" ");
+                output.push_str(&format!(
+                    "  - Recipe `{recipe_id}` [screens={intents}; blocks={blocks}; density={density}]: {purpose} Use {components}. Avoid: {avoid}\n"
+                ));
+            }
         }
     }
 
@@ -239,11 +372,6 @@ fn react_library_manifest(component_pack_ids: &[String]) -> String {
     }
     output
 }
-
-/// Leonxlnx/taste-skill (`design-taste-frontend` / tasteskill.dev), Stage-adapted.
-/// Injected into every Hi-Fi wireframes generation prompt.
-const TASTE_SKILL: &str = include_str!("../../skills/design-taste-frontend/SKILL.md");
-const TASTE_SKILL_ID: &str = "design-taste-frontend";
 
 /// Vendored component packs. `pack.css` is prepended to every Hi-Fi fragment by
 /// `normalize`, so all screens in a run share one control vocabulary instead of each
@@ -297,61 +425,29 @@ const COMPONENT_PACKS: &[ComponentPack] = &[
     component_pack!("react-bits", sections),
 ];
 
-/// Vendored skill files. Each entry injects the Stage-adapted `SKILL.md` followed by the
-/// verbatim upstream `SOURCE_*.md` as reference: the adapted file says how the skill applies
-/// to Stage wireframes, the source carries the full rules a digest compresses away (the
-/// renderer's output IS React/Tailwind, so the upstream guidance applies). Where an upstream
-/// file assumes a filesystem or CLI (e.g. ui-ux-pro-max's search script), the adapted file
-/// is the part that scopes it.
-///
-/// Taste is the exception: its source is 87 KB, too large for the prompt, so Taste stays
-/// digest-only (and is appended last, so its bans win conflicts).
-///
-/// Order matters: this is the injection order, and Taste is appended last by
-/// `hifi_prompt_extras` so its anti-slop bans get the final word on any conflict.
+/// Concise Stage adapters for explicitly selected skills. Upstream `SOURCE_*.md` files remain
+/// vendored for offline maintenance and tests, but are never copied into generation prompts.
 /// Keep ids in sync with `apps/user-application/src/lib/settings/skillsCatalog.ts`.
 const CATALOG_SKILLS: &[(&str, &str)] = &[
     (
         "frontend-design",
-        concat!(
-            include_str!("../../skills/frontend-design/SKILL.md"),
-            "\n\n---\n\nFull upstream reference:\n\n",
-            include_str!("../../skills/frontend-design/SOURCE_frontend-design.md"),
-        ),
+        include_str!("../../skills/frontend-design/SKILL.md"),
     ),
     (
         "ui-ux-pro-max",
-        concat!(
-            include_str!("../../skills/ui-ux-pro-max/SKILL.md"),
-            "\n\n---\n\nFull upstream reference:\n\n",
-            include_str!("../../skills/ui-ux-pro-max/SOURCE_ui-ux-pro-max.md"),
-            "\n\n",
-            include_str!("../../skills/ui-ux-pro-max/SOURCE_pro-rules.md"),
-        ),
+        include_str!("../../skills/ui-ux-pro-max/SKILL.md"),
     ),
     (
         "impeccable",
-        concat!(
-            include_str!("../../skills/impeccable/SKILL.md"),
-            "\n\n---\n\nFull upstream reference:\n\n",
-            include_str!("../../skills/impeccable/SOURCE_impeccable.md"),
-        ),
+        include_str!("../../skills/impeccable/SKILL.md"),
     ),
     (
         "emil-design-eng",
-        concat!(
-            include_str!("../../skills/emil-design-eng/SKILL.md"),
-            "\n\n---\n\nFull upstream reference:\n\n",
-            include_str!("../../skills/emil-design-eng/SOURCE_emil-design-eng.md"),
-        ),
+        include_str!("../../skills/emil-design-eng/SKILL.md"),
     ),
     (
         "design-motion-principles",
-        concat!(
-            include_str!("../../skills/design-motion-principles/SKILL.md"),
-            "\n\n---\n\nFull upstream reference:\n\n",
-            include_str!("../../skills/design-motion-principles/SOURCE_design-motion-principles.md"),
-        ),
+        include_str!("../../skills/design-motion-principles/SKILL.md"),
     ),
 ];
 
@@ -364,25 +460,6 @@ const DEFAULT_COMPONENT_PACK_IDS: &[&str] = &[DEFAULT_BASE_PACK_ID];
 pub(crate) struct HifiPromptPreferences {
     pub skill_ids: Vec<&'static str>,
     pub component_pack_ids: Vec<String>,
-}
-
-fn env_taste_skill_disabled() -> bool {
-    // Set STAGE_WIREFRAMES_TASTE_SKILL=0 for A/B without skill (overrides user prefs).
-    matches!(
-        std::env::var("STAGE_WIREFRAMES_TASTE_SKILL").as_deref(),
-        Ok("0") | Ok("false") | Ok("off")
-    )
-}
-
-fn taste_skill_enabled(input: &WireframesInput) -> bool {
-    if env_taste_skill_disabled() {
-        return false;
-    }
-    match &input.enabled_skill_ids {
-        // Legacy / unset prefs → Taste ON by default.
-        None => true,
-        Some(ids) => ids.iter().any(|id| id == TASTE_SKILL_ID),
-    }
 }
 
 fn enabled_component_pack_ids(input: &WireframesInput) -> Vec<String> {
@@ -435,8 +512,7 @@ pub(crate) fn component_pack_css(input: &WireframesInput) -> String {
         .join("\n")
 }
 
-/// Selected catalog skills other than Taste. Legacy / unset prefs stay Taste-only so old
-/// projects keep the exact behaviour they had before per-project selection existed.
+/// Explicitly selected catalog skills. Legacy or unset preferences select no skill.
 fn selected_catalog_skill_ids(input: &WireframesInput) -> Vec<&'static str> {
     let Some(ids) = &input.enabled_skill_ids else {
         return Vec::new();
@@ -449,14 +525,8 @@ fn selected_catalog_skill_ids(input: &WireframesInput) -> Vec<&'static str> {
 }
 
 pub(crate) fn resolve_hifi_prompt_preferences(input: &WireframesInput) -> HifiPromptPreferences {
-    let mut skill_ids = selected_catalog_skill_ids(input);
-    // Taste is appended last so its bans win any conflict with another skill.
-    if taste_skill_enabled(input) {
-        skill_ids.push(TASTE_SKILL_ID);
-    }
-
     HifiPromptPreferences {
-        skill_ids,
+        skill_ids: selected_catalog_skill_ids(input),
         component_pack_ids: enabled_component_pack_ids(input),
     }
 }
@@ -476,21 +546,14 @@ fn hifi_prompt_extras(input: &WireframesInput) -> String {
 
     if preferences.skill_ids.len() > 1 {
         extras.push_str(
-            "\n\n<skill_precedence>\nThe <skill> blocks below all apply to every Hi-Fi screen you design. Where two skills conflict, the LATER block wins; the moodboard, style guide, or brand kit outranks all of them.\n</skill_precedence>\n",
+            "\n\n<skill_synthesis>\nUse each selected skill only for its declared role. Resolve overlap through project evidence and the shared design plan; prompt order never grants precedence.\n</skill_synthesis>\n",
         );
     }
 
     for id in &preferences.skill_ids {
-        if *id == TASTE_SKILL_ID {
-            continue;
-        }
         if let Some((_, body)) = CATALOG_SKILLS.iter().find(|(entry, _)| entry == id) {
             push_skill_block(&mut extras, id, body);
         }
-    }
-
-    if preferences.skill_ids.contains(&TASTE_SKILL_ID) {
-        push_skill_block(&mut extras, TASTE_SKILL_ID, TASTE_SKILL);
     }
 
     // The `ui-*` pack vocabulary only describes the plain-CSS fragment. In React mode the
@@ -506,14 +569,151 @@ fn hifi_prompt_extras(input: &WireframesInput) -> String {
         }
     }
 
-    // Last, deliberately. The skill blocks above are ~290K characters of HTML craft; when
-    // the React rules sat before them the model read "write beautiful HTML" for a very long
-    // time afterwards and returned screens with no "tsx" at all.
+    // Keep the hard React/output contract closest to the requested JSON response.
     if react {
         extras.push_str(REACT_TSX_RULES);
         extras.push_str(&react_library_manifest(&preferences.component_pack_ids));
     }
     extras
+}
+
+const DESIGN_PLAN_SHAPE: &str = r#"{
+  "schemaVersion": "1",
+  "aestheticThesis": "one concrete product-specific visual idea",
+  "targetAudience": "specific audience and context",
+  "designSystem": {
+    "typography": { "display": "role and treatment", "body": "role and treatment", "label": "role and treatment", "data": "role and treatment" },
+    "palette": { "background": "token role", "surface": "token role", "foreground": "token role", "muted": "token role", "accent": "token role", "border": "token role", "semantic": "status roles" },
+    "spacingScale": ["4", "8", "16"],
+    "radii": ["small", "large"],
+    "elevation": ["flat", "raised"],
+    "surfaceTreatment": "shared surface rule",
+    "iconTreatment": "family, size, and stroke rule",
+    "informationDensity": "shared density principle",
+    "visualVariance": "how screen roles vary without changing systems",
+    "motion": { "principle": "purpose gate", "durations": "duration scale", "easing": "easing vocabulary", "reducedMotion": "reduced-motion behavior" }
+  },
+  "sharedPatterns": {
+    "navigation": "shared navigation behavior",
+    "forms": "shared form behavior",
+    "tablesAndLists": "shared data behavior",
+    "feedback": "shared feedback behavior",
+    "emptyStates": "shared empty-state behavior",
+    "validation": "shared validation behavior",
+    "loading": "shared loading behavior",
+    "modalDialog": "shared modal/dialog behavior"
+  },
+  "screens": [{
+    "screenId": "exact-screen-id",
+    "purpose": "one user outcome",
+    "screenRole": "persuade | operate | read | experience",
+    "layoutArchetype": "specific composition",
+    "density": "screen-specific density",
+    "informationHierarchy": ["first priority", "second priority"],
+    "contentRequirements": ["specific project fact, copy, or data needed on this screen"],
+    "flowContext": "what comes before, what this screen enables, and what comes next",
+    "componentRecipe": [{
+      "libraryId": "the selected library id (e.g. origin-ui) — never the @stage/* import module",
+      "exportName": "exact registered export",
+      "purpose": "why this component fits this content",
+      "placement": "where it belongs",
+      "requiredProps": ["important prop/data requirement"],
+      "motionPurpose": "none or one concrete purpose",
+      "signature": false
+    }],
+    "motionPurpose": "none or one concrete screen-level purpose",
+    "avoidList": ["screen-specific anti-pattern"]
+  }],
+  "conflictResolutions": [{ "conflict": "selected-skill conflict", "decision": "chosen direction", "evidence": "project evidence that decides it" }],
+  "avoidList": ["run-level anti-pattern"]
+}"#;
+
+#[cfg(test)]
+pub fn build_design_director_prompt(
+    input: &WireframesInput,
+    brand_source: Option<WireframeBrandSource>,
+    style_direction_id: Option<&str>,
+    brand_kit_attached: bool,
+    expected_screen_ids: &[String],
+) -> String {
+    let preferences = resolve_hifi_prompt_preferences(input);
+    let mut skill_context = String::new();
+    if preferences.skill_ids.is_empty() {
+        skill_context.push_str("No optional design skill was selected. Use project evidence and the hard Stage quality rules only.\n");
+    } else {
+        for id in &preferences.skill_ids {
+            if let Some((_, body)) = CATALOG_SKILLS.iter().find(|(entry, _)| entry == id) {
+                push_skill_block(&mut skill_context, id, body);
+            }
+        }
+    }
+    let library_context = react_library_manifest(&preferences.component_pack_ids);
+    let target_ids = expected_screen_ids.join(", ");
+    let style_direction = style_direction_id.unwrap_or("none selected");
+    let brand_source = match brand_source {
+        Some(WireframeBrandSource::StyleGuide) => {
+            "style-guide: use the selected moodboard style guide as binding evidence"
+        }
+        Some(WireframeBrandSource::BrandKit) if brand_kit_attached => {
+            "brand-kit: inspect the attached brand files and make their palette, type, and asset treatment binding"
+        }
+        Some(WireframeBrandSource::BrandKit) => {
+            "brand-kit: no attachment was readable; fail rather than invent brand evidence"
+        }
+        None => "none",
+    };
+    let research = input.research_artifact_json.as_deref().unwrap_or("null");
+    let moodboard = input.moodboard_artifact_json.as_deref().unwrap_or("null");
+    let flows = input.flows_artifact_json.as_deref().unwrap_or("null");
+
+    format!(
+        r#"<role>You are the Design Director for one Stage Hi-Fi wireframe run.</role>
+
+<contract>
+- Return exactly one JSON object matching the plan shape below. No markdown or prose.
+- Create one coherent system for every target screen before any screen is designed.
+- Use one product-specific aesthetic thesis, not generic words such as modern, clean, premium, or professional.
+- Project evidence outranks optional skills. Skills contribute only within their declared roles; prompt order never decides conflicts.
+- Every target screen ID must appear exactly once in screens[].
+- Every screen gets a purpose, role, distinct layout archetype, density, real selected-library component recipe, motion purpose, and avoid-list.
+- Component recipes may name only exact exports from the selected library manifest. Primitive Button/Card/Badge use alone is not a signature design.
+- Preserve one shared typography, palette, spacing, radius, elevation, surface, icon, density, variance, and motion vocabulary.
+- Define shared navigation, form, table/list, feedback, empty, validation, loading, and modal/dialog behavior.
+- Do not generate TSX or HTML. Do not invent libraries or exports.
+</contract>
+
+Target screen IDs: {target_ids}
+Project: {project_name} ({project_type})
+Brand source: {brand_source}
+Selected moodboard style direction ID: {style_direction}
+
+Selected skill adapters:
+{skill_context}
+
+Selected component libraries:
+{library_context}
+
+Saved strategy artifact JSON:
+{strategy}
+
+Saved research artifact JSON:
+{research}
+
+Saved moodboard artifact JSON:
+{moodboard}
+
+Saved flows artifact JSON:
+{flows}
+
+Required JSON shape:
+{shape}
+
+Return only the validated design-plan JSON object."#,
+        project_name = input.project_name,
+        project_type = input.project_type,
+        strategy = input.strategy_artifact_json,
+        shape = DESIGN_PLAN_SHAPE,
+    )
 }
 
 // On partial regen, strip prior `html` from the prompt payload so the model
@@ -633,6 +833,487 @@ fn scope_flows_artifact(flows_json: &str, ids: &[&str]) -> String {
     serde_json::to_string(&value).unwrap_or_else(|_| flows_json.to_string())
 }
 
+const PLANNED_HIFI_SCREEN_RULES: &str = r#"<hard_rules>
+- Return one valid WireframesArtifact JSON object and no prose or markdown.
+- generatedScreens[] must contain only the requested screen ID and must include non-empty `tsx`, short inline-styled `html`, and structural sections/blocks.
+- `tsx` is the design: default-export `function Screen()` with one visible root and complete real content.
+- Import only the exact recipe exports listed under <allowed_recipe_imports>, plus `react`, `lucide-react`, and `motion/react` when the plan gives motion a concrete purpose.
+- Use Tailwind for layout around planned components. Never recreate a selected component, chart, pattern, effect, or device frame by hand.
+- No npm packages, local files, stylesheets, Node APIs, browser globals, runtime fetches, scripts, eval, or dynamic code.
+- The live preview runs React and Motion. Figma and thumbnails capture the static resting frame, which must already be visible, complete, and legible; never start required content at zero opacity or hidden.
+- Use real project copy/data from the plan's content requirements. No lorem ipsum, generic metrics, fake charts, emoji icons, empty image boxes, or unexplained decorative status.
+- Charts require a real relationship and labeled data. Decorative effects never count as page structure.
+- Preserve semantic elements, labels, focus-visible states, contrast, reduced motion, and stable layout during interaction.
+- Height comes from content. Never use 100vh, min-h-screen, h-screen, hidden sibling steps, or a small card centered inside an empty viewport.
+- Never position copy with absolute/fixed positioning or negative margins. Stack text, buttons, and media with flex/grid and the spacing scale only — overlapping headlines are a hard failure.
+- The `html` fallback is one short root with inline styles and the same visible content; no Tailwind classes.
+</hard_rules>"#;
+
+fn compact_design_plan_json(plan_json: &str, target_screen_ids: &[String]) -> String {
+    let Ok(mut value) = serde_json::from_str::<serde_json::Value>(plan_json) else {
+        return plan_json.to_string();
+    };
+    let ids: std::collections::HashSet<&str> =
+        target_screen_ids.iter().map(String::as_str).collect();
+    if let Some(screens) = value
+        .get_mut("screens")
+        .and_then(serde_json::Value::as_array_mut)
+        && !ids.is_empty()
+    {
+        screens.retain(|screen| {
+            screen
+                .get("screenId")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|id| ids.contains(id))
+        });
+    }
+    if let Some(object) = value.as_object_mut() {
+        object.remove("conflictResolutions");
+    }
+    serde_json::to_string(&value).unwrap_or_else(|_| plan_json.to_string())
+}
+
+fn selected_brand_evidence(
+    input: &WireframesInput,
+    brand_source: Option<WireframeBrandSource>,
+    style_direction_id: Option<&str>,
+    brand_kit_attached: bool,
+) -> String {
+    match brand_source {
+        Some(WireframeBrandSource::BrandKit) if brand_kit_attached => {
+            "Attached brand-kit files are the binding visual evidence for this screen.".to_string()
+        }
+        Some(WireframeBrandSource::BrandKit) => {
+            "Brand-kit evidence is unavailable; do not invent a replacement palette.".to_string()
+        }
+        Some(WireframeBrandSource::StyleGuide) => {
+            let guide = input
+                .moodboard_artifact_json
+                .as_deref()
+                .and_then(|raw| serde_json::from_str::<serde_json::Value>(raw).ok())
+                .and_then(|artifact| {
+                    artifact
+                        .get("styleGuides")
+                        .and_then(serde_json::Value::as_array)
+                        .cloned()
+                })
+                .and_then(|guides| {
+                    style_direction_id
+                        .and_then(|id| {
+                            guides.iter().find(|guide| {
+                                guide.get("directionId").and_then(serde_json::Value::as_str)
+                                    == Some(id)
+                                    || guide.get("id").and_then(serde_json::Value::as_str)
+                                        == Some(id)
+                            })
+                        })
+                        .or_else(|| guides.first())
+                        .cloned()
+                });
+            match guide {
+                Some(guide) => format!(
+                    "Selected moodboard style-guide evidence only:\n{}",
+                    serde_json::to_string(&guide).unwrap_or_default()
+                ),
+                None => "No selected moodboard style guide was available; follow the validated design plan without inventing a second palette.".to_string(),
+            }
+        }
+        None => "No brand source was selected; follow the validated design plan.".to_string(),
+    }
+}
+
+fn screen_list_context(input: &WireframesInput) -> String {
+    let flow_screens = input
+        .flows_artifact_json
+        .as_deref()
+        .and_then(|raw| serde_json::from_str::<serde_json::Value>(raw).ok())
+        .and_then(|value| value.get("screens").cloned())
+        .unwrap_or_else(|| serde_json::json!([]));
+    let configure_screens = input
+        .existing_wireframes_artifact_json
+        .as_deref()
+        .and_then(|raw| serde_json::from_str::<serde_json::Value>(raw).ok())
+        .and_then(|value| value.get("configureScreens").cloned())
+        .unwrap_or_else(|| serde_json::json!([]));
+    serde_json::json!({
+        "flowScreens": flow_screens,
+        "savedConfigureScreens": configure_screens,
+    })
+    .to_string()
+}
+
+fn scoped_existing_screen_context(input: &WireframesInput, ids: &[String]) -> String {
+    let Some(raw) = input.existing_wireframes_artifact_json.as_deref() else {
+        return "null".to_string();
+    };
+    let refs = ids.iter().map(String::as_str).collect::<Vec<_>>();
+    let redacted = redact_regen_artifact(raw, &refs);
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(&redacted) else {
+        return "null".to_string();
+    };
+    serde_json::json!({
+        "generatedScreens": value.get("generatedScreens").cloned().unwrap_or_else(|| serde_json::json!([]))
+    })
+    .to_string()
+}
+
+fn planned_recipe_imports(
+    plan_json: &str,
+    target_screen_ids: &[String],
+    component_pack_ids: &[String],
+) -> String {
+    use crate::wireframes::render::RendererLibraries;
+
+    let libraries = RendererLibraries::resolve(component_pack_ids);
+    let Ok(manifest) = serde_json::from_str::<serde_json::Value>(RENDERER_LIBRARY_MANIFESTS) else {
+        return "No component manifest available.".to_string();
+    };
+    let selected = libraries
+        .selected()
+        .map(|(slot, id)| (id, slot.module))
+        .collect::<std::collections::HashMap<_, _>>();
+    let target_ids = target_screen_ids
+        .iter()
+        .map(String::as_str)
+        .collect::<std::collections::HashSet<_>>();
+    let Ok(plan) = serde_json::from_str::<serde_json::Value>(plan_json) else {
+        return "Invalid component recipe.".to_string();
+    };
+    let mut imports = std::collections::BTreeMap::<&str, Vec<&str>>::new();
+    if let Some(screens) = plan.get("screens").and_then(serde_json::Value::as_array) {
+        for screen in screens.iter().filter(|screen| {
+            screen
+                .get("screenId")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|id| target_ids.is_empty() || target_ids.contains(id))
+        }) {
+            let Some(recipe) = screen
+                .get("componentRecipe")
+                .and_then(serde_json::Value::as_array)
+            else {
+                continue;
+            };
+            for component in recipe {
+                let Some(library_id) = component
+                    .get("libraryId")
+                    .and_then(serde_json::Value::as_str)
+                else {
+                    continue;
+                };
+                let Some(export_name) = component
+                    .get("exportName")
+                    .and_then(serde_json::Value::as_str)
+                else {
+                    continue;
+                };
+                let Some(module) = selected.get(library_id).copied() else {
+                    continue;
+                };
+                let registered = manifest
+                    .as_object()
+                    .into_iter()
+                    .flat_map(|slots| slots.values())
+                    .filter_map(serde_json::Value::as_array)
+                    .flatten()
+                    .find(|entry| {
+                        entry.get("id").and_then(serde_json::Value::as_str) == Some(library_id)
+                    })
+                    .map(|entry| manifest_strings(entry, "exports").contains(&export_name))
+                    .unwrap_or(false);
+                if registered {
+                    let names = imports.entry(module).or_default();
+                    if !names.contains(&export_name) {
+                        names.push(export_name);
+                    }
+                }
+            }
+        }
+    }
+    if imports.is_empty() {
+        return "No valid recipe imports resolved; this screen must fail validation rather than invent components.".to_string();
+    }
+    imports
+        .into_iter()
+        .map(|(module, names)| format!("import {{ {} }} from \"{module}\";", names.join(", ")))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[allow(clippy::too_many_arguments)]
+fn build_planned_hifi_screen_prompt(
+    input: &WireframesInput,
+    brand_source: Option<WireframeBrandSource>,
+    style_direction_id: Option<&str>,
+    brand_kit_attached: bool,
+    target_screen_ids: &[String],
+    design_plan_json: &str,
+) -> String {
+    let preferences = resolve_hifi_prompt_preferences(input);
+    let compact_plan = compact_design_plan_json(design_plan_json, target_screen_ids);
+    let imports = planned_recipe_imports(
+        design_plan_json,
+        target_screen_ids,
+        &preferences.component_pack_ids,
+    );
+    let brand_evidence =
+        selected_brand_evidence(input, brand_source, style_direction_id, brand_kit_attached);
+    let id_refs = target_screen_ids
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    let flows = input
+        .flows_artifact_json
+        .as_deref()
+        .map(|raw| scope_flows_artifact(raw, &id_refs))
+        .unwrap_or_else(|| "null".to_string());
+    let existing = scoped_existing_screen_context(input, target_screen_ids);
+    let screen_list = screen_list_context(input);
+
+    format!(
+        r#"<role>Implement one planned Stage Hi-Fi React screen.</role>
+
+{hard_rules}
+
+<validated_design_plan>
+{compact_plan}
+</validated_design_plan>
+
+<allowed_recipe_imports>
+{imports}
+</allowed_recipe_imports>
+
+<screen_flow_context>
+{flows}
+</screen_flow_context>
+
+<screen_list_context>
+{screen_list}
+</screen_list_context>
+
+<prior_screen_outline>
+{existing}
+</prior_screen_outline>
+
+<brand_evidence>
+{brand_evidence}
+</brand_evidence>
+
+Output shape reference only:
+{shape}
+
+<final_checklist>
+1. Exact requested screen ID; non-empty TSX and short fallback HTML.
+2. Planned recipe imports, hierarchy, content, and shared tokens implemented.
+3. Valid Lucide names; complete static resting state; motion only for its planned purpose.
+4. No unplanned library, effect, chart, palette, repeated generic card grid, or hidden content.
+5. Return JSON only.
+</final_checklist>"#,
+        hard_rules = PLANNED_HIFI_SCREEN_RULES,
+        shape = WIREFRAMES_SHAPE_EXAMPLE,
+    )
+}
+
+pub(crate) struct HifiScreenWorkspaceContext {
+    pub design_plan: String,
+    pub recipe_imports: String,
+    pub flows: String,
+    pub screen_list: String,
+    pub prior_screen: String,
+    pub brand_evidence: String,
+}
+
+pub(crate) fn workspace_selected_skills(input: &WireframesInput) -> Vec<(&'static str, String)> {
+    resolve_hifi_prompt_preferences(input)
+        .skill_ids
+        .into_iter()
+        .filter_map(|id| {
+            CATALOG_SKILLS
+                .iter()
+                .find(|(catalog_id, _)| catalog_id == &id)
+                .map(|(_, body)| (id, sanitize_workspace_skill(body)))
+        })
+        .collect()
+}
+
+fn sanitize_workspace_skill(body: &str) -> String {
+    const OPERATIONAL_SECTIONS: &[&str] = &[
+        "setup",
+        "commands",
+        "running the search tool",
+        "workflow",
+        "example workflow",
+        "output formats",
+        "current project context",
+        "component docs, examples, and usage",
+        "updating components",
+        "quick reference",
+        "if a search returns 0 results",
+    ];
+    let mut output = String::from(
+        "# Stage wireframe design adapter
+
+Use only the design and UX guidance below. Do not run commands, tools, scripts, plugins, hooks, installers, network fetches, or persistence steps. Stage already supplied every allowed project file and component export.
+
+",
+    );
+    let mut skipped_heading_level: Option<usize> = None;
+    let mut command_fence = false;
+
+    for line in body.lines() {
+        let trimmed = line.trim();
+        if command_fence {
+            if trimmed.starts_with("```") {
+                command_fence = false;
+            }
+            continue;
+        }
+        if matches!(
+            trimmed.to_ascii_lowercase().as_str(),
+            "```bash" | "```sh" | "```shell" | "```zsh" | "```powershell"
+        ) {
+            command_fence = true;
+            continue;
+        }
+
+        let heading_level = trimmed
+            .chars()
+            .take_while(|character| *character == '#')
+            .count();
+        if heading_level > 0 && trimmed.chars().nth(heading_level) == Some(' ') {
+            if skipped_heading_level.is_some_and(|level| heading_level <= level) {
+                skipped_heading_level = None;
+            }
+            let heading = trimmed[heading_level + 1..].trim().to_ascii_lowercase();
+            if OPERATIONAL_SECTIONS
+                .iter()
+                .any(|section| heading == *section)
+                || (heading_level == 3 && heading == "cli")
+            {
+                skipped_heading_level = Some(heading_level);
+                continue;
+            }
+        }
+        if skipped_heading_level.is_some() {
+            continue;
+        }
+
+        let lower = trimmed.to_ascii_lowercase();
+        if lower.starts_with("allowed-tools:")
+            || lower.starts_with("user-invocable:")
+            || lower.starts_with("argument-hint:")
+            || lower.contains("claude_plugin_root")
+            || lower.contains("{{scripts_path}}")
+            || lower.contains("npx shadcn")
+            || lower.contains("pnpm dlx")
+            || lower.contains("pnpm add")
+            || lower.contains("npm install")
+            || lower.contains("yarn add")
+            || lower.contains("bun add")
+            || lower.contains("bunx ")
+            || lower.contains("- bash(")
+            || lower.contains("mcp server")
+            || lower.contains("plugin command")
+            || lower.contains("run `")
+            || lower.contains("re-run `")
+            || lower.contains("read [")
+            || lower.contains("load [")
+        {
+            continue;
+        }
+        output.push_str(line);
+        output.push('\n');
+    }
+    output
+}
+
+pub(crate) fn workspace_library_context(input: &WireframesInput) -> String {
+    let preferences = resolve_hifi_prompt_preferences(input);
+    react_library_manifest(&preferences.component_pack_ids)
+}
+
+pub(crate) fn workspace_director_contract() -> String {
+    format!(
+        r#"# Design Director contract
+
+Return exactly one JSON object and no markdown or prose.
+Create one coherent, product-specific system for every target screen before implementation.
+Project evidence outranks optional skills. Skills contribute only within their declared roles.
+Every target screen ID must appear exactly once in `screens[]` with a purpose, role, distinct layout archetype, density, exact selected-library recipe, motion purpose, and avoid-list.
+Use only exports in the selected library catalog. Primitive-only recipes are not signature design.
+Preserve shared typography, palette, spacing, radii, elevation, surfaces, icons, density, visual variance, motion, navigation, forms, lists/tables, feedback, empty, validation, loading, and dialog behavior.
+Do not generate TSX or HTML.
+
+Required JSON shape:
+{DESIGN_PLAN_SHAPE}
+"#,
+    )
+}
+
+pub(crate) fn workspace_screen_contract() -> String {
+    format!(
+        r#"# Hi-Fi screen implementation contract
+
+{PLANNED_HIFI_SCREEN_RULES}
+
+Return this compact envelope only; do not repeat project metadata, flows, the design plan, or the full configure-screen list:
+{{
+  "generatedScreens": [{{
+    "id": "exact requested id",
+    "title": "screen title",
+    "tsx": "complete default-export React component",
+    "html": "short inline-styled fallback",
+    "sections": [{{ "id": "stable section id", "title": "section title", "blocks": [{{ "id": "stable block id", "kind": "one allowed block kind", "intent": "specific purpose", "emphasis": "primary|secondary", "copySlots": {{}} }}] }}],
+    "brandTokens": {{ "paletteRef": "binding source", "typographyRef": "binding source" }}
+  }}]
+}}
+
+Final checklist:
+1. Exact requested screen ID; non-empty TSX and short fallback HTML.
+2. Planned recipe imports, hierarchy, content, and shared tokens implemented.
+3. Valid Lucide names; complete static resting state; motion only for its planned purpose.
+4. No unplanned library, effect, chart, palette, repeated generic card grid, or hidden content.
+5. Return JSON only.
+"#,
+    )
+}
+
+pub(crate) fn workspace_screen_context(
+    input: &WireframesInput,
+    brand_source: Option<WireframeBrandSource>,
+    style_direction_id: Option<&str>,
+    brand_kit_attached: bool,
+    target_screen_ids: &[String],
+    design_plan_json: &str,
+) -> HifiScreenWorkspaceContext {
+    let preferences = resolve_hifi_prompt_preferences(input);
+    let id_refs = target_screen_ids
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    HifiScreenWorkspaceContext {
+        design_plan: compact_design_plan_json(design_plan_json, target_screen_ids),
+        recipe_imports: planned_recipe_imports(
+            design_plan_json,
+            target_screen_ids,
+            &preferences.component_pack_ids,
+        ),
+        flows: input
+            .flows_artifact_json
+            .as_deref()
+            .map(|raw| scope_flows_artifact(raw, &id_refs))
+            .unwrap_or_else(|| "null".to_string()),
+        screen_list: screen_list_context(input),
+        prior_screen: scoped_existing_screen_context(input, target_screen_ids),
+        brand_evidence: selected_brand_evidence(
+            input,
+            brand_source,
+            style_direction_id,
+            brand_kit_attached,
+        ),
+    }
+}
+
+#[cfg(test)]
 pub fn build_wireframes_prompt(
     input: &WireframesInput,
     kind: WireframeKind,
@@ -642,6 +1323,43 @@ pub fn build_wireframes_prompt(
     brand_kit_attached: bool,
     target_screen_ids: Option<&[String]>,
 ) -> String {
+    build_wireframes_prompt_with_plan(
+        input,
+        kind,
+        brand_source,
+        style_direction_id,
+        layout_preference,
+        brand_kit_attached,
+        target_screen_ids,
+        None,
+    )
+}
+
+pub fn build_wireframes_prompt_with_plan(
+    input: &WireframesInput,
+    kind: WireframeKind,
+    brand_source: Option<WireframeBrandSource>,
+    style_direction_id: Option<&str>,
+    layout_preference: Option<&str>,
+    brand_kit_attached: bool,
+    target_screen_ids: Option<&[String]>,
+    design_plan_json: Option<&str>,
+) -> String {
+    if matches!(kind, WireframeKind::Hifi)
+        && let (Some(plan), Some(ids)) = (
+            design_plan_json,
+            target_screen_ids.filter(|ids| !ids.is_empty()),
+        )
+    {
+        return build_planned_hifi_screen_prompt(
+            input,
+            brand_source,
+            style_direction_id,
+            brand_kit_attached,
+            ids,
+            plan,
+        );
+    }
     let scoped_ids = target_screen_ids.filter(|ids| !ids.is_empty());
     // Research is the single largest block in the prompt (~60 KB on a real project) and a
     // scoped run does not need it: strategy carries the copy angle, the moodboard the
@@ -720,6 +1438,12 @@ pub fn build_wireframes_prompt(
         WireframeKind::Hifi => hifi_prompt_extras(input),
         WireframeKind::Lofi => String::new(),
     };
+    let design_plan_block = match (kind, design_plan_json) {
+        (WireframeKind::Hifi, Some(plan)) => format!(
+            "<validated_design_plan>\n{plan}\n</validated_design_plan>\nThe plan above is binding. Implement its shared system and only this screen's recipe; do not invent a second design direction.\n\n"
+        ),
+        _ => String::new(),
+    };
     // Scoping the run to a set of ids means two different things. With a saved artifact
     // the user is re-designing screens that already exist, so the model must not echo the
     // prior markup. Without one (first pass, or a screen the user just added) there is
@@ -783,7 +1507,7 @@ pub fn build_wireframes_prompt(
 This shape example is ONLY a formatting reference, not content to copy:
 {WIREFRAMES_SHAPE_EXAMPLE}
 {hifi_extras}
-Project:
+{design_plan_block}Project:
 - Project ID: {project_id}
 - Project name: {project_name}
 {project_type_lines}
@@ -793,13 +1517,11 @@ Saved strategy artifact JSON:
 {research_block}{moodboard_block}{flows_block}{existing_block}Return only the JSON artifact."#,
         project_id = input.project_id,
         project_name = input.project_name,
-        project_type_lines = project_type_lines(
-            &input.project_type,
-            input.project_type_label.as_deref()
-        ),
+        project_type_lines =
+            project_type_lines(&input.project_type, input.project_type_label.as_deref()),
         project_type_guidance = project_type_screen_guidance(&input.project_type),
-        viewport_guidance = WireframeViewport::from_project_type(&input.project_type)
-            .prompt_guidance(),
+        viewport_guidance =
+            WireframeViewport::from_project_type(&input.project_type).prompt_guidance(),
         strategy_artifact = input.strategy_artifact_json,
     )
 }

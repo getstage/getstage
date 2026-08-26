@@ -10,6 +10,7 @@ import { figmaConnectCallback, notionConnectCallback } from "./integrations/cont
 import { creditWebhookEvents } from "./lib/billing/handlers/webhooks";
 import { resend } from "./lib/emails/client";
 import { unsubscribeHandler } from "./lib/emails/unsubscribe";
+import { ingestCatalogComponent } from "./wireframeCatalog";
 
 const http = new HttpRouterWithHono(apiApp as HonoWithConvex<ActionCtx>);
 auth.addHttpRoutes(http);
@@ -52,6 +53,12 @@ http.route({
   path: "/emails/unsubscribe",
   method: "GET",
   handler: unsubscribeHandler,
+});
+
+http.route({
+  path: "/ingest/catalog/upsert",
+  method: "POST",
+  handler: ingestCatalogComponent,
 });
 
 export default http;

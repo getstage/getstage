@@ -370,9 +370,13 @@ export function WireframesTab({
         onGoToResearch={onGoToResearch}
         onGoToStrategy={onGoToStrategy}
       />
-      {wireframesTab.error ?? screenListError ? (
+      {wireframesTab.error ??
+      screenListError ??
+      (wireframesTab.parseError ? "Saved wireframes could not be loaded." : null) ? (
         <p className="mb-4 whitespace-pre-wrap text-[13px] font-medium leading-[1.5] text-[#DC2626]">
-          {wireframesTab.error ?? screenListError}
+          {wireframesTab.error ??
+            screenListError ??
+            "Saved wireframes could not be loaded."}
         </p>
       ) : null}
       {view === "choose-type" ? (

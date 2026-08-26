@@ -133,7 +133,10 @@ fn hifi_screens_carry_no_pack_stylesheet_in_react_mode() {
     // hand-written pack stylesheet is no longer prepended — the fragment stays the
     // model's own markup alone. The non-React prepend is covered below.
     assert!(!html.contains("data-stage-pack"));
-    assert!(html.contains("Hi-Fi"), "the model's own markup must survive");
+    assert!(
+        html.contains("Hi-Fi"),
+        "the model's own markup must survive"
+    );
 }
 
 #[test]
@@ -145,7 +148,10 @@ fn pack_stylesheet_prepend_marks_the_style_block_for_prompt_stripping() {
         html,
         "<style data-stage-pack>.ui-btn{height:36px}</style>\n<div>Real markup</div>"
     );
-    assert_eq!(with_pack_css("<div>Real markup</div>", ""), "<div>Real markup</div>");
+    assert_eq!(
+        with_pack_css("<div>Real markup</div>", ""),
+        "<div>Real markup</div>"
+    );
 }
 
 #[test]
@@ -735,11 +741,13 @@ fn tsx_screen_keeps_its_html_fallback_without_html_era_validation() {
     // inline styles, hidden siblings) must not drop the screen or the run.
     let mut screen = sample_screen(
         "wizard",
-        Some(r#"<div><style>.step{padding:16px}</style>
+        Some(
+            r#"<div><style>.step{padding:16px}</style>
             <div class="step flex">Active step</div>
             <div class="step" style="display:none">Later step</div>
             <div class="step" style="display:none">Later step</div>
-        </div>"#),
+        </div>"#,
+        ),
     );
     screen["tsx"] = json!("export default function Screen() { return <div />; }");
 

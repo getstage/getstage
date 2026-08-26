@@ -127,10 +127,8 @@ The JSON must use:
         shape_example = FLOWS_SHAPE_EXAMPLE,
         project_id = input.project_id,
         project_name = input.project_name,
-        project_type_lines = project_type_lines(
-            &input.project_type,
-            input.project_type_label.as_deref()
-        ),
+        project_type_lines =
+            project_type_lines(&input.project_type, input.project_type_label.as_deref()),
         project_type_guidance = project_type_screen_guidance(&input.project_type),
         research_artifact = pretty_json(&input.research_artifact_json),
         strategy_artifact = pretty_json(&input.strategy_artifact_json),

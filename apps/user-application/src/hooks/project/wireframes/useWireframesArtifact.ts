@@ -19,7 +19,11 @@ function parseWireframesArtifact(contentJson: string | null): WireframesArtifact
   try {
     const parsed = JSON.parse(contentJson) as unknown;
     return wireframesArtifactSchema.parse(parsed);
-  } catch {
+  } catch (error) {
+    // A failed parse used to return null with no UI signal, so a finished Hi-Fi
+    // run looked like an empty Create Wireframe wizard. Keep the null return for
+    // callers, but leave a console breadcrumb with the Zod path.
+    console.error("[wireframes] artifact schema parse failed", error);
     return null;
   }
 }

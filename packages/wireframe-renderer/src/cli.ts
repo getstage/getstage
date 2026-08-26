@@ -128,6 +128,48 @@ function validateNamedImports(tsx: string, libraries: Record<string, string>) {
   }
 }
 
+// Same gate for lucide-react: the model invents icon names (`Chrome`, `Figma`) that do not
+// exist in the installed package and only fail at SSR. List real exports once from the
+// package's type declarations — both `declare const X` and the aliased re-export block
+// (`export { Globe2, CheckCircle2 as CheckCircle2Icon, … }`), or half the real icons
+// (Globe2, CheckCircle2, AlertTriangle, …) get rejected as fake.
+const LUCIDE_EXPORTS = (() => {
+  try {
+    const dts = fs.readFileSync(
+      path.join(path.dirname(require.resolve("lucide-react/package.json")), "dist", "lucide-react.d.ts"),
+      "utf8",
+    );
+    const names = new Set([...dts.matchAll(/^declare const (\w+)/gm)].map((m) => m[1]));
+    for (const block of dts.matchAll(/export \{([\s\S]*?)\}/g)) {
+      for (const entry of block[1].split(",")) {
+        for (const name of entry.trim().split(/\s+as\s+/)) {
+          if (/^\w+$/.test(name)) names.add(name);
+        }
+      }
+    }
+    return names;
+  } catch {
+    return null; // lucide-react not installed — let the bundler report it instead
+  }
+})();
+
+function validateLucideImports(tsx: string) {
+  if (!LUCIDE_EXPORTS) return;
+  const named = tsx.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g);
+  for (const match of named) {
+    const requested = match[1]
+      .split(",")
+      .map((part) => part.split(/\sas\s/)[0].trim())
+      .filter(Boolean);
+    const missing = requested.filter((name) => !LUCIDE_EXPORTS.has(name));
+    if (missing.length > 0) {
+      throw new Error(
+        `lucide-react does not export ${missing.join(", ")}. Pick a real icon from lucide.dev.`,
+      );
+    }
+  }
+}
+
 function validateTsx(tsx: string, boundModules: ReadonlySet<string>) {
   if (tsx.length > 250_000) throw new Error("Screen TSX exceeds 250 KB.");
   if (FORBIDDEN_GLOBALS.test(tsx) || /\bimport\s*\(/.test(tsx)) {
@@ -135,6 +177,18 @@ function validateTsx(tsx: string, boundModules: ReadonlySet<string>) {
   }
   if (/\b(?:while|do)\s*(?:\(|\{)|\bfor\s*\(/.test(tsx)) {
     throw new Error("Screen TSX may not contain runtime loops.");
+  }
+  // Overlapping hero copy almost always comes from absolute/fixed layers or negative
+  // pull-up margins in the generated screen. Catch that before SSR — Node has no real
+  // layout engine, so a client-rect check would be a lie.
+  if (
+    /\b(?:absolute|fixed)\b/.test(tsx) ||
+    /(?:^|[\s"'`])-(?:m[trblxy]?|inset|[trbl]|top|right|bottom|left)-/.test(tsx)
+  ) {
+    throw new Error(
+      "Screen TSX must not position copy with absolute/fixed or negative margins. " +
+        "Stack text, buttons, and media with flex/grid and spacing utilities only.",
+    );
   }
 
   const imports = tsx.matchAll(
@@ -169,6 +223,7 @@ function writeScreens(input: BatchInput, batchDirectory: string) {
   return input.screens.map((screen, index) => {
     validateTsx(screen.tsx, boundModules);
     validateNamedImports(screen.tsx, input.libraries);
+    validateLucideImports(screen.tsx);
     const safeId = screen.id.replaceAll(/[^a-zA-Z0-9_-]/g, "_") || `screen-${index}`;
     const source = /\bimport\s+(?:\*\s+as\s+)?React\b/.test(screen.tsx)
       ? screen.tsx

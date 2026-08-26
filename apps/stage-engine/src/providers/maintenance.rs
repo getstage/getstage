@@ -123,7 +123,11 @@ fn update_command_for(spec: ProviderRuntimeSpec, source: InstallSource) -> Updat
         },
         (ProviderId::Codex, InstallSource::Homebrew) => UpdateCommand {
             program: "brew".to_string(),
-            args: vec!["upgrade".to_string(), "--cask".to_string(), "codex".to_string()],
+            args: vec![
+                "upgrade".to_string(),
+                "--cask".to_string(),
+                "codex".to_string(),
+            ],
         },
         (ProviderId::Claude, InstallSource::Npm) => UpdateCommand {
             program: "npm".to_string(),
@@ -144,7 +148,11 @@ fn update_command_for(spec: ProviderRuntimeSpec, source: InstallSource) -> Updat
         // Native + unknown: CLI self-update (matches Synara for Claude native).
         _ => UpdateCommand {
             program: spec.binary.to_string(),
-            args: spec.update_args.iter().map(|arg| (*arg).to_string()).collect(),
+            args: spec
+                .update_args
+                .iter()
+                .map(|arg| (*arg).to_string())
+                .collect(),
         },
     }
 }
@@ -203,10 +211,7 @@ async fn resolve_binary_path(binary: &str) -> Option<String> {
     Some(path.to_string())
 }
 
-async fn fetch_latest_version(
-    spec: ProviderRuntimeSpec,
-    source: InstallSource,
-) -> Option<String> {
+async fn fetch_latest_version(spec: ProviderRuntimeSpec, source: InstallSource) -> Option<String> {
     match source {
         InstallSource::Homebrew => fetch_homebrew_cask_version(homebrew_cask_name(spec.id)?).await,
         // Synara uses npm as the public version feed for native Claude too.
@@ -282,16 +287,8 @@ fn version_parts(raw: &str) -> Option<[u64; 3]> {
 
     let mut segments = numeric.split('.').filter(|segment| !segment.is_empty());
     let major = segments.next()?.parse().ok()?;
-    let minor = segments
-        .next()
-        .unwrap_or("0")
-        .parse()
-        .ok()?;
-    let patch = segments
-        .next()
-        .unwrap_or("0")
-        .parse()
-        .ok()?;
+    let minor = segments.next().unwrap_or("0").parse().ok()?;
+    let patch = segments.next().unwrap_or("0").parse().ok()?;
     Some([major, minor, patch])
 }
 

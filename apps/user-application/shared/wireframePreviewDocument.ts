@@ -53,8 +53,12 @@ export function buildWireframePreviewDocument(
   // the offscreen export capture cannot fetch it themselves). Inlined at the body
   // start, exactly where the renderer used to embed it before the offload.
   const bundle = options?.css?.trim() ? `<style data-stage-render>${options.css}</style>` : "";
-  return `<!doctype html><html><head><meta charset="utf-8" /><style>
+  const document = `<!doctype html><html><head><meta charset="utf-8" /><style>
     *,*::before,*::after{box-sizing:border-box;}
     ${WIREFRAME_PREVIEW_COLLAPSE_CSS}
-  </style></head><body>${bundle}${stripScriptTags(fragment)}</body></html>`;
+  </style></head><body>${bundle}${fragment}</body></html>`;
+  // Sanitize the final document, not only the HTML fragment. This also covers a
+  // malformed or edge-mutated stylesheet that closes its style tag and injects a
+  // script before the static iframe applies its no-scripts sandbox.
+  return stripScriptTags(document);
 }

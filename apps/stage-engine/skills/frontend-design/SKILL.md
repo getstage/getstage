@@ -1,69 +1,36 @@
 ---
 name: frontend-design-stage
-description: Stage-adapted Anthropic frontend-design skill for Hi-Fi wireframe HTML.
+description: Visual-direction guidance for distinctive Stage Hi-Fi React screens.
 source: https://github.com/anthropics/skills/tree/main/skills/frontend-design
 ---
 
 # Stage Hi-Fi — Frontend Design
 
-Apply when generating Stage `generatedScreens[].html` fragments.
-You are **not** shipping React/Tailwind app code — only **self-contained HTML + one `<style>` block**.
+**Role:** establish a specific visual direction. Apply when the screen needs persuasion, storytelling, or a memorable product expression. Project evidence and the shared run-level design plan always win.
 
-## 1. Ground it in the subject
+## Direction
 
-Design as a studio lead whose client already rejected templated proposals. Before layout, name the concrete
-subject, its audience, and the screen's single job. Distinctive choices come from the subject's own world —
-its materials, instruments, artifacts, vernacular — not from a general-purpose web look.
+- Start from the product, audience, and this screen's single job. Borrow visual language from the subject's real world, not a generic SaaS template.
+- State one concrete aesthetic thesis. “Modern”, “clean”, “premium”, and “professional” are not theses without specific type, layout, material, and content choices.
+- Spend boldness in one place: one signature composition, interaction, type treatment, or product demonstration. Keep supporting UI disciplined.
+- Match complexity to the direction. Maximalism needs deliberate layers; minimalism needs exceptional spacing, typography, alignment, and restraint.
 
-## 2. The hero is a thesis
+## Composition
 
-Open with the most characteristic thing in the subject's world. A big number with a small label, supporting
-stats, and a gradient accent is the template answer — use it only if it is genuinely the best option here.
+- Let information hierarchy determine layout. Do not default every screen to a centered heading followed by equal cards.
+- Use structural labels, numbering, dividers, and badges only when they encode real meaning.
+- Vary layout archetypes across different screen roles while keeping the shared design system intact.
+- Use real product copy and data. Generic feature slogans, invented metrics, and decorative status labels make the design feel generated.
 
-## 3. Typography carries the personality
+## Typography and assets
 
-Pair display and body faces deliberately; not the families you would reach for on any other project. Set a
-clear scale with intentional weights, widths, and spacing. The type treatment itself should be memorable, not
-a neutral delivery vehicle.
+- Give display, body, label, and data text distinct roles. Preserve the project typography when supplied.
+- Avoid the same fashionable serif/neutral pairing for unrelated projects.
+- Prefer real product imagery, provided brand assets, or actual component previews. Do not fake product screenshots with meaningless rectangles.
 
-## 4. Structure is information
+## React execution
 
-Structural devices — numbering, eyebrows, dividers, labels — must encode something true about the content.
-`01 / 02 / 03` markers are only appropriate when the content really is a sequence. Question every such device
-before using it.
-
-## 5. Calibration — the three AI defaults
-
-Current AI-generated design clusters around three looks. Where the brief leaves an axis free, do **not** spend
-that freedom on:
-
-1. Warm cream background (near `#F4F1EA`) + high-contrast serif display + terracotta accent
-2. Near-black background + a single acid-green or vermilion accent
-3. Broadsheet layout with hairline rules, zero border-radius, dense newspaper columns
-
-All three are legitimate for some briefs. Where the moodboard or brand kit pins a direction, the brief's own
-words always win — including when it asks for one of these looks.
-
-## 6. Match complexity to the vision
-
-Maximalist directions need elaborate execution; minimal directions need precision in spacing, type, and detail.
-Elegance is executing the chosen vision well.
-
-## 7. Spend your boldness in one place
-
-Pick one signature element that the screen is remembered by. Keep everything around it quiet and disciplined,
-and cut decoration that does not serve the brief. Before finishing, remove one accessory.
-
-## 8. Copy is design material
-
-- Write from the user's side of the screen. Name things by what people control, never by how the system works.
-- Active voice. A control says what happens: "Save changes", not "Submit".
-- An action keeps its name through the flow: a "Publish" button produces a "Published" confirmation.
-- Errors explain what went wrong and how to fix it; they never apologize and are never vague.
-- An empty screen is an invitation to act, not a mood.
-- Sentence case, plain verbs, no filler. Each element does exactly one job.
-
-## 9. CSS specificity
-
-Watch selector specificity so classes do not cancel each other out — especially section-level versus
-element-level padding and margin rules inside the single `<style>` block.
+- Compose the selected `@stage/*` libraries; primitives support the design but are not the design.
+- Tailwind and Motion may refine the composition, but must not create a second palette or component system.
+- The live preview may animate; the initial/static frame must already be complete for Figma.
+- Remove decoration that does not serve hierarchy, comprehension, or interaction.

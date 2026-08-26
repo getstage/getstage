@@ -31,6 +31,308 @@
         "TabsList",
         "TabsTrigger",
         "Textarea"
+      ],
+      "componentGroups": [
+        {
+          "id": "actions-status",
+          "role": "Accessible actions and terse status labels",
+          "visualWeight": "supporting",
+          "exports": [
+            "Badge",
+            "Button"
+          ],
+          "screenIntents": [
+            "operate",
+            "persuade",
+            "read"
+          ],
+          "blockIntents": [
+            "navigation",
+            "form",
+            "cta",
+            "table"
+          ],
+          "density": [
+            "compact",
+            "comfortable"
+          ],
+          "motion": {
+            "requirement": "css-interaction",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Do not build the whole visual direction from Button and Badge."
+          ]
+        },
+        {
+          "id": "card-surface",
+          "role": "Composable bounded content surface",
+          "visualWeight": "supporting",
+          "exports": [
+            "Card",
+            "CardContent",
+            "CardDescription",
+            "CardFooter",
+            "CardHeader",
+            "CardTitle"
+          ],
+          "screenIntents": [
+            "operate",
+            "persuade",
+            "read"
+          ],
+          "blockIntents": [
+            "feature-grid",
+            "form",
+            "list",
+            "text"
+          ],
+          "density": [
+            "comfortable",
+            "spacious"
+          ],
+          "motion": {
+            "requirement": "none",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Do not wrap every section in a Card or repeat identical card grids."
+          ]
+        },
+        {
+          "id": "forms",
+          "role": "Labeled form controls and selection states",
+          "visualWeight": "structural",
+          "exports": [
+            "Input",
+            "Label",
+            "Select",
+            "SelectContent",
+            "SelectItem",
+            "SelectTrigger",
+            "SelectValue",
+            "Textarea"
+          ],
+          "screenIntents": [
+            "operate"
+          ],
+          "blockIntents": [
+            "form"
+          ],
+          "density": [
+            "compact",
+            "comfortable"
+          ],
+          "motion": {
+            "requirement": "css-interaction",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Do not use unlabeled controls or omit error/disabled states."
+          ]
+        },
+        {
+          "id": "data-table",
+          "role": "Comparable row-and-column data",
+          "visualWeight": "data",
+          "exports": [
+            "Table",
+            "TableBody",
+            "TableCell",
+            "TableHead",
+            "TableHeader",
+            "TableRow"
+          ],
+          "screenIntents": [
+            "operate",
+            "read"
+          ],
+          "blockIntents": [
+            "table"
+          ],
+          "density": [
+            "compact",
+            "comfortable"
+          ],
+          "motion": {
+            "requirement": "none",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Do not use for unrelated metric cards or prose."
+          ]
+        },
+        {
+          "id": "tabs",
+          "role": "Mutually exclusive views in one workspace",
+          "visualWeight": "structural",
+          "exports": [
+            "Tabs",
+            "TabsContent",
+            "TabsList",
+            "TabsTrigger"
+          ],
+          "screenIntents": [
+            "operate"
+          ],
+          "blockIntents": [
+            "navigation",
+            "list",
+            "table"
+          ],
+          "density": [
+            "compact",
+            "comfortable"
+          ],
+          "motion": {
+            "requirement": "css-interaction",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Do not hide primary navigation or unrelated workflows inside tabs."
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "operational-form",
+          "screenIntents": [
+            "operate"
+          ],
+          "blockIntents": [
+            "form"
+          ],
+          "density": [
+            "compact",
+            "comfortable"
+          ],
+          "purpose": "A complete labeled form with one dominant action.",
+          "components": [
+            {
+              "exportName": "Label",
+              "purpose": "persistent field identity",
+              "requiredProps": []
+            },
+            {
+              "exportName": "Input",
+              "purpose": "short text entry",
+              "requiredProps": [
+                "aria-invalid when invalid"
+              ]
+            },
+            {
+              "exportName": "Select",
+              "purpose": "bounded choice",
+              "requiredProps": [
+                "value or defaultValue"
+              ]
+            },
+            {
+              "exportName": "Button",
+              "purpose": "one primary completion action",
+              "requiredProps": [
+                "type"
+              ]
+            }
+          ],
+          "avoidUse": [
+            "Not for a marketing feature grid."
+          ]
+        },
+        {
+          "id": "comparable-data-table",
+          "screenIntents": [
+            "operate",
+            "read"
+          ],
+          "blockIntents": [
+            "table"
+          ],
+          "density": [
+            "compact"
+          ],
+          "purpose": "Dense comparable records with explicit columns.",
+          "components": [
+            {
+              "exportName": "Table",
+              "purpose": "semantic comparison container",
+              "requiredProps": []
+            },
+            {
+              "exportName": "TableHeader",
+              "purpose": "stable column meaning",
+              "requiredProps": []
+            },
+            {
+              "exportName": "TableBody",
+              "purpose": "real comparable rows",
+              "requiredProps": []
+            },
+            {
+              "exportName": "Badge",
+              "purpose": "terse categorical status",
+              "requiredProps": []
+            }
+          ],
+          "avoidUse": [
+            "Not for decorative statistics without row relationships."
+          ]
+        },
+        {
+          "id": "tabbed-workspace",
+          "screenIntents": [
+            "operate"
+          ],
+          "blockIntents": [
+            "navigation",
+            "table",
+            "list"
+          ],
+          "density": [
+            "compact",
+            "comfortable"
+          ],
+          "purpose": "Switch between closely related views without changing the global navigation.",
+          "components": [
+            {
+              "exportName": "Tabs",
+              "purpose": "stateful workspace partition",
+              "requiredProps": [
+                "defaultValue"
+              ]
+            },
+            {
+              "exportName": "TabsList",
+              "purpose": "compact view selector",
+              "requiredProps": []
+            },
+            {
+              "exportName": "TabsContent",
+              "purpose": "one complete view per tab",
+              "requiredProps": [
+                "value"
+              ]
+            }
+          ],
+          "avoidUse": [
+            "Not for sequential steps or primary app navigation."
+          ]
+        }
       ]
     },
     {
@@ -64,7 +366,247 @@
         "CarouselCards",
         "V0Button"
       ],
-      "usage": "CardFlip is a showcase card (props: title, subtitle, description, features[]) — it flips on hover and renders its front face statically. TweetCard is a social-proof quote card (props: authorName, authorHandle, authorImage, content[], timestamp, href, optional reply={authorName, authorHandle, authorImage, content, timestamp}). LiquidGlassCard is a frosted-glass container (props: glassSize sm|default|lg, glassEffect, className, children) for a feature or highlight card — wrap content in it; it renders a static SVG glass filter, no JS. LiquidButton is a glass-styled button (same props as Button plus liquidVariant default|none)."
+      "usage": "CardFlip is a showcase card (props: title, subtitle, description, features[]) \u2014 it flips on hover and renders its front face statically. TweetCard is a social-proof quote card (props: authorName, authorHandle, authorImage, content[], timestamp, href, optional reply={authorName, authorHandle, authorImage, content, timestamp}). LiquidGlassCard is a frosted-glass container (props: glassSize sm|default|lg, glassEffect, className, children) for a feature or highlight card \u2014 wrap content in it; it renders a static SVG glass filter, no JS. LiquidButton is a glass-styled button (same props as Button plus liquidVariant default|none).",
+      "componentGroups": [
+        {
+          "id": "base-primitives",
+          "role": "Kokonut-styled controls and content primitives",
+          "visualWeight": "supporting",
+          "exports": [
+            "Badge",
+            "Button",
+            "Card",
+            "CardContent",
+            "CardDescription",
+            "CardFooter",
+            "CardHeader",
+            "CardTitle",
+            "Input",
+            "Label",
+            "Textarea"
+          ],
+          "screenIntents": [
+            "operate",
+            "persuade",
+            "read"
+          ],
+          "blockIntents": [
+            "form",
+            "cta",
+            "feature-grid",
+            "text"
+          ],
+          "density": [
+            "compact",
+            "comfortable"
+          ],
+          "motion": {
+            "requirement": "css-interaction",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Do not mistake generic primitives for a signature Kokonut composition."
+          ]
+        },
+        {
+          "id": "data-table",
+          "role": "Comparable operational records",
+          "visualWeight": "data",
+          "exports": [
+            "Table",
+            "TableBody",
+            "TableCell",
+            "TableHead",
+            "TableHeader",
+            "TableRow"
+          ],
+          "screenIntents": [
+            "operate",
+            "read"
+          ],
+          "blockIntents": [
+            "table"
+          ],
+          "density": [
+            "compact"
+          ],
+          "motion": {
+            "requirement": "none",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Do not use for independent stats or prose."
+          ]
+        },
+        {
+          "id": "expressive-actions",
+          "role": "High-salience action treatments",
+          "visualWeight": "signature",
+          "exports": [
+            "CommandButton",
+            "GradientButton",
+            "LiquidButton",
+            "V0Button"
+          ],
+          "screenIntents": [
+            "persuade",
+            "experience"
+          ],
+          "blockIntents": [
+            "hero",
+            "cta",
+            "navigation"
+          ],
+          "density": [
+            "comfortable",
+            "spacious"
+          ],
+          "motion": {
+            "requirement": "css-interaction",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [
+            "Dense repeated table actions"
+          ],
+          "avoidUse": [
+            "Use at most one dominant expressive button treatment per screen."
+          ]
+        },
+        {
+          "id": "signature-surfaces",
+          "role": "Distinctive showcase and disclosure surfaces",
+          "visualWeight": "signature",
+          "exports": [
+            "CardFlip",
+            "TweetCard",
+            "LiquidGlassCard",
+            "CarouselCards"
+          ],
+          "screenIntents": [
+            "persuade",
+            "experience",
+            "read"
+          ],
+          "blockIntents": [
+            "hero",
+            "feature-grid",
+            "testimonial",
+            "media"
+          ],
+          "density": [
+            "comfortable",
+            "spacious"
+          ],
+          "motion": {
+            "requirement": "css-interaction",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [
+            "High-frequency operational tables"
+          ],
+          "avoidUse": [
+            "Choose one surface pattern for a content purpose; do not combine all four."
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "liquid-glass-highlight",
+          "screenIntents": [
+            "persuade",
+            "experience"
+          ],
+          "blockIntents": [
+            "hero",
+            "feature-grid"
+          ],
+          "density": [
+            "spacious"
+          ],
+          "purpose": "One controlled glass focal area with ordinary supporting layout.",
+          "components": [
+            {
+              "exportName": "LiquidGlassCard",
+              "purpose": "single focal translucent surface",
+              "requiredProps": []
+            },
+            {
+              "exportName": "LiquidButton",
+              "purpose": "matching focal action",
+              "requiredProps": [
+                "children"
+              ]
+            }
+          ],
+          "avoidUse": [
+            "Not as the container for every section."
+          ]
+        },
+        {
+          "id": "purposeful-card-disclosure",
+          "screenIntents": [
+            "read",
+            "experience"
+          ],
+          "blockIntents": [
+            "feature-grid",
+            "media"
+          ],
+          "density": [
+            "comfortable"
+          ],
+          "purpose": "Reveal a meaningful secondary layer of content.",
+          "components": [
+            {
+              "exportName": "CardFlip",
+              "purpose": "front-to-back disclosure",
+              "requiredProps": [
+                "frontContent",
+                "backContent"
+              ]
+            }
+          ],
+          "avoidUse": [
+            "Not for information that must remain continuously visible."
+          ]
+        },
+        {
+          "id": "testimonial-carousel",
+          "screenIntents": [
+            "persuade"
+          ],
+          "blockIntents": [
+            "testimonial"
+          ],
+          "density": [
+            "comfortable",
+            "spacious"
+          ],
+          "purpose": "Browse multiple proof points in one dedicated region.",
+          "components": [
+            {
+              "exportName": "CarouselCards",
+              "purpose": "bounded sequence of proof cards",
+              "requiredProps": [
+                "items"
+              ]
+            }
+          ],
+          "avoidUse": [
+            "Not for core navigation or required form fields."
+          ]
+        }
+      ]
     },
     {
       "id": "origin-ui",
@@ -81,6 +623,115 @@
         "TableHeader",
         "TableRow",
         "Textarea"
+      ],
+      "componentGroups": [
+        {
+          "id": "controls",
+          "role": "Origin-styled controls and inputs",
+          "visualWeight": "supporting",
+          "exports": [
+            "Badge",
+            "Button",
+            "Input",
+            "Textarea"
+          ],
+          "screenIntents": [
+            "operate",
+            "persuade"
+          ],
+          "blockIntents": [
+            "form",
+            "cta",
+            "navigation"
+          ],
+          "density": [
+            "compact",
+            "comfortable"
+          ],
+          "motion": {
+            "requirement": "css-interaction",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Needs surrounding hierarchy; controls alone are not a design composition."
+          ]
+        },
+        {
+          "id": "data-table",
+          "role": "Semantic data table anatomy",
+          "visualWeight": "data",
+          "exports": [
+            "Table",
+            "TableBody",
+            "TableCell",
+            "TableHead",
+            "TableHeader",
+            "TableRow"
+          ],
+          "screenIntents": [
+            "operate",
+            "read"
+          ],
+          "blockIntents": [
+            "table"
+          ],
+          "density": [
+            "compact"
+          ],
+          "motion": {
+            "requirement": "none",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Do not use for unrelated cards or decorative values."
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "origin-operational-table",
+          "screenIntents": [
+            "operate"
+          ],
+          "blockIntents": [
+            "table"
+          ],
+          "density": [
+            "compact"
+          ],
+          "purpose": "A restrained, dense operational table.",
+          "components": [
+            {
+              "exportName": "Table",
+              "purpose": "record comparison surface",
+              "requiredProps": []
+            },
+            {
+              "exportName": "TableHeader",
+              "purpose": "stable columns",
+              "requiredProps": []
+            },
+            {
+              "exportName": "TableBody",
+              "purpose": "real rows",
+              "requiredProps": []
+            },
+            {
+              "exportName": "Badge",
+              "purpose": "row status",
+              "requiredProps": []
+            }
+          ],
+          "avoidUse": [
+            "Not a substitute for charts when trends matter."
+          ]
+        }
       ]
     },
     {
@@ -102,6 +753,328 @@
         "Textarea",
         "TextInput",
         "Title"
+      ],
+      "componentGroups": [
+        {
+          "id": "actions-status",
+          "role": "Mantine actions and status",
+          "visualWeight": "supporting",
+          "exports": [
+            "Badge",
+            "Button"
+          ],
+          "screenIntents": [
+            "operate",
+            "persuade"
+          ],
+          "blockIntents": [
+            "form",
+            "cta",
+            "navigation"
+          ],
+          "density": [
+            "compact",
+            "comfortable"
+          ],
+          "motion": {
+            "requirement": "css-interaction",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Do not repeat primary emphasis across many buttons."
+          ]
+        },
+        {
+          "id": "layout",
+          "role": "Responsive application layout primitives",
+          "visualWeight": "structural",
+          "exports": [
+            "Grid",
+            "Group",
+            "Stack"
+          ],
+          "screenIntents": [
+            "operate",
+            "read",
+            "persuade"
+          ],
+          "blockIntents": [
+            "navigation",
+            "form",
+            "list",
+            "feature-grid"
+          ],
+          "density": [
+            "compact",
+            "comfortable",
+            "spacious"
+          ],
+          "motion": {
+            "requirement": "none",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Use to encode hierarchy, not merely to avoid Tailwind layout."
+          ]
+        },
+        {
+          "id": "surfaces",
+          "role": "Mantine content surfaces",
+          "visualWeight": "supporting",
+          "exports": [
+            "Card",
+            "Paper"
+          ],
+          "screenIntents": [
+            "operate",
+            "read",
+            "persuade"
+          ],
+          "blockIntents": [
+            "form",
+            "feature-grid",
+            "text"
+          ],
+          "density": [
+            "comfortable"
+          ],
+          "motion": {
+            "requirement": "none",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Do not wrap every region in Paper/Card."
+          ]
+        },
+        {
+          "id": "forms",
+          "role": "Mantine labeled input controls",
+          "visualWeight": "structural",
+          "exports": [
+            "Select",
+            "Textarea",
+            "TextInput"
+          ],
+          "screenIntents": [
+            "operate"
+          ],
+          "blockIntents": [
+            "form"
+          ],
+          "density": [
+            "compact",
+            "comfortable"
+          ],
+          "motion": {
+            "requirement": "css-interaction",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Provide labels, descriptions, and error states."
+          ]
+        },
+        {
+          "id": "data-table",
+          "role": "Mantine semantic table",
+          "visualWeight": "data",
+          "exports": [
+            "Table"
+          ],
+          "screenIntents": [
+            "operate",
+            "read"
+          ],
+          "blockIntents": [
+            "table"
+          ],
+          "density": [
+            "compact"
+          ],
+          "motion": {
+            "requirement": "none",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Requires real comparable rows and columns."
+          ]
+        },
+        {
+          "id": "tabs",
+          "role": "Related workspace views",
+          "visualWeight": "structural",
+          "exports": [
+            "Tabs"
+          ],
+          "screenIntents": [
+            "operate"
+          ],
+          "blockIntents": [
+            "navigation",
+            "table",
+            "list"
+          ],
+          "density": [
+            "compact",
+            "comfortable"
+          ],
+          "motion": {
+            "requirement": "css-interaction",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Not for sequential steps or global navigation."
+          ]
+        },
+        {
+          "id": "typography",
+          "role": "Mantine text hierarchy",
+          "visualWeight": "supporting",
+          "exports": [
+            "Text",
+            "Title"
+          ],
+          "screenIntents": [
+            "operate",
+            "read",
+            "persuade"
+          ],
+          "blockIntents": [
+            "text",
+            "header",
+            "hero"
+          ],
+          "density": [
+            "compact",
+            "comfortable",
+            "spacious"
+          ],
+          "motion": {
+            "requirement": "none",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Do not use typography components without a defined role scale."
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "mantine-settings-form",
+          "screenIntents": [
+            "operate"
+          ],
+          "blockIntents": [
+            "form"
+          ],
+          "density": [
+            "compact",
+            "comfortable"
+          ],
+          "purpose": "A complete operational settings form using Mantine provider-aware controls.",
+          "components": [
+            {
+              "exportName": "Stack",
+              "purpose": "field rhythm",
+              "requiredProps": [
+                "gap"
+              ]
+            },
+            {
+              "exportName": "TextInput",
+              "purpose": "labeled short input",
+              "requiredProps": [
+                "label"
+              ]
+            },
+            {
+              "exportName": "Select",
+              "purpose": "bounded option",
+              "requiredProps": [
+                "label",
+                "data"
+              ]
+            },
+            {
+              "exportName": "Button",
+              "purpose": "single primary save action",
+              "requiredProps": [
+                "children"
+              ]
+            }
+          ],
+          "avoidUse": [
+            "Not for a landing-page feature grid."
+          ]
+        },
+        {
+          "id": "mantine-responsive-workspace",
+          "screenIntents": [
+            "operate"
+          ],
+          "blockIntents": [
+            "navigation",
+            "list",
+            "table"
+          ],
+          "density": [
+            "compact"
+          ],
+          "purpose": "A dense application workspace with deliberate responsive grouping.",
+          "components": [
+            {
+              "exportName": "Grid",
+              "purpose": "responsive workspace columns",
+              "requiredProps": [
+                "children"
+              ]
+            },
+            {
+              "exportName": "Stack",
+              "purpose": "vertical region rhythm",
+              "requiredProps": [
+                "children"
+              ]
+            },
+            {
+              "exportName": "Paper",
+              "purpose": "bounded contextual region",
+              "requiredProps": [
+                "children"
+              ]
+            },
+            {
+              "exportName": "Title",
+              "purpose": "workspace hierarchy",
+              "requiredProps": [
+                "order"
+              ]
+            }
+          ],
+          "avoidUse": [
+            "Not a generic equal-card dashboard."
+          ]
+        }
       ]
     }
   ],
@@ -145,7 +1118,393 @@
         "Backlight",
         "MorphingText"
       ],
-      "usage": "Compose sections from these instead of hand-writing markup. BentoGrid takes children; BentoCard requires name and description (className, background, Icon as a component reference, href, cta optional). Marquee repeats its children (props: reverse, vertical, pauseOnHover, repeat). GridPattern/DotPattern/Ripple are absolute background layers: place as the first child of a relative parent, content after them (GridPattern: width, height, squares=[[x,y]]; DotPattern: width, height, cx, cy, cr; Ripple: mainCircleSize, numCircles). OrbitingCircles orbits its children (icons) around the parent's center (props: radius, duration, iconSize). AnimatedShinyText/AnimatedGradientText/AuroraText wrap a word or short phrase inside a heading, not whole paragraphs (AnimatedGradientText: colorFrom, colorTo, speed; AuroraText: colors, speed). ShineBorder and BorderBeam are animated border overlays: place inside a relative rounded-[Npx] parent with overflow-hidden (ShineBorder: shineColor, borderWidth, duration; BorderBeam: size, duration, colorFrom, colorTo). ShimmerButton and RainbowButton are premium CTA buttons, use them like Button with children as the label (ShimmerButton: background, shimmerColor, borderRadius; RainbowButton: variant, size). AvatarCircles shows social proof (props: avatarUrls=[{imageUrl, profileUrl}], numPeople). Iphone and Safari frame a screenshot image (Iphone: src; Safari: imageSrc, url for the address bar, width, height) — use for product shots. NeonGradientCard: A beautiful neon card effect RetroGrid: An animated scrolling retro grid effect Meteors: A meteor shower effect. NoiseTexture: An SVG fractal noise layer using feTurbulence, desaturation, and contrast controls for subtle texture overlays. PulsatingButton: An animated pulsating button useful for capturing attention of users. Android: A mockup of an Android device. ProgressiveBlur: The Progressive Blur component adds a smooth blur gradient effect to scrollable content, indicating more content below or above. HexagonPattern: A background hexagon pattern made with SVGs, fully customizable using Tailwind CSS. StripedPattern: A background striped pattern made with SVGs, fully customizable using Tailwind CSS. InteractiveGridPattern: A interactive background grid pattern made with SVGs, fully customizable using Tailwind CSS. AnimatedCircularProgressBar: Animated Circular Progress Bar is a component that displays a circular gauge with a percentage value. RippleButton: An animated button with ripple useful for user engagement. CollapseButton/File/Folder/Tree/type TreeViewElement: A component used to showcase the folder and file structure of a directory. AnimatedSpan/TypingAnimation/Terminal: A terminal component PixelImage: A component that displays an image with a pixelated effect, creating a retro aesthetic. Backlight: A backlight glow effect for videos, images, and SVGs. MorphingText: A dynamic text morphing component for Magic UI."
+      "usage": "Compose sections from these instead of hand-writing markup. BentoGrid takes children; BentoCard requires name and description (className, background, Icon as a component reference, href, cta optional). Marquee repeats its children (props: reverse, vertical, pauseOnHover, repeat). GridPattern/DotPattern/Ripple are absolute background layers: place as the first child of a relative parent, content after them (GridPattern: width, height, squares=[[x,y]]; DotPattern: width, height, cx, cy, cr; Ripple: mainCircleSize, numCircles). OrbitingCircles orbits its children (icons) around the parent's center (props: radius, duration, iconSize). AnimatedShinyText/AnimatedGradientText/AuroraText wrap a word or short phrase inside a heading, not whole paragraphs (AnimatedGradientText: colorFrom, colorTo, speed; AuroraText: colors, speed). ShineBorder and BorderBeam are animated border overlays: place inside a relative rounded-[Npx] parent with overflow-hidden (ShineBorder: shineColor, borderWidth, duration; BorderBeam: size, duration, colorFrom, colorTo). ShimmerButton and RainbowButton are premium CTA buttons, use them like Button with children as the label (ShimmerButton: background, shimmerColor, borderRadius; RainbowButton: variant, size). AvatarCircles shows social proof (props: avatarUrls=[{imageUrl, profileUrl}], numPeople). Iphone and Safari frame a screenshot image (Iphone: src; Safari: imageSrc, url for the address bar, width, height) \u2014 use for product shots. NeonGradientCard: A beautiful neon card effect RetroGrid: An animated scrolling retro grid effect Meteors: A meteor shower effect. NoiseTexture: An SVG fractal noise layer using feTurbulence, desaturation, and contrast controls for subtle texture overlays. PulsatingButton: An animated pulsating button useful for capturing attention of users. Android: A mockup of an Android device. ProgressiveBlur: The Progressive Blur component adds a smooth blur gradient effect to scrollable content, indicating more content below or above. HexagonPattern: A background hexagon pattern made with SVGs, fully customizable using Tailwind CSS. StripedPattern: A background striped pattern made with SVGs, fully customizable using Tailwind CSS. InteractiveGridPattern: A interactive background grid pattern made with SVGs, fully customizable using Tailwind CSS. AnimatedCircularProgressBar: Animated Circular Progress Bar is a component that displays a circular gauge with a percentage value. RippleButton: An animated button with ripple useful for user engagement. CollapseButton/File/Folder/Tree/type TreeViewElement: A component used to showcase the folder and file structure of a directory. AnimatedSpan/TypingAnimation/Terminal: A terminal component PixelImage: A component that displays an image with a pixelated effect, creating a retro aesthetic. Backlight: A backlight glow effect for videos, images, and SVGs. MorphingText: A dynamic text morphing component for Magic UI.",
+      "componentGroups": [
+        {
+          "id": "bento-structure",
+          "role": "Asymmetric showcase composition with real content",
+          "visualWeight": "structural",
+          "exports": [
+            "BentoCard",
+            "BentoGrid"
+          ],
+          "screenIntents": [
+            "persuade",
+            "experience"
+          ],
+          "blockIntents": [
+            "hero",
+            "feature-grid",
+            "media"
+          ],
+          "density": [
+            "comfortable",
+            "spacious"
+          ],
+          "motion": {
+            "requirement": "css-interaction",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Must contain meaningful product content; do not repeat the same bento grid on sibling screens."
+          ]
+        },
+        {
+          "id": "ambient-patterns",
+          "role": "Decorative ambient background texture",
+          "visualWeight": "decorative",
+          "exports": [
+            "GridPattern",
+            "DotPattern",
+            "RetroGrid",
+            "NoiseTexture",
+            "HexagonPattern",
+            "StripedPattern",
+            "InteractiveGridPattern"
+          ],
+          "screenIntents": [
+            "persuade",
+            "experience"
+          ],
+          "blockIntents": [
+            "hero",
+            "media",
+            "cta"
+          ],
+          "density": [
+            "spacious"
+          ],
+          "motion": {
+            "requirement": "css-ambient",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [
+            "Dense tables and forms"
+          ],
+          "avoidUse": [
+            "Decoration is not structure; use at most one ambient pattern per screen."
+          ]
+        },
+        {
+          "id": "ambient-motion",
+          "role": "Focal ambient movement or depth",
+          "visualWeight": "decorative",
+          "exports": [
+            "Marquee",
+            "Ripple",
+            "OrbitingCircles",
+            "Meteors",
+            "ProgressiveBlur",
+            "Backlight"
+          ],
+          "screenIntents": [
+            "persuade",
+            "experience"
+          ],
+          "blockIntents": [
+            "hero",
+            "logo-strip",
+            "media",
+            "testimonial"
+          ],
+          "density": [
+            "spacious"
+          ],
+          "motion": {
+            "requirement": "css-ambient",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [
+            "High-frequency operational workflows"
+          ],
+          "avoidUse": [
+            "Use one focal effect with a named purpose; static frame must remain complete."
+          ]
+        },
+        {
+          "id": "text-effects",
+          "role": "Short focal text emphasis",
+          "visualWeight": "signature",
+          "exports": [
+            "AnimatedShinyText",
+            "AnimatedGradientText",
+            "AuroraText",
+            "MorphingText"
+          ],
+          "screenIntents": [
+            "persuade",
+            "experience"
+          ],
+          "blockIntents": [
+            "hero",
+            "cta",
+            "header"
+          ],
+          "density": [
+            "spacious"
+          ],
+          "motion": {
+            "requirement": "css-ambient",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Apply to one short phrase, never body copy or every heading."
+          ]
+        },
+        {
+          "id": "borders-surfaces",
+          "role": "High-salience boundary and surface effects",
+          "visualWeight": "signature",
+          "exports": [
+            "ShineBorder",
+            "BorderBeam",
+            "NeonGradientCard"
+          ],
+          "screenIntents": [
+            "persuade",
+            "experience"
+          ],
+          "blockIntents": [
+            "hero",
+            "feature-grid",
+            "cta"
+          ],
+          "density": [
+            "comfortable",
+            "spacious"
+          ],
+          "motion": {
+            "requirement": "css-ambient",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Reserve for one focal surface; avoid nesting effects."
+          ]
+        },
+        {
+          "id": "expressive-actions",
+          "role": "Prominent animated action controls",
+          "visualWeight": "signature",
+          "exports": [
+            "ShimmerButton",
+            "RainbowButton",
+            "PulsatingButton",
+            "RippleButton",
+            "InteractiveHoverButton"
+          ],
+          "screenIntents": [
+            "persuade",
+            "experience"
+          ],
+          "blockIntents": [
+            "hero",
+            "cta"
+          ],
+          "density": [
+            "comfortable",
+            "spacious"
+          ],
+          "motion": {
+            "requirement": "css-interaction",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [
+            "Repeated operational actions"
+          ],
+          "avoidUse": [
+            "Choose one expressive CTA treatment per screen."
+          ]
+        },
+        {
+          "id": "social-device-media",
+          "role": "Proof, device, and product demonstration frames",
+          "visualWeight": "signature",
+          "exports": [
+            "AvatarCircles",
+            "Iphone",
+            "Safari",
+            "Android",
+            "PixelImage"
+          ],
+          "screenIntents": [
+            "persuade",
+            "experience"
+          ],
+          "blockIntents": [
+            "hero",
+            "testimonial",
+            "media"
+          ],
+          "density": [
+            "comfortable",
+            "spacious"
+          ],
+          "motion": {
+            "requirement": "none",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Use only with real people, product imagery, or screenshots."
+          ]
+        },
+        {
+          "id": "progress",
+          "role": "Single-value progress visualization",
+          "visualWeight": "data",
+          "exports": [
+            "AnimatedCircularProgressBar"
+          ],
+          "screenIntents": [
+            "operate",
+            "persuade"
+          ],
+          "blockIntents": [
+            "stat-strip",
+            "media"
+          ],
+          "density": [
+            "comfortable"
+          ],
+          "motion": {
+            "requirement": "css-ambient",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Only for a meaningful bounded progress value, not decoration."
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "magic-marketing-hero",
+          "screenIntents": [
+            "persuade"
+          ],
+          "blockIntents": [
+            "hero"
+          ],
+          "density": [
+            "spacious"
+          ],
+          "purpose": "Combine one text treatment, one action, and one real product frame.",
+          "components": [
+            {
+              "exportName": "AuroraText",
+              "purpose": "one focal phrase",
+              "requiredProps": [
+                "children"
+              ]
+            },
+            {
+              "exportName": "ShimmerButton",
+              "purpose": "primary action",
+              "requiredProps": [
+                "children"
+              ]
+            },
+            {
+              "exportName": "Safari",
+              "purpose": "real product proof",
+              "requiredProps": [
+                "url or imageSrc"
+              ]
+            }
+          ],
+          "avoidUse": [
+            "Do not add a second ambient pattern unless project evidence requires it."
+          ]
+        },
+        {
+          "id": "magic-feature-bento",
+          "screenIntents": [
+            "persuade",
+            "experience"
+          ],
+          "blockIntents": [
+            "feature-grid"
+          ],
+          "density": [
+            "comfortable",
+            "spacious"
+          ],
+          "purpose": "Turn heterogeneous product capabilities into one intentional composition.",
+          "components": [
+            {
+              "exportName": "BentoGrid",
+              "purpose": "asymmetric feature structure",
+              "requiredProps": [
+                "children"
+              ]
+            },
+            {
+              "exportName": "BentoCard",
+              "purpose": "one content-rich feature",
+              "requiredProps": [
+                "name",
+                "description",
+                "className"
+              ]
+            }
+          ],
+          "avoidUse": [
+            "Not for equal unrelated metrics or repeated on every screen."
+          ]
+        },
+        {
+          "id": "magic-social-proof",
+          "screenIntents": [
+            "persuade"
+          ],
+          "blockIntents": [
+            "testimonial",
+            "logo-strip"
+          ],
+          "density": [
+            "comfortable"
+          ],
+          "purpose": "Convey breadth of real customer proof without a static logo wall.",
+          "components": [
+            {
+              "exportName": "Marquee",
+              "purpose": "bounded sequence of proof",
+              "requiredProps": [
+                "children"
+              ]
+            },
+            {
+              "exportName": "AvatarCircles",
+              "purpose": "real participant identity",
+              "requiredProps": [
+                "avatarUrls"
+              ]
+            }
+          ],
+          "avoidUse": [
+            "Not when no real proof content exists."
+          ]
+        }
+      ]
     },
     {
       "id": "aceternity-ui",
@@ -155,7 +1514,80 @@
         "BentoGrid",
         "BentoGridItem"
       ],
-      "usage": "BentoGrid takes children. BentoGridItem takes title, description, and optional header (a ReactNode) and icon (a ReactNode, not a component reference)."
+      "usage": "BentoGrid takes children. BentoGridItem takes title, description, and optional header (a ReactNode) and icon (a ReactNode, not a component reference).",
+      "componentGroups": [
+        {
+          "id": "bento-structure",
+          "role": "Asymmetric high-contrast showcase grid",
+          "visualWeight": "structural",
+          "exports": [
+            "BentoGrid",
+            "BentoGridItem"
+          ],
+          "screenIntents": [
+            "persuade",
+            "experience"
+          ],
+          "blockIntents": [
+            "hero",
+            "feature-grid",
+            "media"
+          ],
+          "density": [
+            "comfortable",
+            "spacious"
+          ],
+          "motion": {
+            "requirement": "css-interaction",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Each item needs distinct real content and hierarchy; do not repeat on every screen."
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "aceternity-feature-grid",
+          "screenIntents": [
+            "persuade",
+            "experience"
+          ],
+          "blockIntents": [
+            "feature-grid"
+          ],
+          "density": [
+            "comfortable",
+            "spacious"
+          ],
+          "purpose": "A high-contrast showcase for heterogeneous capabilities.",
+          "components": [
+            {
+              "exportName": "BentoGrid",
+              "purpose": "asymmetric composition",
+              "requiredProps": [
+                "children"
+              ]
+            },
+            {
+              "exportName": "BentoGridItem",
+              "purpose": "content-rich feature item",
+              "requiredProps": [
+                "title",
+                "description",
+                "header",
+                "icon"
+              ]
+            }
+          ],
+          "avoidUse": [
+            "Not for dense settings or uniform records."
+          ]
+        }
+      ]
     },
     {
       "id": "react-bits",
@@ -170,7 +1602,225 @@
         "Folder",
         "GradualBlur"
       ],
-      "usage": "Animated/effect components from React Bits. Wrap text or content; effects render their static resting state under SSR. StarBorder: Animated star / sparkle border orbiting content with twinkle pulses. ElectricBorder: Jittery electric energy border with animated arcs, glow and adjustable intensity. GlareHover: Adds a realistic moving glare highlight on hover over any element. GlassIcons: Icon set styled with frosted glass blur. GlassSurface: Advanced Apple-style glass surface with real-time distortion + lighting. Folder: Interactive folder opens to reveal nested content smooth motion. GradualBlur: Progressively un-blurs content based on scroll or trigger creating a cinematic reveal."
+      "usage": "Animated/effect components from React Bits. Wrap text or content; effects render their static resting state under SSR. StarBorder: Animated star / sparkle border orbiting content with twinkle pulses. ElectricBorder: Jittery electric energy border with animated arcs, glow and adjustable intensity. GlareHover: Adds a realistic moving glare highlight on hover over any element. GlassIcons: Icon set styled with frosted glass blur. GlassSurface: Advanced Apple-style glass surface with real-time distortion + lighting. Folder: Interactive folder opens to reveal nested content smooth motion. GradualBlur: Progressively un-blurs content based on scroll or trigger creating a cinematic reveal.",
+      "componentGroups": [
+        {
+          "id": "signature-borders",
+          "role": "Animated focal boundary treatments",
+          "visualWeight": "signature",
+          "exports": [
+            "StarBorder",
+            "ElectricBorder"
+          ],
+          "screenIntents": [
+            "persuade",
+            "experience"
+          ],
+          "blockIntents": [
+            "hero",
+            "cta",
+            "media"
+          ],
+          "density": [
+            "spacious"
+          ],
+          "motion": {
+            "requirement": "css-ambient",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [
+            "Dense operational controls"
+          ],
+          "avoidUse": [
+            "Use one boundary effect on one focal element."
+          ]
+        },
+        {
+          "id": "signature-surfaces",
+          "role": "Interactive glass and glare surfaces",
+          "visualWeight": "signature",
+          "exports": [
+            "GlareHover",
+            "GlassSurface"
+          ],
+          "screenIntents": [
+            "persuade",
+            "experience"
+          ],
+          "blockIntents": [
+            "hero",
+            "feature-grid",
+            "media"
+          ],
+          "density": [
+            "comfortable",
+            "spacious"
+          ],
+          "motion": {
+            "requirement": "css-interaction",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Use for a focal product or media surface, not every card."
+          ]
+        },
+        {
+          "id": "icon-composition",
+          "role": "Clustered glass icon actions",
+          "visualWeight": "structural",
+          "exports": [
+            "GlassIcons"
+          ],
+          "screenIntents": [
+            "operate",
+            "experience"
+          ],
+          "blockIntents": [
+            "navigation",
+            "feature-grid"
+          ],
+          "density": [
+            "comfortable"
+          ],
+          "motion": {
+            "requirement": "css-interaction",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Requires a small coherent action set; not a substitute for labeled primary navigation."
+          ]
+        },
+        {
+          "id": "file-interaction",
+          "role": "File/folder content interaction",
+          "visualWeight": "signature",
+          "exports": [
+            "Folder"
+          ],
+          "screenIntents": [
+            "operate",
+            "experience"
+          ],
+          "blockIntents": [
+            "list",
+            "media"
+          ],
+          "density": [
+            "comfortable"
+          ],
+          "motion": {
+            "requirement": "css-interaction",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Use only when the content model genuinely includes files or folders."
+          ]
+        },
+        {
+          "id": "depth-effect",
+          "role": "Progressive edge blur for depth/reveal",
+          "visualWeight": "decorative",
+          "exports": [
+            "GradualBlur"
+          ],
+          "screenIntents": [
+            "persuade",
+            "experience",
+            "read"
+          ],
+          "blockIntents": [
+            "hero",
+            "media",
+            "text"
+          ],
+          "density": [
+            "spacious"
+          ],
+          "motion": {
+            "requirement": "css-ambient",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Must support focus or depth; never obscure required text."
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "react-bits-product-surface",
+          "screenIntents": [
+            "persuade",
+            "experience"
+          ],
+          "blockIntents": [
+            "hero",
+            "media"
+          ],
+          "density": [
+            "spacious"
+          ],
+          "purpose": "Create one interactive product-demonstration surface.",
+          "components": [
+            {
+              "exportName": "GlassSurface",
+              "purpose": "focal product surface",
+              "requiredProps": [
+                "children"
+              ]
+            },
+            {
+              "exportName": "GlareHover",
+              "purpose": "pointer feedback over media",
+              "requiredProps": [
+                "children"
+              ]
+            }
+          ],
+          "avoidUse": [
+            "Not for every section or required form controls."
+          ]
+        },
+        {
+          "id": "react-bits-file-browser",
+          "screenIntents": [
+            "operate"
+          ],
+          "blockIntents": [
+            "list",
+            "media"
+          ],
+          "density": [
+            "comfortable"
+          ],
+          "purpose": "Represent a real file-oriented workflow with a distinct interaction.",
+          "components": [
+            {
+              "exportName": "Folder",
+              "purpose": "recognisable file collection interaction",
+              "requiredProps": [
+                "items"
+              ]
+            }
+          ],
+          "avoidUse": [
+            "Not for generic cards or abstract features."
+          ]
+        }
+      ]
     }
   ],
   "charts": [
@@ -186,7 +1836,244 @@
         "LineChart",
         "Sparkline"
       ],
-      "usage": "Every chart takes data: { label: string; value: number }[] and a label string for accessibility. DonutChart also takes centerLabel and derives the center total from the data. Charts inherit brand color from currentColor — set it with a text-* class on the chart or an ancestor. Give each chart a sized container (for example h-48) because they fill their parent."
+      "usage": "Every chart takes data: { label: string; value: number }[] and a label string for accessibility. DonutChart also takes centerLabel and derives the center total from the data. Charts inherit brand color from currentColor \u2014 set it with a text-* class on the chart or an ancestor. Give each chart a sized container (for example h-48) because they fill their parent.",
+      "componentGroups": [
+        {
+          "id": "comparison-charts",
+          "role": "Deterministic charts for trends and categorical comparisons",
+          "visualWeight": "data",
+          "exports": [
+            "AreaChart",
+            "BarChart",
+            "LineChart"
+          ],
+          "screenIntents": [
+            "operate",
+            "read",
+            "persuade"
+          ],
+          "blockIntents": [
+            "table",
+            "stat-strip",
+            "media"
+          ],
+          "density": [
+            "compact",
+            "comfortable"
+          ],
+          "motion": {
+            "requirement": "none",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Only use with real ordered or categorical data and labeled axes/context."
+          ]
+        },
+        {
+          "id": "part-to-whole-chart",
+          "role": "Deterministic composition chart",
+          "visualWeight": "data",
+          "exports": [
+            "DonutChart"
+          ],
+          "screenIntents": [
+            "operate",
+            "read",
+            "persuade"
+          ],
+          "blockIntents": [
+            "stat-strip",
+            "media"
+          ],
+          "density": [
+            "comfortable"
+          ],
+          "motion": {
+            "requirement": "none",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Use only when parts sum to a meaningful whole; limit slices."
+          ]
+        },
+        {
+          "id": "inline-trend",
+          "role": "Compact trend within a data row or summary",
+          "visualWeight": "data",
+          "exports": [
+            "Sparkline"
+          ],
+          "screenIntents": [
+            "operate",
+            "read"
+          ],
+          "blockIntents": [
+            "table",
+            "stat-strip"
+          ],
+          "density": [
+            "compact"
+          ],
+          "motion": {
+            "requirement": "none",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Always pair with a current value and context; not a standalone chart."
+          ]
+        },
+        {
+          "id": "chart-legend",
+          "role": "Shared series explanation",
+          "visualWeight": "supporting",
+          "exports": [
+            "ChartLegend"
+          ],
+          "screenIntents": [
+            "operate",
+            "read",
+            "persuade"
+          ],
+          "blockIntents": [
+            "table",
+            "stat-strip",
+            "media"
+          ],
+          "density": [
+            "compact",
+            "comfortable"
+          ],
+          "motion": {
+            "requirement": "none",
+            "purpose": "Only when it communicates state, hierarchy, or spatial continuity."
+          },
+          "runtime": "static-safe",
+          "requiredStaticState": "Visible, complete, and legible before hover or animation starts.",
+          "incompatibilities": [],
+          "avoidUse": [
+            "Use only for multi-series or categorical charts that need decoding."
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "trend-analysis",
+          "screenIntents": [
+            "operate",
+            "read"
+          ],
+          "blockIntents": [
+            "table",
+            "media"
+          ],
+          "density": [
+            "compact",
+            "comfortable"
+          ],
+          "purpose": "Show a real time-series relationship with labeled context.",
+          "components": [
+            {
+              "exportName": "AreaChart",
+              "purpose": "time-series magnitude and trend",
+              "requiredProps": [
+                "data",
+                "label"
+              ]
+            },
+            {
+              "exportName": "ChartLegend",
+              "purpose": "series identity when multiple series exist",
+              "requiredProps": [
+                "items"
+              ]
+            }
+          ],
+          "avoidUse": [
+            "Not for a row of unrelated totals."
+          ]
+        },
+        {
+          "id": "category-comparison",
+          "screenIntents": [
+            "operate",
+            "read"
+          ],
+          "blockIntents": [
+            "table",
+            "stat-strip"
+          ],
+          "density": [
+            "compact",
+            "comfortable"
+          ],
+          "purpose": "Compare categories on a shared quantitative scale.",
+          "components": [
+            {
+              "exportName": "BarChart",
+              "purpose": "categorical magnitude comparison",
+              "requiredProps": [
+                "data",
+                "label"
+              ]
+            },
+            {
+              "exportName": "ChartLegend",
+              "purpose": "category/series meaning when required",
+              "requiredProps": [
+                "items"
+              ]
+            }
+          ],
+          "avoidUse": [
+            "Not when a semantic table is clearer."
+          ]
+        },
+        {
+          "id": "composition-breakdown",
+          "screenIntents": [
+            "operate",
+            "read"
+          ],
+          "blockIntents": [
+            "stat-strip",
+            "media"
+          ],
+          "density": [
+            "comfortable"
+          ],
+          "purpose": "Explain composition with a bounded number of slices.",
+          "components": [
+            {
+              "exportName": "DonutChart",
+              "purpose": "parts of a meaningful whole",
+              "requiredProps": [
+                "data",
+                "label",
+                "centerLabel"
+              ]
+            },
+            {
+              "exportName": "ChartLegend",
+              "purpose": "slice labels",
+              "requiredProps": [
+                "items"
+              ]
+            }
+          ],
+          "avoidUse": [
+            "Not for values that do not sum to a whole."
+          ]
+        }
+      ]
     }
   ]
 }

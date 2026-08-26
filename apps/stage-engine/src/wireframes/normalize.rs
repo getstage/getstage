@@ -536,7 +536,9 @@ fn has_visible_layout(lower: &str) -> bool {
                     .unwrap_or(lower.len());
                 let visible = lower[value_start..value_end]
                     .split(|c: char| c.is_ascii_whitespace() || c == ':')
-                    .any(|token| matches!(token.split('-').next(), Some("flex" | "block" | "grid")));
+                    .any(|token| {
+                        matches!(token.split('-').next(), Some("flex" | "block" | "grid"))
+                    });
                 if visible {
                     return true;
                 }
@@ -743,10 +745,31 @@ fn normalize_block(block: &JsonValue, section_id: &str, index: usize) -> Option<
     entry.insert("kind".to_string(), json!(kind));
     entry.insert("intent".to_string(), json!(intent));
     entry.insert("emphasis".to_string(), json!(emphasis));
-    if let Some(copy_slots) = object.get("copySlots").cloned()
-        && !copy_slots.is_null()
+    if let Some(copy_slots) = object.get("copySlots")
+        && copy_slots.is_object()
     {
-        entry.insert("copySlots".to_string(), copy_slots);
+        // Coerce array/object slot values to strings so client Zod never rejects a
+        // finished run (models often emit ["a","b"] for links/items).
+        let mut normalized = JsonMap::new();
+        if let Some(map) = copy_slots.as_object() {
+            for (key, value) in map {
+                let as_string = match value {
+                    JsonValue::String(text) => text.clone(),
+                    JsonValue::Null => String::new(),
+                    JsonValue::Array(items) => items
+                        .iter()
+                        .map(|item| match item {
+                            JsonValue::String(text) => text.clone(),
+                            other => other.to_string(),
+                        })
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    other => other.to_string(),
+                };
+                normalized.insert(key.clone(), JsonValue::String(as_string));
+            }
+        }
+        entry.insert("copySlots".to_string(), JsonValue::Object(normalized));
     }
     if let Some(notes) = object.get("notes").and_then(JsonValue::as_str) {
         entry.insert("notes".to_string(), json!(notes));

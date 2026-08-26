@@ -427,7 +427,10 @@ mod tests {
 
         let inlined = inline_styles_for_paper(fragment);
 
-        assert!(inlined.contains("style="), "expected inline styles on elements");
+        assert!(
+            inlined.contains("style="),
+            "expected inline styles on elements"
+        );
         assert!(inlined.contains("display: flex"));
         assert!(inlined.contains("color: #fff"));
         // A raw fallback would keep the un-inlined <style> block; it must be gone.

@@ -20,7 +20,7 @@ export type ProjectAiRun = {
   connectionId: string | null;
   module: ProjectAiModule;
   title: string;
-  status: "draft" | "running" | "completed" | "failed" | "needs_input";
+  status: "draft" | "running" | "completed" | "failed" | "cancelled" | "needs_input";
   trigger: "user" | "agent";
   externalRunId: string | null;
   inputSummary: string | null;

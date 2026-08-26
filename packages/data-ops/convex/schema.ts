@@ -277,6 +277,7 @@ const aiRunStatus = v.union(
   v.literal("running"),
   v.literal("completed"),
   v.literal("failed"),
+  v.literal("cancelled"),
   v.literal("needs_input"),
 );
 
@@ -406,8 +407,7 @@ export default defineSchema({
     endDate: v.number(),
     progress: v.number(),
     // Skills / component libraries chosen for this project (Integrations catalog ids).
-    // Absent = never chosen → Hi-Fi generation falls back to the account prefs, then to
-    // the built-in Design Taste default. `[]` = explicitly none.
+    // Skills are opt-in. Absent and `[]` both mean that no design skill is selected.
     skillIds: v.optional(v.array(v.string())),
     componentPackIds: v.optional(v.array(v.string())),
     // Reserved for a future re-integration of Edit Workflow (removed 2026-07-30). Kept as
@@ -741,6 +741,21 @@ export default defineSchema({
     .index("by_project_startedAt", ["projectId", "startedAt"])
     .index("by_user", ["userId"]),
 
+  projectAiRunCheckpoints: defineTable({
+    userId: v.id("users"),
+    projectId: v.id("projects"),
+    runId: v.id("projectAiRuns"),
+    kind: v.union(v.literal("design-plan"), v.literal("screen")),
+    screenId: v.optional(v.string()),
+    contentJson: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_run", ["runId"])
+    .index("by_run_kind_screen", ["runId", "kind", "screenId"])
+    .index("by_user", ["userId"]),
+
   projectAiArtifacts: defineTable({
     userId: v.id("users"),
     projectId: v.id("projects"),
@@ -944,6 +959,28 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_createdAt", ["createdAt"])
     .index("by_user_createdAt", ["userId", "createdAt"]),
+
+  wireframeCatalogComponents: defineTable({
+    componentId: v.string(),
+    library: v.string(),
+    name: v.string(),
+    kind: v.string(),
+    sourceRevision: v.string(),
+    sourceBundleKey: v.string(),
+    verified: v.boolean(),
+    updatedAt: v.number(),
+  }).index("by_componentId", ["componentId"]),
+
+  r2DeletionQueue: defineTable({
+    key: v.string(),
+    attempts: v.number(),
+    nextAttemptAt: v.number(),
+    lastError: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_key", ["key"])
+    .index("by_nextAttemptAt", ["nextAttemptAt"]),
 
   // Audit + idempotency for the email drip engine. One row per (user, event);
   // recordEmailEvent no-ops if a row already exists, so retries/double-clicks

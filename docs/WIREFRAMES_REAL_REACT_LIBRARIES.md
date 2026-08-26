@@ -27,19 +27,161 @@
 
 ## 1.1 Quality model (provider-neutral)
 
-Real components are ingredients, not the quality system. Claude and Codex receive the same Stage prompt and must follow the same compact contract:
+Real components are ingredients, not the quality system. Claude and Codex receive the same semantic contract through a **run-local, read-only provider workspace** instead of one repeated mega-prompt.
 
-1. **Run-level design system:** one aesthetic thesis plus shared typography, palette roles, spacing, radius, elevation, density, variance, and motion vocabulary across every parallel screen.
-2. **Page-specific override:** screen purpose and information hierarchy decide density, composition, and which component recipe fits.
-3. **Semantic component fit:** use a signature component only when it serves the content. Decorative effects do not count as structure; charts require meaningful data relationships.
-4. **Purposeful motion:** motion explains state, space, feedback, or a feature. High-frequency interactions stay restrained; first-time/showcase moments may carry delight. Every static resting frame remains complete for Figma.
-5. **Deterministic quality gate:** inspect the returned TSX and repair only screens that are missing, invalid, generic despite a fitting recipe, visually repetitive, or inconsistent with the shared system.
+1. **Explicit context manifest:** Stage materializes every permitted input as a named file and records its path, role, size, hash, and access policy in `context-manifest.json`.
+2. **Required reads are exact:** every provider call receives an explicit ordered list of the files it must read. There is no vague “inspect the workspace” instruction.
+3. **Large references are searchable, not mandatory:** full component examples and sanitized skill references remain available on demand. Requiring every screen call to read every large file would recreate the current token and latency problem through tool calls.
+4. **Run-level design system:** one validated design plan governs typography, palette roles, spacing, radius, elevation, density, variance, and motion across all screens.
+5. **Page-specific execution:** each screen reads the shared plan plus its own brief, relevant flow, selected skill adapters, selected library metadata, and visual assets.
+6. **Deterministic gates:** Stage audits context access, response integrity, rendering, plan conformance, and cross-screen consistency before saving.
 
-Skill source files are reference material. Provider/plugin instructions, CLI commands, and “respond only” behavior are not injected into generation prompts. Stage injects only adapted design guidance or a queried product-specific slice.
+**Skill selection rule:** no skill is automatic. An empty selection exposes no skill. Selected skills are stored as concise Stage adapters plus sanitized reference material; raw provider/plugin commands are never exposed as instructions.
+
+### Generalization contract — preserve individual characteristics
+
+- Each explicitly selected skill declares its role, applicability, conflicts, concise Stage guidance, and optional sanitized reference files.
+- Each component declares semantic role, visual weight, required props, motion/runtime needs, complete static resting state, suitable density/screen types, incompatibilities, and anti-use cases.
+- Each selected library exposes a compact catalog and real composition examples. Component source is available on demand when exact API details are needed.
+- The quality gate combines universal invariants with the selected skill/library metadata. It never treats component count as quality.
+
+## 1.2 Run-local provider workspace (approved target)
+
+For each wireframe run, the Rust engine creates one isolated directory owned by Stage:
+
+```text
+<system-temp>/stage-wireframes-workspaces/<run-id>-<nonce>.ready/
+├── context-manifest.json
+├── contracts/
+│   ├── runtime.md
+│   └── output-schema.json
+├── project/
+│   ├── research.md
+│   ├── strategy.md
+│   └── flows.json
+├── design/
+│   ├── style-guide.json
+│   ├── design-plan.json
+│   └── assets/
+│       └── moodboard-01.png
+├── skills/
+│   └── <selected-skill>/
+│       ├── adapter.md
+│       └── references/
+├── libraries/
+│   └── <selected-library>/
+│       ├── catalog.json
+│       ├── recipes.json
+│       └── examples/
+└── screens/
+    └── <screen-id>/
+        ├── brief.json
+        ├── relevant-flow.json
+        └── existing.tsx
+```
+
+`context-manifest.json` is the source of truth. Every entry contains:
+
+- exact relative path;
+- semantic role;
+- byte size and SHA-256 digest;
+- `required` or `onDemand` access policy;
+- applicable call: Design Director, a named screen, repair, or all;
+- sensitivity and provenance.
+
+Before a provider starts, Stage derives a **call manifest** and names every required file one by one in the short stdin prompt. Claude receives explicit read permissions for those paths. Codex receives the workspace as its read-only working directory. Provider-specific process arguments may differ; the semantic file contract must remain identical.
+
+### Workspace lifecycle — no ghost context
+
+A provider workspace has one owner and a strict state machine:
+
+```text
+Building → Ready → InUse → Deleting → Deleted
+                 ↘ failure/cancel/timeout ↗
+```
+
+1. **Create uniquely:** Stage uses `create_dir_new` for `<run-id>-<random-nonce>.building` with owner-only permissions. A path collision fails; it never opens or cleans an existing directory for use.
+2. **Seal atomically:** Stage writes the selected source context and `context-manifest.json`, then atomically renames `.building` to `.ready`. Providers cannot start against `Building`. Stage may append generated plans, per-call manifests, and checkpoints atomically during `InUse`; it refreshes the manifest and integrity-checks all registered files before and after provider calls.
+3. **Lease while active:** `.stage-workspace.json` contains the run ID, random engine-instance ID, owner PID, lifecycle state, and an expiry longer than the bounded provider-call timeout. Stage refreshes it before each call; no provider session outlives that bound.
+4. **Read-only execution:** all provider children are started inside `InUse`; no provider writes are accepted. Stage waits for or kills and joins every child before cleanup.
+5. **Close on every terminal path:** the Rust workflow scope owns the workspace guard. Success, provider failure, validation failure, timeout, and user cancellation first finish or kill/join provider children; scope exit then invokes the same guard cleanup, including early returns and propagated errors.
+6. **Tombstone before deletion:** close atomically renames the directory to `.deleting`, making reuse impossible, then recursively removes it. A failed remove leaves only a non-runnable tombstone.
+7. **Recover after a crash:** each workspace creation runs a bounded janitor over only Stage-marked `.building`, `.ready`, `.in-use`, and `.deleting` directories whose lease expired. It never deletes an unmarked path or an unexpired bounded-call lease.
+8. **Separate debug evidence:** the provider workspace is always removed. Development debug dumps may copy a sanitized manifest/access report/prompt/output into a different debug directory with an explicit TTL. Production keeps no workspace copy. The same janitor prunes expired debug dumps.
+
+No new run imports from an old workspace. Scoped regeneration creates a new workspace and copies only the saved artifact/design-plan inputs named by the new manifest, then hashes them again.
+
+### Separation from Convex and R2 durable storage
+
+The provider workspace is local ephemeral input. It is never uploaded to R2 and no workspace path or raw workspace file is written to Convex. Only validated wireframe artifacts and rendered outputs enter durable storage.
+
+Current durable cleanup behavior:
+
+- a successful replacement calls `deletePreviousWireframesArtifacts`, collects every R2 key from the previous artifact JSON, attempts each R2 delete, and removes the old `projectAiArtifacts` row before inserting the replacement;
+- clearing selected screens collects those screens' R2 keys; the shared CSS key is removed only with the final screen;
+- deleting project AI data uses the same recursive R2-key collection;
+- newly uploaded objects that never become referenced remain in `uploadedAssets`; the hourly prune checks references and removes pending uploads older than 24 hours.
+
+**Implemented 2026-08-11; live failure/retry scenario still unverified:** `deleteOldR2Asset` now creates a durable `r2DeletionQueue` tombstone before attempting physical deletion. A failure retains the key with exponential backoff; an hourly mutation retries it; a live reference defers deletion; and the queue row plus upload tracking are removed only after R2 deletion succeeds (including provider-confirmed absence). Artifact replacement, screen clearing, project cleanup, and abandoned-upload pruning all continue through the shared helper.
+
+### Required-read policy
+
+A call may not rely on “read everything.” Stage explicitly lists every required path. The provider must read all required files before answering. Large optional references are listed in the manifest but opened only when needed.
+
+Typical Design Director required set:
+
+1. runtime contract;
+2. project research and strategy summaries;
+3. target-screen list and relevant flows;
+4. style-guide JSON and attached moodboard images;
+5. selected skill adapters;
+6. selected library catalogs and recipes.
+
+Typical per-screen required set:
+
+1. runtime and output contracts;
+2. validated shared `design-plan.json`;
+3. that screen's brief and relevant flow;
+4. style-guide JSON and visual assets;
+5. selected skill adapters applicable to that screen;
+6. selected library catalog entries and recipes applicable to that screen.
+
+### Runtime context-access audit
+
+Stage records an audit row for every call:
+
+| File | Policy | Expected | Observed provider read | Hash matched | Result |
+|------|--------|----------|------------------------|--------------|--------|
+| `design/style-guide.json` | required | yes | event from provider trace | yes | pass/fail |
+| `libraries/magic-ui/recipes.json` | required for planned screen | yes | event from provider trace | yes | pass/fail |
+| `libraries/magic-ui/examples/*` | on demand | no | optional | yes when read | informational |
+
+A missing required read fails the context gate before output is accepted. This requires structured provider event capture: Claude/Codex text output alone cannot prove which files were opened. The debug dump stores the workspace manifest, per-call manifest, observed read events, prompt, output, render summary, and final gate report.
+
+### Performance contract and trade-offs
+
+This architecture should reduce repeated input tokens and overall wall time for multi-screen runs because shared context is materialized once and large references are opened selectively. Local file creation is negligible compared with provider generation.
+
+It is **not automatically faster** if every screen is forced to read every file: file-tool round trips add latency and the model still consumes the contents as context. Therefore:
+
+- list every available file in the manifest;
+- require every small, relevant file explicitly;
+- keep large source/example collections on demand;
+- reuse the persisted design plan during scoped regeneration;
+- measure first-token time, provider duration, input tokens, required-read coverage, and total run time against the current inline-prompt baseline.
+
+Costs and risks:
+
+- provider event formats differ and need adapters;
+- workspace lifecycle, cleanup, size limits, path normalization, and concurrent-run isolation become security-critical;
+- local files do not remove model context limits after the model reads them;
+- weak manifests can omit important context, while oversized required sets recreate the existing problem;
+- image support remains provider-specific at process level, even though Stage exposes the same asset contract;
+- file-read evidence proves access, not comprehension, so render and visual acceptance gates remain necessary.
 
 ---
 
-## 2. How it will work (target — same shape as today's diagnosis)
+## 2. How it will work## 2. How it will work (target — same shape as today's diagnosis)
 
 Today: *small local subset → model writes TSX → flatten to HTML.*  
 Target: *fetch/vendor real libraries → model writes TSX with Motion → live React in app, static capture only for Figma.*
@@ -85,13 +227,15 @@ So: one TSX source of truth, **two consumers** — live React (app), static fram
 
 ### 2.6 Work order (short)
 
-1. **R1** — Live React preview (architecture of the two consumers). **Done.**  
-2. **R2** — Allow Motion on the live path. **Done** (allowed; model still under-uses → Q1).  
-3. **R3a** — Vendor static-safe showcase pieces. **Partial.**  
-4. **Q1** — Prompt pressure so showcase comps + motion are actually used (see audit). **Next.**  
-5. **R3b** — Vendor Motion set once Q1 demands them.  
-6. **R5** — Explicit Figma static capture. **Done.**  
-7. **Skills** — Taste React rewrite, ui-ux-pro-max lookup, Emil/motion actually useful.
+1. **R1/R2** — Live React + Motion preview. **Done.**
+2. **W0** — Freeze the current inline-prompt baseline and remove hidden automatic skill selection.
+3. **W1** — Build an isolated run workspace plus hashed context and per-call manifests.
+4. **W2** — Give Claude/Codex exact read access and capture structured file-read events.
+5. **W3** — Replace repeated context blobs with short manifest-driven Design Director and per-screen prompts.
+6. **W4** — Persist the validated design plan and checkpoint each successful screen independently.
+7. **W5** — Gate required reads, response integrity, rendering, plan conformance, and bounded repair.
+8. **W6** — Compare speed, token use, coverage, and visual quality on the same four-screen Claude/Codex set.
+9. **R3b** — Vendor more components only when acceptance evidence proves a recipe gap.
 
 Progress tracker + **quality diagnosis from real dumps**: [`WIREFRAMES_REAL_REACT_AUDIT.md`](WIREFRAMES_REAL_REACT_AUDIT.md) (§ Quality diagnosis).
 

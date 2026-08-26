@@ -39,8 +39,7 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
   const projectId = project.id;
   const wireframesArtifact = useWireframesArtifact(projectId);
   const wireframesRun = useWireframesRun(projectId);
-  const { resolvedProviderId, providerOptions, selectedProviderId, selectProvider } =
-    useProjectAiProvider(projectId);
+  const { providerOptions, selectedProviderId, selectProvider } = useProjectAiProvider(projectId);
   const providerRequired = useProviderRequired();
   const [error, setError] = useState<string | null>(null);
 
@@ -48,21 +47,34 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
     setError(null);
   }, [projectId]);
 
-  const requireProviderId = useCallback(
-    (providerId: ProviderId | null, action: "generating" | "regenerating"): ProviderId => {
-      if (providerId) {
-        return providerId;
+  // Wireframes runs the provider shown as selected in the UI. No project-history
+  // override, no "first ready provider" fallback — that sent Claude while Codex
+  // was highlighted.
+  const requireSelectedProvider = useCallback(
+    (action: "generating" | "regenerating"): ProviderId => {
+      if (!selectedProviderId) {
+        const message =
+          action === "regenerating"
+            ? "Select Claude or Codex before regenerating Wireframes."
+            : "Select Claude or Codex before generating Wireframes.";
+        providerRequired.show(message);
+        throw new Error(message);
       }
 
-      const message =
-        providerOptions.find((option) => option.statusMessage)?.statusMessage ??
-        (action === "regenerating"
-          ? "Connect Claude or Codex in Settings before regenerating Wireframes."
-          : "Connect Claude or Codex in Settings before generating Wireframes.");
-      providerRequired.show(message);
-      throw new Error(message);
+      const option = providerOptions.find((entry) => entry.id === selectedProviderId);
+      if (!option?.selectable) {
+        const message =
+          option?.statusMessage ??
+          (action === "regenerating"
+            ? "Connect Claude or Codex in Settings before regenerating Wireframes."
+            : "Connect Claude or Codex in Settings before generating Wireframes.");
+        providerRequired.show(message);
+        throw new Error(message);
+      }
+
+      return selectedProviderId;
     },
-    [providerOptions, providerRequired],
+    [providerOptions, providerRequired, selectedProviderId],
   );
 
   const generateWireframes = useCallback(
@@ -73,7 +85,6 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
       styleDirectionId?: string | null;
       brandKitKeys: string[];
       brandKitLoading?: boolean;
-      providerId?: ProviderId;
       screenIds?: string[];
     }): Promise<WireframesArtifactRecord | null> => {
       setError(null);
@@ -98,10 +109,7 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
         throw new Error(brandKitGuardError);
       }
 
-      const runProviderId = requireProviderId(
-        input.providerId ?? resolvedProviderId,
-        "generating",
-      );
+      const runProviderId = requireSelectedProvider("generating");
 
       try {
         await wireframesRun.startWireframes(
@@ -123,7 +131,7 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
 
       return wireframesArtifact.data;
     },
-    [requireProviderId, resolvedProviderId, wireframesArtifact.data, wireframesRun],
+    [requireSelectedProvider, wireframesArtifact.data, wireframesRun],
   );
 
   const regenerateScreens = useCallback(
@@ -134,7 +142,6 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
       styleDirectionId?: string | null;
       brandKitKeys: string[];
       brandKitLoading?: boolean;
-      providerId?: ProviderId;
     }) => {
       if (input.screenIds.length === 0) {
         return;
@@ -151,10 +158,7 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
         throw new Error(brandKitGuardError);
       }
 
-      const runProviderId = requireProviderId(
-        input.providerId ?? resolvedProviderId,
-        "regenerating",
-      );
+      const runProviderId = requireSelectedProvider("regenerating");
 
       try {
         await wireframesRun.startWireframes(
@@ -175,7 +179,7 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
         throw runError;
       }
     },
-    [requireProviderId, resolvedProviderId, wireframesRun],
+    [requireSelectedProvider, wireframesRun],
   );
 
   // Screens the live run is producing. Every run is scoped now, so this covers a

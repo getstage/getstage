@@ -24,7 +24,7 @@ import { useProviderRequired } from "@/components/app/ProviderRequiredDialog";
 const WIREFRAMES_PROMPT =
   "Generate Stage wireframes from the current project context.";
 const WIREFRAMES_RUN_FAILED_USER_MESSAGE =
-  "Wireframes generation failed. Check that Stage Engine is running and the selected provider is configured.";
+  "Something went wrong while generating Wireframes. Your existing screens are unchanged. Please try again.";
 
 const WIREFRAMES_EVENT_STALL_MS = 20_000;
 const WIREFRAMES_RUN_MAX_MS = 20 * 60 * 1000;

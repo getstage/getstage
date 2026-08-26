@@ -386,6 +386,8 @@ export function runStatusLabel(status: ProjectAiRun["status"] | undefined) {
       return "Needs input";
     case "failed":
       return "Failed";
+    case "cancelled":
+      return "Cancelled";
     case "completed":
       return "Complete";
     default:
@@ -403,6 +405,8 @@ export function runStatusTone(status: ProjectAiRun["status"] | undefined): "succ
       return "warning";
     case "failed":
       return "danger";
+    case "cancelled":
+      return "neutral";
     default:
       return "success";
   }

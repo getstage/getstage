@@ -1,48 +1,30 @@
 ---
 name: impeccable-stage
-description: Stage-adapted pbakaus/impeccable skill for Hi-Fi wireframe HTML.
+description: Craft and refinement guidance for Stage Hi-Fi React screens.
 source: https://github.com/pbakaus/impeccable
 ---
 
 # Stage Hi-Fi — Impeccable
 
-Apply when generating Stage `generatedScreens[].html` fragments.
-Upstream Impeccable is a CLI with slash commands (`/impeccable polish`, `critique`, `audit`) that read
-`PRODUCT.md` and `DESIGN.md` from a real repo. Stage has no such filesystem during generation, so only the
-design posture and the visitor-mode framing carry over.
+**Role:** refine the chosen direction to a high craft floor. Impeccable does not replace the project brief or invent a second style.
 
-## 1. Posture
+## Choose the screen mode
 
-Approach the screen as an award-winning design director, not a safe generalist: a clear point of view, deep
-understanding of the client and users, and exceptional craft. Go all out — no hedging. The screen must be
-complete, not a sketch with placeholders.
+- **Persuade:** earn attention and action on landing, marketing, and pricing screens.
+- **Operate:** maximise scanability, consistency, and task confidence in product UI.
+- **Read:** structure content for comprehension in documents, guides, and reports.
+- **Experience:** let the work lead in portfolios, galleries, and showcases.
 
-## 2. The brief wins
+Choose from the screen's purpose, not the product category. Sibling screens may have different modes while sharing one design system.
 
-Honour the aesthetics, era, materials, fonts, and palette pinned by the moodboard, style guide, or brand kit —
-even when they conflict with your own taste or with a saturated-pattern warning. Redirecting a clear brief
-toward your preference is failure.
+## Craft floor
 
-## 3. Pick the visitor mode first
+- Honour the moodboard, style guide, brand kit, and shared design plan even when personal taste differs.
+- Finish optical alignment, balanced whitespace, heading wraps, icon weight, rhythm, focus states, and content density.
+- Make the screen complete: no generic placeholders, empty decorative cards, fake charts, or controls without states.
+- Preserve meaningful asymmetry and hierarchy; do not polish every region into identical rounded containers.
+- Use exact project language. Remove filler labels, redundant helper text, and decoration that competes with the primary task.
 
-The mode names what success looks like *on this screen*, chosen from the surface — not from the product.
+## Bounded inspection
 
-| Mode | Visitor's success | Screens | What wins |
-|---|---|---|---|
-| **Persuade** | Decides and acts | Landing, marketing, pricing, campaign | Design is the product. Earn attention and action. |
-| **Operate** | Completes a task | App UI, dashboard, editor, admin, settings | Scanability, consistency, native expectations. Brand lives in precise details. |
-| **Read** | Understands something | Docs, articles, guides, changelog | Structure for comprehension, then make reading worth staying in. |
-| **Experience** | Is inside the work | Portfolio, gallery, showcase | The artifact leads from the first viewport; the interface recedes. |
-
-A tool's landing page is still Persuade. A fashion house's documentation is still Read. Choose per screen, and
-let sibling screens in the same set differ.
-
-## 4. Craft floor
-
-Every screen carries the details no detector catches: optical alignment over mathematical alignment, one icon
-weight, balanced whitespace, no orphaned or widowed lines in headings, and consistent rhythm between sections.
-
-## 5. Verify once, then stop
-
-Do a single inspection pass over the finished fragment and fix everything it surfaces in one batch. Do not
-polish in an open loop.
+Inspect once after composition: hierarchy, alignment, spacing, typography, contrast, interaction states, static resting frame, and responsive overflow. Fix the discovered defects in one batch. Do not enter an open-ended polishing loop.

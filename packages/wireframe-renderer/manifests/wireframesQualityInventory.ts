@@ -62,7 +62,7 @@ export type SkillInventoryEntry = {
   /** Upstream has a newer major shape Stage has not re-vendored. */
   status: InventoryStatus;
   /** What the skill is for (fact, not a product decision). */
-  role: "taste" | "design" | "ux-db" | "craft" | "motion" | "frontend";
+  role: "design" | "ux-db" | "craft" | "motion" | "frontend";
   /** Approx chars currently injected (digest + source where applicable). */
   approxPromptChars: number;
   notes: string;
@@ -72,24 +72,6 @@ export type SkillInventoryEntry = {
 
 export const WIREFRAME_SKILLS: readonly SkillInventoryEntry[] = [
   {
-    id: "design-taste-frontend",
-    name: "Design Taste (taste-skill)",
-    upstreamUrl: "https://github.com/Leonxlnx/taste-skill",
-    stageSkillPath: "apps/stage-engine/skills/design-taste-frontend/",
-    injectedWhenEnabled: true,
-    status: "stale",
-    role: "taste",
-    approxPromptChars: 4_000,
-    notes:
-      "Stage digest still says HTML + one <style> block (v1 era). Upstream default is now v2 / Tailwind-native. Digest-only (source is ~87KB). Appended LAST so its bans win skill conflicts.",
-    needs: [
-      "Re-vendor Taste v2 (or current upstream SKILL.md)",
-      "Rewrite Stage adapter for React/Tailwind Hi-Fi (tsx is the design)",
-      "Remove or rewrite the 'not shipping React/Tailwind' line",
-      "Decide whether to keep digest-only or include a tighter v2 slice",
-    ],
-  },
-  {
     id: "frontend-design",
     name: "Frontend Design",
     upstreamUrl:
@@ -98,9 +80,9 @@ export const WIREFRAME_SKILLS: readonly SkillInventoryEntry[] = [
     injectedWhenEnabled: true,
     status: "ok",
     role: "frontend",
-    approxPromptChars: 8_000,
-    notes: "Anthropic skill. Digest + SOURCE appended. General product UI craft.",
-    needs: ["Re-read against React Hi-Fi path; confirm no HTML-era contradictions"],
+    approxPromptChars: 2_300,
+    notes: "Concise React/Tailwind adapter for subject-specific visual direction and composition. Upstream source remains vendored offline only.",
+    needs: [],
   },
   {
     id: "ui-ux-pro-max",
@@ -108,17 +90,12 @@ export const WIREFRAME_SKILLS: readonly SkillInventoryEntry[] = [
     upstreamUrl: "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
     stageSkillPath: "apps/stage-engine/skills/ui-ux-pro-max/",
     injectedWhenEnabled: true,
-    status: "stale",
+    status: "ok",
     role: "ux-db",
-    approxPromptChars: 23_000,
+    approxPromptChars: 2_300,
     notes:
-      "Upstream is a searchable DB (scripts + CSVs: styles, palettes, fonts, UX rules, product types). Stage pastes prose/corpus into every screen prompt instead of querying.",
-    needs: [
-      "Vendor upstream CSV/data files into stage-engine",
-      "Add engine-side lookup keyed by project_type (+ moodboard vibe)",
-      "Inject only the matched slice (~2-3KB), not the full corpus",
-      "Stop treating the skill as a wall of text",
-    ],
+      "Concise React/Tailwind adapter for design-system coherence, usability, accessibility, and responsive behavior. Upstream corpus remains vendored offline only.",
+    needs: ["Optional later enhancement: query the vendored upstream datasets for one project-specific style slice"],
   },
   {
     id: "impeccable",
@@ -128,9 +105,9 @@ export const WIREFRAME_SKILLS: readonly SkillInventoryEntry[] = [
     injectedWhenEnabled: true,
     status: "ok",
     role: "craft",
-    approxPromptChars: 11_000,
-    notes: "Craft/anti-pattern skill. Digest + SOURCE appended.",
-    needs: ["Confirm React/Tailwind wording; keep as craft pass"],
+    approxPromptChars: 1_700,
+    notes: "Concise React/Tailwind craft adapter with visitor-mode framing and one bounded inspection pass.",
+    needs: [],
   },
   {
     id: "emil-design-eng",
@@ -141,14 +118,10 @@ export const WIREFRAME_SKILLS: readonly SkillInventoryEntry[] = [
     injectedWhenEnabled: true,
     status: "ok",
     role: "motion",
-    approxPromptChars: 27_000,
+    approxPromptChars: 1_900,
     notes:
-      "KEEP — product wants motion skills. Upstream repo also has animate, review-animations, improve-animations, find-animation-opportunities, animation-vocabulary, apple-design, pick-ui-library, prototype, ask-sonner. Stage only vendors emil-design-eng today. Renderer is static SSR today: JS-driven motion shows resting state only; CSS hover/keyframes survive.",
-    needs: [
-      "Adapt Stage wrapper so motion guidance maps to what the current renderer can show (CSS + hover) AND what a future live preview can show (JS)",
-      "Decide which sibling Emil skills to vendor later (animate, review-animations, etc.) — not decided here",
-      "Do NOT remove from catalog",
-    ],
+      "Concise React/Motion adapter for interaction craft, frequency-aware animation, accessibility, and a complete static resting frame.",
+    needs: ["Decide which sibling Emil skills to vendor later only if a concrete workflow requires them"],
   },
   {
     id: "design-motion-principles",
@@ -158,13 +131,10 @@ export const WIREFRAME_SKILLS: readonly SkillInventoryEntry[] = [
     injectedWhenEnabled: true,
     status: "ok",
     role: "motion",
-    approxPromptChars: 7_000,
+    approxPromptChars: 1_900,
     notes:
-      "KEEP — product wants motion skills. Upstream is principles + audit modes (incl. Framer Motion examples). Stage injects digest + SOURCE.",
-    needs: [
-      "Adapt Stage wrapper for static render + future live preview",
-      "Do NOT remove from catalog",
-    ],
+      "Concise React/Motion adapter for run-level choreography, spatial continuity, reduced motion, and complete static resting frames.",
+    needs: [],
   },
 ] as const;
 
@@ -186,7 +156,7 @@ export const RENDERER_FACTS = {
   cssMotionSurvives: true,
   hoverFocusStatesSurvive: true,
   packCssInjectedInReactMode: false,
-  tasteSkillAppendedLast: true,
+  automaticSkillIds: [] as const,
   moodboardOutranksSkills: true,
   maxParallelScreenRuns: 6,
   promptPath: "apps/stage-engine/src/wireframes/prompt.rs",

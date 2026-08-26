@@ -39,6 +39,15 @@ export async function deleteAllProjectAiData(
     await deleteArtifactWithR2Cleanup(ctx, artifact);
   }
 
+  const checkpoints = await ctx.db
+    .query("projectAiRunCheckpoints")
+    .withIndex("by_project", (q) => q.eq("projectId", projectId))
+    .collect();
+
+  for (const checkpoint of checkpoints) {
+    await ctx.db.delete(checkpoint._id);
+  }
+
   const runs = await ctx.db
     .query("projectAiRuns")
     .withIndex("by_project", (q) => q.eq("projectId", projectId))
@@ -113,6 +122,7 @@ export async function cleanupOrphanedProjectAiDataForUser(
 ) {
   let deletedArtifacts = 0;
   let deletedRuns = 0;
+  let deletedCheckpoints = 0;
   let deletedContexts = 0;
   let deletedDestinations = 0;
   let deletedFigmaExportJobs = 0;
@@ -131,6 +141,18 @@ export async function cleanupOrphanedProjectAiDataForUser(
     if (!(await projectExists(artifact.projectId))) {
       await deleteArtifactWithR2Cleanup(ctx, artifact);
       deletedArtifacts += 1;
+    }
+  }
+
+  const checkpoints = await ctx.db
+    .query("projectAiRunCheckpoints")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+
+  for (const checkpoint of checkpoints) {
+    if (!(await projectExists(checkpoint.projectId))) {
+      await ctx.db.delete(checkpoint._id);
+      deletedCheckpoints += 1;
     }
   }
 
@@ -190,6 +212,7 @@ export async function cleanupOrphanedProjectAiDataForUser(
   return {
     deletedArtifacts,
     deletedRuns,
+    deletedCheckpoints,
     deletedContexts,
     deletedDestinations,
     deletedFigmaExportJobs,

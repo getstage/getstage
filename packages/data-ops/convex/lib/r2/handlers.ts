@@ -12,6 +12,7 @@ import {
   deleteOldR2Asset,
   hasLegacyUploadFields,
   r2,
+  retryQueuedR2Deletions,
 } from "./domain";
 
 const STALE_PENDING_UPLOAD_MS = 24 * 60 * 60 * 1000;
@@ -221,6 +222,11 @@ export const pruneStalePendingUploads = internalMutation({
       scannedCount: staleUploads.length,
     };
   },
+});
+
+export const retryPendingR2Deletions = internalMutation({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => retryQueuedR2Deletions(ctx, args.limit ?? 50),
 });
 
 export const normalizeLegacyUploadedAssets = internalMutation({

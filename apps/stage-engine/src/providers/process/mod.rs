@@ -323,6 +323,16 @@ async fn drive_process_loop(
                         let _ = child.wait().await;
                         drain_pending_lines(context, events, line_rx, sink, capture_multiline_stderr).await;
                         sink.flush_stderr(context, capture_multiline_stderr);
+                        let missing_reads = sink.missing_required_reads(context);
+                        if !missing_reads.is_empty() {
+                            return Err(ProviderProcessError::Io {
+                                binary,
+                                source: std::io::Error::other(format!(
+                                    "provider completed without reading required context files: {}",
+                                    missing_reads.join(", ")
+                                )),
+                            });
+                        }
                         return Ok(ProviderProcessOutcome::Completed(std::mem::take(&mut sink.final_text)));
                     }
                     Ok(Some(status)) => {

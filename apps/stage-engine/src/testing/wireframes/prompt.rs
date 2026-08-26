@@ -170,7 +170,7 @@ fn regen_prompt_redacts_prior_html_and_forbids_reuse() {
 }
 
 #[test]
-fn hifi_prompt_includes_taste_skill_by_default() {
+fn hifi_prompt_without_skill_selection_injects_no_skill_and_keeps_default_base() {
     let prompt = build_wireframes_prompt(
         &sample_input(),
         WireframeKind::Hifi,
@@ -182,26 +182,19 @@ fn hifi_prompt_includes_taste_skill_by_default() {
     );
 
     assert!(
-        prompt.contains("<skill id=\"design-taste-frontend\">"),
-        "Hi-Fi generation must attach the Taste skill"
+        !prompt.contains("<skill id="),
+        "design skills must be explicitly selected"
     );
-    assert!(prompt.contains("Leonxlnx/taste-skill"));
-    assert!(prompt.contains("Absolute bans (anti-slop)"));
-    // React mode replaced the pack.css vocabulary with the real component libraries:
-    // the tsx rules come last and the default base library is bound when prefs are unset.
     assert!(prompt.contains("The \"tsx\" field is the design."));
     assert!(
-        prompt.contains("Selected real component libraries for this run:"),
-        "Hi-Fi React runs bind the real libraries instead of injecting pack.css"
-    );
-    assert!(
-        prompt.contains("`shadcn-ui`"),
-        "the default base library is bound when prefs are unset"
+        prompt.contains("Selected real component libraries for this run:")
+            && prompt.contains("`shadcn-ui`"),
+        "the default base library remains available when pack preferences are unset"
     );
 }
 
 #[test]
-fn hifi_prompt_omits_taste_when_skill_disabled_in_prefs() {
+fn hifi_prompt_explicit_empty_skill_selection_injects_no_skill() {
     let mut input = sample_input();
     input.enabled_skill_ids = Some(vec![]);
     input.enabled_component_pack_ids = Some(vec!["radix-ui".to_string()]);
@@ -221,6 +214,24 @@ fn hifi_prompt_omits_taste_when_skill_disabled_in_prefs() {
         !prompt.contains("<component_pack id="),
         "radix-ui ships behaviour, not a visual design, so it has no pack to attach"
     );
+}
+
+#[test]
+fn removed_taste_skill_id_is_ignored() {
+    let mut input = sample_input();
+    input.enabled_skill_ids = Some(vec!["design-taste-frontend".to_string()]);
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
+
+    assert!(!prompt.contains("<skill id="));
 }
 
 #[test]
@@ -284,7 +295,7 @@ fn hifi_prompt_attaches_no_pack_when_selection_is_explicitly_empty() {
 }
 
 #[test]
-fn lofi_prompt_omits_taste_skill() {
+fn lofi_prompt_omits_design_skills() {
     let prompt = build_wireframes_prompt(
         &sample_input(),
         WireframeKind::Lofi,
@@ -299,11 +310,12 @@ fn lofi_prompt_omits_taste_skill() {
 }
 
 #[test]
-fn hifi_prompt_injects_full_body_of_each_selected_skill() {
+fn hifi_prompt_injects_only_concise_adapters_for_selected_skills() {
     let mut input = sample_input();
     input.enabled_skill_ids = Some(vec![
-        "design-taste-frontend".to_string(),
+        "frontend-design".to_string(),
         "impeccable".to_string(),
+        "emil-design-eng".to_string(),
     ]);
 
     let prompt = build_wireframes_prompt(
@@ -316,37 +328,34 @@ fn hifi_prompt_injects_full_body_of_each_selected_skill() {
         None,
     );
 
-    // Not a one-line hint: the vendored SKILL.md body must be present.
+    assert!(
+        prompt.contains("<skill id=\"frontend-design\">")
+            && prompt.contains("**Role:** establish a specific visual direction.")
+    );
     assert!(
         prompt.contains("<skill id=\"impeccable\">")
-            && prompt.contains("Pick the visitor mode first"),
-        "a selected catalog skill must inject its full vendored body"
+            && prompt.contains("**Role:** refine the chosen direction")
     );
     assert!(
-        !prompt.contains("<skill id=\"frontend-design\">"),
-        "unselected catalog skills must stay out of the prompt"
+        prompt.contains("<skill id=\"emil-design-eng\">")
+            && prompt.contains("**Role:** make interactions feel intentional")
     );
+    assert!(!prompt.contains("<skill id=\"ui-ux-pro-max\">"));
+    assert!(!prompt.contains("Full upstream reference:"));
+    assert!(!prompt.contains("CLAUDE_PLUGIN_ROOT"));
     assert!(
-        prompt.contains("<skill_precedence>"),
-        "two or more skills must declare a conflict rule"
-    );
-
-    let taste_at = prompt
-        .find("<skill id=\"design-taste-frontend\">")
-        .expect("taste block present");
-    let impeccable_at = prompt
-        .find("<skill id=\"impeccable\">")
-        .expect("impeccable block present");
-    assert!(
-        taste_at > impeccable_at,
-        "Taste must be injected last so its bans win a conflict"
+        prompt.len() < 80_000,
+        "selected adapters must not reintroduce the upstream source corpus"
     );
 }
 
 #[test]
-fn hifi_prompt_omits_precedence_note_for_a_single_skill() {
+fn hifi_prompt_synthesizes_multiple_skills_without_order_precedence() {
     let mut input = sample_input();
-    input.enabled_skill_ids = Some(vec!["design-taste-frontend".to_string()]);
+    input.enabled_skill_ids = Some(vec![
+        "impeccable".to_string(),
+        "frontend-design".to_string(),
+    ]);
 
     let prompt = build_wireframes_prompt(
         &input,
@@ -358,8 +367,28 @@ fn hifi_prompt_omits_precedence_note_for_a_single_skill() {
         None,
     );
 
-    assert!(prompt.contains("<skill id=\"design-taste-frontend\">"));
+    assert!(prompt.contains("<skill_synthesis>"));
+    assert!(prompt.contains("prompt order never grants precedence"));
     assert!(!prompt.contains("<skill_precedence>"));
+}
+
+#[test]
+fn hifi_prompt_omits_synthesis_note_for_a_single_skill() {
+    let mut input = sample_input();
+    input.enabled_skill_ids = Some(vec!["impeccable".to_string()]);
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
+
+    assert!(prompt.contains("<skill id=\"impeccable\">"));
+    assert!(!prompt.contains("<skill_synthesis>"));
 }
 
 #[test]
@@ -434,15 +463,8 @@ fn prompt_reports_the_free_text_label_for_an_other_project_type() {
     input.project_type = "other".to_string();
     input.project_type_label = Some("Trade show booth".to_string());
 
-    let prompt = build_wireframes_prompt(
-        &input,
-        WireframeKind::Lofi,
-        None,
-        None,
-        None,
-        false,
-        None,
-    );
+    let prompt =
+        build_wireframes_prompt(&input, WireframeKind::Lofi, None, None, None, false, None);
 
     assert!(prompt.contains("- Project type: other"));
     assert!(prompt.contains("- Project type detail: Trade show booth"));
@@ -453,15 +475,8 @@ fn site_project_type_keeps_marketing_page_guidance() {
     let mut input = sample_input();
     input.project_type = "web-design".to_string();
 
-    let prompt = build_wireframes_prompt(
-        &input,
-        WireframeKind::Lofi,
-        None,
-        None,
-        None,
-        false,
-        None,
-    );
+    let prompt =
+        build_wireframes_prompt(&input, WireframeKind::Lofi, None, None, None, false, None);
 
     assert!(prompt.contains("This is a site project"));
 }
@@ -532,4 +547,120 @@ fn a_scoped_run_must_still_return_the_whole_screen_list() {
         "an unscoped run is a full pass and must cover the ticked list"
     );
     assert!(!full.contains("configureScreens[] is the screen LIST"));
+}
+
+#[test]
+fn design_director_prompt_uses_selected_adapters_and_target_screen_ids() {
+    let mut input = sample_input();
+    input.enabled_skill_ids = Some(vec!["frontend-design".to_string()]);
+    input.enabled_component_pack_ids = Some(vec!["shadcn-ui".to_string(), "magic-ui".to_string()]);
+
+    let prompt = build_design_director_prompt(
+        &input,
+        Some(WireframeBrandSource::StyleGuide),
+        Some("direction_1"),
+        false,
+        &["dashboard".to_string(), "settings".to_string()],
+    );
+
+    assert!(prompt.contains("Target screen IDs: dashboard, settings"));
+    assert!(prompt.contains("<skill id=\"frontend-design\">"));
+    assert_eq!(prompt.contains("<skill id=\"impeccable\">"), false);
+    assert!(prompt.contains("Allowed import: `import {"));
+    assert!(prompt.contains("from \"@stage/sections\";`"));
+    assert_eq!(prompt.contains("Full upstream reference:"), false);
+    assert_eq!(prompt.contains("CLAUDE_PLUGIN_ROOT"), false);
+}
+
+#[test]
+fn hifi_screen_prompt_is_compact_and_bound_to_one_planned_recipe() {
+    let plan = r#"{"schemaVersion":"1","aestheticThesis":"Operational atelier","screens":[{"screenId":"homepage","informationHierarchy":["Primary decision","Evidence"],"contentRequirements":["Real project status"],"componentRecipe":[{"libraryId":"shadcn-ui","exportName":"Button","role":"primary action","requiredProps":[]}]},{"screenId":"settings","informationHierarchy":["Preferences"],"contentRequirements":["Saved settings"],"componentRecipe":[{"libraryId":"shadcn-ui","exportName":"Card","role":"settings group","requiredProps":[]}]}]}"#;
+
+    let prompt = build_wireframes_prompt_with_plan(
+        &sample_input(),
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        Some(&["homepage".to_string()]),
+        Some(plan),
+    );
+
+    assert!(prompt.contains("<validated_design_plan>"));
+    assert!(prompt.contains("Operational atelier"));
+    assert!(prompt.contains("Primary decision"));
+    assert!(prompt.contains("import { Button } from \"@stage/base\";"));
+    assert_eq!(prompt.contains("settings group"), false);
+    assert_eq!(prompt.contains("Full upstream reference:"), false);
+    assert!(
+        prompt.chars().count() < 15_000,
+        "screen prompt grew beyond its compact contract"
+    );
+}
+
+#[test]
+fn every_registered_library_export_has_exactly_one_semantic_group() {
+    let manifest: serde_json::Value = serde_json::from_str(RENDERER_LIBRARY_MANIFESTS).unwrap();
+
+    for entries in manifest.as_object().unwrap().values() {
+        for entry in entries.as_array().unwrap() {
+            let exports = manifest_strings(entry, "exports");
+            assert!(
+                semantic_manifest_is_complete(entry, &exports),
+                "{} has incomplete semantic metadata",
+                entry
+                    .get("id")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("unknown")
+            );
+        }
+    }
+}
+
+#[test]
+fn selected_library_prompt_exposes_groups_and_real_composition_recipes() {
+    let mut input = sample_input();
+    input.enabled_component_pack_ids = Some(vec![
+        "shadcn-ui".to_string(),
+        "magic-ui".to_string(),
+        "bklit-ui".to_string(),
+    ]);
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
+
+    assert!(prompt.contains("Component groups:"));
+    assert!(prompt.contains("Recipe `magic-marketing-hero`"));
+    assert!(prompt.contains("Recipe `comparable-data-table`"));
+    assert!(prompt.contains("Recipe `trend-analysis`"));
+    assert!(prompt.contains("required props/data: url or imageSrc"));
+}
+
+#[test]
+fn workspace_skill_adapter_removes_operational_instructions_but_keeps_design_guidance() {
+    let source = r#"---
+allowed-tools: Bash
+---
+## How to design
+Use deliberate hierarchy and restrained motion.
+## Setup
+Run `npx shadcn@latest init` before working.
+## Visual principles
+Prefer one clear focal point.
+"#;
+
+    let sanitized = sanitize_workspace_skill(source);
+
+    assert!(sanitized.contains("Use deliberate hierarchy and restrained motion."));
+    assert!(sanitized.contains("Prefer one clear focal point."));
+    assert!(!sanitized.contains("allowed-tools"));
+    assert!(!sanitized.contains("npx shadcn"));
 }
