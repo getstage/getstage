@@ -88,7 +88,7 @@ fn rejects_plan_components_outside_selected_runtime_libraries() {
 
     let error = validate_design_plan_libraries(&mut plan, &["shadcn-ui".to_string()]).unwrap_err();
 
-    assert!(error.to_string().contains("magic-ui:ShimmerButton"));
+    assert!(error.to_string().contains("unselected library `magic-ui`"));
 }
 
 #[test]
@@ -108,7 +108,7 @@ fn rejects_unjustified_signature_repetition_across_screens() {
 }
 
 #[test]
-fn hydrates_manifest_required_props_omitted_by_the_provider() {
+fn does_not_invent_props_from_a_removed_static_manifest() {
     let mut planned = screen("signup", "AuroraText", true);
     let component = &mut planned["componentRecipe"][0];
     component["libraryId"] = json!("magic-ui");
@@ -121,20 +121,25 @@ fn hydrates_manifest_required_props_omitted_by_the_provider() {
     )
     .unwrap();
 
-    assert_eq!(
-        plan.screens[0].component_recipe[0].required_props,
-        ["children"]
+    assert!(
+        plan.screens[0].component_recipe[0]
+            .required_props
+            .is_empty()
     );
 }
 
 #[test]
-fn accepts_exact_recipe_import_and_rendered_component() {
+fn accepts_self_contained_screen_with_server_owned_rag_evidence() {
     let mut plan = plan_with_screens(json!([screen("dashboard", "Button", true)]));
     let artifact = json!({
         "generatedScreens": [{
             "id": "dashboard",
-            "tsx": "import { Button } from \"@stage/base\";\nexport default function Screen(){ return <Button type=\"button\">Review</Button>; }"
-        }]
+            "catalogComponentIds": ["shadcn-ui/button"],
+            "tsx": "export default function Screen(){ return <button type=\"button\">Review</button>; }"
+        }],
+        "catalogRetrieval": { "screens": { "dashboard": { "components": [
+            { "componentId": "shadcn-ui/button" }
+        ]}}}
     });
 
     validate_design_plan_libraries(&mut plan, &["shadcn-ui".to_string()]).unwrap();
@@ -158,8 +163,12 @@ fn reports_missing_and_unplanned_screen_implementation() {
     let artifact = json!({
         "generatedScreens": [{
             "id": "dashboard",
-            "tsx": "import { Button, Card } from \"@stage/base\";\nexport default function Screen(){ return <Card><Button>Review</Button></Card>; }"
-        }]
+            "catalogComponentIds": ["unretrieved/component"],
+            "tsx": "export default function Screen(){ return <button>Review</button>; }"
+        }],
+        "catalogRetrieval": { "screens": { "dashboard": { "components": [
+            { "componentId": "shadcn-ui/button" }
+        ]}}}
     });
 
     let failures = validate_artifact_against_plan(
@@ -174,7 +183,7 @@ fn reports_missing_and_unplanned_screen_implementation() {
     assert!(
         failures
             .iter()
-            .any(|failure| failure.error.contains("recipe mismatch"))
+            .any(|failure| failure.error.contains("catalogComponentIds"))
     );
     assert!(
         failures
@@ -211,8 +220,12 @@ fn requires_observable_motion_when_the_plan_specifies_it() {
     let artifact = json!({
         "generatedScreens": [{
             "id": "dashboard",
-            "tsx": "import { Card } from \"@stage/base\";\nexport default function Screen(){ return <Card>Approval</Card>; }"
-        }]
+            "catalogComponentIds": ["shadcn-ui/card"],
+            "tsx": "export default function Screen(){ return <section>Approval</section>; }"
+        }],
+        "catalogRetrieval": { "screens": { "dashboard": { "components": [
+            { "componentId": "shadcn-ui/card" }
+        ]}}}
     });
 
     let failures = validate_artifact_against_plan(
@@ -224,5 +237,5 @@ fn requires_observable_motion_when_the_plan_specifies_it() {
     .unwrap();
 
     assert_eq!(failures.len(), 1);
-    assert!(failures[0].error.contains("specifies purposeful motion"));
+    assert!(failures[0].error.contains("specifies motion"));
 }

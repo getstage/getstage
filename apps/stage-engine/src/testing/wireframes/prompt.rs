@@ -170,7 +170,7 @@ fn regen_prompt_redacts_prior_html_and_forbids_reuse() {
 }
 
 #[test]
-fn hifi_prompt_without_skill_selection_injects_no_skill_and_keeps_default_base() {
+fn hifi_prompt_without_skill_selection_requires_verified_catalog_source() {
     let prompt = build_wireframes_prompt(
         &sample_input(),
         WireframeKind::Hifi,
@@ -186,10 +186,13 @@ fn hifi_prompt_without_skill_selection_injects_no_skill_and_keeps_default_base()
         "design skills must be explicitly selected"
     );
     assert!(prompt.contains("The \"tsx\" field is the design."));
-    assert!(
-        prompt.contains("Selected real component libraries for this run:")
-            && prompt.contains("`shadcn-ui`"),
-        "the default base library remains available when pack preferences are unset"
+    assert!(prompt.contains("catalog-candidates.json"));
+    assert!(prompt.contains("catalogComponentIds"));
+    assert!(!prompt.contains("@stage/base"));
+    assert_eq!(
+        resolve_hifi_prompt_preferences(&sample_input()).component_pack_ids,
+        Vec::<String>::new(),
+        "an unset selection must not silently enable shadcn-ui"
     );
 }
 
@@ -232,47 +235,6 @@ fn removed_taste_skill_id_is_ignored() {
     );
 
     assert!(!prompt.contains("<skill id="));
-}
-
-#[test]
-fn selected_component_packs_orders_base_before_sections() {
-    let mut input = sample_input();
-    input.enabled_component_pack_ids =
-        Some(vec!["aceternity-ui".to_string(), "shadcn-ui".to_string()]);
-
-    let packs = selected_component_packs(&input);
-
-    let base_at = packs
-        .iter()
-        .position(|pack| pack.id == "shadcn-ui")
-        .expect("base pack selected");
-    let sections_at = packs
-        .iter()
-        .position(|pack| pack.id == "aceternity-ui")
-        .expect("sections pack selected");
-    // Selection order must not decide injection order: a sections pack consumes the
-    // base pack's --ui-* variables, so the base vocabulary always comes first.
-    assert!(
-        base_at < sections_at,
-        "base pack must come before the sections pack"
-    );
-}
-
-#[test]
-fn selected_component_packs_supplies_a_base_when_only_sections_are_selected() {
-    let mut input = sample_input();
-    // The old multi-select allowed this; the sections CSS would otherwise render against
-    // undefined --ui-* variables.
-    input.enabled_component_pack_ids = Some(vec!["magic-ui".to_string()]);
-
-    let packs = selected_component_packs(&input);
-
-    assert_eq!(
-        packs.first().map(|pack| pack.id),
-        Some(DEFAULT_BASE_PACK_ID),
-        "a sections pack must always get a base under it"
-    );
-    assert!(packs.iter().any(|pack| pack.id == "magic-ui"));
 }
 
 #[test]
@@ -566,8 +528,8 @@ fn design_director_prompt_uses_selected_adapters_and_target_screen_ids() {
     assert!(prompt.contains("Target screen IDs: dashboard, settings"));
     assert!(prompt.contains("<skill id=\"frontend-design\">"));
     assert_eq!(prompt.contains("<skill id=\"impeccable\">"), false);
-    assert!(prompt.contains("Allowed import: `import {"));
-    assert!(prompt.contains("from \"@stage/sections\";`"));
+    assert!(prompt.contains("Selected RAG catalog filters: shadcn-ui, magic-ui"));
+    assert!(!prompt.contains("@stage/sections"));
     assert_eq!(prompt.contains("Full upstream reference:"), false);
     assert_eq!(prompt.contains("CLAUDE_PLUGIN_ROOT"), false);
 }
@@ -590,7 +552,9 @@ fn hifi_screen_prompt_is_compact_and_bound_to_one_planned_recipe() {
     assert!(prompt.contains("<validated_design_plan>"));
     assert!(prompt.contains("Operational atelier"));
     assert!(prompt.contains("Primary decision"));
-    assert!(prompt.contains("import { Button } from \"@stage/base\";"));
+    assert!(prompt.contains("<catalog_implementation_requirements>"));
+    assert!(prompt.contains("catalogComponentIds"));
+    assert!(!prompt.contains("@stage/base"));
     assert_eq!(prompt.contains("settings group"), false);
     assert_eq!(prompt.contains("Full upstream reference:"), false);
     assert!(
@@ -600,26 +564,7 @@ fn hifi_screen_prompt_is_compact_and_bound_to_one_planned_recipe() {
 }
 
 #[test]
-fn every_registered_library_export_has_exactly_one_semantic_group() {
-    let manifest: serde_json::Value = serde_json::from_str(RENDERER_LIBRARY_MANIFESTS).unwrap();
-
-    for entries in manifest.as_object().unwrap().values() {
-        for entry in entries.as_array().unwrap() {
-            let exports = manifest_strings(entry, "exports");
-            assert!(
-                semantic_manifest_is_complete(entry, &exports),
-                "{} has incomplete semantic metadata",
-                entry
-                    .get("id")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or("unknown")
-            );
-        }
-    }
-}
-
-#[test]
-fn selected_library_prompt_exposes_groups_and_real_composition_recipes() {
+fn selected_library_prompt_requires_runtime_rag_sources() {
     let mut input = sample_input();
     input.enabled_component_pack_ids = Some(vec![
         "shadcn-ui".to_string(),
@@ -637,11 +582,11 @@ fn selected_library_prompt_exposes_groups_and_real_composition_recipes() {
         None,
     );
 
-    assert!(prompt.contains("Component groups:"));
-    assert!(prompt.contains("Recipe `magic-marketing-hero`"));
-    assert!(prompt.contains("Recipe `comparable-data-table`"));
-    assert!(prompt.contains("Recipe `trend-analysis`"));
-    assert!(prompt.contains("required props/data: url or imageSrc"));
+    assert!(prompt.contains("catalog-candidates.json"));
+    assert!(prompt.contains("exact candidate source files"));
+    assert!(prompt.contains("catalogComponentIds"));
+    assert!(!prompt.contains("<skill id="));
+    assert!(!prompt.contains("Recipe `magic-marketing-hero`"));
 }
 
 #[test]

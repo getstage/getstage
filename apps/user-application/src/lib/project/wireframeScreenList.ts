@@ -28,6 +28,7 @@ export function buildWireframeRunSource(
   brandSource: WireframeBrandSource | null,
   styleDirectionId?: string | null,
   screenIds?: string[],
+  useNebius?: boolean,
 ): string {
   const tokens = [`kind:${kind}`];
   if (brandSource) {
@@ -35,6 +36,9 @@ export function buildWireframeRunSource(
   }
   if (styleDirectionId) {
     tokens.push(`style-direction:${styleDirectionId}`);
+  }
+  if (useNebius) {
+    tokens.push("gen:nebius");
   }
   if (screenIds && screenIds.length > 0) {
     tokens.push(`screens:${screenIds.join(";")}`);

@@ -5,7 +5,6 @@ use super::{MAX_BLOCKS_PER_SECTION, MAX_SECTIONS_PER_SCREEN};
 use crate::models::wireframes::{
     WireframeBrandSource, WireframeKind, WireframeViewport, WireframesInput,
 };
-use crate::wireframes::prompt::component_pack_css;
 
 const ALLOWED_BLOCK_KINDS: &[&str] = &[
     "header",
@@ -46,18 +45,10 @@ pub fn normalize_wireframes_artifact(
         .cloned()
         .unwrap_or_default();
 
-    // One stylesheet for the whole run: every Hi-Fi screen draws its controls from the
-    // same source instead of inventing a button per screen. Lo-Fi compiles from blocks
-    // and has no packs.
-    let pack_css = match kind {
-        WireframeKind::Hifi => component_pack_css(input),
-        WireframeKind::Lofi => String::new(),
-    };
-
     let mut normalized_screens = Vec::new();
     let mut first_rejection: Option<String> = None;
     for screen in &raw_screens {
-        match normalize_screen(screen, generated_at_label, generated_at, kind, &pack_css) {
+        match normalize_screen(screen, generated_at_label, generated_at, kind) {
             Ok(Some(normalized)) => normalized_screens.push(normalized),
             Ok(None) => {}
             Err(error) => {
@@ -243,6 +234,33 @@ fn merge_regenerated_screens(
         if let Some(screen) = screen_by_id(&partial_screens, screen_id) {
             merged_screens.push(screen.clone());
         }
+    }
+
+    let known_project_ids: std::collections::HashSet<&str> = existing_object
+        .get("configureScreens")
+        .and_then(JsonValue::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|screen| screen.get("id").and_then(JsonValue::as_str))
+        .collect();
+    for screen in &partial_screens {
+        let Some(id) = screen.get("id").and_then(JsonValue::as_str) else {
+            continue;
+        };
+        if target_ids.contains(id) || !known_project_ids.contains(id) {
+            continue;
+        }
+        if screen_by_id(&merged_screens, id).is_some() {
+            continue;
+        }
+        if screen
+            .get("tsx")
+            .and_then(JsonValue::as_str)
+            .is_none_or(|tsx| tsx.trim().is_empty())
+        {
+            continue;
+        }
+        merged_screens.push(screen.clone());
     }
 
     // A kind change (the Lo-Fi -> Hi-Fi conversion) rewrites the artifact's wireframeKind
@@ -553,6 +571,7 @@ fn has_visible_layout(lower: &str) -> bool {
 // artifact root: the preview iframe, the PNG capture, Paper's CSS inliner, and the code
 // export each receive a single fragment, and none of them can reach run-level state.
 // Duplication costs a few KB per screen and buys a fragment that renders anywhere.
+#[cfg(test)]
 fn with_pack_css(html: &str, pack_css: &str) -> String {
     if pack_css.is_empty() {
         return html.to_string();
@@ -567,7 +586,6 @@ fn normalize_screen(
     generated_at_label: &str,
     generated_at: u128,
     kind: WireframeKind,
-    pack_css: &str,
 ) -> anyhow::Result<Option<JsonValue>> {
     let Some(object) = screen.as_object() else {
         return Ok(None);
@@ -643,10 +661,7 @@ fn normalize_screen(
             if !has_tsx {
                 validate_hifi_html(&sanitized)?;
             }
-            entry.insert(
-                "html".to_string(),
-                json!(with_pack_css(&sanitized, pack_css)),
-            );
+            entry.insert("html".to_string(), json!(sanitized));
         } else {
             entry.insert("html".to_string(), json!(html));
         }
@@ -659,6 +674,22 @@ fn normalize_screen(
         .filter(|tsx| !tsx.is_empty())
     {
         entry.insert("tsx".to_string(), json!(tsx));
+    }
+
+    if let Some(catalog_component_ids) = object
+        .get("catalogComponentIds")
+        .and_then(JsonValue::as_array)
+        .filter(|ids| {
+            !ids.is_empty()
+                && ids
+                    .iter()
+                    .all(|id| id.as_str().is_some_and(|id| !id.trim().is_empty()))
+        })
+    {
+        entry.insert(
+            "catalogComponentIds".to_string(),
+            JsonValue::Array(catalog_component_ids.clone()),
+        );
     }
 
     let raw_sections = object

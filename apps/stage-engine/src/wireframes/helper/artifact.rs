@@ -88,7 +88,10 @@ pub(crate) fn is_scoped_regeneration_request(
         && has_existing_artifact
 }
 
-pub(crate) fn missing_screen_ids(artifact: &serde_json::Value, expected_ids: &[String]) -> Vec<String> {
+pub(crate) fn missing_screen_ids(
+    artifact: &serde_json::Value,
+    expected_ids: &[String],
+) -> Vec<String> {
     let returned = artifact
         .get("generatedScreens")
         .and_then(serde_json::Value::as_array)
@@ -163,9 +166,34 @@ pub(crate) fn merge_tsx_screens(target: &mut serde_json::Value, repair: &serde_j
             .iter_mut()
             .find(|screen| screen.get("id").and_then(serde_json::Value::as_str) == Some(id))
         {
-            *screen = repaired.clone();
+            let Some(screen) = screen.as_object_mut() else {
+                continue;
+            };
+            screen.insert("tsx".to_string(), repaired["tsx"].clone());
+            if let Some(html) = repaired.get("html") {
+                screen.insert("html".to_string(), html.clone());
+            }
+            let original_has_catalog_ids = screen
+                .get("catalogComponentIds")
+                .is_some_and(valid_catalog_component_ids);
+            if !original_has_catalog_ids
+                && let Some(repaired_ids) = repaired
+                    .get("catalogComponentIds")
+                    .filter(|ids| valid_catalog_component_ids(ids))
+            {
+                screen.insert("catalogComponentIds".to_string(), repaired_ids.clone());
+            }
         } else {
             target_screens.push(repaired.clone());
         }
     }
+}
+
+fn valid_catalog_component_ids(value: &serde_json::Value) -> bool {
+    value.as_array().is_some_and(|ids| {
+        !ids.is_empty()
+            && ids
+                .iter()
+                .all(|id| id.as_str().is_some_and(|id| !id.trim().is_empty()))
+    })
 }

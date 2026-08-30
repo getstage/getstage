@@ -110,7 +110,7 @@ impl WireframesDebugDump {
         tracing::info!(
             screen_id = %screen_id,
             prompt_chars = prompt.chars().count(),
-            imports_hint = "see 01-prompt file for full HIFI_REACT_RULES + allowed @stage/* packs",
+            imports_hint = "see catalog-candidates.json and catalog source paths for RAG evidence",
             "wireframes debug prompt saved"
         );
     }
@@ -259,7 +259,7 @@ Files in this folder are one Hi-Fi (or Lo-Fi) run, in order:
 | `00-meta.json` | packs, skills, kind, screen ids |
 | `01-prompt-<screen>.md` | exact prompt sent to the model |
 | `02-provider-raw-<screen>.txt` | raw model output |
-| `03-tsx-<screen>.tsx` | TSX the model wrote (`@stage/*` imports) |
+| `03-tsx-<screen>.tsx` | self-contained TSX adapted from retrieved component source |
 | `04-static-<screen>.html` | `renderToStaticMarkup` (thumbnail / Figma) |
 | `05-live-<screen>.html` | esbuild IIFE bundle (app live preview) |
 | `06-render-summary.json` | sizes + whether `var process` stub is present |
@@ -346,12 +346,12 @@ fn import_lines(tsx: &str) -> Vec<String> {
 fn log_tsx_summary(screen_id: &str, tsx: &str) {
     let imports = import_lines(tsx);
     let uses_motion = imports.iter().any(|line| line.contains("motion"));
-    let uses_stage = imports.iter().any(|line| line.contains("@stage/"));
+    let uses_legacy_stage_import = imports.iter().any(|line| line.contains("@stage/"));
     tracing::info!(
         screen_id = %screen_id,
         tsx_chars = tsx.chars().count(),
         uses_motion,
-        uses_stage,
+        uses_legacy_stage_import,
         import_count = imports.len(),
         imports = ?imports,
         "wireframes debug model TSX summary"

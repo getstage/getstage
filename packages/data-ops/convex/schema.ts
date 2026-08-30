@@ -968,8 +968,36 @@ export default defineSchema({
     sourceRevision: v.string(),
     sourceBundleKey: v.string(),
     verified: v.boolean(),
+    runtime: v.optional(v.union(v.literal("client"), v.literal("universal"))),
+    verifiedAt: v.optional(v.number()),
+    verificationError: v.optional(v.string()),
+    embeddingReady: v.optional(v.boolean()),
+    embeddingIndexAttempts: v.optional(v.number()),
+    embeddingIndexedRevision: v.optional(v.string()),
+    // Legacy component fields remain optional until the development rows are
+    // rewritten. Runtime code no longer reads or writes them.
+    ragIndexAttempts: v.optional(v.number()),
+    ragEntryId: v.optional(v.string()),
+    ragIndexedRevision: v.optional(v.string()),
     updatedAt: v.number(),
-  }).index("by_componentId", ["componentId"]),
+  })
+    .index("by_componentId", ["componentId"])
+    .index("by_verified", ["verified"])
+    .index("by_embeddingReady", ["embeddingReady"]),
+
+  wireframeCatalogEmbeddings: defineTable({
+    componentId: v.string(),
+    sourceRevision: v.string(),
+    scope: v.string(),
+    embedding: v.array(v.float64()),
+    updatedAt: v.number(),
+  })
+    .index("by_componentId", ["componentId"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 4096,
+      filterFields: ["scope"],
+    }),
 
   r2DeletionQueue: defineTable({
     key: v.string(),

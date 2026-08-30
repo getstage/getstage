@@ -48,26 +48,24 @@ pub(crate) async fn resolve_design_plan(
         };
         let component_pack_ids = resolve_hifi_prompt_preferences(input).component_pack_ids;
         match design_plan_from_artifact(existing, expected_screen_ids) {
-            Ok(mut plan) => {
-                match validate_design_plan_libraries(&mut plan, &component_pack_ids) {
-                    Ok(()) => {
-                        if let Ok(value) = serde_json::to_value(&plan) {
-                            dump.write_json("00-design-plan-reused.json", &value);
-                        }
-                        tracing::info!(
-                            run_id = run_id,
-                            screens = plan.screens.len(),
-                            "reused validated wireframe Design Director plan"
-                        );
-                        return Ok(Some(plan));
+            Ok(mut plan) => match validate_design_plan_libraries(&mut plan, &component_pack_ids) {
+                Ok(()) => {
+                    if let Ok(value) = serde_json::to_value(&plan) {
+                        dump.write_json("00-design-plan-reused.json", &value);
                     }
-                    Err(error) => tracing::warn!(
+                    tracing::info!(
                         run_id = run_id,
-                        error = error.to_string(),
-                        "saved wireframe design plan no longer matches the selected libraries; rebuilding it for this regeneration"
-                    ),
+                        screens = plan.screens.len(),
+                        "reused validated wireframe Design Director plan"
+                    );
+                    return Ok(Some(plan));
                 }
-            }
+                Err(error) => tracing::warn!(
+                    run_id = run_id,
+                    error = error.to_string(),
+                    "saved wireframe design plan no longer matches the selected libraries; rebuilding it for this regeneration"
+                ),
+            },
             Err(error) => tracing::info!(
                 run_id = run_id,
                 error = error.to_string(),

@@ -32,7 +32,7 @@ pub(crate) fn screen_workspace_required_files(screen_id: &str) -> Vec<String> {
     let directory = screen_workspace_directory(screen_id);
     [
         "design-plan.json",
-        "recipe-imports.md",
+        "catalog-requirements.md",
         "flow.json",
         "screen-list.json",
         "prior-screen.json",
@@ -139,6 +139,8 @@ pub(crate) fn materialize_screen_call(
     brand_kit_attached: bool,
     screen_id: &str,
     design_plan_json: &str,
+    catalog_candidates_json: Option<&str>,
+    catalog_source_paths: &[String],
 ) -> Result<ProviderCallFiles, WorkflowError> {
     let ids = [screen_id.to_string()];
     let context = workspace_screen_context(
@@ -157,8 +159,8 @@ pub(crate) fn materialize_screen_call(
             context.design_plan,
         ),
         (
-            "recipe-imports.md",
-            "exact selected-library imports planned for this screen",
+            "catalog-requirements.md",
+            "selected-library retrieval requirements for this screen",
             context.recipe_imports,
         ),
         (
@@ -201,8 +203,27 @@ pub(crate) fn materialize_screen_call(
             })?;
         required.push(path);
     }
+    if let Some(catalog_candidates_json) = catalog_candidates_json {
+        let path = format!("{directory}/catalog-candidates.json");
+        workspace
+            .write_text(
+                &path,
+                "verified RAG candidates selected for this screen",
+                ContextAccessPolicy::Required,
+                &[&call_id],
+                catalog_candidates_json,
+            )
+            .map_err(|error| {
+                WorkflowError::Internal(format!(
+                    "could not materialize RAG candidates for screen {screen_id}: {error}"
+                ))
+            })?;
+        required.push(path);
+    }
+    let mut on_demand = common.screen_on_demand.clone();
+    on_demand.extend(catalog_source_paths.iter().cloned());
     let call_files = workspace
-        .write_call_manifest(&call_id, &required, &common.screen_on_demand)
+        .write_call_manifest(&call_id, &required, &on_demand)
         .map_err(|error| {
             WorkflowError::Internal(format!(
                 "could not create context manifest for screen {screen_id}: {error}"

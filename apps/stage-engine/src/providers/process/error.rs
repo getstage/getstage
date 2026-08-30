@@ -73,7 +73,9 @@ impl ProviderProcessError {
                 if let Some(payload) = payload.as_deref() {
                     // Context-compliance failures must never be translated into login advice —
                     // the provider was authenticated; it ignored the workspace contract.
-                    if payload.starts_with("provider completed without reading required context files") {
+                    if payload
+                        .starts_with("provider completed without reading required context files")
+                    {
                         return format!(
                             "{label} ignored Stage's required context files, so the run was rejected. This is not a login problem — try again, and if it persists, report it."
                         );

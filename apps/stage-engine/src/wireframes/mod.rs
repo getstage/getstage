@@ -1,5 +1,6 @@
 pub mod debug_dump;
 pub mod design_plan;
+pub mod gateway;
 pub(crate) mod helper;
 pub mod normalize;
 pub mod prompt;

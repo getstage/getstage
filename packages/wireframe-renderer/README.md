@@ -8,15 +8,14 @@ The CLI reads one JSON batch from stdin:
 
 ```json
 {
-  "version": 1,
-  "baseLibraryId": "shadcn-ui",
-  "sectionsLibraryId": "magic-ui",
-  "screens": [{ "id": "home", "tsx": "..." }]
+  "version": 2,
+  "screens": [{ "id": "home", "tsx": "..." }],
+  "catalog": [{ "path": "components/hero.tsx", "content": "..." }]
 }
 ```
 
-Generated TSX imports the selected Base library from `@stage/base` and the optional Sections library from `@stage/sections`. The renderer resolves those virtual imports, renders React with `react-dom/server`, compiles Tailwind once for the batch, and returns self-contained HTML fragments. A failed screen returns an error and never replaces its HTML fallback.
+The Rust workflow retrieves verified component source through Convex RAG and asks the provider to compose a screen from those files. The renderer writes `catalog[]` into the batch, maps `@/` onto that root, and permits `react`, `lucide-react`, `motion`, `next/link` (rewritten to `<a>`), and `@/` specifiers that resolve to a retrieved file. Nested registry files are loaded with a cap so one particle cannot pull the entire registry. Local `@stage/*` aliases, eval, fetch, and other runtime capabilities stay rejected. It renders with `react-dom/server`, compiles Tailwind once per batch, and returns static plus sandboxed live output. A failed screen never replaces its HTML fallback.
 
 ## Sources
 
-`src/components/ui` is installed from the official shadcn registry. Kokonut UI, Magic UI, and Aceternity UI sources are installed from their official shadcn-compatible registries. Origin UI sources come from the official `shadcn/originui` repository. Mantine is consumed from its official npm package. `manifests/libraries.json` defines the exports exposed to generation prompts.
+Exact component sources live in R2. Convex stores searchable metadata and Qwen embeddings; the renderer intentionally contains no copied component library.

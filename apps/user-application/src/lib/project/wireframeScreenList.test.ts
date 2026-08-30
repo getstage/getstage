@@ -59,6 +59,13 @@ describe("run scoping", () => {
     assert.equal(screenIdsFromRunSource("kind:lofi"), null);
     assert.equal(screenIdsFromRunSource(null), null);
   });
+
+  test("Nebius is a wireframes-only source token", () => {
+    assert.equal(
+      buildWireframeRunSource("hifi", "style-guide", "dir-1", ["home"], true),
+      "kind:hifi,brand:style-guide,style-direction:dir-1,gen:nebius,screens:home",
+    );
+  });
 });
 
 describe("screen ids", () => {

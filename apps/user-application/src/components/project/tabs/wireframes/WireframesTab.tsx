@@ -354,6 +354,10 @@ export function WireframesTab({
             mode={wireframesTab.isRegenerateRun ? "regenerate" : "generate"}
             screenCount={wireframesTab.runningScreenIds?.length ?? selectedRegenerateIds.size}
             elapsedSeconds={wireframesTab.elapsedSeconds}
+            isCancelling={wireframesTab.isCancelling}
+            onCancel={() => {
+              void wireframesTab.cancelWireframes();
+            }}
           />
         </CanvasShell>
       </section>
@@ -471,6 +475,8 @@ export function WireframesTab({
           providerOptions={wireframesTab.providerOptions}
           selectedProviderId={wireframesTab.selectedProviderId}
           onSelectProvider={wireframesTab.selectProvider}
+          nebiusSelected={wireframesTab.nebiusSelected}
+          onSelectNebius={wireframesTab.selectNebius}
           onSaveSkills={onSaveSkills}
           onBackToResults={
             generatedScreens.length > 0 ? () => setSetupStep(null) : undefined
@@ -695,6 +701,8 @@ export function WireframesTab({
                     providerOptions={wireframesTab.providerOptions}
                     selectedProviderId={wireframesTab.selectedProviderId}
                     onSelectProvider={wireframesTab.selectProvider}
+                    nebiusSelected={wireframesTab.nebiusSelected}
+                    onSelectNebius={wireframesTab.selectNebius}
                   />
                 </div>
               </div>

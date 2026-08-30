@@ -40,6 +40,7 @@ stage_mvp/
 | [`WIREFRAMES_LIBRARY_INGEST.md`](./WIREFRAMES_LIBRARY_INGEST.md) | Catalog ingest: tools, registry URLs, Convex vs R2, files to read |
 | [`WIREFRAMES_COMPONENT_RETRIEVAL_2026-08-12.md`](./WIREFRAMES_COMPONENT_RETRIEVAL_2026-08-12.md) | Generate-time retrieval decision (not implemented) |
 | [`WIREFRAMES_AGENTIC_RAG_PLAN_AUG26.md`](./WIREFRAMES_AGENTIC_RAG_PLAN_AUG26.md) | Approved AUG26 plan: Qwen embeddings, Convex vector search, and bounded Rust agent tools |
+| [`RAG/WIREFRAMES_GENERATION_CODEMAP.md`](./RAG/WIREFRAMES_GENERATION_CODEMAP.md) | File map of every generate path (UI → engine → gateway → renderer → Convex) |
 | [`apps/stage-engine/ENGINE_REVIEW.md`](../apps/stage-engine/ENGINE_REVIEW.md) | Engine debt: blocking fs, Convex client, panics, JSON artifacts |
 
 ### Desktop (`apps/user-application/docs/AI/desktop/`)

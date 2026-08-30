@@ -465,6 +465,16 @@ async fn provider_readiness_error(
     api_version: &'static str,
     context: &ProviderRunContext,
 ) -> Option<RunEvent> {
+    if context.request.mode == RunMode::Wireframes
+        && context
+            .request
+            .context
+            .source
+            .as_deref()
+            .is_some_and(|source| source.split(',').any(|token| token.trim() == "gen:nebius"))
+    {
+        return None;
+    }
     match assert_provider_ready_for_run(context.request.provider_id).await {
         Ok(()) => None,
         Err(blocked) => Some(provider_unavailable_event(

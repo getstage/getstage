@@ -30,7 +30,7 @@ source: https://github.com/anthropics/skills/tree/main/skills/frontend-design
 
 ## React execution
 
-- Compose the selected `@stage/*` libraries; primitives support the design but are not the design.
+- Compose verified RAG-retrieved component sources; primitives support the design but are not the design.
 - Tailwind and Motion may refine the composition, but must not create a second palette or component system.
 - The live preview may animate; the initial/static frame must already be complete for Figma.
 - Remove decoration that does not serve hierarchy, comprehension, or interaction.

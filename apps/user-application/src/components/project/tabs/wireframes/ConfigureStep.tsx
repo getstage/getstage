@@ -30,6 +30,8 @@ export function ConfigureStep({
   providerOptions,
   selectedProviderId,
   onSelectProvider,
+  nebiusSelected,
+  onSelectNebius,
   onBackToResults,
   onChangeType,
   onAddBrandKit,
@@ -53,6 +55,8 @@ export function ConfigureStep({
   providerOptions: ResearchProviderOption[];
   selectedProviderId: ProviderId | null;
   onSelectProvider: (providerId: ProviderId) => void;
+  nebiusSelected?: boolean;
+  onSelectNebius?: () => void;
   /** Return to the results grid. Present only once a run exists to go back to. */
   onBackToResults?: () => void;
   onChangeType: () => void;
@@ -211,6 +215,8 @@ export function ConfigureStep({
             providerOptions={providerOptions}
             selectedProviderId={selectedProviderId}
             onSelectProvider={onSelectProvider}
+            nebiusSelected={nebiusSelected}
+            onSelectNebius={onSelectNebius}
           />
         </div>
         <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
@@ -218,7 +224,7 @@ export function ConfigureStep({
             <SecondaryButton
               purple
               size="action"
-              disabled={!selectedProviderId}
+              disabled={!nebiusSelected && !selectedProviderId}
               onClick={() => onGenerateScreens(newScreenIds)}
             >
               Generate {newScreenIds.length} new {newScreenIds.length === 1 ? "screen" : "screens"}{" "}
@@ -226,7 +232,7 @@ export function ConfigureStep({
               <ArrowRightIcon />
             </SecondaryButton>
           ) : null}
-          <PrimaryButton onClick={onGenerate} disabled={!selectedProviderId || selectedCount === 0}>
+          <PrimaryButton onClick={onGenerate} disabled={(!nebiusSelected && !selectedProviderId) || selectedCount === 0}>
             Generate {selectedCount} {selectedCount === 1 ? "Wireframe" : "Wireframes"}
             <ArrowRightIcon />
           </PrimaryButton>

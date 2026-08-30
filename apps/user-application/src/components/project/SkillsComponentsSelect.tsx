@@ -164,19 +164,18 @@ const BASE_PACKS = packsOfKind("base");
 const SECTIONS_PACKS = packsOfKind("sections");
 const CHARTS_PACKS = packsOfKind("charts");
 
-/** Resolved ids for the five project axes, defaults applied. */
+/** Resolved ids for the five project axes. */
 export type ProjectSelection = {
-  designSkillId: string;
+  designSkillId: string | null;
   motionSkillId: string | null;
-  basePackId: string;
+  basePackId: string | null;
   sectionsPackId: string | null;
   chartsPackId: string | null;
 };
 
 /**
  * Reads the two flat id arrays a project stores into the four axes. An empty or unknown
- * selection resolves to the Stage defaults for display without writing anything, so an
- * untouched project keeps falling through to engine defaults.
+ * selection resolves to no choice. Nothing is silently enabled for an untouched project.
  */
 export function resolveProjectSelection(
   skillIds: readonly string[],
@@ -186,11 +185,13 @@ export function resolveProjectSelection(
   return {
     designSkillId:
       skillIds.find((id) => DESIGN_SKILLS.some((skill) => skill.id === id)) ??
-      defaults.skillIds[0],
+      defaults.skillIds[0] ??
+      null,
     motionSkillId: skillIds.find((id) => MOTION_SKILLS.some((skill) => skill.id === id)) ?? null,
     basePackId:
       componentPackIds.find((id) => BASE_PACKS.some((pack) => pack.id === id)) ??
-      defaults.componentPackIds[0],
+      defaults.componentPackIds[0] ??
+      null,
     sectionsPackId:
       componentPackIds.find((id) => SECTIONS_PACKS.some((pack) => pack.id === id)) ?? null,
     chartsPackId:
@@ -232,9 +233,12 @@ export function SkillsComponentsPanel({
   function emit(next: Partial<ProjectSelection>) {
     const merged = { ...current, ...next };
     onChange({
-      skillIds: [merged.designSkillId, ...(merged.motionSkillId ? [merged.motionSkillId] : [])],
+      skillIds: [
+        ...(merged.designSkillId ? [merged.designSkillId] : []),
+        ...(merged.motionSkillId ? [merged.motionSkillId] : []),
+      ],
       componentPackIds: [
-        merged.basePackId,
+        ...(merged.basePackId ? [merged.basePackId] : []),
         ...(merged.sectionsPackId ? [merged.sectionsPackId] : []),
         ...(merged.chartsPackId ? [merged.chartsPackId] : []),
       ],
@@ -247,7 +251,9 @@ export function SkillsComponentsPanel({
         label="Design skill"
         options={DESIGN_SKILLS}
         selectedId={current.designSkillId}
-        onChange={(next) => emit({ designSkillId: next ?? current.designSkillId })}
+        onChange={(next) => {
+          if (next) emit({ designSkillId: next });
+        }}
         disabled={disabled}
       />
       <CategorySelect
@@ -262,7 +268,9 @@ export function SkillsComponentsPanel({
         label="Base system"
         options={BASE_PACKS}
         selectedId={current.basePackId}
-        onChange={(next) => emit({ basePackId: next ?? current.basePackId })}
+        onChange={(next) => {
+          if (next) emit({ basePackId: next });
+        }}
         disabled={disabled}
       />
       <CategorySelect

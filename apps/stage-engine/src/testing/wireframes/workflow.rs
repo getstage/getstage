@@ -8,7 +8,7 @@ use crate::wireframes::helper::artifact::{
 use crate::wireframes::helper::error::WorkflowError;
 use crate::wireframes::helper::source::{
     parse_brand_source_from_source, parse_kind_from_source, parse_screens_from_source,
-    parse_style_direction_from_source, parse_token,
+    parse_style_direction_from_source, parse_token, uses_nebius_gateway,
 };
 use crate::wireframes::helper::workspace::configure_provider_workspace_call;
 use crate::wireframes::provider_workspace::ProviderCallFiles;
@@ -20,6 +20,15 @@ fn parses_kind_brand_and_style_direction_from_source() {
     assert_eq!(parse_kind_from_source(source), Some("hifi"));
     assert_eq!(parse_brand_source_from_source(source), Some("style-guide"));
     assert_eq!(parse_style_direction_from_source(source), Some("dir_42"));
+}
+
+#[test]
+fn detects_nebius_gateway_only_from_wireframes_source() {
+    assert!(uses_nebius_gateway(Some(
+        "kind:hifi,brand:style-guide,gen:nebius,screens:home"
+    )));
+    assert!(!uses_nebius_gateway(Some("kind:hifi,brand:style-guide")));
+    assert!(!uses_nebius_gateway(None));
 }
 
 #[test]
@@ -90,7 +99,14 @@ fn rejects_wrong_extra_or_output_only_screen_responses() {
 #[test]
 fn repair_merge_replaces_existing_and_restores_missing_screens() {
     let mut target = serde_json::json!({
-        "generatedScreens": [{"id": "dashboard", "tsx": "old", "html": "old"}]
+        "generatedScreens": [{
+            "id": "dashboard",
+            "title": "Operations dashboard",
+            "tsx": "old",
+            "html": "old",
+            "catalogComponentIds": ["origin-ui/p-card-1"],
+            "sections": [{"id": "summary"}]
+        }]
     });
     let repair = serde_json::json!({
         "generatedScreens": [
@@ -104,9 +120,69 @@ fn repair_merge_replaces_existing_and_restores_missing_screens() {
     let screens = target["generatedScreens"].as_array().unwrap();
     assert_eq!(screens.len(), 2);
     assert_eq!(screens[0]["tsx"], "fixed");
+    assert_eq!(screens[0]["html"], "fixed");
+    assert_eq!(screens[0]["title"], "Operations dashboard");
+    assert_eq!(
+        screens[0]["catalogComponentIds"],
+        serde_json::json!(["origin-ui/p-card-1"])
+    );
+    assert_eq!(
+        screens[0]["sections"],
+        serde_json::json!([{"id": "summary"}])
+    );
     assert_eq!(screens[1]["id"], "settings");
     assert!(
         missing_screen_ids(&target, &["dashboard".to_string(), "settings".to_string()]).is_empty()
+    );
+}
+
+#[test]
+fn repair_merge_preserves_existing_catalog_component_ids() {
+    let mut target = serde_json::json!({
+        "generatedScreens": [{
+            "id": "dashboard",
+            "tsx": "old",
+            "catalogComponentIds": ["origin-ui/p-card-1"]
+        }]
+    });
+    let repair = serde_json::json!({
+        "generatedScreens": [{
+            "id": "dashboard",
+            "tsx": "fixed",
+            "catalogComponentIds": ["aceternity-ui/features-section-demo-1"]
+        }]
+    });
+
+    merge_tsx_screens(&mut target, &repair);
+
+    assert_eq!(
+        target["generatedScreens"][0]["catalogComponentIds"],
+        serde_json::json!(["origin-ui/p-card-1"])
+    );
+}
+
+#[test]
+fn repair_merge_restores_missing_catalog_component_ids() {
+    let mut target = serde_json::json!({
+        "generatedScreens": [{
+            "id": "dashboard",
+            "tsx": "old",
+            "catalogComponentIds": []
+        }]
+    });
+    let repair = serde_json::json!({
+        "generatedScreens": [{
+            "id": "dashboard",
+            "tsx": "fixed",
+            "catalogComponentIds": ["aceternity-ui/features-section-demo-1"]
+        }]
+    });
+
+    merge_tsx_screens(&mut target, &repair);
+
+    assert_eq!(
+        target["generatedScreens"][0]["catalogComponentIds"],
+        serde_json::json!(["aceternity-ui/features-section-demo-1"])
     );
 }
 

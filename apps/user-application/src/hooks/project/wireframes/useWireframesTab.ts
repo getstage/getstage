@@ -42,21 +42,30 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
   const { providerOptions, selectedProviderId, selectProvider } = useProjectAiProvider(projectId);
   const providerRequired = useProviderRequired();
   const [error, setError] = useState<string | null>(null);
+  const [nebiusSelected, setNebiusSelected] = useState(true);
 
   useEffect(() => {
     setError(null);
   }, [projectId]);
 
-  // Wireframes runs the provider shown as selected in the UI. No project-history
-  // override, no "first ready provider" fallback — that sent Claude while Codex
-  // was highlighted.
-  const requireSelectedProvider = useCallback(
+  const selectCliProvider = useCallback(
+    (providerId: ProviderId) => {
+      setNebiusSelected(false);
+      selectProvider(providerId);
+    },
+    [selectProvider],
+  );
+
+  const requireRunProvider = useCallback(
     (action: "generating" | "regenerating"): ProviderId => {
+      if (nebiusSelected) {
+        return selectedProviderId ?? "codex";
+      }
       if (!selectedProviderId) {
         const message =
           action === "regenerating"
-            ? "Select Claude or Codex before regenerating Wireframes."
-            : "Select Claude or Codex before generating Wireframes.";
+            ? "Select Claude, Codex, or Nebius before regenerating Wireframes."
+            : "Select Claude, Codex, or Nebius before generating Wireframes.";
         providerRequired.show(message);
         throw new Error(message);
       }
@@ -66,15 +75,15 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
         const message =
           option?.statusMessage ??
           (action === "regenerating"
-            ? "Connect Claude or Codex in Settings before regenerating Wireframes."
-            : "Connect Claude or Codex in Settings before generating Wireframes.");
+            ? "Connect Claude or Codex in Settings, or choose Nebius."
+            : "Connect Claude or Codex in Settings, or choose Nebius.");
         providerRequired.show(message);
         throw new Error(message);
       }
 
       return selectedProviderId;
     },
-    [providerOptions, providerRequired, selectedProviderId],
+    [nebiusSelected, providerOptions, providerRequired, selectedProviderId],
   );
 
   const generateWireframes = useCallback(
@@ -109,7 +118,7 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
         throw new Error(brandKitGuardError);
       }
 
-      const runProviderId = requireSelectedProvider("generating");
+      const runProviderId = requireRunProvider("generating");
 
       try {
         await wireframesRun.startWireframes(
@@ -119,8 +128,11 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
             input.brandSource,
             input.styleDirectionId,
             screenIds,
+            nebiusSelected,
           ),
           input.brandKitKeys,
+          "Generate Stage wireframes from the current project context.",
+          { skipProviderPreflight: nebiusSelected },
         );
       } catch (runError) {
         const message =
@@ -131,7 +143,7 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
 
       return wireframesArtifact.data;
     },
-    [requireSelectedProvider, wireframesArtifact.data, wireframesRun],
+    [nebiusSelected, requireRunProvider, wireframesArtifact.data, wireframesRun],
   );
 
   const regenerateScreens = useCallback(
@@ -158,7 +170,7 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
         throw new Error(brandKitGuardError);
       }
 
-      const runProviderId = requireSelectedProvider("regenerating");
+      const runProviderId = requireRunProvider("regenerating");
 
       try {
         await wireframesRun.startWireframes(
@@ -168,9 +180,11 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
             input.brandSource,
             input.styleDirectionId,
             input.screenIds,
+            nebiusSelected,
           ),
           input.brandKitKeys,
           `Regenerate wireframe screens: ${input.screenIds.join(", ")}`,
+          { skipProviderPreflight: nebiusSelected },
         );
       } catch (runError) {
         const message =
@@ -179,7 +193,7 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
         throw runError;
       }
     },
-    [requireSelectedProvider, wireframesRun],
+    [nebiusSelected, requireRunProvider, wireframesRun],
   );
 
   // Screens the live run is producing. Every run is scoped now, so this covers a
@@ -215,11 +229,14 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
     elapsedSeconds: wireframesRun.elapsedSeconds,
     providerOptions,
     selectedProviderId,
-    selectProvider,
+    selectProvider: selectCliProvider,
+    nebiusSelected,
+    selectNebius: () => setNebiusSelected(true),
     isRegenerateRun: wireframesRun.isRegenerateRun,
     isRunning: wireframesRun.isRunning,
     error: error ?? wireframesRun.error,
     cancelWireframes: wireframesRun.cancelWireframes,
+    isCancelling: wireframesRun.isCancelling,
     activeRunId: wireframesRun.activeRunId,
   };
 }

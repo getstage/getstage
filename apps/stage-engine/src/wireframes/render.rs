@@ -6,97 +6,15 @@ use serde::Deserialize;
 use serde_json::{Value as JsonValue, json};
 use tokio::process::Command;
 
+use crate::convex_store::catalog_repository::CatalogSourceFile;
+
 const RENDER_TIMEOUT: Duration = Duration::from_secs(90);
-const DEFAULT_BASE_LIBRARY: &str = "shadcn-ui";
 
 /// How a screen's final HTML was produced. Persisted per screen because the React path
 /// falls back silently: without this, a run that produced nothing but hand-written model
 /// HTML looks identical to a fully rendered one outside the engine logs.
 pub const RENDER_MODE_REACT: &str = "react";
 pub const RENDER_MODE_FALLBACK: &str = "html-fallback";
-
-/// A virtual module the generated TSX may import, the libraries that can satisfy it, and
-/// the manifest section describing them.
-pub struct LibrarySlot {
-    pub module: &'static str,
-    pub label: &'static str,
-    pub manifest_key: &'static str,
-    pub library_ids: &'static [&'static str],
-}
-
-/// Base first: it is the only required slot, and `RendererLibraries` relies on that order.
-pub const LIBRARY_SLOTS: [LibrarySlot; 3] = [
-    LibrarySlot {
-        module: "@stage/base",
-        label: "Base",
-        manifest_key: "base",
-        library_ids: &["shadcn-ui", "kokonut-ui", "origin-ui", "mantine"],
-    },
-    LibrarySlot {
-        module: "@stage/sections",
-        label: "Sections",
-        manifest_key: "sections",
-        library_ids: &["magic-ui", "aceternity-ui", "react-bits"],
-    },
-    LibrarySlot {
-        module: "@stage/charts",
-        label: "Data visuals",
-        manifest_key: "charts",
-        library_ids: &["bklit-ui"],
-    },
-];
-
-/// The libraries bound for one run. Base is stored as a plain `String` so it always
-/// resolves by construction, and the optional slots hold only what the run actually
-/// selected — there is no "unselected" value for callers to special-case.
-#[derive(Clone, Debug)]
-pub struct RendererLibraries {
-    base: String,
-    optional: Vec<(&'static str, String)>,
-}
-
-impl RendererLibraries {
-    pub fn resolve(component_pack_ids: &[String]) -> Self {
-        let selected = |slot: &LibrarySlot| {
-            component_pack_ids
-                .iter()
-                .find(|id| slot.library_ids.contains(&id.as_str()))
-                .cloned()
-        };
-        let (base_slot, optional_slots) = LIBRARY_SLOTS
-            .split_first()
-            .expect("LIBRARY_SLOTS always contains the base slot");
-
-        Self {
-            base: selected(base_slot).unwrap_or_else(|| DEFAULT_BASE_LIBRARY.to_string()),
-            optional: optional_slots
-                .iter()
-                .filter_map(|slot| selected(slot).map(|id| (slot.module, id)))
-                .collect(),
-        }
-    }
-
-    /// Every bound slot, base first, paired with the library that satisfies it.
-    pub fn selected(&self) -> impl Iterator<Item = (&'static LibrarySlot, &str)> {
-        LIBRARY_SLOTS.iter().filter_map(|slot| {
-            if slot.module == LIBRARY_SLOTS[0].module {
-                return Some((slot, self.base.as_str()));
-            }
-            self.optional
-                .iter()
-                .find(|(module, _)| *module == slot.module)
-                .map(|(_, id)| (slot, id.as_str()))
-        })
-    }
-
-    fn as_json(&self) -> JsonValue {
-        JsonValue::Object(
-            self.selected()
-                .map(|(slot, id)| (slot.module.to_string(), json!(id)))
-                .collect(),
-        )
-    }
-}
 
 /// The style guide this run designs against, shaped for the renderer's `theme` input.
 ///
@@ -148,18 +66,6 @@ pub fn brand_theme(
         return None;
     }
     Some(json!({ "fontFamily": font_family, "palettes": palettes }))
-}
-
-/// Opt out with `STAGE_WIREFRAMES_REACT_RENDER=0`.
-pub fn react_render_enabled() -> bool {
-    match std::env::var("STAGE_WIREFRAMES_REACT_RENDER").as_deref() {
-        Ok("0") | Ok("false") | Ok("FALSE") | Ok("off") => false,
-        Ok("1") | Ok("true") | Ok("TRUE") => true,
-        _ => {
-            let root = renderer_root();
-            root.join("package.json").exists() && root.join("node_modules").exists()
-        }
-    }
 }
 
 fn renderer_root() -> PathBuf {
@@ -224,8 +130,9 @@ fn set_render_mode(screen: &mut JsonValue, mode: &str) {
 /// every screen is stamped with the mode that produced its final HTML.
 pub async fn apply_react_render(
     artifact: &mut JsonValue,
-    libraries: &RendererLibraries,
     theme: Option<&JsonValue>,
+    catalog_files: &[CatalogSourceFile],
+    screen_ids: &[String],
 ) -> anyhow::Result<ReactRenderOutcome> {
     let Some(screens) = artifact
         .get_mut("generatedScreens")
@@ -234,9 +141,19 @@ pub async fn apply_react_render(
         return Ok(ReactRenderOutcome::default());
     };
 
-    // Fallback is the truth until a screen is proven to have rendered.
+    let screen_ids = screen_ids
+        .iter()
+        .map(String::as_str)
+        .collect::<std::collections::HashSet<_>>();
+    // Fallback is the truth until a screen from this provider response is proven to render.
     for screen in screens.iter_mut() {
-        set_render_mode(screen, RENDER_MODE_FALLBACK);
+        if screen
+            .get("id")
+            .and_then(JsonValue::as_str)
+            .is_some_and(|id| screen_ids.contains(id))
+        {
+            set_render_mode(screen, RENDER_MODE_FALLBACK);
+        }
     }
 
     let mut batch = Vec::new();
@@ -244,7 +161,7 @@ pub async fn apply_react_render(
     let mut tsx_by_id = std::collections::HashMap::new();
     for screen in screens.iter() {
         let id = screen.get("id").and_then(JsonValue::as_str).unwrap_or("");
-        if id.is_empty() {
+        if id.is_empty() || !screen_ids.contains(id) {
             continue;
         }
         let tsx = screen.get("tsx").and_then(JsonValue::as_str).unwrap_or("");
@@ -266,7 +183,7 @@ pub async fn apply_react_render(
         });
     }
 
-    let rendered = match render_batch(libraries, theme, &batch).await {
+    let rendered = match render_batch(theme, &batch, catalog_files).await {
         Ok(payload) => payload,
         Err(error) => {
             tracing::warn!(%error, "wireframe react renderer unavailable; keeping html fallback");
@@ -342,9 +259,9 @@ pub async fn apply_react_render(
 }
 
 async fn render_batch(
-    libraries: &RendererLibraries,
     theme: Option<&JsonValue>,
     screens: &[JsonValue],
+    catalog_files: &[CatalogSourceFile],
 ) -> anyhow::Result<RenderPayload> {
     let root = renderer_root();
     let tsx_cli = root.join("node_modules/tsx/dist/cli.mjs");
@@ -357,14 +274,16 @@ async fn render_batch(
     }
 
     let mut input = json!({
-        "version": 1,
-        "libraries": libraries.as_json(),
+        "version": 2,
         "screens": screens,
     });
-    if let Some(theme) = theme
-        && let Some(object) = input.as_object_mut()
-    {
-        object.insert("theme".to_string(), theme.clone());
+    if let Some(object) = input.as_object_mut() {
+        if let Some(theme) = theme {
+            object.insert("theme".to_string(), theme.clone());
+        }
+        if !catalog_files.is_empty() {
+            object.insert("catalog".to_string(), serde_json::to_value(catalog_files)?);
+        }
     }
     let node_binary =
         std::env::var_os("STAGE_WIREFRAME_NODE_BINARY").unwrap_or_else(|| "node".into());
@@ -410,23 +329,12 @@ async fn render_batch(
     }
 }
 
-pub fn repair_prompt_for_failures(
-    failures: &[RenderFailure],
-    libraries: &RendererLibraries,
-) -> String {
+pub fn repair_prompt_for_failures(failures: &[RenderFailure]) -> String {
     let mut body = String::from(
         "Repair ONLY these wireframe screens. Return generatedScreens[] with the same ids, fixed \"tsx\", and a minimal \"html\" fallback.\n",
     );
-    for (slot, id) in libraries.selected() {
-        body.push_str(&format!(
-            "Selected {} library: {id} — import it only from \"{}\".\n",
-            slot.label, slot.module
-        ));
-    }
-    body.push_str("Do not import any other component library, Node API, or browser global.\n");
-    // The model already saw the library manifest at generation time and still produced an
-    // invalid call — restate the hard contract so the repair cannot repeat it.
-    body.push_str("Every component call must pass all required props exactly as listed in the manifest, and every lucide-react import must be a real exported icon name.\n");
+    body.push_str("Keep the screen TSX compiling in the renderer. You MAY import react, lucide-react, motion, motion/react, and the exact `@/` paths from the supplied catalog bundles. Never invent `@stage/*`, an unknown package, a Node API, or a browser global.\n");
+    body.push_str("Preserve catalogComponentIds exactly; they identify the verified RAG sources used for this screen. Every lucide-react import must be a real exported icon name.\n");
     body.push_str("Never position copy with absolute/fixed or negative margins — stack text with flex/grid only.\n\n");
     for failure in failures {
         body.push_str(&format!(
@@ -441,32 +349,13 @@ pub fn repair_prompt_for_failures(
 mod tests {
     use super::*;
 
-    #[test]
-    fn resolves_each_slot_independently() {
-        let ids = vec![
-            "magic-ui".to_string(),
-            "kokonut-ui".to_string(),
-            "bklit-ui".to_string(),
-        ];
-        let libraries = RendererLibraries::resolve(&ids);
-        assert_eq!(
-            libraries.as_json(),
-            json!({
-                "@stage/base": "kokonut-ui",
-                "@stage/sections": "magic-ui",
-                "@stage/charts": "bklit-ui",
-            })
-        );
-    }
-
     #[tokio::test]
     async fn missing_tsx_is_an_explicit_render_failure() {
-        let libraries = RendererLibraries::resolve(&[]);
         let mut artifact = json!({
             "generatedScreens": [{ "id": "dashboard", "html": "<main>Fallback</main>" }]
         });
 
-        let outcome = apply_react_render(&mut artifact, &libraries, None)
+        let outcome = apply_react_render(&mut artifact, None, &[], &["dashboard".to_string()])
             .await
             .unwrap();
 
@@ -475,12 +364,37 @@ mod tests {
         assert!(outcome.failures[0].error.contains("no non-empty TSX"));
     }
 
-    #[test]
-    fn unselected_optional_slots_are_absent_and_base_defaults() {
-        let libraries = RendererLibraries::resolve(&[]);
+    #[tokio::test]
+    async fn scoped_render_does_not_compile_saved_legacy_siblings() {
+        let mut artifact = json!({
+            "generatedScreens": [
+                {
+                    "id": "old",
+                    "tsx": "import { Button } from \"@stage/base\"; export default function Old() { return <Button />; }",
+                    "html": "<main>Saved old screen</main>"
+                },
+                {
+                    "id": "new",
+                    "tsx": "export default function New() { return <main>Fresh screen</main>; }",
+                    "html": "<main>Fallback</main>"
+                }
+            ]
+        });
+
+        let outcome = apply_react_render(&mut artifact, None, &[], &["new".to_string()])
+            .await
+            .unwrap();
+
+        assert!(outcome.failures.is_empty());
         assert_eq!(
-            libraries.as_json(),
-            json!({ "@stage/base": DEFAULT_BASE_LIBRARY })
+            artifact["generatedScreens"][0]["html"],
+            "<main>Saved old screen</main>"
+        );
+        assert!(
+            artifact["generatedScreens"][1]["html"]
+                .as_str()
+                .unwrap()
+                .contains("Fresh screen")
         );
     }
 }

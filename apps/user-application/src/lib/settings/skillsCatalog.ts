@@ -311,7 +311,7 @@ export function packsOfKind(kind: ComponentPackCatalogItem["packKind"]): Compone
   return COMPONENT_PACK_CATALOG.filter((p) => p.packKind === kind);
 }
 
-/** Defaults for a project with no explicit selection. Skills are always opt-in. */
+/** An untouched project has no implicit skills or component packs. */
 export function defaultProjectSelection(): { skillIds: string[]; componentPackIds: string[] } {
-  return { skillIds: [], componentPackIds: ["shadcn-ui"] };
+  return { skillIds: [], componentPackIds: [] };
 }

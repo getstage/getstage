@@ -73,9 +73,8 @@ pub(crate) async fn run_screens_in_parallel(
     let mut configure: Vec<serde_json::Value> = Vec::new();
     let mut cancelled = false;
     while let Some(joined) = tasks.join_next().await {
-        let (screen_id, outcome) = joined.map_err(|error| {
-            WorkflowError::Internal(format!("screen run task failed: {error}"))
-        })?;
+        let (screen_id, outcome) = joined
+            .map_err(|error| WorkflowError::Internal(format!("screen run task failed: {error}")))?;
         match outcome {
             Ok(ProviderProcessOutcome::Completed(text)) => {
                 dump.write_provider_raw(&screen_id, &text);

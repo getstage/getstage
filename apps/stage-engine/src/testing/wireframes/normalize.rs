@@ -1,5 +1,6 @@
 use super::*;
 use crate::models::wireframes::{WireframeBrandSource, WireframeKind, WireframesInput};
+use crate::wireframes::helper::artifact::merge_tsx_screens;
 use serde_json::json;
 
 fn sample_input() -> WireframesInput {
@@ -105,6 +106,68 @@ fn preserves_hifi_html_field() {
             .as_str()
             .unwrap()
             .contains("Hi-Fi")
+    );
+}
+
+#[test]
+fn normalization_preserves_valid_catalog_component_ids() {
+    let mut screen = sample_screen("homepage", None);
+    screen["tsx"] = json!("export default function Screen() { return <main>Home</main>; }");
+    screen["catalogComponentIds"] = json!([
+        "aceternity-ui/features-section-demo-1",
+        "bklit/funnel-chart"
+    ]);
+    let artifact = json!({ "generatedScreens": [screen] });
+
+    let normalized = normalize_wireframes_artifact(
+        artifact,
+        &sample_input(),
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        Some("direction_1"),
+        123,
+        "just now",
+    )
+    .unwrap();
+
+    assert_eq!(
+        normalized["generatedScreens"][0]["catalogComponentIds"],
+        json!([
+            "aceternity-ui/features-section-demo-1",
+            "bklit/funnel-chart"
+        ])
+    );
+}
+
+#[test]
+fn normalized_repair_restores_catalog_component_ids_during_merge() {
+    let mut repaired_screen = sample_screen("homepage", None);
+    repaired_screen["tsx"] =
+        json!("export default function Screen() { return <main>Repaired</main>; }");
+    repaired_screen["catalogComponentIds"] = json!(["aceternity-ui/features-section-demo-1"]);
+
+    let normalized_repair = normalize_wireframes_artifact(
+        json!({ "generatedScreens": [repaired_screen] }),
+        &sample_input(),
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        Some("direction_1"),
+        123,
+        "just now",
+    )
+    .unwrap();
+    let mut original = json!({
+        "generatedScreens": [{
+            "id": "homepage",
+            "tsx": "export default function Screen() { return <main>Original</main>; }"
+        }]
+    });
+
+    merge_tsx_screens(&mut original, &normalized_repair);
+
+    assert_eq!(
+        original["generatedScreens"][0]["catalogComponentIds"],
+        json!(["aceternity-ui/features-section-demo-1"])
     );
 }
 
@@ -327,6 +390,43 @@ fn appends_a_screen_the_existing_artifact_does_not_have_yet() {
         "an appended screen is added to the screen list"
     );
     assert_eq!(merged["stats"]["totalConfigureScreenCount"], json!(2));
+}
+
+#[test]
+fn keeps_an_unrequested_project_screen_the_model_returned_anyway() {
+    let existing = json!({
+        "stats": { "totalConfigureScreenCount": 3 },
+        "configureScreens": [
+            { "id": "homepage", "title": "Homepage", "required": true, "selected": true },
+            { "id": "pricing", "title": "Pricing", "required": false, "selected": true },
+            { "id": "screen-project-dashboard", "title": "Project dashboard", "required": false, "selected": true }
+        ],
+        "generatedScreens": [
+            sample_screen("homepage", Some("<div>Home</div>")),
+            sample_screen("pricing", Some("<div>Pricing</div>"))
+        ]
+    });
+    let mut dashboard = sample_screen("screen-project-dashboard", Some("<div>Dashboard</div>"));
+    dashboard["tsx"] = json!("export default function Dashboard() { return <main />; }");
+    let mut homepage = sample_screen("homepage", Some("<div>New home</div>"));
+    homepage["tsx"] = json!("export default function Home() { return <main />; }");
+    let partial = json!({
+        "generatedScreens": [homepage, dashboard]
+    });
+
+    let (merged, _failed) = merge_regenerated_screens(
+        &existing.to_string(),
+        partial,
+        &["homepage".to_string()],
+        WireframeKind::Hifi,
+    )
+    .expect("a bonus project screen should be appended");
+
+    let screens = merged["generatedScreens"].as_array().unwrap();
+    assert_eq!(screens.len(), 3);
+    assert_eq!(screens[0]["id"], "homepage");
+    assert_eq!(screens[1]["id"], "pricing");
+    assert_eq!(screens[2]["id"], "screen-project-dashboard");
 }
 
 #[test]

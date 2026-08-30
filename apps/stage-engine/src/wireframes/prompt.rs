@@ -60,54 +60,10 @@ const WIREFRAMES_SHAPE_EXAMPLE: &str = r#"{
 
 const ALLOWED_BLOCK_KINDS: &str = "header, hero, feature-grid, testimonial, pricing-table, cta, form, logo-strip, footer, stat-strip, faq, media, text, list, table, navigation";
 
-// Hi-Fi mode turns each screen into a final, production-quality design carried
-// as a self-contained HTML fragment. The block outline is still produced (used
-// for Figma layer naming and as a Lo-Fi fallback), but `html` is the source of
-// truth for the visual design. These rules double as our anti-slop taste rubric.
-const HIFI_RULES: &str = r#"
-Hi-Fi mode — produce a FINAL DESIGN, not a wireframe:
-- For EACH generatedScreens[] entry, add an "html" field: a single, self-contained HTML fragment that renders that screen as a polished, production-quality web page.
-- Style everything with ONE <style> block at the top of the fragment (plain CSS) plus inline styles as needed. Do NOT use Tailwind, any CSS framework, <script>, external <link> stylesheets, or @import. Use system font stacks inside the <style> block (e.g. font-family: 'Geist', system-ui, sans-serif). The design MUST render on its own with no JavaScript or external requests.
-- When a <component_pack> is attached below, its stylesheet is added to the fragment for you. Use that pack's classes for every control (buttons, inputs, cards, badges, tabs, tables) and write ONLY layout CSS in your own <style> block. Never redefine a pack class, and never invent a second button or card style.
-- Wrap everything in one root <div> — do not emit <html>, <head>, or <body> tags.
-- Still fill sections[]/blocks[] as the structural outline (used for Figma layer naming and Lo-Fi fallback); the "html" field is the source of truth for the visuals.
-
-Brand:
-- Derive the palette, typography, and tone from the moodboard styleGuides[] (or the attached brand kit). Apply real brand colors and fonts — never default grays/blues.
-- Set brandTokens.paletteRef and brandTokens.typographyRef to the source you used.
-
-Imagery:
-- Use topic-relevant placeholder photos via https://images.unsplash.com/...&q=80&w=1200, or branded gradient blocks. Never leave empty image boxes.
-
-Anti-slop taste rules (mandatory):
-- Cohesive system: one spacing scale, one corner radius, consistent shadows.
-- Strong typographic hierarchy with intentional spacing between sections (typically 48–96px) — not huge empty bands and not cramped, centered-everything layouts.
-- Realistic copy drawn from the strategy/research artifacts — no "Lorem ipsum" or placeholder filler.
-- Make each section visually distinct (alternating backgrounds, varied layout); avoid identical three-icon-card rows unless intentional.
-- Keep markup semantic and FLAT (header, section, h1-h3, p, ul, button) so it converts cleanly to Figma layers and exportable code. Avoid absolute positioning, transforms, and exotic CSS.
-- Ensure WCAG-AA text contrast.
-
-Canvas / height rules (mandatory — Stage crops and exports by content height):
-- NEVER use min-height: 100vh, height: 100vh, or min-height: 100% on the root wrapper or on dialog/onboarding shells. Height must come from content.
-- Modal, form, invite, success, and step screens: content-sized card/panel with modest outer padding (32–64px on desktop, 16–24px on mobile). Do NOT vertically center a small card inside a full frame of empty white.
-- Marketing / long pages: stack sections tightly with consistent gaps; do not pad with large empty regions between sections.
-- Prefer one root <div> that wraps only real UI — no spacer divs whose only job is to fill the viewport.
-
-Multi-step / wizard / onboarding / success screens (mandatory — Stage never runs JavaScript):
-- Emit ONLY the active step's UI for that screen. Do NOT include sibling steps hidden with display:none, visibility:hidden, the hidden attribute, or aria-hidden.
-- Do NOT rely on tabs, carousels, or step state that needs <script> to reveal content. One screen id = one visible frame.
-- Keep the active panel content-sized; no empty wrapper holding height for hidden siblings.
-
-Pre-flight check before returning: confirm every Hi-Fi screen has BOTH a non-empty "tsx" and a non-empty "html" using brand colors, real copy, and at least one image; no two sections look identical; no screen relies on 100vh / empty viewport centering; and no screen hides its only content for JavaScript.
-"#;
-
-/// Hi-Fi rules for React mode. The plain-CSS path below (`HIFI_RULES`) asks for a fully
-/// designed `html` fragment with no Tailwind and a hand-written `ui-*` class vocabulary —
-/// the exact opposite of what the real libraries need. Running both at once is what made
-/// the model return screens with no "tsx" at all, so only one of the two is ever injected.
+/// Hi-Fi rules for mandatory RAG-backed React mode.
 const HIFI_REACT_RULES: &str = r#"
 Hi-Fi mode — the design IS a React component:
-- The "tsx" field is the design. Stage compiles it against the real component libraries with real Tailwind and ships the rendered result. Put all of your effort here.
+- The "tsx" field is the design. Stage compiles a self-contained implementation adapted from the verified RAG source files with real Tailwind and ships the rendered result. Put all of your effort here.
 - The "html" field is a fallback shown ONLY if that compilation fails. Keep it SHORT and plain: wrap it in ONE root <div> and use `style="..."` attributes for the few styles it needs. Do NOT put Tailwind classes in "html" — nothing compiles them there, so they would render completely unstyled. It must still be valid: one <div> root and at least one inline style, or the screen is rejected.
 - Style the TSX with Tailwind utility classes. Arbitrary values are fine and encouraged for brand fidelity (text-[13px], bg-[#F5F5F5], rounded-[6px], shadow-[0_1px_2px_rgba(0,0,0,0.08)]).
 - Still fill sections[]/blocks[] as the structural outline (used for Figma layer naming and the Lo-Fi view).
@@ -137,7 +93,7 @@ Motion and interaction (motion/react runs live in the app preview; the Figma exp
 - Also give interactive elements CSS states (`hover:`, `focus-visible:`, `active:`, `group-hover:` with `transition-*`) and Tailwind animation utilities (`animate-pulse`, `animate-marquee`, `motion-reduce:animate-none`) so motion reads even in the static capture. A screen with no motion and no hover states reads as a screenshot.
 
 Brand surfaces:
-- The selected component library already reads this project's palette from its own CSS variables, so a plain `<Button>` or `<Card>` is already on-brand. Do not re-skin them with hardcoded colors; add brand color only where you are styling your own layout.
+- Adapt the retrieved component's structure and interaction to the project's palette. Preserve its distinctive behavior while applying the selected brand evidence.
 - Check contrast against the section you place things in: a dark section needs light text and light chart colors set on the element or an ancestor.
 
 Multi-step / wizard / onboarding / success screens (mandatory — the render is static, no client JavaScript):
@@ -151,13 +107,11 @@ const REACT_TSX_RULES: &str = r#"
 React component mode (Stage renders TSX → static HTML; no client JavaScript):
 - For EACH generatedScreens[] entry, add a "tsx" field: a complete React function component as a string.
 - Default-export `function Screen()` and return one visible root.
-- Import components ONLY from the virtual modules listed under "Selected real component libraries for this run". Each one resolves to the exact real library selected.
-- Do not import another component library, npm package, Node API, browser global, stylesheet, or local file. `react`, `lucide-react`, and `motion` (`motion/react`) are the only other allowed imports.
-- Import ONLY names shown in the library's "Allowed import" line above. If a name is not listed there, the library does not export it — compose that element from plain HTML tags with Tailwind classes instead of guessing an import.
+- Read `catalog-candidates.json`, then read the exact candidate source files listed by `sourcePath`. Adapt at least one retrieved component into this screen.
+- You MAY import the exact `@/` paths from those retrieved files, plus `react`, `lucide-react`, `motion`, and `motion/react`. Do not import `@stage/*`, an invented package, a stylesheet, or a Node API.
+- Add `catalogComponentIds` with the exact component IDs actually used. Every ID must come from `catalog-candidates.json`.
 - Write "tsx" as one JSON string with quotes escaped exactly once. The decoded component source must contain no backslash-escaped quotes — a literal \" left inside the decoded tsx (className=\"...\") fails compilation.
-- Build the screen OUT of those components. Hand-written Tailwind is for layout and spacing BETWEEN them — never re-create a button, card, input, table, chart, background pattern, text effect, or device mockup the libraries already export.
-- Every screen uses at least one Base component. Use a Sections block whenever the screen has a matching marketing section; never force a marketing section into an application form.
-- When a screen shows metrics, trends, usage, analytics, or reporting, render them with the Data visuals library rather than faking a graph with divs. If no Data visuals library is selected, omit the chart instead of drawing one by hand.
+- Use retrieved source for distinctive components and Tailwind for page layout between them. Do not substitute an old Stage component or invent a fake library API.
 - Use Tailwind utility classes for layout around the real components. Motion components render their initial static SSR state.
 - Never position copy with absolute/fixed positioning or negative margins (`-mt-*`, `-top-*`, …). Stack text, buttons, and media with flex/grid only — overlapping headlines fail the render gate.
 - Keep a minimal self-contained "html" fallback; rendered TSX replaces it only after compilation succeeds. The fallback shows the same single visible frame — never hidden steps or display:none siblings.
@@ -167,263 +121,14 @@ Each generatedScreens[] entry therefore looks like this (abbreviated — keep ev
 {
   "id": "homepage",
   "title": "Homepage",
-  "tsx": "import { Button, Card } from \"@stage/base\";\n\nexport default function Screen() {\n  return (\n    <div className=\"p-10\">\n      <Card><h1 className=\"text-3xl font-semibold\">Headline</h1><Button>Get started</Button></Card>\n    </div>\n  );\n}\n",
+  "catalogComponentIds": ["origin-ui/example-component"],
+  "tsx": "export default function Screen() {\n  return <div className=\"p-10\"><h1 className=\"text-3xl font-semibold\">Headline</h1></div>;\n}\n",
   "html": "<div style=\"padding:40px\"><h1>Headline</h1></div>",
   "sections": []
 }
 
 A screen returned without a "tsx" field is an incomplete response. Write the TSX first, then derive the short "html" fallback from it.
 "#;
-
-const RENDERER_LIBRARY_MANIFESTS: &str =
-    include_str!("../../../../packages/wireframe-renderer/manifests/libraries.json");
-
-fn react_tsx_prompt_enabled() -> bool {
-    crate::wireframes::render::react_render_enabled()
-}
-
-fn manifest_strings<'a>(value: &'a serde_json::Value, key: &str) -> Vec<&'a str> {
-    value
-        .get(key)
-        .and_then(serde_json::Value::as_array)
-        .map(|items| items.iter().filter_map(serde_json::Value::as_str).collect())
-        .unwrap_or_default()
-}
-
-fn semantic_manifest_is_complete(entry: &serde_json::Value, exports: &[&str]) -> bool {
-    let Some(groups) = entry
-        .get("componentGroups")
-        .and_then(serde_json::Value::as_array)
-    else {
-        return false;
-    };
-    let mut coverage = std::collections::HashMap::<&str, usize>::new();
-    for group in groups {
-        for export in manifest_strings(group, "exports") {
-            *coverage.entry(export).or_default() += 1;
-        }
-    }
-    if coverage.len() != exports.len()
-        || exports
-            .iter()
-            .any(|export| coverage.get(export).copied() != Some(1))
-        || coverage.keys().any(|export| !exports.contains(export))
-    {
-        return false;
-    }
-
-    entry
-        .get("recipes")
-        .and_then(serde_json::Value::as_array)
-        .is_some_and(|recipes| {
-            !recipes.is_empty()
-                && recipes.iter().all(|recipe| {
-                    recipe
-                        .get("components")
-                        .and_then(serde_json::Value::as_array)
-                        .is_some_and(|components| {
-                            !components.is_empty()
-                                && components.iter().all(|component| {
-                                    component
-                                        .get("exportName")
-                                        .and_then(serde_json::Value::as_str)
-                                        .is_some_and(|name| exports.contains(&name))
-                                })
-                        })
-                })
-        })
-}
-
-fn react_library_manifest(component_pack_ids: &[String]) -> String {
-    use crate::wireframes::render::{LIBRARY_SLOTS, RendererLibraries};
-
-    let libraries = RendererLibraries::resolve(component_pack_ids);
-    let Ok(manifest) = serde_json::from_str::<serde_json::Value>(RENDERER_LIBRARY_MANIFESTS) else {
-        return String::new();
-    };
-
-    let mut output = String::from("\nSelected real component libraries for this run:\n");
-    let mut bound = Vec::new();
-    for (slot, id) in libraries.selected() {
-        bound.push(slot.module);
-        let Some(entry) = manifest
-            .get(slot.manifest_key)
-            .and_then(serde_json::Value::as_array)
-            .and_then(|entries| {
-                entries
-                    .iter()
-                    .find(|entry| entry.get("id").and_then(serde_json::Value::as_str) == Some(id))
-            })
-        else {
-            continue;
-        };
-        let name = entry
-            .get("name")
-            .and_then(serde_json::Value::as_str)
-            .unwrap_or(id);
-        let exports = manifest_strings(entry, "exports");
-        if !semantic_manifest_is_complete(entry, &exports) {
-            tracing::error!(
-                library_id = id,
-                "component library metadata is incomplete; hiding it from generation prompts"
-            );
-            output.push_str(&format!(
-                "- {}: `{id}` metadata is incomplete. Do not import \"{}\".\n",
-                slot.label, slot.module
-            ));
-            continue;
-        }
-        output.push_str(&format!(
-            "- {}: {name} (`{id}`). Allowed import: `import {{ {} }} from \"{}\";`\n",
-            slot.label,
-            exports.join(", "),
-            slot.module
-        ));
-
-        if let Some(groups) = entry
-            .get("componentGroups")
-            .and_then(serde_json::Value::as_array)
-        {
-            output.push_str("  Component groups:\n");
-            for group in groups {
-                let group_id = group
-                    .get("id")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or("unknown");
-                let role = group
-                    .get("role")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or("");
-                let weight = group
-                    .get("visualWeight")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or("");
-                let intents = manifest_strings(group, "screenIntents").join("/");
-                let blocks = manifest_strings(group, "blockIntents").join("/");
-                let density = manifest_strings(group, "density").join("/");
-                let group_exports = manifest_strings(group, "exports").join(", ");
-                let motion = group
-                    .get("motion")
-                    .and_then(|motion| motion.get("requirement"))
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or("none");
-                let static_state = group
-                    .get("requiredStaticState")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or("");
-                let avoid = manifest_strings(group, "avoidUse").join(" ");
-                output.push_str(&format!(
-                    "  - `{group_id}` [{weight}; screens={intents}; blocks={blocks}; density={density}; motion={motion}]: {group_exports}. {role} Static: {static_state} Avoid: {avoid}\n"
-                ));
-            }
-        }
-
-        if let Some(recipes) = entry.get("recipes").and_then(serde_json::Value::as_array) {
-            output.push_str("  Composition recipes:\n");
-            for recipe in recipes {
-                let recipe_id = recipe
-                    .get("id")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or("unknown");
-                let purpose = recipe
-                    .get("purpose")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or("");
-                let intents = manifest_strings(recipe, "screenIntents").join("/");
-                let blocks = manifest_strings(recipe, "blockIntents").join("/");
-                let density = manifest_strings(recipe, "density").join("/");
-                let components = recipe
-                    .get("components")
-                    .and_then(serde_json::Value::as_array)
-                    .map(|components| {
-                        components
-                            .iter()
-                            .filter_map(|component| {
-                                let name = component.get("exportName")?.as_str()?;
-                                let purpose = component.get("purpose")?.as_str()?;
-                                let props = manifest_strings(component, "requiredProps");
-                                let props = if props.is_empty() {
-                                    String::new()
-                                } else {
-                                    format!("; required props/data: {}", props.join(", "))
-                                };
-                                Some(format!("{name} ({purpose}{props})"))
-                            })
-                            .collect::<Vec<_>>()
-                            .join(" + ")
-                    })
-                    .unwrap_or_default();
-                let avoid = manifest_strings(recipe, "avoidUse").join(" ");
-                output.push_str(&format!(
-                    "  - Recipe `{recipe_id}` [screens={intents}; blocks={blocks}; density={density}]: {purpose} Use {components}. Avoid: {avoid}\n"
-                ));
-            }
-        }
-    }
-
-    for slot in LIBRARY_SLOTS
-        .iter()
-        .filter(|slot| !bound.contains(&slot.module))
-    {
-        output.push_str(&format!(
-            "- {}: none selected. Do not import \"{}\".\n",
-            slot.label, slot.module
-        ));
-    }
-    output
-}
-
-/// Vendored component packs. `pack.css` is prepended to every Hi-Fi fragment by
-/// `normalize`, so all screens in a run share one control vocabulary instead of each
-/// screen inventing its own button; `pack.md` teaches the model that vocabulary.
-///
-/// Base packs implement `ui-*` controls and sections packs implement `sx-*` page
-/// sections. Class names are identical across packs of the same kind, so swapping a
-/// pack swaps CSS without changing a word of the prompt. Base entries come first so
-/// their `--ui-*` variables are declared before a sections pack consumes them.
-///
-/// `radix-ui` is deliberately absent: it ships accessible behaviour, not a visual
-/// design, so there is nothing for a wireframe to copy.
-/// Keep ids in sync with `apps/user-application/src/lib/settings/skillsCatalog.ts`.
-struct ComponentPack {
-    id: &'static str,
-    /// Base packs declare the `--ui-*` variables and the `ui-*` controls; sections packs
-    /// consume both and add `sx-*` page blocks on top.
-    base: bool,
-    /// Prepended to the fragment; never shown to the model.
-    css: &'static str,
-    /// Injected into the prompt; never shipped to the browser.
-    vocabulary: &'static str,
-}
-
-macro_rules! component_pack {
-    ($id:literal, base) => {
-        component_pack!(@build $id, true)
-    };
-    ($id:literal, sections) => {
-        component_pack!(@build $id, false)
-    };
-    (@build $id:literal, $base:literal) => {
-        ComponentPack {
-            id: $id,
-            base: $base,
-            css: include_str!(concat!("../../component-packs/", $id, "/pack.css")),
-            vocabulary: include_str!(concat!("../../component-packs/", $id, "/pack.md")),
-        }
-    };
-}
-
-const COMPONENT_PACKS: &[ComponentPack] = &[
-    // base — exactly one per run
-    component_pack!("shadcn-ui", base),
-    component_pack!("mantine", base),
-    component_pack!("origin-ui", base),
-    component_pack!("kokonut-ui", base),
-    // sections — optional, layered over a base pack
-    component_pack!("aceternity-ui", sections),
-    component_pack!("magic-ui", sections),
-    component_pack!("react-bits", sections),
-];
 
 /// Concise Stage adapters for explicitly selected skills. Upstream `SOURCE_*.md` files remain
 /// vendored for offline maintenance and tests, but are never copied into generation prompts.
@@ -451,11 +156,6 @@ const CATALOG_SKILLS: &[(&str, &str)] = &[
     ),
 ];
 
-const DEFAULT_BASE_PACK_ID: &str = "shadcn-ui";
-
-/// Base pack only. A sections pack is an explicit opt-in, never a default.
-const DEFAULT_COMPONENT_PACK_IDS: &[&str] = &[DEFAULT_BASE_PACK_ID];
-
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct HifiPromptPreferences {
     pub skill_ids: Vec<&'static str>,
@@ -463,53 +163,7 @@ pub(crate) struct HifiPromptPreferences {
 }
 
 fn enabled_component_pack_ids(input: &WireframesInput) -> Vec<String> {
-    match &input.enabled_component_pack_ids {
-        None => DEFAULT_COMPONENT_PACK_IDS
-            .iter()
-            .map(|id| (*id).to_string())
-            .collect(),
-        Some(ids) => ids.clone(),
-    }
-}
-
-/// Vendored packs for this run, in `COMPONENT_PACKS` order (base before sections).
-fn selected_component_packs(input: &WireframesInput) -> Vec<&'static ComponentPack> {
-    let ids = enabled_component_pack_ids(input);
-    let mut packs: Vec<&'static ComponentPack> = COMPONENT_PACKS
-        .iter()
-        .filter(|pack| ids.iter().any(|id| id == pack.id))
-        .collect();
-
-    // A sections pack styles itself with the base pack's `--ui-*` variables. The old
-    // multi-select let a project save sections without a base, which would render those
-    // sections against undefined variables — so a sections pack always gets a base under
-    // it. An empty selection stays empty: that means "no packs", not "the default pack".
-    if packs.iter().any(|pack| !pack.base) && !packs.iter().any(|pack| pack.base) {
-        if let Some(base) = COMPONENT_PACKS
-            .iter()
-            .find(|pack| pack.id == DEFAULT_BASE_PACK_ID)
-        {
-            packs.insert(0, base);
-        }
-    }
-
-    packs
-}
-
-/// Stylesheet shared by every Hi-Fi screen in the run. Empty when no selected pack is
-/// vendored — the model then styles controls itself, exactly as it did before packs.
-pub(crate) fn component_pack_css(input: &WireframesInput) -> String {
-    // React mode replaces the fragment with the real rendered output, so prepending the
-    // hand-written pack stylesheet would only dress up a fallback that is meant to look
-    // like a fallback.
-    if react_tsx_prompt_enabled() {
-        return String::new();
-    }
-    selected_component_packs(input)
-        .iter()
-        .map(|pack| pack.css)
-        .collect::<Vec<_>>()
-        .join("\n")
+    input.enabled_component_pack_ids.clone().unwrap_or_default()
 }
 
 /// Explicitly selected catalog skills. Legacy or unset preferences select no skill.
@@ -540,8 +194,7 @@ fn push_skill_block(extras: &mut String, id: &str, body: &str) {
 }
 
 fn hifi_prompt_extras(input: &WireframesInput) -> String {
-    let react = react_tsx_prompt_enabled();
-    let mut extras = String::from(if react { HIFI_REACT_RULES } else { HIFI_RULES });
+    let mut extras = String::from(HIFI_REACT_RULES);
     let preferences = resolve_hifi_prompt_preferences(input);
 
     if preferences.skill_ids.len() > 1 {
@@ -556,24 +209,8 @@ fn hifi_prompt_extras(input: &WireframesInput) -> String {
         }
     }
 
-    // The `ui-*` pack vocabulary only describes the plain-CSS fragment. In React mode the
-    // real libraries are the vocabulary, and teaching both is what made the model produce
-    // hand-written CSS instead of components.
-    if !react {
-        for pack in selected_component_packs(input) {
-            extras.push_str("\n\n<component_pack id=\"");
-            extras.push_str(pack.id);
-            extras.push_str("\">\n");
-            extras.push_str(pack.vocabulary);
-            extras.push_str("\n</component_pack>\n");
-        }
-    }
-
     // Keep the hard React/output contract closest to the requested JSON response.
-    if react {
-        extras.push_str(REACT_TSX_RULES);
-        extras.push_str(&react_library_manifest(&preferences.component_pack_ids));
-    }
+    extras.push_str(REACT_TSX_RULES);
     extras
 }
 
@@ -647,7 +284,10 @@ pub fn build_design_director_prompt(
             }
         }
     }
-    let library_context = react_library_manifest(&preferences.component_pack_ids);
+    let library_context = format!(
+        "Selected RAG catalog filters: {}. Concrete components are retrieved per screen.",
+        preferences.component_pack_ids.join(", ")
+    );
     let target_ids = expected_screen_ids.join(", ");
     let style_direction = style_direction_id.unwrap_or("none selected");
     let brand_source = match brand_source {
@@ -786,7 +426,7 @@ fn strip_pack_styles(json: &str) -> String {
 /// A scoped run re-designs screens that already exist, so the model needs those screens'
 /// own definitions and the journeys they sit in — not the product's entire flow inventory.
 /// Keeps `screens[]` for the target ids and only the flows that actually reference them.
-fn scope_flows_artifact(flows_json: &str, ids: &[&str]) -> String {
+pub(crate) fn scope_flows_artifact(flows_json: &str, ids: &[&str]) -> String {
     let Ok(mut value) = serde_json::from_str::<serde_json::Value>(flows_json) else {
         return flows_json.to_string();
     };
@@ -837,8 +477,9 @@ const PLANNED_HIFI_SCREEN_RULES: &str = r#"<hard_rules>
 - Return one valid WireframesArtifact JSON object and no prose or markdown.
 - generatedScreens[] must contain only the requested screen ID and must include non-empty `tsx`, short inline-styled `html`, and structural sections/blocks.
 - `tsx` is the design: default-export `function Screen()` with one visible root and complete real content.
-- Import only the exact recipe exports listed under <allowed_recipe_imports>, plus `react`, `lucide-react`, and `motion/react` when the plan gives motion a concrete purpose.
-- Use Tailwind for layout around planned components. Never recreate a selected component, chart, pattern, effect, or device frame by hand.
+- Read `catalog-candidates.json`, then the exact source files referenced by `sourcePath`. Adapt at least one verified component into the screen and return its exact ID in `catalogComponentIds`.
+- You MAY import the exact `@/` paths from those retrieved files, plus `react`, `lucide-react`, `motion`, or `motion/react`. `@stage/*`, invented packages, stylesheets, and Node APIs are forbidden.
+- Use Tailwind for page layout around the adapted catalog components. Never replace retrieved source with an old Stage component or an invented library API.
 - No npm packages, local files, stylesheets, Node APIs, browser globals, runtime fetches, scripts, eval, or dynamic code.
 - The live preview runs React and Motion. Figma and thumbnails capture the static resting frame, which must already be visible, complete, and legible; never start required content at zero opacity or hidden.
 - Use real project copy/data from the plan's content requirements. No lorem ipsum, generic metrics, fake charts, emoji icons, empty image boxes, or unexplained decorative status.
@@ -957,86 +598,17 @@ fn scoped_existing_screen_context(input: &WireframesInput, ids: &[String]) -> St
     .to_string()
 }
 
-fn planned_recipe_imports(
+fn catalog_recipe_requirements(
     plan_json: &str,
     target_screen_ids: &[String],
-    component_pack_ids: &[String],
+    selected_library_ids: &[String],
 ) -> String {
-    use crate::wireframes::render::RendererLibraries;
-
-    let libraries = RendererLibraries::resolve(component_pack_ids);
-    let Ok(manifest) = serde_json::from_str::<serde_json::Value>(RENDERER_LIBRARY_MANIFESTS) else {
-        return "No component manifest available.".to_string();
-    };
-    let selected = libraries
-        .selected()
-        .map(|(slot, id)| (id, slot.module))
-        .collect::<std::collections::HashMap<_, _>>();
-    let target_ids = target_screen_ids
-        .iter()
-        .map(String::as_str)
-        .collect::<std::collections::HashSet<_>>();
-    let Ok(plan) = serde_json::from_str::<serde_json::Value>(plan_json) else {
-        return "Invalid component recipe.".to_string();
-    };
-    let mut imports = std::collections::BTreeMap::<&str, Vec<&str>>::new();
-    if let Some(screens) = plan.get("screens").and_then(serde_json::Value::as_array) {
-        for screen in screens.iter().filter(|screen| {
-            screen
-                .get("screenId")
-                .and_then(serde_json::Value::as_str)
-                .is_some_and(|id| target_ids.is_empty() || target_ids.contains(id))
-        }) {
-            let Some(recipe) = screen
-                .get("componentRecipe")
-                .and_then(serde_json::Value::as_array)
-            else {
-                continue;
-            };
-            for component in recipe {
-                let Some(library_id) = component
-                    .get("libraryId")
-                    .and_then(serde_json::Value::as_str)
-                else {
-                    continue;
-                };
-                let Some(export_name) = component
-                    .get("exportName")
-                    .and_then(serde_json::Value::as_str)
-                else {
-                    continue;
-                };
-                let Some(module) = selected.get(library_id).copied() else {
-                    continue;
-                };
-                let registered = manifest
-                    .as_object()
-                    .into_iter()
-                    .flat_map(|slots| slots.values())
-                    .filter_map(serde_json::Value::as_array)
-                    .flatten()
-                    .find(|entry| {
-                        entry.get("id").and_then(serde_json::Value::as_str) == Some(library_id)
-                    })
-                    .map(|entry| manifest_strings(entry, "exports").contains(&export_name))
-                    .unwrap_or(false);
-                if registered {
-                    let names = imports.entry(module).or_default();
-                    if !names.contains(&export_name) {
-                        names.push(export_name);
-                    }
-                }
-            }
-        }
-    }
-    if imports.is_empty() {
-        return "No valid recipe imports resolved; this screen must fail validation rather than invent components.".to_string();
-    }
-    imports
-        .into_iter()
-        .map(|(module, names)| format!("import {{ {} }} from \"{module}\";", names.join(", ")))
-        .collect::<Vec<_>>()
-        .join("\n")
+    let compact_plan = compact_design_plan_json(plan_json, target_screen_ids);
+    format!(
+        "# Catalog implementation requirements\n\nSelected library filters: {}\n\nThe design plan below describes desired capabilities, not importable exports:\n{}\n\nUse `catalog-candidates.json` and its verified source files for the concrete implementation. Return the exact used IDs in `catalogComponentIds`. You MAY import the exact `@/` paths from those files. Do not import `@stage/*`.\n",
+        selected_library_ids.join(", "),
+        compact_plan
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1050,7 +622,7 @@ fn build_planned_hifi_screen_prompt(
 ) -> String {
     let preferences = resolve_hifi_prompt_preferences(input);
     let compact_plan = compact_design_plan_json(design_plan_json, target_screen_ids);
-    let imports = planned_recipe_imports(
+    let imports = catalog_recipe_requirements(
         design_plan_json,
         target_screen_ids,
         &preferences.component_pack_ids,
@@ -1078,9 +650,9 @@ fn build_planned_hifi_screen_prompt(
 {compact_plan}
 </validated_design_plan>
 
-<allowed_recipe_imports>
+<catalog_implementation_requirements>
 {imports}
-</allowed_recipe_imports>
+</catalog_implementation_requirements>
 
 <screen_flow_context>
 {flows}
@@ -1103,7 +675,7 @@ Output shape reference only:
 
 <final_checklist>
 1. Exact requested screen ID; non-empty TSX and short fallback HTML.
-2. Planned recipe imports, hierarchy, content, and shared tokens implemented.
+2. At least one verified RAG source is adapted; catalogComponentIds, hierarchy, content, and shared tokens are correct.
 3. Valid Lucide names; complete static resting state; motion only for its planned purpose.
 4. No unplanned library, effect, chart, palette, repeated generic card grid, or hidden content.
 5. Return JSON only.
@@ -1228,7 +800,10 @@ Use only the design and UX guidance below. Do not run commands, tools, scripts, 
 
 pub(crate) fn workspace_library_context(input: &WireframesInput) -> String {
     let preferences = resolve_hifi_prompt_preferences(input);
-    react_library_manifest(&preferences.component_pack_ids)
+    format!(
+        "# RAG component scope\n\nSelected catalog libraries: {}\n\nThese IDs are search filters, not import modules. Concrete verified components are retrieved per screen at runtime. Never import `@stage/*`.\n",
+        preferences.component_pack_ids.join(", ")
+    )
 }
 
 pub(crate) fn workspace_director_contract() -> String {
@@ -1260,6 +835,7 @@ Return this compact envelope only; do not repeat project metadata, flows, the de
   "generatedScreens": [{{
     "id": "exact requested id",
     "title": "screen title",
+    "catalogComponentIds": ["exact componentId from catalog-candidates.json"],
     "tsx": "complete default-export React component",
     "html": "short inline-styled fallback",
     "sections": [{{ "id": "stable section id", "title": "section title", "blocks": [{{ "id": "stable block id", "kind": "one allowed block kind", "intent": "specific purpose", "emphasis": "primary|secondary", "copySlots": {{}} }}] }}],
@@ -1269,7 +845,7 @@ Return this compact envelope only; do not repeat project metadata, flows, the de
 
 Final checklist:
 1. Exact requested screen ID; non-empty TSX and short fallback HTML.
-2. Planned recipe imports, hierarchy, content, and shared tokens implemented.
+2. At least one verified RAG source is adapted; catalogComponentIds, hierarchy, content, and shared tokens are correct.
 3. Valid Lucide names; complete static resting state; motion only for its planned purpose.
 4. No unplanned library, effect, chart, palette, repeated generic card grid, or hidden content.
 5. Return JSON only.
@@ -1292,7 +868,7 @@ pub(crate) fn workspace_screen_context(
         .collect::<Vec<_>>();
     HifiScreenWorkspaceContext {
         design_plan: compact_design_plan_json(design_plan_json, target_screen_ids),
-        recipe_imports: planned_recipe_imports(
+        recipe_imports: catalog_recipe_requirements(
             design_plan_json,
             target_screen_ids,
             &preferences.component_pack_ids,
@@ -1405,9 +981,8 @@ pub fn build_wireframes_prompt_with_plan(
                 }
                 None => json.to_string(),
             };
-            // Every saved screen carries the pack stylesheet. Echoing the artifact back
-            // verbatim would resend it once per screen — ~6 KB x 13 screens of prompt for
-            // CSS the model must not write anyway. `<component_pack>` teaches the classes.
+            // Old saved artifacts may still carry the removed pack stylesheet. Strip it
+            // from regeneration context; current screens use RAG source and batch CSS.
             let payload = strip_pack_styles(&payload);
             format!(
                 "Previous wireframes artifact (regenerate; keep ids stable where possible):\n{payload}\n\n"

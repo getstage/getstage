@@ -1,11 +1,11 @@
 use crate::models::runs::{RunAttachment, RunAttachmentKind};
+use crate::wireframes::MAX_BRAND_KIT_BYTES;
 use crate::wireframes::helper::brand_kit::{
     brand_kit_attachment_kind, brand_kit_extension_allowed, extension_from_key, fetch_url_bytes,
     resolve_brand_kit_url,
 };
 use crate::wireframes::helper::error::WorkflowError;
 use crate::wireframes::provider_workspace::{ContextAccessPolicy, ProviderWorkspace};
-use crate::wireframes::{MAX_BRAND_KIT_BYTES};
 
 pub(crate) const MAX_MOODBOARD_IMAGES: usize = 4;
 
@@ -60,9 +60,7 @@ pub(crate) async fn fetch_visual_attachments(
                 &bytes,
             )
             .map_err(|error| {
-                WorkflowError::Internal(format!(
-                    "could not materialize brand kit file: {error}"
-                ))
+                WorkflowError::Internal(format!("could not materialize brand kit file: {error}"))
             })?;
         let file_path = workspace.root().join(&relative_path);
         attachments.push(RunAttachment {

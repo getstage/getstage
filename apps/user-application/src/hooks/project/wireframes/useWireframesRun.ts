@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMutation as useConvexMutation } from "convex/react";
 import type { ProviderId, RunEvent } from "@stage/data-ops/contracts";
 import type { Id } from "@stage/data-ops/convex/data-model";
 import { convexQuery } from "@convex-dev/react-query";
@@ -86,8 +87,10 @@ export function useWireframesRun(projectId: string) {
   const providers = useProviderStatus();
   const providerRequired = useProviderRequired();
   const chatDefaults = useChatDefaults();
+  const cancelPersistedRun = useConvexMutation(api.projectAi.cancelRun);
   const [error, setError] = useState<string | null>(null);
   const [runEnded, setRunEnded] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   // Prompt of the run started in this session. Every run carries a `screens:`
   // scope now, so the prompt is the only thing separating a regenerate from a
   // plain generate. After a reload the persisted run's inputSummary carries it.
@@ -231,10 +234,38 @@ export function useWireframesRun(projectId: string) {
   }, [activeRunId, failRun, hasTerminalEvent, persistedRunningRun, queryClient, runEnded]);
 
   const cancelWireframes = useCallback(async () => {
-    const runId = providerRun.activeRunId ?? persistedRunningRun?.id ?? null;
-    if (!runId) return;
-    await providerRun.cancelRun.mutateAsync(runId);
-  }, [persistedRunningRun?.id, providerRun.activeRunId, providerRun.cancelRun]);
+    if (isCancelling) return;
+    setIsCancelling(true);
+    try {
+      if (providerRun.activeRunId) {
+        try {
+          await providerRun.cancelRun.mutateAsync(providerRun.activeRunId);
+        } catch {
+          // Sidecar may already be gone (pkill / crash). Convex still holds the overlay.
+        }
+      }
+      if (persistedRunningRun) {
+        try {
+          await cancelPersistedRun({
+            runId: persistedRunningRun.id,
+            projectId: projectId as Id<"projects">,
+          });
+        } catch {
+          // Overlay still closes locally so the user is not stuck.
+        }
+      }
+    } finally {
+      setRunEnded(true);
+      providerRun.resetActiveRun();
+      setIsCancelling(false);
+    }
+  }, [
+    cancelPersistedRun,
+    isCancelling,
+    persistedRunningRun,
+    projectId,
+    providerRun,
+  ]);
 
   const startWireframes = useCallback(
     async (
@@ -242,6 +273,7 @@ export function useWireframesRun(projectId: string) {
       source?: string,
       brandKitKeys: string[] = [],
       prompt: string = WIREFRAMES_PROMPT,
+      options?: { skipProviderPreflight?: boolean },
     ) => {
       if (isRunning || providerRun.startRun.isPending) return;
 
@@ -255,18 +287,21 @@ export function useWireframesRun(projectId: string) {
       const runPromise = (async () => {
         setError(null);
         setRunEnded(false);
+        setIsCancelling(false);
         setActiveRunPrompt(prompt);
         runStartedAtRef.current = null;
 
-        const preflightArgs = {
-          providerId,
-          snapshot: providers.snapshot,
-          isEnabled: providerPreferences.isProviderEnabled(providerId),
-          context: "run" as const,
-        };
-        const blockedMessage = getProviderPreflightError(preflightArgs);
-        if (blockedMessage) providerRequired.show(blockedMessage);
-        assertProviderPreflightReady(preflightArgs);
+        if (!options?.skipProviderPreflight) {
+          const preflightArgs = {
+            providerId,
+            snapshot: providers.snapshot,
+            isEnabled: providerPreferences.isProviderEnabled(providerId),
+            context: "run" as const,
+          };
+          const blockedMessage = getProviderPreflightError(preflightArgs);
+          if (blockedMessage) providerRequired.show(blockedMessage);
+          assertProviderPreflightReady(preflightArgs);
+        }
 
         // startRun.data (and its cached activeRunId) keeps showing the PREVIOUS
         // run's id/events until this new mutation resolves. Without clearing it,
@@ -316,6 +351,7 @@ export function useWireframesRun(projectId: string) {
     startWireframes,
     cancelWireframes,
     isStarting: providerRun.startRun.isPending,
+    isCancelling,
     isRunning,
     isRunsLoading,
     elapsedSeconds,

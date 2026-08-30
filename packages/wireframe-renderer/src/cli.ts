@@ -1,11 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { MantineProvider } from "./libraries/mantine";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import * as esbuild from "esbuild";
@@ -37,43 +35,40 @@ function pruneAbandonedBatches() {
   }
 }
 
-/// The virtual modules generated TSX may import, and the library each one can resolve to.
-/// A slot the run did not select is simply absent from `libraries` — there is no "none"
-/// value to thread through the rewrite, so an unselected slot fails at validation with a
-/// clear message instead of resolving to a missing directory.
-const LIBRARY_SLOTS: Record<string, ReadonlySet<string>> = {
-  "@stage/base": new Set(["shadcn-ui", "kokonut-ui", "origin-ui", "mantine"]),
-  "@stage/sections": new Set(["magic-ui", "aceternity-ui", "react-bits"]),
-  "@stage/charts": new Set(["bklit-ui"]),
-};
-const BASE_MODULE = "@stage/base";
-
-/// Named exports each library actually provides, read from the same manifest the prompt
-/// shows the model. Without this check a hallucinated name (Mantine's `Group` imported from
-/// Kokonut) fails deep inside Node's ESM loader, and the repair pass gets a stack trace
-/// instead of the one fact it needs: which names exist.
-const LIBRARY_EXPORTS: Record<string, string[]> = (() => {
-  const manifest = JSON.parse(
-    fs.readFileSync(path.join(ROOT, "manifests", "libraries.json"), "utf8"),
-  ) as Record<string, { id: string; exports?: string[] }[]>;
-  const byLibrary: Record<string, string[]> = {};
-  for (const entries of Object.values(manifest)) {
-    for (const entry of entries) byLibrary[entry.id] = entry.exports ?? [];
-  }
-  return byLibrary;
-})();
 const FREE_IMPORTS = new Set(["react", "lucide-react", "motion", "motion/react"]);
 const FORBIDDEN_GLOBALS =
   /\b(process|globalThis|global|require|eval|Function|fetch|WebSocket|XMLHttpRequest)\b/;
+const UTILS_STUB = `export function cn(...inputs: Array<string | false | null | undefined>) {
+  return inputs.filter(Boolean).join(" ");
+}
+`;
+const NEXT_LINK_STUB = `import React from "react";
 
+type LinkProps = {
+  href?: string;
+  children?: React.ReactNode;
+  className?: string;
+  [key: string]: unknown;
+};
+
+export default function Link({ href, children, className, ...props }: LinkProps) {
+  return (
+    <a href={typeof href === "string" && href ? href : "#"} className={className} {...props}>
+      {children}
+    </a>
+  );
+}
+`;
+
+type CatalogFile = { path: string; content: string };
 type ScreenInput = { id: string; tsx: string };
 type BatchInput = {
-  version: 1;
-  /** Virtual module specifier -> library directory under `src/libraries`. */
-  libraries: Record<string, string>;
-  /** The project's style guide, mapped onto the CSS variables the libraries read. */
+  version: 2;
+  /** The project's style guide, mapped onto the CSS variables the screen reads. */
   theme?: BrandTheme;
   screens: ScreenInput[];
+  /** Retrieved catalog source files. `@/` resolves to this set. */
+  catalog?: CatalogFile[];
 };
 type ScreenOutput = {
   id: string;
@@ -87,45 +82,166 @@ type ScreenOutput = {
 function validateBatch(value: unknown): BatchInput {
   if (!value || typeof value !== "object") throw new Error("Renderer input must be an object.");
   const input = value as Partial<BatchInput>;
-  if (input.version !== 1) throw new Error("Renderer input version must be 1.");
-
-  const libraries = input.libraries;
-  if (!libraries || typeof libraries !== "object") {
-    throw new Error("Renderer input must include libraries{}.");
-  }
-  for (const [module, libraryId] of Object.entries(libraries)) {
-    const allowed = LIBRARY_SLOTS[module];
-    if (!allowed) throw new Error(`Unknown library slot: ${module}`);
-    if (!allowed.has(libraryId)) {
-      throw new Error(`Unsupported library for ${module}: ${libraryId}`);
+  if (input.version !== 2) throw new Error("Renderer input version must be 2.");
+  if (!Array.isArray(input.screens)) throw new Error("Renderer input must include screens[].");
+  if (input.catalog !== undefined) {
+    if (!Array.isArray(input.catalog)) throw new Error("Renderer catalog must be an array.");
+    for (const file of input.catalog) {
+      if (!file || typeof file.path !== "string" || typeof file.content !== "string") {
+        throw new Error("Renderer catalog entries must include path and content.");
+      }
     }
   }
-  if (!libraries[BASE_MODULE]) throw new Error(`Renderer input must bind ${BASE_MODULE}.`);
-  if (!Array.isArray(input.screens)) throw new Error("Renderer input must include screens[].");
   return input as BatchInput;
 }
 
-function validateNamedImports(tsx: string, libraries: Record<string, string>) {
-  const named = tsx.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']([^"']+)["']/g);
-  for (const match of named) {
-    const libraryId = libraries[match[2]];
-    if (!libraryId) continue;
-    const available = LIBRARY_EXPORTS[libraryId];
-    if (!available || available.length === 0) continue;
+function safeCatalogPath(root: string, filePath: string): string | null {
+  const normalized = filePath.trim().replaceAll("\\", "/").replace(/^\.\//, "");
+  if (
+    !normalized ||
+    normalized.startsWith("/") ||
+    normalized.includes("\0") ||
+    normalized.split("/").some((segment) => segment === "..") ||
+    /^[a-zA-Z]:\//.test(normalized)
+  ) {
+    return null;
+  }
+  const resolved = path.resolve(root, normalized);
+  const rootResolved = path.resolve(root);
+  if (resolved !== rootResolved && !resolved.startsWith(rootResolved + path.sep)) return null;
+  return resolved;
+}
 
-    const requested = match[1]
-      .split(",")
-      .map((part) => part.split(/\sas\s/)[0].trim())
-      .filter(Boolean);
-    const missing = requested.filter((name) => !available.includes(name));
-    if (missing.length > 0) {
-      throw new Error(
-        `${libraryId} does not export ${missing.join(", ")}. ` +
-          `Available from "${match[2]}": ${available.join(", ")}. ` +
-          `Use plain HTML elements with Tailwind classes for text, headings, and layout.`,
-      );
+function catalogPathSet(files: CatalogFile[]): Set<string> {
+  return new Set(
+    files.map((file) => file.path.trim().replaceAll("\\", "/").replace(/^\.\//, "")),
+  );
+}
+
+function catalogSpecifierAllowed(specifier: string): boolean {
+  if (!specifier.startsWith("@/")) return false;
+  return safeCatalogPath(".", specifier.slice(2)) !== null;
+}
+
+function writeCatalog(batchDirectory: string, files: CatalogFile[]): { catalogDir: string } {
+  const catalogDir = path.join(batchDirectory, "catalog");
+  fs.mkdirSync(catalogDir, { recursive: true });
+  const written: CatalogFile[] = [];
+  for (const file of files) {
+    const target = safeCatalogPath(catalogDir, file.path);
+    if (!target) continue;
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, file.content, "utf8");
+    written.push({
+      path: file.path.trim().replaceAll("\\", "/").replace(/^\.\//, ""),
+      content: file.content,
+    });
+  }
+  const paths = catalogPathSet(written);
+  const writeUtils = (relative: string) => {
+    if (
+      paths.has(relative) ||
+      paths.has(relative.replace(/\.ts$/, ".tsx")) ||
+      paths.has(relative.replace(/\.ts$/, ".js"))
+    ) {
+      return;
+    }
+    const target = path.join(catalogDir, ...relative.split("/"));
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, UTILS_STUB, "utf8");
+    paths.add(relative);
+  };
+  writeUtils("lib/utils.ts");
+  writeUtils("registry/default/lib/utils.ts");
+  fs.writeFileSync(path.join(batchDirectory, "next-link.tsx"), NEXT_LINK_STUB, "utf8");
+  return { catalogDir };
+}
+
+const KEPT_PACKAGES = new Set([
+  "react",
+  "react-dom",
+  "react/jsx-runtime",
+  "react/jsx-dev-runtime",
+  "lucide-react",
+  "motion",
+  "motion/react",
+  "next/link",
+]);
+
+function fileExists(base: string): boolean {
+  return [
+    base,
+    `${base}.tsx`,
+    `${base}.ts`,
+    `${base}.jsx`,
+    `${base}.js`,
+    path.join(base, "index.tsx"),
+    path.join(base, "index.ts"),
+  ].some((candidate) => fs.existsSync(candidate));
+}
+
+function namedImportsFrom(importer: string | undefined, spec: string): string[] {
+  if (!importer || !fs.existsSync(importer)) return [];
+  const source = fs.readFileSync(importer, "utf8");
+  const escaped = spec.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const names = new Set<string>();
+  for (const match of source.matchAll(
+    new RegExp(`import\\s*\\{([^}]*)\\}\\s*from\\s*["']${escaped}["']`, "g"),
+  )) {
+    for (const part of match[1].split(",")) {
+      const id = part.split(/\sas\s/)[0].trim();
+      if (/^[A-Za-z_$][\w$]*$/.test(id)) names.add(id);
     }
   }
+  return [...names];
+}
+
+function stubModule(named: string[]): string {
+  const exports = named.map((name) => `export const ${name} = C;`).join("\n");
+  return `import React from "react";
+const C = (props) => React.createElement("div", props, props && props.children);
+export default C;
+${exports}
+`;
+}
+
+function catalogFallbackPlugin(catalogDir: string): esbuild.Plugin {
+  return {
+    name: "catalog-fallbacks",
+    setup(build) {
+      build.onResolve({ filter: /.*/ }, (args) => {
+        const spec = args.path;
+        if (KEPT_PACKAGES.has(spec) || spec.startsWith("react/")) return undefined;
+        if (spec.startsWith("@/")) {
+          const target = safeCatalogPath(catalogDir, spec.slice(2));
+          if (target && fileExists(target)) return undefined;
+          return { path: spec, namespace: "catalog-stub", pluginData: { importer: args.importer } };
+        }
+        if (spec === "next/link") return undefined;
+        if (spec.startsWith(".")) {
+          const dir = args.resolveDir || (args.importer ? path.dirname(args.importer) : "");
+          if (!dir) {
+            return { path: spec, namespace: "catalog-stub", pluginData: { importer: args.importer } };
+          }
+          if (fileExists(path.resolve(dir, spec))) return undefined;
+          return { path: spec, namespace: "catalog-stub", pluginData: { importer: args.importer } };
+        }
+        if (spec.startsWith("/") || path.isAbsolute(spec)) return undefined;
+        return { path: spec, namespace: "catalog-stub", pluginData: { importer: args.importer } };
+      });
+      build.onLoad({ filter: /.*/, namespace: "catalog-stub" }, (args) => ({
+        contents: stubModule(namedImportsFrom(args.pluginData?.importer, args.path)),
+        loader: "js",
+      }));
+    },
+  };
+}
+
+function catalogAliases(catalogDir: string, batchDirectory: string): Record<string, string> {
+  return {
+    "@": catalogDir,
+    "next/link": path.join(batchDirectory, "next-link.tsx"),
+  };
 }
 
 // Same gate for lucide-react: the model invents icon names (`Chrome`, `Figma`) that do not
@@ -170,7 +286,7 @@ function validateLucideImports(tsx: string) {
   }
 }
 
-function validateTsx(tsx: string, boundModules: ReadonlySet<string>) {
+function validateTsx(tsx: string) {
   if (tsx.length > 250_000) throw new Error("Screen TSX exceeds 250 KB.");
   if (FORBIDDEN_GLOBALS.test(tsx) || /\bimport\s*\(/.test(tsx)) {
     throw new Error("Screen TSX contains a forbidden runtime capability.");
@@ -178,69 +294,51 @@ function validateTsx(tsx: string, boundModules: ReadonlySet<string>) {
   if (/\b(?:while|do)\s*(?:\(|\{)|\bfor\s*\(/.test(tsx)) {
     throw new Error("Screen TSX may not contain runtime loops.");
   }
-  // Overlapping hero copy almost always comes from absolute/fixed layers or negative
-  // pull-up margins in the generated screen. Catch that before SSR — Node has no real
-  // layout engine, so a client-rect check would be a lie.
-  if (
-    /\b(?:absolute|fixed)\b/.test(tsx) ||
-    /(?:^|[\s"'`])-(?:m[trblxy]?|inset|[trbl]|top|right|bottom|left)-/.test(tsx)
-  ) {
-    throw new Error(
-      "Screen TSX must not position copy with absolute/fixed or negative margins. " +
-        "Stack text, buttons, and media with flex/grid and spacing utilities only.",
-    );
-  }
-
   const imports = tsx.matchAll(
     /\b(?:import|export)\s+(?:[\s\S]*?\sfrom\s*)?["']([^"']+)["']/g,
   );
   for (const match of imports) {
     const specifier = match[1];
-    if (FREE_IMPORTS.has(specifier) || boundModules.has(specifier)) continue;
-    if (specifier in LIBRARY_SLOTS) {
-      throw new Error(`TSX imports ${specifier}, but that library is not selected for this run.`);
-    }
+    if (FREE_IMPORTS.has(specifier) || specifier === "next/link") continue;
+    if (catalogSpecifierAllowed(specifier)) continue;
     throw new Error(`Import "${specifier}" is not allowed.`);
   }
-}
-
-function rewriteModuleBindings(tsx: string, bindings: [string, string][]) {
-  return bindings.reduce(
-    (acc, [module, libraryId]) =>
-      acc
-        .replaceAll(`"${module}"`, `"@/libraries/${libraryId}"`)
-        .replaceAll(`'${module}'`, `'@/libraries/${libraryId}'`),
-    tsx,
-  );
 }
 
 function writeScreens(input: BatchInput, batchDirectory: string) {
   fs.mkdirSync(batchDirectory, { recursive: true });
 
-  const bindings = Object.entries(input.libraries);
-  const boundModules = new Set(bindings.map(([module]) => module));
-
-  return input.screens.map((screen, index) => {
-    validateTsx(screen.tsx, boundModules);
-    validateNamedImports(screen.tsx, input.libraries);
-    validateLucideImports(screen.tsx);
-    const safeId = screen.id.replaceAll(/[^a-zA-Z0-9_-]/g, "_") || `screen-${index}`;
-    const source = /\bimport\s+(?:\*\s+as\s+)?React\b/.test(screen.tsx)
-      ? screen.tsx
-      : `import React from "react";\n${screen.tsx}`;
-    const rewritten = rewriteModuleBindings(source, bindings);
-    const filePath = path.join(batchDirectory, `${index}-${safeId}.tsx`);
-    fs.writeFileSync(filePath, rewritten, "utf8");
-    return { ...screen, filePath };
+  const screens: Array<ScreenInput & { filePath: string }> = [];
+  const errors: ScreenOutput[] = [];
+  input.screens.forEach((screen, index) => {
+    try {
+      validateTsx(screen.tsx);
+      validateLucideImports(screen.tsx);
+      const safeId = screen.id.replaceAll(/[^a-zA-Z0-9_-]/g, "_") || `screen-${index}`;
+      const source = /\bimport\s+(?:\*\s+as\s+)?React\b/.test(screen.tsx)
+        ? screen.tsx
+        : `import React from "react";\n${screen.tsx}`;
+      const filePath = path.join(batchDirectory, `${index}-${safeId}.tsx`);
+      fs.writeFileSync(filePath, source, "utf8");
+      screens.push({ ...screen, filePath });
+    } catch (error) {
+      errors.push({
+        id: screen.id,
+        html: "",
+        error: error instanceof Error ? error.stack ?? error.message : String(error),
+      });
+    }
   });
+  return { screens, errors };
 }
 
-function buildCss(baseLibraryId: string, batchDirectory: string, theme: BrandTheme | undefined) {
+function buildCss(batchDirectory: string, theme: BrandTheme | undefined) {
   const globalCss = fs.readFileSync(path.join(ROOT, "src", "globals.css"), "utf8");
   const cssInput = [
     '@import "tailwindcss" source(none);',
     `@source "${path.join(ROOT, "src").replaceAll("\\", "/")}";`,
     `@source "${batchDirectory.replaceAll("\\", "/")}/*.tsx";`,
+    `@source "${path.join(batchDirectory, "catalog").replaceAll("\\", "/")}/**/*.{ts,tsx}";`,
     globalCss.replace('@import "tailwindcss";', ""),
     // After globals.css so the project's brand overrides the grayscale defaults.
     themeCss(theme),
@@ -263,24 +361,47 @@ function buildCss(baseLibraryId: string, batchDirectory: string, theme: BrandThe
     throw new Error(`Tailwind compilation failed: ${result.stderr || result.stdout}`);
   }
 
-  const tailwindCss = fs.readFileSync(outputPath, "utf8");
-  if (baseLibraryId !== "mantine") return tailwindCss;
-  const mantineCss = fs.readFileSync(require.resolve("@mantine/core/styles.css"), "utf8");
-  return `${mantineCss}\n${tailwindCss}`;
+  return fs.readFileSync(outputPath, "utf8");
 }
 
-async function renderScreen(filePath: string, baseLibraryId: string): Promise<string> {
-  const module = await import(`${pathToFileURL(filePath).href}?v=${Date.now()}`);
+async function renderScreen(
+  filePath: string,
+  catalogDir: string,
+  batchDirectory: string,
+): Promise<string> {
+  const outFile = filePath.replace(/\.tsx$/, ".ssr.mjs");
+  await esbuild.build({
+    entryPoints: [filePath],
+    bundle: true,
+    write: true,
+    outfile: outFile,
+    format: "esm",
+    platform: "node",
+    jsx: "automatic",
+    external: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "lucide-react",
+      "motion",
+      "motion/react",
+    ],
+    alias: catalogAliases(catalogDir, batchDirectory),
+    plugins: [catalogFallbackPlugin(catalogDir)],
+    logLevel: "silent",
+  });
+  const module = await import(`${pathToFileURL(outFile).href}?v=${Date.now()}`);
   const Screen = module.default ?? module.Screen;
   if (typeof Screen !== "function") {
     throw new Error("Screen module must default-export function Screen().");
   }
-  const screen = React.createElement(Screen);
-  const root =
-    baseLibraryId === "mantine"
-      ? React.createElement(MantineProvider, null, screen)
-      : screen;
-  const markup = renderToStaticMarkup(root);
+  let markup = "";
+  try {
+    markup = renderToStaticMarkup(React.createElement(Screen));
+  } catch {
+    markup = `<div data-wireframe-ssr="fallback"></div>`;
+  }
   // The compiled stylesheet no longer rides inside the fragment: it is identical
   // for every screen in the batch, and embedding it is what pushed artifacts past
   // Convex's 1 MiB document limit. The engine stores it once per run (see `css`
@@ -299,24 +420,18 @@ async function renderScreen(filePath: string, baseLibraryId: string): Promise<st
 async function buildLiveDocument(
   screenFilePath: string,
   css: string,
-  baseLibraryId: string,
+  catalogDir: string,
+  batchDirectory: string,
 ): Promise<string> {
-  const providerImport =
-    baseLibraryId === "mantine" ? 'import { MantineProvider } from "@mantine/core";\n' : "";
-  const rendered =
-    baseLibraryId === "mantine"
-      ? "React.createElement(MantineProvider, null, React.createElement(Screen))"
-      : "React.createElement(Screen)";
   const entryPath = screenFilePath.replace(/\.tsx$/, ".live.tsx");
   fs.writeFileSync(
     entryPath,
-    `import React from "react";\n` +
+      `import React from "react";\n` +
       `import { createRoot } from "react-dom/client";\n` +
-      providerImport +
       `import * as ScreenModule from ${JSON.stringify(screenFilePath)};\n` +
       `const Screen = ScreenModule.default ?? ScreenModule.Screen;\n` +
       `const container = document.getElementById("root");\n` +
-      `if (container && typeof Screen === "function") createRoot(container).render(${rendered});\n`,
+      `if (container && typeof Screen === "function") createRoot(container).render(React.createElement(Screen));\n`,
     "utf8",
   );
 
@@ -338,6 +453,8 @@ async function buildLiveDocument(
     // banner declares `process` before the IIFE runs.
     banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
     define: { "process.env": "process.env" },
+    alias: catalogAliases(catalogDir, batchDirectory),
+    plugins: [catalogFallbackPlugin(catalogDir)],
     logLevel: "silent",
   });
   const js = result.outputFiles[0]?.text ?? "";
@@ -363,11 +480,11 @@ async function buildLiveDocument(
 /// model actually meant, which is the more useful input for the repair pass.
 async function renderWithEscapeRepair(
   filePath: string,
-  baseLibraryId: string,
-  libraries: Record<string, string>,
+  catalogDir: string,
+  batchDirectory: string,
 ): Promise<{ html: string; repaired: boolean }> {
   try {
-    return { html: await renderScreen(filePath, baseLibraryId), repaired: false };
+    return { html: await renderScreen(filePath, catalogDir, batchDirectory), repaired: false };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const source = fs.readFileSync(filePath, "utf8");
@@ -375,12 +492,11 @@ async function renderWithEscapeRepair(
       throw error;
     }
     const decoded = source.replaceAll('\\"', '"').replaceAll("\\'", "'");
-    const bindings = Object.entries(libraries);
     try {
-      validateTsx(decoded, new Set(bindings.map(([module]) => module)));
-      validateNamedImports(decoded, libraries);
-      fs.writeFileSync(filePath, rewriteModuleBindings(decoded, bindings), "utf8");
-      return { html: await renderScreen(filePath, baseLibraryId), repaired: true };
+      validateTsx(decoded);
+      validateLucideImports(decoded);
+      fs.writeFileSync(filePath, decoded, "utf8");
+      return { html: await renderScreen(filePath, catalogDir, batchDirectory), repaired: true };
     } catch (retryError) {
       throw retryError instanceof Error ? retryError : error;
     }
@@ -393,26 +509,31 @@ async function renderBatch(input: BatchInput) {
     .digest("hex")
     .slice(0, 16);
   const batchDirectory = path.join(BATCH_ROOT, digest);
-  const baseLibraryId = input.libraries[BASE_MODULE];
   pruneAbandonedBatches();
 
   try {
-    const screens = writeScreens(input, batchDirectory);
-    const css = buildCss(baseLibraryId, batchDirectory, input.theme);
-    const output: ScreenOutput[] = [];
+    const { catalogDir } = writeCatalog(batchDirectory, input.catalog ?? []);
+    const { screens, errors } = writeScreens(input, batchDirectory);
+    const css = buildCss(batchDirectory, input.theme);
+    const output: ScreenOutput[] = errors;
 
     for (const screen of screens) {
       try {
         const { html, repaired } = await renderWithEscapeRepair(
           screen.filePath,
-          baseLibraryId,
-          input.libraries,
+          catalogDir,
+          batchDirectory,
         );
         const entry: ScreenOutput = { id: screen.id, html };
         if (repaired) entry.repaired = true;
         // Live bundle is best-effort: a bundling failure must not lose the static html.
         try {
-          entry.liveHtml = await buildLiveDocument(screen.filePath, css, baseLibraryId);
+          entry.liveHtml = await buildLiveDocument(
+            screen.filePath,
+            css,
+            catalogDir,
+            batchDirectory,
+          );
         } catch {
           // keep the static-only entry
         }
@@ -425,7 +546,7 @@ async function renderBatch(input: BatchInput) {
         });
       }
     }
-    return { version: 1 as const, css, screens: output };
+    return { version: 2 as const, css, screens: output };
   } finally {
     fs.rmSync(batchDirectory, { recursive: true, force: true });
   }

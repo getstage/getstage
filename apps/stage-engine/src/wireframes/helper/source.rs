@@ -10,6 +10,10 @@ pub(crate) fn parse_style_direction_from_source(source: &str) -> Option<&str> {
     parse_token(source, "style-direction:")
 }
 
+pub(crate) fn uses_nebius_gateway(source: Option<&str>) -> bool {
+    source.is_some_and(|value| parse_token(value, "gen:") == Some("nebius"))
+}
+
 pub(crate) fn parse_screens_from_source(source: &str) -> Option<Vec<String>> {
     let raw = parse_token(source, "screens:")?;
     let ids = raw
