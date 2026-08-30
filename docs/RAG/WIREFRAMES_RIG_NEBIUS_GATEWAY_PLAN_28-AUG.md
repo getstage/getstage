@@ -52,12 +52,16 @@ Provider selection must be a real typed backend choice. Nebius must no longer be
 encoded as `providerId: codex` plus a `gen:nebius` source token. No adapter may
 silently fall back to another provider.
 
-### Batch without batch-wide failure
+### Batches of five without batch-wide acceptance
 
-The desktop still starts one batch run, but a **screen is the unit of model work**.
-The gateway receives the batch and fans it out into bounded independent typed
-screen calls. It combines their results without turning one failure into a failed
-batch:
+The desktop starts one run and the selected screens are sent to the provider in
+batches of at most five. Five is the normal provider-call limit because the
+screens need shared design context and should form one coherent product. A
+**screen remains the unit of validation, repair, checkpointing, and persistence**.
+
+The provider returns one typed batch envelope. Stage then converts every returned
+screen into an independent result instead of accepting or rejecting the envelope
+as one artifact:
 
 ```rust
 enum ScreenGenerationResult {
@@ -66,10 +70,16 @@ enum ScreenGenerationResult {
 }
 ```
 
-Rig's agent may be reused, but structured output is `GeneratedScreen`, not one
-atomic `GeneratedScreens` object. Claude and Codex keep their existing isolated
-per-screen execution but return the same result type. Successful screens are
-validated, rendered, and checkpointed immediately.
+Rig enforces the small `GeneratedScreens` batch schema. Claude and Codex return
+the same semantic batch contract through their adapters. A valid JSON envelope
+does not imply that every TSX string is accepted: each screen is compiled,
+rendered, and checkpointed independently.
+
+If a provider returns `429`, `503`, timeout, or an unparseable envelope, Stage
+retries that batch once. If the second batch attempt still fails, the recovery
+path decomposes only that failed batch into smaller calls so unaffected batches
+continue. Missing screen IDs are handled like failed screens, never like a failed
+run.
 
 ### RAG boundary
 
@@ -87,34 +97,44 @@ Empty or unavailable R2 source excludes that candidate and records the reason;
 it does not invent a component path. RAG quality and source availability are
 reported separately.
 
-### Retry and validation policy
+### Retry, repair, and validation policy
 
-- Retry a transient `429`, `503`, or timeout once with bounded backoff.
-- Retry `NoData` or malformed structured output once as a fresh single-screen
-  generation request.
-- Do not send rejected TSX plus the entire source tree through a model repair.
-- Treat TSX compile/import/render failures as failures of only that screen.
-- Keep the previous accepted screen and let the user regenerate or switch the
-  failed screen's provider.
+- Retry a transient `429`, `503`, timeout, `NoData`, or malformed batch envelope
+  once with bounded backoff.
+- After a valid envelope, treat compile/import/render failures as failures of only
+  that screen.
+- Apply deterministic safe normalization before another model call.
+- Allow one compact per-screen repair containing the rejected TSX, exact compiler
+  error, and selected entry-source interface. Never resend the complete project or
+  full nested source closure.
+- A screen that renders but misses a visual-quality preference is accepted with a
+  warning. Spacing, copy, or composition refinement must not erase usable output.
+- Keep the previous accepted screen when a repair fails. A new unresolved screen
+  remains failed without affecting siblings.
 
 ### Minimal implementation order
 
 1. Preserve exact upstream status and error class at the gateway boundary.
-2. Change Nebius from atomic `GeneratedScreens` to bounded per-screen results.
+2. Keep provider batches at five, then convert the response into per-screen
+   validation and persistence results.
 3. Make partial success a first-class engine and UI result.
 4. Separate model context files from renderer dependency files.
-5. Delete the gateway repair path, missing-screen batch retry, and superseded
-   provider-specific branching after the new tests pass.
+5. Replace the large gateway/CLI repair paths with one compact per-screen repair
+   path, then delete missing-screen batch machinery and superseded provider
+   branching after the new tests pass.
 6. Run the same fixed fixtures through Claude, Codex, and Nebius before choosing
    a default.
 
 Required tests:
 
 - two valid screens plus one malformed screen preserve the two valid screens;
+- six selected screens are sent as batches of five and one;
 - a provider `503` is classified, retried once, and never shown as a TSX error;
+- a twice-failed batch decomposes without blocking successful batches;
 - malformed structured output affects only its screen;
 - an unresolved internal import affects only its screen;
 - saved screens survive failed regeneration;
+- visual-quality warnings preserve renderable output;
 - identical fixtures pass the contract for Claude, Codex, and Nebius;
 - prompt byte size and selected source count are recorded for every screen.
 
