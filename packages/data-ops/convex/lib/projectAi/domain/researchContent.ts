@@ -12,7 +12,13 @@ async function resolveStoredAssetUrls(value: unknown): Promise<unknown> {
 
     for (const [key, nested] of Object.entries(record)) {
       const isResolvableUrlField =
-        (key === "imageUrl" || key === "thumbnailUrl" || key === "url") &&
+        (key === "imageUrl" ||
+          key === "thumbnailUrl" ||
+          key === "url" ||
+          // Wireframes: rendered fragments and the run stylesheet live in R2.
+          key === "htmlUrl" ||
+          key === "liveUrl" ||
+          key === "cssUrl") &&
         typeof nested === "string";
 
       if (isResolvableUrlField) {

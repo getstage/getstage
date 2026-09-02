@@ -29,6 +29,9 @@ export function ResearchRerunDialog({
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[rgba(10,10,10,0.22)]" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[min(90vh,920px)] w-[calc(100vw-24px)] max-w-[720px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[12px] outline-none">
           <Dialog.Title className="sr-only">Re-run research</Dialog.Title>
+          <Dialog.Description className="sr-only">
+            Update project context, then replace the saved research. Strategy will be reset and must be regenerated.
+          </Dialog.Description>
           <ResearchConfigureStep
             isSubmitting={isSubmitting}
             initialValues={initialValues}

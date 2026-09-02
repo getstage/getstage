@@ -24,6 +24,10 @@
     "engine:fmt": "cargo fmt --manifest-path apps/stage-engine/Cargo.toml --check",
     "engine:check": "pnpm --dir apps/stage-engine run check",
     "engine:test": "pnpm --dir apps/stage-engine run test",
-    "engine:clippy": "pnpm --dir apps/stage-engine run clippy"
+    "engine:clippy": "pnpm --dir apps/stage-engine run clippy",
+    "wireframe-gateway:fmt": "cargo fmt --manifest-path apps/wireframe-ai-gateway/Cargo.toml --check",
+    "wireframe-gateway:check": "cargo check --manifest-path apps/wireframe-ai-gateway/Cargo.toml",
+    "wireframe-gateway:test": "cargo test --manifest-path apps/wireframe-ai-gateway/Cargo.toml",
+    "wireframe-gateway:clippy": "cargo clippy --manifest-path apps/wireframe-ai-gateway/Cargo.toml --all-targets -- -D warnings"
   }
 }

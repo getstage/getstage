@@ -19,6 +19,7 @@ import { requireTypeOtherLabel } from "../../../../src/shared/typeOtherLabel";
 export { requireProjectAccessForUserId };
 import {
   createProjectArgsValidator,
+  normalizeCatalogIds,
   phaseCreationInputValidator,
   phaseInputValidator,
   projectTypeValidator,
@@ -172,6 +173,8 @@ export async function createProjectForUser(
     startDate: number;
     endDate: number;
     phases?: Array<{ name: string; tasks?: string[] }>;
+    skillIds?: string[];
+    componentPackIds?: string[];
   },
 ) {
   const user = await requireActorUser(ctx, args.userId);
@@ -264,6 +267,8 @@ export async function createProjectForUser(
     startDate: args.startDate,
     endDate: args.endDate,
     progress: 0,
+    skillIds: normalizeCatalogIds(args.skillIds ?? []),
+    componentPackIds: normalizeCatalogIds(args.componentPackIds ?? []),
     createdAt: timestamp,
     updatedAt: timestamp,
   });

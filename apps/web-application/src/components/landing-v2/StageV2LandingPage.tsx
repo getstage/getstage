@@ -325,7 +325,7 @@ export function StageV2LandingPage() {
                       <li><img src="/stage-v2-lp/assets/icons/ai.svg" alt="" />Everything in Start</li>
                       <li><img src="/stage-v2-lp/assets/icons/projects.svg" alt="" />10,000 credits/mo (~40 projects)</li>
                       <li><img src="/stage-v2-lp/assets/icons/connect.svg" alt="" />Unlimited projects</li>
-                      <li><img src="/stage-v2-lp/assets/icons/portal.svg" alt="" />Custom portal, your brand &amp; domain</li>
+                      <li><img src="/stage-v2-lp/assets/icons/portal.svg" alt="" />Custom portal with your brand</li>
                       <li><img src="/stage-v2-lp/assets/icons/storage.svg" alt="" />Top up credits anytime</li>
                       <li><img src="/stage-v2-lp/assets/icons/support.svg" alt="" />Priority support</li>
                     </ul>

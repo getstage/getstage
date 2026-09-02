@@ -21,4 +21,4 @@ export const MOCK_BRAND_KIT = {
   fileSizeLabel: "2.3MB",
 } as const;
 
-export const WIREFRAMES_RESULTS_PREVIEW_LIMIT = 6;
+export { WIREFRAMES_RESULTS_PREVIEW_LIMIT } from "@/data/fixtures/project/wireframesTabFixtures";

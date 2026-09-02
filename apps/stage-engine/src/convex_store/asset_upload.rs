@@ -89,6 +89,21 @@ impl ConvexAssetUploader {
         Ok(key)
     }
 
+    /// Generic object upload. `upload_image` predates non-image purposes (rendered
+    /// wireframe screens, stylesheets); new call sites should use this name.
+    pub async fn upload_file(
+        &self,
+        token: &str,
+        project_id: &str,
+        purpose: &str,
+        file_name: &str,
+        mime_type: &str,
+        bytes: &[u8],
+    ) -> anyhow::Result<String> {
+        self.upload_image(token, project_id, purpose, file_name, mime_type, bytes)
+            .await
+    }
+
     pub async fn upload_research_refero_image(
         &self,
         token: &str,

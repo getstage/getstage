@@ -5,6 +5,7 @@ import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@/lib/convexApi";
 import { SHOULD_QUERY_PROJECT_AI_ARTIFACTS } from "@/lib/project/shouldQueryProjectAiArtifacts";
 import { TabLoadingState } from "@/components/project/tabs/TabLoadingState";
+import { warmRouteData } from "@/lib/routeData";
 
 const ProjectDetailView = lazy(() =>
   import("@/components/project/ProjectDetailView").then((module) => ({
@@ -54,7 +55,7 @@ export const Route = createFileRoute("/_authed/project/$projectId")({
         ]
       : [];
 
-    await Promise.all([...alwaysOn, ...artifacts]);
+    await warmRouteData([...alwaysOn, ...artifacts]);
   },
   component: ProjectRoute,
 });

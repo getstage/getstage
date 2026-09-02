@@ -34,7 +34,7 @@ const PLAN_FEATURES: Record<Tier, Array<{ iconSrc: string; label: string }>> = {
   pro: [
     { iconSrc: "/logos/pricing/folder.svg", label: "10,000 credits/mo (~40 projects)" },
     { iconSrc: "/logos/pricing/folder.svg", label: "Unlimited projects" },
-    { iconSrc: "/logos/pricing/portal.svg", label: "Custom client portal (your brand, your domain)" },
+    { iconSrc: "/logos/pricing/portal.svg", label: "Custom client portal (your logo, your brand colour)" },
     { iconSrc: "/logos/pricing/storage.svg", label: "Top up credits anytime" },
     { iconSrc: "/logos/support.svg", label: "Priority support" },
   ],

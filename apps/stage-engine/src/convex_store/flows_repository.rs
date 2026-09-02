@@ -244,6 +244,12 @@ impl FlowsRepository {
 struct ConvexFlowsInput {
     project_id: String,
     project_name: String,
+    // `serde(default)` so a Convex deployment that predates these fields still
+    // deserializes instead of failing every flows run.
+    #[serde(default)]
+    project_type: String,
+    #[serde(default)]
+    project_type_label: Option<String>,
     research_artifact_id: String,
     research_artifact_json: String,
     strategy_artifact_id: String,
@@ -259,6 +265,8 @@ impl ConvexFlowsInput {
         FlowsInput {
             project_id: self.project_id,
             project_name: self.project_name,
+            project_type: self.project_type,
+            project_type_label: self.project_type_label,
             research_artifact_id: self.research_artifact_id,
             research_artifact_json: self.research_artifact_json,
             strategy_artifact_id: self.strategy_artifact_id,

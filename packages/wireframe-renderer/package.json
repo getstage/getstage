@@ -1,0 +1,33 @@
+{
+  "name": "@stage/wireframe-renderer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "files": [
+    "src",
+    "tsconfig.json"
+  ],
+  "scripts": {
+    "render": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "clsx": "^2.1.1",
+    "esbuild": "^0.25.12",
+    "lucide-react": "^1.27.0",
+    "motion": "^13.1.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.4",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3"
+  }
+}

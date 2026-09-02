@@ -56,7 +56,7 @@ export const getLatestWireframesArtifactArgs = latestArtifactArgs;
 export const getLatestWireframesArtifactHandler = (
   ctx: QueryCtx,
   args: { projectId: Id<"projects"> },
-) => latestArtifactHandler(ctx, args, "generate", "wireframesArtifact");
+) => latestArtifactHandler(ctx, args, "generate", "wireframesArtifact", resolveAssetContentJson);
 
 export const getLatestAssetsArtifactArgs = latestArtifactArgs;
 export const getLatestAssetsArtifactHandler = (

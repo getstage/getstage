@@ -1,7 +1,7 @@
 {
   "name": "stage-user-application",
   "private": true,
-  "version": "0.2.15",
+  "version": "0.2.23",
   "type": "commonjs",
   "main": "out/main/index.js",
   "scripts": {
@@ -10,12 +10,13 @@
     "prebuild": "pnpm --dir ../../packages/data-ops run build",
     "build": "tsc --noEmit && electron-vite build",
     "build:engine": "cargo build --release --manifest-path ../stage-engine/Cargo.toml && node ./scripts/copy-stage-engine.mjs",
+    "build:wireframe-renderer": "node ./scripts/prepare-wireframe-renderer.mjs",
     "build:engine:arm64": "cargo build --release --manifest-path ../stage-engine/Cargo.toml --target aarch64-apple-darwin && CARGO_BUILD_TARGET=aarch64-apple-darwin node ./scripts/copy-stage-engine.mjs",
     "build:engine:x64": "cargo build --release --manifest-path ../stage-engine/Cargo.toml --target x86_64-apple-darwin && CARGO_BUILD_TARGET=x86_64-apple-darwin node ./scripts/copy-stage-engine.mjs",
     "write-runtime-secrets": "node ./scripts/write-runtime-secrets.mjs",
-    "dist:mac": "pnpm run build && pnpm run build:engine && pnpm run write-runtime-secrets && electron-builder --mac --config electron-builder.yml",
-    "dist:mac:arm64": "pnpm run build && pnpm run build:engine:arm64 && pnpm run write-runtime-secrets && electron-builder --mac dmg --arm64 --config electron-builder.yml",
-    "dist:mac:x64": "pnpm run build && pnpm run build:engine:x64 && pnpm run write-runtime-secrets && electron-builder --mac dmg --x64 --config electron-builder.yml",
+    "dist:mac": "pnpm run build && pnpm run build:engine && pnpm run build:wireframe-renderer && pnpm run write-runtime-secrets && electron-builder --mac --config electron-builder.yml",
+    "dist:mac:arm64": "pnpm run build && pnpm run build:engine:arm64 && pnpm run build:wireframe-renderer && pnpm run write-runtime-secrets && electron-builder --mac dmg --arm64 --config electron-builder.yml",
+    "dist:mac:x64": "pnpm run build && pnpm run build:engine:x64 && pnpm run build:wireframe-renderer && pnpm run write-runtime-secrets && electron-builder --mac dmg --x64 --config electron-builder.yml",
     "pretypecheck": "pnpm --dir ../../packages/data-ops run build",
     "typecheck": "tsc --noEmit",
     "preview": "env -u ELECTRON_RUN_AS_NODE electron-vite preview"

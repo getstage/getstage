@@ -12,11 +12,7 @@ import {
   MOCK_WIREFRAMES_RUN_DELAY_MS,
 } from "./constants";
 
-export {
-  createMockWireframesArtifact,
-  mockWireframesArtifact,
-  CANONICAL_CONFIGURE_SCREENS,
-} from "./wireframesArtifact";
+export { createMockWireframesArtifact, mockWireframesArtifact } from "./wireframesArtifact";
 export {
   FIGMA_SYMBOL_URL,
   MOCK_BRAND_KIT,
@@ -26,7 +22,6 @@ export {
   WIREFRAMES_RESULTS_PREVIEW_LIMIT,
   WIREFRAMES_STATS,
 } from "./constants";
-export { createSeedConfigureScreens } from "./tabSeed";
 
 /** Simulate backend wireframes in dev until Convex returns a saved artifact. */
 export const USE_MOCK_WIREFRAMES_DATA = import.meta.env.DEV;
@@ -48,6 +43,8 @@ export function buildWireframesArtifactRecord(
     createdAt: artifact.generatedAt,
     updatedAt: artifact.generatedAt,
     artifact,
+    // Mock artifacts are pre-offload shape: fragments embed their own CSS.
+    resolvedCss: null,
     tabData: mapWireframesArtifactToTabData(artifact),
   };
 }
@@ -60,10 +57,6 @@ export function getMockWireframesArtifact(projectId: string): WireframesArtifact
 
 export function getMockWireframesArtifactRecord(projectId: string): WireframesArtifactRecord {
   return buildWireframesArtifactRecord(projectId, getMockWireframesArtifact(projectId));
-}
-
-export function getSeedWireframesTabData() {
-  return mapWireframesArtifactToTabData(mockWireframesArtifact);
 }
 
 export function loadMockWireframesArtifactRecord(projectId: string): WireframesArtifactRecord | null {

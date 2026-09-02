@@ -5,6 +5,7 @@ use crate::chat::workflow::ChatWorkflow;
 use crate::config::AppConfig;
 use crate::convex_store::app_secrets::AppSecretsRepository;
 use crate::convex_store::asset_upload::ConvexAssetUploader;
+use crate::convex_store::catalog_repository::CatalogRepository;
 use crate::convex_store::chat_repository::ChatRepository;
 use crate::convex_store::flows_repository::FlowsRepository;
 use crate::convex_store::moodboard_repository::MoodboardRepository;
@@ -66,6 +67,8 @@ impl AppState {
         let flows = Arc::new(FlowsWorkflow::new(FlowsRepository::new(&config.convex)));
         let wireframes = Arc::new(WireframesWorkflow::new(
             WireframesRepository::new(&config.convex),
+            CatalogRepository::new(&config.convex),
+            ConvexAssetUploader::new(config.convex.deployment_url.clone()),
             config.r2_public_base_url.clone(),
         ));
         let chat = Arc::new(ChatWorkflow::new(ChatRepository::new(&config.convex)));

@@ -32,18 +32,15 @@ export function useProjectAiProvider(projectId: string | undefined) {
   );
   const { selectedProviderId, selectProvider, providerOptions } = useResearchProviderSelection();
 
+  // Prefer the UI selection. Project `lastProviderId` is only a fallback when
+  // nothing is selected yet — never an override of a visible choice.
   const resolvedProviderId = useMemo(() => {
-    const fromContext = pickSelectableProvider(context?.lastProviderId ?? null, providerOptions);
-    if (fromContext) {
-      return fromContext;
-    }
-
     const fromSelection = pickSelectableProvider(selectedProviderId, providerOptions);
     if (fromSelection) {
       return fromSelection;
     }
 
-    return providerOptions.find((option) => option.selectable)?.id ?? null;
+    return pickSelectableProvider(context?.lastProviderId ?? null, providerOptions);
   }, [context?.lastProviderId, providerOptions, selectedProviderId]);
 
   return {

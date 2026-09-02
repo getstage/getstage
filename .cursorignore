@@ -1,0 +1,10 @@
+# Secrets — agent must not read or edit
+.env
+.env.*
+.cursor/mcp.json
+.mcp.json
+**/.mcp.json
+**/mcp-auth.json
+**/*.pem
+**/*.key
+**/*credentials*

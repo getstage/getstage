@@ -35,7 +35,14 @@ stage_mvp/
 | [`ARCHITECTURE.md`](../ARCHITECTURE.md) | 4 apps, data flows, branches |
 | [`AGENTS.md`](../AGENTS.md) | Agent/dev entry point |
 | [`R2_MIGRATION_FIXES.md`](../R2_MIGRATION_FIXES.md) | R2 storage migration rules |
-| [`WIREFRAMES_QUALITY_PLAN.md`](./WIREFRAMES_QUALITY_PLAN.md) | Beat raw Claude: taste skill, design brief, local skills |
+| [`WIREFRAMES_REAL_REACT_LIBRARIES.md`](./WIREFRAMES_REAL_REACT_LIBRARIES.md) | !!! Target: real React + Motion + Tailwind from real libraries |
+| [`WIREFRAMES_REAL_REACT_AUDIT.md`](./WIREFRAMES_REAL_REACT_AUDIT.md) | !!! Progress audit — where we are / stuck / left off |
+| [`WIREFRAMES_LIBRARY_INGEST.md`](./WIREFRAMES_LIBRARY_INGEST.md) | Catalog ingest: tools, registry URLs, Convex vs R2, files to read |
+| [`WIREFRAMES_COMPONENT_RETRIEVAL_2026-08-12.md`](./WIREFRAMES_COMPONENT_RETRIEVAL_2026-08-12.md) | Generate-time retrieval decision (not implemented) |
+| [`WIREFRAMES_AGENTIC_RAG_PLAN_AUG26.md`](./WIREFRAMES_AGENTIC_RAG_PLAN_AUG26.md) | Approved AUG26 plan: Qwen embeddings, Convex vector search, and bounded Rust agent tools |
+| [`RAG/WIREFRAMES_GENERATION_CODEMAP.md`](./RAG/WIREFRAMES_GENERATION_CODEMAP.md) | File map of every generate path (UI → engine → gateway → renderer → Convex) |
+| [`RAG/WIREFRAMES_LIVE_FAILURES.md`](./RAG/WIREFRAMES_LIVE_FAILURES.md) | Live generate failures (token cap, Magic UI ranking, shadcn imports, query 2000 chars, thumbnail vs click) and every Stage cap that can kill a run |
+| [`apps/stage-engine/ENGINE_REVIEW.md`](../apps/stage-engine/ENGINE_REVIEW.md) | Engine debt: blocking fs, Convex client, panics, JSON artifacts |
 
 ### Desktop (`apps/user-application/docs/AI/desktop/`)
 

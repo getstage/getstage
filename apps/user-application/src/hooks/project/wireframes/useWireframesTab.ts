@@ -1,52 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ProviderId, WireframeBrandSource, WireframeKind } from "@stage/data-ops/contracts";
+import type { ProviderId, WireframeBrandSource } from "@stage/data-ops/contracts";
 import { useProviderRequired } from "@/components/app/ProviderRequiredDialog";
 import { useProjectAiProvider } from "@/hooks/project/useProjectAiProvider";
+import {
+  buildWireframeRunSource,
+  resolveGenerationScope,
+  screenIdsFromRunSource,
+} from "@/lib/project/wireframeScreenList";
 import type { Project } from "@/models/project/project";
-import type { ScreenItem } from "@/types/project/wireframesTab";
+import type { ScreenItem, WireframeKind } from "@/types/project/wireframesTab";
 import type { WireframesArtifactRecord } from "@/types/project/wireframesArtifactRecord";
 import { useWireframesArtifact } from "./useWireframesArtifact";
 import { screenIdsFromRegeneratePrompt, useWireframesRun } from "./useWireframesRun";
-
-export function screenIdsFromRunSource(source: string | null | undefined) {
-  if (!source) {
-    return null;
-  }
-
-  for (const segment of source.split(",")) {
-    const trimmed = segment.trim();
-    if (!trimmed.startsWith("screens:")) {
-      continue;
-    }
-    const ids = trimmed
-      .slice("screens:".length)
-      .split(";")
-      .map((id) => id.trim())
-      .filter(Boolean);
-    return ids.length > 0 ? ids : null;
-  }
-
-  return null;
-}
-
-function buildRunSource(
-  kind: WireframeKind,
-  brandSource: WireframeBrandSource | null,
-  styleDirectionId?: string | null,
-  screenIds?: string[],
-): string {
-  const tokens = [`kind:${kind}`];
-  if (brandSource) {
-    tokens.push(`brand:${brandSource}`);
-  }
-  if (styleDirectionId) {
-    tokens.push(`style-direction:${styleDirectionId}`);
-  }
-  if (screenIds && screenIds.length > 0) {
-    tokens.push(`screens:${screenIds.join(";")}`);
-  }
-  return tokens.join(",");
-}
 
 // A brand-kit Hi-Fi run needs at least one uploaded R2 key, otherwise the
 // engine is forced into a silent generic-token fallback with no error. The
@@ -74,29 +39,51 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
   const projectId = project.id;
   const wireframesArtifact = useWireframesArtifact(projectId);
   const wireframesRun = useWireframesRun(projectId);
-  const { resolvedProviderId, providerOptions } = useProjectAiProvider(projectId);
+  const { providerOptions, selectedProviderId, selectProvider } = useProjectAiProvider(projectId);
   const providerRequired = useProviderRequired();
   const [error, setError] = useState<string | null>(null);
+  const [nebiusSelected, setNebiusSelected] = useState(true);
 
   useEffect(() => {
     setError(null);
   }, [projectId]);
 
-  const requireProviderId = useCallback(
-    (providerId: ProviderId | null, action: "generating" | "regenerating"): ProviderId => {
-      if (providerId) {
-        return providerId;
+  const selectCliProvider = useCallback(
+    (providerId: ProviderId) => {
+      setNebiusSelected(false);
+      selectProvider(providerId);
+    },
+    [selectProvider],
+  );
+
+  const requireRunProvider = useCallback(
+    (action: "generating" | "regenerating", useNebius: boolean): ProviderId => {
+      if (useNebius) {
+        return selectedProviderId ?? "codex";
+      }
+      if (!selectedProviderId) {
+        const message =
+          action === "regenerating"
+            ? "Select Claude, Codex, or Nebius before regenerating Wireframes."
+            : "Select Claude, Codex, or Nebius before generating Wireframes.";
+        providerRequired.show(message);
+        throw new Error(message);
       }
 
-      const message =
-        providerOptions.find((option) => option.statusMessage)?.statusMessage ??
-        (action === "regenerating"
-          ? "Connect Claude or Codex in Settings before regenerating Wireframes."
-          : "Connect Claude or Codex in Settings before generating Wireframes.");
-      providerRequired.show(message);
-      throw new Error(message);
+      const option = providerOptions.find((entry) => entry.id === selectedProviderId);
+      if (!option?.selectable) {
+        const message =
+          option?.statusMessage ??
+          (action === "regenerating"
+            ? "Connect Claude or Codex in Settings, or choose Nebius."
+            : "Connect Claude or Codex in Settings, or choose Nebius.");
+        providerRequired.show(message);
+        throw new Error(message);
+      }
+
+      return selectedProviderId;
     },
-    [providerOptions, providerRequired],
+    [nebiusSelected, providerOptions, providerRequired, selectedProviderId],
   );
 
   const generateWireframes = useCallback(
@@ -107,13 +94,25 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
       styleDirectionId?: string | null;
       brandKitKeys: string[];
       brandKitLoading?: boolean;
-      providerId?: ProviderId;
-      source?: string;
-      prompt?: string;
       screenIds?: string[];
     }): Promise<WireframesArtifactRecord | null> => {
       setError(null);
-      void input.screens;
+
+      // Keep Lo-Fi on the production `work` path: a normal Lo-Fi pass is one
+      // Claude/Codex artifact call without a `screens:` scope. Hi-Fi remains
+      // explicitly scoped for batching; an explicit Lo-Fi id list is only used
+      // by regeneration.
+      const { screenIds, useNebius } = resolveGenerationScope(
+        input.wireframeKind,
+        input.screens,
+        input.screenIds,
+        nebiusSelected,
+      );
+      if (input.wireframeKind === "hifi" && screenIds.length === 0) {
+        const message = "Select at least one screen to generate.";
+        setError(message);
+        throw new Error(message);
+      }
 
       const brandKitGuardError = assertBrandKitReady(
         input.brandSource,
@@ -125,23 +124,21 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
         throw new Error(brandKitGuardError);
       }
 
-      const runProviderId = requireProviderId(
-        input.providerId ?? resolvedProviderId,
-        "generating",
-      );
+      const runProviderId = requireRunProvider("generating", useNebius);
 
       try {
         await wireframesRun.startWireframes(
           runProviderId,
-          input.source ??
-            buildRunSource(
-              input.wireframeKind,
-              input.brandSource,
-              input.styleDirectionId,
-              input.screenIds,
-            ),
+          buildWireframeRunSource(
+            input.wireframeKind,
+            input.brandSource,
+            input.styleDirectionId,
+            screenIds.length > 0 ? screenIds : undefined,
+            useNebius,
+          ),
           input.brandKitKeys,
-          input.prompt,
+          "Generate Stage wireframes from the current project context.",
+          { skipProviderPreflight: useNebius },
         );
       } catch (runError) {
         const message =
@@ -152,7 +149,7 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
 
       return wireframesArtifact.data;
     },
-    [requireProviderId, resolvedProviderId, wireframesArtifact.data, wireframesRun],
+    [nebiusSelected, requireRunProvider, wireframesArtifact.data, wireframesRun],
   );
 
   const regenerateScreens = useCallback(
@@ -163,7 +160,6 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
       styleDirectionId?: string | null;
       brandKitKeys: string[];
       brandKitLoading?: boolean;
-      providerId?: ProviderId;
     }) => {
       if (input.screenIds.length === 0) {
         return;
@@ -180,22 +176,22 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
         throw new Error(brandKitGuardError);
       }
 
-      const runProviderId = requireProviderId(
-        input.providerId ?? resolvedProviderId,
-        "regenerating",
-      );
+      const useNebius = input.wireframeKind === "hifi" && nebiusSelected;
+      const runProviderId = requireRunProvider("regenerating", useNebius);
 
       try {
         await wireframesRun.startWireframes(
           runProviderId,
-          buildRunSource(
+          buildWireframeRunSource(
             input.wireframeKind,
             input.brandSource,
             input.styleDirectionId,
             input.screenIds,
+            useNebius,
           ),
           input.brandKitKeys,
           `Regenerate wireframe screens: ${input.screenIds.join(", ")}`,
+          { skipProviderPreflight: useNebius },
         );
       } catch (runError) {
         const message =
@@ -204,10 +200,13 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
         throw runError;
       }
     },
-    [requireProviderId, resolvedProviderId, wireframesRun],
+    [nebiusSelected, requireRunProvider, wireframesRun],
   );
 
-  const regeneratingScreenIds = useMemo(() => {
+  // Screens the live run is producing. Every run is scoped now, so this covers a
+  // first generate as well as a regenerate; `isRegenerateRun` is what tells the
+  // two apart.
+  const runningScreenIds = useMemo(() => {
     if (!wireframesRun.isRunning && !wireframesRun.isStarting) {
       return null;
     }
@@ -231,13 +230,20 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
     usingMockData: false,
     generateWireframes,
     regenerateScreens,
-    regeneratingScreenIds,
+    runningScreenIds,
     isGenerating: wireframesRun.isRunning || wireframesRun.isStarting,
     isRunsLoading: wireframesRun.isRunsLoading,
+    elapsedSeconds: wireframesRun.elapsedSeconds,
+    providerOptions,
+    selectedProviderId,
+    selectProvider: selectCliProvider,
+    nebiusSelected,
+    selectNebius: () => setNebiusSelected(true),
     isRegenerateRun: wireframesRun.isRegenerateRun,
     isRunning: wireframesRun.isRunning,
     error: error ?? wireframesRun.error,
     cancelWireframes: wireframesRun.cancelWireframes,
+    isCancelling: wireframesRun.isCancelling,
     activeRunId: wireframesRun.activeRunId,
   };
 }

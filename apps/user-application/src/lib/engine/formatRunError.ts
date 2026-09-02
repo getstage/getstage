@@ -29,8 +29,12 @@ function combinedErrorText(error: EngineError) {
   return [error.message, error.detail].filter(Boolean).join(" ");
 }
 
+/** Engine detail can embed research/prompt text (Refero "usage limits" copy) — require
+ * explicit CLI quota language, not bare substrings. */
 function looksLikeProviderSessionLimit(text: string) {
-  return /session limit|rate limit|usage limit|hit your session limit|resets \d/i.test(text);
+  return /hit your (usage|session|rate) limit|usage limit (has been )?reached|session limit (has been )?reached|rate limit exceeded/i.test(
+    text,
+  );
 }
 
 function looksLikeProviderSubscriptionDisabled(text: string) {
@@ -197,10 +201,16 @@ export function formatStoredRunErrorMessage(
   );
 }
 
+/** Engine detail can embed full research JSON / prompts — never dump that into the console. */
+function truncateForLog(value: string, maxChars = 300): string {
+  const trimmed = value.trim();
+  return trimmed.length <= maxChars ? trimmed : `${trimmed.slice(0, maxChars)}…`;
+}
+
 export function formatEngineError(error: EngineError): string {
-  const parts = [`code=${error.code}`, `message=${error.message}`];
+  const parts = [`code=${error.code}`, `message=${truncateForLog(error.message)}`];
   if (error.detail) {
-    parts.push(`detail=${error.detail}`);
+    parts.push(`detail=${truncateForLog(error.detail)}`);
   }
   if (error.providerId) {
     parts.push(`provider=${error.providerId}`);

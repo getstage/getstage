@@ -22,7 +22,9 @@ use crate::strategy::workflow::StrategyWorkflow;
 use crate::styleguide::StyleguideWorkflow;
 use crate::wireframes::workflow::WireframesWorkflow;
 
-const RUN_EVENT_CAPACITY: usize = 256;
+// Provider CLIs can emit hundreds of tool and progress events before the UI
+// drains its SSE stream. Keep the bounded channel above that observed burst.
+const RUN_EVENT_CAPACITY: usize = 2_048;
 const COMPLETED_RUN_RETENTION: Duration = Duration::from_secs(300);
 
 type ProjectRunDedupeKey = (String, RunMode, Option<String>);
@@ -463,6 +465,16 @@ async fn provider_readiness_error(
     api_version: &'static str,
     context: &ProviderRunContext,
 ) -> Option<RunEvent> {
+    if context.request.mode == RunMode::Wireframes
+        && context
+            .request
+            .context
+            .source
+            .as_deref()
+            .is_some_and(|source| source.split(',').any(|token| token.trim() == "gen:nebius"))
+    {
+        return None;
+    }
     match assert_provider_ready_for_run(context.request.provider_id).await {
         Ok(()) => None,
         Err(blocked) => Some(provider_unavailable_event(
@@ -516,6 +528,24 @@ impl RunError {
                 retryable: true,
                 detail: None,
             },
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn run_event_channel_handles_a_large_provider_burst_without_lagging() {
+        const BURST_SIZE: usize = 1_024;
+        let (sender, mut receiver) = broadcast::channel(RUN_EVENT_CAPACITY);
+
+        for event_number in 0..BURST_SIZE {
+            sender.send(event_number).unwrap();
+        }
+        for expected in 0..BURST_SIZE {
+            assert_eq!(receiver.recv().await.unwrap(), expected);
         }
     }
 }

@@ -48,12 +48,18 @@ pub(super) fn extract_provider_exit_payload(detail: &str) -> Option<String> {
     }
 }
 
+/// Real CLI quota errors say things like "You've hit your usage limit". Research/Refero
+/// text embedded in prompts also contains "usage limits" (pricing/flow copy) — bare
+/// substrings would kill healthy runs, so require explicit hit/reached language.
 pub(super) fn looks_like_provider_session_limit(text: &str) -> bool {
-    // Match explicit limit language only. Do NOT match bare "resets " — that
-    // word appears in benign CLI noise and, when used for live process kills,
-    // would abort healthy runs.
     let lower = text.to_lowercase();
-    lower.contains("session limit") || lower.contains("rate limit") || lower.contains("usage limit")
+    lower.contains("hit your usage limit")
+        || lower.contains("hit your session limit")
+        || lower.contains("usage limit reached")
+        || lower.contains("usage limit has been reached")
+        || lower.contains("session limit reached")
+        || lower.contains("hit your rate limit")
+        || lower.contains("rate limit exceeded")
 }
 
 /// Org/admin blocked Claude Code subscription — not fixable by `claude auth login`.
@@ -283,6 +289,15 @@ mod tests {
         let text = "ERROR: You've hit your usage limit. Upgrade to Plus to continue using Codex, or try again at Jul 30th, 2026 1:50 PM.";
         assert!(looks_like_provider_session_limit(text));
         assert_eq!(fatal_provider_stderr_message(text), Some(text));
+    }
+
+    #[test]
+    fn research_refero_usage_limits_copy_is_not_a_quota_error() {
+        // Research/Refero flow text embedded in prompts mentions "usage limits" as
+        // product copy. It must never be classified as a provider quota failure.
+        let text = "configure promo code, requirements (product-specific), reward (free shipping), usage limits > confirm potential negative-profit behavior";
+        assert!(!looks_like_provider_session_limit(text));
+        assert_eq!(fatal_provider_stderr_message(text), None);
     }
 
     #[test]

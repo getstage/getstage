@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import type { ProviderId } from "@stage/data-ops/contracts";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { motion } from "motion/react";
@@ -13,7 +13,6 @@ import { useSettingsOverviewQuery } from "@/hooks/convex-data";
 import { useProjectShareLink } from "@/hooks/useProjectShareLink";
 import { formatInputDate } from "@/lib/format";
 import { getProjectBackDestination } from "@/lib/projectBackDestination";
-import { WORKFLOW_STEPS } from "@stage/data-ops";
 import { formatRelativeTime } from "@/lib/utils";
 import type { Project, ProjectTab } from "@/models/project/project";
 import { TabLoadingState } from "./tabs/TabLoadingState";
@@ -28,6 +27,9 @@ const PROJECT_STEP_LABELS: Record<StepTab, string> = {
   wireframes: "Wireframes",
   assets: "Assets",
 };
+
+/** Stable identity for the frame before the project detail has loaded. */
+const NO_SELECTION: readonly string[] = [];
 
 const ProjectStepView = lazy(() =>
   import("./ProjectStepView").then((module) => ({
@@ -78,17 +80,6 @@ export function ProjectDetailView() {
     }),
     [live.detail],
   );
-  // The API resolves enabledSteps to a concrete array; `??` only covers the brief frame
-  // before the project detail has loaded (the header isn't shown then anyway).
-  const enabledSteps: readonly string[] = live.detail?.enabledSteps ?? WORKFLOW_STEPS;
-
-  // If the active step gets turned off via Edit Workflow, fall back to Overview so we
-  // never render a tab the project has disabled.
-  useEffect(() => {
-    if (activeTab !== "overview" && !enabledSteps.includes(activeTab)) {
-      setActiveTab("overview");
-    }
-  }, [activeTab, enabledSteps]);
 
   async function runModalAction(action: () => Promise<void>) {
     setModalError(null);
@@ -189,8 +180,9 @@ export function ProjectDetailView() {
               onSavePhases={(phases, deleteTasksInRemovedPhases) =>
                 runModalAction(() => actions.savePhases(phases, deleteTasksInRemovedPhases))
               }
-              enabledSteps={enabledSteps}
-              onSaveWorkflow={(steps) => runModalAction(() => actions.saveWorkflow(steps))}
+              skillIds={live.detail?.skillIds ?? NO_SELECTION}
+              componentPackIds={live.detail?.componentPackIds ?? NO_SELECTION}
+              onSaveSkills={(input) => runModalAction(() => actions.saveSkills(input))}
               onPauseProject={() => runModalAction(() => actions.pauseProject())}
               onCompleteProject={() => runModalAction(() => actions.completeProject())}
               onDeleteProject={runDeleteAction}
@@ -261,6 +253,9 @@ export function ProjectDetailView() {
               <ProjectStepView
                 activeTab={activeTab as StepTab}
                 project={project}
+                skillIds={live.detail?.skillIds ?? NO_SELECTION}
+                componentPackIds={live.detail?.componentPackIds ?? NO_SELECTION}
+                onSaveSkills={actions.saveSkills}
                 artifactQueriesEnabled={artifactQueriesEnabled}
                 pendingStrategyGeneration={pendingStrategyGeneration}
                 pendingStrategyProviderId={pendingStrategyProviderId}

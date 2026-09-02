@@ -119,6 +119,10 @@ export function useCreateProjectFlow() {
     if (!draft.method) {
       draftState.setMethod("ai");
     }
+    setStep("skills");
+  }
+
+  function continueFromSkills() {
     setStep("roadmap");
   }
 
@@ -208,6 +212,7 @@ export function useCreateProjectFlow() {
     continueFromBasicDetails,
     continueFromClientDetails,
     continueFromTimeline,
+    continueFromSkills,
     selectClientMode,
     selectExistingClient,
     setRoadmapMode,

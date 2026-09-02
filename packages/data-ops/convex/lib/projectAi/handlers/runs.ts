@@ -105,11 +105,11 @@ export async function cancelRunHandler(
   if (!run) {
     throw new Error("Run not found");
   }
-  if (run.status === "completed" || run.status === "failed") {
+  if (run.status === "completed" || run.status === "failed" || run.status === "cancelled") {
     return;
   }
   await ctx.db.patch(runId, {
-    status: "failed",
+    status: "cancelled",
     errorMessage: "Cancelled by user",
     completedAt: now(),
     updatedAt: now(),

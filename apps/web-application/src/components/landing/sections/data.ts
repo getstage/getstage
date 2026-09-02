@@ -7,7 +7,7 @@ export const FAQ_ITEMS = [
   {
     question: "Do I need a credit card to sign up?",
     answer:
-      "No. You can create an account with just your email. Payment is required when you unlock the workspace.",
+      "No. You can create an account with just your email. A card is required when you start the 14-day trial and unlock the workspace.",
   },
   {
     question: "What happens if I cancel my plan?",
@@ -17,7 +17,7 @@ export const FAQ_ITEMS = [
   {
     question: "Do you have a free trial?",
     answer:
-      "Not right now. Stage is a paid workspace after account setup.",
+      "Yes. New workspaces start with a 14-day trial that includes 150 AI credits. You add a card at checkout and can cancel in the billing portal before the trial ends.",
   },
   {
     question: "How does Stripe integration work?",
@@ -27,7 +27,7 @@ export const FAQ_ITEMS = [
   {
     question: "Can I share progress with my clients?",
     answer:
-      "Yes. Every project can be shared as a read-only client portal, so clients can see phases and progress without logging in or asking you for screenshots.",
+      "Yes. Every project can be shared as a branded client portal, so clients see phases and progress and can request revisions without logging in.",
   },
   {
     question: "Can I invite my team to a project?",
@@ -37,7 +37,7 @@ export const FAQ_ITEMS = [
   {
     question: "How many projects can I have?",
     answer:
-      "Paid workspaces can run unlimited client projects.",
+      "Paid workspaces can run unlimited client projects. AI runs such as research, moodboards, and voice notes draw from your monthly credit balance.",
   },
 ] as const;
 
@@ -58,5 +58,4 @@ export const INTEGRATION_ICONS = [
   },
   { src: new URL("../../../assets/icons/figma.svg", import.meta.url).href, name: "Figma" },
   { src: new URL("../../../assets/icons/notion.svg", import.meta.url).href, name: "Notion" },
-  { src: new URL("../../../assets/icons/slack.svg", import.meta.url).href, name: "Slack" },
 ] as const;

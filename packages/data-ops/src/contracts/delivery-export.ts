@@ -8,6 +8,10 @@ export const wireframeDeliveryRequestSchema = z.object({
 
 export const createFigmaExportRequestSchema = wireframeDeliveryRequestSchema.extend({
   hifiHtml: z.string().min(1).optional(),
+  // Offloaded runs keep the run stylesheet in R2, so the desktop capture needs
+  // the CSS text alongside the fragment to render a styled preview. Consumed by
+  // the Electron main process and stripped before the request reaches the engine.
+  hifiCss: z.string().optional(),
   hifiPreviewDataUrl: z.string().startsWith("data:image/png;base64,").optional(),
   hifiPreviewWidth: z.number().int().positive().max(4096).optional(),
   hifiPreviewHeight: z.number().int().positive().max(4096).optional(),
@@ -15,6 +19,10 @@ export const createFigmaExportRequestSchema = wireframeDeliveryRequestSchema.ext
 
 export const createPaperExportRequestSchema = wireframeDeliveryRequestSchema.extend({
   hifiHtml: z.string().min(1).optional(),
+  // Offloaded runs keep the run stylesheet in R2, so the desktop capture needs
+  // the CSS text alongside the fragment to render a styled preview. Consumed by
+  // the Electron main process and stripped before the request reaches the engine.
+  hifiCss: z.string().optional(),
   hifiPreviewDataUrl: z.string().startsWith("data:image/png;base64,").optional(),
   hifiPreviewWidth: z.number().int().positive().max(4096).optional(),
   hifiPreviewHeight: z.number().int().positive().max(4096).optional(),

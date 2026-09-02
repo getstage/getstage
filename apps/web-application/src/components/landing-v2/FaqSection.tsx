@@ -34,13 +34,13 @@ const FAQ_ITEMS: FaqItem[] = [
     id: "faq-a4",
     question: "How does the client portal work?",
     answer:
-      "Every project comes with a shareable client portal where research, strategy, and designs live behind a single link. On Pro and Team plans you can make it your own - your brand, your domain - so handoffs look polished and stay in one place.",
+      "Every project comes with a shareable client portal where research, strategy, and designs live behind a single link. On Pro and Team plans you can make it your own - your logo, your brand colour - so handoffs look polished and stay in one place.",
   },
   {
     id: "faq-a5",
     question: "Can I try Stage before paying?",
     answer:
-      "Yes - every plan starts with a 14-day free trial, no credit card required. Explore the full design workflow, connect your own AI, and ship a real project before you decide. Cancel anytime, no questions asked.",
+      "Yes - every plan starts with a 14-day free trial. You add a card at checkout so the plan continues without interruption, and you can cancel in the billing portal any time before the trial ends, no questions asked.",
   },
   {
     id: "faq-a6",

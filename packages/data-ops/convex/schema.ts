@@ -168,6 +168,7 @@ const uploadPurpose = v.union(
   v.literal("moodboard-figma"),
   v.literal("moodboard-url"),
   v.literal("wireframe-brand-kit"),
+  v.literal("wireframe-screen"),
 );
 
 const subscriptionStatus = v.union(
@@ -276,6 +277,7 @@ const aiRunStatus = v.union(
   v.literal("running"),
   v.literal("completed"),
   v.literal("failed"),
+  v.literal("cancelled"),
   v.literal("needs_input"),
 );
 
@@ -365,6 +367,7 @@ export default defineSchema({
     appDownloadedAt: v.optional(v.number()),
     emailUnsubscribedAt: v.optional(v.number()),
     emailUnsubscribeToken: v.optional(v.string()),
+    // Wireframes Skills / Components hub (Integrations tabs).
     installedSkillIds: v.optional(v.array(v.string())),
     enabledSkillIds: v.optional(v.array(v.string())),
     enabledComponentPackIds: v.optional(v.array(v.string())),
@@ -403,8 +406,13 @@ export default defineSchema({
     startDate: v.number(),
     endDate: v.number(),
     progress: v.number(),
-    // Workflow steps the owner has enabled for this project (e.g. a project that
-    // skips "flows"). Absent = every step is enabled. "overview" is always shown.
+    // Skills / component libraries chosen for this project (Integrations catalog ids).
+    // Skills are opt-in. Absent and `[]` both mean that no design skill is selected.
+    skillIds: v.optional(v.array(v.string())),
+    componentPackIds: v.optional(v.array(v.string())),
+    // Reserved for a future re-integration of Edit Workflow (removed 2026-07-30). Kept as
+    // an optional field so existing project rows carrying a step selection survive and
+    // the schema stays forward-compatible; no code currently reads or writes it.
     enabledSteps: v.optional(v.array(v.string())),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -733,6 +741,21 @@ export default defineSchema({
     .index("by_project_startedAt", ["projectId", "startedAt"])
     .index("by_user", ["userId"]),
 
+  projectAiRunCheckpoints: defineTable({
+    userId: v.id("users"),
+    projectId: v.id("projects"),
+    runId: v.id("projectAiRuns"),
+    kind: v.union(v.literal("design-plan"), v.literal("screen")),
+    screenId: v.optional(v.string()),
+    contentJson: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_run", ["runId"])
+    .index("by_run_kind_screen", ["runId", "kind", "screenId"])
+    .index("by_user", ["userId"]),
+
   projectAiArtifacts: defineTable({
     userId: v.id("users"),
     projectId: v.id("projects"),
@@ -936,6 +959,56 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_createdAt", ["createdAt"])
     .index("by_user_createdAt", ["userId", "createdAt"]),
+
+  wireframeCatalogComponents: defineTable({
+    componentId: v.string(),
+    library: v.string(),
+    name: v.string(),
+    kind: v.string(),
+    sourceRevision: v.string(),
+    sourceBundleKey: v.string(),
+    verified: v.boolean(),
+    runtime: v.optional(v.union(v.literal("client"), v.literal("universal"))),
+    verifiedAt: v.optional(v.number()),
+    verificationError: v.optional(v.string()),
+    embeddingReady: v.optional(v.boolean()),
+    embeddingIndexAttempts: v.optional(v.number()),
+    embeddingIndexedRevision: v.optional(v.string()),
+    // Legacy component fields remain optional until the development rows are
+    // rewritten. Runtime code no longer reads or writes them.
+    ragIndexAttempts: v.optional(v.number()),
+    ragEntryId: v.optional(v.string()),
+    ragIndexedRevision: v.optional(v.string()),
+    updatedAt: v.number(),
+  })
+    .index("by_componentId", ["componentId"])
+    .index("by_verified", ["verified"])
+    .index("by_embeddingReady", ["embeddingReady"]),
+
+  wireframeCatalogEmbeddings: defineTable({
+    componentId: v.string(),
+    sourceRevision: v.string(),
+    scope: v.string(),
+    embedding: v.array(v.float64()),
+    updatedAt: v.number(),
+  })
+    .index("by_componentId", ["componentId"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 4096,
+      filterFields: ["scope"],
+    }),
+
+  r2DeletionQueue: defineTable({
+    key: v.string(),
+    attempts: v.number(),
+    nextAttemptAt: v.number(),
+    lastError: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_key", ["key"])
+    .index("by_nextAttemptAt", ["nextAttemptAt"]),
 
   // Audit + idempotency for the email drip engine. One row per (user, event);
   // recordEmailEvent no-ops if a row already exists, so retries/double-clicks

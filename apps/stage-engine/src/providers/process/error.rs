@@ -71,6 +71,16 @@ impl ProviderProcessError {
                     .filter(|value| !value.is_empty());
 
                 if let Some(payload) = payload.as_deref() {
+                    // Context-compliance failures must never be translated into login advice —
+                    // the provider was authenticated; it ignored the workspace contract.
+                    if payload
+                        .starts_with("provider completed without reading required context files")
+                    {
+                        return format!(
+                            "{label} ignored Stage's required context files, so the run was rejected. This is not a login problem — try again, and if it persists, report it."
+                        );
+                    }
+
                     if looks_like_provider_session_limit(payload) {
                         return Self::session_limit_user_message(label, payload);
                     }
@@ -109,7 +119,7 @@ impl ProviderProcessError {
                 }
 
                 format!(
-                    "{label} exited unexpectedly. Run `{login_cmd}` in Terminal, then try again."
+                    "{label} stopped before completing the run. Try again. If it repeats, review the run details."
                 )
             }
             ProviderProcessError::Timeout { seconds, .. } => {
@@ -352,7 +362,8 @@ mod tests {
 
         let message = error.to_engine_error(ProviderId::Claude).message;
         assert!(!message.contains("failed: 1"));
-        assert!(message.contains("claude auth login") || message.contains("exited unexpectedly"));
+        assert!(message.contains("stopped before completing"));
+        assert!(!message.contains("auth login"));
     }
 
     #[test]

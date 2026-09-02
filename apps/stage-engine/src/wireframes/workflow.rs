@@ -1,33 +1,273 @@
+use std::collections::{BTreeMap, HashSet};
 use std::sync::Arc;
 use std::time::Instant;
 
+use crate::convex_store::asset_upload::ConvexAssetUploader;
+use crate::convex_store::catalog_repository::{
+    CatalogRepository, CatalogSourceBundle, CatalogSourceFile,
+};
 use crate::convex_store::wireframes_repository::WireframesRepository;
 use crate::helpers::provider_json::extract_wireframes_artifact;
 use crate::helpers::time::now_millis;
-use crate::models::errors::{EngineError, EngineErrorCode};
-use crate::models::providers::ProviderId;
-use crate::models::runs::{RunAttachment, RunAttachmentKind, RunEvent, RunStatus, StartRunRequest};
-use crate::models::wireframes::{WireframeBrandSource, WireframeKind};
+use crate::models::runs::{RunEvent, StartRunRequest};
+use crate::models::wireframes::{WireframeBrandSource, WireframeKind, WireframeViewport};
 use crate::providers::adapter::{ProviderRunContext, run_provider_collect};
-use crate::providers::command::provider_cli_working_directory;
 use crate::providers::process::ProviderProcessOutcome;
 use crate::runs::RunEventSink;
-use crate::wireframes::normalize::normalize_wireframes_artifact;
-use crate::wireframes::prompt::build_wireframes_prompt;
-use crate::wireframes::{MAX_BRAND_KIT_BYTES, MAX_BRAND_KIT_FILES};
+use crate::wireframes::MAX_BRAND_KIT_FILES;
+use crate::wireframes::debug_dump::WireframesDebugDump;
+use crate::wireframes::design_plan::{ScreenDesignPlan, expected_screen_ids};
+use crate::wireframes::gateway::{
+    GatewayDesignContext, GatewayScreenJob, GatewaySkill, MAX_GATEWAY_SCREENS_PER_REQUEST,
+    gateway_health, run_screens_via_gateway,
+};
+use crate::wireframes::helper::{
+    MAX_MOODBOARD_IMAGES, MAX_PARALLEL_SCREEN_RUNS, WorkflowError,
+    configure_provider_workspace_call, configured_screens_from_input, fetch_visual_attachments,
+    materialize_common_workspace, materialize_screen_call, merge_tsx_screens,
+    offload_rendered_screens, parse_brand_source_from_source, parse_kind_from_source,
+    parse_screens_from_source, parse_style_direction_from_source, resolve_design_plan,
+    run_screens_in_parallel, safe_context_segment, screen_workspace_required_files,
+    selected_moodboard_asset_keys, tool_completed, tool_started, uses_nebius_gateway,
+};
+use crate::wireframes::normalize::{apply_scoped_screens, normalize_wireframes_artifact};
+use crate::wireframes::prompt::{
+    build_wireframes_prompt_with_plan, resolve_hifi_prompt_preferences, scope_flows_artifact,
+    workspace_selected_skills,
+};
+use crate::wireframes::provider_workspace::{ContextAccessPolicy, ProviderWorkspace};
+use crate::wireframes::render::{apply_react_render, brand_theme, repair_prompt_for_failures};
 
 const GENERATED_AT_LABEL: &str = "just now";
+const MAX_RAG_BUNDLES_PER_SCREEN: usize = 12;
+const MAX_MODEL_BUNDLES_PER_SCREEN: usize = 6;
+
+struct ScreenCatalogContext {
+    index_json: String,
+    source_paths: Vec<String>,
+    evidence: serde_json::Value,
+    bundles: Vec<CatalogSourceBundle>,
+    render_files: Vec<CatalogSourceFile>,
+}
+
+async fn materialize_catalog_context(
+    catalog: &CatalogRepository,
+    auth_token: &str,
+    run_id: &str,
+    screen_id: &str,
+    screen: &ScreenDesignPlan,
+    libraries: &[String],
+    workspace: &mut ProviderWorkspace,
+) -> Result<ScreenCatalogContext, WorkflowError> {
+    if libraries.is_empty() {
+        return Err(WorkflowError::InvalidRequest(
+            "Hi-Fi generation requires at least one selected component library for RAG retrieval."
+                .to_string(),
+        ));
+    }
+    let query = format!(
+        "{}\n{}\n{}\n{}\n{}",
+        screen.purpose,
+        screen.screen_role,
+        screen.layout_archetype,
+        screen.content_requirements.join("\n"),
+        screen
+            .component_recipe
+            .iter()
+            .map(|component| format!("{}: {}", component.export_name, component.purpose))
+            .collect::<Vec<_>>()
+            .join("\n"),
+    );
+    let search = catalog
+        .search_components(
+            auth_token,
+            &format!("{run_id}:{}", safe_context_segment(screen_id)),
+            &query,
+            libraries,
+            MAX_RAG_BUNDLES_PER_SCREEN as u8,
+        )
+        .await
+        .map_err(|error| {
+            WorkflowError::Internal(format!(
+                "component search failed for screen {screen_id}: {error}"
+            ))
+        })?;
+
+    if search.candidates.is_empty() {
+        return Err(WorkflowError::GenerationFailed(format!(
+            "RAG embedding search returned no verified components for screen {screen_id}. Index the selected libraries before retrying."
+        )));
+    }
+
+    let call_id = format!("screen-{screen_id}");
+    let mut source_paths = Vec::with_capacity(search.candidates.len());
+    let mut index = Vec::with_capacity(search.candidates.len());
+    let mut bundles = Vec::with_capacity(search.candidates.len());
+    let mut unavailable_candidates = 0usize;
+    for (position, candidate) in search.candidates.into_iter().enumerate() {
+        let source = match catalog
+            .load_component(
+                auth_token,
+                &candidate.component_id,
+                &candidate.source_revision,
+            )
+            .await
+        {
+            Ok(source) => source,
+            Err(error) => {
+                unavailable_candidates += 1;
+                tracing::warn!(
+                    run_id,
+                    screen_id,
+                    component_id = %candidate.component_id,
+                    %error,
+                    "skipping unavailable RAG candidate"
+                );
+                continue;
+            }
+        };
+        let path = format!(
+            "catalog/{}/{}/{}-{}.json",
+            safe_context_segment(screen_id),
+            safe_context_segment(&candidate.library),
+            safe_context_segment(&candidate.name),
+            position + 1,
+        );
+        let source_json = serde_json::to_string_pretty(&source)?;
+        workspace
+            .write_text(
+                &path,
+                "verified component source bundle selected by RAG",
+                ContextAccessPolicy::OnDemand,
+                &[&call_id],
+                &source_json,
+            )
+            .map_err(|error| {
+                WorkflowError::Internal(format!(
+                    "could not materialize component source {}: {error}",
+                    candidate.component_id
+                ))
+            })?;
+        index.push(serde_json::json!({
+            "componentId": candidate.component_id,
+            "library": candidate.library,
+            "name": candidate.name,
+            "kind": candidate.kind,
+            "runtime": candidate.runtime,
+            "sourceRevision": candidate.source_revision,
+            "score": candidate.score,
+            "sourcePath": path,
+        }));
+        source_paths.push(path);
+        bundles.push(source);
+    }
+    if bundles.is_empty() {
+        return Err(WorkflowError::GenerationFailed(format!(
+            "No retrieved component source was available for screen {screen_id}."
+        )));
+    }
+    tracing::info!(
+        run_id,
+        screen_id,
+        candidate_count = index.len(),
+        unavailable_candidates,
+        embedding_tokens = search.embedding_tokens,
+        "Qwen RAG search and verified source loading completed"
+    );
+    let render_files = flatten_catalog_files(bundles.iter());
+    let evidence = serde_json::json!({
+        "provider": "nebius",
+        "model": "Qwen/Qwen3-Embedding-8B",
+        "embeddingTokens": search.embedding_tokens,
+        "candidateCount": index.len(),
+        "unavailableCandidateCount": unavailable_candidates,
+        "components": index,
+    });
+    Ok(ScreenCatalogContext {
+        index_json: serde_json::to_string_pretty(&evidence["components"])?,
+        source_paths,
+        evidence,
+        bundles,
+        render_files,
+    })
+}
+
+fn flatten_catalog_files<'a>(
+    bundles: impl IntoIterator<Item = &'a CatalogSourceBundle>,
+) -> Vec<CatalogSourceFile> {
+    let mut by_path = BTreeMap::new();
+    for bundle in bundles {
+        for file in &bundle.files {
+            by_path
+                .entry(file.path.clone())
+                .or_insert_with(|| file.clone());
+        }
+    }
+    by_path.into_values().collect()
+}
+
+fn compact_model_bundles(mut bundles: Vec<CatalogSourceBundle>) -> Vec<CatalogSourceBundle> {
+    bundles.truncate(MAX_MODEL_BUNDLES_PER_SCREEN);
+    for bundle in &mut bundles {
+        bundle.files.truncate(1);
+    }
+    bundles
+}
+
+fn merge_catalog_render_files(
+    into: &mut BTreeMap<String, CatalogSourceFile>,
+    files: Vec<CatalogSourceFile>,
+) {
+    for file in files {
+        into.entry(file.path.clone()).or_insert(file);
+    }
+}
+
+fn drop_failed_screens(
+    artifact: &mut serde_json::Value,
+    completed_screen_ids: &mut Vec<String>,
+    failed_ids: &HashSet<String>,
+) {
+    if let Some(screens) = artifact
+        .get_mut("generatedScreens")
+        .and_then(serde_json::Value::as_array_mut)
+    {
+        screens.retain(|screen| {
+            screen
+                .get("id")
+                .and_then(serde_json::Value::as_str)
+                .is_none_or(|id| !failed_ids.contains(id))
+        });
+    }
+    completed_screen_ids.retain(|id| !failed_ids.contains(id));
+}
+
+fn catalog_library_id(selected_library_id: &str) -> &str {
+    match selected_library_id {
+        "bklit-ui" => "bklit",
+        other => other,
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct WireframesWorkflow {
     repository: WireframesRepository,
+    catalog: CatalogRepository,
+    asset_uploader: ConvexAssetUploader,
     r2_public_base_url: Option<String>,
 }
 
 impl WireframesWorkflow {
-    pub fn new(repository: WireframesRepository, r2_public_base_url: Option<String>) -> Self {
+    pub fn new(
+        repository: WireframesRepository,
+        catalog: CatalogRepository,
+        asset_uploader: ConvexAssetUploader,
+        r2_public_base_url: Option<String>,
+    ) -> Self {
         Self {
             repository,
+            catalog,
+            asset_uploader,
             r2_public_base_url,
         }
     }
@@ -67,20 +307,27 @@ impl WireframesWorkflow {
             .and_then(parse_style_direction_from_source)
             .map(ToOwned::to_owned);
         let brand_kit_keys = request.context.brand_kit_keys.clone().unwrap_or_default();
-        let regenerate_screen_ids = request
+        let target_screen_ids = request
             .context
             .source
             .as_deref()
             .and_then(parse_screens_from_source);
+        let use_gateway = uses_nebius_gateway(request.context.source.as_deref());
 
         let workflow_started = Instant::now();
+        // The scope is THE thing to know when a run feels slow: "2 screens took 13 minutes"
+        // is only actionable once the log proves the run really was scoped to 2.
         tracing::info!(
             run_id = %run_id,
             provider_id = ?provider_id,
             project_id = ?project_id,
             kind = wireframe_kind.as_str(),
+            scoped_screen_count = target_screen_ids.as_ref().map_or(0, Vec::len),
+            scoped_screen_ids = ?target_screen_ids,
             "wireframes workflow started"
         );
+        let dump = WireframesDebugDump::open(&run_id);
+        dump.write_readme();
 
         let result = async {
             let auth_token = auth_token.ok_or_else(|| {
@@ -90,7 +337,7 @@ impl WireframesWorkflow {
                 WorkflowError::InvalidRequest("Missing project id for Wireframes.".to_string())
             })?;
 
-            self.tool_started(
+            tool_started(
                 api_version,
                 &run_id,
                 provider_id,
@@ -98,11 +345,65 @@ impl WireframesWorkflow {
                 "stage-context",
                 "Load Stage wireframes input",
             );
+            let input_started = Instant::now();
             let input = self
                 .repository
                 .fetch_wireframes_input(&auth_token, project_id)
                 .await?;
-            self.tool_completed(api_version, &run_id, provider_id, &sink, "stage-context");
+            tool_completed(api_version, &run_id, provider_id, &sink, "stage-context");
+            tracing::info!(
+                run_id = %run_id,
+                input_elapsed_ms = input_started.elapsed().as_millis(),
+                research_chars = input.research_artifact_json.as_deref().map_or(0, str::len),
+                strategy_chars = input.strategy_artifact_json.len(),
+                moodboard_chars = input.moodboard_artifact_json.as_deref().map_or(0, str::len),
+                flows_chars = input.flows_artifact_json.as_deref().map_or(0, str::len),
+                existing_artifact_chars = input
+                    .existing_wireframes_artifact_json
+                    .as_deref()
+                    .map_or(0, str::len),
+                "loaded wireframes input from Convex"
+            );
+            if matches!(wireframe_kind, WireframeKind::Hifi) {
+                let preferences = resolve_hifi_prompt_preferences(&input);
+                tracing::info!(
+                    run_id = %run_id,
+                    configured_skill_ids = ?input.enabled_skill_ids,
+                    configured_component_pack_ids = ?input.enabled_component_pack_ids,
+                    effective_skill_ids = ?preferences.skill_ids,
+                    effective_component_pack_ids = ?preferences.component_pack_ids,
+                    "resolved Hi-Fi wireframes skills and component libraries"
+                );
+                dump.write_meta(serde_json::json!({
+                    "runId": run_id,
+                    "kind": wireframe_kind.as_str(),
+                    "providerId": format!("{provider_id:?}"),
+                    "projectId": project_id,
+                    "scopedScreenIds": target_screen_ids,
+                    "configuredSkillIds": input.enabled_skill_ids,
+                    "configuredComponentPackIds": input.enabled_component_pack_ids,
+                    "effectiveSkillIds": preferences.skill_ids,
+                    "effectiveComponentPackIds": preferences.component_pack_ids,
+                    "brandSource": brand_source.map(|s| format!("{s:?}")),
+                    "styleDirectionId": style_direction_id,
+                    "dumpDir": dump.dir().map(|p| p.display().to_string()),
+                }));
+            } else {
+                tracing::info!(
+                    run_id = %run_id,
+                    kind = wireframe_kind.as_str(),
+                    "wireframes skills and component libraries are not applied to Lo-Fi generation"
+                );
+                dump.write_meta(serde_json::json!({
+                    "runId": run_id,
+                    "kind": wireframe_kind.as_str(),
+                    "providerId": format!("{provider_id:?}"),
+                    "projectId": project_id,
+                    "scopedScreenIds": target_screen_ids,
+                    "note": "Lo-Fi — component packs not applied",
+                    "dumpDir": dump.dir().map(|p| p.display().to_string()),
+                }));
+            }
 
             convex_run_id = self
                 .repository
@@ -114,6 +415,33 @@ impl WireframesWorkflow {
                 )
                 .await?;
 
+            let expected_plan_screen_ids = expected_screen_ids(
+                input.existing_wireframes_artifact_json.as_deref(),
+                input.flows_artifact_json.as_deref(),
+                target_screen_ids.as_deref(),
+            );
+            let mut provider_workspace = if matches!(wireframe_kind, WireframeKind::Hifi) {
+                Some(ProviderWorkspace::create(&run_id).map_err(|error| {
+                    WorkflowError::Internal(format!(
+                        "could not create isolated provider workspace: {error}"
+                    ))
+                })?)
+            } else {
+                None
+            };
+            let mut common_workspace_files = if let Some(workspace) = provider_workspace.as_mut() {
+                Some(materialize_common_workspace(
+                    workspace,
+                    &input,
+                    &request,
+                    &expected_plan_screen_ids,
+                    brand_source,
+                    style_direction_id.as_deref(),
+                )?)
+            } else {
+                None
+            };
+
             // For a brand-kit Hi-Fi run, fetch the uploaded brand kit files and attach them so
             // the model derives palette/typography/logo from the real brand kit. The user
             // uploaded files expecting them used, so if none can be loaded (R2 base unset,
@@ -121,7 +449,21 @@ impl WireframesWorkflow {
             let brand_kit_requested = matches!(brand_source, Some(WireframeBrandSource::BrandKit))
                 && !brand_kit_keys.is_empty();
             let brand_kit_attached = if brand_kit_requested {
-                let attachments = self.fetch_brand_kit_attachments(&brand_kit_keys).await?;
+                let workspace = provider_workspace.as_mut().ok_or_else(|| {
+                    WorkflowError::Internal(
+                        "brand-kit wireframes require an isolated provider workspace".to_string(),
+                    )
+                })?;
+                let (attachments, brand_files) = fetch_visual_attachments(
+                    self.r2_public_base_url.as_deref(),
+                    &brand_kit_keys,
+                    workspace,
+                    "brand-kit",
+                    "uploaded brand kit evidence",
+                    MAX_BRAND_KIT_FILES,
+                    false,
+                )
+                .await?;
                 if attachments.is_empty() {
                     return Err(WorkflowError::InvalidRequest(
                         "Could not load the uploaded brand kit files. Check R2 configuration and the uploads, then try again.".to_string(),
@@ -133,47 +475,600 @@ impl WireframesWorkflow {
                     "attached brand kit files for wireframes provider run"
                 );
                 request.attachments.extend(attachments);
+                if let Some(files) = common_workspace_files.as_mut() {
+                    files.director_required.extend(brand_files.iter().cloned());
+                    files.screen_required.extend(brand_files);
+                }
                 true
             } else {
                 false
             };
 
-            request.prompt = build_wireframes_prompt(
-                &input,
-                wireframe_kind,
-                brand_source,
-                style_direction_id.as_deref(),
-                None,
-                brand_kit_attached,
-                regenerate_screen_ids.as_deref(),
-            );
-            let provider_context = ProviderRunContext {
-                api_version,
-                run_id: run_id.clone(),
-                request,
-            };
+            if matches!(wireframe_kind, WireframeKind::Hifi) {
+                let moodboard_keys = selected_moodboard_asset_keys(
+                    input.moodboard_artifact_json.as_deref(),
+                    style_direction_id.as_deref(),
+                );
+                let moodboard_images_required = matches!(
+                    brand_source,
+                    Some(WireframeBrandSource::StyleGuide)
+                ) && style_direction_id.is_some();
+                if moodboard_images_required && moodboard_keys.is_empty() {
+                    return Err(WorkflowError::InvalidRequest(
+                        "The selected style direction has no usable moodboard image assets. Re-save the moodboard direction, then try again."
+                            .to_string(),
+                    ));
+                }
+                if !moodboard_keys.is_empty() {
+                    let workspace = provider_workspace.as_mut().ok_or_else(|| {
+                        WorkflowError::Internal(
+                            "Hi-Fi moodboard images require an isolated provider workspace"
+                                .to_string(),
+                        )
+                    })?;
+                    let (attachments, moodboard_files) = fetch_visual_attachments(
+                        self.r2_public_base_url.as_deref(),
+                        &moodboard_keys,
+                        workspace,
+                        "moodboard",
+                        "selected moodboard image evidence",
+                        MAX_MOODBOARD_IMAGES,
+                        true,
+                    )
+                    .await?;
+                    if moodboard_images_required && attachments.is_empty() {
+                        return Err(WorkflowError::InvalidRequest(
+                            "Could not load the selected moodboard images. Check R2 configuration and the moodboard assets, then try again."
+                                .to_string(),
+                        ));
+                    }
+                    tracing::info!(
+                        run_id = %run_id,
+                        count = attachments.len(),
+                        "attached selected moodboard images for wireframes provider run"
+                    );
+                    request.attachments.extend(attachments);
+                    if let Some(files) = common_workspace_files.as_mut() {
+                        files.director_required.extend(moodboard_files.iter().cloned());
+                        files.screen_required.extend(moodboard_files);
+                    }
+                }
+            }
 
-            tracing::info!(
-                run_id = %run_id,
-                provider_id = ?provider_id,
-                kind = wireframe_kind.as_str(),
-                "starting wireframes provider run"
-            );
-            let provider_started = Instant::now();
-            let outcome = run_provider_collect(provider_context, sink.clone(), cancel_rx).await?;
-            tracing::info!(
-                run_id = %run_id,
-                provider_id = ?provider_id,
-                kind = wireframe_kind.as_str(),
-                provider_elapsed_ms = provider_started.elapsed().as_millis(),
-                "wireframes provider run finished"
-            );
-            let ProviderProcessOutcome::Completed(final_text) = outcome else {
-                tracing::info!(run_id = %run_id, "wireframes provider run cancelled");
-                return Ok(());
-            };
+            if let Some(workspace) = provider_workspace.as_mut() {
+                workspace.seal().map_err(|error| {
+                    WorkflowError::Internal(format!(
+                        "could not seal isolated provider workspace: {error}"
+                    ))
+                })?;
+                request.working_directory = Some(workspace.root().to_string_lossy().into_owned());
+                for attachment in request.attachments.iter_mut().filter(|attachment| {
+                    attachment.id.starts_with("brand-kit-")
+                        || attachment.id.starts_with("moodboard-")
+                }) {
+                    if let Some(name) = attachment.name.as_deref() {
+                        attachment.local_path = Some(
+                            workspace
+                                .root()
+                                .join("assets")
+                                .join(name)
+                                .to_string_lossy()
+                                .into_owned(),
+                        );
+                    }
+                }
+                dump.write_json("00-provider-workspace-manifest.json", &workspace.manifest_json());
+                tracing::info!(
+                    run_id = %run_id,
+                    path = %workspace.root().display(),
+                    "sealed isolated provider workspace"
+                );
+            }
 
-            let raw_artifact = extract_wireframes_artifact(&final_text)?;
+            let design_plan = if use_gateway {
+                if !matches!(wireframe_kind, WireframeKind::Hifi) {
+                    return Err(WorkflowError::InvalidRequest(
+                        "Nebius is only available for Hi-Fi wireframes.".to_string(),
+                    ));
+                }
+                gateway_health().await.map_err(WorkflowError::InvalidRequest)?;
+                None
+            } else if matches!(wireframe_kind, WireframeKind::Hifi) {
+                let Some(plan) = resolve_design_plan(
+                    api_version,
+                    &run_id,
+                    provider_id,
+                    &request,
+                    &input,
+                    target_screen_ids.as_deref(),
+                    &expected_plan_screen_ids,
+                    provider_workspace.as_mut().ok_or_else(|| {
+                        WorkflowError::Internal(
+                            "Hi-Fi wireframes require a provider workspace".to_string(),
+                        )
+                    })?,
+                    common_workspace_files.as_ref().ok_or_else(|| {
+                        WorkflowError::Internal(
+                            "Hi-Fi wireframes require a context manifest".to_string(),
+                        )
+                    })?,
+                    &sink,
+                    &cancel_rx,
+                    &dump,
+                )
+                .await?
+                else {
+                    tracing::info!(run_id = %run_id, "wireframes Design Director run cancelled");
+                    if let Err(error) = self
+                        .repository
+                        .cancel_wireframes_run(
+                            &auth_token,
+                            project_id,
+                            convex_run_id.as_deref(),
+                        )
+                        .await
+                    {
+                        tracing::warn!(error = error.to_string(), "failed to persist cancelled wireframes run");
+                    }
+                    return Ok(());
+                };
+                Some(plan)
+            } else {
+                None
+            };
+            let design_plan_json = design_plan
+                .as_ref()
+                .map(serde_json::to_string)
+                .transpose()?;
+            let scoped_gateway_flows = target_screen_ids.as_ref().and_then(|ids| {
+                input.flows_artifact_json.as_deref().map(|flows| {
+                    let ids = ids.iter().map(String::as_str).collect::<Vec<_>>();
+                    scope_flows_artifact(flows, &ids)
+                })
+            });
+            let gateway_design_context = use_gateway.then(|| GatewayDesignContext {
+                project_name: input.project_name.clone(),
+                project_type: input.project_type.clone(),
+                viewport_guidance: WireframeViewport::from_project_type(&input.project_type)
+                    .prompt_guidance()
+                    .to_string(),
+                brand_source: match brand_source {
+                    Some(WireframeBrandSource::StyleGuide) => "style-guide",
+                    Some(WireframeBrandSource::BrandKit) => "brand-kit",
+                    None => "none",
+                }
+                .to_string(),
+                style_direction_id: style_direction_id.clone(),
+                strategy_artifact: input.strategy_artifact_json.clone(),
+                research_artifact: target_screen_ids
+                    .is_none()
+                    .then(|| input.research_artifact_json.clone())
+                    .flatten(),
+                moodboard_artifact: input.moodboard_artifact_json.clone(),
+                flows_artifact: scoped_gateway_flows
+                    .or_else(|| input.flows_artifact_json.clone()),
+                selected_skills: workspace_selected_skills(&input)
+                    .into_iter()
+                    .map(|(id, guidance)| GatewaySkill {
+                        id: id.to_string(),
+                        guidance,
+                    })
+                    .collect(),
+            });
+            if let (Some(workspace), Some(plan_json)) =
+                (provider_workspace.as_mut(), design_plan_json.as_deref())
+            {
+                workspace
+                    .write_text(
+                        "design/design-plan.json",
+                        "validated shared Design Director plan",
+                        ContextAccessPolicy::OnDemand,
+                        &["screen:*"],
+                        plan_json,
+                    )
+                    .map_err(|error| {
+                        WorkflowError::Internal(format!(
+                            "could not persist the shared design plan in the provider workspace: {error}"
+                        ))
+                    })?;
+            }
+
+            if let Some(plan) = design_plan.as_ref() {
+                let plan_value = serde_json::to_value(plan)?;
+                self.repository
+                    .checkpoint_wireframes_run(
+                        &auth_token,
+                        project_id,
+                        convex_run_id.as_deref(),
+                        "design-plan",
+                        None,
+                        &plan_value,
+                    )
+                    .await
+                    .map_err(|error| {
+                        WorkflowError::Internal(format!(
+                            "could not persist Design Director checkpoint: {error}"
+                        ))
+                    })?;
+            }
+
+            // Lo-Fi deliberately remains the production `work` flow: one complete
+            // Claude/Codex artifact call. Per-screen calls, RAG, rendering, repair,
+            // and Nebius batching belong exclusively to Hi-Fi.
+            let screen_ids = if matches!(wireframe_kind, WireframeKind::Lofi) {
+                Vec::new()
+            } else {
+                target_screen_ids
+                    .as_ref()
+                    .filter(|ids| !ids.is_empty())
+                    .cloned()
+                    .or_else(|| {
+                        design_plan.as_ref().map(|plan| {
+                            plan.screens
+                                .iter()
+                                .map(|screen| screen.screen_id.clone())
+                                .collect()
+                        })
+                    })
+                    .unwrap_or_default()
+            };
+            let mut provider_was_cancelled = false;
+            let mut completed_screen_ids = screen_ids.clone();
+            let mut catalog_evidence = serde_json::Map::new();
+            let mut catalog_render_files = BTreeMap::new();
+            let mut gateway_jobs = Vec::with_capacity(screen_ids.len());
+            let final_text = if screen_ids.is_empty() == false {
+                let configured_screens = configured_screens_from_input(&input);
+                let mut requests = Vec::with_capacity(screen_ids.len());
+                for screen_id in &screen_ids {
+                    let mut screen_request = request.clone();
+                    if matches!(wireframe_kind, WireframeKind::Hifi) {
+                        let libraries = resolve_hifi_prompt_preferences(&input)
+                            .component_pack_ids
+                            .into_iter()
+                            .map(|library| catalog_library_id(&library).to_string())
+                            .collect::<Vec<_>>();
+                        if use_gateway {
+                            let screen_plan = rag_screen_plan(
+                                screen_id,
+                                &configured_screens,
+                            );
+                            let workspace = provider_workspace.as_mut().ok_or_else(|| {
+                                WorkflowError::Internal(
+                                    "RAG retrieval requires a provider workspace".to_string(),
+                                )
+                            })?;
+                            let catalog_context = match materialize_catalog_context(
+                                &self.catalog,
+                                &auth_token,
+                                &run_id,
+                                screen_id,
+                                &screen_plan,
+                                &libraries,
+                                workspace,
+                            )
+                            .await
+                            {
+                                Ok(context) => context,
+                                Err(error) => {
+                                    tracing::warn!(
+                                        run_id = %run_id,
+                                        screen_id,
+                                        %error,
+                                        "RAG preparation failed for one screen; continuing with siblings"
+                                    );
+                                    continue;
+                                }
+                            };
+                            catalog_evidence.insert(screen_id.clone(), catalog_context.evidence);
+                            merge_catalog_render_files(
+                                &mut catalog_render_files,
+                                catalog_context.render_files,
+                            );
+                            gateway_jobs.push(GatewayScreenJob {
+                                screen_id: screen_id.clone(),
+                                title: screen_plan.screen_role.clone(),
+                                intent: screen_plan.purpose,
+                                libraries,
+                                bundles: compact_model_bundles(catalog_context.bundles),
+                                validation_failures: Vec::new(),
+                            });
+                            continue;
+                        }
+                        let plan_json = design_plan_json.as_deref().ok_or_else(|| {
+                            WorkflowError::Internal(
+                                "Hi-Fi screen generation requires a validated design plan"
+                                    .to_string(),
+                            )
+                        })?;
+                        let catalog_context = {
+                            let screen_plan = design_plan
+                                .as_ref()
+                                .and_then(|plan| {
+                                    plan.screens
+                                        .iter()
+                                        .find(|screen| screen.screen_id.as_str() == screen_id)
+                                })
+                                .ok_or_else(|| {
+                                    WorkflowError::Internal(format!(
+                                        "RAG retrieval requires a design plan for screen {screen_id}"
+                                    ))
+                                })?;
+                            let libraries = resolve_hifi_prompt_preferences(&input)
+                                .component_pack_ids
+                                .into_iter()
+                                .map(|library| catalog_library_id(&library).to_string())
+                                .collect::<Vec<_>>();
+                            let workspace = provider_workspace.as_mut().ok_or_else(|| {
+                                WorkflowError::Internal(
+                                    "RAG retrieval requires a provider workspace".to_string(),
+                                )
+                            })?;
+                            match materialize_catalog_context(
+                                    &self.catalog,
+                                    &auth_token,
+                                    &run_id,
+                                    screen_id,
+                                    screen_plan,
+                                    &libraries,
+                                    workspace,
+                                )
+                                .await
+                            {
+                                Ok(context) => context,
+                                Err(error) => {
+                                    tracing::warn!(
+                                        run_id = %run_id,
+                                        screen_id,
+                                        %error,
+                                        "RAG preparation failed for one screen; continuing with siblings"
+                                    );
+                                    continue;
+                                }
+                            }
+                        };
+                        let call_files = materialize_screen_call(
+                            provider_workspace.as_mut().ok_or_else(|| {
+                                WorkflowError::Internal(
+                                    "Hi-Fi screen generation requires a provider workspace"
+                                        .to_string(),
+                                )
+                            })?,
+                            common_workspace_files.as_ref().ok_or_else(|| {
+                                WorkflowError::Internal(
+                                    "Hi-Fi screen generation requires a context manifest"
+                                        .to_string(),
+                                )
+                            })?,
+                            &input,
+                            brand_source,
+                            style_direction_id.as_deref(),
+                            brand_kit_attached,
+                            screen_id,
+                            plan_json,
+                            Some(catalog_context.index_json.as_str()),
+                            catalog_context.source_paths.as_slice(),
+                        )?;
+                        catalog_evidence.insert(screen_id.clone(), catalog_context.evidence);
+                        merge_catalog_render_files(
+                            &mut catalog_render_files,
+                            catalog_context.render_files,
+                        );
+                        configure_provider_workspace_call(
+                            &mut screen_request,
+                            &call_files,
+                            &format!(
+                                "Implement only the planned Stage Hi-Fi React screen `{screen_id}`."
+                            ),
+                        )?;
+                    } else {
+                        screen_request.prompt = build_wireframes_prompt_with_plan(
+                            &input,
+                            wireframe_kind,
+                            brand_source,
+                            style_direction_id.as_deref(),
+                            None,
+                            brand_kit_attached,
+                            Some(std::slice::from_ref(screen_id)),
+                            design_plan_json.as_deref(),
+                        );
+                    }
+                    dump.write_prompt(screen_id, &screen_request.prompt);
+                    requests.push((screen_id.clone(), screen_request));
+                }
+                let prompt_chars: usize = requests
+                    .iter()
+                    .map(|(_, request)| request.prompt.chars().count())
+                    .sum();
+                tracing::info!(
+                    run_id = %run_id,
+                    provider_id = ?provider_id,
+                    kind = wireframe_kind.as_str(),
+                    screen_count = screen_ids.len(),
+                    gateway_batch = use_gateway,
+                    max_parallel = MAX_PARALLEL_SCREEN_RUNS,
+                    max_gateway_screens_per_request = MAX_GATEWAY_SCREENS_PER_REQUEST,
+                    prompt_chars,
+                    "starting wireframes screen generation"
+                );
+                request.prompt = requests
+                    .first()
+                    .map(|(_, request)| request.prompt.clone())
+                    .unwrap_or_default();
+                let started = Instant::now();
+                let batch = if use_gateway {
+                    run_screens_via_gateway(
+                        api_version,
+                        &run_id,
+                        provider_id,
+                        &auth_token,
+                        gateway_design_context.as_ref().ok_or_else(|| {
+                            WorkflowError::Internal(
+                                "Nebius batch requires Stage design context".to_string(),
+                            )
+                        })?,
+                        &gateway_jobs,
+                        configured_screens,
+                        provider_workspace
+                            .as_ref()
+                            .map(|workspace| workspace.root().join("checkpoints/initial")),
+                        &sink,
+                        &cancel_rx,
+                        dump.clone(),
+                    )
+                    .await?
+                } else {
+                    run_screens_in_parallel(
+                        api_version,
+                        &run_id,
+                        provider_id,
+                        requests,
+                        provider_workspace
+                            .as_ref()
+                            .map(|workspace| workspace.root().join("checkpoints/initial")),
+                        &sink,
+                        &cancel_rx,
+                        dump.clone(),
+                    )
+                    .await?
+                };
+                if let Some(workspace) = provider_workspace.as_ref() {
+                    workspace.verify_integrity().map_err(|error| {
+                        WorkflowError::Internal(format!(
+                            "provider workspace changed during screen generation: {error}"
+                        ))
+                    })?;
+                }
+                let Some(batch) = batch else {
+                    tracing::info!(run_id = %run_id, "wireframes provider run cancelled");
+                    if let Err(error) = self
+                        .repository
+                        .cancel_wireframes_run(
+                            &auth_token,
+                            project_id,
+                            convex_run_id.as_deref(),
+                        )
+                        .await
+                    {
+                        tracing::warn!(error = error.to_string(), "failed to persist cancelled wireframes run");
+                    }
+                    return Ok(());
+                };
+                provider_was_cancelled = batch.cancelled;
+                let returned_screen_ids = batch
+                    .screens
+                    .iter()
+                    .filter_map(|screen| screen.get("id").and_then(serde_json::Value::as_str))
+                    .collect::<std::collections::HashSet<_>>();
+                completed_screen_ids = screen_ids
+                    .iter()
+                    .filter(|id| returned_screen_ids.contains(id.as_str()))
+                    .cloned()
+                    .collect();
+                if batch.cancelled {
+                    tracing::info!(
+                        run_id = run_id.as_str(),
+                        completed_screen_count = completed_screen_ids.len(),
+                        "wireframes cancellation preserved completed screens"
+                    );
+                }
+                tracing::info!(
+                    run_id = %run_id,
+                    provider_elapsed_ms = started.elapsed().as_millis(),
+                    screens_returned = batch.screens.len(),
+                    screens_requested = screen_ids.len(),
+                    configure_entries = batch.configure.len(),
+                    "wireframes provider batch finished"
+                );
+                if batch.screens.is_empty() {
+                    return Err(WorkflowError::InvalidRequest(
+                        "None of the selected screens could be generated. Try again.".to_string(),
+                    ));
+                }
+                for screen in &batch.screens {
+                    dump.write_tsx_from_screen(screen);
+                }
+                serde_json::json!({
+                    "generatedScreens": batch.screens,
+                    "configureScreens": configured_screens_from_input(&input),
+                })
+                .to_string()
+            } else {
+                request.prompt = build_wireframes_prompt_with_plan(
+                    &input,
+                    wireframe_kind,
+                    brand_source,
+                    style_direction_id.as_deref(),
+                    None,
+                    brand_kit_attached,
+                    if screen_ids.is_empty() {
+                        target_screen_ids.as_deref()
+                    } else {
+                        Some(screen_ids.as_slice())
+                    },
+                    design_plan_json.as_deref(),
+                );
+                let request_prompt_chars = request.prompt.chars().count();
+                let single_label = screen_ids
+                    .first()
+                    .map(String::as_str)
+                    .unwrap_or("single");
+                dump.write_prompt(single_label, &request.prompt);
+                tracing::info!(
+                    run_id = %run_id,
+                    provider_id = ?provider_id,
+                    kind = wireframe_kind.as_str(),
+                    scoped_screen_count = screen_ids.len(),
+                    prompt_chars = request_prompt_chars,
+                    "starting wireframes provider run"
+                );
+                let provider_context = ProviderRunContext {
+                    api_version,
+                    run_id: run_id.clone(),
+                    request: request.clone(),
+                };
+                let provider_started = Instant::now();
+                let outcome =
+                    run_provider_collect(provider_context, sink.clone(), cancel_rx.clone()).await?;
+                tracing::info!(
+                    run_id = %run_id,
+                    provider_id = ?provider_id,
+                    kind = wireframe_kind.as_str(),
+                    provider_elapsed_ms = provider_started.elapsed().as_millis(),
+                    "wireframes provider run finished"
+                );
+                let ProviderProcessOutcome::Completed(text) = outcome else {
+                    tracing::info!(run_id = %run_id, "wireframes provider run cancelled");
+                    if let Err(error) = self
+                        .repository
+                        .cancel_wireframes_run(
+                            &auth_token,
+                            project_id,
+                            convex_run_id.as_deref(),
+                        )
+                        .await
+                    {
+                        tracing::warn!(error = error.to_string(), "failed to persist cancelled wireframes run");
+                    }
+                    return Ok(());
+                };
+                dump.write_provider_raw(single_label, &text);
+                text
+            };
+            // "did not contain a valid artifact" cannot distinguish a truncated response
+            // from one wrapped in prose or code fences. Log the size and tail so the next
+            // failure is diagnosable from the log instead of another rerun.
+            let raw_artifact = extract_wireframes_artifact(&final_text).inspect_err(|error| {
+                let char_count = final_text.chars().count();
+                let tail: String = final_text.chars().skip(char_count.saturating_sub(400)).collect();
+                tracing::error!(
+                    run_id = %run_id,
+                    output_chars = char_count,
+                    %error,
+                    output_tail = %tail,
+                    "wireframes provider output could not be parsed"
+                );
+            })?;
             let mut artifact = normalize_wireframes_artifact(
                 raw_artifact,
                 &input,
@@ -183,22 +1078,418 @@ impl WireframesWorkflow {
                 now_millis(),
                 GENERATED_AT_LABEL,
             )?;
-            if let Some(screen_ids) = regenerate_screen_ids.as_ref() {
-                let Some(existing_json) = input.existing_wireframes_artifact_json.as_deref() else {
-                    return Err(WorkflowError::InvalidRequest(
-                        "Cannot regenerate wireframe screens without an existing wireframes artifact."
-                            .to_string(),
-                    ));
-                };
-                artifact = crate::wireframes::normalize::merge_regenerated_screens(
-                    existing_json,
-                    artifact,
-                    screen_ids,
-                    wireframe_kind,
-                )
-                .map_err(|error| WorkflowError::InvalidRequest(error.to_string()))?;
+            if let Some(plan) = design_plan.as_ref()
+                && let Some(object) = artifact.as_object_mut()
+            {
+                object.insert("designPlan".to_string(), serde_json::to_value(plan)?);
+            }
+            if matches!(wireframe_kind, WireframeKind::Hifi)
+                && let Some(object) = artifact.as_object_mut()
+            {
+                object.insert(
+                    "catalogRetrieval".to_string(),
+                    serde_json::json!({
+                        "required": true,
+                        "screens": catalog_evidence,
+                    }),
+                );
             }
 
+            if let Some(screens) = artifact
+                .get("generatedScreens")
+                .and_then(serde_json::Value::as_array)
+            {
+                for screen in screens {
+                    dump.write_tsx_from_screen(screen);
+                }
+            }
+
+            let mut rendered_css: Option<String> = None;
+            let mut render_failures = Vec::new();
+            let mut render_theme = None;
+            if matches!(wireframe_kind, WireframeKind::Hifi) {
+                let theme = brand_theme(
+                    input.moodboard_artifact_json.as_deref(),
+                    style_direction_id.as_deref(),
+                );
+                tracing::info!(
+                    run_id = %run_id,
+                    brand_theme_applied = theme.is_some(),
+                    "resolved wireframe quality runtime"
+                );
+                let render_started = Instant::now();
+                let catalog_files: Vec<_> = catalog_render_files.values().cloned().collect();
+                let render_screen_ids = artifact
+                    .get("generatedScreens")
+                    .and_then(serde_json::Value::as_array)
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|screen| {
+                        screen
+                            .get("id")
+                            .and_then(serde_json::Value::as_str)
+                            .map(str::to_string)
+                    })
+                    .collect::<Vec<_>>();
+                let outcome = apply_react_render(
+                    &mut artifact,
+                    theme.as_ref(),
+                    &catalog_files,
+                    &render_screen_ids,
+                )
+                .await
+                .map_err(|error| {
+                    WorkflowError::GenerationFailed(format!(
+                        "React renderer rejected generated screens: {error}"
+                    ))
+                })?;
+                rendered_css = outcome.css;
+                render_failures = outcome.failures;
+                tracing::info!(
+                    run_id = %run_id,
+                    render_elapsed_ms = render_started.elapsed().as_millis(),
+                    failed = render_failures.len(),
+                    "completed mandatory React rendering"
+                );
+                render_theme = Some(theme);
+            }
+
+            if provider_was_cancelled && !render_failures.is_empty() {
+                let failed_ids = render_failures
+                    .iter()
+                    .map(|failure| failure.id.clone())
+                    .collect::<HashSet<_>>();
+                drop_failed_screens(&mut artifact, &mut completed_screen_ids, &failed_ids);
+                if completed_screen_ids.is_empty() {
+                    tracing::info!(run_id = run_id.as_str(), "cancelled wireframes run had no validated screens to save");
+                    if let Err(error) = self
+                        .repository
+                        .cancel_wireframes_run(
+                            &auth_token,
+                            project_id,
+                            convex_run_id.as_deref(),
+                        )
+                        .await
+                    {
+                        tracing::warn!(error = error.to_string(), "failed to persist cancelled wireframes run");
+                    }
+                    return Ok(());
+                }
+                tracing::info!(
+                    run_id = run_id.as_str(),
+                    dropped_failed_screens = render_failures.len(),
+                    "cancelled wireframes run keeps only completed validated screens"
+                );
+                render_failures.clear();
+            }
+
+            if !render_failures.is_empty() {
+                tracing::warn!(
+                    run_id = %run_id,
+                    failed = render_failures.len(),
+                    "repairing failed React screens once"
+                );
+                let repair_started = Instant::now();
+                let repair_ids = render_failures
+                    .iter()
+                    .map(|failure| failure.id.clone())
+                    .collect::<Vec<_>>();
+                let repair_artifact = if use_gateway {
+                    let repair_jobs = gateway_jobs
+                        .iter()
+                        .filter_map(|job| {
+                            let failure = render_failures
+                                .iter()
+                                .find(|failure| failure.id == job.screen_id)?;
+                            let mut repair = job.clone();
+                            repair.validation_failures = vec![repair_prompt_for_failures(
+                                std::slice::from_ref(failure),
+                            )];
+                            Some(repair)
+                        })
+                        .collect::<Vec<_>>();
+                    if repair_jobs.is_empty() {
+                        None
+                    } else {
+                        match run_screens_via_gateway(
+                        api_version,
+                        &run_id,
+                        provider_id,
+                        &auth_token,
+                        gateway_design_context.as_ref().ok_or_else(|| {
+                            WorkflowError::Internal(
+                                "Nebius repair requires Stage design context".to_string(),
+                            )
+                        })?,
+                        &repair_jobs,
+                        Vec::new(),
+                        provider_workspace
+                            .as_ref()
+                            .map(|workspace| workspace.root().join("checkpoints/repair")),
+                        &sink,
+                        &cancel_rx,
+                        dump.clone(),
+                    )
+                    .await
+                    {
+                        Ok(Some(batch)) => Some(serde_json::json!({
+                            "generatedScreens": batch.screens
+                        })),
+                        Ok(None) => None,
+                        Err(error) => {
+                            tracing::warn!(run_id = %run_id, %error, "screen repair failed");
+                            None
+                        }
+                    }
+                    }
+                } else {
+                    let workspace = provider_workspace.as_mut().ok_or_else(|| {
+                        WorkflowError::Internal(
+                            "Hi-Fi repair requires a provider workspace".to_string(),
+                        )
+                    })?;
+                    let common = common_workspace_files.as_ref().ok_or_else(|| {
+                        WorkflowError::Internal(
+                            "Hi-Fi repair requires a context manifest".to_string(),
+                        )
+                    })?;
+                    let mut requests = Vec::with_capacity(render_failures.len());
+                    for failure in &render_failures {
+                        let safe_id = safe_context_segment(&failure.id);
+                        let evidence_path = format!("repairs/screens/{safe_id}/failure.md");
+                        workspace
+                            .write_text(
+                                &evidence_path,
+                                "renderer failure and previous TSX",
+                                ContextAccessPolicy::Required,
+                                &[&format!("screen-{}-repair", failure.id)],
+                                &repair_prompt_for_failures(std::slice::from_ref(failure)),
+                            )
+                            .map_err(|error| {
+                                WorkflowError::Internal(format!(
+                                    "could not materialize repair evidence for {}: {error}",
+                                    failure.id
+                                ))
+                            })?;
+                        let mut required = common.screen_required.clone();
+                        required.extend(screen_workspace_required_files(&failure.id));
+                        required.push(evidence_path);
+                        let call_files = workspace
+                            .write_call_manifest(
+                                &format!("screen-{}-repair", failure.id),
+                                &required,
+                                &common.screen_on_demand,
+                            )
+                            .map_err(|error| {
+                                WorkflowError::Internal(format!(
+                                    "could not create repair manifest for {}: {error}",
+                                    failure.id
+                                ))
+                            })?;
+                        workspace.verify_integrity().map_err(|error| {
+                            WorkflowError::Internal(format!(
+                                "provider workspace integrity check failed: {error}"
+                            ))
+                        })?;
+                        let mut repair_request = request.clone();
+                        configure_provider_workspace_call(
+                            &mut repair_request,
+                            &call_files,
+                            &format!("Repair only React screen `{}`.", failure.id),
+                        )?;
+                        dump.write_prompt(
+                            &format!("repair-{}", failure.id),
+                            &repair_request.prompt,
+                        );
+                        requests.push((failure.id.clone(), repair_request));
+                    }
+                    let result = run_screens_in_parallel(
+                        api_version,
+                        &run_id,
+                        provider_id,
+                        requests,
+                        Some(workspace.root().join("checkpoints/repair")),
+                        &sink,
+                        &cancel_rx,
+                        dump.clone(),
+                    )
+                    .await;
+                    workspace.verify_integrity().map_err(|error| {
+                        WorkflowError::Internal(format!(
+                            "provider workspace changed during screen repair: {error}"
+                        ))
+                    })?;
+                    match result {
+                        Ok(Some(batch)) => Some(normalize_wireframes_artifact(
+                            serde_json::json!({
+                                "generatedScreens": batch.screens,
+                                "configureScreens": batch.configure,
+                            }),
+                            &input,
+                            wireframe_kind,
+                            brand_source,
+                            style_direction_id.as_deref(),
+                            now_millis(),
+                            GENERATED_AT_LABEL,
+                        )?),
+                        Ok(None) => None,
+                        Err(error) => {
+                            tracing::warn!(run_id = %run_id, %error, "screen repair failed");
+                            None
+                        }
+                    }
+                };
+
+                let mut unresolved_ids = repair_ids.iter().cloned().collect::<HashSet<_>>();
+                if let Some(repair) = repair_artifact {
+                    merge_tsx_screens(&mut artifact, &repair);
+                    let theme = render_theme.as_ref().ok_or_else(|| {
+                        WorkflowError::Internal("Hi-Fi repair has no render theme".to_string())
+                    })?;
+                    let catalog_files = catalog_render_files.values().cloned().collect::<Vec<_>>();
+                    let outcome = apply_react_render(
+                        &mut artifact,
+                        theme.as_ref(),
+                        &catalog_files,
+                        &repair_ids,
+                    )
+                    .await
+                    .map_err(|error| {
+                        WorkflowError::GenerationFailed(format!(
+                            "React renderer rejected repaired screens: {error}"
+                        ))
+                    })?;
+                    if outcome.css.is_some() {
+                        rendered_css = outcome.css;
+                    }
+                    unresolved_ids = outcome
+                        .failures
+                        .into_iter()
+                        .map(|failure| failure.id)
+                        .collect();
+                }
+                drop_failed_screens(
+                    &mut artifact,
+                    &mut completed_screen_ids,
+                    &unresolved_ids,
+                );
+                tracing::info!(
+                    run_id = %run_id,
+                    repair_elapsed_ms = repair_started.elapsed().as_millis(),
+                    repaired = repair_ids.len().saturating_sub(unresolved_ids.len()),
+                    "wireframe screen repair finished"
+                );
+            }
+
+            let mut accepted_screen_ids = artifact
+                .get("generatedScreens")
+                .and_then(serde_json::Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(|screen| {
+                    screen
+                        .get("id")
+                        .and_then(serde_json::Value::as_str)
+                        .map(str::to_string)
+                })
+                .collect::<Vec<_>>();
+            if accepted_screen_ids.is_empty() {
+                return Err(WorkflowError::GenerationFailed(
+                    "No generated screen passed local rendering.".to_string(),
+                ));
+            }
+            let merge_failed_screen_ids;
+            (artifact, merge_failed_screen_ids) = apply_scoped_screens(
+                input.existing_wireframes_artifact_json.as_deref(),
+                artifact,
+                Some(&accepted_screen_ids),
+                wireframe_kind,
+            )
+            .map_err(|error| WorkflowError::Internal(error.to_string()))?;
+            completed_screen_ids.retain(|id| !merge_failed_screen_ids.contains(id));
+            accepted_screen_ids.retain(|id| !merge_failed_screen_ids.contains(id));
+
+            if matches!(wireframe_kind, WireframeKind::Hifi)
+                && let Some(workspace) = provider_workspace.as_mut()
+                && let Some(screens) = artifact
+                    .get("generatedScreens")
+                    .and_then(serde_json::Value::as_array)
+            {
+                for screen in screens {
+                    let Some(screen_id) = screen.get("id").and_then(serde_json::Value::as_str)
+                    else {
+                        continue;
+                    };
+                    if !accepted_screen_ids.iter().any(|id| id == screen_id) {
+                        continue;
+                    }
+                    let body = serde_json::to_string(screen)?;
+                    workspace
+                        .write_text(
+                            &format!(
+                                "checkpoints/validated/{}.json",
+                                safe_context_segment(screen_id)
+                            ),
+                            "screen accepted by the response and React renderer",
+                            ContextAccessPolicy::OnDemand,
+                            &["recovery"],
+                            &body,
+                        )
+                        .map_err(|error| {
+                            WorkflowError::Internal(format!(
+                                "could not checkpoint validated screen {screen_id}: {error}"
+                            ))
+                        })?;
+                    let mut durable_screen = screen.clone();
+                    if let Some(object) = durable_screen.as_object_mut() {
+                        object.remove("html");
+                        object.remove("liveHtml");
+                        object.remove("htmlUrl");
+                        object.remove("liveUrl");
+                    }
+                    self.repository
+                        .checkpoint_wireframes_run(
+                            &auth_token,
+                            project_id,
+                            convex_run_id.as_deref(),
+                            "screen",
+                            Some(screen_id),
+                            &durable_screen,
+                        )
+                        .await
+                        .map_err(|error| {
+                            WorkflowError::Internal(format!(
+                                "could not persist validated screen checkpoint {screen_id}: {error}"
+                            ))
+                        })?;
+                }
+            }
+
+            let failed_screen_ids = screen_ids
+                .iter()
+                .filter(|id| !completed_screen_ids.contains(id))
+                .cloned()
+                .collect::<Vec<_>>();
+            if matches!(wireframe_kind, WireframeKind::Hifi) {
+                dump.write_render_outputs(&artifact);
+            }
+
+            // Offload before saving: inline rendered fragments are what pushed the
+            // artifact past Convex's 1 MiB document limit and lost whole runs.
+            if let Some(css) = rendered_css.as_deref() {
+                offload_rendered_screens(&self.asset_uploader, &auth_token, project_id, &mut artifact, css)
+                    .await;
+            }
+            dump.write_artifact_keys(&artifact);
+            if let Some(dir) = dump.dir() {
+                tracing::info!(
+                    run_id = %run_id,
+                    path = %dir.display(),
+                    "wireframes debug dump complete — open this folder to inspect prompt/tsx/live/static"
+                );
+            }
+
+            let save_started = Instant::now();
             self.repository
                 .complete_wireframes_run(
                     &auth_token,
@@ -207,30 +1498,59 @@ impl WireframesWorkflow {
                     &artifact,
                     &input,
                     provider_id,
+                    provider_was_cancelled,
                 )
                 .await?;
 
+            // Delivered vs. scoped is the check that the scope was actually honoured:
+            // a run asked for 2 screens must not come back having designed 15.
             tracing::info!(
                 run_id = %run_id,
                 provider_id = ?provider_id,
                 kind = wireframe_kind.as_str(),
+                scoped_screen_count = target_screen_ids.as_ref().map_or(0, Vec::len),
+                artifact_screen_count = artifact
+                    .get("generatedScreens")
+                    .and_then(serde_json::Value::as_array)
+                    .map_or(0, Vec::len),
+                save_elapsed_ms = save_started.elapsed().as_millis(),
                 total_elapsed_ms = workflow_started.elapsed().as_millis(),
                 "wireframes artifact saved to Convex"
             );
 
-            // Regen runs touch only the selected screens; a count-based message keeps
-            // the success copy honest instead of implying a full rebuild.
-            let final_text = match regenerate_screen_ids.as_ref() {
-                Some(ids) => format!("Updated {} wireframe screen(s).", ids.len()),
+            // A scoped run touches only the selected screens; a count-based message keeps
+            // the success copy honest instead of implying a full rebuild. Screens that did
+            // not come back are named, so a partial result is never presented as a
+            // complete one.
+            let final_text = match target_screen_ids.as_ref() {
+                Some(ids) => {
+                    let updated = ids.len() - failed_screen_ids.len();
+                    let verb = if input.existing_wireframes_artifact_json.is_some() {
+                        "Updated"
+                    } else {
+                        "Generated"
+                    };
+                    if failed_screen_ids.is_empty() {
+                        format!("{verb} {updated} wireframe screen(s).")
+                    } else {
+                        format!(
+                            "{verb} {updated} of {} wireframe screen(s). These did not come back and kept their previous design: {}.",
+                            ids.len(),
+                            failed_screen_ids.join(", ")
+                        )
+                    }
+                }
                 None => "Wireframes generated.".to_string(),
             };
-            sink.send(RunEvent::RunCompleted {
-                api_version,
-                run_id: run_id.clone(),
-                provider_id,
-                created_at: now_millis(),
-                final_text: Some(final_text),
-            });
+            if !provider_was_cancelled {
+                sink.send(RunEvent::RunCompleted {
+                    api_version,
+                    run_id: run_id.clone(),
+                    provider_id,
+                    created_at: now_millis(),
+                    final_text: Some(final_text),
+                });
+            }
 
             Ok::<(), WorkflowError>(())
         }
@@ -268,241 +1588,34 @@ impl WireframesWorkflow {
             });
         }
     }
-
-    fn tool_started(
-        &self,
-        api_version: &'static str,
-        run_id: &str,
-        provider_id: ProviderId,
-        sink: &RunEventSink,
-        tool_call_id: &str,
-        label: &str,
-    ) {
-        sink.send(RunEvent::ToolCallStarted {
-            api_version,
-            run_id: run_id.to_string(),
-            provider_id,
-            created_at: now_millis(),
-            tool_call_id: tool_call_id.to_string(),
-            label: label.to_string(),
-        });
-    }
-
-    fn tool_completed(
-        &self,
-        api_version: &'static str,
-        run_id: &str,
-        provider_id: ProviderId,
-        sink: &RunEventSink,
-        tool_call_id: &str,
-    ) {
-        sink.send(RunEvent::ToolCallCompleted {
-            api_version,
-            run_id: run_id.to_string(),
-            provider_id,
-            created_at: now_millis(),
-            tool_call_id: tool_call_id.to_string(),
-            status: RunStatus::Completed,
-        });
-    }
-
-    async fn fetch_brand_kit_attachments(
-        &self,
-        keys: &[String],
-    ) -> Result<Vec<RunAttachment>, WorkflowError> {
-        let working_dir = provider_cli_working_directory().map_err(|error| {
-            WorkflowError::InvalidRequest(format!(
-                "Could not prepare provider working directory: {error}"
-            ))
-        })?;
-
-        let mut attachments = Vec::new();
-        for (index, key) in keys.iter().take(MAX_BRAND_KIT_FILES).enumerate() {
-            let Some(url) = resolve_brand_kit_url(key, self.r2_public_base_url.as_deref()) else {
-                tracing::warn!(key = %key, "could not resolve brand kit url");
-                continue;
-            };
-
-            let bytes = match fetch_url_bytes(&url).await {
-                Ok(bytes) => bytes,
-                Err(error) => {
-                    tracing::warn!(url = %url, %error, "could not fetch brand kit file");
-                    continue;
-                }
-            };
-
-            if bytes.len() > MAX_BRAND_KIT_BYTES {
-                tracing::warn!(url = %url, size = bytes.len(), "skipping oversize brand kit file");
-                continue;
-            }
-
-            let extension = extension_from_key(key);
-            let file_name = format!("brand-kit-{index}.{extension}");
-            let file_path = working_dir.join(&file_name);
-
-            if let Err(error) = tokio::fs::write(&file_path, &bytes).await {
-                tracing::warn!(%error, "could not write brand kit file to temp file");
-                continue;
-            }
-
-            attachments.push(RunAttachment {
-                id: format!("brand-kit-{index}"),
-                kind: brand_kit_attachment_kind(extension),
-                name: Some(file_name),
-                url: Some(url),
-                mime_type: None,
-                local_path: Some(file_path.to_string_lossy().to_string()),
-            });
-        }
-
-        Ok(attachments)
-    }
 }
 
-fn resolve_brand_kit_url(key: &str, r2_public_base_url: Option<&str>) -> Option<String> {
-    let trimmed = key.trim();
-    // Default-deny: accept only a relative R2 object key, never a caller-supplied URL,
-    // absolute path, or traversal. Otherwise a run could make the local engine fetch
-    // arbitrary or internal network URLs (SSRF).
-    if trimmed.is_empty()
-        || trimmed.contains("://")
-        || trimmed.starts_with('/')
-        || trimmed.contains("..")
-    {
-        return None;
-    }
-
-    let base = r2_public_base_url
-        .filter(|base| !base.trim().is_empty())?
-        .trim_end_matches('/');
-    Some(format!("{base}/{trimmed}"))
-}
-
-fn extension_from_key(key: &str) -> &str {
-    key.rsplit('/')
-        .next()
-        .and_then(|name| name.rsplit_once('.'))
-        .map(|(_, ext)| ext)
-        .filter(|ext| {
-            !ext.is_empty() && ext.len() <= 5 && ext.chars().all(|c| c.is_ascii_alphanumeric())
+fn rag_screen_plan(screen_id: &str, configured: &[serde_json::Value]) -> ScreenDesignPlan {
+    let configured = configured
+        .iter()
+        .find(|screen| screen.get("id").and_then(serde_json::Value::as_str) == Some(screen_id));
+    let title = configured
+        .and_then(|screen| screen.get("title").and_then(serde_json::Value::as_str))
+        .unwrap_or(screen_id);
+    let description = configured
+        .and_then(|screen| {
+            screen
+                .get("description")
+                .and_then(serde_json::Value::as_str)
         })
-        .unwrap_or("bin")
-}
-
-fn brand_kit_attachment_kind(extension: &str) -> RunAttachmentKind {
-    match extension.to_ascii_lowercase().as_str() {
-        "jpg" | "jpeg" | "png" | "webp" | "gif" | "svg" => RunAttachmentKind::Image,
-        _ => RunAttachmentKind::Document,
-    }
-}
-
-async fn fetch_url_bytes(url: &str) -> Result<Vec<u8>, WorkflowError> {
-    let response = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::limited(3))
-        .build()
-        .map_err(|error| {
-            WorkflowError::InvalidRequest(format!("Could not prepare brand kit fetch: {error}"))
-        })?
-        .get(url)
-        .send()
-        .await
-        .map_err(|error| {
-            WorkflowError::InvalidRequest(format!("Could not fetch brand kit file: {error}"))
-        })?
-        .error_for_status()
-        .map_err(|error| {
-            WorkflowError::InvalidRequest(format!("Brand kit fetch failed: {error}"))
-        })?;
-
-    let bytes = response.bytes().await.map_err(|error| {
-        WorkflowError::InvalidRequest(format!("Could not read brand kit bytes: {error}"))
-    })?;
-    Ok(bytes.to_vec())
-}
-
-fn parse_kind_from_source(source: &str) -> Option<&str> {
-    parse_token(source, "kind:")
-}
-
-fn parse_brand_source_from_source(source: &str) -> Option<&str> {
-    parse_token(source, "brand:")
-}
-
-fn parse_style_direction_from_source(source: &str) -> Option<&str> {
-    parse_token(source, "style-direction:")
-}
-
-fn parse_screens_from_source(source: &str) -> Option<Vec<String>> {
-    let raw = parse_token(source, "screens:")?;
-    let ids = raw
-        .split(';')
-        .map(str::trim)
-        .filter(|segment| !segment.is_empty())
-        .map(ToOwned::to_owned)
-        .collect::<Vec<_>>();
-    if ids.is_empty() { None } else { Some(ids) }
-}
-
-fn parse_token<'a>(source: &'a str, prefix: &str) -> Option<&'a str> {
-    source
-        .split(',')
-        .map(str::trim)
-        .find(|segment| segment.starts_with(prefix))
-        .map(|segment| &segment[prefix.len()..])
-}
-
-#[derive(Debug, thiserror::Error)]
-enum WorkflowError {
-    #[error("{0}")]
-    InvalidRequest(String),
-
-    #[error(transparent)]
-    Convex(#[from] anyhow::Error),
-
-    #[error(transparent)]
-    Provider(#[from] crate::providers::process::ProviderProcessError),
-
-    #[error(transparent)]
-    Serde(#[from] serde_json::Error),
-}
-
-impl WorkflowError {
-    fn to_engine_error(&self, provider_id: ProviderId) -> EngineError {
-        // Provider failures already carry a short user-facing message (usage limit,
-        // auth, model). Keep that instead of wrapping everything in a generic
-        // "could not finish the wireframes run" that hides the real cause in detail.
-        if let WorkflowError::Provider(error) = self {
-            return error.to_engine_error(provider_id);
-        }
-
-        let code = match self {
-            WorkflowError::InvalidRequest(_) => EngineErrorCode::InvalidRequest,
-            WorkflowError::Provider(_) => unreachable!("handled above"),
-            WorkflowError::Convex(_) | WorkflowError::Serde(_) => EngineErrorCode::InternalError,
-        };
-
-        EngineError {
-            code,
-            message: user_message(self),
-            provider_id: Some(provider_id),
-            retryable: !matches!(self, WorkflowError::InvalidRequest(_)),
-            detail: Some(self.to_string()),
-        }
-    }
-}
-
-fn user_message(error: &WorkflowError) -> String {
-    match error {
-        WorkflowError::InvalidRequest(message) => message.clone(),
-        WorkflowError::Provider(_) => {
-            "The selected AI provider could not finish the wireframes run.".to_string()
-        }
-        WorkflowError::Convex(_) => {
-            "Stage wireframes data could not be loaded or saved.".to_string()
-        }
-        WorkflowError::Serde(_) => {
-            "The AI response did not match the Wireframes artifact format.".to_string()
-        }
+        .unwrap_or("Deliver the screen with retrieved catalog components.");
+    ScreenDesignPlan {
+        screen_id: screen_id.to_string(),
+        purpose: format!("{title}: {description}"),
+        screen_role: title.to_string(),
+        layout_archetype: description.to_string(),
+        density: description.to_string(),
+        information_hierarchy: vec![title.to_string(), description.to_string()],
+        content_requirements: vec![description.to_string()],
+        flow_context: description.to_string(),
+        component_recipe: Vec::new(),
+        motion_purpose: String::new(),
+        avoid_list: Vec::new(),
     }
 }
 

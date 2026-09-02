@@ -25,7 +25,7 @@ export function AssetCard({
         }`}
       >
         {showHtml && html ? (
-          <WireframeHtmlThumbnail html={html} />
+          <WireframeHtmlThumbnail html={html} css={asset.css ?? null} />
         ) : hasBlocks ? (
           <WireframeBlockPreview sections={asset.sections} />
         ) : (

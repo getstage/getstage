@@ -9,12 +9,3 @@ export const PROJECT_PAGE_TABS: { key: ProjectTab; label: string; iconSrc: strin
   { key: "wireframes", label: "Wireframes", iconSrc: "/logos/dashboard/wireframes.svg" },
   { key: "assets", label: "Assets", iconSrc: "/logos/dashboard/assets.svg" },
 ];
-
-// The toggleable workflow steps. "overview" is the project home — always shown, never stored
-// in enabledSteps — so it is excluded here.
-export const WORKFLOW_TABS = PROJECT_PAGE_TABS.filter((tab) => tab.key !== "overview");
-
-/** The tabs to render in the project nav: Overview plus every enabled step. */
-export function getEnabledProjectTabs(enabledSteps: readonly string[]) {
-  return PROJECT_PAGE_TABS.filter((tab) => tab.key === "overview" || enabledSteps.includes(tab.key));
-}

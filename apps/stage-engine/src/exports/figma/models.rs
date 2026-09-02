@@ -106,6 +106,10 @@ pub struct WireframeArtifactRecord {
 #[serde(rename_all = "camelCase")]
 pub struct WireframesArtifact {
     pub generated_screens: Vec<GeneratedScreen>,
+    /// The run's compiled stylesheet in R2 (resolved to a URL by the query).
+    /// Present when screens were offloaded; older artifacts embedded CSS inline.
+    #[serde(default)]
+    pub css_url: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -118,6 +122,11 @@ pub struct GeneratedScreen {
     // design. Absent for Lo-Fi screens, which compile from `sections`/`blocks`.
     #[serde(default)]
     pub html: Option<String>,
+    // React-rendered screens offload the fragment to R2 (inline html blew the
+    // Convex 1 MiB document limit). Resolved to a URL by the query; fetch it
+    // when `html` is absent.
+    #[serde(default)]
+    pub html_url: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]

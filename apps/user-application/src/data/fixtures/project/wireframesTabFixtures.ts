@@ -1,9 +1,2 @@
-export {
-  createSeedConfigureScreens,
-  FIGMA_SYMBOL_URL,
-  getSeedWireframesTabData,
-  MOCK_BRAND_KIT,
-  MOCK_WIREFRAMES_GENERATED_AT_LABEL,
-  WIREFRAMES_RESULTS_PREVIEW_LIMIT,
-  WIREFRAMES_STATS,
-} from "@/mock/project/wireframes";
+/** Mock-only sample size for the Assets tab fixture. The real results grid shows every generated screen. */
+export const WIREFRAMES_RESULTS_PREVIEW_LIMIT = 6;

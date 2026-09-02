@@ -3,6 +3,7 @@ import { lazy, Suspense } from "react";
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@/lib/convexApi";
 import { TabLoadingState } from "@/components/project/tabs/TabLoadingState";
+import { warmRouteData } from "@/lib/routeData";
 
 const DashboardContextView = lazy(() =>
   import("@/components/app/DashboardContextView").then((module) => ({
@@ -12,7 +13,7 @@ const DashboardContextView = lazy(() =>
 
 export const Route = createFileRoute("/_authed/")({
   loader: async ({ context: { queryClient } }) => {
-    await Promise.all([
+    await warmRouteData([
       queryClient.ensureQueryData(convexQuery(api.desktop.listProjects, {})),
       queryClient.ensureQueryData(convexQuery(api.desktop.listUserTasks, { limit: 200 })),
     ]);

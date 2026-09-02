@@ -14,6 +14,7 @@ dist/
 apps/user-application/out/
 apps/user-application/release/
 apps/user-application/resources/stage-engine/stage-engine
+apps/user-application/resources/wireframe-renderer/
 **/target/
 .tanstack/
 *.tsbuildinfo
@@ -55,3 +56,15 @@ agent-mode/
 # MCP server configs are local-only; each contributor opts in via the README.
 .mcp.json
 **/.mcp.json
+.cursor/mcp.json
+
+# Wireframe renderer scratch batches
+packages/wireframe-renderer/.stage-batches/
+
+# Local research/download scratch (source artifacts live in R2 + Convex)
+.firecrawl/
+apps/reactBits.webp
+
+# Generated Figma exporter packages
+apps/figma-exporter/stage-exporter-*/
+apps/figma-exporter/stage-exporter-*.zip

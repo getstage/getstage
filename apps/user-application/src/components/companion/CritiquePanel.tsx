@@ -113,7 +113,7 @@ export function CritiquePanel({ state, onStateChange }: CritiquePanelProps) {
   const [favoriteModelIds, setFavoriteModelIds] = useState<string[]>([
     "gpt-5.6-sol",
     "claude-fable-5",
-    "claude-opus-4.8",
+    "claude-opus-5",
   ]);
   const { isAuthenticated } = useDesktopAuth();
   const projectMention = draft.match(/(?:^|\s)@([^@\n]*)$/)?.[1].trimStart() ?? null;

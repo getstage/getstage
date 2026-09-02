@@ -32,6 +32,9 @@ export function StrategyRegenerateDialog({
   const approvedLabel = `${approvedSectionCount} approved ${
     approvedSectionCount === 1 ? "section" : "sections"
   }`;
+  const description = keepsApproved
+    ? `Regenerate only the sections you haven't approved yet. Your ${approvedLabel} and the research stay as-is.`
+    : "Replace all strategy sections and approvals. Research stays as-is.";
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -39,6 +42,7 @@ export function StrategyRegenerateDialog({
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[rgba(10,10,10,0.22)]" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[min(90vh,720px)] w-[calc(100vw-24px)] max-w-[640px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[12px] outline-none">
           <Dialog.Title className="sr-only">Regenerate strategy</Dialog.Title>
+          <Dialog.Description className="sr-only">{description}</Dialog.Description>
           <StrategyGenerateStep
             isSubmitting={isSubmitting}
             initialValues={initialValues}
@@ -48,11 +52,7 @@ export function StrategyRegenerateDialog({
             }}
             onCancel={() => onOpenChange(false)}
             title="Regenerate strategy"
-            description={
-              keepsApproved
-                ? `Regenerate only the sections you haven't approved yet. Your ${approvedLabel} and the research stay as-is.`
-                : "Replace all strategy sections and approvals. Research stays as-is."
-            }
+            description={description}
             submitLabel={keepsApproved ? "Regenerate unapproved & run" : "Replace strategy & run"}
             warningMessage={
               keepsApproved

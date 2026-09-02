@@ -1,5 +1,5 @@
 import { R2 } from "@convex-dev/r2";
-import type { DataModel } from "../../_generated/dataModel";
+import type { DataModel, Doc } from "../../_generated/dataModel";
 import { components } from "../../_generated/api";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import type { UploadPurpose } from "../../../src/shared/uploadRules";
@@ -68,6 +68,8 @@ function buildObjectKey(
       return projectScopedKey("moodboard", "urls");
     case "wireframe-brand-kit":
       return projectScopedKey("wireframes", "brand-kit");
+    case "wireframe-screen":
+      return projectScopedKey("wireframes", "screens");
   }
 }
 
@@ -114,7 +116,10 @@ async function deleteTrackedUploadRecord(ctx: MutationCtx, key: string) {
   await Promise.all(trackedAssets.map((asset) => ctx.db.delete(asset._id)));
 }
 
-export async function collectReferencedKeysForUser(ctx: QueryCtx, userId: string) {
+export async function collectReferencedKeysForUser(
+  ctx: Pick<QueryCtx, "db">,
+  userId: string,
+) {
   const referencedKeys = new Set<string>();
   const userRecord = await ctx.db.normalizeId("users", userId);
 
@@ -225,17 +230,90 @@ export async function collectReferencedKeysForUser(ctx: QueryCtx, userId: string
   return referencedKeys;
 }
 
-export async function deleteOldR2Asset(ctx: MutationCtx, oldValue: string | null | undefined) {
-  if (!oldValue || !isR2Key(oldValue)) {
-    return;
-  }
-  try {
-    await r2.deleteObject(ctx, oldValue);
-  } catch {
-    // Best-effort: the old object may already be gone.
+const R2_DELETE_BASE_DELAY_MS = 5 * 60 * 1000;
+const R2_DELETE_MAX_DELAY_MS = 24 * 60 * 60 * 1000;
+
+function r2DeletionRetryAt(attempts: number) {
+  const exponent = Math.min(Math.max(attempts - 1, 0), 8);
+  return now() + Math.min(R2_DELETE_BASE_DELAY_MS * 2 ** exponent, R2_DELETE_MAX_DELAY_MS);
+}
+
+async function queueR2Deletion(ctx: MutationCtx, key: string) {
+  const existing = await ctx.db
+    .query("r2DeletionQueue")
+    .withIndex("by_key", (q) => q.eq("key", key))
+    .unique();
+  if (existing) return existing;
+
+  const timestamp = now();
+  const id = await ctx.db.insert("r2DeletionQueue", {
+    key,
+    attempts: 0,
+    nextAttemptAt: timestamp,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  });
+  const queued = await ctx.db.get(id);
+  if (!queued) throw new Error("Could not persist the R2 deletion queue entry.");
+  return queued;
+}
+
+function userIdFromR2Key(key: string) {
+  return key.match(/(?:^|\/)users\/([^/]+)(?:\/|$)/)?.[1] ?? null;
+}
+
+async function attemptQueuedR2Deletion(
+  ctx: MutationCtx,
+  queued: Doc<"r2DeletionQueue">,
+) {
+  const userId = userIdFromR2Key(queued.key);
+  if (userId) {
+    const referenced = await collectReferencedKeysForUser(ctx, userId);
+    if (referenced.has(queued.key)) {
+      const attempts = queued.attempts + 1;
+      await ctx.db.patch(queued._id, {
+        attempts,
+        nextAttemptAt: r2DeletionRetryAt(attempts),
+        lastError: "Deletion deferred because the key is still referenced.",
+        updatedAt: now(),
+      });
+      return false;
+    }
   }
 
-  await deleteTrackedUploadRecord(ctx, oldValue);
+  try {
+    await r2.deleteObject(ctx, queued.key);
+    await deleteTrackedUploadRecord(ctx, queued.key);
+    await ctx.db.delete(queued._id);
+    return true;
+  } catch (error) {
+    const attempts = queued.attempts + 1;
+    await ctx.db.patch(queued._id, {
+      attempts,
+      nextAttemptAt: r2DeletionRetryAt(attempts),
+      lastError: String(error).slice(0, 1000),
+      updatedAt: now(),
+    });
+    return false;
+  }
+}
+
+export async function deleteOldR2Asset(ctx: MutationCtx, oldValue: string | null | undefined) {
+  if (!oldValue || !isR2Key(oldValue)) return;
+  const queued = await queueR2Deletion(ctx, oldValue);
+  await attemptQueuedR2Deletion(ctx, queued);
+}
+
+export async function retryQueuedR2Deletions(ctx: MutationCtx, limit = 50) {
+  const queued = await ctx.db
+    .query("r2DeletionQueue")
+    .withIndex("by_nextAttemptAt", (q) => q.lte("nextAttemptAt", now()))
+    .take(Math.max(1, Math.min(limit, 100)));
+  let deleted = 0;
+  for (const entry of queued) {
+    if (await attemptQueuedR2Deletion(ctx, entry)) deleted += 1;
+  }
+  return { scanned: queued.length, deleted };
 }
 
 export async function attachTrackedR2Asset(
@@ -246,6 +324,13 @@ export async function attachTrackedR2Asset(
 ) {
   if (!args.key || !isR2Key(args.key)) {
     return;
+  }
+  const queuedDeletion = await ctx.db
+    .query("r2DeletionQueue")
+    .withIndex("by_key", (q) => q.eq("key", args.key!))
+    .unique();
+  if (queuedDeletion) {
+    await ctx.db.delete(queuedDeletion._id);
   }
   await deleteTrackedUploadRecord(ctx, args.key);
 }
