@@ -36,6 +36,7 @@ import {
   desktopSessionSchema,
   engineStatusSchema,
   permissionKindSchema,
+  projectExportRequestSchema,
   type ActiveAppInfo,
   type DesktopPermissionStatus,
   type DesktopSession,
@@ -77,6 +78,7 @@ import {
   RUN_EVENT_STREAM_MAX_MS,
   RUN_EVENT_STREAM_RECONNECT_DELAY_MS,
 } from "./helpers/engine-constants";
+import { exportStageProject } from "./helpers/project-export";
 
 const activeRunStreams = new Map<string, AbortController>();
 
@@ -159,6 +161,10 @@ export function registerIpcHandlers({
       throw new Error("Clipboard text must be a string.");
     }
     clipboard.writeText(text);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.projectExport, async (_event, request: unknown) => {
+    return exportStageProject(projectExportRequestSchema.parse(request));
   });
 
   ipcMain.handle(IPC_CHANNELS.engineGetStatus, async () => {

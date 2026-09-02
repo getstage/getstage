@@ -19,6 +19,7 @@ export function ProjectHeader({
   timeline,
   activeTab,
   onTabChange,
+  onExport,
   onShare,
   onSaveProjectProfile,
   onSaveClientProfile,
@@ -40,6 +41,7 @@ export function ProjectHeader({
   timeline: ProjectTimeline;
   activeTab: ProjectTab;
   onTabChange: (tab: ProjectTab) => void;
+  onExport: () => void;
   onShare: () => void;
   onSaveProjectProfile: (input: SaveProjectProfileInput) => Promise<void>;
   onSaveClientProfile: (input: SaveClientProfileInput) => Promise<void>;
@@ -102,6 +104,16 @@ export function ProjectHeader({
         </div>
 
         <div ref={projectMenuRef} className="relative flex min-w-0 items-center justify-end gap-[6px]">
+          <button
+            type="button"
+            onClick={onExport}
+            className="inline-flex h-[27px] shrink-0 cursor-pointer items-center gap-2 rounded-[6px] bg-[#F5F5F5] py-[6px] pl-[10px] pr-3 text-[13px] font-medium leading-[1.25] text-[#262626] shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)] transition-colors hover:bg-[#ECECEC]"
+          >
+            Export
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-[15px] w-[15px]">
+              <path d="M8 2v7m0 0 2.75-2.75M8 9 5.25 6.25M3 10.5V13h10v-2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
           <button
             type="button"
             onClick={onShare}

@@ -186,7 +186,41 @@ export const desktopUpdateStatusSchema = z.object({
   downloaded: z.boolean().optional(),
 });
 
+export const projectExportProviderSchema = z.enum(["claude", "codex"]);
+
+export const projectExportFileSchema = z.object({
+  relativePath: z.string().min(1).max(240),
+  content: z.string().max(20_000_000),
+});
+
+export const projectExportAssetSchema = z.object({
+  relativePath: z.string().min(1).max(240),
+  url: z.string().url().max(4_000),
+});
+
+export const projectExportRequestSchema = z.object({
+  projectName: z.string().min(1).max(160),
+  files: z.array(projectExportFileSchema).min(1).max(20),
+  assets: z.array(projectExportAssetSchema).max(200).default([]),
+  provider: projectExportProviderSchema.optional(),
+});
+
+export const projectExportResponseSchema = z.object({
+  cancelled: z.boolean(),
+  directoryPath: z.string().optional(),
+  fileCount: z.number().int().nonnegative(),
+  assetCount: z.number().int().nonnegative(),
+  failedAssets: z.array(z.string()),
+  launchedProvider: projectExportProviderSchema.optional(),
+  launchError: z.string().optional(),
+});
+
 export type DesktopUpdateStatus = z.infer<typeof desktopUpdateStatusSchema>;
+export type ProjectExportProvider = z.infer<typeof projectExportProviderSchema>;
+export type ProjectExportFile = z.infer<typeof projectExportFileSchema>;
+export type ProjectExportAsset = z.infer<typeof projectExportAssetSchema>;
+export type ProjectExportRequest = z.infer<typeof projectExportRequestSchema>;
+export type ProjectExportResponse = z.infer<typeof projectExportResponseSchema>;
 
 export type IntegrationOAuthResult =
   | z.infer<typeof desktopIntegrationOAuthResultSchema>
