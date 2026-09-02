@@ -10,6 +10,8 @@ use crate::{
 
 const PREAMBLE: &str = r#"You are Stage's Hi-Fi wireframe designer. Generate every requested React TSX screen as one cohesive product experience.
 
+Your only required output is the screens JSON object. Decide quickly and write that JSON; do not spend the completion budget on long hidden reasoning.
+
 Design direction:
 - First establish one shared visual system internally for the whole batch: typography, spacing rhythm, content widths, palette, radii, surfaces, navigation, and interaction language. Apply it consistently to every screen.
 - The supplied designContext is product truth. Use its selected style guide or brand evidence, strategy, research, flows, viewport guidance, and selected design skills. Do not replace them with a generic SaaS aesthetic.
@@ -30,7 +32,13 @@ Component implementation:
 Return one JSON object only, with camelCase keys:
 {"screens":[{"id":"<exact screen id>","tsx":"<complete default-export React component>","dependencies":["external-package"]}]}
 
-Return every requested screen id exactly once. `dependencies` contains only external package names. Do not wrap the JSON in markdown or add prose."#;
+Return every requested screen id exactly once. `dependencies` contains only external package names. Do not wrap the JSON in markdown or add prose.
+
+Start the assistant message with `{` and emit the complete JSON object before any other text."#;
+
+const MAX_ARTIFACT_CHARS: usize = 8_000;
+const MAX_SKILL_CHARS: usize = 4_000;
+const MAX_MODEL_BUNDLES_PER_SCREEN: usize = 6;
 
 #[async_trait]
 pub trait WireframeGenerator: Send + Sync {
@@ -46,16 +54,26 @@ pub trait WireframeGenerator: Send + Sync {
 pub struct NebiusRigGenerator {
     client: openai::CompletionsClient,
     model: String,
+    max_tokens: u64,
 }
 
 impl NebiusRigGenerator {
-    pub fn new(api_key: &str, base_url: &str, model: String) -> Result<Self, GatewayError> {
+    pub fn new(
+        api_key: &str,
+        base_url: &str,
+        model: String,
+        max_tokens: u64,
+    ) -> Result<Self, GatewayError> {
         let client = openai::CompletionsClient::builder()
             .api_key(api_key)
             .base_url(base_url)
             .build()
             .map_err(|_| GatewayError::ProviderUnavailable)?;
-        Ok(Self { client, model })
+        Ok(Self {
+            client,
+            model,
+            max_tokens,
+        })
     }
 }
 
@@ -69,12 +87,13 @@ impl WireframeGenerator for NebiusRigGenerator {
         &self,
         request: &GenerateWireframeRequest,
     ) -> Result<GeneratedScreens, GatewayError> {
-        let context = serde_json::to_string(request).map_err(|_| GatewayError::Serialization)?;
+        let context = model_prompt(request)?;
         let agent = self
             .client
             .agent(&self.model)
             .preamble(PREAMBLE)
-            .additional_params(serde_json::json!({ "reasoning_effort": "low" }))
+            .max_tokens(self.max_tokens)
+            .additional_params(nebius_completion_params(self.max_tokens))
             .output_schema::<GeneratedScreens>()
             .build();
         let raw = agent.prompt(context).await.map_err(|error| {
@@ -83,6 +102,58 @@ impl WireframeGenerator for NebiusRigGenerator {
         })?;
         parse_generated_screens(&raw, request)
     }
+}
+
+fn nebius_completion_params(max_tokens: u64) -> serde_json::Value {
+    serde_json::json!({
+        "max_completion_tokens": max_tokens,
+        "reasoning_effort": "minimal",
+    })
+}
+
+fn model_prompt(request: &GenerateWireframeRequest) -> Result<String, GatewayError> {
+    let compact = compact_for_model(request);
+    let payload = serde_json::to_string(&compact).map_err(|_| GatewayError::Serialization)?;
+    tracing::info!(
+        screen_count = compact.screens.len(),
+        prompt_bytes = payload.len(),
+        "sending compact Nebius prompt"
+    );
+    Ok(payload)
+}
+
+fn compact_for_model(request: &GenerateWireframeRequest) -> GenerateWireframeRequest {
+    let mut compact = request.clone();
+    truncate_field(
+        &mut compact.design_context.strategy_artifact,
+        MAX_ARTIFACT_CHARS,
+    );
+    if let Some(research) = compact.design_context.research_artifact.as_mut() {
+        truncate_field(research, MAX_ARTIFACT_CHARS);
+    }
+    if let Some(moodboard) = compact.design_context.moodboard_artifact.as_mut() {
+        truncate_field(moodboard, MAX_ARTIFACT_CHARS);
+    }
+    if let Some(flows) = compact.design_context.flows_artifact.as_mut() {
+        truncate_field(flows, MAX_ARTIFACT_CHARS);
+    }
+    for skill in &mut compact.design_context.selected_skills {
+        truncate_field(&mut skill.guidance, MAX_SKILL_CHARS);
+    }
+    for screen in &mut compact.screens {
+        screen.components.truncate(MAX_MODEL_BUNDLES_PER_SCREEN);
+    }
+    compact
+}
+
+fn truncate_field(value: &mut String, max_chars: usize) {
+    if value.chars().count() <= max_chars {
+        return;
+    }
+    const SUFFIX: &str = "\n...[truncated]";
+    let keep = max_chars.saturating_sub(SUFFIX.chars().count());
+    *value = value.chars().take(keep).collect::<String>();
+    value.push_str(SUFFIX);
 }
 
 fn parse_generated_screens(
@@ -169,8 +240,8 @@ fn extract_json_object(raw: &str) -> Option<&str> {
 mod tests {
     use super::*;
     use crate::contracts::{
-        ComponentBundle, DesignContext, GenerationAttempt, ScreenBrief, ScreenRequest, SourceFile,
-        Viewport,
+        ComponentBundle, DesignContext, GenerationAttempt, ScreenBrief, ScreenRequest,
+        SelectedSkill, SourceFile, Viewport,
     };
     use uuid::Uuid;
 
@@ -224,6 +295,76 @@ mod tests {
         assert!(PREAMBLE.contains("@/registry/"));
         assert!(PREAMBLE.contains("shared visual system"));
         assert!(PREAMBLE.contains("style guide"));
+        assert!(PREAMBLE.contains("write that JSON"));
+        assert!(PREAMBLE.contains("Start the assistant message with `{`"));
+    }
+
+    #[test]
+    fn nebius_params_raise_completion_and_keep_reasoning_short() {
+        let params = nebius_completion_params(32_768);
+        assert_eq!(params["max_completion_tokens"], 32_768);
+        assert_eq!(params["reasoning_effort"], "minimal");
+    }
+
+    #[test]
+    fn compact_prompt_keeps_design_truth_inside_a_token_budget() {
+        let mut input = request(&["signup"]);
+        input.design_context.strategy_artifact = "a".repeat(12_000);
+        input.design_context.research_artifact = Some("b".repeat(12_000));
+        input.design_context.selected_skills = vec![SelectedSkill {
+            id: "frontend-design".to_owned(),
+            guidance: "c".repeat(6_000),
+        }];
+        input.screens[0].components = (0..8)
+            .map(|index| ComponentBundle {
+                component_id: format!("lib/component-{index}"),
+                library: "lib".to_owned(),
+                source_revision: "v1".to_owned(),
+                files: vec![SourceFile {
+                    path: format!("components/{index}.tsx"),
+                    content: "export function Comp() { return null; }".to_owned(),
+                }],
+            })
+            .collect();
+
+        let compact = compact_for_model(&input);
+        assert!(
+            compact
+                .design_context
+                .strategy_artifact
+                .ends_with("\n...[truncated]")
+        );
+        assert!(
+            compact
+                .design_context
+                .research_artifact
+                .as_ref()
+                .is_some_and(|value| value.ends_with("\n...[truncated]"))
+        );
+        assert!(
+            compact.design_context.selected_skills[0]
+                .guidance
+                .ends_with("\n...[truncated]")
+        );
+        assert!(
+            compact.design_context.selected_skills[0]
+                .guidance
+                .chars()
+                .count()
+                <= MAX_SKILL_CHARS
+        );
+        assert_eq!(
+            compact.screens[0].components.len(),
+            MAX_MODEL_BUNDLES_PER_SCREEN
+        );
+        assert!(
+            serde_json::to_string(&compact)
+                .expect("compact prompt should serialize")
+                .len()
+                < serde_json::to_string(&input)
+                    .expect("full prompt should serialize")
+                    .len()
+        );
     }
 
     #[test]

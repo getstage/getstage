@@ -4,7 +4,7 @@ import { useProviderRequired } from "@/components/app/ProviderRequiredDialog";
 import { useProjectAiProvider } from "@/hooks/project/useProjectAiProvider";
 import {
   buildWireframeRunSource,
-  resolveRunScreenIds,
+  resolveGenerationScope,
   screenIdsFromRunSource,
 } from "@/lib/project/wireframeScreenList";
 import type { Project } from "@/models/project/project";
@@ -57,8 +57,8 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
   );
 
   const requireRunProvider = useCallback(
-    (action: "generating" | "regenerating"): ProviderId => {
-      if (nebiusSelected) {
+    (action: "generating" | "regenerating", useNebius: boolean): ProviderId => {
+      if (useNebius) {
         return selectedProviderId ?? "codex";
       }
       if (!selectedProviderId) {
@@ -98,11 +98,17 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
     }): Promise<WireframesArtifactRecord | null> => {
       setError(null);
 
-      // The run must cover exactly the screens the user asked for. Without a
-      // `screens:` token the engine generates the whole list in one provider
-      // call, which is how two Hi-Fi screens used to cost 17 minutes.
-      const screenIds = resolveRunScreenIds(input.screens, input.screenIds);
-      if (screenIds.length === 0) {
+      // Keep Lo-Fi on the production `work` path: a normal Lo-Fi pass is one
+      // Claude/Codex artifact call without a `screens:` scope. Hi-Fi remains
+      // explicitly scoped for batching; an explicit Lo-Fi id list is only used
+      // by regeneration.
+      const { screenIds, useNebius } = resolveGenerationScope(
+        input.wireframeKind,
+        input.screens,
+        input.screenIds,
+        nebiusSelected,
+      );
+      if (input.wireframeKind === "hifi" && screenIds.length === 0) {
         const message = "Select at least one screen to generate.";
         setError(message);
         throw new Error(message);
@@ -118,7 +124,7 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
         throw new Error(brandKitGuardError);
       }
 
-      const runProviderId = requireRunProvider("generating");
+      const runProviderId = requireRunProvider("generating", useNebius);
 
       try {
         await wireframesRun.startWireframes(
@@ -127,12 +133,12 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
             input.wireframeKind,
             input.brandSource,
             input.styleDirectionId,
-            screenIds,
-            nebiusSelected,
+            screenIds.length > 0 ? screenIds : undefined,
+            useNebius,
           ),
           input.brandKitKeys,
           "Generate Stage wireframes from the current project context.",
-          { skipProviderPreflight: nebiusSelected },
+          { skipProviderPreflight: useNebius },
         );
       } catch (runError) {
         const message =
@@ -170,7 +176,8 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
         throw new Error(brandKitGuardError);
       }
 
-      const runProviderId = requireRunProvider("regenerating");
+      const useNebius = input.wireframeKind === "hifi" && nebiusSelected;
+      const runProviderId = requireRunProvider("regenerating", useNebius);
 
       try {
         await wireframesRun.startWireframes(
@@ -180,11 +187,11 @@ export function useWireframesTab(project: Pick<Project, "id" | "name">) {
             input.brandSource,
             input.styleDirectionId,
             input.screenIds,
-            nebiusSelected,
+            useNebius,
           ),
           input.brandKitKeys,
           `Regenerate wireframe screens: ${input.screenIds.join(", ")}`,
-          { skipProviderPreflight: nebiusSelected },
+          { skipProviderPreflight: useNebius },
         );
       } catch (runError) {
         const message =

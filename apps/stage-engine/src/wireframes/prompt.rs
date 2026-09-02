@@ -911,6 +911,117 @@ pub fn build_wireframes_prompt(
     )
 }
 
+// Keep the Lo-Fi generator contract identical to the production `work` branch.
+// Hi-Fi has its own RAG/React pipeline below; Lo-Fi remains the original single
+// artifact prompt and must not inherit Hi-Fi scoping, skills, or component rules.
+fn build_work_lofi_prompt(
+    input: &WireframesInput,
+    brand_source: Option<WireframeBrandSource>,
+    style_direction_id: Option<&str>,
+    layout_preference: Option<&str>,
+    brand_kit_attached: bool,
+    regenerate_screen_ids: Option<&[String]>,
+) -> String {
+    let research_block = input
+        .research_artifact_json
+        .as_deref()
+        .map(|json| format!("Saved research artifact JSON:\n{json}\n\n"))
+        .unwrap_or_default();
+    let moodboard_block = input
+        .moodboard_artifact_json
+        .as_deref()
+        .map(|json| format!("Saved moodboard artifact JSON:\n{json}\n\n"))
+        .unwrap_or_default();
+    let flows_block = input
+        .flows_artifact_json
+        .as_deref()
+        .map(|json| format!("Saved flows artifact JSON (authoritative screen list):\n{json}\n\n"))
+        .unwrap_or_default();
+    let existing_block = input
+        .existing_wireframes_artifact_json
+        .as_deref()
+        .map(|json| {
+            let payload = match regenerate_screen_ids.filter(|ids| !ids.is_empty()) {
+                Some(ids) => {
+                    let id_refs = ids.iter().map(String::as_str).collect::<Vec<_>>();
+                    redact_regen_artifact(json, &id_refs)
+                }
+                None => json.to_string(),
+            };
+            format!(
+                "Previous wireframes artifact (regenerate; keep ids stable where possible):\n{payload}\n\n"
+            )
+        })
+        .unwrap_or_default();
+
+    let brand_source_line = match brand_source {
+        Some(WireframeBrandSource::StyleGuide) => {
+            "Brand source: style-guide (apply moodboard styleGuides[].palette/typography for Hi-Fi).".to_string()
+        }
+        Some(WireframeBrandSource::BrandKit) if brand_kit_attached => {
+            "Brand source: brand-kit. Brand kit files are attached to this run — Read them and derive the palette, typography, and logo usage from the brand kit. Populate brandTokens on every screen from those choices and set brandTokens.paletteRef = \"brand-kit\".".to_string()
+        }
+        Some(WireframeBrandSource::BrandKit) => {
+            "Brand source: brand-kit (no brand kit file was readable; infer conservative brand tokens and set brandTokens.paletteRef = \"brand-kit\").".to_string()
+        }
+        None => "Brand source: none (Lo-Fi structural only).".to_string(),
+    };
+    let layout_block = layout_preference
+        .map(|preference| format!("Layout preference: {preference}\n"))
+        .unwrap_or_default();
+    let style_direction_block = style_direction_id
+        .map(|id| format!("Selected moodboard style direction ID: {id}\n"))
+        .unwrap_or_default();
+    let regenerate_block = regenerate_screen_ids
+        .filter(|ids| !ids.is_empty())
+        .map(|ids| {
+            format!(
+                "- PARTIAL REGENERATION: Return generatedScreens[] containing ONLY these screen ids: {}. Re-design each returned screen from strategy/moodboard context. Do NOT reuse prior html markup or layout structure for these ids. Each returned screen MUST have a non-empty \"html\" that is materially different from the saved artifact (different section order, layout pattern, or visual rhythm).\n",
+                ids.join(", ")
+            )
+        })
+        .unwrap_or_default();
+
+    format!(
+        r#"<role>You are generating the Stage Wireframes artifact for a lofi pass.</role>
+
+<rules>
+- Return a SINGLE valid JSON object matching the Stage WireframesArtifact schema.
+- Do NOT return markdown.
+- Do NOT add explanatory text before or after the JSON.
+- artifactKind MUST be "wireframesArtifact".
+- Allowed block kinds: {ALLOWED_BLOCK_KINDS}.
+- Each generated screen MUST have 1-6 sections; each section MUST have 1-5 blocks.
+- copySlots are short strings (no markdown), filled from Strategy CTAs/value props when available.
+- One screen per generatedScreens[] entry; preserve every selected screen from the configure list.
+- configureScreens[].required: true ONLY for the 2-4 screens essential to the core funnel (e.g. the primary landing page). Default every other screen to required: false so the user can toggle it off — do not mark every screen required.
+- {brand_source_line}
+{regenerate_block}{style_direction_block}{layout_block}</rules>
+
+<cognitive_steps>
+1. Restate each screen's goal in one sentence (set generatedScreens[].goal).
+2. Choose 4-8 sections per Page (1-3 for Section kind) from the allowed block kinds.
+3. Pick blocks with clear hierarchy; mark at most one block per screen as emphasis "primary".
+4. Fill copySlots from Strategy CTAs / value props; use short placeholders otherwise.
+5. Return a single JSON object matching the shape example.
+</cognitive_steps>
+
+This shape example is ONLY a formatting reference, not content to copy:
+{WIREFRAMES_SHAPE_EXAMPLE}
+Project:
+- Project ID: {project_id}
+- Project name: {project_name}
+
+Saved strategy artifact JSON:
+{strategy_artifact}
+
+{research_block}{moodboard_block}{flows_block}{existing_block}Return only the JSON artifact."#,
+        project_id = input.project_id,
+        project_name = input.project_name,
+        strategy_artifact = input.strategy_artifact_json,
+    )
+}
+
 pub fn build_wireframes_prompt_with_plan(
     input: &WireframesInput,
     kind: WireframeKind,
@@ -921,6 +1032,16 @@ pub fn build_wireframes_prompt_with_plan(
     target_screen_ids: Option<&[String]>,
     design_plan_json: Option<&str>,
 ) -> String {
+    if matches!(kind, WireframeKind::Lofi) {
+        return build_work_lofi_prompt(
+            input,
+            brand_source,
+            style_direction_id,
+            layout_preference,
+            brand_kit_attached,
+            target_screen_ids,
+        );
+    }
     if matches!(kind, WireframeKind::Hifi)
         && let (Some(plan), Some(ids)) = (
             design_plan_json,

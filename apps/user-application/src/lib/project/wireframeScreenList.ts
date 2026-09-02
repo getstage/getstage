@@ -84,6 +84,22 @@ export function resolveRunScreenIds(screens: ScreenItem[], screenIds?: string[])
   return screens.filter((screen) => screen.selected).map((screen) => screen.id);
 }
 
+/** Keeps the production Lo-Fi provider flow separate from the scoped Hi-Fi pipeline. */
+export function resolveGenerationScope(
+  kind: WireframeKind,
+  screens: ScreenItem[],
+  explicitScreenIds: string[] | undefined,
+  nebiusSelected: boolean,
+) {
+  return {
+    screenIds:
+      kind === "lofi" && explicitScreenIds === undefined
+        ? []
+        : resolveRunScreenIds(screens, explicitScreenIds),
+    useNebius: kind === "hifi" && nebiusSelected,
+  };
+}
+
 /**
  * Stable, collision-free id for a manually added screen. Ids end up in the run
  * source (`screens:a;b`) and key the persisted artifact, so they must be slugs

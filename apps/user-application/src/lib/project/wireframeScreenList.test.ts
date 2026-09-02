@@ -5,6 +5,7 @@ import {
   buildWireframeRunSource,
   createScreenItem,
   mapFlowScreensToScreenItems,
+  resolveGenerationScope,
   resolveRunScreenIds,
   screenIdFromTitle,
   screenIdsFromRunSource,
@@ -65,6 +66,29 @@ describe("run scoping", () => {
       buildWireframeRunSource("hifi", "style-guide", "dir-1", ["home"], true),
       "kind:hifi,brand:style-guide,style-direction:dir-1,gen:nebius,screens:home",
     );
+  });
+
+  test("normal Lo-Fi generation stays unscoped and never uses Nebius", () => {
+    const resolved = resolveGenerationScope(
+      "lofi",
+      [screen("home", true), screen("pricing", true)],
+      undefined,
+      true,
+    );
+
+    assert.deepEqual(resolved, { screenIds: [], useNebius: false });
+    assert.equal(buildWireframeRunSource("lofi", null, null, resolved.screenIds), "kind:lofi");
+  });
+
+  test("Hi-Fi generation remains scoped and may use Nebius", () => {
+    const resolved = resolveGenerationScope(
+      "hifi",
+      [screen("home", true), screen("pricing", false)],
+      undefined,
+      true,
+    );
+
+    assert.deepEqual(resolved, { screenIds: ["home"], useNebius: true });
   });
 });
 

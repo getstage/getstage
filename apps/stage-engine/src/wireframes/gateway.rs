@@ -171,6 +171,7 @@ pub async fn run_screens_via_gateway(
     }
 
     let gateway_run_id = parse_run_uuid(run_id);
+    let gateway_url = gateway_base_url();
     let mut screens = Vec::with_capacity(jobs.len());
     let mut last_error = None;
     for (chunk_index, chunk) in jobs.chunks(MAX_GATEWAY_SCREENS_PER_REQUEST).enumerate() {
@@ -195,6 +196,7 @@ pub async fn run_screens_via_gateway(
             "Nebius gateway generating screen chunk"
         );
         let result = generate_chunk_with_missing_retry(
+            &gateway_url,
             auth_token,
             gateway_run_id,
             design_context,
@@ -301,6 +303,7 @@ fn normalize_gateway_tsx(tsx: &str) -> String {
 }
 
 async fn generate_chunk_with_missing_retry(
+    gateway_url: &str,
     auth_token: &str,
     gateway_run_id: Uuid,
     design_context: &GatewayDesignContext,
@@ -309,7 +312,8 @@ async fn generate_chunk_with_missing_retry(
     configure: &[serde_json::Value],
     run_id: &str,
 ) -> Result<Vec<serde_json::Value>, WorkflowError> {
-    let mut screens = generate_screens(
+    let first = generate_screens(
+        gateway_url,
         auth_token,
         gateway_run_id,
         design_context,
@@ -317,7 +321,64 @@ async fn generate_chunk_with_missing_retry(
         all_jobs,
         configure,
     )
-    .await?;
+    .await;
+    let mut screens = match first {
+        Ok(screens) => screens,
+        Err(first_error) => {
+            tracing::warn!(
+                run_id,
+                error = %first_error,
+                "Nebius batch failed; retrying the same batch once"
+            );
+            match generate_screens(
+                gateway_url,
+                auth_token,
+                gateway_run_id,
+                design_context,
+                chunk_jobs,
+                all_jobs,
+                configure,
+            )
+            .await
+            {
+                Ok(screens) => screens,
+                Err(second_error) if chunk_jobs.len() > 1 => {
+                    tracing::warn!(
+                        run_id,
+                        error = %second_error,
+                        "Nebius batch retry failed; recovering its screens individually"
+                    );
+                    let mut recovered = Vec::new();
+                    for job in chunk_jobs {
+                        match generate_screens(
+                            gateway_url,
+                            auth_token,
+                            gateway_run_id,
+                            design_context,
+                            std::slice::from_ref(job),
+                            all_jobs,
+                            configure,
+                        )
+                        .await
+                        {
+                            Ok(screen) => extend_screens(&mut recovered, screen),
+                            Err(error) => tracing::warn!(
+                                run_id,
+                                screen_id = %job.screen_id,
+                                error = %error,
+                                "Nebius screen recovery failed; preserving its previous design"
+                            ),
+                        }
+                    }
+                    if recovered.is_empty() {
+                        return Err(second_error);
+                    }
+                    recovered
+                }
+                Err(second_error) => return Err(second_error),
+            }
+        }
+    };
     let returned_ids = screens
         .iter()
         .filter_map(|screen| screen.get("id").and_then(serde_json::Value::as_str))
@@ -333,26 +394,28 @@ async fn generate_chunk_with_missing_retry(
     tracing::warn!(
         run_id,
         missing = missing_jobs.len(),
-        "Nebius batch omitted screens; retrying only the missing screens once"
+        "Nebius batch omitted screens; recovering each missing screen once"
     );
-    match generate_screens(
-        auth_token,
-        gateway_run_id,
-        design_context,
-        &missing_jobs,
-        all_jobs,
-        configure,
-    )
-    .await
-    {
-        Ok(retried) => extend_screens(&mut screens, retried),
-        Err(error) => {
-            tracing::warn!(
+    for job in missing_jobs {
+        match generate_screens(
+            gateway_url,
+            auth_token,
+            gateway_run_id,
+            design_context,
+            std::slice::from_ref(&job),
+            all_jobs,
+            configure,
+        )
+        .await
+        {
+            Ok(retried) => extend_screens(&mut screens, retried),
+            Err(error) => tracing::warn!(
                 run_id,
+                screen_id = %job.screen_id,
                 error = %error,
                 kept = screens.len(),
-                "missing-screen retry failed; keeping screens that already landed"
-            );
+                "missing-screen recovery failed; keeping screens that already landed"
+            ),
         }
     }
     Ok(screens)
@@ -378,6 +441,7 @@ fn extend_screens(screens: &mut Vec<serde_json::Value>, more: Vec<serde_json::Va
 }
 
 async fn generate_screens(
+    gateway_url: &str,
     auth_token: &str,
     run_id: Uuid,
     design_context: &GatewayDesignContext,
@@ -387,7 +451,7 @@ async fn generate_screens(
 ) -> Result<Vec<serde_json::Value>, WorkflowError> {
     let request = build_request(run_id, design_context, jobs);
     let bearer = gateway_bearer_token(auth_token);
-    let url = format!("{}/v1/wireframes/generate", gateway_base_url());
+    let url = format!("{gateway_url}/v1/wireframes/generate");
     let response = reqwest::Client::builder()
         .timeout(GENERATE_TIMEOUT)
         .build()
@@ -505,6 +569,7 @@ fn build_request(
     design_context: &GatewayDesignContext,
     jobs: &[GatewayScreenJob],
 ) -> GenerateWireframeRequest {
+    let repairing = jobs.iter().all(|job| !job.validation_failures.is_empty());
     let selected_libraries = jobs
         .iter()
         .flat_map(|job| job.libraries.iter().cloned())
@@ -548,10 +613,18 @@ fn build_request(
             validation_failures: job.validation_failures.clone(),
         })
         .collect();
+    let mut design_context = design_context.clone();
+    if repairing {
+        design_context.strategy_artifact = "Repair the supplied TSX only.".to_string();
+        design_context.research_artifact = None;
+        design_context.moodboard_artifact = None;
+        design_context.flows_artifact = None;
+        design_context.selected_skills.clear();
+    }
     GenerateWireframeRequest {
         run_id,
         selected_libraries,
-        design_context: design_context.clone(),
+        design_context,
         screens,
     }
 }
@@ -570,8 +643,16 @@ fn parse_run_uuid(run_id: &str) -> Uuid {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
+
     use super::*;
     use crate::convex_store::catalog_repository::CatalogSourceFile;
+    use axum::{
+        Json, Router, extract::State, http::StatusCode, response::IntoResponse, routing::post,
+    };
 
     fn context() -> GatewayDesignContext {
         GatewayDesignContext {
@@ -648,6 +729,22 @@ mod tests {
             request.screens[1].components[0].component_id,
             "origin-ui/button"
         );
+    }
+
+    #[test]
+    fn repair_request_drops_large_design_context() {
+        let mut repair = job("home");
+        repair.validation_failures = vec!["compiler error and previous TSX".to_string()];
+
+        let request = build_request(Uuid::new_v4(), &context(), &[repair]);
+
+        assert_eq!(request.screens[0].attempt, "repair");
+        assert_eq!(
+            request.design_context.strategy_artifact,
+            "Repair the supplied TSX only."
+        );
+        assert!(request.design_context.moodboard_artifact.is_none());
+        assert!(request.design_context.selected_skills.is_empty());
     }
 
     #[test]
@@ -755,5 +852,103 @@ mod tests {
                 .to_string()
                 .contains("Nebius returned no requested screens")
         );
+    }
+
+    async fn recover_individual_screens(
+        State(calls): State<Arc<AtomicUsize>>,
+        Json(request): Json<serde_json::Value>,
+    ) -> (StatusCode, Json<serde_json::Value>) {
+        calls.fetch_add(1, Ordering::SeqCst);
+        let screens = request["screens"].as_array().cloned().unwrap_or_default();
+        if screens.len() > 1 {
+            return (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({})));
+        }
+        let id = screens[0]["screenId"].as_str().unwrap_or_default();
+        (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "screens": [{
+                    "id": id,
+                    "tsx": "export default function Screen() { return <main />; }"
+                }]
+            })),
+        )
+    }
+
+    #[tokio::test]
+    async fn failed_batch_retries_once_then_recovers_screens_individually() {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let app = Router::new()
+            .route("/v1/wireframes/generate", post(recover_individual_screens))
+            .with_state(calls.clone());
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let jobs = [job("home"), job("pricing")];
+
+        let screens = generate_chunk_with_missing_retry(
+            &format!("http://{address}"),
+            "test-token",
+            Uuid::new_v4(),
+            &context(),
+            &jobs,
+            &jobs,
+            &[],
+            "test-run",
+        )
+        .await
+        .unwrap();
+        server.abort();
+
+        assert_eq!(screens.len(), 2);
+        assert_eq!(calls.load(Ordering::SeqCst), 4);
+    }
+
+    async fn malformed_then_valid(
+        State(calls): State<Arc<AtomicUsize>>,
+        Json(request): Json<serde_json::Value>,
+    ) -> axum::response::Response {
+        if calls.fetch_add(1, Ordering::SeqCst) == 0 {
+            return (StatusCode::OK, "not-json").into_response();
+        }
+        let id = request["screens"][0]["screenId"]
+            .as_str()
+            .unwrap_or_default();
+        Json(serde_json::json!({
+            "screens": [{
+                "id": id,
+                "tsx": "export default function Screen() { return <main />; }"
+            }]
+        }))
+        .into_response()
+    }
+
+    #[tokio::test]
+    async fn malformed_batch_is_retried_once() {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let app = Router::new()
+            .route("/v1/wireframes/generate", post(malformed_then_valid))
+            .with_state(calls.clone());
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let jobs = [job("home")];
+
+        let screens = generate_chunk_with_missing_retry(
+            &format!("http://{address}"),
+            "test-token",
+            Uuid::new_v4(),
+            &context(),
+            &jobs,
+            &jobs,
+            &[],
+            "test-run",
+        )
+        .await
+        .unwrap();
+        server.abort();
+
+        assert_eq!(screens.len(), 1);
+        assert_eq!(calls.load(Ordering::SeqCst), 2);
     }
 }

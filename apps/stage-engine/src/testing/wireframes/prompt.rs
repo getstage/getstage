@@ -269,6 +269,35 @@ fn lofi_prompt_omits_design_skills() {
     );
 
     assert!(!prompt.contains("<skill id="));
+    assert!(prompt.contains("preserve every selected screen from the configure list"));
+    assert!(prompt.contains("Saved research artifact JSON") == false);
+    assert!(!prompt.contains("catalog-candidates.json"));
+    assert!(!prompt.contains("SCOPED GENERATION"));
+}
+
+#[test]
+fn scoped_lofi_prompt_keeps_the_work_context_and_contract() {
+    let mut input = sample_input();
+    input.research_artifact_json = Some(r#"{"findings":["LOFI_RESEARCH"]}"#.to_string());
+    input.flows_artifact_json =
+        Some(r#"{"screens":[{"id":"homepage"},{"id":"settings"}]}"#.to_string());
+
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Lofi,
+        None,
+        None,
+        None,
+        false,
+        Some(&["homepage".to_string()]),
+    );
+
+    assert!(prompt.contains("LOFI_RESEARCH"));
+    assert!(prompt.contains("authoritative screen list"));
+    assert!(prompt.contains("\"settings\""));
+    assert!(prompt.contains("PARTIAL REGENERATION"));
+    assert!(!prompt.contains("The \"tsx\" field is the design"));
+    assert!(!prompt.contains("validated_design_plan"));
 }
 
 #[test]
@@ -425,8 +454,15 @@ fn prompt_reports_the_free_text_label_for_an_other_project_type() {
     input.project_type = "other".to_string();
     input.project_type_label = Some("Trade show booth".to_string());
 
-    let prompt =
-        build_wireframes_prompt(&input, WireframeKind::Lofi, None, None, None, false, None);
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
 
     assert!(prompt.contains("- Project type: other"));
     assert!(prompt.contains("- Project type detail: Trade show booth"));
@@ -437,8 +473,15 @@ fn site_project_type_keeps_marketing_page_guidance() {
     let mut input = sample_input();
     input.project_type = "web-design".to_string();
 
-    let prompt =
-        build_wireframes_prompt(&input, WireframeKind::Lofi, None, None, None, false, None);
+    let prompt = build_wireframes_prompt(
+        &input,
+        WireframeKind::Hifi,
+        Some(WireframeBrandSource::StyleGuide),
+        None,
+        None,
+        false,
+        None,
+    );
 
     assert!(prompt.contains("This is a site project"));
 }

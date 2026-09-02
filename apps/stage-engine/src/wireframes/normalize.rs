@@ -219,9 +219,27 @@ fn merge_regenerated_screens(
             if !target_ids.contains(id) {
                 return screen.clone();
             }
-            screen_by_id(&partial_screens, id)
-                .cloned()
-                .unwrap_or_else(|| screen.clone())
+            let Some(mut replacement) = screen_by_id(&partial_screens, id).cloned() else {
+                return screen.clone();
+            };
+            // Hi-Fi generation must never erase the independent Lo-Fi result. The
+            // original `work` contract returned sections alongside Hi-Fi; the React
+            // gateway does not, so carry the already-saved structural data forward.
+            let replacement_has_sections = replacement
+                .get("sections")
+                .and_then(JsonValue::as_array)
+                .is_some_and(|sections| !sections.is_empty());
+            if matches!(kind, WireframeKind::Hifi)
+                && !replacement_has_sections
+                && let Some(sections) = screen.get("sections").cloned()
+                && sections
+                    .as_array()
+                    .is_some_and(|sections| !sections.is_empty())
+                && let Some(object) = replacement.as_object_mut()
+            {
+                object.insert("sections".to_string(), sections);
+            }
+            replacement
         })
         .collect::<Vec<_>>();
 
@@ -261,23 +279,6 @@ fn merge_regenerated_screens(
             continue;
         }
         merged_screens.push(screen.clone());
-    }
-
-    // A kind change (the Lo-Fi -> Hi-Fi conversion) rewrites the artifact's wireframeKind
-    // below, so a screen left over from the previous kind would be presented as if it had
-    // been converted — a Hi-Fi result grid showing Lo-Fi screens with no markup. A screen
-    // the user did not select is not part of this pass, so drop it instead of mixing kinds.
-    let kind_changed = existing_object
-        .get("wireframeKind")
-        .and_then(JsonValue::as_str)
-        .is_some_and(|existing| existing != kind.as_str());
-    if kind_changed {
-        merged_screens.retain(|screen| {
-            screen
-                .get("id")
-                .and_then(JsonValue::as_str)
-                .is_some_and(|id| target_ids.contains(id))
-        });
     }
 
     // For Hi-Fi every requested screen must end up with real markup that differs from what

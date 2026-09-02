@@ -2,8 +2,8 @@ use crate::models::errors::EngineErrorCode;
 use crate::models::providers::ProviderId;
 use crate::models::runs::StartRunRequest;
 use crate::wireframes::helper::artifact::{
-    is_scoped_regeneration_request, merge_tsx_screens, missing_screen_ids,
-    selected_moodboard_asset_keys, validate_single_screen_response,
+    is_scoped_regeneration_request, merge_tsx_screens, selected_moodboard_asset_keys,
+    validate_single_screen_response,
 };
 use crate::wireframes::helper::error::WorkflowError;
 use crate::wireframes::helper::source::{
@@ -12,6 +12,79 @@ use crate::wireframes::helper::source::{
 };
 use crate::wireframes::helper::workspace::configure_provider_workspace_call;
 use crate::wireframes::provider_workspace::ProviderCallFiles;
+
+#[test]
+fn model_context_keeps_only_the_component_entry_file() {
+    let bundles = compact_model_bundles(vec![CatalogSourceBundle {
+        component_id: "library/card".to_string(),
+        library: "library".to_string(),
+        name: "Card".to_string(),
+        kind: "component".to_string(),
+        runtime: "client".to_string(),
+        source_revision: "v1".to_string(),
+        files: vec![
+            CatalogSourceFile {
+                path: "card.tsx".to_string(),
+                content: "export function Card() {}".to_string(),
+            },
+            CatalogSourceFile {
+                path: "internal.ts".to_string(),
+                content: "export const internal = true".to_string(),
+            },
+        ],
+        css: None,
+        dependencies: Vec::new(),
+        registry_dependencies: Vec::new(),
+    }]);
+
+    assert_eq!(bundles[0].files.len(), 1);
+    assert_eq!(bundles[0].files[0].path, "card.tsx");
+}
+
+#[test]
+fn model_context_keeps_the_top_six_retrieved_bundles() {
+    let bundles = compact_model_bundles(
+        (0..8)
+            .map(|index| CatalogSourceBundle {
+                component_id: format!("library/component-{index}"),
+                library: "library".to_string(),
+                name: format!("Component {index}"),
+                kind: "component".to_string(),
+                runtime: "client".to_string(),
+                source_revision: "v1".to_string(),
+                files: vec![CatalogSourceFile {
+                    path: format!("component-{index}.tsx"),
+                    content: "export function Comp() {}".to_string(),
+                }],
+                css: None,
+                dependencies: Vec::new(),
+                registry_dependencies: Vec::new(),
+            })
+            .collect(),
+    );
+
+    assert_eq!(bundles.len(), 6);
+    assert_eq!(bundles[0].component_id, "library/component-0");
+    assert_eq!(bundles[5].component_id, "library/component-5");
+}
+
+#[test]
+fn dropping_one_failed_screen_preserves_its_sibling() {
+    let mut artifact = serde_json::json!({
+        "generatedScreens": [{"id": "broken"}, {"id": "valid"}]
+    });
+    let mut completed = vec!["broken".to_string(), "valid".to_string()];
+
+    drop_failed_screens(
+        &mut artifact,
+        &mut completed,
+        &HashSet::from(["broken".to_string()]),
+    );
+
+    assert_eq!(artifact["generatedScreens"].as_array().unwrap().len(), 1);
+    assert_eq!(artifact["generatedScreens"][0]["id"], "valid");
+    assert_eq!(completed, vec!["valid"]);
+}
 
 #[test]
 fn parses_kind_brand_and_style_direction_from_source() {
@@ -131,9 +204,6 @@ fn repair_merge_replaces_existing_and_restores_missing_screens() {
         serde_json::json!([{"id": "summary"}])
     );
     assert_eq!(screens[1]["id"], "settings");
-    assert!(
-        missing_screen_ids(&target, &["dashboard".to_string(), "settings".to_string()]).is_empty()
-    );
 }
 
 #[test]
@@ -277,3 +347,7 @@ fn provider_request_embeds_required_context_before_the_paid_call() {
     assert_eq!(request.context.context_files.as_ref().unwrap().len(), 3);
     std::fs::remove_dir_all(root).unwrap();
 }
+use std::collections::HashSet;
+
+use super::{compact_model_bundles, drop_failed_screens};
+use crate::convex_store::catalog_repository::{CatalogSourceBundle, CatalogSourceFile};

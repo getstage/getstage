@@ -8,7 +8,7 @@ Stateless Rust gateway for Stage wireframe generation. It receives one authentic
 - `NEBIUS_MODEL`
 - `STAGE_API_BASE_URL`
 
-Optional configuration includes `PORT`, `NEBIUS_BASE_URL`, `MAX_CONCURRENT_GENERATIONS`, `MAX_REQUEST_BYTES`, `MAX_COMPONENT_BUNDLES`, `MAX_SOURCE_BYTES`, `WIREFRAME_PROVIDER_TIMEOUT_SECONDS` and `STAGE_AUTH_TIMEOUT_SECONDS`.
+Optional configuration includes `PORT`, `NEBIUS_BASE_URL`, `NEBIUS_MAX_TOKENS` (default `32768`; omit this and Nebius may cap output at 8192; the gateway also sends `max_completion_tokens` and `reasoning_effort=minimal` so thinking cannot consume the whole budget), `MAX_CONCURRENT_GENERATIONS`, `MAX_REQUEST_BYTES`, `MAX_COMPONENT_BUNDLES`, `MAX_SOURCE_BYTES`, `WIREFRAME_PROVIDER_TIMEOUT_SECONDS` and `STAGE_AUTH_TIMEOUT_SECONDS`.
 
 Run locally:
 

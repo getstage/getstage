@@ -18,7 +18,7 @@ async fn generates_one_typed_batch_with_nebius() -> Result<(), Box<dyn std::erro
     let model = env::var("NEBIUS_MODEL")?;
     let base_url =
         env::var("NEBIUS_BASE_URL").unwrap_or_else(|_| DEFAULT_NEBIUS_BASE_URL.to_owned());
-    let generator = NebiusRigGenerator::new(&api_key, &base_url, model)?;
+    let generator = NebiusRigGenerator::new(&api_key, &base_url, model, 32_768)?;
     let request = fixture();
 
     let generated = generator.generate(&request).await?;

@@ -126,8 +126,8 @@ fn set_render_mode(screen: &mut JsonValue, mode: &str) {
     }
 }
 
-/// Renders screens carrying TSX. A failed screen keeps its existing HTML fallback, and
-/// every screen is stamped with the mode that produced its final HTML.
+/// Renders screens carrying TSX and returns an explicit failure for every screen that
+/// could not be compiled or rendered. The workflow decides whether to repair or drop it.
 pub async fn apply_react_render(
     artifact: &mut JsonValue,
     theme: Option<&JsonValue>,
@@ -186,7 +186,7 @@ pub async fn apply_react_render(
     let rendered = match render_batch(theme, &batch, catalog_files).await {
         Ok(payload) => payload,
         Err(error) => {
-            tracing::warn!(%error, "wireframe react renderer unavailable; keeping html fallback");
+            tracing::warn!(%error, "wireframe react renderer unavailable; marking affected screens failed");
             return Ok(ReactRenderOutcome {
                 failures: tsx_by_id
                     .into_iter()

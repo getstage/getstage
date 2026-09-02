@@ -2,7 +2,11 @@
 
 > Snapshot of the files that actually produce Hi-Fi / Lo-Fi wireframes in this worktree.
 > Written 2026-08-29 so the overlapping paths can be read as one system, not patched one symptom at a time.
-> This is a map, not a fix plan.
+> Updated 2026-08-31 after the first reliability simplification. This is the
+> living map of the current code, including what is verified locally and what
+> still requires a live provider run.
+>
+> Live failures and Stage caps (2000-char query, token 8192, top-6 RAG, thumbnail sandbox): [`WIREFRAMES_LIVE_FAILURES.md`](./WIREFRAMES_LIVE_FAILURES.md).
 
 ---
 
@@ -59,14 +63,16 @@ That string is the entire contract between UI and engine for kind, brand, direct
 6. **Workflow** calls `createWireframesRun`. Convex inserts `projectAiRuns` with `module: "generate"` and `status: "running"`. If another generate row is still `running` and younger than 60 minutes, this throws and the whole run dies.
 7. Sealed temp workspace is written (`provider_workspace.rs`).
 8. Optional Design Director (CLI) unless gateway skips it / uses a local plan.
-9. **Per selected screen:** Qwen embed of the screen brief → Convex vector search (max 12) → R2 `loadCatalogSource` → files materialized for gateway + renderer.
-10. **Gateway** gets sequential batches of **at most 5** screens (`MAX_GATEWAY_SCREENS_PER_REQUEST`).
-11. Gateway calls Nebius, parses JSON screens, drops empty TSX, keeps requested ids, warns on extras.
-12. Engine normalizes TSX (`framer-motion` → `motion/react`, strips `createRoot`).
-13. **Renderer CLI** compiles **only the ids from this run**, not saved siblings.
-14. Failed screens may get one repair pass through the same gateway.
-15. **`apply_scoped_screens`** merges new screens into the saved Convex artifact. Unselected screens stay. Failed Hi-Fi ids revert to saved HTML or drop if they were new.
-16. HTML offloaded to R2; Convex artifact updated; run completed.
+9. **Per selected screen:** Qwen embed of the screen brief → Convex vector search (max 12) → R2 `loadCatalogSource` → files materialized for gateway + renderer. The renderer keeps the full retrieved set; the model prompt keeps the top **6** entry files and truncates oversized design artifacts. An unavailable candidate is skipped; if a screen has no usable source at all, only that screen is omitted from provider work.
+10. **Gateway** gets sequential batches of **at most 5** screens (`MAX_GATEWAY_SCREENS_PER_REQUEST`). Claude/Codex screen calls use the same maximum concurrency.
+11. A failed or malformed gateway batch is retried once. If that retry fails, only that batch is decomposed into one-screen recovery calls; later batches still run.
+12. Gateway parses JSON screens, drops empty TSX, keeps requested ids, warns on extras. Missing ids get one independent recovery call.
+13. Engine normalizes TSX (`framer-motion` → `motion/react`, strips `createRoot`).
+14. **Renderer CLI** compiles and server-renders **only the ids from this run**, not saved siblings. Missing imports and SSR exceptions are real per-screen failures; no component or empty-HTML stubs are fabricated.
+15. A technically failed screen gets one compact repair. The repair receives the rejected TSX and exact renderer error; the gateway repair drops research, flows, moodboard, and skills from the repeated payload.
+16. A screen that still fails is removed from this result only. Successful siblings continue to checkpoint and persist. A prior accepted version stays unchanged during scoped regeneration.
+17. **`apply_scoped_screens`** merges accepted screens into the saved Convex artifact. Unselected screens stay.
+18. HTML is offloaded to R2; Convex artifact is updated; the run completes with honest partial-result copy when necessary.
 
 Cancel is supposed to set the engine watch channel **and** patch Convex `status: "cancelled"`. Those are different IDs and different callers. If the sidecar dies first (`pkill`), Convex stays `running`.
 
@@ -161,12 +167,12 @@ Sidecar spawn / port `48221`: desktop main process (not listed here — generic 
 
 | File | Lines | Role |
 |------|------:|------|
-| `apps/stage-engine/src/wireframes/workflow.rs` | **1654** | God file. Input, workspace, RAG, gateway **or** CLI, render, repair, merge, save, cancel. |
-| `apps/stage-engine/src/wireframes/gateway.rs` | 759 | HTTP client to local gateway. Chunks of 5, missing-id retry, TSX normalize. |
+| `apps/stage-engine/src/wireframes/workflow.rs` | **1618** | Still the largest orchestration file. Input, workspace, RAG, provider adapter, render, one repair, merge, save, cancel. The duplicated gateway/CLI post-render repair branches were collapsed. |
+| `apps/stage-engine/src/wireframes/gateway.rs` | 954 | HTTP client and tests. Chunks of 5, same-batch retry, per-screen recovery, missing-id recovery, compact repair request, TSX normalize. |
 | `apps/stage-engine/src/wireframes/prompt.rs` | **1106** | Prompt assembly for CLI + plan; Hi-Fi skill/library prefs. |
 | `apps/stage-engine/src/wireframes/normalize.rs` | 814 | Artifact normalize + `merge_regenerated_screens` / `apply_scoped_screens`. |
 | `apps/stage-engine/src/wireframes/render.rs` | 400 | Spawns `packages/wireframe-renderer` CLI. Scoped to current ids. |
-| `apps/stage-engine/src/wireframes/quality.rs` | 241 | Plan vs artifact gates. |
+| `apps/stage-engine/src/wireframes/quality.rs` | 81 | Pre-generation Design Director library validation only. Visual preferences no longer reject renderable output after generation. |
 | `apps/stage-engine/src/wireframes/design_plan.rs` | 404 | Design-plan types / expected ids. |
 | `apps/stage-engine/src/wireframes/provider_workspace.rs` | 453 | Sealed temp workspace, manifests, integrity. |
 | `apps/stage-engine/src/wireframes/debug_dump.rs` | | Temp dump folder for prompts/TSX (`/var/folders/.../stage-wireframes/<run>`). |
@@ -178,10 +184,10 @@ Helpers (`apps/stage-engine/src/wireframes/helper/`):
 |------|------:|------|
 | `mod.rs` | 33 | Re-exports. |
 | `source.rs` | 34 | Parse `kind:` `brand:` `gen:` `screens:` tokens. |
-| `artifact.rs` | 199 | Merge repair TSX, moodboard keys. **`missing_screen_ids` is unused in the binary** (dead_code warning). Still imported by tests. |
+| `artifact.rs` | 181 | Merge repair TSX and moodboard keys. The dead `missing_screen_ids` helper was removed. |
 | `design_director.rs` | 246 | CLI Design Director call (not the Nebius path). |
 | `workspace.rs` | 363 | Per-screen required files / call manifests. |
-| `parallel.rs` | 145 | Parallel CLI screen runs (Codex/Claude). |
+| `parallel.rs` | 187 | Parallel CLI screen runs (Codex/Claude), capped at five, with one fresh retry for only the failed screen calls. |
 | `attachments.rs` | 78 | Moodboard image fetch. |
 | `brand_kit.rs` | 68 | Brand-kit file fetch. |
 | `offload.rs` | 155 | Rendered HTML → R2. |
@@ -210,7 +216,7 @@ Engine talks to it from `gateway.rs` (`DEFAULT_GATEWAY_URL`).
 
 | File | Lines | Role |
 |------|------:|------|
-| `packages/wireframe-renderer/src/cli.ts` | 567 | Compile TSX → static HTML + live HTML. Per-screen import validation (one bad screen must not kill siblings). |
+| `packages/wireframe-renderer/src/cli.ts` | 480 | Compile TSX → static HTML + live HTML. Per-screen import/SSR validation; missing modules and render crashes are never replaced with fake success. |
 | `packages/wireframe-renderer/src/theme.ts` | | Brand CSS variables. |
 | `packages/wireframe-renderer/src/lib/utils.ts` | | `cn` helper. |
 | `packages/wireframe-renderer/test/smoke.test.mjs` | | Smoke including sibling isolation. |
@@ -259,7 +265,7 @@ These are **files**, not the catalog. The catalog is R2 + Convex vectors. Skills
 
 | File | Role |
 |------|------|
-| `apps/stage-engine/src/testing/wireframes/workflow.rs` | Source tokens, merge helpers, still uses `missing_screen_ids`. |
+| `apps/stage-engine/src/testing/wireframes/workflow.rs` | Source tokens, merge helpers, compact model bundles, and failed-screen isolation. |
 | `apps/stage-engine/src/testing/wireframes/normalize.rs` | Merge / bonus screen keep. |
 | `apps/user-application/src/lib/project/wireframeScreenList.test.ts` | Source string including `gen:nebius`. |
 | `apps/wireframe-ai-gateway` unit tests in `generator.rs` | Extra ids / empty TSX. |
@@ -289,18 +295,31 @@ Merge rules (Hi-Fi) live in `normalize.rs` `merge_regenerated_screens`:
 
 ---
 
-## Where the code is actually wrong (observed, not patched here)
+## Remaining structural problems
 
 These are structural, not one-line bugs:
 
 1. **Two generators in one workflow file**, switched by a token in a CSV string, while `providerId` still says `codex`.
 2. **Two run identities** (engine UUID vs Convex `_id`) and **three cancel functions** (`engine.cancelRun`, `projectAi.cancelRun`, `projectAi.cancelWireframesRun`).
 3. **20 min overlay vs 60 min Convex lock.** Killing the sidecar does not clear Convex. The overlay then disappears and the user cannot cancel. Next generate throws `already in progress`.
-4. **`workflow.rs` + `prompt.rs` are the real mess** (~2700 lines together). Repair, RAG, CLI, gateway, merge, and cancel all share one function.
+4. **`workflow.rs` + `prompt.rs` remain too large** (~2680 lines together). The first reliability slice removed duplicated post-generation gates and repair behavior, but provider selection, RAG, merge, and cancellation still meet in the workflow.
 5. **Renderer used to compile the whole saved artifact**, so old `@stage/base` TSX killed new screens. Scoped compile was added later; merge still happens after render. That coupling is easy to break again.
-6. **Dead `missing_screen_ids`** in the engine binary; tests still depend on it.
+6. **R2 transitive dependency closure is not yet proven.** The model now gets only the selected component entry file and the renderer gets every file returned by the exact R2 bundles. If a bundle still references a dependency absent from R2, the renderer rejects that screen truthfully and the one repair may replace it; Stage no longer invents the module.
 7. **Deleted local component packs** (git status) while the UI catalog and RAG libraries still name `kokonut-ui` / `magic-ui` / `bklit-ui`. Generation now depends on Convex/R2 ingest being present, not on files in `packages/wireframe-renderer`.
 8. **Web `GenerateTab` and desktop `WireframesTab` are parallel UIs** with different cancel behavior.
+
+## Locally verified on 2026-08-31
+
+- Stage engine: `cargo test` — **246 passed**.
+- Renderer: TypeScript check plus **9 passed** smoke tests.
+- Standalone gateway: **16 passed** locally; the explicit one-screen live Nebius contract test also passed on 2026-08-31.
+- Failure fixtures cover same-batch retry, malformed-envelope retry, batch-to-screen recovery, missing imports, SSR exceptions, and sibling preservation.
+- Current implementation diff is net-negative; no commit or push was made for this slice.
+
+The remaining acceptance step is a fixed-fixture run through the full Stage path
+for Claude, Codex, and Nebius with populated R2 data. The live gateway test proves
+Nebius can currently return the typed envelope; it does not prove the completeness
+of live catalog data or end-to-end rendering.
 
 A Cancel button on the overlay is necessary. It does not fix (2) or (3). If the overlay is gone, the lock remains.
 

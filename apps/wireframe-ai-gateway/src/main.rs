@@ -18,6 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         &config.nebius_api_key,
         &config.nebius_base_url,
         config.nebius_model.clone(),
+        config.nebius_max_tokens,
     )?;
     let auth = StageApiAuthVerifier::new(&config.stage_api_base_url, config.auth_timeout)?;
     let state = AppState::new(

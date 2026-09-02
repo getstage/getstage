@@ -98,17 +98,15 @@ test("renders a catalog @/ import when the file is supplied", () => {
   assert.equal(output.screens[0].error, undefined);
 });
 
-test("stubs a missing safe catalog import instead of blocking the screen", () => {
+test("rejects a missing catalog import instead of fabricating a component", () => {
   const result = execute(`
     import { Button } from "@/registry/default/ui/button";
     export default function Screen() {
       return <main className="p-8"><Button>Continue</Button></main>;
     }
   `);
-  assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
   const output = JSON.parse(result.stdout);
-  assert.match(output.screens[0].html, /Continue/);
-  assert.equal(output.screens[0].error, undefined);
+  assert.match(output.screens[0].error, /Could not resolve/);
 });
 
 test("rewrites next/link from a catalog module to an anchor", () => {
@@ -136,7 +134,7 @@ export default function Palette() {
   assert.match(output.screens[0].html, /<a/);
 });
 
-test("stubs unknown catalog npm and missing relative imports", () => {
+test("rejects unresolved catalog dependencies instead of fabricating modules", () => {
   const result = execute(
     `
     import Demo from "@/components/cards-demo-3";
@@ -157,8 +155,15 @@ export default function Demo() {
       },
     ],
   );
-  assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
   const output = JSON.parse(result.stdout);
-  assert.match(output.screens[0].html, /Cards/);
-  assert.equal(output.screens[0].error, undefined);
+  assert.match(output.screens[0].error, /Could not resolve/);
+});
+
+test("reports server-render exceptions instead of saving empty fallback HTML", () => {
+  const result = execute(`
+    export default function Screen() { throw new Error("broken resting frame"); }
+  `);
+  const output = JSON.parse(result.stdout);
+  assert.match(output.screens[0].error, /broken resting frame/);
+  assert.equal(output.screens[0].html, "");
 });

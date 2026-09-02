@@ -157,86 +157,6 @@ function writeCatalog(batchDirectory: string, files: CatalogFile[]): { catalogDi
   return { catalogDir };
 }
 
-const KEPT_PACKAGES = new Set([
-  "react",
-  "react-dom",
-  "react/jsx-runtime",
-  "react/jsx-dev-runtime",
-  "lucide-react",
-  "motion",
-  "motion/react",
-  "next/link",
-]);
-
-function fileExists(base: string): boolean {
-  return [
-    base,
-    `${base}.tsx`,
-    `${base}.ts`,
-    `${base}.jsx`,
-    `${base}.js`,
-    path.join(base, "index.tsx"),
-    path.join(base, "index.ts"),
-  ].some((candidate) => fs.existsSync(candidate));
-}
-
-function namedImportsFrom(importer: string | undefined, spec: string): string[] {
-  if (!importer || !fs.existsSync(importer)) return [];
-  const source = fs.readFileSync(importer, "utf8");
-  const escaped = spec.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const names = new Set<string>();
-  for (const match of source.matchAll(
-    new RegExp(`import\\s*\\{([^}]*)\\}\\s*from\\s*["']${escaped}["']`, "g"),
-  )) {
-    for (const part of match[1].split(",")) {
-      const id = part.split(/\sas\s/)[0].trim();
-      if (/^[A-Za-z_$][\w$]*$/.test(id)) names.add(id);
-    }
-  }
-  return [...names];
-}
-
-function stubModule(named: string[]): string {
-  const exports = named.map((name) => `export const ${name} = C;`).join("\n");
-  return `import React from "react";
-const C = (props) => React.createElement("div", props, props && props.children);
-export default C;
-${exports}
-`;
-}
-
-function catalogFallbackPlugin(catalogDir: string): esbuild.Plugin {
-  return {
-    name: "catalog-fallbacks",
-    setup(build) {
-      build.onResolve({ filter: /.*/ }, (args) => {
-        const spec = args.path;
-        if (KEPT_PACKAGES.has(spec) || spec.startsWith("react/")) return undefined;
-        if (spec.startsWith("@/")) {
-          const target = safeCatalogPath(catalogDir, spec.slice(2));
-          if (target && fileExists(target)) return undefined;
-          return { path: spec, namespace: "catalog-stub", pluginData: { importer: args.importer } };
-        }
-        if (spec === "next/link") return undefined;
-        if (spec.startsWith(".")) {
-          const dir = args.resolveDir || (args.importer ? path.dirname(args.importer) : "");
-          if (!dir) {
-            return { path: spec, namespace: "catalog-stub", pluginData: { importer: args.importer } };
-          }
-          if (fileExists(path.resolve(dir, spec))) return undefined;
-          return { path: spec, namespace: "catalog-stub", pluginData: { importer: args.importer } };
-        }
-        if (spec.startsWith("/") || path.isAbsolute(spec)) return undefined;
-        return { path: spec, namespace: "catalog-stub", pluginData: { importer: args.importer } };
-      });
-      build.onLoad({ filter: /.*/, namespace: "catalog-stub" }, (args) => ({
-        contents: stubModule(namedImportsFrom(args.pluginData?.importer, args.path)),
-        loader: "js",
-      }));
-    },
-  };
-}
-
 function catalogAliases(catalogDir: string, batchDirectory: string): Record<string, string> {
   return {
     "@": catalogDir,
@@ -388,7 +308,6 @@ async function renderScreen(
       "motion/react",
     ],
     alias: catalogAliases(catalogDir, batchDirectory),
-    plugins: [catalogFallbackPlugin(catalogDir)],
     logLevel: "silent",
   });
   const module = await import(`${pathToFileURL(outFile).href}?v=${Date.now()}`);
@@ -396,12 +315,7 @@ async function renderScreen(
   if (typeof Screen !== "function") {
     throw new Error("Screen module must default-export function Screen().");
   }
-  let markup = "";
-  try {
-    markup = renderToStaticMarkup(React.createElement(Screen));
-  } catch {
-    markup = `<div data-wireframe-ssr="fallback"></div>`;
-  }
+  const markup = renderToStaticMarkup(React.createElement(Screen));
   // The compiled stylesheet no longer rides inside the fragment: it is identical
   // for every screen in the batch, and embedding it is what pushed artifacts past
   // Convex's 1 MiB document limit. The engine stores it once per run (see `css`
@@ -454,7 +368,6 @@ async function buildLiveDocument(
     banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
     define: { "process.env": "process.env" },
     alias: catalogAliases(catalogDir, batchDirectory),
-    plugins: [catalogFallbackPlugin(catalogDir)],
     logLevel: "silent",
   });
   const js = result.outputFiles[0]?.text ?? "";

@@ -1,8 +1,10 @@
 # Wireframes Rig + Nebius Gateway Plan — 28 AUG 2026
 
-> **Reliability correction — 30 AUG 2026:** the current multi-screen gateway
-> boundary and model-repair path are not the target architecture. The replacement
-> below supersedes the earlier batch/repair details in this document.
+> **Implementation update — 31 AUG 2026:** the first reliability slice is now
+> implemented locally: batches of five, one same-batch retry, per-screen recovery,
+> per-screen compile/render acceptance, one compact technical repair, partial
+> persistence, and no renderer stubs. The live Claude/Codex/Nebius parity run and
+> proof of complete R2 dependency closure remain acceptance work.
 
 ## Reliable generation reset
 
@@ -114,14 +116,14 @@ reported separately.
 
 ### Minimal implementation order
 
-1. Preserve exact upstream status and error class at the gateway boundary.
+1. Preserve exact upstream status and error class at the gateway boundary. **Still open for telemetry; retry behavior is implemented.**
 2. Keep provider batches at five, then convert the response into per-screen
    validation and persistence results.
-3. Make partial success a first-class engine and UI result.
-4. Separate model context files from renderer dependency files.
+3. Make partial success a first-class engine and UI result. **Engine persistence and completion copy implemented; a dedicated typed UI status is still open.**
+4. Separate model context files from renderer dependency files. **Implemented for selected bundles; transitive R2 closure still needs live proof.**
 5. Replace the large gateway/CLI repair paths with one compact per-screen repair
    path, then delete missing-screen batch machinery and superseded provider
-   branching after the new tests pass.
+   branching after the new tests pass. **Implemented; the dead helper and duplicated post-render quality gates were deleted.**
 6. Run the same fixed fixtures through Claude, Codex, and Nebius before choosing
    a default.
 
@@ -386,15 +388,15 @@ This checklist is the source of truth for whether the new route is actually read
 - [x] Request body size, provider timeout and concurrent generation count are bounded.
 - [x] Provider secrets remain server-side and bearer authentication is checked outside the renderer.
 - [x] `cargo check` passes for the gateway.
-- [x] Focused gateway unit tests pass (6 passed, 0 failed).
+- [x] Focused gateway unit tests pass (16 passed, 0 failed).
 - [x] `cargo clippy -- -D warnings` passes for the gateway.
 - [x] `cargo fmt --check` passes for the gateway.
 - [x] Production gateway code contains no `unsafe`, `unwrap()` or `expect()`; assertions remain limited to tests.
 
 ### One-screen proof
 
-- [ ] A gateway-only fixture completes one typed screen through Rig + Nebius.
-- [ ] The response contains the exact requested screen ID and usable TSX.
+- [x] A gateway-only fixture completes one typed screen through Rig + Nebius (verified live 2026-08-31).
+- [x] The response contains the exact requested screen ID and usable TSX.
 - [ ] Selected-library constraints are enforced.
 - [ ] Retrieved evidence remains local and survives generation and repair unchanged.
 - [ ] Generated TSX passes the existing local validator and renderer.

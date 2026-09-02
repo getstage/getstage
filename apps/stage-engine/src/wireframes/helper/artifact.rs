@@ -88,24 +88,6 @@ pub(crate) fn is_scoped_regeneration_request(
         && has_existing_artifact
 }
 
-pub(crate) fn missing_screen_ids(
-    artifact: &serde_json::Value,
-    expected_ids: &[String],
-) -> Vec<String> {
-    let returned = artifact
-        .get("generatedScreens")
-        .and_then(serde_json::Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(|screen| screen.get("id").and_then(serde_json::Value::as_str))
-        .collect::<std::collections::HashSet<_>>();
-    expected_ids
-        .iter()
-        .filter(|id| !returned.contains(id.as_str()))
-        .cloned()
-        .collect()
-}
-
 pub(crate) fn validate_single_screen_response(
     artifact: &serde_json::Value,
     expected_screen_id: &str,

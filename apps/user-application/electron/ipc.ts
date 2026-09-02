@@ -81,6 +81,27 @@ import {
 
 const activeRunStreams = new Map<string, AbortController>();
 
+function abortAllRunEventStreams() {
+  for (const controller of activeRunStreams.values()) {
+    controller.abort();
+  }
+  activeRunStreams.clear();
+}
+
+function isGoneRunEventStreamStatus(status: number) {
+  return status === 404 || status === 410;
+}
+
+class RunEventStreamGoneError extends Error {
+  readonly status: number;
+
+  constructor(status: number) {
+    super(`Run event stream failed with ${status}.`);
+    this.name = "RunEventStreamGoneError";
+    this.status = status;
+  }
+}
+
 function sendRunEventToRenderer(sender: WebContents, runEvent: RunEvent) {
   if (sender.isDestroyed()) {
     return false;
@@ -682,7 +703,7 @@ async function streamRunEventsToRenderer(args: {
   providerId: ProviderId;
   sender: WebContents;
 }) {
-  activeRunStreams.get(args.runId)?.abort();
+  abortAllRunEventStreams();
 
   const controller = new AbortController();
   activeRunStreams.set(args.runId, controller);
@@ -696,9 +717,16 @@ async function streamRunEventsToRenderer(args: {
       try {
         sawTerminalEvent = await readRunEventStream(args, controller);
       } catch (error) {
-        if (!controller.signal.aborted) {
-          console.error("[stage-engine] run event stream failed", error);
+        if (controller.signal.aborted) {
+          break;
         }
+        if (error instanceof RunEventStreamGoneError) {
+          console.warn(
+            `[stage-engine] run event stream stopped runId=${args.runId} status=${error.status}`,
+          );
+          break;
+        }
+        console.error("[stage-engine] run event stream failed", error);
       }
 
       if (!controller.signal.aborted && !sawTerminalEvent && Date.now() < streamDeadline) {
@@ -735,6 +763,9 @@ async function readRunEventStream(
   );
 
   if (!response.ok || !response.body) {
+    if (isGoneRunEventStreamStatus(response.status)) {
+      throw new RunEventStreamGoneError(response.status);
+    }
     throw new Error(`Run event stream failed with ${response.status}.`);
   }
 

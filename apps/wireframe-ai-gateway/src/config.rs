@@ -10,6 +10,7 @@ pub struct Config {
     pub nebius_api_key: String,
     pub nebius_base_url: String,
     pub nebius_model: String,
+    pub nebius_max_tokens: u64,
     pub stage_api_base_url: String,
     pub provider_timeout: Duration,
     pub auth_timeout: Duration,
@@ -30,6 +31,7 @@ impl Config {
             nebius_base_url: env::var("NEBIUS_BASE_URL")
                 .unwrap_or_else(|_| DEFAULT_NEBIUS_BASE_URL.to_owned()),
             nebius_model: required_env("NEBIUS_MODEL")?,
+            nebius_max_tokens: parse_non_zero_env_or("NEBIUS_MAX_TOKENS", 32_768)? as u64,
             stage_api_base_url: trim_trailing_slash(required_env("STAGE_API_BASE_URL")?),
             provider_timeout: Duration::from_secs(provider_timeout_seconds),
             auth_timeout: Duration::from_secs(auth_timeout_seconds),

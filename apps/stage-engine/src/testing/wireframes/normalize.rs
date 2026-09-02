@@ -430,10 +430,9 @@ fn keeps_an_unrequested_project_screen_the_model_returned_anyway() {
 }
 
 #[test]
-fn converting_to_hifi_drops_screens_the_run_did_not_cover() {
-    // Lo-Fi -> Hi-Fi with only one screen selected. The merge rewrites wireframeKind to
-    // "hifi", so keeping the unselected Lo-Fi screen would advertise it as converted and
-    // render an empty card in the Hi-Fi grid. It is not part of this pass.
+fn converting_to_hifi_preserves_the_existing_lofi_result() {
+    // Lo-Fi is an independent result. A Hi-Fi conversion may add rendered markup to
+    // selected screens, but it must not erase the saved Lo-Fi sections or screens.
     let existing = json!({
         "wireframeKind": "lofi",
         "configureScreens": [
@@ -445,9 +444,11 @@ fn converting_to_hifi_drops_screens_the_run_did_not_cover() {
             sample_screen("pricing", None)
         ]
     });
+    let mut converted_dashboard = sample_screen("dashboard", Some("<div>Dashboard</div>"));
+    converted_dashboard["sections"] = json!([]);
     let partial = json!({
         "wireframeKind": "hifi",
-        "generatedScreens": [sample_screen("dashboard", Some("<div>Dashboard</div>"))]
+        "generatedScreens": [converted_dashboard]
     });
 
     let (merged, _failed) = merge_regenerated_screens(
@@ -459,8 +460,17 @@ fn converting_to_hifi_drops_screens_the_run_did_not_cover() {
     .expect("a scoped conversion is valid");
 
     let screens = merged["generatedScreens"].as_array().unwrap();
-    assert_eq!(screens.len(), 1, "the unconverted Lo-Fi screen is dropped");
+    assert_eq!(
+        screens.len(),
+        2,
+        "the original Lo-Fi screens remain available"
+    );
     assert_eq!(screens[0]["id"], "dashboard");
+    assert_eq!(screens[1]["id"], "pricing");
+    assert_eq!(
+        screens[0]["sections"][0]["id"], "dashboard-hero",
+        "the converted screen keeps its original Lo-Fi structure"
+    );
     assert_eq!(merged["wireframeKind"], "hifi");
     assert_eq!(
         merged["configureScreens"].as_array().unwrap().len(),

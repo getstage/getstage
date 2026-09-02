@@ -80,10 +80,15 @@ export function ResultsGrid({
   const deleteSelectedCount = selectedDeleteIds?.size ?? 0;
   const selectionMode = regenerateMode || deleteMode;
   const regeneratingSet = new Set(regeneratingScreenIds ?? []);
-  // A Hi-Fi artifact keeps each screen's Lo-Fi blocks alongside its rendered
-  // design, so the user can flip the whole grid back to the Lo-Fi view after
-  // converting. Lo-Fi-only artifacts have nothing to toggle to.
-  const canToggleFidelity = wireframeKind === "hifi" && cards.some((card) => card.html?.trim());
+  // Only offer the Lo-Fi view when every visible Hi-Fi card still carries a real
+  // Lo-Fi block outline. Older broken Hi-Fi artifacts with empty sections must
+  // stay on their usable Hi-Fi preview instead of opening a gray placeholder.
+  const canToggleFidelity =
+    wireframeKind === "hifi" &&
+    cards.some((card) => card.html?.trim()) &&
+    cards.every((card) =>
+      card.sections?.some((section) => section.blocks.length > 0),
+    );
   const [view, setView] = useState<WireframeKind>(wireframeKind);
   const effectiveView = canToggleFidelity ? view : wireframeKind;
 
