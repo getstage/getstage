@@ -1,7 +1,7 @@
 # Stage — Project Status
 
 > **Living document.** Update weekly (or before each release).  
-> **Last updated:** 2026-09-02
+> **Last updated:** 2026-09-04
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Priority | Item | Owner / where |
 |----------|------|----------------|
-| **P0 pipeline refocus** | Export selected Stage project artifacts and assets to a local `stage-[project]` folder, then open Claude Code or Codex with `AGENTS.md` as the entry point. Export implementation is ready for desktop UI smoke testing; Hi-Fi entry points remain visible until that test passes. | Linear `STA-33`; branch `codex/sta-33-local-project-export` |
+| **P0 pipeline refocus** | Export selected Stage project artifacts and assets to a readable standalone `stage-[project]` workspace, then open Claude Code or Codex with `AGENTS.md` as the entry point. Research assets use local Markdown references with explicit download failures. The narrow wireframes recovery restores the missing controls without changing generation. Focused checks pass; desktop UI smoke testing remains. | Linear `STA-33`; [`September 4 checklist`](apps/user-application/docs/AI/wireframes/2026-09-04-WIREFRAMES-AND-HANDOFF-CHECKLIST.md); [`PROJECT_EXPORT_CLEANUP_PLAN.md`](apps/user-application/docs/AI/desktop/PROJECT_EXPORT_CLEANUP_PLAN.md); branch `codex/sta-33-local-project-export` |
 | **P1 wireframes quality** | Beat raw Claude: Taste skill → local/project skills + library packs → moodboard layouts → refine | `docs/WIREFRAMES_QUALITY_PLAN.md` |
 | **!!! P0** | Desktop idle energy P0 — PR `fix/desktop-idle-energy-p0` | `docs/AI/desktop/2026-06-07!!!-DESKTOP_IDLE_ENERGY_PLAN.md` |
 | **P1** | Run packaged-DMG benchmark + 2 h soak (RAM < 400 MB, 12 hr power < 500) | `scripts/desktop-idle-benchmark.sh` |

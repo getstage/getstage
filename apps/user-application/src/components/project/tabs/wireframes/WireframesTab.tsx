@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
+import type { Id } from "@stage/data-ops/convex/data-model";
 import { UpstreamStaleBanner } from "@/components/project/UpstreamStaleBanner";
 import {
   createSeedConfigureScreens,
@@ -11,7 +12,10 @@ import { useFigmaWireframeExport } from "@/hooks/project/assets/useFigmaWirefram
 import { useWireframeDeliveryExport } from "@/hooks/project/assets/useWireframeDeliveryExport";
 import { useWireframeBrandKit } from "@/hooks/project/wireframes";
 import { api } from "@/lib/convexApi";
-import { buildResultCards } from "@/lib/project/mapWireframesArtifactToTabData";
+import {
+  buildResultCards,
+  hasRenderableWireframeOutput,
+} from "@/lib/project/mapWireframesArtifactToTabData";
 import type { Project } from "@/models/project/project";
 import type { WireframeAssetCard } from "@/types/project/assetsTab";
 import type { WireframeKindChoice, WireframeStep, WireframesTabData } from "@/types/project/wireframesTab";
@@ -35,6 +39,20 @@ type WireframesTabProps = {
   onGoToMoodboard: () => void;
 };
 
+function createScreenId(title: string, existingIds: Iterable<string>) {
+  const base =
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "screen";
+  const taken = new Set(existingIds);
+  if (!taken.has(base)) return base;
+
+  let suffix = 2;
+  while (taken.has(`${base}-${suffix}`)) suffix += 1;
+  return `${base}-${suffix}`;
+}
+
 function getRestoredWireframeUiState(
   tabData: WireframesTabData | undefined,
   isGenerating: boolean,
@@ -50,12 +68,13 @@ function getRestoredWireframeUiState(
     };
   }
 
+  const hasGeneratedOutput = tabData.generatedScreens.some(hasRenderableWireframeOutput);
   return {
-    step: (tabData.generatedScreens.length > 0
-      ? isGenerating
-        ? "generating"
-        : "results"
-      : "choose-kind") as WireframeStep,
+    step: (isGenerating
+      ? "generating"
+      : hasGeneratedOutput
+        ? "results"
+        : "choose-kind") as WireframeStep,
     wireframeKind: tabData.wireframeKind as WireframeKindChoice,
     brandSource: tabData.brandSource as BrandSourceChoice,
     styleDirectionId: tabData.styleDirectionId,
@@ -79,9 +98,13 @@ export function WireframesTab({
   const figmaExport = useFigmaWireframeExport(project.id);
   const deliveryExport = useWireframeDeliveryExport(project.id);
   const nativeConnections = useQuery(api.integrations.contentPlatforms.getNativeConnectionStatus, {});
+  const clearWireframeScreens = useMutation(api.projectAi.clearWireframeScreens);
   const [exportAsset, setExportAsset] = useState<WireframeAssetCard | null>(null);
   const [regenerateMode, setRegenerateMode] = useState(false);
   const [selectedRegenerateIds, setSelectedRegenerateIds] = useState<Set<string>>(() => new Set());
+  const [deleteMode, setDeleteMode] = useState(false);
+  const [selectedDeleteIds, setSelectedDeleteIds] = useState<Set<string>>(() => new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
   // The regenerate flow re-uses the artifact's brand source by default, but the
   // user may want to switch (e.g. from a brand-kit result they don't like back
   // to a moodboard style guide). These mirror the live selection the picker
@@ -115,6 +138,7 @@ export function WireframesTab({
   // Results metadata is read live from the artifact so a fresh run (e.g. a Hi-Fi conversion)
   // always reflects the latest generation instead of stale mirrored state.
   const generatedScreens = wireframesTab.data?.tabData.generatedScreens ?? [];
+  const hasGeneratedOutput = generatedScreens.some(hasRenderableWireframeOutput);
   const generatedAt = wireframesTab.data?.tabData.generatedAt;
   const generatedAtLabel =
     wireframesTab.data?.tabData.generatedAtLabel ?? MOCK_WIREFRAMES_GENERATED_AT_LABEL;
@@ -158,9 +182,13 @@ export function WireframesTab({
     setBrandSource(tabData.brandSource);
     setStyleDirectionId(tabData.styleDirectionId);
     setScreens(tabData.configureScreens);
-    if (tabData.generatedScreens.length > 0) {
-      setStep(wireframesTab.isGenerating ? "generating" : "results");
-    }
+    setStep(
+      wireframesTab.isGenerating
+        ? "generating"
+        : tabData.generatedScreens.some(hasRenderableWireframeOutput)
+          ? "results"
+          : "choose-kind",
+    );
   }, [project.id, wireframesTab.data, wireframesTab.isGenerating, wireframesTab.isRunsLoading]);
 
   function continueFromSource(source: BrandSource) {
@@ -252,14 +280,14 @@ export function WireframesTab({
       return;
     }
     if (!wireframesTab.isGenerating && wireframesTab.data) {
-      setStep("results");
+      setStep(hasGeneratedOutput ? "results" : "configure");
       return;
     }
     if (!wireframesTab.isGenerating && wireframesTab.error) {
-      setStep(wireframeKind === "hifi" && generatedScreens.length > 0 ? "results" : "configure");
+      setStep(wireframeKind === "hifi" && hasGeneratedOutput ? "results" : "configure");
     }
   }, [
-    generatedScreens.length,
+    hasGeneratedOutput,
     step,
     wireframeKind,
     wireframesTab.data,
@@ -385,6 +413,10 @@ export function WireframesTab({
           wireframeKind={wireframeKind ?? "lofi"}
           screens={screens}
           selectedCount={selectedCount}
+          providerOptions={wireframesTab.providerOptions}
+          selectedProviderId={wireframesTab.selectedProviderId}
+          onSelectProvider={wireframesTab.selectProvider}
+          onBackToResults={hasGeneratedOutput ? () => setStep("results") : undefined}
           onChangeType={() => setStep("choose-kind")}
           onAddBrandKit={() => {
             setWireframeKind("hifi");
@@ -399,6 +431,26 @@ export function WireframesTab({
               ),
             )
           }
+          onAddScreen={(draft) =>
+            setScreens((current) => [
+              ...current,
+              {
+                id: createScreenId(draft.title, current.map((screen) => screen.id)),
+                ...draft,
+                priority: "P2",
+                required: false,
+                selected: true,
+              },
+            ])
+          }
+          onEditScreen={(id, draft) =>
+            setScreens((current) =>
+              current.map((screen) => (screen.id === id ? { ...screen, ...draft } : screen)),
+            )
+          }
+          onDeleteScreen={(id) =>
+            setScreens((current) => current.filter((screen) => screen.id !== id))
+          }
           onGenerate={() => {
             void generateWireframes();
           }}
@@ -410,6 +462,16 @@ export function WireframesTab({
           <GeneratingStep
             mode={wireframesTab.isRegenerateRun ? "regenerate" : "generate"}
             screenCount={wireframesTab.regeneratingScreenIds?.length ?? selectedRegenerateIds.size}
+            onCancel={() => {
+              void wireframesTab
+                .cancelWireframes()
+                .then(() => {
+                  setStep(hasGeneratedOutput ? "results" : "configure");
+                })
+                .catch((error) => {
+                  console.error("[wireframes] cancel failed", error);
+                });
+            }}
           />
         </CanvasShell>
       ) : null}
@@ -500,6 +562,66 @@ export function WireframesTab({
               })
               .catch(() => undefined);
           }}
+          onManageScreens={() => {
+            setRegenerateMode(false);
+            setDeleteMode(false);
+            setSelectedRegenerateIds(new Set());
+            setSelectedDeleteIds(new Set());
+            setStep("configure");
+          }}
+          deleteMode={deleteMode}
+          selectedDeleteIds={selectedDeleteIds}
+          onStartDelete={() => {
+            setRegenerateMode(false);
+            setSelectedRegenerateIds(new Set());
+            setDeleteMode(true);
+            setSelectedDeleteIds(new Set());
+          }}
+          onCancelDelete={() => {
+            setDeleteMode(false);
+            setSelectedDeleteIds(new Set());
+          }}
+          onToggleDeleteSelection={(cardId) => {
+            setSelectedDeleteIds((current) => {
+              const next = new Set(current);
+              if (next.has(cardId)) next.delete(cardId);
+              else next.add(cardId);
+              return next;
+            });
+          }}
+          onConfirmDelete={() => {
+            const screenIds = Array.from(selectedDeleteIds);
+            if (screenIds.length === 0 || isDeleting) return;
+            if (!window.confirm(`Delete ${screenIds.length} selected wireframe${screenIds.length === 1 ? "" : "s"}?`)) {
+              return;
+            }
+
+            setIsDeleting(true);
+            void clearWireframeScreens({
+              projectId: project.id as Id<"projects">,
+              screenIds,
+            })
+              .then(() => {
+                setScreens((current) =>
+                  current.map((screen) =>
+                    screenIds.includes(screen.id) ? { ...screen, selected: false } : screen,
+                  ),
+                );
+                setDeleteMode(false);
+                setSelectedDeleteIds(new Set());
+                if (screenIds.length === generatedCards.length) {
+                  setWireframeKind(null);
+                  setBrandSource(null);
+                  setStyleDirectionId(null);
+                  setStep("choose-kind");
+                }
+              })
+              .catch((error) => {
+                console.error("[wireframes] delete failed", error);
+              })
+              .finally(() => setIsDeleting(false));
+          }}
+          isDeleting={isDeleting}
           regeneratePicker={
             regenerateMode ? (
               <div className="flex flex-wrap items-center gap-3 rounded-[8px] bg-white p-3 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">

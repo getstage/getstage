@@ -158,20 +158,24 @@ export function ProjectExportDialog({
       if (result.cancelled) return;
 
       const assetNote = result.failedAssets.length
-        ? ` ${result.failedAssets.length} asset${result.failedAssets.length === 1 ? "" : "s"} could not be downloaded; the project documents were still exported.`
+        ? ` ${result.failedAssets.length} file${result.failedAssets.length === 1 ? "" : "s"} could not be downloaded.`
         : "";
       if (result.launchError) {
         setResultMessage(
-          `Exported to ${result.directoryPath}. ${result.launchError}${assetNote}`,
+          `Project workspace exported, but the coding agent could not be opened. ${result.launchError}${assetNote}`,
         );
       } else if (result.launchedProvider) {
         const providerName =
           result.launchedProvider === "claude" ? "Claude Code" : "Codex";
+        const promptNote =
+          result.launchedProvider === "codex"
+            ? " Paste the copied task."
+            : "";
         setResultMessage(
-          `Exported to ${result.directoryPath} and opened in ${providerName}.${assetNote}`,
+          `Project workspace opened in ${providerName}.${promptNote}${assetNote}`,
         );
       } else {
-        setResultMessage(`Exported to ${result.directoryPath}.${assetNote}`);
+        setResultMessage(`Project workspace exported.${assetNote}`);
       }
     } catch (error) {
       setErrorMessage(
@@ -197,6 +201,27 @@ export function ProjectExportDialog({
         if (!pendingAction) onClose();
       }}
     >
+      {resultMessage ? (
+        <div
+          className="fixed left-1/2 top-6 z-[60] flex w-[calc(100vw-32px)] max-w-[440px] -translate-x-1/2 items-start gap-3 rounded-[9px] border border-[#404040] bg-[#171717] px-3.5 py-3 text-[13px] leading-[1.45] text-white shadow-[0_12px_32px_rgba(10,10,10,0.24)]"
+          role="status"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <span
+            className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#8D87FF]"
+            aria-hidden="true"
+          />
+          <span className="min-w-0 flex-1 break-words">{resultMessage}</span>
+          <button
+            type="button"
+            onClick={() => setResultMessage(null)}
+            className="text-[16px] leading-none text-[#A3A3A3] hover:text-white"
+            aria-label="Dismiss export message"
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
       <div
         className="w-full max-w-[560px] rounded-[12px] bg-[#F5F5F5] p-1 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]"
         onClick={(event) => event.stopPropagation()}
@@ -210,8 +235,8 @@ export function ProjectExportDialog({
               Export project
             </h2>
             <p className="mt-1 text-[13px] leading-[1.5] text-[#525252]">
-              Stage creates a local folder with the context your coding agent
-              needs.
+              Creates a standalone local workspace with your selected project
+              documents and assets.
             </p>
           </div>
           <button
@@ -269,12 +294,6 @@ export function ProjectExportDialog({
           {errorMessage ? (
             <p className="mt-3 text-[12px] text-[#b91c1c]">{errorMessage}</p>
           ) : null}
-          {resultMessage ? (
-            <p className="mt-3 break-words text-[12px] text-[#166534]">
-              {resultMessage}
-            </p>
-          ) : null}
-
           <div className="mt-4 flex flex-wrap justify-end gap-2">
             <button
               type="button"
@@ -288,16 +307,28 @@ export function ProjectExportDialog({
               type="button"
               disabled={!canExport}
               onClick={() => void runExport("claude")}
-              className="h-9 rounded-[7px] bg-[#262626] px-3 text-[13px] font-medium text-white hover:bg-[#171717] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-9 items-center gap-2 rounded-[7px] bg-[#262626] px-3 text-[13px] font-medium text-white hover:bg-[#171717] disabled:cursor-not-allowed disabled:opacity-50"
             >
+              <img
+                src="/logos/integrations/claude.svg"
+                alt=""
+                className="h-4 w-4"
+              />
               {pendingAction === "claude" ? "Opening…" : "Open in Claude Code"}
             </button>
             <button
               type="button"
               disabled={!canExport}
               onClick={() => void runExport("codex")}
-              className="h-9 rounded-[7px] bg-gradient-to-b from-[#8D87FF] to-[#6D67D8] px-3 text-[13px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-9 items-center gap-2 rounded-[7px] bg-gradient-to-b from-[#8D87FF] to-[#6D67D8] px-3 text-[13px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
+              <span className="flex h-5 w-5 items-center justify-center rounded-[5px] bg-white">
+                <img
+                  src="/logos/integrations/codex.svg"
+                  alt=""
+                  className="h-4 w-4"
+                />
+              </span>
               {pendingAction === "codex" ? "Opening…" : "Open in Codex"}
             </button>
           </div>

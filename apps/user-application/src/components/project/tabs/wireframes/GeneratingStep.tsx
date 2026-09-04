@@ -1,11 +1,14 @@
 import { DoneCircleIcon, PendingIcon, SpinnerIcon } from "./wireframesIcons";
+import { SecondaryButton } from "./WireframePrimitives";
 
 export function GeneratingStep({
   mode = "generate",
   screenCount,
+  onCancel,
 }: {
   mode?: "generate" | "regenerate";
   screenCount?: number;
+  onCancel?: () => void;
 }) {
   const isRegenerate = mode === "regenerate";
   const regenerateSubtitle =
@@ -39,6 +42,11 @@ export function GeneratingStep({
         <ProgressRow loading label={isRegenerate ? "Regenerating Screens" : "Creating Layouts"} />
         <ProgressRow label={isRegenerate ? "Updating Wireframes" : "Create Wireframes"} />
       </div>
+      {onCancel ? (
+        <SecondaryButton size="action" onClick={onCancel}>
+          Cancel
+        </SecondaryButton>
+      ) : null}
     </div>
   );
 }

@@ -2,9 +2,9 @@ import { execFile } from "node:child_process";
 import { lookup } from "node:dns/promises";
 import { mkdir, writeFile } from "node:fs/promises";
 import { isIP } from "node:net";
-import { extname, resolve, sep } from "node:path";
+import { resolve, sep } from "node:path";
 import { promisify } from "node:util";
-import { dialog, shell } from "electron";
+import { clipboard, dialog, shell } from "electron";
 import {
   projectExportRequestSchema,
   projectExportResponseSchema,
@@ -133,23 +133,9 @@ async function fetchAsset(asset: ProjectExportAsset) {
     if (bytes.byteLength > MAX_ASSET_BYTES) {
       throw new Error("Asset is larger than 25 MB.");
     }
-    return { bytes, contentType: response.headers.get("content-type") };
+    return bytes;
   }
   throw new Error("Asset download failed.");
-}
-
-function extensionFor(contentType: string | null) {
-  const mimeType = contentType?.split(";", 1)[0]?.trim().toLowerCase();
-  return (
-    {
-      "image/jpeg": ".jpg",
-      "image/png": ".png",
-      "image/webp": ".webp",
-      "image/gif": ".gif",
-      "image/svg+xml": ".svg",
-      "application/pdf": ".pdf",
-    }[mimeType ?? ""] ?? ".asset"
-  );
 }
 
 async function writeAssets(
@@ -168,23 +154,27 @@ async function writeAssets(
       cursor += 1;
       if (!asset) continue;
       try {
-        const downloaded = await fetchAsset(asset);
-        if (totalBytes + downloaded.bytes.byteLength > MAX_TOTAL_ASSET_BYTES) {
+        const bytes = await fetchAsset(asset);
+        if (totalBytes + bytes.byteLength > MAX_TOTAL_ASSET_BYTES) {
           throw new Error("The export reached its 250 MB asset limit.");
         }
-        totalBytes += downloaded.bytes.byteLength;
-        const relativePath = extname(asset.relativePath)
-          ? asset.relativePath
-          : `${asset.relativePath}${extensionFor(downloaded.contentType)}`;
-        const destination = safeDestination(directoryPath, relativePath);
+        totalBytes += bytes.byteLength;
+        // Keep the path byte-for-byte identical to the one already written into
+        // Markdown. CDN URLs often have no extension; changing the filename here
+        // would leave a broken local link in the exported document.
+        const destination = safeDestination(directoryPath, asset.relativePath);
         if (writtenPaths.has(destination)) {
           throw new Error("Another exported asset has the same name.");
         }
         writtenPaths.add(destination);
         await mkdir(resolve(destination, ".."), { recursive: true });
-        await writeFile(destination, downloaded.bytes);
+        await writeFile(destination, bytes);
         assetCount += 1;
-      } catch {
+      } catch (error) {
+        console.warn("[stage-desktop] project export asset failed", {
+          path: asset.relativePath,
+          message: error instanceof Error ? error.message : String(error),
+        });
         failedAssets.push(asset.relativePath);
       }
     }
@@ -205,22 +195,31 @@ async function launchProvider(
     );
   }
   const pathValue = augmentPathForProviderClis(process.env.PATH);
+  let providerPath: string;
   try {
-    await execFileAsync("/usr/bin/which", [provider], {
+    const result = await execFileAsync("/usr/bin/which", [provider], {
       env: { ...process.env, PATH: pathValue },
     });
+    providerPath = result.stdout.trim();
   } catch {
     const productName = provider === "claude" ? "Claude Code" : "Codex";
     throw new Error(`${productName} is not installed or could not be found.`);
   }
 
+  if (provider === "codex") {
+    clipboard.writeText(INITIAL_PROMPT);
+    await execFileAsync(providerPath, ["app", directoryPath], {
+      env: { ...process.env, PATH: pathValue },
+    });
+    return;
+  }
+
   const script = `
 on run argv
   set workDirectory to item 1 of argv
-  set providerCommand to item 2 of argv
+  set providerExecutable to item 2 of argv
   set initialPrompt to item 3 of argv
-  set providerPath to item 4 of argv
-  set shellCommand to "cd " & quoted form of workDirectory & " && PATH=" & quoted form of providerPath & " exec " & providerCommand & " " & quoted form of initialPrompt
+  set shellCommand to "cd " & quoted form of workDirectory & " && exec " & quoted form of providerExecutable & " " & quoted form of initialPrompt
   tell application "Terminal"
     activate
     do script shellCommand
@@ -231,9 +230,8 @@ end run`;
     script,
     "--",
     directoryPath,
-    provider,
+    providerPath,
     INITIAL_PROMPT,
-    pathValue,
   ]);
 }
 

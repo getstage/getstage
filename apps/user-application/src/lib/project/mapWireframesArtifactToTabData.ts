@@ -63,6 +63,13 @@ export type WireframeResultCard = ScreenItem & {
   figmaUrl?: string;
 };
 
+export function hasRenderableWireframeOutput(screen: WireframeGeneratedScreen): boolean {
+  return Boolean(
+    screen.html?.trim() ||
+      screen.sections?.some((section) => (section.blocks?.length ?? 0) > 0),
+  );
+}
+
 export function buildResultCards(
   screens: ScreenItem[],
   generatedAtLabel: string,
@@ -74,20 +81,24 @@ export function buildResultCards(
 
   return screens
     .filter((screen) => screen.selected)
-    .slice(0, limit)
-    .map((screen) => {
+    .flatMap((screen) => {
       const generated = generatedById.get(screen.id);
-      return {
+      if (!generated || !hasRenderableWireframeOutput(generated)) {
+        return [];
+      }
+
+      return [{
         ...screen,
-        date: generated?.generatedAtLabel ?? generatedAtLabel,
+        date: generated.generatedAtLabel ?? generatedAtLabel,
         // Per-screen timestamp so a partial regen only bumps the regenerated
         // cards; fall back to the artifact time, then to the `date` label string
         // (via WireframeCard) when neither numeric time exists.
-        generatedAt: generated?.generatedAt ?? generatedAt,
-        goal: generated?.goal,
-        sections: generated?.sections,
-        html: generated?.html,
-        figmaUrl: generated?.figmaUrl,
-      };
-    });
+        generatedAt: generated.generatedAt ?? generatedAt,
+        goal: generated.goal,
+        sections: generated.sections,
+        html: generated.html,
+        figmaUrl: generated.figmaUrl,
+      }];
+    })
+    .slice(0, limit);
 }
