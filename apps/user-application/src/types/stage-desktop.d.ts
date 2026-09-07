@@ -15,6 +15,7 @@ import type {
   EngineStatus,
   IntegrationOAuthResult,
   PermissionKind,
+  ProjectExportAppsResponse,
   ProjectExportRequest,
   ProjectExportResponse,
 } from "@shared/models/desktop";
@@ -52,6 +53,7 @@ export type StageDesktopApi = {
   };
   project: {
     export: (request: ProjectExportRequest) => Promise<ProjectExportResponse>;
+    listExportApps: () => Promise<ProjectExportAppsResponse>;
   };
   engine: {
     getStatus: () => Promise<EngineStatus>;

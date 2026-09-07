@@ -78,7 +78,7 @@ import {
   RUN_EVENT_STREAM_MAX_MS,
   RUN_EVENT_STREAM_RECONNECT_DELAY_MS,
 } from "./helpers/engine-constants";
-import { exportStageProject } from "./helpers/project-export";
+import { exportStageProject, listExportApps } from "./helpers/project-export";
 
 const activeRunStreams = new Map<string, AbortController>();
 
@@ -165,6 +165,10 @@ export function registerIpcHandlers({
 
   ipcMain.handle(IPC_CHANNELS.projectExport, async (_event, request: unknown) => {
     return exportStageProject(projectExportRequestSchema.parse(request));
+  });
+
+  ipcMain.handle(IPC_CHANNELS.projectListExportApps, async () => {
+    return listExportApps();
   });
 
   ipcMain.handle(IPC_CHANNELS.engineGetStatus, async () => {

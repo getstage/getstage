@@ -37,6 +37,8 @@ export type ComponentPackCatalogItem = {
    */
   packKind: "base" | "sections" | "primitives" | "charts";
   installsLabel: string;
+  /** Public docs or GitHub URL — exported as a reference, never an R2 path. */
+  sourceUrl?: string;
   /** Stage Hi-Fi prompt hints only — not a skills.sh package */
   promptHint: string;
 };
@@ -207,6 +209,7 @@ export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
     category: "SaaS",
     packKind: "base",
     installsLabel: "246.7K Installs",
+    sourceUrl: "https://ui.shadcn.com",
     promptHint:
       "Prefer clean shadcn-like patterns: rounded-md controls, bordered cards, clear Label+Input forms, muted secondary text.",
   },
@@ -220,6 +223,7 @@ export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
     category: "SaaS",
     packKind: "primitives",
     installsLabel: "989 Installs",
+    sourceUrl: "https://www.radix-ui.com",
     promptHint:
       "Use accessible dialog/popover/select patterns with clear focus rings and semantic roles.",
   },
@@ -233,6 +237,7 @@ export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
     category: "SaaS",
     packKind: "sections",
     installsLabel: "543 Installs",
+    sourceUrl: "https://magicui.design",
     promptHint:
       "Add restrained motion-ready structure (hero reveals, subtle card lift) without requiring JS in the HTML fragment.",
   },
@@ -246,6 +251,7 @@ export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
     category: "SaaS",
     packKind: "sections",
     installsLabel: "1.1K Installs",
+    sourceUrl: "https://ui.aceternity.com",
     promptHint:
       "SaaS/AI product layouts: bold hero typography, feature bento sections, polished pricing and CTA blocks.",
   },
@@ -259,6 +265,7 @@ export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
     category: "SaaS",
     packKind: "base",
     installsLabel: "Not listed on skills.sh",
+    sourceUrl: "https://kokonutui.com",
     promptHint:
       "Dashboard/SaaS density: clear data panels, metric strips, and structured app chrome when screens are product UI.",
   },
@@ -272,6 +279,7 @@ export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
     category: "SaaS",
     packKind: "base",
     installsLabel: "Not listed on skills.sh",
+    sourceUrl: "https://originui.com",
     promptHint:
       "Application blocks with production spacing and clear section separators — practical, not decorative.",
   },
@@ -285,6 +293,7 @@ export const COMPONENT_PACK_CATALOG: readonly ComponentPackCatalogItem[] = [
     category: "SaaS",
     packKind: "base",
     installsLabel: "5.2K Installs",
+    sourceUrl: "https://mantine.dev",
     promptHint:
       "Accessible form and notification patterns with consistent control heights and readable contrast.",
   },

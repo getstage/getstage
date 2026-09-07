@@ -302,6 +302,8 @@ export function ProjectDetailView() {
               ? live.detail.typeOtherLabel
               : PROJECT_TYPE_LABELS[live.detail.type]
           }
+          skillIds={live.detail.skillIds ?? []}
+          componentPackIds={live.detail.componentPackIds ?? []}
           onClose={() => setIsExportModalOpen(false)}
         />
       ) : null}

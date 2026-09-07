@@ -186,7 +186,21 @@ export const desktopUpdateStatusSchema = z.object({
   downloaded: z.boolean().optional(),
 });
 
-export const projectExportProviderSchema = z.enum(["claude", "codex"]);
+export const projectExportProviderSchema = z.enum([
+  "claude",
+  "codex",
+  "cursor",
+  "vscode",
+]);
+
+export const projectExportAppsResponseSchema = z.object({
+  apps: z.array(
+    z.object({
+      id: projectExportProviderSchema,
+      available: z.boolean(),
+    }),
+  ),
+});
 
 export const projectExportFileSchema = z.object({
   relativePath: z.string().min(1).max(240),
@@ -217,6 +231,7 @@ export const projectExportResponseSchema = z.object({
 
 export type DesktopUpdateStatus = z.infer<typeof desktopUpdateStatusSchema>;
 export type ProjectExportProvider = z.infer<typeof projectExportProviderSchema>;
+export type ProjectExportAppsResponse = z.infer<typeof projectExportAppsResponseSchema>;
 export type ProjectExportFile = z.infer<typeof projectExportFileSchema>;
 export type ProjectExportAsset = z.infer<typeof projectExportAssetSchema>;
 export type ProjectExportRequest = z.infer<typeof projectExportRequestSchema>;

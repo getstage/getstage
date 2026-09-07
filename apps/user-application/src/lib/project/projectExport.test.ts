@@ -8,7 +8,7 @@ import type {
   StrategyArtifact,
   WireframesArtifact,
 } from "@stage/data-ops/contracts";
-import { buildProjectExport } from "./projectExport";
+import { buildProjectExport, hasExportableWireframes } from "./projectExport";
 
 const research = {
   apiVersion: "v1",
@@ -328,4 +328,61 @@ test("every exported project section uses curated readable Markdown", () => {
   for (const markdown of Object.values(content)) {
     assert.doesNotMatch(markdown, /```json|artifactKind|project-1|section-1|block-1/);
   }
+});
+
+test("hasExportableWireframes requires generated screens, not just an artifact", () => {
+  assert.equal(hasExportableWireframes(wireframes), true);
+  assert.equal(
+    hasExportableWireframes({ ...wireframes, generatedScreens: [] }),
+    false,
+  );
+  assert.equal(hasExportableWireframes(null), false);
+});
+
+test("buildProjectExport writes selected skills and libraries as public URLs", () => {
+  const bundle = buildProjectExport({
+    project: { name: "Example", clientName: "Client", typeLabel: "Web App" },
+    selected: new Set(["strategy"]),
+    artifacts: { strategy },
+    uploadedAssets: [],
+    skillIds: ["design-taste-frontend", "frontend-design"],
+    componentPackIds: ["shadcn-ui", "magic-ui"],
+  });
+  const content = Object.fromEntries(
+    bundle.files.map((exportedFile) => [exportedFile.relativePath, exportedFile.content]),
+  );
+
+  assert.ok(bundle.files.some(({ relativePath }) => relativePath === "skills.md"));
+  assert.match(content["AGENTS.md"] ?? "", /skills\.md/);
+  assert.match(
+    content["skills.md"] ?? "",
+    /\[Design Taste\]\(https:\/\/github\.com\/Leonxlnx\/taste-skill\)/,
+  );
+  assert.match(
+    content["skills.md"] ?? "",
+    /\[Frontend Design\]\(https:\/\/github\.com\/anthropics\/skills\/tree\/main\/skills\/frontend-design\)/,
+  );
+  assert.match(content["skills.md"] ?? "", /\[shadcn\/ui\]\(https:\/\/ui\.shadcn\.com\)/);
+  assert.match(content["skills.md"] ?? "", /\[Magic UI\]\(https:\/\/magicui\.design\)/);
+  assert.doesNotMatch(
+    content["skills.md"] ?? "",
+    /r2\.cloudflarestorage|X-Amz-|AWSAccessKeyId|localhost|\.r2\.dev/i,
+  );
+});
+
+test("buildProjectExport omits skills.md when nothing is selected", () => {
+  const bundle = buildProjectExport({
+    project: { name: "Example", clientName: "Client", typeLabel: "Web App" },
+    selected: new Set(["strategy"]),
+    artifacts: { strategy },
+    uploadedAssets: [],
+    skillIds: [],
+    componentPackIds: [],
+  });
+
+  assert.equal(
+    bundle.files.some(({ relativePath }) => relativePath === "skills.md"),
+    false,
+  );
+  assert.doesNotMatch(bundle.files[0]?.content ?? "", /skills\.md/);
 });

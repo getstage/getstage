@@ -1,11 +1,14 @@
 import { execFile } from "node:child_process";
 import { lookup } from "node:dns/promises";
+import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { isIP } from "node:net";
+import { homedir } from "node:os";
 import { resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { clipboard, dialog, shell } from "electron";
 import {
+  projectExportAppsResponseSchema,
   projectExportRequestSchema,
   projectExportResponseSchema,
   type ProjectExportAsset,
@@ -20,6 +23,79 @@ const MAX_ASSET_BYTES = 25 * 1024 * 1024;
 const MAX_TOTAL_ASSET_BYTES = 250 * 1024 * 1024;
 const INITIAL_PROMPT =
   "Read AGENTS.md first. Then review every exported project file and relevant asset. Summarize your understanding and propose an implementation plan before changing any files.";
+
+const EXPORT_APP_LABELS: Record<ProjectExportProvider, string> = {
+  claude: "Claude Code",
+  codex: "Codex",
+  cursor: "Cursor",
+  vscode: "VS Code",
+};
+
+const EXPORT_APP_BINARIES: Record<ProjectExportProvider, string> = {
+  claude: "claude",
+  codex: "codex",
+  cursor: "cursor",
+  vscode: "code",
+};
+
+const EXPORT_APP_MAC_NAMES: Record<ProjectExportProvider, string> = {
+  claude: "Claude",
+  codex: "Codex",
+  cursor: "Cursor",
+  vscode: "Visual Studio Code",
+};
+
+async function resolveBinary(binary: string): Promise<string | null> {
+  const pathValue = augmentPathForProviderClis(process.env.PATH);
+  try {
+    const result = await execFileAsync("/usr/bin/which", [binary], {
+      env: { ...process.env, PATH: pathValue },
+    });
+    const found = result.stdout.trim();
+    return found || null;
+  } catch {
+    return null;
+  }
+}
+
+function macAppExists(appName: string) {
+  return (
+    existsSync(`/Applications/${appName}.app`) ||
+    existsSync(`${homedir()}/Applications/${appName}.app`)
+  );
+}
+
+/** Launch Services, so the app does not have to live in /Applications. */
+async function macAppAvailable(appName: string) {
+  try {
+    await execFileAsync("/usr/bin/open", ["-Ra", appName]);
+    return true;
+  } catch {
+    return macAppExists(appName);
+  }
+}
+
+function usesGuiApp(id: ProjectExportProvider) {
+  return id === "cursor" || id === "vscode";
+}
+
+export async function listExportApps() {
+  const isDarwin = process.platform === "darwin";
+  const apps = await Promise.all(
+    (Object.keys(EXPORT_APP_LABELS) as ProjectExportProvider[]).map(async (id) => {
+      if (!isDarwin) {
+        return { id, available: false };
+      }
+      return {
+        id,
+        available: usesGuiApp(id)
+          ? await macAppAvailable(EXPORT_APP_MAC_NAMES[id])
+          : Boolean(await resolveBinary(EXPORT_APP_BINARIES[id])),
+      };
+    }),
+  );
+  return projectExportAppsResponseSchema.parse({ apps });
+}
 
 function slugifyProjectName(projectName: string) {
   const slug = projectName
@@ -191,30 +267,28 @@ async function launchProvider(
 ) {
   if (process.platform !== "darwin") {
     throw new Error(
-      "Automatic Claude Code and Codex launch is currently available on macOS.",
+      "Automatic coding-tool launch is currently available on macOS.",
     );
   }
+
   const pathValue = augmentPathForProviderClis(process.env.PATH);
-  let providerPath: string;
-  try {
-    const result = await execFileAsync("/usr/bin/which", [provider], {
-      env: { ...process.env, PATH: pathValue },
-    });
-    providerPath = result.stdout.trim();
-  } catch {
-    const productName = provider === "claude" ? "Claude Code" : "Codex";
-    throw new Error(`${productName} is not installed or could not be found.`);
+  const label = EXPORT_APP_LABELS[provider];
+  const binary = await resolveBinary(EXPORT_APP_BINARIES[provider]);
+  const copiesPrompt = provider !== "claude";
+
+  if (copiesPrompt) {
+    clipboard.writeText(INITIAL_PROMPT);
   }
 
-  if (provider === "codex") {
-    clipboard.writeText(INITIAL_PROMPT);
-    await execFileAsync(providerPath, ["app", directoryPath], {
+  if (provider === "codex" && binary) {
+    await execFileAsync(binary, ["app", directoryPath], {
       env: { ...process.env, PATH: pathValue },
     });
     return;
   }
 
-  const script = `
+  if (provider === "claude" && binary) {
+    const script = `
 on run argv
   set workDirectory to item 1 of argv
   set providerExecutable to item 2 of argv
@@ -225,14 +299,27 @@ on run argv
     do script shellCommand
   end tell
 end run`;
-  await execFileAsync("/usr/bin/osascript", [
-    "-e",
-    script,
-    "--",
-    directoryPath,
-    providerPath,
-    INITIAL_PROMPT,
-  ]);
+    await execFileAsync("/usr/bin/osascript", [
+      "-e",
+      script,
+      "--",
+      directoryPath,
+      binary,
+      INITIAL_PROMPT,
+    ]);
+    return;
+  }
+
+  if (usesGuiApp(provider)) {
+    await execFileAsync("/usr/bin/open", [
+      "-a",
+      EXPORT_APP_MAC_NAMES[provider],
+      directoryPath,
+    ]);
+    return;
+  }
+
+  throw new Error(`${label} is not installed or could not be found.`);
 }
 
 export async function exportStageProject(
