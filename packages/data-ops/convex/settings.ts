@@ -30,3 +30,8 @@ export const deleteAccount = action({
   args: handlers.deleteAccountArgs,
   handler: handlers.deleteAccountHandler,
 });
+
+export const updateSkillHubPrefs = mutation({
+  args: handlers.updateSkillHubPrefsArgs,
+  handler: handlers.updateSkillHubPrefsHandler,
+});

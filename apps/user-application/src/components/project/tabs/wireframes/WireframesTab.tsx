@@ -33,6 +33,9 @@ import { WireframeKindChooser } from "./WireframeKindChooser";
 
 type WireframesTabProps = {
   project: Project;
+  skillIds: readonly string[];
+  componentPackIds: readonly string[];
+  onSaveSkills: (input: { skillIds: string[]; componentPackIds: string[] }) => Promise<void>;
   onGoToResearch?: () => void;
   onGoToStrategy?: () => void;
   onGoToFlows?: () => void;
@@ -84,6 +87,9 @@ function getRestoredWireframeUiState(
 
 export function WireframesTab({
   project,
+  skillIds,
+  componentPackIds,
+  onSaveSkills,
   onGoToResearch,
   onGoToStrategy,
   onGoToFlows,
@@ -413,6 +419,9 @@ export function WireframesTab({
           wireframeKind={wireframeKind ?? "lofi"}
           screens={screens}
           selectedCount={selectedCount}
+          skillIds={skillIds}
+          componentPackIds={componentPackIds}
+          onSaveSkills={onSaveSkills}
           providerOptions={wireframesTab.providerOptions}
           selectedProviderId={wireframesTab.selectedProviderId}
           onSelectProvider={wireframesTab.selectProvider}

@@ -31,6 +31,9 @@ const PROJECT_STEP_LABELS: Record<StepTab, string> = {
   assets: "Assets",
 };
 
+/** Stable identity for the frame before the project detail has loaded. */
+const NO_SELECTION: readonly string[] = [];
+
 const ProjectStepView = lazy(() =>
   import("./ProjectStepView").then((module) => ({
     default: module.ProjectStepView,
@@ -265,6 +268,9 @@ export function ProjectDetailView() {
               <ProjectStepView
                 activeTab={activeTab as StepTab}
                 project={project}
+                skillIds={live.detail?.skillIds ?? NO_SELECTION}
+                componentPackIds={live.detail?.componentPackIds ?? NO_SELECTION}
+                onSaveSkills={actions.saveSkills}
                 artifactQueriesEnabled={artifactQueriesEnabled}
                 pendingStrategyGeneration={pendingStrategyGeneration}
                 pendingStrategyProviderId={pendingStrategyProviderId}

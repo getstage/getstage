@@ -21,6 +21,8 @@ export type UpdateProjectInput = {
   endDate?: number;
   status?: "active" | "paused" | "completed";
   enabledSteps?: string[];
+  skillIds?: string[];
+  componentPackIds?: string[];
 };
 
 export function useUpdateProjectMutation() {

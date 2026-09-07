@@ -4,6 +4,7 @@ import { AiRunSettings } from "@/components/project/AiRunSettings";
 import type { ResearchProviderOption } from "@/hooks/project/research/useResearchProviderSelection";
 import type { ScreenItem, WireframeKind } from "@/types/project/wireframesTab";
 import { Badge, PrimaryButton, SecondaryButton } from "./WireframePrimitives";
+import { WireframeRunSelection } from "./WireframeRunSelection";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -25,6 +26,9 @@ export function ConfigureStep({
   wireframeKind,
   screens,
   selectedCount,
+  skillIds,
+  componentPackIds,
+  onSaveSkills,
   providerOptions,
   selectedProviderId,
   onSelectProvider,
@@ -40,6 +44,9 @@ export function ConfigureStep({
   wireframeKind: WireframeKind;
   screens: ScreenItem[];
   selectedCount: number;
+  skillIds: readonly string[];
+  componentPackIds: readonly string[];
+  onSaveSkills: (input: { skillIds: string[]; componentPackIds: string[] }) => Promise<void>;
   providerOptions: ResearchProviderOption[];
   selectedProviderId: ProviderId | null;
   onSelectProvider: (providerId: ProviderId) => void;
@@ -94,6 +101,16 @@ export function ConfigureStep({
           </div>
         </div>
       </div>
+
+      {wireframeKind === "hifi" ? (
+        <div className="mb-1">
+          <WireframeRunSelection
+            skillIds={skillIds}
+            componentPackIds={componentPackIds}
+            onSave={onSaveSkills}
+          />
+        </div>
+      ) : null}
 
       <div className="rounded-[8px] bg-white p-11 shadow-[0_0.45px_0.5px_rgba(10,10,10,0.25)]">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 text-[15px] font-medium leading-[1.25] text-[#171717]">

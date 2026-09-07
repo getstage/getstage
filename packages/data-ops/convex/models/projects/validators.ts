@@ -38,6 +38,10 @@ export const createProjectArgsValidator = {
   phases: v.optional(v.array(phaseCreationInputValidator)),
 } as const;
 
+export function normalizeCatalogIds(ids: string[]): string[] {
+  return Array.from(new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0))).slice(0, 32);
+}
+
 /** Convex `v.object` for `Infer<>` / desktop handlers. */
 export const createProjectArgsObject = v.object(createProjectArgsValidator);
 
